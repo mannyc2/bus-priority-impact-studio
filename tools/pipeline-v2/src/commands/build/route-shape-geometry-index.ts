@@ -1,14 +1,13 @@
 import {
   type BuildRouteShapeGeometryIndexResult,
   runBuildRouteShapeGeometryIndexFromShapes,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { normalizeRouteShapeRows } from "@bp/sources/adapters/mta/routes-stops";
 import { defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import {
   dbOptions,
-  localDbFromCtx,
   type OpenLocalPipelineDb,
-  withLocalDb,
 } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 
@@ -21,7 +20,7 @@ export type BuildRouteShapeGeometryIndexInputs = {
   snapshotPath?: string | undefined;
 };
 
-export type { BuildRouteShapeGeometryIndexResult } from "@bp/applied-research/local-db";
+export type { BuildRouteShapeGeometryIndexResult } from "@bp/pipeline-v2/local-db-aggregates";
 
 export async function runBuildRouteShapeGeometryIndex(
   inputs: BuildRouteShapeGeometryIndexInputs,
@@ -48,17 +47,23 @@ export default defineCommand({
         .describe(`Snapshot path (defaults to data/raw/network/current_bus_routes.json)`),
     }),
   },
-  middleware: [withLocalDb({ spatial: true })],
   output: z.object({
     shapesRead: z.number(),
     inserted: z.number(),
     skipped: z.number(),
   }),
-  async run({ ctx, input }) {
+  async run({ input }) {
     const snapshot = input.options.snapshot;
-    return runBuildRouteShapeGeometryIndex({
-      local: localDbFromCtx(ctx),
-      snapshotPath: snapshot === undefined ? undefined : fromCliPath(snapshot),
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      localDbOptions: { spatial: true },
+      command: "build.route-shape-geometry-index",
+      operation: "runBuildRouteShapeGeometryIndex",
+      run: (local) =>
+        runBuildRouteShapeGeometryIndex({
+          local,
+          snapshotPath: snapshot === undefined ? undefined : fromCliPath(snapshot),
+        }),
     });
   },
 });

@@ -102,6 +102,20 @@ afterEach(async () => {
 });
 
 describe("Tier 2 document event route resolution", () => {
+  test("loads local DB reference data through the Effect boundary", async () => {
+    const source = await Bun.file(
+      new URL(
+        "../../../../src/commands/docs/tier2/_event-route-resolution.ts",
+        import.meta.url,
+      ),
+    ).text();
+
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("localDbOptions: { readonly: true }");
+    expect(source).toContain('import type { Database } from "bun:sqlite"');
+    expect(source).not.toContain("new Database");
+  });
+
   test("classifies process-only events before treatment-looking text", () => {
     const classification = classifyTier2Event(
       eventRow({

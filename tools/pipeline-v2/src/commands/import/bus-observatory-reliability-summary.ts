@@ -4,13 +4,9 @@ import {
   listRouteCatalog,
   replaceRouteObservedReliabilityRows,
 } from "@bp/db/local";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 
 type SummaryRow = LocalRouteObservedReliabilitySummary;
@@ -278,7 +274,6 @@ export default defineCommand({
         .describe("Fill missing catalog routes with insufficient placeholders"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     month: z.string(),
     runId: z.string(),
@@ -291,14 +286,27 @@ export default defineCommand({
     sampleCount: z.number(),
     skippedNonCatalogRouteCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runImportBusObservatoryReliabilitySummary({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      runId: input.options.runId,
-      summaryCsv: fromCliPath(input.options.summaryCsv),
-      fillCatalog: input.options.fillCatalog,
+  async run({ input }) {
+    const summaryCsv = fromCliPath(input.options.summaryCsv);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "import.bus-observatory-reliability-summary",
+      operation: "runImportBusObservatoryReliabilitySummary",
+      spanAttributes: {
+        runId: input.options.runId,
+        year: input.options.year,
+        month: input.options.month,
+        fillCatalog: input.options.fillCatalog,
+      },
+      run: (local) =>
+        runImportBusObservatoryReliabilitySummary({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          runId: input.options.runId,
+          summaryCsv,
+          fillCatalog: input.options.fillCatalog,
+        }),
     });
   },
 });

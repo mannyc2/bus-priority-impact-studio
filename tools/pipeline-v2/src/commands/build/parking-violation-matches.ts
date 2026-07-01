@@ -1,6 +1,6 @@
 import { mkdir, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { parkingViolationMatchAuditPath } from "@bp/applied-research/artifacts";
+import { parkingViolationMatchAuditPath } from "@bp/analytics/artifacts";
 import {
   buildParkingViolationMatchAuditArtifact,
   countParkingViolationLocationGroups,
@@ -11,16 +11,15 @@ import {
   refreshParkingViolationLocationKeys,
   runBuildParkingViolationMatchesLocalDb,
   summarizeParkingViolationMatches,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import type { Geoclient } from "@bp/sources/clients/geoclient";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { createGeoclientFromEnv, Geocoder } from "../../lib/geocoder.ts";
 import { writeJson } from "../../lib/json.ts";
 import {
   dbOptions,
-  localDbFromCtx,
   type OpenLocalPipelineDb,
-  withLocalDb,
 } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 
@@ -228,7 +227,6 @@ export default defineCommand({
         .describe("Skip rebuild; just recount the current match table"),
     }),
   },
-  middleware: [withLocalDb({ spatial: true })],
   output: z.object({
     computedAt: z.string(),
     auditArtifactPath: z.string(),
@@ -243,25 +241,39 @@ export default defineCommand({
     routeCount: z.number(),
     byMatchKind: z.array(z.unknown()),
   }),
-  async run({ ctx, input }) {
-    return runBuildParkingViolationMatches({
-      local: localDbFromCtx(ctx),
-      artifactRoot:
-        input.options.artifactRoot === undefined
-          ? undefined
-          : fromCliPath(input.options.artifactRoot),
-      output: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
-      rawParkingDir:
-        input.options.rawParkingDir === undefined
-          ? undefined
-          : fromCliPath(input.options.rawParkingDir),
-      rawLionPath:
-        input.options.rawLion === undefined ? undefined : fromCliPath(input.options.rawLion),
-      hydrateRawFields: input.options.hydrateRawFields,
-      skipGeoclient: input.options.skipGeoclient,
-      maxCameraGroups: input.options.maxCameraGroups,
-      maxAddressGroups: input.options.maxAddressGroups,
-      auditOnly: input.options.auditOnly,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      localDbOptions: { spatial: true },
+      command: "build.parking-violation-matches",
+      operation: "runBuildParkingViolationMatches",
+      spanAttributes: {
+        hydrateRawFields: input.options.hydrateRawFields,
+        skipGeoclient: input.options.skipGeoclient,
+        auditOnly: input.options.auditOnly,
+        maxCameraGroups: input.options.maxCameraGroups ?? null,
+        maxAddressGroups: input.options.maxAddressGroups ?? null,
+      },
+      run: (local) =>
+        runBuildParkingViolationMatches({
+          local,
+          artifactRoot:
+            input.options.artifactRoot === undefined
+              ? undefined
+              : fromCliPath(input.options.artifactRoot),
+          output: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+          rawParkingDir:
+            input.options.rawParkingDir === undefined
+              ? undefined
+              : fromCliPath(input.options.rawParkingDir),
+          rawLionPath:
+            input.options.rawLion === undefined ? undefined : fromCliPath(input.options.rawLion),
+          hydrateRawFields: input.options.hydrateRawFields,
+          skipGeoclient: input.options.skipGeoclient,
+          maxCameraGroups: input.options.maxCameraGroups,
+          maxAddressGroups: input.options.maxAddressGroups,
+          auditOnly: input.options.auditOnly,
+        }),
     });
   },
 });

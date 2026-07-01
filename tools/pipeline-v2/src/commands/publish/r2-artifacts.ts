@@ -14,7 +14,7 @@ import {
 } from "./publish-artifact-keys.ts";
 
 const DEFAULT_PREFIXES = ["map", "studio", "source-availability", "pipeline-v1"] as const;
-const DEFAULT_MANIFEST_DIRS = ["briefs", "evaluations", "map"] as const;
+const DEFAULT_MANIFEST_DIRS = ["map"] as const;
 const DEFAULT_CONCURRENCY = 16;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_BACKOFF_MS_BASE = 5_000;

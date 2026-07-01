@@ -7,13 +7,9 @@ import {
 } from "@bp/sources/adapters/census/acs-equity";
 import { type CensusAcsFetch, fetchCensusTractEquityContext } from "@bp/sources/clients/census";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 
 const schemaVersion = 1;
@@ -91,7 +87,6 @@ export default defineCommand({
       year: arg.positiveInt().default(2024).describe("ACS-5 vintage year"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     acsYear: z.number(),
     rawPath: z.string(),
@@ -99,10 +94,19 @@ export default defineCommand({
     totalPopulation: z.number(),
     noVehicleHouseholds: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runEquityContextIngest({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.equity-context",
+      operation: "runEquityContextIngest",
+      spanAttributes: {
+        year: input.options.year,
+      },
+      run: (local) =>
+        runEquityContextIngest({
+          local,
+          year: input.options.year,
+        }),
     });
   },
 });

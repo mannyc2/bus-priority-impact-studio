@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import type { D1ServingDb } from "@bp/db/d1";
 import {
   getRouteBatchStatus,
@@ -18,7 +18,6 @@ import {
   listSelectedRouteBuildCandidates,
   listSourceMonthCoverage,
 } from "@bp/db/d1";
-import { createBunSqliteServingDb } from "@bp/db/d1/bun-sqlite";
 import type { D1SeedOutputResult } from "../export/d1.ts";
 
 type CountRow = { count: number };
@@ -45,11 +44,6 @@ export type RepositoryCheckResult = {
   firstRouteId: string | null;
 };
 
-export type LoadedD1Database = {
-  database: Database;
-  db: D1ServingDb;
-};
-
 function countTable(database: Database, tableName: string): number {
   const row = database.query<CountRow, []>(`SELECT count(*) AS count FROM ${tableName}`).get();
   return row?.count ?? 0;
@@ -58,13 +52,6 @@ function countTable(database: Database, tableName: string): number {
 function countQuery(database: Database, query: string): number {
   const row = database.query<CountRow, []>(query).get();
   return row?.count ?? 0;
-}
-
-export function loadD1Database(schemaSql: string, seedSql: string): LoadedD1Database {
-  const database = new Database(":memory:");
-  database.exec(schemaSql);
-  database.exec(seedSql);
-  return { database, db: createBunSqliteServingDb(database) };
 }
 
 const COUNTED_TABLES = [
@@ -194,8 +181,14 @@ export async function runD1RepositoryChecks(input: {
   const selectedBuildPlan = await listSelectedRouteBuildCandidates(input.db, input.month);
   const buildEligibleRoutes = await listBuildEligibleRoutes(input.db, input.month);
   const reliabilityBaselines = await listRouteReliabilityBaselines(input.db, input.month);
-  const routeObservedReliability = await listRouteObservedReliabilitySummaries(input.db, input.month);
-  const routeInterventionComparisons = await listRouteInterventionComparisons(input.db, input.month);
+  const routeObservedReliability = await listRouteObservedReliabilitySummaries(
+    input.db,
+    input.month,
+  );
+  const routeInterventionComparisons = await listRouteInterventionComparisons(
+    input.db,
+    input.month,
+  );
   const routeArtifacts = await listRouteArtifacts(input.db, input.month);
   const routeSpeedHistoryCoverage = await listRouteSpeedHistoryCoverage(input.db, input.month);
   const sourceMonthCoverage = await listSourceMonthCoverage(input.db);

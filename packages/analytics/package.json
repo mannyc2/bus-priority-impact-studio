@@ -5,14 +5,21 @@
   "description": "Deterministic local transforms and metrics.",
   "exports": {
     ".": "./src/index.ts",
+    "./artifacts": "./src/artifacts/index.ts",
     "./baselines": "./src/baselines/index.ts",
     "./calibration": "./src/calibration/index.ts",
     "./core": "./src/core/index.ts",
     "./corpus": "./src/corpus/index.ts",
     "./detectors": "./src/detectors/index.ts",
+    "./data-products": "./src/data-products/index.ts",
     "./evaluation": "./src/evaluation/index.ts",
+    "./feature-history": "./src/feature-history/index.ts",
     "./features": "./src/features/index.ts",
-    "./registry": "./src/registry/index.ts"
+    "./hotspots": "./src/hotspots.ts",
+    "./interventions": "./src/interventions/index.ts",
+    "./public-route-visibility": "./src/public-route-visibility.ts",
+    "./registry": "./src/registry/index.ts",
+    "./route-score": "./src/route-score.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false",
@@ -20,11 +27,11 @@
     "test": "bun test ./test --timeout 5000"
   },
   "dependencies": {
-    "@bp/domain": "workspace:*"
+    "@bp/domain": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "typescript": "catalog:",
-    "zod": "catalog:"
+    "typescript": "catalog:"
   }
 }

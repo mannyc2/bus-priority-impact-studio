@@ -1,14 +1,15 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { sourceCoverageLedgerPath } from "@bp/applied-research/artifacts";
-import { buildSourceCoverageLedger } from "@bp/applied-research/local-db";
+import { sourceCoverageLedgerPath } from "@bp/analytics/artifacts";
+import { buildSourceCoverageLedger } from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
-import { dbOptions, localDbFromCtx, withLocalDb } from "../../lib/local-db.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
 
-export { sourceCoverageLedgerPath } from "@bp/applied-research/artifacts";
+export { sourceCoverageLedgerPath } from "@bp/analytics/artifacts";
 export {
   buildSourceCoverageLedger,
   type DetectorEligibility,
@@ -19,7 +20,7 @@ export {
   type SourceCoverageLedgerEntry,
   type SourceDecision,
   type SourceRole,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 
 export default defineCommand({
   path: ["audit", "source-coverage"],
@@ -32,14 +33,13 @@ export default defineCommand({
       output: z.string().optional().describe("Override output path for ledger JSON"),
     }),
   },
-  middleware: [withLocalDb({ readonly: true })],
   output: z.object({
     month: z.string(),
     outputPath: z.string(),
     sourceCount: z.number().int().nonnegative(),
     sourcesNeedingAction: z.number().int().nonnegative(),
   }),
-  async run({ ctx, input }) {
+  async run({ input }) {
     const month = isoMonth(input.options.year, input.options.month);
     const artifactRoot =
       input.options.artifactRoot === undefined
@@ -50,21 +50,29 @@ export default defineCommand({
         ? sourceCoverageLedgerPath(artifactRoot, month)
         : fromCliPath(input.options.output);
 
-    const local = localDbFromCtx(ctx);
-    const ledger = buildSourceCoverageLedger({
-      sqlite: local.sqlite,
-      month,
-      dbPath: local.path,
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      localDbOptions: { readonly: true },
+      command: "audit.source-coverage",
+      operation: "buildSourceCoverageLedger",
+      spanAttributes: { month },
+      run: async (local) => {
+        const ledger = buildSourceCoverageLedger({
+          sqlite: local.sqlite,
+          month,
+          dbPath: local.path,
+        });
+
+        await mkdir(dirname(outputPath), { recursive: true });
+        await writeJson(outputPath, ledger);
+
+        return {
+          month,
+          outputPath,
+          sourceCount: ledger.summary.sourceCount,
+          sourcesNeedingAction: ledger.summary.sourcesNeedingAction,
+        };
+      },
     });
-
-    await mkdir(dirname(outputPath), { recursive: true });
-    await writeJson(outputPath, ledger);
-
-    return {
-      month,
-      outputPath,
-      sourceCount: ledger.summary.sourceCount,
-      sourcesNeedingAction: ledger.summary.sourcesNeedingAction,
-    };
   },
 });

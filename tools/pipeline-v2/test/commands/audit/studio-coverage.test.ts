@@ -1,18 +1,19 @@
+import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { describe, expect, test } from "bun:test";
 
-const commandPath = join(
-  import.meta.dir,
-  "../../../src/commands/audit/studio-coverage.ts",
-);
+const commandPath = join(import.meta.dir, "../../../src/commands/audit/studio-coverage.ts");
 
 describe("audit studio-coverage command boundary", () => {
-  test("delegates Studio route and brief coverage policy to applied research", async () => {
+  test("keeps filesystem-backed Studio route and brief coverage policy in pipeline lib", async () => {
     const source = await readFile(commandPath, "utf8");
 
-    expect(source).toContain("withLocalDb({ readonly: true })");
-    expect(source).toContain('from "@bp/applied-research/evaluation"');
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("localDbOptions: { readonly: true }");
+    expect(source).not.toContain("withLocalDb");
+    expect(source).not.toContain("localDbFromCtx");
+    expect(source).toContain('from "../../lib/studio-coverage-evaluation.ts"');
+    expect(source).not.toContain('from "@bp/applied-research/evaluation"');
     expect(source).toContain("auditRouteBriefInputHourlyBins");
     expect(source).toContain("auditProjectionSegmentHourBins");
     expect(source).not.toContain("StudioAiPublicNoteSchema");

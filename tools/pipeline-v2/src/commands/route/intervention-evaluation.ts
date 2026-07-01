@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import {
   buildDocumentAnchorEventsForRouteEvaluation,
   defaultInterventionEvaluationComparisonRouteCount,
@@ -7,68 +5,25 @@ import {
   defaultInterventionEvaluationWindowMonths,
   documentOperationalDateSourceId,
   parseBusLaneOpenDates,
-  runRouteInterventionEvaluation as runRouteInterventionEvaluationFromAppliedResearch,
-} from "@bp/applied-research/local-db";
-import {
-  type OperationalDateAssertion,
-  OperationalDateAssertionSchema,
-} from "@bp/domain/documents/operational-date";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
-import { dbOptions, localDbFromCtx, withLocalDb } from "../../lib/local-db.ts";
-import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import {
+  defaultDocumentOperationalDateAssertionsPath,
+  makeRouteLocalDbCommandLayer,
+  runRouteInterventionEvaluation,
+  runRouteInterventionEvaluationCommand,
+} from "../../effect/route-local-db.ts";
+import { runPipelineEffect } from "../../effect/runtime.ts";
+import { dbOptions } from "../../lib/local-db.ts";
+import { fromCliPath } from "../../lib/paths.ts";
 
-type DocumentOperationalDateAssertionsArtifact = {
-  rows?: unknown[];
-};
-
-const defaultDocumentOperationalDateAssertionsPath = fromRepoRoot(
-  join(
-    "data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1",
-    "document-operational-date-assertions-v1.json",
-  ),
-);
-
-export type { RouteInterventionEvaluationResult } from "@bp/applied-research/local-db";
+export type { RouteInterventionEvaluationResult } from "@bp/pipeline-v2/local-db-aggregates";
 export {
   buildDocumentAnchorEventsForRouteEvaluation,
   documentOperationalDateSourceId,
   parseBusLaneOpenDates,
+  runRouteInterventionEvaluation,
 };
-
-async function loadDocumentOperationalDateAssertions(
-  path: string,
-): Promise<OperationalDateAssertion[]> {
-  if (!existsSync(path)) return [];
-  const artifact = (await Bun.file(path).json()) as DocumentOperationalDateAssertionsArtifact;
-  const rows = Array.isArray(artifact.rows) ? artifact.rows : [];
-  const assertions: OperationalDateAssertion[] = [];
-  for (const row of rows) {
-    if (
-      typeof row !== "object" ||
-      row === null ||
-      (row as { causalAnchorEligible?: unknown }).causalAnchorEligible !== true
-    ) {
-      continue;
-    }
-    const parsed = OperationalDateAssertionSchema.safeParse(row);
-    if (parsed.success) assertions.push(parsed.data);
-  }
-  return assertions;
-}
-
-export async function runRouteInterventionEvaluation(
-  inputs: Parameters<typeof runRouteInterventionEvaluationFromAppliedResearch>[0] & {
-    documentOperationalDateAssertionsPath?: string | undefined;
-  },
-): ReturnType<typeof runRouteInterventionEvaluationFromAppliedResearch> {
-  const documentOperationalDateAssertions = await loadDocumentOperationalDateAssertions(
-    inputs.documentOperationalDateAssertionsPath ?? defaultDocumentOperationalDateAssertionsPath,
-  );
-  return runRouteInterventionEvaluationFromAppliedResearch({
-    ...inputs,
-    documentOperationalDateAssertions,
-  });
-}
 
 export default defineCommand({
   path: ["route", "intervention-evaluation"],
@@ -104,7 +59,6 @@ export default defineCommand({
         .describe("Number of comparison routes for peer adjustment"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     isoMonth: z.string(),
     routeUniverseMonth: z.string(),
@@ -118,21 +72,25 @@ export default defineCommand({
     insufficientComparisonCount: z.number(),
     sourceGapComparisonCount: z.number(),
   }),
-  async run({ ctx, input }) {
+  async run({ input }) {
     const documentOperationalDateAssertionsPath =
       input.options.documentOperationalDateAssertionsPath === undefined
         ? defaultDocumentOperationalDateAssertionsPath
         : fromCliPath(input.options.documentOperationalDateAssertionsPath);
-    return runRouteInterventionEvaluation({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      routeUniverseYear: input.options.routeUniverseYear,
-      routeUniverseMonth: input.options.routeUniverseMonth,
-      windowMonths: input.options.windowMonths,
-      minSampleMonths: input.options.minSampleMonths,
-      comparisonRouteCount: input.options.comparisonRouteCount,
-      documentOperationalDateAssertionsPath,
-    });
+    return runPipelineEffect(
+      runRouteInterventionEvaluationCommand({
+        year: input.options.year,
+        month: input.options.month,
+        routeUniverseYear: input.options.routeUniverseYear,
+        routeUniverseMonth: input.options.routeUniverseMonth,
+        windowMonths: input.options.windowMonths,
+        minSampleMonths: input.options.minSampleMonths,
+        comparisonRouteCount: input.options.comparisonRouteCount,
+        documentOperationalDateAssertionsPath,
+      }),
+      makeRouteLocalDbCommandLayer({
+        dbPath: input.options.db,
+      }),
+    );
   },
 });

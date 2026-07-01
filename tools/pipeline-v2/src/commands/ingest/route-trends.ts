@@ -3,13 +3,9 @@ import { soqlIn } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { mergeRoutesWithFile } from "../../lib/route-list.ts";
 import {
@@ -370,7 +366,6 @@ export default defineCommand({
       skipRidership: z.coerce.boolean().default(false).describe("Skip the ridership trend fetch"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     startMonth: z.string(),
     endMonth: z.string(),
@@ -382,16 +377,30 @@ export default defineCommand({
     completeTrendRowCount: z.number(),
     monthsWithoutCellSpeedCoverage: z.array(z.string()),
   }),
-  async run({ ctx, input }) {
+  async run({ input }) {
     const routes = await mergeRoutesWithFile(input.options.routes, input.options.routesFile);
-    return runRouteTrendsIngest({
-      local: localDbFromCtx(ctx),
-      startYear: input.options.startYear,
-      startMonth: input.options.startMonth,
-      endYear: input.options.endYear,
-      endMonth: input.options.endMonth,
-      routes,
-      includeRidership: !input.options.skipRidership,
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.route-trends",
+      operation: "runRouteTrendsIngest",
+      spanAttributes: {
+        startYear: input.options.startYear,
+        startMonth: input.options.startMonth,
+        endYear: input.options.endYear,
+        endMonth: input.options.endMonth,
+        routeCount: routes.length,
+        includeRidership: !input.options.skipRidership,
+      },
+      run: (local) =>
+        runRouteTrendsIngest({
+          local,
+          startYear: input.options.startYear,
+          startMonth: input.options.startMonth,
+          endYear: input.options.endYear,
+          endMonth: input.options.endMonth,
+          routes,
+          includeRidership: !input.options.skipRidership,
+        }),
     });
   },
 });

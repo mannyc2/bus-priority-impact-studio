@@ -5,7 +5,7 @@ import {
   type MtaWikiCanonicalRecord,
   type MtaWikiTier2BridgeArtifact,
   renderMtaWikiTier2BridgeMarkdown,
-} from "@bp/applied-research/evaluation";
+} from "@bp/analytics/evaluation";
 import { arg, defineCommand, z } from "@liche/core";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../../lib/paths.ts";

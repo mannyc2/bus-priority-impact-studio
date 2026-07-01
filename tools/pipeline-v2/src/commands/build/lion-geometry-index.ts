@@ -1,11 +1,16 @@
-import { runBuildLionGeometryIndex } from "@bp/applied-research/local-db";
+import { runBuildLionGeometryIndex } from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
-import { dbOptions, localDbFromCtx, withLocalDb } from "../../lib/local-db.ts";
+import {
+  makeBuildLocalDbCommandLayer,
+  runBuildLionGeometryIndexCommand,
+} from "../../effect/build-local-db.ts";
+import { runPipelineEffect } from "../../effect/runtime.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 
 export type {
   BuildLionGeometryIndexInputs,
   BuildLionGeometryIndexResult,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 export { runBuildLionGeometryIndex };
 
 export default defineCommand({
@@ -16,16 +21,20 @@ export default defineCommand({
       limit: arg.positiveInt().optional().describe("Cap rows scanned per run"),
     }),
   },
-  middleware: [withLocalDb({ spatial: true })],
   output: z.object({
     inserted: z.number(),
     skipped: z.number(),
     total: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runBuildLionGeometryIndex({
-      local: localDbFromCtx(ctx),
-      limit: input.options.limit,
-    });
+  async run({ input }) {
+    return runPipelineEffect(
+      runBuildLionGeometryIndexCommand({
+        limit: input.options.limit,
+      }),
+      makeBuildLocalDbCommandLayer({
+        dbPath: input.options.db,
+        localDbOptions: { spatial: true },
+      }),
+    );
   },
 });

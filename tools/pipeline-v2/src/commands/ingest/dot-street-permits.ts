@@ -7,13 +7,9 @@ import {
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {
   fetchSoda3RowsForSource,
@@ -121,20 +117,31 @@ export default defineCommand({
         .describe("Reuse rows from a local raw snapshot file instead of fetching"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     isoMonth: z.string(),
     rowCount: z.number(),
     kind: z.enum(["construction", "opening"]),
   }),
-  async run({ ctx, input }) {
-    return runDotStreetPermitsIngest({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      kind: input.options.kind,
-      fromSnapshot: input.options.fromSnapshot,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.dot-street-permits",
+      operation: "runDotStreetPermitsIngest",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+        kind: input.options.kind,
+        fromSnapshot: input.options.fromSnapshot ?? null,
+      },
+      run: (local) =>
+        runDotStreetPermitsIngest({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          kind: input.options.kind,
+          fromSnapshot: input.options.fromSnapshot,
+        }),
     });
   },
 });

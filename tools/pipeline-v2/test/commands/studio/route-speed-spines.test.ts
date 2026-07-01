@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { routeSpeedSpineManifestPath } from "@bp/applied-research/artifacts";
+import { routeSpeedSpineManifestPath } from "@bp/analytics/artifacts";
 import {
   classifyRouteSpeedSpineArtifact,
   type RouteSpeedSpineArtifact,
-} from "@bp/applied-research/feature-history";
+} from "@bp/analytics/feature-history";
 
 function artifact(input: {
   validationStatus?: RouteSpeedSpineArtifact["validation"]["status"];
@@ -143,9 +143,9 @@ describe("studio route speed spines manifest", () => {
       "utf8",
     );
 
-    expect(source).toContain('from "@bp/applied-research/artifacts"');
-    expect(source).toContain('from "@bp/applied-research/feature-history"');
-    expect(source).toContain('from "@bp/applied-research/local-db"');
+    expect(source).toContain('from "@bp/analytics/artifacts"');
+    expect(source).toContain('from "@bp/analytics/feature-history"');
+    expect(source).toContain('from "@bp/pipeline-v2/local-db-aggregates"');
     expect(source).not.toContain("function classifyRouteSpeedSpineArtifact");
     expect(source).not.toContain("function queryRouteSpeedSpineCandidates");
     expect(source).not.toContain("function queryCurrentCatalogRouteIds");

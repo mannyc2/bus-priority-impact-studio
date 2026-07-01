@@ -7,13 +7,9 @@ import {
   listGtfsRtFeedSnapshots,
   listGtfsRtParsedSnapshots,
 } from "@bp/db/local";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
 
 type RawDirectoryStatus = {
@@ -325,7 +321,6 @@ export default defineCommand({
       output: z.string().optional().describe("Override artifact JSON path"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     status: z.enum(["found", "missing"]),
     runId: z.string().nullable(),
@@ -335,16 +330,27 @@ export default defineCommand({
     nextCommands: z.array(z.string()),
     artifactPath: z.string().optional(),
   }),
-  async run({ ctx, input }) {
-    return runGtfsRtRunStatus({
-      local: localDbFromCtx(ctx),
-      runId: input.options.runId,
-      artifactRoot:
-        input.options.artifactRoot === undefined
-          ? undefined
-          : fromCliPath(input.options.artifactRoot),
-      outputPath: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+  async run({ input }) {
+    const artifactRoot =
+      input.options.artifactRoot === undefined ? undefined : fromCliPath(input.options.artifactRoot);
+    const outputPath =
+      input.options.output === undefined ? undefined : fromCliPath(input.options.output);
+    return runLocalDbCommandBoundary({
       dbPath: input.options.db,
+      command: "gtfs-rt.run-status",
+      operation: "runGtfsRtRunStatus",
+      spanAttributes: {
+        runId: input.options.runId ?? null,
+        writesArtifact: outputPath !== undefined,
+      },
+      run: (local) =>
+        runGtfsRtRunStatus({
+          local,
+          runId: input.options.runId,
+          artifactRoot,
+          outputPath,
+          dbPath: input.options.db,
+        }),
     });
   },
 });

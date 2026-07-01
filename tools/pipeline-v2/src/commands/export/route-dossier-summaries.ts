@@ -1,11 +1,11 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { routeSpeedHistoryArtifactPath } from "@bp/applied-research/artifacts";
+import { routeSpeedHistoryArtifactPath } from "@bp/analytics/artifacts";
 import {
   buildRouteDossierSummaries,
   type RouteDossierInputRow,
   type RouteDossierWorstSegmentMonth,
-} from "@bp/applied-research/evaluation";
+} from "@bp/analytics/evaluation";
 import { type RouteDossierEvent, routeDossierSummaryKey } from "@bp/domain/studio";
 import * as z from "zod";
 import { routeIdToSlug } from "../studio/_release-routes.ts";
@@ -15,7 +15,7 @@ import type { D1CanonicalInputs } from "./d1-inputs.ts";
  * Builds the per-route dossier summaries (frontend §7.2 / hard-cutover C2) from the
  * rows the `export d1` flow already assembled in `readLocalD1Inputs`, plus the
  * per-route speed-history artifacts on disk (for the worst-segment persistence
- * series). The pure projection lives in `@bp/applied-research`; this module is the
+ * series). The pure projection lives in `@bp/analytics/evaluation`; this module is the
  * join — same split as ./route-capability-manifest.ts.
  */
 

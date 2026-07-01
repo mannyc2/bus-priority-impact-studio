@@ -1,3 +1,46 @@
+export {
+  type BuildRouteCapabilityManifestInput,
+  buildRouteCapabilityManifest,
+  type RouteCapabilityInputRow,
+  type RouteCapabilitySourceStatus,
+} from "./build-route-capability-manifest.js";
+export {
+  type BuildRouteDossierSummariesInput,
+  buildRouteDossierSummaries,
+  type RouteDossierInputRow,
+  type RouteDossierTrendPoint,
+  type RouteDossierWorstSegmentMonth,
+} from "./build-route-dossier-summary.js";
+export {
+  buildMapArtifactManifest,
+  buildMapJsonArtifact,
+  isMapArtifactManifest,
+  MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+  MAP_ARTIFACT_JSON_CONTENT_TYPE,
+  MAP_ARTIFACT_SCHEMA_VERSION,
+  type MapArtifactEntry,
+  type MapArtifactIssue,
+  type MapArtifactKind,
+  type MapArtifactManifest,
+  type MapArtifactVerification,
+  type MapJsonArtifact,
+  mapArtifactPayloadIssues,
+  mapArtifactSha256,
+  verifyMapArtifactManifestContents,
+} from "./map-artifacts.js";
+export {
+  type BuildRouteSpeedAvailabilityInput,
+  buildRouteSpeedAvailabilityResult,
+  type RequestedRouteSpeedAvailability,
+  ROUTE_SPEED_AVAILABILITY_SOURCE_ID,
+  type RouteSpeedAvailabilityMonth,
+  type RouteSpeedAvailabilityReleaseDecision,
+  type RouteSpeedAvailabilityResult,
+  type RouteSpeedAvailabilitySourceId,
+  requestedRouteSpeedAvailability,
+  routeSpeedAvailabilityReleaseDecision,
+  summarizeRouteSpeedAvailabilityMonths,
+} from "./route-speed-availability.js";
 export type {
   DetectorEvaluationComponentId,
   DetectorEvaluationComponentScore,
@@ -20,3 +63,31 @@ export {
   scoreFromShare,
   weightedMeanScore,
 } from "./scorecard.js";
+export {
+  buildMtaWikiTier2BridgeArtifact,
+  buildMtaWikiTier2SourceAlignmentArtifact,
+  type MtaWikiBridgeCanonicalInputs,
+  type MtaWikiBridgeEvidencePreview,
+  type MtaWikiBridgeReviewGroup,
+  type MtaWikiCanonicalRecord,
+  type MtaWikiTier2BridgeArtifact,
+  type MtaWikiTier2SourceAlignmentArtifact,
+  type MtaWikiTier2SourceAlignmentRow,
+  renderMtaWikiTier2BridgeMarkdown,
+  renderMtaWikiTier2SourceAlignmentMarkdown,
+  type Tier2SourceQueueForMtaWikiAlignment,
+} from "./tier2-mta-wiki-bridge.js";
+export {
+  buildTier2StructuredDataInventoryFromArtifacts,
+  classifyTier2StructuredArtifact,
+  renderTier2StructuredDataInventoryMarkdown,
+  summarizeTier2StructuredArtifactValue,
+  summarizeTier2StructuredCounts,
+  type Tier2StructuredArtifactClassification,
+  type Tier2StructuredArtifactSummary,
+  type Tier2StructuredArtifactValueSummary,
+  type Tier2StructuredCounts,
+  type Tier2StructuredDataInventory,
+  type Tier2StructuredLayer,
+  type Tier2StructuredTrustTier,
+} from "./tier2-structured-data.js";

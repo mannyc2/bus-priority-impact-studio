@@ -4,12 +4,8 @@ import { normalizeLionSegmentRows } from "@bp/sources/adapters/nyc-open-data/lio
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { defineCommand, z } from "@liche/core";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {
   fetchSoda3RowsForSource,
@@ -114,16 +110,25 @@ export default defineCommand({
       status: z.string().optional().describe("LION status code (default: 2 = in service)"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     rowCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runLionCenterlineIngest({
-      local: localDbFromCtx(ctx),
-      borough: input.options.borough,
-      status: input.options.status,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.lion-centerline",
+      operation: "runLionCenterlineIngest",
+      spanAttributes: {
+        borough: input.options.borough ?? null,
+        status: input.options.status ?? null,
+      },
+      run: (local) =>
+        runLionCenterlineIngest({
+          local,
+          borough: input.options.borough,
+          status: input.options.status,
+        }),
     });
   },
 });

@@ -1,13 +1,13 @@
-import { Database as BunDatabase } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
-import { routeHourlyProfileArtifactPath } from "@bp/applied-research/artifacts";
-import { buildRouteHourlyProfileArtifact } from "@bp/applied-research/feature-history";
-import { loadRouteHourlyProfileLocalDbRows } from "@bp/applied-research/local-db";
+import { routeHourlyProfileArtifactPath } from "@bp/analytics/artifacts";
+import { buildRouteHourlyProfileArtifact } from "@bp/analytics/feature-history";
+import { loadRouteHourlyProfileLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
 function repoDisplayPath(path: string): string {
@@ -16,7 +16,7 @@ function repoDisplayPath(path: string): string {
   return relativePath.startsWith("..") ? path : relativePath;
 }
 
-export { routeHourlyProfileArtifactPath } from "@bp/applied-research/artifacts";
+export { routeHourlyProfileArtifactPath } from "@bp/analytics/artifacts";
 
 export default defineCommand({
   path: ["build", "route-hourly-profile"],
@@ -50,31 +50,41 @@ export default defineCommand({
       input.options.output === undefined
         ? routeHourlyProfileArtifactPath({ artifactRoot, startMonth, endMonth })
         : fromCliPath(input.options.output);
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
-    const sqlite = new BunDatabase(dbPath, { readonly: true });
-    try {
-      const rows = loadRouteHourlyProfileLocalDbRows({ sqlite, startMonth, endMonth });
-      const artifact = buildRouteHourlyProfileArtifact({
-        rows,
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
+    return runLocalDbCommandBoundary({
+      dbPath,
+      localDbOptions: { readonly: true },
+      command: "build.route-hourly-profile",
+      operation: "buildRouteHourlyProfileArtifact",
+      spanAttributes: {
         startMonth,
         endMonth,
-        generatedAt: new Date().toISOString(),
-        dbPath: repoDisplayPath(dbPath),
-        artifactPath: repoDisplayPath(path),
-      });
-      await mkdir(dirname(path), { recursive: true });
-      await writeJson(path, artifact);
-      return {
-        startMonth,
-        endMonth,
-        outputPath: repoDisplayPath(path),
-        profileCount: artifact.summary.profileCount,
-        routeCount: artifact.summary.routeCount,
-        monthCount: artifact.window.monthCount,
-      };
-    } finally {
-      sqlite.close();
-    }
+      },
+      run: async (local) => {
+        const rows = loadRouteHourlyProfileLocalDbRows({
+          sqlite: local.sqlite,
+          startMonth,
+          endMonth,
+        });
+        const artifact = buildRouteHourlyProfileArtifact({
+          rows,
+          startMonth,
+          endMonth,
+          generatedAt: new Date().toISOString(),
+          dbPath: repoDisplayPath(local.path),
+          artifactPath: repoDisplayPath(path),
+        });
+        await mkdir(dirname(path), { recursive: true });
+        await writeJson(path, artifact);
+        return {
+          startMonth,
+          endMonth,
+          outputPath: repoDisplayPath(path),
+          profileCount: artifact.summary.profileCount,
+          routeCount: artifact.summary.routeCount,
+          monthCount: artifact.window.monthCount,
+        };
+      },
+    });
   },
 });

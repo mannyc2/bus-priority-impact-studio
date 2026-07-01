@@ -54,7 +54,7 @@ const schemaPath = repoPath(parseArg("--schema") ?? join(exportRoot, month, "sch
 const seedPath = repoPath(parseArg("--seed") ?? join(exportRoot, month, "seed.sql"));
 
 // Manifests that declare R2 keys referenced by D1 rows or other release artifacts.
-const manifestDirs = ["briefs", "evaluations", "map"] as const;
+const manifestDirs = ["map"] as const;
 const [manifestKeys, d1Keys] = await Promise.all([
   collectManifestArtifactKeys({ artifactRoot, manifestDirs, month }),
   collectD1ArtifactKeys({ month, schemaPath, seedPath }),

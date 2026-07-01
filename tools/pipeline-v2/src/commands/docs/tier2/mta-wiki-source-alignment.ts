@@ -5,7 +5,7 @@ import {
   type MtaWikiTier2BridgeArtifact,
   renderMtaWikiTier2SourceAlignmentMarkdown,
   type Tier2SourceQueueForMtaWikiAlignment,
-} from "@bp/applied-research/evaluation";
+} from "@bp/analytics/evaluation";
 import { defineCommand, z } from "@liche/core";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";

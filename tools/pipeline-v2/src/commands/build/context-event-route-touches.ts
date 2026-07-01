@@ -1,22 +1,21 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { contextEventRouteTouchAuditPath } from "@bp/applied-research/artifacts";
+import { contextEventRouteTouchAuditPath } from "@bp/analytics/artifacts";
 import {
   type SourceEventKindAudit as AppliedSourceEventKindAudit,
   auditContextEventRouteTouches,
   materializeContextEventRouteTouches,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import {
   dbOptions,
-  localDbFromCtx,
   type OpenLocalPipelineDb,
-  withLocalDb,
 } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
 
-export type { SourceEventKindAudit } from "@bp/applied-research/local-db";
+export type { SourceEventKindAudit } from "@bp/pipeline-v2/local-db-aggregates";
 
 export type BuildContextEventRouteTouchesResult = {
   directTouches: number;
@@ -28,7 +27,7 @@ export type BuildContextEventRouteTouchesResult = {
   sourceEventKinds: AppliedSourceEventKindAudit[];
 };
 
-export { contextEventRouteTouchAuditPath } from "@bp/applied-research/artifacts";
+export { contextEventRouteTouchAuditPath } from "@bp/analytics/artifacts";
 
 export type BuildContextEventRouteTouchesInputs = {
   local: OpenLocalPipelineDb;
@@ -93,7 +92,6 @@ export default defineCommand({
         .describe("Skip materializing the touches table; just rebuild the audit"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     directTouches: z.number(),
     routeLionTouches: z.number(),
@@ -103,15 +101,24 @@ export default defineCommand({
     auditArtifactPath: z.string(),
     sourceEventKinds: z.array(z.unknown()),
   }),
-  async run({ ctx, input }) {
-    return runBuildContextEventRouteTouches({
-      local: localDbFromCtx(ctx),
-      artifactRoot:
-        input.options.artifactRoot === undefined
-          ? undefined
-          : fromCliPath(input.options.artifactRoot),
-      output: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
-      auditOnly: input.options.auditOnly,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "build.context-event-route-touches",
+      operation: "runBuildContextEventRouteTouches",
+      spanAttributes: {
+        auditOnly: input.options.auditOnly,
+      },
+      run: (local) =>
+        runBuildContextEventRouteTouches({
+          local,
+          artifactRoot:
+            input.options.artifactRoot === undefined
+              ? undefined
+              : fromCliPath(input.options.artifactRoot),
+          output: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+          auditOnly: input.options.auditOnly,
+        }),
     });
   },
 });

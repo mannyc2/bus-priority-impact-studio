@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { routeSpeedHistoryArtifactPath } from "@bp/applied-research/artifacts";
+import { routeSpeedHistoryArtifactPath } from "@bp/analytics/artifacts";
 import { RouteDossierSummarySchema, routeDossierSummaryKey } from "@bp/domain/studio";
 import {
   buildAndWriteRouteDossierSummaries,

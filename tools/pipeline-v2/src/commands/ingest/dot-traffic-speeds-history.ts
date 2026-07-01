@@ -1,11 +1,12 @@
-import { Database as BunDatabase } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { Glob } from "bun";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { readCsvRows } from "../../lib/streaming-csv.ts";
 import { writeJson } from "../../lib/json.ts";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
 type CsvRow = Record<string, string>;
@@ -86,7 +87,7 @@ async function listCsvPaths(root: string): Promise<string[]> {
   return paths.sort();
 }
 
-function writeBatch(sqlite: BunDatabase, rows: readonly DotTrafficSpeedRow[]): void {
+function writeBatch(sqlite: Database, rows: readonly DotTrafficSpeedRow[]): void {
   if (rows.length === 0) return;
   const insert = sqlite.prepare(`
     INSERT INTO local_dot_traffic_speed (
@@ -161,8 +162,7 @@ export default defineCommand({
     skippedRowCount: z.number().int().nonnegative(),
   }),
   async run({ input }) {
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
     const rawRoot = fromCliPath(input.options.rawRoot);
     const artifactRoot =
       input.options.artifactRoot === undefined
@@ -175,52 +175,58 @@ export default defineCommand({
     const allPaths = await listCsvPaths(rawRoot);
     const paths =
       input.options.maxFiles === undefined ? allPaths : allPaths.slice(0, input.options.maxFiles);
-    const sqlite = new BunDatabase(dbPath);
-    let parsedRowCount = 0;
-    let skippedRowCount = 0;
-    let batch: DotTrafficSpeedRow[] = [];
-    try {
-      sqlite.exec("PRAGMA busy_timeout = 30000");
-      for (const path of paths) {
-        for await (const csvRow of readCsvRows<CsvRow>(path)) {
-          const parsed = parseTrafficSpeedRow(csvRow);
-          if (parsed === null) {
-            skippedRowCount += 1;
-            continue;
-          }
-          batch.push(parsed);
-          parsedRowCount += 1;
-          if (batch.length >= input.options.batchSize) {
-            writeBatch(sqlite, batch);
-            batch = [];
+    const importResult = await runLocalDbCommandBoundary({
+      dbPath,
+      command: "ingest.dot-traffic-speeds-history",
+      operation: "ingestDotTrafficSpeedsHistory",
+      run: async (local) => {
+        let parsedRowCount = 0;
+        let skippedRowCount = 0;
+        let batch: DotTrafficSpeedRow[] = [];
+        for (const path of paths) {
+          for await (const csvRow of readCsvRows<CsvRow>(path)) {
+            const parsed = parseTrafficSpeedRow(csvRow);
+            if (parsed === null) {
+              skippedRowCount += 1;
+              continue;
+            }
+            batch.push(parsed);
+            parsedRowCount += 1;
+            if (batch.length >= input.options.batchSize) {
+              writeBatch(local.sqlite, batch);
+              batch = [];
+            }
           }
         }
-      }
-      writeBatch(sqlite, batch);
-    } finally {
-      sqlite.close();
-    }
+        writeBatch(local.sqlite, batch);
+        return {
+          dbPath: local.path,
+          parsedRowCount,
+          skippedRowCount,
+        };
+      },
+    });
     const manifest = {
       artifactKind: "dot_traffic_speeds_history_import",
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
-      dbPath: repoDisplayPath(dbPath),
+      dbPath: repoDisplayPath(importResult.dbPath),
       rawRoot: repoDisplayPath(rawRoot),
       fileCount: paths.length,
       availableFileCount: allPaths.length,
-      parsedRowCount,
-      skippedRowCount,
+      parsedRowCount: importResult.parsedRowCount,
+      skippedRowCount: importResult.skippedRowCount,
       files: paths.map(repoDisplayPath),
     };
     await mkdir(dirname(outputPath), { recursive: true });
     await writeJson(outputPath, manifest);
     return {
-      dbPath: repoDisplayPath(dbPath),
+      dbPath: repoDisplayPath(importResult.dbPath),
       rawRoot: repoDisplayPath(rawRoot),
       outputPath: repoDisplayPath(outputPath),
       fileCount: paths.length,
-      parsedRowCount,
-      skippedRowCount,
+      parsedRowCount: importResult.parsedRowCount,
+      skippedRowCount: importResult.skippedRowCount,
     };
   },
 });

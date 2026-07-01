@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -57,6 +57,10 @@ async function seedStudioDetectorReadinessManifest(root: string): Promise<void> 
 }
 
 const MONTH = "2026-03";
+const publishArtifactKeysPath = join(
+  import.meta.dir,
+  "../../../src/commands/publish/publish-artifact-keys.ts",
+);
 
 function baseOptions(input: {
   artifactRoot: string;
@@ -87,6 +91,17 @@ function baseOptions(input: {
 }
 
 describe("runPublishR2Artifacts", () => {
+  it("collects D1 artifact keys through the Effect D1 replay boundary", () => {
+    const source = readFileSync(publishArtifactKeysPath, "utf8");
+
+    expect(source).toContain("runD1ReplayBoundary({");
+    expect(source).toContain("runPipelineFileSystemBoundary({");
+    expect(source).not.toContain('from "node:fs/promises"');
+    expect(source).not.toContain('from "bun:sqlite"');
+    expect(source).not.toContain("new Database");
+    expect(source).not.toContain("createBunSqliteServingDb");
+  });
+
   it("uploads every candidate when remote is empty", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "publish-r2-"));
     try {

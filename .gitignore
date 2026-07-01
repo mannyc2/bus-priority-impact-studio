@@ -63,6 +63,7 @@ knowledge/raw/downloads/*
 apps/web/.tanstack/
 
 # Tool caches.
+.repos/effect
 .cache/
 .temp/
 .stryker-tmp/

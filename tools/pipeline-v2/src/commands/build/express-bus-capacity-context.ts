@@ -1,10 +1,10 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { expressBusCapacityContextPath } from "@bp/applied-research/artifacts";
+import { expressBusCapacityContextPath } from "@bp/analytics/artifacts";
 import {
   buildExpressBusCapacityContextArtifact,
   summarizeExpressBusCapacityRows,
-} from "@bp/applied-research/feature-history";
+} from "@bp/analytics/feature-history";
 import { NormalizedExpressBusCapacitySchema } from "@bp/sources/adapters/mta/express-bus-capacity";
 import { defineCommand, z } from "@liche/core";
 import { writeJson } from "../../lib/json.ts";

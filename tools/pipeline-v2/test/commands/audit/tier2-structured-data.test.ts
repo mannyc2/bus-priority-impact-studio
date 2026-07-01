@@ -40,12 +40,12 @@ const VALID_RECORD = {
 };
 
 describe("audit tier2-structured-data", () => {
-  test("delegates artifact classification and value summaries to applied-research", async () => {
+  test("delegates artifact classification and value summaries to analytics", async () => {
     const commandSource = await Bun.file(
       join(import.meta.dir, "../../../src/commands/audit/tier2-structured-data.ts"),
     ).text();
 
-    expect(commandSource).toContain('from "@bp/applied-research/evaluation"');
+    expect(commandSource).toContain('from "@bp/analytics/evaluation"');
     expect(commandSource).toContain("summarizeTier2StructuredArtifactValue({");
     expect(commandSource).toContain("buildTier2StructuredDataInventoryFromArtifacts({");
     expect(commandSource).toContain("renderTier2StructuredDataInventoryMarkdown(inventory)");

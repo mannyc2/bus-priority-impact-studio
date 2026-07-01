@@ -1,19 +1,15 @@
 import { existsSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
-import { routeSpeedHistoryManifestPath } from "@bp/applied-research/artifacts";
-import { ROUTE_SPEED_SPINE_DEFAULT_START_MONTH } from "@bp/applied-research/feature-history";
+import { routeSpeedHistoryManifestPath } from "@bp/analytics/artifacts";
+import { ROUTE_SPEED_SPINE_DEFAULT_START_MONTH } from "@bp/analytics/feature-history";
 import {
   materializeRouteSpeedHistoryCoverageIndex,
   type RouteSpeedHistoryCoverageIndexRoute,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
 const ISO_MONTH_RE = /^\d{4}-\d{2}$/;
@@ -142,7 +138,6 @@ export default defineCommand({
       manifest: z.string().optional().describe("Override route speed-history manifest path"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     releaseMonth: z.string(),
     manifestPath: z.string(),
@@ -151,19 +146,31 @@ export default defineCommand({
     missingRouteCount: z.number().int().nonnegative(),
     tableRowCount: z.number().int().nonnegative(),
   }),
-  async run({ ctx, input }) {
+  async run({ input }) {
     const artifactRoot =
       input.options.artifactRoot === undefined
         ? undefined
         : fromCliPath(input.options.artifactRoot);
-    return runRouteSpeedHistoryCoverageIndex({
-      local: localDbFromCtx(ctx),
-      releaseMonth: isoMonth(input.options.year, input.options.month),
-      startMonth: input.options.startMonth,
-      endMonth: input.options.endMonth ?? null,
-      artifactRoot,
-      manifestPath:
-        input.options.manifest === undefined ? undefined : fromCliPath(input.options.manifest),
+    const releaseMonth = isoMonth(input.options.year, input.options.month);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "export.route-speed-history-coverage-index",
+      operation: "runRouteSpeedHistoryCoverageIndex",
+      spanAttributes: {
+        releaseMonth,
+        startMonth: input.options.startMonth,
+        endMonth: input.options.endMonth ?? null,
+      },
+      run: (local) =>
+        runRouteSpeedHistoryCoverageIndex({
+          local,
+          releaseMonth,
+          startMonth: input.options.startMonth,
+          endMonth: input.options.endMonth ?? null,
+          artifactRoot,
+          manifestPath:
+            input.options.manifest === undefined ? undefined : fromCliPath(input.options.manifest),
+        }),
     });
   },
 });

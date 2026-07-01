@@ -8,13 +8,9 @@ import {
   listRouteMonthSourceStatuses,
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/local";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 
 const defaultMinObservedHeadwaySamples = 30;
 const defaultMinGtfsRtCollectionHours = 4;
@@ -614,7 +610,6 @@ export default defineCommand({
         .describe("Minimum share of vehicle-position snapshots within the planned window"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     isoMonth: z.string(),
     status: z.enum(["pass", "fail"]),
@@ -629,16 +624,28 @@ export default defineCommand({
     warnings: z.array(z.object({ code: z.string(), message: z.string() })),
     recommendations: z.array(z.string()),
   }),
-  async run({ ctx, input }) {
-    const result = await runGtfsRtPreflight({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      runId: input.options.runId,
-      minObservedHeadwaySamples: input.options.minObservedHeadwaySamples,
-      minGtfsRtCollectionHours: input.options.minGtfsRtCollectionHours,
-      maxGtfsRtSampleSeconds: input.options.maxGtfsRtSampleSeconds,
-      minGtfsRtVehiclePositionSnapshotShare: input.options.minGtfsRtVehiclePositionSnapshotShare,
+  async run({ input }) {
+    const result = await runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "gtfs-rt.preflight",
+      operation: "runGtfsRtPreflight",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+        runId: input.options.runId ?? null,
+      },
+      run: (local) =>
+        runGtfsRtPreflight({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          runId: input.options.runId,
+          minObservedHeadwaySamples: input.options.minObservedHeadwaySamples,
+          minGtfsRtCollectionHours: input.options.minGtfsRtCollectionHours,
+          maxGtfsRtSampleSeconds: input.options.maxGtfsRtSampleSeconds,
+          minGtfsRtVehiclePositionSnapshotShare:
+            input.options.minGtfsRtVehiclePositionSnapshotShare,
+        }),
     });
     if (result.status === "fail") {
       process.exitCode = 1;

@@ -1,13 +1,13 @@
-import { Database as BunDatabase } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
-import { segmentDaypartHistoryArtifactPath } from "@bp/applied-research/artifacts";
-import { buildSegmentDaypartHistoryArtifact } from "@bp/applied-research/feature-history";
-import { loadSegmentDaypartHistoryLocalDbRows } from "@bp/applied-research/local-db";
+import { segmentDaypartHistoryArtifactPath } from "@bp/analytics/artifacts";
+import { buildSegmentDaypartHistoryArtifact } from "@bp/analytics/feature-history";
+import { loadSegmentDaypartHistoryLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
 function repoDisplayPath(path: string): string {
@@ -16,7 +16,7 @@ function repoDisplayPath(path: string): string {
   return relativePath.startsWith("..") ? path : relativePath;
 }
 
-export { segmentDaypartHistoryArtifactPath } from "@bp/applied-research/artifacts";
+export { segmentDaypartHistoryArtifactPath } from "@bp/analytics/artifacts";
 
 export default defineCommand({
   path: ["build", "segment-daypart-history"],
@@ -50,31 +50,41 @@ export default defineCommand({
       input.options.output === undefined
         ? segmentDaypartHistoryArtifactPath({ artifactRoot, startMonth, endMonth })
         : fromCliPath(input.options.output);
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
-    const sqlite = new BunDatabase(dbPath, { readonly: true });
-    try {
-      const rows = loadSegmentDaypartHistoryLocalDbRows({ sqlite, startMonth, endMonth });
-      const artifact = buildSegmentDaypartHistoryArtifact({
-        rows,
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
+    return runLocalDbCommandBoundary({
+      dbPath,
+      localDbOptions: { readonly: true },
+      command: "build.segment-daypart-history",
+      operation: "buildSegmentDaypartHistoryArtifact",
+      spanAttributes: {
         startMonth,
         endMonth,
-        generatedAt: new Date().toISOString(),
-        dbPath: repoDisplayPath(dbPath),
-        artifactPath: repoDisplayPath(outputPath),
-      });
-      await mkdir(dirname(outputPath), { recursive: true });
-      await writeJson(outputPath, artifact);
-      return {
-        startMonth,
-        endMonth,
-        outputPath: repoDisplayPath(outputPath),
-        featureCount: artifact.summary.featureCount,
-        routeCount: artifact.summary.routeCount,
-        monthCount: artifact.window.monthCount,
-      };
-    } finally {
-      sqlite.close();
-    }
+      },
+      run: async (local) => {
+        const rows = loadSegmentDaypartHistoryLocalDbRows({
+          sqlite: local.sqlite,
+          startMonth,
+          endMonth,
+        });
+        const artifact = buildSegmentDaypartHistoryArtifact({
+          rows,
+          startMonth,
+          endMonth,
+          generatedAt: new Date().toISOString(),
+          dbPath: repoDisplayPath(local.path),
+          artifactPath: repoDisplayPath(outputPath),
+        });
+        await mkdir(dirname(outputPath), { recursive: true });
+        await writeJson(outputPath, artifact);
+        return {
+          startMonth,
+          endMonth,
+          outputPath: repoDisplayPath(outputPath),
+          featureCount: artifact.summary.featureCount,
+          routeCount: artifact.summary.routeCount,
+          monthCount: artifact.window.monthCount,
+        };
+      },
+    });
   },
 });

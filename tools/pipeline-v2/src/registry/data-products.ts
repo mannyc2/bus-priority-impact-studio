@@ -5,7 +5,7 @@ export type {
   DataProductKind,
   DataProductManifest,
   DataProductRouteUniverse,
-} from "@bp/applied-research/data-products";
+} from "@bp/analytics/data-products";
 export {
   DATA_PRODUCT_MANIFEST,
   DataProductCheckSchema,
@@ -19,4 +19,4 @@ export {
   DataProductSchema,
   parseDataProductManifest,
   parseDataProductManifestText,
-} from "@bp/applied-research/data-products";
+} from "@bp/analytics/data-products";

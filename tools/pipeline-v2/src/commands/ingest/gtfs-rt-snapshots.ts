@@ -5,12 +5,8 @@ import {
 } from "@bp/db/local";
 import { parseGtfsRealtimeFeed } from "@bp/sources/gtfs-realtime";
 import { defineCommand, z } from "@liche/core";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 
 export type IngestGtfsRtSnapshotsRunInputs = {
   local: OpenLocalPipelineDb;
@@ -151,7 +147,6 @@ export default defineCommand({
       parsedAt: z.string().optional().describe("Override parsed-at timestamp (ISO)"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     runId: z.string(),
     snapshotCount: z.number(),
@@ -163,11 +158,22 @@ export default defineCommand({
     stopTimeUpdateCount: z.number(),
     alertCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runIngestGtfsRtSnapshots({
-      local: localDbFromCtx(ctx),
-      runId: input.options.runId,
-      parsedAt: input.options.parsedAt === undefined ? undefined : new Date(input.options.parsedAt),
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.gtfs-rt-snapshots",
+      operation: "runIngestGtfsRtSnapshots",
+      spanAttributes: {
+        runId: input.options.runId,
+        parsedAt: input.options.parsedAt ?? null,
+      },
+      run: (local) =>
+        runIngestGtfsRtSnapshots({
+          local,
+          runId: input.options.runId,
+          parsedAt:
+            input.options.parsedAt === undefined ? undefined : new Date(input.options.parsedAt),
+        }),
     });
   },
 });

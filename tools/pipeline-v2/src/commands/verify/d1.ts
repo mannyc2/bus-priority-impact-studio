@@ -1,17 +1,15 @@
 import { dirname, join } from "node:path";
 import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
+import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
+import { runPipelineFileSystemBoundary } from "../../effect/file-system.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
-import { runExportD1Seed, type D1SeedOutputResult } from "../export/d1.ts";
+import { type D1SeedOutputResult, runExportD1Seed } from "../export/d1.ts";
 import {
   collectD1TableCounts,
-  loadD1Database,
   type RepositoryCheckResult,
   runD1RepositoryChecks,
   verifyD1RepositoryChecks,
@@ -79,6 +77,48 @@ export type VerifyD1Inputs = {
   routeTimelineProjectionPath?: string | undefined;
 };
 
+async function readD1ReplaySql(input: {
+  month: string;
+  schemaPath: string;
+  seedPath: string;
+}): Promise<{ schemaSql: string; seedSql: string }> {
+  return runPipelineFileSystemBoundary({
+    command: "verify.d1",
+    operation: "readD1ReplaySql",
+    run: (files) =>
+      Effect.gen(function* () {
+        const schemaSql = yield* files.readText({
+          command: "verify.d1",
+          operation: "readD1SchemaSql",
+          path: input.schemaPath,
+          spanAttributes: { month: input.month },
+        });
+        const seedSql = yield* files.readText({
+          command: "verify.d1",
+          operation: "readD1SeedSql",
+          path: input.seedPath,
+          spanAttributes: { month: input.month },
+        });
+        return { schemaSql, seedSql };
+      }),
+  });
+}
+
+async function writeD1VerifySummary(result: D1VerifyResult): Promise<void> {
+  await runPipelineFileSystemBoundary({
+    command: "verify.d1",
+    operation: "writeD1VerifySummary",
+    run: (files) =>
+      files.writeText({
+        command: "verify.d1",
+        operation: "writeD1VerifySummary",
+        path: result.summaryPath,
+        contents: `${JSON.stringify(result, null, 2)}\n`,
+        spanAttributes: { month: result.isoMonth },
+      }),
+  });
+}
+
 export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1VerifyResult> {
   const month = isoMonth(inputs.year, inputs.month);
   const exportResult = await runExportD1Seed({
@@ -89,15 +129,26 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
   });
 
-  const schemaSql = await Bun.file(exportResult.schemaPath).text();
-  const seedSql = await Bun.file(exportResult.seedPath).text();
-  const issues: string[] = [];
-  const { database, db } = loadD1Database(schemaSql, seedSql);
-  const { tableCounts, publicTableCounts } = collectD1TableCounts(database);
-  verifyD1TableCounts({ issues, tableCounts, exportResult });
-  const checks = await runD1RepositoryChecks({ db, month });
-  verifyD1RepositoryChecks({ issues, checks, exportResult, publicTableCounts });
-  database.close();
+  const { schemaSql, seedSql } = await readD1ReplaySql({
+    month,
+    schemaPath: exportResult.schemaPath,
+    seedPath: exportResult.seedPath,
+  });
+  const { issues, tableCounts, checks } = await runD1ReplayBoundary({
+    command: "verify.d1",
+    operation: "verifyD1LoadedExport",
+    schemaSql,
+    seedSql,
+    spanAttributes: { month },
+    run: async ({ database, db }) => {
+      const issues: string[] = [];
+      const { tableCounts, publicTableCounts } = collectD1TableCounts(database);
+      verifyD1TableCounts({ issues, tableCounts, exportResult });
+      const checks = await runD1RepositoryChecks({ db, month });
+      verifyD1RepositoryChecks({ issues, checks, exportResult, publicTableCounts });
+      return { issues, tableCounts, checks };
+    },
+  });
 
   if (issues.length > 0) {
     throw new Error(`D1 export verification failed: ${issues.join(", ")}`);
@@ -116,7 +167,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     expectedCounts: expectedTableCounts(exportResult),
     repositoryChecks: checks,
   };
-  await Bun.write(result.summaryPath, `${JSON.stringify(result, null, 2)}\n`);
+  await writeD1VerifySummary(result);
   return result;
 }
 
@@ -134,7 +185,6 @@ export default defineCommand({
         .describe("Optional route timeline serving projection JSON to fold into D1 verification"),
     }),
   },
-  middleware: [withLocalDb({ readonly: true })],
   output: z.object({
     schemaVersion: z.number(),
     isoMonth: z.string(),
@@ -148,17 +198,30 @@ export default defineCommand({
     expectedCounts: z.record(z.string(), z.number()),
     repositoryChecks: z.unknown(),
   }),
-  async run({ ctx, input }) {
-    return runVerifyD1Export({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      exportRoot:
-        input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot),
-      routeTimelineProjectionPath:
-        input.options.routeTimelineProjectionPath === undefined
-          ? undefined
-          : fromCliPath(input.options.routeTimelineProjectionPath),
+  async run({ input }) {
+    const month = isoMonth(input.options.year, input.options.month);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      localDbOptions: { readonly: true },
+      command: "verify.d1",
+      operation: "runVerifyD1Export",
+      spanAttributes: {
+        month,
+      },
+      run: (local) =>
+        runVerifyD1Export({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          exportRoot:
+            input.options.exportRoot === undefined
+              ? undefined
+              : fromCliPath(input.options.exportRoot),
+          routeTimelineProjectionPath:
+            input.options.routeTimelineProjectionPath === undefined
+              ? undefined
+              : fromCliPath(input.options.routeTimelineProjectionPath),
+        }),
     });
   },
 });

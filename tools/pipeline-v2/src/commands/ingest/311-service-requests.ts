@@ -8,13 +8,9 @@ import {
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {
   fetchSoda3RowsForSource,
@@ -118,21 +114,32 @@ export default defineCommand({
         .describe("Override complaint type filter (default: CURB_FRICTION_311_COMPLAINT_TYPES)"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     isoMonth: z.string(),
     rowCount: z.number(),
     era: z.enum(["current", "historical"]),
   }),
-  async run({ ctx, input }) {
-    return runNyc311Ingest({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      era: input.options.era,
-      complaintTypes:
-        input.options.complaintTypes.length > 0 ? input.options.complaintTypes : undefined,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.311-service-requests",
+      operation: "runNyc311Ingest",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+        era: input.options.era,
+        complaintTypeCount: input.options.complaintTypes.length,
+      },
+      run: (local) =>
+        runNyc311Ingest({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          era: input.options.era,
+          complaintTypes:
+            input.options.complaintTypes.length > 0 ? input.options.complaintTypes : undefined,
+        }),
     });
   },
 });

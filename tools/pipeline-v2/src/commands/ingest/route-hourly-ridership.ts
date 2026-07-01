@@ -8,13 +8,9 @@ import { soqlIn } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { mergeRoutesWithFile } from "../../lib/route-list.ts";
 import {
@@ -199,7 +195,6 @@ export default defineCommand({
         .describe("Number of Socrata hourly-ridership aggregate queries to run concurrently"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     month: z.string(),
     sourceId: z.enum(["bus_hourly_ridership_2020_2024", "bus_hourly_ridership_2025"]),
@@ -207,20 +202,33 @@ export default defineCommand({
     normalizedRowCount: z.number(),
     routeCount: z.number(),
   }),
-  async run({ ctx, input }) {
+  async run({ input }) {
     const routes = await mergeRoutesWithFile(
       input.options.route === undefined
         ? input.options.routes
         : [...input.options.routes, input.options.route],
       input.options.routesFile,
     );
-    return runRouteHourlyRidershipIngest({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      routes,
-      routeChunkSize: input.options.routeChunkSize,
-      queryConcurrency: input.options.queryConcurrency,
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.route-hourly-ridership",
+      operation: "runRouteHourlyRidershipIngest",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+        routeCount: routes.length,
+        routeChunkSize: input.options.routeChunkSize,
+        queryConcurrency: input.options.queryConcurrency,
+      },
+      run: (local) =>
+        runRouteHourlyRidershipIngest({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          routes,
+          routeChunkSize: input.options.routeChunkSize,
+          queryConcurrency: input.options.queryConcurrency,
+        }),
     });
   },
 });

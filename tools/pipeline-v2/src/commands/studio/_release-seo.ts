@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { Effect } from "effect";
+import { runPipelineFileSystemBoundary } from "../../effect/file-system.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 
 // The public origin used for canonical/sitemap URLs. Matches apps/web SEO serving.
@@ -10,28 +10,21 @@ const SEO_MANIFEST_PATH = "apps/web/src/studio/seo-manifest.gen.ts";
 const SITEMAP_PATH = "apps/web/public/sitemap.xml";
 
 // Static public pages that always exist regardless of the release contents.
-// `/search` is intentionally excluded: it is a parameterized results page, not a
-// canonical content URL, so it does not belong in the sitemap.
-const STATIC_PUBLIC_PATHS = ["/", "/compare", "/findings", "/briefs", "/methods", "/docs"] as const;
+const STATIC_PUBLIC_PATHS = ["/", "/map", "/interventions", "/methods"] as const;
 
 export type SeoTitleManifest = {
   generatedAt: string;
   routes: Array<[string, string]>;
-  findings: Array<[string, string]>;
-  briefs: Array<[string, string]>;
 };
 
 type ReleaseForSeo = {
   generatedAt: string;
   routes: ReadonlyArray<{ slug: string; label: string; sbs: boolean }>;
-  findings: ReadonlyArray<{ id: string; title: string }>;
-  briefs: ReadonlyArray<{ id: string; title: string }>;
 };
 
 /**
- * Derive the SEO title manifest from the release payload. This is the single
- * source of truth for the route/finding/brief titles the worker injects into
- * page `<head>`s, so the titles can never drift from what is actually served.
+ * Derive the SEO title manifest from the release payload. This is the route
+ * title source the worker uses when injecting page `<head>`s.
  */
 export function buildSeoTitleManifest(release: ReleaseForSeo): SeoTitleManifest {
   return {
@@ -40,8 +33,6 @@ export function buildSeoTitleManifest(release: ReleaseForSeo): SeoTitleManifest 
       route.slug,
       route.sbs ? `${route.label} SBS` : route.label,
     ]),
-    findings: release.findings.map((finding) => [finding.id, finding.title]),
-    briefs: release.briefs.map((brief) => [brief.id, brief.title]),
   };
 }
 
@@ -53,14 +44,6 @@ export const SEO_MANIFEST_GENERATED_AT = ${JSON.stringify(manifest.generatedAt)}
 export const routeTitles: ReadonlyMap<string, string> = new Map([
 ${renderEntries(manifest.routes)}
 ]);
-
-export const findingTitles: ReadonlyMap<string, string> = new Map([
-${renderEntries(manifest.findings)}
-]);
-
-export const briefTitles: ReadonlyMap<string, string> = new Map([
-${renderEntries(manifest.briefs)}
-]);
 `;
 }
 
@@ -68,12 +51,6 @@ export function buildSitemapXml(origin: string, manifest: SeoTitleManifest): str
   const paths = [...STATIC_PUBLIC_PATHS] as string[];
   for (const [slug] of manifest.routes) {
     paths.push(`/routes/${slug}`);
-  }
-  for (const [id] of manifest.findings) {
-    paths.push(`/findings/${id}`);
-  }
-  for (const [id] of manifest.briefs) {
-    paths.push(`/briefs/${id}`, `/briefs/${id}/evidence`);
   }
 
   const urls = paths
@@ -93,8 +70,25 @@ ${urls}
  */
 export async function writeSeoArtifacts(release: ReleaseForSeo): Promise<void> {
   const manifest = buildSeoTitleManifest(release);
-  await writeFileEnsuringDir(fromRepoRoot(SEO_MANIFEST_PATH), renderSeoManifestModule(manifest));
-  await writeFileEnsuringDir(fromRepoRoot(SITEMAP_PATH), buildSitemapXml(SITEMAP_ORIGIN, manifest));
+  await runPipelineFileSystemBoundary({
+    command: "studio.release",
+    operation: "writeSeoArtifacts",
+    run: (files) =>
+      Effect.gen(function* () {
+        yield* files.writeText({
+          command: "studio.release",
+          operation: "writeSeoManifest",
+          path: fromRepoRoot(SEO_MANIFEST_PATH),
+          contents: renderSeoManifestModule(manifest),
+        });
+        yield* files.writeText({
+          command: "studio.release",
+          operation: "writeSitemap",
+          path: fromRepoRoot(SITEMAP_PATH),
+          contents: buildSitemapXml(SITEMAP_ORIGIN, manifest),
+        });
+      }),
+  });
 }
 
 function renderEntries(pairs: Array<[string, string]>): string {
@@ -105,9 +99,4 @@ function renderEntries(pairs: Array<[string, string]>): string {
 
 function escapeXml(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
-
-async function writeFileEnsuringDir(path: string, contents: string): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, contents);
 }

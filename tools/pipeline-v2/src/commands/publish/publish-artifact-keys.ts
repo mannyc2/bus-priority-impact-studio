@@ -1,12 +1,24 @@
-import { Database } from "bun:sqlite";
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { listCorridorArtifacts, listRouteArtifacts } from "@bp/db";
-import { createBunSqliteServingDb } from "@bp/db/d1/bun-sqlite";
+import { Effect } from "effect";
+import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
+import { runPipelineFileSystemBoundary } from "../../effect/file-system.ts";
 
 type ManifestFile = {
   artifacts?: Array<{ artifactKey?: unknown }>;
 };
+
+function isManifestArtifactEntry(entry: unknown): entry is { artifactKey?: unknown } {
+  return typeof entry === "object" && entry !== null;
+}
+
+function manifestFileFromJson(raw: unknown): ManifestFile {
+  if (typeof raw !== "object" || raw === null || !("artifacts" in raw)) {
+    return {};
+  }
+  const artifacts = raw.artifacts;
+  return Array.isArray(artifacts) ? { artifacts: artifacts.filter(isManifestArtifactEntry) } : {};
+}
 
 export type ManifestArtifactKeyResult = {
   keys: string[];
@@ -18,34 +30,69 @@ export type D1ArtifactKeyResult = {
   exportUsed: boolean;
 };
 
-async function readJsonIfExists<T>(path: string): Promise<T | null> {
-  try {
-    const body = await readFile(path, "utf-8");
-    return JSON.parse(body) as T;
-  } catch {
-    return null;
-  }
-}
-
 export async function collectManifestArtifactKeys(input: {
   artifactRoot: string;
   manifestDirs: readonly string[];
   month: string;
 }): Promise<ManifestArtifactKeyResult> {
-  const keys = new Set<string>();
-  let manifestCount = 0;
-  for (const dir of input.manifestDirs) {
-    const manifestPath = join(input.artifactRoot, dir, input.month, "manifest.json");
-    const manifest = await readJsonIfExists<ManifestFile>(manifestPath);
-    if (manifest === null) continue;
-    manifestCount += 1;
-    for (const entry of manifest.artifacts ?? []) {
-      if (typeof entry.artifactKey === "string" && entry.artifactKey.length > 0) {
-        keys.add(entry.artifactKey);
-      }
-    }
-  }
-  return { keys: [...keys].sort(), manifestCount };
+  return runPipelineFileSystemBoundary({
+    command: "publish.artifact-keys",
+    operation: "collectManifestArtifactKeys",
+    run: (files) =>
+      Effect.gen(function* () {
+        const keys = new Set<string>();
+        let manifestCount = 0;
+        for (const dir of input.manifestDirs) {
+          const manifestPath = join(input.artifactRoot, dir, input.month, "manifest.json");
+          const rawManifest = yield* files.readJsonIfExists({
+            command: "publish.artifact-keys",
+            operation: "readManifestArtifactKeys",
+            path: manifestPath,
+            spanAttributes: { month: input.month },
+          });
+          if (rawManifest === null) continue;
+          manifestCount += 1;
+          const manifest = manifestFileFromJson(rawManifest);
+          for (const entry of manifest.artifacts ?? []) {
+            if (typeof entry.artifactKey === "string" && entry.artifactKey.length > 0) {
+              keys.add(entry.artifactKey);
+            }
+          }
+        }
+        return { keys: [...keys].sort(), manifestCount };
+      }),
+  });
+}
+
+async function readD1ExportSqlIfExists(input: {
+  month: string;
+  schemaPath: string;
+  seedPath: string;
+}): Promise<{ schemaSql: string; seedSql: string } | null> {
+  return runPipelineFileSystemBoundary({
+    command: "publish.artifact-keys",
+    operation: "readD1ExportSql",
+    run: (files) =>
+      Effect.gen(function* () {
+        const schemaSql = yield* files.readTextIfExists({
+          command: "publish.artifact-keys",
+          operation: "readD1SchemaSql",
+          path: input.schemaPath,
+          spanAttributes: { month: input.month },
+        });
+        if (schemaSql === null) return null;
+
+        const seedSql = yield* files.readTextIfExists({
+          command: "publish.artifact-keys",
+          operation: "readD1SeedSql",
+          path: input.seedPath,
+          spanAttributes: { month: input.month },
+        });
+        if (seedSql === null) return null;
+
+        return { schemaSql, seedSql };
+      }),
+  });
 }
 
 export async function collectD1ArtifactKeys(input: {
@@ -53,36 +100,31 @@ export async function collectD1ArtifactKeys(input: {
   schemaPath: string;
   seedPath: string;
 }): Promise<D1ArtifactKeyResult> {
-  let schemaSql: string;
-  let seedSql: string;
-  try {
-    [schemaSql, seedSql] = await Promise.all([
-      readFile(input.schemaPath, "utf-8"),
-      readFile(input.seedPath, "utf-8"),
-    ]);
-  } catch {
+  const sql = await readD1ExportSqlIfExists(input);
+  if (sql === null) {
     return { keys: [], exportUsed: false };
   }
 
-  const sqlite = new Database(":memory:");
-  try {
-    sqlite.exec(schemaSql);
-    sqlite.exec(seedSql);
-    const db = createBunSqliteServingDb(sqlite);
-    const [routeArtifacts, corridorArtifacts] = await Promise.all([
-      listRouteArtifacts(db, input.month),
-      listCorridorArtifacts(db, input.month),
-    ]);
-    return {
-      keys: [
-        ...new Set([
-          ...routeArtifacts.map((row) => row.artifact_key),
-          ...corridorArtifacts.map((row) => row.artifact_key),
-        ]),
-      ].sort(),
-      exportUsed: true,
-    };
-  } finally {
-    sqlite.close();
-  }
+  return runD1ReplayBoundary({
+    command: "publish.artifact-keys",
+    operation: "collectD1ArtifactKeys",
+    schemaSql: sql.schemaSql,
+    seedSql: sql.seedSql,
+    spanAttributes: { month: input.month },
+    run: async ({ db }) => {
+      const [routeArtifacts, corridorArtifacts] = await Promise.all([
+        listRouteArtifacts(db, input.month),
+        listCorridorArtifacts(db, input.month),
+      ]);
+      return {
+        keys: [
+          ...new Set([
+            ...routeArtifacts.map((row) => row.artifact_key),
+            ...corridorArtifacts.map((row) => row.artifact_key),
+          ]),
+        ].sort(),
+        exportUsed: true,
+      };
+    },
+  });
 }

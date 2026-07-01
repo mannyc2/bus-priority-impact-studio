@@ -4,7 +4,7 @@ import { dirname, isAbsolute, join, relative } from "node:path";
 import {
   dedupeInterventionRecordsByEvidenceOverlap,
   processInterventionRecordsToolArgs,
-} from "@bp/applied-research/intervention-records";
+} from "@bp/analytics/interventions";
 import type { Tier2DocumentEvidenceCandidate } from "@bp/domain/documents/candidates";
 import {
   buildInterventionRecordsBuckets,
@@ -13,8 +13,8 @@ import {
   type Tier2InterventionRecordsExtraction,
 } from "../src/commands/docs/tier2/_intervention-records.ts";
 import {
-  INTERVENTION_RECORDS_TOOL_NAME,
   extractToolCallArguments,
+  INTERVENTION_RECORDS_TOOL_NAME,
   recordQualityIssueCounts,
   recordQualityRepairCounts,
   type Tier2DocumentInterventionRecord,
@@ -64,11 +64,7 @@ function sourceRoot(input: {
   );
 }
 
-function bucketPaths(input: {
-  sourceRoot: string;
-  bucketId: string;
-  isOnlyBucket: boolean;
-}): {
+function bucketPaths(input: { sourceRoot: string; bucketId: string; isOnlyBucket: boolean }): {
   responsePath: string;
   toolCallPath: string;
   errorPath: string;
@@ -83,10 +79,7 @@ function bucketPaths(input: {
   };
 }
 
-function extractCachedToolArgs(paths: {
-  toolCallPath: string;
-  responsePath: string;
-}): {
+function extractCachedToolArgs(paths: { toolCallPath: string; responsePath: string }): {
   toolArgs: unknown | null;
   responsePath: string | null;
   toolCallPath: string | null;
@@ -124,12 +117,8 @@ async function loadRouteCatalog(): Promise<
     if (typeof routeId !== "string" || routeId.length === 0) continue;
     catalog.set(routeId, {
       routeId,
-      longName:
-        typeof row["route_long_name"] === "string" ? row["route_long_name"] : null,
-      description:
-        typeof row["route_description"] === "string"
-          ? row["route_description"]
-          : null,
+      longName: typeof row["route_long_name"] === "string" ? row["route_long_name"] : null,
+      description: typeof row["route_description"] === "string" ? row["route_description"] : null,
     });
   }
   return catalog;
@@ -181,11 +170,9 @@ if (execute && (apiKey === undefined || apiKey.length === 0)) {
 const previousRunRoot = dirname(previousArtifact.ocrMarkdownCandidateExtractionPath);
 const runRoot = previousRunRoot;
 const synthesisRootName =
-  argValue("--synthesis-root") ??
-  `${previousArtifact.synthesisRootName}-targeted-retry`;
+  argValue("--synthesis-root") ?? `${previousArtifact.synthesisRootName}-targeted-retry`;
 const outputPath = resolvePath(
-  argValue("--output") ??
-    join(runRoot, synthesisRootName, "per-source", `${sourceId}.json`),
+  argValue("--output") ?? join(runRoot, synthesisRootName, "per-source", `${sourceId}.json`),
 );
 const bucketConcurrency = Number(argValue("--bucket-concurrency") ?? "4");
 if (!Number.isInteger(bucketConcurrency) || bucketConcurrency < 1) {
@@ -288,9 +275,7 @@ async function processCachedBucket(
   };
 }
 
-async function runBucket(
-  bucket: (typeof buckets)[number],
-): Promise<BucketOutcome> {
+async function runBucket(bucket: (typeof buckets)[number]): Promise<BucketOutcome> {
   const cached = await processCachedBucket(bucket);
   if (cached !== null) {
     console.log(`bucket_reused ${bucket.bucketId}`);
@@ -391,8 +376,8 @@ const source = {
   reusedExisting: false,
   responseArtifactKey: firstExtractedBucket?.responseArtifactKey ?? null,
   toolCallArtifactKey: firstExtractedBucket?.toolCallArtifactKey ?? null,
-  errorArtifactKey: anyExtracted ? null : firstFailedBucket?.errorArtifactKey ?? null,
-  error: anyExtracted ? null : firstFailedBucket?.error ?? "all_buckets_failed",
+  errorArtifactKey: anyExtracted ? null : (firstFailedBucket?.errorArtifactKey ?? null),
+  error: anyExtracted ? null : (firstFailedBucket?.error ?? "all_buckets_failed"),
   buckets: bucketSummaries,
 } satisfies Tier2InterventionRecordsExtraction["sources"][number];
 

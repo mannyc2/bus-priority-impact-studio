@@ -1,22 +1,22 @@
-import { Database as BunDatabase } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
-import { routeSourceReconciliationPath } from "@bp/applied-research/artifacts";
-import { buildRouteSourceReconciliation } from "@bp/applied-research/local-db";
+import { routeSourceReconciliationPath } from "@bp/analytics/artifacts";
+import { buildRouteSourceReconciliation } from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
-export { routeSourceReconciliationPath } from "@bp/applied-research/artifacts";
+export { routeSourceReconciliationPath } from "@bp/analytics/artifacts";
 export {
   buildRouteSourceReconciliation,
   type RouteAliasCandidate,
   type RouteSourceReconciliationArtifact,
   type RouteSourceReconciliationRoute,
   type ScheduleSourceYearRoute,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 
 function repoDisplayPath(path: string): string {
   if (!isAbsolute(path)) return path;
@@ -57,31 +57,38 @@ export default defineCommand({
       input.options.output === undefined
         ? routeSourceReconciliationPath({ artifactRoot, historyStartMonth, releaseMonth })
         : fromCliPath(input.options.output);
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
-    const sqlite = new BunDatabase(dbPath, { readonly: true });
-    try {
-      const artifact = buildRouteSourceReconciliation({
-        sqlite,
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
+    return runLocalDbCommandBoundary({
+      dbPath,
+      localDbOptions: { readonly: true },
+      command: "audit.route-source-reconciliation",
+      operation: "buildRouteSourceReconciliation",
+      spanAttributes: {
         releaseMonth,
         historyStartMonth,
         runId,
-        generatedAt: new Date().toISOString(),
-        dbPath: repoDisplayPath(dbPath),
-        artifactPath: repoDisplayPath(outputPath),
-      });
-      await mkdir(dirname(outputPath), { recursive: true });
-      await writeJson(outputPath, artifact);
-      return {
-        releaseMonth,
-        runId,
-        outputPath: repoDisplayPath(outputPath),
-        routeCount: artifact.routes.length,
-        sourceAbsentRouteCount: artifact.sourceAbsentRouteIds.length,
-        aliasCandidateCount: artifact.aliasCandidates.length,
-      };
-    } finally {
-      sqlite.close();
-    }
+      },
+      run: async (local) => {
+        const artifact = buildRouteSourceReconciliation({
+          sqlite: local.sqlite,
+          releaseMonth,
+          historyStartMonth,
+          runId,
+          generatedAt: new Date().toISOString(),
+          dbPath: repoDisplayPath(local.path),
+          artifactPath: repoDisplayPath(outputPath),
+        });
+        await mkdir(dirname(outputPath), { recursive: true });
+        await writeJson(outputPath, artifact);
+        return {
+          releaseMonth,
+          runId,
+          outputPath: repoDisplayPath(outputPath),
+          routeCount: artifact.routes.length,
+          sourceAbsentRouteCount: artifact.sourceAbsentRouteIds.length,
+          aliasCandidateCount: artifact.aliasCandidates.length,
+        };
+      },
+    });
   },
 });

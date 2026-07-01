@@ -18,8 +18,6 @@
       "@bp/sources/*": ["./packages/sources/src/*"],
       "@bp/analytics": ["./packages/analytics/src/index.ts"],
       "@bp/analytics/*": ["./packages/analytics/src/*/index.ts"],
-      "@bp/applied-research": ["./packages/applied-research/src/index.ts"],
-      "@bp/applied-research/*": ["./packages/applied-research/src/*/index.ts"],
       "@bp/db": ["./packages/db/src/index.ts"],
       "@bp/studio-api/contracts": ["./packages/studio-api/src/contracts/index.ts"],
       "@bp/studio-api/contracts/openapi": ["./packages/studio-api/src/contracts/openapi.ts"],
@@ -28,13 +26,6 @@
       "@bp/studio-api/server": ["./packages/studio-api/src/server/index.ts"],
       "@bp/studio-api/server/worker": ["./packages/studio-api/src/server/worker.ts"],
       "@bp/studio-api/server/scheduled": ["./packages/studio-api/src/server/scheduled.ts"],
-      "@bp/studio-api/server/auth": ["./packages/studio-api/src/server/resources/auth/index.ts"],
-      "@bp/studio-api/server/authoring": [
-        "./packages/studio-api/src/server/resources/authoring/index.ts"
-      ],
-      "@bp/studio-api/server/authoring/agent": [
-        "./packages/studio-api/src/server/resources/authoring/agent/index.ts"
-      ],
       "@bp/studio-api/server/testing": ["./packages/studio-api/src/server/testing/index.ts"],
       "@bp/domain/documents/candidates": ["./packages/domain/src/documents/candidates/index.ts"],
       "@bp/domain/documents/derived-surfaces": [

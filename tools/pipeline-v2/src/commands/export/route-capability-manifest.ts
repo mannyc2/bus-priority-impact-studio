@@ -5,7 +5,7 @@ import {
   buildRouteCapabilityManifest,
   type RouteCapabilityInputRow,
   type RouteCapabilitySourceStatus,
-} from "@bp/applied-research/evaluation";
+} from "@bp/analytics/evaluation";
 import { STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY } from "@bp/domain/studio";
 import * as z from "zod";
 import type { D1CanonicalInputs } from "./d1-inputs";
@@ -14,7 +14,7 @@ import type { D1CanonicalInputs } from "./d1-inputs";
  * Builds the route capability manifest (frontend §7.1 / hard-cutover C1) from the
  * per-route rows the `export d1` flow already assembled in `readLocalD1Inputs`, plus
  * the per-route detector counts parsed from the staged detector readiness manifest.
- * The pure state machine lives in `@bp/applied-research`; this module is the join.
+ * The pure state machine lives in `@bp/analytics/evaluation`; this module is the join.
  */
 
 // Reliability-family detectors — their readiness drives the `reliability` surface.

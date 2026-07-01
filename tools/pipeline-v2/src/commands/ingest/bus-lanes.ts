@@ -7,12 +7,8 @@ import {
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { defineCommand, z } from "@liche/core";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { fetchSoda3RowsForSource, type SocrataFetch, type SocrataRow } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
@@ -111,13 +107,17 @@ export default defineCommand({
   path: ["ingest", "bus-lanes"],
   summary: "Fetch and dedupe the NYC DOT bus lanes local-streets dataset.",
   input: { options: dbOptions },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     laneCount: z.number(),
     manhattanLaneCount: z.number(),
   }),
-  async run({ ctx }) {
-    return runBusLanesIngest({ local: localDbFromCtx(ctx) });
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.bus-lanes",
+      operation: "runBusLanesIngest",
+      run: (local) => runBusLanesIngest({ local }),
+    });
   },
 });

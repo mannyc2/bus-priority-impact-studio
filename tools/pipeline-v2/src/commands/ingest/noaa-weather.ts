@@ -2,12 +2,8 @@ import { join } from "node:path";
 import { upsertWeatherObservations } from "@bp/db/local";
 import { NOAA_NYC_STATIONS, parseGhcnDailyCsv } from "@bp/sources/adapters/noaa/ghcn-daily";
 import { defineCommand, z } from "@liche/core";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 
 const DEFAULT_SINCE = "2023-01-01";
@@ -88,19 +84,29 @@ export default defineCommand({
         .describe("Override station IDs (default: NOAA_NYC_STATIONS)"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     rowCount: z.number(),
     stations: z.array(z.object({ id: z.string(), rows: z.number() })),
     sinceDate: z.string(),
     untilDate: z.string(),
   }),
-  async run({ ctx, input }) {
-    return runNoaaWeatherIngest({
-      local: localDbFromCtx(ctx),
-      sinceDate: input.options.since,
-      untilDate: input.options.until,
-      stations: input.options.stations.length > 0 ? input.options.stations : undefined,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.noaa-weather",
+      operation: "runNoaaWeatherIngest",
+      spanAttributes: {
+        sinceDate: input.options.since ?? null,
+        untilDate: input.options.until ?? null,
+        stationCount: input.options.stations.length,
+      },
+      run: (local) =>
+        runNoaaWeatherIngest({
+          local,
+          sinceDate: input.options.since,
+          untilDate: input.options.until,
+          stations: input.options.stations.length > 0 ? input.options.stations : undefined,
+        }),
     });
   },
 });

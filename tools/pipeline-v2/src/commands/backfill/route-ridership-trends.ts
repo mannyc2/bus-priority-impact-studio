@@ -3,13 +3,9 @@ import { soqlQuote } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { mergeRoutesWithFile } from "../../lib/route-list.ts";
 import {
@@ -242,7 +238,6 @@ export default defineCommand({
       concurrency: arg.positiveInt().default(4).describe("Concurrent Socrata fetches"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     startMonth: z.string(),
     endMonth: z.string(),
@@ -251,17 +246,32 @@ export default defineCommand({
     failedRowCount: z.number(),
     remainingRidershipMissingCount: z.number(),
   }),
-  async run({ ctx, input }) {
+  async run({ input }) {
     const routes = await mergeRoutesWithFile(input.options.routes, input.options.routesFile);
-    return runBackfillRouteRidershipTrends({
-      local: localDbFromCtx(ctx),
-      startYear: input.options.startYear,
-      startMonth: input.options.startMonth,
-      endYear: input.options.endYear,
-      endMonth: input.options.endMonth,
-      routes: routes.length === 0 ? undefined : routes,
-      limit: input.options.limit,
-      concurrency: input.options.concurrency,
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "backfill.route-ridership-trends",
+      operation: "runBackfillRouteRidershipTrends",
+      spanAttributes: {
+        startYear: input.options.startYear,
+        startMonth: input.options.startMonth,
+        endYear: input.options.endYear,
+        endMonth: input.options.endMonth,
+        routeCount: routes.length,
+        concurrency: input.options.concurrency,
+        limit: input.options.limit ?? null,
+      },
+      run: (local) =>
+        runBackfillRouteRidershipTrends({
+          local,
+          startYear: input.options.startYear,
+          startMonth: input.options.startMonth,
+          endYear: input.options.endYear,
+          endMonth: input.options.endMonth,
+          routes: routes.length === 0 ? undefined : routes,
+          limit: input.options.limit,
+          concurrency: input.options.concurrency,
+        }),
     });
   },
 });

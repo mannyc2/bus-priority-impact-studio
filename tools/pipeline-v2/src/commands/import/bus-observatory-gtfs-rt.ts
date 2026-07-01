@@ -6,13 +6,9 @@ import {
 } from "@bp/db/local";
 import { normalizeGtfsRealtimeRouteId } from "@bp/sources/gtfs-realtime";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 
 type CanonicalBusObservatoryRow = {
@@ -470,7 +466,6 @@ export default defineCommand({
       maxGapSeconds: arg.positiveInt().default(300).describe("Maximum allowed inter-sample gap"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     runId: z.string(),
     month: z.string(),
@@ -488,15 +483,29 @@ export default defineCommand({
     qaStatus: z.enum(["pass", "warning", "fail"]),
     qaIssues: z.array(z.string()),
   }),
-  async run({ ctx, input }) {
-    return runImportBusObservatoryGtfsRt({
-      local: localDbFromCtx(ctx),
-      runId: input.options.runId,
-      year: input.options.year,
-      month: input.options.month,
-      canonicalCsv: fromCliPath(input.options.canonicalCsv),
-      sampleSeconds: input.options.sampleSeconds,
-      maxGapSeconds: input.options.maxGapSeconds,
+  async run({ input }) {
+    const canonicalCsv = fromCliPath(input.options.canonicalCsv);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "import.bus-observatory-gtfs-rt",
+      operation: "runImportBusObservatoryGtfsRt",
+      spanAttributes: {
+        runId: input.options.runId,
+        year: input.options.year,
+        month: input.options.month,
+        sampleSeconds: input.options.sampleSeconds,
+        maxGapSeconds: input.options.maxGapSeconds,
+      },
+      run: (local) =>
+        runImportBusObservatoryGtfsRt({
+          local,
+          runId: input.options.runId,
+          year: input.options.year,
+          month: input.options.month,
+          canonicalCsv,
+          sampleSeconds: input.options.sampleSeconds,
+          maxGapSeconds: input.options.maxGapSeconds,
+        }),
     });
   },
 });

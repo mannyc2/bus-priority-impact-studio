@@ -7,13 +7,9 @@ import {
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { parkingLocationKey } from "../../lib/parking-location.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {
@@ -136,7 +132,6 @@ export default defineCommand({
         .describe("Override violation codes (default: BUS_RELEVANT_PARKING_CODES)"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     isoMonth: z.string(),
@@ -144,12 +139,23 @@ export default defineCommand({
     rowCount: z.number(),
     codeBreakdown: z.array(z.object({ code: z.number(), count: z.number() })),
   }),
-  async run({ ctx, input }) {
-    return runParkingViolationsIngest({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      codes: input.options.codes.length > 0 ? input.options.codes : undefined,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.parking-violations",
+      operation: "runParkingViolationsIngest",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+        codeCount: input.options.codes.length,
+      },
+      run: (local) =>
+        runParkingViolationsIngest({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          codes: input.options.codes.length > 0 ? input.options.codes : undefined,
+        }),
     });
   },
 });

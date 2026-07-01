@@ -23,22 +23,16 @@ import {
   listRouteObservedReliabilitySummaries,
   listRouteReadiness,
 } from "@bp/db/local";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import {
   dbOptions,
-  localDbFromCtx,
-  openLocalPipelineDb,
   type OpenLocalPipelineDb,
-  withLocalDb,
 } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
-import { verifyEvaluationArtifactManifest } from "../evaluation/artifacts.ts";
 import { verifyMapArtifactManifest } from "../map/artifacts.ts";
 import { runVerifyD1Export } from "../verify/d1.ts";
-import {
-  readCorridorShapeReviewArtifact,
-  readRouteBatchAuditArtifact,
-} from "./_artifact-readers.ts";
+import { readCorridorShapeReviewArtifact } from "./_artifact-readers.ts";
 
 type CheckStatus = "pass" | "fail";
 
@@ -111,8 +105,6 @@ type PipelineV1Counts = {
   corridorUnassignedRouteShare: number;
   corridorArtifactRows: number;
   routeBatchIssueRows: number;
-  evaluationArtifactRows: number;
-  evaluationArtifactIssueRows: number;
   mapArtifactRows: number;
   mapRouteSegmentArtifactRows: number;
   mapArtifactIssueRows: number;
@@ -124,14 +116,6 @@ export type PipelineV1CheckResult = {
   issueCount: number;
   issues: PipelineV1Issue[];
   counts: PipelineV1Counts;
-  audit: {
-    status: CheckStatus;
-    manifestPath: string;
-    artifactCount: number;
-    missingArtifactCount: number;
-    hashMismatchCount: number;
-    byteLengthMismatchCount: number;
-  };
   d1: {
     status: CheckStatus;
     routeArtifactRows: number;
@@ -404,7 +388,6 @@ export async function runCheckPipelineV1(
     maxAgeDays: maxSourceProbeAgeDays,
     now: inputs.now ?? new Date(),
   });
-  const audit = await readRouteBatchAuditArtifact({ artifactRoot, month });
   const corridorShapeReview = await readCorridorShapeReviewArtifact({ artifactRoot, month });
 
   const local = inputs.local;
@@ -452,17 +435,6 @@ export async function runCheckPipelineV1(
     .map((row) => row.routeId);
   const observedRouteIds = new Set(observedReliability.map((row) => row.routeId));
   const corridorRouteIds = new Set(corridorMembers.map((row) => row.routeId));
-  const routeArtifactsByRoute = new Map<string, number>();
-  for (const row of routeArtifacts) {
-    routeArtifactsByRoute.set(row.routeId, (routeArtifactsByRoute.get(row.routeId) ?? 0) + 1);
-  }
-  const corridorArtifactsByCorridor = new Map<string, number>();
-  for (const row of corridorArtifacts) {
-    corridorArtifactsByCorridor.set(
-      row.corridorId,
-      (corridorArtifactsByCorridor.get(row.corridorId) ?? 0) + 1,
-    );
-  }
   const observedReliabilitySourceStatusRows = sourceStatuses.filter(
     (row) =>
       row.sourceScope === "reliability" &&
@@ -679,15 +651,6 @@ export async function runCheckPipelineV1(
   const corridorInterventionRouteIds = new Set(
     corridorInterventionContexts.map((row) => row.routeId),
   );
-  const evaluationArtifacts = await verifyEvaluationArtifactManifest({
-    artifactRoot,
-    month,
-    expectedRowCounts: {
-      observedReliability: observedReliability.length,
-      routeInterventionComparisons: interventionComparisons.length,
-      corridorInterventionContexts: corridorInterventionContexts.length,
-    },
-  });
   const mapArtifacts = await verifyMapArtifactManifest({
     artifactRoot,
     month,
@@ -1140,42 +1103,6 @@ export async function runCheckPipelineV1(
       `${interventionRoutesMissingCorridorContext.length} public intervention route(s) lack corridor context rows: ${sample(interventionRoutesMissingCorridorContext)}.`,
     );
   }
-  const routesMissingBriefArtifacts = publicRouteIds.filter(
-    (routeId) => (routeArtifactsByRoute.get(routeId) ?? 0) < 3,
-  );
-  if (routesMissingBriefArtifacts.length > 0) {
-    addIssue(
-      issues,
-      "route_brief_artifacts_incomplete",
-      `${routesMissingBriefArtifacts.length} public routes lack JSON/Markdown/HTML brief artifacts: ${sample(routesMissingBriefArtifacts)}.`,
-    );
-  }
-  const corridorsMissingBriefArtifacts = corridors
-    .map((row) => row.corridorId)
-    .filter((corridorId) => (corridorArtifactsByCorridor.get(corridorId) ?? 0) < 3);
-  if (corridorsMissingBriefArtifacts.length > 0) {
-    addIssue(
-      issues,
-      "corridor_brief_artifacts_incomplete",
-      `${corridorsMissingBriefArtifacts.length} corridors lack JSON/Markdown/HTML brief artifacts: ${sample(corridorsMissingBriefArtifacts)}.`,
-    );
-  }
-  if (!audit.found) {
-    addIssue(
-      issues,
-      "route_batch_audit_manifest_missing",
-      `Route batch audit manifest is missing at ${audit.manifestPath}; run route batch-audit before this check.`,
-    );
-  } else if (audit.status !== "pass") {
-    addIssue(
-      issues,
-      "route_batch_audit_failed",
-      `Route batch audit failed with ${audit.issueCount} issues.`,
-    );
-  }
-  for (const issue of evaluationArtifacts.issues) {
-    addIssue(issues, issue.code, issue.message);
-  }
   for (const issue of mapArtifacts.issues) {
     addIssue(issues, issue.code, issue.message);
   }
@@ -1320,22 +1247,9 @@ export async function runCheckPipelineV1(
       corridorUnassignedRouteShare,
       corridorArtifactRows: corridorArtifacts.length,
       routeBatchIssueRows: batchStatus?.issueCount ?? 0,
-      evaluationArtifactRows:
-        evaluationArtifacts.rowCounts.observedReliability +
-        evaluationArtifacts.rowCounts.routeInterventionComparisons +
-        evaluationArtifacts.rowCounts.corridorInterventionContexts,
-      evaluationArtifactIssueRows: evaluationArtifacts.issueCount,
       mapArtifactRows: mapArtifacts.totalFeatureCount,
       mapRouteSegmentArtifactRows: mapArtifacts.routeSegmentArtifactCount,
       mapArtifactIssueRows: mapArtifacts.issueCount,
-    },
-    audit: {
-      status: audit.status,
-      manifestPath: audit.manifestPath,
-      artifactCount: audit.artifactCount,
-      missingArtifactCount: audit.missingArtifactCount,
-      hashMismatchCount: audit.hashMismatchCount,
-      byteLengthMismatchCount: audit.byteLengthMismatchCount,
     },
     d1,
   };
@@ -1346,12 +1260,18 @@ export async function runCheckPipelineV1(
 export async function runCheckPipelineV1WithDbPath(
   inputs: Omit<CheckPipelineV1Inputs, "local"> & { dbPath?: string | undefined },
 ): Promise<PipelineV1CheckResult> {
-  const opened = await openLocalPipelineDb(inputs.dbPath, { readonly: true });
-  try {
-    return await runCheckPipelineV1({ ...inputs, local: opened });
-  } finally {
-    opened.sqlite.close();
-  }
+  return runLocalDbCommandBoundary({
+    dbPath: inputs.dbPath,
+    localDbOptions: { readonly: true },
+    command: "check.pipeline-v1.clean-db",
+    operation: "runCheckPipelineV1WithDbPath",
+    spanAttributes: {
+      year: inputs.year,
+      month: inputs.month,
+      allowInsufficientGtfsRt: inputs.allowInsufficientGtfsRt ?? null,
+    },
+    run: (local) => runCheckPipelineV1({ ...inputs, local }),
+  });
 }
 
 export default defineCommand({
@@ -1379,40 +1299,52 @@ export default defineCommand({
       exportRoot: z.string().optional(),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     isoMonth: z.string(),
     status: z.enum(["pass", "fail"]),
     issueCount: z.number(),
     issues: z.array(z.object({ code: z.string(), message: z.string() })),
     counts: z.unknown(),
-    audit: z.unknown(),
     d1: z.unknown().nullable(),
   }),
-  async run({ ctx, input }) {
-    return runCheckPipelineV1({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      allowInsufficientGtfsRt: input.options.allowInsufficientGtfsRt,
-      minObservedHeadwaySamples: input.options.minObservedHeadwaySamples,
-      minObservedRouteCount: input.options.minObservedRouteCount,
-      minObservedRouteShare: input.options.minObservedRouteShare,
-      minGtfsRtCollectionHours: input.options.minGtfsRtCollectionHours,
-      maxGtfsRtSampleSeconds: input.options.maxGtfsRtSampleSeconds,
-      minGtfsRtVehiclePositionSnapshotShare:
-        input.options.minGtfsRtVehiclePositionSnapshotShare,
-      maxCorridorAmbiguousRouteShare: input.options.maxCorridorAmbiguousRouteShare,
-      maxCorridorUnassignedRouteShare: input.options.maxCorridorUnassignedRouteShare,
-      maxSourceProbeAgeDays: input.options.maxSourceProbeAgeDays,
-      sourceMetadataDir:
-        input.options.sourceMetadataDir === undefined
-          ? undefined
-          : fromCliPath(input.options.sourceMetadataDir),
-      artifactRoot:
-        input.options.artifactRoot === undefined ? undefined : fromCliPath(input.options.artifactRoot),
-      exportRoot:
-        input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot),
+  async run({ input }) {
+    const sourceMetadataDir =
+      input.options.sourceMetadataDir === undefined
+        ? undefined
+        : fromCliPath(input.options.sourceMetadataDir);
+    const artifactRoot =
+      input.options.artifactRoot === undefined ? undefined : fromCliPath(input.options.artifactRoot);
+    const exportRoot =
+      input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "check.pipeline-v1",
+      operation: "runCheckPipelineV1",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+        allowInsufficientGtfsRt: input.options.allowInsufficientGtfsRt ?? null,
+      },
+      run: (local) =>
+        runCheckPipelineV1({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          allowInsufficientGtfsRt: input.options.allowInsufficientGtfsRt,
+          minObservedHeadwaySamples: input.options.minObservedHeadwaySamples,
+          minObservedRouteCount: input.options.minObservedRouteCount,
+          minObservedRouteShare: input.options.minObservedRouteShare,
+          minGtfsRtCollectionHours: input.options.minGtfsRtCollectionHours,
+          maxGtfsRtSampleSeconds: input.options.maxGtfsRtSampleSeconds,
+          minGtfsRtVehiclePositionSnapshotShare:
+            input.options.minGtfsRtVehiclePositionSnapshotShare,
+          maxCorridorAmbiguousRouteShare: input.options.maxCorridorAmbiguousRouteShare,
+          maxCorridorUnassignedRouteShare: input.options.maxCorridorUnassignedRouteShare,
+          maxSourceProbeAgeDays: input.options.maxSourceProbeAgeDays,
+          sourceMetadataDir,
+          artifactRoot,
+          exportRoot,
+        }),
     });
   },
 });

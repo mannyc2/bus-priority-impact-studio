@@ -29,6 +29,18 @@ const files = {
 };
 
 describe("ingest gtfs-static", () => {
+  test("command wrapper uses the Effect local DB boundary", async () => {
+    const source = await Bun.file(
+      new URL("../../../src/commands/ingest/gtfs-static.ts", import.meta.url),
+    ).text();
+
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("runGtfsStaticIngest({");
+    expect(source).toContain('import type { Database } from "bun:sqlite"');
+    expect(source).not.toContain("Database as BunDatabase");
+    expect(source).not.toContain("new BunDatabase");
+  });
+
   test("parses quoted GTFS CSV fields", () => {
     expect(parseGtfsCsv('id,name\n1,"A, B"\n2,"C ""quoted"""')).toEqual([
       { id: "1", name: "A, B" },

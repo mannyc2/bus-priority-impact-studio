@@ -1,7 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { parseBusLaneOpenDates } from "@bp/applied-research/local-db";
-import { busLaneMatches } from "@bp/applied-research/route-briefs";
+import { parseBusLaneOpenDates } from "@bp/pipeline-v2/local-db-aggregates";
 import {
   listBusLanes,
   listRouteBriefSummaries,
@@ -9,15 +8,12 @@ import {
   listRouteStops,
 } from "@bp/db/local";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { busLaneMatches } from "../../lib/route-briefs/index.ts";
 import {
   type BusObservatoryAvailabilityResult,
   readBusObservatoryAvailabilityArtifact,
@@ -162,7 +158,7 @@ export type PipelineV1AuditResult = {
 };
 
 const pipelineV1Objective =
-  "Finish Data Pipeline v1: a reproducible full-network pipeline with GTFS-RT observed reliability/bunching, before/after intervention evaluation, corridor grouping, a full set of route/corridor brief artifacts, verified D1/static export contracts, QA gates, and updated roadmap/docs.";
+  "Finish Data Pipeline v1: a reproducible full-network pipeline with GTFS-RT observed reliability/bunching, before/after intervention context, corridor grouping, verified D1/map static export contracts, QA gates, and updated roadmap/docs.";
 
 const pipelineV1SuccessCriteria = [
   "Reproducible latest complete public-source monthly release from clean local DB evidence.",
@@ -171,7 +167,7 @@ const pipelineV1SuccessCriteria = [
   "Before/after intervention evaluation exists with methodology and causal-claim gates.",
   "Corridor grouping exists with shape-reviewed segment evidence and corridor intervention context.",
   "Full route and corridor brief artifact set passes hash, byte-length, and JSON contract audits.",
-  "D1 serving export and static evaluation/map artifact contracts verify against generated data.",
+  "D1 serving export and static map artifact contracts verify against generated data.",
   "Source-cadence caveats are explicit: delayed monthly public speeds are canonical for release claims, while live-only GTFS-RT is labeled as current observed evidence.",
   "Same-month public-speed and collected-realtime alignment is tracked as an observed monthly promotion condition, not a Data Pipeline v1 blocker.",
   "Roadmap, methodology, and handoff docs match the commands, limitations, source cadence, and promotion conditions.",
@@ -698,7 +694,7 @@ export async function runAuditPipelineV1(
           : ["Peer-adjusted intervention comparison rows are missing."],
     },
     {
-      requirement: "Corridor grouping and corridor briefs",
+      requirement: "Corridor grouping and artifacts",
       status:
         publicStructural.counts.corridorRows > 0 &&
         publicStructural.counts.corridorShapeReviewRouteRows > 0 &&
@@ -715,33 +711,16 @@ export async function runAuditPipelineV1(
           : ["Shape-based corridor membership review remains open."],
     },
     {
-      requirement: "Full route/corridor brief artifact set",
-      status: publicStructural.audit.status === "pass" ? "pass" : "blocked",
-      evidence: `${publicIsoMonth} route-batch audit is ${publicStructural.audit.status}; ${publicStructural.audit.artifactCount} artifacts, missing ${publicStructural.audit.missingArtifactCount}, hash mismatches ${publicStructural.audit.hashMismatchCount}.`,
-      missing:
-        publicStructural.audit.status === "pass"
-          ? []
-          : ["Route/corridor artifact audit is failing."],
-    },
-    {
       requirement: "Verified D1/static export contracts",
       status:
-        publicStructural.d1?.status === "pass" &&
-        publicStructural.audit.status === "pass" &&
-        publicStructural.counts.evaluationArtifactIssueRows === 0 &&
-        publicStructural.counts.mapArtifactIssueRows === 0
+        publicStructural.d1?.status === "pass" && publicStructural.counts.mapArtifactIssueRows === 0
           ? "pass"
           : "blocked",
-      evidence: `${publicIsoMonth} D1 status is ${publicStructural.d1?.status ?? "missing"}; route artifacts ${publicStructural.d1?.routeArtifactRows ?? 0}, corridor artifacts ${publicStructural.d1?.corridorArtifactRows ?? 0}, evaluation artifact rows ${publicStructural.counts.evaluationArtifactRows}, evaluation artifact issues ${publicStructural.counts.evaluationArtifactIssueRows}, map artifact features ${publicStructural.counts.mapArtifactRows}, map route-segment artifacts ${publicStructural.counts.mapRouteSegmentArtifactRows}, map artifact issues ${publicStructural.counts.mapArtifactIssueRows}.`,
+      evidence: `${publicIsoMonth} D1 status is ${publicStructural.d1?.status ?? "missing"}; route artifacts ${publicStructural.d1?.routeArtifactRows ?? 0}, corridor artifacts ${publicStructural.d1?.corridorArtifactRows ?? 0}, map artifact features ${publicStructural.counts.mapArtifactRows}, map route-segment artifacts ${publicStructural.counts.mapRouteSegmentArtifactRows}, map artifact issues ${publicStructural.counts.mapArtifactIssueRows}.`,
       missing:
-        publicStructural.d1?.status === "pass" &&
-        publicStructural.audit.status === "pass" &&
-        publicStructural.counts.evaluationArtifactIssueRows === 0 &&
-        publicStructural.counts.mapArtifactIssueRows === 0
+        publicStructural.d1?.status === "pass" && publicStructural.counts.mapArtifactIssueRows === 0
           ? []
-          : [
-              "D1 verification, brief artifact audit, evaluation artifact manifest, or map artifact manifest is failing.",
-            ],
+          : ["D1 verification or map artifact manifest is failing."],
     },
     {
       requirement: "Observed monthly promotion condition",
@@ -841,7 +820,6 @@ export default defineCommand({
       output: z.string().optional().describe("Override path for the audit JSON"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z
     .object({
       status: z.enum(["pass", "partial", "blocked"]),
@@ -852,37 +830,57 @@ export default defineCommand({
       gates: z.unknown(),
     })
     .passthrough(),
-  async run({ ctx, input }) {
-    return runAuditPipelineV1({
-      local: localDbFromCtx(ctx),
-      publicYear: input.options.publicYear,
-      publicMonth: input.options.publicMonth,
-      realtimeYear: input.options.realtimeYear,
-      realtimeMonth: input.options.realtimeMonth,
-      runId: input.options.runId,
-      cleanDbPath:
-        input.options.cleanDb === undefined ? undefined : fromCliPath(input.options.cleanDb),
-      cleanArtifactRoot:
-        input.options.cleanArtifactRoot === undefined
-          ? undefined
-          : fromCliPath(input.options.cleanArtifactRoot),
-      cleanExportRoot:
-        input.options.cleanExportRoot === undefined
-          ? undefined
-          : fromCliPath(input.options.cleanExportRoot),
-      sourceMetadataDir:
-        input.options.sourceMetadataDir === undefined
-          ? undefined
-          : fromCliPath(input.options.sourceMetadataDir),
-      minGtfsRtCollectionHours: input.options.minGtfsRtCollectionHours,
-      artifactRoot:
-        input.options.artifactRoot === undefined
-          ? undefined
-          : fromCliPath(input.options.artifactRoot),
-      exportRoot:
-        input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot),
-      outputPath:
-        input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+  async run({ input }) {
+    const cleanDbPath =
+      input.options.cleanDb === undefined ? undefined : fromCliPath(input.options.cleanDb);
+    const cleanArtifactRoot =
+      input.options.cleanArtifactRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.cleanArtifactRoot);
+    const cleanExportRoot =
+      input.options.cleanExportRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.cleanExportRoot);
+    const sourceMetadataDir =
+      input.options.sourceMetadataDir === undefined
+        ? undefined
+        : fromCliPath(input.options.sourceMetadataDir);
+    const artifactRoot =
+      input.options.artifactRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.artifactRoot);
+    const exportRoot =
+      input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot);
+    const outputPath =
+      input.options.output === undefined ? undefined : fromCliPath(input.options.output);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "audit.pipeline-v1",
+      operation: "runAuditPipelineV1",
+      spanAttributes: {
+        publicYear: input.options.publicYear ?? null,
+        publicMonth: input.options.publicMonth ?? null,
+        realtimeYear: input.options.realtimeYear ?? null,
+        realtimeMonth: input.options.realtimeMonth ?? null,
+        runId: input.options.runId ?? null,
+      },
+      run: (local) =>
+        runAuditPipelineV1({
+          local,
+          publicYear: input.options.publicYear,
+          publicMonth: input.options.publicMonth,
+          realtimeYear: input.options.realtimeYear,
+          realtimeMonth: input.options.realtimeMonth,
+          runId: input.options.runId,
+          cleanDbPath,
+          cleanArtifactRoot,
+          cleanExportRoot,
+          sourceMetadataDir,
+          minGtfsRtCollectionHours: input.options.minGtfsRtCollectionHours,
+          artifactRoot,
+          exportRoot,
+          outputPath,
+        }),
     });
   },
 });

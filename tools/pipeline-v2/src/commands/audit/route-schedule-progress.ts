@@ -1,11 +1,11 @@
-import { Database as BunDatabase } from "bun:sqlite";
-import { auditRouteScheduleProgress } from "@bp/applied-research/local-db";
+import { auditRouteScheduleProgress } from "@bp/pipeline-v2/local-db-aggregates";
 import { defineCommand, z } from "@liche/core";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 
-export type { RouteScheduleProgressResult } from "@bp/applied-research/local-db";
-export { auditRouteScheduleProgress } from "@bp/applied-research/local-db";
+export type { RouteScheduleProgressResult } from "@bp/pipeline-v2/local-db-aggregates";
+export { auditRouteScheduleProgress } from "@bp/pipeline-v2/local-db-aggregates";
 
 export default defineCommand({
   path: ["audit", "route-schedule-progress"],
@@ -41,14 +41,14 @@ export default defineCommand({
     ),
   }),
   async run({ input }) {
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
-    const sqlite = new BunDatabase(dbPath, { readonly: true });
-    sqlite.exec("PRAGMA busy_timeout = 30000");
-    try {
-      return auditRouteScheduleProgress(sqlite);
-    } finally {
-      sqlite.close();
-    }
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
+
+    return runLocalDbCommandBoundary({
+      dbPath,
+      localDbOptions: { readonly: true },
+      command: "audit.route-schedule-progress",
+      operation: "auditRouteScheduleProgress",
+      run: async (local) => auditRouteScheduleProgress(local.sqlite),
+    });
   },
 });

@@ -1,5 +1,4 @@
 import type { Database } from "bun:sqlite";
-import { Database as BunDatabase } from "bun:sqlite";
 import { existsSync, statSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -8,8 +7,9 @@ import { buildSoda3ExportUrl } from "@bp/sources/clients/socrata";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { fetchWithSocrataAppToken } from "../../lib/socrata-token.ts";
 import type { SocrataFetch } from "../../lib/soda3.ts";
@@ -975,49 +975,49 @@ export default defineCommand({
     downloadOnly: z.boolean(),
   }),
   async run({ input }) {
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
-    const sqlite = new BunDatabase(dbPath);
-    try {
-      return await runRouteSchedulesBulkIngest({
-        sqlite,
-        sourceYear: input.options.sourceYear,
-        routes:
-          input.options.route === undefined
-            ? input.options.routes
-            : [...input.options.routes, input.options.route],
-        csvPath:
-          input.options.csvPath === undefined ? undefined : fromCliPath(input.options.csvPath),
-        partitionManifestPath:
-          input.options.partitionManifestPath === undefined
-            ? undefined
-            : fromCliPath(input.options.partitionManifestPath),
-        cacheDir:
-          input.options.cacheDir === undefined ? undefined : fromCliPath(input.options.cacheDir),
-        spoolDir:
-          input.options.spoolDir === undefined ? undefined : fromCliPath(input.options.spoolDir),
-        forceDownload: input.options.forceDownload,
-        skipDownload: input.options.skipDownload,
-        downloadRetryCount: input.options.downloadRetryCount,
-        downloadRetryDelayMs: input.options.downloadRetryDelayMs,
-        downloadOnly: input.options.downloadOnly,
-        skipExisting: input.options.skipExisting,
-        onlyMissingCurrentRoutes: input.options.onlyMissingCurrentRoutes,
-        keepSpool: input.options.keepSpool,
-        batchSize: input.options.batchSize,
-        progress: input.options.logProgress
-          ? (event) => {
-              console.error(
-                JSON.stringify({
-                  event: "route_schedules_bulk_ingest_progress",
-                  ...event,
-                }),
-              );
-            }
-          : undefined,
-      });
-    } finally {
-      sqlite.close();
-    }
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
+    return runLocalDbCommandBoundary({
+      dbPath,
+      command: "ingest.route-schedules-bulk",
+      operation: "runRouteSchedulesBulkIngest",
+      run: async (local) =>
+        runRouteSchedulesBulkIngest({
+          sqlite: local.sqlite,
+          sourceYear: input.options.sourceYear,
+          routes:
+            input.options.route === undefined
+              ? input.options.routes
+              : [...input.options.routes, input.options.route],
+          csvPath:
+            input.options.csvPath === undefined ? undefined : fromCliPath(input.options.csvPath),
+          partitionManifestPath:
+            input.options.partitionManifestPath === undefined
+              ? undefined
+              : fromCliPath(input.options.partitionManifestPath),
+          cacheDir:
+            input.options.cacheDir === undefined ? undefined : fromCliPath(input.options.cacheDir),
+          spoolDir:
+            input.options.spoolDir === undefined ? undefined : fromCliPath(input.options.spoolDir),
+          forceDownload: input.options.forceDownload,
+          skipDownload: input.options.skipDownload,
+          downloadRetryCount: input.options.downloadRetryCount,
+          downloadRetryDelayMs: input.options.downloadRetryDelayMs,
+          downloadOnly: input.options.downloadOnly,
+          skipExisting: input.options.skipExisting,
+          onlyMissingCurrentRoutes: input.options.onlyMissingCurrentRoutes,
+          keepSpool: input.options.keepSpool,
+          batchSize: input.options.batchSize,
+          progress: input.options.logProgress
+            ? (event) => {
+                console.error(
+                  JSON.stringify({
+                    event: "route_schedules_bulk_ingest_progress",
+                    ...event,
+                  }),
+                );
+              }
+            : undefined,
+        }),
+    });
   },
 });

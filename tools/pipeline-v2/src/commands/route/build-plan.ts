@@ -4,9 +4,14 @@ import {
   type RouteBuildPlanResult,
   routeBuildPriorityScore,
   runRouteBuildPlan,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
-import { dbOptions, localDbFromCtx, withLocalDb } from "../../lib/local-db.ts";
+import {
+  makeRouteBuildPlanCommandLayer,
+  runRouteBuildPlanCommand,
+} from "../../effect/route-build-plan.ts";
+import { runPipelineEffect } from "../../effect/runtime.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 
 export {
   buildPlanRows,
@@ -29,7 +34,6 @@ export default defineCommand({
         .describe("Maximum routes selected per batch"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     isoMonth: z.string(),
     routeCount: z.number(),
@@ -39,12 +43,16 @@ export default defineCommand({
     backlogRouteCount: z.number(),
     dbPath: z.string(),
   }),
-  async run({ ctx, input }) {
-    return runRouteBuildPlan({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      limit: input.options.limit,
-    });
+  async run({ input }) {
+    return runPipelineEffect(
+      runRouteBuildPlanCommand({
+        year: input.options.year,
+        month: input.options.month,
+        limit: input.options.limit,
+      }),
+      makeRouteBuildPlanCommandLayer({
+        dbPath: input.options.db,
+      }),
+    );
   },
 });

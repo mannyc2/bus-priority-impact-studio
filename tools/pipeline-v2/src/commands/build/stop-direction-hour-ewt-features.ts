@@ -1,17 +1,16 @@
-import { Database as BunDatabase } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
-import { stopDirectionHourEwtFeatureArtifactPath } from "@bp/applied-research/artifacts";
-import type { StopDirectionHourEwtFeatureArtifact } from "@bp/applied-research/feature-resolvers";
-import { buildStopDirectionHourEwtFeatureArtifactFromDb } from "@bp/applied-research/local-db";
+import { stopDirectionHourEwtFeatureArtifactPath } from "@bp/analytics/artifacts";
+import { buildStopDirectionHourEwtFeatureArtifactFromDb } from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
-export { stopDirectionHourEwtFeatureArtifactPath } from "@bp/applied-research/artifacts";
-export { buildStopDirectionHourEwtFeatureArtifactFromDb } from "@bp/applied-research/local-db";
+export { stopDirectionHourEwtFeatureArtifactPath } from "@bp/analytics/artifacts";
+export { buildStopDirectionHourEwtFeatureArtifactFromDb } from "@bp/pipeline-v2/local-db-aggregates";
 
 function repoDisplayPath(path: string): string {
   if (!isAbsolute(path)) return path;
@@ -90,51 +89,57 @@ export default defineCommand({
             routeId: input.options.routeId,
           })
         : fromCliPath(input.options.output);
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
-    const sqlite = new BunDatabase(dbPath, { readonly: true });
-    sqlite.exec("PRAGMA busy_timeout = 5000");
-
-    let artifact: StopDirectionHourEwtFeatureArtifact;
-    try {
-      artifact = buildStopDirectionHourEwtFeatureArtifactFromDb({
-        sqlite,
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
+    return runLocalDbCommandBoundary({
+      dbPath,
+      localDbOptions: { readonly: true },
+      command: "build.stop-direction-hour-ewt-features",
+      operation: "buildStopDirectionHourEwtFeatureArtifactFromDb",
+      spanAttributes: {
         month,
-        routeId: input.options.routeId.toUpperCase(),
+        routeId: input.options.routeId,
         runId: input.options.runId,
         scheduleSource: input.options.scheduleSource,
-        gtfsRunId: input.options.gtfsRunId ?? null,
-        timezone: input.options.timezone,
         observedAggregation: input.options.observedAggregation,
-        generatedAt: new Date().toISOString(),
-        dbPath: repoDisplayPath(dbPath),
-        artifactPath: repoDisplayPath(outputPath),
-        minHeadways: input.options.minHeadways,
-        minCoverageShare: input.options.minCoverageShare,
-      });
-    } finally {
-      sqlite.close();
-    }
+      },
+      run: async (local) => {
+        const artifact = buildStopDirectionHourEwtFeatureArtifactFromDb({
+          sqlite: local.sqlite,
+          month,
+          routeId: input.options.routeId.toUpperCase(),
+          runId: input.options.runId,
+          scheduleSource: input.options.scheduleSource,
+          gtfsRunId: input.options.gtfsRunId ?? null,
+          timezone: input.options.timezone,
+          observedAggregation: input.options.observedAggregation,
+          generatedAt: new Date().toISOString(),
+          dbPath: repoDisplayPath(local.path),
+          artifactPath: repoDisplayPath(outputPath),
+          minHeadways: input.options.minHeadways,
+          minCoverageShare: input.options.minCoverageShare,
+        });
 
-    await mkdir(dirname(outputPath), { recursive: true });
-    await writeJson(outputPath, artifact);
+        await mkdir(dirname(outputPath), { recursive: true });
+        await writeJson(outputPath, artifact);
 
-    return {
-      month,
-      routeId: artifact.routeId,
-      runId: artifact.runId,
-      scheduleSource: artifact.source.scheduleSource,
-      gtfsRunId: artifact.source.gtfsRunId,
-      observedAggregation: artifact.observedAggregation,
-      outputPath: repoDisplayPath(outputPath),
-      scheduleTimepointCount: artifact.summary.scheduleTimepointCount,
-      observedHeadwaySampleCount: artifact.summary.observedHeadwaySampleCount,
-      scheduleBaselineCount: artifact.summary.scheduleBaselineCount,
-      featureCount: artifact.summary.featureCount,
-      readyFeatureCount: artifact.summary.readyFeatureCount,
-      baselineUnavailableCount: artifact.summary.baselineUnavailableCount,
-      insufficientHeadwayCount: artifact.summary.insufficientHeadwayCount,
-      lowCoverageCount: artifact.summary.lowCoverageCount,
-    };
+        return {
+          month,
+          routeId: artifact.routeId,
+          runId: artifact.runId,
+          scheduleSource: artifact.source.scheduleSource,
+          gtfsRunId: artifact.source.gtfsRunId,
+          observedAggregation: artifact.observedAggregation,
+          outputPath: repoDisplayPath(outputPath),
+          scheduleTimepointCount: artifact.summary.scheduleTimepointCount,
+          observedHeadwaySampleCount: artifact.summary.observedHeadwaySampleCount,
+          scheduleBaselineCount: artifact.summary.scheduleBaselineCount,
+          featureCount: artifact.summary.featureCount,
+          readyFeatureCount: artifact.summary.readyFeatureCount,
+          baselineUnavailableCount: artifact.summary.baselineUnavailableCount,
+          insufficientHeadwayCount: artifact.summary.insufficientHeadwayCount,
+          lowCoverageCount: artifact.summary.lowCoverageCount,
+        };
+      },
+    });
   },
 });

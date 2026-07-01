@@ -3,14 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import {
-  DATA_PRODUCT_MANIFEST,
-  parseDataProductManifest,
-} from "@bp/applied-research/data-products";
-import {
-  MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_BY_SURFACE,
-  MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_IDS,
-} from "../../../src/commands/audit/analytics-materialization-coverage.ts";
+import { parseDataProductManifest } from "@bp/analytics/data-products";
 import {
   buildDataProductCompletenessAudit,
   buildSourceMonthCoverageMatrix,
@@ -91,11 +84,11 @@ describe("data product completeness audit", () => {
     const sqlite = createDb();
     const artifactRoot = mkdtempSync(join(tmpdir(), "bp-data-products-"));
     try {
-      const brief1 = join(artifactRoot, "briefs/routes/M1/2026-03/brief.json");
-      const brief2 = join(artifactRoot, "briefs/routes/M2/2026-03/brief.json");
+      const routeArtifact1 = join(artifactRoot, "routes/M1/2026-03/artifact.json");
+      const routeArtifact2 = join(artifactRoot, "routes/M2/2026-03/artifact.json");
       const staleManifest = join(artifactRoot, "map/2026-03/manifest.json");
-      await writeFixture(brief1);
-      await writeFixture(brief2);
+      await writeFixture(routeArtifact1);
+      await writeFixture(routeArtifact2);
       await writeFixture(staleManifest);
       await writeFixture(join(artifactRoot, "mirror/2026-03-01/first.json"));
       await writeFixture(join(artifactRoot, "mirror/2026-03-02/second.json"));
@@ -114,7 +107,7 @@ describe("data product completeness audit", () => {
             producerCommand: "test segment speed",
             expectedUniverse: { description: "three months", months: "history_window" },
             requiredInputs: ["source:speed"],
-            downstreamConsumers: ["speed detectors"],
+            downstreamConsumers: ["route charts"],
             freshnessPolicy: { cadence: "historical_window" },
             checks: [
               {
@@ -207,26 +200,26 @@ describe("data product completeness audit", () => {
             ],
           },
           {
-            id: "route_briefs",
-            label: "Route briefs",
+            id: "route_artifacts",
+            label: "Route artifacts",
             kind: "artifact_family",
             owner: "test",
             grain: "route x month",
-            producerCommand: "test briefs",
+            producerCommand: "test route artifacts",
             expectedUniverse: {
               description: "all routes",
               routes: "route_catalog",
               months: "release_month",
             },
-            requiredInputs: ["brief model"],
+            requiredInputs: ["route model"],
             downstreamConsumers: ["route detail"],
             freshnessPolicy: { cadence: "release_month" },
             checks: [
               {
                 id: "files",
-                label: "Brief files",
+                label: "Route artifact files",
                 type: "route_artifact_coverage",
-                pathTemplate: "{artifactRoot}/briefs/routes/{routeId}/{releaseMonth}/brief.json",
+                pathTemplate: "{artifactRoot}/routes/{routeId}/{releaseMonth}/artifact.json",
                 expectedRoutes: "route_catalog",
               },
             ],
@@ -297,19 +290,19 @@ describe("data product completeness audit", () => {
           {
             id: "blocked_product",
             label: "Blocked product",
-            kind: "score_vector",
+            kind: "artifact_family",
             owner: "test",
-            grain: "route x score",
+            grain: "route x artifact",
             producerCommand: "test blocked",
-            expectedUniverse: { description: "blocked vectors", routes: "route_catalog" },
+            expectedUniverse: { description: "blocked artifact", routes: "route_catalog" },
             requiredInputs: ["missing feature"],
-            downstreamConsumers: ["calibration"],
+            downstreamConsumers: ["route detail"],
             freshnessPolicy: { cadence: "manual" },
             lifecycle: { status: "blocked", reason: "waiting on feature materialization" },
             checks: [
               {
                 id: "file",
-                label: "Blocked vector file",
+                label: "Blocked artifact file",
                 type: "json_artifact",
                 pathTemplate: "{artifactRoot}/blocked.json",
               },
@@ -382,10 +375,12 @@ describe("data product completeness audit", () => {
         "2026-02:below_min_row_count+below_min_route_count",
       ]);
 
-      const briefs = audit.products.find((product) => product.productId === "route_briefs");
-      expect(briefs?.status).toBe("partial");
-      expect(briefs?.gapClass).toBe("derived_not_built");
-      expect(briefs?.checks[0]?.sampleMissing).toEqual(["M3"]);
+      const routeArtifacts = audit.products.find(
+        (product) => product.productId === "route_artifacts",
+      );
+      expect(routeArtifacts?.status).toBe("partial");
+      expect(routeArtifacts?.gapClass).toBe("derived_not_built");
+      expect(routeArtifacts?.checks[0]?.sampleMissing).toEqual(["M3"]);
 
       const stale = audit.products.find((product) => product.productId === "stale_map_manifest");
       expect(stale?.status).toBe("stale");
@@ -639,12 +634,14 @@ describe("data product completeness audit", () => {
     }
   });
 
-  test("keeps source-month coverage matrix construction in applied-research", () => {
+  test("keeps source-month coverage matrix construction in pipeline-local aggregates", () => {
     const source = readFileSync(commandPath, "utf8");
 
-    expect(source).toContain('from "@bp/applied-research/local-db"');
-    expect(source).toContain('from "@bp/applied-research/artifacts"');
-    expect(source).toContain('from "@bp/applied-research/data-products"');
+    expect(source).toContain('from "@bp/pipeline-v2/local-db-aggregates"');
+    expect(source).toContain('from "@bp/analytics/data-products"');
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("localDbOptions: { readonly: true }");
+    expect(source).not.toContain("new BunDatabase");
     expect(source).toContain("classifyDataProductCompleteness({");
     expect(source).toContain("dataProductCompletenessPath");
     expect(source).toContain("buildSourceMonthCoverageMatrix({");
@@ -658,34 +655,15 @@ describe("data product completeness audit", () => {
     expect(source).not.toContain("const REQUIRED_INPUT_PRODUCT_ALIASES");
   });
 
-  test("keeps data-product registry ownership in applied-research", () => {
+  test("keeps data-product registry policy in analytics", () => {
     const registrySource = readFileSync(
       join(import.meta.dir, "../../../src/registry/data-products.ts"),
       "utf8",
     );
 
-    expect(registrySource).toContain('from "@bp/applied-research/data-products"');
+    expect(registrySource).toContain('from "@bp/analytics/data-products"');
     expect(registrySource).not.toContain("DataProductManifestSchema = z");
     expect(registrySource).not.toContain("DATA_PRODUCT_MANIFEST: DataProductManifest");
-  });
-
-  test("materialization coverage surfaces stay tied to registered data products", () => {
-    const productIds = new Set(DATA_PRODUCT_MANIFEST.products.map((product) => product.id));
-    expect(DATA_PRODUCT_MANIFEST.products.length).toBeGreaterThan(12);
-    expect(Object.keys(MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_BY_SURFACE).sort()).toEqual([
-      "ewt_route_month_score_vectors",
-      "local_route_brief_summary",
-      "local_route_hourly_ridership",
-      "local_route_observed_reliability_summary",
-      "local_route_scorecard",
-      "local_route_segment_speed",
-      "route_brief_input_slices",
-      "route_briefs",
-      "stop_direction_hour_ewt_features",
-    ]);
-    for (const productId of MATERIALIZATION_COVERAGE_REGISTRY_PRODUCT_IDS) {
-      expect(productIds.has(productId)).toBe(true);
-    }
   });
 
   test("reports website-facing historical GTFS needs as real upstream blockers", async () => {
@@ -1385,72 +1363,4 @@ describe("data product completeness audit", () => {
     }
   });
 
-  test("score-vector checks reject duplicate route rows", async () => {
-    const sqlite = new Database(":memory:");
-    sqlite.exec("CREATE TABLE local_route_catalog (route_id TEXT NOT NULL);");
-    for (const routeId of ["A1", "B2"]) {
-      sqlite.query("INSERT INTO local_route_catalog (route_id) VALUES (?)").run(routeId);
-    }
-    const artifactRoot = mkdtempSync(join(tmpdir(), "bp-score-dupes-"));
-    try {
-      await Bun.write(
-        join(artifactRoot, "scores.json"),
-        JSON.stringify({
-          releaseMonth: "2026-03",
-          scoreVectors: {
-            releaseMonth: [
-              { routeId: "A1", month: "2026-03", runId: "test-run" },
-              { routeId: "B2", month: "2026-03", runId: "test-run" },
-              { routeId: "B2", month: "2026-03", runId: "test-run" },
-            ],
-          },
-        }),
-      );
-      const manifest = parseDataProductManifest({
-        version: 1,
-        products: [
-          {
-            id: "score_vectors",
-            label: "Score vectors",
-            kind: "score_vector",
-            owner: "test",
-            grain: "route x score",
-            producerCommand: "test vectors",
-            expectedUniverse: { description: "route catalog", routes: "route_catalog" },
-            requiredInputs: [],
-            downstreamConsumers: ["detectors"],
-            freshnessPolicy: { cadence: "release_month" },
-            checks: [
-              {
-                id: "routes",
-                label: "Score vector routes",
-                type: "score_vector_routes",
-                pathTemplate: "{artifactRoot}/scores.json",
-                expectedRoutes: "route_catalog",
-              },
-            ],
-          },
-        ],
-      });
-
-      const audit = await buildDataProductCompletenessAudit({
-        sqlite,
-        manifest,
-        releaseMonth: "2026-03",
-        historyStartMonth: "2026-03",
-        runId: "test-run",
-        gtfsRunId: null,
-        artifactRoot,
-        generatedAt: "2026-06-01T00:00:00.000Z",
-        dbPath: null,
-        artifactPath: join(artifactRoot, "audit.json"),
-      });
-
-      expect(audit.products[0]?.status).toBe("partial");
-      expect(audit.products[0]?.checks[0]?.reasons).toContain("duplicate_score_vector_routes:1");
-    } finally {
-      sqlite.close();
-      rmSync(artifactRoot, { recursive: true, force: true });
-    }
-  });
 });

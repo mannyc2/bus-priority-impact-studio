@@ -1,18 +1,14 @@
 import { updateNypdCollisionGeocode } from "@bp/db/local";
 import { parseHouseAddress } from "@bp/sources/clients/geoclient";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import {
   createGeoclientFromEnv,
   type GeocodeInput,
   type GeocodeOutcome,
   Geocoder,
 } from "../../lib/geocoder.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 
 const MISS_OUTCOME: GeocodeOutcome = {
   physicalId: null,
@@ -162,18 +158,28 @@ export default defineCommand({
       maxRows: arg.positiveInt().optional().describe("Cap total rows scanned"),
     }),
   },
-  middleware: [withLocalDb({ spatial: true })],
   output: z.object({
     scanned: z.number(),
     hits: z.number(),
     misses: z.number(),
     cached: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runGeocodeNypdCollisions({
-      local: localDbFromCtx(ctx),
-      batchSize: input.options.batchSize,
-      maxRows: input.options.maxRows,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      localDbOptions: { spatial: true },
+      command: "geocode.nypd-collisions",
+      operation: "runGeocodeNypdCollisions",
+      spanAttributes: {
+        batchSize: input.options.batchSize,
+        maxRows: input.options.maxRows ?? null,
+      },
+      run: (local) =>
+        runGeocodeNypdCollisions({
+          local,
+          batchSize: input.options.batchSize,
+          maxRows: input.options.maxRows,
+        }),
     });
   },
 });

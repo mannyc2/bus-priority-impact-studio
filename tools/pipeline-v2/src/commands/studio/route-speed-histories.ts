@@ -4,7 +4,7 @@ import {
   routeSpeedHistoryArtifactPath,
   routeSpeedHistoryManifestPath,
   routeSpeedSpineManifestPath,
-} from "@bp/applied-research/artifacts";
+} from "@bp/analytics/artifacts";
 import {
   buildRouteSpeedHistoryBatchManifest,
   DEFAULT_ROUTE_SPEED_HISTORY_READINESS,
@@ -13,16 +13,12 @@ import {
   type RouteSpeedHistoryArtifact,
   type RouteSpeedHistoryBatchRoute,
   type RouteSpeedSpineReadiness,
-} from "@bp/applied-research/feature-history";
-import { loadCompleteRouteSpeedScheduleMonths } from "@bp/applied-research/local-db";
+} from "@bp/analytics/feature-history";
+import { loadCompleteRouteSpeedScheduleMonths } from "@bp/pipeline-v2/local-db-aggregates";
 import { defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { readJsonArtifact, readJsonIfExists, writeJson } from "../../lib/json.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 import { runRouteSpeedHistory } from "./route-speed-history.ts";
 
@@ -310,7 +306,6 @@ export default defineCommand({
       output: z.string().optional().describe("Override speed-histories manifest output path"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     manifestPath: z.string(),
     routeCount: z.number().int().nonnegative(),
@@ -324,25 +319,43 @@ export default defineCommand({
     missingCellCount: z.number().int().nonnegative(),
     unmappedRawKeyCount: z.number().int().nonnegative(),
   }),
-  async run({ ctx, input }) {
-    return runRouteSpeedHistories({
-      local: localDbFromCtx(ctx),
-      startMonth: input.options.startMonth,
-      endMonth: input.options.endMonth ?? null,
-      routeIds: parseRouteList(input.options.routes),
-      readiness: parseRouteSpeedHistoryReadinessList(input.options.readiness),
-      limit: input.options.limit,
-      offset: input.options.offset,
-      force: input.options.force,
-      artifactRoot:
-        input.options.artifactRoot === undefined
-          ? undefined
-          : fromCliPath(input.options.artifactRoot),
-      spineManifest:
-        input.options.spineManifest === undefined
-          ? undefined
-          : fromCliPath(input.options.spineManifest),
-      output: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+  async run({ input }) {
+    const routeIds = parseRouteList(input.options.routes);
+    const readiness = parseRouteSpeedHistoryReadinessList(input.options.readiness);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "studio.route-speed-histories",
+      operation: "runRouteSpeedHistories",
+      spanAttributes: {
+        startMonth: input.options.startMonth,
+        endMonth: input.options.endMonth ?? null,
+        routeFilterCount: routeIds.length,
+        readinessFilterCount: readiness.length,
+        limit: input.options.limit ?? null,
+        offset: input.options.offset,
+        force: input.options.force,
+      },
+      run: (local) =>
+        runRouteSpeedHistories({
+          local,
+          startMonth: input.options.startMonth,
+          endMonth: input.options.endMonth ?? null,
+          routeIds,
+          readiness,
+          limit: input.options.limit,
+          offset: input.options.offset,
+          force: input.options.force,
+          artifactRoot:
+            input.options.artifactRoot === undefined
+              ? undefined
+              : fromCliPath(input.options.artifactRoot),
+          spineManifest:
+            input.options.spineManifest === undefined
+              ? undefined
+              : fromCliPath(input.options.spineManifest),
+          output:
+            input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+        }),
     });
   },
 });

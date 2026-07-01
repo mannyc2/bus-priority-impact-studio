@@ -4,11 +4,12 @@ import { join } from "node:path";
 import { type D1SeedOutputResult, estimateD1ExportCost } from "../../../src/commands/export/d1.ts";
 import {
   collectD1TableCounts,
-  loadD1Database,
   verifyD1TableCounts,
 } from "../../../src/commands/verify/d1-loaded.ts";
+import { runD1ReplayBoundary } from "../../../src/effect/d1-replay.ts";
 
 const commandPath = join(import.meta.dir, "../../../src/commands/verify/d1.ts");
+const loadedHelperPath = join(import.meta.dir, "../../../src/commands/verify/d1-loaded.ts");
 
 const schemaSql = `
   CREATE TABLE route_catalog (route_id TEXT PRIMARY KEY);
@@ -110,49 +111,82 @@ function emptyExportResult(): D1SeedOutputResult {
 }
 
 describe("verify d1 helpers", () => {
-  it("opens the local SQLite database read-only", () => {
+  it("opens the local SQLite database read-only through the Effect layer", () => {
     const source = readFileSync(commandPath, "utf8");
 
-    expect(source).toContain("withLocalDb({ readonly: true })");
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("runPipelineFileSystemBoundary({");
+    expect(source).toContain("localDbOptions: { readonly: true }");
+    expect(source).not.toContain("Bun.file");
+    expect(source).not.toContain("Bun.write");
+    expect(source).not.toContain("withLocalDb");
+    expect(source).not.toContain("localDbFromCtx");
   });
 
-  it("collectD1TableCounts counts loaded rows including public_visible briefs", () => {
-    const { database } = loadD1Database(schemaSql, seedSql);
-    const routeCatalogTable = "route_catalog";
-    const routeBriefSummaryTable = "route_brief_summary";
-    const routeScorecardTable = "route_scorecard";
-    const routeArtifactTable = "route_artifact";
-    try {
-      const { tableCounts, publicTableCounts } = collectD1TableCounts(database);
-      expect(tableCounts[routeCatalogTable]).toBe(1);
-      expect(tableCounts[routeBriefSummaryTable]).toBe(1);
-      expect(tableCounts[routeScorecardTable]).toBe(1);
-      expect(tableCounts[routeArtifactTable]).toBe(0);
-      expect(publicTableCounts[routeBriefSummaryTable]).toBe(1);
-    } finally {
-      database.close();
-    }
+  it("keeps D1 replay database construction behind the Effect service", () => {
+    const source = readFileSync(loadedHelperPath, "utf8");
+
+    expect(source).toContain('import type { Database } from "bun:sqlite"');
+    expect(source).not.toContain('import { Database } from "bun:sqlite"');
+    expect(source).not.toContain("new Database");
+    expect(source).not.toContain("createBunSqliteServingDb");
   });
 
-  it("verifyD1TableCounts records mismatches and stays silent on matches", () => {
-    const { database } = loadD1Database(schemaSql, seedSql);
-    try {
-      const { tableCounts } = collectD1TableCounts(database);
-      const issues: string[] = [];
-      verifyD1TableCounts({ issues, tableCounts, exportResult: emptyExportResult() });
-      expect(issues).toEqual([]);
+  it("collectD1TableCounts counts loaded rows including public_visible briefs", async () => {
+    const result = await runD1ReplayBoundary({
+      command: "test.verify-d1",
+      operation: "collectD1TableCounts",
+      schemaSql,
+      seedSql,
+      run: ({ database }) => {
+        const routeCatalogTable = "route_catalog";
+        const routeBriefSummaryTable = "route_brief_summary";
+        const routeScorecardTable = "route_scorecard";
+        const routeArtifactTable = "route_artifact";
+        const { tableCounts, publicTableCounts } = collectD1TableCounts(database);
+        return {
+          routeCatalogCount: tableCounts[routeCatalogTable],
+          routeBriefSummaryCount: tableCounts[routeBriefSummaryTable],
+          routeScorecardCount: tableCounts[routeScorecardTable],
+          routeArtifactCount: tableCounts[routeArtifactTable],
+          publicBriefSummaryCount: publicTableCounts[routeBriefSummaryTable],
+        };
+      },
+    });
 
-      const wrongResult = emptyExportResult();
-      wrongResult.routeCatalogRowCount = 99;
-      const issues2: string[] = [];
-      verifyD1TableCounts({
-        issues: issues2,
-        tableCounts,
-        exportResult: wrongResult,
-      });
-      expect(issues2).toEqual(["route_catalog:expected_99:actual_1"]);
-    } finally {
-      database.close();
-    }
+    expect(result).toEqual({
+      routeCatalogCount: 1,
+      routeBriefSummaryCount: 1,
+      routeScorecardCount: 1,
+      routeArtifactCount: 0,
+      publicBriefSummaryCount: 1,
+    });
+  });
+
+  it("verifyD1TableCounts records mismatches and stays silent on matches", async () => {
+    const { issues, issues2 } = await runD1ReplayBoundary({
+      command: "test.verify-d1",
+      operation: "verifyD1TableCounts",
+      schemaSql,
+      seedSql,
+      run: ({ database }) => {
+        const { tableCounts } = collectD1TableCounts(database);
+        const issues: string[] = [];
+        verifyD1TableCounts({ issues, tableCounts, exportResult: emptyExportResult() });
+
+        const wrongResult = emptyExportResult();
+        wrongResult.routeCatalogRowCount = 99;
+        const issues2: string[] = [];
+        verifyD1TableCounts({
+          issues: issues2,
+          tableCounts,
+          exportResult: wrongResult,
+        });
+        return { issues, issues2 };
+      },
+    });
+
+    expect(issues).toEqual([]);
+    expect(issues2).toEqual(["route_catalog:expected_99:actual_1"]);
   });
 });

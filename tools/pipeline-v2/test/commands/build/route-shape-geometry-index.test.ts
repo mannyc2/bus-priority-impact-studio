@@ -8,12 +8,16 @@ const commandPath = join(
 );
 
 describe("route shape geometry index command boundary", () => {
-  test("keeps geometry grouping and local writes in applied-research", () => {
+  test("keeps geometry grouping and local writes in pipeline-local aggregates", () => {
     const source = readFileSync(commandPath, "utf8");
 
-    expect(source).toContain('from "@bp/applied-research/local-db"');
+    expect(source).toContain('from "@bp/pipeline-v2/local-db-aggregates"');
     expect(source).toContain("runBuildRouteShapeGeometryIndexFromShapes({");
     expect(source).toContain("normalizeRouteShapeRows");
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("localDbOptions: { spatial: true }");
+    expect(source).not.toContain("withLocalDb");
+    expect(source).not.toContain("localDbFromCtx");
     expect(source).not.toContain("function extractLineStrings");
     expect(source).not.toContain("function buildMultiLineString");
     expect(source).not.toContain("INSERT INTO local_route_shape_geom");

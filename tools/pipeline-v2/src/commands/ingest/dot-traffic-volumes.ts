@@ -4,13 +4,9 @@ import { normalizeDotTrafficVolumeRows } from "@bp/sources/adapters/nyc-dot/traf
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {
   fetchSoda3RowsForSource,
@@ -93,18 +89,27 @@ export default defineCommand({
       month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     isoMonth: z.string(),
     rowCount: z.number(),
     segmentCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runDotTrafficVolumesIngest({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.dot-traffic-volumes",
+      operation: "runDotTrafficVolumesIngest",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+      },
+      run: (local) =>
+        runDotTrafficVolumesIngest({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+        }),
     });
   },
 });

@@ -8,7 +8,7 @@ import {
   normalizeStopRows,
 } from "@bp/sources/adapters/mta/routes-stops";
 import type { SocrataRow } from "@bp/sources/clients/socrata";
-import { openLocalPipelineDb } from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import type {
   BBox,
@@ -231,39 +231,46 @@ export async function routeSegmentEndpointIndex(args: {
   isoMonth: string;
   routeIds: readonly string[];
 }): Promise<Map<string, Map<string, SegmentEndpoints>>> {
-  const local = await openLocalPipelineDb(args.localDbPath, { readonly: true });
-  try {
-    const entries = await Promise.all(
-      args.routeIds.map(async (routeId) => {
-        const rows = await listRouteSegmentSpeeds(local.db, routeId, args.isoMonth);
-        const bySegment = new Map<string, SegmentEndpoints>();
-        for (const row of rows) {
-          const coreId = [
-            row.direction,
-            row.stopOrder,
-            row.timepointStopId,
-            row.nextTimepointStopId,
-          ].join(":");
-          if (!bySegment.has(coreId)) {
-            bySegment.set(coreId, {
-              from: {
-                latitude: row.timepointStopLatitude,
-                longitude: row.timepointStopLongitude,
-              },
-              to: {
-                latitude: row.nextTimepointStopLatitude,
-                longitude: row.nextTimepointStopLongitude,
-              },
-            });
+  return runLocalDbCommandBoundary({
+    dbPath: args.localDbPath,
+    localDbOptions: { readonly: true },
+    command: "studio.release-geometry.route-segment-endpoint-index",
+    operation: "routeSegmentEndpointIndex",
+    spanAttributes: {
+      isoMonth: args.isoMonth,
+      routeCount: args.routeIds.length,
+    },
+    run: async (local) => {
+      const entries = await Promise.all(
+        args.routeIds.map(async (routeId) => {
+          const rows = await listRouteSegmentSpeeds(local.db, routeId, args.isoMonth);
+          const bySegment = new Map<string, SegmentEndpoints>();
+          for (const row of rows) {
+            const coreId = [
+              row.direction,
+              row.stopOrder,
+              row.timepointStopId,
+              row.nextTimepointStopId,
+            ].join(":");
+            if (!bySegment.has(coreId)) {
+              bySegment.set(coreId, {
+                from: {
+                  latitude: row.timepointStopLatitude,
+                  longitude: row.timepointStopLongitude,
+                },
+                to: {
+                  latitude: row.nextTimepointStopLatitude,
+                  longitude: row.nextTimepointStopLongitude,
+                },
+              });
+            }
           }
-        }
-        return [routeId, bySegment] as const;
-      }),
-    );
-    return new Map(entries);
-  } finally {
-    local.sqlite.close();
-  }
+          return [routeId, bySegment] as const;
+        }),
+      );
+      return new Map(entries);
+    },
+  });
 }
 
 function projectPointToSegment(
@@ -723,13 +730,13 @@ export async function routeGeometryIndex(
   stopSnapshotPath: string,
   localDbPath: string,
 ): Promise<Map<string, RouteGeometrySummary>> {
-  const local = await openLocalPipelineDb(localDbPath, { readonly: true });
-  let lanes: LocalBusLane[];
-  try {
-    lanes = [...(await listBusLanes(local.db))];
-  } finally {
-    local.sqlite.close();
-  }
+  const lanes = await runLocalDbCommandBoundary({
+    dbPath: localDbPath,
+    localDbOptions: { readonly: true },
+    command: "studio.release-geometry.route-geometry-index",
+    operation: "listBusLanes",
+    run: async (local) => [...(await listBusLanes(local.db))],
+  });
   const [shapeSnapshot, stopSnapshot] = await Promise.all([
     readJsonIfExists<RawSourceSnapshot>(fromRepoRoot(routeShapeSnapshotPath)),
     readJsonIfExists<RawSourceSnapshot>(fromRepoRoot(stopSnapshotPath)),
@@ -799,13 +806,17 @@ export async function segmentLaneOverlapIndex(args: {
   routeInputs: ReadonlyMap<string, RouteBriefInputArtifact | null>;
 }): Promise<Map<string, Map<string, SegmentLaneOverlap>>> {
   const routeIds = [...args.routeInputs.keys()].sort();
-  const local = await openLocalPipelineDb(args.localDbPath, { readonly: true });
-  let lanes: LocalBusLane[];
-  try {
-    lanes = [...(await listBusLanes(local.db))];
-  } finally {
-    local.sqlite.close();
-  }
+  const lanes = await runLocalDbCommandBoundary({
+    dbPath: args.localDbPath,
+    localDbOptions: { readonly: true },
+    command: "studio.release-geometry.segment-lane-overlap-index",
+    operation: "listBusLanes",
+    spanAttributes: {
+      isoMonth: args.isoMonth,
+      routeCount: routeIds.length,
+    },
+    run: async (local) => [...(await listBusLanes(local.db))],
+  });
   const [shapeSnapshot, stopSnapshot, routeSegmentEndpoints] = await Promise.all([
     readJsonIfExists<RawSourceSnapshot>(fromRepoRoot(args.routeShapeSnapshotPath)),
     readJsonIfExists<RawSourceSnapshot>(fromRepoRoot(args.stopSnapshotPath)),

@@ -98,7 +98,7 @@ const fixtureRows = [
 ];
 
 describe("express bus capacity pipeline artifacts", () => {
-  test("keeps express capacity analysis policy in applied-research", () => {
+  test("keeps express capacity analysis policy in analytics feature-history", () => {
     const contextSource = readFileSync(
       fromRepoRoot("tools/pipeline-v2/src/commands/build/express-bus-capacity-context.ts"),
       "utf8",
@@ -108,10 +108,10 @@ describe("express bus capacity pipeline artifacts", () => {
       "utf8",
     );
 
-    expect(contextSource).toContain('from "@bp/applied-research/feature-history"');
+    expect(contextSource).toContain('from "@bp/analytics/feature-history"');
     expect(contextSource).not.toContain("function groupKey");
     expect(contextSource).not.toContain("function roundLoad");
-    expect(analysisSource).toContain('from "@bp/applied-research/feature-history"');
+    expect(analysisSource).toContain('from "@bp/analytics/feature-history"');
     expect(analysisSource).not.toContain("function joinWindows");
     expect(analysisSource).not.toContain("function routeSummaries");
     expect(analysisSource).not.toContain("function auditArtifact");

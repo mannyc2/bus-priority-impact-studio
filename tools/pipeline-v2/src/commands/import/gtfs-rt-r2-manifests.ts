@@ -6,12 +6,8 @@ import {
   replaceGtfsRtCollectionRun,
   replaceGtfsRtFeedSnapshots,
 } from "@bp/db/local";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 
 export type ImportGtfsRtR2ManifestsRunInputs = {
@@ -170,7 +166,6 @@ export default defineCommand({
       sampleSeconds: arg.positiveInt().default(30).describe("Sample period in seconds"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     runId: z.string(),
     manifestCount: z.number(),
@@ -179,13 +174,25 @@ export default defineCommand({
     startedAt: z.string(),
     endedAt: z.string(),
   }),
-  async run({ ctx, input }) {
-    return runImportGtfsRtR2Manifests({
-      local: localDbFromCtx(ctx),
-      runId: input.options.runId,
-      manifestRoot: fromCliPath(input.options.manifestRoot),
-      rawRoot: fromCliPath(input.options.rawRoot),
-      sampleSeconds: input.options.sampleSeconds,
+  async run({ input }) {
+    const manifestRoot = fromCliPath(input.options.manifestRoot);
+    const rawRoot = fromCliPath(input.options.rawRoot);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "import.gtfs-rt-r2-manifests",
+      operation: "runImportGtfsRtR2Manifests",
+      spanAttributes: {
+        runId: input.options.runId,
+        sampleSeconds: input.options.sampleSeconds,
+      },
+      run: (local) =>
+        runImportGtfsRtR2Manifests({
+          local,
+          runId: input.options.runId,
+          manifestRoot,
+          rawRoot,
+          sampleSeconds: input.options.sampleSeconds,
+        }),
     });
   },
 });
