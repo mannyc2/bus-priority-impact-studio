@@ -38,7 +38,7 @@ nyc-transit-kit pin gets fixed at its source so adoption can proceed (029).
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 019 | Land the hard cutover and clear the residue | P0 | M | — | IN PROGRESS (STOP resolved 2026-07-01: the importer is the snapshot endpoint's dead findings/briefs narration — strip those fields, then delete; ruling recorded in plan 019 step 4) |
+| 019 | Land the hard cutover and clear the residue | P0 | M | — | IN PROGRESS (full gate passed 2026-07-01; operator merge/deploy handoff pending) |
 | 020 | Serve the MTA-wiki route evidence end-to-end | P1 | L | 019 | TODO |
 | 021 | Expand the served route corpus beyond the 12-route pilot | P1 | L | 019 (020 rec.) | TODO |
 | 022 | Converge the route page on the canonical editorial design | P1 | L | 019, 020 | TODO |
@@ -107,9 +107,8 @@ REJECTED (with one-line rationale)
   (`read-handlers.ts` → `buildRouteInsightsFromDetectorReadiness`), so
   `packages/analytics` (36.9 kLOC) and `packages/domain/src/findings/` are
   live infrastructure — no deletion plan touches them.
-- `packages/domain/src/studio/{briefs,findings}` are dead-but-present
-  cutover residue (plan 019 deletes); `studio_brief_draft*` D1 tables drop
-  in plan 024 with a real migration.
+- `packages/domain/src/studio/{briefs,findings}` were deleted by plan 019;
+  `studio_brief_draft*` D1 tables drop in plan 024 with a real migration.
 - The wiki evidence artifact is 2.7 MB / 12 bundles / 2,354 citations at
   `data/artifacts/studio/v2/wiki/route-evidence.json`.
 
