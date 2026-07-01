@@ -2,6 +2,8 @@
 
 Read this file first. It is the navigation layer for the LLM wiki.
 
+Reader's map: [analytics-primer.html](../analytics-primer.html) is the visual walkthrough of the analytics architecture.
+
 > **Pipeline-v2 status (2026-05-29).** `tools/pipeline-v2` is the canonical pipeline CLI: all
 > 89 port-rated v1 commands now exist as v2 commands under `tools/pipeline-v2/src/commands/**`,
 > the three v1 monoliths (`tier2-docs.ts`, `studio-release.ts`, `audit/studio-coverage.ts`)
@@ -91,8 +93,8 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/ambitious_analytics_workstreams|Ambitious analytics workstreams]] — Ranked high-value analytics/serving/corpus work packages with copy-ready prompts for one or more Codex sessions.
 - [[wiki/engineering/analytics_architecture|Analytics architecture]] — Pure `packages/analytics` detector kernel architecture, feature contracts, registry doctrine, FeatureResolver runner seam, and migration plan.
 - [[wiki/engineering/analytics_100x_plan|100x analytics plan]] — Declarative panel specs, dataframe-backed model artifacts, detector model dependencies, evaluation loss, and serving projection doctrine for the next analytics leap.
-- [[wiki/engineering/applied_research_architecture|Applied research architecture]] — Plan for `packages/applied-research` as the corpus-backed research engine for detector studies, causal inference, forecasting, score vectors, and review artifacts, with `pipeline-v2` as a thin CLI consumer.
-- [[wiki/engineering/applied_research_detector_authoring|Applied research and detector authoring]] — Practical guide for deciding whether work belongs in detectors, applied-research panels, local SQLite adapters, DB, or pipeline commands, with implementation and verification checklists.
+- [[wiki/engineering/applied_research_architecture|Applied research architecture]] — Historical plan for retired `packages/applied-research`; survivor pure builders now belong in `@bp/analytics`, with pipeline-local SQLite aggregation in `tools/pipeline-v2`.
+- [[wiki/engineering/applied_research_detector_authoring|Applied research and detector authoring]] — Historical placement guide; use it as context only after the hard cutover, not as package ownership doctrine.
 - [[wiki/engineering/sources_adapter_cutover_plan|Sources adapter cutover plan]] — Hard-cutover decision for turning `@bp/sources` into a focused internal source adapter SDK, with SODA3-only Socrata clients, no root export, no SODA2 compatibility path, and explicit pipeline/app boundary gates.
 - [[wiki/engineering/curb_pulse_natural_experiment_plan|Curb pulse natural experiment plan]] — Applied-research workbench plan for segment/daypart travel-time pulses, event-window overlaps, mechanism corroboration, placebo checks, and falsifiable curb-management case studies.
 - [[wiki/engineering/analytics_corpus_profile|Analytics corpus profile]] — Release snapshot versus historical detector-window doctrine, corpus readiness, and Ralph input policy.

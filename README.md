@@ -2,10 +2,22 @@
 
 Public-data analytics product for MTA bus reliability and bus-priority interventions.
 
+**Live:** [bus-priority-impact-studio.c20carroll.workers.dev](https://bus-priority-impact-studio.c20carroll.workers.dev/) is the public app: a route-first civic data surface with route pages, maps, intervention context, timelines, and methods.
+
+What to look at:
+
+- [Live app](https://bus-priority-impact-studio.c20carroll.workers.dev/) - deployed Cloudflare Workers app backed by D1/R2 serving projections.
+- [analytics-primer.html](analytics-primer.html) - open in a browser for a visual map of the analytics architecture.
+- [Detector calibration ADR](docs/decisions/0018-detector-calibration-readiness-loop.md) and [readiness artifacts](data/artifacts/analytics-detector-readiness/) - reviewed-label loop for detector publication discipline.
+- [Tier 2 status runbook](knowledge/wiki/engineering/tier2_processing_status_and_resume.md) - OCR, extraction, vocabulary, route resolution, and intervention corpus state.
+- [Architecture decisions](docs/decisions/) - start with 0017, 0018, and 0019 for publication freshness, detector readiness, and the Effect pipeline runtime.
+
+Contributor and agent note: read [CLAUDE.md](CLAUDE.md), [AGENTS.md](AGENTS.md), and [knowledge/index.md](knowledge/index.md) before changing code.
+
 The repo is intentionally TypeScript-first and Bun-first for the MVP:
 
 - `apps/web` serves the public demo on Cloudflare Workers Static Assets with a Worker API.
-- `tools/pipeline` runs local batch jobs that fetch public data, build analytics artifacts, and prepare D1/R2 serving data.
+- `tools/pipeline-v2` runs local Effect-backed batch jobs that fetch public data, build analytics artifacts, and prepare D1/R2 serving data.
 - `packages/*` contain reusable TypeScript modules with strict dependency boundaries.
 - `.claude/` contains project-scoped Claude Code skills (React best practices, composition patterns).
 - `knowledge/` contains the LLM-maintained wiki, source registry, research notes, and append-only project log.
@@ -26,11 +38,12 @@ Use Cloudflare Workers + Static Assets for the public app, Cloudflare D1 as the 
 
 ```text
 apps/web             React + Vite frontend and Cloudflare Worker API
+packages/studio-api  Public Studio API contracts, route registry, and Worker handlers
 packages/domain      Pure domain types, metric definitions, scoring rules
 packages/sources     Public-data clients and source metadata adapters
 packages/analytics   Deterministic transforms and local metric builders
 packages/db          D1/SQLite schema, migrations, and read/write repositories
-tools/pipeline       Local CLI for source probes, artifact builds, and D1 seed generation
+tools/pipeline-v2    Effect-backed local CLI for source probes, artifact builds, and D1/R2 publish prep
 .claude              Project Claude Code skills
 knowledge            LLM wiki, source registry, raw source notes, index, and log
 data                 Local generated data; mostly gitignored
@@ -42,11 +55,12 @@ Do not add Python to the MVP unless the TypeScript/local-SQL approach fails on a
 
 ```text
 apps/web/src/
-  app/                  composition root and route pages
-  design-system/        tokens, CSS, primitives, and layout components
-  features/             product-specific UI slices
-  shared/               frontend-only helpers and shared UI types
+  routes/               TanStack route files
+  studio/               public app pages, API client types, shell, and SEO helpers
+  components/           route, map, chart, and shared UI components
   worker/               Cloudflare Worker API runtime
+  lib/                  frontend-only helpers
+  fixtures/             small UI fixtures and demos
 ```
 
 Frontend work stays in `apps/web/src/` directories. Backend/data changes require explicit instruction.
