@@ -4,16 +4,16 @@ Bus Priority Impact Studio publishes route-first evidence pages for NYC bus prio
 
 ## Public pages
 
-- [Route search and priority overview](https://buspriorityimpact.studio/)
+- [Route priority overview](https://buspriorityimpact.studio/)
 - [M15 SBS route evidence page](https://buspriorityimpact.studio/routes/m15-sbs)
-- [M15 SBS segment ladder](https://buspriorityimpact.studio/routes/m15-sbs/ladder)
-- [Precomputed findings](https://buspriorityimpact.studio/findings)
-- [Cited route evidence briefs](https://buspriorityimpact.studio/briefs)
+- [Network map](https://buspriorityimpact.studio/map)
+- [Intervention timelines](https://buspriorityimpact.studio/interventions)
 - [Source and methodology notes](https://buspriorityimpact.studio/methods)
-- [Human and agent API documentation](https://buspriorityimpact.studio/docs)
 
 ## API
 
 - [OpenAPI 3.1 contract](https://buspriorityimpact.studio/api/openapi.json)
 - [Route cards](https://buspriorityimpact.studio/api/v1/studio/routes)
-- [Search API example](https://buspriorityimpact.studio/api/v1/studio/search?q=manhattan+ace)
+- [M15 SBS route profile](https://buspriorityimpact.studio/api/v1/studio/routes/m15-sbs)
+- [M15 SBS speed history](https://buspriorityimpact.studio/api/v1/studio/routes/m15-sbs/speed-history)
+- [Methodology payload](https://buspriorityimpact.studio/api/v1/studio/methods)

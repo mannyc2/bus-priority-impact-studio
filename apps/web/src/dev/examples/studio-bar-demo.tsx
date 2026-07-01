@@ -1,8 +1,7 @@
-import { ReviewerStack } from "@/components/Reviewers";
 import { StudioBar } from "@/components/StudioBar";
 import { StudioFooter } from "@/components/StudioFooter";
 import { StudioMark } from "@/components/StudioMark";
-import { demoFooterSources, demoReviewers } from "@/fixtures/demo-snippets";
+import { demoFooterSources } from "@/fixtures/demo-snippets";
 
 export function StudioBarDemo() {
   return (
@@ -21,10 +20,9 @@ export function StudioBarDemo() {
           </h2>
           <p className="mt-2 max-w-[620px] text-[13px] leading-normal text-[var(--bp-color-ink-70)]">
             A warm-paper civic interface for route evidence, hotspot ranking, intervention
-            reasoning, and brief authoring.
+            timelines, and methodology.
           </p>
         </div>
-        <ReviewerStack reviewers={demoReviewers} />
       </div>
       <StudioFooter sources={demoFooterSources} />
     </div>

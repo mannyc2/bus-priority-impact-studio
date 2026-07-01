@@ -129,7 +129,6 @@ export function OverviewSection({
               <InsightCard
                 key={`${insight.detectorId}:${insight.scopeId ?? insight.title}`}
                 insight={insight}
-                routeSlug={route.slug}
                 sectionRegistry={sectionRegistry}
                 onNavigate={onNavigate}
               />
@@ -197,12 +196,10 @@ function SummaryCard({
 
 function InsightCard({
   insight,
-  routeSlug,
   sectionRegistry,
   onNavigate,
 }: {
   insight: StudioRouteInsight;
-  routeSlug: string;
   sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
@@ -251,12 +248,6 @@ function InsightCard({
         >
           Open
         </button>
-        <a
-          href={`/briefs/new?route=${routeSlug}`}
-          className="text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
-        >
-          Brief
-        </a>
       </div>
     </article>
   );

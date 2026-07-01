@@ -7,7 +7,6 @@ import {
   listCorridorSummaries,
   listRouteArtifacts,
   listRouteBriefSummaries,
-  listRouteComparisonRanks,
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/d1";
 import { MapManifestResponseSchema } from "@bp/domain/maps";
@@ -15,7 +14,6 @@ import { IsoMonthSchema, RouteIdCodec } from "@bp/domain/primitives";
 import {
   HotspotListResponseSchema,
   ReleaseStatusResponseSchema,
-  RouteCompareResponseSchema,
   RouteListResponseSchema,
   RouteProfileResponseSchema,
   RouteScorecardSchema,
@@ -25,9 +23,16 @@ import type { StudioApiEnv } from "./env.js";
 import { errorResponse as errorJson } from "./http/errors.js";
 import { jsonResponse as json } from "./http/json.js";
 
+const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
+
+function dependencyNotConfigured(dependency: string, context: string): Response {
+  console.error("Service dependency is not configured.", { context, dependency });
+  return errorJson(503, SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE);
+}
+
 async function buildRouteScorecardResponse(url: URL, env: StudioApiEnv): Promise<Response> {
   if (env.DB === undefined) {
-    return errorJson(503, "D1 binding is not configured.");
+    return dependencyNotConfigured("DB", "route scorecard");
   }
 
   const match = url.pathname.match(/^\/api\/routes\/([^/]+)\/scorecard$/);
@@ -87,6 +92,63 @@ function artifactApiPath(key: string): string {
     .split("/")
     .map((part) => encodeURIComponent(part))
     .join("/")}`;
+}
+
+function hasAsciiControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
+function hasDotPathComponent(value: string): boolean {
+  return value.split("/").some((part) => part === "." || part === "..");
+}
+
+export function isValidArtifactKey(key: string): boolean {
+  if (
+    key.length === 0 ||
+    key.startsWith("/") ||
+    key.includes("\\") ||
+    hasAsciiControlCharacter(key) ||
+    hasDotPathComponent(key)
+  ) {
+    return false;
+  }
+
+  let current = key;
+  for (let pass = 0; pass < 4; pass += 1) {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(current);
+    } catch {
+      return false;
+    }
+    if (decoded === current) return true;
+    if (
+      decoded.startsWith("/") ||
+      decoded.includes("\\") ||
+      hasAsciiControlCharacter(decoded) ||
+      hasDotPathComponent(decoded)
+    ) {
+      return false;
+    }
+    current = decoded;
+  }
+
+  return false;
+}
+
+function decodeArtifactKey(rawKey: string): string | null {
+  try {
+    return rawKey
+      .split("/")
+      .map((part) => decodeURIComponent(part))
+      .join("/");
+  } catch {
+    return null;
+  }
 }
 
 function realtimeSourceForRunId(
@@ -157,7 +219,7 @@ function buildRouteCard(input: {
 
 async function buildReleaseStatusResponse(url: URL, env: StudioApiEnv): Promise<Response> {
   if (env.DB === undefined) {
-    return errorJson(503, "D1 binding is not configured.");
+    return dependencyNotConfigured("DB", "release status");
   }
 
   const month = releaseStatusMonth(url, env);
@@ -286,7 +348,7 @@ async function buildCurrentObservedSignal(
 
 async function buildRouteListResponse(url: URL, env: StudioApiEnv): Promise<Response> {
   if (env.DB === undefined) {
-    return errorJson(503, "D1 binding is not configured.");
+    return dependencyNotConfigured("DB", "route list");
   }
 
   const month = releaseStatusMonth(url, env);
@@ -348,7 +410,7 @@ async function buildRouteListResponse(url: URL, env: StudioApiEnv): Promise<Resp
 
 async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<Response> {
   if (env.DB === undefined) {
-    return errorJson(503, "D1 binding is not configured.");
+    return dependencyNotConfigured("DB", "route profile");
   }
 
   const match = url.pathname.match(/^\/api\/v1\/routes\/([^/]+)\/profile$/);
@@ -471,7 +533,7 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
 
 async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Response> {
   if (env.ARTIFACTS === undefined) {
-    return errorJson(503, "ARTIFACTS R2 binding is not configured.");
+    return dependencyNotConfigured("ARTIFACTS", "map manifest");
   }
 
   const month = releaseStatusMonth(url, env);
@@ -540,17 +602,14 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
 
 async function buildArtifactResponse(url: URL, env: StudioApiEnv): Promise<Response> {
   if (env.ARTIFACTS === undefined) {
-    return errorJson(503, "ARTIFACTS R2 binding is not configured.");
+    return dependencyNotConfigured("ARTIFACTS", "artifact passthrough");
   }
 
   const prefix = "/api/v1/artifacts/";
   const rawKey = url.pathname.startsWith(prefix) ? url.pathname.slice(prefix.length) : "";
-  const key = rawKey
-    .split("/")
-    .map((part) => decodeURIComponent(part))
-    .join("/");
+  const key = decodeArtifactKey(rawKey);
 
-  if (key.length === 0 || key.startsWith("/") || key.includes("..")) {
+  if (key === null || !isValidArtifactKey(key)) {
     return errorJson(400, "Artifact key is invalid.");
   }
 
@@ -572,7 +631,7 @@ async function buildArtifactResponse(url: URL, env: StudioApiEnv): Promise<Respo
 
 async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Response> {
   if (env.DB === undefined) {
-    return errorJson(503, "D1 binding is not configured.");
+    return dependencyNotConfigured("DB", "hotspot list");
   }
 
   const month = releaseStatusMonth(url, env);
@@ -638,115 +697,6 @@ async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Re
   );
 }
 
-async function buildRouteCompareResponse(url: URL, env: StudioApiEnv): Promise<Response> {
-  if (env.DB === undefined) {
-    return errorJson(503, "D1 binding is not configured.");
-  }
-
-  const month = releaseStatusMonth(url, env);
-  if (month === null) {
-    return errorJson(400, "Query parameter month or BASELINE_MONTH must use YYYY-MM format.");
-  }
-
-  const routeIdParams = url.searchParams.getAll("routeId");
-  const rawRouteIds =
-    routeIdParams.length >= 2
-      ? routeIdParams.slice(0, 2)
-      : [url.searchParams.get("a"), url.searchParams.get("b")].filter(
-          (value): value is string => value !== null,
-        );
-  if (rawRouteIds.length !== 2) {
-    return errorJson(400, "Provide exactly two routeId parameters, or a and b.");
-  }
-
-  let routeIds: [z.output<typeof RouteIdCodec>, z.output<typeof RouteIdCodec>];
-  try {
-    routeIds = [
-      z.decode(RouteIdCodec, rawRouteIds[0] ?? ""),
-      z.decode(RouteIdCodec, rawRouteIds[1] ?? ""),
-    ];
-  } catch {
-    return errorJson(400, "One or more route IDs are invalid.");
-  }
-
-  const db = createD1ServingDb(env.DB);
-  const [ranks, reliability] = await Promise.all([
-    listRouteComparisonRanks(db, month),
-    listRouteObservedReliabilitySummaries(db, month),
-  ]);
-  const ranksByRoute = new Map(ranks.map((rank) => [rank.routeId, rank]));
-  const reliabilityByRoute = new Map(reliability.map((row) => [row.routeId, row]));
-  const left = ranksByRoute.get(routeIds[0]) ?? null;
-  const right = ranksByRoute.get(routeIds[1]) ?? null;
-
-  if (left === null || right === null) {
-    return errorJson(404, "One or more routes were not found in the comparison projection.");
-  }
-
-  const routes = [
-    buildRouteCard({
-      routeId: left.routeId,
-      month: left.month,
-      rank: left.rank,
-      routeScore: left.routeScore,
-      averageSpeedMph: left.averageSpeedMph,
-      hotspotCount: 0,
-      totalRidership: left.totalRidership,
-      aceActive: left.aceViolationCount > 0,
-      busLaneMatchedLaneCount: left.busLaneMatchedLaneCount,
-      observed: reliabilityByRoute.get(left.routeId) ?? null,
-    }),
-    buildRouteCard({
-      routeId: right.routeId,
-      month: right.month,
-      rank: right.rank,
-      routeScore: right.routeScore,
-      averageSpeedMph: right.averageSpeedMph,
-      hotspotCount: 0,
-      totalRidership: right.totalRidership,
-      aceActive: right.aceViolationCount > 0,
-      busLaneMatchedLaneCount: right.busLaneMatchedLaneCount,
-      observed: reliabilityByRoute.get(right.routeId) ?? null,
-    }),
-  ] as const;
-
-  return json(
-    RouteCompareResponseSchema.parse({
-      schemaVersion: 1,
-      generatedAt: new Date().toISOString(),
-      baselineMonth: month,
-      routes,
-      deltas: {
-        routeScore: right.routeScore - left.routeScore,
-        averageSpeedMph: right.averageSpeedMph - left.averageSpeedMph,
-        totalRidership: right.totalRidership - left.totalRidership,
-        observedBunchingShare:
-          routes[1].observedBunchingShare === null || routes[0].observedBunchingShare === null
-            ? null
-            : routes[1].observedBunchingShare - routes[0].observedBunchingShare,
-        observedLongGapShare:
-          routes[1].observedLongGapShare === null || routes[0].observedLongGapShare === null
-            ? null
-            : routes[1].observedLongGapShare - routes[0].observedLongGapShare,
-      },
-      quality: {
-        releaseLayer: routes.some((route) => route.quality.releaseLayer === "observed_release")
-          ? "observed_release"
-          : "baseline_release",
-        completenessStatus: routes.every((route) => route.quality.completenessStatus === "complete")
-          ? "complete"
-          : "insufficient_samples",
-        confidence: routes.some((route) => route.quality.confidence === "medium")
-          ? "medium"
-          : "high",
-        caveats: [
-          "Comparison metrics are generated monthly serving projections; realtime reliability is attached when observed evidence exists.",
-        ],
-      },
-    }),
-  );
-}
-
 export async function handlePublicApiRoutes(url: URL, env: StudioApiEnv): Promise<Response | null> {
   if (url.pathname === "/api/v1/status") {
     return buildReleaseStatusResponse(url, env);
@@ -770,10 +720,6 @@ export async function handlePublicApiRoutes(url: URL, env: StudioApiEnv): Promis
 
   if (url.pathname === "/api/v1/hotspots") {
     return buildHotspotListResponse(url, env);
-  }
-
-  if (url.pathname === "/api/v1/compare") {
-    return buildRouteCompareResponse(url, env);
   }
 
   if (url.pathname.match(/^\/api\/routes\/[^/]+\/scorecard$/)) {

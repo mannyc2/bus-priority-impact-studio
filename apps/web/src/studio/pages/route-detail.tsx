@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";
 import { KPISkeleton } from "@/components/KPI";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
@@ -39,7 +38,6 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
 
   const { route, segments } = data;
   const flagged = segments.find((s) => s.flagged);
-  const peer = data.peerRoute;
   const [activeTab, setActiveTab] = useState<RouteDetailTabValue>("overview");
 
   const tabBadges = routeTabBadges(data.insights);
@@ -75,28 +73,6 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
                 sectionRegistry={sectionRegistry}
                 onNavigate={(tab) => setActiveTab(tab)}
               />
-            }
-            actions={
-              <>
-                {peer ? (
-                  <Link
-                    to="/compare"
-                    search={{ a: route.slug, b: peer.slug }}
-                    viewTransition
-                    className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-ink-20)] px-3.5 py-2 text-[12.5px] font-medium text-[var(--bp-color-ink)] no-underline"
-                  >
-                    Compare {peer.label}
-                    {peer.sbs ? " SBS" : ""}
-                  </Link>
-                ) : null}
-                <Link
-                  to="/briefs/new"
-                  search={{ route: route.slug }}
-                  className="inline-flex items-center gap-1.5 rounded-[3px] bg-[var(--bp-color-ink)] px-3.5 py-2 text-[12.5px] font-semibold text-[var(--bp-color-paper)] no-underline"
-                >
-                  Brief
-                </Link>
-              </>
             }
           />
         }

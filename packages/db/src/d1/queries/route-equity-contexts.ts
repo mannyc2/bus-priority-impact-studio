@@ -1,4 +1,4 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { routeEquityContext } from "../schema.js";
@@ -60,6 +60,28 @@ function key(routeId: string, month: string): string {
   return `${routeId}::${month}`;
 }
 
+const routeEquityContextColumns = {
+  route_id: routeEquityContext.routeId,
+  month: routeEquityContext.month,
+  acs_year: routeEquityContext.acsYear,
+  assignment_geography: routeEquityContext.assignmentGeography,
+  assigned_county_fips: routeEquityContext.assignedCountyFips,
+  assigned_county_name: routeEquityContext.assignedCountyName,
+  assignment_method: routeEquityContext.assignmentMethod,
+  tract_count: routeEquityContext.tractCount,
+  total_population: routeEquityContext.totalPopulation,
+  occupied_housing_units: routeEquityContext.occupiedHousingUnits,
+  no_vehicle_households: routeEquityContext.noVehicleHouseholds,
+  no_vehicle_household_share: routeEquityContext.noVehicleHouseholdShare,
+  median_household_income: routeEquityContext.medianHouseholdIncome,
+  poverty_rate: routeEquityContext.povertyRate,
+  public_transit_commuter_share: routeEquityContext.publicTransitCommuterShare,
+  hispanic_share: routeEquityContext.hispanicShare,
+  non_hispanic_white_share: routeEquityContext.nonHispanicWhiteShare,
+  non_hispanic_black_share: routeEquityContext.nonHispanicBlackShare,
+  non_hispanic_asian_share: routeEquityContext.nonHispanicAsianShare,
+};
+
 function toRouteEquityContext(
   row: RouteEquityContextRow,
   sourceStatuses: Map<string, Record<string, string>>,
@@ -95,27 +117,7 @@ export async function listRouteEquityContexts(
   month: string,
 ): Promise<RouteEquityContext[]> {
   const rows = await db
-    .select({
-      route_id: routeEquityContext.routeId,
-      month: routeEquityContext.month,
-      acs_year: routeEquityContext.acsYear,
-      assignment_geography: routeEquityContext.assignmentGeography,
-      assigned_county_fips: routeEquityContext.assignedCountyFips,
-      assigned_county_name: routeEquityContext.assignedCountyName,
-      assignment_method: routeEquityContext.assignmentMethod,
-      tract_count: routeEquityContext.tractCount,
-      total_population: routeEquityContext.totalPopulation,
-      occupied_housing_units: routeEquityContext.occupiedHousingUnits,
-      no_vehicle_households: routeEquityContext.noVehicleHouseholds,
-      no_vehicle_household_share: routeEquityContext.noVehicleHouseholdShare,
-      median_household_income: routeEquityContext.medianHouseholdIncome,
-      poverty_rate: routeEquityContext.povertyRate,
-      public_transit_commuter_share: routeEquityContext.publicTransitCommuterShare,
-      hispanic_share: routeEquityContext.hispanicShare,
-      non_hispanic_white_share: routeEquityContext.nonHispanicWhiteShare,
-      non_hispanic_black_share: routeEquityContext.nonHispanicBlackShare,
-      non_hispanic_asian_share: routeEquityContext.nonHispanicAsianShare,
-    })
+    .select(routeEquityContextColumns)
     .from(routeEquityContext)
     .where(eq(routeEquityContext.month, month))
     .orderBy(desc(routeEquityContext.noVehicleHouseholdShare), asc(routeEquityContext.routeId));
@@ -126,4 +128,24 @@ export async function listRouteEquityContexts(
   );
 
   return parsedRows.map((row) => toRouteEquityContext(row, sourceStatuses));
+}
+
+export async function findRouteEquityContext(
+  db: D1ServingDb,
+  routeId: string,
+  month: string,
+): Promise<RouteEquityContext | null> {
+  const rows = await db
+    .select(routeEquityContextColumns)
+    .from(routeEquityContext)
+    .where(and(eq(routeEquityContext.routeId, routeId), eq(routeEquityContext.month, month)))
+    .limit(1);
+  const row = rows[0];
+  if (row === undefined) return null;
+
+  const sourceStatuses = groupSourceStatuses(
+    await listRouteMonthSourceStatuses(db, month, "equity_context"),
+  );
+
+  return toRouteEquityContext(RouteEquityContextRowSchema.parse(row), sourceStatuses);
 }

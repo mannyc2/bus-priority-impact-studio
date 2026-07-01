@@ -68,7 +68,10 @@ export type {
   RouteEquityContext,
   RouteEquityContextRow,
 } from "./queries/route-equity-contexts.js";
-export { listRouteEquityContexts } from "./queries/route-equity-contexts.js";
+export {
+  findRouteEquityContext,
+  listRouteEquityContexts,
+} from "./queries/route-equity-contexts.js";
 export type {
   InterventionEventRow,
   RouteInterventionComparison,
@@ -77,12 +80,6 @@ export type {
 export { listRouteInterventionComparisons } from "./queries/route-intervention-comparisons.js";
 export type { RouteMonthTrend, RouteMonthTrendRow } from "./queries/route-month-trends.js";
 export { listRouteMonthTrends } from "./queries/route-month-trends.js";
-export type {
-  RouteTimelineIndex,
-  RouteTimelineIndexRow,
-  RouteTimelineSupportLevel,
-} from "./queries/route-timelines.js";
-export { getRouteTimelineIndex, listRouteTimelineIndex } from "./queries/route-timelines.js";
 export type {
   RouteObservedReliabilitySummary,
   RouteObservedReliabilitySummaryRow,
@@ -105,12 +102,12 @@ export {
   serializeRouteScorecard,
   serializeRouteScorecardCitations,
 } from "./queries/route-scorecard.js";
-export type { StudioRouteIndexSourceRow } from "./queries/studio-route-index.js";
-export {
-  findLatestSpeedTrendMonth,
-  findLatestStudioServingMonth,
-  listStudioRouteIndexSourceRows,
-} from "./queries/studio-route-index.js";
+export type {
+  RouteTimelineIndex,
+  RouteTimelineIndexRow,
+  RouteTimelineSupportLevel,
+} from "./queries/route-timelines.js";
+export { getRouteTimelineIndex, listRouteTimelineIndex } from "./queries/route-timelines.js";
 export type {
   RouteSpeedHistoryCoverage,
   RouteSpeedHistoryCoverageRow,
@@ -201,3 +198,9 @@ export {
   updateStudioBriefDraftValidation,
   updateStudioBriefReviewComment,
 } from "./queries/studio-brief-drafts.js";
+export type { StudioRouteIndexSourceRow } from "./queries/studio-route-index.js";
+export {
+  findLatestSpeedTrendMonth,
+  findLatestStudioServingMonth,
+  listStudioRouteIndexSourceRows,
+} from "./queries/studio-route-index.js";

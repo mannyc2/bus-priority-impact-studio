@@ -17,6 +17,7 @@ export type {
 } from "./route-spec.js";
 export {
   allowedApiMethodsForPath,
+  findRouteSpec,
   isApiPath,
   isStudioApiPath,
   studioRouteTemplate,

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { MapRouteSegmentFeature } from "@bp/domain/maps";
 import { geoSpeedColor, routeGeoMapModel } from "@/components/route/route-geo-map";
 
 const BOX = { width: 1040, height: 420, padding: 44 };
@@ -17,7 +18,7 @@ function feature({
   speed: number | null;
   start: string;
   end: string;
-}) {
+}): MapRouteSegmentFeature {
   return {
     type: "Feature" as const,
     id,
@@ -34,7 +35,7 @@ function feature({
       startStopName: start,
       endStopName: end,
     },
-  };
+  } as unknown as MapRouteSegmentFeature;
 }
 
 // A simple two-segment north-south chain: A → B → C.

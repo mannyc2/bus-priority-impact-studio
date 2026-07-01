@@ -9,10 +9,7 @@ import type { StudioRoute } from "@/studio/api-contract";
 import { ROUTE_METRICS } from "@/studio/metric-model";
 
 /**
- * Single-route KPI strip for the route detail header. Explicit variant of the
- * shared ROUTE_METRICS model over the MetricColumns frame and MetricStat leaf
- * (see also RouteCompareMetricStrip for the two-route inline variant and
- * RouteDeltaStrip for the A->B delta variant).
+ * Single-route KPI strip for the route detail header.
  */
 export function RouteMetricStrip({ route }: { route: StudioRoute }) {
   return (

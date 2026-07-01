@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 // Tarbell chip semantics — sharp 3px radius (no pills), 11px text, BPI color
 // pairs. Neutral chips are for tags and filter values. Coloured variants are
-// reserved for severity, treatment status, brief status — anything that
+// reserved for severity, treatment status, source status — anything that
 // carries meaning. See design-system.html §05.
 const badgeVariants = cva(
   "inline-flex h-fit w-fit shrink-0 items-center justify-center gap-1 overflow-hidden whitespace-nowrap rounded-[3px] border border-transparent px-[7px] py-0.5 text-[11px] font-medium tracking-[0.02em] transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1 has-data-[icon=inline-start]:pl-1 aria-invalid:border-destructive aria-invalid:ring-destructive/20 [&>svg]:pointer-events-none [&>svg]:size-3!",

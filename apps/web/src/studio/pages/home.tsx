@@ -6,9 +6,8 @@ import { Spark } from "@/components/Spark";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { StudioRoute } from "../api-contract.js";
 
-// home.tsx — the studio's public front door, in the editorial voice of the
-// public-facing finding-detail and route pages: hero → big stats → narrative
-// cards → trust strip. Implements the "home-public" Claude Design handoff.
+// home.tsx - the studio's public front door: hero -> big stats -> narrative
+// route cards -> route index -> trust strip.
 //
 // Editorial copy and the citywide topline numbers are static civic framing;
 // the "Browse the full index" table, its borough filter, the featured-story
@@ -245,13 +244,12 @@ function FeaturedCard({ item, slug }: { item: Featured; slug: string | undefined
             Read the full story →
           </Link>
         ) : (
-          <Link
-            to="/routes"
-            viewTransition
+          <a
+            href="#route-index"
             className="mt-1 flex items-center gap-1 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
           >
-            Read the full story →
-          </Link>
+            Find it in the index &rarr;
+          </a>
         )}
       </div>
     </div>
@@ -344,19 +342,18 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
               data.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3.5">
-              <Link
-                to="/routes"
-                viewTransition
+              <a
+                href="#route-index"
                 className="inline-flex h-11 items-center justify-center rounded-[3px] border border-[var(--bp-color-ink)] bg-[var(--bp-color-ink)] px-4.5 text-[13.5px] font-medium text-[var(--bp-color-paper)] no-underline transition-colors hover:bg-[var(--bp-color-ink)]/90"
               >
-                Browse all {CITYWIDE_ROUTE_COUNT} routes →
-              </Link>
+                Browse all {CITYWIDE_ROUTE_COUNT} routes &rarr;
+              </a>
               <Link
-                to="/findings"
+                to="/interventions"
                 viewTransition
                 className="inline-flex h-11 items-center justify-center rounded-[3px] border border-[var(--bp-color-ink-20)] bg-transparent px-4.5 text-[13.5px] font-medium text-[var(--bp-color-ink)] no-underline transition-colors hover:bg-[var(--bp-color-ink-06)]"
               >
-                Read this month's findings
+                Browse interventions
               </Link>
               <span className="flex-1" />
               <span className="font-mono text-[12px] text-[var(--bp-color-ink-55)]">
@@ -374,7 +371,6 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
               placeholder="Route number, street, or borough…"
               suggestions={heroSuggestions}
               onSelect={(slug) => navigate({ to: "/routes/$routeId", params: { routeId: slug } })}
-              onSubmitQuery={(q) => navigate({ to: "/search", search: { q } })}
             />
             <div className="mb-2 mt-3 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-55)]">
               Try one of these:
@@ -436,14 +432,14 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
         <SectionHeader
           kicker="In focus this month"
           title="Three routes telling three different stories."
-          sub="Each of these has been reviewed by a studio analyst and reads as a self-contained finding. Each links to the route's full page with charts, segments, and methodology."
+          sub="Each links to a route page with charts, segments, intervention history, and methodology."
           right={
             <Link
-              to="/findings"
+              to="/interventions"
               viewTransition
               className="whitespace-nowrap text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
             >
-              See all 14 findings →
+              See intervention timeline &rarr;
             </Link>
           }
         />
@@ -459,7 +455,10 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
       </section>
 
       {/* ── BROWSE THE FULL INDEX ────────────────────────────── */}
-      <section className="mx-auto max-w-[1180px] px-9 pb-3 pt-[72px] max-sm:px-4 max-sm:pt-12">
+      <section
+        id="route-index"
+        className="mx-auto max-w-[1180px] scroll-mt-20 px-9 pb-3 pt-[72px] max-sm:px-4 max-sm:pt-12"
+      >
         <SectionHeader
           kicker="Every route"
           title="Browse the full index."
@@ -544,11 +543,10 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
             </span>
             <span className="flex-1" />
             <Link
-              to="/routes"
-              viewTransition
+              to="/methods"
               className="font-semibold text-[var(--bp-color-accent)] no-underline"
             >
-              Browse all routes →
+              How this index is built &rarr;
             </Link>
           </div>
         </div>

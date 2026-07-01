@@ -35,6 +35,7 @@ export type {
 export {
   createD1ServingDb,
   deserializeRouteScorecard,
+  findRouteEquityContext,
   getRouteBatchStatus,
   getRouteBriefSummary,
   getRouteScorecard,

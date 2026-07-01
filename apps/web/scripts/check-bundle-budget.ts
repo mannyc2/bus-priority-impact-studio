@@ -12,12 +12,7 @@ import { gzipSync } from "node:zlib";
 // totalJs raised 300 -> 430 for the Recharts charting library (~95 KB gz),
 // which is code-split into a lazy chunk and never loaded at first paint
 // (entry budget unchanged). See components/ui/chart.tsx + HourBars/HourOverlay.
-// totalJs raised 430 -> 485 for the brief-prose markdown stack (react-markdown +
-// remark-gfm/-directive, ~54 KB gz in the lazy BriefProse chunk), loaded only on
-// brief surfaces, never at first paint (entry budget unchanged). Real recovery of
-// the route-detail chunk is deferred to the frontend §8.1 registry-driven splits;
-// see hard-cutover-dossier-contract.md C0 + frontend-goal §11-P0.
-const BUDGET_KB = { entry: 165, totalJs: 485 } as const;
+const BUDGET_KB = { entry: 145, totalJs: 390 } as const;
 
 const assetsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "dist", "client", "assets");
 

@@ -233,6 +233,18 @@ export const StudioRouteInsightSchema = z
   })
   .strict();
 
+export const StudioRouteEquityContextSchema = z
+  .object({
+    acsYear: z.number().int(),
+    assignedCountyName: z.string().nullable(),
+    totalPopulation: z.number().int().nonnegative().nullable(),
+    noVehicleHouseholdShare: z.number().nonnegative().nullable(),
+    medianHouseholdIncome: z.number().nonnegative().nullable(),
+    povertyRate: z.number().nonnegative().nullable(),
+    publicTransitCommuterShare: z.number().nonnegative().nullable(),
+  })
+  .strict();
+
 export const StudioRoutesResponseSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -270,6 +282,7 @@ export const StudioRouteDetailResponseSchema = z
     insights: z.array(StudioRouteInsightSchema).default([]),
     capability: StudioRouteCapabilitySchema.nullable().default(null),
     dossier: RouteDossierSummaryForDetailSchema.nullable().default(null),
+    equityContext: StudioRouteEquityContextSchema.nullable().default(null),
     quality: StudioQualitySchema,
   })
   .strict();
@@ -491,6 +504,7 @@ export type StudioObservedReliability = z.output<typeof StudioObservedReliabilit
 export type StudioRoute = z.output<typeof StudioRouteSchema>;
 export type StudioSegment = z.output<typeof StudioSegmentSchema>;
 export type StudioRouteArtifactRef = z.output<typeof StudioRouteArtifactRefSchema>;
+export type StudioRouteEquityContext = z.output<typeof StudioRouteEquityContextSchema>;
 export type StudioRouteInsight = z.output<typeof StudioRouteInsightSchema>;
 export type StudioRouteInsightKind = z.output<typeof StudioRouteInsightKindSchema>;
 export type StudioRouteInsightPlacement = z.output<typeof StudioRouteInsightPlacementSchema>;

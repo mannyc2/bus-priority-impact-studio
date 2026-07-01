@@ -102,8 +102,7 @@ export function DataNotesSection({
         </div>
         <div className="ml-auto">
           <Link
-            to="/docs/$page"
-            params={{ page: "methodology" }}
+            to="/methods"
             className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
           >
             Methods &rarr;
@@ -113,7 +112,6 @@ export function DataNotesSection({
 
       <EvidenceIndexSection
         rows={evidenceRows}
-        routeSlug={route.slug}
         sectionRegistry={sectionRegistry}
         hiddenSectionCount={hiddenTabs.length}
         onNavigate={onNavigate}
@@ -217,13 +215,11 @@ export function DataNotesSection({
 
 export function EvidenceIndexSection({
   rows,
-  routeSlug,
   sectionRegistry,
   hiddenSectionCount,
   onNavigate,
 }: {
   rows: readonly RouteEvidenceIndexRow[];
-  routeSlug: string;
   sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
   hiddenSectionCount: number;
   onNavigate: (tab: RouteDetailTabValue) => void;
@@ -309,13 +305,6 @@ export function EvidenceIndexSection({
                     Open {row.tabLabel}
                   </button>
                 )}
-                <Link
-                  to="/briefs/new"
-                  search={{ route: routeSlug }}
-                  className="inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-accent)] no-underline"
-                >
-                  Send to brief
-                </Link>
               </div>
             </div>
           ))

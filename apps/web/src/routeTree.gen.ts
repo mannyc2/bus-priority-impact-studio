@@ -9,74 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as SystemRouteImport } from "./routes/system"
-import { Route as SigninRouteImport } from "./routes/signin"
-import { Route as SearchRouteImport } from "./routes/search"
 import { Route as MethodsRouteImport } from "./routes/methods"
-import { Route as FindingsRouteImport } from "./routes/findings"
-import { Route as DocsRouteImport } from "./routes/docs"
-import { Route as CompareRouteImport } from "./routes/compare"
-import { Route as BriefsRouteImport } from "./routes/briefs"
-import { Route as AccountRouteImport } from "./routes/account"
+import { Route as MapRouteImport } from "./routes/map"
+import { Route as InterventionsRouteImport } from "./routes/interventions"
 import { Route as SplatRouteImport } from "./routes/$"
 import { Route as IndexRouteImport } from "./routes/index"
-import { Route as RoutesIndexRouteImport } from "./routes/routes/index"
 import { Route as RoutesRouteIdRouteImport } from "./routes/routes/$routeId"
-import { Route as FindingsFindingIdRouteImport } from "./routes/findings/$findingId"
-import { Route as DocsPageRouteImport } from "./routes/docs/$page"
-import { Route as BriefsNewRouteImport } from "./routes/briefs/new"
-import { Route as BriefsBriefIdRouteImport } from "./routes/briefs/$briefId"
-import { Route as AuthConsumeRouteImport } from "./routes/auth.consume"
-import { Route as AdminIdentitiesRouteImport } from "./routes/admin.identities"
-import { Route as RoutesRouteIdAnnotateRouteImport } from "./routes/routes/$routeId/annotate"
-import { Route as BriefsBriefIdReviewRouteImport } from "./routes/briefs/$briefId/review"
-import { Route as BriefsBriefIdHistoryRouteImport } from "./routes/briefs/$briefId/history"
-import { Route as BriefsBriefIdEvidenceRouteImport } from "./routes/briefs/$briefId/evidence"
-import { Route as BriefsBriefIdEditRouteImport } from "./routes/briefs/$briefId/edit"
 
-const SystemRoute = SystemRouteImport.update({
-  id: "/system",
-  path: "/system",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SigninRoute = SigninRouteImport.update({
-  id: "/signin",
-  path: "/signin",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SearchRoute = SearchRouteImport.update({
-  id: "/search",
-  path: "/search",
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MethodsRoute = MethodsRouteImport.update({
   id: "/methods",
   path: "/methods",
   getParentRoute: () => rootRouteImport,
 } as any)
-const FindingsRoute = FindingsRouteImport.update({
-  id: "/findings",
-  path: "/findings",
+const MapRoute = MapRouteImport.update({
+  id: "/map",
+  path: "/map",
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsRoute = DocsRouteImport.update({
-  id: "/docs",
-  path: "/docs",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CompareRoute = CompareRouteImport.update({
-  id: "/compare",
-  path: "/compare",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BriefsRoute = BriefsRouteImport.update({
-  id: "/briefs",
-  path: "/briefs",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountRoute = AccountRouteImport.update({
-  id: "/account",
-  path: "/account",
+const InterventionsRoute = InterventionsRouteImport.update({
+  id: "/interventions",
+  path: "/interventions",
   getParentRoute: () => rootRouteImport,
 } as any)
 const SplatRoute = SplatRouteImport.update({
@@ -89,273 +41,69 @@ const IndexRoute = IndexRouteImport.update({
   path: "/",
   getParentRoute: () => rootRouteImport,
 } as any)
-const RoutesIndexRoute = RoutesIndexRouteImport.update({
-  id: "/routes/",
-  path: "/routes/",
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RoutesRouteIdRoute = RoutesRouteIdRouteImport.update({
   id: "/routes/$routeId",
   path: "/routes/$routeId",
   getParentRoute: () => rootRouteImport,
 } as any)
-const FindingsFindingIdRoute = FindingsFindingIdRouteImport.update({
-  id: "/$findingId",
-  path: "/$findingId",
-  getParentRoute: () => FindingsRoute,
-} as any)
-const DocsPageRoute = DocsPageRouteImport.update({
-  id: "/$page",
-  path: "/$page",
-  getParentRoute: () => DocsRoute,
-} as any)
-const BriefsNewRoute = BriefsNewRouteImport.update({
-  id: "/new",
-  path: "/new",
-  getParentRoute: () => BriefsRoute,
-} as any)
-const BriefsBriefIdRoute = BriefsBriefIdRouteImport.update({
-  id: "/$briefId",
-  path: "/$briefId",
-  getParentRoute: () => BriefsRoute,
-} as any)
-const AuthConsumeRoute = AuthConsumeRouteImport.update({
-  id: "/auth/consume",
-  path: "/auth/consume",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminIdentitiesRoute = AdminIdentitiesRouteImport.update({
-  id: "/admin/identities",
-  path: "/admin/identities",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RoutesRouteIdAnnotateRoute = RoutesRouteIdAnnotateRouteImport.update({
-  id: "/annotate",
-  path: "/annotate",
-  getParentRoute: () => RoutesRouteIdRoute,
-} as any)
-const BriefsBriefIdReviewRoute = BriefsBriefIdReviewRouteImport.update({
-  id: "/review",
-  path: "/review",
-  getParentRoute: () => BriefsBriefIdRoute,
-} as any)
-const BriefsBriefIdHistoryRoute = BriefsBriefIdHistoryRouteImport.update({
-  id: "/history",
-  path: "/history",
-  getParentRoute: () => BriefsBriefIdRoute,
-} as any)
-const BriefsBriefIdEvidenceRoute = BriefsBriefIdEvidenceRouteImport.update({
-  id: "/evidence",
-  path: "/evidence",
-  getParentRoute: () => BriefsBriefIdRoute,
-} as any)
-const BriefsBriefIdEditRoute = BriefsBriefIdEditRouteImport.update({
-  id: "/edit",
-  path: "/edit",
-  getParentRoute: () => BriefsBriefIdRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/$": typeof SplatRoute
-  "/account": typeof AccountRoute
-  "/briefs": typeof BriefsRouteWithChildren
-  "/compare": typeof CompareRoute
-  "/docs": typeof DocsRouteWithChildren
-  "/findings": typeof FindingsRouteWithChildren
+  "/interventions": typeof InterventionsRoute
+  "/map": typeof MapRoute
   "/methods": typeof MethodsRoute
-  "/search": typeof SearchRoute
-  "/signin": typeof SigninRoute
-  "/system": typeof SystemRoute
-  "/admin/identities": typeof AdminIdentitiesRoute
-  "/auth/consume": typeof AuthConsumeRoute
-  "/briefs/$briefId": typeof BriefsBriefIdRouteWithChildren
-  "/briefs/new": typeof BriefsNewRoute
-  "/docs/$page": typeof DocsPageRoute
-  "/findings/$findingId": typeof FindingsFindingIdRoute
-  "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
-  "/routes/": typeof RoutesIndexRoute
-  "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
-  "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
-  "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
-  "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
-  "/routes/$routeId/annotate": typeof RoutesRouteIdAnnotateRoute
+  "/routes/$routeId": typeof RoutesRouteIdRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/$": typeof SplatRoute
-  "/account": typeof AccountRoute
-  "/briefs": typeof BriefsRouteWithChildren
-  "/compare": typeof CompareRoute
-  "/docs": typeof DocsRouteWithChildren
-  "/findings": typeof FindingsRouteWithChildren
+  "/interventions": typeof InterventionsRoute
+  "/map": typeof MapRoute
   "/methods": typeof MethodsRoute
-  "/search": typeof SearchRoute
-  "/signin": typeof SigninRoute
-  "/system": typeof SystemRoute
-  "/admin/identities": typeof AdminIdentitiesRoute
-  "/auth/consume": typeof AuthConsumeRoute
-  "/briefs/$briefId": typeof BriefsBriefIdRouteWithChildren
-  "/briefs/new": typeof BriefsNewRoute
-  "/docs/$page": typeof DocsPageRoute
-  "/findings/$findingId": typeof FindingsFindingIdRoute
-  "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
-  "/routes": typeof RoutesIndexRoute
-  "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
-  "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
-  "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
-  "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
-  "/routes/$routeId/annotate": typeof RoutesRouteIdAnnotateRoute
+  "/routes/$routeId": typeof RoutesRouteIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
   "/$": typeof SplatRoute
-  "/account": typeof AccountRoute
-  "/briefs": typeof BriefsRouteWithChildren
-  "/compare": typeof CompareRoute
-  "/docs": typeof DocsRouteWithChildren
-  "/findings": typeof FindingsRouteWithChildren
+  "/interventions": typeof InterventionsRoute
+  "/map": typeof MapRoute
   "/methods": typeof MethodsRoute
-  "/search": typeof SearchRoute
-  "/signin": typeof SigninRoute
-  "/system": typeof SystemRoute
-  "/admin/identities": typeof AdminIdentitiesRoute
-  "/auth/consume": typeof AuthConsumeRoute
-  "/briefs/$briefId": typeof BriefsBriefIdRouteWithChildren
-  "/briefs/new": typeof BriefsNewRoute
-  "/docs/$page": typeof DocsPageRoute
-  "/findings/$findingId": typeof FindingsFindingIdRoute
-  "/routes/$routeId": typeof RoutesRouteIdRouteWithChildren
-  "/routes/": typeof RoutesIndexRoute
-  "/briefs/$briefId/edit": typeof BriefsBriefIdEditRoute
-  "/briefs/$briefId/evidence": typeof BriefsBriefIdEvidenceRoute
-  "/briefs/$briefId/history": typeof BriefsBriefIdHistoryRoute
-  "/briefs/$briefId/review": typeof BriefsBriefIdReviewRoute
-  "/routes/$routeId/annotate": typeof RoutesRouteIdAnnotateRoute
+  "/routes/$routeId": typeof RoutesRouteIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | "/"
     | "/$"
-    | "/account"
-    | "/briefs"
-    | "/compare"
-    | "/docs"
-    | "/findings"
+    | "/interventions"
+    | "/map"
     | "/methods"
-    | "/search"
-    | "/signin"
-    | "/system"
-    | "/admin/identities"
-    | "/auth/consume"
-    | "/briefs/$briefId"
-    | "/briefs/new"
-    | "/docs/$page"
-    | "/findings/$findingId"
     | "/routes/$routeId"
-    | "/routes/"
-    | "/briefs/$briefId/edit"
-    | "/briefs/$briefId/evidence"
-    | "/briefs/$briefId/history"
-    | "/briefs/$briefId/review"
-    | "/routes/$routeId/annotate"
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | "/"
-    | "/$"
-    | "/account"
-    | "/briefs"
-    | "/compare"
-    | "/docs"
-    | "/findings"
-    | "/methods"
-    | "/search"
-    | "/signin"
-    | "/system"
-    | "/admin/identities"
-    | "/auth/consume"
-    | "/briefs/$briefId"
-    | "/briefs/new"
-    | "/docs/$page"
-    | "/findings/$findingId"
-    | "/routes/$routeId"
-    | "/routes"
-    | "/briefs/$briefId/edit"
-    | "/briefs/$briefId/evidence"
-    | "/briefs/$briefId/history"
-    | "/briefs/$briefId/review"
-    | "/routes/$routeId/annotate"
+  to: "/" | "/$" | "/interventions" | "/map" | "/methods" | "/routes/$routeId"
   id:
     | "__root__"
     | "/"
     | "/$"
-    | "/account"
-    | "/briefs"
-    | "/compare"
-    | "/docs"
-    | "/findings"
+    | "/interventions"
+    | "/map"
     | "/methods"
-    | "/search"
-    | "/signin"
-    | "/system"
-    | "/admin/identities"
-    | "/auth/consume"
-    | "/briefs/$briefId"
-    | "/briefs/new"
-    | "/docs/$page"
-    | "/findings/$findingId"
     | "/routes/$routeId"
-    | "/routes/"
-    | "/briefs/$briefId/edit"
-    | "/briefs/$briefId/evidence"
-    | "/briefs/$briefId/history"
-    | "/briefs/$briefId/review"
-    | "/routes/$routeId/annotate"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
-  AccountRoute: typeof AccountRoute
-  BriefsRoute: typeof BriefsRouteWithChildren
-  CompareRoute: typeof CompareRoute
-  DocsRoute: typeof DocsRouteWithChildren
-  FindingsRoute: typeof FindingsRouteWithChildren
+  InterventionsRoute: typeof InterventionsRoute
+  MapRoute: typeof MapRoute
   MethodsRoute: typeof MethodsRoute
-  SearchRoute: typeof SearchRoute
-  SigninRoute: typeof SigninRoute
-  SystemRoute: typeof SystemRoute
-  AdminIdentitiesRoute: typeof AdminIdentitiesRoute
-  AuthConsumeRoute: typeof AuthConsumeRoute
-  RoutesRouteIdRoute: typeof RoutesRouteIdRouteWithChildren
-  RoutesIndexRoute: typeof RoutesIndexRoute
+  RoutesRouteIdRoute: typeof RoutesRouteIdRoute
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/system": {
-      id: "/system"
-      path: "/system"
-      fullPath: "/system"
-      preLoaderRoute: typeof SystemRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/signin": {
-      id: "/signin"
-      path: "/signin"
-      fullPath: "/signin"
-      preLoaderRoute: typeof SigninRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/search": {
-      id: "/search"
-      path: "/search"
-      fullPath: "/search"
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     "/methods": {
       id: "/methods"
       path: "/methods"
@@ -363,39 +111,18 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof MethodsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/findings": {
-      id: "/findings"
-      path: "/findings"
-      fullPath: "/findings"
-      preLoaderRoute: typeof FindingsRouteImport
+    "/map": {
+      id: "/map"
+      path: "/map"
+      fullPath: "/map"
+      preLoaderRoute: typeof MapRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/docs": {
-      id: "/docs"
-      path: "/docs"
-      fullPath: "/docs"
-      preLoaderRoute: typeof DocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/compare": {
-      id: "/compare"
-      path: "/compare"
-      fullPath: "/compare"
-      preLoaderRoute: typeof CompareRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/briefs": {
-      id: "/briefs"
-      path: "/briefs"
-      fullPath: "/briefs"
-      preLoaderRoute: typeof BriefsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/account": {
-      id: "/account"
-      path: "/account"
-      fullPath: "/account"
-      preLoaderRoute: typeof AccountRouteImport
+    "/interventions": {
+      id: "/interventions"
+      path: "/interventions"
+      fullPath: "/interventions"
+      preLoaderRoute: typeof InterventionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/$": {
@@ -412,13 +139,6 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/routes/": {
-      id: "/routes/"
-      path: "/routes"
-      fullPath: "/routes/"
-      preLoaderRoute: typeof RoutesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     "/routes/$routeId": {
       id: "/routes/$routeId"
       path: "/routes/$routeId"
@@ -426,167 +146,16 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof RoutesRouteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/findings/$findingId": {
-      id: "/findings/$findingId"
-      path: "/$findingId"
-      fullPath: "/findings/$findingId"
-      preLoaderRoute: typeof FindingsFindingIdRouteImport
-      parentRoute: typeof FindingsRoute
-    }
-    "/docs/$page": {
-      id: "/docs/$page"
-      path: "/$page"
-      fullPath: "/docs/$page"
-      preLoaderRoute: typeof DocsPageRouteImport
-      parentRoute: typeof DocsRoute
-    }
-    "/briefs/new": {
-      id: "/briefs/new"
-      path: "/new"
-      fullPath: "/briefs/new"
-      preLoaderRoute: typeof BriefsNewRouteImport
-      parentRoute: typeof BriefsRoute
-    }
-    "/briefs/$briefId": {
-      id: "/briefs/$briefId"
-      path: "/$briefId"
-      fullPath: "/briefs/$briefId"
-      preLoaderRoute: typeof BriefsBriefIdRouteImport
-      parentRoute: typeof BriefsRoute
-    }
-    "/auth/consume": {
-      id: "/auth/consume"
-      path: "/auth/consume"
-      fullPath: "/auth/consume"
-      preLoaderRoute: typeof AuthConsumeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/admin/identities": {
-      id: "/admin/identities"
-      path: "/admin/identities"
-      fullPath: "/admin/identities"
-      preLoaderRoute: typeof AdminIdentitiesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/routes/$routeId/annotate": {
-      id: "/routes/$routeId/annotate"
-      path: "/annotate"
-      fullPath: "/routes/$routeId/annotate"
-      preLoaderRoute: typeof RoutesRouteIdAnnotateRouteImport
-      parentRoute: typeof RoutesRouteIdRoute
-    }
-    "/briefs/$briefId/review": {
-      id: "/briefs/$briefId/review"
-      path: "/review"
-      fullPath: "/briefs/$briefId/review"
-      preLoaderRoute: typeof BriefsBriefIdReviewRouteImport
-      parentRoute: typeof BriefsBriefIdRoute
-    }
-    "/briefs/$briefId/history": {
-      id: "/briefs/$briefId/history"
-      path: "/history"
-      fullPath: "/briefs/$briefId/history"
-      preLoaderRoute: typeof BriefsBriefIdHistoryRouteImport
-      parentRoute: typeof BriefsBriefIdRoute
-    }
-    "/briefs/$briefId/evidence": {
-      id: "/briefs/$briefId/evidence"
-      path: "/evidence"
-      fullPath: "/briefs/$briefId/evidence"
-      preLoaderRoute: typeof BriefsBriefIdEvidenceRouteImport
-      parentRoute: typeof BriefsBriefIdRoute
-    }
-    "/briefs/$briefId/edit": {
-      id: "/briefs/$briefId/edit"
-      path: "/edit"
-      fullPath: "/briefs/$briefId/edit"
-      preLoaderRoute: typeof BriefsBriefIdEditRouteImport
-      parentRoute: typeof BriefsBriefIdRoute
-    }
   }
 }
-
-interface BriefsBriefIdRouteChildren {
-  BriefsBriefIdEditRoute: typeof BriefsBriefIdEditRoute
-  BriefsBriefIdEvidenceRoute: typeof BriefsBriefIdEvidenceRoute
-  BriefsBriefIdHistoryRoute: typeof BriefsBriefIdHistoryRoute
-  BriefsBriefIdReviewRoute: typeof BriefsBriefIdReviewRoute
-}
-
-const BriefsBriefIdRouteChildren: BriefsBriefIdRouteChildren = {
-  BriefsBriefIdEditRoute: BriefsBriefIdEditRoute,
-  BriefsBriefIdEvidenceRoute: BriefsBriefIdEvidenceRoute,
-  BriefsBriefIdHistoryRoute: BriefsBriefIdHistoryRoute,
-  BriefsBriefIdReviewRoute: BriefsBriefIdReviewRoute,
-}
-
-const BriefsBriefIdRouteWithChildren = BriefsBriefIdRoute._addFileChildren(
-  BriefsBriefIdRouteChildren,
-)
-
-interface BriefsRouteChildren {
-  BriefsBriefIdRoute: typeof BriefsBriefIdRouteWithChildren
-  BriefsNewRoute: typeof BriefsNewRoute
-}
-
-const BriefsRouteChildren: BriefsRouteChildren = {
-  BriefsBriefIdRoute: BriefsBriefIdRouteWithChildren,
-  BriefsNewRoute: BriefsNewRoute,
-}
-
-const BriefsRouteWithChildren =
-  BriefsRoute._addFileChildren(BriefsRouteChildren)
-
-interface DocsRouteChildren {
-  DocsPageRoute: typeof DocsPageRoute
-}
-
-const DocsRouteChildren: DocsRouteChildren = {
-  DocsPageRoute: DocsPageRoute,
-}
-
-const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
-
-interface FindingsRouteChildren {
-  FindingsFindingIdRoute: typeof FindingsFindingIdRoute
-}
-
-const FindingsRouteChildren: FindingsRouteChildren = {
-  FindingsFindingIdRoute: FindingsFindingIdRoute,
-}
-
-const FindingsRouteWithChildren = FindingsRoute._addFileChildren(
-  FindingsRouteChildren,
-)
-
-interface RoutesRouteIdRouteChildren {
-  RoutesRouteIdAnnotateRoute: typeof RoutesRouteIdAnnotateRoute
-}
-
-const RoutesRouteIdRouteChildren: RoutesRouteIdRouteChildren = {
-  RoutesRouteIdAnnotateRoute: RoutesRouteIdAnnotateRoute,
-}
-
-const RoutesRouteIdRouteWithChildren = RoutesRouteIdRoute._addFileChildren(
-  RoutesRouteIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
-  AccountRoute: AccountRoute,
-  BriefsRoute: BriefsRouteWithChildren,
-  CompareRoute: CompareRoute,
-  DocsRoute: DocsRouteWithChildren,
-  FindingsRoute: FindingsRouteWithChildren,
+  InterventionsRoute: InterventionsRoute,
+  MapRoute: MapRoute,
   MethodsRoute: MethodsRoute,
-  SearchRoute: SearchRoute,
-  SigninRoute: SigninRoute,
-  SystemRoute: SystemRoute,
-  AdminIdentitiesRoute: AdminIdentitiesRoute,
-  AuthConsumeRoute: AuthConsumeRoute,
-  RoutesRouteIdRoute: RoutesRouteIdRouteWithChildren,
-  RoutesIndexRoute: RoutesIndexRoute,
+  RoutesRouteIdRoute: RoutesRouteIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

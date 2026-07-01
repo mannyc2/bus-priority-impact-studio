@@ -116,7 +116,7 @@ export type DocumentEvidenceCandidate = z.output<typeof DocumentEvidenceCandidat
 // Richer, extraction-time superset of `DocumentEvidenceCandidate` emitted by
 // the Tier 2 OCR pipeline (`tools/pipeline-v2` docs tier2 steps) and consumed
 // by the deterministic intervention-records policy in
-// `@bp/applied-research/intervention-records`. It carries an object `sourceRef`
+// `@bp/analytics/interventions`. It carries an object `sourceRef`
 // (vs the persisted candidate's `sourceId`) plus an `extraction` provenance
 // block. Promoted out of the pipeline `_shared.ts` monolith so the policy can
 // live in a package without depending on the tool.

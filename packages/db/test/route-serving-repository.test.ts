@@ -5,6 +5,7 @@ import { createBunSqliteServingDb } from "../src/d1/bun-sqlite.js";
 import type { D1ServingDb } from "../src/d1/index.js";
 import { routeComparisonRank, routeMonthTrend } from "../src/d1/schema.js";
 import {
+  findRouteEquityContext,
   getRouteBatchStatus,
   getRouteBriefSummary,
   listBuildEligibleRoutes,
@@ -733,6 +734,36 @@ describe("route serving repository", () => {
         sourceStatus: { routeSpatialJoin: "pending_tract_geometry_join" },
       }),
     ]);
+    sqlite.close();
+  });
+
+  test("finds one route equity context row for a route month", async () => {
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_equity_context", [equityContextRow]);
+    insertRows(sqlite, "route_month_source_status", allSourceStatusRows);
+
+    const row = await findRouteEquityContext(db, "M1", "2026-03");
+
+    expect(row).toEqual(
+      expect.objectContaining({
+        routeId: "M1",
+        month: "2026-03",
+        acsYear: 2024,
+        assignedCountyName: "New York County",
+        publicTransitCommuterShare: 58.2,
+        sourceStatus: { routeSpatialJoin: "pending_tract_geometry_join" },
+      }),
+    );
+    sqlite.close();
+  });
+
+  test("returns null for a missing route equity context row", async () => {
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_equity_context", [equityContextRow]);
+
+    const row = await findRouteEquityContext(db, "M57", "2026-03");
+
+    expect(row).toBeNull();
     sqlite.close();
   });
 

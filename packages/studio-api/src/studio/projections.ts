@@ -1,13 +1,3 @@
-import {
-  type StudioBriefResponse,
-  StudioBriefResponseSchema,
-  StudioBriefsResponseSchema,
-} from "@bp/domain/studio/briefs";
-import {
-  type StudioFindingResponse,
-  StudioFindingResponseSchema,
-  StudioFindingsResponseSchema,
-} from "@bp/domain/studio/findings";
 import { getStudioRoute } from "@bp/domain/studio/projections";
 import {
   type StudioRoute,
@@ -21,6 +11,8 @@ import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 
 const defaultStudioReleaseArtifactKey = "studio/v1/release.json";
+const ARTIFACT_NOT_AVAILABLE_MESSAGE = "Artifact is not available.";
+const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
 
 export function studioReleaseKey(env: Pick<StudioApiEnv, "STUDIO_RELEASE_KEY">): string {
   const configuredKey = env.STUDIO_RELEASE_KEY?.trim();
@@ -75,48 +67,35 @@ export async function loadStudioProjection<TSchema extends z.ZodType>(
   schema: TSchema,
 ): Promise<Response | z.output<TSchema>> {
   if (env.ARTIFACTS === undefined) {
-    return errorResponse(503, "ARTIFACTS R2 binding is required for the Studio API.");
+    console.error("Service dependency is not configured.", {
+      context: "Studio API projection load",
+      dependency: "ARTIFACTS",
+    });
+    return errorResponse(503, SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE);
   }
 
   const key = studioProjectionKey(env, path);
   const object = await env.ARTIFACTS.get(key);
   if (object === null) {
-    return errorResponse(503, `Studio API projection artifact was not found at ${key}.`);
+    console.error("Studio API projection artifact was not found.", { key });
+    return errorResponse(503, ARTIFACT_NOT_AVAILABLE_MESSAGE);
   }
 
   let payload: unknown;
   try {
     payload = await object.json();
   } catch {
-    return errorResponse(502, `Studio API projection artifact is not valid JSON: ${key}.`);
+    console.error("Studio API projection artifact is not valid JSON.", { key });
+    return errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE);
   }
 
   const projection = schema.safeParse(payload);
   if (!projection.success) {
-    return errorResponse(502, `Studio API projection artifact failed contract validation: ${key}.`);
+    console.error("Studio API projection artifact failed contract validation.", { key });
+    return errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE);
   }
 
   return projection.data;
-}
-
-export async function loadStudioBriefProjection(
-  env: Pick<StudioApiEnv, "ARTIFACTS" | "STUDIO_RELEASE_KEY">,
-  briefId: string,
-): Promise<{ ok: true; data: StudioBriefResponse } | { ok: false; response: Response }> {
-  const briefs = await loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema);
-  if (briefs instanceof Response) {
-    return { ok: false, response: briefs };
-  }
-  if (!briefs.briefs.some(({ brief }) => brief.id === briefId)) {
-    return { ok: false, response: errorResponse(404, "Studio brief was not found.") };
-  }
-
-  const brief = await loadStudioProjection(
-    env,
-    `briefs/${briefId}/index.json`,
-    StudioBriefResponseSchema,
-  );
-  return brief instanceof Response ? { ok: false, response: brief } : { ok: true, data: brief };
 }
 
 export async function loadStudioRouteProjection(
@@ -140,28 +119,6 @@ export async function loadStudioRouteProjection(
     return { ok: false, response: errorResponse(404, "Studio route was not found.") };
   }
   return { ok: true, route, quality: routes.quality, generatedAt: routes.generatedAt };
-}
-
-export async function loadStudioFindingProjection(
-  env: Pick<StudioApiEnv, "ARTIFACTS" | "STUDIO_RELEASE_KEY">,
-  findingId: string,
-): Promise<{ ok: true; data: StudioFindingResponse } | { ok: false; response: Response }> {
-  const findings = await loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema);
-  if (findings instanceof Response) {
-    return { ok: false, response: findings };
-  }
-  if (!findings.findings.some(({ finding }) => finding.id === findingId)) {
-    return { ok: false, response: errorResponse(404, "Studio finding was not found.") };
-  }
-
-  const finding = await loadStudioProjection(
-    env,
-    `findings/${findingId}/index.json`,
-    StudioFindingResponseSchema,
-  );
-  return finding instanceof Response
-    ? { ok: false, response: finding }
-    : { ok: true, data: finding };
 }
 
 export async function maybeLoadStudioRouteDetailProjection(

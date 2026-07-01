@@ -10,18 +10,13 @@ export const metricToneColor: Record<MetricTone, string> = {
 };
 
 /** Shared typography for the metric figure (mono, tabular). The font *size* is
- * applied per strip - fixed on the single-route strip, responsive on the
- * two-route compare strip where two figures share a cell. */
+ * applied per strip so compact route headers can keep stable columns. */
 export const metricFigureClass =
   "font-mono font-semibold tabular-nums leading-none tracking-[-0.02em]";
 
 /**
- * Shared presentational frame for the route-header metric strips: a responsive
- * 5-column grid with right-border dividers. The single-route strip
- * (RouteMetricStrip) and the two-route inline strip (RouteCompareMetricStrip)
- * are explicit variants that fill these columns with the same MetricStat leaf -
- * same chrome and same value primitive, no `mode` flag. Stateless, so it
- * composes via children rather than a render prop or context.
+ * Shared presentational frame for route-header metric strips: a responsive
+ * 5-column grid with right-border dividers.
  */
 export function MetricColumns({ children }: { children: ReactNode }) {
   return (
@@ -56,10 +51,8 @@ export function MetricColumn({
 }
 
 /**
- * The big-number value primitive shared by both metric strips: a 28px mono
- * figure with an optional small unit and an optional trailing slot (the speed
- * spark on the single-route strip). `color` drives the figure tint - tone color
- * on the detail strip, route-badge color on the compare strip.
+ * The big-number value primitive: a 28px mono figure with an optional small
+ * unit and an optional trailing slot.
  */
 export function MetricStat({
   value,

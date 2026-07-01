@@ -1,1 +1,1 @@
-export type { StudioApiEmailSendBinding, StudioApiEnv, StudioApiRequestContext } from "../env.js";
+export type { StudioApiEnv, StudioApiRequestContext } from "../env.js";

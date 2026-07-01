@@ -3,12 +3,11 @@ import type { ReactNode } from "react";
 import { StudioMark } from "@/components/StudioMark";
 
 const navItems = [
-  { to: "/routes", label: "Routes" },
-  { to: "/findings", label: "Findings" },
-  { to: "/briefs", label: "Briefs" },
-  { to: "/docs", label: "Docs" },
+  { to: "/", label: "Routes" },
+  { to: "/map", label: "Map" },
+  { to: "/interventions", label: "Interventions" },
+  { to: "/methods", label: "Methods" },
 ] as const;
-
 
 export function StudioShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -41,7 +40,10 @@ export function StudioShell({ children }: { children: ReactNode }) {
 }
 
 function StudioNavLink({ item, pathname }: { item: (typeof navItems)[number]; pathname: string }) {
-  const active = pathname.startsWith(item.to);
+  const active =
+    item.to === "/"
+      ? pathname === "/" || pathname.startsWith("/routes/")
+      : pathname === item.to || pathname.startsWith(`${item.to}/`);
 
   return (
     <Link

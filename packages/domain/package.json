@@ -109,6 +109,11 @@
       "bun": "./src/studio/interventions.ts",
       "import": "./src/studio/interventions.ts"
     },
+    "./studio/route-evidence": {
+      "types": "./src/studio/route-evidence.ts",
+      "bun": "./src/studio/route-evidence.ts",
+      "import": "./src/studio/route-evidence.ts"
+    },
     "./studio/projections": {
       "types": "./src/studio/projections.ts",
       "bun": "./src/studio/projections.ts",

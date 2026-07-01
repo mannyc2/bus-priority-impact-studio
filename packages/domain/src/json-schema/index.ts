@@ -77,6 +77,7 @@ import {
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
 } from "../studio/routes/index.js";
+import { StudioRouteEvidenceArtifactSchema } from "../studio/route-evidence.js";
 import {
   StudioRouteIndex2ResponseSchema,
   StudioSnapshotResponseSchema,
@@ -234,6 +235,9 @@ export const studioRouteHistoryResponseJsonSchema = toProjectJsonSchema(
 );
 export const studioRouteSpeedHistoryResponseJsonSchema = toProjectJsonSchema(
   StudioRouteSpeedHistoryResponseSchema,
+);
+export const studioRouteEvidenceArtifactJsonSchema = toProjectJsonSchema(
+  StudioRouteEvidenceArtifactSchema,
 );
 export const studioCompareResponseJsonSchema = toProjectJsonSchema(StudioCompareResponseSchema);
 export const studioFindingsResponseJsonSchema = toProjectJsonSchema(StudioFindingsResponseSchema);

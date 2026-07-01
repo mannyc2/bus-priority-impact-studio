@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { StudioSnapshotResponseSchema } from "@bp/domain/studio/snapshots";
-import { isApiPath, isStudioApiPath, studioRouteTemplate } from "@bp/studio-api/contracts";
+import {
+  findRouteSpec,
+  isApiPath,
+  isStudioApiPath,
+  studioRouteTemplate,
+} from "@bp/studio-api/contracts";
 import { studioOpenApiDocument } from "@bp/studio-api/contracts/openapi";
 import { handleStudioApiRequest } from "@bp/studio-api/server";
 import { studioProjectionKey, studioProjectionPrefix } from "../src/studio/projections.js";
@@ -86,10 +91,16 @@ describe("Studio API HTTP helpers", () => {
     expect(studioRouteTemplate("/api/v1/studio/routes/m15-sbs")).toBe(
       "/api/v1/studio/routes/:routeId",
     );
-    expect(studioRouteTemplate("/api/v1/studio/briefs/brief-m15/draft/blocks")).toBe(
-      "/api/v1/studio/briefs/:briefId/draft/blocks",
-    );
     expect(studioRouteTemplate("/api/v1/studio/unknown")).toBe("/api/v1/studio/*");
+  });
+
+  test("finds the most specific route spec for method and path", () => {
+    expect(findRouteSpec("GET", "/api/v1/studio/routes")?.id).toBe("studio.routes");
+    expect(findRouteSpec("GET", "/api/v1/studio/routes/sections")?.id).toBe("studio.routeSections");
+    expect(findRouteSpec("GET", "/api/v1/studio/routes/m15-sbs")?.id).toBe("studio.route");
+    expect(findRouteSpec("POST", "/api/v1/rum")?.id).toBe("observability.rum");
+    expect(findRouteSpec("POST", "/api/v1/studio/routes")).toBeNull();
+    expect(findRouteSpec("GET", "/api/v1/studio/unknown")).toBeNull();
   });
 
   test("builds projection keys from the configured release artifact", () => {
@@ -139,6 +150,9 @@ describe("Studio API HTTP helpers", () => {
     const body = (await response?.json()) as { paths?: Record<string, unknown> };
 
     expect(response?.status).toBe(200);
+    expect(response?.headers.get("Cache-Control")).toBe(
+      "public, max-age=60, stale-while-revalidate=86400",
+    );
     expect(body.paths).toEqual(
       expect.objectContaining({
         "/api/v1/studio/snapshot": expect.any(Object),

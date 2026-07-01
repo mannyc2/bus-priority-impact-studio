@@ -24,8 +24,8 @@ Use this package when the job is to define, migrate, read, or write a table safe
 - Atomic `replace*` writes, chunk-safe inserts, and small table-level invariants.
 
 Do not put panel eligibility policy, detector judgment, causal/statistical modeling, source fetches,
-or "is this data product complete enough?" decisions here. Those belong in `@bp/applied-research`
-or `@bp/analytics`.
+or "is this data product complete enough?" decisions here. Pure policy belongs in
+`@bp/analytics`; source fetching and stateful joins belong in `tools/pipeline-v2`.
 
 ## Rules
 
@@ -40,7 +40,7 @@ or `@bp/analytics`.
   so writes stay atomic and never exceed SQLite's bind-parameter limit. They are sync (return
   `void`); bun-sqlite is synchronous, so an `await` at the call site is a harmless no-op.
 - Some local tables are intentionally repo-less/raw-only:
-  `local_parking_violation_match` is an applied-research matching read model with custom
+  `local_parking_violation_match` is a pipeline matching read model with custom
   fanout/evidence aggregation, while `local_lion_segment_geom` and `local_route_shape_geom` are
   SpatiaLite-backed companion tables whose geometry columns are added at runtime and stay opaque to
   Drizzle. Do not add generic CRUD helpers for these unless a concrete caller needs a typed read

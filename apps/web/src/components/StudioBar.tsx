@@ -5,7 +5,7 @@ export function StudioBar({
   breadcrumb,
   updated = "2026-05-12",
 }: {
-  active?: "Routes" | "Findings" | "Briefs";
+  active?: "Routes" | "Map" | "Interventions" | "Methods";
   breadcrumb?: string;
   updated?: string;
 }) {
@@ -19,7 +19,7 @@ export function StudioBar({
         </div>
       </div>
       <nav className="flex gap-[22px] text-[13px]" aria-label="Primary">
-        {(["Routes", "Findings", "Briefs"] as const).map((item) => {
+        {(["Routes", "Map", "Interventions", "Methods"] as const).map((item) => {
           const isActive = item === active;
           return (
             <span

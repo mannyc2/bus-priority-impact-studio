@@ -341,12 +341,34 @@ export {
   RouteDossierEventSchema,
   RouteDossierMetricSummarySchema,
   RouteDossierSeriesPointSchema,
-  routeDossierSummaryKey,
   RouteDossierSummaryForDetailSchema,
   RouteDossierSummarySchema,
   RouteDossierTreatmentPostureSchema,
   RouteDossierWorstSegmentSchema,
+  routeDossierSummaryKey,
 } from "./route-dossier.js";
+export type {
+  StudioRouteEvidenceArtifact,
+  StudioRouteEvidenceBundle,
+  StudioRouteEvidenceCitation,
+  StudioRouteEvidenceCoverage,
+  StudioRouteEvidenceIntervention,
+  StudioRouteEvidenceMetricClaim,
+  StudioRouteEvidenceProject,
+  StudioRouteEvidenceSourceGap,
+  StudioRouteEvidenceTimelineEvent,
+} from "./route-evidence.js";
+export {
+  StudioRouteEvidenceArtifactSchema,
+  StudioRouteEvidenceBundleSchema,
+  StudioRouteEvidenceCitationSchema,
+  StudioRouteEvidenceCoverageSchema,
+  StudioRouteEvidenceInterventionSchema,
+  StudioRouteEvidenceMetricClaimSchema,
+  StudioRouteEvidenceProjectSchema,
+  StudioRouteEvidenceSourceGapSchema,
+  StudioRouteEvidenceTimelineEventSchema,
+} from "./route-evidence.js";
 export type { DetectorReadinessServingManifestForInsights } from "./route-insights.js";
 export {
   buildRouteInsightsFromDetectorReadiness,
@@ -359,6 +381,7 @@ export type {
   StudioRoute,
   StudioRouteArtifactRef,
   StudioRouteDetailResponse,
+  StudioRouteEquityContext,
   StudioRouteHistoryCoverage,
   StudioRouteHistoryPoint,
   StudioRouteHistoryResponse,
@@ -383,6 +406,7 @@ export {
   StudioObservedReliabilitySchema,
   StudioRouteArtifactRefSchema,
   StudioRouteDetailResponseSchema,
+  StudioRouteEquityContextSchema,
   StudioRouteHistoryCoverageSchema,
   StudioRouteHistoryPointSchema,
   StudioRouteHistoryResponseSchema,

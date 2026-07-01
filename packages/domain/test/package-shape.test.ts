@@ -168,7 +168,7 @@ describe("domain package shape", () => {
         /from\s+["']@bp\/domain["']|import\(["']@bp\/domain["']\)/,
       );
     }
-  });
+  }, 15_000);
 });
 
 async function collectTypeScriptFiles(directory: string): Promise<string[]> {

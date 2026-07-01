@@ -22,8 +22,7 @@ import type { MetricTone } from "@/studio/metric-model";
 
 /**
  * The route header KPI strip: five real numbers fed by the route dossier.
- * Each column clicks through to the tab that explains it. Detail-page only;
- * compare keeps the raw-metric strip.
+ * Each column clicks through to the tab that explains it.
  */
 
 const RELIABILITY_SURFACE = "reliability";

@@ -28,8 +28,7 @@ export const ROUTE_SECTION_QUESTIONS = {
 } as const satisfies Record<RouteDetailTabValue, string>;
 
 /** The question-shaped route-section tabs (frontend §4.3). Treatments & history
- * absorbs the old Interventions and Timeline tabs; Evidence absorbs Data notes.
- * Compare still consumes a subset until map/reliability compare sections exist. */
+ * absorbs the old Interventions and Timeline tabs; Evidence absorbs Data notes. */
 export const ROUTE_DETAIL_TABS = [
   { value: "overview", label: "Overview", question: ROUTE_SECTION_QUESTIONS.overview },
   { value: "map", label: "Map", question: ROUTE_SECTION_QUESTIONS.map },
