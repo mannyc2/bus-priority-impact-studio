@@ -105,6 +105,14 @@ type RouteArtifactIndexRow = z.output<typeof RouteArtifactIndexRowSchema>;
 type RouteMonthTrendIndexRow = z.output<typeof RouteMonthTrendIndexRowSchema>;
 type RouteSpeedHistoryCoverageIndexRow = z.output<typeof RouteSpeedHistoryCoverageIndexRowSchema>;
 
+function isMissingRouteSpeedHistoryCoverageTable(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.message.includes("no such table") &&
+    error.message.includes("route_speed_history_coverage")
+  );
+}
+
 export type StudioRouteIndexSourceRow = {
   routeId: string;
   routeShortName: string;
@@ -488,24 +496,7 @@ export async function listStudioRouteIndexSourceRows(
       })
       .from(routeMonthTrend)
       .orderBy(asc(routeMonthTrend.routeId), asc(routeMonthTrend.month)),
-    db
-      .select({
-        route_id: routeSpeedHistoryCoverage.routeId,
-        month: routeSpeedHistoryCoverage.month,
-        route_slug: routeSpeedHistoryCoverage.routeSlug,
-        history_start_month: routeSpeedHistoryCoverage.historyStartMonth,
-        history_end_month: routeSpeedHistoryCoverage.historyEndMonth,
-        artifact_path: routeSpeedHistoryCoverage.artifactPath,
-        artifact_status: routeSpeedHistoryCoverage.artifactStatus,
-        month_count: routeSpeedHistoryCoverage.monthCount,
-        segment_count: routeSpeedHistoryCoverage.segmentCount,
-        cell_count: routeSpeedHistoryCoverage.cellCount,
-        available_cell_count: routeSpeedHistoryCoverage.availableCellCount,
-        missing_cell_count: routeSpeedHistoryCoverage.missingCellCount,
-      })
-      .from(routeSpeedHistoryCoverage)
-      .where(eq(routeSpeedHistoryCoverage.month, month))
-      .orderBy(asc(routeSpeedHistoryCoverage.routeId)),
+    listOptionalRouteSpeedHistoryCoverageRows(db, month),
   ]);
 
   const routeTypes = groupRouteTypes(
@@ -552,4 +543,34 @@ export async function listStudioRouteIndexSourceRows(
       speedHistoryCoverage: speedHistoryCoverage.get(parsed.route_id) ?? null,
     };
   });
+}
+
+async function listOptionalRouteSpeedHistoryCoverageRows(
+  db: D1ServingDb,
+  month: string,
+): Promise<RouteSpeedHistoryCoverageIndexRow[]> {
+  try {
+    const rows = await db
+      .select({
+        route_id: routeSpeedHistoryCoverage.routeId,
+        month: routeSpeedHistoryCoverage.month,
+        route_slug: routeSpeedHistoryCoverage.routeSlug,
+        history_start_month: routeSpeedHistoryCoverage.historyStartMonth,
+        history_end_month: routeSpeedHistoryCoverage.historyEndMonth,
+        artifact_path: routeSpeedHistoryCoverage.artifactPath,
+        artifact_status: routeSpeedHistoryCoverage.artifactStatus,
+        month_count: routeSpeedHistoryCoverage.monthCount,
+        segment_count: routeSpeedHistoryCoverage.segmentCount,
+        cell_count: routeSpeedHistoryCoverage.cellCount,
+        available_cell_count: routeSpeedHistoryCoverage.availableCellCount,
+        missing_cell_count: routeSpeedHistoryCoverage.missingCellCount,
+      })
+      .from(routeSpeedHistoryCoverage)
+      .where(eq(routeSpeedHistoryCoverage.month, month))
+      .orderBy(asc(routeSpeedHistoryCoverage.routeId));
+    return rows.map((row) => RouteSpeedHistoryCoverageIndexRowSchema.parse(row));
+  } catch (error) {
+    if (isMissingRouteSpeedHistoryCoverageTable(error)) return [];
+    throw error;
+  }
 }
