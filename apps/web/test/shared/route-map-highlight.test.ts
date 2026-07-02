@@ -124,6 +124,7 @@ function detail({
     insights,
     capability,
     dossier: null,
+    equityContext: null,
     quality: {
       releaseLayer: "current_signal",
       completenessStatus: "complete",

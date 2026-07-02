@@ -1190,7 +1190,7 @@ describe("Studio API facade", () => {
     );
     expect(await artifactResponse.text()).toBe('{"type":"FeatureCollection","features":[]}');
     expect(invalidArtifactResponse.status).toBe(400);
-    expect(await invalidArtifactResponse.json()).toEqual({
+    expect((await invalidArtifactResponse.json()) as unknown).toEqual({
       error: {
         code: "BAD_REQUEST",
         message: "Artifact key is invalid.",
@@ -1316,7 +1316,7 @@ describe("Studio API facade", () => {
     });
 
     expect(response.status).toBe(502);
-    expect(await response.json()).toEqual({
+    expect((await response.json()) as unknown).toEqual({
       error: {
         code: "BAD_GATEWAY",
         message: "Artifact is not available.",
@@ -1760,10 +1760,10 @@ describe("Studio API facade", () => {
     const richRoute = index.routes.find((route) => route.routeId === "M15+");
     // Capability is joined from the pipeline manifest, not computed in the Worker.
     expect(richRoute?.capability.overallState).toBe("ready");
-    expect(richRoute?.capability.surfaces.speedHistory?.state).toBe("partial");
+    expect(richRoute?.capability.surfaces["speedHistory"]?.state).toBe("partial");
     const sparse = index.routes.find((route) => route.routeId === "B99");
     expect(sparse?.capability.overallState).toBe("building");
-    expect(sparse?.capability.surfaces.detectorFindings?.state).toBe("insufficient_data");
+    expect(sparse?.capability.surfaces["detectorFindings"]?.state).toBe("insufficient_data");
     expect(sparse?.caveats).toContain(
       "A baseline summary exists, but the rich public artifact gate is not satisfied.",
     );
@@ -2336,7 +2336,7 @@ describe("Studio API facade", () => {
       throw new Error("Expected fixture to include a sparse Snapshot 2.0 route.");
     }
     expect(sparseRoute.slug).toBe("b99");
-    expect(sparseRoute.capability.surfaces.detectorFindings?.state).toBe("insufficient_data");
+    expect(sparseRoute.capability.surfaces["detectorFindings"]?.state).toBe("insufficient_data");
 
     const historyRoute = routeIndex.routes.find(
       (route) => route.historyCoverage.speedMonthCount > 0,
