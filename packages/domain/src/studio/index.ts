@@ -156,6 +156,8 @@ export type {
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceCitation,
   StudioRouteEvidenceCoverage,
+  StudioRouteEvidenceIndex,
+  StudioRouteEvidenceIndexRoute,
   StudioRouteEvidenceIntervention,
   StudioRouteEvidenceMetricClaim,
   StudioRouteEvidenceProject,
@@ -163,15 +165,22 @@ export type {
   StudioRouteEvidenceTimelineEvent,
 } from "./route-evidence.js";
 export {
+  emptyStudioRouteEvidenceBundle,
+  STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
+  STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE,
+  STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
   StudioRouteEvidenceArtifactSchema,
   StudioRouteEvidenceBundleSchema,
   StudioRouteEvidenceCitationSchema,
   StudioRouteEvidenceCoverageSchema,
+  StudioRouteEvidenceIndexRouteSchema,
+  StudioRouteEvidenceIndexSchema,
   StudioRouteEvidenceInterventionSchema,
   StudioRouteEvidenceMetricClaimSchema,
   StudioRouteEvidenceProjectSchema,
   StudioRouteEvidenceSourceGapSchema,
   StudioRouteEvidenceTimelineEventSchema,
+  studioRouteEvidenceBundleKey,
 } from "./route-evidence.js";
 export type { DetectorReadinessServingManifestForInsights } from "./route-insights.js";
 export {

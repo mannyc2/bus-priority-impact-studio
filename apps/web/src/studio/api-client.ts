@@ -8,6 +8,7 @@ import * as z from "zod";
 import {
   StudioMethodsResponseSchema,
   StudioRouteDetailResponseSchema,
+  StudioRouteEvidenceBundleSchema,
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
 } from "./api-contract.js";
@@ -154,6 +155,14 @@ export function fetchStudioRouteSpeedHistory(routeId: string, options?: StudioQu
   return loadNullableStudioJson(
     studioPath("studio.routeSpeedHistory", { params: { routeId } }),
     StudioRouteSpeedHistoryResponseSchema,
+    options,
+  );
+}
+
+export function fetchStudioRouteEvidence(routeId: string, options?: StudioQueryOptions) {
+  return loadNullableStudioJson(
+    studioPath("studio.routeTimeline", { params: { routeId } }),
+    StudioRouteEvidenceBundleSchema,
     options,
   );
 }

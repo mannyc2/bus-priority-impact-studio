@@ -47,6 +47,16 @@ async function seedStudioSpeedHistoryArtifact(root: string): Promise<void> {
   await writeFile(join(dir, "speed-history.json"), '{"artifactKind":"studio_route_speed_history"}');
 }
 
+async function seedStudioRouteEvidenceArtifacts(root: string): Promise<void> {
+  const dir = join(root, "studio", "v2", "wiki", "routes");
+  await mkdir(dir, { recursive: true });
+  await writeFile(
+    join(root, "studio", "v2", "wiki", "index.json"),
+    '{"artifactKind":"bp.studio.route_evidence_index.v1"}',
+  );
+  await writeFile(join(dir, "m15-sbs.json"), '{"routeId":"M15+","routeSlug":"m15-sbs"}');
+}
+
 async function seedStudioDetectorReadinessManifest(root: string): Promise<void> {
   const dir = join(root, "studio", "v2", "detectors");
   await mkdir(dir, { recursive: true });
@@ -149,6 +159,28 @@ describe("runPublishR2Artifacts", () => {
       expect(report.status).toBe("pass");
       expect(report.candidateCount).toBe(3);
       expect(calls.map((c) => c.key)).toContain("studio/v2/routes/m15-sbs/speed-history.json");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("includes split Studio wiki route-evidence artifacts under the default studio prefix", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-studio-wiki-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await seedArtifacts(artifactRoot, MONTH);
+      await seedStudioRouteEvidenceArtifacts(artifactRoot);
+
+      const { driver, calls } = recordingDriver(new Map());
+      const report = await runPublishR2Artifacts(
+        baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+      );
+
+      expect(report.status).toBe("pass");
+      expect(calls.map((c) => c.key)).toEqual(
+        expect.arrayContaining(["studio/v2/wiki/index.json", "studio/v2/wiki/routes/m15-sbs.json"]),
+      );
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

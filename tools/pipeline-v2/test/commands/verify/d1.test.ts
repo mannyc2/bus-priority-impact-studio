@@ -117,6 +117,7 @@ describe("verify d1 helpers", () => {
     expect(source).toContain("runLocalDbCommandBoundary({");
     expect(source).toContain("runPipelineFileSystemBoundary({");
     expect(source).toContain("localDbOptions: { readonly: true }");
+    expect(source).toContain("routeEvidenceIndexPath");
     expect(source).not.toContain("Bun.file");
     expect(source).not.toContain("Bun.write");
     expect(source).not.toContain("withLocalDb");

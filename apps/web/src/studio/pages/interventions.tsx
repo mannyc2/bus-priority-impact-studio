@@ -1,9 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { RouteBadge } from "@/components/RouteBadge";
+import { CitationChips } from "@/components/route/WikiEvidence";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
-import type { StudioIntervention, StudioRoute } from "../api-contract.js";
+import type {
+  StudioIntervention,
+  StudioRoute,
+  StudioRouteEvidenceBundle,
+  StudioRouteEvidenceIntervention,
+  StudioRouteEvidenceProject,
+  StudioRouteEvidenceSourceGap,
+  StudioRouteEvidenceTimelineEvent,
+} from "../api-contract.js";
 import { StudioHero, StudioPage } from "../page.js";
 
 type InterventionFilter = "all" | "evaluated" | "future" | "source-gap";
@@ -11,7 +20,20 @@ type InterventionFilter = "all" | "evaluated" | "future" | "source-gap";
 type InterventionRow = {
   key: string;
   route: StudioRoute;
-  event: StudioIntervention;
+  event: InterventionDisplayEvent;
+  evidence: StudioRouteEvidenceBundle | null;
+};
+
+type InterventionDisplayEvent = Pick<
+  StudioIntervention,
+  "comparisonCohort" | "sourceDetail" | "sourceLabel" | "tone"
+> & {
+  year: string;
+  sortKey: string;
+  title: string;
+  detail: string;
+  source: "serving" | "wiki" | "source_gap";
+  citationKeys: string[];
 };
 
 const filters: readonly { id: InterventionFilter; label: string }[] = [
@@ -21,9 +43,15 @@ const filters: readonly { id: InterventionFilter; label: string }[] = [
   { id: "source-gap", label: "Needs source" },
 ];
 
-export function InterventionsPage({ routes }: { routes: readonly StudioRoute[] }) {
+export function InterventionsPage({
+  routes,
+  evidence,
+}: {
+  routes: readonly StudioRoute[];
+  evidence: readonly (StudioRouteEvidenceBundle | null)[];
+}) {
   const [filter, setFilter] = useState<InterventionFilter>("all");
-  const rows = useMemo(() => interventionRows(routes), [routes]);
+  const rows = useMemo(() => interventionRows(routes, evidence), [routes, evidence]);
   const filteredRows = rows.filter((row) => matchesFilter(row.event, filter));
   const routesWithEvents = new Set(rows.map((row) => row.route.slug)).size;
   const evaluatedCount = rows.filter((row) => row.event.comparisonCohort !== undefined).length;
@@ -97,26 +125,157 @@ export function InterventionsLoadingPage() {
   );
 }
 
-function interventionRows(routes: readonly StudioRoute[]): InterventionRow[] {
+export function interventionRows(
+  routes: readonly StudioRoute[],
+  evidence: readonly (StudioRouteEvidenceBundle | null)[] = [],
+): InterventionRow[] {
+  const evidenceBySlug = new Map<string, StudioRouteEvidenceBundle>();
+  for (const bundle of evidence) {
+    if (bundle !== null) evidenceBySlug.set(bundle.routeSlug, bundle);
+  }
   return routes
-    .flatMap((route) =>
-      route.interventions.map((event, index) => ({
-        key: `${route.slug}:${event.year}:${index}`,
-        route,
-        event,
-      })),
-    )
-    .sort((left, right) => right.event.year.localeCompare(left.event.year));
+    .flatMap((route) => {
+      const bundle = evidenceBySlug.get(route.slug) ?? null;
+      return [
+        ...route.interventions.map(
+          (event, index): InterventionRow => ({
+            key: `${route.slug}:serving:${event.year}:${index}`,
+            route,
+            evidence: bundle,
+            event: {
+              ...event,
+              sortKey: event.year,
+              source: "serving",
+              citationKeys: [],
+            },
+          }),
+        ),
+        ...wikiInterventionRows(route, bundle),
+      ];
+    })
+    .sort(
+      (left, right) =>
+        right.event.sortKey.localeCompare(left.event.sortKey) ||
+        left.route.label.localeCompare(right.route.label) ||
+        left.event.title.localeCompare(right.event.title),
+    );
 }
 
-function matchesFilter(event: StudioIntervention, filter: InterventionFilter): boolean {
+function wikiInterventionRows(
+  route: StudioRoute,
+  evidence: StudioRouteEvidenceBundle | null,
+): InterventionRow[] {
+  if (evidence === null) return [];
+  return [
+    ...evidence.timeline.map((event) => wikiTimelineRow(route, evidence, event)),
+    ...evidence.interventions.map((intervention) =>
+      wikiTreatmentRow(route, evidence, intervention),
+    ),
+    ...evidence.projects.map((project) => wikiProjectRow(route, evidence, project)),
+    ...evidence.sourceGaps.map((gap) => wikiSourceGapRow(route, evidence, gap)),
+  ];
+}
+
+function wikiTimelineRow(
+  route: StudioRoute,
+  evidence: StudioRouteEvidenceBundle,
+  event: StudioRouteEvidenceTimelineEvent,
+): InterventionRow {
+  const year = event.dateNormalized ?? event.dateText ?? "undated";
+  return {
+    key: `${route.slug}:wiki-timeline:${event.recordId}`,
+    route,
+    evidence,
+    event: {
+      year,
+      sortKey: event.dateNormalized ?? event.dateText ?? "0000",
+      title: event.title ?? event.eventKind ?? "Documented route event",
+      detail: event.description ?? event.lifecyclePhase ?? "Wiki-derived route evidence.",
+      source: "wiki",
+      sourceLabel: "MTA-wiki",
+      citationKeys: event.citationKeys,
+    },
+  };
+}
+
+function wikiTreatmentRow(
+  route: StudioRoute,
+  evidence: StudioRouteEvidenceBundle,
+  intervention: StudioRouteEvidenceIntervention,
+): InterventionRow {
+  return {
+    key: `${route.slug}:wiki-treatment:${intervention.recordId}`,
+    route,
+    evidence,
+    event: {
+      year: "undated",
+      sortKey: "0000",
+      title: intervention.title ?? intervention.treatmentKind ?? "Documented treatment",
+      detail: wikiTreatmentDescription(intervention),
+      source: "wiki",
+      sourceLabel: "MTA-wiki",
+      citationKeys: intervention.citationKeys,
+    },
+  };
+}
+
+function wikiTreatmentDescription(intervention: StudioRouteEvidenceIntervention): string {
+  if (intervention.description !== null) return intervention.description;
+  const locations = intervention.locations.join(", ");
+  return locations.length > 0 ? locations : "Source-backed treatment.";
+}
+
+function wikiProjectRow(
+  route: StudioRoute,
+  evidence: StudioRouteEvidenceBundle,
+  project: StudioRouteEvidenceProject,
+): InterventionRow {
+  return {
+    key: `${route.slug}:wiki-project:${project.recordId}`,
+    route,
+    evidence,
+    event: {
+      year: project.status ?? "undated",
+      sortKey: "0000",
+      title: project.projectName ?? "Documented project",
+      detail: project.description ?? project.location ?? "Source-backed project.",
+      source: "wiki",
+      sourceLabel: "MTA-wiki",
+      citationKeys: project.citationKeys,
+    },
+  };
+}
+
+function wikiSourceGapRow(
+  route: StudioRoute,
+  evidence: StudioRouteEvidenceBundle,
+  gap: StudioRouteEvidenceSourceGap,
+): InterventionRow {
+  return {
+    key: `${route.slug}:wiki-source-gap:${gap.recordId}`,
+    route,
+    evidence,
+    event: {
+      year: "needs source",
+      sortKey: "0000",
+      title: `Source gap: ${gap.gapKind ?? "route evidence"}`,
+      detail: gap.gapText ?? gap.missingInformation ?? gap.description ?? "Missing source detail.",
+      tone: "warn",
+      source: "source_gap",
+      sourceLabel: "MTA-wiki",
+      citationKeys: gap.citationKeys,
+    },
+  };
+}
+
+function matchesFilter(event: InterventionDisplayEvent, filter: InterventionFilter): boolean {
   if (filter === "evaluated") return event.comparisonCohort !== undefined;
   if (filter === "future") return isFutureEvent(event);
-  if (filter === "source-gap") return event.tone === "warn" && event.sourceLabel === undefined;
+  if (filter === "source-gap") return event.source === "source_gap";
   return true;
 }
 
-function isFutureEvent(event: StudioIntervention): boolean {
+function isFutureEvent(event: InterventionDisplayEvent): boolean {
   const text = `${event.title} ${event.detail}`.toLowerCase();
   return text.includes("future") || text.includes("scheduled") || text.includes("await");
 }
@@ -147,6 +306,11 @@ function InterventionListRow({ row }: { row: InterventionRow }) {
           {row.event.sourceLabel ? <span>source: {row.event.sourceLabel}</span> : null}
           {cohort ? <span>{cohort.routeCount} comparison routes</span> : null}
         </div>
+        {row.event.citationKeys.length > 0 ? (
+          <div className="mt-3">
+            <CitationChips evidence={row.evidence} citationKeys={row.event.citationKeys} />
+          </div>
+        ) : null}
       </div>
       <div className="text-right text-[11.5px] text-[var(--bp-color-ink-55)] max-lg:col-start-2 max-lg:text-left">
         {cohort ? (
@@ -176,14 +340,18 @@ function InterventionStat({ label, value, sub }: { label: string; value: number;
   );
 }
 
-function toneVariant(event: StudioIntervention): "accent" | "good" | "warn" | "bad" | "neutral" {
+function toneVariant(
+  event: InterventionDisplayEvent,
+): "accent" | "good" | "warn" | "bad" | "neutral" {
   if (event.tone !== undefined) return event.tone;
   return event.comparisonCohort === undefined ? "neutral" : "accent";
 }
 
-function toneLabel(event: StudioIntervention): string {
+function toneLabel(event: InterventionDisplayEvent): string {
   if (event.comparisonCohort !== undefined) return "evaluated";
   if (isFutureEvent(event)) return "future";
+  if (event.source === "wiki") return "cited";
+  if (event.source === "source_gap") return "needs source";
   if (event.tone === "warn") return "caveated";
   return "record";
 }

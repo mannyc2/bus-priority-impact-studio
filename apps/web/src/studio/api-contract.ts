@@ -1,6 +1,8 @@
 export {
   studioMethodsResponseJsonSchema,
   studioRouteDetailResponseJsonSchema,
+  studioRouteEvidenceBundleJsonSchema,
+  studioRouteEvidenceIndexJsonSchema,
   studioRouteHistoryResponseJsonSchema,
   studioRouteSpeedHistoryResponseJsonSchema,
   studioRoutesResponseJsonSchema,
@@ -20,6 +22,21 @@ export {
   StudioMethodsResponseSchema,
 } from "@bp/domain/studio/docs";
 export type { StudioIntervention } from "@bp/domain/studio/interventions";
+export type {
+  StudioRouteEvidenceBundle,
+  StudioRouteEvidenceCitation,
+  StudioRouteEvidenceIndex,
+  StudioRouteEvidenceIntervention,
+  StudioRouteEvidenceMetricClaim,
+  StudioRouteEvidenceProject,
+  StudioRouteEvidenceSourceGap,
+  StudioRouteEvidenceTimelineEvent,
+} from "@bp/domain/studio/route-evidence";
+export {
+  emptyStudioRouteEvidenceBundle,
+  StudioRouteEvidenceBundleSchema,
+  StudioRouteEvidenceIndexSchema,
+} from "@bp/domain/studio/route-evidence";
 export type {
   StudioObservedReliability,
   StudioRoute,

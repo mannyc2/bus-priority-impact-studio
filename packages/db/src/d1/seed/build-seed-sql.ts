@@ -652,7 +652,9 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
       seedDb.delete(routeReliabilityBaseline).where(eq(routeReliabilityBaseline.month, month)),
     ),
     renderQuery(seedDb.delete(routeMonthTrend)),
-    renderQuery(seedDb.delete(routeTimelineIndex).where(eq(routeTimelineIndex.month, month))),
+    ...(input.routeTimelineIndex.length > 0
+      ? [renderQuery(seedDb.delete(routeTimelineIndex).where(eq(routeTimelineIndex.month, month)))]
+      : []),
     renderQuery(
       seedDb.delete(routeSpeedHistoryCoverage).where(eq(routeSpeedHistoryCoverage.month, month)),
     ),

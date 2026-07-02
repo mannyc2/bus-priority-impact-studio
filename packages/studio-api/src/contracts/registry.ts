@@ -180,7 +180,7 @@ export const studioApiRoutes = [
     method: "GET",
     path: "/api/v1/studio/routes/:routeId/timeline",
     tags: ["Studio"],
-    summary: "Return a source-backed Tier 2 route timeline bundle.",
+    summary: "Return source-backed MTA-wiki route evidence for a route.",
     auth: publicAuth,
     cache: publicStudioCache,
     idempotency: noIdempotency,
