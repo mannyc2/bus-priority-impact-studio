@@ -1,10 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../lib/head.js";
-import { fetchStudioRoutes, staticStudioLoaderStaleTimeMs } from "../studio/api-client.js";
+import {
+  fetchStudioRouteEvidence,
+  fetchStudioRoutes,
+  staticStudioLoaderStaleTimeMs,
+} from "../studio/api-client.js";
 import { InterventionsLoadingPage, InterventionsPage } from "../studio/pages/interventions.js";
 
 export const Route = createFileRoute("/interventions")({
-  loader: ({ abortController }) => fetchStudioRoutes({ signal: abortController.signal }),
+  loader: async ({ abortController }) => {
+    const routes = await fetchStudioRoutes({ signal: abortController.signal });
+    const evidence = await Promise.all(
+      routes.routes.map((route) =>
+        fetchStudioRouteEvidence(route.slug, { signal: abortController.signal }),
+      ),
+    );
+    return { routes, evidence };
+  },
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: InterventionsLoadingPage,
   head: () =>
@@ -16,6 +28,6 @@ export const Route = createFileRoute("/interventions")({
 });
 
 function InterventionsRoute() {
-  const routes = Route.useLoaderData({ select: (data) => data.routes });
-  return <InterventionsPage routes={routes} />;
+  const data = Route.useLoaderData();
+  return <InterventionsPage routes={data.routes.routes} evidence={data.evidence} />;
 }

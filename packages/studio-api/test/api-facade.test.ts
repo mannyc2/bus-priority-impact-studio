@@ -10,6 +10,7 @@ import {
   RouteScorecardSchema,
 } from "@bp/domain/routes";
 import { StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
+import { StudioRouteEvidenceBundleSchema } from "@bp/domain/studio/route-evidence";
 import {
   StudioRouteDetailResponseSchema,
   StudioRouteHistoryResponseSchema,
@@ -233,6 +234,104 @@ function dossierSummaryArtifact(routeId: string, routeSlug: string): FakeR2Objec
   );
 }
 
+function routeEvidenceBundleArtifact(): FakeR2Object {
+  return new FakeR2Object(
+    JSON.stringify({
+      routeId: "M15+",
+      routeSlug: "m15-sbs",
+      wikiRouteRecordId: "route_m15_sbs",
+      wikiRouteIds: ["M15"],
+      wikiAliases: ["M15 SBS"],
+      coverage: {
+        timelineCount: 1,
+        interventionCount: 1,
+        metricClaimCount: 1,
+        projectCount: 0,
+        sourceGapCount: 1,
+        citationCount: 2,
+      },
+      timeline: [
+        {
+          recordId: "event_m15_sbs_launch",
+          recordKind: "event",
+          citationKeys: ["m15_sbs_report#block-1"],
+          eventKind: "launch",
+          eventFamily: "service_change",
+          lifecyclePhase: "implemented",
+          title: "M15 SBS launched",
+          description: "Select Bus Service launched on the M15 corridor.",
+          dateText: "October 2010",
+          dateNormalized: "2010-10-10",
+          datePrecision: "day",
+        },
+      ],
+      interventions: [
+        {
+          recordId: "treatment_m15_bus_lane",
+          recordKind: "treatment_component",
+          citationKeys: ["m15_sbs_report#block-1"],
+          treatmentKind: "bus_lane",
+          treatmentFamily: "street",
+          title: "Bus lane treatment",
+          description: "Curbside bus lane treatment documented for M15 SBS.",
+          locations: ["First Avenue"],
+          projectRecordIds: [],
+        },
+      ],
+      metricClaims: [
+        {
+          recordId: "metric_m15_speed",
+          recordKind: "metric_claim",
+          citationKeys: ["m15_sbs_report#block-2"],
+          metricName: "travel_time_savings",
+          rawValue: "15%",
+          value: 15,
+          unit: "percent",
+          period: "after launch",
+          scope: "M15 SBS",
+          description: "Source-stated travel-time savings.",
+        },
+      ],
+      projects: [],
+      sourceGaps: [
+        {
+          recordId: "gap_m15_before_after",
+          recordKind: "source_gap",
+          citationKeys: ["m15_sbs_report#block-2"],
+          gapKind: "missing_before_after",
+          gapText: "Needs comparable before/after source.",
+          missingInformation: "Before/after speed table",
+          description: null,
+        },
+      ],
+      citations: [
+        {
+          key: "m15_sbs_report#block-1",
+          sourceId: "m15_sbs_report",
+          blockId: "block-1",
+          evidenceId: "m15_sbs_report#block-1",
+          sourcePath: "raw/sources/m15_sbs_report/blocks.jsonl",
+          pageNumber: 4,
+          sourceTitle: "M15 SBS report",
+          publisher: "NYC DOT",
+          sourceUrl: "https://example.test/m15-sbs-report",
+          publishedDate: "2011-01-01",
+        },
+        {
+          key: "m15_sbs_report#block-2",
+          sourceId: "m15_sbs_report",
+          blockId: "block-2",
+          evidenceId: "m15_sbs_report#block-2",
+          sourcePath: "raw/sources/m15_sbs_report/blocks.jsonl",
+          sourceTitle: "M15 SBS report",
+          publisher: "NYC DOT",
+        },
+      ],
+    }),
+    "application/json",
+  );
+}
+
 // Standard contrast routes for the snapshot/index/sections handler tests: a rich route
 // with surfaced findings + partial speed history, and a sparse summary-only route.
 const STANDARD_ROUTE_CAPABILITIES = [
@@ -450,26 +549,7 @@ function createStudioProjectionEnv(): StudioApiEnv {
         }),
         "application/json",
       ),
-      "studio/v2/routes/m15-sbs/timeline.json": new FakeR2Object(
-        JSON.stringify({
-          artifactKind: "bp.tier2_route_timeline_bundle.v1",
-          schemaVersion: 1,
-          generatedAt: "2026-06-06T20:14:00.000Z",
-          routeId: "M15+",
-          summary: {
-            eventCount: 1,
-            defaultEventCount: 1,
-          },
-          events: [
-            {
-              eventId: "m15_sbs_launch_oct2010",
-              displayDate: "2010-10",
-              title: "M15 Select Bus Service Launches on 1st/2nd Avenue",
-            },
-          ],
-        }),
-        "application/json",
-      ),
+      "studio/v2/wiki/routes/m15-sbs.json": routeEvidenceBundleArtifact(),
       "studio/v2/detectors/model-artifacts.json": new FakeR2Object(
         JSON.stringify({
           artifactKind: "model_artifact_serving_projection",
@@ -527,7 +607,7 @@ function createSparseStudioRouteDb(): FakeDb {
       {
         route_id: "M15+",
         month: "2026-03",
-        artifact_name: "route_timeline_bundle",
+        artifact_name: "route_evidence",
       },
     ],
     route_brief_summary: [
@@ -1281,7 +1361,7 @@ describe("Studio API facade", () => {
     expect(gzippedBytes).toBeLessThanOrEqual(60 * 1024);
   });
 
-  it("serves a D1/R2-backed Studio route timeline bundle", async () => {
+  it("serves a D1/R2-backed MTA-wiki route evidence bundle from the timeline endpoint", async () => {
     const env = {
       ...createStudioProjectionEnv(),
       BASELINE_MONTH: "2026-03",
@@ -1292,15 +1372,34 @@ describe("Studio API facade", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("X-Studio-Release")).toBe("studio/v1");
-    expect((await response.json()) as unknown).toEqual(
+    const evidence = StudioRouteEvidenceBundleSchema.parse(await response.json());
+    expect(evidence.routeId).toBe("M15+");
+    expect(evidence.timeline[0]).toEqual(
       expect.objectContaining({
-        artifactKind: "bp.tier2_route_timeline_bundle.v1",
-        routeId: "M15+",
-        events: [
-          expect.objectContaining({
-            eventId: "m15_sbs_launch_oct2010",
-          }),
-        ],
+        recordId: "event_m15_sbs_launch",
+        citationKeys: ["m15_sbs_report#block-1"],
+      }),
+    );
+    expect(evidence.citations[0]?.sourceTitle).toBe("M15 SBS report");
+  });
+
+  it("serves a typed empty MTA-wiki route evidence bundle for routes without evidence", async () => {
+    const env = {
+      ...createStudioProjectionEnv(),
+      BASELINE_MONTH: "2026-03",
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+    };
+
+    const response = await fetchApi("/api/v1/studio/routes/b99/timeline", env);
+
+    expect(response.status).toBe(200);
+    expect(StudioRouteEvidenceBundleSchema.parse(await response.json())).toEqual(
+      expect.objectContaining({
+        routeId: "B99",
+        routeSlug: "b99",
+        coverage: expect.objectContaining({ citationCount: 0, timelineCount: 0 }),
+        citations: [],
+        timeline: [],
       }),
     );
   });

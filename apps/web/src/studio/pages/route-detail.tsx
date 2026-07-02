@@ -22,7 +22,7 @@ import { SegmentRowHeader, SegmentRowSkeleton } from "@/components/SegmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TabsContent } from "@/components/ui/tabs";
 import { pushRecentRoute } from "@/lib/recent-routes";
-import type { StudioRouteDetailResponse } from "../api-contract.js";
+import type { StudioRouteDetailResponse, StudioRouteEvidenceBundle } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
 
@@ -33,7 +33,13 @@ function TrackRecentRoute({ slug }: { slug: string }) {
   return null;
 }
 
-export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | null }) {
+export function RouteDetailPage({
+  data,
+  evidence,
+}: {
+  data: StudioRouteDetailResponse | null;
+  evidence: StudioRouteEvidenceBundle | null;
+}) {
   if (data === null) return <NotFoundPage />;
 
   const { route, segments } = data;
@@ -110,11 +116,12 @@ export function RouteDetailPage({ data }: { data: StudioRouteDetailResponse | nu
           <RidersSection data={data} />
         ))}
         {section("treatments", () => (
-          <TreatmentsHistorySection data={data} />
+          <TreatmentsHistorySection data={data} evidence={evidence} />
         ))}
         {section("evidence", () => (
           <DataNotesSection
             data={data}
+            evidence={evidence}
             sectionRegistry={sectionRegistry}
             onNavigate={(tab) => setActiveTab(tab)}
           />

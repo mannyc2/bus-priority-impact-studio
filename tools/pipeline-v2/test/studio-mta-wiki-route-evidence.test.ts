@@ -1,8 +1,14 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { StudioRouteEvidenceArtifactSchema } from "@bp/domain/studio/route-evidence";
+import {
+  StudioRouteEvidenceArtifactSchema,
+  StudioRouteEvidenceBundleSchema,
+  StudioRouteEvidenceIndexSchema,
+  studioRouteEvidenceBundleKey,
+} from "@bp/domain/studio/route-evidence";
 import {
   buildStudioRouteEvidenceArtifact,
   runStudioImportMtaWikiRouteEvidence,
@@ -45,6 +51,9 @@ describe("studio import-mta-wiki-route-evidence", () => {
       });
 
       const route = parsed.routes[0];
+      if (route === undefined) {
+        throw new Error("Expected fixture route evidence artifact to contain one route.");
+      }
       expect(route?.routeId).toBe("M15+");
       expect(route?.wikiRouteIds).toContain("M15");
       expect(route?.wikiAliases).toContain("M15 SBS");
@@ -61,6 +70,32 @@ describe("studio import-mta-wiki-route-evidence", () => {
         sourceId: "m15_sbs_report",
         sourceTitle: "M15 SBS report",
         publisher: "NYC DOT",
+      });
+
+      const routeBundlePath = join(root, "routes", "m15-sbs.json");
+      const routeBundleBody = await readFile(routeBundlePath, "utf8");
+      const routeBundle = StudioRouteEvidenceBundleSchema.parse(JSON.parse(routeBundleBody));
+      expect(routeBundle).toEqual(route);
+
+      const index = StudioRouteEvidenceIndexSchema.parse(
+        await Bun.file(join(root, "index.json")).json(),
+      );
+      expect(index.routes).toEqual([
+        expect.objectContaining({
+          routeId: "M15+",
+          routeSlug: "m15-sbs",
+          artifactName: "route_evidence",
+          artifactKey: studioRouteEvidenceBundleKey("m15-sbs"),
+          byteLength: Buffer.byteLength(routeBundleBody, "utf8"),
+          sha256: createHash("sha256").update(routeBundleBody).digest("hex"),
+          coverage: route?.coverage,
+        }),
+      ]);
+      expect(index.summary).toEqual({
+        routeCount: 1,
+        matchedBusRouteCount: 1,
+        citationCount: 5,
+        totalByteLength: Buffer.byteLength(routeBundleBody, "utf8"),
       });
     } finally {
       await rm(root, { recursive: true, force: true });

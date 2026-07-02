@@ -1,5 +1,13 @@
 import * as z from "zod";
 
+export const STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME = "route_evidence";
+export const STUDIO_ROUTE_EVIDENCE_INDEX_KEY = "studio/v2/wiki/index.json";
+export const STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE = "application/json";
+
+export function studioRouteEvidenceBundleKey(routeSlug: string): string {
+  return `studio/v2/wiki/routes/${routeSlug}.json`;
+}
+
 export const StudioRouteEvidenceCitationSchema = z
   .object({
     key: z.string().min(1),
@@ -126,6 +134,65 @@ export const StudioRouteEvidenceArtifactSchema = z
   })
   .strict();
 
+export const StudioRouteEvidenceIndexRouteSchema = z
+  .object({
+    routeId: z.string().min(1),
+    routeSlug: z.string().min(1),
+    wikiRouteRecordId: z.string().min(1).nullable(),
+    artifactName: z.literal(STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME),
+    artifactKey: z.string().min(1),
+    contentType: z.literal(STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE),
+    byteLength: z.number().int().nonnegative(),
+    sha256: z.string().length(64),
+    coverage: StudioRouteEvidenceCoverageSchema,
+  })
+  .strict();
+
+export const StudioRouteEvidenceIndexSchema = z
+  .object({
+    artifactKind: z.literal("bp.studio.route_evidence_index.v1"),
+    schemaVersion: z.literal(1),
+    generatedAt: z.string(),
+    sourceArtifactKey: z.string().min(1),
+    summary: z
+      .object({
+        routeCount: z.number().int().nonnegative(),
+        matchedBusRouteCount: z.number().int().nonnegative(),
+        citationCount: z.number().int().nonnegative(),
+        totalByteLength: z.number().int().nonnegative(),
+      })
+      .strict(),
+    routes: z.array(StudioRouteEvidenceIndexRouteSchema),
+  })
+  .strict();
+
+export function emptyStudioRouteEvidenceBundle(input: {
+  routeId: string;
+  routeSlug: string;
+}): StudioRouteEvidenceBundle {
+  return StudioRouteEvidenceBundleSchema.parse({
+    routeId: input.routeId,
+    routeSlug: input.routeSlug,
+    wikiRouteRecordId: null,
+    wikiRouteIds: [],
+    wikiAliases: [],
+    coverage: {
+      timelineCount: 0,
+      interventionCount: 0,
+      metricClaimCount: 0,
+      projectCount: 0,
+      sourceGapCount: 0,
+      citationCount: 0,
+    },
+    timeline: [],
+    interventions: [],
+    metricClaims: [],
+    projects: [],
+    sourceGaps: [],
+    citations: [],
+  });
+}
+
 export type StudioRouteEvidenceCitation = z.output<typeof StudioRouteEvidenceCitationSchema>;
 export type StudioRouteEvidenceTimelineEvent = z.output<
   typeof StudioRouteEvidenceTimelineEventSchema
@@ -139,3 +206,5 @@ export type StudioRouteEvidenceSourceGap = z.output<typeof StudioRouteEvidenceSo
 export type StudioRouteEvidenceCoverage = z.output<typeof StudioRouteEvidenceCoverageSchema>;
 export type StudioRouteEvidenceBundle = z.output<typeof StudioRouteEvidenceBundleSchema>;
 export type StudioRouteEvidenceArtifact = z.output<typeof StudioRouteEvidenceArtifactSchema>;
+export type StudioRouteEvidenceIndexRoute = z.output<typeof StudioRouteEvidenceIndexRouteSchema>;
+export type StudioRouteEvidenceIndex = z.output<typeof StudioRouteEvidenceIndexSchema>;

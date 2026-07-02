@@ -1,16 +1,22 @@
+import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import {
+  STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
+  STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE,
   type StudioRouteEvidenceArtifact,
   StudioRouteEvidenceArtifactSchema,
   type StudioRouteEvidenceBundle,
   type StudioRouteEvidenceCitation,
   StudioRouteEvidenceCitationSchema,
+  type StudioRouteEvidenceIndex,
+  StudioRouteEvidenceIndexSchema,
   type StudioRouteEvidenceIntervention,
   type StudioRouteEvidenceMetricClaim,
   type StudioRouteEvidenceProject,
   type StudioRouteEvidenceSourceGap,
   type StudioRouteEvidenceTimelineEvent,
+  studioRouteEvidenceBundleKey,
 } from "@bp/domain/studio/route-evidence";
 import { type StudioRoute, StudioRoutesResponseSchema } from "@bp/domain/studio/routes";
 import { arg, defineCommand, z } from "@liche/core";
@@ -30,6 +36,7 @@ import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 
 const defaultRoutesPath = fromRepoRoot("data/artifacts/studio/v1/routes.json");
 const defaultOutputPath = fromRepoRoot("data/artifacts/studio/v2/wiki/route-evidence.json");
+const defaultSourceArtifactKey = "studio/v2/wiki/route-evidence.json";
 
 const relationFamiliesForProjectHop = new Set([
   "treatment_context",
@@ -77,9 +84,13 @@ export type RunStudioImportMtaWikiRouteEvidenceInput = {
   mtaWikiRoot?: string | undefined;
   routesPath?: string | undefined;
   output?: string | undefined;
+  servingOutputDir?: string | undefined;
   generatedAt?: string | undefined;
   minMatchedRoutes?: number | undefined;
+  writeServingArtifacts?: boolean | undefined;
 };
+
+type RouteEvidenceServingArtifactRow = StudioRouteEvidenceIndex["routes"][number];
 
 function textValue(value: JsonValue | undefined): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
@@ -529,6 +540,79 @@ function materializeBundle(input: {
   };
 }
 
+function jsonDigest(value: unknown): { byteLength: number; sha256: string } {
+  const body = `${JSON.stringify(value, null, 2)}\n`;
+  return {
+    byteLength: Buffer.byteLength(body, "utf8"),
+    sha256: createHash("sha256").update(body).digest("hex"),
+  };
+}
+
+function evidenceCitationKeyCounts(bundle: StudioRouteEvidenceBundle): number[] {
+  return [
+    ...bundle.timeline,
+    ...bundle.interventions,
+    ...bundle.metricClaims,
+    ...bundle.projects,
+    ...bundle.sourceGaps,
+  ].map((record) => record.citationKeys.length);
+}
+
+function assertBundleRecordsHaveCitations(bundle: StudioRouteEvidenceBundle): void {
+  if (evidenceCitationKeyCounts(bundle).some((count) => count === 0)) {
+    throw new Error(
+      `Route evidence bundle ${bundle.routeId} contains wiki-derived rows without citations.`,
+    );
+  }
+}
+
+export async function writeStudioRouteEvidenceServingArtifacts(input: {
+  artifact: StudioRouteEvidenceArtifact;
+  outputDir: string;
+  sourceArtifactKey?: string | undefined;
+}): Promise<{ index: StudioRouteEvidenceIndex; indexPath: string; routeCount: number }> {
+  const routesDir = join(input.outputDir, "routes");
+  await mkdir(routesDir, { recursive: true });
+  const routeRows: RouteEvidenceServingArtifactRow[] = [];
+
+  for (const route of input.artifact.routes.toSorted((left, right) =>
+    left.routeSlug.localeCompare(right.routeSlug),
+  )) {
+    assertBundleRecordsHaveCitations(route);
+    const routePath = join(routesDir, `${route.routeSlug}.json`);
+    const digest = jsonDigest(route);
+    await writeJson(routePath, route);
+    routeRows.push({
+      routeId: route.routeId,
+      routeSlug: route.routeSlug,
+      wikiRouteRecordId: route.wikiRouteRecordId,
+      artifactName: STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
+      artifactKey: studioRouteEvidenceBundleKey(route.routeSlug),
+      contentType: STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE,
+      byteLength: digest.byteLength,
+      sha256: digest.sha256,
+      coverage: route.coverage,
+    });
+  }
+
+  const index = StudioRouteEvidenceIndexSchema.parse({
+    artifactKind: "bp.studio.route_evidence_index.v1",
+    schemaVersion: 1,
+    generatedAt: input.artifact.generatedAt,
+    sourceArtifactKey: input.sourceArtifactKey ?? defaultSourceArtifactKey,
+    summary: {
+      routeCount: routeRows.length,
+      matchedBusRouteCount: routeRows.filter((route) => route.wikiRouteRecordId !== null).length,
+      citationCount: routeRows.reduce((sum, route) => sum + route.coverage.citationCount, 0),
+      totalByteLength: routeRows.reduce((sum, route) => sum + route.byteLength, 0),
+    },
+    routes: routeRows,
+  });
+  const indexPath = join(input.outputDir, "index.json");
+  await writeJson(indexPath, index);
+  return { index, indexPath, routeCount: routeRows.length };
+}
+
 export function buildStudioRouteEvidenceArtifact(input: {
   generatedAt: string;
   routes: readonly StudioRoute[];
@@ -639,6 +723,10 @@ export async function runStudioImportMtaWikiRouteEvidence(
   const routesPath =
     input.routesPath === undefined ? defaultRoutesPath : fromCliPath(input.routesPath);
   const outputPath = input.output === undefined ? defaultOutputPath : fromCliPath(input.output);
+  const servingOutputDir =
+    input.servingOutputDir === undefined
+      ? dirname(outputPath)
+      : fromCliPath(input.servingOutputDir);
   const routes = await loadStudioRoutes(routesPath);
   const corpus = await loadMtaWikiCanonicalCorpus(input.mtaWikiRoot);
   const artifact = buildStudioRouteEvidenceArtifact({
@@ -654,6 +742,13 @@ export async function runStudioImportMtaWikiRouteEvidence(
   }
   await mkdir(dirname(outputPath), { recursive: true });
   await writeJson(outputPath, artifact);
+  if (input.writeServingArtifacts ?? true) {
+    await writeStudioRouteEvidenceServingArtifacts({
+      artifact,
+      outputDir: servingOutputDir,
+      sourceArtifactKey: defaultSourceArtifactKey,
+    });
+  }
   return artifact;
 }
 
@@ -661,6 +756,14 @@ const optionsSchema = z.object({
   mtaWikiRoot: z.string().optional().describe("Path to the mta-wiki repo root."),
   routesPath: z.string().optional().describe("Studio routes.json path."),
   output: z.string().optional().describe("Output route evidence JSON artifact path."),
+  servingOutputDir: z
+    .string()
+    .optional()
+    .describe("Directory for per-route route evidence artifacts and index.json."),
+  writeServingArtifacts: z.coerce
+    .boolean()
+    .default(true)
+    .describe("Write per-route serving artifacts and the wiki evidence index."),
   generatedAt: z.string().optional(),
   minMatchedRoutes: arg
     .positiveInt()
@@ -675,6 +778,8 @@ const commandOutputSchema = z.object({
   unmatchedWikiRouteCount: z.number().int().nonnegative(),
   citationCount: z.number().int().nonnegative(),
   omittedAmbiguousRecordCount: z.number().int().nonnegative(),
+  servingRouteCount: z.number().int().nonnegative(),
+  servingIndexPath: z.string(),
 });
 
 export default defineCommand({
@@ -686,6 +791,10 @@ export default defineCommand({
     const outputPath =
       input.options.output === undefined ? defaultOutputPath : fromCliPath(input.options.output);
     const artifact = await runStudioImportMtaWikiRouteEvidence(input.options);
+    const servingOutputDir =
+      input.options.servingOutputDir === undefined
+        ? dirname(outputPath)
+        : fromCliPath(input.options.servingOutputDir);
     return {
       outputPath,
       routeCount: artifact.summary.routeCount,
@@ -693,6 +802,8 @@ export default defineCommand({
       unmatchedWikiRouteCount: artifact.summary.unmatchedWikiRouteCount,
       citationCount: artifact.summary.citationCount,
       omittedAmbiguousRecordCount: artifact.summary.omittedAmbiguousRecordCount,
+      servingRouteCount: input.options.writeServingArtifacts ? artifact.summary.routeCount : 0,
+      servingIndexPath: join(servingOutputDir, "index.json"),
     };
   },
 });

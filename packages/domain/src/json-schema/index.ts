@@ -15,7 +15,11 @@ import {
   StudioReleasePayloadSchema,
   StudioSearchResponseSchema,
 } from "../studio/release.js";
-import { StudioRouteEvidenceArtifactSchema } from "../studio/route-evidence.js";
+import {
+  StudioRouteEvidenceArtifactSchema,
+  StudioRouteEvidenceBundleSchema,
+  StudioRouteEvidenceIndexSchema,
+} from "../studio/route-evidence.js";
 import {
   StudioRouteDetailResponseSchema,
   StudioRouteHistoryResponseSchema,
@@ -58,6 +62,12 @@ export const studioRouteSpeedHistoryResponseJsonSchema = toProjectJsonSchema(
 );
 export const studioRouteEvidenceArtifactJsonSchema = toProjectJsonSchema(
   StudioRouteEvidenceArtifactSchema,
+);
+export const studioRouteEvidenceBundleJsonSchema = toProjectJsonSchema(
+  StudioRouteEvidenceBundleSchema,
+);
+export const studioRouteEvidenceIndexJsonSchema = toProjectJsonSchema(
+  StudioRouteEvidenceIndexSchema,
 );
 export const studioCompareResponseJsonSchema = toProjectJsonSchema(StudioCompareResponseSchema);
 export const studioMethodsResponseJsonSchema = toProjectJsonSchema(StudioMethodsResponseSchema);

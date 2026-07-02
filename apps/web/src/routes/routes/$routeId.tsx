@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { routeHead } from "../../lib/head.js";
-import { fetchStudioRoute, staticStudioLoaderStaleTimeMs } from "../../studio/api-client.js";
+import {
+  fetchStudioRoute,
+  fetchStudioRouteEvidence,
+  staticStudioLoaderStaleTimeMs,
+} from "../../studio/api-client.js";
 
 const RouteDetailPage = lazy(() =>
   import("../../studio/pages/route-detail.js").then((module) => ({
@@ -10,10 +14,14 @@ const RouteDetailPage = lazy(() =>
 );
 
 export const Route = createFileRoute("/routes/$routeId")({
-  // One Tier-1 fetch (C2): history series ride in on the detail dossier.
+  // Detail and route evidence stay Worker-served; heavy route artifacts remain lazy.
   loader: ({ abortController, params }) =>
-    fetchStudioRoute(params.routeId, { signal: abortController.signal }).then((detail) => ({
+    Promise.all([
+      fetchStudioRoute(params.routeId, { signal: abortController.signal }),
+      fetchStudioRouteEvidence(params.routeId, { signal: abortController.signal }),
+    ]).then(([detail, evidence]) => ({
       detail,
+      evidence,
     })),
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: RouteDetailRouteFallback,
@@ -25,7 +33,7 @@ function RouteDetailRoute() {
   const data = Route.useLoaderData();
   return (
     <Suspense fallback={<RouteDetailRouteFallback />}>
-      <RouteDetailPage data={data.detail} />
+      <RouteDetailPage data={data.detail} evidence={data.evidence} />
     </Suspense>
   );
 }

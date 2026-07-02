@@ -231,6 +231,7 @@ export type ExportD1Inputs = {
   artifactRoot?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
   detectorReadinessManifestPath?: string | undefined;
+  routeEvidenceIndexPath?: string | undefined;
   inputs?: D1CanonicalInputs | undefined;
 };
 
@@ -254,6 +255,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
       artifactRoot,
       routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
       detectorReadinessManifestPath: inputs.detectorReadinessManifestPath,
+      routeEvidenceIndexPath: inputs.routeEvidenceIndexPath,
     }));
   const schemaSql = await readD1MigrationSql();
   const seed = buildD1SeedSql({ month, ...d1Inputs });
@@ -408,6 +410,12 @@ export default defineCommand({
         .describe(
           "Optional detector readiness serving manifest JSON to fold into D1 route artifact refs",
         ),
+      routeEvidenceIndexPath: z
+        .string()
+        .optional()
+        .describe(
+          "Optional MTA-wiki route evidence index JSON to fold into D1 route artifact refs",
+        ),
     }),
   },
   output: z.union([
@@ -429,6 +437,10 @@ export default defineCommand({
       input.options.detectorReadinessManifestPath === undefined
         ? undefined
         : fromCliPath(input.options.detectorReadinessManifestPath);
+    const routeEvidenceIndexPath =
+      input.options.routeEvidenceIndexPath === undefined
+        ? undefined
+        : fromCliPath(input.options.routeEvidenceIndexPath);
     return runLocalDbCommandBoundary({
       dbPath: input.options.db,
       command: "export.d1",
@@ -455,6 +467,7 @@ export default defineCommand({
           artifactRoot,
           routeTimelineProjectionPath,
           detectorReadinessManifestPath,
+          routeEvidenceIndexPath,
         });
       },
     });

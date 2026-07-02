@@ -1,5 +1,4 @@
 import { ChartFrame } from "@/components/ChartFrame";
-import { InterventionTimeline } from "@/components/InterventionTimeline";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
@@ -15,9 +14,14 @@ import { Badge } from "@/components/ui/badge";
 import type {
   StudioIntervention,
   StudioRouteDetailResponse,
+  StudioRouteEvidenceBundle,
+  StudioRouteEvidenceIntervention,
+  StudioRouteEvidenceProject,
+  StudioRouteEvidenceTimelineEvent,
   StudioRouteInsight,
 } from "@/studio/api-contract";
 import { countTreatmentStates, groupTreatments, routeTreatments } from "@/studio/treatment-model";
+import { CitationChips } from "./WikiEvidence";
 
 type Tone = NonNullable<StudioIntervention["tone"]>;
 type ComparisonCohort = NonNullable<StudioIntervention["comparisonCohort"]>;
@@ -40,13 +44,31 @@ export type TreatmentSourceRow = {
   year: string;
 };
 
+export type TreatmentTimelineRow = {
+  key: string;
+  dateLabel: string;
+  sortKey: string;
+  kind: string;
+  title: string;
+  detail: string;
+  source: "serving" | "wiki";
+  citationKeys: string[];
+  sourceLabel: string | null;
+};
+
 export function treatmentHistoryInsightRows(
   insights: readonly StudioRouteInsight[],
 ): StudioRouteInsight[] {
   return routeInsightPlacements(insights).timeline;
 }
 
-export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResponse }) {
+export function TreatmentsHistorySection({
+  data,
+  evidence,
+}: {
+  data: StudioRouteDetailResponse;
+  evidence: StudioRouteEvidenceBundle | null;
+}) {
   const { route, segments } = data;
   const treatments = routeTreatments(route, segments);
   const counts = countTreatmentStates(treatments);
@@ -55,6 +77,7 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
   ).length;
   const comparisonCards = interventionComparisonCards(route.interventions);
   const sourceRows = treatmentSourceRows(route.interventions);
+  const timelineRows = mergedTreatmentTimelineRows(route.interventions, evidence);
   const treatmentInsights = treatmentHistoryInsightRows(data.insights);
   const historySpeeds = dossierSpeedSeries(data.dossier);
   const hasSpeedHistory = historySpeeds.length > 0;
@@ -89,7 +112,7 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
           <PostureStat label="Planned" value={counts.planned} sub="planned/proposed" />
           <PostureStat
             label="Records"
-            value={route.interventions.length}
+            value={timelineRows.length}
             sub={`${sourceRows.length} with source labels`}
           />
         </div>
@@ -112,10 +135,12 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
       <section>
         <SectionHeader
           title="Dated history"
-          sub={`${route.interventions.length} changes on ${route.label}${route.sbs ? " SBS" : ""}. Use before reading speed.`}
+          sub={`${timelineRows.length} cited and serving records on ${route.label}${route.sbs ? " SBS" : ""}. Use before reading speed.`}
         />
-        <InterventionTimeline events={route.interventions} />
+        <MergedTimelineList rows={timelineRows} evidence={evidence} />
       </section>
+
+      <WikiTreatmentEvidence evidence={evidence} />
 
       <div className="grid grid-cols-[minmax(0,1fr)_420px] items-start gap-6 max-xl:grid-cols-1">
         <ChartFrame
@@ -144,6 +169,206 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
       </div>
     </div>
   );
+}
+
+export function mergedTreatmentTimelineRows(
+  interventions: readonly StudioIntervention[],
+  evidence: StudioRouteEvidenceBundle | null,
+): TreatmentTimelineRow[] {
+  const rows = new Map<string, TreatmentTimelineRow>();
+  for (const [index, event] of interventions.entries()) {
+    const row: TreatmentTimelineRow = {
+      key: `serving:${event.year}:${index}`,
+      dateLabel: event.year,
+      sortKey: event.year,
+      kind: "serving_intervention",
+      title: event.title,
+      detail: event.detail,
+      source: "serving",
+      citationKeys: [],
+      sourceLabel: event.sourceLabel ?? event.sourceDetail ?? null,
+    };
+    rows.set(timelineIdentity(row), row);
+  }
+
+  for (const event of evidence?.timeline ?? []) {
+    if (event.citationKeys.length === 0) continue;
+    const row = wikiTimelineRow(event);
+    rows.set(timelineIdentity(row), row);
+  }
+
+  return [...rows.values()].sort(
+    (left, right) =>
+      left.sortKey.localeCompare(right.sortKey) || left.title.localeCompare(right.title),
+  );
+}
+
+function timelineIdentity(row: TreatmentTimelineRow): string {
+  return `${row.sortKey}:${row.kind}:${row.title}`.toLowerCase();
+}
+
+function wikiTimelineRow(event: StudioRouteEvidenceTimelineEvent): TreatmentTimelineRow {
+  const title = event.title ?? event.eventKind ?? "Documented route event";
+  return {
+    key: `wiki:${event.recordId}`,
+    dateLabel: event.dateNormalized ?? event.dateText ?? "undated",
+    sortKey: event.dateNormalized ?? event.dateText ?? "9999",
+    kind: event.eventKind ?? event.eventFamily ?? event.recordKind,
+    title,
+    detail: event.description ?? event.lifecyclePhase ?? "Wiki-derived route evidence.",
+    source: "wiki",
+    citationKeys: event.citationKeys,
+    sourceLabel: "MTA-wiki",
+  };
+}
+
+function MergedTimelineList({
+  rows,
+  evidence,
+}: {
+  rows: readonly TreatmentTimelineRow[];
+  evidence: StudioRouteEvidenceBundle | null;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-[3px] bg-[var(--bp-color-paper-deep)] p-4 text-[12.5px] text-[var(--bp-color-ink-55)]">
+        No documented interventions or wiki timeline events on this route.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
+      {rows.map((row) => (
+        <div
+          key={row.key}
+          className="grid grid-cols-[92px_150px_minmax(0,1fr)_minmax(220px,0.8fr)] gap-4 px-4 py-4 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-2"
+        >
+          <div className="font-mono text-[11.5px] font-semibold text-[var(--bp-color-accent)]">
+            {row.dateLabel}
+          </div>
+          <div>
+            <Badge variant={row.source === "wiki" ? "accent" : "neutral"}>
+              {row.source === "wiki" ? "wiki" : "serving"}
+            </Badge>
+            <div className="mt-1 font-mono text-[10px] text-[var(--bp-color-ink-55)]">
+              {row.kind.replaceAll("_", " ")}
+            </div>
+          </div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-semibold leading-tight">{row.title}</div>
+            <div className="mt-1 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-70)]">
+              {row.detail}
+            </div>
+            {row.sourceLabel ? (
+              <div className="mt-2 font-mono text-[10px] text-[var(--bp-color-ink-55)]">
+                source / {row.sourceLabel}
+              </div>
+            ) : null}
+          </div>
+          {row.source === "wiki" ? (
+            <CitationChips evidence={evidence} citationKeys={row.citationKeys} />
+          ) : (
+            <div className="text-[11px] text-[var(--bp-color-ink-55)]">
+              {row.sourceLabel ?? "Serving record"}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WikiTreatmentEvidence({ evidence }: { evidence: StudioRouteEvidenceBundle | null }) {
+  const interventions = evidence?.interventions ?? [];
+  const projects = evidence?.projects ?? [];
+  if (interventions.length === 0 && projects.length === 0) return null;
+
+  return (
+    <section>
+      <SectionHeader
+        title="Wiki treatments"
+        sub="Interventions and projects extracted from cited source documents."
+        right={<Badge variant="accent">{interventions.length + projects.length} cited</Badge>}
+      />
+      <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
+        {interventions.map((intervention) => (
+          <WikiTreatmentCard
+            key={intervention.recordId}
+            intervention={intervention}
+            evidence={evidence}
+          />
+        ))}
+        {projects.map((project) => (
+          <WikiProjectCard key={project.recordId} project={project} evidence={evidence} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function WikiTreatmentCard({
+  intervention,
+  evidence,
+}: {
+  intervention: StudioRouteEvidenceIntervention;
+  evidence: StudioRouteEvidenceBundle | null;
+}) {
+  return (
+    <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+      <div className="mb-2 flex flex-wrap gap-2">
+        <Badge variant="accent">{intervention.treatmentKind ?? "treatment"}</Badge>
+        {intervention.treatmentFamily ? (
+          <Badge variant="neutral">{intervention.treatmentFamily}</Badge>
+        ) : null}
+      </div>
+      <div className="text-[13px] font-semibold leading-tight">
+        {intervention.title ?? "Documented treatment"}
+      </div>
+      <div className="mt-1 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-70)]">
+        {wikiTreatmentDescription(intervention)}
+      </div>
+      <div className="mt-3">
+        <CitationChips evidence={evidence} citationKeys={intervention.citationKeys} />
+      </div>
+    </div>
+  );
+}
+
+function WikiProjectCard({
+  project,
+  evidence,
+}: {
+  project: StudioRouteEvidenceProject;
+  evidence: StudioRouteEvidenceBundle | null;
+}) {
+  return (
+    <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+      <div className="mb-2 flex flex-wrap gap-2">
+        <Badge variant="neutral">{project.projectType ?? "project"}</Badge>
+        {project.status ? <Badge variant="accent">{project.status}</Badge> : null}
+      </div>
+      <div className="text-[13px] font-semibold leading-tight">
+        {project.projectName ?? "Documented project"}
+      </div>
+      <div className="mt-1 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-70)]">
+        {wikiProjectDescription(project)}
+      </div>
+      <div className="mt-3">
+        <CitationChips evidence={evidence} citationKeys={project.citationKeys} />
+      </div>
+    </div>
+  );
+}
+
+function wikiTreatmentDescription(intervention: StudioRouteEvidenceIntervention): string {
+  if (intervention.description !== null) return intervention.description;
+  const locations = intervention.locations.join(", ");
+  return locations.length > 0 ? locations : "Source-backed treatment.";
+}
+
+function wikiProjectDescription(project: StudioRouteEvidenceProject): string {
+  return project.description ?? project.location ?? "Source-backed project.";
 }
 
 export function interventionComparisonCards(

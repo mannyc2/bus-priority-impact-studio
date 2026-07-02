@@ -28,14 +28,22 @@ import {
 } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
-import type { StudioRouteDetailResponse } from "@/studio/api-contract";
+import type {
+  StudioRouteDetailResponse,
+  StudioRouteEvidenceBundle,
+  StudioRouteEvidenceMetricClaim,
+  StudioRouteEvidenceSourceGap,
+} from "@/studio/api-contract";
+import { CitationChips, citationLabel } from "./WikiEvidence";
 
 export function DataNotesSection({
   data,
+  evidence,
   sectionRegistry,
   onNavigate,
 }: {
   data: StudioRouteDetailResponse;
+  evidence: StudioRouteEvidenceBundle | null;
   sectionRegistry: Pick<RouteSectionRegistry, "presentations" | "hiddenSections">;
   onNavigate: (tab: RouteDetailTabValue) => void;
 }) {
@@ -116,6 +124,10 @@ export function DataNotesSection({
         hiddenSectionCount={hiddenTabs.length}
         onNavigate={onNavigate}
       />
+
+      <WikiMetricClaimsSection evidence={evidence} />
+      <WikiSourceGapsSection evidence={evidence} />
+      <WikiCitationCatalog evidence={evidence} />
 
       <div>
         <SectionHeader
@@ -208,6 +220,148 @@ export function DataNotesSection({
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function WikiMetricClaimsSection({ evidence }: { evidence: StudioRouteEvidenceBundle | null }) {
+  const claims = evidence?.metricClaims ?? [];
+  return (
+    <div>
+      <SectionHeader
+        title="Source claims"
+        sub="Document-stated metrics, shown as source statements."
+        right={claims.length > 0 ? <Badge variant="neutral">{claims.length} claims</Badge> : null}
+      />
+      <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
+        {claims.length > 0 ? (
+          claims.map((claim) => (
+            <WikiMetricClaimRow key={claim.recordId} claim={claim} evidence={evidence} />
+          ))
+        ) : (
+          <div className="px-4 py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
+            No source-stated metric claims are published for this route.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WikiMetricClaimRow({
+  claim,
+  evidence,
+}: {
+  claim: StudioRouteEvidenceMetricClaim;
+  evidence: StudioRouteEvidenceBundle | null;
+}) {
+  const value = claim.value ?? claim.rawValue ?? "stated";
+  return (
+    <div className="grid grid-cols-[220px_minmax(0,1fr)_minmax(220px,0.7fr)] gap-5 px-4 py-4 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-2">
+      <div>
+        <div className="text-[13px] font-semibold">{claim.metricName ?? "Metric claim"}</div>
+        <div className="mt-0.5 font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">
+          {[String(value), claim.unit, claim.period]
+            .filter((part) => part !== null && part !== undefined && part.length > 0)
+            .join(" ")}
+        </div>
+      </div>
+      <div className="text-[12px] leading-[1.5] text-[var(--bp-color-ink-70)]">
+        {claim.description ?? claim.scope ?? "Source-stated claim."}
+      </div>
+      <CitationChips evidence={evidence} citationKeys={claim.citationKeys} />
+    </div>
+  );
+}
+
+function WikiSourceGapsSection({ evidence }: { evidence: StudioRouteEvidenceBundle | null }) {
+  const gaps = evidence?.sourceGaps ?? [];
+  return (
+    <div>
+      <SectionHeader
+        title="Source gaps"
+        sub="Known evidence gaps from the document corpus."
+        right={gaps.length > 0 ? <Badge variant="warn">{gaps.length} gaps</Badge> : null}
+      />
+      <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
+        {gaps.length > 0 ? (
+          gaps.map((gap) => <WikiSourceGapRow key={gap.recordId} gap={gap} evidence={evidence} />)
+        ) : (
+          <div className="px-4 py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
+            No route-specific source gaps are published for this route.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WikiSourceGapRow({
+  gap,
+  evidence,
+}: {
+  gap: StudioRouteEvidenceSourceGap;
+  evidence: StudioRouteEvidenceBundle | null;
+}) {
+  return (
+    <div className="grid grid-cols-[220px_minmax(0,1fr)_minmax(220px,0.7fr)] gap-5 px-4 py-4 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-2">
+      <div>
+        <Badge variant="warn">{gap.gapKind ?? "source gap"}</Badge>
+      </div>
+      <div className="text-[12px] leading-[1.5] text-[var(--bp-color-ink-70)]">
+        {gap.gapText ?? gap.missingInformation ?? gap.description ?? "Missing source detail."}
+      </div>
+      <CitationChips evidence={evidence} citationKeys={gap.citationKeys} />
+    </div>
+  );
+}
+
+function WikiCitationCatalog({ evidence }: { evidence: StudioRouteEvidenceBundle | null }) {
+  const citations = evidence?.citations ?? [];
+  return (
+    <div>
+      <SectionHeader
+        title="Citations"
+        sub="Document blocks backing the wiki-derived rows above."
+        right={
+          citations.length > 0 ? <Badge variant="accent">{citations.length} refs</Badge> : null
+        }
+      />
+      <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
+        {citations.length > 0 ? (
+          citations.map((citation) => (
+            <div
+              key={citation.key}
+              className="grid grid-cols-[minmax(0,1fr)_120px] gap-5 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-1"
+            >
+              <div className="min-w-0">
+                {citation.sourceUrl ? (
+                  <a
+                    href={citation.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold text-[var(--bp-color-accent)] no-underline"
+                  >
+                    {citationLabel(citation)}
+                  </a>
+                ) : (
+                  <div className="font-semibold">{citationLabel(citation)}</div>
+                )}
+                <div className="mt-0.5 truncate font-mono text-[10.5px] text-[var(--bp-color-ink-40)]">
+                  {citation.key}
+                </div>
+              </div>
+              <div className="text-right font-mono text-[10.5px] text-[var(--bp-color-ink-55)] max-lg:text-left">
+                {citation.pageNumber === undefined ? "block" : `page ${citation.pageNumber}`}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="px-4 py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
+            No wiki citations are published for this route.
+          </div>
+        )}
       </div>
     </div>
   );

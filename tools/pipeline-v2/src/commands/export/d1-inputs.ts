@@ -34,6 +34,10 @@ import {
   listRouteReliabilityGapWindows,
   listRouteScorecards,
 } from "@bp/db/local";
+import {
+  STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
+  StudioRouteEvidenceIndexSchema,
+} from "@bp/domain/studio/route-evidence";
 import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
 import * as z from "zod";
 import { defaultArtifactRootPath } from "../../lib/paths.ts";
@@ -155,6 +159,7 @@ type ReadLocalD1InputOptions = {
   historyStartMonth?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
   detectorReadinessManifestPath?: string | undefined;
+  routeEvidenceIndexPath?: string | undefined;
 };
 
 type RawRouteSpeedHistoryCoverageRow = {
@@ -495,11 +500,43 @@ async function readDetectorReadinessManifestRouteArtifacts(input: {
   return { routeArtifacts, manifestAvailable: true };
 }
 
+async function readRouteEvidenceIndexRouteArtifacts(input: {
+  indexPath?: string | undefined;
+  artifactRoot: string;
+  month: string;
+}): Promise<{ routeArtifacts: RouteArtifactLike[]; indexAvailable: boolean }> {
+  const indexPath =
+    input.indexPath ?? join(input.artifactRoot, "studio", "v2", "wiki", "index.json");
+  const file = Bun.file(indexPath);
+  if (!(await file.exists())) {
+    return { routeArtifacts: [], indexAvailable: false };
+  }
+
+  const index = StudioRouteEvidenceIndexSchema.parse(await file.json());
+  return {
+    routeArtifacts: index.routes.map(
+      (route): RouteArtifactLike => ({
+        routeId: route.routeId,
+        month: input.month,
+        artifactName: STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
+        artifactKey: route.artifactKey,
+        contentType: route.contentType,
+        byteLength: route.byteLength,
+        sha256: route.sha256,
+      }),
+    ),
+    indexAvailable: true,
+  };
+}
+
 export async function readLocalD1Inputs(
   db: LocalPipelineDb,
   month: string,
   options: ReadLocalD1InputOptions = {},
 ) {
+  const readLegacyRouteTimelineProjection =
+    options.routeEvidenceIndexPath === undefined ||
+    options.routeTimelineProjectionPath !== undefined;
   const [
     routeCatalog,
     routeCoverage,
@@ -531,6 +568,7 @@ export async function readLocalD1Inputs(
     sourceMonthCoverage,
     routeTimelineProjection,
     detectorReadinessManifest,
+    routeEvidenceIndex,
   ] = await Promise.all([
     listRouteCatalog(db),
     listRouteMonthCoverage(db, month),
@@ -564,13 +602,20 @@ export async function readLocalD1Inputs(
       historyStartMonth: options.historyStartMonth ?? DEFAULT_HISTORY_START_MONTH,
       releaseMonth: month,
     }),
-    readRouteTimelineProjectionRows({
-      projectionPath: options.routeTimelineProjectionPath,
-      artifactRoot: options.artifactRoot ?? defaultArtifactRootPath(),
-      month,
-    }),
+    readLegacyRouteTimelineProjection
+      ? readRouteTimelineProjectionRows({
+          projectionPath: options.routeTimelineProjectionPath,
+          artifactRoot: options.artifactRoot ?? defaultArtifactRootPath(),
+          month,
+        })
+      : Promise.resolve({ routeTimelineIndex: [], routeArtifacts: [] }),
     readDetectorReadinessManifestRouteArtifacts({
       manifestPath: options.detectorReadinessManifestPath,
+      month,
+    }),
+    readRouteEvidenceIndexRouteArtifacts({
+      indexPath: options.routeEvidenceIndexPath,
+      artifactRoot: options.artifactRoot ?? defaultArtifactRootPath(),
       month,
     }),
   ]);
@@ -592,6 +637,7 @@ export async function readLocalD1Inputs(
     routeArtifacts: mergeRouteArtifacts(routeArtifacts, [
       ...routeTimelineProjection.routeArtifacts,
       ...detectorReadinessManifest.routeArtifacts,
+      ...routeEvidenceIndex.routeArtifacts,
     ]),
     corridors,
     corridorArtifacts,

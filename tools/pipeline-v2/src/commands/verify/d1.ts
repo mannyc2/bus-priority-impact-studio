@@ -75,6 +75,7 @@ export type VerifyD1Inputs = {
   month: number;
   exportRoot?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
+  routeEvidenceIndexPath?: string | undefined;
 };
 
 async function readD1ReplaySql(input: {
@@ -127,6 +128,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     month: inputs.month,
     exportRoot: inputs.exportRoot,
     routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
+    routeEvidenceIndexPath: inputs.routeEvidenceIndexPath,
   });
 
   const { schemaSql, seedSql } = await readD1ReplaySql({
@@ -183,6 +185,10 @@ export default defineCommand({
         .string()
         .optional()
         .describe("Optional route timeline serving projection JSON to fold into D1 verification"),
+      routeEvidenceIndexPath: z
+        .string()
+        .optional()
+        .describe("Optional MTA-wiki route evidence index JSON to fold into D1 verification"),
     }),
   },
   output: z.object({
@@ -221,6 +227,10 @@ export default defineCommand({
             input.options.routeTimelineProjectionPath === undefined
               ? undefined
               : fromCliPath(input.options.routeTimelineProjectionPath),
+          routeEvidenceIndexPath:
+            input.options.routeEvidenceIndexPath === undefined
+              ? undefined
+              : fromCliPath(input.options.routeEvidenceIndexPath),
         }),
     });
   },

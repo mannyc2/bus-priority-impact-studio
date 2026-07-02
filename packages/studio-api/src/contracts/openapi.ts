@@ -7,6 +7,7 @@ import {
   routeProfileResponseJsonSchema,
   studioMethodsResponseJsonSchema,
   studioRouteDetailResponseJsonSchema,
+  studioRouteEvidenceBundleJsonSchema,
   studioRouteHistoryResponseJsonSchema,
   studioRouteSectionsResponseJsonSchema,
   studioRouteSpeedHistoryResponseJsonSchema,
@@ -113,18 +114,6 @@ function getOperation(input: {
     },
   };
 }
-
-const studioRouteTimelineBundleJsonSchema = {
-  type: "object",
-  additionalProperties: true,
-  required: ["artifactKind", "schemaVersion", "routeId", "events"],
-  properties: {
-    artifactKind: { const: "bp.tier2_route_timeline_bundle.v1", type: "string" },
-    schemaVersion: { const: 1, type: "number" },
-    routeId: { type: "string" },
-    events: { type: "array", items: { type: "object", additionalProperties: true } },
-  },
-};
 
 const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
   "/api/health": {
@@ -263,9 +252,9 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
   "/api/v1/studio/routes/{routeId}/timeline": {
     get: getOperation({
       operationId: "getStudioRouteTimeline",
-      summary: "Return a source-backed Tier 2 route timeline bundle.",
+      summary: "Return source-backed MTA-wiki route evidence for a route.",
       tags: ["Studio"],
-      responseSchema: studioRouteTimelineBundleJsonSchema,
+      responseSchema: studioRouteEvidenceBundleJsonSchema,
       parameters: [routeIdParameter],
     }),
   },

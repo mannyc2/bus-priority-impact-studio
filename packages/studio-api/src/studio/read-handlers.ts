@@ -6,7 +6,6 @@ import {
   findLatestSpeedTrendMonth,
   findLatestStudioServingMonth,
   findRouteEquityContext,
-  getRouteTimelineIndex,
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
   listSourceMonthCoverage,
@@ -17,6 +16,7 @@ import {
   buildRouteInsightsFromDetectorReadiness,
   type DetectorReadinessServingManifestForInsights,
   DetectorReadinessServingManifestForInsightsSchema,
+  emptyStudioRouteEvidenceBundle,
   getStudioRoute,
   type RouteCapabilityManifestForIndex,
   RouteCapabilityManifestForIndexSchema,
@@ -25,7 +25,11 @@ import {
   type RouteSurfaceState,
   routeDossierSummaryKey,
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
+  STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
   type StudioRouteCapability,
+  type StudioRouteEvidenceBundle,
+  StudioRouteEvidenceBundleSchema,
+  studioRouteEvidenceBundleKey,
 } from "@bp/domain/studio";
 import {
   type StudioDocsResponse,
@@ -142,7 +146,7 @@ type BuildStudioRouteSpeedHistoryResponseResult =
   | { ok: false; response: Response };
 
 type BuildStudioRouteTimelineResponseResult =
-  | { ok: true; timeline: unknown }
+  | { ok: true; timeline: StudioRouteEvidenceBundle }
   | { ok: false; response: Response };
 
 type BuildStudioRouteIndex2ResponseResult =
@@ -301,7 +305,7 @@ function routeProjectionRef(ref: StudioSnapshot2ProjectionRef): StudioSnapshot2P
 }
 
 function hasRouteTimelineBundle(row: StudioRouteIndexSourceRow): boolean {
-  return row.artifactNames.includes("route_timeline_bundle");
+  return row.artifactNames.includes(STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME);
 }
 
 // Capability now arrives pre-built from the pipeline `route_capability_manifest`
@@ -459,7 +463,7 @@ function routeProjectionRefs(input: {
         id: "route_timeline",
         status: "available",
         schemaVersion: 1,
-        grain: "route_event",
+        grain: "route_evidence",
         storage: "r2",
         path: `/api/v1/studio/routes/${routeIdToStudioSlug(row.routeId)}/timeline`,
         months: null,
@@ -2049,14 +2053,6 @@ export async function buildStudioRouteSpeedHistoryResponse(
   return { ok: true, speedHistory: parsed.data };
 }
 
-function jsonObject(
-  value: unknown,
-): (Record<string, unknown> & { artifactKind?: unknown; routeId?: unknown }) | null {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
 export async function buildStudioRouteTimelineResponse(
   env: StudioReadEnv,
   slug: string,
@@ -2083,25 +2079,19 @@ export async function buildStudioRouteTimelineResponse(
   if (row === null) {
     return { ok: false, response: errorResponse(404, "Studio route timeline was not found.") };
   }
-
-  const timelineIndex = await getRouteTimelineIndex(
-    createD1ServingDb(env.DB),
-    row.routeId,
-    baselineMonth,
-  );
-  if (timelineIndex === null) {
-    return { ok: false, response: errorResponse(404, "Studio route timeline was not found.") };
+  if (!hasRouteTimelineBundle(row)) {
+    return {
+      ok: true,
+      timeline: emptyStudioRouteEvidenceBundle({ routeId: row.routeId, routeSlug: slug }),
+    };
   }
 
-  const object = await env.ARTIFACTS.get(timelineIndex.bundleArtifactKey);
+  const key = studioRouteEvidenceBundleKey(routeIdToStudioSlug(row.routeId));
+  const object = await env.ARTIFACTS.get(key);
   if (object === null) {
     return {
-      ok: false,
-      response: artifactNotAvailableResponse(
-        404,
-        "Studio route timeline bundle was not found.",
-        timelineIndex.bundleArtifactKey,
-      ),
+      ok: true,
+      timeline: emptyStudioRouteEvidenceBundle({ routeId: row.routeId, routeSlug: slug }),
     };
   }
 
@@ -2113,29 +2103,25 @@ export async function buildStudioRouteTimelineResponse(
       ok: false,
       response: artifactNotAvailableResponse(
         502,
-        "Studio route timeline bundle is not valid JSON.",
-        timelineIndex.bundleArtifactKey,
+        "Studio route evidence bundle is not valid JSON.",
+        key,
       ),
     };
   }
 
-  const record = jsonObject(payload);
-  if (
-    record === null ||
-    record.artifactKind !== "bp.tier2_route_timeline_bundle.v1" ||
-    record.routeId !== row.routeId
-  ) {
+  const parsed = StudioRouteEvidenceBundleSchema.safeParse(payload);
+  if (!parsed.success || parsed.data.routeId !== row.routeId || parsed.data.routeSlug !== slug) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
         502,
-        "Studio route timeline bundle failed contract validation.",
-        timelineIndex.bundleArtifactKey,
+        "Studio route evidence bundle failed contract validation.",
+        key,
       ),
     };
   }
 
-  return { ok: true, timeline: payload };
+  return { ok: true, timeline: parsed.data };
 }
 
 function releaseIdForPrefix(prefix: string): string {
