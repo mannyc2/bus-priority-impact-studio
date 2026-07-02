@@ -106,11 +106,16 @@ type RouteMonthTrendIndexRow = z.output<typeof RouteMonthTrendIndexRowSchema>;
 type RouteSpeedHistoryCoverageIndexRow = z.output<typeof RouteSpeedHistoryCoverageIndexRowSchema>;
 
 function isMissingRouteSpeedHistoryCoverageTable(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
+  const message = errorMessageWithCauses(error);
   return (
-    error.message.includes("no such table") &&
-    error.message.includes("route_speed_history_coverage")
+    message.includes("no such table") && message.includes("route_speed_history_coverage")
   );
+}
+
+function errorMessageWithCauses(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const cause = error.cause === undefined ? "" : ` ${errorMessageWithCauses(error.cause)}`;
+  return `${error.message}${cause}`;
 }
 
 export type StudioRouteIndexSourceRow = {
