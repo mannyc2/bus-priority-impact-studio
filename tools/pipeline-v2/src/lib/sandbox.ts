@@ -38,7 +38,9 @@ type ResolvedSandboxOptions = Required<Omit<SandboxOptions, "timeoutSec" | "ralp
 
 function dockerArgs(opts: ResolvedSandboxOptions): string[] {
   const args = [
-    "run", "--rm", "-i",
+    "run",
+    "--rm",
+    "-i",
     "--network=none",
     "--read-only",
     `--memory=${opts.memoryMb}m`,
@@ -47,19 +49,32 @@ function dockerArgs(opts: ResolvedSandboxOptions): string[] {
     "--pids-limit=64",
     "--cap-drop=ALL",
     "--security-opt=no-new-privileges",
-    "--tmpfs", "/tmp:rw,size=64m",
-    "--tmpfs", "/home/agent:rw,size=8m",
-    "-e", "HOME=/home/agent",
-    "-e", "BUN_RUNTIME_TRANSPILER_CACHE_PATH=/tmp/bun-transpiler-cache",
-    "-v", `${repoRoot}data/artifacts:/work/data/artifacts:ro`,
-    "-v", `${repoRoot}data/raw:/work/data/raw:ro`,
-    "-v", `${repoRoot}data/local:/work/data/local:ro`,
-    "-v", `${repoRoot}knowledge:/work/knowledge:ro`,
-    "-v", `${repoRoot}packages/analytics:/work/repo/packages/analytics:ro`,
-    "-v", `${repoRoot}packages/domain:/work/repo/packages/domain:ro`,
-    "-v", `${repoRoot}node_modules:/work/repo/node_modules:ro`,
-    "-w", "/work",
-    "--user", "1000:1000",
+    "--tmpfs",
+    "/tmp:rw,size=64m",
+    "--tmpfs",
+    "/home/agent:rw,size=8m",
+    "-e",
+    "HOME=/home/agent",
+    "-e",
+    "BUN_RUNTIME_TRANSPILER_CACHE_PATH=/tmp/bun-transpiler-cache",
+    "-v",
+    `${repoRoot}data/artifacts:/work/data/artifacts:ro`,
+    "-v",
+    `${repoRoot}data/raw:/work/data/raw:ro`,
+    "-v",
+    `${repoRoot}data/local:/work/data/local:ro`,
+    "-v",
+    `${repoRoot}knowledge:/work/knowledge:ro`,
+    "-v",
+    `${repoRoot}packages/analytics:/work/repo/packages/analytics:ro`,
+    "-v",
+    `${repoRoot}packages/domain:/work/repo/packages/domain:ro`,
+    "-v",
+    `${repoRoot}node_modules:/work/repo/node_modules:ro`,
+    "-w",
+    "/work",
+    "--user",
+    "1000:1000",
     opts.image,
   ];
   if (opts.ralphDir !== undefined) {
@@ -91,10 +106,7 @@ export async function runCode(
   options: SandboxOptions = {},
 ): Promise<SandboxResult> {
   const resolved = {
-    timeoutSec: Math.min(
-      options.timeoutSec ?? DEFAULTS.timeoutSec,
-      DEFAULTS.timeoutSecMax,
-    ),
+    timeoutSec: Math.min(options.timeoutSec ?? DEFAULTS.timeoutSec, DEFAULTS.timeoutSecMax),
     maxStdoutBytes: options.maxStdoutBytes ?? DEFAULTS.maxStdoutBytes,
     maxStderrBytes: options.maxStderrBytes ?? DEFAULTS.maxStderrBytes,
     memoryMb: options.memoryMb ?? DEFAULTS.memoryMb,
@@ -102,13 +114,16 @@ export async function runCode(
     ...(options.ralphDir === undefined ? {} : { ralphDir: options.ralphDir }),
   };
   const interpreter = interpreterFor(language);
-  const args = [...dockerArgs({
-    maxStdoutBytes: resolved.maxStdoutBytes,
-    maxStderrBytes: resolved.maxStderrBytes,
-    memoryMb: resolved.memoryMb,
-    image: resolved.image,
-    ...(resolved.ralphDir === undefined ? {} : { ralphDir: resolved.ralphDir }),
-  }), ...interpreter];
+  const args = [
+    ...dockerArgs({
+      maxStdoutBytes: resolved.maxStdoutBytes,
+      maxStderrBytes: resolved.maxStderrBytes,
+      memoryMb: resolved.memoryMb,
+      image: resolved.image,
+      ...(resolved.ralphDir === undefined ? {} : { ralphDir: resolved.ralphDir }),
+    }),
+    ...interpreter,
+  ];
   return runDocker(
     args,
     code,

@@ -5,24 +5,24 @@
 // core module never imports back here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import {
-  type Tier2CandidateValidationState,
-  type Tier2DocumentEvidenceCandidate,
+import type {
+  Tier2CandidateValidationState,
+  Tier2DocumentEvidenceCandidate,
 } from "@bp/domain/documents/candidates";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
+  type CliOption,
   candidateBundlePath,
+  type ExtractCliArgs,
+  type ExtractTier2CandidatesArgs,
   latestDocsRunId,
   ocrPlanPath,
   ocrQualityReviewPath,
   parseCliOptions,
-  type CliOption,
-  type ExtractCliArgs,
-  type ExtractTier2CandidatesArgs,
   type Tier2CandidateBundle,
-  type Tier2CaptureManifest,
   type Tier2CapturedSource,
+  type Tier2CaptureManifest,
   type Tier2DocumentSourceCandidate,
   type Tier2FollowupOcrCandidate,
   type Tier2LlmExtractionAudit,

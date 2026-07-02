@@ -356,15 +356,17 @@ export default defineCommand({
       output: z.string().optional().describe("Override artifact JSON path"),
     }),
   },
-  output: z.object({
-    sourceId: z.string(),
-    checkedAt: z.string(),
-    requestedMonth: z.string(),
-    coverage: z.unknown(),
-    objects: z.array(z.unknown()),
-    nextActions: z.array(z.string()),
-    artifactPath: z.string().optional(),
-  }).passthrough(),
+  output: z
+    .object({
+      sourceId: z.string(),
+      checkedAt: z.string(),
+      requestedMonth: z.string(),
+      coverage: z.unknown(),
+      objects: z.array(z.unknown()),
+      nextActions: z.array(z.string()),
+      artifactPath: z.string().optional(),
+    })
+    .passthrough(),
   async run({ input }) {
     return runCheckBusObservatoryGtfsRt({
       year: input.options.year,

@@ -5,13 +5,11 @@ import {
   HealthResponseSchema,
   HotspotListResponseSchema,
   ReleaseStatusResponseSchema,
-  RouteCompareResponseSchema,
   RouteListResponseSchema,
   RouteProfileResponseSchema,
   RouteScorecardSchema,
 } from "@bp/domain/routes";
-import { StudioDocsResponseSchema } from "@bp/domain/studio/docs";
-import { StudioSearchResponseSchema } from "@bp/domain/studio/release";
+import { StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
 import {
   StudioRouteDetailResponseSchema,
   StudioRouteHistoryResponseSchema,
@@ -23,7 +21,6 @@ import {
   StudioRouteIndex2ResponseSchema,
   StudioSnapshotResponseSchema,
 } from "@bp/domain/studio/snapshots";
-import { studioOpenApiDocument } from "@bp/studio-api/contracts/openapi";
 import { handleStudioApiRequest, type StudioApiEnv } from "@bp/studio-api/server";
 
 type D1Value = string | number | boolean | null;
@@ -52,6 +49,30 @@ class FakeStatement<T> {
   ) {}
 
   private filteredRows(): T[] {
+    if (
+      this.call.query.includes("route_equity_context") &&
+      this.call.query.includes("where") &&
+      this.call.bound.length >= 2
+    ) {
+      const [routeId, month] = this.call.bound;
+      return this.rows.filter((row) => {
+        const record = row as { month?: unknown; route_id?: unknown };
+        return record.route_id === routeId && record.month === month;
+      });
+    }
+
+    if (
+      this.call.query.includes("route_month_source_status") &&
+      this.call.query.includes("where") &&
+      this.call.bound.length >= 2
+    ) {
+      const [month, sourceScope] = this.call.bound;
+      return this.rows.filter((row) => {
+        const record = row as { month?: unknown; source_scope?: unknown };
+        return record.month === month && record.source_scope === sourceScope;
+      });
+    }
+
     if (
       this.call.query.includes("route_month_trend") &&
       this.call.query.includes("where") &&
@@ -309,30 +330,12 @@ function createStudioProjectionEnv(): StudioApiEnv {
     ARTIFACTS: new FakeR2Bucket({
       [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact(STANDARD_ROUTE_CAPABILITIES),
       "studio/v2/routes/m15-sbs/dossier.json": dossierSummaryArtifact("M15+", "m15-sbs"),
-      "studio/v1/briefs.json": new FakeR2Object(
-        JSON.stringify({
-          schemaVersion: 1,
-          generatedAt: "2026-06-05T00:00:00.000Z",
-          briefs: [],
-          quality,
-        }),
-        "application/json",
-      ),
       "studio/v1/docs.json": new FakeR2Object(
         JSON.stringify({
           schemaVersion: 1,
           generatedAt: "2026-06-05T00:00:00.000Z",
           sections: [{ title: "Quickstart", body: ["Use the API."] }],
           endpoints: [{ method: "GET", path: "/api/v1/studio/routes", body: "List routes." }],
-          quality,
-        }),
-        "application/json",
-      ),
-      "studio/v1/findings.json": new FakeR2Object(
-        JSON.stringify({
-          schemaVersion: 1,
-          generatedAt: "2026-06-05T00:00:00.000Z",
-          findings: [],
           quality,
         }),
         "application/json",
@@ -662,6 +665,29 @@ function createSparseStudioRouteDb(): FakeDb {
         generated_at: "2026-06-06T20:14:00.000Z",
       },
     ],
+    route_equity_context: [
+      {
+        route_id: "M15+",
+        month: "2026-03",
+        acs_year: 2024,
+        assignment_geography: "county_proxy",
+        assigned_county_fips: "061",
+        assigned_county_name: "New York County",
+        assignment_method: "route_id_prefix",
+        tract_count: 309,
+        total_population: 1640000,
+        occupied_housing_units: 780000,
+        no_vehicle_households: 600000,
+        no_vehicle_household_share: 0.7692,
+        median_household_income: 98000,
+        poverty_rate: 15.4,
+        public_transit_commuter_share: 58.2,
+        hispanic_share: 25.1,
+        non_hispanic_white_share: 44.3,
+        non_hispanic_black_share: 12.1,
+        non_hispanic_asian_share: 14.2,
+      },
+    ],
     source_month_coverage: [
       {
         source_id: "local_route_segment_speed",
@@ -747,6 +773,9 @@ describe("Studio API facade", () => {
     ]);
 
     expect(healthResponse.status).toBe(200);
+    expect(healthResponse.headers.get("Cache-Control")).toBe(
+      "public, max-age=60, stale-while-revalidate=86400",
+    );
     expect(HealthResponseSchema.parse(await healthResponse.json())).toEqual(
       expect.objectContaining({ ok: true, service: "bus-priority-impact-studio" }),
     );
@@ -755,6 +784,9 @@ describe("Studio API facade", () => {
     expect(await schemaResponse.json()).toEqual(expect.objectContaining({ type: "object" }));
 
     expect(openApiResponse.status).toBe(200);
+    expect(openApiResponse.headers.get("Cache-Control")).toBe(
+      "public, max-age=60, stale-while-revalidate=86400",
+    );
     const openApi = (await openApiResponse.json()) as {
       openapi?: unknown;
       paths?: Record<string, unknown>;
@@ -768,9 +800,23 @@ describe("Studio API facade", () => {
         "/api/v1/studio/routes/{routeId}/speed-history": expect.any(Object),
         "/api/v1/studio/routes/{routeId}/timeline": expect.any(Object),
         "/api/v1/studio/snapshot": expect.any(Object),
-        "/api/v1/studio/briefs/{briefId}/draft/generate": expect.any(Object),
+        "/api/v1/studio/methods": expect.any(Object),
       }),
     );
+  });
+
+  it("applies registry private no-store cache policy to RUM reports", async () => {
+    const response = await handleStudioApiRequest(
+      new Request("https://example.test/api/v1/rum", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: "/routes/m15-sbs" }),
+      }),
+      {},
+    );
+
+    expect(response?.status).toBe(204);
+    expect(response?.headers.get("Cache-Control")).toBe("private, no-store");
   });
 
   it("keeps unknown API routes closed at the package facade", async () => {
@@ -815,7 +861,7 @@ describe("Studio API facade", () => {
     expect(db.calls[0]?.bound).toEqual(expect.arrayContaining(["M1", "2026-03"]));
   });
 
-  it("serves D1-backed v1 status, route cards, profile, hotspots, and comparisons", async () => {
+  it("serves D1-backed v1 status, route cards, profile, and hotspots", async () => {
     const db = new FakeDb({
       corridor_hotspot: [
         {
@@ -1048,12 +1094,11 @@ describe("Studio API facade", () => {
     });
     const env = { BASELINE_MONTH: "2026-03", DB: db as unknown as D1Database };
 
-    const [status, routes, profile, hotspots, compare] = await Promise.all([
+    const [status, routes, profile, hotspots] = await Promise.all([
       fetchApi("/api/v1/status", env),
       fetchApi("/api/v1/routes?limit=2", env),
       fetchApi("/api/v1/routes/b46-sbs/profile", env),
       fetchApi("/api/v1/hotspots?month=2026-03&limit=1", env),
-      fetchApi("/api/v1/compare?month=2026-03&a=b46-sbs&b=m15-sbs", env),
     ]);
 
     expect(ReleaseStatusResponseSchema.parse(await status.json())).toEqual(
@@ -1075,11 +1120,6 @@ describe("Studio API facade", () => {
     );
     expect(HotspotListResponseSchema.parse(await hotspots.json()).hotspots[0]).toEqual(
       expect.objectContaining({ corridorName: "Utica Avenue", routeId: "B46-SBS" }),
-    );
-    expect(RouteCompareResponseSchema.parse(await compare.json())).toEqual(
-      expect.objectContaining({
-        deltas: expect.objectContaining({ routeScore: 16 }),
-      }),
     );
   });
 
@@ -1124,6 +1164,10 @@ describe("Studio API facade", () => {
       "/api/v1/artifacts/map/route-segments/b46-sbs/2026-03/all-day.geojson",
       env,
     );
+    const invalidArtifactResponse = await fetchApi(
+      "/api/v1/artifacts/map/%252e%252e/private.json",
+      env,
+    );
 
     expect(MapManifestResponseSchema.parse(await manifestResponse.json())).toEqual(
       expect.objectContaining({
@@ -1137,18 +1181,32 @@ describe("Studio API facade", () => {
         ],
       }),
     );
+    expect(manifestResponse.headers.get("Cache-Control")).toBe(
+      "public, max-age=60, stale-while-revalidate=86400",
+    );
     expect(artifactResponse.headers.get("Content-Type")).toBe("application/geo+json");
+    expect(artifactResponse.headers.get("Cache-Control")).toBe(
+      "public, max-age=31536000, immutable",
+    );
     expect(await artifactResponse.text()).toBe('{"type":"FeatureCollection","features":[]}');
+    expect(invalidArtifactResponse.status).toBe(400);
+    expect((await invalidArtifactResponse.json()) as unknown).toEqual({
+      error: {
+        code: "BAD_REQUEST",
+        message: "Artifact key is invalid.",
+      },
+    });
   });
 
-  it("serves Studio projection-backed routes and docs", async () => {
+  it("serves Studio projection-backed routes and methods", async () => {
     const env = createStudioProjectionEnv();
-    const [routesResponse, detailResponse, speedHistoryResponse, docsResponse] = await Promise.all([
-      fetchApi("/api/v1/studio/routes", env),
-      fetchApi("/api/v1/studio/routes/m15-sbs", env),
-      fetchApi("/api/v1/studio/routes/m15-sbs/speed-history", env),
-      fetchApi("/api/v1/studio/docs", env),
-    ]);
+    const [routesResponse, detailResponse, speedHistoryResponse, methodsResponse] =
+      await Promise.all([
+        fetchApi("/api/v1/studio/routes", env),
+        fetchApi("/api/v1/studio/routes/m15-sbs", env),
+        fetchApi("/api/v1/studio/routes/m15-sbs/speed-history", env),
+        fetchApi("/api/v1/studio/methods", env),
+      ]);
 
     expect(routesResponse.headers.get("Server-Timing")).toContain("studio;dur=");
     expect(routesResponse.headers.get("X-Studio-Release")).toBe("studio/v1");
@@ -1174,38 +1232,8 @@ describe("Studio API facade", () => {
     expect(speedHistory.routeSlug).toBe("m15-sbs");
     expect(speedHistory.summary.cellCount).toBe(8);
     expect(speedHistory.cells.map((cell) => cell.status)).toEqual(["available", "missing"]);
-    const docs = StudioDocsResponseSchema.parse(await docsResponse.json());
-    expect(docs.sections[0]?.title).toBe("Quickstart");
-    expect(docs.endpoints).toEqual(
-      expect.arrayContaining([
-        { method: "GET", path: "/api/v1/studio/routes", body: "List Studio route cards." },
-        {
-          method: "GET",
-          path: "/api/v1/studio/routes/{routeId}",
-          body: "Fetch route detail, KPIs, diagnosis, and segment evidence.",
-        },
-        {
-          method: "POST",
-          path: "/api/v1/studio/briefs",
-          body: "Create a new Studio brief draft from a route, finding, or source brief seed.",
-        },
-      ]),
-    );
-    expect(docs.endpoints).not.toContainEqual({
-      method: "GET",
-      path: "/api/v1/studio/routes",
-      body: "List routes.",
-    });
-    expect(docs.endpoints.length).toBe(
-      Object.values(studioOpenApiDocument.paths).reduce(
-        (sum, pathItem) =>
-          sum +
-          (["get", "post", "put", "patch", "delete"] as const).filter(
-            (method) => pathItem[method] !== undefined,
-          ).length,
-        0,
-      ),
-    );
+    const methods = StudioMethodsResponseSchema.parse(await methodsResponse.json());
+    expect(methods.datasets[0]?.name).toBe("MTA Bus Speeds");
   });
 
   it("keeps the Tier-1 route dossier response within the 60 KB gzip budget (C2)", async () => {
@@ -1275,6 +1303,25 @@ describe("Studio API facade", () => {
         ],
       }),
     );
+  });
+
+  it("hides route artifact keys from malformed artifact errors", async () => {
+    const response = await fetchApi("/api/v1/studio/routes/m15-sbs/speed-history", {
+      ARTIFACTS: new FakeR2Bucket({
+        "studio/v2/routes/m15-sbs/speed-history.json": new FakeR2Object(
+          "not json",
+          "application/json",
+        ),
+      }) as unknown as R2Bucket,
+    });
+
+    expect(response.status).toBe(502);
+    expect((await response.json()) as unknown).toEqual({
+      error: {
+        code: "BAD_GATEWAY",
+        message: "Artifact is not available.",
+      },
+    });
   });
 
   it("enriches Studio route detail with frontend-safe route insights", async () => {
@@ -1368,6 +1415,16 @@ describe("Studio API facade", () => {
     expect(JSON.stringify(detail.insights)).not.toContain("reviewQueueCounts");
     expect(JSON.stringify(detail.insights)).not.toContain("suppressedCounts");
     expect(JSON.stringify(detail.insights)).not.toContain("reviewed signals");
+    expect(detail.equityContext).toEqual(
+      expect.objectContaining({
+        acsYear: 2024,
+        assignedCountyName: "New York County",
+        noVehicleHouseholdShare: 0.7692,
+        medianHouseholdIncome: 98000,
+        povertyRate: 15.4,
+        publicTransitCommuterShare: 58.2,
+      }),
+    );
   });
 
   it("loads alias route segment artifacts so treatment insights can attach to visible rows", async () => {
@@ -2136,7 +2193,7 @@ describe("Studio API facade", () => {
     );
   });
 
-  it("resolves sparse catalog routes through list, search, and detail", async () => {
+  it("resolves sparse catalog routes through list, detail, and history", async () => {
     const env = {
       ...createStudioProjectionEnv(),
       BASELINE_MONTH: "2026-03",
@@ -2144,9 +2201,8 @@ describe("Studio API facade", () => {
       LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
-    const [routesResponse, searchResponse, detailResponse, historyResponse] = await Promise.all([
+    const [routesResponse, detailResponse, historyResponse] = await Promise.all([
       fetchApi("/api/v1/studio/routes", env),
-      fetchApi("/api/v1/studio/search?q=late%20night", env),
       fetchApi("/api/v1/studio/routes/b99", env),
       fetchApi("/api/v1/studio/routes/b99/history", env),
     ]);
@@ -2158,13 +2214,10 @@ describe("Studio API facade", () => {
       "No rich artifact",
     );
 
-    expect(searchResponse.status).toBe(200);
-    const search = StudioSearchResponseSchema.parse(await searchResponse.json());
-    expect(search.routes.map((candidate) => candidate.slug)).toContain("b99");
-
     expect(detailResponse.status).toBe(200);
     const detail = StudioRouteDetailResponseSchema.parse(await detailResponse.json());
     expect(detail.route.slug).toBe("b99");
+    expect(detail.equityContext).toBeNull();
     expect(detail.segments).toEqual([]);
     expect(detail.artifactRefs).toEqual([]);
     expect(detail.quality.caveats).toContain(
@@ -2303,14 +2356,10 @@ describe("Studio API facade", () => {
       ]),
     );
 
-    const [searchResponse, detailResponse, historyResponse] = await Promise.all([
-      fetchApi("/api/v1/studio/search?q=late%20night", env),
+    const [detailResponse, historyResponse] = await Promise.all([
       fetchApi(`/api/v1/studio/routes/${sparseRoute.slug}`, env),
       fetchApi(`/api/v1/studio/routes/${historyRoute.slug}/history`, env),
     ]);
-
-    const search = StudioSearchResponseSchema.parse(await searchResponse.json());
-    expect(search.routes.map((route) => route.slug)).toContain(sparseRoute.slug);
 
     const detail = StudioRouteDetailResponseSchema.parse(await detailResponse.json());
     expect(detail.route.slug).toBe(sparseRoute.slug);
@@ -2440,17 +2489,19 @@ describe("Studio API facade", () => {
 
   it("fails Studio API reads closed when projection artifacts are missing", async () => {
     const [missingProjection, missingBinding] = await Promise.all([
-      fetchApi("/api/v1/studio/briefs", { ARTIFACTS: new FakeR2Bucket({}) as unknown as R2Bucket }),
-      fetchApi("/api/v1/studio/briefs"),
+      fetchApi("/api/v1/studio/methods", {
+        ARTIFACTS: new FakeR2Bucket({}) as unknown as R2Bucket,
+      }),
+      fetchApi("/api/v1/studio/methods"),
     ]);
 
     expect(missingProjection.status).toBe(503);
     expect(
       ((await missingProjection.json()) as { error?: { message?: string } }).error?.message,
-    ).toMatch(/not found at studio\/v1\/briefs\.json/);
+    ).toBe("Artifact is not available.");
     expect(missingBinding.status).toBe(503);
-    expect(
-      ((await missingBinding.json()) as { error?: { message?: string } }).error?.message,
-    ).toMatch(/ARTIFACTS R2 binding/);
+    expect(((await missingBinding.json()) as { error?: { message?: string } }).error?.message).toBe(
+      "Service dependency is not configured.",
+    );
   });
 });

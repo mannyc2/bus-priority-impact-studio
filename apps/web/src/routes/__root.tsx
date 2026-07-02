@@ -12,7 +12,7 @@ export const Route = createRootRoute({
   head: () =>
     routeHead(
       "Bus Priority Impact Studio",
-      "Build evidence-backed NYC bus priority route pages, findings, and cited briefs.",
+      "Build evidence-backed NYC bus route pages, intervention timelines, maps, and methods.",
     ),
   component: RootComponent,
   errorComponent: RootErrorComponent,

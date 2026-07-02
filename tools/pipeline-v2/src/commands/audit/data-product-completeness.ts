@@ -1,11 +1,7 @@
-import { Database as BunDatabase, type Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
-import {
-  dataProductCompletenessPath,
-  sourceMonthCoverageMatrixPath,
-} from "@bp/applied-research/artifacts";
 import {
   classifyDataProductCompleteness,
   DATA_PRODUCT_MANIFEST,
@@ -20,6 +16,7 @@ import {
   type DataProductGapClass,
   type DataProductManifest,
   type DataProductRouteUniverse,
+  dataProductCompletenessPath,
   dataProductCoverageSummary,
   dataProductGapClassCounts,
   dataProductReasons,
@@ -27,7 +24,8 @@ import {
   dataProductStatusCounts,
   parseDataProductCompletenessArtifact,
   parseDataProductManifestText,
-} from "@bp/applied-research/data-products";
+  sourceMonthCoverageMatrixPath,
+} from "@bp/analytics/data-products";
 import {
   buildDataProductRouteUniverses,
   buildSourceMonthCoverageMatrix,
@@ -37,16 +35,16 @@ import {
   evaluateDataProductJsonOrFileArtifactCheck,
   evaluateDataProductMonthTableCoverageCheck,
   evaluateDataProductRouteArtifactCoverageCheck,
-  evaluateDataProductScoreVectorRoutesCheck,
   evaluateDataProductSourceYearRouteCoverageCheck,
   evaluateDataProductTableRouteCoverageCheck,
   evaluateDataProductTableRowCountCheck,
   latestDataProductGtfsRunId,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, monthRange } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
 export type DataProductCompletenessAudit = {
@@ -77,10 +75,6 @@ export type DataProductCompletenessAudit = {
 };
 
 export {
-  dataProductCompletenessPath,
-  sourceMonthCoverageMatrixPath,
-} from "@bp/applied-research/artifacts";
-export {
   classifyDataProductCompleteness,
   DATA_PRODUCT_MANIFEST,
   type DataProductCheckAudit,
@@ -92,15 +86,16 @@ export {
   type DataProductDownstreamBlocker,
   type DataProductGapClass,
   type DataProductRootCause,
+  dataProductCompletenessPath,
   dataProductCoverageSummary,
   dataProductGapClassCounts,
   dataProductJsonSemanticReasons,
   dataProductReasons,
-  dataProductScoreVectorRouteIds,
   dataProductStatus,
   dataProductStatusCounts,
   parseDataProductManifestText,
-} from "@bp/applied-research/data-products";
+  sourceMonthCoverageMatrixPath,
+} from "@bp/analytics/data-products";
 export {
   buildDataProductRouteUniverses,
   buildSourceMonthCoverageMatrix,
@@ -111,7 +106,7 @@ export {
   type SourceMonthCoverageCell,
   type SourceMonthCoverageMatrix,
   type SourceMonthCoverageSource,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 
 type RouteUniverseSets = DataProductRouteUniverseSets;
 
@@ -216,20 +211,6 @@ async function evaluateCheck(input: {
       });
     case "route_artifact_coverage":
       return evaluateDataProductRouteArtifactCoverageCheck({
-        check: input.check,
-        routeUniverses: input.routeUniverses,
-        templateValues: {
-          repoRoot,
-          artifactRoot: input.artifactRoot,
-          releaseMonth: input.releaseMonth,
-          historyStartMonth: input.historyStartMonth,
-          runId: input.runId,
-          gtfsRunId: input.gtfsRunId,
-        },
-        displayPath: repoDisplayPath,
-      });
-    case "score_vector_routes":
-      return evaluateDataProductScoreVectorRoutesCheck({
         check: input.check,
         routeUniverses: input.routeUniverses,
         templateValues: {
@@ -604,44 +585,44 @@ export default defineCommand({
       input.options.manifest === undefined
         ? DATA_PRODUCT_MANIFEST
         : parseDataProductManifestText(await Bun.file(fromCliPath(input.options.manifest)).text());
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
-    const sqlite = new BunDatabase(dbPath, { readonly: true });
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
 
-    let audit: DataProductCompletenessAudit;
-    try {
-      sqlite.exec("PRAGMA busy_timeout = 30000");
-      const generatedAt = new Date().toISOString();
-      const matrixPath = sourceMonthCoverageMatrixPath({
-        artifactRoot,
-        historyStartMonth,
-        releaseMonth,
-      });
-      const matrix = buildSourceMonthCoverageMatrix({
-        sqlite,
-        historyStartMonth,
-        releaseMonth,
-        generatedAt,
-        dbPath: repoDisplayPath(dbPath),
-        artifactPath: repoDisplayPath(matrixPath),
-      });
-      await mkdir(dirname(matrixPath), { recursive: true });
-      await writeJson(matrixPath, matrix);
-      audit = await buildDataProductCompletenessAudit({
-        sqlite,
-        manifest,
-        releaseMonth,
-        historyStartMonth,
-        runId,
-        gtfsRunId: input.options.gtfsRunId ?? null,
-        artifactRoot,
-        generatedAt,
-        dbPath,
-        artifactPath: outputPath,
-      });
-    } finally {
-      sqlite.close();
-    }
+    const audit = await runLocalDbCommandBoundary({
+      dbPath,
+      localDbOptions: { readonly: true },
+      command: "audit.data-product-completeness",
+      operation: "auditDataProductCompleteness",
+      run: async (local) => {
+        const generatedAt = new Date().toISOString();
+        const matrixPath = sourceMonthCoverageMatrixPath({
+          artifactRoot,
+          historyStartMonth,
+          releaseMonth,
+        });
+        const matrix = buildSourceMonthCoverageMatrix({
+          sqlite: local.sqlite,
+          historyStartMonth,
+          releaseMonth,
+          generatedAt,
+          dbPath: repoDisplayPath(local.path),
+          artifactPath: repoDisplayPath(matrixPath),
+        });
+        await mkdir(dirname(matrixPath), { recursive: true });
+        await writeJson(matrixPath, matrix);
+        return buildDataProductCompletenessAudit({
+          sqlite: local.sqlite,
+          manifest,
+          releaseMonth,
+          historyStartMonth,
+          runId,
+          gtfsRunId: input.options.gtfsRunId ?? null,
+          artifactRoot,
+          generatedAt,
+          dbPath: local.path,
+          artifactPath: outputPath,
+        });
+      },
+    });
 
     await mkdir(dirname(outputPath), { recursive: true });
     const validatedAudit = parseDataProductCompletenessArtifact(

@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: Fixture assertions intentionally index rows after explicit length/content checks.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, rm } from "node:fs/promises";
@@ -6,16 +7,12 @@ import {
   buildTextPageMarkdown,
   normalizeTextMarkdown,
   splitCapturedTextIntoPages,
-  type Tier2CaptureManifest,
   type Tier2CapturedSource,
+  type Tier2CaptureManifest,
 } from "../../../../src/commands/docs/tier2/_shared.ts";
 import { writeJson } from "../../../../src/lib/json.ts";
 
-const workingRoot = join(
-  process.cwd(),
-  "test",
-  ".tmp-normalize-text-markdown",
-);
+const workingRoot = join(process.cwd(), "test", ".tmp-normalize-text-markdown");
 
 function pageBody(markdown: string): string {
   return markdown.replace(/^---\n[\s\S]*?\n---\n?/, "").trim();
@@ -243,9 +240,7 @@ describe("normalizeTextMarkdown", () => {
     const bodyOne = pageBody(await readFile(sourceRootOne, "utf8"));
     const bodyTwo = pageBody(await readFile(sourceRootTwo, "utf8"));
     expect(bodyOne).toBe("First source text.");
-    expect(bodyTwo).toBe(
-      "Second source text with more content but still under threshold.",
-    );
+    expect(bodyTwo).toBe("Second source text with more content but still under threshold.");
   });
 
   test("chunks a large source into multiple pseudo-pages with byte-exact body", async () => {
@@ -269,13 +264,7 @@ describe("normalizeTextMarkdown", () => {
     expect(source.quality).toBe("ok");
     expect(source.originalLength).toBe(text.length);
 
-    const sourceRoot = join(
-      runRoot,
-      "text-page-markdown-v1",
-      "sources",
-      "0001_big",
-      "pages",
-    );
+    const sourceRoot = join(runRoot, "text-page-markdown-v1", "sources", "0001_big", "pages");
     const pageDirs = (await readdir(sourceRoot)).sort();
     expect(pageDirs).toHaveLength(source.pageCount);
 
@@ -365,12 +354,8 @@ describe("normalizeTextMarkdown", () => {
       captureManifestPath,
       generatedAt: "2026-05-27T00:00:00.000Z",
     });
-    expect(audit.phase2CompatPlanPath).toBe(
-      join(runRoot, "text-ocr-plan-v1.json"),
-    );
-    expect(audit.phase2CompatAuditPath).toBe(
-      join(runRoot, "text-page-markdown-phase2-audit.json"),
-    );
+    expect(audit.phase2CompatPlanPath).toBe(join(runRoot, "text-ocr-plan-v1.json"));
+    expect(audit.phase2CompatAuditPath).toBe(join(runRoot, "text-page-markdown-phase2-audit.json"));
 
     const plan = (await Bun.file(audit.phase2CompatPlanPath).json()) as {
       runId: string;

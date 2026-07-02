@@ -1,6 +1,4 @@
 import { Cite } from "@/components/Cite";
-import { CommentBadge } from "@/components/CommentBadge";
-import { CommentMarker } from "@/components/CommentMarker";
 import { RouteBadge } from "@/components/RouteBadge";
 import { SearchField } from "@/components/SearchField";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -29,12 +27,6 @@ export function FoundationsDemo() {
         Inline claims carry citation numbers
         <Cite n={2} /> and keep color reserved for evidence state, not decoration.
       </p>
-      <div className="mt-3 flex items-center gap-3 text-[13px] leading-normal">
-        <CommentBadge count={3} />
-        <span>
-          Annotate disputed spans like <CommentMarker marker="a">4.2 mph</CommentMarker>.
-        </span>
-      </div>
     </div>
   );
 }

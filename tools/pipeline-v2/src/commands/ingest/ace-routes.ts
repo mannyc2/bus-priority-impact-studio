@@ -4,12 +4,8 @@ import { normalizeAceRouteRows } from "@bp/sources/adapters/mta/ace";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { defineCommand, z } from "@liche/core";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { fetchSoda3RowsForSource, type SocrataFetch, type SocrataRow } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
@@ -72,14 +68,18 @@ export default defineCommand({
   path: ["ingest", "ace-routes"],
   summary: "Fetch ACE/ABLE route implementation rows and replace the local table.",
   input: { options: dbOptions },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     routeCount: z.number(),
     aceCount: z.number(),
     ableCount: z.number(),
   }),
-  async run({ ctx }) {
-    return runAceRoutesIngest({ local: localDbFromCtx(ctx) });
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.ace-routes",
+      operation: "runAceRoutesIngest",
+      run: (local) => runAceRoutesIngest({ local }),
+    });
   },
 });

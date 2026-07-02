@@ -1,9 +1,7 @@
-import { useState } from "react";
-import { type CaptureSource, SendToBriefSheet } from "@/components/brief/SendToBriefSheet.js";
+import { useEffect, useMemo, useState } from "react";
 import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
 import { CorridorProfile } from "@/components/CorridorProfile";
-import { DataAsOf } from "@/components/DataAsOf";
 import { FilterChips } from "@/components/FilterChips";
 import { HourBars } from "@/components/HourBars";
 import { averageHourlySpeed } from "@/components/route/route-derived";
@@ -12,7 +10,9 @@ import {
   routeInsightPlacements,
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
+import { SegmentCarpet } from "@/components/route/SegmentCarpet";
 import { routeSectionQuestion } from "@/components/route/section-registry";
+import { buildSegmentCarpetModel } from "@/components/route/segment-carpet-data";
 import {
   type WhereWhenSummary,
   whereWhenSegmentBadge,
@@ -22,10 +22,12 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { SegmentRow, SegmentRowHeader } from "@/components/SegmentRow";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
 import { Badge } from "@/components/ui/badge";
+import { fetchStudioRouteSpeedHistory } from "@/studio/api-client";
 import type {
   RouteDossierSummaryForDetail,
   StudioRouteDetailResponse,
   StudioRouteInsight,
+  StudioRouteSpeedHistoryResponse,
   StudioSegment,
 } from "@/studio/api-contract";
 import { legacyToTreatments } from "@/studio/treatment-model";
@@ -33,6 +35,11 @@ import { legacyToTreatments } from "@/studio/treatment-model";
 type SegmentIdentity = {
   id: string;
 };
+
+type RouteSpeedHistoryState =
+  | { status: "loading"; data: null }
+  | { status: "ready"; data: StudioRouteSpeedHistoryResponse }
+  | { status: "unavailable"; data: null };
 
 export function prioritizeWhereWhenSegments<T extends SegmentIdentity>(
   insightSegments: readonly T[],
@@ -60,19 +67,19 @@ export function SlowSegmentsSection({
 }) {
   const [openId, setOpenId] = useState<string | null>(flaggedId ?? null);
   const [direction, setDirection] = useState<"all" | "NB" | "SB" | "EB" | "WB">("all");
-  const [sendSeg, setSendSeg] = useState<StudioSegment | null>(null);
   const hourProfile = averageHourlySpeed(route, segments);
   const summary = whereWhenSummary({ route, segments, dossier: dossier ?? null });
+  const speedHistory = useRouteSpeedHistory(route.slug);
+  const carpetModel = useMemo(
+    () => buildSegmentCarpetModel(speedHistory.data, segments),
+    [speedHistory.data, segments],
+  );
+  const carpetSource = carpetSourceLabel(
+    speedHistory,
+    carpetModel.months.length,
+    carpetModel.rows.length,
+  );
 
-  const capture: CaptureSource | null = sendSeg && {
-    routeSlug: route.slug,
-    routeLabel: route.label,
-    routeSbs: route.sbs,
-    dir: sendSeg.direction,
-    from: sendSeg.from,
-    to: sendSeg.to,
-    mph: sendSeg.speedMph,
-  };
   const mapInsights = routeInsightPlacements(insights).mapSegment;
   const segmentInsight = (segment: StudioSegment) =>
     mapInsights.find((insight) => insightTargetsSegment(insight, segment.id)) ?? null;
@@ -97,7 +104,6 @@ export function SlowSegmentsSection({
         sub={summary.sectionSubtitle}
         right={
           <div className="flex items-center gap-2">
-            <DataAsOf dataAsOf={summary.dataAsOf} />
             <FilterChips
               ariaLabel="Direction"
               value={direction}
@@ -128,6 +134,27 @@ export function SlowSegmentsSection({
           />
         </ChartFrame>
       </div>
+      <ChartFrame
+        title="Segment history"
+        height={320}
+        {...(carpetSource ? { source: carpetSource } : {})}
+        right={
+          <Badge variant={speedHistory.status === "ready" ? "neutral" : "warn"}>
+            {speedHistory.status === "ready"
+              ? (carpetModel.latestMonth ?? "ready")
+              : speedHistory.status}
+          </Badge>
+        }
+      >
+        {speedHistory.status === "loading" ? (
+          <div
+            className="h-[300px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"
+            aria-hidden
+          />
+        ) : (
+          <SegmentCarpet model={carpetModel} />
+        )}
+      </ChartFrame>
       {featured.length > 0 ? (
         <div className="grid grid-cols-3 gap-4 max-xl:grid-cols-1">
           {featured.map((segment, index) => (
@@ -139,7 +166,6 @@ export function SlowSegmentsSection({
               insight={segmentInsight(segment)}
               segmentBadge={whereWhenSegmentBadge({ segment, dossier: dossier ?? null })}
               index={index}
-              onSend={() => setSendSeg(segment)}
             />
           ))}
         </div>
@@ -189,15 +215,6 @@ export function SlowSegmentsSection({
                     </p>
                   </div>
                 ) : null}
-                <div className="flex justify-end px-3 py-1.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
-                  <button
-                    type="button"
-                    onClick={() => setSendSeg(segment)}
-                    className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--bp-color-accent)] hover:underline"
-                  >
-                    Send to brief
-                  </button>
-                </div>
               </div>
             );
           })}
@@ -206,9 +223,40 @@ export function SlowSegmentsSection({
       <div className="mt-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
         {visible.length} of {segments.length} segments shown.
       </div>
-      {capture ? <SendToBriefSheet source={capture} onClose={() => setSendSeg(null)} /> : null}
     </section>
   );
+}
+
+function useRouteSpeedHistory(routeSlug: string): RouteSpeedHistoryState {
+  const [state, setState] = useState<RouteSpeedHistoryState>({ status: "loading", data: null });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setState({ status: "loading", data: null });
+    fetchStudioRouteSpeedHistory(routeSlug, { signal: controller.signal })
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setState(data === null ? { status: "unavailable", data: null } : { status: "ready", data });
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setState({ status: "unavailable", data: null });
+      });
+
+    return () => controller.abort();
+  }, [routeSlug]);
+
+  return state;
+}
+
+function carpetSourceLabel(
+  state: RouteSpeedHistoryState,
+  monthCount: number,
+  segmentCount: number,
+): string | undefined {
+  if (state.status === "loading") return "Loading speed history.";
+  if (state.status === "unavailable") return "Speed history unavailable.";
+  return `${monthCount} months / ${segmentCount} segments`;
 }
 
 function WhereWhenSummaryCards({ summary }: { summary: WhereWhenSummary }) {
@@ -271,7 +319,6 @@ function SlowSegmentCard({
   insight,
   segmentBadge,
   index,
-  onSend,
 }: {
   route: StudioRouteDetailResponse["route"];
   segments: readonly StudioSegment[];
@@ -279,7 +326,6 @@ function SlowSegmentCard({
   insight: StudioRouteInsight | null;
   segmentBadge: string | null;
   index: number;
-  onSend: () => void;
 }) {
   const color =
     segment.speedMph < 5
@@ -344,14 +390,6 @@ function SlowSegmentCard({
       )}
 
       {insight ? <SegmentInsightNote insight={insight} compact /> : null}
-
-      <button
-        type="button"
-        onClick={onSend}
-        className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-ink-20)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)] hover:bg-[var(--bp-color-paper-deep)]"
-      >
-        Send to brief
-      </button>
     </article>
   );
 }

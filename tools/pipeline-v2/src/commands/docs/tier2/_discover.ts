@@ -5,28 +5,28 @@
 // from the core module; the core module never imports back here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
+  type CliOption,
   captureManifestPath,
   DEFAULT_BACKLOG_PATH,
+  type DiscoverCliArgs,
+  type DiscoverTier2DocsArgs,
+  type DiscoveryClassification,
   discoveredBacklogPath,
   discoveryPath,
+  type ExpectedContentType,
   latestDocsRunId,
+  type OcrHint,
   parseCliOptions,
   readBacklog,
   shortHash,
   stripHtmlToText,
-  type CliOption,
-  type DiscoverCliArgs,
-  type DiscoverTier2DocsArgs,
-  type DiscoveryClassification,
-  type ExpectedContentType,
-  type OcrHint,
   type Tier2Backlog,
   type Tier2BacklogSource,
-  type Tier2CaptureManifest,
   type Tier2CapturedSource,
+  type Tier2CaptureManifest,
   type Tier2DiscoveredSource,
   type Tier2DiscoveryArtifact,
   type Tier2ExcludedDiscoveryLink,

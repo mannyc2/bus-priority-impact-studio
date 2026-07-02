@@ -27,7 +27,7 @@ describe("POST /api/v1/rum web-vitals beacon", () => {
   });
 
   it("accepts a path-only report without logging metrics", async () => {
-    const response = await postRum({ path: "/findings" });
+    const response = await postRum({ path: "/interventions" });
 
     expect(response.status).toBe(204);
   });

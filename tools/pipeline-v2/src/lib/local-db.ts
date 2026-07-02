@@ -1,12 +1,12 @@
 import { Database } from "bun:sqlite";
 import { join } from "node:path";
-import { middleware, z } from "@liche/core";
 import {
   applyLocalPragmas,
   createLocalPipelineDb,
   type LocalPipelineDb,
   migrateLocalPipelineDb,
 } from "@bp/db/local";
+import { z } from "@liche/core";
 import { fromRepoRoot } from "./paths.ts";
 import { loadSpatialite } from "./spatialite.ts";
 
@@ -49,24 +49,4 @@ export async function openLocalPipelineDb(
   }
 
   return { db: createLocalPipelineDb(sqlite), sqlite, path: resolved, spatialite };
-}
-
-export const withLocalDb = (options: OpenLocalDbOptions = {}) =>
-  middleware(async (ctx, next) => {
-    const provided = typeof ctx.options["db"] === "string" ? ctx.options["db"] : undefined;
-    const local = await openLocalPipelineDb(provided, options);
-    ctx.set("localDb", local);
-    try {
-      await next();
-    } finally {
-      local.sqlite.close();
-    }
-  });
-
-export function localDbFromCtx(ctx: { var: Record<string, unknown> }): OpenLocalPipelineDb {
-  const local = ctx.var["localDb"];
-  if (!local) {
-    throw new Error("withLocalDb middleware not attached to this command");
-  }
-  return local as OpenLocalPipelineDb;
 }

@@ -1,4 +1,4 @@
-export type { ParsedParkingCameraLocation } from "@bp/applied-research/local-db";
+export type { ParsedParkingCameraLocation } from "@bp/pipeline-v2/local-db-aggregates";
 export {
   normalizeParkingStreetCode,
   numericHouseNumber,
@@ -8,4 +8,4 @@ export {
   parseParkingCameraLocation,
   stableMatchEvidenceHash,
   streetCorridorKey,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";

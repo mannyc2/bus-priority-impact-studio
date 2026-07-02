@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { routeSpeedSpineArtifactPath } from "@bp/applied-research/artifacts";
+import { routeSpeedSpineArtifactPath } from "@bp/analytics/artifacts";
 import {
   buildRouteSpeedSpineArtifact,
   type RouteSpeedSpineSourceRow,
-} from "@bp/applied-research/feature-history";
+} from "@bp/analytics/feature-history";
 
 function row(
   input: Partial<RouteSpeedSpineSourceRow> & {
@@ -151,9 +151,9 @@ describe("studio route speed spine", () => {
       "utf8",
     );
 
-    expect(source).toContain('from "@bp/applied-research/artifacts"');
-    expect(source).toContain('from "@bp/applied-research/feature-history"');
-    expect(source).toContain('from "@bp/applied-research/local-db"');
+    expect(source).toContain('from "@bp/analytics/artifacts"');
+    expect(source).toContain('from "@bp/analytics/feature-history"');
+    expect(source).toContain('from "@bp/pipeline-v2/local-db-aggregates"');
     expect(source).not.toContain("function buildNodes");
     expect(source).not.toContain("function buildSegments");
     expect(source).not.toContain("function buildMonthCoverage");

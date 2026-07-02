@@ -22,8 +22,7 @@ export function replaceObservedHeadwayRows(
 ): void {
   db.transaction((tx) => {
     tx.delete(localObservedHeadwaySample).where(eq(localObservedHeadwaySample.runId, runId)).run();
-    tx
-      .delete(localObservedVehicleStopEvent)
+    tx.delete(localObservedVehicleStopEvent)
       .where(eq(localObservedVehicleStopEvent.runId, runId))
       .run();
 
@@ -81,8 +80,7 @@ export function replaceRouteObservedReliabilityRows(
   }
 
   db.transaction((tx) => {
-    tx
-      .delete(localRouteObservedReliabilitySummary)
+    tx.delete(localRouteObservedReliabilitySummary)
       .where(
         and(
           eq(localRouteObservedReliabilitySummary.month, month),
@@ -90,8 +88,7 @@ export function replaceRouteObservedReliabilityRows(
         ),
       )
       .run();
-    tx
-      .delete(localRouteMonthSourceStatus)
+    tx.delete(localRouteMonthSourceStatus)
       .where(
         and(
           eq(localRouteMonthSourceStatus.month, month),

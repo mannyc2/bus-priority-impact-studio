@@ -17,10 +17,7 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const repoRoot = join(import.meta.dir, "../../..");
-const corpusDir = join(
-  repoRoot,
-  "data/artifacts/docs/gap-roadmap-docs-2026-05-25",
-);
+const corpusDir = join(repoRoot, "data/artifacts/docs/gap-roadmap-docs-2026-05-25");
 const inputPath = join(corpusDir, "intervention-records-text-v1.json");
 const outputPath = join(corpusDir, "intervention-records-text-v1-repaired.json");
 const reportPath = join(corpusDir, "intervention-records-text-v1-repair-report.json");
@@ -84,9 +81,10 @@ function isCoveredBy(b: StatusEntry, a: StatusEntry): boolean {
   return a.asOfDate === b.asOfDate;
 }
 
-function repairStatusHistory(
-  history: StatusEntry[] | undefined,
-): { repaired: StatusEntry[]; collapsedCount: number } {
+function repairStatusHistory(history: StatusEntry[] | undefined): {
+  repaired: StatusEntry[];
+  collapsedCount: number;
+} {
   if (!history || history.length === 0) {
     return { repaired: history ?? [], collapsedCount: 0 };
   }
@@ -107,8 +105,7 @@ function repairStatusHistory(
     .sort((left, right) => {
       const ds = dateSpecificity(right.entry.asOfDate) - dateSpecificity(left.entry.asOfDate);
       if (ds !== 0) return ds;
-      const er =
-        (right.entry.evidenceRefs?.length ?? 0) - (left.entry.evidenceRefs?.length ?? 0);
+      const er = (right.entry.evidenceRefs?.length ?? 0) - (left.entry.evidenceRefs?.length ?? 0);
       if (er !== 0) return er;
       return left.idx - right.idx;
     });

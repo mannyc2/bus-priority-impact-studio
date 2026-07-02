@@ -308,31 +308,126 @@ export const RelationCandidateSchema = BaseCandidateSchema.extend({
 
 const ExtractionLimitsSchema = z
   .object({
-    routeScopeCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.routeScopeCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.routeScopeCandidates),
-    dateStatusCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.dateStatusCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.dateStatusCandidates),
-    interventionTreatmentCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.interventionTreatmentCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.interventionTreatmentCandidates),
-    timelineEventCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.timelineEventCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.timelineEventCandidates),
-    metricClaimCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.metricClaimCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.metricClaimCandidates),
-    treatmentCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.treatmentCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.treatmentCandidates),
-    eventIdentityCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.eventIdentityCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.eventIdentityCandidates),
-    tableObservations: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.tableObservations).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.tableObservations),
-    claimCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.claimCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.claimCandidates),
-    sourceStatementCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.sourceStatementCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.sourceStatementCandidates),
-    sourceStatementClaims: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.sourceStatementClaims).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.sourceStatementClaims),
-    sourceGapCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.sourceGapCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.sourceGapCandidates),
-    costValueCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.costValueCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.costValueCandidates),
-    serviceDeliveryClaims: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.serviceDeliveryClaims).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.serviceDeliveryClaims),
-    ridershipDemandClaims: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.ridershipDemandClaims).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.ridershipDemandClaims),
-    geographicContextClaims: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.geographicContextClaims).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.geographicContextClaims),
-    relationCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.relationCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.relationCandidates),
-    totalCandidates: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.totalCandidates).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.totalCandidates),
+    routeScopeCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.routeScopeCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.routeScopeCandidates),
+    dateStatusCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.dateStatusCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.dateStatusCandidates),
+    interventionTreatmentCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.interventionTreatmentCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.interventionTreatmentCandidates),
+    timelineEventCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.timelineEventCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.timelineEventCandidates),
+    metricClaimCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.metricClaimCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.metricClaimCandidates),
+    treatmentCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.treatmentCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.treatmentCandidates),
+    eventIdentityCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.eventIdentityCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.eventIdentityCandidates),
+    tableObservations: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.tableObservations)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.tableObservations),
+    claimCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.claimCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.claimCandidates),
+    sourceStatementCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.sourceStatementCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.sourceStatementCandidates),
+    sourceStatementClaims: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.sourceStatementClaims)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.sourceStatementClaims),
+    sourceGapCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.sourceGapCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.sourceGapCandidates),
+    costValueCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.costValueCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.costValueCandidates),
+    serviceDeliveryClaims: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.serviceDeliveryClaims)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.serviceDeliveryClaims),
+    ridershipDemandClaims: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.ridershipDemandClaims)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.ridershipDemandClaims),
+    geographicContextClaims: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.geographicContextClaims)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.geographicContextClaims),
+    relationCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.relationCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.relationCandidates),
+    totalCandidates: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.totalCandidates)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.totalCandidates),
     fieldSupportRowsPerCandidate: z
       .number()
       .int()
       .min(1)
       .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.fieldSupportRowsPerCandidate)
       .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.fieldSupportRowsPerCandidate),
-    notesChars: z.number().int().min(0).max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.notesChars).default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.notesChars),
+    notesChars: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TIER2_FEATURE_EXTRACTION_LIMITS.notesChars)
+      .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS.notesChars),
   })
   .strict()
   .default(DEFAULT_TIER2_FEATURE_EXTRACTION_LIMITS);
@@ -431,7 +526,9 @@ export const Tier2FeatureExtractionToolResponseSchema = z
   .strict();
 
 export type Tier2FeatureExtractionRequest = z.output<typeof Tier2FeatureExtractionRequestSchema>;
-export type Tier2FeatureExtractionToolResponse = z.output<typeof Tier2FeatureExtractionToolResponseSchema>;
+export type Tier2FeatureExtractionToolResponse = z.output<
+  typeof Tier2FeatureExtractionToolResponseSchema
+>;
 export type FieldSupportSubmission = z.output<typeof FieldSupportSubmissionSchema>;
 
 export type FeatureFamilySection =
@@ -750,10 +847,9 @@ export function tier2FeatureExtractionTool(): {
   };
 }
 
-export function defaultTier2FeatureSmokeRequest(input: {
-  runId?: string;
-  generatedAt?: string;
-} = {}): Tier2FeatureExtractionRequest {
+export function defaultTier2FeatureSmokeRequest(
+  input: { runId?: string; generatedAt?: string } = {},
+): Tier2FeatureExtractionRequest {
   return {
     schemaVersion: 1,
     runId: input.runId ?? "tier2-feature-vnext-smoke",
@@ -779,7 +875,8 @@ export function defaultTier2FeatureSmokeRequest(input: {
         sourceId: "tier2_vnext_smoke_m15",
         pageNumber: 1,
         blockId: "B0002",
-        quoteText: "The project added offset bus lanes and transit signal priority on the M15 corridor.",
+        quoteText:
+          "The project added offset bus lanes and transit signal priority on the M15 corridor.",
       },
     ],
     lookupResults: [],

@@ -65,6 +65,15 @@ export type { RouteMonthFeature } from "./route-month.js";
 export { ROUTE_MONTH_FEATURE_GRAIN, routeMonthFeatureKey } from "./route-month.js";
 export type { SegmentDaypartFeature } from "./segment-daypart.js";
 export { SEGMENT_DAYPART_FEATURE_GRAIN, segmentDaypartFeatureKey } from "./segment-daypart.js";
+export type {
+  SegmentDaypartFeatureResolverResult,
+  SegmentDaypartFeatureResolverSummary,
+  SegmentDaypartSpeedSourceRow,
+} from "./segment-daypart-speed.js";
+export {
+  buildSegmentDaypartFeaturesFromSpeedRows,
+  segmentIdForSpeedRow,
+} from "./segment-daypart-speed.js";
 export type { RouteSegmentMonthFeature } from "./segment-month.js";
 export { ROUTE_SEGMENT_MONTH_FEATURE_GRAIN } from "./segment-month.js";
 export type { SourceCoverageFeature } from "./source-coverage.js";

@@ -1,10 +1,10 @@
 import type { Database } from "bun:sqlite";
-import { Database as BunDatabase } from "bun:sqlite";
 import { soqlIn } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import {
   createSoda3SourceClient,
@@ -647,36 +647,36 @@ export default defineCommand({
     failedRoutes: z.array(z.string()),
   }),
   async run({ input }) {
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
-    const sqlite = new BunDatabase(dbPath);
-    try {
-      return await runRouteSchedulesIngest({
-        sqlite,
-        sourceYear: input.options.sourceYear,
-        routes:
-          input.options.route === undefined
-            ? input.options.routes
-            : [...input.options.routes, input.options.route],
-        routeConcurrency: input.options.routeConcurrency,
-        routePageConcurrency: input.options.routePageConcurrency,
-        pageSize: input.options.pageSize,
-        fetchTimeoutMs: input.options.fetchTimeoutMs,
-        fetchRetryCount: input.options.fetchRetryCount,
-        progress: input.options.logProgress
-          ? (event) => {
-              console.error(
-                JSON.stringify({
-                  event: "route_schedules_ingest_progress",
-                  ...event,
-                }),
-              );
-            }
-          : undefined,
-        skipExisting: input.options.skipExisting,
-      });
-    } finally {
-      sqlite.close();
-    }
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
+    return runLocalDbCommandBoundary({
+      dbPath,
+      command: "ingest.route-schedules",
+      operation: "runRouteSchedulesIngest",
+      run: async (local) =>
+        runRouteSchedulesIngest({
+          sqlite: local.sqlite,
+          sourceYear: input.options.sourceYear,
+          routes:
+            input.options.route === undefined
+              ? input.options.routes
+              : [...input.options.routes, input.options.route],
+          routeConcurrency: input.options.routeConcurrency,
+          routePageConcurrency: input.options.routePageConcurrency,
+          pageSize: input.options.pageSize,
+          fetchTimeoutMs: input.options.fetchTimeoutMs,
+          fetchRetryCount: input.options.fetchRetryCount,
+          progress: input.options.logProgress
+            ? (event) => {
+                console.error(
+                  JSON.stringify({
+                    event: "route_schedules_ingest_progress",
+                    ...event,
+                  }),
+                );
+              }
+            : undefined,
+          skipExisting: input.options.skipExisting,
+        }),
+    });
   },
 });

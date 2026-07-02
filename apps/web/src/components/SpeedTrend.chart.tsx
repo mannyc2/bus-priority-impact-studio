@@ -59,13 +59,7 @@ export function SpeedTrendChart({
           </linearGradient>
         </defs>
         <CartesianGrid vertical={false} />
-        <XAxis
-          dataKey="period"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          interval={1}
-        />
+        <XAxis dataKey="period" tickLine={false} axisLine={false} tickMargin={8} interval={1} />
         <YAxis
           domain={[lo, hi]}
           width={34}

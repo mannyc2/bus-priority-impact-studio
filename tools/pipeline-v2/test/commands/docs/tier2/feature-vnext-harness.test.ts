@@ -1,38 +1,28 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { runTier2FeatureCanary } from "../../../../src/commands/docs/tier2/feature-harness/canary-runner.ts";
 import {
   defaultTier2FeatureSmokeRequest,
   TIER2_FEATURE_EXTRACTION_TOOL_NAME,
   type Tier2FeatureExtractionRequest,
 } from "../../../../src/commands/docs/tier2/feature-harness/contract.ts";
-import {
-  evaluateTier2FeaturePromotionGate,
-} from "../../../../src/commands/docs/tier2/feature-harness/promotion-gate.ts";
+import { evaluateTier2FeaturePromotionGate } from "../../../../src/commands/docs/tier2/feature-harness/promotion-gate.ts";
 import {
   evaluateTier2FeatureQueueManifestGate,
   type Tier2FeatureQueueManifest,
 } from "../../../../src/commands/docs/tier2/feature-harness/queue-manifest.ts";
-import {
-  runTier2FeatureExtractionVNext,
-} from "../../../../src/commands/docs/tier2/feature-harness/runner.ts";
-import {
-  runTier2FeatureCanary,
-} from "../../../../src/commands/docs/tier2/feature-harness/canary-runner.ts";
-import {
-  validateTier2FeatureExtractionSubmission,
-} from "../../../../src/commands/docs/tier2/feature-harness/validator.ts";
-import {
-  runTier2FeatureProofLedgerFromVNext,
-  vNextArtifactToProofCandidates,
-} from "../../../../src/commands/docs/tier2/feature-harness/vnext-proof-adapter.ts";
-import {
-  runTier2FeatureProofLedgerVocabResolver,
-} from "../../../../src/commands/docs/tier2/feature-harness/vocab-resolver.ts";
+import { runTier2FeatureExtractionVNext } from "../../../../src/commands/docs/tier2/feature-harness/runner.ts";
 import type {
   FeatureProofCandidate,
   Tier2FeatureProofLedgerArtifact,
 } from "../../../../src/commands/docs/tier2/feature-harness/types.ts";
+import { validateTier2FeatureExtractionSubmission } from "../../../../src/commands/docs/tier2/feature-harness/validator.ts";
+import {
+  runTier2FeatureProofLedgerFromVNext,
+  vNextArtifactToProofCandidates,
+} from "../../../../src/commands/docs/tier2/feature-harness/vnext-proof-adapter.ts";
+import { runTier2FeatureProofLedgerVocabResolver } from "../../../../src/commands/docs/tier2/feature-harness/vocab-resolver.ts";
 import { writeJson } from "../../../../src/lib/json.ts";
 
 const workingRoot = join(process.cwd(), "test", ".tmp-feature-vnext-harness");
@@ -65,7 +55,9 @@ describe("Tier 2 feature harness vNext", () => {
     });
 
     expect(validation.toolShapeValid).toBe(false);
-    expect(validation.validationErrors.map((error) => error.code)).toContain("unknown_category_key");
+    expect(validation.validationErrors.map((error) => error.code)).toContain(
+      "unknown_category_key",
+    );
   });
 
   test("returns retryable metric validation errors for missing value and proof", () => {
@@ -273,7 +265,9 @@ describe("Tier 2 feature harness vNext", () => {
     });
 
     expect(weakCostValidation.acceptedCandidateCount).toBe(0);
-    expect(weakCostValidation.validationErrors.map((error) => error.code)).toEqual(["cost_not_monetary"]);
+    expect(weakCostValidation.validationErrors.map((error) => error.code)).toEqual([
+      "cost_not_monetary",
+    ]);
     expect(validation.acceptedCandidateCount).toBe(1);
     expect(validation.validationErrors.map((error) => error.code)).toEqual([
       "cost_multiple_amounts",
@@ -302,16 +296,28 @@ describe("Tier 2 feature harness vNext", () => {
 
     expect(adapterResult.acceptedCandidateCount).toBe(2);
     expect(adapterResult.proofCandidates).toHaveLength(8);
-    expect(adapterResult.proofCandidates.every((candidate) => candidate.proofState === "resolver_missing")).toBe(true);
-    expect(adapterResult.proofCandidates.every((candidate) => !candidate.promotionEligibility.publicFeature)).toBe(true);
+    expect(
+      adapterResult.proofCandidates.every(
+        (candidate) => candidate.proofState === "resolver_missing",
+      ),
+    ).toBe(true);
+    expect(
+      adapterResult.proofCandidates.every(
+        (candidate) => !candidate.promotionEligibility.publicFeature,
+      ),
+    ).toBe(true);
 
-    const metricValue = adapterResult.proofCandidates.find((candidate) => candidate.keyId === "metricValue");
+    const metricValue = adapterResult.proofCandidates.find(
+      (candidate) => candidate.keyId === "metricValue",
+    );
     expect(metricValue?.featureFamily).toBe("metric_claim");
     expect(metricValue?.evidence.fieldSupportFound).toBe(true);
     expect(metricValue?.evidence.verifierStates).toEqual(["verified"]);
     expect(metricValue?.evidence.evidencePointerIds[0]?.startsWith("vnext-pointer:")).toBe(true);
     expect(metricValue?.metricCompleteness?.value.proofState).toBe("verified");
-    expect(metricValue?.validationErrors.map((error) => error.code)).toEqual(["canonical_resolver_missing"]);
+    expect(metricValue?.validationErrors.map((error) => error.code)).toEqual([
+      "canonical_resolver_missing",
+    ]);
   });
 
   test("proof ledger defaults to strict final-accepted artifacts and requires explicit salvage mode", async () => {
@@ -371,7 +377,9 @@ describe("Tier 2 feature harness vNext", () => {
     expect(strictLedger.artifact.sourceFeatureExtractionInputMode).toBe("strict_final_accepted");
     expect(strictLedger.artifact.summary.normalizedSurfaceCount).toBe(0);
     expect(strictLedger.artifact.summary.fieldCandidateCount).toBe(0);
-    expect(salvageLedger.artifact.sourceFeatureExtractionInputMode).toBe("salvage_accepted_candidates");
+    expect(salvageLedger.artifact.sourceFeatureExtractionInputMode).toBe(
+      "salvage_accepted_candidates",
+    );
     expect(salvageLedger.artifact.summary.normalizedSurfaceCount).toBe(2);
     expect(salvageLedger.artifact.summary.fieldCandidateCount).toBe(8);
   });
@@ -460,7 +468,9 @@ describe("Tier 2 feature harness vNext", () => {
     });
     expect(result.artifact.summary.publishableFieldWithoutProofCount).toBe(0);
 
-    const metricFamily = result.artifact.candidates.find((candidate) => candidate.keyId === "metricFamily");
+    const metricFamily = result.artifact.candidates.find(
+      (candidate) => candidate.keyId === "metricFamily",
+    );
     expect(metricFamily).toMatchObject({
       role: "canonical_field",
       proofState: "verified",
@@ -472,7 +482,9 @@ describe("Tier 2 feature harness vNext", () => {
     expect(metricFamily?.promotionEligibility.publicFeature).toBe(true);
     expect(metricFamily?.validationErrors).toEqual([]);
 
-    const treatmentFamily = result.artifact.candidates.find((candidate) => candidate.keyId === "eventTreatmentFamily");
+    const treatmentFamily = result.artifact.candidates.find(
+      (candidate) => candidate.keyId === "eventTreatmentFamily",
+    );
     expect(treatmentFamily).toMatchObject({
       proofState: "verified",
       canonicalLeafId: "offset_bus_lane",
@@ -484,7 +496,9 @@ describe("Tier 2 feature harness vNext", () => {
     );
     expect(metricValue?.proofState).toBe("verified");
     expect(metricValue?.canonicalLeafId?.startsWith("source_local:metricValue:")).toBe(true);
-    expect(metricValue?.targetPayloadPath).toBe("sourcePayload.vnext.metricClaimCandidates.valueRaw");
+    expect(metricValue?.targetPayloadPath).toBe(
+      "sourcePayload.vnext.metricClaimCandidates.valueRaw",
+    );
     expect(metricValue?.promotionEligibility.publicFeature).toBe(true);
 
     const gate = evaluateTier2FeaturePromotionGate({
@@ -525,7 +539,9 @@ describe("Tier 2 feature harness vNext", () => {
       generatedAt: "2026-06-07T00:00:00.000Z",
     });
 
-    const metricFamily = result.artifact.candidates.find((candidate) => candidate.keyId === "metricFamily");
+    const metricFamily = result.artifact.candidates.find(
+      (candidate) => candidate.keyId === "metricFamily",
+    );
     expect(result.stats.ambiguousCandidateCount).toBe(1);
     expect(metricFamily?.proofState).toBe("resolver_missing");
     expect(metricFamily?.canonicalLeafId).toBeNull();
@@ -563,7 +579,9 @@ describe("Tier 2 feature harness vNext", () => {
       generatedAt: "2026-06-07T00:00:00.000Z",
     });
 
-    const metricFamily = result.artifact.candidates.find((candidate) => candidate.keyId === "metricFamily");
+    const metricFamily = result.artifact.candidates.find(
+      (candidate) => candidate.keyId === "metricFamily",
+    );
     expect(metricFamily).toMatchObject({
       proofState: "resolver_missing",
       canonicalLeafId: "average_daily_ridership_non_nyc",
@@ -613,7 +631,9 @@ describe("Tier 2 feature harness vNext", () => {
     expect(result.artifact.summary.usage.totalTokens).toBe(40);
     expect(result.artifact.checks.every((check) => check.passed)).toBe(true);
     expect(await Bun.file(result.artifact.summary.proofLedgerPath).exists()).toBe(true);
-    expect(await Bun.file(result.artifact.summary.resolvedProofLedgerPath ?? "").exists()).toBe(true);
+    expect(await Bun.file(result.artifact.summary.resolvedProofLedgerPath ?? "").exists()).toBe(
+      true,
+    );
     expect(await Bun.file(result.artifact.summary.promotionGatePath).exists()).toBe(true);
   });
 
@@ -642,7 +662,10 @@ describe("Tier 2 feature harness vNext", () => {
   test("promotion gate allows only verified promoted candidates", () => {
     const verifiedCandidate = proofCandidate({ proofState: "verified", publicFeature: true });
     const goodGate = evaluateTier2FeaturePromotionGate({
-      ledger: ledgerFixture({ candidates: [verifiedCandidate], publishableFieldWithoutProofCount: 0 }),
+      ledger: ledgerFixture({
+        candidates: [verifiedCandidate],
+        publishableFieldWithoutProofCount: 0,
+      }),
       sourceLedgerPath: "feature-proof-ledger.json",
       generatedAt: "2026-06-07T00:00:00.000Z",
     });
@@ -666,7 +689,10 @@ describe("Tier 2 feature harness vNext", () => {
       canonicalLeafLabel: null,
     };
     const unresolvedGate = evaluateTier2FeaturePromotionGate({
-      ledger: ledgerFixture({ candidates: [unresolvedPromoted], publishableFieldWithoutProofCount: 0 }),
+      ledger: ledgerFixture({
+        candidates: [unresolvedPromoted],
+        publishableFieldWithoutProofCount: 0,
+      }),
       sourceLedgerPath: "feature-proof-ledger.json",
       generatedAt: "2026-06-07T00:00:00.000Z",
     });
@@ -730,7 +756,8 @@ function acceptedSubmission() {
     ],
     treatmentCandidates: [
       {
-        rawText: "The project added offset bus lanes and transit signal priority on the M15 corridor.",
+        rawText:
+          "The project added offset bus lanes and transit signal priority on the M15 corridor.",
         displayLabel: "M15 bus treatments",
         treatmentTextRaw: "offset bus lanes and transit signal priority",
         routeTextRaw: "M15 corridor",
@@ -746,10 +773,13 @@ function acceptedSubmission() {
 
 function acceptedSubmissionForResolver() {
   const submission = acceptedSubmission() as ReturnType<typeof acceptedSubmission> & {
-    treatmentCandidates: Array<Record<string, unknown> & { evidenceByField: Record<string, string[]> }>;
+    treatmentCandidates: Array<
+      Record<string, unknown> & { evidenceByField: Record<string, string[]> }
+    >;
   };
   const treatment = submission.treatmentCandidates[0];
-  if (treatment === undefined) throw new Error("Resolver fixture expected one treatment candidate.");
+  if (treatment === undefined)
+    throw new Error("Resolver fixture expected one treatment candidate.");
   submission.treatmentCandidates[0] = {
     ...treatment,
     treatmentFamilyRaw: "offset_bus_lane",
@@ -799,10 +829,9 @@ function agenticRequestFixture(input: { runId: string }) {
   };
 }
 
-function fixtureVocabApplication(input: {
-  ambiguousMetricFamily?: boolean;
-  unsafeMetricFamily?: boolean;
-} = {}) {
+function fixtureVocabApplication(
+  input: { ambiguousMetricFamily?: boolean; unsafeMetricFamily?: boolean } = {},
+) {
   return {
     artifactKind: "bp.tier2_vocab_surface_application.v1",
     schemaVersion: 1,
@@ -1026,9 +1055,15 @@ function ledgerFixture(input: {
       fieldCandidateCount: input.candidates.length,
       canonicalFieldCandidateCount: input.candidates.length,
       unresolvedFieldCandidateCount: 0,
-      verifiedFieldCount: input.candidates.filter((candidate) => candidate.proofState === "verified").length,
-      blockedFieldCount: input.candidates.filter((candidate) => candidate.validationErrors.length > 0).length,
-      publishableFieldCount: input.candidates.filter((candidate) => candidate.promotionEligibility.publicFeature).length,
+      verifiedFieldCount: input.candidates.filter(
+        (candidate) => candidate.proofState === "verified",
+      ).length,
+      blockedFieldCount: input.candidates.filter(
+        (candidate) => candidate.validationErrors.length > 0,
+      ).length,
+      publishableFieldCount: input.candidates.filter(
+        (candidate) => candidate.promotionEligibility.publicFeature,
+      ).length,
       publishableFieldWithoutProofCount: input.publishableFieldWithoutProofCount,
       validationErrorCount: input.candidates.reduce(
         (sum, candidate) => sum + candidate.validationErrors.length,

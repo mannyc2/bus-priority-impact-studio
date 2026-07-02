@@ -53,7 +53,11 @@ export function HourBarsChart({ data, sched, height = 200, min, max, legend }: H
   return (
     <div className="flex flex-col gap-1">
       <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
-        <BarChart accessibilityLayer data={rows} margin={{ top: 12, right: 12, bottom: 4, left: 0 }}>
+        <BarChart
+          accessibilityLayer
+          data={rows}
+          margin={{ top: 12, right: 12, bottom: 4, left: 0 }}
+        >
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey="hour"

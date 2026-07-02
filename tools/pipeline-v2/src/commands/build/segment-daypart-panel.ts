@@ -1,14 +1,16 @@
-import { Database as BunDatabase } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
-import { segmentDaypartPanelArtifactPath } from "@bp/applied-research/artifacts";
-import { buildSegmentDaypartPanelArtifact } from "@bp/applied-research/feature-history";
-import { SEGMENT_DAYPART_PANEL_V1_ID } from "@bp/applied-research/feature-resolvers";
-import { loadSegmentDaypartHistoryLocalDbRows } from "@bp/applied-research/local-db";
+import { segmentDaypartPanelArtifactPath } from "@bp/analytics/artifacts";
+import {
+  buildSegmentDaypartPanelArtifact,
+  SEGMENT_DAYPART_PANEL_V1_ID,
+} from "@bp/analytics/feature-history";
+import { loadSegmentDaypartHistoryLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
 function repoDisplayPath(path: string): string {
@@ -17,11 +19,11 @@ function repoDisplayPath(path: string): string {
   return relativePath.startsWith("..") ? path : relativePath;
 }
 
-export { segmentDaypartPanelArtifactPath } from "@bp/applied-research/artifacts";
+export { segmentDaypartPanelArtifactPath } from "@bp/analytics/artifacts";
 
 export default defineCommand({
   path: ["build", "segment-daypart-panel"],
-  summary: "Build the applied-research segment/daypart/month panel artifact.",
+  summary: "Build the segment/daypart/month panel artifact.",
   input: {
     options: dbOptions.extend({
       startYear: arg.positiveInt().default(2023),
@@ -54,38 +56,48 @@ export default defineCommand({
       input.options.output === undefined
         ? segmentDaypartPanelArtifactPath({ artifactRoot, startMonth, releaseMonth })
         : fromCliPath(input.options.output);
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
-    const sqlite = new BunDatabase(dbPath, { readonly: true });
-    try {
-      sqlite.exec("PRAGMA busy_timeout = 5000");
-      const rows = loadSegmentDaypartHistoryLocalDbRows({ sqlite, startMonth, endMonth });
-      const artifact = buildSegmentDaypartPanelArtifact({
-        rows,
-        spec: {
-          panelId: SEGMENT_DAYPART_PANEL_V1_ID,
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
+    return runLocalDbCommandBoundary({
+      dbPath,
+      localDbOptions: { readonly: true },
+      command: "build.segment-daypart-panel",
+      operation: "buildSegmentDaypartPanelArtifact",
+      spanAttributes: {
+        startMonth,
+        endMonth,
+        minObservationCount: input.options.minObservationCount,
+      },
+      run: async (local) => {
+        const rows = loadSegmentDaypartHistoryLocalDbRows({
+          sqlite: local.sqlite,
           startMonth,
           endMonth,
-          minObservationCount: input.options.minObservationCount,
-        },
-        releaseMonth,
-        generatedAt: new Date().toISOString(),
-        dbPath: repoDisplayPath(dbPath),
-        artifactPath: repoDisplayPath(outputPath),
-      });
-      await mkdir(dirname(outputPath), { recursive: true });
-      await writeJson(outputPath, artifact);
-      return {
-        releaseMonth,
-        outputPath: repoDisplayPath(outputPath),
-        panelRowCount: artifact.summary.panelRowCount,
-        eligiblePanelRowCount: artifact.summary.eligiblePanelRowCount,
-        releaseMonthRowCount: artifact.summary.releaseMonthRowCount,
-        routeCount: artifact.summary.routeCount,
-        monthCount: artifact.window.monthCount,
-      };
-    } finally {
-      sqlite.close();
-    }
+        });
+        const artifact = buildSegmentDaypartPanelArtifact({
+          rows,
+          spec: {
+            panelId: SEGMENT_DAYPART_PANEL_V1_ID,
+            startMonth,
+            endMonth,
+            minObservationCount: input.options.minObservationCount,
+          },
+          releaseMonth,
+          generatedAt: new Date().toISOString(),
+          dbPath: repoDisplayPath(local.path),
+          artifactPath: repoDisplayPath(outputPath),
+        });
+        await mkdir(dirname(outputPath), { recursive: true });
+        await writeJson(outputPath, artifact);
+        return {
+          releaseMonth,
+          outputPath: repoDisplayPath(outputPath),
+          panelRowCount: artifact.summary.panelRowCount,
+          eligiblePanelRowCount: artifact.summary.eligiblePanelRowCount,
+          releaseMonthRowCount: artifact.summary.releaseMonthRowCount,
+          routeCount: artifact.summary.routeCount,
+          monthCount: artifact.window.monthCount,
+        };
+      },
+    });
   },
 });

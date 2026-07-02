@@ -6,9 +6,8 @@ import { Spark } from "@/components/Spark";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { StudioRoute } from "../api-contract.js";
 
-// home.tsx — the studio's public front door, in the editorial voice of the
-// public-facing finding-detail and route pages: hero → big stats → narrative
-// cards → trust strip. Implements the "home-public" Claude Design handoff.
+// home.tsx - the studio's public front door: hero -> big stats -> narrative
+// route cards -> route index -> trust strip.
 //
 // Editorial copy and the citywide topline numbers are static civic framing;
 // the "Browse the full index" table, its borough filter, the featured-story
@@ -16,7 +15,6 @@ import type { StudioRoute } from "../api-contract.js";
 // (the same /api/v1/studio/routes feed the loader already provides), shown as
 // a preview of the full 327-route directory.
 
-const LAST_REFRESH = "May 12, 2026";
 const CITYWIDE_ROUTE_COUNT = 327;
 // The homepage index is a preview of the full directory (the design shows ~10
 // rows with a "browse all" affordance), sorted by daily ridership.
@@ -48,6 +46,16 @@ const boroughStripe: Record<string, string> = {
 
 function formatRiders(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return value;
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 // Direction of travel, read off the route's 12-month speed trend.
@@ -245,13 +253,12 @@ function FeaturedCard({ item, slug }: { item: Featured; slug: string | undefined
             Read the full story →
           </Link>
         ) : (
-          <Link
-            to="/routes"
-            viewTransition
+          <a
+            href="#route-index"
             className="mt-1 flex items-center gap-1 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
           >
-            Read the full story →
-          </Link>
+            Find it in the index &rarr;
+          </a>
         )}
       </div>
     </div>
@@ -269,32 +276,17 @@ function FeaturedStat({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-function RoleCard({ role, body, links }: { role: string; body: string; links: readonly string[] }) {
-  return (
-    <div className="flex min-h-[200px] flex-col gap-3 rounded-[4px] bg-[var(--bp-color-card)] px-6 pb-5.5 pt-6 shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
-      <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--bp-color-accent)]">
-        {role}
-      </div>
-      <div className="flex-1 text-pretty text-[13.5px] leading-[1.6] text-[var(--bp-color-ink-70)]">
-        {body}
-      </div>
-      <div className="mt-1 flex flex-col gap-1.5">
-        {links.map((l) => (
-          <div key={l} className="flex items-center gap-1.5 text-[12.5px] font-medium">
-            <span className="text-[var(--bp-color-accent)]">→</span>
-            {l}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────
 // HomePage
 // ─────────────────────────────────────────────────────────────
 
-export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
+export function HomePage({
+  generatedAt,
+  routes,
+}: {
+  generatedAt: string;
+  routes: readonly StudioRoute[];
+}) {
   const navigate = useNavigate();
   const [borough, setBorough] = useState("All boroughs");
 
@@ -344,6 +336,7 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
   const previewRoutes = filteredRoutes.slice(0, INDEX_PREVIEW_LIMIT);
 
   const heroChips = byRidership.slice(0, 5);
+  const generatedLabel = formatDate(generatedAt);
 
   return (
     <main className="min-h-full bg-[var(--bp-color-paper)]">
@@ -365,23 +358,22 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
               data.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3.5">
-              <Link
-                to="/routes"
-                viewTransition
+              <a
+                href="#route-index"
                 className="inline-flex h-11 items-center justify-center rounded-[3px] border border-[var(--bp-color-ink)] bg-[var(--bp-color-ink)] px-4.5 text-[13.5px] font-medium text-[var(--bp-color-paper)] no-underline transition-colors hover:bg-[var(--bp-color-ink)]/90"
               >
-                Browse all {CITYWIDE_ROUTE_COUNT} routes →
-              </Link>
+                Browse all {CITYWIDE_ROUTE_COUNT} routes &rarr;
+              </a>
               <Link
-                to="/findings"
+                to="/interventions"
                 viewTransition
                 className="inline-flex h-11 items-center justify-center rounded-[3px] border border-[var(--bp-color-ink-20)] bg-transparent px-4.5 text-[13.5px] font-medium text-[var(--bp-color-ink)] no-underline transition-colors hover:bg-[var(--bp-color-ink-06)]"
               >
-                Read this month's findings
+                Browse interventions
               </Link>
               <span className="flex-1" />
               <span className="font-mono text-[12px] text-[var(--bp-color-ink-55)]">
-                updated weekly · last refresh {LAST_REFRESH}
+                route feed generated {generatedLabel}
               </span>
             </div>
           </div>
@@ -395,7 +387,6 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
               placeholder="Route number, street, or borough…"
               suggestions={heroSuggestions}
               onSelect={(slug) => navigate({ to: "/routes/$routeId", params: { routeId: slug } })}
-              onSubmitQuery={(q) => navigate({ to: "/search", search: { q } })}
             />
             <div className="mb-2 mt-3 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-55)]">
               Try one of these:
@@ -457,14 +448,14 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
         <SectionHeader
           kicker="In focus this month"
           title="Three routes telling three different stories."
-          sub="Each of these has been reviewed by a studio analyst and reads as a self-contained finding. Each links to the route's full page with charts, segments, and methodology."
+          sub="Each links to a route page with charts, segments, intervention history, and methodology."
           right={
             <Link
-              to="/findings"
+              to="/interventions"
               viewTransition
               className="whitespace-nowrap text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
             >
-              See all 14 findings →
+              See intervention timeline &rarr;
             </Link>
           }
         />
@@ -480,7 +471,10 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
       </section>
 
       {/* ── BROWSE THE FULL INDEX ────────────────────────────── */}
-      <section className="mx-auto max-w-[1180px] px-9 pb-3 pt-[72px] max-sm:px-4 max-sm:pt-12">
+      <section
+        id="route-index"
+        className="mx-auto max-w-[1180px] scroll-mt-20 px-9 pb-3 pt-[72px] max-sm:px-4 max-sm:pt-12"
+      >
         <SectionHeader
           kicker="Every route"
           title="Browse the full index."
@@ -565,303 +559,11 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
             </span>
             <span className="flex-1" />
             <Link
-              to="/routes"
-              viewTransition
+              to="/methods"
               className="font-semibold text-[var(--bp-color-accent)] no-underline"
             >
-              Browse all routes →
+              How this index is built &rarr;
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW TO USE THIS SITE ─────────────────────────────── */}
-      <section className="mx-auto max-w-[1180px] px-9 pb-3 pt-[72px] max-sm:px-4 max-sm:pt-12">
-        <SectionHeader
-          kicker="How to use this site"
-          title="The same data, three different entry points."
-        />
-        <div className="grid grid-cols-3 gap-4.5 max-lg:grid-cols-1">
-          <RoleCard
-            role="If you ride the bus"
-            body="Look up your route. Each route page tells you how fast it's moving now, how that compares to what the schedule promises, and where on the line the worst slowdowns happen."
-            links={[
-              "Find your route",
-              "Browse routes by borough",
-              "See what's changing this month",
-            ]}
-          />
-          <RoleCard
-            role="If you cover transit"
-            body="Every page on this site is built to be cited. Findings have an analyst byline, sourced data, and an audit trail. Charts are downloadable; underlying data is published as CSV."
-            links={["This month's findings", "Methodology in full", "Download data"]}
-          />
-          <RoleCard
-            role="If you work in city government"
-            body="The data is the same one your agencies publish — we've just made it route-shaped and comparable. Each route page identifies the segments where time is being lost, and the interventions already in place."
-            links={[
-              "Compare routes side-by-side",
-              "Intervention timelines",
-              "Get in touch about a brief",
-            ]}
-          />
-        </div>
-      </section>
-
-      {/* ── COLOPHON / ABOUT THE STUDIO ──────────────────────── */}
-      <section className="mt-16 bg-[var(--bp-color-ink)] text-[var(--bp-color-paper)]">
-        <div className="mx-auto max-w-[1180px] px-9 pb-14 pt-16 max-sm:px-4">
-          {/* Header band */}
-          <div
-            className="mb-12 grid grid-cols-2 items-end gap-14 pb-8 max-md:grid-cols-1 max-md:gap-6"
-            style={{ borderBottom: "1px solid rgba(244,241,234,.18)" }}
-          >
-            <div>
-              <div
-                className="mb-3.5 text-[11px] font-semibold uppercase tracking-[0.16em]"
-                style={{ color: "rgba(244,241,234,.55)" }}
-              >
-                Colophon
-              </div>
-              <div className="max-w-[540px] text-balance text-[38px] font-semibold leading-[1.1] tracking-[-0.025em] max-sm:text-[28px]">
-                Built in the open, reviewed by name, updated weekly.
-              </div>
-            </div>
-            <div
-              className="max-w-[480px] text-pretty text-[15px] leading-[1.6]"
-              style={{ color: "rgba(244,241,234,.72)" }}
-            >
-              The Bus Priority Impact Studio is an independent civic-data project staffed by four
-              named analysts. Everything we publish goes through editorial review before it appears
-              on this site. The data underneath is public; the methodology is open; the people are
-              accountable.
-            </div>
-          </div>
-
-          {/* Project-level stats */}
-          <div className="mb-14 grid grid-cols-4 gap-6 max-lg:grid-cols-2 max-sm:grid-cols-1">
-            {[
-              {
-                v: "142",
-                l: "Findings published since launch",
-                s: "All reviewed by a named analyst.",
-              },
-              {
-                v: "327",
-                l: "Routes covered by at least one brief",
-                s: "Every MTA local and Select Bus route.",
-              },
-              { v: "4", l: "Analysts on staff", s: "Disclosure of priors in each byline." },
-              {
-                v: "6",
-                l: "Public datasets ingested weekly",
-                s: "MTA Open Data + NYC DOT GIS feeds.",
-              },
-            ].map((k) => (
-              <div key={k.v}>
-                <div className="font-mono text-[48px] font-semibold tabular-nums leading-none tracking-[-0.03em]">
-                  {k.v}
-                </div>
-                <div className="mt-3 max-w-[230px] text-[13px] font-semibold leading-[1.35]">
-                  {k.l}
-                </div>
-                <div
-                  className="mt-1.5 max-w-[230px] text-[11.5px] leading-[1.5]"
-                  style={{ color: "rgba(244,241,234,.55)" }}
-                >
-                  {k.s}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Standards + Team */}
-          <div className="mb-14 grid grid-cols-[1.3fr_1fr] gap-14 max-lg:grid-cols-1 max-lg:gap-10">
-            <div>
-              <div
-                className="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em]"
-                style={{ color: "rgba(244,241,234,.55)" }}
-              >
-                Editorial standards
-              </div>
-              <ol className="m-0 flex list-none flex-col gap-4 p-0">
-                {[
-                  {
-                    n: "01",
-                    t: "Every finding is signed.",
-                    b: "A named analyst takes responsibility for every claim. Bylines link to the analyst's page, including prior employers and any disclosed conflicts of interest.",
-                  },
-                  {
-                    n: "02",
-                    t: "Every claim traces to data.",
-                    b: "Citations in the body of a brief link directly to the row, segment, or aggregate they came from. Numbers we cannot defend, we do not publish.",
-                  },
-                  {
-                    n: "03",
-                    t: "Mistakes get corrected in 48 hrs.",
-                    b: "Errors are flagged at the top of the affected page until repaired, then logged in our public corrections record. We have never quietly edited a published finding.",
-                  },
-                  {
-                    n: "04",
-                    t: "No commercial work.",
-                    b: "We do not take money from agencies, advocacy groups, or operators. The studio is supported by a single donor-advised fund, disclosed on our about page.",
-                  },
-                ].map((row) => (
-                  <li
-                    key={row.n}
-                    className="grid grid-cols-[40px_1fr] gap-4.5 pb-4"
-                    style={{ boxShadow: "inset 0 -1px 0 rgba(244,241,234,.12)" }}
-                  >
-                    <span
-                      className="pt-0.5 font-mono text-[12px] font-bold tracking-[0.06em]"
-                      style={{ color: "rgba(244,241,234,.45)" }}
-                    >
-                      {row.n}
-                    </span>
-                    <div>
-                      <div className="mb-1.5 text-[15px] font-semibold tracking-[-0.01em]">
-                        {row.t}
-                      </div>
-                      <div
-                        className="text-pretty text-[12.5px] leading-[1.6]"
-                        style={{ color: "rgba(244,241,234,.7)" }}
-                      >
-                        {row.b}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <div>
-              <div
-                className="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em]"
-                style={{ color: "rgba(244,241,234,.55)" }}
-              >
-                The analysts
-              </div>
-              <div className="flex flex-col gap-3.5">
-                {[
-                  { i: "MO", n: "Maya Okafor", r: "Senior Analyst", note: "Routes, methodology" },
-                  {
-                    i: "DR",
-                    n: "Diego Ramirez",
-                    r: "Senior Analyst",
-                    note: "Enforcement, findings",
-                  },
-                  { i: "AC", n: "Anika Chen", r: "Data Engineer", note: "Pipelines, GTFS, GIS" },
-                  {
-                    i: "JB",
-                    n: "Jordan Bellamy",
-                    r: "Editor at Large",
-                    note: "Briefs, public writing",
-                  },
-                ].map((p) => (
-                  <div
-                    key={p.i}
-                    className="flex items-center gap-3.5 pb-3.5"
-                    style={{ boxShadow: "inset 0 -1px 0 rgba(244,241,234,.12)" }}
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--bp-color-paper)] text-[13px] font-semibold text-[var(--bp-color-ink)]">
-                      {p.i}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[13.5px] font-semibold">{p.n}</div>
-                      <div
-                        className="mt-0.5 text-[11.5px]"
-                        style={{ color: "rgba(244,241,234,.6)" }}
-                      >
-                        {p.r} · {p.note}
-                      </div>
-                    </div>
-                    <span
-                      className="text-[11px] font-semibold"
-                      style={{ color: "rgba(244,241,234,.45)" }}
-                    >
-                      Bio →
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Sources + contact */}
-          <div
-            className="grid grid-cols-[1.6fr_1fr] gap-14 pt-8 max-lg:grid-cols-1 max-lg:gap-10"
-            style={{ borderTop: "1px solid rgba(244,241,234,.18)" }}
-          >
-            <div>
-              <div
-                className="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em]"
-                style={{ color: "rgba(244,241,234,.55)" }}
-              >
-                Data sources
-              </div>
-              <div className="grid grid-cols-2 gap-x-7 gap-y-3 max-sm:grid-cols-1">
-                {[
-                  { src: "MTA Bus Speeds", sub: "segment-level, daily aggregates" },
-                  { src: "MTA Hourly Ridership", sub: "OMNY + MetroCard aggregate" },
-                  { src: "MTA Automated Camera Enforcement", sub: "weekly violation counts" },
-                  { src: "MTA GTFS schedule", sub: "timepoint definitions, 2026" },
-                  { src: "NYC DOT bus-lane GIS", sub: "Q1 2026 lane-type classification" },
-                  { src: "NYC DOT signal-timing log", sub: "TSP intersection roster" },
-                ].map((s) => (
-                  <div key={s.src} className="text-[12.5px] leading-[1.4]">
-                    <div className="font-medium">{s.src}</div>
-                    <div
-                      className="mt-0.5 text-[11.5px]"
-                      style={{ color: "rgba(244,241,234,.55)" }}
-                    >
-                      {s.sub}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4.5 flex flex-wrap gap-3.5 text-[12px] font-semibold">
-                <span>Read full methodology →</span>
-                <span style={{ color: "rgba(244,241,234,.3)" }}>·</span>
-                <span>Citation guide</span>
-                <span style={{ color: "rgba(244,241,234,.3)" }}>·</span>
-                <span>Bulk data download (CSV)</span>
-              </div>
-            </div>
-
-            <div>
-              <div
-                className="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em]"
-                style={{ color: "rgba(244,241,234,.55)" }}
-              >
-                Get in touch
-              </div>
-              <div
-                className="rounded-[3px] px-5 py-4.5"
-                style={{
-                  background: "rgba(244,241,234,.06)",
-                  border: "1px solid rgba(244,241,234,.12)",
-                }}
-              >
-                <div className="mb-3.5 font-mono text-[13px]">studio@buspriority.nyc</div>
-                <div
-                  className="text-[11.5px] leading-[1.6]"
-                  style={{ color: "rgba(244,241,234,.7)" }}
-                >
-                  Story tips welcome. We respond to error reports within 48 hours and publish a
-                  correction at the top of the affected page until repaired.
-                </div>
-                <div
-                  className="mt-3.5 flex items-center gap-3 pt-3.5 text-[11.5px]"
-                  style={{
-                    borderTop: "1px solid rgba(244,241,234,.12)",
-                    color: "rgba(244,241,234,.7)",
-                  }}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--bp-color-good)]" />
-                  All systems operational · last ingest 2026-05-12
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -871,12 +573,6 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
         <span>Bus Priority Impact Studio · A civic data project</span>
         <span className="text-[var(--bp-color-ink-20)]">·</span>
         <span>Public-domain data, MIT-licensed code</span>
-        <span className="flex-1" />
-        <span>Share ↗</span>
-        <span className="text-[var(--bp-color-ink-20)]">·</span>
-        <span>Cite</span>
-        <span className="text-[var(--bp-color-ink-20)]">·</span>
-        <span>RSS</span>
       </div>
     </main>
   );

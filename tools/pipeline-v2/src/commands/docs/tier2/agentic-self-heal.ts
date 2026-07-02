@@ -49,8 +49,7 @@ export async function runDocsTier2AgenticSelfHeal(input: z.infer<typeof optionsS
 
 export default defineCommand({
   path: ["docs", "tier2", "agentic-self-heal"],
-  summary:
-    "Classify a Tier 2 agentic extraction run and emit a retry/quarantine self-heal plan.",
+  summary: "Classify a Tier 2 agentic extraction run and emit a retry/quarantine self-heal plan.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {

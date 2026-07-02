@@ -16,6 +16,7 @@
       "!data/working",
       "!data/artifacts",
       "!knowledge/raw/downloads",
+      "!knowledge/raw/assets",
       "!knowledge/raw/metadata",
       "!**/routeTree.gen.ts",
       "!packages/db/migrations/**/meta"

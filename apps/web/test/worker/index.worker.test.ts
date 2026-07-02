@@ -101,12 +101,55 @@ describe("Worker adapter and SPA shell", () => {
     expect(html).toContain('rel="canonical" href="https://example.test/"');
   });
 
-  it("keeps the dev-only system route closed in production fallback", async () => {
-    const response = await worker.fetch(new Request("https://example.test/system"), {
-      ASSETS: htmlAsset(),
+  it("serves the current public app pages through the production SPA fallback", async () => {
+    const cases = [
+      { path: "/map", title: "Network Map | Bus Priority Impact Studio" },
+      { path: "/interventions", title: "Interventions | Bus Priority Impact Studio" },
+      { path: "/methods", title: "Methods | Bus Priority Impact Studio" },
+    ] as const;
+
+    for (const { path, title } of cases) {
+      const response = await worker.fetch(new Request(`https://example.test${path}`), {
+        ASSETS: htmlAsset(),
+      });
+      const html = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Content-Type")).toContain("text/html");
+      expect(html).toContain(`<title>${title}</title>`);
+      expect(html).toContain(`rel="canonical" href="https://example.test${path}"`);
+    }
+  });
+
+  it("keeps unknown and retired product routes closed in production fallback", async () => {
+    for (const path of [
+      "/system",
+      "/routes",
+      "/routes/m57/annotate",
+      "/routes/m57/ladder",
+      "/briefs",
+      "/findings/example",
+      "/compare",
+      "/docs",
+      "/search",
+      "/anything-else",
+    ]) {
+      const response = await worker.fetch(new Request(`https://example.test${path}`), {
+        ASSETS: htmlAsset(),
+      });
+
+      expect(response.status).toBe(404);
+      expect(response.headers.get("X-Robots-Tag")).toContain("noindex");
+    }
+  });
+
+  it("still delegates static asset requests outside the app-page allowlist", async () => {
+    const paths: string[] = [];
+    const response = await worker.fetch(new Request("https://example.test/assets/app.js"), {
+      ASSETS: htmlAsset(paths),
     });
 
-    expect(response.status).toBe(404);
-    expect(response.headers.get("X-Robots-Tag")).toContain("noindex");
+    expect(response.status).toBe(200);
+    expect(paths).toEqual(["/assets/app.js"]);
   });
 });

@@ -25,9 +25,6 @@ describe("Studio API package exports", () => {
       "./contracts",
       "./contracts/openapi",
       "./server",
-      "./server/auth",
-      "./server/authoring",
-      "./server/authoring/agent",
       "./server/scheduled",
       "./server/testing",
       "./server/worker",
@@ -39,6 +36,8 @@ describe("Studio API package exports", () => {
 
     await expect(importBySpecifier("@bp/studio-api")).rejects.toThrow();
     await expect(importBySpecifier("@bp/studio-api/authoring")).rejects.toThrow();
+    await expect(importBySpecifier("@bp/studio-api/server/authoring")).rejects.toThrow();
+    await expect(importBySpecifier("@bp/studio-api/server/auth")).rejects.toThrow();
   });
 
   test("legacy source barrels stay deleted", async () => {
@@ -53,20 +52,20 @@ describe("Studio API package exports", () => {
     expect(studioRouteTemplate("/api/v1/studio/routes/m15-sbs")).toBe(
       "/api/v1/studio/routes/:routeId",
     );
-    expect(studioApiRoutes.length).toBeGreaterThan(20);
+    expect(studioApiRoutes.length).toBe(17);
 
     const route = getStudioApiRoute("studio.route");
     expect(buildRoutePath(route, { params: { routeId: "M15-SBS" } })).toBe(
       "/api/v1/studio/routes/M15-SBS",
     );
-    expect(buildRoutePath(getStudioApiRoute("studio.routeSections"))).toBe(
-      "/api/v1/studio/routes/sections",
-    );
+    expect(
+      buildRoutePath(getStudioApiRoute("studio.routeSpeedHistory"), {
+        params: { routeId: "m15-sbs" },
+      }),
+    ).toBe("/api/v1/studio/routes/m15-sbs/speed-history");
 
     const client = createStudioApiClient();
-    expect(client.path("studio.brief", { params: { briefId: "brief-m15" } })).toBe(
-      "/api/v1/studio/briefs/brief-m15",
-    );
+    expect(client.path("studio.methods")).toBe("/api/v1/studio/methods");
   });
 
   test("server subpaths expose Worker entrypoints", () => {

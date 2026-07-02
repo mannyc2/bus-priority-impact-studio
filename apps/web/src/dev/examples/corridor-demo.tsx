@@ -163,9 +163,9 @@ export function CorridorDemo() {
       </div>
 
       <p className="mt-5 border-t border-[var(--bp-color-rule)] pt-3 text-[11px] leading-[1.5] text-[var(--bp-color-ink-55)]">
-        Every event and outcome above carries a source document and authority tag in Tier 2.
-        Speed series is a placeholder; events + the +7% ridership outcome are modeled on real
-        extracted M86 records.
+        Every event and outcome above carries a source document and authority tag in Tier 2. Speed
+        series is a placeholder; events + the +7% ridership outcome are modeled on real extracted
+        M86 records.
       </p>
     </div>
   );

@@ -12,13 +12,9 @@ import { soqlIn, soqlYearMonthRange } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { mergeRoutesWithFile } from "../../lib/route-list.ts";
 import {
@@ -234,7 +230,6 @@ export default defineCommand({
         .describe("Number of route-level Socrata segment-speed queries to run concurrently"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     month: z.string(),
     sourceId: z.enum(["bus_segment_speeds_2023_2024", "bus_segment_speeds_2025"]),
@@ -243,19 +238,31 @@ export default defineCommand({
     cellRowCount: z.number(),
     routeCount: z.number(),
   }),
-  async run({ ctx, input }) {
+  async run({ input }) {
     const routes = await mergeRoutesWithFile(
       input.options.route === undefined
         ? input.options.routes
         : [...input.options.routes, input.options.route],
       input.options.routesFile,
     );
-    return runRouteSegmentSpeedsIngest({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      routes,
-      routeConcurrency: input.options.routeConcurrency,
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.route-segment-speeds",
+      operation: "runRouteSegmentSpeedsIngest",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+        routeCount: routes.length,
+        routeConcurrency: input.options.routeConcurrency,
+      },
+      run: (local) =>
+        runRouteSegmentSpeedsIngest({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          routes,
+          routeConcurrency: input.options.routeConcurrency,
+        }),
     });
   },
 });

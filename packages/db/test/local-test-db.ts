@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { fileURLToPath } from "node:url";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import {
   applyLocalPragmas,
   createLocalPipelineDb,

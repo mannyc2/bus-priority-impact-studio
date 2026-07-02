@@ -1,9 +1,13 @@
+import { readJsonIfExists } from "./json.ts";
 import { fromCliPath } from "./paths.ts";
 
 export async function loadRouteListFromFile(path: string | undefined): Promise<string[]> {
   if (path === undefined) return [];
   const resolvedPath = fromCliPath(path);
-  const parsed = JSON.parse(await Bun.file(resolvedPath).text()) as unknown;
+  const parsed = await readJsonIfExists<unknown>(resolvedPath);
+  if (parsed === null) {
+    throw new Error(`Route list file not found: ${resolvedPath}`);
+  }
   if (!Array.isArray(parsed)) {
     throw new Error(`Route list file must contain a JSON array: ${resolvedPath}`);
   }

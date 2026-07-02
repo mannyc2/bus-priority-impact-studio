@@ -9,7 +9,10 @@ import {
 } from "../src/local/repositories/geocode-updates.js";
 import { createTestLocalDb } from "./local-test-db.js";
 
-function geocodeColumns(sqlite: Database, tableName: string): {
+function geocodeColumns(
+  sqlite: Database,
+  tableName: string,
+): {
   physical_id: string | null;
   geocode_confidence: string | null;
 } {

@@ -7,12 +7,17 @@ const COMMAND_PATH = new URL(
 );
 
 describe("build stop-direction-hour-ewt-features boundary", () => {
-  test("keeps schedule and observed-headway row loading in applied-research", () => {
+  test("keeps schedule and observed-headway row loading in pipeline-local aggregates", () => {
     const source = readFileSync(COMMAND_PATH, "utf8");
 
-    expect(source).toContain('from "@bp/applied-research/local-db"');
+    expect(source).toContain('from "@bp/analytics/artifacts"');
+    expect(source).toContain('from "@bp/pipeline-v2/local-db-aggregates"');
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("localDbOptions: { readonly: true }");
     expect(source).toContain("buildStopDirectionHourEwtFeatureArtifactFromDb({");
     expect(source).toContain("stopDirectionHourEwtFeatureArtifactPath({");
+    expect(source).not.toContain('from "bun:sqlite"');
+    expect(source).not.toContain("new BunDatabase");
     expect(source).not.toContain("local_route_schedule_timepoint");
     expect(source).not.toContain("local_gtfs_static_stop_time");
     expect(source).not.toContain("local_observed_headway_sample");

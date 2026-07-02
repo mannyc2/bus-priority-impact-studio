@@ -1,10 +1,12 @@
-import { Database } from "bun:sqlite";
+// biome-ignore-all lint/suspicious/noAssignInExpressions: Legacy Tier 2 command code is pending plan 024 deletion; assignment-in-condition shape is unchanged.
+import type { Database } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
   classifyOperationalDate,
   type OperationalDateValidationState,
 } from "@bp/domain/documents/operational-date";
+import { runLocalDbCommandBoundary } from "../../../effect/local-db-command.ts";
 import { writeJson } from "../../../lib/json.ts";
 import { defaultLocalPipelineDbPath } from "../../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
@@ -1052,20 +1054,24 @@ export async function runTier2DocumentEventRouteResolution(
 ): Promise<RunTier2DocumentEventRouteResolutionResult> {
   const eventsPath = args.eventsPath ?? join(args.surfacesDir, "events.jsonl");
   const entitiesPath = args.entitiesPath ?? join(args.surfacesDir, "entities.jsonl");
-  const sqlite = new Database(args.dbPath, { readonly: true });
-  let routeStopMonth: string | null = null;
-  let routes: RouteCatalogEntry[] = [];
-  let routeStops: RouteStopEntry[] = [];
-  try {
-    routeStopMonth = args.routeStopMonth ?? latestRouteStopMonth(sqlite);
-    routes = readRouteCatalog(sqlite);
-    routeStops = readRouteStops(sqlite, routeStopMonth);
-  } finally {
-    sqlite.close();
-  }
+  const referenceData = await runLocalDbCommandBoundary({
+    dbPath: args.dbPath,
+    localDbOptions: { readonly: true },
+    command: "docs.tier2.event-route-resolution",
+    operation: "loadEventRouteResolutionReferenceData",
+    run: async (local) => {
+      const routeStopMonth = args.routeStopMonth ?? latestRouteStopMonth(local.sqlite);
+      return {
+        localDbPath: local.path,
+        routeStopMonth,
+        routes: readRouteCatalog(local.sqlite),
+        routeStops: readRouteStops(local.sqlite, routeStopMonth),
+      };
+    },
+  });
 
-  const routeAliasIndex = buildRouteAliasIndex(routes);
-  const gazetteer = buildStreetRouteGazetteer(routeStops);
+  const routeAliasIndex = buildRouteAliasIndex(referenceData.routes);
+  const gazetteer = buildStreetRouteGazetteer(referenceData.routeStops);
   const sourceRouteContext = await buildSourceRouteContext(entitiesPath, routeAliasIndex);
 
   const rows: EventRouteResolutionRow[] = [];
@@ -1086,14 +1092,14 @@ export async function runTier2DocumentEventRouteResolution(
     generatedAt: args.generatedAt ?? new Date().toISOString(),
     sourceSurfacesPath: eventsPath,
     entitiesSurfacesPath: entitiesPath,
-    localDbPath: args.dbPath,
-    routeStopMonth,
+    localDbPath: referenceData.localDbPath,
+    routeStopMonth: referenceData.routeStopMonth,
     summary: buildSummary({
       rows,
       sourceRouteContextCount: sourceRouteContext.size,
       streetGazetteerKeyCount: gazetteer.streetKeys.length,
-      streetGazetteerRouteStopRows: routeStops.length,
-      currentGtfsRouteCount: routes.length,
+      streetGazetteerRouteStopRows: referenceData.routeStops.length,
+      currentGtfsRouteCount: referenceData.routes.length,
     }),
     samples: sampleRows(rows),
     rows,

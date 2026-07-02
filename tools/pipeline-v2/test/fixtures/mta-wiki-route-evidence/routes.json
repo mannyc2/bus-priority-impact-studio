@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-30T00:00:00.000Z",
+  "routes": [
+    {
+      "slug": "m15-sbs",
+      "routeId": "M15+",
+      "label": "M15",
+      "corridor": "First/Second Ave",
+      "corridorFull": "First and Second avenues",
+      "borough": "Manhattan",
+      "sbs": true,
+      "speedMph": 6.2,
+      "scheduledMph": 7.4,
+      "weightedAvgSpeed": 6.2,
+      "speedPercentile": 15,
+      "dailyRiders": 32000,
+      "ridersYoyPct": 0,
+      "riderHoursLost": 100,
+      "laneCoverage": 70,
+      "aceStatus": "active",
+      "aceSince": null,
+      "tspCoverage": "partial",
+      "reliability": "Observed",
+      "observedReliability": null,
+      "diagnosis": "Fixture route",
+      "spark": [6.1, 6.2],
+      "termini": {
+        "north": "East Harlem",
+        "south": "South Ferry"
+      },
+      "miles": 8.1,
+      "stops": 42,
+      "flags": [],
+      "peerSlug": null,
+      "interventions": [],
+      "movement6mPct": null,
+      "context12mPct": null
+    }
+  ],
+  "quality": {
+    "releaseLayer": "baseline_release",
+    "completenessStatus": "partial_public_monthly_only",
+    "confidence": "medium",
+    "caveats": []
+  }
+}

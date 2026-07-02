@@ -98,7 +98,7 @@ const dossier = {
 } satisfies RouteDossierSummaryForDetail;
 
 describe("RouteJudgedKpiStrip", () => {
-  test("leads the condition KPI with peer framing when dossier speed has a percentile", () => {
+  test("leads the speed KPI with the observed number and keeps peer framing in the sub", () => {
     const markup = renderToStaticMarkup(
       createElement(RouteJudgedKpiStrip, {
         route,
@@ -109,9 +109,8 @@ describe("RouteJudgedKpiStrip", () => {
       }),
     );
 
-    expect(markup).toContain("82%");
-    expect(markup).toContain("peers");
-    expect(markup).toContain("5.8 mph");
-    expect(markup.indexOf("82%")).toBeLessThan(markup.indexOf("5.8 mph"));
+    expect(markup).toContain("5.8");
+    expect(markup).toContain("slower than 82% of peers");
+    expect(markup.indexOf("5.8")).toBeLessThan(markup.indexOf("slower than 82% of peers"));
   });
 });

@@ -30,8 +30,7 @@ export async function runDocsTier2RawFieldGraduation(input: z.infer<typeof optio
 
 export default defineCommand({
   path: ["docs", "tier2", "raw-field-graduation"],
-  summary:
-    "Audit agentic rawPayload fields and emit a safe LLM-ready vocabulary graduation plan.",
+  summary: "Audit agentic rawPayload fields and emit a safe LLM-ready vocabulary graduation plan.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {

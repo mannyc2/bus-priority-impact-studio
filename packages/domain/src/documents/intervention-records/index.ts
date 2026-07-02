@@ -54,7 +54,7 @@ export type DocumentInterventionRecordKind = z.output<typeof DocumentInterventio
 // Intervention-record quality vocabulary
 //
 // Closed sets of issue/repair codes emitted by the deterministic
-// intervention-records policy (`@bp/applied-research/intervention-records`)
+// intervention-records policy (`@bp/analytics/interventions`)
 // and consumed by the pipeline's artifact-summary counters. Promoted here so
 // the policy and the counters share a single source of truth.
 // ---------------------------------------------------------------------------

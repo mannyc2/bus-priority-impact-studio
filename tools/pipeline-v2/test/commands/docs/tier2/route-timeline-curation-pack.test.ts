@@ -80,7 +80,10 @@ function fieldRow(input: Record<string, unknown>) {
   };
 }
 
-async function seedConsumerIndex(): Promise<{ consumerIndexPath: string; materializedViewsPath: string }> {
+async function seedConsumerIndex(): Promise<{
+  consumerIndexPath: string;
+  materializedViewsPath: string;
+}> {
   const consumerIndexPath = join(workingRoot, "vocab-consumer-index.json");
   const materializedViewsPath = join(workingRoot, "vocab-materialized-views.json");
   await writeJson(consumerIndexPath, {
@@ -286,13 +289,19 @@ describe("route timeline curation pack", () => {
     expect(artifact.summary.timelineContextCount).toBe(1);
     expect(artifact.summary.routeBundleSurfaceCount).toBe(5);
     expect(artifact.summary.routeBundleTimelineCandidateSurfaceCount).toBe(2);
-    expect(artifact.candidates.some((candidate) => candidate.surfaceId === "surface-off-route")).toBe(false);
-    expect(artifact.candidates.every((candidate) => /^c\d{3}$/.test(candidate.candidateRef))).toBe(true);
+    expect(
+      artifact.candidates.some((candidate) => candidate.surfaceId === "surface-off-route"),
+    ).toBe(false);
+    expect(artifact.candidates.every((candidate) => /^c\d{3}$/.test(candidate.candidateRef))).toBe(
+      true,
+    );
     expect(new Set(artifact.candidates.map((candidate) => candidate.candidateRef)).size).toBe(
       artifact.candidates.length,
     );
 
-    const service = artifact.candidates.find((candidate) => candidate.surfaceId === "surface-service");
+    const service = artifact.candidates.find(
+      (candidate) => candidate.surfaceId === "surface-service",
+    );
     expect(service).toMatchObject({
       candidateRole: "timeline_primary",
       routeMatch: "alias",
@@ -300,12 +309,14 @@ describe("route timeline curation pack", () => {
     });
     expect(service?.sourceRef).toMatch(/^s\d{3}$/);
     expect(service?.evidencePointerIds).toEqual(["ev-1", "ev-service", "ev-surface"]);
-    expect(service?.payloadHints.some((hint) => hint.path === "dateText" && hint.value === "July 2016")).toBe(
-      true,
-    );
+    expect(
+      service?.payloadHints.some((hint) => hint.path === "dateText" && hint.value === "July 2016"),
+    ).toBe(true);
     expect(service?.dateAssertions[0]?.dateAssertionRef).toMatch(/^c\d{3}\.d1$/);
 
-    const treatment = artifact.candidates.find((candidate) => candidate.surfaceId === "surface-treatment");
+    const treatment = artifact.candidates.find(
+      (candidate) => candidate.surfaceId === "surface-treatment",
+    );
     expect(treatment?.unresolvedRows[0]).toMatchObject({
       keyId: "eventTreatmentFamily",
       decision: "preserve_raw",
@@ -322,7 +333,10 @@ describe("route timeline curation pack", () => {
       ),
     ).toBe(true);
 
-    expect(artifact.sourceRefs.map((source) => source.sourceId).sort()).toEqual(["source-a", "source-b"]);
+    expect(artifact.sourceRefs.map((source) => source.sourceId).sort()).toEqual([
+      "source-a",
+      "source-b",
+    ]);
     expect(artifact.sourceRefs.every((source) => /^s\d{3}$/.test(source.sourceRef))).toBe(true);
     expect(artifact.llmTask.policy.join("\n")).toContain("Every event must cite");
     expect(artifact.llmTask.filesystemGuidance.join("\n")).toContain("runner-owned tools");

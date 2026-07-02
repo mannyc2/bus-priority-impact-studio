@@ -1,9 +1,11 @@
 import { studioApiRoutes } from "./registry.js";
+import type { RouteSpec } from "./route-spec.js";
 
 type CompiledRoute = {
   method: string;
   path: string;
   regex: RegExp;
+  spec: RouteSpec;
 };
 
 function escapeRegex(value: string): string {
@@ -36,6 +38,7 @@ const studioRouteTemplates = studioApiRoutes
       method: route.method,
       path: route.path,
       regex: compileRoutePath(route.path),
+      spec: route,
     }),
   );
 
@@ -44,6 +47,7 @@ const apiRoutes = studioApiRoutes.map(
     method: route.method,
     path: route.path,
     regex: compileRoutePath(route.path),
+    spec: route,
   }),
 );
 
@@ -68,4 +72,13 @@ export function allowedApiMethodsForPath(pathname: string): readonly string[] {
     .map((route) => route.method);
 
   return [...new Set(methods)].sort();
+}
+
+export function findRouteSpec(method: string, pathname: string): RouteSpec | null {
+  const normalizedMethod = method.toUpperCase();
+  const match = apiRoutes.find(
+    (route) => route.method === normalizedMethod && route.regex.test(pathname),
+  );
+
+  return match?.spec ?? null;
 }

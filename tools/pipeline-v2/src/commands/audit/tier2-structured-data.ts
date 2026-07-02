@@ -8,13 +8,13 @@ import {
   type Tier2StructuredDataInventory,
   type Tier2StructuredLayer,
   type Tier2StructuredTrustTier,
-} from "@bp/applied-research/evaluation";
+} from "@bp/analytics/evaluation";
 import { arg, defineCommand, z } from "@liche/core";
 import { Glob } from "bun";
 import { writeJson } from "../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
 
-export { classifyTier2StructuredArtifact } from "@bp/applied-research/evaluation";
+export { classifyTier2StructuredArtifact } from "@bp/analytics/evaluation";
 export type {
   Tier2StructuredArtifactSummary,
   Tier2StructuredDataInventory,

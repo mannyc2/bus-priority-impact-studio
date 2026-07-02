@@ -2,13 +2,9 @@ import { replaceRouteMonthCoverage } from "@bp/db/local";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {
   fetchSoda3RowsForSource,
@@ -169,7 +165,6 @@ export default defineCommand({
       month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     routeCount: z.number(),
     speedRouteCount: z.number(),
@@ -177,11 +172,21 @@ export default defineCommand({
     completeCoverageRouteCount: z.number(),
     dbPath: z.string(),
   }),
-  async run({ ctx, input }) {
-    return runRouteCoverageIngest({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.route-coverage",
+      operation: "runRouteCoverageIngest",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+      },
+      run: (local) =>
+        runRouteCoverageIngest({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+        }),
     });
   },
 });

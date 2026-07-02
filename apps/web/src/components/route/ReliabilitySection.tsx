@@ -1,4 +1,3 @@
-import { DataAsOf } from "@/components/DataAsOf";
 import { reliabilityInsightRows, reliabilitySummary } from "@/components/route/reliability-summary";
 import { safeInsightCaveats } from "@/components/route/route-insight-placement";
 import { routeSectionQuestion } from "@/components/route/section-registry";
@@ -27,11 +26,7 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
 
   return (
     <section className="flex flex-col gap-5">
-      <SectionHeader
-        title={routeSectionQuestion("reliability")}
-        sub={summary.sectionSubtitle}
-        right={<DataAsOf dataAsOf={summary.dataAsOf} />}
-      />
+      <SectionHeader title={routeSectionQuestion("reliability")} sub={summary.sectionSubtitle} />
       <div className="grid grid-cols-4 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-xl:grid-cols-2 max-sm:grid-cols-1">
         <ReliabilityKpi
           label="Evidence state"
@@ -160,7 +155,6 @@ function ReliabilityInsightList({ insights }: { insights: StudioRouteDetailRespo
               <Badge variant={insight.severity === "high" ? "bad" : "neutral"}>
                 {insight.severity}
               </Badge>
-              <DataAsOf dataAsOf={insight.asOfMonth ?? insight.month ?? null} />
             </div>
             <div className="text-[12.5px] font-semibold">{insight.title}</div>
             <div className="mt-1 text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">

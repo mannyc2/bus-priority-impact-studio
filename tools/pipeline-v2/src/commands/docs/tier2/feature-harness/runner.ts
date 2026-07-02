@@ -5,8 +5,8 @@ import type { ToolCallMessage } from "../../../../lib/llm.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../../lib/paths.ts";
 import {
   callPioneerToolCallViaPi,
-  openRouterErrorMessage,
   type OpenRouterCallResult,
+  openRouterErrorMessage,
 } from "../_llm-clients.ts";
 import {
   extractToolCallArguments,
@@ -19,22 +19,22 @@ import {
   DEFAULT_TIER2_FEATURE_SMOKE_MODEL,
   DEFAULT_TIER2_FEATURE_SMOKE_PROVIDER,
   DEFAULT_TIER2_FEATURE_SMOKE_TIMEOUT_MS,
-  defaultTier2FeatureSmokeRequest,
   DETERMINISTIC_RUNNER_FIELDS,
+  defaultTier2FeatureSmokeRequest,
   LLM_SUBMITTED_FIELD_SETS,
   TIER2_FEATURE_EXTRACTION_ARTIFACT_KIND,
   TIER2_FEATURE_EXTRACTION_PROMPT_VERSION,
   TIER2_FEATURE_EXTRACTION_TOOL_NAME,
-  Tier2FeatureExtractionRequestSchema,
-  tier2FeatureExtractionTool,
   type Tier2FeatureExtractionRequest,
+  Tier2FeatureExtractionRequestSchema,
   type Tier2FeatureExtractionToolResponse,
+  tier2FeatureExtractionTool,
   VOCAB_RUNNER_FIELDS,
 } from "./contract.ts";
 import {
   retryFeedbackForFeatureValidation,
-  validateTier2FeatureExtractionSubmission,
   type Tier2FeatureExtractionValidation,
+  validateTier2FeatureExtractionSubmission,
 } from "./validator.ts";
 
 export type Tier2FeatureExtractionProvider = typeof DEFAULT_TIER2_FEATURE_SMOKE_PROVIDER;
@@ -60,7 +60,11 @@ export type Tier2FeatureExtractionUsage = {
   cacheWriteTokens: number;
   totalTokens: number;
   estimatedCostUsd: number | null;
-  costSource: "local_price_table" | "provider_reported" | "unpriced_model" | "missing_provider_usage";
+  costSource:
+    | "local_price_table"
+    | "provider_reported"
+    | "unpriced_model"
+    | "missing_provider_usage";
   inputUsdPerMillion: number | null;
   outputUsdPerMillion: number | null;
   cacheReadUsdPerMillion: number | null;
@@ -83,11 +87,7 @@ export type Tier2FeatureExtractionAttempt = {
   model: string;
   providerAttemptCount: number;
   httpStatus: number | null;
-  status:
-    | "accepted"
-    | "rejected"
-    | "provider_failed"
-    | "tool_response_parse_failed";
+  status: "accepted" | "rejected" | "provider_failed" | "tool_response_parse_failed";
   errorMessage: string | null;
   providerErrorMessage: string | null;
   rawUsage: unknown | null;
@@ -114,7 +114,12 @@ export type Tier2FeatureExtractionVNextArtifact = {
     acceptedCandidateCount: number;
     rejectedCandidateCount: number;
     validationErrorCount: number;
-    finalStatus: "prepared" | "accepted" | "rejected" | "provider_failed" | "tool_response_parse_failed";
+    finalStatus:
+      | "prepared"
+      | "accepted"
+      | "rejected"
+      | "provider_failed"
+      | "tool_response_parse_failed";
     usage: Tier2FeatureExtractionUsage;
   };
   fieldOwnership: {
@@ -244,7 +249,11 @@ function toolCallDiagnostics(body: unknown): Tier2FeatureToolCallDiagnostic[] {
           argumentKind: argsKind,
           argumentLength: stringArgs === null ? null : stringArgs.length,
           argumentJsonParseable:
-            stringArgs === null ? (argsKind === "object" ? true : null) : isJsonParseableObject(stringArgs),
+            stringArgs === null
+              ? argsKind === "object"
+                ? true
+                : null
+              : isJsonParseableObject(stringArgs),
           argumentPreview: stringArgs === null ? null : previewText(stringArgs),
           argumentTailPreview: stringArgs === null ? null : previewText(stringArgs, true),
         });
@@ -338,7 +347,9 @@ function estimateUsage(input: {
   };
 }
 
-function emptyUsage(costSource: Tier2FeatureExtractionUsage["costSource"] = "missing_provider_usage"): Tier2FeatureExtractionUsage {
+function emptyUsage(
+  costSource: Tier2FeatureExtractionUsage["costSource"] = "missing_provider_usage",
+): Tier2FeatureExtractionUsage {
   return {
     promptTokens: 0,
     completionTokens: 0,
@@ -404,7 +415,7 @@ function buildMessages(input: {
     "Do not infer installed TSP from speed changes. Extract TSP only when the source states signal priority/signal timing/queue-jump signal facts, or when a provided transcript proves a bounded public-source gap.",
     "lookupResults, routeLookupRequests, routeUniverse, and priorContext are resolver context only. They are not source evidence and cannot be cited in evidenceByField.",
     "Omit optional fields when unknown. Never submit an empty string for an optional field.",
-    "Every source-observed field you submit must have evidenceByField. Map semantic field paths to supplied handles, for example {\"metricClaim.valueRaw\":[\"p13.table2.r04.c05\"]}.",
+    'Every source-observed field you submit must have evidenceByField. Map semantic field paths to supplied handles, for example {"metricClaim.valueRaw":["p13.table2.r04.c05"]}.',
     "Use evidenceByField for rawText and for each submitted raw source field. Prefer handles over copying quote text. Do not submit fieldSupport.",
     "Every evidenceByField key must end with an actual field you included on that same candidate. If you submit areaTextRaw, prove areaTextRaw; do not prove a different omitted field such as geographyRaw.",
     "Do not submit duplicate routeScopeCandidates for the same route/corridor unless the source states materially different scope fields and every submitted field has its own evidenceByField entry.",
@@ -436,7 +447,11 @@ function buildMessages(input: {
   ];
 }
 
-async function readRequest(path: string | undefined, generatedAt: string | undefined, runId: string | undefined) {
+async function readRequest(
+  path: string | undefined,
+  generatedAt: string | undefined,
+  runId: string | undefined,
+) {
   if (path === undefined) {
     return defaultTier2FeatureSmokeRequest({
       ...(generatedAt === undefined ? {} : { generatedAt }),
@@ -569,7 +584,10 @@ export async function runTier2FeatureExtractionVNext(
       break;
     }
 
-    const rawToolArgs = extractToolCallArguments(providerResult.body, TIER2_FEATURE_EXTRACTION_TOOL_NAME);
+    const rawToolArgs = extractToolCallArguments(
+      providerResult.body,
+      TIER2_FEATURE_EXTRACTION_TOOL_NAME,
+    );
     if (rawToolArgs === null) {
       const usage = estimateUsage({ provider, model, body: providerResult.body });
       const errorMessage = missingToolCallErrorMessage({
@@ -599,7 +617,10 @@ export async function runTier2FeatureExtractionVNext(
       continue;
     }
 
-    const validation = validateTier2FeatureExtractionSubmission({ request, submission: rawToolArgs });
+    const validation = validateTier2FeatureExtractionSubmission({
+      request,
+      submission: rawToolArgs,
+    });
     const usage = estimateUsage({ provider, model, body: providerResult.body });
     finalValidation = validation;
     finalSubmission = validation.parsedSubmission;
@@ -617,7 +638,10 @@ export async function runTier2FeatureExtractionVNext(
       providerAttemptCount: providerResult.attempts?.length ?? 1,
       httpStatus: providerResult.response.status,
       status: finalStatus === "accepted" ? "accepted" : "rejected",
-      errorMessage: validation.validationErrorCount === 0 ? null : "Feature validation returned blocking errors.",
+      errorMessage:
+        validation.validationErrorCount === 0
+          ? null
+          : "Feature validation returned blocking errors.",
       providerErrorMessage: null,
       rawUsage: usageRecord(providerResult.body),
       usage,

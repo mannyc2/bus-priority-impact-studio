@@ -33,7 +33,9 @@ export function buildStderrEventSink(options: { prefix?: string } = {}): ToolLoo
       toolStartMs.set(event.toolCallId, Date.now());
       const code = (event.args as { code?: string } | undefined)?.code ?? "";
       const preview = code.replace(/\s+/g, " ").slice(0, 80);
-      write(`tool ${event.toolName} (${event.toolCallId.slice(0, 8)}): ${preview}${code.length > 80 ? "…" : ""}`);
+      write(
+        `tool ${event.toolName} (${event.toolCallId.slice(0, 8)}): ${preview}${code.length > 80 ? "…" : ""}`,
+      );
       return;
     }
     if (event.type === "tool_execution_end") {
@@ -52,10 +54,10 @@ export function buildStderrEventSink(options: { prefix?: string } = {}): ToolLoo
             content?: Array<{ type?: string; text?: string }>;
           }
         | undefined;
-      const isSandboxShape = detail?.details && typeof detail.details.exitCode === "number";
-      if (isSandboxShape) {
-        const exitCode = detail.details!.exitCode;
-        const stdoutBytes = detail.details!.stdout?.length ?? 0;
+      const details = detail?.details;
+      if (details !== undefined && typeof details.exitCode === "number") {
+        const exitCode = details.exitCode;
+        const stdoutBytes = details.stdout?.length ?? 0;
         write(
           `tool ${event.toolName} (${idShort}) done: exit=${exitCode} stdout=${stdoutBytes}b ${elapsed}${errSuffix}`,
         );
@@ -63,16 +65,16 @@ export function buildStderrEventSink(options: { prefix?: string } = {}): ToolLoo
         const text = detail?.content?.find((b) => b?.type === "text")?.text ?? "";
         const oneLine = text.replace(/\s+/g, " ").slice(0, 120);
         const preview = oneLine.length > 0 ? `: ${oneLine}${text.length > 120 ? "…" : ""}` : "";
-        write(
-          `tool ${event.toolName} (${idShort}) done${preview} (${elapsed})${errSuffix}`,
-        );
+        write(`tool ${event.toolName} (${idShort}) done${preview} (${elapsed})${errSuffix}`);
       }
       return;
     }
     if (event.type === "turn_end") {
       const started = turnStartMs.get(turn);
       const elapsed = started === undefined ? "?" : `${Date.now() - started}ms`;
-      const usage = (event.message as { usage?: { input: number; output: number; cost: { total: number } } }).usage;
+      const usage = (
+        event.message as { usage?: { input: number; output: number; cost: { total: number } } }
+      ).usage;
       const usageStr = usage
         ? ` in=${usage.input}tok out=${usage.output}tok cost=$${usage.cost.total.toFixed(4)}`
         : "";

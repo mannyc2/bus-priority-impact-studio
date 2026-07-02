@@ -30,6 +30,12 @@ function nextRandom(seed: number): [number, number] {
   return [nextSeed, nextSeed / 0x1_0000_0000];
 }
 
+function requiredValue(values: readonly number[], index: number): number {
+  const value = values[index];
+  if (value === undefined) throw new Error(`Missing bootstrap value at index ${index}.`);
+  return value;
+}
+
 export function bootstrapMeanInterval(input: BootstrapMeanIntervalInput): BootstrapMeanInterval {
   const values = finiteValues(input.values);
   if (values.length === 0 || input.resamples <= 0) {
@@ -50,7 +56,7 @@ export function bootstrapMeanInterval(input: BootstrapMeanIntervalInput): Bootst
     for (let valueIndex = 0; valueIndex < values.length; valueIndex += 1) {
       const next = nextRandom(seed);
       seed = next[0];
-      sampleTotal += values[Math.floor(next[1] * values.length)]!;
+      sampleTotal += requiredValue(values, Math.floor(next[1] * values.length));
     }
     means.push(sampleTotal / values.length);
   }

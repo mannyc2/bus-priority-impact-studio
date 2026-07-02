@@ -75,9 +75,7 @@ describe("D1 seed validation", () => {
       } as unknown as D1SeedInput["routeCatalog"][number],
     ];
 
-    expect(() => buildD1SeedSql(input)).toThrow(
-      /D1 seed row failed validation for route_catalog/,
-    );
+    expect(() => buildD1SeedSql(input)).toThrow(/D1 seed row failed validation for route_catalog/);
   });
 
   test("validates appendix reliability rows at the same seed boundary", () => {

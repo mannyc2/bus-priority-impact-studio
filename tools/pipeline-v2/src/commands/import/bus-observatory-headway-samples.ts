@@ -1,11 +1,7 @@
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 
 type SnapshotCsvRow = Record<string, string> & {
@@ -422,7 +418,6 @@ export default defineCommand({
       batchSize: arg.positiveInt().default(defaultBatchSize).describe("SQLite insert batch size"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     month: z.string(),
     runId: z.string(),
@@ -437,16 +432,31 @@ export default defineCommand({
     minTimestamp: z.number().nullable(),
     maxTimestamp: z.number().nullable(),
   }),
-  async run({ ctx, input }) {
-    return runImportBusObservatoryHeadwaySamples({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      runId: input.options.runId,
-      headwaySamplesCsv: fromCliPath(input.options.headwaySamplesCsv),
-      snapshotsCsv: fromCliPath(input.options.snapshotsCsv),
-      sampleSeconds: input.options.sampleSeconds,
-      batchSize: input.options.batchSize,
+  async run({ input }) {
+    const headwaySamplesCsv = fromCliPath(input.options.headwaySamplesCsv);
+    const snapshotsCsv = fromCliPath(input.options.snapshotsCsv);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "import.bus-observatory-headway-samples",
+      operation: "runImportBusObservatoryHeadwaySamples",
+      spanAttributes: {
+        runId: input.options.runId,
+        year: input.options.year,
+        month: input.options.month,
+        sampleSeconds: input.options.sampleSeconds,
+        batchSize: input.options.batchSize,
+      },
+      run: (local) =>
+        runImportBusObservatoryHeadwaySamples({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          runId: input.options.runId,
+          headwaySamplesCsv,
+          snapshotsCsv,
+          sampleSeconds: input.options.sampleSeconds,
+          batchSize: input.options.batchSize,
+        }),
     });
   },
 });

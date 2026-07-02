@@ -5,16 +5,16 @@
 // here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
+  type CliOption,
   candidateBundlePath,
+  type FollowupOcrPlanCliArgs,
   followupOcrPlanPath,
   latestDocsRunId,
-  parseCliOptions,
-  type CliOption,
-  type FollowupOcrPlanCliArgs,
   type PlanTier2FollowupOcrArgs,
+  parseCliOptions,
   type Tier2CandidateBundle,
   type Tier2OcrPlan,
   type Tier2OcrPlanSource,
@@ -83,7 +83,6 @@ export async function planTier2FollowupOcr(args: PlanTier2FollowupOcrArgs): Prom
 
   return plan;
 }
-
 
 function parseFollowupOcrPlanCliArgs(args: string[]): FollowupOcrPlanCliArgs {
   const options: CliOption<FollowupOcrPlanCliArgs>[] = [

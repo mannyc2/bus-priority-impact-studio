@@ -1,13 +1,9 @@
 import { replaceBusWaitAssessmentRows } from "@bp/db/local";
 import { normalizeBusWaitAssessmentRows } from "@bp/sources/adapters/mta/bus-wait-assessment";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defineSocrataMonthlyIngest } from "../../lib/socrata-monthly-ingest.ts";
 import type { SocrataFetch } from "../../lib/soda3.ts";
 
@@ -70,18 +66,27 @@ export default defineCommand({
       month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     isoMonth: z.string(),
     rowCount: z.number(),
     routeCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runBusWaitAssessmentIngest({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.bus-wait-assessment",
+      operation: "runBusWaitAssessmentIngest",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+      },
+      run: (local) =>
+        runBusWaitAssessmentIngest({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+        }),
     });
   },
 });

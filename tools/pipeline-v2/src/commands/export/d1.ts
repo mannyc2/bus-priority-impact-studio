@@ -4,14 +4,10 @@ import { dirname, join } from "node:path";
 import { buildD1AppendixSeedSql, buildD1SeedSql } from "@bp/db/d1/seed";
 import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { type CloudflareCostSummary, estimateD1PaidCost } from "../../lib/cloudflare-costs.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, defaultExportRootPath, fromCliPath } from "../../lib/paths.ts";
 import {
   type D1AppendixInputs,
@@ -126,6 +122,8 @@ export type D1AppendixSeedOutputResult = {
   routeObservedReliabilitySummaryRowCount: number;
   routeMonthSourceStatusRowCount: number;
 };
+
+type ExportD1CommandResult = D1SeedOutputResult | D1AppendixSeedOutputResult;
 
 function fileContract(path: string, content: string): D1FileContract {
   const bytes = new TextEncoder().encode(content);
@@ -412,13 +410,11 @@ export default defineCommand({
         ),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.union([
     z.object({ mode: z.literal("appendix") }).passthrough(),
     z.object({ schemaPath: z.string() }).passthrough(),
   ]),
-  async run({ ctx, input }) {
-    const local = localDbFromCtx(ctx);
+  async run({ input }) {
     const exportRoot =
       input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot);
     const artifactRoot =
@@ -433,22 +429,34 @@ export default defineCommand({
       input.options.detectorReadinessManifestPath === undefined
         ? undefined
         : fromCliPath(input.options.detectorReadinessManifestPath);
-    if (input.options.mode === "appendix") {
-      return runExportD1AppendixSeed({
-        local,
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "export.d1",
+      operation: input.options.mode === "appendix" ? "runExportD1AppendixSeed" : "runExportD1Seed",
+      spanAttributes: {
         year: input.options.year,
         month: input.options.month,
-        exportRoot,
-      });
-    }
-    return runExportD1Seed({
-      local,
-      year: input.options.year,
-      month: input.options.month,
-      exportRoot,
-      artifactRoot,
-      routeTimelineProjectionPath,
-      detectorReadinessManifestPath,
+        mode: input.options.mode,
+      },
+      run: async (local): Promise<ExportD1CommandResult> => {
+        if (input.options.mode === "appendix") {
+          return runExportD1AppendixSeed({
+            local,
+            year: input.options.year,
+            month: input.options.month,
+            exportRoot,
+          });
+        }
+        return runExportD1Seed({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          exportRoot,
+          artifactRoot,
+          routeTimelineProjectionPath,
+          detectorReadinessManifestPath,
+        });
+      },
     });
   },
 });

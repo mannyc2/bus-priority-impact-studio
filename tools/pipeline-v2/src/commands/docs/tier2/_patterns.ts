@@ -83,7 +83,9 @@ export function expandRouteMention(value: string): string[] {
 }
 
 function normalizeNumericText(value: number): string {
-  return Number.isInteger(value) ? String(value) : String(value).replace(/0+$/, "").replace(/\.$/, "");
+  return Number.isInteger(value)
+    ? String(value)
+    : String(value).replace(/0+$/, "").replace(/\.$/, "");
 }
 
 function numericQuoteVariants(value: number): string[] {

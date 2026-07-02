@@ -1,8 +1,16 @@
+// biome-ignore-all lint/suspicious/noImplicitAnyLet: Legacy Tier 2 command code is pending plan 024 deletion; dynamic accumulator shape is unchanged.
 import { createHash } from "node:crypto";
 import { mkdir, readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import { type Api, type Model, type Static, Type } from "@earendil-works/pi-ai";
+import {
+  buildStderrEventSink,
+  type CodemodeTerminationSignal,
+  type ModelToolLoop,
+  makeToolLoopRunner,
+  type ToolLoopResult,
+} from "../../../lib/codemode/index.ts";
 import { readJsonIfExists, writeJson } from "../../../lib/json.ts";
 import {
   deepSeekModel,
@@ -12,25 +20,18 @@ import {
 } from "../../../lib/llm.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../../lib/paths.ts";
 import {
-  buildStderrEventSink,
-  makeToolLoopRunner,
-  type CodemodeTerminationSignal,
-  type ModelToolLoop,
-  type ToolLoopResult,
-} from "../../../lib/codemode/index.ts";
-import {
   callDeepSeekToolCallViaPi,
   callPioneerToolCallDirect,
   openRouterErrorMessage,
 } from "./_llm-clients.ts";
 import {
+  type CliOption,
   defaultFetch,
   extractToolCallArguments,
+  type FetchLike,
   missingToolCallErrorMessage,
   parseCliOptions,
   trueOption,
-  type CliOption,
-  type FetchLike,
 } from "./_shared.ts";
 
 const ARTIFACT_KIND = "bp.tier2_vocab_synthesis_run.v1";
@@ -436,7 +437,7 @@ function normalizeRawValue(value: string): string {
 function canonicalIdCandidate(value: string): string {
   const symbolAliases: Record<string, string> = {
     "%": "percent",
-    "$": "usd",
+    $: "usd",
     "#": "number",
   };
   const trimmed = value.trim();
@@ -463,59 +464,97 @@ function parseGraduationPlan(raw: unknown, path: string): GraduationPlan {
     const id = typeof key["id"] === "string" ? key["id"] : null;
     if (id === null) return [];
     const topValuesRaw = Array.isArray(key["topValues"]) ? key["topValues"] : [];
-    return [{
-      id,
-      tier: key["tier"] === "secondary" ? "secondary" : "core",
-      targetPayloadPath: typeof key["targetPayloadPath"] === "string" ? key["targetPayloadPath"] : "",
-      sourceFieldPaths: Array.isArray(key["sourceFieldPaths"])
-        ? key["sourceFieldPaths"].filter((item): item is string => typeof item === "string")
-        : [],
-      mode: typeof key["mode"] === "string" ? key["mode"] : "",
-      description: typeof key["description"] === "string" ? key["description"] : "",
-      instanceCount: typeof key["instanceCount"] === "number" ? key["instanceCount"] : 0,
-      distinctValueCount: typeof key["distinctValueCount"] === "number" ? key["distinctValueCount"] : 0,
-      repeatedDistinctValueCount: typeof key["repeatedDistinctValueCount"] === "number" ? key["repeatedDistinctValueCount"] : 0,
-      topValues: topValuesRaw.flatMap((value): GraduationValue[] => {
-        if (!isRecord(value) || typeof value["value"] !== "string") return [];
-        return [{
-          value: value["value"],
-          count: typeof value["count"] === "number" ? value["count"] : 0,
-          sourceFieldCounts: numericRecord(value["sourceFieldCounts"]),
-          surfaceKindCounts: numericRecord(value["surfaceKindCounts"]),
-          examples: Array.isArray(value["examples"])
-            ? value["examples"].flatMap((example): GraduationExample[] => {
-                if (!isRecord(example) || typeof example["artifactPath"] !== "string") return [];
-                return [{
-                  artifactPath: fromCliPath(example["artifactPath"]),
-                  ...(typeof example["sourceId"] === "string" ? { sourceId: example["sourceId"] } : {}),
-                  ...(typeof example["sourceGroup"] === "string" ? { sourceGroup: example["sourceGroup"] } : {}),
-                  ...(Array.isArray(example["pageNumbers"])
-                    ? { pageNumbers: example["pageNumbers"].filter((page): page is number => typeof page === "number") }
-                    : {}),
-                  ...(typeof example["surfaceId"] === "string" ? { surfaceId: example["surfaceId"] } : {}),
-                  surfaceKind: typeof example["surfaceKind"] === "string" ? example["surfaceKind"] : "unknown",
-                  ...(typeof example["payloadSchemaId"] === "string" ? { payloadSchemaId: example["payloadSchemaId"] } : {}),
-                  ...(typeof example["displayLabel"] === "string" ? { displayLabel: example["displayLabel"] } : {}),
-                  sourceFieldPath: typeof example["sourceFieldPath"] === "string" ? example["sourceFieldPath"] : "",
-                }];
-              })
-            : [],
-        }];
-      }),
-    }];
+    return [
+      {
+        id,
+        tier: key["tier"] === "secondary" ? "secondary" : "core",
+        targetPayloadPath:
+          typeof key["targetPayloadPath"] === "string" ? key["targetPayloadPath"] : "",
+        sourceFieldPaths: Array.isArray(key["sourceFieldPaths"])
+          ? key["sourceFieldPaths"].filter((item): item is string => typeof item === "string")
+          : [],
+        mode: typeof key["mode"] === "string" ? key["mode"] : "",
+        description: typeof key["description"] === "string" ? key["description"] : "",
+        instanceCount: typeof key["instanceCount"] === "number" ? key["instanceCount"] : 0,
+        distinctValueCount:
+          typeof key["distinctValueCount"] === "number" ? key["distinctValueCount"] : 0,
+        repeatedDistinctValueCount:
+          typeof key["repeatedDistinctValueCount"] === "number"
+            ? key["repeatedDistinctValueCount"]
+            : 0,
+        topValues: topValuesRaw.flatMap((value): GraduationValue[] => {
+          if (!isRecord(value) || typeof value["value"] !== "string") return [];
+          return [
+            {
+              value: value["value"],
+              count: typeof value["count"] === "number" ? value["count"] : 0,
+              sourceFieldCounts: numericRecord(value["sourceFieldCounts"]),
+              surfaceKindCounts: numericRecord(value["surfaceKindCounts"]),
+              examples: Array.isArray(value["examples"])
+                ? value["examples"].flatMap((example): GraduationExample[] => {
+                    if (!isRecord(example) || typeof example["artifactPath"] !== "string")
+                      return [];
+                    return [
+                      {
+                        artifactPath: fromCliPath(example["artifactPath"]),
+                        ...(typeof example["sourceId"] === "string"
+                          ? { sourceId: example["sourceId"] }
+                          : {}),
+                        ...(typeof example["sourceGroup"] === "string"
+                          ? { sourceGroup: example["sourceGroup"] }
+                          : {}),
+                        ...(Array.isArray(example["pageNumbers"])
+                          ? {
+                              pageNumbers: example["pageNumbers"].filter(
+                                (page): page is number => typeof page === "number",
+                              ),
+                            }
+                          : {}),
+                        ...(typeof example["surfaceId"] === "string"
+                          ? { surfaceId: example["surfaceId"] }
+                          : {}),
+                        surfaceKind:
+                          typeof example["surfaceKind"] === "string"
+                            ? example["surfaceKind"]
+                            : "unknown",
+                        ...(typeof example["payloadSchemaId"] === "string"
+                          ? { payloadSchemaId: example["payloadSchemaId"] }
+                          : {}),
+                        ...(typeof example["displayLabel"] === "string"
+                          ? { displayLabel: example["displayLabel"] }
+                          : {}),
+                        sourceFieldPath:
+                          typeof example["sourceFieldPath"] === "string"
+                            ? example["sourceFieldPath"]
+                            : "",
+                      },
+                    ];
+                  })
+                : [],
+            },
+          ];
+        }),
+      },
+    ];
   });
   const summary = isRecord(raw["summary"]) ? raw["summary"] : {};
   return {
     artifactKind: typeof raw["artifactKind"] === "string" ? raw["artifactKind"] : "unknown",
     schemaVersion: typeof raw["schemaVersion"] === "number" ? raw["schemaVersion"] : 0,
     generatedAt: typeof raw["generatedAt"] === "string" ? raw["generatedAt"] : "",
-    sourceRoots: Array.isArray(raw["sourceRoots"]) ? raw["sourceRoots"].filter((item): item is string => typeof item === "string") : [],
+    sourceRoots: Array.isArray(raw["sourceRoots"])
+      ? raw["sourceRoots"].filter((item): item is string => typeof item === "string")
+      : [],
     sourceCanonicalMergePaths: Array.isArray(raw["sourceCanonicalMergePaths"])
       ? raw["sourceCanonicalMergePaths"].filter((item): item is string => typeof item === "string")
       : [],
     summary: {
-      acceptedSurfaceCount: typeof summary["acceptedSurfaceCount"] === "number" ? summary["acceptedSurfaceCount"] : 0,
-      totalGraduationDistinctValues: typeof summary["totalGraduationDistinctValues"] === "number" ? summary["totalGraduationDistinctValues"] : 0,
+      acceptedSurfaceCount:
+        typeof summary["acceptedSurfaceCount"] === "number" ? summary["acceptedSurfaceCount"] : 0,
+      totalGraduationDistinctValues:
+        typeof summary["totalGraduationDistinctValues"] === "number"
+          ? summary["totalGraduationDistinctValues"]
+          : 0,
     },
     graduationKeys,
   };
@@ -531,37 +570,44 @@ function numericRecord(value: unknown): Record<string, number> {
 }
 
 function selectKeys(plan: GraduationPlan, keyIds: readonly string[] | undefined): GraduationKey[] {
-  const selected = keyIds === undefined || keyIds.length === 0
-    ? plan.graduationKeys
-    : keyIds.flatMap((keyId) => {
-        const key = plan.graduationKeys.find((candidate) => candidate.id === keyId);
-        if (key === undefined) throw new Error(`Graduation key not found: ${keyId}`);
-        return [key];
-      });
+  const selected =
+    keyIds === undefined || keyIds.length === 0
+      ? plan.graduationKeys
+      : keyIds.flatMap((keyId) => {
+          const key = plan.graduationKeys.find((candidate) => candidate.id === keyId);
+          if (key === undefined) throw new Error(`Graduation key not found: ${keyId}`);
+          return [key];
+        });
   if (selected.length === 0) throw new Error("No graduation keys selected.");
   return selected;
 }
 
-function chunkValues(key: GraduationKey, input: {
-  chunkSize: number;
-  maxValuesPerKey?: number;
-  examplesPerValue: number;
-  outputRoot: string;
-}): VocabChunk[] {
+function chunkValues(
+  key: GraduationKey,
+  input: {
+    chunkSize: number;
+    maxValuesPerKey?: number;
+    examplesPerValue: number;
+    outputRoot: string;
+  },
+): VocabChunk[] {
   const chunks: VocabChunk[] = [];
-  const selectedValues = input.maxValuesPerKey === undefined
-    ? key.topValues
-    : key.topValues.slice(0, input.maxValuesPerKey);
+  const selectedValues =
+    input.maxValuesPerKey === undefined
+      ? key.topValues
+      : key.topValues.slice(0, input.maxValuesPerKey);
   const chunkCount = Math.max(1, Math.ceil(selectedValues.length / input.chunkSize));
   for (let index = 0; index < chunkCount; index += 1) {
-    const values = selectedValues.slice(index * input.chunkSize, (index + 1) * input.chunkSize).map((value) => ({
-      rawValue: value.value,
-      normalizedRawValue: normalizeRawValue(value.value),
-      inputCount: value.count,
-      sourceFieldCounts: value.sourceFieldCounts,
-      surfaceKindCounts: value.surfaceKindCounts,
-      examples: value.examples.slice(0, input.examplesPerValue),
-    }));
+    const values = selectedValues
+      .slice(index * input.chunkSize, (index + 1) * input.chunkSize)
+      .map((value) => ({
+        rawValue: value.value,
+        normalizedRawValue: normalizeRawValue(value.value),
+        inputCount: value.count,
+        sourceFieldCounts: value.sourceFieldCounts,
+        surfaceKindCounts: value.surfaceKindCounts,
+        examples: value.examples.slice(0, input.examplesPerValue),
+      }));
     const chunkId = `${key.id}-chunk-${String(index + 1).padStart(4, "0")}`;
     chunks.push({
       chunkId,
@@ -762,13 +808,15 @@ const PROMPT_CONTEXT_RAW_PAYLOAD_KEYS = [
 
 function rawPayloadContext(surface: Record<string, unknown>): Record<string, unknown> {
   const rawPayload = isRecord(surface["rawPayload"]) ? surface["rawPayload"] : {};
-  return Object.fromEntries(PROMPT_CONTEXT_RAW_PAYLOAD_KEYS.flatMap((key) => {
-    const value = rawPayload[key];
-    if (value === undefined || value === null || value === "") return [];
-    if (Array.isArray(value)) return [[key, value.slice(0, 8)]];
-    if (typeof value === "object") return [];
-    return [[key, value]];
-  }));
+  return Object.fromEntries(
+    PROMPT_CONTEXT_RAW_PAYLOAD_KEYS.flatMap((key) => {
+      const value = rawPayload[key];
+      if (value === undefined || value === null || value === "") return [];
+      if (Array.isArray(value)) return [[key, value.slice(0, 8)]];
+      if (typeof value === "object") return [];
+      return [[key, value]];
+    }),
+  );
 }
 
 function evidenceQuoteContexts(item: Record<string, unknown> | null): Array<{
@@ -778,15 +826,21 @@ function evidenceQuoteContexts(item: Record<string, unknown> | null): Array<{
   quoteText: string;
 }> {
   if (item === null || !Array.isArray(item["evidencePointers"])) return [];
-  return item["evidencePointers"].flatMap((pointer) => {
-    if (!isRecord(pointer) || typeof pointer["quoteText"] !== "string") return [];
-    return [{
-      ...(typeof pointer["pageArtifactKey"] === "string" ? { pageArtifactKey: pointer["pageArtifactKey"] } : {}),
-      ...(typeof pointer["lineStart"] === "number" ? { lineStart: pointer["lineStart"] } : {}),
-      ...(typeof pointer["lineEnd"] === "number" ? { lineEnd: pointer["lineEnd"] } : {}),
-      quoteText: pointer["quoteText"],
-    }];
-  }).slice(0, 3);
+  return item["evidencePointers"]
+    .flatMap((pointer) => {
+      if (!isRecord(pointer) || typeof pointer["quoteText"] !== "string") return [];
+      return [
+        {
+          ...(typeof pointer["pageArtifactKey"] === "string"
+            ? { pageArtifactKey: pointer["pageArtifactKey"] }
+            : {}),
+          ...(typeof pointer["lineStart"] === "number" ? { lineStart: pointer["lineStart"] } : {}),
+          ...(typeof pointer["lineEnd"] === "number" ? { lineEnd: pointer["lineEnd"] } : {}),
+          quoteText: pointer["quoteText"],
+        },
+      ];
+    })
+    .slice(0, 3);
 }
 
 function compactText(value: string, maxChars: number): string {
@@ -803,10 +857,7 @@ function sleepMs(ms: number): Promise<void> {
 }
 
 function providerRetryDelayMs(chunkId: string, retryIndex: number): number {
-  const baseDelayMs = Math.min(
-    8 * 60_000,
-    DEFAULT_PROVIDER_RETRY_BASE_DELAY_MS * (2 ** retryIndex),
-  );
+  const baseDelayMs = Math.min(8 * 60_000, DEFAULT_PROVIDER_RETRY_BASE_DELAY_MS * 2 ** retryIndex);
   const jitterMs = Number.parseInt(shortHash(`${chunkId}:${retryIndex}`).slice(0, 4), 16) % 20_000;
   return baseDelayMs + jitterMs;
 }
@@ -821,12 +872,14 @@ function formatCountMap(counts: SourceFieldCounts): string {
 function formatRawPayloadContext(context: Record<string, unknown>, maxValueChars = 180): string {
   const entries = Object.entries(context);
   if (entries.length === 0) return "(none)";
-  return entries.map(([key, value]) => {
-    if (Array.isArray(value)) {
-      return `${key}=[${value.map((item) => compactText(String(item), maxValueChars)).join("; ")}]`;
-    }
-    return `${key}=${quoteInline(compactText(String(value), maxValueChars))}`;
-  }).join("; ");
+  return entries
+    .map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return `${key}=[${value.map((item) => compactText(String(item), maxValueChars)).join("; ")}]`;
+      }
+      return `${key}=${quoteInline(compactText(String(value), maxValueChars))}`;
+    })
+    .join("; ");
 }
 
 function exampleArtifactRef(example: GraduationExample): string {
@@ -884,17 +937,23 @@ async function promptExampleContext(
     return {
       ...base,
       artifactFound: true,
-      fieldSupportVerified: item === null ? null : supportVerifiedFor(item, example.sourceFieldPath),
+      fieldSupportVerified:
+        item === null ? null : supportVerifiedFor(item, example.sourceFieldPath),
       rawText: typeof surface["rawText"] === "string" ? surface["rawText"] : null,
       rawPayloadContext: rawPayloadContext(surface),
       evidenceQuotes: evidenceQuoteContexts(item),
-      pageMarkdownExcerpt: pageMarkdown === null
-        ? null
-        : excerptAroundNeedles(pageMarkdown, [
-            input.rawValue,
-            example.displayLabel ?? "",
-            typeof surface["rawText"] === "string" ? surface["rawText"] : "",
-          ], 900),
+      pageMarkdownExcerpt:
+        pageMarkdown === null
+          ? null
+          : excerptAroundNeedles(
+              pageMarkdown,
+              [
+                input.rawValue,
+                example.displayLabel ?? "",
+                typeof surface["rawText"] === "string" ? surface["rawText"] : "",
+              ],
+              900,
+            ),
     };
   } catch {
     return base;
@@ -913,18 +972,25 @@ async function promptValues(
       inputCount: value.inputCount,
       sourceFieldCounts: value.sourceFieldCounts,
       surfaceKindCounts: value.surfaceKindCounts,
-      usageExamples: await Promise.all(value.examples.map((example) => promptExampleContext(example, {
-        rawValue: value.rawValue,
-        includePageMarkdownExcerpt: options.includePageMarkdownExcerpt,
-      }))),
+      usageExamples: await Promise.all(
+        value.examples.map((example) =>
+          promptExampleContext(example, {
+            rawValue: value.rawValue,
+            includePageMarkdownExcerpt: options.includePageMarkdownExcerpt,
+          }),
+        ),
+      ),
     });
   }
   return out;
 }
 
-function renderPromptValuesToMarkdown(values: PromptValueContext[], options: {
-  detail: "inline_compact" | "tool_full";
-}): string {
+function renderPromptValuesToMarkdown(
+  values: PromptValueContext[],
+  options: {
+    detail: "inline_compact" | "tool_full";
+  },
+): string {
   const inlineCompact = options.detail === "inline_compact";
   const lines: string[] = [];
   lines.push(`values[count=${values.length}]:`);
@@ -943,9 +1009,10 @@ function renderPromptValuesToMarkdown(values: PromptValueContext[], options: {
       lines.push("  examples: []");
       return;
     }
-    const exampleCountLabel = inlineCompact && value.usageExamples.length > usageExamples.length
-      ? `${usageExamples.length} of ${value.usageExamples.length}`
-      : String(usageExamples.length);
+    const exampleCountLabel =
+      inlineCompact && value.usageExamples.length > usageExamples.length
+        ? `${usageExamples.length} of ${value.usageExamples.length}`
+        : String(usageExamples.length);
     lines.push(`  examples[count=${exampleCountLabel}]:`);
     usageExamples.forEach((example, exampleIndex) => {
       const exampleRef = `${valueRef}.e${String(exampleIndex + 1).padStart(2, "0")}`;
@@ -953,16 +1020,23 @@ function renderPromptValuesToMarkdown(values: PromptValueContext[], options: {
       lines.push(`      sourceId: ${example.sourceId ?? "(unknown)"}`);
       lines.push(`      pages: ${(example.pageNumbers ?? []).join(", ") || "(unknown)"}`);
       lines.push(`      field: ${example.sourceFieldPath}`);
-      const supportVerified = example.fieldSupportVerified === null
-        ? "unknown"
-        : example.fieldSupportVerified ? "yes" : "no";
+      const supportVerified =
+        example.fieldSupportVerified === null
+          ? "unknown"
+          : example.fieldSupportVerified
+            ? "yes"
+            : "no";
       lines.push(`      supportVerified: ${supportVerified}`);
       if (!inlineCompact) lines.push(`      surfaceId: ${example.surfaceId ?? "(unknown)"}`);
       if (example.displayLabel !== undefined) {
-        lines.push(`      label: ${quoteInline(compactText(example.displayLabel, inlineCompact ? 160 : 260))}`);
+        lines.push(
+          `      label: ${quoteInline(compactText(example.displayLabel, inlineCompact ? 160 : 260))}`,
+        );
       }
       if (example.rawText !== null) {
-        lines.push(`      rawText: ${quoteInline(compactText(example.rawText, inlineCompact ? 220 : 360))}`);
+        lines.push(
+          `      rawText: ${quoteInline(compactText(example.rawText, inlineCompact ? 220 : 360))}`,
+        );
       }
       lines.push(
         `      payload: ${formatRawPayloadContext(example.rawPayloadContext, inlineCompact ? 120 : 180)}`,
@@ -970,16 +1044,21 @@ function renderPromptValuesToMarkdown(values: PromptValueContext[], options: {
       if (!inlineCompact && example.evidenceQuotes.length > 0) {
         lines.push("      evidence:");
         for (const quote of example.evidenceQuotes) {
-          const linePart = quote.lineStart === undefined
-            ? ""
-            : `L${quote.lineStart}${
-                quote.lineEnd === undefined || quote.lineEnd === quote.lineStart ? "" : `-L${quote.lineEnd}`
-              } `;
+          const linePart =
+            quote.lineStart === undefined
+              ? ""
+              : `L${quote.lineStart}${
+                  quote.lineEnd === undefined || quote.lineEnd === quote.lineStart
+                    ? ""
+                    : `-L${quote.lineEnd}`
+                } `;
           lines.push(`        - ${linePart}${quoteInline(compactText(quote.quoteText, 360))}`);
         }
       }
       if (example.pageMarkdownExcerpt !== null) {
-        lines.push(`      pageExcerpt: ${quoteInline(compactText(example.pageMarkdownExcerpt, 900))}`);
+        lines.push(
+          `      pageExcerpt: ${quoteInline(compactText(example.pageMarkdownExcerpt, 900))}`,
+        );
       }
       if (!inlineCompact) lines.push(`      artifactRef: ${example.artifactRef}`);
     });
@@ -997,7 +1076,9 @@ function collectCanonicalValues(responses: readonly ModelVocabResponse[]): Canon
       if (!byId.has(canonical.canonicalId)) byId.set(canonical.canonicalId, canonical);
     }
   }
-  return [...byId.values()].sort((left, right) => left.canonicalId.localeCompare(right.canonicalId));
+  return [...byId.values()].sort((left, right) =>
+    left.canonicalId.localeCompare(right.canonicalId),
+  );
 }
 
 function renderPriorCanonicalValuesToMarkdown(values: readonly CanonicalValue[]): string {
@@ -1012,14 +1093,26 @@ function renderPriorCanonicalValuesToMarkdown(values: readonly CanonicalValue[])
     lines.push(`  measurementDimension: ${canonical.measurementDimension}`);
     lines.push(`  metricFamily: ${canonical.metricFamily}`);
     lines.push(`  mergePolicy: ${canonical.mergePolicy}`);
-    if (canonical.countedEntityFamily !== undefined) lines.push(`  countedEntityFamily: ${canonical.countedEntityFamily}`);
+    if (canonical.countedEntityFamily !== undefined)
+      lines.push(`  countedEntityFamily: ${canonical.countedEntityFamily}`);
     if (canonical.coarseGroup !== undefined) lines.push(`  coarseGroup: ${canonical.coarseGroup}`);
-    if (canonical.semanticTags.length > 0) lines.push(`  semanticTags: ${canonical.semanticTags.join(", ")}`);
+    if (canonical.semanticTags.length > 0)
+      lines.push(`  semanticTags: ${canonical.semanticTags.join(", ")}`);
     if (canonical.positiveExamples.length > 0) {
-      lines.push(`  positiveExamples: ${canonical.positiveExamples.slice(0, 5).map((item) => quoteInline(compactText(item, 120))).join(", ")}`);
+      lines.push(
+        `  positiveExamples: ${canonical.positiveExamples
+          .slice(0, 5)
+          .map((item) => quoteInline(compactText(item, 120)))
+          .join(", ")}`,
+      );
     }
     if (canonical.negativeExamples.length > 0) {
-      lines.push(`  negativeExamples: ${canonical.negativeExamples.slice(0, 5).map((item) => quoteInline(compactText(item, 120))).join(", ")}`);
+      lines.push(
+        `  negativeExamples: ${canonical.negativeExamples
+          .slice(0, 5)
+          .map((item) => quoteInline(compactText(item, 120)))
+          .join(", ")}`,
+      );
     }
   }
   return lines.join("\n");
@@ -1033,7 +1126,8 @@ function renderPriorCanonicalIdIndex(values: readonly CanonicalValue[]): string 
       `- ${canonical.canonicalId}: ${quoteInline(compactText(canonical.label, 80))}; ${canonical.measurementDimension}; ${canonical.metricFamily}; ${canonical.mergePolicy}`,
     );
   }
-  if (values.length > 160) lines.push(`- ... ${values.length - 160} more prior canonical id(s) omitted`);
+  if (values.length > 160)
+    lines.push(`- ... ${values.length - 160} more prior canonical id(s) omitted`);
   return lines.join("\n");
 }
 
@@ -1047,15 +1141,18 @@ function renderDeterministicHints(input: {
   for (const canonical of input.priorCanonicalValues) {
     const idSignature = canonicalIdCandidate(canonical.canonicalId);
     const labelSignature = canonicalIdCandidate(canonical.label);
-    if (idSignature.length > 0 && !priorBySignature.has(idSignature)) priorBySignature.set(idSignature, canonical);
-    if (labelSignature.length > 0 && !priorBySignature.has(labelSignature)) priorBySignature.set(labelSignature, canonical);
+    if (idSignature.length > 0 && !priorBySignature.has(idSignature))
+      priorBySignature.set(idSignature, canonical);
+    if (labelSignature.length > 0 && !priorBySignature.has(labelSignature))
+      priorBySignature.set(labelSignature, canonical);
   }
 
   const priorMatches: string[] = [];
   for (const value of input.chunk.values) {
     const signature = canonicalIdCandidate(value.rawValue);
     const prior = priorById.get(signature) ?? priorBySignature.get(signature);
-    if (prior !== undefined) priorMatches.push(`${quoteInline(value.rawValue)} -> ${prior.canonicalId}`);
+    if (prior !== undefined)
+      priorMatches.push(`${quoteInline(value.rawValue)} -> ${prior.canonicalId}`);
   }
   if (priorMatches.length > 0) {
     lines.push("priorIdMatches:");
@@ -1088,7 +1185,9 @@ function renderDeterministicHints(input: {
   if (compoundCandidates.length > 0) {
     lines.push("compoundOrLossyCandidates:");
     for (const rawValue of compoundCandidates) {
-      lines.push(`- ${quoteInline(rawValue)} -> consider preserve_raw unless one meaning dominates`);
+      lines.push(
+        `- ${quoteInline(rawValue)} -> consider preserve_raw unless one meaning dominates`,
+      );
     }
   }
 
@@ -1123,7 +1222,9 @@ function taxonomyGuidance(keyId: string): string {
     "compound values such as 'residents; jobs' or 'feet / acres / cars' should usually be preserve_raw with metricFamily=other or the dominant family only if clear.",
     "score, rank, rating_scale, and ordinal_score are score/rating families, not literal physical units.",
     "date, year, month_year, and year_range are temporal markers; preserve or map carefully by usage.",
-  ].map((line) => `- ${line}`).join("\n");
+  ]
+    .map((line) => `- ${line}`)
+    .join("\n");
 }
 
 async function userPrompt(input: {
@@ -1261,59 +1362,83 @@ function parseModelResponse(raw: unknown): ModelVocabResponse {
           const label = typeof value["label"] === "string" ? value["label"] : "";
           const description = typeof value["description"] === "string" ? value["description"] : "";
           const mergePolicy = value["mergePolicy"];
-          return [{
-            canonicalId,
-            label,
-            description,
-            measurementDimension: typeof value["measurementDimension"] === "string" ? value["measurementDimension"] : "",
-            metricFamily: typeof value["metricFamily"] === "string" ? value["metricFamily"] : "",
-            mergePolicy: mergePolicy === "same_leaf_only" || mergePolicy === "family_rollup_allowed" || mergePolicy === "preserve_raw_preferred"
-              ? mergePolicy
-              : "same_leaf_only",
-            ...(typeof value["countedEntityFamily"] === "string" ? { countedEntityFamily: value["countedEntityFamily"] } : {}),
-            ...(typeof value["coarseGroup"] === "string" ? { coarseGroup: value["coarseGroup"] } : {}),
-            semanticTags: Array.isArray(value["semanticTags"])
-              ? value["semanticTags"].filter((item): item is string => typeof item === "string")
-              : [],
-            downstreamUses: Array.isArray(value["downstreamUses"])
-              ? value["downstreamUses"].filter((item): item is string => typeof item === "string")
-              : [],
-            positiveExamples: Array.isArray(value["positiveExamples"])
-              ? value["positiveExamples"].filter((item): item is string => typeof item === "string")
-              : [],
-            negativeExamples: Array.isArray(value["negativeExamples"])
-              ? value["negativeExamples"].filter((item): item is string => typeof item === "string")
-              : [],
-          }];
+          return [
+            {
+              canonicalId,
+              label,
+              description,
+              measurementDimension:
+                typeof value["measurementDimension"] === "string"
+                  ? value["measurementDimension"]
+                  : "",
+              metricFamily: typeof value["metricFamily"] === "string" ? value["metricFamily"] : "",
+              mergePolicy:
+                mergePolicy === "same_leaf_only" ||
+                mergePolicy === "family_rollup_allowed" ||
+                mergePolicy === "preserve_raw_preferred"
+                  ? mergePolicy
+                  : "same_leaf_only",
+              ...(typeof value["countedEntityFamily"] === "string"
+                ? { countedEntityFamily: value["countedEntityFamily"] }
+                : {}),
+              ...(typeof value["coarseGroup"] === "string"
+                ? { coarseGroup: value["coarseGroup"] }
+                : {}),
+              semanticTags: Array.isArray(value["semanticTags"])
+                ? value["semanticTags"].filter((item): item is string => typeof item === "string")
+                : [],
+              downstreamUses: Array.isArray(value["downstreamUses"])
+                ? value["downstreamUses"].filter((item): item is string => typeof item === "string")
+                : [],
+              positiveExamples: Array.isArray(value["positiveExamples"])
+                ? value["positiveExamples"].filter(
+                    (item): item is string => typeof item === "string",
+                  )
+                : [],
+              negativeExamples: Array.isArray(value["negativeExamples"])
+                ? value["negativeExamples"].filter(
+                    (item): item is string => typeof item === "string",
+                  )
+                : [],
+            },
+          ];
         })
       : [],
     aliases: Array.isArray(record["aliases"])
       ? record["aliases"].flatMap((alias): ModelAlias[] => {
           if (!isRecord(alias)) return [];
           const decision = alias["decision"];
-          if (decision !== "mapped" && decision !== "unresolved" && decision !== "preserve_raw") return [];
-          return [{
-            rawValue: typeof alias["rawValue"] === "string" ? alias["rawValue"] : "",
-            normalizedRawValue: typeof alias["normalizedRawValue"] === "string" ? alias["normalizedRawValue"] : "",
-            decision,
-            ...(typeof alias["canonicalId"] === "string" ? { canonicalId: alias["canonicalId"] } : {}),
-            confidence: typeof alias["confidence"] === "number" ? alias["confidence"] : -1,
-            rationale: typeof alias["rationale"] === "string" ? alias["rationale"] : "",
-            reviewFlags: Array.isArray(alias["reviewFlags"])
-              ? alias["reviewFlags"].filter((item): item is string => typeof item === "string")
-              : [],
-          }];
+          if (decision !== "mapped" && decision !== "unresolved" && decision !== "preserve_raw")
+            return [];
+          return [
+            {
+              rawValue: typeof alias["rawValue"] === "string" ? alias["rawValue"] : "",
+              normalizedRawValue:
+                typeof alias["normalizedRawValue"] === "string" ? alias["normalizedRawValue"] : "",
+              decision,
+              ...(typeof alias["canonicalId"] === "string"
+                ? { canonicalId: alias["canonicalId"] }
+                : {}),
+              confidence: typeof alias["confidence"] === "number" ? alias["confidence"] : -1,
+              rationale: typeof alias["rationale"] === "string" ? alias["rationale"] : "",
+              reviewFlags: Array.isArray(alias["reviewFlags"])
+                ? alias["reviewFlags"].filter((item): item is string => typeof item === "string")
+                : [],
+            },
+          ];
         })
       : [],
     reviewNotes: Array.isArray(record["reviewNotes"])
       ? record["reviewNotes"].flatMap((note): ModelVocabResponse["reviewNotes"] => {
           if (!isRecord(note) || typeof note["note"] !== "string") return [];
-          return [{
-            note: note["note"],
-            rawValues: Array.isArray(note["rawValues"])
-              ? note["rawValues"].filter((item): item is string => typeof item === "string")
-              : [],
-          }];
+          return [
+            {
+              note: note["note"],
+              rawValues: Array.isArray(note["rawValues"])
+                ? note["rawValues"].filter((item): item is string => typeof item === "string")
+                : [],
+            },
+          ];
         })
       : [],
   };
@@ -1332,26 +1457,32 @@ function expandCompactModelResponse(input: {
     reviewNotes: rawRecord["reviewNotes"],
   });
   const canonicalById = new Map<string, CanonicalValue>();
-  for (const canonical of input.priorCanonicalValues) canonicalById.set(canonical.canonicalId, canonical);
-  for (const canonical of parsedNew.canonicalValues) canonicalById.set(canonical.canonicalId, canonical);
+  for (const canonical of input.priorCanonicalValues)
+    canonicalById.set(canonical.canonicalId, canonical);
+  for (const canonical of parsedNew.canonicalValues)
+    canonicalById.set(canonical.canonicalId, canonical);
 
   const chunkValueByRaw = new Map(input.chunk.values.map((value) => [value.rawValue, value]));
   const aliases = input.raw.aliases.flatMap((alias): ModelAlias[] => {
     const chunkValue = chunkValueByRaw.get(alias.rawValue);
-    return [{
-      rawValue: alias.rawValue,
-      normalizedRawValue: chunkValue?.normalizedRawValue ?? normalizeRawValue(alias.rawValue),
-      decision: alias.decision,
-      ...(alias.canonicalId === undefined ? {} : { canonicalId: alias.canonicalId }),
-      confidence: alias.confidence ?? -1,
-      rationale: alias.rationale ?? "",
-      reviewFlags: alias.reviewFlags ?? [],
-    }];
+    return [
+      {
+        rawValue: alias.rawValue,
+        normalizedRawValue: chunkValue?.normalizedRawValue ?? normalizeRawValue(alias.rawValue),
+        decision: alias.decision,
+        ...(alias.canonicalId === undefined ? {} : { canonicalId: alias.canonicalId }),
+        confidence: alias.confidence ?? -1,
+        rationale: alias.rationale ?? "",
+        reviewFlags: alias.reviewFlags ?? [],
+      },
+    ];
   });
 
   return {
     keyId: input.raw.keyId,
-    canonicalValues: [...canonicalById.values()].sort((left, right) => left.canonicalId.localeCompare(right.canonicalId)),
+    canonicalValues: [...canonicalById.values()].sort((left, right) =>
+      left.canonicalId.localeCompare(right.canonicalId),
+    ),
     aliases,
     reviewNotes: parsedNew.reviewNotes,
   };
@@ -1387,9 +1518,11 @@ async function reusableAcceptedChunk(input: {
   const promptPath = input.previousResult?.promptPath ?? join(chunkDir, "provided-prompt.md");
   const requestPath = input.previousResult?.requestPath ?? join(chunkDir, "request.json");
   const responsePath = input.previousResult?.responsePath ?? join(chunkDir, "response.json");
-  const toolLoopPath = input.previousResult?.toolLoopPath ?? join(chunkDir, "tool-loop-result.json");
+  const toolLoopPath =
+    input.previousResult?.toolLoopPath ?? join(chunkDir, "tool-loop-result.json");
   const sessionPath = input.previousResult?.sessionPath ?? null;
-  const executionMode = input.previousResult?.executionMode ??
+  const executionMode =
+    input.previousResult?.executionMode ??
     ((await Bun.file(toolLoopPath).exists()) ? "agentic_tool_loop" : "direct_tool_call");
   return {
     response,
@@ -1420,7 +1553,10 @@ export function validateVocabToolCall(input: {
   const aliasCounts = countBy(input.response.aliases.map((alias) => alias.rawValue));
   const canonicalIds = new Set(input.response.canonicalValues.map((value) => value.canonicalId));
   if (input.response.keyId !== input.keyId) {
-    blockers.push({ code: "key_id_mismatch", message: `Expected ${input.keyId}, got ${input.response.keyId}.` });
+    blockers.push({
+      code: "key_id_mismatch",
+      message: `Expected ${input.keyId}, got ${input.response.keyId}.`,
+    });
   }
   for (const canonical of input.response.canonicalValues) {
     if (!/^[a-z][a-z0-9_]*$/.test(canonical.canonicalId)) {
@@ -1447,7 +1583,10 @@ export function validateVocabToolCall(input: {
         message: `Canonical value ${canonical.canonicalId} has invalid mergePolicy: ${canonical.mergePolicy}`,
       });
     }
-    if (canonical.countedEntityFamily !== undefined && !/^[a-z][a-z0-9_]*$/.test(canonical.countedEntityFamily)) {
+    if (
+      canonical.countedEntityFamily !== undefined &&
+      !/^[a-z][a-z0-9_]*$/.test(canonical.countedEntityFamily)
+    ) {
       blockers.push({
         code: "invalid_counted_entity_family",
         message: `countedEntityFamily must be lowercase snake_case: ${canonical.countedEntityFamily}`,
@@ -1486,15 +1625,27 @@ export function validateVocabToolCall(input: {
   for (const value of input.chunk.values) {
     const count = aliasCounts[value.rawValue] ?? 0;
     if (count === 0) {
-      blockers.push({ code: "missing_alias", message: "Every input raw value needs one alias decision.", rawValue: value.rawValue });
+      blockers.push({
+        code: "missing_alias",
+        message: "Every input raw value needs one alias decision.",
+        rawValue: value.rawValue,
+      });
     } else if (count > 1) {
-      blockers.push({ code: "duplicate_alias", message: "Input raw value appeared more than once.", rawValue: value.rawValue });
+      blockers.push({
+        code: "duplicate_alias",
+        message: "Input raw value appeared more than once.",
+        rawValue: value.rawValue,
+      });
     }
   }
   for (const alias of input.response.aliases) {
     const source = inputByRawValue.get(alias.rawValue);
     if (source === undefined) {
-      blockers.push({ code: "extra_alias", message: "Alias rawValue was not in the input chunk.", rawValue: alias.rawValue });
+      blockers.push({
+        code: "extra_alias",
+        message: "Alias rawValue was not in the input chunk.",
+        rawValue: alias.rawValue,
+      });
       continue;
     }
     if (alias.normalizedRawValue !== source.normalizedRawValue) {
@@ -1505,10 +1656,18 @@ export function validateVocabToolCall(input: {
       });
     }
     if (alias.confidence < 0 || alias.confidence > 1) {
-      blockers.push({ code: "invalid_confidence", message: "Confidence must be between 0 and 1.", rawValue: alias.rawValue });
+      blockers.push({
+        code: "invalid_confidence",
+        message: "Confidence must be between 0 and 1.",
+        rawValue: alias.rawValue,
+      });
     }
     if (alias.rationale.trim().length === 0) {
-      blockers.push({ code: "empty_rationale", message: "Alias needs a rationale.", rawValue: alias.rawValue });
+      blockers.push({
+        code: "empty_rationale",
+        message: "Alias needs a rationale.",
+        rawValue: alias.rawValue,
+      });
     }
     if (alias.decision === "mapped") {
       if (alias.canonicalId === undefined || !canonicalIds.has(alias.canonicalId)) {
@@ -1553,9 +1712,11 @@ const readVocabContextParams = Type.Object(
       minLength: 1,
       description: "Exact rawValue from the input chunk to inspect.",
     }),
-    includePageMarkdown: Type.Optional(Type.Boolean({
-      description: "When true, include OCR/page markdown excerpts around this value's examples.",
-    })),
+    includePageMarkdown: Type.Optional(
+      Type.Boolean({
+        description: "When true, include OCR/page markdown excerpts around this value's examples.",
+      }),
+    ),
   },
   { additionalProperties: false },
 );
@@ -1567,11 +1728,13 @@ const searchSourceTextParams = Type.Object(
       maxLength: 120,
       description: "Plain text query to search in configured MTA source captures.",
     }),
-    limit: Type.Optional(Type.Integer({
-      minimum: 1,
-      maximum: 10,
-      description: "Maximum matching source snippets to return. Default 5.",
-    })),
+    limit: Type.Optional(
+      Type.Integer({
+        minimum: 1,
+        maximum: 10,
+        description: "Maximum matching source snippets to return. Default 5.",
+      }),
+    ),
   },
   { additionalProperties: false },
 );
@@ -1617,21 +1780,27 @@ const submitVocabMapParams = Type.Object(
           canonicalId: Type.String(),
           label: Type.String(),
           description: Type.String(),
-          measurementDimension: Type.Union(MEASUREMENT_DIMENSIONS.map((item) => Type.Literal(item)) as [
-            ReturnType<typeof Type.Literal>,
-            ReturnType<typeof Type.Literal>,
-            ...ReturnType<typeof Type.Literal>[],
-          ]),
-          metricFamily: Type.Union(METRIC_FAMILIES.map((item) => Type.Literal(item)) as [
-            ReturnType<typeof Type.Literal>,
-            ReturnType<typeof Type.Literal>,
-            ...ReturnType<typeof Type.Literal>[],
-          ]),
-          mergePolicy: Type.Union(MERGE_POLICIES.map((item) => Type.Literal(item)) as [
-            ReturnType<typeof Type.Literal>,
-            ReturnType<typeof Type.Literal>,
-            ...ReturnType<typeof Type.Literal>[],
-          ]),
+          measurementDimension: Type.Union(
+            MEASUREMENT_DIMENSIONS.map((item) => Type.Literal(item)) as [
+              ReturnType<typeof Type.Literal>,
+              ReturnType<typeof Type.Literal>,
+              ...ReturnType<typeof Type.Literal>[],
+            ],
+          ),
+          metricFamily: Type.Union(
+            METRIC_FAMILIES.map((item) => Type.Literal(item)) as [
+              ReturnType<typeof Type.Literal>,
+              ReturnType<typeof Type.Literal>,
+              ...ReturnType<typeof Type.Literal>[],
+            ],
+          ),
+          mergePolicy: Type.Union(
+            MERGE_POLICIES.map((item) => Type.Literal(item)) as [
+              ReturnType<typeof Type.Literal>,
+              ReturnType<typeof Type.Literal>,
+              ...ReturnType<typeof Type.Literal>[],
+            ],
+          ),
           countedEntityFamily: Type.Optional(Type.String()),
           coarseGroup: Type.Optional(Type.String()),
           semanticTags: Type.Array(Type.String()),
@@ -1685,21 +1854,27 @@ const submitCompactVocabParams = Type.Object(
           canonicalId: Type.String(),
           label: Type.String(),
           description: Type.String(),
-          measurementDimension: Type.Union(MEASUREMENT_DIMENSIONS.map((item) => Type.Literal(item)) as [
-            ReturnType<typeof Type.Literal>,
-            ReturnType<typeof Type.Literal>,
-            ...ReturnType<typeof Type.Literal>[],
-          ]),
-          metricFamily: Type.Union(METRIC_FAMILIES.map((item) => Type.Literal(item)) as [
-            ReturnType<typeof Type.Literal>,
-            ReturnType<typeof Type.Literal>,
-            ...ReturnType<typeof Type.Literal>[],
-          ]),
-          mergePolicy: Type.Union(MERGE_POLICIES.map((item) => Type.Literal(item)) as [
-            ReturnType<typeof Type.Literal>,
-            ReturnType<typeof Type.Literal>,
-            ...ReturnType<typeof Type.Literal>[],
-          ]),
+          measurementDimension: Type.Union(
+            MEASUREMENT_DIMENSIONS.map((item) => Type.Literal(item)) as [
+              ReturnType<typeof Type.Literal>,
+              ReturnType<typeof Type.Literal>,
+              ...ReturnType<typeof Type.Literal>[],
+            ],
+          ),
+          metricFamily: Type.Union(
+            METRIC_FAMILIES.map((item) => Type.Literal(item)) as [
+              ReturnType<typeof Type.Literal>,
+              ReturnType<typeof Type.Literal>,
+              ...ReturnType<typeof Type.Literal>[],
+            ],
+          ),
+          mergePolicy: Type.Union(
+            MERGE_POLICIES.map((item) => Type.Literal(item)) as [
+              ReturnType<typeof Type.Literal>,
+              ReturnType<typeof Type.Literal>,
+              ...ReturnType<typeof Type.Literal>[],
+            ],
+          ),
           countedEntityFamily: Type.Optional(Type.String()),
           coarseGroup: Type.Optional(Type.String()),
           semanticTags: Type.Array(Type.String()),
@@ -1793,7 +1968,9 @@ function formatValidationFeedback(validation: ChunkValidation, toolName = TOOL_N
     "",
   ];
   for (const blocker of validation.blockers.slice(0, 60)) {
-    lines.push(`- ${blocker.code}${blocker.rawValue === undefined ? "" : ` (${blocker.rawValue})`}: ${blocker.message}`);
+    lines.push(
+      `- ${blocker.code}${blocker.rawValue === undefined ? "" : ` (${blocker.rawValue})`}: ${blocker.message}`,
+    );
   }
   if (validation.blockers.length > 60) {
     lines.push(`- ... ${validation.blockers.length - 60} more blocker(s) omitted`);
@@ -1801,7 +1978,9 @@ function formatValidationFeedback(validation: ChunkValidation, toolName = TOOL_N
   return lines.join("\n");
 }
 
-function buildReadVocabContextTool(chunk: VocabChunk): AgentTool<typeof readVocabContextParams, null> {
+function buildReadVocabContextTool(
+  chunk: VocabChunk,
+): AgentTool<typeof readVocabContextParams, null> {
   return {
     name: "read_vocab_context",
     label: "Read vocab context",
@@ -1813,16 +1992,21 @@ function buildReadVocabContextTool(chunk: VocabChunk): AgentTool<typeof readVoca
       if (value === undefined) {
         return toolText(`rawValue not found in this chunk: ${args.rawValue}`);
       }
-      const context = await promptValues({
-        ...chunk,
-        values: [value],
-      }, { includePageMarkdownExcerpt: args.includePageMarkdown === true });
+      const context = await promptValues(
+        {
+          ...chunk,
+          values: [value],
+        },
+        { includePageMarkdownExcerpt: args.includePageMarkdown === true },
+      );
       return toolText(renderPromptValuesToMarkdown(context, { detail: "tool_full" }));
     },
   };
 }
 
-function buildSearchSourceTextTool(sourceRoot: string | undefined): AgentTool<typeof searchSourceTextParams, null> {
+function buildSearchSourceTextTool(
+  sourceRoot: string | undefined,
+): AgentTool<typeof searchSourceTextParams, null> {
   const textCache = new Map<string, string | null>();
   return {
     name: "search_source_text",
@@ -1878,7 +2062,10 @@ function budgetFooter(budget: V2ToolBudget): string {
   return `contextBudget: ${budget.contextCalls}/${budget.maxContextCalls} calls used`;
 }
 
-function chunkWithRawValues(chunk: VocabChunk, rawValues: readonly string[]): {
+function chunkWithRawValues(
+  chunk: VocabChunk,
+  rawValues: readonly string[],
+): {
   selected: VocabChunk;
   missing: string[];
 } {
@@ -1917,14 +2104,24 @@ function buildGetValueProfilesTool(
       if (exhausted !== null) return toolText(exhausted);
       const { selected, missing } = chunkWithRawValues(chunk, args.rawValues.slice(0, 12));
       if (selected.values.length === 0) {
-        return toolText(["No requested rawValues were found in this chunk.", ...renderMissingRawValues(missing), budgetFooter(budget)].join("\n"));
+        return toolText(
+          [
+            "No requested rawValues were found in this chunk.",
+            ...renderMissingRawValues(missing),
+            budgetFooter(budget),
+          ].join("\n"),
+        );
       }
-      const context = await promptValues(selected, { includePageMarkdownExcerpt: args.includePageMarkdown === true });
-      return toolText([
-        renderPromptValuesToMarkdown(context, { detail: "tool_full" }),
-        ...renderMissingRawValues(missing),
-        budgetFooter(budget),
-      ].join("\n"));
+      const context = await promptValues(selected, {
+        includePageMarkdownExcerpt: args.includePageMarkdown === true,
+      });
+      return toolText(
+        [
+          renderPromptValuesToMarkdown(context, { detail: "tool_full" }),
+          ...renderMissingRawValues(missing),
+          budgetFooter(budget),
+        ].join("\n"),
+      );
     },
   };
 }
@@ -1944,35 +2141,52 @@ function buildCompareValuesTool(
       if (exhausted !== null) return toolText(exhausted);
       const { selected, missing } = chunkWithRawValues(chunk, args.rawValues.slice(0, 12));
       if (selected.values.length === 0) {
-        return toolText(["No requested rawValues were found in this chunk.", ...renderMissingRawValues(missing), budgetFooter(budget)].join("\n"));
+        return toolText(
+          [
+            "No requested rawValues were found in this chunk.",
+            ...renderMissingRawValues(missing),
+            budgetFooter(budget),
+          ].join("\n"),
+        );
       }
       const context = await promptValues(selected, { includePageMarkdownExcerpt: false });
-      return toolText([
-        renderPromptValuesToMarkdown(context, { detail: "inline_compact" }),
-        ...renderMissingRawValues(missing),
-        budgetFooter(budget),
-      ].join("\n"));
+      return toolText(
+        [
+          renderPromptValuesToMarkdown(context, { detail: "inline_compact" }),
+          ...renderMissingRawValues(missing),
+          budgetFooter(budget),
+        ].join("\n"),
+      );
     },
   };
 }
 
-function buildSearchValueInventoryTool(key: GraduationKey): AgentTool<typeof searchValueInventoryParams, null> {
+function buildSearchValueInventoryTool(
+  key: GraduationKey,
+): AgentTool<typeof searchValueInventoryParams, null> {
   return {
     name: "search_value_inventory",
     label: "Search value inventory",
     description: "Search this key's full raw-value inventory outside the current chunk.",
     parameters: searchValueInventoryParams,
-    execute: async (_toolCallId, args: SearchValueInventoryArgs): Promise<AgentToolResult<null>> => {
+    execute: async (
+      _toolCallId,
+      args: SearchValueInventoryArgs,
+    ): Promise<AgentToolResult<null>> => {
       const query = normalizeRawValue(args.query);
       const querySignature = canonicalIdCandidate(args.query);
-      const matches = key.topValues.filter((value) => {
-        const normalized = normalizeRawValue(value.value);
-        const signature = canonicalIdCandidate(value.value);
-        return normalized.includes(query) ||
-          query.includes(normalized) ||
-          signature.includes(querySignature) ||
-          querySignature.includes(signature);
-      }).slice(0, args.limit ?? 10);
+      const matches = key.topValues
+        .filter((value) => {
+          const normalized = normalizeRawValue(value.value);
+          const signature = canonicalIdCandidate(value.value);
+          return (
+            normalized.includes(query) ||
+            query.includes(normalized) ||
+            signature.includes(querySignature) ||
+            querySignature.includes(signature)
+          );
+        })
+        .slice(0, args.limit ?? 10);
       if (matches.length === 0) return toolText(`No inventory matches for query: ${args.query}`);
       const lines = [`inventoryMatches[count=${matches.length}]:`];
       for (const match of matches) {
@@ -2000,7 +2214,10 @@ function buildSearchSourceSnippetsTool(
     execute: async (_toolCallId, args: SearchSourceTextArgs): Promise<AgentToolResult<null>> => {
       const exhausted = useV2ContextBudget(budget, "search_source_snippets");
       if (exhausted !== null) return toolText(exhausted);
-      if (sourceRoot === undefined) return toolText(["No sourceAuditRoot/sourceSearchRoot was configured.", budgetFooter(budget)].join("\n"));
+      if (sourceRoot === undefined)
+        return toolText(
+          ["No sourceAuditRoot/sourceSearchRoot was configured.", budgetFooter(budget)].join("\n"),
+        );
       const query = args.query.trim();
       const matches: Array<{ sourceId: string; path: string; snippet: string }> = [];
       for (const source of await sourceFiles(fromCliPath(sourceRoot))) {
@@ -2010,10 +2227,17 @@ function buildSearchSourceSnippetsTool(
           textCache.set(source.path, text);
         }
         if (text === null || !looseContains(text, [query])) continue;
-        matches.push({ sourceId: source.sourceId, path: source.path, snippet: snippetFor(text, query) });
+        matches.push({
+          sourceId: source.sourceId,
+          path: source.path,
+          snippet: snippetFor(text, query),
+        });
         if (matches.length >= (args.limit ?? 5)) break;
       }
-      if (matches.length === 0) return toolText([`No MTA source matches for query: ${query}`, budgetFooter(budget)].join("\n"));
+      if (matches.length === 0)
+        return toolText(
+          [`No MTA source matches for query: ${query}`, budgetFooter(budget)].join("\n"),
+        );
       const lines = [`matches[count=${matches.length}]:`];
       for (const match of matches) {
         lines.push(`- sourceId: ${match.sourceId}`);
@@ -2038,21 +2262,33 @@ function buildReadSourceExcerptTool(
     execute: async (_toolCallId, args: ReadSourceExcerptArgs): Promise<AgentToolResult<null>> => {
       const exhausted = useV2ContextBudget(budget, "read_source_excerpt");
       if (exhausted !== null) return toolText(exhausted);
-      if (sourceRoot === undefined) return toolText(["No sourceAuditRoot/sourceSearchRoot was configured.", budgetFooter(budget)].join("\n"));
-      const source = (await sourceFiles(fromCliPath(sourceRoot))).find((candidate) => candidate.sourceId === args.sourceId);
-      if (source === undefined) return toolText([`sourceId not found: ${args.sourceId}`, budgetFooter(budget)].join("\n"));
+      if (sourceRoot === undefined)
+        return toolText(
+          ["No sourceAuditRoot/sourceSearchRoot was configured.", budgetFooter(budget)].join("\n"),
+        );
+      const source = (await sourceFiles(fromCliPath(sourceRoot))).find(
+        (candidate) => candidate.sourceId === args.sourceId,
+      );
+      if (source === undefined)
+        return toolText([`sourceId not found: ${args.sourceId}`, budgetFooter(budget)].join("\n"));
       const text = await readSourceText(source.path);
-      if (text === null || text.trim().length === 0) return toolText([`No readable text for sourceId: ${args.sourceId}`, budgetFooter(budget)].join("\n"));
+      if (text === null || text.trim().length === 0)
+        return toolText(
+          [`No readable text for sourceId: ${args.sourceId}`, budgetFooter(budget)].join("\n"),
+        );
       const maxChars = args.maxChars ?? 900;
-      const excerpt = args.query === undefined
-        ? compactText(text, maxChars)
-        : excerptAroundNeedles(text, [args.query], maxChars) ?? compactText(text, maxChars);
-      return toolText([
-        `sourceId: ${source.sourceId}`,
-        `path: ${source.path}`,
-        `excerpt: ${quoteInline(excerpt)}`,
-        budgetFooter(budget),
-      ].join("\n"));
+      const excerpt =
+        args.query === undefined
+          ? compactText(text, maxChars)
+          : (excerptAroundNeedles(text, [args.query], maxChars) ?? compactText(text, maxChars));
+      return toolText(
+        [
+          `sourceId: ${source.sourceId}`,
+          `path: ${source.path}`,
+          `excerpt: ${quoteInline(excerpt)}`,
+          budgetFooter(budget),
+        ].join("\n"),
+      );
     },
   };
 }
@@ -2071,12 +2307,18 @@ function buildSubmitVocabMapTool(input: {
     description:
       "Submit the canonical taxonomy and exact alias decisions for validation. If rejected, fix the returned blockers and submit again. A fully accepted submission ends the loop.",
     parameters: submitVocabMapParams,
-    execute: async (_toolCallId, args: SubmitVocabMapArgs): Promise<AgentToolResult<VocabSubmitResultDetails>> => {
+    execute: async (
+      _toolCallId,
+      args: SubmitVocabMapArgs,
+    ): Promise<AgentToolResult<VocabSubmitResultDetails>> => {
       input.store.attempts += 1;
       const parsed = parseModelResponse(args);
       const attemptSuffix = `attempt-${String(input.store.attempts).padStart(2, "0")}`;
       const attemptToolCallPath = input.toolCallPath.replace(/\.json$/, `-${attemptSuffix}.json`);
-      const attemptValidationPath = input.validationPath.replace(/\.json$/, `-${attemptSuffix}.json`);
+      const attemptValidationPath = input.validationPath.replace(
+        /\.json$/,
+        `-${attemptSuffix}.json`,
+      );
       const validation = validateVocabToolCall({
         keyId: input.key.id,
         chunk: input.chunk,
@@ -2118,7 +2360,10 @@ function buildSubmitCompactVocabTool(input: {
     description:
       "Submit compact alias decisions plus only newly introduced canonical values. Prior canonicalIds may be referenced without re-sending their full objects.",
     parameters: submitCompactVocabParams,
-    execute: async (_toolCallId, args: SubmitCompactVocabArgs): Promise<AgentToolResult<VocabSubmitResultDetails>> => {
+    execute: async (
+      _toolCallId,
+      args: SubmitCompactVocabArgs,
+    ): Promise<AgentToolResult<VocabSubmitResultDetails>> => {
       input.store.attempts += 1;
       const parsed = expandCompactModelResponse({
         raw: args,
@@ -2127,7 +2372,10 @@ function buildSubmitCompactVocabTool(input: {
       });
       const attemptSuffix = `attempt-${String(input.store.attempts).padStart(2, "0")}`;
       const attemptToolCallPath = input.toolCallPath.replace(/\.json$/, `-${attemptSuffix}.json`);
-      const attemptValidationPath = input.validationPath.replace(/\.json$/, `-${attemptSuffix}.json`);
+      const attemptValidationPath = input.validationPath.replace(
+        /\.json$/,
+        `-${attemptSuffix}.json`,
+      );
       const validation = validateVocabToolCall({
         keyId: input.key.id,
         chunk: input.chunk,
@@ -2158,7 +2406,9 @@ function enrichAliases(input: {
   chunks: VocabChunk[];
   responses: ModelVocabResponse[];
 }): EnrichedAlias[] {
-  const valueByRaw = new Map(input.chunks.flatMap((chunk) => chunk.values.map((value) => [value.rawValue, value] as const)));
+  const valueByRaw = new Map(
+    input.chunks.flatMap((chunk) => chunk.values.map((value) => [value.rawValue, value] as const)),
+  );
   return input.responses.flatMap((response) =>
     response.aliases.map((alias) => {
       const value = valueByRaw.get(alias.rawValue);
@@ -2187,12 +2437,15 @@ function buildVocabMap(input: {
   const reviewNotes: ModelVocabResponse["reviewNotes"] = [];
   for (const response of input.responses) {
     for (const canonical of response.canonicalValues) {
-      if (!canonicalById.has(canonical.canonicalId)) canonicalById.set(canonical.canonicalId, canonical);
+      if (!canonicalById.has(canonical.canonicalId))
+        canonicalById.set(canonical.canonicalId, canonical);
     }
     reviewNotes.push(...response.reviewNotes);
   }
-  const aliases = enrichAliases({ chunks: input.chunks, responses: input.responses })
-    .sort((left, right) => right.inputCount - left.inputCount || left.rawValue.localeCompare(right.rawValue));
+  const aliases = enrichAliases({ chunks: input.chunks, responses: input.responses }).sort(
+    (left, right) =>
+      right.inputCount - left.inputCount || left.rawValue.localeCompare(right.rawValue),
+  );
   const decisions = aliases.map((alias) => alias.decision);
   return {
     artifactKind: VOCAB_MAP_KIND,
@@ -2213,7 +2466,9 @@ function buildVocabMap(input: {
       preserveRawCount: decisions.filter((decision) => decision === "preserve_raw").length,
       instanceCoverageCount: aliases.reduce((sum, alias) => sum + alias.inputCount, 0),
     },
-    canonicalValues: [...canonicalById.values()].sort((left, right) => left.canonicalId.localeCompare(right.canonicalId)),
+    canonicalValues: [...canonicalById.values()].sort((left, right) =>
+      left.canonicalId.localeCompare(right.canonicalId),
+    ),
     aliases,
     reviewNotes,
   };
@@ -2259,13 +2514,25 @@ function renderMarkdown(input: {
   if (input.sourceAudit !== null) {
     lines.push("## Source Audit");
     lines.push("");
-    lines.push(`- Linked examples checked: ${input.sourceAudit.linkedEvidence.checkedExampleCount}`);
-    lines.push(`- Field-support verified: ${input.sourceAudit.linkedEvidence.fieldSupportVerifiedCount}`);
-    lines.push(`- OCR/page markdown found: ${input.sourceAudit.linkedEvidence.pageMarkdownFoundCount}`);
+    lines.push(
+      `- Linked examples checked: ${input.sourceAudit.linkedEvidence.checkedExampleCount}`,
+    );
+    lines.push(
+      `- Field-support verified: ${input.sourceAudit.linkedEvidence.fieldSupportVerifiedCount}`,
+    );
+    lines.push(
+      `- OCR/page markdown found: ${input.sourceAudit.linkedEvidence.pageMarkdownFoundCount}`,
+    );
     lines.push(`- OCR/page text matches: ${input.sourceAudit.linkedEvidence.pageTextMatchCount}`);
-    lines.push(`- External MTA docs scanned: ${input.sourceAudit.externalMtaSourceScan.scannedDocumentCount}`);
-    lines.push(`- External MTA docs with matches: ${input.sourceAudit.externalMtaSourceScan.documentWithMatchCount}`);
-    lines.push(`- External matched aliases: ${input.sourceAudit.externalMtaSourceScan.matchedAliasCount}`);
+    lines.push(
+      `- External MTA docs scanned: ${input.sourceAudit.externalMtaSourceScan.scannedDocumentCount}`,
+    );
+    lines.push(
+      `- External MTA docs with matches: ${input.sourceAudit.externalMtaSourceScan.documentWithMatchCount}`,
+    );
+    lines.push(
+      `- External matched aliases: ${input.sourceAudit.externalMtaSourceScan.matchedAliasCount}`,
+    );
     lines.push("");
   }
   return `${lines.join("\n")}\n`;
@@ -2275,7 +2542,10 @@ function tryString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-function findAcceptedSurface(artifact: Record<string, unknown>, surfaceId: string | undefined): Record<string, unknown> | null {
+function findAcceptedSurface(
+  artifact: Record<string, unknown>,
+  surfaceId: string | undefined,
+): Record<string, unknown> | null {
   const submitResult = isRecord(artifact["submitResult"]) ? artifact["submitResult"] : {};
   const accepted = Array.isArray(submitResult["accepted"]) ? submitResult["accepted"] : [];
   for (const item of accepted) {
@@ -2295,13 +2565,22 @@ function supportVerifiedFor(item: Record<string, unknown>, fieldPath: string): b
 
 function evidenceQuoteCount(item: Record<string, unknown>): number {
   const pointers = Array.isArray(item["evidencePointers"]) ? item["evidencePointers"] : [];
-  return pointers.filter((pointer) => isRecord(pointer) && typeof pointer["quoteText"] === "string" && pointer["quoteText"].length > 0).length;
+  return pointers.filter(
+    (pointer) =>
+      isRecord(pointer) &&
+      typeof pointer["quoteText"] === "string" &&
+      pointer["quoteText"].length > 0,
+  ).length;
 }
 
-function pageArtifactKeyFor(artifact: Record<string, unknown>, item: Record<string, unknown> | null): string | null {
+function pageArtifactKeyFor(
+  artifact: Record<string, unknown>,
+  item: Record<string, unknown> | null,
+): string | null {
   if (item !== null && Array.isArray(item["evidencePointers"])) {
     for (const pointer of item["evidencePointers"]) {
-      if (isRecord(pointer) && typeof pointer["pageArtifactKey"] === "string") return pointer["pageArtifactKey"];
+      if (isRecord(pointer) && typeof pointer["pageArtifactKey"] === "string")
+        return pointer["pageArtifactKey"];
     }
   }
   const source = isRecord(artifact["source"]) ? artifact["source"] : {};
@@ -2324,7 +2603,9 @@ async function readPageMarkdown(pageArtifactKey: string | null): Promise<string 
 
 function looseContains(haystack: string, needles: string[]): boolean {
   const compactHaystack = haystack.toLowerCase().replace(/\s+/g, " ");
-  return needles.some((needle) => needle.length > 0 && compactHaystack.includes(needle.toLowerCase()));
+  return needles.some(
+    (needle) => needle.length > 0 && compactHaystack.includes(needle.toLowerCase()),
+  );
 }
 
 async function auditLinkedEvidence(input: {
@@ -2374,11 +2655,7 @@ async function auditLinkedEvidence(input: {
         continue;
       }
       pageMarkdownFoundCount += 1;
-      const needles = [
-        alias.rawValue,
-        alias.normalizedRawValue,
-        example.displayLabel ?? "",
-      ];
+      const needles = [alias.rawValue, alias.normalizedRawValue, example.displayLabel ?? ""];
       if (looseContains(markdown, needles)) pageTextMatchCount += 1;
     }
   }
@@ -2437,7 +2714,6 @@ async function sourceFiles(root: string): Promise<Array<{ sourceId: string; path
   return out.sort((left, right) => left.path.localeCompare(right.path));
 }
 
-
 async function auditExternalMtaSources(input: {
   vocabMap: VocabMapArtifact;
   sourceRoot?: string;
@@ -2495,7 +2771,9 @@ async function auditExternalMtaSources(input: {
     scannedDocumentCount,
     documentWithMatchCount,
     matchedAliasCount,
-    matchedCanonicalIds: Object.fromEntries(Object.entries(matchedCanonicalIds).sort(([left], [right]) => left.localeCompare(right))),
+    matchedCanonicalIds: Object.fromEntries(
+      Object.entries(matchedCanonicalIds).sort(([left], [right]) => left.localeCompare(right)),
+    ),
     samples,
   };
 }
@@ -2601,26 +2879,27 @@ async function executeChunkDirect(input: {
     tool,
   });
   try {
-    const providerResult = input.provider === "deepseek"
-      ? await callDeepSeekToolCallViaPi({
-          apiKey: input.apiKey,
-          model: input.model,
-          maxTokens: input.maxTokens,
-          toolName: TOOL_NAME,
-          messages,
-          tools: [tool],
-          fetcher: input.fetcher,
-        })
-      : await callPioneerToolCallDirect({
-          apiKey: input.apiKey,
-          model: input.model,
-          maxTokens: input.maxTokens,
-          temperature: input.temperature,
-          toolName: TOOL_NAME,
-          messages,
-          tools: [tool],
-          fetcher: input.fetcher,
-        });
+    const providerResult =
+      input.provider === "deepseek"
+        ? await callDeepSeekToolCallViaPi({
+            apiKey: input.apiKey,
+            model: input.model,
+            maxTokens: input.maxTokens,
+            toolName: TOOL_NAME,
+            messages,
+            tools: [tool],
+            fetcher: input.fetcher,
+          })
+        : await callPioneerToolCallDirect({
+            apiKey: input.apiKey,
+            model: input.model,
+            maxTokens: input.maxTokens,
+            temperature: input.temperature,
+            toolName: TOOL_NAME,
+            messages,
+            tools: [tool],
+            fetcher: input.fetcher,
+          });
     await writeJson(responsePath, providerResult.body);
     if (!providerResult.response.ok) {
       throw new Error(
@@ -2630,11 +2909,13 @@ async function executeChunkDirect(input: {
     }
     const toolArgs = extractToolCallArguments(providerResult.body, TOOL_NAME);
     if (toolArgs === null) {
-      throw new Error(missingToolCallErrorMessage({
-        responseJson: providerResult.body,
-        toolName: TOOL_NAME,
-        maxTokens: input.maxTokens,
-      }));
+      throw new Error(
+        missingToolCallErrorMessage({
+          responseJson: providerResult.body,
+          toolName: TOOL_NAME,
+          maxTokens: input.maxTokens,
+        }),
+      );
     }
     const parsed = parseModelResponse(toolArgs);
     await writeJson(toolCallPath, parsed);
@@ -2746,16 +3027,18 @@ async function executeChunkAgentic(input: {
     acceptedResponse: null,
     lastValidation: null,
   };
-  const loop = input.modelToolLoop ?? makeToolLoopRunner({
-    model: resolveVocabModel(input.provider, input.model),
-    apiKey: input.apiKey,
-    maxOutputTokens: input.maxTokens,
-    maxToolCalls: input.maxToolCalls,
-    maxWallTimeMs: input.maxWallTimeMs,
-    includeSandboxTools: false,
-    onEvent: buildStderrEventSink({ prefix: "vocab-synthesis" }),
-    ...(sessionsRoot === undefined ? {} : { sessionsRoot }),
-  });
+  const loop =
+    input.modelToolLoop ??
+    makeToolLoopRunner({
+      model: resolveVocabModel(input.provider, input.model),
+      apiKey: input.apiKey,
+      maxOutputTokens: input.maxTokens,
+      maxToolCalls: input.maxToolCalls,
+      maxWallTimeMs: input.maxWallTimeMs,
+      includeSandboxTools: false,
+      onEvent: buildStderrEventSink({ prefix: "vocab-synthesis" }),
+      ...(sessionsRoot === undefined ? {} : { sessionsRoot }),
+    });
 
   let loopResult: ToolLoopResult | null = null;
   try {
@@ -2918,16 +3201,18 @@ async function executeChunkAgenticV2(input: {
     contextCalls: 0,
     maxContextCalls: input.maxContextToolCalls,
   };
-  const loop = input.modelToolLoop ?? makeToolLoopRunner({
-    model: resolveVocabModel(input.provider, input.model),
-    apiKey: input.apiKey,
-    maxOutputTokens: input.maxTokens,
-    maxToolCalls: input.maxToolCalls,
-    maxWallTimeMs: input.maxWallTimeMs,
-    includeSandboxTools: false,
-    onEvent: buildStderrEventSink({ prefix: "vocab-synthesis" }),
-    ...(sessionsRoot === undefined ? {} : { sessionsRoot }),
-  });
+  const loop =
+    input.modelToolLoop ??
+    makeToolLoopRunner({
+      model: resolveVocabModel(input.provider, input.model),
+      apiKey: input.apiKey,
+      maxOutputTokens: input.maxTokens,
+      maxToolCalls: input.maxToolCalls,
+      maxWallTimeMs: input.maxWallTimeMs,
+      includeSandboxTools: false,
+      onEvent: buildStderrEventSink({ prefix: "vocab-synthesis" }),
+      ...(sessionsRoot === undefined ? {} : { sessionsRoot }),
+    });
 
   let loopResult: ToolLoopResult | null = null;
   try {
@@ -3027,20 +3312,30 @@ async function executeChunkAgenticV2(input: {
   }
 }
 
-
-export async function runTier2VocabSynthesis(args: RunTier2VocabSynthesisArgs): Promise<Tier2VocabSynthesisRun> {
+export async function runTier2VocabSynthesis(
+  args: RunTier2VocabSynthesisArgs,
+): Promise<Tier2VocabSynthesisRun> {
   const generatedAt = args.generatedAt ?? new Date().toISOString();
   const graduationPlanPath = fromCliPath(args.graduationPlanPath);
   const outputRoot = fromCliPath(
     args.outputRoot ??
-      join(defaultArtifactRootPath(), "docs", "tier2-vocab-synthesis", `vocab-synthesis-${shortHash(graduationPlanPath)}`),
+      join(
+        defaultArtifactRootPath(),
+        "docs",
+        "tier2-vocab-synthesis",
+        `vocab-synthesis-${shortHash(graduationPlanPath)}`,
+      ),
   );
   const chunkSize = args.chunkSize ?? DEFAULT_CHUNK_SIZE;
   const maxValuesPerKey = args.maxValuesPerKey;
   const examplesPerValue = args.examplesPerValue ?? DEFAULT_EXAMPLES_PER_VALUE;
-  const sourceAuditExamplesPerValue = args.sourceAuditExamplesPerValue ?? DEFAULT_SOURCE_AUDIT_EXAMPLES_PER_VALUE;
+  const sourceAuditExamplesPerValue =
+    args.sourceAuditExamplesPerValue ?? DEFAULT_SOURCE_AUDIT_EXAMPLES_PER_VALUE;
   const harness = args.harness ?? "v1";
-  const graduationPlan = parseGraduationPlan(await Bun.file(graduationPlanPath).json(), graduationPlanPath);
+  const graduationPlan = parseGraduationPlan(
+    await Bun.file(graduationPlanPath).json(),
+    graduationPlanPath,
+  );
   const selectedKeys = selectKeys(graduationPlan, args.keyIds);
   await mkdir(outputRoot, { recursive: true });
 
@@ -3069,7 +3364,9 @@ export async function runTier2VocabSynthesis(args: RunTier2VocabSynthesisArgs): 
 
   const chunkResults: Tier2VocabSynthesisRun["chunkResults"] = [];
   const acceptedResponses: ModelVocabResponse[] = [];
-  const previousRun = await readJsonIfExists<Tier2VocabSynthesisRun>(join(outputRoot, "vocab-synthesis-run.json"));
+  const previousRun = await readJsonIfExists<Tier2VocabSynthesisRun>(
+    join(outputRoot, "vocab-synthesis-run.json"),
+  );
   const previousResultsByChunk = new Map(
     (previousRun?.chunkResults ?? []).map((result) => [result.chunkId, result]),
   );
@@ -3088,7 +3385,9 @@ export async function runTier2VocabSynthesis(args: RunTier2VocabSynthesisArgs): 
       ...(args.deepseekApiKey === undefined ? {} : { deepseekApiKey: args.deepseekApiKey }),
     });
     if (apiKey === undefined || apiKey.trim().length === 0) {
-      throw new Error(`${envNameForProvider(provider)} is required for docs tier2 vocab-synthesis --execute.`);
+      throw new Error(
+        `${envNameForProvider(provider)} is required for docs tier2 vocab-synthesis --execute.`,
+      );
     }
     for (const { key, chunk } of allChunks) {
       const priorCanonicalValues = collectCanonicalValues(
@@ -3120,7 +3419,9 @@ export async function runTier2VocabSynthesis(args: RunTier2VocabSynthesisArgs): 
             temperature,
             apiKey,
             fetcher: args.fetcher ?? defaultFetch,
-            ...(args.sourceAuditRoot === undefined ? {} : { sourceAuditRoot: args.sourceAuditRoot }),
+            ...(args.sourceAuditRoot === undefined
+              ? {}
+              : { sourceAuditRoot: args.sourceAuditRoot }),
           });
         }
         if (harness === "v2") {
@@ -3134,7 +3435,9 @@ export async function runTier2VocabSynthesis(args: RunTier2VocabSynthesisArgs): 
             maxTokens,
             temperature,
             apiKey,
-            ...(args.sourceAuditRoot === undefined ? {} : { sourceAuditRoot: args.sourceAuditRoot }),
+            ...(args.sourceAuditRoot === undefined
+              ? {}
+              : { sourceAuditRoot: args.sourceAuditRoot }),
             ...(args.modelToolLoop === undefined ? {} : { modelToolLoop: args.modelToolLoop }),
             maxToolCalls: args.agenticMaxToolCalls ?? DEFAULT_AGENTIC_MAX_TOOL_CALLS,
             maxContextToolCalls: args.maxContextToolCalls ?? DEFAULT_V2_MAX_CONTEXT_CALLS,
@@ -3162,7 +3465,11 @@ export async function runTier2VocabSynthesis(args: RunTier2VocabSynthesisArgs): 
         });
       };
       let result = await executeOnce();
-      for (let retryIndex = 0; result.result.status === "provider_failed" && retryIndex < DEFAULT_PROVIDER_RETRY_COUNT; retryIndex += 1) {
+      for (
+        let retryIndex = 0;
+        result.result.status === "provider_failed" && retryIndex < DEFAULT_PROVIDER_RETRY_COUNT;
+        retryIndex += 1
+      ) {
         const delayMs = providerRetryDelayMs(chunk.chunkId, retryIndex);
         console.error(
           `[tier2-vocab-synthesis] provider_failed chunk=${chunk.chunkId} retry=${retryIndex + 1}/${DEFAULT_PROVIDER_RETRY_COUNT} waitMs=${delayMs}`,
@@ -3174,26 +3481,32 @@ export async function runTier2VocabSynthesis(args: RunTier2VocabSynthesisArgs): 
       if (result.response !== null) acceptedResponses.push(result.response);
     }
   } else {
-    chunkResults.push(...allChunks.map(({ chunk }) => ({
-      chunkId: chunk.chunkId,
-      promptPath: null,
-      executionMode: "not_executed" as const,
-      requestPath: null,
-      responsePath: null,
-      toolCallPath: null,
-      validationPath: null,
-      toolLoopPath: null,
-      sessionPath: null,
-      status: "not_executed" as const,
-      errorPath: null,
-    })));
+    chunkResults.push(
+      ...allChunks.map(({ chunk }) => ({
+        chunkId: chunk.chunkId,
+        promptPath: null,
+        executionMode: "not_executed" as const,
+        requestPath: null,
+        responsePath: null,
+        toolCallPath: null,
+        validationPath: null,
+        toolLoopPath: null,
+        sessionPath: null,
+        status: "not_executed" as const,
+        errorPath: null,
+      })),
+    );
   }
 
   let vocabMapPath: string | null = null;
   let sourceAuditPath: string | null = null;
   let vocabMap: VocabMapArtifact | null = null;
   let sourceAudit: SourceAudit | null = null;
-  if (args.execute === true && selectedKeys.length === 1 && acceptedResponses.length === allChunks.length) {
+  if (
+    args.execute === true &&
+    selectedKeys.length === 1 &&
+    acceptedResponses.length === allChunks.length
+  ) {
     const key = selectedKeys[0];
     if (key !== undefined) {
       vocabMap = buildVocabMap({
@@ -3242,7 +3555,9 @@ export async function runTier2VocabSynthesis(args: RunTier2VocabSynthesisArgs): 
       inputValueCount: allChunks.reduce((sum, item) => sum + item.chunk.valueCount, 0),
       executedChunkCount: statuses.filter((status) => status !== "not_executed").length,
       acceptedChunkCount: statuses.filter((status) => status === "accepted").length,
-      rejectedChunkCount: statuses.filter((status) => status === "rejected" || status === "provider_failed").length,
+      rejectedChunkCount: statuses.filter(
+        (status) => status === "rejected" || status === "provider_failed",
+      ).length,
     },
     keys: runKeys,
     chunkResults,
@@ -3250,7 +3565,10 @@ export async function runTier2VocabSynthesis(args: RunTier2VocabSynthesisArgs): 
     sourceAuditPath,
   };
   await writeJson(join(outputRoot, "vocab-synthesis-run.json"), run);
-  await Bun.write(join(outputRoot, "vocab-synthesis-summary.md"), renderMarkdown({ run, vocabMap, sourceAudit }));
+  await Bun.write(
+    join(outputRoot, "vocab-synthesis-summary.md"),
+    renderMarkdown({ run, vocabMap, sourceAudit }),
+  );
   return run;
 }
 
@@ -3271,7 +3589,11 @@ function parseArgs(argv: string[]): CliArgs {
     {
       flags: ["--key", "--keys"],
       apply: (output, value) => {
-        if (value !== undefined) output.keyIds = value.split(",").map((item) => item.trim()).filter((item) => item.length > 0);
+        if (value !== undefined)
+          output.keyIds = value
+            .split(",")
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0);
       },
     },
     {
@@ -3398,12 +3720,18 @@ export async function runTier2VocabSynthesisFromCli(argv: string[]) {
     ...(args.maxTokens === undefined ? {} : { maxTokens: args.maxTokens }),
     ...(args.temperature === undefined ? {} : { temperature: args.temperature }),
     ...(args.harness === undefined ? {} : { harness: args.harness }),
-    ...(args.agenticMaxToolCalls === undefined ? {} : { agenticMaxToolCalls: args.agenticMaxToolCalls }),
-    ...(args.maxContextToolCalls === undefined ? {} : { maxContextToolCalls: args.maxContextToolCalls }),
+    ...(args.agenticMaxToolCalls === undefined
+      ? {}
+      : { agenticMaxToolCalls: args.agenticMaxToolCalls }),
+    ...(args.maxContextToolCalls === undefined
+      ? {}
+      : { maxContextToolCalls: args.maxContextToolCalls }),
     ...(args.agenticWallTimeMs === undefined ? {} : { agenticWallTimeMs: args.agenticWallTimeMs }),
     ...(args.persistSessions === undefined ? {} : { persistSessions: args.persistSessions }),
     ...(args.sourceAuditRoot === undefined ? {} : { sourceAuditRoot: args.sourceAuditRoot }),
-    ...(args.sourceAuditExamplesPerValue === undefined ? {} : { sourceAuditExamplesPerValue: args.sourceAuditExamplesPerValue }),
+    ...(args.sourceAuditExamplesPerValue === undefined
+      ? {}
+      : { sourceAuditExamplesPerValue: args.sourceAuditExamplesPerValue }),
     ...(args.generatedAt === undefined ? {} : { generatedAt: args.generatedAt }),
   });
   console.log(

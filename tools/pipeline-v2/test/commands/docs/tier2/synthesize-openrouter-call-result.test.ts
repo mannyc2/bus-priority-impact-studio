@@ -10,18 +10,22 @@
 // provider body was, so re-pointing the live commands onto the migrated modules
 // is behavior-preserving.
 import { describe, expect, test } from "bun:test";
-import type { CompleteToolCallResult } from "../../../../src/lib/llm.ts";
 import {
   openRouterErrorMessage,
   synthesizeOpenRouterCallResult,
 } from "../../../../src/commands/docs/tier2/_llm-clients.ts";
 import { extractToolCallArguments } from "../../../../src/commands/docs/tier2/_shared.ts";
+import type { CompleteToolCallResult } from "../../../../src/lib/llm.ts";
 
 const TOOL_NAME = "record_tier2_ocr_markdown_candidates";
 
 describe("synthesizeOpenRouterCallResult — pi result -> legacy {response, body}", () => {
   test("forced tool call round-trips through extractToolCallArguments", () => {
-    const args = { sourceId: "test_source", candidates: [{ claim: "SBS cut wait by 18%" }], page: 3 };
+    const args = {
+      sourceId: "test_source",
+      candidates: [{ claim: "SBS cut wait by 18%" }],
+      page: 3,
+    };
     const result: CompleteToolCallResult = {
       toolCall: { id: "call_abc", name: TOOL_NAME, arguments: args },
       usage: { input: 1200, output: 340, totalTokens: 1540 },

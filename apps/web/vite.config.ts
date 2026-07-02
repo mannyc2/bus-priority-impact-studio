@@ -1,3 +1,5 @@
+import { copyFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
@@ -33,6 +35,23 @@ const esToolkitCompatShims = Object.fromEntries(
   ]),
 );
 
+function copyMapLibreVendor() {
+  return {
+    name: "bp-copy-maplibre-vendor",
+    apply: "build" as const,
+    closeBundle() {
+      const source = fileURLToPath(
+        new URL("./node_modules/maplibre-gl/dist/maplibre-gl.js", import.meta.url),
+      );
+      const destination = fileURLToPath(
+        new URL("./dist/client/vendor/maplibre-gl.js", import.meta.url),
+      );
+      mkdirSync(dirname(destination), { recursive: true });
+      copyFileSync(source, destination);
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     tanstackRouter({
@@ -40,6 +59,7 @@ export default defineConfig({
       autoCodeSplitting: true,
       quoteStyle: "double",
     }),
+    copyMapLibreVendor(),
     react(),
     tailwindcss(),
     cloudflare({

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { detectPositiveDeviance, type PositiveDevianceDetectorInput } from "../src/index.js";
 import type { FeatureQuality, PositiveDevianceFeature } from "@bp/analytics/features";
+import { detectPositiveDeviance, type PositiveDevianceDetectorInput } from "../src/index.js";
 
 const GENERATED_AT = "2026-05-30T12:00:00.000Z";
 const MONTH = "2026-03";

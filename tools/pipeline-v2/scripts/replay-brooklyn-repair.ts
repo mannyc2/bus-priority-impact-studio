@@ -3,7 +3,7 @@ import { join } from "node:path";
 import {
   repairInterventionRecordsAliases,
   repairInvalidEnumValues,
-} from "@bp/applied-research/intervention-records";
+} from "@bp/analytics/interventions";
 import { DocumentInterventionRecordsToolResponseSchema } from "@bp/domain/documents/intervention-records";
 import {
   extractToolCallArguments,
@@ -57,6 +57,6 @@ for (const dir of dirs) {
 }
 console.log(`pass=${pass} fail=${fail}`);
 for (const f of failures) {
-  console.log("=== " + f.bucket);
+  console.log(`=== ${f.bucket}`);
   console.log(JSON.stringify(f.issues, null, 2));
 }

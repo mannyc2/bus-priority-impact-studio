@@ -5,6 +5,7 @@ import {
   type SourceMonthCoverage as D1SourceMonthCoverage,
   findLatestSpeedTrendMonth,
   findLatestStudioServingMonth,
+  findRouteEquityContext,
   getRouteTimelineIndex,
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
@@ -14,7 +15,6 @@ import {
 } from "@bp/db/d1";
 import {
   buildRouteInsightsFromDetectorReadiness,
-  buildStudioCompareProjection,
   type DetectorReadinessServingManifestForInsights,
   DetectorReadinessServingManifestForInsightsSchema,
   getStudioRoute,
@@ -28,30 +28,16 @@ import {
   type StudioRouteCapability,
 } from "@bp/domain/studio";
 import {
-  StudioBriefEvidenceResponseSchema,
-  StudioBriefHistoryResponseSchema,
-  type StudioBriefResponse,
-  StudioBriefsResponseSchema,
-} from "@bp/domain/studio/briefs";
-import {
   type StudioDocsResponse,
   StudioDocsResponseSchema,
   StudioMethodsResponseSchema,
 } from "@bp/domain/studio/docs";
 import {
-  StudioFindingResponseSchema,
-  StudioFindingsResponseSchema,
-} from "@bp/domain/studio/findings";
-import {
-  StudioCompareResponseSchema,
-  type StudioReleasePayload,
-  StudioSearchResponseSchema,
-} from "@bp/domain/studio/release";
-import {
   type StudioObservedReliability,
   type StudioRoute,
   type StudioRouteDetailResponse,
   StudioRouteDetailResponseSchema,
+  type StudioRouteEquityContext,
   type StudioRouteHistoryResponse,
   StudioRouteHistoryResponseSchema,
   type StudioRouteSection,
@@ -65,7 +51,6 @@ import {
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
   type StudioSegment,
-  StudioSegmentsResponseSchema,
 } from "@bp/domain/studio/routes";
 import {
   STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
@@ -85,7 +70,6 @@ import { studioOpenApiDocument } from "../contracts/openapi.js";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 import {
-  loadStudioBriefProjection,
   loadStudioProjection,
   maybeLoadStudioRouteDetailProjection,
   studioJsonResponse,
@@ -98,20 +82,19 @@ import {
 // public read responses resolve their months internally from D1, never from env.
 export type StudioReadEnv = Pick<StudioApiEnv, "ARTIFACTS" | "DB" | "STUDIO_RELEASE_KEY">;
 
-export type StudioReadHooks<TEnv extends StudioReadEnv = StudioReadEnv> = {
-  loadDraftOnlyBriefProjection?: (
-    request: Request,
-    env: TEnv,
-    briefId: string,
-  ) => Promise<StudioBriefResponse | Response | null>;
-  overlayStudioBriefDraft?: (
-    request: Request,
-    env: TEnv,
-    projection: StudioBriefResponse,
-  ) => Promise<StudioBriefResponse>;
-};
-
 const OPENAPI_DOC_METHODS = ["get", "post", "put", "patch", "delete"] as const;
+const ARTIFACT_NOT_AVAILABLE_MESSAGE = "Artifact is not available.";
+const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
+
+function dependencyNotConfiguredResponse(dependency: string, context: string): Response {
+  console.error("Service dependency is not configured.", { context, dependency });
+  return errorResponse(503, SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE);
+}
+
+function artifactNotAvailableResponse(status: number, context: string, key: string): Response {
+  console.error(context, { key });
+  return errorResponse(status, ARTIFACT_NOT_AVAILABLE_MESSAGE);
+}
 
 function studioDocsEndpointsFromOpenApi(): StudioDocsResponse["endpoints"] {
   return Object.entries(studioOpenApiDocument.paths).flatMap(([path, pathItem]) =>
@@ -724,7 +707,7 @@ async function buildStudioRouteIndex2Response(
   if (env.DB === undefined) {
     return {
       ok: false,
-      response: errorResponse(503, "D1 DB binding is required for Studio route index v2."),
+      response: dependencyNotConfiguredResponse("DB", "Studio route index v2"),
     };
   }
   const months = await resolveServingMonths(env);
@@ -941,21 +924,40 @@ async function loadRouteDossierSummaryForDetail(input: {
 }
 
 /**
- * Embeds the pipeline-built capability row and dossier summary into the detail
- * response (hard-cutover C2). Both stay null when the artifacts are unavailable —
- * the honest partial state the UI renders from.
+ * Embeds pipeline-built capability, dossier, and D1 equity context into the
+ * detail response (hard-cutover C2). Missing context stays null — the honest
+ * partial state the UI renders from.
  */
 function routeDetailWithCapabilityAndDossier(input: {
   routeDetail: StudioRouteDetailResponse;
   capability: StudioRouteCapability | null;
   dossier: RouteDossierSummaryForDetail | null;
+  equityContext: StudioRouteEquityContext | null;
 }): StudioRouteDetailResponse {
-  if (input.capability === null && input.dossier === null) return input.routeDetail;
+  if (input.capability === null && input.dossier === null && input.equityContext === null) {
+    return input.routeDetail;
+  }
   return StudioRouteDetailResponseSchema.parse({
     ...input.routeDetail,
     capability: input.capability,
     dossier: input.dossier,
+    equityContext: input.equityContext,
   });
+}
+
+function studioRouteEquityContextFromD1(
+  row: Awaited<ReturnType<typeof findRouteEquityContext>>,
+): StudioRouteEquityContext | null {
+  if (row === null) return null;
+  return {
+    acsYear: row.acsYear,
+    assignedCountyName: row.assignedCountyName,
+    totalPopulation: row.totalPopulation,
+    noVehicleHouseholdShare: row.noVehicleHouseholdShare,
+    medianHouseholdIncome: row.medianHouseholdIncome,
+    povertyRate: row.povertyRate,
+    publicTransitCommuterShare: row.publicTransitCommuterShare,
+  };
 }
 
 async function loadRouteSpeedSpineForSegments(
@@ -1548,7 +1550,7 @@ export async function buildStudioRouteSectionsResponse(
   if (env.DB === undefined) {
     return {
       ok: false,
-      response: errorResponse(503, "D1 DB binding is required for Studio route sections."),
+      response: dependencyNotConfiguredResponse("DB", "Studio route sections"),
     };
   }
   const months = await resolveServingMonths(env);
@@ -1746,10 +1748,11 @@ async function buildStudioRouteDetailResponseFromD1(
   if (env.DB === undefined) {
     return {
       ok: false,
-      response: errorResponse(503, "D1 DB binding is required for Studio route detail."),
+      response: dependencyNotConfiguredResponse("DB", "Studio route detail"),
     };
   }
-  const servingMonth = await findLatestStudioServingMonth(createD1ServingDb(env.DB));
+  const servingDb = createD1ServingDb(env.DB);
+  const servingMonth = await findLatestStudioServingMonth(servingDb);
   if (servingMonth === null) {
     return {
       ok: false,
@@ -1765,7 +1768,7 @@ async function buildStudioRouteDetailResponseFromD1(
   if (row.artifactNames.length > 0) {
     const richDetail = await maybeLoadStudioRouteDetailProjection(env, slug);
     if (richDetail !== null) {
-      const [manifest, spines, capabilityManifest, dossier] = await Promise.all([
+      const [manifest, spines, capabilityManifest, dossier, equityContext] = await Promise.all([
         loadDetectorReadinessServingManifest(env),
         loadRouteSpeedSpineCandidatesForSegments({
           env,
@@ -1774,11 +1777,13 @@ async function buildStudioRouteDetailResponseFromD1(
         }),
         loadRouteCapabilityManifest(env),
         loadRouteDossierSummaryForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
+        findRouteEquityContext(servingDb, row.routeId, servingMonth),
       ]);
       const routeDetail = routeDetailWithCapabilityAndDossier({
         routeDetail: routeDetailWithInsights({ routeDetail: richDetail, manifest }),
         capability: routeCapabilityForRouteId(capabilityManifest, row.routeId),
         dossier,
+        equityContext: studioRouteEquityContextFromD1(equityContext),
       });
       return {
         ok: true,
@@ -1787,24 +1792,33 @@ async function buildStudioRouteDetailResponseFromD1(
     }
   }
 
-  const [observed, manifest, aliasedRichDetail, spines, capabilityManifest, dossier] =
-    await Promise.all([
-      findObservedReliabilityRow({ env, baselineMonth: servingMonth, routeId: row.routeId }),
-      loadDetectorReadinessServingManifest(env),
-      maybeLoadAliasedStudioRouteDetailProjection({
-        env,
-        routeId: row.routeId,
-        requestedSlug: slug,
-      }),
-      loadRouteSpeedSpineCandidatesForSegments({
-        env,
-        routeId: row.routeId,
-        requestedSlug: slug,
-      }),
-      loadRouteCapabilityManifest(env),
-      loadRouteDossierSummaryForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
-    ]);
+  const [
+    observed,
+    manifest,
+    aliasedRichDetail,
+    spines,
+    capabilityManifest,
+    dossier,
+    equityContext,
+  ] = await Promise.all([
+    findObservedReliabilityRow({ env, baselineMonth: servingMonth, routeId: row.routeId }),
+    loadDetectorReadinessServingManifest(env),
+    maybeLoadAliasedStudioRouteDetailProjection({
+      env,
+      routeId: row.routeId,
+      requestedSlug: slug,
+    }),
+    loadRouteSpeedSpineCandidatesForSegments({
+      env,
+      routeId: row.routeId,
+      requestedSlug: slug,
+    }),
+    loadRouteCapabilityManifest(env),
+    loadRouteDossierSummaryForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
+    findRouteEquityContext(servingDb, row.routeId, servingMonth),
+  ]);
   const capability = routeCapabilityForRouteId(capabilityManifest, row.routeId);
+  const routeEquityContext = studioRouteEquityContextFromD1(equityContext);
   if (aliasedRichDetail !== null) {
     const routeDetail = routeDetailWithCapabilityAndDossier({
       routeDetail: routeDetailWithInsights({
@@ -1817,6 +1831,7 @@ async function buildStudioRouteDetailResponseFromD1(
       }),
       capability,
       dossier,
+      equityContext: routeEquityContext,
     });
     return {
       ok: true,
@@ -1844,6 +1859,7 @@ async function buildStudioRouteDetailResponseFromD1(
       artifactRefs: [],
       capability,
       dossier,
+      equityContext: routeEquityContext,
       quality: {
         releaseLayer: "baseline_release",
         completenessStatus: row.summary === null ? "unavailable" : "partial_public_monthly_only",
@@ -1923,7 +1939,7 @@ export async function buildStudioRouteHistoryResponse(
   if (env.DB === undefined) {
     return {
       ok: false,
-      response: errorResponse(503, "D1 DB binding is required for Studio route history."),
+      response: dependencyNotConfiguredResponse("DB", "Studio route history"),
     };
   }
   const months = await resolveServingMonths(env);
@@ -1985,7 +2001,7 @@ export async function buildStudioRouteSpeedHistoryResponse(
   if (env.ARTIFACTS === undefined) {
     return {
       ok: false,
-      response: errorResponse(503, "ARTIFACTS R2 binding is required for route speed history."),
+      response: dependencyNotConfiguredResponse("ARTIFACTS", "Studio route speed history"),
     };
   }
 
@@ -2004,7 +2020,11 @@ export async function buildStudioRouteSpeedHistoryResponse(
   } catch {
     return {
       ok: false,
-      response: errorResponse(502, `Studio route speed history is not valid JSON: ${key}.`),
+      response: artifactNotAvailableResponse(
+        502,
+        "Studio route speed history is not valid JSON.",
+        key,
+      ),
     };
   }
 
@@ -2012,16 +2032,17 @@ export async function buildStudioRouteSpeedHistoryResponse(
   if (!parsed.success) {
     return {
       ok: false,
-      response: errorResponse(
+      response: artifactNotAvailableResponse(
         502,
-        `Studio route speed history failed contract validation: ${key}.`,
+        "Studio route speed history failed contract validation.",
+        key,
       ),
     };
   }
   if (parsed.data.routeSlug !== slug) {
     return {
       ok: false,
-      response: errorResponse(502, `Studio route speed history slug mismatch: ${key}.`),
+      response: artifactNotAvailableResponse(502, "Studio route speed history slug mismatch.", key),
     };
   }
 
@@ -2043,13 +2064,13 @@ export async function buildStudioRouteTimelineResponse(
   if (env.DB === undefined) {
     return {
       ok: false,
-      response: errorResponse(503, "D1 DB binding is required for Studio route timeline."),
+      response: dependencyNotConfiguredResponse("DB", "Studio route timeline"),
     };
   }
   if (env.ARTIFACTS === undefined) {
     return {
       ok: false,
-      response: errorResponse(503, "ARTIFACTS R2 binding is required for Studio route timeline."),
+      response: dependencyNotConfiguredResponse("ARTIFACTS", "Studio route timeline"),
     };
   }
   const months = await resolveServingMonths(env);
@@ -2076,9 +2097,10 @@ export async function buildStudioRouteTimelineResponse(
   if (object === null) {
     return {
       ok: false,
-      response: errorResponse(
+      response: artifactNotAvailableResponse(
         404,
-        `Studio route timeline bundle was not found: ${timelineIndex.bundleArtifactKey}.`,
+        "Studio route timeline bundle was not found.",
+        timelineIndex.bundleArtifactKey,
       ),
     };
   }
@@ -2089,9 +2111,10 @@ export async function buildStudioRouteTimelineResponse(
   } catch {
     return {
       ok: false,
-      response: errorResponse(
+      response: artifactNotAvailableResponse(
         502,
-        `Studio route timeline bundle is not valid JSON: ${timelineIndex.bundleArtifactKey}.`,
+        "Studio route timeline bundle is not valid JSON.",
+        timelineIndex.bundleArtifactKey,
       ),
     };
   }
@@ -2104,27 +2127,15 @@ export async function buildStudioRouteTimelineResponse(
   ) {
     return {
       ok: false,
-      response: errorResponse(
+      response: artifactNotAvailableResponse(
         502,
-        `Studio route timeline bundle failed contract validation: ${timelineIndex.bundleArtifactKey}.`,
+        "Studio route timeline bundle failed contract validation.",
+        timelineIndex.bundleArtifactKey,
       ),
     };
   }
 
   return { ok: true, timeline: payload };
-}
-
-function textIncludesAnyTerm(text: string, terms: readonly string[]): boolean {
-  const normalizedText = text.toLowerCase();
-  return terms.length === 0 || terms.some((term) => normalizedText.includes(term));
-}
-
-function searchTerms(query: string): string[] {
-  return query
-    .toLowerCase()
-    .split(/\s+/)
-    .map((term) => term.trim())
-    .filter((term) => term.length > 0);
 }
 
 function releaseIdForPrefix(prefix: string): string {
@@ -2303,8 +2314,6 @@ function sourceMonthStates(input: {
 function buildSnapshot2(input: {
   routeIndex: StudioRouteIndex2Response;
   sourceMonthCoverage: readonly D1SourceMonthCoverage[];
-  findingsCount: number;
-  briefsCount: number;
   lastBuiltSpeedMonth: string | undefined;
   tier2Views: Tier2MaterializedViewsArtifact | null;
   modelProjection: ModelArtifactServingProjection | null;
@@ -2440,8 +2449,6 @@ function buildSnapshot2(input: {
       routeIndexRows: routes.length,
       routeSpeedHistoryCoverageRows,
       sourceMonthCoverageRows: input.sourceMonthCoverage.length,
-      findings: input.findingsCount,
-      briefs: input.briefsCount,
     },
     caveats: [
       "Snapshot 2.0 is an addressability and coverage manifest, not the final route-page payload model.",
@@ -2455,19 +2462,14 @@ function buildSnapshot2(input: {
 }
 
 async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
-  const [routesResult, findings, briefs, methods, docs, tier2Views, modelProjection] =
-    await Promise.all([
-      buildStudioRoutesResponse(env),
-      loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema),
-      loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema),
-      loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
-      loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
-      loadTier2MaterializedViews(env),
-      loadModelArtifactServingProjection(env),
-    ]);
+  const [routesResult, methods, docs, tier2Views, modelProjection] = await Promise.all([
+    buildStudioRoutesResponse(env),
+    loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
+    loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
+    loadTier2MaterializedViews(env),
+    loadModelArtifactServingProjection(env),
+  ]);
   if (!routesResult.ok) return routesResult.response;
-  if (findings instanceof Response) return findings;
-  if (briefs instanceof Response) return briefs;
   if (methods instanceof Response) return methods;
   if (docs instanceof Response) return docs;
   const docsProjection = withGeneratedDocsEndpoints(docs);
@@ -2485,8 +2487,6 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
       ? buildSnapshot2({
           routeIndex: routeIndex2Result.routeIndex,
           sourceMonthCoverage,
-          findingsCount: findings.findings.length,
-          briefsCount: briefs.briefs.length,
           lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? undefined,
           tier2Views,
           modelProjection,
@@ -2498,18 +2498,6 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
       path: projectionPath(env, "routes.json", { d1Backed: routesAreD1Backed }),
       itemCount: routesResult.routes.length,
       generatedAt: routesResult.generatedAt,
-    },
-    {
-      resource: "findings",
-      path: projectionPath(env, "findings.json"),
-      itemCount: findings.findings.length,
-      generatedAt: findings.generatedAt,
-    },
-    {
-      resource: "briefs",
-      path: projectionPath(env, "briefs.json"),
-      itemCount: briefs.briefs.length,
-      generatedAt: briefs.generatedAt,
     },
     {
       resource: "methods",
@@ -2537,8 +2525,6 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
       lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? null,
       counts: {
         routes: routesResult.routes.length,
-        findings: findings.findings.length,
-        briefs: briefs.briefs.length,
         methods: methods.datasets.length,
         docsSections: docsProjection.sections.length,
         docsEndpoints: docsProjection.endpoints.length,
@@ -2552,10 +2538,9 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
 }
 
 export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
-  request: Request,
+  _request: Request,
   url: URL,
   env: TEnv,
-  hooks: StudioReadHooks<TEnv> = {},
 ): Promise<Response> {
   if (url.pathname === "/api/v1/studio/routes") {
     if (url.searchParams.get("schema") === "2") {
@@ -2583,127 +2568,6 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
   if (url.pathname === "/api/v1/studio/routes/sections") {
     const result = await buildStudioRouteSectionsResponse(env);
     return result.ok ? studioJsonResponse(result.routeSections, env) : result.response;
-  }
-
-  if (url.pathname === "/api/v1/studio/search") {
-    const [routesResult, findings, briefs, segments, methods, docs] = await Promise.all([
-      buildStudioRoutesResponse(env),
-      loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema),
-      loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema),
-      loadStudioProjection(env, "segments.json", StudioSegmentsResponseSchema),
-      loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
-      loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
-    ]);
-    if (!routesResult.ok) return routesResult.response;
-    if (findings instanceof Response) return findings;
-    if (briefs instanceof Response) return briefs;
-    // Segments, methods, and docs enrich the result groups but are not load-bearing
-    // for search: a missing projection degrades to an empty group rather than a 5xx.
-    const segmentList = segments instanceof Response ? [] : segments.segments;
-    const datasets = methods instanceof Response ? [] : methods.datasets;
-    const docSections = docs instanceof Response ? [] : docs.sections;
-
-    const query = url.searchParams.get("q")?.trim() ?? "";
-    const terms = searchTerms(query);
-    const routeBySlug = new Map(routesResult.routes.map((route) => [route.slug, route]));
-    const matchedRoutes = routesResult.routes.filter((route) =>
-      textIncludesAnyTerm(
-        [
-          route.slug,
-          route.routeId,
-          route.label,
-          route.corridor,
-          route.borough,
-          route.reliability,
-          route.diagnosis,
-          route.sbs ? "sbs select bus service" : "local",
-        ].join(" "),
-        terms,
-      ),
-    );
-    const matchedSegments = segmentList.flatMap((segment) => {
-      const route = routeBySlug.get(segment.routeSlug);
-      if (route === undefined) return [];
-      const matches = textIncludesAnyTerm(
-        [
-          segment.from,
-          segment.to,
-          segment.direction,
-          segment.routeSlug,
-          route.label,
-          route.corridor,
-          route.borough,
-        ].join(" "),
-        terms,
-      );
-      return matches ? [{ segment, route }] : [];
-    });
-    const matchedFindings = findings.findings.filter(({ finding }) =>
-      textIncludesAnyTerm(
-        [
-          finding.id,
-          finding.category,
-          finding.title,
-          finding.body,
-          finding.metric,
-          finding.routeSlug,
-        ].join(" "),
-        terms,
-      ),
-    );
-    const matchedBriefs = briefs.briefs.filter(({ brief }) =>
-      textIncludesAnyTerm(
-        [brief.id, brief.title, brief.summary, brief.status, brief.routeSlug, ...brief.claims].join(
-          " ",
-        ),
-        terms,
-      ),
-    );
-    const docNotes = docSections.flatMap((section, index) =>
-      textIncludesAnyTerm([section.title, ...section.body].join(" "), terms)
-        ? [
-            {
-              id: `docs:${index}`,
-              title: section.title,
-              where: "Methods / Notes",
-              preview: section.body[0] ?? "",
-              href: "/docs",
-            },
-          ]
-        : [],
-    );
-    const datasetNotes = datasets.flatMap((dataset) =>
-      textIncludesAnyTerm(
-        [dataset.name, dataset.publisher, dataset.grain, dataset.cadence].join(" "),
-        terms,
-      )
-        ? [
-            {
-              id: `dataset:${dataset.name}`,
-              title: dataset.name,
-              where: "Methods / Datasets",
-              preview: `${dataset.publisher} · ${dataset.grain} · ${dataset.cadence}`,
-              href: "/methods",
-            },
-          ]
-        : [],
-    );
-
-    return studioJsonResponse(
-      StudioSearchResponseSchema.parse({
-        schemaVersion: 1,
-        generatedAt: routesResult.generatedAt,
-        dataAsOf: (await resolveServingMonths(env))?.servingMonth ?? null,
-        query,
-        routes: matchedRoutes,
-        segments: matchedSegments,
-        findings: matchedFindings,
-        briefs: matchedBriefs,
-        notes: [...docNotes, ...datasetNotes],
-        quality: routesResult.quality,
-      }),
-      env,
-    );
   }
 
   const routeMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)$/);
@@ -2739,6 +2603,7 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
         routeDetail: route,
         capability: routeCapabilityForRouteId(capabilityManifest, route.route.routeId),
         dossier,
+        equityContext: null,
       }),
       env,
     );
@@ -2767,139 +2632,9 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
     return result.ok ? studioJsonResponse(result.timeline, env) : result.response;
   }
 
-  if (url.pathname === "/api/v1/studio/compare") {
-    const routes = await loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema);
-    if (routes instanceof Response) return routes;
-
-    const routeA = getStudioRoute(routes, url.searchParams.get("a") ?? "");
-    const routeB = getStudioRoute(routes, url.searchParams.get("b") ?? "");
-    if (routeA === undefined || routeB === undefined) {
-      return errorResponse(404, "One or more Studio comparison routes were not found.");
-    }
-
-    const release: StudioReleasePayload = {
-      schemaVersion: 1,
-      generatedAt: routes.generatedAt,
-      quality: routes.quality,
-      routes: routes.routes,
-      segments: [],
-      routeArtifacts: [],
-      findings: [],
-      briefs: [],
-      versions: [],
-      comments: [],
-      methods: [],
-      docsSections: [],
-      docsEndpoints: [],
-    };
-
-    return studioJsonResponse(
-      StudioCompareResponseSchema.parse({
-        ...buildStudioCompareProjection(release, routeA, routeB),
-        dataAsOf: (await resolveServingMonths(env))?.servingMonth ?? null,
-      }),
-      env,
-    );
-  }
-
-  if (url.pathname === "/api/v1/studio/findings") {
-    const findings = await loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema);
-    if (findings instanceof Response) return findings;
-    return studioJsonResponse(
-      {
-        ...findings,
-        dataAsOf: findings.dataAsOf ?? (await resolveServingMonths(env))?.servingMonth ?? null,
-      },
-      env,
-    );
-  }
-
-  const findingMatch = url.pathname.match(/^\/api\/v1\/studio\/findings\/([^/]+)$/);
-  if (findingMatch) {
-    const findingId = decodeURIComponent(findingMatch[1] ?? "");
-    const findings = await loadStudioProjection(env, "findings.json", StudioFindingsResponseSchema);
-    if (findings instanceof Response) return findings;
-    if (!findings.findings.some(({ finding }) => finding.id === findingId)) {
-      return errorResponse(404, "Studio finding was not found.");
-    }
-
-    const finding = await loadStudioProjection(
-      env,
-      `findings/${findingId}/index.json`,
-      StudioFindingResponseSchema,
-    );
-    return finding instanceof Response ? finding : studioJsonResponse(finding, env);
-  }
-
-  if (url.pathname === "/api/v1/studio/briefs") {
-    const briefs = await loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema);
-    return briefs instanceof Response ? briefs : studioJsonResponse(briefs, env);
-  }
-
-  const briefEvidenceMatch = url.pathname.match(/^\/api\/v1\/studio\/briefs\/([^/]+)\/evidence$/);
-  if (briefEvidenceMatch) {
-    const briefId = decodeURIComponent(briefEvidenceMatch[1] ?? "");
-    const briefs = await loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema);
-    if (briefs instanceof Response) return briefs;
-    if (!briefs.briefs.some(({ brief }) => brief.id === briefId)) {
-      return errorResponse(404, "Studio brief was not found.");
-    }
-
-    const evidence = await loadStudioProjection(
-      env,
-      `briefs/${briefId}/evidence.json`,
-      StudioBriefEvidenceResponseSchema,
-    );
-    return evidence instanceof Response ? evidence : studioJsonResponse(evidence, env);
-  }
-
-  const briefHistoryMatch = url.pathname.match(/^\/api\/v1\/studio\/briefs\/([^/]+)\/history$/);
-  if (briefHistoryMatch) {
-    const briefId = decodeURIComponent(briefHistoryMatch[1] ?? "");
-    const briefs = await loadStudioProjection(env, "briefs.json", StudioBriefsResponseSchema);
-    if (briefs instanceof Response) return briefs;
-    if (!briefs.briefs.some(({ brief }) => brief.id === briefId)) {
-      return errorResponse(404, "Studio brief was not found.");
-    }
-
-    const history = await loadStudioProjection(
-      env,
-      `briefs/${briefId}/history.json`,
-      StudioBriefHistoryResponseSchema,
-    );
-    return history instanceof Response ? history : studioJsonResponse(history, env);
-  }
-
-  const briefMatch = url.pathname.match(/^\/api\/v1\/studio\/briefs\/([^/]+)$/);
-  if (briefMatch) {
-    const briefId = decodeURIComponent(briefMatch[1] ?? "");
-    const brief = await loadStudioBriefProjection(env, briefId);
-    if (!brief.ok) {
-      if (brief.response.status === 404 && hooks.loadDraftOnlyBriefProjection !== undefined) {
-        const draftOnly = await hooks.loadDraftOnlyBriefProjection(request, env, briefId);
-        if (draftOnly !== null) {
-          return draftOnly instanceof Response ? draftOnly : studioJsonResponse(draftOnly, env);
-        }
-      }
-      return brief.response;
-    }
-    const projection =
-      hooks.overlayStudioBriefDraft === undefined
-        ? brief.data
-        : await hooks.overlayStudioBriefDraft(request, env, brief.data);
-    return studioJsonResponse(projection, env);
-  }
-
   if (url.pathname === "/api/v1/studio/methods") {
     const methods = await loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema);
     return methods instanceof Response ? methods : studioJsonResponse(methods, env);
-  }
-
-  if (url.pathname === "/api/v1/studio/docs") {
-    const docs = await loadStudioProjection(env, "docs.json", StudioDocsResponseSchema);
-    return docs instanceof Response
-      ? docs
-      : studioJsonResponse(withGeneratedDocsEndpoints(docs), env);
   }
 
   return errorResponse(404, "Studio API endpoint was not found.");

@@ -17,11 +17,14 @@ async function writeFixture(path: string, value: unknown): Promise<void> {
 }
 
 describe("route speed-history coverage index export", () => {
-  test("keeps coverage table materialization in applied-research", () => {
+  test("keeps coverage table materialization in pipeline-local aggregates", () => {
     const source = readFileSync(commandPath, "utf8");
 
-    expect(source).toContain('from "@bp/applied-research/local-db"');
+    expect(source).toContain('from "@bp/pipeline-v2/local-db-aggregates"');
     expect(source).toContain("materializeRouteSpeedHistoryCoverageIndex({");
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).not.toContain("withLocalDb");
+    expect(source).not.toContain("localDbFromCtx");
     expect(source).not.toContain("CREATE TABLE IF NOT EXISTS local_route_speed_history_coverage");
     expect(source).not.toContain("DELETE FROM local_route_speed_history_coverage");
     expect(source).not.toContain("INSERT INTO local_route_speed_history_coverage");

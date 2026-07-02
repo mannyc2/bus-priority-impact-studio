@@ -124,6 +124,7 @@ function detail({
     insights,
     capability,
     dossier: null,
+    equityContext: null,
     quality: {
       releaseLayer: "current_signal",
       completenessStatus: "complete",
@@ -203,7 +204,7 @@ describe("routeMapHighlight", () => {
     });
   });
 
-  test("drives the Overview mini-map with the detector-targeted segment", () => {
+  test("renders the Overview route-map card with the geo loading state first", () => {
     const registry = routeSectionRegistry(capability);
     const markup = renderToStaticMarkup(
       createElement(OverviewSection, {
@@ -216,7 +217,8 @@ describe("routeMapHighlight", () => {
       }),
     );
 
-    expect(markup).toContain('x="74.5" y="4" width="72" height="14"');
-    expect(markup).not.toContain('x="3.5" y="4" width="72" height="14"');
+    expect(markup).toContain("Route map");
+    expect(markup).toContain("Observed speed by segment.");
+    expect(markup).toContain("animate-pulse");
   });
 });

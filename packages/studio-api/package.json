@@ -11,9 +11,6 @@
     "./server": "./src/server/index.ts",
     "./server/worker": "./src/server/worker.ts",
     "./server/scheduled": "./src/server/scheduled.ts",
-    "./server/auth": "./src/server/resources/auth/index.ts",
-    "./server/authoring": "./src/server/resources/authoring/index.ts",
-    "./server/authoring/agent": "./src/server/resources/authoring/agent/index.ts",
     "./server/testing": "./src/server/testing/index.ts"
   },
   "scripts": {
@@ -24,9 +21,6 @@
   "dependencies": {
     "@bp/db": "workspace:*",
     "@bp/domain": "workspace:*",
-    "@cloudflare/think": "catalog:",
-    "ai": "catalog:",
-    "workers-ai-provider": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

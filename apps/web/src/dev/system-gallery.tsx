@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 import { ChartsDemo } from "@/dev/examples/charts-demo";
-import { ClaimsDemo } from "@/dev/examples/claims-demo";
-import { CompareHeaderDemo } from "@/dev/examples/compare-header-demo";
 import { CorridorDemo } from "@/dev/examples/corridor-demo";
 import { CorridorProfileDemo } from "@/dev/examples/corridor-profile-demo";
 import { FoundationsDemo } from "@/dev/examples/foundations-demo";
@@ -19,9 +17,7 @@ const sections = [
   { id: "segments", label: "Segment row" },
   { id: "charts", label: "Charts" },
   { id: "corridor", label: "The corridor" },
-  { id: "authoring", label: "Authoring" },
   { id: "states", label: "States" },
-  { id: "compare-header", label: "Compare header" },
   { id: "patterns", label: "Patterns" },
 ] as const;
 
@@ -41,7 +37,7 @@ export function SystemGallery() {
               </h1>
               <p className="mt-2 max-w-[720px] text-[13.5px] leading-[1.55] text-[var(--bp-color-ink-70)]">
                 Civic, evidence-heavy, and intentionally small: a few tokens, a few primitives, and
-                reusable composites for route evidence, findings, and cited brief authoring.
+                reusable composites for route evidence, interventions, and methodology.
               </p>
             </div>
             <div className="rounded-[3px] bg-[var(--bp-color-card)] px-3 py-2 font-mono text-[11px] text-[var(--bp-color-ink-55)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
@@ -106,34 +102,20 @@ export function SystemGallery() {
           </div>
         </GallerySection>
 
-        <div className="grid gap-8 xl:grid-cols-2">
-          <GallerySection id="authoring" kicker="07" title="Authoring pattern">
-            <ClaimsDemo />
-          </GallerySection>
-          <GallerySection id="states" kicker="08" title="States">
-            <StatesDemo />
-          </GallerySection>
-        </div>
-
-        <GallerySection
-          id="compare-header"
-          kicker="09"
-          title="Compare header — prototyping the &ldquo;vs&rdquo; layout"
-          sub="The single-route RouteMetricStrip and the two-route inline RouteCompareMetricStrip both build on the shared MetricColumns frame, so the inline 'vs' strip is a real variant (not a copy). Variants: baseline single, inline (both values per cell), and the delta strip. Dev-only — pick one and we extract a shared RouteHeader."
-        >
-          <CompareHeaderDemo />
+        <GallerySection id="states" kicker="07" title="States">
+          <StatesDemo />
         </GallerySection>
 
         <GallerySection
           id="patterns"
-          kicker="10"
+          kicker="08"
           title="Composite rules"
           sub="The gallery intentionally keeps these as product constraints, not theme controls."
         >
           <div className="grid gap-4 xl:grid-cols-2">
             <PatternCard
               title="Use evidence-first composites"
-              body="Route pages, findings, and briefs should expose the same evidence objects rather than restating conclusions in separate UI surfaces."
+              body="Route pages should expose evidence objects directly rather than restating conclusions in separate UI surfaces."
             />
             <PatternCard
               title="Keep state chrome in context"

@@ -15,9 +15,9 @@ import {
 export {
   buildMeetingDiscovery,
   enumerateMeetingMonths,
-  parseMeetingPage,
   type MeetingBacklogSource,
   type MeetingDiscoveryResult,
+  parseMeetingPage,
 } from "./_discover-meetings.ts";
 
 function display(path: string): string {
@@ -62,7 +62,13 @@ export default defineCommand({
     options: z.object({
       from: z.string().default("2021-01").describe("First meeting month, YYYY-MM."),
       to: z.string().default("2026-06").describe("Last meeting month, YYYY-MM."),
-      concurrency: z.coerce.number().int().positive().max(8).default(4).describe("Parallel fetches."),
+      concurrency: z.coerce
+        .number()
+        .int()
+        .positive()
+        .max(8)
+        .default(4)
+        .describe("Parallel fetches."),
       existingBacklog: z
         .string()
         .optional()
@@ -71,7 +77,9 @@ export default defineCommand({
       mergedBacklog: z
         .string()
         .optional()
-        .describe("If set, write existing + discovered sources as a merged backlog for the coverage audit."),
+        .describe(
+          "If set, write existing + discovered sources as a merged backlog for the coverage audit.",
+        ),
     }),
   },
   output: z.object({

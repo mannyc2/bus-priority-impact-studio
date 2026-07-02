@@ -1,5 +1,3 @@
-export type { DistributionBaseline } from "./distribution.js";
-export { distributionBaseline, distributionRank, quantileCutoff } from "./distribution.js";
 export type {
   ContextAssociationScoreInput,
   ContextSupportInput,
@@ -11,6 +9,8 @@ export {
   contextAssociationScore,
   contextSupport,
 } from "./context-correlation.js";
+export type { DistributionBaseline } from "./distribution.js";
+export { distributionBaseline, distributionRank, quantileCutoff } from "./distribution.js";
 export type {
   ExcessWaitTimeResult,
   HeadwayIrregularityOptions,

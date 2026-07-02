@@ -1,5 +1,4 @@
 import { ChartFrame } from "@/components/ChartFrame";
-import { DataAsOf } from "@/components/DataAsOf";
 import { HourExposure } from "@/components/HourExposure";
 import {
   riderImpactInsightRows,
@@ -30,14 +29,11 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
   const hourlyExposure = averageHourlySeverity(segments);
   const ridershipHistory = dossierRidershipSeries(data.dossier);
   const hasRidershipHistory = ridershipHistory.length > 0;
+  const equityItems = routeEquityContextItems(data.equityContext);
 
   return (
     <div className="flex flex-col gap-7">
-      <SectionHeader
-        title={routeSectionQuestion("riders")}
-        sub={summary.sectionSubtitle}
-        right={<DataAsOf dataAsOf={summary.dataAsOf} />}
-      />
+      <SectionHeader title={routeSectionQuestion("riders")} sub={summary.sectionSubtitle} />
       <div className="grid grid-cols-3 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-lg:grid-cols-1">
         <RiderKpi
           label="Daily riders"
@@ -71,6 +67,10 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
           sub={summary.topSegmentDetail}
         />
       </div>
+
+      {equityItems.length >= 2 && data.equityContext !== null ? (
+        <RiderEquityContext equityContext={data.equityContext} items={equityItems} />
+      ) : null}
 
       <div className="grid grid-cols-2 items-start gap-5 max-xl:grid-cols-1">
         <ChartFrame
@@ -155,6 +155,87 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
   );
 }
 
+type RouteEquityContextItem = {
+  label: string;
+  value: string;
+};
+
+export function routeEquityContextItems(
+  equityContext: StudioRouteDetailResponse["equityContext"],
+): RouteEquityContextItem[] {
+  if (equityContext === null) return [];
+  return [
+    equityContext.noVehicleHouseholdShare === null
+      ? null
+      : {
+          label: "No-vehicle households",
+          value: formatShare(equityContext.noVehicleHouseholdShare),
+        },
+    equityContext.medianHouseholdIncome === null
+      ? null
+      : {
+          label: "Median HH income",
+          value: `$${formatCompact(equityContext.medianHouseholdIncome)}`,
+        },
+    equityContext.povertyRate === null
+      ? null
+      : {
+          label: "Poverty rate",
+          value: formatShare(equityContext.povertyRate),
+        },
+    equityContext.publicTransitCommuterShare === null
+      ? null
+      : {
+          label: "Transit commuters",
+          value: formatShare(equityContext.publicTransitCommuterShare),
+        },
+  ].filter((item): item is RouteEquityContextItem => item !== null);
+}
+
+function formatShare(value: number): string {
+  const percent = value <= 1 ? value * 100 : value;
+  return `${Math.round(percent)}%`;
+}
+
+function RiderEquityContext({
+  equityContext,
+  items,
+}: {
+  equityContext: NonNullable<StudioRouteDetailResponse["equityContext"]>;
+  items: RouteEquityContextItem[];
+}) {
+  return (
+    <section className="flex flex-col gap-3">
+      <SectionHeader
+        title="Who rides here"
+        sub="Census context for the neighborhoods this route serves."
+      />
+      <div className="border-y border-[var(--bp-color-rule)] py-3">
+        <div className="flex flex-wrap">
+          {items.map((item) => (
+            <div
+              key={item.label}
+              className="min-w-[160px] flex-1 border-l border-[var(--bp-color-rule)] px-4 first:border-l-0 first:pl-0 max-md:basis-1/2 max-md:[&:nth-child(odd)]:border-l-0 max-md:[&:nth-child(odd)]:pl-0"
+            >
+              <div className="font-mono text-[10px] font-semibold uppercase tracking-normal text-[var(--bp-color-ink-55)]">
+                {item.label}
+              </div>
+              <div className="mt-1 font-mono text-[21px] font-semibold leading-none tabular-nums">
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="text-[11.5px] leading-[1.4] text-[var(--bp-color-ink-55)]">
+        ACS {equityContext.acsYear} five-year estimates
+        {equityContext.assignedCountyName ? ` - ${equityContext.assignedCountyName}` : ""}{" "}
+        (county-level proxy)
+      </div>
+    </section>
+  );
+}
+
 function RiderKpi({
   label,
   value,
@@ -218,7 +299,6 @@ function RiderInsightPanel({ insights }: { insights: StudioRouteDetailResponse["
                   <Badge variant={insight.severity === "high" ? "bad" : "neutral"}>
                     {insight.severity}
                   </Badge>
-                  <DataAsOf dataAsOf={insight.asOfMonth ?? insight.month ?? null} />
                 </div>
                 <div className="text-[12.5px] font-semibold">{insight.title}</div>
                 <div className="mt-1 text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">

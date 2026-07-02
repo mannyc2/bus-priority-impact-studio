@@ -340,7 +340,9 @@ describe("Tier 2 vocab materialized views", () => {
       evidencePointerIds: ["pointer-1", "pointer-2"],
     });
 
-    const contextFeature = artifact.detectorFeatureRows.find((row) => row.surfaceId === "surface-context");
+    const contextFeature = artifact.detectorFeatureRows.find(
+      (row) => row.surfaceId === "surface-context",
+    );
     expect(contextFeature).toMatchObject({
       featureUse: "document_context_feature",
       routeScope: "source_context",

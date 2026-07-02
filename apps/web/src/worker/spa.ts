@@ -8,13 +8,32 @@ export function isLocalDevHost(hostname: string): boolean {
 export function canServeSpaFallback(request: Request, url: URL): boolean {
   return (
     !isApiPath(url.pathname) &&
-    !url.pathname.match(/\/[^/]+\.[^/]+$/) &&
+    !hasFileExtension(url.pathname) &&
     (request.method === "GET" || request.method === "HEAD")
   );
 }
 
+const publicStudioPathPatterns = [
+  /^\/$/,
+  /^\/(?:interventions|map|methods)\/?$/,
+  /^\/routes\/[^/]+\/?$/,
+] as const;
+
+export function isPublicStudioPath(pathname: string): boolean {
+  return publicStudioPathPatterns.some((pattern) => pattern.test(pathname));
+}
+
 export function isProductionClosedPath(url: URL): boolean {
-  return url.pathname === "/system" && !isLocalDevHost(url.hostname);
+  return (
+    !isLocalDevHost(url.hostname) &&
+    !isApiPath(url.pathname) &&
+    !hasFileExtension(url.pathname) &&
+    !isPublicStudioPath(url.pathname)
+  );
+}
+
+function hasFileExtension(pathname: string): boolean {
+  return /\/[^/]+\.[^/]+$/.test(pathname);
 }
 
 async function withSpaSeo(request: Request, url: URL, response: Response): Promise<Response> {

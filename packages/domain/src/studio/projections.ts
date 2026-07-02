@@ -1,29 +1,9 @@
 import {
-  type StudioBrief,
-  type StudioBriefCard,
-  type StudioBriefEvidenceResponse,
-  StudioBriefEvidenceResponseSchema,
-  type StudioBriefHistoryResponse,
-  StudioBriefHistoryResponseSchema,
-  type StudioBriefResponse,
-  StudioBriefResponseSchema,
-  type StudioBriefsResponse,
-  StudioBriefsResponseSchema,
-} from "./briefs/read-model.js";
-import {
   type StudioDocsResponse,
   StudioDocsResponseSchema,
   type StudioMethodsResponse,
   StudioMethodsResponseSchema,
 } from "./docs/index.js";
-import {
-  type StudioFinding,
-  type StudioFindingCard,
-  type StudioFindingResponse,
-  StudioFindingResponseSchema,
-  type StudioFindingsResponse,
-  StudioFindingsResponseSchema,
-} from "./findings/index.js";
 import {
   type StudioCompareResponse,
   StudioCompareResponseSchema,
@@ -46,65 +26,12 @@ export function getStudioRoute(
   return release.routes.find((route) => route.slug === (slug ?? ""));
 }
 
-export function getStudioFinding(
-  release: Pick<StudioReleasePayload, "findings">,
-  id: string | undefined,
-): StudioFinding | undefined {
-  return release.findings.find((finding) => finding.id === (id ?? ""));
-}
-
-export function getStudioBrief(
-  release: Pick<StudioReleasePayload, "briefs">,
-  id: string | undefined,
-): StudioBrief | undefined {
-  return release.briefs.find((brief) => brief.id === (id ?? ""));
-}
-
-export function buildStudioFindingCards(
-  release: StudioReleasePayload,
-  findings: readonly StudioFinding[] = release.findings,
-): StudioFindingCard[] {
-  return findings.flatMap((finding) => {
-    const route = getStudioRoute(release, finding.routeSlug);
-    return route === undefined ? [] : [{ finding, route }];
-  });
-}
-
-export function buildStudioBriefCards(
-  release: StudioReleasePayload,
-  briefs: readonly StudioBrief[] = release.briefs,
-): StudioBriefCard[] {
-  return briefs.flatMap((brief) => {
-    const route = getStudioRoute(release, brief.routeSlug);
-    return route === undefined ? [] : [{ brief, route }];
-  });
-}
-
 function routeSegments(release: StudioReleasePayload, slug: string) {
   return release.segments.filter((segment) => segment.routeSlug === slug);
 }
 
 function routeArtifactRefs(release: StudioReleasePayload, routeId: string) {
   return release.routeArtifacts.filter((artifact) => artifact.routeId === routeId);
-}
-
-function briefVersions(release: StudioReleasePayload, briefId: string) {
-  return release.versions.filter((version) => version.briefId === briefId);
-}
-
-function briefComments(release: StudioReleasePayload, briefId: string) {
-  return release.comments.filter((comment) => comment.briefId === briefId);
-}
-
-function briefHeading(brief: StudioBrief, route: StudioRoute) {
-  return {
-    id: brief.id,
-    title: brief.title,
-    version: brief.version,
-    routeSlug: brief.routeSlug,
-    routeLabel: route.label,
-    routeSbs: route.sbs,
-  };
 }
 
 export function buildStudioRoutesProjection(release: StudioReleasePayload): StudioRoutesResponse {
@@ -158,103 +85,6 @@ export function buildStudioCompareProjection(
       riderHoursLost: routeA.riderHoursLost - routeB.riderHoursLost,
       laneCoverage: routeB.laneCoverage - routeA.laneCoverage,
     },
-    quality: release.quality,
-  });
-}
-
-export function buildStudioFindingsProjection(
-  release: StudioReleasePayload,
-): StudioFindingsResponse {
-  return StudioFindingsResponseSchema.parse({
-    schemaVersion: 1,
-    generatedAt: release.generatedAt,
-    findings: buildStudioFindingCards(release),
-    quality: release.quality,
-  });
-}
-
-export function buildStudioFindingProjection(
-  release: StudioReleasePayload,
-  finding: StudioFinding,
-): StudioFindingResponse | undefined {
-  const route = getStudioRoute(release, finding.routeSlug);
-  if (route === undefined) {
-    return undefined;
-  }
-
-  return StudioFindingResponseSchema.parse({
-    schemaVersion: 1,
-    generatedAt: release.generatedAt,
-    finding,
-    route,
-    quality: release.quality,
-  });
-}
-
-export function buildStudioBriefsProjection(release: StudioReleasePayload): StudioBriefsResponse {
-  return StudioBriefsResponseSchema.parse({
-    schemaVersion: 1,
-    generatedAt: release.generatedAt,
-    briefs: buildStudioBriefCards(release),
-    quality: release.quality,
-  });
-}
-
-export function buildStudioBriefProjection(
-  release: StudioReleasePayload,
-  brief: StudioBrief,
-): StudioBriefResponse | undefined {
-  const route = getStudioRoute(release, brief.routeSlug);
-  if (route === undefined) {
-    return undefined;
-  }
-
-  return StudioBriefResponseSchema.parse({
-    schemaVersion: 1,
-    generatedAt: release.generatedAt,
-    brief,
-    route,
-    versions: briefVersions(release, brief.id),
-    comments: briefComments(release, brief.id),
-    quality: release.quality,
-  });
-}
-
-export function buildStudioBriefEvidenceProjection(
-  release: StudioReleasePayload,
-  brief: StudioBrief,
-): StudioBriefEvidenceResponse | undefined {
-  const route = getStudioRoute(release, brief.routeSlug);
-  if (route === undefined) {
-    return undefined;
-  }
-
-  return StudioBriefEvidenceResponseSchema.parse({
-    schemaVersion: 1,
-    generatedAt: release.generatedAt,
-    heading: briefHeading(brief, route),
-    claims: brief.claims,
-    evidence: brief.evidence,
-    caveats: brief.caveats,
-    quality: release.quality,
-  });
-}
-
-export function buildStudioBriefHistoryProjection(
-  release: StudioReleasePayload,
-  brief: StudioBrief,
-): StudioBriefHistoryResponse | undefined {
-  const route = getStudioRoute(release, brief.routeSlug);
-  if (route === undefined) {
-    return undefined;
-  }
-
-  return StudioBriefHistoryResponseSchema.parse({
-    schemaVersion: 1,
-    generatedAt: release.generatedAt,
-    heading: briefHeading(brief, route),
-    versions: briefVersions(release, brief.id),
-    comments: briefComments(release, brief.id),
     quality: release.quality,
   });
 }

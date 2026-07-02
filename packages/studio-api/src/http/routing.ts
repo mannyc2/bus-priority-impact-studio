@@ -1,5 +1,6 @@
 export {
   allowedApiMethodsForPath,
+  findRouteSpec,
   isApiPath,
   isStudioApiPath,
   studioRouteTemplate,

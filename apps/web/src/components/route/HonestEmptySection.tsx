@@ -1,5 +1,4 @@
 import { CircleCheck, CircleDashed, CircleOff, TriangleAlert } from "lucide-react";
-import { DataAsOf } from "@/components/DataAsOf";
 import type { HonestEmptyState } from "@/components/route/section-registry";
 
 /**
@@ -40,11 +39,9 @@ const EMPTY_COPY: Record<
 export function HonestEmptySection({
   state,
   reason,
-  dataAsOf,
 }: {
   state: HonestEmptyState;
   reason: string | null;
-  dataAsOf: string | null;
 }) {
   const copy = EMPTY_COPY[state];
   const Icon = copy.icon;
@@ -56,7 +53,6 @@ export function HonestEmptySection({
       {reason ? (
         <p className="m-0 font-mono text-[11px] text-[var(--bp-color-ink-55)]">{reason}</p>
       ) : null}
-      <DataAsOf dataAsOf={dataAsOf} />
     </div>
   );
 }

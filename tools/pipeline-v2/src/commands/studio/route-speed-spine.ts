@@ -1,21 +1,17 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
-import { routeSpeedSpineArtifactPath } from "@bp/applied-research/artifacts";
+import { routeSpeedSpineArtifactPath } from "@bp/analytics/artifacts";
 import {
   buildRouteSpeedSpineArtifact,
   ROUTE_SPEED_SPINE_DEFAULT_START_MONTH,
   ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS,
   routeSpeedSpineRouteSlug,
-} from "@bp/applied-research/feature-history";
-import { loadRouteSpeedSpineLocalDbRows } from "@bp/applied-research/local-db";
+} from "@bp/analytics/feature-history";
+import { loadRouteSpeedSpineLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
 import { defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
 const ISO_MONTH_RE = /^\d{4}-\d{2}$/;
@@ -122,7 +118,6 @@ export default defineCommand({
       output: z.string().optional().describe("Override output path"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     routeId: z.string(),
     routeSlug: z.string(),
@@ -136,18 +131,30 @@ export default defineCommand({
     validationStatus: z.enum(["pass", "warn", "fail"]),
     issueCount: z.number().int().nonnegative(),
   }),
-  async run({ ctx, input }) {
-    return runRouteSpeedSpine({
-      local: localDbFromCtx(ctx),
-      routeId: input.options.routeId,
-      startMonth: input.options.startMonth,
-      endMonth: input.options.endMonth ?? null,
-      toleranceMeters: input.options.toleranceMeters,
-      artifactRoot:
-        input.options.artifactRoot === undefined
-          ? undefined
-          : fromCliPath(input.options.artifactRoot),
-      output: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "studio.route-speed-spine",
+      operation: "runRouteSpeedSpine",
+      spanAttributes: {
+        routeId: input.options.routeId,
+        startMonth: input.options.startMonth,
+        endMonth: input.options.endMonth ?? null,
+      },
+      run: (local) =>
+        runRouteSpeedSpine({
+          local,
+          routeId: input.options.routeId,
+          startMonth: input.options.startMonth,
+          endMonth: input.options.endMonth ?? null,
+          toleranceMeters: input.options.toleranceMeters,
+          artifactRoot:
+            input.options.artifactRoot === undefined
+              ? undefined
+              : fromCliPath(input.options.artifactRoot),
+          output:
+            input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+        }),
     });
   },
 });

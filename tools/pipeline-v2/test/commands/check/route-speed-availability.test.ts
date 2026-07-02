@@ -46,14 +46,14 @@ afterEach(async () => {
 });
 
 describe("runRouteSpeedAvailability", () => {
-  it("keeps availability classification and artifact path policy in applied-research", () => {
+  it("keeps path policy and availability classification in analytics", () => {
     const source = readFileSync(
       fromRepoRoot("tools/pipeline-v2/src/commands/check/route-speed-availability.ts"),
       "utf8",
     );
 
-    expect(source).toContain('from "@bp/applied-research/artifacts"');
-    expect(source).toContain('from "@bp/applied-research/evaluation"');
+    expect(source).toContain('from "@bp/analytics/artifacts"');
+    expect(source).toContain('from "@bp/analytics/evaluation"');
     expect(source).not.toContain("function summarizeSpeedMonths");
     expect(source).not.toContain("function requestedStatus");
     expect(source).not.toContain("function releaseDecision");

@@ -3,12 +3,12 @@ import {
   normalizeAceRouteRows,
   normalizeAceViolationSummaryRows,
 } from "@bp/sources/adapters/mta/ace";
-import { normalizeBusWaitAssessmentRows } from "@bp/sources/adapters/mta/bus-wait-assessment";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
 import {
   normalizeSegmentSpeedCellRows,
   normalizeSegmentSpeedRows,
 } from "@bp/sources/adapters/mta/bus-speeds";
+import { normalizeBusWaitAssessmentRows } from "@bp/sources/adapters/mta/bus-wait-assessment";
 import { normalizeRouteShapeRows, normalizeStopRows } from "@bp/sources/adapters/mta/routes-stops";
 import { normalizeScheduleTimepointRows } from "@bp/sources/adapters/mta/schedules";
 import { normalizeBusLaneRows } from "@bp/sources/adapters/nyc-dot/bus-lanes";

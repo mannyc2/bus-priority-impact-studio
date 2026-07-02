@@ -160,17 +160,18 @@ export function SearchAutocomplete({
         ) : null}
       </InputGroup>
       {showList ? (
-        <ul
+        <div
           id={listboxId}
           role="listbox"
           className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 m-0 list-none overflow-hidden rounded-[4px] bg-[var(--bp-color-card)] p-0 shadow-[0_2px_0_var(--bp-color-ink-20),0_0_0_1px_var(--bp-color-rule)]"
         >
           {filtered.map((s, i) => (
-            <li
+            <div
               key={s.id}
               id={`${listboxId}-${i}`}
               role="option"
               aria-selected={i === activeIndex}
+              tabIndex={-1}
               onMouseEnter={() => setActiveIndex(i)}
               onMouseDown={(event) => {
                 event.preventDefault();
@@ -187,9 +188,9 @@ export function SearchAutocomplete({
                 <div className="shrink-0 text-[12px] text-[var(--bp-color-ink-55)]">{s.meta}</div>
               ) : null}
               {i === activeIndex ? <Kbd>&#8629;</Kbd> : null}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
       {recent ? <div className="mt-3.5">{recent}</div> : null}
     </div>

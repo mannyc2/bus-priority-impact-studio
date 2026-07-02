@@ -1,3 +1,4 @@
+// biome-ignore-all lint/style/noNonNullAssertion: Legacy Tier 2 command code is pending plan 024 deletion; existing index assertions are intentional.
 import { mkdir, readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import {

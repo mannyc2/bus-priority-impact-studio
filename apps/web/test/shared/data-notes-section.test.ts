@@ -13,7 +13,6 @@ describe("DataNotesSection evidence header", () => {
     const markup = renderToStaticMarkup(
       createElement(EvidenceIndexSection, {
         rows: [],
-        routeSlug: "b48",
         sectionRegistry,
         hiddenSectionCount: 1,
         onNavigate: () => undefined,

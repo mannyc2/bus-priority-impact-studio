@@ -110,19 +110,28 @@ describe("Tier 2 raw field graduation planner", () => {
     expect(metricUnit?.targetPayloadPath).toBe("canonicalPayload.metricUnit");
     expect(metricUnit?.topValues.map((value) => value.value)).toContain("%");
 
-    const claimKindRaw = plan.rawFieldInventory.find((field) => field.fieldPath === "rawPayload.claimKindRaw");
+    const claimKindRaw = plan.rawFieldInventory.find(
+      (field) => field.fieldPath === "rawPayload.claimKindRaw",
+    );
     expect(claimKindRaw?.disposition).toBe("llm_vocab_candidate");
     expect(claimKindRaw?.graduationKeyId).toBe("claimKind");
 
-    const routeTextRaw = plan.rawFieldInventory.find((field) => field.fieldPath === "rawPayload.routeTextRaw");
+    const routeTextRaw = plan.rawFieldInventory.find(
+      (field) => field.fieldPath === "rawPayload.routeTextRaw",
+    );
     expect(routeTextRaw?.disposition).toBe("deterministic_catalog_or_parser");
 
-    const claimTextRaw = plan.rawFieldInventory.find((field) => field.fieldPath === "rawPayload.claimTextRaw");
+    const claimTextRaw = plan.rawFieldInventory.find(
+      (field) => field.fieldPath === "rawPayload.claimTextRaw",
+    );
     expect(claimTextRaw?.disposition).toBe("preserve_source_wording");
   });
 
   test("can read only selected artifacts from a canonical merge artifact", async () => {
-    const selectedPath = await writeArtifact({ name: "selected-window", labelRaw: "Selected metric family" });
+    const selectedPath = await writeArtifact({
+      name: "selected-window",
+      labelRaw: "Selected metric family",
+    });
     await writeArtifact({ name: "superseded-window", labelRaw: "Superseded metric family" });
     const canonicalMergePath = join(workingRoot, "canonical-merge.json");
     await writeJson(canonicalMergePath, {
@@ -150,6 +159,8 @@ describe("Tier 2 raw field graduation planner", () => {
 
     const metricFamily = plan.graduationKeys.find((key) => key.id === "metricFamily");
     expect(metricFamily?.topValues.map((value) => value.value)).toContain("Selected metric family");
-    expect(metricFamily?.topValues.map((value) => value.value)).not.toContain("Superseded metric family");
+    expect(metricFamily?.topValues.map((value) => value.value)).not.toContain(
+      "Superseded metric family",
+    );
   });
 });

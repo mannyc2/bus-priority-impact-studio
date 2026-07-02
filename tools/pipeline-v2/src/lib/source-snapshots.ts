@@ -1,5 +1,4 @@
-import { mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
+import { writeJson } from "./json.ts";
 
 export type RawSourceSnapshot = {
   path: string;
@@ -11,8 +10,7 @@ export type RawSourceSnapshot = {
   schemaVersion?: number;
 };
 
-export async function writeRawSourceSnapshot(input: RawSourceSnapshot): Promise<number> {
-  await mkdir(dirname(input.path), { recursive: true });
+export async function writeRawSourceSnapshot(input: RawSourceSnapshot): Promise<void> {
   const payload = {
     schemaVersion: input.schemaVersion ?? 1,
     sourceId: input.sourceId,
@@ -21,5 +19,5 @@ export async function writeRawSourceSnapshot(input: RawSourceSnapshot): Promise<
     query: input.query,
     rows: input.rows,
   };
-  return Bun.write(input.path, `${JSON.stringify(payload, null, 2)}\n`);
+  await writeJson(input.path, payload);
 }

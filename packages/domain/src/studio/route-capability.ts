@@ -138,4 +138,6 @@ export const RouteCapabilityManifestForIndexSchema = z
     routes: z.array(RouteCapabilityManifestRowForIndexSchema),
   })
   .passthrough();
-export type RouteCapabilityManifestForIndex = z.output<typeof RouteCapabilityManifestForIndexSchema>;
+export type RouteCapabilityManifestForIndex = z.output<
+  typeof RouteCapabilityManifestForIndexSchema
+>;

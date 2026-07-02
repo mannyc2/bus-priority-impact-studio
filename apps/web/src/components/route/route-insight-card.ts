@@ -110,13 +110,13 @@ function evidenceLabel(insight: StudioRouteInsight): string {
 }
 
 function referenceCounts(insight: StudioRouteInsight): {
-  finding: number;
+  evidence: number;
   source: number;
 } {
-  const finding = insight.refs.filter((ref) => ref.evidenceRefPath !== undefined).length;
+  const evidence = insight.refs.filter((ref) => ref.evidenceRefPath !== undefined).length;
   const source = insight.refs.filter((ref) => ref.sourceProjectionPath !== undefined).length;
 
-  return { finding, source };
+  return { evidence, source };
 }
 
 function citationLabel(count: number): string {
@@ -124,9 +124,11 @@ function citationLabel(count: number): string {
   return `${count} cited ref${count === 1 ? "" : "s"}`;
 }
 
-function referenceDetailLabel(counts: { finding: number; source: number }): string {
+function referenceDetailLabel(counts: { evidence: number; source: number }): string {
   const parts = [
-    counts.finding > 0 ? `${counts.finding} finding ref${counts.finding === 1 ? "" : "s"}` : null,
+    counts.evidence > 0
+      ? `${counts.evidence} evidence ref${counts.evidence === 1 ? "" : "s"}`
+      : null,
     counts.source > 0 ? `${counts.source} source ref${counts.source === 1 ? "" : "s"}` : null,
   ].filter((part): part is string => part !== null);
 

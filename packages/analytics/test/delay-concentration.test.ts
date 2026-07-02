@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
-  detectDelayConcentration,
   type DelayConcentrationRouteInput,
   type DelayConcentrationSegmentInput,
+  detectDelayConcentration,
 } from "../src/index.js";
 
 const GENERATED_AT = "2026-05-20T12:00:00.000Z";
@@ -54,6 +54,12 @@ function diffuseRoute(routeId: string): DelayConcentrationRouteInput {
 
 const DIFFUSE = ["B41", "B6", "B12", "B35", "B82"];
 
+function expectDefined<T>(value: T | undefined, label: string): T {
+  expect(value, label).toBeDefined();
+  if (value === undefined) throw new Error(`${label} was unexpectedly missing.`);
+  return value;
+}
+
 describe("detectDelayConcentration", () => {
   test("flags only the route whose avoidable delay is a fleet outlier in concentration", () => {
     const out = detectDelayConcentration({
@@ -64,7 +70,7 @@ describe("detectDelayConcentration", () => {
     });
 
     expect(out.candidates).toHaveLength(1);
-    const candidate = out.candidates[0]!;
+    const candidate = expectDefined(out.candidates[0], "candidate");
     expect(candidate.detectorId as string).toBe("delay_concentration");
     expect(candidate.scopeKind as string).toBe("route");
     expect(candidate.routeId as string).toBe("B44");
@@ -74,18 +80,24 @@ describe("detectDelayConcentration", () => {
 
     // One coverage row per route considered; B44 hit, the rest clean.
     expect(out.coverage).toHaveLength(6);
-    const b44 = out.coverage.find((row) => (row.scopeId as string) === "B44")!;
+    const b44 = expectDefined(
+      out.coverage.find((row) => (row.scopeId as string) === "B44"),
+      "B44 coverage",
+    );
     expect(b44.outcome as string).toBe("hit");
-    expect(
-      out.coverage.filter((row) => (row.outcome as string) === "clean_no_hit"),
-    ).toHaveLength(5);
+    expect(out.coverage.filter((row) => (row.outcome as string) === "clean_no_hit")).toHaveLength(
+      5,
+    );
 
     // Evidence: primary metric + counter-evidence; primary carries the computed Gini.
     expect(out.evidence).toHaveLength(2);
     const roles = out.evidence.map((link) => link.evidenceRole as string);
     expect(roles).toContain("primary");
     expect(roles).toContain("counter_evidence");
-    const primary = out.evidence.find((link) => (link.evidenceRole as string) === "primary")!;
+    const primary = expectDefined(
+      out.evidence.find((link) => (link.evidenceRole as string) === "primary"),
+      "primary evidence",
+    );
     const ref = JSON.parse(primary.evidenceRef) as { gini: number; topSegmentsShare: number };
     expect(ref.gini).toBeCloseTo(0.8, 10);
     expect(ref.topSegmentsShare).toBeCloseTo(1, 10);
@@ -118,7 +130,10 @@ describe("detectDelayConcentration", () => {
       routes: [concentratedRoute("B44"), ...DIFFUSE.map(diffuseRoute), tiny],
     });
 
-    const tinyRow = out.coverage.find((row) => (row.scopeId as string) === "B99")!;
+    const tinyRow = expectDefined(
+      out.coverage.find((row) => (row.scopeId as string) === "B99"),
+      "B99 coverage",
+    );
     expect(tinyRow.outcome as string).toBe("skipped_missing_input");
     expect(out.candidates.map((candidate) => candidate.scopeId as string)).not.toContain("B99");
   });

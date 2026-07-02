@@ -4,13 +4,9 @@ import { normalizeAceViolationSummaryRows } from "@bp/sources/adapters/mta/ace";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {
   fetchSoda3RowsForSource,
@@ -116,7 +112,6 @@ export default defineCommand({
       month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     isoMonth: z.string(),
@@ -125,11 +120,21 @@ export default defineCommand({
     violationCount: z.number(),
     skippedMalformedRouteIdCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runAceViolationsIngest({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.ace-violations",
+      operation: "runAceViolationsIngest",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+      },
+      run: (local) =>
+        runAceViolationsIngest({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+        }),
     });
   },
 });

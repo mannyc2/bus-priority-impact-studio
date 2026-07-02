@@ -32,7 +32,8 @@ export async function runDocsTier2NormalizeTextMarkdown(input: z.infer<typeof op
 
 export default defineCommand({
   path: ["docs", "tier2", "normalize-text-markdown"],
-  summary: "Normalize captured html_text sources into OCR-equivalent per-page Markdown for Phase 2.",
+  summary:
+    "Normalize captured html_text sources into OCR-equivalent per-page Markdown for Phase 2.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {

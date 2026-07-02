@@ -51,6 +51,7 @@ data/ops/backfills/
 # Fixtures are intentionally commit-able even when they use data-file extensions.
 !data/fixtures/
 !data/fixtures/**
+!tools/pipeline-v2/test/fixtures/**/*.jsonl
 *.sqlite-shm
 *.sqlite-wal
 
@@ -63,6 +64,7 @@ knowledge/raw/downloads/*
 apps/web/.tanstack/
 
 # Tool caches.
+.repos/effect
 .cache/
 .temp/
 .stryker-tmp/

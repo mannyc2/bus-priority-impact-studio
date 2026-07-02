@@ -4,23 +4,17 @@
 // accidentally keeping older failed source bundles when a newer targeted retry
 // exists for the same source.
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
 const repoRoot = join(import.meta.dir, "../../..");
-const corpusDir = join(
-  repoRoot,
-  "data/artifacts/docs/gap-roadmap-docs-2026-05-25",
-);
+const corpusDir = join(repoRoot, "data/artifacts/docs/gap-roadmap-docs-2026-05-25");
 const candidatePath = join(
   corpusDir,
   "ocr-markdown-candidates-corpus-v5-with-text-2026-05-27.json",
 );
-const outputPath = join(
-  corpusDir,
-  "intervention-records-corpus-v2-with-text-2026-05-27.json",
-);
+const outputPath = join(corpusDir, "intervention-records-corpus-v2-with-text-2026-05-27.json");
 const reportPath = join(
   corpusDir,
   "intervention-records-corpus-v2-with-text-2026-05-27-merge-report.json",
@@ -46,8 +40,12 @@ type InterventionRecord = JsonObject & {
   primaryTreatments?: string[];
   customTreatments?: string[];
   evidenceCandidateIds?: string[];
-  statusHistory?: Array<JsonObject & { status?: string; asOfDate?: string; evidenceRefs?: string[] }>;
-  treatmentComponents?: Array<JsonObject & { treatmentType?: string; customTreatmentType?: string }>;
+  statusHistory?: Array<
+    JsonObject & { status?: string; asOfDate?: string; evidenceRefs?: string[] }
+  >;
+  treatmentComponents?: Array<
+    JsonObject & { treatmentType?: string; customTreatmentType?: string }
+  >;
   metrics?: Array<JsonObject>;
   caveats?: Array<JsonObject>;
   extraction?: {
@@ -94,9 +92,7 @@ function clone<T>(value: T): T {
 }
 
 function sortedCounts(counts: Record<string, number>): Record<string, number> {
-  return Object.fromEntries(
-    Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)),
-  );
+  return Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 function countBy(values: string[]): Record<string, number> {
@@ -185,8 +181,7 @@ chooseArtifact({
 });
 chooseArtifact({
   label: "brooklyn_route_profiles_offline_repaired",
-  artifactPath:
-    "intervention-records-v2-brooklyn-smoke-post-p16-2026-05-27-offline-repaired.json",
+  artifactPath: "intervention-records-v2-brooklyn-smoke-post-p16-2026-05-27-offline-repaired.json",
 });
 chooseArtifact({
   label: "targeted_retry_bronx_final_plan",
@@ -262,8 +257,9 @@ function collapseStatusHistory(record: InterventionRecord): number {
 
   const collapsed = order
     .map((key) => grouped.get(key))
-    .filter((entry): entry is NonNullable<InterventionRecord["statusHistory"]>[number] =>
-      entry !== undefined,
+    .filter(
+      (entry): entry is NonNullable<InterventionRecord["statusHistory"]>[number] =>
+        entry !== undefined,
     );
   const removed = record.statusHistory.length - collapsed.length;
   if (removed > 0) record.statusHistory = collapsed;
@@ -284,8 +280,7 @@ for (const record of records) {
 
 const m79Record = records.find(
   (record) =>
-    record.recordId ===
-    "document_intervention:nyc_dot_m86_sbs_progress_report_2017_pdf:2f779424",
+    record.recordId === "document_intervention:nyc_dot_m86_sbs_progress_report_2017_pdf:2f779424",
 );
 if (m79Record) {
   if (!m79Record.customTreatments?.includes("select_bus_service_conversion")) {
@@ -302,8 +297,7 @@ if (m79Record) {
       ...(m79Record.treatmentComponents ?? []),
       {
         customTreatmentType: "select_bus_service_conversion",
-        description:
-          "Planned conversion of the M79 along 79th Street to Select Bus Service.",
+        description: "Planned conversion of the M79 along 79th Street to Select Bus Service.",
         evidenceRefs: [...(m79Record.evidenceCandidateIds ?? [])],
       },
     ];
@@ -414,7 +408,8 @@ const duplicateStatusHistoryBuckets = repairedRecords.flatMap((record) => {
   const duplicates: Array<{ recordId: string; sourceId: string; key: string }> = [];
   for (const entry of record.statusHistory ?? []) {
     const key = `${entry.status ?? ""}|${entry.asOfDate ?? ""}`;
-    if (seen.has(key)) duplicates.push({ recordId: record.recordId, sourceId: record.sourceId, key });
+    if (seen.has(key))
+      duplicates.push({ recordId: record.recordId, sourceId: record.sourceId, key });
     seen.add(key);
   }
   return duplicates;

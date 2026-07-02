@@ -36,8 +36,7 @@ export async function runDocsTier2DiscoveryCoverage(input: z.infer<typeof option
 
 export default defineCommand({
   path: ["docs", "tier2", "discovery-coverage"],
-  summary:
-    "Audit OCR page/window discovery coverage and write a runnable missing-window manifest.",
+  summary: "Audit OCR page/window discovery coverage and write a runnable missing-window manifest.",
   input: { options: optionsSchema },
   output: z.unknown(),
   async run({ input }) {

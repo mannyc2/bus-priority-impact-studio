@@ -33,7 +33,7 @@ specific subpath they need:
 | `@bp/analytics/detectors` | The deterministic `detect*` functions with their IDs and default thresholds. |
 | `@bp/analytics/registry` | Detector registry, metadata (claim tiers, gates, retirement), and `FINDING_DETECTOR_SPECS`. |
 | `@bp/analytics/calibration` | Bootstrap CIs, gold-set/precision-recall evaluation, reviewer feedback, lifecycle and seasonality policies. |
-| `@bp/analytics/evaluation` | Detector evaluation scorecard: weighted components and hard gates. |
+| `@bp/analytics/evaluation` | Pure evaluation/data-product builders: detector scorecards, route availability/capability summaries, map manifest policy, and Tier 2 artifact classification. |
 | `@bp/analytics/corpus` | Corpus profile summarization. |
 
 ## Detector pattern
@@ -55,5 +55,6 @@ detector cannot ship without a matching spec.
 - Operate on prepared feature rows; source fetching and raw cleaning belong in
   `packages/sources` and `tools/pipeline-v2`.
 - Do not import `@bp/db`, `@bp/applied-research`, filesystem APIs, SQLite clients, or dataframe
-  runtimes. Panel construction and dataframe-backed model building belong in
-  `@bp/applied-research`; this package owns pure detector/statistical contracts.
+  runtimes. Stateful joins, file reads/writes, and local DB adapters belong in
+  `tools/pipeline-v2`; this package owns pure detector, statistical, feature, and data-product
+  policy contracts.

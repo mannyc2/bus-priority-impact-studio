@@ -4,11 +4,11 @@ import { env, SELF } from "cloudflare:test";
 import { MapManifestResponseSchema } from "@bp/domain/maps";
 import {
   ReleaseStatusResponseSchema,
-  RouteCompareResponseSchema,
   RouteListResponseSchema,
   RouteProfileResponseSchema,
   RouteScorecardSchema,
 } from "@bp/domain/routes";
+import { StudioRouteIndex2ResponseSchema } from "@bp/domain/studio/snapshots";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Env } from "../../src/worker/index.js";
 import worker from "../../src/worker/index.js";
@@ -315,13 +315,12 @@ describe("Worker public route API smoke", () => {
     expect(testEnv.DB).toBeDefined();
     expect(testEnv.ARTIFACTS).toBeDefined();
     expect(testEnv.GTFS_RT_RAW).toBeDefined();
-    expect(testEnv.BRIEF_AUTHOR_AGENT).toBeDefined();
     expect(testEnv.BASELINE_MONTH).toBe("2026-03");
     expect(testEnv.LAST_BUILT_SPEED_MONTH).toBe("2026-03");
     expect(testEnv.TEST_D1_MIGRATIONS).toBeDefined();
   });
 
-  it("serves route status, list, profile, compare, and scorecard from real D1 tables", async () => {
+  it("serves route status, list, profile, and scorecard from real D1 tables", async () => {
     const status = ReleaseStatusResponseSchema.parse(await getJson("/api/v1/status"));
     expect(status.baselineMonth).toBe("2026-03");
     expect(status.canonicalMonthlyRelease.routeCount).toBe(2);
@@ -348,17 +347,35 @@ describe("Worker public route API smoke", () => {
       }),
     ]);
 
-    const compare = RouteCompareResponseSchema.parse(
-      await getJson("/api/v1/compare?a=m57&b=m15-sbs"),
-    );
-    expect(compare.routes.map((route) => route.routeId)).toEqual(["M57", "M15-SBS"]);
-    expect(compare.deltas.routeScore).toBe(16);
-
     const scorecard = RouteScorecardSchema.parse(
       await getJson("/api/routes/m57/scorecard?month=2026-03"),
     );
     expect(scorecard.routeId).toBe("M57");
     expect(scorecard.citations[0]?.sourceId).toBe("fixture_mta_speed");
+  });
+
+  it("keeps public route reads public without a session or with a garbage session", async () => {
+    for (const cookie of [null, "bp_session=garbage"] as const) {
+      const routeListResponse = await SELF.fetch(
+        new Request("https://example.test/api/v1/routes?limit=1", {
+          headers: cookie === null ? {} : { Cookie: cookie },
+        }),
+      );
+      const routes = RouteListResponseSchema.parse(await routeListResponse.json());
+
+      expect(routeListResponse.status).toBe(200);
+      expect(routes.routes).toHaveLength(1);
+
+      const studioRoutesResponse = await SELF.fetch(
+        new Request("https://example.test/api/v1/studio/routes?schema=2", {
+          headers: cookie === null ? {} : { Cookie: cookie },
+        }),
+      );
+      const studioRoutes = StudioRouteIndex2ResponseSchema.parse(await studioRoutesResponse.json());
+
+      expect(studioRoutesResponse.status).toBe(200);
+      expect(studioRoutes.schemaVersion).toBe(2);
+    }
   });
 
   it("serves R2 map manifests and artifacts through the Worker", async () => {
@@ -389,7 +406,7 @@ describe("Worker public route API smoke", () => {
       expect.objectContaining({
         error: expect.objectContaining({
           code: "SERVICE_UNAVAILABLE",
-          message: expect.stringMatching(/D1 binding/i),
+          message: "Service dependency is not configured.",
         }),
       }),
     );
@@ -403,7 +420,7 @@ describe("Worker public route API smoke", () => {
       expect.objectContaining({
         error: expect.objectContaining({
           code: "SERVICE_UNAVAILABLE",
-          message: expect.stringMatching(/ARTIFACTS R2 binding/i),
+          message: "Service dependency is not configured.",
         }),
       }),
     );

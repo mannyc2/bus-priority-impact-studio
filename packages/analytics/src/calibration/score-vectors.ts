@@ -52,6 +52,12 @@ function mean(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
+function requiredValue<T>(values: readonly T[], index: number): T {
+  const value = values[index];
+  if (value === undefined) throw new Error(`Missing value at index ${index}.`);
+  return value;
+}
+
 /** 1-based average ranks (ties share their mean rank). */
 function averageRanks(values: readonly number[]): number[] {
   const indexed = values.map((value, index) => ({ value, index }));
@@ -60,9 +66,14 @@ function averageRanks(values: readonly number[]): number[] {
   let start = 0;
   while (start < indexed.length) {
     let end = start;
-    while (end + 1 < indexed.length && indexed[end + 1]!.value === indexed[start]!.value) end += 1;
+    while (
+      end + 1 < indexed.length &&
+      requiredValue(indexed, end + 1).value === requiredValue(indexed, start).value
+    ) {
+      end += 1;
+    }
     const averageRank = (start + end) / 2 + 1;
-    for (let i = start; i <= end; i += 1) ranks[indexed[i]!.index] = averageRank;
+    for (let i = start; i <= end; i += 1) ranks[requiredValue(indexed, i).index] = averageRank;
     start = end + 1;
   }
   return ranks;
@@ -75,8 +86,8 @@ function pearson(left: readonly number[], right: readonly number[]): number | nu
   let varianceLeft = 0;
   let varianceRight = 0;
   for (let i = 0; i < left.length; i += 1) {
-    const deltaLeft = left[i]! - meanLeft;
-    const deltaRight = right[i]! - meanRight;
+    const deltaLeft = requiredValue(left, i) - meanLeft;
+    const deltaRight = requiredValue(right, i) - meanRight;
     covariance += deltaLeft * deltaRight;
     varianceLeft += deltaLeft * deltaLeft;
     varianceRight += deltaRight * deltaRight;
@@ -116,12 +127,14 @@ export type ScoreSpreadStats = {
 };
 
 function percentile(sorted: readonly number[], fraction: number): number {
-  if (sorted.length === 1) return sorted[0]!;
+  if (sorted.length === 1) return requiredValue(sorted, 0);
   const position = fraction * (sorted.length - 1);
   const lowerIndex = Math.floor(position);
   const upperIndex = Math.ceil(position);
   const weight = position - lowerIndex;
-  return sorted[lowerIndex]! * (1 - weight) + sorted[upperIndex]! * weight;
+  return (
+    requiredValue(sorted, lowerIndex) * (1 - weight) + requiredValue(sorted, upperIndex) * weight
+  );
 }
 
 export function scoreSpreadStats(scores: readonly number[]): ScoreSpreadStats {
@@ -146,9 +159,9 @@ export function scoreSpreadStats(scores: readonly number[]): ScoreSpreadStats {
   const p75 = percentile(sorted, 0.75);
   return {
     count: sorted.length,
-    min: round4(sorted[0]!),
-    max: round4(sorted[sorted.length - 1]!),
-    range: round4(sorted[sorted.length - 1]! - sorted[0]!),
+    min: round4(requiredValue(sorted, 0)),
+    max: round4(requiredValue(sorted, sorted.length - 1)),
+    range: round4(requiredValue(sorted, sorted.length - 1) - requiredValue(sorted, 0)),
     mean: round4(average),
     median: round4(percentile(sorted, 0.5)),
     stdDev: round4(Math.sqrt(variance)),
@@ -200,8 +213,12 @@ export function detectorScoreNovelty(
       const sharedScopeIds = [...candidateByScope.keys()]
         .filter((scopeId) => peerByScope.has(scopeId))
         .sort();
-      const candidateScores = sharedScopeIds.map((scopeId) => candidateByScope.get(scopeId)!.score);
-      const peerScores = sharedScopeIds.map((scopeId) => peerByScope.get(scopeId)!.score);
+      const candidateScores = sharedScopeIds.map(
+        (scopeId) => requiredMapValue(candidateByScope, scopeId).score,
+      );
+      const peerScores = sharedScopeIds.map(
+        (scopeId) => requiredMapValue(peerByScope, scopeId).score,
+      );
       return {
         peerDetectorId: peer.detectorId,
         sharedScopeCount: sharedScopeIds.length,
@@ -226,4 +243,10 @@ export function detectorScoreNovelty(
     maxAbsRankCorrelation,
     noveltyScore: maxAbsRankCorrelation === null ? 1 : round4(1 - maxAbsRankCorrelation),
   };
+}
+
+function requiredMapValue<K, V>(map: ReadonlyMap<K, V>, key: K): V {
+  const value = map.get(key);
+  if (value === undefined) throw new Error(`Missing map value for key ${String(key)}.`);
+  return value;
 }

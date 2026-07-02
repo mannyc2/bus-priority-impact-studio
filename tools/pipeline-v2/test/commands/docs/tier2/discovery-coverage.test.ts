@@ -54,7 +54,9 @@ function extraction(promptVersion: string, pageNumber: number) {
       finalUrl: "https://example.org/fixture.pdf",
       documentDateState: "unknown",
       pageNumbers: [pageNumber],
-      pageArtifactKeys: [`ocr-page-markdown/sources/0001_fixture_pdf/pages/${String(pageNumber).padStart(4, "0")}/page.md`],
+      pageArtifactKeys: [
+        `ocr-page-markdown/sources/0001_fixture_pdf/pages/${String(pageNumber).padStart(4, "0")}/page.md`,
+      ],
       markdownHash: `sha256:markdown-${pageNumber}`,
       blockIndexHash: `sha256:block-index-${pageNumber}`,
       sourceContentHash: "sha256:source",

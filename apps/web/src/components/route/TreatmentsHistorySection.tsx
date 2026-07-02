@@ -1,7 +1,5 @@
 import { ChartFrame } from "@/components/ChartFrame";
-import { DataAsOf } from "@/components/DataAsOf";
 import { InterventionTimeline } from "@/components/InterventionTimeline";
-import { coverageLatestSurfaceDataAsOf } from "@/components/route/coverage-matrix";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
@@ -63,10 +61,6 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
   const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
   const speedWindow = dossierMetricWindow(data.dossier?.speed);
   const currentSpeedMph = data.dossier?.speed.current ?? route.weightedAvgSpeed;
-  const treatmentDataAsOf =
-    data.dossier?.treatmentPosture.dataAsOf ??
-    data.dossier?.dataAsOf ??
-    coverageLatestSurfaceDataAsOf(data.capability, ["treatment"]);
 
   return (
     <div className="flex flex-col gap-7">
@@ -76,7 +70,6 @@ export function TreatmentsHistorySection({ data }: { data: StudioRouteDetailResp
           sub="What is in place, proposed, and comparable."
           right={
             <div className="flex flex-wrap items-center gap-2">
-              <DataAsOf dataAsOf={treatmentDataAsOf} />
               <Badge variant={comparisonCards.length > 0 ? "accent" : "neutral"}>
                 {comparisonCards.length} evaluated
               </Badge>

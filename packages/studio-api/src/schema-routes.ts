@@ -3,7 +3,6 @@ import {
   hotspotListResponseJsonSchema,
   mapManifestResponseJsonSchema,
   releaseStatusResponseJsonSchema,
-  routeCompareResponseJsonSchema,
   routeListResponseJsonSchema,
   routeProfileResponseJsonSchema,
   routeScorecardJsonSchema,
@@ -38,10 +37,6 @@ export function handleSchemaRoutes(url: URL): Response | null {
 
   if (url.pathname === "/api/schema/hotspots") {
     return json(hotspotListResponseJsonSchema);
-  }
-
-  if (url.pathname === "/api/schema/compare") {
-    return json(routeCompareResponseJsonSchema);
   }
 
   if (url.pathname === "/api/openapi.json") {

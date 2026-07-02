@@ -46,7 +46,13 @@ const manifest = {
       routeId: "B99",
       overallState: "insufficient_data",
       surfaces: {
-        condition: { state: "insufficient_data", reason: "no summary", depth: null, dataAsOf: null, freshness: "unknown" },
+        condition: {
+          state: "insufficient_data",
+          reason: "no summary",
+          depth: null,
+          dataAsOf: null,
+          freshness: "unknown",
+        },
       },
       caveats: ["indexed from catalog only"],
     },

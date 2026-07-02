@@ -2,6 +2,57 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-06-12] engineering | Route map gains real shoreline context and stop ticks
+
+Follow-up to the frontend regression slice: the bare route polyline now sits on real geography.
+Added `map context`, a pipeline-v2 command that parses the captured NYC borough-boundary bulk
+CSV (WKT multipolygons), Douglas-Peucker-simplifies the shoreline to ~40m tolerance, drops
+sub-0.1km2 islands, and emits `map/context/nyc-boroughs.min.geojson` (5 boroughs, 33 rings,
+~65KB). `RouteGeoMap` renders it as a water-gradient background with land polygons under the
+route, projected through the same equirectangular transform, plus intermediate timepoint stop
+ticks with cleaned cross-street labels. The context fetch is progressive enhancement — a 404
+falls back to the plain route rendering. Everything drawn is real data: GTFS street geometry,
+observed segment speeds, NYC Open Data shoreline, timepoint coordinates. Local dev serving needs
+the context artifact seeded once via `scripts/seed-local-studio-r2.sh ... data/artifacts/map/context`.
+
+Verified with `bun --filter @bp/pipeline-v2 test` (493 pass), the real `map context` command run
+(byte-identical artifact), `bun test apps/web/test` (88 pass), `bun --filter @bp/web build`
+(budget ok), and headless screenshots of M15-SBS (Manhattan/East River) and B46-SBS (Brooklyn/
+Jamaica Bay) map tabs.
+
+## [2026-06-12] engineering | Frontend regression fixes from user design review
+
+The user reviewed the dossier-redesign frontend (PRs #12–#32) and rejected several of its
+patterns. This slice applies the punch list. Deleted every visible "data as of" freshness chip
+(the `DataAsOf` component and the shell nav "data current to" line are gone; the underlying
+dossier clocks are untouched). The route header KPI strip now leads with real numbers — observed
+mph, 6-month trend %, excess wait minutes, daily riders, bus-lane coverage % — instead of the
+judged words Condition/Observed/Treated; peer framing moved to the sub-line.
+
+/routes now has one "Routes needing attention" block in the discovery-section layout
+(needs_attention, worsening_fast, treatment_gaps; data_coverage is no longer rendered publicly)
+plus a clean "All routes" index sorted by riders with em-dashes for unpublished values, fixing
+the all-zeros alphabetical list. The route Overview was rebuilt: prose summary sentence, the
+"Story" chart renamed to a real "Speed history" frame, fake hardcoded insight micro-figures and
+the badge-soup verdict bar deleted. The homepage now ends after the "every route" index — the
+how-to-use cards and the fabricated colophon (fake analysts, stats, contact) are deleted.
+Findings cards hide "x/100 detector score" strings via `publicMetric` and drop the fabricated
+ConfidenceBar; real quantities still render.
+
+The Map tab is now an actual geographic map: `RouteGeoMap` draws the precomputed
+`map/route-segments/{routeId}/{month}/all-day.geojson` artifacts (real street LineStrings,
+speed-banded colors, termini, slowest-stretch callout gated to genuinely slow segments) as plain
+SVG — no map library, bundle stays at 482.6/485 KB gz. The client reaches it through the
+existing `/api/v1/map/manifest` + `/api/v1/artifacts/:key` endpoints; local dev R2 was seeded
+with `scripts/seed-local-studio-r2.sh ... data/artifacts/map/<dir>`. Overview's map card uses a
+compact variant of the same component, replacing the 150×22 `CorridorMapMini` strip.
+
+Verified with `bun test apps/web/test` (88 pass), `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build` (budget ok), `bunx biome check` on changed files, and headless
+browser screenshots of /, /routes, /routes/m15-sbs (Overview + Map tabs), and /findings.
+Follow-ups the user has asked for but not in this slice: Where & when redesign, finding-detail
+and brief-detail pages, a citywide map page.
+
 ## [2026-06-12] engineering | Condition KPI leads with peer framing
 
 Aligned the judged KPI strip with the route-detail redesign contract: the Condition tile now leads
@@ -7519,3 +7570,194 @@ detector candidates on the same route. The first March run found 350 route-month
 routes, 112 routes with hidden richer-grain candidates, and 1,142 hidden candidate scopes. The
 evaluation harness now reports 18 scorecards, 20,933 derived negatives, 4,185 holdout negatives,
 782 near-miss scopes, 1,300,725 missing-data scopes, and a portfolio gated score of 845.2.
+
+## [2026-06-30] engineering | Effect runtime starts in pipeline commands
+
+Accepted ADR 0019 for adopting Effect as the pipeline command runtime/service boundary. The first
+slice adds catalog-aligned `effect@4.0.0-beta.92` and `@effect/platform-bun@4.0.0-beta.92`, schema
+tagged errors, a scoped local SQLite layer, a ManagedRuntime helper, and a route build-plan service.
+
+`route build-plan` now runs through the Effect workflow and injectable service layer instead of the
+old local DB middleware/context variable. Command parsing remains on Liche for now; migrating to
+`effect/unstable/cli` is deferred until more command handlers share the Effect runtime pattern.
+
+Extended the same runtime pattern to a shared `RouteLocalDbService` for `route reliability-baseline`,
+`route observed-reliability`, `route readiness`, and `route equity-context`. These commands now use
+the scoped local SQLite layer, schema-tagged command errors, and injectable Effect workflows while
+leaving deterministic route aggregation in `@bp/applied-research/local-db`.
+
+Added `BuildLocalDbService` for compact local build commands. `build context-events`,
+`build observed-headways`, `build route-lion-link`, and `build lion-geometry-index` now run through
+Effect workflows; the spatial commands request `{ spatial: true }` through the local DB layer instead
+of through command middleware.
+
+Completed the route command-family runtime cutover. `route intervention-evaluation` now shares the
+route local-DB service, while `route brief-model` moved its route-slice artifact and local projection
+workflow into a focused `RouteBriefModelService`. All commands under
+`tools/pipeline-v2/src/commands/route/` now enter local DB work through the Effect runtime/layer
+boundary instead of `withLocalDb` / `localDbFromCtx`.
+
+Moved the Studio route-data command slice onto the Effect runtime boundary. `studio route-speed-spine`,
+`studio route-speed-history`, `studio route-speed-spines`, `studio route-speed-histories`, and
+`studio route-treatment-summary` now use the shared `LocalDbCommandService` with schema-tagged command
+errors and the scoped local SQLite layer. The existing artifact builders and batch resume semantics
+remain unchanged, keeping route histories, timelines, and treatment summaries available for the
+simplified public product surface.
+
+Generalized the same local-DB task service for small utility commands. `export
+route-speed-history-coverage-index`, `verify d1`, and `check spatialite` now run through
+`runLocalDbCommand` and `makeLocalDbCommandLayer`; read-only and spatialite setup are explicit layer
+options instead of command middleware side effects.
+
+Moved the remaining build utility commands that own snapshot/artifact/provider work onto the generic
+local-DB task service. `build route-shape-geometry-index`, `build context-event-route-touches`, and
+`build parking-violation-matches` no longer read SQLite from Liche middleware context; the spatial
+builds request spatialite via the Effect local DB layer.
+
+Moved the spatial geocode command family onto the same Effect local-DB task service. `geocode 311`,
+`geocode nypd-collisions`, `geocode parking-violations`, `geocode permits`, `geocode
+traffic-speeds`, and `geocode traffic-volumes` now open local SQLite/spatialite through
+`makeLocalDbCommandLayer` and expose command failures through `PipelineLocalDbCommandError` instead
+of relying on Liche middleware context.
+
+Moved the local-DB-backed ingest command slice onto the generic Effect boundary. Route catalog,
+coverage, trends, segment speeds, hourly ridership, customer journey metrics, GTFS-RT snapshots,
+weather, equity context, bus lanes, ACE sources, DOT traffic/permit sources, LION, NYPD collisions,
+parking violations, and 311 now use `runLocalDbCommandBoundary` instead of `withLocalDb` /
+`localDbFromCtx`, while keeping their source-specific `run*Ingest` functions directly testable.
+
+Finished the command-tree local DB middleware cutover. Recovered Bus Observatory imports, GTFS-RT
+collection/status/preflight, route ridership backfill, map artifacts, corridor modeling, D1 export,
+pipeline v1 check/audit/finalize, and Studio/source coverage audits now enter SQLite work through
+Effect boundaries. Read-only audits request `{ readonly: true }` on the local DB layer, and a command
+boundary test now rejects any reintroduced `withLocalDb` / `localDbFromCtx` references under
+`tools/pipeline-v2/src/commands`.
+
+Tightened the local DB boundary after the cutover: deleted the unused Liche local DB middleware
+helpers from `tools/pipeline-v2/src/lib/local-db.ts`, moved the remaining command-owned direct
+`openLocalPipelineDb` calls in clean-check, Studio release geometry/coverage, and docs Tier 2 shared
+helpers through `runLocalDbCommandBoundary`, and extended the boundary test to reject direct local DB
+opens from command sources.
+
+Collapsed the older verbose generic local-DB command wiring to `runLocalDbCommandBoundary`.
+Geocode, compact Studio route-data commands, D1 verification, spatialite check, route speed-history
+coverage export, and small build utility commands no longer manually pair `runLocalDbCommand` with
+`makeLocalDbCommandLayer`; dedicated route/build services remain on explicit service-specific
+`runPipelineEffect` layers.
+
+## [2026-07-01] engineering | Applied research package hard cutover
+
+Deleted `packages/applied-research` after moving survivor pure builders into `@bp/analytics`
+subpaths and local SQLite aggregation into `tools/pipeline-v2/src/lib/local-db-aggregates`.
+`tools/pipeline-v2` no longer depends on `@bp/applied-research`; `tsconfig.base.json`, `bun.lock`,
+and the production-boundary harness now treat the package as removed.
+
+The simplified architecture is: pure reusable analytics in `packages/analytics`, serving/storage
+contracts in `packages/db` and `packages/domain`, and pipeline-local source aggregation, SQLite row
+loading, and artifact I/O in `tools/pipeline-v2`. This keeps the Effect runtime/layer work focused
+on pipeline commands without preserving the retired research/composer/detector package identity.
+
+## [2026-07-01] engineering | Effect pipeline runtime foundation complete
+
+Completed plan 015 against ADR 0019. Pipeline command families now use Effect runtime boundaries,
+schema-tagged errors, scoped local DB layers, D1 replay, and file-system services instead of Liche
+local DB context. `PipelineFileSystemService` now returns raw JSON as `unknown` at the service
+boundary, with legacy Promise helpers retaining typed overloads for compatibility.
+
+Tightened the last Effect-service file seams found in this pass: route intervention document-anchor
+reads and route brief slice writes now go through the Effect-backed JSON/file helper instead of
+direct `Bun.file` or `Bun.write`. Plan 015 is marked done; follow-up Effect work should target
+source-client consolidation, provider/retry seams, and worker/API enforcement separately.
+
+## [2026-07-01] engineering | nyc-transit-kit consumer cutover blocked
+
+Checked Plan 014 after the Effect runtime migration. The latest published `@nyc-transit-kit/*`
+packages are still `0.1.1`, and the SODA3/MTA/compat packages depend on `effect@4.0.0-beta.83`
+while this repo now catalogs `effect@4.0.0-beta.92`. Plan 014 is marked blocked until the toolkit
+publishes an Effect-aligned release or the repo makes an explicit dependency decision with full
+sources, pipeline, Studio API, and Worker build verification.
+
+## [2026-07-01] engineering | Studio API registry enforcement live slice
+
+Completed Plan 008 against the hard-cutover public Studio API. `findRouteSpec` now exposes the
+matched registry route, and the dispatcher uses it centrally for fail-closed future `session`
+routes, required idempotency-key checks, and declared cache policies. Current live routes are public
+with `noIdempotency`, so the behavior change is cache enforcement: health/OpenAPI/map reads now pick
+up the public Studio cache policy, RUM receives `private, no-store`, and artifact responses keep
+their existing immutable cache header.
+
+Verification: `bun --filter @bp/studio-api typecheck`, `bun --filter @bp/studio-api test`,
+`bun run test:worker`, `bun --filter @bp/web build`, `bun run check:web-architecture`, and scoped
+Biome on the touched Studio API files all passed.
+
+## [2026-07-01] engineering | OpenAPI generated client types blocked
+
+Checked Plan 007 with `openapi-typescript@7.13.0`. The generator fails on the current
+`studioOpenApiDocument` because zod-derived response schemas embed local `$defs` refs that become
+unresolvable when nested under OpenAPI path response schemas. The attempted generator/dependency
+changes were removed; Plan 007 is marked blocked until the OpenAPI document is emitted with
+resolver-safe bundled schemas.
+
+## [2026-07-01] product | Legacy brief fiction removed by hard cutover
+
+Marked Plan 005 complete after verifying the legacy brief evidence/history pages and brief authoring
+components were deleted by the hard cutover. The old hardcoded evidence heatmap, version fallbacks,
+and fake freshness/status chrome are no longer reachable public surfaces; remaining matching numeric
+literals are unrelated tests, demos, fixtures, or route visualization examples.
+
+## [2026-07-01] product | Portfolio front door updated for hard cutover
+
+Marked Plan 011 complete in hard-cutover form. The README now exposes the verified live Worker URL,
+analytics primer, detector readiness loop, Tier 2 document-processing status, ADRs, and contributor
+instructions. The docs intentionally do not recreate `packages/applied-research`; `knowledge/index.md`
+now labels the applied-research wiki pages as historical context after the package deletion.
+
+## [2026-07-01] product | Riders equity context surfaced
+
+Completed Plan 001 on the hard-cutover route-detail stack. `@bp/db` now exposes a per-route D1
+equity-context lookup, `@bp/domain` carries the compact route-detail `equityContext` contract, the
+Studio API enriches rich and partial route details from `route_equity_context`, and the Riders tab
+renders a minimal ACS "Who rides here" strip when enough fields are present.
+
+## [2026-07-01] engineering | Public serving path hardened
+
+Completed Plan 012 in hard-cutover form. The public artifact passthrough now rejects empty,
+absolute, backslash, control-character, dot-component, malformed, and repeated URL-decode traversal
+keys through exported `isValidArtifactKey` coverage. Public API and Studio read failures now return
+generic dependency/artifact messages while preserving keys and binding names in operator logs.
+
+The authoring write endpoints originally named by the plan were already deleted by the product
+cutover, so the auth regression coverage now guards the surviving public routes: no cookie and a
+garbage `bp_session` both leave `/api/v1/routes?limit=1` and `/api/v1/studio/routes?schema=2`
+reachable. Verification passed with `bun --filter @bp/studio-api typecheck`,
+`bun --filter @bp/studio-api test`, `bun --filter @bp/web test:worker`, and scoped Biome.
+
+## [2026-07-01] engineering | Effect HttpApi Worker migration blocked
+
+Marked Plan 009 blocked by its own gate. The required Worker-side ADR/spike PASS for
+`@effect/platform` HttpApi does not exist; the live ADR 0019 is
+`docs/decisions/0019-effect-runtime-for-pipeline.md` and accepts Effect for pipeline command
+runtime/service boundaries only. Starting a Worker HttpApi migration now would bypass the recorded
+bundle-footprint and workerd-compatibility decision point.
+
+The original Plan 009 scope also predates the hard cutover: authoring, auth, brief-draft, and
+Durable Object write surfaces named there are gone, while Plan 008 now provides live registry
+enforcement and Plan 012 hardens public serving errors and artifact keys. Reviving Worker HttpApi
+should start with a new spike/ADR scoped to the current public API surface.
+
+## [2026-07-01] product | Generation-3 plan set written (plans 019-029)
+
+Recorded the post-pivot planning generation in `plans/` after a full audit (six
+parallel repo/mta-wiki/design surveys plus direct verification). Thesis: the
+product is a portfolio-grade public route-evidence website; land the uncommitted
+hard cutover (019), make mta-wiki the only document-evidence backend and serve
+its artifact (020, currently zero consumers), expand the 12-route pilot corpus
+(021), converge the route page on the canonical editorial design (022), serve
+already-built hourly/DOW/reliability grains (023), delete the 68 kLOC Tier 2
+docs command tree and stale doctrine (024), finish supporting pages (025),
+migrate the Worker to Effect HttpApi behind a measured spike ADR (026,
+supersedes 009 and closes 007), deepen pipeline Effect seams (027), file
+cross-repo mta-wiki work orders (028), and align/adopt nyc-transit-kit (029,
+supersedes 014). plans/README.md now leads with the generation-3 index and
+corrected constraints (bundle budget re-based to 145 KB entry; effect-ts skill
+path; live detector-readiness insights path).

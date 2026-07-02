@@ -255,7 +255,9 @@ function projectionIndexKey(keyId: string, rawValue: string): string {
 
 function readCanonicalArtifactRefs(raw: unknown, path: string): CanonicalArtifactRef[] {
   if (!isRecord(raw)) throw new Error(`Canonical merge artifact is not an object: ${path}`);
-  const canonicalArtifacts = Array.isArray(raw["canonicalArtifacts"]) ? raw["canonicalArtifacts"] : [];
+  const canonicalArtifacts = Array.isArray(raw["canonicalArtifacts"])
+    ? raw["canonicalArtifacts"]
+    : [];
   const refs: CanonicalArtifactRef[] = [];
   const seen = new Set<string>();
   for (const item of canonicalArtifacts) {
@@ -274,7 +276,9 @@ function readCanonicalArtifactRefs(raw: unknown, path: string): CanonicalArtifac
     });
   }
   if (refs.length === 0) {
-    throw new Error(`Canonical merge artifact has no canonicalArtifacts[].artifactPath entries: ${path}`);
+    throw new Error(
+      `Canonical merge artifact has no canonicalArtifacts[].artifactPath entries: ${path}`,
+    );
   }
   return refs;
 }
@@ -292,7 +296,9 @@ function buildProjectionIndex(projection: ProjectionArtifact): Map<string, Proje
 }
 
 function supportForField(acceptedItem: JsonRecord, fieldPath: string): FieldEvidence {
-  const fieldSupport = Array.isArray(acceptedItem["fieldSupport"]) ? acceptedItem["fieldSupport"] : [];
+  const fieldSupport = Array.isArray(acceptedItem["fieldSupport"])
+    ? acceptedItem["fieldSupport"]
+    : [];
   const rows = fieldSupport.filter(
     (item): item is JsonRecord => isRecord(item) && item["fieldPath"] === fieldPath,
   );
@@ -314,11 +320,7 @@ function supportForField(acceptedItem: JsonRecord, fieldPath: string): FieldEvid
 
 function shouldWriteArray(targetPayloadPath: string, values: string[], existing: unknown): boolean {
   const leaf = targetPayloadPath.split(".").at(-1) ?? "";
-  return (
-    Array.isArray(existing) ||
-    values.length > 1 ||
-    /s$|tags|ids|families|kinds/i.test(leaf)
-  );
+  return Array.isArray(existing) || values.length > 1 || /s$|tags|ids|families|kinds/i.test(leaf);
 }
 
 function mergeExistingArray(existing: unknown, additions: string[]): string[] {
@@ -336,17 +338,21 @@ function applyTargetWrites(input: {
 }): { targetWrites: TargetWrite[]; warnings: string[] } {
   const targetWrites: TargetWrite[] = [];
   const warnings: string[] = [];
-  for (const [targetPayloadPath, rawValues] of [...input.targetValues.entries()].sort(([left], [right]) =>
-    left.localeCompare(right),
+  for (const [targetPayloadPath, rawValues] of [...input.targetValues.entries()].sort(
+    ([left], [right]) => left.localeCompare(right),
   )) {
     const values = uniqueSorted(rawValues);
     const canonicalPath = targetPayloadPath.replace(/^canonicalPayload\./, "");
     const existing = getPath(input.canonicalPayload, canonicalPath);
     const writeArray = shouldWriteArray(targetPayloadPath, values, existing);
     if (existing === undefined) {
-      const value = writeArray ? values : values[0] ?? null;
+      const value = writeArray ? values : (values[0] ?? null);
       setPath(input.canonicalPayload, canonicalPath, value);
-      targetWrites.push({ targetPayloadPath, value: value as string | string[], writeState: "written" });
+      targetWrites.push({
+        targetPayloadPath,
+        value: value as string | string[],
+        writeState: "written",
+      });
       continue;
     }
     if (Array.isArray(existing)) {
@@ -383,7 +389,7 @@ function applyTargetWrites(input: {
     warnings.push(`Existing canonical value at ${targetPayloadPath} was not overwritten.`);
     targetWrites.push({
       targetPayloadPath,
-      value: writeArray ? values : values[0] ?? "",
+      value: writeArray ? values : (values[0] ?? ""),
       writeState: "conflict_existing_value",
       existingValue: existing,
     });
@@ -526,7 +532,9 @@ function normalizeAcceptedSurface(input: {
       sourceId: input.artifactRef.sourceId,
       pageNumbers: input.artifactRef.pageNumbers,
       draftIndex:
-        typeof input.acceptedItem["draftIndex"] === "number" ? input.acceptedItem["draftIndex"] : null,
+        typeof input.acceptedItem["draftIndex"] === "number"
+          ? input.acceptedItem["draftIndex"]
+          : null,
       surface: outputSurface,
       fieldSupport: Array.isArray(input.acceptedItem["fieldSupport"])
         ? input.acceptedItem["fieldSupport"]
@@ -568,7 +576,10 @@ function emptyPartialSummary(): Omit<
   };
 }
 
-function mergeSummary(target: ReturnType<typeof emptyPartialSummary>, source: ReturnType<typeof emptyPartialSummary>) {
+function mergeSummary(
+  target: ReturnType<typeof emptyPartialSummary>,
+  source: ReturnType<typeof emptyPartialSummary>,
+) {
   target.surfacesWithGraduatedFields += source.surfacesWithGraduatedFields;
   target.surfacesWithMappedFields += source.surfacesWithMappedFields;
   target.surfacesWithUnresolvedFields += source.surfacesWithUnresolvedFields;
@@ -582,10 +593,14 @@ function mergeSummary(target: ReturnType<typeof emptyPartialSummary>, source: Re
   target.targetConflictCount += source.targetConflictCount;
   target.fieldSupportFoundCount += source.fieldSupportFoundCount;
   target.fieldSupportMissingCount += source.fieldSupportMissingCount;
-  for (const [key, count] of Object.entries(source.surfaceKindCounts)) increment(target.surfaceKindCounts, key, count);
-  for (const [key, count] of Object.entries(source.mappedByKey)) increment(target.mappedByKey, key, count);
-  for (const [key, count] of Object.entries(source.unresolvedByKey)) increment(target.unresolvedByKey, key, count);
-  for (const [key, count] of Object.entries(source.targetWritesByPath)) increment(target.targetWritesByPath, key, count);
+  for (const [key, count] of Object.entries(source.surfaceKindCounts))
+    increment(target.surfaceKindCounts, key, count);
+  for (const [key, count] of Object.entries(source.mappedByKey))
+    increment(target.mappedByKey, key, count);
+  for (const [key, count] of Object.entries(source.unresolvedByKey))
+    increment(target.unresolvedByKey, key, count);
+  for (const [key, count] of Object.entries(source.targetWritesByPath))
+    increment(target.targetWritesByPath, key, count);
 }
 
 function finalizeRecord(record: Record<string, number>): Record<string, number> {
@@ -638,8 +653,12 @@ function renderMarkdown(artifact: Tier2VocabSurfaceApplicationArtifact): string 
   lines.push("");
   lines.push("- `rawPayload` is preserved on every surface.");
   lines.push("- `canonicalPayload` is populated only from deterministic vocab projection rows.");
-  lines.push("- `normalization.fieldMappings[]` records the exact source field, raw value, canonical leaf, coarse family, modifiers, and evidence support.");
-  lines.push("- `normalization.unresolvedFields[]` keeps preserve-raw, unresolved, and missing-projection values for review.");
+  lines.push(
+    "- `normalization.fieldMappings[]` records the exact source field, raw value, canonical leaf, coarse family, modifiers, and evidence support.",
+  );
+  lines.push(
+    "- `normalization.unresolvedFields[]` keeps preserve-raw, unresolved, and missing-projection values for review.",
+  );
   return `${lines.join("\n")}\n`;
 }
 
@@ -651,7 +670,9 @@ export async function buildTier2VocabSurfaceApplication(
   const sourceGraduationPlanPath = fromCliPath(args.graduationPlanPath);
   const sourceProjectionPath = fromCliPath(args.projectionPath);
   const canonicalMerge = await Bun.file(sourceCanonicalMergePath).json();
-  const graduationPlan = (await Bun.file(sourceGraduationPlanPath).json()) as GraduationPlanArtifact;
+  const graduationPlan = (await Bun.file(
+    sourceGraduationPlanPath,
+  ).json()) as GraduationPlanArtifact;
   const projection = (await Bun.file(sourceProjectionPath).json()) as ProjectionArtifact;
   if (!Array.isArray(graduationPlan.graduationKeys)) {
     throw new Error(`Graduation plan has no graduationKeys array: ${sourceGraduationPlanPath}`);
@@ -761,7 +782,9 @@ export async function runTier2VocabSurfaceApplication(
       ),
   );
   const markdownPath =
-    args.markdownPath === undefined ? outputPath.replace(/\.json$/, ".md") : fromCliPath(args.markdownPath);
+    args.markdownPath === undefined
+      ? outputPath.replace(/\.json$/, ".md")
+      : fromCliPath(args.markdownPath);
   const summaryPath =
     args.summaryPath === undefined
       ? outputPath.replace(/\.json$/, "-summary.json")

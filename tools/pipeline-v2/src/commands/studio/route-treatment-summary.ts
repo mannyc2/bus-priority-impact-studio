@@ -3,13 +3,11 @@ import { dirname, isAbsolute, relative } from "node:path";
 import {
   routeTreatmentSummaryArtifactPath,
   routeTreatmentSummaryMarkdownPath,
-} from "@bp/applied-research/artifacts";
-import {
-  loadRouteTreatmentSummaryLocalDbRows,
-  type RouteTreatmentSegmentUniverseRow,
-} from "@bp/applied-research/local-db";
+} from "@bp/analytics/artifacts";
 import {
   buildRouteTreatmentSummaryArtifact,
+  type PublishableInterventionLike,
+  type RouteSegmentLaneOverlapInput,
   routeTreatmentSourceRowsFromAce,
   routeTreatmentSourceRowsFromInterventionEvents,
   routeTreatmentSourceRowsFromPublishableInterventions,
@@ -17,18 +15,16 @@ import {
   routeTreatmentSourceRowsFromTier2Events,
   routeTreatmentSummaryMarkdown,
   segmentTreatmentRowsFromLaneOverlaps,
-  type PublishableInterventionLike,
-  type RouteSegmentLaneOverlapInput,
-} from "@bp/applied-research/treatments";
+} from "@bp/analytics/interventions";
+import {
+  loadRouteTreatmentSummaryLocalDbRows,
+  type RouteTreatmentSegmentUniverseRow,
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { readJsonIfExists, writeJson } from "../../lib/json.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot, repoRoot } from "../../lib/paths.ts";
 import { segmentLaneOverlapIndex } from "./_release-geometry.ts";
 import type { RouteBriefInputArtifact } from "./_release-types.ts";
@@ -263,7 +259,6 @@ export default defineCommand({
         .describe("Skip optional Tier 2 publishable intervention artifact input"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     month: z.string(),
     outputPath: z.string(),
@@ -276,24 +271,38 @@ export default defineCommand({
     segmentTreatmentRowCount: z.number().int().nonnegative(),
     routeWithPositiveEvidenceCount: z.number().int().nonnegative(),
   }),
-  async run({ ctx, input }) {
-    return runRouteTreatmentSummary({
-      local: localDbFromCtx(ctx),
-      month: isoMonth(input.options.year, input.options.month),
-      artifactRoot:
-        input.options.artifactRoot === undefined ? undefined : fromCliPath(input.options.artifactRoot),
-      output: input.options.output === undefined ? undefined : fromCliPath(input.options.output),
-      summaryOutput:
-        input.options.summaryOutput === undefined
-          ? undefined
-          : fromCliPath(input.options.summaryOutput),
-      publishableInterventionsPath: input.options.skipPublishableInterventions
-        ? null
-        : input.options.publishableInterventions === undefined
-          ? undefined
-          : fromCliPath(input.options.publishableInterventions),
-      routeShapeSnapshotPath: input.options.routeShapeSnapshot,
-      stopSnapshotPath: input.options.stopSnapshot,
+  async run({ input }) {
+    const month = isoMonth(input.options.year, input.options.month);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "studio.route-treatment-summary",
+      operation: "runRouteTreatmentSummary",
+      spanAttributes: {
+        month,
+        skipPublishableInterventions: input.options.skipPublishableInterventions,
+      },
+      run: (local) =>
+        runRouteTreatmentSummary({
+          local,
+          month,
+          artifactRoot:
+            input.options.artifactRoot === undefined
+              ? undefined
+              : fromCliPath(input.options.artifactRoot),
+          output:
+            input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+          summaryOutput:
+            input.options.summaryOutput === undefined
+              ? undefined
+              : fromCliPath(input.options.summaryOutput),
+          publishableInterventionsPath: input.options.skipPublishableInterventions
+            ? null
+            : input.options.publishableInterventions === undefined
+              ? undefined
+              : fromCliPath(input.options.publishableInterventions),
+          routeShapeSnapshotPath: input.options.routeShapeSnapshot,
+          stopSnapshotPath: input.options.stopSnapshot,
+        }),
     });
   },
 });

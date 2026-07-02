@@ -6,7 +6,7 @@ type CompletenessStatus = StudioQuality["completenessStatus"];
 const RELEASE_LAYER_COPY: Record<ReleaseLayer, { label: string; description: string }> = {
   baseline_release: {
     label: "Baseline Release",
-    description: "Reviewed baseline rollup for public route comparisons.",
+    description: "Reviewed baseline rollup for public route surfaces.",
   },
   current_signal: {
     label: "Current Signal",

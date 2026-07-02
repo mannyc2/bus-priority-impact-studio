@@ -31,7 +31,7 @@
 // content/option model can express.
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import { replaceTier2InterventionStagingRows } from "@bp/db/local";
@@ -60,12 +60,9 @@ import {
 import { toProjectJsonSchema } from "@bp/domain/json-schema";
 import { PDFDocument } from "pdf-lib";
 import * as z from "zod";
+import { runLocalDbCommandBoundary } from "../../../effect/local-db-command.ts";
 import { writeJson } from "../../../lib/json.ts";
-import {
-  defaultLocalPipelineDbPath,
-  type OpenLocalPipelineDb,
-  openLocalPipelineDb,
-} from "../../../lib/local-db.ts";
+import { defaultLocalPipelineDbPath, type OpenLocalPipelineDb } from "../../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../../lib/paths.ts";
 
 // v1's lib/cli-args.js (kept inline; the FromCli parsers below still want it).
@@ -117,12 +114,14 @@ export async function withLocalPipelineDb<T>(
   useDb: (local: OpenLocalPipelineDb) => T | Promise<T>,
   options: { spatial?: boolean } = {},
 ): Promise<T> {
-  const local = await openLocalPipelineDb(path, options);
-  try {
-    return await useDb(local);
-  } finally {
-    local.sqlite.close();
-  }
+  return runLocalDbCommandBoundary({
+    dbPath: path,
+    localDbOptions: options,
+    command: "docs.tier2.local-db",
+    operation: "withLocalPipelineDb",
+    spanAttributes: { spatial: options.spatial ?? false },
+    run: async (local) => useDb(local),
+  });
 }
 
 const TextExtractionStatusSchema = z.enum([
@@ -1730,7 +1729,8 @@ async function curlBrowserFetch(
     const statusMatch = stdout.match(new RegExp(`${marker}_HTTP_CODE:(\\d{3})`));
     const effectiveUrlMatch = stdout.match(new RegExp(`${marker}_EFFECTIVE_URL:(.*)`));
     const contentTypeMatch = stdout.match(new RegExp(`${marker}_CONTENT_TYPE:(.*)`));
-    const status = statusMatch === null ? Number.NaN : Number.parseInt(statusMatch[1]!, 10);
+    const statusText = statusMatch?.[1];
+    const status = statusText === undefined ? Number.NaN : Number.parseInt(statusText, 10);
     if (!Number.isInteger(status) || status < 200 || status > 599) {
       return null;
     }
@@ -2869,7 +2869,11 @@ export async function pdfInfoPageCount(pdfPath: string): Promise<number | null> 
   if (match === null) {
     return null;
   }
-  const pageCount = Number.parseInt(match[1]!, 10);
+  const pageCountText = match[1];
+  if (pageCountText === undefined) {
+    return null;
+  }
+  const pageCount = Number.parseInt(pageCountText, 10);
   return Number.isFinite(pageCount) && pageCount > 0 ? pageCount : null;
 }
 
@@ -2952,7 +2956,8 @@ async function renderPdfPageToPng(input: {
   const outputNames = (await readdir(input.outputDir)).filter(
     (name) => name.startsWith(`${basename(prefix)}-`) && name.endsWith(".png"),
   );
-  const outputPath = outputNames.length === 1 ? join(input.outputDir, outputNames[0]!) : null;
+  const outputName = outputNames.length === 1 ? outputNames[0] : undefined;
+  const outputPath = outputName === undefined ? null : join(input.outputDir, outputName);
   if (outputPath === null) {
     throw new Error(`pdftoppm did not produce exactly one PNG for page ${input.pageNumber}.`);
   }
@@ -5137,7 +5142,7 @@ function normalizedEvidenceSearchText(text: string): {
   let previousWasSpace = true;
 
   for (let index = 0; index < text.length; index += 1) {
-    const char = text[index]!;
+    const char = text.charAt(index);
     const normalizedChar = normalizeEvidenceSearchChar(char);
     if (normalizedChar === null) continue;
     if (normalizedChar === " ") {
@@ -5194,7 +5199,9 @@ function repairedQuoteHits(input: {
     }
   }
   if (hits.length === 0) return null;
-  const firstQuote = hits[0]!.quote;
+  const firstHit = hits[0];
+  if (firstHit === undefined) return null;
+  const firstQuote = firstHit.quote;
   return {
     quote: firstQuote,
     pageNumbers: hits
@@ -5225,8 +5232,11 @@ function adjacentPageBoundaryHits(input: {
   );
 
   for (let index = 0; index < pages.length - 1; index += 1) {
-    const [leftPage, leftMarkdown] = pages[index]!;
-    const [rightPage, rightMarkdown] = pages[index + 1]!;
+    const leftEntry = pages[index];
+    const rightEntry = pages[index + 1];
+    if (leftEntry === undefined || rightEntry === undefined) continue;
+    const [leftPage, leftMarkdown] = leftEntry;
+    const [rightPage, rightMarkdown] = rightEntry;
     const leftBody = pageBoundarySearchText(leftMarkdown);
     const rightBody = pageBoundarySearchText(rightMarkdown);
     const leftText = normalizeEvidenceQuoteForSearch(leftBody);
@@ -6516,7 +6526,8 @@ export async function normalizeTextMarkdown(
 
   const sources: TextPageMarkdownSource[] = [];
   for (let index = 0; index < eligible.length; index += 1) {
-    const source = eligible[index]!;
+    const source = eligible[index];
+    if (source === undefined) continue;
     const textArtifactKey = source.textArtifactKey;
     if (textArtifactKey === null) continue;
     const sourceRoot = textPageMarkdownSourceRoot({
@@ -6536,7 +6547,8 @@ export async function normalizeTextMarkdown(
     const pages: TextPageMarkdownPage[] = [];
     let runningOffset = 0;
     for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
-      const chunk = chunks[chunkIndex]!;
+      const chunk = chunks[chunkIndex];
+      if (chunk === undefined) continue;
       const pageNumber = chunkIndex + 1;
       const pageRoot = join(sourceRoot, "pages", String(pageNumber).padStart(4, "0"));
       const pagePath = join(pageRoot, "page.md");
@@ -6929,7 +6941,8 @@ export async function recaptureFailedSources(
 
   const results: RecaptureSourceResult[] = [];
   for (let index = 0; index < manifest.sources.length; index += 1) {
-    const source = manifest.sources[index]!;
+    const source = manifest.sources[index];
+    if (source === undefined) continue;
     const isFailed = source.captureStatus === "failed";
     const inFilter = filterSet === null || filterSet.has(source.sourceId);
     if (!isFailed || !inFilter) continue;
@@ -7167,8 +7180,13 @@ async function resolveOcrMarkdownCandidatesPaths(
   if (baseDir === null) {
     throw new Error("No docs run found. Provide --run-id or --ocr-plan.");
   }
+  const resolvedOcrPlanPath =
+    args.ocrPlanPath ?? (runId === null ? null : ocrPlanPath(artifactRoot, runId));
+  if (resolvedOcrPlanPath === null) {
+    throw new Error("No docs run found. Provide --run-id or --ocr-plan.");
+  }
   return {
-    ocrPlanPath: args.ocrPlanPath ?? ocrPlanPath(artifactRoot, runId!),
+    ocrPlanPath: resolvedOcrPlanPath,
     pageMarkdownAuditPath:
       args.pageMarkdownAuditPath ?? join(baseDir, "ocr-page-markdown-audit.json"),
     outputPath: args.outputPath ?? join(baseDir, "ocr-markdown-candidates.json"),
@@ -7203,7 +7221,7 @@ export async function extractTier2OcrMarkdownCandidatesFromCli(
 
 // ---------------------------------------------------------------------------
 // Phase 3 record alias. The intervention-records synthesis policy now lives in
-// @bp/applied-research/intervention-records and its LLM/IO/CLI orchestration in
+// @bp/analytics/interventions and its LLM/IO/CLI orchestration in
 // ./_intervention-records.ts; only this persisted-record alias remains here,
 // used by the artifact-summary counters above.
 // ---------------------------------------------------------------------------
@@ -9768,7 +9786,8 @@ function deriveDetail(record: PromotedIntervention): string {
     return `${components.length.toLocaleString("en-US")} curated treatment components`;
   }
   if (record.evidencePreviews.length > 0) {
-    return record.evidencePreviews[0]!.quote;
+    const firstPreview = record.evidencePreviews[0];
+    if (firstPreview !== undefined) return firstPreview.quote;
   }
   return record.primaryTreatments.map(titleCase).join(", ") || "Bus priority intervention";
 }

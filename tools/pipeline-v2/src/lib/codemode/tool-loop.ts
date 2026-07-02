@@ -173,15 +173,10 @@ export interface HarnessLike {
     type: TType,
     handler: (
       event: Extract<AgentHarnessOwnEvent, { type: TType }>,
-    ) =>
-      | Promise<AgentHarnessEventResultMap[TType]>
-      | AgentHarnessEventResultMap[TType],
+    ) => Promise<AgentHarnessEventResultMap[TType]> | AgentHarnessEventResultMap[TType],
   ): () => void;
   subscribe(
-    listener: (
-      event: AgentHarnessEvent,
-      signal?: AbortSignal,
-    ) => Promise<void> | void,
+    listener: (event: AgentHarnessEvent, signal?: AbortSignal) => Promise<void> | void,
   ): () => void;
   prompt(text: string): Promise<AssistantMessage>;
   abort(): Promise<unknown>;
@@ -211,7 +206,8 @@ async function defaultExecutor(
 function formatToolResultText(r: SandboxResult): string {
   const parts: string[] = [`exitCode: ${r.exitCode}`, `durationMs: ${r.durationMs}`];
   if (r.timedOut) parts.push("timedOut: true");
-  if (r.stdoutTruncated) parts.push(`stdoutTruncated: true (cap reached at ${r.stdout.length} bytes)`);
+  if (r.stdoutTruncated)
+    parts.push(`stdoutTruncated: true (cap reached at ${r.stdout.length} bytes)`);
   parts.push("--- stdout ---");
   parts.push(r.stdout.length > 0 ? r.stdout : "(empty)");
   if (r.stderr.trim().length > 0) {
@@ -235,8 +231,7 @@ function extractAssistantText(message: AssistantMessage): string {
     .join("");
 }
 
-const defaultHarnessFactory: HarnessFactory = (opts) =>
-  new AgentHarness(opts);
+const defaultHarnessFactory: HarnessFactory = (opts) => new AgentHarness(opts);
 
 // ---------------------------------------------------------------------------
 // Factory
@@ -297,12 +292,12 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
   const sandboxOptions: SandboxOptions = {
     ...(args.ralphDir === undefined ? {} : { ralphDir: args.ralphDir }),
   };
-  const executor = args.executor ?? ((toolName, toolArgs) => defaultExecutor(toolName, toolArgs, sandboxOptions));
+  const executor =
+    args.executor ?? ((toolName, toolArgs) => defaultExecutor(toolName, toolArgs, sandboxOptions));
   const createHarness = args.harnessFactory ?? defaultHarnessFactory;
 
   return async (input) => {
-    const env: ExecutionEnv =
-      args.env ?? new NodeExecutionEnv({ cwd: process.cwd() });
+    const env: ExecutionEnv = args.env ?? new NodeExecutionEnv({ cwd: process.cwd() });
 
     const trace: ToolUseTraceEntry[] = [];
     let toolCalls = 0;
@@ -340,11 +335,12 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
       },
     };
 
-    const session: Session = args.sessionsRoot === undefined
-      ? await new InMemorySessionRepo().create({})
-      : await new JsonlSessionRepo({ fs: env, sessionsRoot: args.sessionsRoot }).create({
-          cwd: args.sessionsCwd ?? process.cwd(),
-        });
+    const session: Session =
+      args.sessionsRoot === undefined
+        ? await new InMemorySessionRepo().create({})
+        : await new JsonlSessionRepo({ fs: env, sessionsRoot: args.sessionsRoot }).create({
+            cwd: args.sessionsCwd ?? process.cwd(),
+          });
     const sessionMetadata = await session.getMetadata();
 
     let skills: Skill[] = [];
@@ -363,21 +359,16 @@ export function makeToolLoopRunner(args: MakeToolLoopRunnerArgs): ModelToolLoop 
     const composedSystemPrompt =
       skills.length === 0
         ? input.systemPrompt
-        : [
-            input.systemPrompt,
-            ...skills.map((s) => `# Skill: ${s.name}\n\n${s.content}`),
-          ].join("\n\n");
+        : [input.systemPrompt, ...skills.map((s) => `# Skill: ${s.name}\n\n${s.content}`)].join(
+            "\n\n",
+          );
 
     const includeSandboxTools = args.includeSandboxTools !== false;
     const extraTools = input.extraTools ?? [];
-    const sandboxToolNames = new Set<string>(
-      includeSandboxTools ? ["ts_exec", "bash_exec"] : [],
-    );
+    const sandboxToolNames = new Set<string>(includeSandboxTools ? ["ts_exec", "bash_exec"] : []);
     for (const t of extraTools) {
       if (sandboxToolNames.has(t.name)) {
-        throw new Error(
-          `extraTools may not redefine sandbox tool '${t.name}'`,
-        );
+        throw new Error(`extraTools may not redefine sandbox tool '${t.name}'`);
       }
     }
 

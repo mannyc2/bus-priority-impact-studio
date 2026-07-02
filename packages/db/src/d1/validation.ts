@@ -55,7 +55,9 @@ export const RouteDirectionInsertSchema = createInsertSchema(routeDirection);
 export const RouteMonthCoverageInsertSchema = createInsertSchema(routeMonthCoverage);
 export const RouteReadinessSelectSchema = createSelectSchema(routeReadiness);
 export const RouteReadinessInsertSchema = createInsertSchema(routeReadiness);
-export const RouteReadinessMissingInputInsertSchema = createInsertSchema(routeReadinessMissingInput);
+export const RouteReadinessMissingInputInsertSchema = createInsertSchema(
+  routeReadinessMissingInput,
+);
 export const RouteBuildPlanInsertSchema = createInsertSchema(routeBuildPlan);
 export const RouteReliabilityBaselineSelectSchema = createSelectSchema(routeReliabilityBaseline);
 export const RouteReliabilityBaselineInsertSchema = createInsertSchema(routeReliabilityBaseline);

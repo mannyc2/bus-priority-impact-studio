@@ -1,4 +1,3 @@
-import { arg, defineCommand, z } from "@liche/core";
 import {
   type LocalCorridorInterventionContext,
   type LocalCorridorRouteMember,
@@ -15,13 +14,10 @@ import {
   listRouteStops,
   replaceCorridorRows,
 } from "@bp/db/local";
+import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 
 const defaultHotspotLimit = 10;
 
@@ -484,7 +480,6 @@ export default defineCommand({
         .describe("Max hotspots per corridor"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     isoMonth: z.string(),
     publicRouteCount: z.number(),
@@ -495,12 +490,23 @@ export default defineCommand({
     corridorHotspotCount: z.number(),
     corridorInterventionContextCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runCorridorModel({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      hotspotLimit: input.options.hotspotLimit,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "corridor.model",
+      operation: "runCorridorModel",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+        hotspotLimit: input.options.hotspotLimit,
+      },
+      run: (local) =>
+        runCorridorModel({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          hotspotLimit: input.options.hotspotLimit,
+        }),
     });
   },
 });

@@ -1,12 +1,8 @@
 import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/clients/geoclient";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { createGeoclientFromEnv, type GeocodeOutcome, Geocoder } from "../../lib/geocoder.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 
 export type GeocodeParkingInputs = {
   local: OpenLocalPipelineDb;
@@ -191,21 +187,34 @@ export default defineCommand({
         .describe("Use LION street-only fallback; skip Geoclient"),
     }),
   },
-  middleware: [withLocalDb({ spatial: true })],
   output: z.object({
     scanned: z.number(),
     hits: z.number(),
     misses: z.number(),
     cached: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runGeocodeParkingViolations({
-      local: localDbFromCtx(ctx),
-      batchSize: input.options.batchSize,
-      maxRows: input.options.maxRows,
-      since: input.options.since,
-      until: input.options.until,
-      streetOnly: input.options.streetOnly,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      localDbOptions: { spatial: true },
+      command: "geocode.parking-violations",
+      operation: "runGeocodeParkingViolations",
+      spanAttributes: {
+        batchSize: input.options.batchSize,
+        maxRows: input.options.maxRows ?? null,
+        since: input.options.since ?? null,
+        until: input.options.until ?? null,
+        streetOnly: input.options.streetOnly,
+      },
+      run: (local) =>
+        runGeocodeParkingViolations({
+          local,
+          batchSize: input.options.batchSize,
+          maxRows: input.options.maxRows,
+          since: input.options.since,
+          until: input.options.until,
+          streetOnly: input.options.streetOnly,
+        }),
     });
   },
 });

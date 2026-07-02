@@ -1,7 +1,5 @@
-import { Database } from "bun:sqlite";
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import { buildRouteBriefSegmentUniverse } from "@bp/applied-research/route-briefs";
 import {
   listRouteArtifacts,
   listRouteBriefSummaries,
@@ -13,17 +11,9 @@ import {
   type RouteInterventionComparison,
   type RouteMonthTrend,
 } from "@bp/db";
-import { createBunSqliteServingDb } from "@bp/db/d1/bun-sqlite";
-import type { StudioAiPublicNote } from "@bp/domain/studio/briefs";
 import type { StudioIntervention } from "@bp/domain/studio/interventions";
 import {
-  buildStudioBriefEvidenceProjection,
-  buildStudioBriefHistoryProjection,
-  buildStudioBriefProjection,
-  buildStudioBriefsProjection,
   buildStudioDocsProjection,
-  buildStudioFindingProjection,
-  buildStudioFindingsProjection,
   buildStudioMethodsProjection,
   buildStudioRouteProjection,
   buildStudioRoutesProjection,
@@ -35,23 +25,18 @@ import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
 import { normalizeScheduleTimepointRows } from "@bp/sources/adapters/mta/schedules";
 import type { SocrataRow } from "@bp/sources/clients/socrata";
 import { defineCommand, z } from "@liche/core";
-import { defaultLocalPipelineDbPath, openLocalPipelineDb } from "../../lib/local-db.ts";
+import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { buildRouteBriefSegmentUniverse } from "../../lib/route-briefs/index.ts";
 import { buildSourceCoverageLedger } from "../audit/source-coverage.ts";
 import {
-  assertGeneratedBriefReferenceIntegrity,
-  buildBrief,
   docsSections,
   docsSourceFromGeneratedReleaseSource,
   docsSourceFromLedgerEntry,
   methodDatasetsFromDocsSources,
-} from "./_release-briefs.ts";
-import {
-  addFindingContextAppendix,
-  buildReviewedFinding,
-  readDetectorFindingsFromReviewQueue,
-  readPromotedFindingsFromArtifact,
-} from "./_release-findings.ts";
+} from "./_release-docs.ts";
 import {
   assertRouteGeometryCoverage,
   readJsonIfExists,
@@ -83,7 +68,6 @@ import {
 } from "./_release-segments.ts";
 import type {
   CliOptions,
-  FindingContextAppendixArtifact,
   RawSourceSnapshot,
   ReleaseProfile,
   RouteBriefInputArtifact,
@@ -113,7 +97,6 @@ const defaultSegmentNoteLlmLimit = 8;
 const defaultSegmentNoteLlmTimeoutMs = 60_000;
 const defaultSegmentNoteLlmAttempts = 2;
 const defaultRouteLimit = 12;
-const defaultFindingLimit = 50;
 const canonicalRouteIds = [
   "M15+",
   "BX12+",
@@ -132,15 +115,81 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-async function createServingDbFromExport(schemaPath: string, seedPath: string) {
-  const sqlite = new Database(":memory:");
-  sqlite.exec(await readFile(schemaPath, "utf8"));
-  sqlite.exec(await readFile(seedPath, "utf8"));
+async function loadStudioReleaseD1Context(options: CliOptions) {
+  const [schemaSql, seedSql] = await Promise.all([
+    Bun.file(fromRepoRoot(options.schemaPath)).text(),
+    Bun.file(fromRepoRoot(options.seedPath)).text(),
+  ]);
 
-  return {
-    sqlite,
-    db: createBunSqliteServingDb(sqlite),
-  };
+  return runD1ReplayBoundary({
+    command: "studio.release",
+    operation: "loadStudioReleaseD1Context",
+    schemaSql,
+    seedSql,
+    spanAttributes: { month: options.month },
+    run: async ({ db }) => {
+      const [
+        readinessRows,
+        briefSummaries,
+        observedRows,
+        routeArtifactRows,
+        interventionComparisonRows,
+      ] = await Promise.all([
+        listRouteReadiness(db, options.month),
+        listRouteBriefSummaries(db, options.month),
+        listRouteObservedReliabilitySummaries(db, options.month),
+        listRouteArtifacts(db, options.month),
+        listRouteInterventionComparisons(db, options.month),
+      ]);
+      const readinessByRoute = new Map(readinessRows.map((row) => [row.routeId, row]));
+      const summariesByRoute = new Map(
+        briefSummaries.map((summary: RouteBriefSummary) => [summary.routeId, summary]),
+      );
+      const observedByRoute = new Map(observedRows.map((row) => [row.routeId, row]));
+      const interventionsByRoute = new Map<string, RouteInterventionComparison[]>();
+      for (const comparison of interventionComparisonRows) {
+        const group = interventionsByRoute.get(comparison.routeId) ?? [];
+        group.push(comparison);
+        interventionsByRoute.set(comparison.routeId, group);
+      }
+      const requiredSummaries = canonicalRouteIds.flatMap((routeId) => {
+        const summary = summariesByRoute.get(routeId);
+        return summary === undefined ? [] : [summary];
+      });
+      const orderedSummaries = [
+        ...requiredSummaries,
+        ...briefSummaries.filter(
+          (summary) => !requiredSummaries.some((required) => required.routeId === summary.routeId),
+        ),
+      ];
+      const selectedSummaries =
+        options.profile === "full"
+          ? orderedSummaries
+          : orderedSummaries.slice(0, Math.max(options.routeLimit, requiredSummaries.length));
+      const speedPercentiles = speedPercentilesForSummaries(orderedSummaries, readinessByRoute);
+      const descriptivePeerSlugs = descriptivePeerSlugsForSummaries(
+        selectedSummaries,
+        readinessByRoute,
+      );
+      const routeTrends = new Map<string, RouteMonthTrend[]>();
+      await Promise.all(
+        selectedSummaries.map(async (summary) => {
+          routeTrends.set(summary.routeId, await listRouteMonthTrends(db, summary.routeId));
+        }),
+      );
+
+      return {
+        readinessByRoute,
+        observedByRoute,
+        interventionsByRoute,
+        selectedSummaries,
+        speedPercentiles,
+        descriptivePeerSlugs,
+        routeArtifactRows,
+        routeTrends,
+      };
+    },
+  });
 }
 
 async function rawRouteSliceRows(
@@ -257,311 +306,210 @@ async function routeBriefInputs(
 }
 
 async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> {
-  const { sqlite, db } = await createServingDbFromExport(
-    fromRepoRoot(options.schemaPath),
-    fromRepoRoot(options.seedPath),
+  const {
+    readinessByRoute,
+    observedByRoute,
+    interventionsByRoute,
+    selectedSummaries,
+    speedPercentiles,
+    descriptivePeerSlugs,
+    routeArtifactRows,
+    routeTrends,
+  } = await loadStudioReleaseD1Context(options);
+  const routeGeometry = await routeGeometryIndex(
+    options.routeShapeSnapshotPath,
+    options.stopSnapshotPath,
+    options.localDbPath,
+  );
+  const tspEvidenceByRoute = await tspEvidenceIndex(options.tspSourcePath);
+  const sourceCoverageDocsSources = await runLocalDbCommandBoundary({
+    dbPath: options.localDbPath,
+    localDbOptions: { readonly: true },
+    command: "studio.release",
+    operation: "buildSourceCoverageLedger",
+    spanAttributes: { month: options.month },
+    run: async (local) =>
+      buildSourceCoverageLedger({
+        sqlite: local.sqlite,
+        month: options.month,
+        dbPath: local.path,
+      }).sources.map(docsSourceFromLedgerEntry),
+  });
+  const selectedRouteIds = new Set(selectedSummaries.map((summary) => summary.routeId));
+  assertRouteGeometryCoverage(
+    selectedSummaries.flatMap((summary) =>
+      readinessByRoute.has(summary.routeId) ? [summary.routeId] : [],
+    ),
+    routeGeometry,
+  );
+  const routeArtifacts = routeArtifactRows
+    .filter((row) => selectedRouteIds.has(row.route_id))
+    .map(buildRouteArtifactRef);
+  const routeInputs = new Map<string, RouteBriefInputArtifact | null>();
+  const routeInputsByRoute = new Map<string, RouteBriefInputArtifact[]>();
+
+  for (const summary of selectedSummaries) {
+    const inputs = await routeBriefInputs(
+      summary.routeId,
+      options.month,
+      options.routeSliceArtifactsRoot,
+      options.routeSliceRawRoot,
+    );
+    const currentInput =
+      inputs.find((input) => (input.analysisPeriod ?? options.month) === options.month) ??
+      inputs[0] ??
+      null;
+    routeInputsByRoute.set(summary.routeId, inputs);
+    routeInputs.set(summary.routeId, currentInput);
+  }
+  const segmentLaneOverlaps = await segmentLaneOverlapIndex({
+    localDbPath: options.localDbPath,
+    isoMonth: options.month,
+    routeShapeSnapshotPath: options.routeShapeSnapshotPath,
+    stopSnapshotPath: options.stopSnapshotPath,
+    routeInputs,
+  });
+  const tier2DocumentChunks = await tier2DocumentChunkIndex(
+    options.tier2DocumentChunksPath,
+    fromRepoRoot,
+  );
+  const manualInterventionsArtifact =
+    await readJsonIfExists<Tier2ManualInterventionCandidatesArtifact>(
+      fromRepoRoot(options.manualInterventionsPath),
+    );
+  const manualInterventionsByRoute = manualInterventionIndex(
+    manualInterventionsArtifact,
+    tier2DocumentChunks,
   );
 
-  try {
-    const [
-      readinessRows,
-      briefSummaries,
-      observedRows,
-      routeArtifactRows,
-      interventionComparisonRows,
-    ] = await Promise.all([
-      listRouteReadiness(db, options.month),
-      listRouteBriefSummaries(db, options.month),
-      listRouteObservedReliabilitySummaries(db, options.month),
-      listRouteArtifacts(db, options.month),
-      listRouteInterventionComparisons(db, options.month),
-    ]);
-    const readinessByRoute = new Map(readinessRows.map((row) => [row.routeId, row]));
-    const summariesByRoute = new Map(
-      briefSummaries.map((summary: RouteBriefSummary) => [summary.routeId, summary]),
-    );
-    const observedByRoute = new Map(observedRows.map((row) => [row.routeId, row]));
-    const interventionsByRoute = new Map<string, RouteInterventionComparison[]>();
-    for (const comparison of interventionComparisonRows) {
-      const group = interventionsByRoute.get(comparison.routeId) ?? [];
-      group.push(comparison);
-      interventionsByRoute.set(comparison.routeId, group);
-    }
-    const requiredSummaries = canonicalRouteIds.flatMap((routeId) => {
-      const summary = summariesByRoute.get(routeId);
-      return summary === undefined ? [] : [summary];
-    });
-    const orderedSummaries = [
-      ...requiredSummaries,
-      ...briefSummaries.filter(
-        (summary) => !requiredSummaries.some((required) => required.routeId === summary.routeId),
-      ),
-    ];
-    const selectedSummaries =
-      options.profile === "full"
-        ? orderedSummaries
-        : orderedSummaries.slice(0, Math.max(options.routeLimit, requiredSummaries.length));
-    const speedPercentiles = speedPercentilesForSummaries(orderedSummaries, readinessByRoute);
-    const descriptivePeerSlugs = descriptivePeerSlugsForSummaries(
-      selectedSummaries,
-      readinessByRoute,
-    );
-    const routeGeometry = await routeGeometryIndex(
-      options.routeShapeSnapshotPath,
-      options.stopSnapshotPath,
-      options.localDbPath,
-    );
-    const tspEvidenceByRoute = await tspEvidenceIndex(options.tspSourcePath);
-    const sourceCoverageDocsSources = await (async () => {
-      const local = await openLocalPipelineDb(options.localDbPath, { readonly: true });
-      try {
-        return buildSourceCoverageLedger({
-          sqlite: local.sqlite,
-          month: options.month,
-          dbPath: local.path,
-        }).sources.map(docsSourceFromLedgerEntry);
-      } finally {
-        local.sqlite.close();
-      }
-    })();
-    const selectedRouteIds = new Set(selectedSummaries.map((summary) => summary.routeId));
-    assertRouteGeometryCoverage(
-      selectedSummaries.flatMap((summary) =>
-        readinessByRoute.has(summary.routeId) ? [summary.routeId] : [],
-      ),
-      routeGeometry,
-    );
-    const routeArtifacts = routeArtifactRows
-      .filter((row) => selectedRouteIds.has(row.route_id))
-      .map(buildRouteArtifactRef);
-    const routeInputs = new Map<string, RouteBriefInputArtifact | null>();
-    const routeInputsByRoute = new Map<string, RouteBriefInputArtifact[]>();
-
-    for (const summary of selectedSummaries) {
-      const inputs = await routeBriefInputs(
-        summary.routeId,
-        options.month,
-        options.routeSliceArtifactsRoot,
-        options.routeSliceRawRoot,
-      );
-      const currentInput =
-        inputs.find((input) => (input.analysisPeriod ?? options.month) === options.month) ??
-        inputs[0] ??
-        null;
-      routeInputsByRoute.set(summary.routeId, inputs);
-      routeInputs.set(summary.routeId, currentInput);
-    }
-    const segmentLaneOverlaps = await segmentLaneOverlapIndex({
-      localDbPath: options.localDbPath,
-      isoMonth: options.month,
-      routeShapeSnapshotPath: options.routeShapeSnapshotPath,
-      stopSnapshotPath: options.stopSnapshotPath,
-      routeInputs,
-    });
-    const routeTrends = new Map<string, RouteMonthTrend[]>();
-    await Promise.all(
-      selectedSummaries.map(async (summary) => {
-        routeTrends.set(summary.routeId, await listRouteMonthTrends(db, summary.routeId));
-      }),
-    );
-    const tier2DocumentChunks = await tier2DocumentChunkIndex(
-      options.tier2DocumentChunksPath,
-      fromRepoRoot,
-    );
-    const manualInterventionsArtifact =
-      await readJsonIfExists<Tier2ManualInterventionCandidatesArtifact>(
-        fromRepoRoot(options.manualInterventionsPath),
-      );
-    const manualInterventionsByRoute = manualInterventionIndex(
-      manualInterventionsArtifact,
-      tier2DocumentChunks,
-    );
-
-    if (options.publishableInterventionsByRoutePath !== null) {
-      const publishableByRouteArtifact = await readJsonIfExists<{
-        interventionsByRoute?: Record<string, StudioIntervention[]>;
-      }>(fromRepoRoot(options.publishableInterventionsByRoutePath));
-      if (publishableByRouteArtifact?.interventionsByRoute !== undefined) {
-        for (const [routeKeyRaw, entries] of Object.entries(
-          publishableByRouteArtifact.interventionsByRoute,
-        )) {
-          const key = routeKey(routeKeyRaw);
-          const existing = manualInterventionsByRoute.get(key) ?? [];
-          manualInterventionsByRoute.set(key, [...existing, ...entries]);
-        }
+  if (options.publishableInterventionsByRoutePath !== null) {
+    const publishableByRouteArtifact = await readJsonIfExists<{
+      interventionsByRoute?: Record<string, StudioIntervention[]>;
+    }>(fromRepoRoot(options.publishableInterventionsByRoutePath));
+    if (publishableByRouteArtifact?.interventionsByRoute !== undefined) {
+      for (const [routeKeyRaw, entries] of Object.entries(
+        publishableByRouteArtifact.interventionsByRoute,
+      )) {
+        const key = routeKey(routeKeyRaw);
+        const existing = manualInterventionsByRoute.get(key) ?? [];
+        manualInterventionsByRoute.set(key, [...existing, ...entries]);
       }
     }
-
-    const routes: StudioRoute[] = selectedSummaries.flatMap((summary) => {
-      const readiness = readinessByRoute.get(summary.routeId);
-      if (readiness === undefined) {
-        return [];
-      }
-
-      return [
-        buildRoute(
-          readiness,
-          summary,
-          routeInputs.get(summary.routeId) ?? null,
-          routeGeometry.get(summary.routeId),
-          descriptivePeerSlugs.get(summary.routeId) ?? null,
-          observedByRoute.get(summary.routeId),
-          interventionsByRoute.get(summary.routeId) ?? [],
-          manualInterventionsByRoute.get(routeKey(summary.routeId)) ?? [],
-          speedPercentiles.get(summary.routeId) ?? {
-            percentile: 50,
-            ...speedPercentileContext(1, 1),
-          },
-          routeTrends.get(summary.routeId) ?? [],
-          tspEvidenceByRoute.get(summary.routeId) ?? unknownTspEvidence(),
-          buildRouteInterventions,
-        ),
-      ];
-    });
-
-    const deterministicSegments = routes.flatMap((route) =>
-      buildSegments(
-        route.slug,
-        route.routeId,
-        routeInputs.get(route.routeId) ?? null,
-        segmentLaneOverlaps.get(route.routeId),
-        tspEvidenceByRoute.get(route.routeId) ?? unknownTspEvidence(),
-      ),
-    );
-    const publicNoteSegments = withSparsePublicSegmentNotes(deterministicSegments, options.month);
-    const segments = await enhanceSegmentAiNotesWithLlm(publicNoteSegments, options.segmentNoteLlm);
-    const routeSegmentEvidence = routes.flatMap((route) =>
-      (routeInputsByRoute.get(route.routeId) ?? [routeInputs.get(route.routeId) ?? null]).flatMap(
-        (input) =>
-          buildRouteSegmentEvidence(
-            route.slug,
-            route.routeId,
-            input?.analysisPeriod ?? options.month,
-            input,
-            segmentLaneOverlaps.get(route.routeId),
-            tspEvidenceByRoute.get(route.routeId) ?? unknownTspEvidence(),
-          ),
-      ),
-    );
-    const reviewedFindings = routes.flatMap((route) => {
-      const finding = buildReviewedFinding(route);
-      return finding === null ? [] : [finding];
-    });
-    const promotedFindings = await readPromotedFindingsFromArtifact({
-      path: options.promotedFindingsPath,
-      routes,
-      limit: Math.max(0, options.findingLimit - reviewedFindings.length),
-      excludedRouteSlugs: new Set(reviewedFindings.map((finding) => finding.routeSlug)),
-    });
-    const reviewedAndPromotedFindings = [...reviewedFindings, ...promotedFindings];
-    const remainingFindingSlots = Math.max(
-      0,
-      options.findingLimit - reviewedAndPromotedFindings.length,
-    );
-    const detectorFindings = await readDetectorFindingsFromReviewQueue({
-      path: options.reviewQueuePath,
-      routes,
-      limit: remainingFindingSlots,
-      excludedRouteSlugs: new Set(reviewedAndPromotedFindings.map((finding) => finding.routeSlug)),
-    });
-    const contextAppendix = await readJsonIfExists<FindingContextAppendixArtifact>(
-      fromRepoRoot(options.contextAppendixPath),
-    );
-    const findings = addFindingContextAppendix({
-      findings: [...reviewedAndPromotedFindings, ...detectorFindings],
-      routes,
-      appendix: contextAppendix,
-    });
-    const routeArtifactRouteIds = new Set(routeArtifacts.map((artifact) => artifact.routeId));
-    const releaseGeneratedAt = new Date().toISOString();
-    const briefs = routes
-      .filter((route) => routeArtifactRouteIds.has(route.routeId))
-      .map((route) =>
-        buildBrief(
-          route,
-          findings.find((finding) => finding.routeSlug === route.slug),
-          releaseGeneratedAt,
-          routeArtifacts.filter((artifact) => artifact.routeId === route.routeId),
-        ),
-      );
-    assertGeneratedBriefReferenceIntegrity(briefs);
-    const tspSourceDate =
-      [...tspEvidenceByRoute.values()].find((evidence) => evidence.tspSourceDate !== null)
-        ?.tspSourceDate ?? null;
-    const docsSources = [
-      ...sourceCoverageDocsSources,
-      docsSourceFromGeneratedReleaseSource({
-        sourceId: "nyc_dot_tsp_status_2017",
-        rowCount: tspEvidenceByRoute.size,
-        period: tspSourceDate === null ? "No ingested TSP source" : `${tspSourceDate} snapshot`,
-        monthCount: null,
-        role: "release_context",
-        decision: tspEvidenceByRoute.size === 0 ? "excluded_until_fixed" : "release_context_only",
-        detectorEligibility: tspEvidenceByRoute.size === 0 ? "blocked" : "manual_review_primary",
-        primaryEvidenceAllowed: tspEvidenceByRoute.size > 0,
-        automaticPromotionAllowed: false,
-        readinessStatus: tspEvidenceByRoute.size === 0 ? "blocked" : "sample_only",
-        readinessReasons:
-          tspEvidenceByRoute.size === 0
-            ? ["Captured NYC DOT TSP status source is missing or did not parse route mentions."]
-            : [
-                "TSP status comes from a captured 2017 source snapshot; use it as source status, not proof of current signal operation.",
-              ],
-      }),
-      docsSourceFromGeneratedReleaseSource({
-        sourceId: "generated_route_slice_artifacts",
-        rowCount: routeArtifacts.length,
-        period: options.month,
-        monthCount: 1,
-        role: "release_context",
-        decision: routeArtifacts.length === 0 ? "backfill_required" : "release_context_only",
-        detectorEligibility: routeArtifacts.length === 0 ? "missing_data_only" : "context_only",
-        primaryEvidenceAllowed: false,
-        automaticPromotionAllowed: false,
-        readinessStatus: routeArtifacts.length === 0 ? "blocked" : "sample_only",
-        readinessReasons:
-          routeArtifacts.length === 0
-            ? ["No generated route artifact references are present for the selected release."]
-            : [
-                "Generated artifacts are release-serving projections; attach public source refs when making external claims.",
-              ],
-      }),
-    ];
-
-    return StudioReleasePayloadSchema.parse({
-      schemaVersion: 1,
-      generatedAt: releaseGeneratedAt,
-      quality: {
-        releaseLayer: "baseline_release",
-        completenessStatus: "partial_public_monthly_only",
-        confidence: "medium",
-        caveats: qualityCaveats(options.month),
-      },
-      routes,
-      segments,
-      routeSegmentEvidence,
-      routeArtifacts,
-      findings,
-      briefs,
-      versions: briefs.map((brief) => ({
-        briefId: brief.id,
-        v: brief.version,
-        date: brief.generated,
-        author: brief.authors[0] ?? "Studio release builder",
-        summary: "Generated from D1/R2 serving projections.",
-        claimsCount: brief.claims.length,
-        evidenceRefCount: brief.evidenceRefCount,
-        caveatsCount: brief.caveats.length,
-      })),
-      comments: [],
-      methods: methodDatasetsFromDocsSources(docsSources),
-      docsSections: docsSections(options.month),
-      docsSources,
-      docsEndpoints: [],
-    });
-  } finally {
-    sqlite.close();
   }
+
+  const routes: StudioRoute[] = selectedSummaries.flatMap((summary) => {
+    const readiness = readinessByRoute.get(summary.routeId);
+    if (readiness === undefined) {
+      return [];
+    }
+
+    return [
+      buildRoute(
+        readiness,
+        summary,
+        routeInputs.get(summary.routeId) ?? null,
+        routeGeometry.get(summary.routeId),
+        descriptivePeerSlugs.get(summary.routeId) ?? null,
+        observedByRoute.get(summary.routeId),
+        interventionsByRoute.get(summary.routeId) ?? [],
+        manualInterventionsByRoute.get(routeKey(summary.routeId)) ?? [],
+        speedPercentiles.get(summary.routeId) ?? {
+          percentile: 50,
+          ...speedPercentileContext(1, 1),
+        },
+        routeTrends.get(summary.routeId) ?? [],
+        tspEvidenceByRoute.get(summary.routeId) ?? unknownTspEvidence(),
+        buildRouteInterventions,
+      ),
+    ];
+  });
+
+  const deterministicSegments = routes.flatMap((route) =>
+    buildSegments(
+      route.slug,
+      route.routeId,
+      routeInputs.get(route.routeId) ?? null,
+      segmentLaneOverlaps.get(route.routeId),
+      tspEvidenceByRoute.get(route.routeId) ?? unknownTspEvidence(),
+    ),
+  );
+  const publicNoteSegments = withSparsePublicSegmentNotes(deterministicSegments, options.month);
+  const segments = await enhanceSegmentAiNotesWithLlm(publicNoteSegments, options.segmentNoteLlm);
+  const routeSegmentEvidence = routes.flatMap((route) =>
+    (routeInputsByRoute.get(route.routeId) ?? [routeInputs.get(route.routeId) ?? null]).flatMap(
+      (input) =>
+        buildRouteSegmentEvidence(
+          route.slug,
+          route.routeId,
+          input?.analysisPeriod ?? options.month,
+          input,
+          segmentLaneOverlaps.get(route.routeId),
+          tspEvidenceByRoute.get(route.routeId) ?? unknownTspEvidence(),
+        ),
+    ),
+  );
+  const releaseGeneratedAt = new Date().toISOString();
+  const tspSourceDate =
+    [...tspEvidenceByRoute.values()].find((evidence) => evidence.tspSourceDate !== null)
+      ?.tspSourceDate ?? null;
+  const docsSources = [
+    ...sourceCoverageDocsSources,
+    docsSourceFromGeneratedReleaseSource({
+      sourceId: "nyc_dot_tsp_status_2017",
+      rowCount: tspEvidenceByRoute.size,
+      period: tspSourceDate === null ? "No ingested TSP source" : `${tspSourceDate} snapshot`,
+      monthCount: null,
+      role: "release_context",
+      decision: tspEvidenceByRoute.size === 0 ? "excluded_until_fixed" : "release_context_only",
+      detectorEligibility: tspEvidenceByRoute.size === 0 ? "blocked" : "manual_review_primary",
+      primaryEvidenceAllowed: tspEvidenceByRoute.size > 0,
+      automaticPromotionAllowed: false,
+      readinessStatus: tspEvidenceByRoute.size === 0 ? "blocked" : "sample_only",
+      readinessReasons:
+        tspEvidenceByRoute.size === 0
+          ? ["Captured NYC DOT TSP status source is missing or did not parse route mentions."]
+          : [
+              "TSP status comes from a captured 2017 source snapshot; use it as source status, not proof of current signal operation.",
+            ],
+    }),
+    docsSourceFromGeneratedReleaseSource({
+      sourceId: "generated_route_slice_artifacts",
+      rowCount: routeArtifacts.length,
+      period: options.month,
+      monthCount: 1,
+      role: "release_context",
+      decision: routeArtifacts.length === 0 ? "backfill_required" : "release_context_only",
+      detectorEligibility: routeArtifacts.length === 0 ? "missing_data_only" : "context_only",
+      primaryEvidenceAllowed: false,
+      automaticPromotionAllowed: false,
+      readinessStatus: routeArtifacts.length === 0 ? "blocked" : "sample_only",
+      readinessReasons:
+        routeArtifacts.length === 0
+          ? ["No generated route artifact references are present for the selected release."]
+          : [
+              "Generated artifacts are release-serving projections; attach public source refs when making external claims.",
+            ],
+    }),
+  ];
+
+  return StudioReleasePayloadSchema.parse({
+    schemaVersion: 1,
+    generatedAt: releaseGeneratedAt,
+    quality: {
+      releaseLayer: "baseline_release",
+      completenessStatus: "partial_public_monthly_only",
+      confidence: "medium",
+      caveats: qualityCaveats(options.month),
+    },
+    routes,
+    segments,
+    routeSegmentEvidence,
+    routeArtifacts,
+    methods: methodDatasetsFromDocsSources(docsSources),
+    docsSections: docsSections(options.month),
+    docsSources,
+    docsEndpoints: [],
+  });
 }
 
 function buildSegmentAnalystNotesArtifact(
@@ -582,6 +530,15 @@ function analystNotesOutputPath(outputDir: string): string {
   return resolve(outputDir, "..", "internal", basename(outputDir), "segment-analyst-notes.json");
 }
 
+function isLlmGeneratedSegmentNote(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "generationMode" in value &&
+    value.generationMode === "llm_assisted_evidence_summary"
+  );
+}
+
 async function writeProjections(outputPath: string, release: StudioReleasePayload): Promise<void> {
   const outputDir = dirname(resolve(outputPath));
 
@@ -590,8 +547,6 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
   await writeJson(analystNotesOutputPath(outputDir), buildSegmentAnalystNotesArtifact(release));
   await writeJson(resolve(outputDir, "routes.json"), buildStudioRoutesProjection(release));
   await writeJson(resolve(outputDir, "segments.json"), buildStudioSegmentsProjection(release));
-  await writeJson(resolve(outputDir, "findings.json"), buildStudioFindingsProjection(release));
-  await writeJson(resolve(outputDir, "briefs.json"), buildStudioBriefsProjection(release));
   await writeJson(resolve(outputDir, "methods.json"), buildStudioMethodsProjection(release));
   await writeJson(resolve(outputDir, "docs.json"), buildStudioDocsProjection(release));
 
@@ -601,28 +556,6 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
       buildStudioRouteProjection(release, route),
     );
   }
-
-  for (const finding of release.findings) {
-    const projection = buildStudioFindingProjection(release, finding);
-    if (projection !== undefined) {
-      await writeJson(resolve(outputDir, "findings", finding.id, "index.json"), projection);
-    }
-  }
-
-  for (const brief of release.briefs) {
-    const projection = buildStudioBriefProjection(release, brief);
-    if (projection !== undefined) {
-      await writeJson(resolve(outputDir, "briefs", brief.id, "index.json"), projection);
-    }
-    const evidenceProjection = buildStudioBriefEvidenceProjection(release, brief);
-    if (evidenceProjection !== undefined) {
-      await writeJson(resolve(outputDir, "briefs", brief.id, "evidence.json"), evidenceProjection);
-    }
-    const historyProjection = buildStudioBriefHistoryProjection(release, brief);
-    if (historyProjection !== undefined) {
-      await writeJson(resolve(outputDir, "briefs", brief.id, "history.json"), historyProjection);
-    }
-  }
 }
 
 export type RunStudioReleaseInputs = {
@@ -631,10 +564,6 @@ export type RunStudioReleaseInputs = {
   schemaPath?: string | undefined;
   seedPath?: string | undefined;
   routeLimit?: number | undefined;
-  findingLimit?: number | undefined;
-  reviewQueuePath?: string | undefined;
-  promotedFindingsPath?: string | undefined;
-  contextAppendixPath?: string | undefined;
   routeSliceArtifactsRoot?: string | undefined;
   routeSliceRawRoot?: string | undefined;
   routeShapeSnapshotPath?: string | undefined;
@@ -652,8 +581,6 @@ export type RunStudioReleaseResult = {
   outputPath: string;
   routeCount: number;
   segmentCount: number;
-  findingCount: number;
-  briefCount: number;
   source: {
     schemaPath: string;
     seedPath: string;
@@ -679,14 +606,6 @@ export async function runStudioRelease(
     schemaPath: inputs.schemaPath ?? defaultSchemaPath,
     seedPath: inputs.seedPath ?? defaultSeedPath,
     routeLimit: inputs.routeLimit ?? defaultRouteLimit,
-    findingLimit: inputs.findingLimit ?? defaultFindingLimit,
-    reviewQueuePath:
-      inputs.reviewQueuePath ?? join("data/artifacts/findings", month, "review-queue.json"),
-    promotedFindingsPath:
-      inputs.promotedFindingsPath ??
-      join("data/artifacts/findings", month, "promoted-findings.json"),
-    contextAppendixPath:
-      inputs.contextAppendixPath ?? join("data/artifacts/findings", month, "context-appendix.json"),
     routeSliceArtifactsRoot: inputs.routeSliceArtifactsRoot ?? defaultRouteSliceArtifactsRoot,
     routeSliceRawRoot: inputs.routeSliceRawRoot ?? defaultRouteSliceRawRoot,
     routeShapeSnapshotPath: inputs.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath,
@@ -719,8 +638,6 @@ export async function runStudioRelease(
     outputPath,
     routeCount: release.routes.length,
     segmentCount: release.segments.length,
-    findingCount: release.findings.length,
-    briefCount: release.briefs.length,
     source: {
       schemaPath: options.schemaPath,
       seedPath: options.seedPath,
@@ -735,10 +652,8 @@ export async function runStudioRelease(
           : options.segmentNoteLlm.enabled
             ? Math.min(options.segmentNoteLlm.limit ?? 0, publicNoteCount)
             : 0,
-      generatedCount: release.segments.filter(
-        (segment) =>
-          (segment.aiNote as StudioAiPublicNote | undefined)?.generationMode ===
-          "llm_assisted_evidence_summary",
+      generatedCount: release.segments.filter((segment) =>
+        isLlmGeneratedSegmentNote(segment.aiNote),
       ).length,
     },
   };
@@ -759,15 +674,6 @@ export default defineCommand({
         .positive()
         .default(defaultRouteLimit)
         .describe("Route limit for demo profile"),
-      findingLimit: z.coerce
-        .number()
-        .int()
-        .positive()
-        .default(defaultFindingLimit)
-        .describe("Maximum findings to include"),
-      reviewQueue: z.string().optional(),
-      promotedFindings: z.string().optional(),
-      contextAppendix: z.string().optional(),
       routeSliceArtifacts: z.string().optional(),
       routeSliceRaw: z.string().optional(),
       routeShapeSnapshot: z.string().optional(),
@@ -790,8 +696,6 @@ export default defineCommand({
     outputPath: z.string(),
     routeCount: z.number(),
     segmentCount: z.number(),
-    findingCount: z.number(),
-    briefCount: z.number(),
     source: z.object({
       schemaPath: z.string(),
       seedPath: z.string(),
@@ -828,10 +732,6 @@ export default defineCommand({
       schemaPath: input.options.schema === undefined ? undefined : input.options.schema,
       seedPath: input.options.seed === undefined ? undefined : input.options.seed,
       routeLimit: input.options.limit,
-      findingLimit: input.options.findingLimit,
-      reviewQueuePath: input.options.reviewQueue,
-      promotedFindingsPath: input.options.promotedFindings,
-      contextAppendixPath: input.options.contextAppendix,
       routeSliceArtifactsRoot: input.options.routeSliceArtifacts,
       routeSliceRawRoot: input.options.routeSliceRaw,
       routeShapeSnapshotPath: input.options.routeShapeSnapshot,

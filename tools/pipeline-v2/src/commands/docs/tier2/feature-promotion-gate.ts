@@ -12,7 +12,9 @@ export async function runDocsTier2FeaturePromotionGate(input: z.infer<typeof opt
   const result = await runTier2FeaturePromotionGate({
     ledgerPath: input.ledgerPath,
     ...(input.outputPath === undefined ? {} : { outputPath: input.outputPath }),
-    ...(input.strictNoBlockingErrors === undefined ? {} : { strictNoBlockingErrors: input.strictNoBlockingErrors }),
+    ...(input.strictNoBlockingErrors === undefined
+      ? {}
+      : { strictNoBlockingErrors: input.strictNoBlockingErrors }),
     ...(input.generatedAt === undefined ? {} : { generatedAt: input.generatedAt }),
   });
   return {

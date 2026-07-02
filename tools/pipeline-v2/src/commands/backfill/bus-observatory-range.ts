@@ -13,8 +13,8 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { arg, defineCommand, z } from "@liche/core";
-import { readBusObservatoryAvailabilityArtifact } from "../check/bus-observatory-gtfs-rt.ts";
 import { defaultArtifactRootPath, fromRepoRoot } from "../../lib/paths.ts";
+import { readBusObservatoryAvailabilityArtifact } from "../check/bus-observatory-gtfs-rt.ts";
 
 const DUCKDB_BIN = process.env["DUCKDB_BIN"] ?? `${process.env["HOME"]}/.local/bin/duckdb`;
 const DEFAULT_CONCURRENCY = 3;
@@ -220,11 +220,10 @@ function runDuckDb(sqlPath: string, monthLabel: string, queryLabel: string): Pro
 
 function spawnCli(args: string[], label: string, tag: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(
-      "bun",
-      ["--filter", "@bp/pipeline-v2", "cli", "--", ...args],
-      { cwd: fromRepoRoot("."), stdio: ["ignore", "pipe", "pipe"] },
-    );
+    const proc = spawn("bun", ["--filter", "@bp/pipeline-v2", "cli", "--", ...args], {
+      cwd: fromRepoRoot("."),
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     let stderr = "";
     proc.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
@@ -236,9 +235,7 @@ function spawnCli(args: string[], label: string, tag: string): Promise<void> {
         process.stdout.write(`backfill: ${label} ${tag}: ok\n`);
         resolve();
       } else {
-        reject(
-          new Error(`${tag} for ${label} exited ${code}: ${stderr.slice(-2000)}`),
-        );
+        reject(new Error(`${tag} for ${label} exited ${code}: ${stderr.slice(-2000)}`));
       }
     });
   });
@@ -401,12 +398,21 @@ export default defineCommand({
     "Backfill Bus Observatory recovered GTFS-RT (extract, import, reliability) across a month range.",
   input: {
     options: z.object({
-      since: z.string().regex(/^\d{4}-\d{1,2}$/).describe("Start month, YYYY-MM"),
-      until: z.string().regex(/^\d{4}-\d{1,2}$/).describe("End month, YYYY-MM"),
+      since: z
+        .string()
+        .regex(/^\d{4}-\d{1,2}$/)
+        .describe("Start month, YYYY-MM"),
+      until: z
+        .string()
+        .regex(/^\d{4}-\d{1,2}$/)
+        .describe("End month, YYYY-MM"),
       concurrency: arg.positiveInt().default(DEFAULT_CONCURRENCY).describe("Per-month concurrency"),
       skipExtract: z.coerce.boolean().default(false).describe("Skip DuckDB extract step"),
       skipImport: z.coerce.boolean().default(false).describe("Skip CSV import step"),
-      skipReliability: z.coerce.boolean().default(false).describe("Skip route-observed-reliability build"),
+      skipReliability: z.coerce
+        .boolean()
+        .default(false)
+        .describe("Skip route-observed-reliability build"),
     }),
   },
   output: z.object({

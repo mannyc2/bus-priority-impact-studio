@@ -444,7 +444,8 @@ async function findDefaultRouteTimelineProjectionPath(input: {
     });
   }
   return matching.sort(
-    (left, right) => right.generatedAt.localeCompare(left.generatedAt) || right.path.localeCompare(left.path),
+    (left, right) =>
+      right.generatedAt.localeCompare(left.generatedAt) || right.path.localeCompare(left.path),
   )[0]?.path;
 }
 

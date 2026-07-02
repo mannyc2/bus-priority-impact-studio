@@ -9,12 +9,12 @@ const commandPath = join(
 const legacyHelperPath = join(import.meta.dir, "../../../src/lib/parking-location.ts");
 
 describe("build parking-violation-matches command boundary", () => {
-  test("keeps parking location normalization in applied-research", () => {
+  test("keeps parking location normalization in pipeline-local aggregates", () => {
     const source = readFileSync(commandPath, "utf8");
     const legacyHelper = readFileSync(legacyHelperPath, "utf8");
 
-    expect(source).toContain('from "@bp/applied-research/artifacts"');
-    expect(source).toContain('from "@bp/applied-research/local-db"');
+    expect(source).toContain('from "@bp/analytics/artifacts"');
+    expect(source).toContain('from "@bp/pipeline-v2/local-db-aggregates"');
     expect(source).toContain("parkingViolationMatchAuditPath");
     expect(source).toContain("countParkingViolationLocationGroups");
     expect(source).toContain("hydrateParkingViolationRawFields");
@@ -23,6 +23,10 @@ describe("build parking-violation-matches command boundary", () => {
     expect(source).toContain("runBuildParkingViolationMatchesLocalDb");
     expect(source).toContain("summarizeParkingViolationMatches");
     expect(source).toContain("buildParkingViolationMatchAuditArtifact");
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("localDbOptions: { spatial: true }");
+    expect(source).not.toContain("withLocalDb");
+    expect(source).not.toContain("localDbFromCtx");
     expect(source).not.toContain("parkingLocationKey");
     expect(source).not.toContain("UPDATE local_parking_violation");
     expect(source).not.toContain("UPDATE local_lion_segment");
@@ -57,7 +61,7 @@ describe("build parking-violation-matches command boundary", () => {
     expect(source).not.toContain("canonicalBoroughCode");
     expect(source).not.toContain("normalizeStreetName");
 
-    expect(legacyHelper).toContain('from "@bp/applied-research/local-db"');
+    expect(legacyHelper).toContain('from "@bp/pipeline-v2/local-db-aggregates"');
     expect(legacyHelper).not.toContain("@bp/sources");
     expect(legacyHelper).not.toContain("createHash");
   });

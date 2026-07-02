@@ -6,21 +6,20 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { replaceTier2InterventionStagingRows } from "@bp/db/local";
+import { writeJson } from "../../../lib/json.ts";
 import { defaultLocalPipelineDbPath } from "../../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
-import { writeJson } from "../../../lib/json.ts";
 import {
+  type CliOption,
   candidateBundlePath,
   canonicalInterventionEventsPath,
   duplicateDecisionIsComplete,
   interventionDuplicateAuditPath,
+  type LoadStagingCliArgs,
+  type LoadTier2InterventionStagingArgs,
   latestDocsRunId,
   parseCliOptions,
   runArtifactRoot,
-  withLocalPipelineDb,
-  type CliOption,
-  type LoadStagingCliArgs,
-  type LoadTier2InterventionStagingArgs,
   type Tier2CandidateBundle,
   type Tier2CanonicalInterventionEventsArtifact,
   type Tier2DuplicateDecisionItem,
@@ -29,6 +28,7 @@ import {
   type Tier2InterventionDuplicateGroup,
   type Tier2InterventionPromotionState,
   type Tier2InterventionStagingLoadReport,
+  withLocalPipelineDb,
 } from "./_shared.ts";
 
 function duplicateGroupsByEventId(

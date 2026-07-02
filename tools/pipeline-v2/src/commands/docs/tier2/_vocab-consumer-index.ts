@@ -203,7 +203,9 @@ function compactModifiers(modifiers: unknown): Record<string, string[]> {
 }
 
 function projectionInputCount(mapping: JsonRecord): number {
-  const projectionEvidence = isRecord(mapping["projectionEvidence"]) ? mapping["projectionEvidence"] : {};
+  const projectionEvidence = isRecord(mapping["projectionEvidence"])
+    ? mapping["projectionEvidence"]
+    : {};
   const inputCount = projectionEvidence["inputCount"];
   return typeof inputCount === "number" && Number.isFinite(inputCount) ? inputCount : 0;
 }
@@ -404,7 +406,10 @@ function buildCompactIndex(input: {
       pageNumbers: [...source.pageNumbers].sort((left, right) => left - right),
       surfaceKindCounts: finalizeRecord(source.surfaceKindCounts),
     }))
-    .sort((left, right) => right.surfaceCount - left.surfaceCount || left.sourceId.localeCompare(right.sourceId));
+    .sort(
+      (left, right) =>
+        right.surfaceCount - left.surfaceCount || left.sourceId.localeCompare(right.sourceId),
+    );
 
   return {
     artifactKind: ARTIFACT_KIND,
@@ -482,9 +487,15 @@ function renderMarkdown(artifact: Tier2VocabConsumerIndexArtifact): string {
   lines.push("## Notes");
   lines.push("");
   lines.push("- This is a compact consumer index, not the full evidence audit artifact.");
-  lines.push("- It omits raw payload blobs, field support rows, evidence pointer rows, and projection examples.");
-  lines.push("- Use `artifactPath`, `surfaceId`, `supportIds`, and `evidencePointerIds` to reopen the rich source artifact.");
-  lines.push("- Field rows are meant for detector/materializer queries; surface rows are meant for UI and review lists.");
+  lines.push(
+    "- It omits raw payload blobs, field support rows, evidence pointer rows, and projection examples.",
+  );
+  lines.push(
+    "- Use `artifactPath`, `surfaceId`, `supportIds`, and `evidencePointerIds` to reopen the rich source artifact.",
+  );
+  lines.push(
+    "- Field rows are meant for detector/materializer queries; surface rows are meant for UI and review lists.",
+  );
   return `${lines.join("\n")}\n`;
 }
 
@@ -493,16 +504,18 @@ export async function buildTier2VocabConsumerIndex(
 ): Promise<Tier2VocabConsumerIndexArtifact> {
   const generatedAt = args.generatedAt ?? new Date().toISOString();
   const sourceSurfaceApplicationPath = fromCliPath(args.surfaceApplicationPath);
-  const application = (await Bun.file(sourceSurfaceApplicationPath).json()) as VocabSurfaceApplicationArtifact;
+  const application = (await Bun.file(
+    sourceSurfaceApplicationPath,
+  ).json()) as VocabSurfaceApplicationArtifact;
   if (!Array.isArray(application.normalizedAcceptedSurfaces)) {
-    throw new Error(`Surface application has no normalizedAcceptedSurfaces array: ${sourceSurfaceApplicationPath}`);
+    throw new Error(
+      `Surface application has no normalizedAcceptedSurfaces array: ${sourceSurfaceApplicationPath}`,
+    );
   }
   return buildCompactIndex({ application, sourceSurfaceApplicationPath, generatedAt });
 }
 
-export async function runTier2VocabConsumerIndex(
-  args: BuildTier2VocabConsumerIndexArgs,
-): Promise<{
+export async function runTier2VocabConsumerIndex(args: BuildTier2VocabConsumerIndexArgs): Promise<{
   artifact: Tier2VocabConsumerIndexArtifact;
   outputPath: string;
   markdownPath: string;
@@ -511,10 +524,17 @@ export async function runTier2VocabConsumerIndex(
   const artifact = await buildTier2VocabConsumerIndex(args);
   const outputPath = fromCliPath(
     args.outputPath ??
-      join(defaultArtifactRootPath(), "docs", "tier2-vocab-consumer-index", "vocab-consumer-index.json"),
+      join(
+        defaultArtifactRootPath(),
+        "docs",
+        "tier2-vocab-consumer-index",
+        "vocab-consumer-index.json",
+      ),
   );
   const markdownPath =
-    args.markdownPath === undefined ? outputPath.replace(/\.json$/, ".md") : fromCliPath(args.markdownPath);
+    args.markdownPath === undefined
+      ? outputPath.replace(/\.json$/, ".md")
+      : fromCliPath(args.markdownPath);
   const summaryPath =
     args.summaryPath === undefined
       ? outputPath.replace(/\.json$/, "-summary.json")

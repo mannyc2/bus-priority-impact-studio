@@ -78,7 +78,6 @@ bus-priority-impact-studio/
     studio-api/
     sources/
     analytics/
-    applied-research/
     db/
 
   tools/
@@ -111,7 +110,6 @@ bus-priority-impact-studio/
 | `packages/studio-api` | `@bp/studio-api` | Cloudflare Worker runtime API helpers and handlers for Studio REST resources, auth, bounded authoring writes, source-refresh cron, and agent runtime exports | `@bp/domain`, `@bp/db` | React, TanStack Router route modules, UI assets, `@bp/analytics`, `@bp/applied-research`, `@bp/sources`, `tools/*`, `knowledge/*` |
 | `packages/sources` | `@bp/sources` | Socrata/MTA/NYC DOT/Census adapters, source metadata probe adapters, raw DTO parsing | `@bp/domain` | UI, D1 repositories, route scoring, local artifact writes |
 | `packages/analytics` | `@bp/analytics` | Deterministic transforms, hotspot scoring, route score computation, ACE impact calculations | `@bp/domain`, `@bp/sources` | React, Worker handlers |
-| `packages/applied-research` | `@bp/applied-research` | Corpus-backed research workflows over analytics: detector studies, score vectors, review packets, evaluation artifacts, causal panels, forecasting backtests | `@bp/domain`, `@bp/analytics`, focused `@bp/db/local` adapters | apps, tools, source fetching, publishing, React |
 | `packages/db` | `@bp/db` | D1 serving schema/queries plus local SQLite pipeline schema, migrations, and repositories | `@bp/domain` | source fetchers, heavy analytics |
 | `tools/pipeline` | `@bp/pipeline` | Local CLI for probes, fetches, transforms, artifact builds, D1 seed generation | all packages | public request handlers |
 | `knowledge` | none | LLM-maintained wiki and raw source notes | none at runtime | app runtime imports |
@@ -146,12 +144,15 @@ Rules:
 - `src/checks/` owns repo/project guard checks used by root scripts.
 - `src/lib/` owns small shared pipeline helpers for paths, dates, route artifact keys, and JSON writes.
 - Pure scoring/transformation logic should continue moving into `packages/analytics`, source transport/parsing into `packages/sources`, and D1 serialization/repository behavior into `packages/db` when a job module starts carrying package-level responsibility.
-- Corpus-backed research implementation should move into `packages/applied-research` when a pipeline
-  command starts assembling detector-native features, score vectors, review packets, evaluation
-  artifacts, causal panels, or forecasting backtests. The CLI should parse flags, open local stores,
-  call the research package, and write outputs.
+- Corpus-backed research-specific implementation is retired for the simplified product cutover.
+  Pipeline commands should either call pure builders in `@bp/analytics` or keep local SQLite
+  aggregation in focused `tools/pipeline-v2/src/lib/**` modules.
 
 ## Applied research package layout
+
+Retired 2026-07-01: `packages/applied-research` / `@bp/applied-research` was deleted in the
+hard cutover to a simpler aggregation pipeline. The historical notes below describe the retired
+architecture and should not guide new implementation.
 
 `@bp/applied-research` is the bridge between the pure analytics kernel and headless consumers such
 as `tools/pipeline-v2` and Ralph/Codex research loops.
@@ -460,9 +461,8 @@ apps/web              -> packages/domain, packages/db, packages/studio-api
 packages/studio-api   -> packages/domain, packages/db
 packages/db           -> packages/domain
 packages/analytics    -> packages/domain, packages/sources
-packages/applied-research -> packages/domain, packages/analytics, packages/db
 packages/sources      -> packages/domain
-tools/pipeline        -> packages/domain, packages/sources, packages/analytics, packages/applied-research, packages/db
+tools/pipeline        -> packages/domain, packages/sources, packages/analytics, packages/db
 ```
 
 Forbidden:
@@ -480,8 +480,6 @@ packages/studio-api   -> packages/applied-research
 packages/studio-api   -> packages/sources
 packages/studio-api   -> knowledge/*
 packages/domain       -> any local package
-packages/applied-research -> apps/*
-packages/applied-research -> tools/*
 runtime app code      -> knowledge/*
 ```
 
@@ -805,10 +803,8 @@ projection work:
   raw-SQL row parser, panel manifest, D1 seed schema, public API schema, or artifact verifier?
 - **Surface class:** Is the output local-only, internal-lab, review artifact, serving projection, or
   public route/page data?
-- **Package home:** Is this storage truth (`@bp/db`), corpus-to-panel extraction
-  (`@bp/applied-research/local-db`), data-product/model/review artifact work
-  (`@bp/applied-research`), pure detector/statistical logic (`@bp/analytics`), or pipeline
-  orchestration?
+- **Package home:** Is this storage truth (`@bp/db`), pure detector/statistical logic
+  (`@bp/analytics`), or pipeline-local SQLite/artifact orchestration?
 - **SQLite safety:** Does the change mutate the live local DB? If so, is it scoped, transactional,
   and non-destructive; or does it require a copied DB on the large storage volume first?
 

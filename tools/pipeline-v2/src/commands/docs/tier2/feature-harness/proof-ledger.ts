@@ -1,16 +1,16 @@
-import { mkdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { writeJson } from "../../../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../../../lib/paths.ts";
 import {
+  type BuildTier2FeatureProofLedgerArgs,
   FEATURE_PROOF_LEDGER_ARTIFACT_KIND,
   FEATURE_PROOF_LEDGER_SUMMARY_KIND,
-  type BuildTier2FeatureProofLedgerArgs,
   type FeatureCandidateRole,
   type FeatureFamily,
-  type FeatureProofCandidate,
   type FeaturePromotionEligibility,
+  type FeatureProofCandidate,
   type FeatureValidationError,
   type FeatureValidationErrorCode,
   type FeatureValidationRetryBatch,
@@ -19,8 +19,8 @@ import {
   type MetricFeatureCompleteness,
   type MetricFeatureCompletenessSlot,
   type ProofState,
-  type Tier2FeatureProofLedgerInputMode,
   type Tier2FeatureProofLedgerArtifact,
+  type Tier2FeatureProofLedgerInputMode,
   type ValidationRetryOwner,
 } from "./types.ts";
 
@@ -142,11 +142,14 @@ function numberArray(value: unknown): number[] {
 }
 
 function stringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.flatMap((item) => (typeof item === "string" ? [item] : [])) : [];
+  return Array.isArray(value)
+    ? value.flatMap((item) => (typeof item === "string" ? [item] : []))
+    : [];
 }
 
 function normalizePrimitive(value: unknown): string | null {
-  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") return null;
+  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean")
+    return null;
   const normalized = String(value).replace(/\s+/g, " ").trim();
   return normalized.length === 0 ? null : normalized;
 }
@@ -160,7 +163,10 @@ function getPath(root: unknown, path: string): unknown {
   return cursor;
 }
 
-function firstPrimitiveAtPaths(root: unknown, paths: string[]): { path: string; value: string } | null {
+function firstPrimitiveAtPaths(
+  root: unknown,
+  paths: string[],
+): { path: string; value: string } | null {
   for (const path of paths) {
     const value = getPath(root, path);
     if (Array.isArray(value)) {
@@ -214,14 +220,17 @@ function evidenceFromRows(rows: JsonRecord[]): FieldEvidence {
       ),
     ),
     verifierStates: uniqueSorted(rows.flatMap((row) => stringValue(row["verifierState"]) ?? [])),
-    supportCompleteness: uniqueSorted(rows.flatMap((row) => stringValue(row["supportCompleteness"]) ?? [])),
+    supportCompleteness: uniqueSorted(
+      rows.flatMap((row) => stringValue(row["supportCompleteness"]) ?? []),
+    ),
   };
 }
 
 function evidenceForAnyField(fieldSupport: unknown[], fieldPaths: string[]): FieldEvidence {
   const pathSet = new Set(fieldPaths);
   const rows = fieldSupport.filter(
-    (item): item is JsonRecord => isRecord(item) && typeof item["fieldPath"] === "string" && pathSet.has(item["fieldPath"]),
+    (item): item is JsonRecord =>
+      isRecord(item) && typeof item["fieldPath"] === "string" && pathSet.has(item["fieldPath"]),
   );
   return evidenceFromRows(rows);
 }
@@ -239,20 +248,30 @@ function normalizeEvidence(value: unknown): FieldEvidence {
 
 function hasVerifiedSourceLocalProof(evidence: FieldEvidence): boolean {
   const verifierOk = evidence.verifierStates.includes("verified");
-  const completenessOk = evidence.supportCompleteness.length === 0 || evidence.supportCompleteness.includes("exact");
-  return evidence.fieldSupportFound && evidence.evidencePointerIds.length > 0 && verifierOk && completenessOk;
+  const completenessOk =
+    evidence.supportCompleteness.length === 0 || evidence.supportCompleteness.includes("exact");
+  return (
+    evidence.fieldSupportFound &&
+    evidence.evidencePointerIds.length > 0 &&
+    verifierOk &&
+    completenessOk
+  );
 }
 
 function supportProofState(evidence: FieldEvidence): ProofState {
-  if (!evidence.fieldSupportFound || evidence.evidencePointerIds.length === 0) return "support_missing";
+  if (!evidence.fieldSupportFound || evidence.evidencePointerIds.length === 0)
+    return "support_missing";
   if (!evidence.verifierStates.includes("verified")) return "ambiguous";
-  if (evidence.supportCompleteness.length > 0 && !evidence.supportCompleteness.includes("exact")) return "ambiguous";
+  if (evidence.supportCompleteness.length > 0 && !evidence.supportCompleteness.includes("exact"))
+    return "ambiguous";
   return "verified";
 }
 
 function normalizeFieldMappings(surface: JsonRecord): NormalizedFieldMapping[] {
   const normalization = isRecord(surface["normalization"]) ? surface["normalization"] : {};
-  const rawMappings = Array.isArray(normalization["fieldMappings"]) ? normalization["fieldMappings"] : [];
+  const rawMappings = Array.isArray(normalization["fieldMappings"])
+    ? normalization["fieldMappings"]
+    : [];
   return rawMappings.flatMap((item): NormalizedFieldMapping[] => {
     if (!isRecord(item)) return [];
     const keyId = stringValue(item["keyId"]);
@@ -260,7 +279,13 @@ function normalizeFieldMappings(surface: JsonRecord): NormalizedFieldMapping[] {
     const targetPayloadPath = stringValue(item["targetPayloadPath"]);
     const rawValue = normalizePrimitive(item["rawValue"]);
     const canonicalLeafId = stringValue(item["canonicalLeafId"]);
-    if (keyId === null || sourceFieldPath === null || targetPayloadPath === null || rawValue === null || canonicalLeafId === null) {
+    if (
+      keyId === null ||
+      sourceFieldPath === null ||
+      targetPayloadPath === null ||
+      rawValue === null ||
+      canonicalLeafId === null
+    ) {
       return [];
     }
     const modifiers = isRecord(item["modifiers"]) ? normalizeModifiers(item["modifiers"]) : {};
@@ -283,7 +308,9 @@ function normalizeFieldMappings(surface: JsonRecord): NormalizedFieldMapping[] {
 
 function normalizeUnresolvedFields(surface: JsonRecord): NormalizedUnresolvedField[] {
   const normalization = isRecord(surface["normalization"]) ? surface["normalization"] : {};
-  const rawFields = Array.isArray(normalization["unresolvedFields"]) ? normalization["unresolvedFields"] : [];
+  const rawFields = Array.isArray(normalization["unresolvedFields"])
+    ? normalization["unresolvedFields"]
+    : [];
   return rawFields.flatMap((item): NormalizedUnresolvedField[] => {
     if (!isRecord(item)) return [];
     const keyId = stringValue(item["keyId"]);
@@ -296,7 +323,9 @@ function normalizeUnresolvedFields(surface: JsonRecord): NormalizedUnresolvedFie
       sourceFieldPath === null ||
       targetPayloadPath === null ||
       rawValue === null ||
-      (decision !== "preserve_raw" && decision !== "unresolved" && decision !== "missing_projection")
+      (decision !== "preserve_raw" &&
+        decision !== "unresolved" &&
+        decision !== "missing_projection")
     ) {
       return [];
     }
@@ -326,7 +355,9 @@ function normalizeModifiers(value: JsonRecord): Record<string, string[]> {
 }
 
 function featureFamilyFor(keyId: string, surfaceKind: string): FeatureFamily {
-  return FEATURE_FAMILY_BY_KEY_ID[keyId] ?? FEATURE_FAMILY_BY_SURFACE_KIND[surfaceKind] ?? "taxonomy";
+  return (
+    FEATURE_FAMILY_BY_KEY_ID[keyId] ?? FEATURE_FAMILY_BY_SURFACE_KIND[surfaceKind] ?? "taxonomy"
+  );
 }
 
 function validationError(input: {
@@ -346,7 +377,10 @@ function validationError(input: {
   };
 }
 
-function baseValidationErrors(field: RawFeatureField, role: FeatureCandidateRole): FeatureValidationError[] {
+function baseValidationErrors(
+  field: RawFeatureField,
+  role: FeatureCandidateRole,
+): FeatureValidationError[] {
   const errors: FeatureValidationError[] = [];
   if (role === "unresolved_field") {
     if (field.decision === "preserve_raw") {
@@ -354,7 +388,8 @@ function baseValidationErrors(field: RawFeatureField, role: FeatureCandidateRole
         validationError({
           code: "preserve_raw_quarantined",
           retryOwner: "vocab_runner",
-          message: "This raw value is intentionally preserved and cannot be consumed as a canonical feature.",
+          message:
+            "This raw value is intentionally preserved and cannot be consumed as a canonical feature.",
           llmRetryInstruction:
             "Only retry extraction if the source contains a more specific canonical label; otherwise leave this field quarantined.",
           deterministicRunnerFields: ["decision", "targetPayloadPath", "canonicalLeafId"],
@@ -368,13 +403,22 @@ function baseValidationErrors(field: RawFeatureField, role: FeatureCandidateRole
           message: "This raw value has no resolved canonical vocabulary leaf.",
           llmRetryInstruction:
             "Return the source-observed raw value and evidence again; the runner must resolve or quarantine the vocabulary leaf before promotion.",
-          deterministicRunnerFields: ["canonicalLeafId", "canonicalLeafLabel", "coarseFamily", "modifiers"],
+          deterministicRunnerFields: [
+            "canonicalLeafId",
+            "canonicalLeafLabel",
+            "coarseFamily",
+            "modifiers",
+          ],
         }),
       );
     }
   }
 
-  if (role === "canonical_field" && field.decision === "mapped" && field.canonicalLeafId.length === 0) {
+  if (
+    role === "canonical_field" &&
+    field.decision === "mapped" &&
+    field.canonicalLeafId.length === 0
+  ) {
     errors.push(
       validationError({
         code: "canonical_resolver_missing",
@@ -443,11 +487,22 @@ function metricCompletenessSlot(input: {
   };
 }
 
-function metricCompletenessFor(surface: JsonRecord, fieldSupport: unknown[]): MetricFeatureCompleteness {
+function metricCompletenessFor(
+  surface: JsonRecord,
+  fieldSupport: unknown[],
+): MetricFeatureCompleteness {
   return {
     value: metricCompletenessSlot({ surface, fieldSupport, valuePaths: METRIC_VALUE_PATHS }),
-    authority: metricCompletenessSlot({ surface, fieldSupport, valuePaths: METRIC_AUTHORITY_PATHS }),
-    publicationGate: metricCompletenessSlot({ surface, fieldSupport, valuePaths: METRIC_PUBLICATION_GATE_PATHS }),
+    authority: metricCompletenessSlot({
+      surface,
+      fieldSupport,
+      valuePaths: METRIC_AUTHORITY_PATHS,
+    }),
+    publicationGate: metricCompletenessSlot({
+      surface,
+      fieldSupport,
+      valuePaths: METRIC_PUBLICATION_GATE_PATHS,
+    }),
   };
 }
 
@@ -482,7 +537,8 @@ function metricValidationErrors(metric: MetricFeatureCompleteness): FeatureValid
       validationError({
         code: "metric_authority_missing",
         retryOwner: "llm",
-        message: "Metric claims require sourceClaimAuthority or equivalent authorityRaw before promotion.",
+        message:
+          "Metric claims require sourceClaimAuthority or equivalent authorityRaw before promotion.",
         llmRetryInstruction:
           "Retry with sourceClaimAuthority/authorityRaw indicating whether the value is source-stated, derived, projected, or uncertain.",
         deterministicRunnerFields: ["metricCompleteness", "promotionEligibility"],
@@ -528,9 +584,18 @@ function metricValidationErrors(metric: MetricFeatureCompleteness): FeatureValid
   return errors;
 }
 
-function proofStateFor(errors: FeatureValidationError[], role: FeatureCandidateRole, field: RawFeatureField): ProofState {
+function proofStateFor(
+  errors: FeatureValidationError[],
+  role: FeatureCandidateRole,
+  field: RawFeatureField,
+): ProofState {
   if (role === "unresolved_field" && field.decision === "preserve_raw") return "quarantined";
-  if (errors.some((error) => error.code === "canonical_resolver_missing" || error.code === "metric_value_missing")) {
+  if (
+    errors.some(
+      (error) =>
+        error.code === "canonical_resolver_missing" || error.code === "metric_value_missing",
+    )
+  ) {
     return "resolver_missing";
   }
   if (
@@ -567,8 +632,21 @@ function promotionEligibilityFor(input: {
     "table_cell",
     "event_identity",
   ]);
-  const causalFamilies = new Set<FeatureFamily>(["route_scope", "operational_date_status", "treatment", "metric_claim", "causal_eligibility"]);
-  const briefFamilies = new Set<FeatureFamily>(["route_scope", "treatment", "metric_claim", "claim", "event_identity", "source_statement"]);
+  const causalFamilies = new Set<FeatureFamily>([
+    "route_scope",
+    "operational_date_status",
+    "treatment",
+    "metric_claim",
+    "causal_eligibility",
+  ]);
+  const briefFamilies = new Set<FeatureFamily>([
+    "route_scope",
+    "treatment",
+    "metric_claim",
+    "claim",
+    "event_identity",
+    "source_statement",
+  ]);
   return {
     publicFeature: publishable,
     detectorFeature: publishable && detectorFamilies.has(input.featureFamily),
@@ -589,13 +667,19 @@ function candidateFromField(input: {
   const surfaceKind = stringValue(surface["surfaceKind"]) ?? "unknown";
   const featureFamily = featureFamilyFor(input.field.keyId, surfaceKind);
   const metricCompleteness =
-    featureFamily === "metric_claim" ? metricCompletenessFor(surface, input.normalizedSurface.fieldSupport) : null;
+    featureFamily === "metric_claim"
+      ? metricCompletenessFor(surface, input.normalizedSurface.fieldSupport)
+      : null;
   const validationErrors = [
     ...baseValidationErrors(input.field, input.role),
     ...(metricCompleteness === null ? [] : metricValidationErrors(metricCompleteness)),
   ];
   const proofState = proofStateFor(validationErrors, input.role, input.field);
-  const promotionEligibility = promotionEligibilityFor({ featureFamily, proofState, validationErrors });
+  const promotionEligibility = promotionEligibilityFor({
+    featureFamily,
+    proofState,
+    validationErrors,
+  });
   const surfaceId = stringValue(surface["surfaceId"]);
   const candidateHash = stableHash([
     input.normalizedSurface.artifactPath,
@@ -654,7 +738,9 @@ function normalizeAcceptedSurface(value: unknown): NormalizedAcceptedSurface | n
     surface: value["surface"],
     fieldSupport: Array.isArray(value["fieldSupport"]) ? value["fieldSupport"] : [],
     evidencePointers: Array.isArray(value["evidencePointers"]) ? value["evidencePointers"] : [],
-    acceptedCanonicalFields: Array.isArray(value["acceptedCanonicalFields"]) ? value["acceptedCanonicalFields"] : [],
+    acceptedCanonicalFields: Array.isArray(value["acceptedCanonicalFields"])
+      ? value["acceptedCanonicalFields"]
+      : [],
     warnings: stringArray(value["warnings"]),
   };
 }
@@ -696,27 +782,42 @@ function summarizeCandidates(candidates: FeatureProofCandidate[], normalizedSurf
     increment(byProofState, candidate.proofState);
     increment(byKeyId, candidate.keyId);
     increment(bySurfaceKind, candidate.source.surfaceKind);
-    if (candidate.validationErrors.length > 0) increment(blockedByFeatureFamily, candidate.featureFamily);
-    if (candidate.promotionEligibility.publicFeature) increment(publishableByFeatureFamily, candidate.featureFamily);
+    if (candidate.validationErrors.length > 0)
+      increment(blockedByFeatureFamily, candidate.featureFamily);
+    if (candidate.promotionEligibility.publicFeature)
+      increment(publishableByFeatureFamily, candidate.featureFamily);
     for (const error of candidate.validationErrors) {
       increment(validationErrorsByCode, error.code);
-      if (error.severity === "blocking") sourcesWithBlockingErrors.add(candidate.source.sourceId ?? candidate.source.artifactPath);
+      if (error.severity === "blocking")
+        sourcesWithBlockingErrors.add(candidate.source.sourceId ?? candidate.source.artifactPath);
     }
   }
 
-  const publishableFieldCount = candidates.filter((candidate) => candidate.promotionEligibility.publicFeature).length;
+  const publishableFieldCount = candidates.filter(
+    (candidate) => candidate.promotionEligibility.publicFeature,
+  ).length;
   return {
     normalizedSurfaceCount,
     fieldCandidateCount: candidates.length,
-    canonicalFieldCandidateCount: candidates.filter((candidate) => candidate.role === "canonical_field").length,
-    unresolvedFieldCandidateCount: candidates.filter((candidate) => candidate.role === "unresolved_field").length,
-    verifiedFieldCount: candidates.filter((candidate) => candidate.proofState === "verified").length,
-    blockedFieldCount: candidates.filter((candidate) => candidate.validationErrors.length > 0).length,
+    canonicalFieldCandidateCount: candidates.filter(
+      (candidate) => candidate.role === "canonical_field",
+    ).length,
+    unresolvedFieldCandidateCount: candidates.filter(
+      (candidate) => candidate.role === "unresolved_field",
+    ).length,
+    verifiedFieldCount: candidates.filter((candidate) => candidate.proofState === "verified")
+      .length,
+    blockedFieldCount: candidates.filter((candidate) => candidate.validationErrors.length > 0)
+      .length,
     publishableFieldCount,
     publishableFieldWithoutProofCount: candidates.filter(
-      (candidate) => candidate.promotionEligibility.publicFeature && candidate.proofState !== "verified",
+      (candidate) =>
+        candidate.promotionEligibility.publicFeature && candidate.proofState !== "verified",
     ).length,
-    validationErrorCount: candidates.reduce((sum, candidate) => sum + candidate.validationErrors.length, 0),
+    validationErrorCount: candidates.reduce(
+      (sum, candidate) => sum + candidate.validationErrors.length,
+      0,
+    ),
     byFeatureFamily: finalizeRecord(byFeatureFamily),
     byProofState: finalizeRecord(byProofState),
     byKeyId: finalizeRecord(byKeyId),
@@ -744,7 +845,8 @@ function retryBatchesFor(candidates: FeatureProofCandidate[]): FeatureValidation
           llmRetryInstruction: error.llmRetryInstruction,
         } satisfies FeatureValidationRetryBatch);
       current.count += 1;
-      if (current.exampleCandidateIds.length < 5) current.exampleCandidateIds.push(candidate.candidateId);
+      if (current.exampleCandidateIds.length < 5)
+        current.exampleCandidateIds.push(candidate.candidateId);
       batches.set(key, current);
     }
   }
@@ -757,10 +859,14 @@ function retryBatchesFor(candidates: FeatureProofCandidate[]): FeatureValidation
 }
 
 function finalizeRecord(record: Record<string, number>): Record<string, number> {
-  return Object.fromEntries(Object.entries(record).sort(([left], [right]) => left.localeCompare(right)));
+  return Object.fromEntries(
+    Object.entries(record).sort(([left], [right]) => left.localeCompare(right)),
+  );
 }
 
-export function renderTier2FeatureProofLedgerMarkdown(artifact: Tier2FeatureProofLedgerArtifact): string {
+export function renderTier2FeatureProofLedgerMarkdown(
+  artifact: Tier2FeatureProofLedgerArtifact,
+): string {
   const lines: string[] = [];
   lines.push("# Tier 2 Feature Proof Ledger");
   lines.push("");
@@ -773,7 +879,9 @@ export function renderTier2FeatureProofLedgerMarkdown(artifact: Tier2FeatureProo
   lines.push(`- Verified fields: ${artifact.summary.verifiedFieldCount}`);
   lines.push(`- Blocked fields: ${artifact.summary.blockedFieldCount}`);
   lines.push(`- Publishable fields: ${artifact.summary.publishableFieldCount}`);
-  lines.push(`- Publishable fields without proof: ${artifact.summary.publishableFieldWithoutProofCount}`);
+  lines.push(
+    `- Publishable fields without proof: ${artifact.summary.publishableFieldWithoutProofCount}`,
+  );
   lines.push(`- Validation errors: ${artifact.summary.validationErrorCount}`);
   lines.push("");
   lines.push("## Validation Errors");
@@ -795,8 +903,12 @@ export function renderTier2FeatureProofLedgerMarkdown(artifact: Tier2FeatureProo
   lines.push("## Notes");
   lines.push("");
   lines.push("- `rawPayload` is never mutated by this harness.");
-  lines.push("- Candidate identity, feature family, proof state, and promotion eligibility are deterministic runner-owned fields.");
-  lines.push("- Validation errors are structured so extraction/retry agents can receive machine-readable feedback.");
+  lines.push(
+    "- Candidate identity, feature family, proof state, and promotion eligibility are deterministic runner-owned fields.",
+  );
+  lines.push(
+    "- Validation errors are structured so extraction/retry agents can receive machine-readable feedback.",
+  );
   return `${lines.join("\n")}\n`;
 }
 
@@ -827,7 +939,9 @@ export function buildTier2FeatureProofLedgerFromCandidates(
     ...(args.sourceFeatureExtractionInputMode === undefined
       ? {}
       : { sourceFeatureExtractionInputMode: args.sourceFeatureExtractionInputMode }),
-    ...(args.sourceProofLedgerPath === undefined ? {} : { sourceProofLedgerPath: args.sourceProofLedgerPath }),
+    ...(args.sourceProofLedgerPath === undefined
+      ? {}
+      : { sourceProofLedgerPath: args.sourceProofLedgerPath }),
     safetyPolicy: {
       llmRuntimeUse: "none",
       runnerOwnsVocabulary: true,
@@ -856,7 +970,13 @@ export function buildTier2FeatureProofLedgerFromCandidates(
         "validationErrors",
         "metricCompleteness",
       ],
-      vocabRunnerFields: ["canonicalLeafId", "canonicalLeafLabel", "coarseFamily", "modifiers", "targetPayloadPath"],
+      vocabRunnerFields: [
+        "canonicalLeafId",
+        "canonicalLeafLabel",
+        "coarseFamily",
+        "modifiers",
+        "targetPayloadPath",
+      ],
     },
     summary,
     validationRetryBatches: retryBatchesFor(args.candidates),
@@ -908,7 +1028,7 @@ export async function buildTier2FeatureProofLedger(
 
   const sourceCanonicalMergePath =
     args.canonicalMergePath === undefined
-      ? vocabApplication.sourceCanonicalMergePath ?? null
+      ? (vocabApplication.sourceCanonicalMergePath ?? null)
       : fromCliPath(args.canonicalMergePath);
 
   return buildTier2FeatureProofLedgerFromCandidates({
@@ -932,9 +1052,13 @@ export async function writeTier2FeatureProofLedgerArtifacts(args: {
 }> {
   const outputPath = fromCliPath(args.outputPath);
   const markdownPath =
-    args.markdownPath === undefined ? outputPath.replace(/\.json$/, ".md") : fromCliPath(args.markdownPath);
+    args.markdownPath === undefined
+      ? outputPath.replace(/\.json$/, ".md")
+      : fromCliPath(args.markdownPath);
   const summaryPath =
-    args.summaryPath === undefined ? outputPath.replace(/\.json$/, "-summary.json") : fromCliPath(args.summaryPath);
+    args.summaryPath === undefined
+      ? outputPath.replace(/\.json$/, "-summary.json")
+      : fromCliPath(args.summaryPath);
   await mkdir(dirname(outputPath), { recursive: true });
   await writeJson(outputPath, args.artifact);
   await Bun.write(markdownPath, renderTier2FeatureProofLedgerMarkdown(args.artifact));
@@ -958,7 +1082,12 @@ export async function runTier2FeatureProofLedger(args: BuildTier2FeatureProofLed
   const artifact = await buildTier2FeatureProofLedger(args);
   const outputPath = fromCliPath(
     args.outputPath ??
-      join(defaultArtifactRootPath(), "docs", "tier2-feature-proof-ledger", "feature-proof-ledger.json"),
+      join(
+        defaultArtifactRootPath(),
+        "docs",
+        "tier2-feature-proof-ledger",
+        "feature-proof-ledger.json",
+      ),
   );
   const written = await writeTier2FeatureProofLedgerArtifacts({
     artifact,

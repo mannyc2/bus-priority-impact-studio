@@ -37,8 +37,7 @@ function mean(values: readonly number[]): number | null {
 function populationStandardDeviation(values: readonly number[]): number | null {
   const valueMean = mean(values);
   if (valueMean === null) return null;
-  const variance =
-    values.reduce((sum, value) => sum + (value - valueMean) ** 2, 0) / values.length;
+  const variance = values.reduce((sum, value) => sum + (value - valueMean) ** 2, 0) / values.length;
   return Math.sqrt(variance);
 }
 
@@ -66,7 +65,9 @@ export function excessWaitTimeMinutes(
   const averageWait = averageWaitTimeMinutes(headwaysMinutes);
   const scheduledWait = scheduledWaitTimeMinutes(scheduledBusesPerHour);
   const excessWait =
-    averageWait === null || scheduledWait === null ? null : Math.max(0, averageWait - scheduledWait);
+    averageWait === null || scheduledWait === null
+      ? null
+      : Math.max(0, averageWait - scheduledWait);
 
   return {
     averageWaitTimeMinutes: averageWait,
@@ -93,7 +94,9 @@ export function headwayCoefficientOfVariation(
   return standardDeviation / denominator;
 }
 
-export function headwayLosFromCoefficient(coefficientOfVariation: number | null): HeadwayLos | null {
+export function headwayLosFromCoefficient(
+  coefficientOfVariation: number | null,
+): HeadwayLos | null {
   if (coefficientOfVariation === null) return null;
   if (!Number.isFinite(coefficientOfVariation) || coefficientOfVariation < 0) return null;
   if (coefficientOfVariation <= 0.21) return "A";

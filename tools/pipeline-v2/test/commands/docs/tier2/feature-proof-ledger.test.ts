@@ -33,13 +33,17 @@ describe("Tier 2 feature proof ledger", () => {
     expect(artifact.summary.fieldCandidateCount).toBe(4);
     expect(artifact.summary.publishableFieldWithoutProofCount).toBe(0);
 
-    const verifiedMetric = artifact.candidates.find((candidate) => candidate.rawValue === "B41 bus speed");
+    const verifiedMetric = artifact.candidates.find(
+      (candidate) => candidate.rawValue === "B41 bus speed",
+    );
     expect(verifiedMetric?.featureFamily).toBe("metric_claim");
     expect(verifiedMetric?.proofState).toBe("verified");
     expect(verifiedMetric?.promotionEligibility.publicFeature).toBe(true);
     expect(verifiedMetric?.metricCompleteness?.value.path).toBe("rawPayload.valueRaw");
 
-    const weakMetric = artifact.candidates.find((candidate) => candidate.rawValue === "generic speed");
+    const weakMetric = artifact.candidates.find(
+      (candidate) => candidate.rawValue === "generic speed",
+    );
     expect(weakMetric?.proofState).toBe("resolver_missing");
     expect(weakMetric?.promotionEligibility.publicFeature).toBe(false);
     expect(weakMetric?.validationErrors.map((error) => error.code)).toEqual([
@@ -49,15 +53,25 @@ describe("Tier 2 feature proof ledger", () => {
       "metric_publication_gate_missing",
     ]);
 
-    const preserved = artifact.candidates.find((candidate) => candidate.rawValue === "overtaking_capability");
+    const preserved = artifact.candidates.find(
+      (candidate) => candidate.rawValue === "overtaking_capability",
+    );
     expect(preserved?.proofState).toBe("quarantined");
-    expect(preserved?.validationErrors.map((error) => error.code)).toContain("preserve_raw_quarantined");
+    expect(preserved?.validationErrors.map((error) => error.code)).toContain(
+      "preserve_raw_quarantined",
+    );
 
-    const unresolved = artifact.candidates.find((candidate) => candidate.rawValue === "route_title_as_kind");
+    const unresolved = artifact.candidates.find(
+      (candidate) => candidate.rawValue === "route_title_as_kind",
+    );
     expect(unresolved?.proofState).toBe("resolver_missing");
-    expect(unresolved?.validationErrors.map((error) => error.code)).toContain("canonical_resolver_missing");
+    expect(unresolved?.validationErrors.map((error) => error.code)).toContain(
+      "canonical_resolver_missing",
+    );
 
-    expect(artifact.validationRetryBatches.map((batch) => batch.code)).toContain("field_support_missing");
+    expect(artifact.validationRetryBatches.map((batch) => batch.code)).toContain(
+      "field_support_missing",
+    );
     expect(artifact.fieldOwnership.deterministicRunnerFields).toContain("promotionEligibility");
   });
 
@@ -108,8 +122,16 @@ function fixtureVocabApplication() {
           }),
         ],
         fieldSupport: [
-          support("metric-verified:support:label", "rawPayload.metricLabel", "metric-verified:pointer:label"),
-          support("metric-verified:support:value", "rawPayload.valueRaw", "metric-verified:pointer:value"),
+          support(
+            "metric-verified:support:label",
+            "rawPayload.metricLabel",
+            "metric-verified:pointer:label",
+          ),
+          support(
+            "metric-verified:support:value",
+            "rawPayload.valueRaw",
+            "metric-verified:pointer:value",
+          ),
           support(
             "metric-verified:support:authority",
             "rawPayload.sourceClaimAuthority",

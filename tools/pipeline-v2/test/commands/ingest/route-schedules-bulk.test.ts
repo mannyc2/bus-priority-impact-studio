@@ -46,6 +46,18 @@ afterEach(async () => {
 });
 
 describe("runRouteSchedulesBulkIngest", () => {
+  test("command wrapper uses the Effect local DB boundary", async () => {
+    const source = await Bun.file(
+      new URL("../../../src/commands/ingest/route-schedules-bulk.ts", import.meta.url),
+    ).text();
+
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("runRouteSchedulesBulkIngest({");
+    expect(source).toContain('import type { Database } from "bun:sqlite"');
+    expect(source).not.toContain("Database as BunDatabase");
+    expect(source).not.toContain("new BunDatabase");
+  });
+
   test("stream-imports display-name Socrata CSV rows with deterministic route row ranks", async () => {
     const tempDir = await makeTempDir();
     const csvPath = join(tempDir, "rows.csv");

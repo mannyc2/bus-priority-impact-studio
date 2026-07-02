@@ -5,9 +5,14 @@ import {
   type RouteReliabilityBaselineRow,
   routeBaseline,
   runRouteReliabilityBaseline,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
-import { dbOptions, localDbFromCtx, withLocalDb } from "../../lib/local-db.ts";
+import {
+  makeRouteLocalDbCommandLayer,
+  runRouteReliabilityBaselineCommand,
+} from "../../effect/route-local-db.ts";
+import { runPipelineEffect } from "../../effect/runtime.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 
 export {
   buildHeadwayGroups,
@@ -27,17 +32,20 @@ export default defineCommand({
       month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     isoMonth: z.string(),
     routeCount: z.number(),
     headwaySampleCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runRouteReliabilityBaseline({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-    });
+  async run({ input }) {
+    return runPipelineEffect(
+      runRouteReliabilityBaselineCommand({
+        year: input.options.year,
+        month: input.options.month,
+      }),
+      makeRouteLocalDbCommandLayer({
+        dbPath: input.options.db,
+      }),
+    );
   },
 });

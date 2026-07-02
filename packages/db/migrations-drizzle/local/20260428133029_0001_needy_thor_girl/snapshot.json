@@ -1,9 +1,7 @@
 {
   "dialect": "sqlite",
   "id": "c52ff3ad-c131-48c9-9473-0951a4f4554b",
-  "prevIds": [
-    "5c163cf0-7634-4fe5-a40b-38c770e6120b"
-  ],
+  "prevIds": ["5c163cf0-7634-4fe5-a40b-38c770e6120b"],
   "version": "7",
   "ddl": [
     {
@@ -81,11 +79,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "artifact_name"
-      ],
+      "columns": ["route_id", "month", "artifact_name"],
       "nameExplicit": false,
       "name": "local_route_artifact_route_id_month_artifact_name_pk",
       "table": "local_route_artifact",
@@ -146,10 +140,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "month",
-        "route_rank"
-      ],
+      "columns": ["month", "route_rank"],
       "nameExplicit": false,
       "name": "local_route_batch_built_route_month_route_rank_pk",
       "table": "local_route_batch_built_route",
@@ -220,10 +211,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "month",
-        "issue_rank"
-      ],
+      "columns": ["month", "issue_rank"],
       "nameExplicit": false,
       "name": "local_route_batch_issue_month_issue_rank_pk",
       "table": "local_route_batch_issue",
@@ -244,9 +232,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "month"
-      ],
+      "columns": ["month"],
       "nameExplicit": false,
       "name": "local_route_batch_status_pk",
       "table": "local_route_batch_status",
@@ -457,11 +443,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "window_rank"
-      ],
+      "columns": ["route_id", "month", "window_rank"],
       "nameExplicit": false,
       "name": "local_route_brief_peak_window_route_id_month_window_rank_pk",
       "table": "local_route_brief_peak_window",
@@ -582,11 +564,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "window_rank"
-      ],
+      "columns": ["route_id", "month", "window_rank"],
       "nameExplicit": false,
       "name": "local_route_brief_slowest_window_route_id_month_window_rank_pk",
       "table": "local_route_brief_slowest_window",
@@ -727,10 +705,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_brief_summary_route_id_month_pk",
       "table": "local_route_brief_summary",
@@ -931,10 +906,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_build_plan_route_id_month_pk",
       "table": "local_route_build_plan",
@@ -955,9 +927,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id"
-      ],
+      "columns": ["route_id"],
       "nameExplicit": false,
       "name": "local_route_catalog_pk",
       "table": "local_route_catalog",
@@ -1088,10 +1058,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "type_rank"
-      ],
+      "columns": ["route_id", "type_rank"],
       "nameExplicit": false,
       "name": "local_route_catalog_type_route_id_type_rank_pk",
       "table": "local_route_catalog_type",
@@ -1182,10 +1149,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "month",
-        "rank"
-      ],
+      "columns": ["month", "rank"],
       "nameExplicit": false,
       "name": "local_route_comparison_rank_month_rank_pk",
       "table": "local_route_comparison_rank",
@@ -1226,10 +1190,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "direction_rank"
-      ],
+      "columns": ["route_id", "direction_rank"],
       "nameExplicit": false,
       "name": "local_route_direction_route_id_direction_rank_pk",
       "table": "local_route_direction",
@@ -1430,10 +1391,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_equity_context_route_id_month_pk",
       "table": "local_route_equity_context",
@@ -1524,10 +1482,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_month_coverage_route_id_month_pk",
       "table": "local_route_month_coverage",
@@ -1618,12 +1573,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "source_scope",
-        "source_id"
-      ],
+      "columns": ["route_id", "month", "source_scope", "source_id"],
       "nameExplicit": false,
       "name": "local_route_month_source_status_route_id_month_source_scope_source_id_pk",
       "table": "local_route_month_source_status",
@@ -1724,10 +1674,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_month_trend_route_id_month_pk",
       "table": "local_route_month_trend",
@@ -1878,10 +1825,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_readiness_route_id_month_pk",
       "table": "local_route_readiness",
@@ -1932,11 +1876,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "input_rank"
-      ],
+      "columns": ["route_id", "month", "input_rank"],
       "nameExplicit": false,
       "name": "local_route_readiness_missing_input_route_id_month_input_rank_pk",
       "table": "local_route_readiness_missing_input",
@@ -2057,10 +1997,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_reliability_baseline_route_id_month_pk",
       "table": "local_route_reliability_baseline",
@@ -2181,11 +2118,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "window_rank"
-      ],
+      "columns": ["route_id", "month", "window_rank"],
       "nameExplicit": false,
       "name": "local_route_reliability_gap_window_route_id_month_window_rank_pk",
       "table": "local_route_reliability_gap_window",
@@ -2256,10 +2189,7 @@
       "entityType": "columns"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "local_route_scorecard_route_id_month_pk",
       "table": "local_route_scorecard",

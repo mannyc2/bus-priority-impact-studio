@@ -1,16 +1,13 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import {
-  expressRouteAnalysisAuditPath,
-  expressRouteAnalysisPath,
-} from "@bp/applied-research/artifacts";
+import { expressRouteAnalysisAuditPath, expressRouteAnalysisPath } from "@bp/analytics/artifacts";
 import {
   buildExpressRouteAnalysisArtifact,
   buildExpressRouteAnalysisAuditArtifact,
   type ExpressRouteAnalysisArtifact,
   ExpressRouteAnalysisArtifactSchema,
   summarizeExpressRouteCapacityRows,
-} from "@bp/applied-research/feature-history";
+} from "@bp/analytics/feature-history";
 import { NormalizedExpressBusCapacitySchema } from "@bp/sources/adapters/mta/express-bus-capacity";
 import { soqlIn } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";

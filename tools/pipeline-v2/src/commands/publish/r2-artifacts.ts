@@ -1,20 +1,14 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
-import { Glob } from "bun";
 import { defineCommand, z } from "@liche/core";
-import {
-  type CloudflareCostSummary,
-  estimateR2StandardCost,
-} from "../../lib/cloudflare-costs.ts";
+import { Glob } from "bun";
+import { type CloudflareCostSummary, estimateR2StandardCost } from "../../lib/cloudflare-costs.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
-import {
-  collectD1ArtifactKeys,
-  collectManifestArtifactKeys,
-} from "./publish-artifact-keys.ts";
+import { collectD1ArtifactKeys, collectManifestArtifactKeys } from "./publish-artifact-keys.ts";
 
 const DEFAULT_PREFIXES = ["map", "studio", "source-availability", "pipeline-v1"] as const;
-const DEFAULT_MANIFEST_DIRS = ["briefs", "evaluations", "map"] as const;
+const DEFAULT_MANIFEST_DIRS = ["map"] as const;
 const DEFAULT_CONCURRENCY = 16;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_BACKOFF_MS_BASE = 5_000;
@@ -406,10 +400,7 @@ export default defineCommand({
     "Idempotently upload release artifacts to R2 via the S3-compatible API (HEAD-then-PUT, parallel, resumable).",
   input: {
     options: z.object({
-      month: z
-        .string()
-        .regex(monthPattern, "must be YYYY-MM")
-        .describe("Release month, YYYY-MM"),
+      month: z.string().regex(monthPattern, "must be YYYY-MM").describe("Release month, YYYY-MM"),
       bucket: z.string().min(1).describe("R2 bucket name"),
       endpoint: z.string().optional().describe("R2 S3 endpoint (overrides R2_ENDPOINT)"),
       concurrency: z.coerce
@@ -429,35 +420,30 @@ export default defineCommand({
         .string()
         .optional()
         .describe("Override D1 export root directory (defaults to data/exports/d1)"),
-      schema: z
-        .string()
-        .optional()
-        .describe("Override D1 schema.sql path"),
-      seed: z
-        .string()
-        .optional()
-        .describe("Override D1 seed.sql path"),
+      schema: z.string().optional().describe("Override D1 schema.sql path"),
+      seed: z.string().optional().describe("Override D1 seed.sql path"),
       output: z.string().optional().describe("Override report path"),
       dryRun: z.coerce.boolean().default(false).describe("Skip PUTs, report would-uploads"),
-      force: z
-        .coerce
+      force: z.coerce
         .boolean()
         .default(false)
         .describe("Skip HEAD probe and re-upload every candidate"),
     }),
   },
-  output: z.object({
-    schemaVersion: z.literal(1),
-    month: z.string(),
-    bucket: z.string(),
-    status: z.enum(["pass", "fail"]),
-    candidateCount: z.number(),
-    uploadedCount: z.number(),
-    skippedCount: z.number(),
-    failedCount: z.number(),
-    dryRunCount: z.number(),
-    outputPath: z.string(),
-  }).passthrough(),
+  output: z
+    .object({
+      schemaVersion: z.literal(1),
+      month: z.string(),
+      bucket: z.string(),
+      status: z.enum(["pass", "fail"]),
+      candidateCount: z.number(),
+      uploadedCount: z.number(),
+      skippedCount: z.number(),
+      failedCount: z.number(),
+      dryRunCount: z.number(),
+      outputPath: z.string(),
+    })
+    .passthrough(),
   async run({ input }) {
     const {
       R2_ACCESS_KEY_ID: accessKeyId = "",

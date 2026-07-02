@@ -242,28 +242,18 @@ describe("production boundary harness", () => {
     }
   });
 
-  test("applied research package stays headless and does not import apps, tools, wiki, source fetchers, or UI runtimes", async () => {
-    const files = await readFiles("packages/applied-research/src");
-    const forbiddenImports = [
-      "apps/",
-      "tools/",
-      "knowledge/",
-      "@bp/sources",
-      "@bp/pipeline",
-      "@bp/pipeline-v2",
-      "react",
-      "@cloudflare",
-      "wrangler",
-    ];
+  test("@bp/applied-research package stays removed after the hard cutover", async () => {
+    const tsconfig = (await Bun.file("tsconfig.base.json").json()) as {
+      compilerOptions?: { paths?: Record<string, unknown> };
+    };
+    const pipelinePackage = (await Bun.file("tools/pipeline-v2/package.json").json()) as {
+      dependencies?: Record<string, string>;
+    };
 
-    for (const file of files) {
-      for (const forbiddenImport of forbiddenImports) {
-        expect(
-          importsForbiddenSpecifier(file.text, forbiddenImport),
-          `${file.path} imports ${forbiddenImport}`,
-        ).toBe(false);
-      }
-    }
+    expect(await fileExists("packages/applied-research/package.json")).toBe(false);
+    expect(tsconfig.compilerOptions?.paths?.["@bp/applied-research"]).toBeUndefined();
+    expect(tsconfig.compilerOptions?.paths?.["@bp/applied-research/*"]).toBeUndefined();
+    expect(pipelinePackage.dependencies?.["@bp/applied-research"]).toBeUndefined();
   });
 
   test("Studio API package stays a Cloudflare runtime boundary without UI, pipeline, analytics, or source fetchers", async () => {
@@ -305,13 +295,40 @@ describe("production boundary harness", () => {
     }
   });
 
-  test("pipeline-v2 commands reach detectors through applied-research, never importing @bp/analytics directly", async () => {
+  test("pipeline-v2 imports analytics only through package subpaths", async () => {
     const files = await readFiles("tools/pipeline-v2/src");
 
     for (const file of files) {
       expect(
-        importsForbiddenSpecifier(file.text, "@bp/analytics"),
-        `${file.path} imports @bp/analytics directly; route detector access through @bp/applied-research and detector-id constants through @bp/domain. (Codemode sandbox prose strings and the packages/analytics symlink are not imports and are allowed.)`,
+        importsForbiddenPathSpecifier(file.text, "packages/analytics/src"),
+        `${file.path} reaches into packages/analytics/src instead of using @bp/analytics subpaths`,
+      ).toBe(false);
+    }
+  });
+
+  test("pipeline-v2 command modules keep SQLite runtime construction behind Effect services", async () => {
+    const files = await readFiles("tools/pipeline-v2/src/commands");
+
+    for (const file of files) {
+      expect(
+        /import\s*\{[^}]*\bDatabase\b[^}]*\}\s*from\s*["']bun:sqlite["']/.test(file.text),
+        `${file.path} imports bun:sqlite at runtime instead of using an Effect/database boundary`,
+      ).toBe(false);
+      expect(
+        file.text.includes("Database as BunDatabase"),
+        `${file.path} imports BunDatabase directly instead of using an Effect/database boundary`,
+      ).toBe(false);
+      expect(
+        file.text.includes("new Database("),
+        `${file.path} constructs SQLite directly instead of using an Effect/database boundary`,
+      ).toBe(false);
+      expect(
+        file.text.includes("new BunDatabase("),
+        `${file.path} constructs SQLite directly instead of using an Effect/database boundary`,
+      ).toBe(false);
+      expect(
+        file.text.includes("createBunSqliteServingDb"),
+        `${file.path} constructs a D1 replay DB directly instead of using the D1 replay boundary`,
       ).toBe(false);
     }
   });

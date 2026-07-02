@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import type { FeatureQuality, InterventionPanelFeature } from "@bp/analytics/features";
 import {
   detectInterventionEventStudies,
   type InterventionEventStudyDetectorInput,
 } from "../src/index.js";
-import type { FeatureQuality, InterventionPanelFeature } from "@bp/analytics/features";
 
 const GENERATED_AT = "2026-05-30T12:00:00.000Z";
 const MONTH = "2026-03";

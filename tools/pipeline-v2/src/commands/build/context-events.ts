@@ -1,15 +1,19 @@
-import { runBuildContextEvents } from "@bp/applied-research/local-db";
+import { runBuildContextEvents } from "@bp/pipeline-v2/local-db-aggregates";
 import { defineCommand, z } from "@liche/core";
-import { dbOptions, localDbFromCtx, withLocalDb } from "../../lib/local-db.ts";
+import {
+  makeBuildLocalDbCommandLayer,
+  runBuildContextEventsCommand,
+} from "../../effect/build-local-db.ts";
+import { runPipelineEffect } from "../../effect/runtime.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 
-export type { BuildContextEventsResult } from "@bp/applied-research/local-db";
+export type { BuildContextEventsResult } from "@bp/pipeline-v2/local-db-aggregates";
 export { runBuildContextEvents };
 
 export default defineCommand({
   path: ["build", "context-events"],
   summary: "Upsert per-source rows into local_context_event.",
   input: { options: dbOptions },
-  middleware: [withLocalDb()],
   output: z.object({
     inserted311: z.number(),
     insertedCollisions: z.number(),
@@ -20,7 +24,12 @@ export default defineCommand({
     insertedAceViolations: z.number(),
     total: z.number(),
   }),
-  async run({ ctx }) {
-    return runBuildContextEvents({ local: localDbFromCtx(ctx) });
+  async run({ input }) {
+    return runPipelineEffect(
+      runBuildContextEventsCommand(),
+      makeBuildLocalDbCommandLayer({
+        dbPath: input.options.db,
+      }),
+    );
   },
 });

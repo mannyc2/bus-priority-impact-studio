@@ -3,9 +3,9 @@ import { join } from "node:path";
 import { defaultArtifactRootPath, fromCliPath } from "../../../../lib/paths.ts";
 import {
   FEATURE_FAMILY_SECTIONS,
-  TIER2_FEATURE_EXTRACTION_ARTIFACT_KIND,
   type FeatureFamilySection,
   type FieldSupportSubmission,
+  TIER2_FEATURE_EXTRACTION_ARTIFACT_KIND,
   type Tier2FeatureExtractionToolResponse,
 } from "./contract.ts";
 import {
@@ -15,8 +15,8 @@ import {
 import type { Tier2FeatureExtractionVNextArtifact } from "./runner.ts";
 import type {
   FeatureFamily,
-  FeatureProofCandidate,
   FeaturePromotionEligibility,
+  FeatureProofCandidate,
   FeatureValidationError,
   FeatureValidationErrorCode,
   FieldEvidence,
@@ -24,13 +24,13 @@ import type {
   MetricFeatureCompleteness,
   MetricFeatureCompletenessSlot,
   ProofState,
-  Tier2FeatureProofLedgerInputMode,
   Tier2FeatureProofLedgerArtifact,
+  Tier2FeatureProofLedgerInputMode,
   ValidationRetryOwner,
 } from "./types.ts";
 import {
-  validateTier2FeatureExtractionSubmission,
   type Tier2FeatureValidatedCandidate,
+  validateTier2FeatureExtractionSubmission,
 } from "./validator.ts";
 
 export type VNextProofAdapterResult = {
@@ -284,7 +284,8 @@ function uniqueSorted(values: string[]): string[] {
 }
 
 function normalizePrimitive(value: unknown): string | null {
-  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") return null;
+  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean")
+    return null;
   const normalized = String(value).replace(/\s+/g, " ").trim();
   return normalized.length === 0 ? null : normalized;
 }
@@ -331,7 +332,9 @@ function isNonSourceCandidateField(fieldPath: string): boolean {
 function fieldSupportRows(candidate: JsonRecord): ProvenanceSupportRow[] {
   return Array.isArray(candidate["fieldSupport"])
     ? candidate["fieldSupport"].flatMap((row): ProvenanceSupportRow[] => {
-        return isRecord(row) && typeof row["fieldPath"] === "string" && typeof row["evidenceHandle"] === "string"
+        return isRecord(row) &&
+          typeof row["fieldPath"] === "string" &&
+          typeof row["evidenceHandle"] === "string"
           ? [
               {
                 ...(row as FieldSupportSubmission),
@@ -369,7 +372,9 @@ function sourceTextContains(sourceText: string, quoteText: string): boolean {
   return normalizedQuote.length > 0 && normalizedSource.includes(normalizedQuote);
 }
 
-function supportHandleIndex(artifact: Tier2FeatureExtractionVNextArtifact): Map<string, SupportHandle> {
+function supportHandleIndex(
+  artifact: Tier2FeatureExtractionVNextArtifact,
+): Map<string, SupportHandle> {
   const index = new Map<string, SupportHandle>();
   for (const handle of artifact.request.evidenceHandles) {
     index.set(handle.evidenceHandle, {
@@ -388,7 +393,9 @@ function supportHandleIndex(artifact: Tier2FeatureExtractionVNextArtifact): Map<
       ...(handle.quoteText === undefined ? {} : { quoteText: handle.quoteText }),
       ...(handle.text === undefined ? {} : { text: handle.text }),
       ...(handle.queryRaw === undefined ? {} : { queryRaw: handle.queryRaw }),
-      ...(handle.checkedSourceFamilyRaw === undefined ? {} : { checkedSourceFamilyRaw: handle.checkedSourceFamilyRaw }),
+      ...(handle.checkedSourceFamilyRaw === undefined
+        ? {}
+        : { checkedSourceFamilyRaw: handle.checkedSourceFamilyRaw }),
     });
   }
   return index;
@@ -399,7 +406,10 @@ function resolveEvidenceFieldPath(candidate: JsonRecord, evidenceKey: string): s
   if (evidenceKey.startsWith("evidenceByField.")) {
     return candidateValueAt(candidate, lastSegment) !== undefined ? lastSegment : null;
   }
-  if (candidateValueAt(candidate, evidenceKey) !== undefined && !isNonSourceCandidateField(evidenceKey)) {
+  if (
+    candidateValueAt(candidate, evidenceKey) !== undefined &&
+    !isNonSourceCandidateField(evidenceKey)
+  ) {
     return evidenceKey;
   }
   return candidateValueAt(candidate, lastSegment) !== undefined ? lastSegment : null;
@@ -463,10 +473,17 @@ function canonicalResolverMissingError(): FeatureValidationError {
   return validationError({
     code: "canonical_resolver_missing",
     retryOwner: "vocab_runner",
-    message: "The accepted vNext raw field has source-local proof but no canonical vocabulary leaf yet.",
+    message:
+      "The accepted vNext raw field has source-local proof but no canonical vocabulary leaf yet.",
     llmRetryInstruction:
       "Return the same source-observed value and support if retried; the deterministic vocabulary resolver must fill canonicalLeafId before promotion.",
-    deterministicRunnerFields: ["canonicalLeafId", "canonicalLeafLabel", "coarseFamily", "modifiers", "targetPayloadPath"],
+    deterministicRunnerFields: [
+      "canonicalLeafId",
+      "canonicalLeafLabel",
+      "coarseFamily",
+      "modifiers",
+      "targetPayloadPath",
+    ],
   });
 }
 
@@ -556,9 +573,11 @@ function supportEvidence(input: {
 }
 
 function supportProofState(evidence: FieldEvidence): ProofState {
-  if (!evidence.fieldSupportFound || evidence.evidencePointerIds.length === 0) return "support_missing";
+  if (!evidence.fieldSupportFound || evidence.evidencePointerIds.length === 0)
+    return "support_missing";
   if (!evidence.verifierStates.includes("verified")) return "ambiguous";
-  if (evidence.supportCompleteness.length > 0 && !evidence.supportCompleteness.includes("exact")) return "ambiguous";
+  if (evidence.supportCompleteness.length > 0 && !evidence.supportCompleteness.includes("exact"))
+    return "ambiguous";
   return "verified";
 }
 
@@ -636,10 +655,17 @@ function proofStateFor(errors: FeatureValidationError[]): ProofState {
   ) {
     return "support_missing";
   }
-  if (errors.some((error) => error.code === "evidence_quote_not_source_local" || error.code === "source_verifier_not_verified")) {
+  if (
+    errors.some(
+      (error) =>
+        error.code === "evidence_quote_not_source_local" ||
+        error.code === "source_verifier_not_verified",
+    )
+  ) {
     return "ambiguous";
   }
-  if (errors.some((error) => error.code === "canonical_resolver_missing")) return "resolver_missing";
+  if (errors.some((error) => error.code === "canonical_resolver_missing"))
+    return "resolver_missing";
   return "verified";
 }
 
@@ -723,7 +749,8 @@ function metricValidationErrors(metric: MetricFeatureCompleteness): FeatureValid
         code: "metric_authority_missing",
         retryOwner: "llm",
         message: "Metric claims require sourceClaimAuthority before promotion.",
-        llmRetryInstruction: "Retry with sourceClaimAuthority copied from source wording or omit the metric claim.",
+        llmRetryInstruction:
+          "Retry with sourceClaimAuthority copied from source wording or omit the metric claim.",
         deterministicRunnerFields: ["metricCompleteness", "promotionEligibility"],
       }),
     );
@@ -744,7 +771,8 @@ function metricValidationErrors(metric: MetricFeatureCompleteness): FeatureValid
         code: "metric_publication_gate_missing",
         retryOwner: "llm",
         message: "Metric claims require publicationWordingGate before promotion.",
-        llmRetryInstruction: "Retry with publicationWordingGate copied from source wording or omit the metric claim.",
+        llmRetryInstruction:
+          "Retry with publicationWordingGate copied from source wording or omit the metric claim.",
         deterministicRunnerFields: ["metricCompleteness", "promotionEligibility"],
       }),
     );
@@ -762,7 +790,9 @@ function metricValidationErrors(metric: MetricFeatureCompleteness): FeatureValid
   return errors;
 }
 
-function acceptedValidatedCandidates(artifact: Tier2FeatureExtractionVNextArtifact): Tier2FeatureValidatedCandidate[] {
+function acceptedValidatedCandidates(
+  artifact: Tier2FeatureExtractionVNextArtifact,
+): Tier2FeatureValidatedCandidate[] {
   if (artifact.submission === null) return [];
   const validation =
     artifact.validation ??
@@ -796,7 +826,10 @@ function supportByPathFor(
   return supportByPath;
 }
 
-function supportedSourceFieldPaths(candidate: JsonRecord, supportByPath: Map<string, ProvenanceSupportRow[]>): string[] {
+function supportedSourceFieldPaths(
+  candidate: JsonRecord,
+  supportByPath: Map<string, ProvenanceSupportRow[]>,
+): string[] {
   return [...supportByPath.keys()]
     .filter((fieldPath) => {
       if (isNonSourceCandidateField(fieldPath)) return false;
@@ -817,7 +850,9 @@ function proofCandidateForField(input: {
   const rawValue = normalizeRawValue(candidateValueAt(input.candidate, input.fieldPath));
   if (rawValue === null) return null;
   const sectionFieldKeyIds = KEY_ID_BY_SECTION_FIELD[input.validatedCandidate.section];
-  const keyId = sectionFieldKeyIds[input.fieldPath] ?? `${input.validatedCandidate.featureFamily}:${input.fieldPath}`;
+  const keyId =
+    sectionFieldKeyIds[input.fieldPath] ??
+    `${input.validatedCandidate.featureFamily}:${input.fieldPath}`;
   const evidenceResult = supportEvidence({
     artifact: input.artifact,
     candidateId: input.validatedCandidate.candidateId,
@@ -845,7 +880,9 @@ function proofCandidateForField(input: {
     validationErrors,
   });
   const source = input.artifact.request.source;
-  const displayLabel = normalizePrimitive(input.candidate["displayLabel"]) ?? normalizePrimitive(input.candidate["rawText"]);
+  const displayLabel =
+    normalizePrimitive(input.candidate["displayLabel"]) ??
+    normalizePrimitive(input.candidate["rawText"]);
   const candidateHash = stableHash([
     input.artifact.runId,
     input.validatedCandidate.candidateId,
@@ -868,7 +905,11 @@ function proofCandidateForField(input: {
     modifiers: {},
     decision: "missing_projection",
     source: {
-      artifactPath: input.artifactPath ?? input.artifact.outputPath ?? input.artifact.inputPath ?? "vnext-feature-extraction",
+      artifactPath:
+        input.artifactPath ??
+        input.artifact.outputPath ??
+        input.artifact.inputPath ??
+        "vnext-feature-extraction",
       auditPath: null,
       windowId: `${source.sourceId}:${source.pageNumbers.join(",")}`,
       runId: input.artifact.runId,
@@ -920,7 +961,8 @@ export function vNextArtifactToProofCandidates(input: {
   const proofCandidates: FeatureProofCandidate[] = [];
   const accepted = acceptedValidatedCandidates(input.artifact);
   for (const validatedCandidate of accepted) {
-    if (!FEATURE_FAMILY_SECTIONS.some((section) => section.section === validatedCandidate.section)) continue;
+    if (!FEATURE_FAMILY_SECTIONS.some((section) => section.section === validatedCandidate.section))
+      continue;
     const candidate = candidateFor(input.artifact.submission, validatedCandidate);
     if (candidate === null) continue;
     const supportByPath = supportByPathFor(candidate, input.artifact);
@@ -951,7 +993,8 @@ export function vNextArtifactToProofCandidates(input: {
 async function readVNextArtifact(path: string): Promise<Tier2FeatureExtractionVNextArtifact> {
   const resolvedPath = fromCliPath(path);
   const raw = await Bun.file(resolvedPath).json();
-  if (!isRecord(raw)) throw new Error(`Tier 2 vNext extraction artifact is not an object: ${resolvedPath}`);
+  if (!isRecord(raw))
+    throw new Error(`Tier 2 vNext extraction artifact is not an object: ${resolvedPath}`);
   return raw as Tier2FeatureExtractionVNextArtifact;
 }
 
@@ -971,10 +1014,14 @@ export async function buildTier2FeatureProofLedgerFromVNext(
     ),
   );
   const candidates = adapted.flatMap((result) => result.proofCandidates);
-  const acceptedCandidateCount = adapted.reduce((sum, result) => sum + result.acceptedCandidateCount, 0);
+  const acceptedCandidateCount = adapted.reduce(
+    (sum, result) => sum + result.acceptedCandidateCount,
+    0,
+  );
   return buildTier2FeatureProofLedgerFromCandidates({
     generatedAt,
-    sourceCanonicalMergePath: args.canonicalMergePath === undefined ? null : fromCliPath(args.canonicalMergePath),
+    sourceCanonicalMergePath:
+      args.canonicalMergePath === undefined ? null : fromCliPath(args.canonicalMergePath),
     sourceVocabApplicationPath: `vnext-feature-extraction:${sourceFeatureExtractionPaths.join(",")}`,
     sourceFeatureExtractionPaths,
     sourceFeatureExtractionInputMode: inputMode,
@@ -983,7 +1030,9 @@ export async function buildTier2FeatureProofLedgerFromVNext(
   });
 }
 
-export async function runTier2FeatureProofLedgerFromVNext(args: BuildTier2FeatureProofLedgerFromVNextArgs): Promise<{
+export async function runTier2FeatureProofLedgerFromVNext(
+  args: BuildTier2FeatureProofLedgerFromVNextArgs,
+): Promise<{
   artifact: Tier2FeatureProofLedgerArtifact;
   outputPath: string;
   markdownPath: string;
@@ -992,7 +1041,12 @@ export async function runTier2FeatureProofLedgerFromVNext(args: BuildTier2Featur
   const artifact = await buildTier2FeatureProofLedgerFromVNext(args);
   const outputPath = fromCliPath(
     args.outputPath ??
-      join(defaultArtifactRootPath(), "docs", "tier2-feature-vnext-proof-ledger", "feature-proof-ledger.json"),
+      join(
+        defaultArtifactRootPath(),
+        "docs",
+        "tier2-feature-vnext-proof-ledger",
+        "feature-proof-ledger.json",
+      ),
   );
   const written = await writeTier2FeatureProofLedgerArtifacts({
     artifact,

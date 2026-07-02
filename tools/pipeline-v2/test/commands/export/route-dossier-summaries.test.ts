@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { routeSpeedHistoryArtifactPath } from "@bp/applied-research/artifacts";
+import { routeSpeedHistoryArtifactPath } from "@bp/analytics/artifacts";
 import { RouteDossierSummarySchema, routeDossierSummaryKey } from "@bp/domain/studio";
 import {
   buildAndWriteRouteDossierSummaries,
@@ -120,9 +120,7 @@ describe("toRouteDossierInputRows + buildAndWriteRouteDossierSummaries", () => {
     });
     expect(routeCount).toBe(2);
 
-    const written = JSON.parse(
-      await Bun.file(join(tmp, routeDossierSummaryKey("m15-sbs"))).text(),
-    );
+    const written = JSON.parse(await Bun.file(join(tmp, routeDossierSummaryKey("m15-sbs"))).text());
     const dossier = RouteDossierSummarySchema.parse(written);
     expect(dossier.routeId).toBe("M15+");
     expect(dossier.speed.current).toBe(7);

@@ -1,16 +1,9 @@
 import * as z from "zod";
 import {
-  StudioBriefCardSchema,
-  StudioBriefSchema,
-  StudioCommentSchema,
-  StudioVersionSchema,
-} from "./briefs/read-model.js";
-import {
   StudioDocsEndpointSchema,
   StudioDocsSectionSchema,
   StudioMethodDatasetSchema,
 } from "./docs/index.js";
-import { StudioFindingCardSchema, StudioFindingSchema } from "./findings/index.js";
 import {
   StudioRouteArtifactRefSchema,
   StudioRouteSchema,
@@ -48,8 +41,6 @@ export const StudioSearchResponseSchema = z
     query: z.string(),
     routes: z.array(StudioRouteSchema),
     segments: z.array(StudioSearchSegmentCardSchema),
-    findings: z.array(StudioFindingCardSchema),
-    briefs: z.array(StudioBriefCardSchema),
     notes: z.array(StudioSearchNoteSchema),
     quality: StudioQualitySchema,
   })
@@ -85,10 +76,6 @@ export const StudioReleasePayloadSchema = z
     routes: z.array(StudioRouteSchema),
     segments: z.array(StudioSegmentSchema),
     routeArtifacts: z.array(StudioRouteArtifactRefSchema),
-    findings: z.array(StudioFindingSchema),
-    briefs: z.array(StudioBriefSchema),
-    versions: z.array(StudioVersionSchema),
-    comments: z.array(StudioCommentSchema),
     methods: z.array(StudioMethodDatasetSchema),
     docsSections: z.array(StudioDocsSectionSchema),
     docsEndpoints: z.array(StudioDocsEndpointSchema),

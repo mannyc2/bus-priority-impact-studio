@@ -4,11 +4,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { HonestEmptyState, RouteDetailTab } from "./section-registry";
 
 /**
- * Shared chrome for the route-detail and compare pages: the flush header card
- * plus the line-style tab bar and the scrolling content well. The header content
- * (single RouteHeader or the two-route RouteCompareHeader) and the per-tab
- * <TabsContent> blocks are passed in as slots, so the two pages differ only in
- * what they hand to `header` / `children` - not in the surrounding layout.
+ * Shared chrome for the route-detail page: a flush header card, line-style tab
+ * bar, and scrolling content well.
  */
 export function RouteDetailShell({
   header,

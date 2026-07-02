@@ -10,7 +10,6 @@ import {
 import { healthResponseJsonSchema, studioReleasePayloadJsonSchema } from "@bp/domain/json-schema";
 import { RouteIdCodec } from "@bp/domain/primitives";
 import { HealthResponseSchema, RouteScorecardSchema } from "@bp/domain/routes";
-import { StudioFindingSchema } from "@bp/domain/studio/findings";
 import { buildStudioRouteProjection } from "@bp/domain/studio/projections";
 import { StudioReleasePayloadSchema } from "@bp/domain/studio/release";
 import { StudioRouteDetailResponseSchema } from "@bp/domain/studio/routes";
@@ -64,83 +63,12 @@ describe("domain schemas", () => {
         },
         routes: [],
         segments: [],
-        findings: [],
-        briefs: [],
-        versions: [],
-        comments: [],
         methods: [],
         docsSections: [],
         docsEndpoints: [],
         extra: "not allowed",
       }),
     ).toThrow();
-  });
-
-  test("marks Studio findings with optional review provenance", () => {
-    const finding = StudioFindingSchema.parse({
-      id: "detector-fixture",
-      category: "Emerging risk",
-      routeSlug: "m1",
-      title: "M1 detector candidate",
-      body: "Fixture detector finding.",
-      metric: "88/100 detector score",
-      confidence: "moderate",
-      borough: "Manhattan",
-      reasoning: [],
-      caveat: {
-        title: "Detector review candidate",
-        body: "Needs review before publication.",
-      },
-      comparableRoutes: [],
-      review: {
-        publicationState: "review_candidate",
-        reviewState: "needs_review",
-        source: "detector_review_queue",
-        candidateId: "candidate-1",
-        detectorId: "observed_reliability",
-        claimSafeLabel: "issue_needs_review",
-      },
-    });
-
-    expect(finding.review?.publicationState).toBe("review_candidate");
-
-    const promoted = StudioFindingSchema.parse({
-      id: "promoted-fixture",
-      category: "Emerging risk",
-      routeSlug: "m1",
-      title: "M1 promoted finding",
-      body: "Fixture promoted finding.",
-      metric: "91/100 detector score",
-      confidence: "high",
-      borough: "Manhattan",
-      reasoning: [],
-      caveat: {
-        title: "Reviewer-approved detector finding",
-        body: "Keeps detector audit trail.",
-      },
-      comparableRoutes: [],
-      review: {
-        publicationState: "reviewed",
-        reviewState: "approved",
-        source: "promoted_finding",
-        candidateId: "candidate-1",
-        detectorId: "observed_reliability",
-        promotedFindingId: "promoted-finding-1",
-        decisionId: "decision-1",
-        packetId: "packet-1",
-        approvedEvidenceRefs: ["evidence-1"],
-        reviewRationale: "Reviewer approved the public claim.",
-        decisionHash: "a".repeat(64),
-        candidateSnapshotHash: "b".repeat(64),
-        promotedFindingHash: "c".repeat(64),
-        reviewer: "tester",
-        reviewedAt: "2026-05-24T00:00:00.000Z",
-        claimSafeLabel: "issue_clean",
-      },
-    });
-
-    expect(promoted.review?.source).toBe("promoted_finding");
-    expect(promoted.review?.candidateId).toBe("candidate-1");
   });
 
   test("parses review packets with explicit counter-evidence", () => {
@@ -521,10 +449,6 @@ describe("domain schemas", () => {
           sha256: "a".repeat(64),
         },
       ],
-      findings: [],
-      briefs: [],
-      versions: [],
-      comments: [],
       methods: [],
       docsSections: [],
       docsEndpoints: [],

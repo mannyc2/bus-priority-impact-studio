@@ -240,11 +240,17 @@ function sourceKey(sourceId: string | null): string {
   return sourceId ?? "unknown_source";
 }
 
-function routeIdsForField(row: ConsumerFieldRow, surface: ConsumerSurfaceRow | undefined): string[] {
+function routeIdsForField(
+  row: ConsumerFieldRow,
+  surface: ConsumerSurfaceRow | undefined,
+): string[] {
   return uniqueSorted([...(surface?.routeIds ?? []), ...stringArray(row.modifiers["routeIds"])]);
 }
 
-function routeIdsForUnresolved(row: ConsumerUnresolvedRow, surface: ConsumerSurfaceRow | undefined): string[] {
+function routeIdsForUnresolved(
+  row: ConsumerUnresolvedRow,
+  surface: ConsumerSurfaceRow | undefined,
+): string[] {
   return uniqueSorted([...(surface?.routeIds ?? []), ...stringArray(row.modifiers?.["routeIds"])]);
 }
 
@@ -300,7 +306,10 @@ function routeBundleSampleFor(input: {
   };
 }
 
-function sortSurfaceSamples(left: RouteEvidenceSurfaceSample, right: RouteEvidenceSurfaceSample): number {
+function sortSurfaceSamples(
+  left: RouteEvidenceSurfaceSample,
+  right: RouteEvidenceSurfaceSample,
+): number {
   return (
     right.mappedFieldCount +
       right.unresolvedFieldCount -
@@ -397,7 +406,10 @@ function buildMaterializedViews(input: {
       mappedFieldCount: number;
       unresolvedFieldCount: number;
       sourceIds: Set<string>;
-      sourcePageRefs: Map<string, { sourceId: string; sourceTitle: string | null; pageNumbers: Set<number> }>;
+      sourcePageRefs: Map<
+        string,
+        { sourceId: string; sourceTitle: string | null; pageNumbers: Set<number> }
+      >;
       sourceGroupCounts: Record<string, number>;
       surfaceKindCounts: Record<string, number>;
       keyCounts: Record<string, number>;
@@ -481,7 +493,10 @@ function buildMaterializedViews(input: {
       for (const supportId of sample.supportIds) route.supportIds.add(supportId);
       for (const pointerId of sample.evidencePointerIds) route.evidencePointerIds.add(pointerId);
       route.samples.push(sample);
-      if (surface.surfaceKind === "event_candidate" || surface.surfaceKind === "service_change_candidate") {
+      if (
+        surface.surfaceKind === "event_candidate" ||
+        surface.surfaceKind === "service_change_candidate"
+      ) {
         route.timelineCandidateSurfaceCount += 1;
       }
       if (surface.surfaceKind === "metric_observation") route.metricObservationSurfaceCount += 1;
@@ -600,7 +615,9 @@ function buildMaterializedViews(input: {
       surfaceKindCounts: finalizeRecord(item.surfaceKindCounts),
       supportIds: uniqueSorted([...item.supportIds]),
       evidencePointerIds: uniqueSorted([...item.evidencePointerIds]),
-      sampleSurfaces: item.samples.sort((left, right) => left.surfaceId.localeCompare(right.surfaceId)),
+      sampleSurfaces: item.samples.sort((left, right) =>
+        left.surfaceId.localeCompare(right.surfaceId),
+      ),
     }))
     .sort(
       (left, right) =>
@@ -626,12 +643,14 @@ function buildMaterializedViews(input: {
       for (const surface of surfaces) {
         for (const field of fieldsBySurfaceId.get(surface.surfaceId) ?? []) {
           increment(keyCounts, field.keyId);
-          for (const pointerId of field.evidence.evidencePointerIds) evidencePointerIds.add(pointerId);
+          for (const pointerId of field.evidence.evidencePointerIds)
+            evidencePointerIds.add(pointerId);
         }
         for (const row of unresolvedBySurfaceId.get(surface.surfaceId) ?? []) {
           increment(keyCounts, row.keyId);
           increment(unresolvedByDecision, row.decision);
-          for (const pointerId of row.evidence.evidencePointerIds) evidencePointerIds.add(pointerId);
+          for (const pointerId of row.evidence.evidencePointerIds)
+            evidencePointerIds.add(pointerId);
         }
       }
       return {
@@ -796,8 +815,12 @@ function renderMarkdown(artifact: Tier2VocabMaterializedViewsArtifact): string {
   lines.push("- This artifact is derived from the compact vocab consumer index.");
   lines.push("- It does not correct the deferred coarse-family taxonomy QA issues.");
   lines.push("- Route evidence bundles are materialized for route-addressed document surfaces.");
-  lines.push("- Detector feature rows are extraction-vocabulary features, not final detector score vectors.");
-  lines.push("- Use `artifactPath`, `supportIds`, and `evidencePointerIds` to reopen source proof.");
+  lines.push(
+    "- Detector feature rows are extraction-vocabulary features, not final detector score vectors.",
+  );
+  lines.push(
+    "- Use `artifactPath`, `supportIds`, and `evidencePointerIds` to reopen source proof.",
+  );
   return `${lines.join("\n")}\n`;
 }
 
@@ -806,7 +829,9 @@ export async function buildTier2VocabMaterializedViews(
 ): Promise<Tier2VocabMaterializedViewsArtifact> {
   const generatedAt = args.generatedAt ?? new Date().toISOString();
   const sourceConsumerIndexPath = fromCliPath(args.consumerIndexPath);
-  const consumerIndex = (await Bun.file(sourceConsumerIndexPath).json()) as Tier2VocabConsumerIndexArtifact;
+  const consumerIndex = (await Bun.file(
+    sourceConsumerIndexPath,
+  ).json()) as Tier2VocabConsumerIndexArtifact;
   if (!Array.isArray(consumerIndex.surfaceRows)) {
     throw new Error(`Consumer index has no surfaceRows array: ${sourceConsumerIndexPath}`);
   }
@@ -840,10 +865,17 @@ export async function runTier2VocabMaterializedViews(
   const artifact = await buildTier2VocabMaterializedViews(args);
   const outputPath = fromCliPath(
     args.outputPath ??
-      join(defaultArtifactRootPath(), "docs", "tier2-vocab-materialized-views", "vocab-materialized-views.json"),
+      join(
+        defaultArtifactRootPath(),
+        "docs",
+        "tier2-vocab-materialized-views",
+        "vocab-materialized-views.json",
+      ),
   );
   const markdownPath =
-    args.markdownPath === undefined ? outputPath.replace(/\.json$/, ".md") : fromCliPath(args.markdownPath);
+    args.markdownPath === undefined
+      ? outputPath.replace(/\.json$/, ".md")
+      : fromCliPath(args.markdownPath);
   const summaryPath =
     args.summaryPath === undefined
       ? outputPath.replace(/\.json$/, "-summary.json")
@@ -927,7 +959,9 @@ export async function runTier2VocabMaterializedViewsFromCli(argv: string[]) {
     ...(args.maxRouteSurfaceSamples === undefined
       ? {}
       : { maxRouteSurfaceSamples: args.maxRouteSurfaceSamples }),
-    ...(args.maxUnresolvedSamples === undefined ? {} : { maxUnresolvedSamples: args.maxUnresolvedSamples }),
+    ...(args.maxUnresolvedSamples === undefined
+      ? {}
+      : { maxUnresolvedSamples: args.maxUnresolvedSamples }),
     ...(args.maxSourceSurfaceSamples === undefined
       ? {}
       : { maxSourceSurfaceSamples: args.maxSourceSurfaceSamples }),

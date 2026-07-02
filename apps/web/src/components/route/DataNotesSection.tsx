@@ -1,9 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { DataAsOf } from "@/components/DataAsOf";
 import {
   type CheckedCleanCoverageChip,
   checkedCleanCoverageChips,
-  coverageLatestDataAsOf,
   coverageRows,
   coverageSummary,
 } from "@/components/route/coverage-matrix";
@@ -49,7 +47,6 @@ export function DataNotesSection({
   const evidenceRows = routeEvidenceIndexRows(data.insights);
   const archetype = routeDossierArchetype({ capability: data.capability, dossier });
   const hiddenTabs = sectionRegistry.hiddenSections;
-  const evidenceDataAsOf = dossier?.dataAsOf ?? coverageLatestDataAsOf(coverage);
   const datasets = [
     ["Segment speeds", "MTA Open Data", `${segments.length} segments`],
     ["Speed history", "Dossier", historyWindow ?? "not built"],
@@ -99,15 +96,13 @@ export function DataNotesSection({
           <div className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
             Freshness
           </div>
-          <DataAsOf dataAsOf={evidenceDataAsOf} className="text-[13px]" />
           <div className="mt-0.5 text-[11px] leading-[1.35] text-[var(--bp-color-ink-55)]">
             latest month
           </div>
         </div>
         <div className="ml-auto">
           <Link
-            to="/docs/$page"
-            params={{ page: "methodology" }}
+            to="/methods"
             className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
           >
             Methods &rarr;
@@ -117,7 +112,6 @@ export function DataNotesSection({
 
       <EvidenceIndexSection
         rows={evidenceRows}
-        routeSlug={route.slug}
         sectionRegistry={sectionRegistry}
         hiddenSectionCount={hiddenTabs.length}
         onNavigate={onNavigate}
@@ -148,9 +142,7 @@ export function DataNotesSection({
                 <div className="text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
                   {row.reason ?? row.stateLabel}
                 </div>
-                <div className="text-right max-lg:text-left">
-                  <DataAsOf dataAsOf={row.dataAsOf} />
-                </div>
+                <div className="text-right max-lg:text-left"></div>
               </div>
             ))
           ) : (
@@ -193,9 +185,7 @@ export function DataNotesSection({
                 <div className="text-[11.5px] text-[var(--bp-color-ink-55)]">
                   {presentation.reason ?? "No route evidence published."}
                 </div>
-                <div className="text-right max-lg:text-left">
-                  <DataAsOf dataAsOf={presentation.dataAsOf} />
-                </div>
+                <div className="text-right max-lg:text-left"></div>
               </div>
             ))}
           </div>
@@ -225,13 +215,11 @@ export function DataNotesSection({
 
 export function EvidenceIndexSection({
   rows,
-  routeSlug,
   sectionRegistry,
   hiddenSectionCount,
   onNavigate,
 }: {
   rows: readonly RouteEvidenceIndexRow[];
-  routeSlug: string;
   sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
   hiddenSectionCount: number;
   onNavigate: (tab: RouteDetailTabValue) => void;
@@ -288,7 +276,6 @@ export function EvidenceIndexSection({
                   <Badge variant="neutral" className="max-w-full truncate">
                     {row.detectorLabel}
                   </Badge>
-                  <DataAsOf dataAsOf={row.monthLabel} />
                 </div>
                 <div className="text-[13px] font-semibold">{row.title}</div>
                 <p className="m-0 mt-1 max-w-[820px] text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-55)]">
@@ -318,13 +305,6 @@ export function EvidenceIndexSection({
                     Open {row.tabLabel}
                   </button>
                 )}
-                <Link
-                  to="/briefs/new"
-                  search={{ route: routeSlug }}
-                  className="inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-accent)] no-underline"
-                >
-                  Send to brief
-                </Link>
               </div>
             </div>
           ))

@@ -4,7 +4,7 @@ import { dirname, isAbsolute, join, relative } from "node:path";
 import {
   dedupeInterventionRecordsByEvidenceOverlap,
   processInterventionRecordsToolArgs,
-} from "@bp/applied-research/intervention-records";
+} from "@bp/analytics/interventions";
 import type { Tier2DocumentEvidenceCandidate } from "@bp/domain/documents/candidates";
 import {
   buildInterventionRecordsBuckets,
@@ -12,8 +12,8 @@ import {
   type Tier2InterventionRecordsExtraction,
 } from "../src/commands/docs/tier2/_intervention-records.ts";
 import {
-  INTERVENTION_RECORDS_TOOL_NAME,
   extractToolCallArguments,
+  INTERVENTION_RECORDS_TOOL_NAME,
   recordQualityIssueCounts,
   recordQualityRepairCounts,
   type Tier2DocumentInterventionRecord,
@@ -58,11 +58,7 @@ function sourceRoot(input: {
   );
 }
 
-function bucketPaths(input: {
-  sourceRoot: string;
-  bucketId: string;
-  isOnlyBucket: boolean;
-}): {
+function bucketPaths(input: { sourceRoot: string; bucketId: string; isOnlyBucket: boolean }): {
   responsePath: string;
   toolCallPath: string;
   errorPath: string;
@@ -77,10 +73,7 @@ function bucketPaths(input: {
   };
 }
 
-function extractCachedToolArgs(paths: {
-  toolCallPath: string;
-  responsePath: string;
-}): {
+function extractCachedToolArgs(paths: { toolCallPath: string; responsePath: string }): {
   toolArgs: unknown | null;
   responsePath: string | null;
   toolCallPath: string | null;
@@ -120,30 +113,34 @@ function extractCachedToolArgs(paths: {
   };
 }
 
-async function loadRouteCatalog(): Promise<Map<string, {
-  routeId: string;
-  longName: string | null;
-  description: string | null;
-}>> {
+async function loadRouteCatalog(): Promise<
+  Map<
+    string,
+    {
+      routeId: string;
+      longName: string | null;
+      description: string | null;
+    }
+  >
+> {
   const path = join(repoRoot, "data/raw/network/current_bus_routes.json");
   const raw = readJson(path) as { rows?: Array<Record<string, unknown>> };
-  const catalog = new Map<string, {
-    routeId: string;
-    longName: string | null;
-    description: string | null;
-  }>();
+  const catalog = new Map<
+    string,
+    {
+      routeId: string;
+      longName: string | null;
+      description: string | null;
+    }
+  >();
   for (const row of raw.rows ?? []) {
     if (row["in_effect"] !== true && row["in_effect"] !== "true") continue;
     const routeId = row["route_id"];
     if (typeof routeId !== "string" || routeId.length === 0) continue;
     catalog.set(routeId, {
       routeId,
-      longName:
-        typeof row["route_long_name"] === "string" ? row["route_long_name"] : null,
-      description:
-        typeof row["route_description"] === "string"
-          ? row["route_description"]
-          : null,
+      longName: typeof row["route_long_name"] === "string" ? row["route_long_name"] : null,
+      description: typeof row["route_description"] === "string" ? row["route_description"] : null,
     });
   }
   return catalog;
@@ -156,10 +153,7 @@ const outputPath = resolvePath(
 );
 const artifact = readJson(inputPath) as Tier2InterventionRecordsExtraction;
 const runRoot = dirname(inputPath);
-const candidateExtractionPath = resolvePath(
-  artifact.ocrMarkdownCandidateExtractionPath,
-  runRoot,
-);
+const candidateExtractionPath = resolvePath(artifact.ocrMarkdownCandidateExtractionPath, runRoot);
 const candidateExtraction = readJson(candidateExtractionPath) as {
   pageMarkdownRootName: string;
   candidateRootName: string;
@@ -249,7 +243,9 @@ for (let sourceIndex = 0; sourceIndex < artifact.sources.length; sourceIndex += 
         droppedNoInterventionEvidenceCount: 0,
         responseArtifactKey: artifactKey(cached.responsePath, runRoot),
         toolCallArtifactKey: artifactKey(cached.toolCallPath, runRoot),
-        errorArtifactKey: existsSync(paths.errorPath) ? artifactKey(paths.errorPath, runRoot) : null,
+        errorArtifactKey: existsSync(paths.errorPath)
+          ? artifactKey(paths.errorPath, runRoot)
+          : null,
         error,
       });
       continue;
@@ -276,7 +272,9 @@ for (let sourceIndex = 0; sourceIndex < artifact.sources.length; sourceIndex += 
         droppedNoInterventionEvidenceCount: 0,
         responseArtifactKey: artifactKey(cached.responsePath, runRoot),
         toolCallArtifactKey: artifactKey(cached.toolCallPath, runRoot),
-        errorArtifactKey: existsSync(paths.errorPath) ? artifactKey(paths.errorPath, runRoot) : null,
+        errorArtifactKey: existsSync(paths.errorPath)
+          ? artifactKey(paths.errorPath, runRoot)
+          : null,
         error: processed.error,
       });
       continue;
@@ -322,7 +320,7 @@ for (let sourceIndex = 0; sourceIndex < artifact.sources.length; sourceIndex += 
     responseArtifactKey: artifactKey(firstResponsePath, runRoot),
     toolCallArtifactKey: artifactKey(firstToolCallPath, runRoot),
     errorArtifactKey: artifactKey(firstErrorPath, runRoot),
-    error: anyExtracted ? null : firstError ?? "all_buckets_failed",
+    error: anyExtracted ? null : (firstError ?? "all_buckets_failed"),
     buckets: bucketSummaries,
   });
 }

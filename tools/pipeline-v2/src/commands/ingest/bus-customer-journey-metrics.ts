@@ -5,13 +5,9 @@ import { normalizeBusCustomerJourneyMetricRows } from "@bp/sources/adapters/mta/
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot, repoRoot } from "../../lib/paths.ts";
 import {
   fetchSoda3RowsForSource,
@@ -154,7 +150,6 @@ export default defineCommand({
       endMonth: arg.positiveInt().default(3).describe("End month, 1-12"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     startMonth: z.string(),
@@ -163,13 +158,25 @@ export default defineCommand({
     rowCount: z.number().int().nonnegative(),
     routeCount: z.number().int().nonnegative(),
   }),
-  async run({ ctx, input }) {
-    return runBusCustomerJourneyMetricsIngest({
-      local: localDbFromCtx(ctx),
-      startYear: input.options.startYear,
-      startMonth: input.options.startMonth,
-      endYear: input.options.endYear,
-      endMonth: input.options.endMonth,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.bus-customer-journey-metrics",
+      operation: "runBusCustomerJourneyMetricsIngest",
+      spanAttributes: {
+        startYear: input.options.startYear,
+        startMonth: input.options.startMonth,
+        endYear: input.options.endYear,
+        endMonth: input.options.endMonth,
+      },
+      run: (local) =>
+        runBusCustomerJourneyMetricsIngest({
+          local,
+          startYear: input.options.startYear,
+          startMonth: input.options.startMonth,
+          endYear: input.options.endYear,
+          endMonth: input.options.endMonth,
+        }),
     });
   },
 });

@@ -1,14 +1,19 @@
 import {
   defaultRouteLionLinkBufferMeters,
   runBuildRouteLionLink,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
-import { dbOptions, localDbFromCtx, withLocalDb } from "../../lib/local-db.ts";
+import {
+  makeBuildLocalDbCommandLayer,
+  runBuildRouteLionLinkCommand,
+} from "../../effect/build-local-db.ts";
+import { runPipelineEffect } from "../../effect/runtime.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 
 export type {
   BuildRouteLionLinkInputs,
   BuildRouteLionLinkResult,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 export { defaultRouteLionLinkBufferMeters, runBuildRouteLionLink };
 
 export default defineCommand({
@@ -26,23 +31,27 @@ export default defineCommand({
         .describe("Comma-separated route_id allowlist (defaults to all routes)"),
     }),
   },
-  middleware: [withLocalDb({ spatial: true })],
   output: z.object({
     routesProcessed: z.number(),
     totalLinks: z.number(),
     bufferMeters: z.number(),
   }),
-  async run({ ctx, input }) {
+  async run({ input }) {
     const routeIds = input.options.route
       ? input.options.route
           .split(",")
           .map((route) => route.trim())
           .filter((route) => route.length > 0)
       : undefined;
-    return runBuildRouteLionLink({
-      local: localDbFromCtx(ctx),
-      bufferMeters: input.options.bufferM,
-      routeIds,
-    });
+    return runPipelineEffect(
+      runBuildRouteLionLinkCommand({
+        bufferMeters: input.options.bufferM,
+        routeIds,
+      }),
+      makeBuildLocalDbCommandLayer({
+        dbPath: input.options.db,
+        localDbOptions: { spatial: true },
+      }),
+    );
   },
 });

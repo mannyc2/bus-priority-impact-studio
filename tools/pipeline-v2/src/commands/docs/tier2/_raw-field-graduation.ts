@@ -1,12 +1,10 @@
+// biome-ignore-all lint/suspicious/noImplicitAnyLet: Legacy Tier 2 command code is pending plan 024 deletion; dynamic accumulator shape is unchanged.
 import { createHash } from "node:crypto";
-import { readdir, mkdir } from "node:fs/promises";
+import { mkdir, readdir } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { writeJson } from "../../../lib/json.ts";
-import { fromCliPath, defaultArtifactRootPath } from "../../../lib/paths.ts";
-import {
-  parseCliOptions,
-  type CliOption,
-} from "./_shared.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
+import { type CliOption, parseCliOptions } from "./_shared.ts";
 
 const ARTIFACT_KIND = "bp.tier2_raw_field_graduation_plan.v1";
 const PROMPT_VERSION = "tier2-raw-field-graduation-v1";
@@ -36,7 +34,8 @@ const GRADUATION_KEYS: readonly GraduationKeySpec[] = [
     targetPayloadPath: "canonicalPayload.entityKind",
     sourceFieldPaths: ["rawPayload.entityKind", "rawPayload.entityKindRaw", "rawPayload.rawKind"],
     mode: "llm_vocab_map",
-    description: "Entity type vocabulary such as street, bus route, agency, corridor, or treatment.",
+    description:
+      "Entity type vocabulary such as street, bus route, agency, corridor, or treatment.",
   },
   {
     id: "entityRole",
@@ -82,7 +81,12 @@ const GRADUATION_KEYS: readonly GraduationKeySpec[] = [
     id: "metricUnit",
     tier: "core",
     targetPayloadPath: "canonicalPayload.metricUnit",
-    sourceFieldPaths: ["rawPayload.unit", "rawPayload.unitRaw", "rawPayload.metricUnit", "rawPayload.metricUnitRaw"],
+    sourceFieldPaths: [
+      "rawPayload.unit",
+      "rawPayload.unitRaw",
+      "rawPayload.metricUnit",
+      "rawPayload.metricUnitRaw",
+    ],
     mode: "llm_vocab_map",
     description: "Metric units and unit-like count labels.",
   },
@@ -92,7 +96,8 @@ const GRADUATION_KEYS: readonly GraduationKeySpec[] = [
     targetPayloadPath: "canonicalPayload.claimKind",
     sourceFieldPaths: ["rawPayload.claimKind", "rawPayload.claimKindRaw"],
     mode: "llm_vocab_map",
-    description: "Claim family for descriptive, problem, treatment, feedback, and performance claims.",
+    description:
+      "Claim family for descriptive, problem, treatment, feedback, and performance claims.",
   },
   {
     id: "claimResearchUseTag",
@@ -100,7 +105,8 @@ const GRADUATION_KEYS: readonly GraduationKeySpec[] = [
     targetPayloadPath: "canonicalPayload.researchUseTags",
     sourceFieldPaths: ["rawPayload.researchUseTags", "rawPayload.researchUseTagsRaw"],
     mode: "llm_vocab_map",
-    description: "Research-use tags that connect claims/questions to downstream detectors and briefs.",
+    description:
+      "Research-use tags that connect claims/questions to downstream detectors and briefs.",
   },
   {
     id: "eventFamily",
@@ -117,15 +123,21 @@ const GRADUATION_KEYS: readonly GraduationKeySpec[] = [
       "rawPayload.eventTypeRaw",
     ],
     mode: "llm_vocab_map",
-    description: "High-level event family such as outreach, implementation, planning, or service launch.",
+    description:
+      "High-level event family such as outreach, implementation, planning, or service launch.",
   },
   {
     id: "eventSubtype",
     tier: "core",
     targetPayloadPath: "canonicalPayload.eventSubtype",
-    sourceFieldPaths: ["rawPayload.eventSubtype", "rawPayload.eventSubtypeRaw", "rawPayload.subtypeRaw"],
+    sourceFieldPaths: [
+      "rawPayload.eventSubtype",
+      "rawPayload.eventSubtypeRaw",
+      "rawPayload.subtypeRaw",
+    ],
     mode: "llm_vocab_map",
-    description: "Event subtype such as board presentation, bus-lane installation, or design workshop.",
+    description:
+      "Event subtype such as board presentation, bus-lane installation, or design workshop.",
   },
   {
     id: "eventTreatmentFamily",
@@ -147,7 +159,8 @@ const GRADUATION_KEYS: readonly GraduationKeySpec[] = [
     targetPayloadPath: "canonicalPayload.tableKind",
     sourceFieldPaths: ["rawPayload.tableKind", "rawPayload.tableKindRaw"],
     mode: "llm_vocab_map",
-    description: "Table semantic family such as map legend, ridership table, or before/after comparison.",
+    description:
+      "Table semantic family such as map legend, ridership table, or before/after comparison.",
   },
   {
     id: "contextKind",
@@ -155,7 +168,8 @@ const GRADUATION_KEYS: readonly GraduationKeySpec[] = [
     targetPayloadPath: "canonicalPayload.contextKind",
     sourceFieldPaths: ["rawPayload.contextKind", "rawPayload.contextKindRaw"],
     mode: "llm_vocab_map",
-    description: "Context-signal family such as section heading, presentation context, timeline, or geography.",
+    description:
+      "Context-signal family such as section heading, presentation context, timeline, or geography.",
   },
   {
     id: "questionKind",
@@ -163,7 +177,8 @@ const GRADUATION_KEYS: readonly GraduationKeySpec[] = [
     targetPayloadPath: "canonicalPayload.questionKind",
     sourceFieldPaths: ["rawPayload.questionKind", "rawPayload.questionKindRaw"],
     mode: "llm_vocab_map",
-    description: "Review-question family such as missing detail, data gap, design detail, or clarification.",
+    description:
+      "Review-question family such as missing detail, data gap, design detail, or clarification.",
   },
 ] as const;
 
@@ -379,20 +394,26 @@ function artifactPathValue(value: unknown): string | null {
 async function readCanonicalMergeArtifactPaths(path: string): Promise<string[]> {
   const raw = await Bun.file(path).json();
   if (!isRecord(raw)) throw new Error(`Canonical merge artifact is not an object: ${path}`);
-  const canonicalArtifacts = Array.isArray(raw["canonicalArtifacts"]) ? raw["canonicalArtifacts"] : [];
+  const canonicalArtifacts = Array.isArray(raw["canonicalArtifacts"])
+    ? raw["canonicalArtifacts"]
+    : [];
   const paths = canonicalArtifacts.flatMap((item) => {
     if (!isRecord(item)) return [];
     const artifactPath = artifactPathValue(item["artifactPath"]);
     return artifactPath === null ? [] : [artifactPath];
   });
   if (paths.length === 0) {
-    throw new Error(`Canonical merge artifact has no canonicalArtifacts[].artifactPath entries: ${path}`);
+    throw new Error(
+      `Canonical merge artifact has no canonicalArtifacts[].artifactPath entries: ${path}`,
+    );
   }
   return paths;
 }
 
 function mapToRecord(map: Map<string, number>): Record<string, number> {
-  return Object.fromEntries([...map.entries()].sort(([left], [right]) => left.localeCompare(right)));
+  return Object.fromEntries(
+    [...map.entries()].sort(([left], [right]) => left.localeCompare(right)),
+  );
 }
 
 function increment(map: Map<string, number>, key: string, amount = 1) {
@@ -436,14 +457,18 @@ function counterValues(counters: Map<string, ValueCounter>, limit: number): Grad
 }
 
 function isPlaceholder(value: string): boolean {
-  return /^(unknown|unspecified|none|n\/a|na|not specified|not_applicable|null)$/i.test(value.trim());
+  return /^(unknown|unspecified|none|n\/a|na|not specified|not_applicable|null)$/i.test(
+    value.trim(),
+  );
 }
 
 const sourcePathToGraduationKey = new Map(
   GRADUATION_KEYS.flatMap((key) => key.sourceFieldPaths.map((path) => [path, key.id] as const)),
 );
 
-function classifyRawField(fieldPath: string): Pick<RawFieldStats, "disposition" | "graduationKeyId" | "reason"> {
+function classifyRawField(
+  fieldPath: string,
+): Pick<RawFieldStats, "disposition" | "graduationKeyId" | "reason"> {
   const graduationKeyId = sourcePathToGraduationKey.get(fieldPath);
   if (graduationKeyId !== undefined) {
     return {
@@ -456,7 +481,8 @@ function classifyRawField(fieldPath: string): Pick<RawFieldStats, "disposition" 
   if (/(route|routeids|subjectroute)/.test(compact)) {
     return {
       disposition: "deterministic_catalog_or_parser",
-      reason: "Route mentions must resolve through the route lookup/catalog validator while preserving raw wording.",
+      reason:
+        "Route mentions must resolve through the route lookup/catalog validator while preserving raw wording.",
     };
   }
   if (/(date|period|time|year|month)/.test(compact)) {
@@ -468,7 +494,8 @@ function classifyRawField(fieldPath: string): Pick<RawFieldStats, "disposition" 
   if (/(value|numeric|amount|count)/.test(compact)) {
     return {
       disposition: "deterministic_catalog_or_parser",
-      reason: "Metric values should parse numerically or remain source-stated values, not be LLM-normalized.",
+      reason:
+        "Metric values should parse numerically or remain source-stated values, not be LLM-normalized.",
     };
   }
   if (/(status|authority|truthstatus|publicationwording|direction|priority)/.test(compact)) {
@@ -477,21 +504,32 @@ function classifyRawField(fieldPath: string): Pick<RawFieldStats, "disposition" 
       reason: "Small governed enums should use strict maps and validator feedback.",
     };
   }
-  if (/(geography|location|street|corridor|borough|area|entitytext|entityname|crossstreet|subwayline|servedarea)/.test(compact)) {
+  if (
+    /(geography|location|street|corridor|borough|area|entitytext|entityname|crossstreet|subwayline|servedarea)/.test(
+      compact,
+    )
+  ) {
     return {
       disposition: "deterministic_catalog_or_parser",
-      reason: "Geography/entity mentions should resolve through catalogs or gazetteers while preserving raw text.",
+      reason:
+        "Geography/entity mentions should resolve through catalogs or gazetteers while preserving raw text.",
     };
   }
-  if (/(claimtext|rawtext|evidencetext|description|title|header|row|semanticnotes|questiontext|signaltext|name)/.test(compact)) {
+  if (
+    /(claimtext|rawtext|evidencetext|description|title|header|row|semanticnotes|questiontext|signaltext|name)/.test(
+      compact,
+    )
+  ) {
     return {
       disposition: "preserve_source_wording",
-      reason: "This is source wording or table/text content, so canonicalization would lose evidence detail.",
+      reason:
+        "This is source wording or table/text content, so canonicalization would lose evidence detail.",
     };
   }
   return {
     disposition: "review_only",
-    reason: "Raw field is not part of the current graduated vocabulary and needs corpus review before automation.",
+    reason:
+      "Raw field is not part of the current graduated vocabulary and needs corpus review before automation.",
   };
 }
 
@@ -530,22 +568,30 @@ function walkRawFields(input: {
   }
 }
 
-function surfaceRef(input: { artifactPath: string; artifact: Record<string, unknown>; surface: Record<string, unknown> }): SurfaceRef {
+function surfaceRef(input: {
+  artifactPath: string;
+  artifact: Record<string, unknown>;
+  surface: Record<string, unknown>;
+}): SurfaceRef {
   const source = isRecord(input.artifact["source"]) ? input.artifact["source"] : {};
   const ref: SurfaceRef = {
     artifactPath: input.artifactPath,
-    surfaceKind: typeof input.surface["surfaceKind"] === "string" ? input.surface["surfaceKind"] : "unknown",
+    surfaceKind:
+      typeof input.surface["surfaceKind"] === "string" ? input.surface["surfaceKind"] : "unknown",
   };
   if (typeof source["sourceId"] === "string") ref.sourceId = source["sourceId"];
   if (typeof source["sourceGroup"] === "string") ref.sourceGroup = source["sourceGroup"];
   if (Array.isArray(source["pageNumbers"])) {
-    ref.pageNumbers = source["pageNumbers"].filter((page): page is number => typeof page === "number");
+    ref.pageNumbers = source["pageNumbers"].filter(
+      (page): page is number => typeof page === "number",
+    );
   }
   if (typeof input.surface["surfaceId"] === "string") ref.surfaceId = input.surface["surfaceId"];
   if (typeof input.surface["payloadSchemaId"] === "string") {
     ref.payloadSchemaId = input.surface["payloadSchemaId"];
   }
-  if (typeof input.surface["displayLabel"] === "string") ref.displayLabel = input.surface["displayLabel"];
+  if (typeof input.surface["displayLabel"] === "string")
+    ref.displayLabel = input.surface["displayLabel"];
   return ref;
 }
 
@@ -559,14 +605,18 @@ function renderMarkdown(plan: Tier2RawFieldGraduationPlan): string {
   lines.push("");
   lines.push("- Raw payloads are preserved.");
   lines.push("- Canonical fields are additive.");
-  lines.push("- LLM use is design-time vocabulary synthesis only; runtime resolution is deterministic map lookup.");
+  lines.push(
+    "- LLM use is design-time vocabulary synthesis only; runtime resolution is deterministic map lookup.",
+  );
   lines.push("- Unmapped values stay raw and enter unresolved review.");
   lines.push("");
   lines.push("## Summary");
   lines.push("");
   lines.push(`- Artifacts: ${plan.summary.artifactCount}`);
   lines.push(`- Accepted surfaces: ${plan.summary.acceptedSurfaceCount}`);
-  lines.push(`- Graduation keys: ${plan.summary.graduationKeyCount} (${plan.summary.coreGraduationKeyCount} core, ${plan.summary.secondaryGraduationKeyCount} secondary)`);
+  lines.push(
+    `- Graduation keys: ${plan.summary.graduationKeyCount} (${plan.summary.coreGraduationKeyCount} core, ${plan.summary.secondaryGraduationKeyCount} secondary)`,
+  );
   lines.push(`- Raw fields: ${plan.summary.rawFieldCount}`);
   lines.push(`- LLM vocab candidate fields: ${plan.summary.llmVocabularyCandidateFieldCount}`);
   lines.push(`- Deterministic/catalog fields: ${plan.summary.deterministicFieldCount}`);
@@ -578,7 +628,9 @@ function renderMarkdown(plan: Tier2RawFieldGraduationPlan): string {
   lines.push("| Key | Tier | Instances | Distinct | Repeated | Target |");
   lines.push("|---|---|---:|---:|---:|---|");
   for (const key of plan.graduationKeys) {
-    lines.push(`| ${key.id} | ${key.tier} | ${key.instanceCount} | ${key.distinctValueCount} | ${key.repeatedDistinctValueCount} | ${key.targetPayloadPath} |`);
+    lines.push(
+      `| ${key.id} | ${key.tier} | ${key.instanceCount} | ${key.distinctValueCount} | ${key.repeatedDistinctValueCount} | ${key.targetPayloadPath} |`,
+    );
   }
   lines.push("");
   lines.push("## Top Raw Fields");
@@ -586,7 +638,9 @@ function renderMarkdown(plan: Tier2RawFieldGraduationPlan): string {
   lines.push("| Field | Disposition | Instances | Distinct | Reason |");
   lines.push("|---|---|---:|---:|---|");
   for (const field of plan.rawFieldInventory.slice(0, 40)) {
-    lines.push(`| ${field.fieldPath} | ${field.disposition} | ${field.instanceCount} | ${field.distinctValueCount} | ${field.reason.replace(/\|/g, "/")} |`);
+    lines.push(
+      `| ${field.fieldPath} | ${field.disposition} | ${field.instanceCount} | ${field.distinctValueCount} | ${field.reason.replace(/\|/g, "/")} |`,
+    );
   }
   lines.push("");
   return `${lines.join("\n")}\n`;
@@ -635,7 +689,9 @@ export async function buildTier2RawFieldGraduationPlan(
   if (sourceRoots.length === 0 && sourceCanonicalMergePaths.length === 0) {
     throw new Error("Provide at least one source root or a canonical merge artifact.");
   }
-  const graduationCounters = new Map(GRADUATION_KEYS.map((key) => [key.id, new Map<string, ValueCounter>()] as const));
+  const graduationCounters = new Map(
+    GRADUATION_KEYS.map((key) => [key.id, new Map<string, ValueCounter>()] as const),
+  );
   const rawFieldCounters = new Map<string, Map<string, ValueCounter>>();
   const surfaceKindCounts = new Map<string, number>();
   let artifactCount = 0;
@@ -740,7 +796,12 @@ export async function buildTier2RawFieldGraduationPlan(
         topValues: counterValues(counters, 20),
       } satisfies RawFieldStats;
     })
-    .sort((left, right) => right.distinctValueCount - left.distinctValueCount || right.instanceCount - left.instanceCount || left.fieldPath.localeCompare(right.fieldPath));
+    .sort(
+      (left, right) =>
+        right.distinctValueCount - left.distinctValueCount ||
+        right.instanceCount - left.instanceCount ||
+        left.fieldPath.localeCompare(right.fieldPath),
+    );
 
   const dispositionCounts = rawFieldInventory.reduce(
     (counts, field) => {
@@ -781,42 +842,68 @@ export async function buildTier2RawFieldGraduationPlan(
       preserveRawFieldCount: dispositionCounts.preserve_source_wording,
       reviewOnlyFieldCount: dispositionCounts.review_only,
       totalGraduationInstances: graduationKeys.reduce((sum, key) => sum + key.instanceCount, 0),
-      totalGraduationDistinctValues: graduationKeys.reduce((sum, key) => sum + key.distinctValueCount, 0),
+      totalGraduationDistinctValues: graduationKeys.reduce(
+        (sum, key) => sum + key.distinctValueCount,
+        0,
+      ),
     },
     graduationKeys,
     rawFieldInventory,
     projectionContract: {
-      keep: ["rawPayload", "rawText", "displayLabel", "evidenceByField", "fieldSupportIds", "canonicalSelections"],
+      keep: [
+        "rawPayload",
+        "rawText",
+        "displayLabel",
+        "evidenceByField",
+        "fieldSupportIds",
+        "canonicalSelections",
+      ],
       add: [
         "canonicalPayload.<graduated field>",
         "normalization.vocabVersion",
         "normalization.fieldMappings[]",
         "normalization.unresolvedFields[]",
       ],
-      neverInferWithLlm: ["routeIds", "dates", "numeric values", "geography ids", "evidence handles", "field support paths"],
+      neverInferWithLlm: [
+        "routeIds",
+        "dates",
+        "numeric values",
+        "geography ids",
+        "evidence handles",
+        "field support paths",
+      ],
     },
   };
 }
 
-export async function runTier2RawFieldGraduation(
-  args: RunTier2RawFieldGraduationArgs,
-): Promise<{
+export async function runTier2RawFieldGraduation(args: RunTier2RawFieldGraduationArgs): Promise<{
   plan: Tier2RawFieldGraduationPlan;
   outputPath: string;
   markdownPath: string;
   llmBatchOutputPath: string;
 }> {
   const plan = await buildTier2RawFieldGraduationPlan(args);
-  const sourceSignature = [...plan.sourceRoots, ...plan.sourceCanonicalMergePaths.map((path) => `canonical:${path}`)].join("|");
+  const sourceSignature = [
+    ...plan.sourceRoots,
+    ...plan.sourceCanonicalMergePaths.map((path) => `canonical:${path}`),
+  ].join("|");
   const outputPath =
     args.outputPath ??
-    join(defaultArtifactRootPath(), "docs", "tier2-raw-field-graduation", `raw-field-graduation-${shortHash(sourceSignature)}.json`);
+    join(
+      defaultArtifactRootPath(),
+      "docs",
+      "tier2-raw-field-graduation",
+      `raw-field-graduation-${shortHash(sourceSignature)}.json`,
+    );
   const markdownPath = args.markdownPath ?? outputPath.replace(/\.json$/, ".md");
   const llmBatchOutputPath =
     args.llmBatchOutputPath ?? outputPath.replace(/\.json$/, "-llm-batches.json");
   await mkdir(dirname(outputPath), { recursive: true });
   await writeJson(outputPath, plan);
-  await Bun.write(markdownPath.endsWith(".md") ? markdownPath : markdownPath.replace(/\.json$/, ".md"), renderMarkdown(plan));
+  await Bun.write(
+    markdownPath.endsWith(".md") ? markdownPath : markdownPath.replace(/\.json$/, ".md"),
+    renderMarkdown(plan),
+  );
   await writeJson(llmBatchOutputPath, buildLlmBatchArtifact({ plan, sourcePlanPath: outputPath }));
   return { plan, outputPath, markdownPath, llmBatchOutputPath };
 }
@@ -826,7 +913,11 @@ function parseArgs(argv: string[]): CliArgs {
     {
       flags: ["--roots", "--input-roots"],
       apply: (output, value) => {
-        if (value !== undefined) output.roots = value.split(",").map((root) => root.trim()).filter((root) => root.length > 0);
+        if (value !== undefined)
+          output.roots = value
+            .split(",")
+            .map((root) => root.trim())
+            .filter((root) => root.length > 0);
       },
     },
     {
@@ -877,15 +968,24 @@ function parseArgs(argv: string[]): CliArgs {
 
 export async function runTier2RawFieldGraduationFromCli(argv: string[]) {
   const args = parseArgs(argv);
-  if ((args.roots === undefined || args.roots.length === 0) && args.canonicalMergePath === undefined) {
-    throw new Error("Provide --roots with one or more output roots, or --canonical-merge with a canonical merge JSON artifact.");
+  if (
+    (args.roots === undefined || args.roots.length === 0) &&
+    args.canonicalMergePath === undefined
+  ) {
+    throw new Error(
+      "Provide --roots with one or more output roots, or --canonical-merge with a canonical merge JSON artifact.",
+    );
   }
   const result = await runTier2RawFieldGraduation({
     ...(args.roots === undefined ? {} : { roots: args.roots }),
-    ...(args.canonicalMergePath === undefined ? {} : { canonicalMergePath: args.canonicalMergePath }),
+    ...(args.canonicalMergePath === undefined
+      ? {}
+      : { canonicalMergePath: args.canonicalMergePath }),
     ...(args.outputPath === undefined ? {} : { outputPath: args.outputPath }),
     ...(args.markdownPath === undefined ? {} : { markdownPath: args.markdownPath }),
-    ...(args.llmBatchOutputPath === undefined ? {} : { llmBatchOutputPath: args.llmBatchOutputPath }),
+    ...(args.llmBatchOutputPath === undefined
+      ? {}
+      : { llmBatchOutputPath: args.llmBatchOutputPath }),
     ...(args.generatedAt === undefined ? {} : { generatedAt: args.generatedAt }),
     ...(args.maxValuesPerKey === undefined ? {} : { maxValuesPerKey: args.maxValuesPerKey }),
     ...(args.examplesPerValue === undefined ? {} : { examplesPerValue: args.examplesPerValue }),

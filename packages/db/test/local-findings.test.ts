@@ -1,12 +1,12 @@
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import {
   insertCoverageAudit,
   insertCoverageAuditIgnore,
+  type LocalFindingCoverageAudit,
   listContextEventRouteTouchesForWindow,
   replaceFindingRun,
   replaceFindingsForMonth,
-  type LocalFindingCoverageAudit,
 } from "../src/local/index.js";
 import { createTestLocalDb } from "./local-test-db.js";
 

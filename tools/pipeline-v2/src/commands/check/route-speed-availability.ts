@@ -1,12 +1,12 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { routeSpeedAvailabilityArtifactPath } from "@bp/applied-research/artifacts";
+import { routeSpeedAvailabilityArtifactPath } from "@bp/analytics/artifacts";
 import {
   buildRouteSpeedAvailabilityResult,
   ROUTE_SPEED_AVAILABILITY_SOURCE_ID,
   type RouteSpeedAvailabilityResult,
   type RouteSpeedAvailabilitySourceId as RouteSpeedAvailabilitySourceIdValue,
-} from "@bp/applied-research/evaluation";
+} from "@bp/analytics/evaluation";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";

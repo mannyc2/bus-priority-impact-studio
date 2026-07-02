@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { writeJson } from "../../../lib/json.ts";
 import { fromCliPath } from "../../../lib/paths.ts";
-import { parseCliOptions, type CliOption } from "./_shared.ts";
+import { type CliOption, parseCliOptions } from "./_shared.ts";
 
 const ARTIFACT_KIND = "bp.tier2_agentic_canonical_merge.v1";
 
@@ -264,7 +264,9 @@ async function candidatesFromPlan(input: {
   const out: MergeCandidate[] = [];
   for (const item of input.plan.items) {
     const artifactSummary = await readArtifactSummary(item.artifactPath);
-    for (const windowId of item.windowIds.length === 0 ? [`${item.shardId}:unknown`] : item.windowIds) {
+    for (const windowId of item.windowIds.length === 0
+      ? [`${item.shardId}:unknown`]
+      : item.windowIds) {
       out.push({
         runId: input.plan.sourceRunId,
         runIndex: input.runIndex,
@@ -300,7 +302,11 @@ async function candidatesFromPlan(input: {
 function selectWinner(candidates: MergeCandidate[]): MergeCandidate | null {
   const clean = candidates.filter((candidate) => candidate.clean);
   if (clean.length === 0) return null;
-  return clean.sort((left, right) => right.runIndex - left.runIndex || left.shardId.localeCompare(right.shardId))[0] ?? null;
+  return (
+    clean.sort(
+      (left, right) => right.runIndex - left.runIndex || left.shardId.localeCompare(right.shardId),
+    )[0] ?? null
+  );
 }
 
 function unresolvedReasons(candidates: MergeCandidate[]): string[] {
@@ -379,7 +385,7 @@ export async function buildTier2AgenticCanonicalMerge(
       retryEligibleCount: plan.summary.retryEligibleCount,
       quarantineCount: plan.summary.quarantineCount,
     });
-    candidates.push(...await candidatesFromPlan({ plan, selfHealPlanPath: planPath, runIndex }));
+    candidates.push(...(await candidatesFromPlan({ plan, selfHealPlanPath: planPath, runIndex })));
   }
 
   const byWindow = new Map<string, MergeCandidate[]>();
@@ -391,7 +397,9 @@ export async function buildTier2AgenticCanonicalMerge(
 
   const canonicalWindows: CanonicalWindow[] = [];
   const unresolvedWindows: UnresolvedWindow[] = [];
-  for (const [windowId, bucket] of [...byWindow.entries()].sort(([left], [right]) => left.localeCompare(right))) {
+  for (const [windowId, bucket] of [...byWindow.entries()].sort(([left], [right]) =>
+    left.localeCompare(right),
+  )) {
     const winner = selectWinner(bucket);
     if (winner === null) {
       unresolvedWindows.push({ windowId, candidates: bucket, reasons: unresolvedReasons(bucket) });
@@ -414,23 +422,26 @@ export async function buildTier2AgenticCanonicalMerge(
     }
   }
   for (const window of unresolvedWindows) {
-    for (const candidate of window.candidates) increment(unresolvedLaneCounts, candidate.primaryLane);
+    for (const candidate of window.candidates)
+      increment(unresolvedLaneCounts, candidate.primaryLane);
   }
 
   const canonicalArtifacts = canonicalWindows.flatMap((window) => {
     if (window.selected.artifactPath === null) return [];
-    return [{
-      windowId: window.windowId,
-      runId: window.selected.runId,
-      shardId: window.selected.shardId,
-      sourceId: window.selected.sourceId,
-      pageNumbers: window.selected.pageNumbers,
-      artifactPath: window.selected.artifactPath,
-      auditPath: window.selected.auditPath,
-      acceptedCount: window.selected.acceptedCount,
-      draftCount: window.selected.draftCount,
-      acceptedSurfaceKindCounts: window.selected.acceptedSurfaceKindCounts,
-    }];
+    return [
+      {
+        windowId: window.windowId,
+        runId: window.selected.runId,
+        shardId: window.selected.shardId,
+        sourceId: window.selected.sourceId,
+        pageNumbers: window.selected.pageNumbers,
+        artifactPath: window.selected.artifactPath,
+        auditPath: window.selected.auditPath,
+        acceptedCount: window.selected.acceptedCount,
+        draftCount: window.selected.draftCount,
+        acceptedSurfaceKindCounts: window.selected.acceptedSurfaceKindCounts,
+      },
+    ];
   });
 
   const artifact: Tier2AgenticCanonicalMergeArtifact = {
@@ -453,9 +464,18 @@ export async function buildTier2AgenticCanonicalMerge(
       uniqueWindowCount: byWindow.size,
       canonicalWindowCount: canonicalWindows.length,
       unresolvedWindowCount: unresolvedWindows.length,
-      supersededCandidateCount: canonicalWindows.reduce((sum, window) => sum + window.supersededCandidates.length, 0),
-      canonicalAcceptedSurfaceCount: canonicalWindows.reduce((sum, window) => sum + window.selected.acceptedCount, 0),
-      canonicalDraftCount: canonicalWindows.reduce((sum, window) => sum + window.selected.draftCount, 0),
+      supersededCandidateCount: canonicalWindows.reduce(
+        (sum, window) => sum + window.supersededCandidates.length,
+        0,
+      ),
+      canonicalAcceptedSurfaceCount: canonicalWindows.reduce(
+        (sum, window) => sum + window.selected.acceptedCount,
+        0,
+      ),
+      canonicalDraftCount: canonicalWindows.reduce(
+        (sum, window) => sum + window.selected.draftCount,
+        0,
+      ),
       canonicalRunCounts,
       canonicalSurfaceKindCounts,
       unresolvedLaneCounts,
@@ -481,7 +501,11 @@ function parseArgs(argv: string[]): CliArgs {
     {
       flags: ["--self-heal-plans"],
       apply: (output, value) => {
-        if (value !== undefined) output.selfHealPlanPaths = value.split(",").map((path) => fromCliPath(path.trim())).filter((path) => path.length > 0);
+        if (value !== undefined)
+          output.selfHealPlanPaths = value
+            .split(",")
+            .map((path) => fromCliPath(path.trim()))
+            .filter((path) => path.length > 0);
       },
     },
     {

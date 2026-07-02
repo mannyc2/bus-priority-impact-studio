@@ -1,7 +1,7 @@
 // Phase 3 bucketing + orchestration tests (tool-owned IO/LLM glue). The
 // deterministic policy units (repair / validate / classify / cluster / dedupe)
-// moved to @bp/applied-research/intervention-records and are covered by
-// packages/applied-research/test/intervention-records.test.ts.
+// moved to @bp/analytics/interventions and are covered by
+// packages/analytics/test/intervention-records.test.ts.
 import { describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";

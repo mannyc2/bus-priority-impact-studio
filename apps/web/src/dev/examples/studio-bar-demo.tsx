@@ -1,8 +1,55 @@
-import { ReviewerStack } from "@/components/Reviewers";
-import { StudioBar } from "@/components/StudioBar";
 import { StudioFooter } from "@/components/StudioFooter";
 import { StudioMark } from "@/components/StudioMark";
-import { demoFooterSources, demoReviewers } from "@/fixtures/demo-snippets";
+import { demoFooterSources } from "@/fixtures/demo-snippets";
+
+function StudioBar({
+  active,
+  breadcrumb,
+  updated,
+}: {
+  active?: "Routes" | "Map" | "Interventions" | "Methods";
+  breadcrumb?: string;
+  updated?: string;
+}) {
+  return (
+    <header className="flex items-center gap-8 bg-[var(--bp-color-card)] px-7 py-3.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+      <div className="flex items-center gap-2.5">
+        <StudioMark size={22} />
+        <div className="text-sm font-semibold tracking-[-0.01em]">
+          Bus Priority{" "}
+          <span className="font-normal text-[var(--bp-color-ink-55)]">Impact Studio</span>
+        </div>
+      </div>
+      <nav className="flex gap-[22px] text-[13px]" aria-label="Primary">
+        {(["Routes", "Map", "Interventions", "Methods"] as const).map((item) => {
+          const isActive = item === active;
+          return (
+            <span
+              key={item}
+              className={`cursor-pointer pb-0.5 ${
+                isActive
+                  ? "font-semibold text-[var(--bp-color-ink)] shadow-[inset_0_-2px_0_var(--bp-color-ink)]"
+                  : "font-normal text-[var(--bp-color-ink-55)]"
+              }`}
+            >
+              {item}
+            </span>
+          );
+        })}
+      </nav>
+      <div className="flex-1" />
+      {breadcrumb ? (
+        <div className="font-mono text-xs text-[var(--bp-color-ink-55)]">{breadcrumb}</div>
+      ) : null}
+      {updated ? (
+        <div className="flex items-center gap-1.5 font-mono text-[11px] text-[var(--bp-color-ink-55)]">
+          <span className="size-1.5 rounded-full bg-[var(--bp-color-good)]" />
+          data current to {updated}
+        </div>
+      ) : null}
+    </header>
+  );
+}
 
 export function StudioBarDemo() {
   return (
@@ -21,10 +68,9 @@ export function StudioBarDemo() {
           </h2>
           <p className="mt-2 max-w-[620px] text-[13px] leading-normal text-[var(--bp-color-ink-70)]">
             A warm-paper civic interface for route evidence, hotspot ranking, intervention
-            reasoning, and brief authoring.
+            timelines, and methodology.
           </p>
         </div>
-        <ReviewerStack reviewers={demoReviewers} />
       </div>
       <StudioFooter sources={demoFooterSources} />
     </div>

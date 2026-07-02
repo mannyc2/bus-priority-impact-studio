@@ -33,7 +33,7 @@ describe("route evidence index", () => {
     ]);
   });
 
-  test("counts finding and source refs while preserving safe caveats", () => {
+  test("counts evidence and source refs while preserving safe caveats", () => {
     expect(
       routeEvidenceIndexRows([
         insight({
@@ -55,7 +55,7 @@ describe("route evidence index", () => {
       title: "Evidence-backed row",
       detectorLabel: "customer journey shortfall",
       citationLabel: "3 cited refs",
-      referenceDetailLabel: "2 finding refs / 2 source refs",
+      referenceDetailLabel: "2 evidence refs / 2 source refs",
       caveats: ["Wait-time evidence is the main contributor.", "Reviewed as route-level evidence."],
     });
   });

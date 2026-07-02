@@ -5,9 +5,14 @@ import {
   type RouteObservedReliabilityResult,
   type RouteReliabilitySummary,
   runRouteObservedReliability,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
-import { dbOptions, localDbFromCtx, withLocalDb } from "../../lib/local-db.ts";
+import {
+  makeRouteLocalDbCommandLayer,
+  runRouteObservedReliabilityCommand,
+} from "../../effect/route-local-db.ts";
+import { runPipelineEffect } from "../../effect/runtime.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 
 export {
   buildSummary,
@@ -32,7 +37,6 @@ export default defineCommand({
         .describe("Minimum headway samples to mark a route observed"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     isoMonth: z.string(),
     runId: z.string(),
@@ -41,13 +45,17 @@ export default defineCommand({
     insufficientRouteCount: z.number(),
     headwaySampleCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runRouteObservedReliability({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      runId: input.options.runId,
-      minSamples: input.options.minSamples,
-    });
+  async run({ input }) {
+    return runPipelineEffect(
+      runRouteObservedReliabilityCommand({
+        year: input.options.year,
+        month: input.options.month,
+        runId: input.options.runId,
+        minSamples: input.options.minSamples,
+      }),
+      makeRouteLocalDbCommandLayer({
+        dbPath: input.options.db,
+      }),
+    );
   },
 });

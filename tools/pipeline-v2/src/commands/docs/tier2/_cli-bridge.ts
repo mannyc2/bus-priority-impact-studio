@@ -19,10 +19,7 @@ export type OptionsLike = Record<string, unknown>;
  * `mapping` maps the liche option name (camelCase) to the v1 flag string
  * (kebab-case `--flag`).
  */
-export function optionsToArgs(
-  options: OptionsLike,
-  mapping: Record<string, string>,
-): string[] {
+export function optionsToArgs(options: OptionsLike, mapping: Record<string, string>): string[] {
   const out: string[] = [];
   for (const [optionKey, flag] of Object.entries(mapping)) {
     const value = options[optionKey];

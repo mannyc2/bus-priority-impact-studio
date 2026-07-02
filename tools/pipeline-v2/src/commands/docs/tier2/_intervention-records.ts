@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import {
   dedupeInterventionRecordsByEvidenceOverlap,
   processInterventionRecordsToolArgs,
-} from "@bp/applied-research/intervention-records";
+} from "@bp/analytics/interventions";
 import type { Tier2DocumentEvidenceCandidate } from "@bp/domain/documents/candidates";
 import {
   DocumentInterventionRecordsToolResponseSchema,
@@ -164,7 +164,7 @@ function interventionRecordsTool(): Record<string, unknown> {
       "DocumentInterventionRecordsToolResponseSchema did not produce an object schema.",
     );
   }
-  const { ["$schema"]: _ignored, ...parameters } = responseSchema as Record<string, unknown>;
+  const { $schema: _ignored, ...parameters } = responseSchema as Record<string, unknown>;
   return {
     type: "function",
     function: {

@@ -11,6 +11,7 @@ import routeMonthSpeedGoldenDiff from "../../../src/commands/build/route-month-s
 
 const runGoldenDiff = routeMonthSpeedGoldenDiff.run;
 if (runGoldenDiff === undefined) throw new Error("golden-diff command has no run handler");
+
 import { openLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
 function cell(overrides: Partial<LocalRouteSegmentSpeedCell>): LocalRouteSegmentSpeedCell {
@@ -41,6 +42,17 @@ function cell(overrides: Partial<LocalRouteSegmentSpeedCell>): LocalRouteSegment
 }
 
 describe("build route-month-speed-golden-diff", () => {
+  it("uses the Effect local DB boundary for read-only local DB access", async () => {
+    const source = await Bun.file(
+      new URL("../../../src/commands/build/route-month-speed-golden-diff.ts", import.meta.url),
+    ).text();
+
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("localDbOptions: { readonly: true }");
+    expect(source).not.toContain('from "bun:sqlite"');
+    expect(source).not.toContain("new BunDatabase");
+  });
+
   it("reports byte-identical when the trend row equals the cell projection", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "golden-diff-"));
     const dbPath = join(tmp, "pipeline.sqlite");

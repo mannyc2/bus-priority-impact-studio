@@ -7,8 +7,8 @@ import {
 } from "./proof-ledger.ts";
 import type {
   FeatureFamily,
-  FeatureProofCandidate,
   FeaturePromotionEligibility,
+  FeatureProofCandidate,
   FeatureValidationError,
   JsonRecord,
   ProofState,
@@ -187,7 +187,9 @@ function stringValue(value: unknown): string | null {
 }
 
 function stringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.flatMap((item) => (typeof item === "string" ? [item] : [])) : [];
+  return Array.isArray(value)
+    ? value.flatMap((item) => (typeof item === "string" ? [item] : []))
+    : [];
 }
 
 function normalizeRawValueKey(value: string): string {
@@ -210,7 +212,9 @@ function normalizeModifiers(value: unknown): Record<string, string[]> {
   if (!isRecord(value)) return {};
   return Object.fromEntries(
     Object.entries(value).flatMap(([key, item]) => {
-      const values = [...new Set(stringArray(item))].sort((left, right) => left.localeCompare(right));
+      const values = [...new Set(stringArray(item))].sort((left, right) =>
+        left.localeCompare(right),
+      );
       return values.length === 0 ? [] : [[key, values]];
     }),
   );
@@ -222,7 +226,8 @@ function mappingFromRaw(value: unknown): VocabMapping | null {
   const rawValue = stringValue(value["rawValue"]);
   const targetPayloadPath = stringValue(value["targetPayloadPath"]);
   const canonicalLeafId = stringValue(value["canonicalLeafId"]);
-  if (keyId === null || rawValue === null || targetPayloadPath === null || canonicalLeafId === null) return null;
+  if (keyId === null || rawValue === null || targetPayloadPath === null || canonicalLeafId === null)
+    return null;
   return {
     keyId,
     rawValue,
@@ -242,7 +247,10 @@ function sameMapping(left: VocabMapping, right: VocabMapping): boolean {
   );
 }
 
-function mergeMapping(existing: ResolverIndexEntry | undefined, mapping: VocabMapping): ResolverIndexEntry {
+function mergeMapping(
+  existing: ResolverIndexEntry | undefined,
+  mapping: VocabMapping,
+): ResolverIndexEntry {
   if (existing === undefined) return { state: "resolved", mapping };
   const mappings = existing.state === "resolved" ? [existing.mapping] : existing.mappings;
   if (mappings.some((candidate) => sameMapping(candidate, mapping))) {
@@ -260,12 +268,18 @@ function mergeMapping(existing: ResolverIndexEntry | undefined, mapping: VocabMa
 
 function fieldMappingsFromVocabApplication(raw: unknown, path: string): VocabMapping[] {
   if (!isRecord(raw)) throw new Error(`Vocab surface application is not an object: ${path}`);
-  const surfaces = Array.isArray(raw["normalizedAcceptedSurfaces"]) ? raw["normalizedAcceptedSurfaces"] : [];
+  const surfaces = Array.isArray(raw["normalizedAcceptedSurfaces"])
+    ? raw["normalizedAcceptedSurfaces"]
+    : [];
   const mappings: VocabMapping[] = [];
   for (const item of surfaces) {
     if (!isRecord(item) || !isRecord(item["surface"])) continue;
-    const normalization = isRecord(item["surface"]["normalization"]) ? item["surface"]["normalization"] : {};
-    const rawMappings = Array.isArray(normalization["fieldMappings"]) ? normalization["fieldMappings"] : [];
+    const normalization = isRecord(item["surface"]["normalization"])
+      ? item["surface"]["normalization"]
+      : {};
+    const rawMappings = Array.isArray(normalization["fieldMappings"])
+      ? normalization["fieldMappings"]
+      : [];
     for (const rawMapping of rawMappings) {
       const mapping = mappingFromRaw(rawMapping);
       if (mapping !== null) mappings.push(mapping);
@@ -301,8 +315,21 @@ function promotionEligibilityFor(input: {
     "table_cell",
     "event_identity",
   ]);
-  const causalFamilies = new Set<FeatureFamily>(["route_scope", "operational_date_status", "treatment", "metric_claim", "causal_eligibility"]);
-  const briefFamilies = new Set<FeatureFamily>(["route_scope", "treatment", "metric_claim", "claim", "event_identity", "source_statement"]);
+  const causalFamilies = new Set<FeatureFamily>([
+    "route_scope",
+    "operational_date_status",
+    "treatment",
+    "metric_claim",
+    "causal_eligibility",
+  ]);
+  const briefFamilies = new Set<FeatureFamily>([
+    "route_scope",
+    "treatment",
+    "metric_claim",
+    "claim",
+    "event_identity",
+    "source_statement",
+  ]);
   return {
     publicFeature: publishable,
     detectorFeature: publishable && detectorFamilies.has(input.featureFamily),
@@ -329,11 +356,21 @@ function proofStateFor(errors: FeatureValidationError[]): ProofState {
   ) {
     return "support_missing";
   }
-  if (errors.some((error) => error.code === "evidence_quote_not_source_local" || error.code === "source_verifier_not_verified")) {
+  if (
+    errors.some(
+      (error) =>
+        error.code === "evidence_quote_not_source_local" ||
+        error.code === "source_verifier_not_verified",
+    )
+  ) {
     return "ambiguous";
   }
   if (
-    errors.some((error) => error.code === "canonical_resolver_missing" || error.code === "canonical_resolver_unsafe_mapping")
+    errors.some(
+      (error) =>
+        error.code === "canonical_resolver_missing" ||
+        error.code === "canonical_resolver_unsafe_mapping",
+    )
   ) {
     return "resolver_missing";
   }
@@ -358,7 +395,13 @@ function canonicalResolverError(input: {
       input.reason === "ambiguous"
         ? "Do not retry extraction. The vocab runner must split or quarantine this alias before promotion."
         : "Return the same source-observed value and support if retried; the vocab runner must add a mapped alias or leave it blocked.",
-    deterministicRunnerFields: ["canonicalLeafId", "canonicalLeafLabel", "coarseFamily", "modifiers", "targetPayloadPath"],
+    deterministicRunnerFields: [
+      "canonicalLeafId",
+      "canonicalLeafLabel",
+      "coarseFamily",
+      "modifiers",
+      "targetPayloadPath",
+    ],
   };
 }
 
@@ -366,7 +409,10 @@ function canonicalSafetyError(input: {
   candidate: FeatureProofCandidate;
   mapping: VocabMapping;
 }): FeatureValidationError | null {
-  const canonicalText = [input.mapping.canonicalLeafId, input.mapping.canonicalLeafLabel ?? ""].join(" ");
+  const canonicalText = [
+    input.mapping.canonicalLeafId,
+    input.mapping.canonicalLeafLabel ?? "",
+  ].join(" ");
   for (const gate of CANONICAL_SCOPE_INJECTION_GATES) {
     if (!gate.canonicalPattern.test(canonicalText)) continue;
     if (gate.rawPattern.test(input.candidate.rawValue)) continue;
@@ -377,7 +423,13 @@ function canonicalSafetyError(input: {
       message: `Vocab resolver mapping injects ${gate.label} scope not stated by raw value: ${input.candidate.rawValue}.`,
       llmRetryInstruction:
         "Do not retry extraction. The vocab runner must map this alias to a source-compatible leaf or quarantine it before promotion.",
-      deterministicRunnerFields: ["canonicalLeafId", "canonicalLeafLabel", "coarseFamily", "modifiers", "targetPayloadPath"],
+      deterministicRunnerFields: [
+        "canonicalLeafId",
+        "canonicalLeafLabel",
+        "coarseFamily",
+        "modifiers",
+        "targetPayloadPath",
+      ],
     };
   }
   return null;
@@ -388,7 +440,9 @@ function resolvedCandidate(input: {
   mapping: VocabMapping;
 }): FeatureProofCandidate {
   const validationErrors = input.candidate.validationErrors.filter(
-    (error) => error.code !== "canonical_resolver_missing" && error.code !== "canonical_resolver_unsafe_mapping",
+    (error) =>
+      error.code !== "canonical_resolver_missing" &&
+      error.code !== "canonical_resolver_unsafe_mapping",
   );
   const safetyError = canonicalSafetyError(input);
   if (safetyError !== null) validationErrors.unshift(safetyError);
@@ -414,7 +468,9 @@ function resolvedCandidate(input: {
 
 function identityResolvedCandidate(candidate: FeatureProofCandidate): FeatureProofCandidate {
   const validationErrors = candidate.validationErrors.filter(
-    (error) => error.code !== "canonical_resolver_missing" && error.code !== "canonical_resolver_unsafe_mapping",
+    (error) =>
+      error.code !== "canonical_resolver_missing" &&
+      error.code !== "canonical_resolver_unsafe_mapping",
   );
   const proofState = proofStateFor(validationErrors);
   return {
@@ -444,7 +500,9 @@ function unresolvedCandidate(input: {
   reason: "missing" | "ambiguous";
 }): FeatureProofCandidate {
   const existing = input.candidate.validationErrors.filter(
-    (error) => error.code !== "canonical_resolver_missing" && error.code !== "canonical_resolver_unsafe_mapping",
+    (error) =>
+      error.code !== "canonical_resolver_missing" &&
+      error.code !== "canonical_resolver_unsafe_mapping",
   );
   const validationErrors = [
     canonicalResolverError({
@@ -474,7 +532,10 @@ export function resolveFeatureProofLedgerWithVocab(input: {
   sourceVocabApplicationPath: string;
   generatedAt?: string;
 }): VocabResolvedFeatureProofLedgerResult {
-  const mappings = fieldMappingsFromVocabApplication(input.vocabApplication, input.sourceVocabApplicationPath);
+  const mappings = fieldMappingsFromVocabApplication(
+    input.vocabApplication,
+    input.sourceVocabApplicationPath,
+  );
   const index = buildResolverIndex(mappings);
   const stats: ResolverStats = {
     inputCandidateCount: input.ledger.candidates.length,
@@ -487,7 +548,11 @@ export function resolveFeatureProofLedgerWithVocab(input: {
   const candidates = input.ledger.candidates.map((candidate) => {
     const vocabKeyId = VOCAB_KEY_ID_BY_PROOF_KEY_ID[candidate.keyId];
     if (vocabKeyId === undefined) {
-      if (IDENTITY_RESOLVED_PROOF_KEY_IDS.has(candidate.keyId) || candidate.keyId.includes(":rawLabel") || candidate.keyId.includes(":sourceStatedContext")) {
+      if (
+        IDENTITY_RESOLVED_PROOF_KEY_IDS.has(candidate.keyId) ||
+        candidate.keyId.includes(":rawLabel") ||
+        candidate.keyId.includes(":sourceStatedContext")
+      ) {
         stats.resolvedCandidateCount += 1;
         stats.identityResolvedCandidateCount += 1;
         return identityResolvedCandidate(candidate);
@@ -513,7 +578,9 @@ export function resolveFeatureProofLedgerWithVocab(input: {
 
   const artifact = buildTier2FeatureProofLedgerFromCandidates({
     generatedAt: input.generatedAt ?? new Date().toISOString(),
-    sourceCanonicalMergePath: stringValue((input.vocabApplication as JsonRecord)["sourceCanonicalMergePath"]),
+    sourceCanonicalMergePath: stringValue(
+      (input.vocabApplication as JsonRecord)["sourceCanonicalMergePath"],
+    ),
     sourceVocabApplicationPath: input.sourceVocabApplicationPath,
     ...(input.ledger.sourceFeatureExtractionPaths === undefined
       ? {}
@@ -544,7 +611,9 @@ export async function buildTier2FeatureProofLedgerWithVocabResolver(
   });
 }
 
-export async function runTier2FeatureProofLedgerVocabResolver(args: BuildTier2FeatureProofLedgerWithVocabResolverArgs): Promise<{
+export async function runTier2FeatureProofLedgerVocabResolver(
+  args: BuildTier2FeatureProofLedgerWithVocabResolverArgs,
+): Promise<{
   artifact: Tier2FeatureProofLedgerArtifact;
   outputPath: string;
   markdownPath: string;
@@ -554,7 +623,12 @@ export async function runTier2FeatureProofLedgerVocabResolver(args: BuildTier2Fe
   const result = await buildTier2FeatureProofLedgerWithVocabResolver(args);
   const outputPath = fromCliPath(
     args.outputPath ??
-      join(defaultArtifactRootPath(), "docs", "tier2-feature-vocab-resolver", "feature-proof-ledger.json"),
+      join(
+        defaultArtifactRootPath(),
+        "docs",
+        "tier2-feature-vocab-resolver",
+        "feature-proof-ledger.json",
+      ),
   );
   const written = await writeTier2FeatureProofLedgerArtifacts({
     artifact: result.artifact,

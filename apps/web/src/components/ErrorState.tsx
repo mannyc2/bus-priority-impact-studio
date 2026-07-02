@@ -42,7 +42,7 @@ export function ErrorState({
           </EmptyDescription>
         ) : null}
       </EmptyHeader>
-      {action ?? retry ? (
+      {(action ?? retry) ? (
         <EmptyContent className="flex-row justify-center">
           {action ?? (
             <Button size="sm" variant="secondary" onClick={onRetry}>

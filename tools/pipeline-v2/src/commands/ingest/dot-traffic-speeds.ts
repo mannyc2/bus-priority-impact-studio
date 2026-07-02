@@ -4,12 +4,8 @@ import { normalizeDotTrafficSpeedRows } from "@bp/sources/adapters/nyc-dot/traff
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {
   fetchSoda3RowsForSource,
@@ -120,18 +116,27 @@ export default defineCommand({
       maxRows: arg.positiveInt().default(10_000).describe("Max rows to fetch"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     rawPath: z.string(),
     sampledAt: z.string(),
     linkCount: z.number(),
     rowCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runDotTrafficSpeedsIngest({
-      local: localDbFromCtx(ctx),
-      sinceHours: input.options.sinceHours,
-      maxRows: input.options.maxRows,
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "ingest.dot-traffic-speeds",
+      operation: "runDotTrafficSpeedsIngest",
+      spanAttributes: {
+        sinceHours: input.options.sinceHours,
+        maxRows: input.options.maxRows,
+      },
+      run: (local) =>
+        runDotTrafficSpeedsIngest({
+          local,
+          sinceHours: input.options.sinceHours,
+          maxRows: input.options.maxRows,
+        }),
     });
   },
 });

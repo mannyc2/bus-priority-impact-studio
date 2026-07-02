@@ -26,10 +26,7 @@ describe("runCloudflareCostPlan", () => {
         `insert into "route_scorecard" ("route_id", "month") values ('M2', '2099-01');`,
       ].join("\n"),
     );
-    await writeFile(
-      summaryPath,
-      JSON.stringify({ schemaVersion: 1, routeScorecardRowCount: 2 }),
-    );
+    await writeFile(summaryPath, JSON.stringify({ schemaVersion: 1, routeScorecardRowCount: 2 }));
 
     const plan = await runCloudflareCostPlan({
       d1SqlPaths: [seedPath],

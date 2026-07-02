@@ -1,10 +1,6 @@
 import { defineCommand, z } from "@liche/core";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 
 export type CheckSpatialiteResult = {
   ok: boolean;
@@ -12,9 +8,7 @@ export type CheckSpatialiteResult = {
   version: string | null;
 };
 
-export function runCheckSpatialite(inputs: {
-  local: OpenLocalPipelineDb;
-}): CheckSpatialiteResult {
+export function runCheckSpatialite(inputs: { local: OpenLocalPipelineDb }): CheckSpatialiteResult {
   return {
     ok: inputs.local.spatialite !== null,
     path: inputs.local.spatialite?.path ?? null,
@@ -26,13 +20,18 @@ export default defineCommand({
   path: ["check", "spatialite"],
   summary: "Verify mod_spatialite loads against the local pipeline DB.",
   input: { options: dbOptions },
-  middleware: [withLocalDb({ spatial: true })],
   output: z.object({
     ok: z.boolean(),
     path: z.string().nullable(),
     version: z.string().nullable(),
   }),
-  async run({ ctx }) {
-    return runCheckSpatialite({ local: localDbFromCtx(ctx) });
+  async run({ input }) {
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      localDbOptions: { spatial: true },
+      command: "check.spatialite",
+      operation: "runCheckSpatialite",
+      run: async (local) => runCheckSpatialite({ local }),
+    });
   },
 });

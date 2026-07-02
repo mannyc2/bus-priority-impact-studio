@@ -3,13 +3,11 @@ import type { ReactNode } from "react";
 import { StudioMark } from "@/components/StudioMark";
 
 const navItems = [
-  { to: "/routes", label: "Routes" },
-  { to: "/findings", label: "Findings" },
-  { to: "/briefs", label: "Briefs" },
-  { to: "/docs", label: "Docs" },
+  { to: "/", label: "Routes" },
+  { to: "/map", label: "Map" },
+  { to: "/interventions", label: "Interventions" },
+  { to: "/methods", label: "Methods" },
 ] as const;
-
-const DATA_CURRENT_TO = "2026-05-12";
 
 export function StudioShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -35,10 +33,6 @@ export function StudioShell({ children }: { children: ReactNode }) {
             <StudioNavLink key={item.to} item={item} pathname={pathname} />
           ))}
         </nav>
-        <div className="flex shrink-0 items-center gap-1.5 font-mono text-[11px] text-[var(--bp-color-ink-55)] max-sm:hidden">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--bp-color-good)]" aria-hidden />
-          data current to {DATA_CURRENT_TO}
-        </div>
       </header>
       <div className="min-h-0 flex-1 overflow-auto">{children}</div>
     </div>
@@ -46,7 +40,10 @@ export function StudioShell({ children }: { children: ReactNode }) {
 }
 
 function StudioNavLink({ item, pathname }: { item: (typeof navItems)[number]; pathname: string }) {
-  const active = pathname.startsWith(item.to);
+  const active =
+    item.to === "/"
+      ? pathname === "/" || pathname.startsWith("/routes/")
+      : pathname === item.to || pathname.startsWith(`${item.to}/`);
 
   return (
     <Link

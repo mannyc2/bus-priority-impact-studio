@@ -584,9 +584,7 @@ export function detectSourceGaps(input: SourceGapDetectorInput): SourceGapDetect
     if (row.sourceGapCount <= 0) continue;
     const routeId = row.routeId === null ? null : RouteIdSchema.parse(row.routeId);
     const scopeId =
-      routeId === null
-        ? `treatment_source_gap:${row.treatmentType}:${row.gapKind}`
-        : routeId;
+      routeId === null ? `treatment_source_gap:${row.treatmentType}:${row.gapKind}` : routeId;
     const reasonCode = treatmentSourceGapReason(row);
     const candidateId = stableId(detectorRunId, "candidate", scopeId, reasonCode);
     candidates.push(

@@ -6,9 +6,14 @@ import {
   type CountyAggregate,
   type RouteEquityContextResult,
   runRouteEquityContext,
-} from "@bp/applied-research/local-db";
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
-import { dbOptions, localDbFromCtx, withLocalDb } from "../../lib/local-db.ts";
+import {
+  makeRouteLocalDbCommandLayer,
+  runRouteEquityContextCommand,
+} from "../../effect/route-local-db.ts";
+import { runPipelineEffect } from "../../effect/runtime.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 
 export {
   type AssignedCounty,
@@ -30,19 +35,22 @@ export default defineCommand({
       acsYear: arg.positiveInt().default(2024).describe("ACS vintage year"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     analysisPeriod: z.string(),
     acsYear: z.number(),
     routeCount: z.number(),
     assignedRouteCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runRouteEquityContext({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      acsYear: input.options.acsYear,
-    });
+  async run({ input }) {
+    return runPipelineEffect(
+      runRouteEquityContextCommand({
+        year: input.options.year,
+        month: input.options.month,
+        acsYear: input.options.acsYear,
+      }),
+      makeRouteLocalDbCommandLayer({
+        dbPath: input.options.db,
+      }),
+    );
   },
 });

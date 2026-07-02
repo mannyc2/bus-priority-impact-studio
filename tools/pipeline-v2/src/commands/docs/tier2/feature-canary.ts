@@ -1,9 +1,9 @@
 import { defineCommand, z } from "@liche/core";
+import { runTier2FeatureCanary } from "./feature-harness/canary-runner.ts";
 import {
   DEFAULT_TIER2_FEATURE_SMOKE_MODEL,
   DEFAULT_TIER2_FEATURE_SMOKE_PROVIDER,
 } from "./feature-harness/contract.ts";
-import { runTier2FeatureCanary } from "./feature-harness/canary-runner.ts";
 
 const optionsSchema = z.object({
   manifestPath: z.string().optional(),
@@ -47,7 +47,9 @@ export async function runDocsTier2FeatureCanary(input: z.infer<typeof optionsSch
     ...(input.sampleSize === undefined ? {} : { sampleSize: input.sampleSize }),
     ...(input.seed === undefined ? {} : { seed: input.seed }),
     ...(input.concurrency === undefined ? {} : { concurrency: input.concurrency }),
-    ...(input.rateLimitPerMinute === undefined ? {} : { rateLimitPerMinute: input.rateLimitPerMinute }),
+    ...(input.rateLimitPerMinute === undefined
+      ? {}
+      : { rateLimitPerMinute: input.rateLimitPerMinute }),
     ...(input.execute === undefined ? {} : { execute: input.execute }),
     provider: input.provider ?? DEFAULT_TIER2_FEATURE_SMOKE_PROVIDER,
     model: input.model ?? DEFAULT_TIER2_FEATURE_SMOKE_MODEL,
@@ -57,10 +59,18 @@ export async function runDocsTier2FeatureCanary(input: z.infer<typeof optionsSch
     ...(input.maxAttempts === undefined ? {} : { maxAttempts: input.maxAttempts }),
     ...(input.generatedAt === undefined ? {} : { generatedAt: input.generatedAt }),
     ...(input.runId === undefined ? {} : { runId: input.runId }),
-    ...(input.vocabApplicationPath === undefined ? {} : { vocabApplicationPath: input.vocabApplicationPath }),
-    ...(input.includePriorContext === undefined ? {} : { includePriorContext: input.includePriorContext }),
-    ...(input.maxPriorContextChars === undefined ? {} : { maxPriorContextChars: input.maxPriorContextChars }),
-    ...(input.minAcceptedRunRate === undefined ? {} : { minAcceptedRunRate: input.minAcceptedRunRate }),
+    ...(input.vocabApplicationPath === undefined
+      ? {}
+      : { vocabApplicationPath: input.vocabApplicationPath }),
+    ...(input.includePriorContext === undefined
+      ? {}
+      : { includePriorContext: input.includePriorContext }),
+    ...(input.maxPriorContextChars === undefined
+      ? {}
+      : { maxPriorContextChars: input.maxPriorContextChars }),
+    ...(input.minAcceptedRunRate === undefined
+      ? {}
+      : { minAcceptedRunRate: input.minAcceptedRunRate }),
     ...(input.maxPublishableWithoutProof === undefined
       ? {}
       : { maxPublishableWithoutProof: input.maxPublishableWithoutProof }),

@@ -1,21 +1,15 @@
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 import {
   type BackfillRouteRidershipTrendsResult,
   runBackfillRouteRidershipTrends,
 } from "../backfill/route-ridership-trends.ts";
-import { runBriefArtifacts } from "../brief/artifacts.ts";
 import { runBuildObservedHeadways } from "../build/observed-headways.ts";
 import { type PipelineV1CheckResult, runCheckPipelineV1 } from "../check/pipeline-v1.ts";
 import { runCorridorModel } from "../corridor/model.ts";
-import { runEvaluationArtifacts } from "../evaluation/artifacts.ts";
 import { runRouteTrendsIngest } from "../ingest/route-trends.ts";
 import { runMapArtifacts } from "../map/artifacts.ts";
 import { runRouteBriefModel } from "../route/brief-model.ts";
@@ -76,9 +70,7 @@ export type PipelineFinalizeResult = {
   interventionEvaluation: Awaited<ReturnType<typeof runRouteInterventionEvaluation>>;
   routeBriefModel: Awaited<ReturnType<typeof runRouteBriefModel>>;
   corridorModel: Awaited<ReturnType<typeof runCorridorModel>>;
-  evaluationArtifacts: Awaited<ReturnType<typeof runEvaluationArtifacts>>;
   mapArtifacts: Awaited<ReturnType<typeof runMapArtifacts>>;
-  briefArtifacts: Awaited<ReturnType<typeof runBriefArtifacts>>;
   d1: Awaited<ReturnType<typeof runVerifyD1Export>>;
   check: PipelineV1CheckResult;
 };
@@ -178,19 +170,7 @@ export async function runPipelineFinalize(
     month: inputs.month,
     hotspotLimit: inputs.corridorHotspotLimit ?? defaultCorridorHotspotLimit,
   });
-  const evaluationArtifacts = await runEvaluationArtifacts({
-    local: inputs.local,
-    year: inputs.year,
-    month: inputs.month,
-    artifactRoot: inputs.artifactRoot,
-  });
   const mapArtifacts = await runMapArtifacts({
-    local: inputs.local,
-    year: inputs.year,
-    month: inputs.month,
-    artifactRoot: inputs.artifactRoot,
-  });
-  const briefArtifacts = await runBriefArtifacts({
     local: inputs.local,
     year: inputs.year,
     month: inputs.month,
@@ -235,9 +215,7 @@ export async function runPipelineFinalize(
     interventionEvaluation,
     routeBriefModel,
     corridorModel,
-    evaluationArtifacts,
     mapArtifacts,
-    briefArtifacts,
     d1,
     check,
   };
@@ -246,7 +224,7 @@ export async function runPipelineFinalize(
 export default defineCommand({
   path: ["pipeline", "finalize"],
   summary:
-    "Run the full pipeline v1 finalization (trends, observed, intervention, briefs, D1, check).",
+    "Run the full pipeline v1 finalization (trends, observed, intervention, map, D1, check).",
   input: {
     options: dbOptions.extend({
       year: arg.positiveInt().default(2026).describe("Calendar year"),
@@ -275,7 +253,6 @@ export default defineCommand({
       exportRoot: z.string().optional(),
     }),
   },
-  middleware: [withLocalDb()],
   output: z
     .object({
       isoMonth: z.string(),
@@ -283,37 +260,52 @@ export default defineCommand({
       strictGtfsRt: z.boolean(),
     })
     .passthrough(),
-  async run({ ctx, input }) {
-    return runPipelineFinalize({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      runId: input.options.runId,
-      trendStartYear: input.options.trendStartYear,
-      trendStartMonth: input.options.trendStartMonth,
-      refreshTrends: input.options.noTrends === true ? false : undefined,
-      backfillRidership: input.options.noRidershipBackfill === true ? false : undefined,
-      ridershipBackfillLimit: input.options.ridershipLimit,
-      ridershipBackfillConcurrency: input.options.ridershipConcurrency,
-      buildObservedHeadways: input.options.skipObservedHeadways === true ? false : undefined,
-      allowInsufficientGtfsRt: input.options.allowInsufficientGtfsRt,
-      minObservedHeadwaySamples: input.options.minObservedHeadwaySamples,
-      minObservedRouteCount: input.options.minObservedRouteCount,
-      minObservedRouteShare: input.options.minObservedRouteShare,
-      minGtfsRtCollectionHours: input.options.minGtfsRtCollectionHours,
-      maxGtfsRtSampleSeconds: input.options.maxGtfsRtSampleSeconds,
-      minGtfsRtVehiclePositionSnapshotShare: input.options.minGtfsRtVehiclePositionSnapshotShare,
-      observedReliabilityMinSamples: input.options.observedReliabilityMinSamples,
-      interventionWindowMonths: input.options.interventionWindowMonths,
-      interventionMinSampleMonths: input.options.interventionMinSampleMonths,
-      interventionComparisonRouteCount: input.options.interventionComparisonRouteCount,
-      corridorHotspotLimit: input.options.corridorHotspotLimit,
-      artifactRoot:
-        input.options.artifactRoot === undefined
-          ? undefined
-          : fromCliPath(input.options.artifactRoot),
-      exportRoot:
-        input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot),
+  async run({ input }) {
+    const artifactRoot =
+      input.options.artifactRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.artifactRoot);
+    const exportRoot =
+      input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "pipeline.finalize",
+      operation: "runPipelineFinalize",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+        runId: input.options.runId ?? null,
+        strictGtfsRt: input.options.allowInsufficientGtfsRt !== true,
+      },
+      run: (local) =>
+        runPipelineFinalize({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          runId: input.options.runId,
+          trendStartYear: input.options.trendStartYear,
+          trendStartMonth: input.options.trendStartMonth,
+          refreshTrends: input.options.noTrends === true ? false : undefined,
+          backfillRidership: input.options.noRidershipBackfill === true ? false : undefined,
+          ridershipBackfillLimit: input.options.ridershipLimit,
+          ridershipBackfillConcurrency: input.options.ridershipConcurrency,
+          buildObservedHeadways: input.options.skipObservedHeadways === true ? false : undefined,
+          allowInsufficientGtfsRt: input.options.allowInsufficientGtfsRt,
+          minObservedHeadwaySamples: input.options.minObservedHeadwaySamples,
+          minObservedRouteCount: input.options.minObservedRouteCount,
+          minObservedRouteShare: input.options.minObservedRouteShare,
+          minGtfsRtCollectionHours: input.options.minGtfsRtCollectionHours,
+          maxGtfsRtSampleSeconds: input.options.maxGtfsRtSampleSeconds,
+          minGtfsRtVehiclePositionSnapshotShare:
+            input.options.minGtfsRtVehiclePositionSnapshotShare,
+          observedReliabilityMinSamples: input.options.observedReliabilityMinSamples,
+          interventionWindowMonths: input.options.interventionWindowMonths,
+          interventionMinSampleMonths: input.options.interventionMinSampleMonths,
+          interventionComparisonRouteCount: input.options.interventionComparisonRouteCount,
+          corridorHotspotLimit: input.options.corridorHotspotLimit,
+          artifactRoot,
+          exportRoot,
+        }),
     });
   },
 });

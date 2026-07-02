@@ -1,24 +1,17 @@
 import type { LocalBusLane } from "@bp/db/local";
-import type {
-  ClaimCaveat as DomainClaimCaveat,
-  ClaimEvidence as DomainClaimEvidence,
-  StudioBrief as DomainStudioBrief,
-  StudioAiPublicNote,
-} from "@bp/domain/studio/briefs";
 import type { StudioSpeedPercentileContext } from "@bp/domain/studio/docs";
-import type { StudioFinding as DomainStudioFinding } from "@bp/domain/studio/findings";
 import type { StudioIntervention as DomainStudioIntervention } from "@bp/domain/studio/interventions";
 import type {
   StudioRoute as DomainStudioRoute,
   StudioSegment as DomainStudioSegment,
 } from "@bp/domain/studio/routes";
+import type { StudioAiPublicNote } from "@bp/domain/studio/segment-evidence";
 import type { SocrataRow } from "@bp/sources/clients/socrata";
 
-// The Studio release pipeline annotates the canonical domain Route/Segment/Brief
-// shapes with additional provenance fields (lane source, TSP source-snapshot
-// evidence, brief evidence-ref counts). These augmentations match the field set
-// the v1 monolith produced; they live here so downstream files can import the
-// extended shapes without a workspace-wide schema change.
+// The Studio release pipeline annotates the canonical domain Route/Segment
+// shapes with additional provenance fields such as lane source and TSP
+// source-snapshot evidence. These augmentations live here so downstream files
+// can import the extended shapes without a workspace-wide schema change.
 export type StudioRoute = Omit<DomainStudioRoute, "tspCoverage" | "diagnosis" | "termini"> & {
   tspCoverage?: DomainStudioRoute["tspCoverage"];
   diagnosis?: DomainStudioRoute["diagnosis"];
@@ -71,36 +64,6 @@ export type StudioSegment = Omit<DomainStudioSegment, "aiNote" | "tsp"> & {
     | "route_level_status_only";
 };
 
-// Studio brief evidence rows carry pipeline-internal source provenance fields
-// (sourceRefId/sourceLabel/sourceHref + optional artifact triple). These are
-// not part of the public ClaimEvidence schema but are written by the release
-// builder for downstream audit and rendering.
-export type StudioClaimEvidence = DomainClaimEvidence & {
-  sourceRefId?: string;
-  sourceLabel?: string;
-  sourceHref?: string;
-  sourceArtifactKey?: string;
-  sourceArtifactHref?: string;
-  sourceArtifactSha256?: string;
-};
-
-// Brief/finding caveats carry a pipeline-internal stable id used for claim
-// caveatIds references.
-export type StudioClaimCaveat = DomainClaimCaveat & {
-  id: string;
-};
-
-export type StudioBrief = Omit<DomainStudioBrief, "evidence" | "caveats" | "citationCount"> & {
-  evidence: StudioClaimEvidence[];
-  caveats: StudioClaimCaveat[];
-  citationCount?: number;
-  evidenceRefCount?: number;
-};
-
-export type StudioFinding = Omit<DomainStudioFinding, "caveat"> & {
-  caveat: DomainStudioFinding["caveat"] & { id: string };
-};
-
 // Studio interventions accept v1 manual-registry fields (timelineLayer,
 // candidateId, sourceLinks, sourceSpanRefs, etc.) on top of the public domain
 // shape. A few optional domain fields are widened to preserve exact-optional
@@ -149,10 +112,6 @@ export type CliOptions = {
   schemaPath: string;
   seedPath: string;
   routeLimit: number;
-  findingLimit: number;
-  reviewQueuePath: string;
-  promotedFindingsPath: string;
-  contextAppendixPath: string;
   routeSliceArtifactsRoot: string;
   routeSliceRawRoot: string;
   routeShapeSnapshotPath: string;
@@ -207,12 +166,12 @@ export type RouteBriefTopStopBoardings = {
   }>;
 };
 
-// The artifact stores the same hourly passenger delay shape as the applied
-// research route-brief model produces and the StudioRouteSegmentEvidence schema
-// accepts. Re-export the schema-derived type so downstream consumers stay aligned.
-export type { RouteBriefHourlyPassengerDelay } from "@bp/applied-research/route-briefs";
+// The artifact stores the same hourly passenger delay shape as the pipeline
+// route-brief model produces and the StudioRouteSegmentEvidence schema accepts.
+// Re-export the schema-derived type so downstream consumers stay aligned.
+export type { RouteBriefHourlyPassengerDelay } from "../../lib/route-briefs/index.ts";
 
-import type { RouteBriefHourlyPassengerDelay as _RouteBriefHourlyPassengerDelay } from "@bp/applied-research/route-briefs";
+import type { RouteBriefHourlyPassengerDelay as _RouteBriefHourlyPassengerDelay } from "../../lib/route-briefs/index.ts";
 
 export type RouteBriefSegment = {
   segmentId: string;
@@ -470,45 +429,10 @@ export type BusLanePath = {
 
 export type SpeedPercentileResult = StudioSpeedPercentileContext & { percentile: number };
 
-export type ReviewQueueCandidate = {
-  candidateId: string;
-  detectorId: string;
-  routeId: string | null;
-  reasonCode: string;
-  category: string;
-  severity: string;
-  confidence: string;
-  detectorScore: number;
-  claimSafeLabel?: import("@bp/domain/studio/findings").StudioFindingReview["claimSafeLabel"];
-  claimText: string;
-  reviewState?: import("@bp/domain/studio/findings").StudioFindingReview["reviewState"];
-  evidenceRefCount?: number;
-  evidenceRefs?: string[];
-};
-
-export type ReviewQueueArtifact = {
-  artifactKind?: string;
-  candidates?: ReviewQueueCandidate[];
-};
-
-export type FindingContextAppendixRoute = {
-  routeId?: string;
-  weatherReliability?: unknown;
-  equity?: unknown;
-  trafficVolume?: unknown;
-  currentTrafficSpeed?: unknown;
-};
-
-export type FindingContextAppendixArtifact = {
-  artifactKind?: string;
-  weather?: unknown;
-  routes?: FindingContextAppendixRoute[];
-};
-
 export type SegmentAnalystNoteRecord = {
   routeSlug: string;
   segmentId: string;
-  note: import("@bp/domain/studio/briefs").StudioAiAnalystNote;
+  note: import("@bp/domain/studio/segment-evidence").StudioAiAnalystNote;
 };
 
 export type SegmentAnalystNotesArtifact = {

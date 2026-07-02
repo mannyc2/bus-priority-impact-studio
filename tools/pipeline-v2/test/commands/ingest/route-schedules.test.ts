@@ -95,6 +95,18 @@ function page<T>(rows: readonly T[], request: Soda3TestRequest): readonly T[] {
 }
 
 describe("runRouteSchedulesIngest", () => {
+  test("command wrapper uses the Effect local DB boundary", async () => {
+    const source = await Bun.file(
+      new URL("../../../src/commands/ingest/route-schedules.ts", import.meta.url),
+    ).text();
+
+    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("runRouteSchedulesIngest({");
+    expect(source).toContain('import type { Database } from "bun:sqlite"');
+    expect(source).not.toContain("Database as BunDatabase");
+    expect(source).not.toContain("new BunDatabase");
+  });
+
   test("fetches route-level schedule stop rows and skips already staged routes", async () => {
     const sqlite = new Database(":memory:");
     const routeFetches: string[] = [];

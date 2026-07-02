@@ -1,9 +1,9 @@
 import type { Database } from "bun:sqlite";
-import { Database as BunDatabase } from "bun:sqlite";
 import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
 import { arg, defineCommand, z } from "@liche/core";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 
 const defaultGtfsRoot = "data/raw/gtfs-static/current/20260531T010822Z";
@@ -587,8 +587,7 @@ export default defineCommand({
     ),
   }),
   async run({ input }) {
-    const dbPath =
-      input.options.db === undefined ? defaultLocalPipelineDbPath() : fromCliPath(input.options.db);
+    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
     const gtfsRoot = fromCliPath(input.options.gtfsRoot);
     const sourceIds =
       input.options.source === undefined
@@ -601,23 +600,25 @@ export default defineCommand({
       );
     }
 
-    const sqlite = new BunDatabase(dbPath);
-    try {
-      const result = await runGtfsStaticIngest({
-        sqlite,
-        runId: input.options.runId,
-        bundles,
-        ingestedAt: new Date().toISOString(),
-      });
-      return {
-        ...result,
-        bundles: result.bundles.map((bundle) => ({
-          ...bundle,
-          zipPath: basename(bundle.zipPath),
-        })),
-      };
-    } finally {
-      sqlite.close();
-    }
+    return runLocalDbCommandBoundary({
+      dbPath,
+      command: "ingest.gtfs-static",
+      operation: "runGtfsStaticIngest",
+      run: async (local) => {
+        const result = await runGtfsStaticIngest({
+          sqlite: local.sqlite,
+          runId: input.options.runId,
+          bundles,
+          ingestedAt: new Date().toISOString(),
+        });
+        return {
+          ...result,
+          bundles: result.bundles.map((bundle) => ({
+            ...bundle,
+            zipPath: basename(bundle.zipPath),
+          })),
+        };
+      },
+    });
   },
 });

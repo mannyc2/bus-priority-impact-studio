@@ -10,12 +10,8 @@ import {
 import type { ManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 
 const defaultFeedTypes: readonly GtfsRtFeedType[] = ["vehicle_positions", "trip_updates", "alerts"];
@@ -349,7 +345,6 @@ export default defineCommand({
       rawDir: z.string().optional().describe("Directory for raw protobuf snapshots"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     runId: z.string(),
     status: z.string(),
@@ -360,19 +355,36 @@ export default defineCommand({
     failureCount: z.number(),
     rawDirectory: z.string(),
   }),
-  async run({ ctx, input }) {
-    return runCollectGtfsRt({
-      local: localDbFromCtx(ctx),
-      durationSeconds: input.options.durationSeconds,
-      durationHours: input.options.durationHours,
-      sampleSeconds: input.options.sampleSeconds,
-      sampleCount: input.options.sampleCount,
-      feedTypes:
-        input.options.feedTypes.length === 0
-          ? undefined
-          : normalizeFeedTypes(input.options.feedTypes),
-      runId: input.options.runId,
-      rawDir: input.options.rawDir === undefined ? undefined : fromCliPath(input.options.rawDir),
+  async run({ input }) {
+    const feedTypes =
+      input.options.feedTypes.length === 0
+        ? undefined
+        : normalizeFeedTypes(input.options.feedTypes);
+    const rawDir =
+      input.options.rawDir === undefined ? undefined : fromCliPath(input.options.rawDir);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "collect.gtfs-rt",
+      operation: "runCollectGtfsRt",
+      spanAttributes: {
+        runId: input.options.runId ?? null,
+        durationSeconds: input.options.durationSeconds ?? null,
+        durationHours: input.options.durationHours ?? null,
+        sampleSeconds: input.options.sampleSeconds,
+        sampleCount: input.options.sampleCount ?? null,
+        feedTypeCount: feedTypes?.length ?? 0,
+      },
+      run: (local) =>
+        runCollectGtfsRt({
+          local,
+          durationSeconds: input.options.durationSeconds,
+          durationHours: input.options.durationHours,
+          sampleSeconds: input.options.sampleSeconds,
+          sampleCount: input.options.sampleCount,
+          feedTypes,
+          runId: input.options.runId,
+          rawDir,
+        }),
     });
   },
 });

@@ -5,21 +5,28 @@ import {
   mapArtifactManifestPath,
   mapArtifactPath,
   routeSegmentMapArtifactKey,
-} from "@bp/applied-research/artifacts";
+} from "@bp/analytics/artifacts";
 import {
   buildMapArtifactManifest,
   buildMapJsonArtifact,
+  isMapArtifactManifest,
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,
   MAP_ARTIFACT_SCHEMA_VERSION,
   type MapArtifactEntry,
+  type MapArtifactIssue,
   type MapArtifactManifest,
   type MapArtifactVerification,
+  mapArtifactPayloadIssues,
   mapArtifactSha256,
-  readMapArtifactManifest,
-  verifyMapArtifactManifest,
-} from "@bp/applied-research/evaluation";
-import type { LocalBusLane, LocalRouteHotspot, LocalRouteSegmentSpeed } from "@bp/db/local";
+  verifyMapArtifactManifestContents,
+} from "@bp/analytics/evaluation";
+import type {
+  LocalBusLane,
+  LocalRouteBriefSummary,
+  LocalRouteHotspot,
+  LocalRouteSegmentSpeed,
+} from "@bp/db/local";
 import {
   listBusLanes,
   listRouteBriefSummaries,
@@ -38,13 +45,9 @@ import {
 } from "@bp/sources/adapters/mta/routes-stops";
 import type { SocrataRow } from "@bp/sources/clients/socrata";
 import { arg, defineCommand, z } from "@liche/core";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
-import {
-  dbOptions,
-  localDbFromCtx,
-  type OpenLocalPipelineDb,
-  withLocalDb,
-} from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 
 const displayRouteTypes = new Set(["Local", "Limited", "SBS"]);
@@ -110,13 +113,45 @@ type LineStringGeometry = {
   coordinates: [number, number][];
 };
 
+type MultiLineStringGeometry = {
+  type: "MultiLineString";
+  coordinates: [number, number][][];
+};
+
 type PointGeometry = {
   type: "Point";
   coordinates: [number, number];
 };
 
+export type NetworkMapProperties = {
+  routeId: string;
+  label: string;
+  borough: string;
+  sbs: boolean;
+  scheduledMph: number;
+  currentMph: number;
+  trend6mPct: number | null;
+  dailyRiders: number;
+  riderHoursLost: number | null;
+  laneCoverage: number;
+  ace: boolean;
+  hotspotCount: number;
+  segmentCount: number;
+  hours: number[];
+};
+
+export type NetworkMapFeature = GeoJsonFeature<MultiLineStringGeometry, NetworkMapProperties>;
+export type NetworkMapFeatureCollection = FeatureCollection<NetworkMapFeature>;
+
+export type NetworkRouteBuildInput = {
+  routeId: string;
+  summary: LocalRouteBriefSummary;
+  speedRows: readonly LocalRouteSegmentSpeed[];
+  segmentPayload: MapRouteSegmentFeatureCollection;
+};
+
 export type { MapArtifactManifest, MapArtifactVerification };
-export { mapArtifactManifestPath, readMapArtifactManifest, verifyMapArtifactManifest };
+export { mapArtifactManifestPath };
 
 export type MapArtifactsResult = {
   isoMonth: string;
@@ -226,6 +261,103 @@ function coordinateFromPair(value: [number, number]): Coordinate {
     longitude: value[0],
     latitude: value[1],
   };
+}
+
+export async function readMapArtifactManifest(input: {
+  artifactRoot: string;
+  month: string;
+}): Promise<MapArtifactManifest | null> {
+  const file = Bun.file(mapArtifactManifestPath(input.artifactRoot, input.month));
+  if (!(await file.exists())) {
+    return null;
+  }
+
+  try {
+    const parsed = await file.json();
+    return isMapArtifactManifest(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+async function verifyArtifactFile(input: {
+  artifactRoot: string;
+  month: string;
+  artifact: MapArtifactEntry;
+}): Promise<MapArtifactIssue[]> {
+  const path = join(input.artifactRoot, input.artifact.artifactKey);
+  const file = Bun.file(path);
+  if (!(await file.exists())) {
+    return [
+      {
+        code: "map_artifact_file_missing",
+        artifactKey: input.artifact.artifactKey,
+        message: `Missing map artifact file ${input.artifact.artifactKey}.`,
+      },
+    ];
+  }
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const issues: MapArtifactIssue[] = [];
+  if (bytes.byteLength !== input.artifact.byteLength) {
+    issues.push({
+      code: "map_artifact_byte_length_mismatch",
+      artifactKey: input.artifact.artifactKey,
+      message: `Map artifact ${input.artifact.artifactKey} expected ${input.artifact.byteLength} bytes but found ${bytes.byteLength}.`,
+    });
+  }
+  if (mapArtifactSha256(bytes) !== input.artifact.sha256) {
+    issues.push({
+      code: "map_artifact_hash_mismatch",
+      artifactKey: input.artifact.artifactKey,
+      message: `Map artifact ${input.artifact.artifactKey} failed SHA-256 verification.`,
+    });
+  }
+
+  let payload: unknown = null;
+  try {
+    payload = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    issues.push({
+      code: "map_artifact_payload_invalid_json",
+      artifactKey: input.artifact.artifactKey,
+      message: `Map artifact ${input.artifact.artifactKey} could not be parsed as JSON.`,
+    });
+  }
+  issues.push(...mapArtifactPayloadIssues({ ...input, payload }));
+
+  return issues;
+}
+
+export async function verifyMapArtifactManifest(input: {
+  artifactRoot: string;
+  month: string;
+  expectedRouteIds?: readonly string[];
+}): Promise<MapArtifactVerification> {
+  const manifestPath = mapArtifactManifestPath(input.artifactRoot, input.month);
+  const manifest = await readMapArtifactManifest(input);
+  const artifactIssues =
+    manifest === null
+      ? []
+      : (
+          await Promise.all(
+            manifest.artifacts.map((artifact) =>
+              verifyArtifactFile({
+                artifactRoot: input.artifactRoot,
+                month: input.month,
+                artifact,
+              }),
+            ),
+          )
+        ).flat();
+
+  return verifyMapArtifactManifestContents({
+    manifestPath,
+    month: input.month,
+    manifest,
+    artifactIssues,
+    ...(input.expectedRouteIds === undefined ? {} : { expectedRouteIds: input.expectedRouteIds }),
+  });
 }
 
 function extractLineStrings(geometry: unknown): Coordinate[][] {
@@ -662,6 +794,117 @@ function busLaneFeatureCollection(lanes: readonly LocalBusLane[]): FeatureCollec
   };
 }
 
+function routeLabel(routeId: string): string {
+  return routeId.endsWith("+") ? `${routeId.slice(0, -1)} SBS` : routeId;
+}
+
+function routeIsSbs(routeId: string): boolean {
+  return routeId.endsWith("+");
+}
+
+function routeBorough(speedRows: readonly LocalRouteSegmentSpeed[]): string {
+  const counts = new Map<string, number>();
+  for (const row of speedRows) {
+    counts.set(row.borough, (counts.get(row.borough) ?? 0) + 1);
+  }
+  let best: { borough: string; count: number } | null = null;
+  for (const [borough, count] of counts) {
+    if (best === null || count > best.count) {
+      best = { borough, count };
+    }
+  }
+  return best?.borough ?? "Citywide";
+}
+
+function routeHourSpeeds(
+  speedRows: readonly LocalRouteSegmentSpeed[],
+  fallbackSpeedMph: number,
+): number[] {
+  return Array.from({ length: 24 }, (_, hour) => {
+    const rows = speedRows.filter((row) => row.hourOfDay === hour);
+    return weightedAverageSpeed(rows) ?? rounded(fallbackSpeedMph, 2);
+  });
+}
+
+function laneCoverage(summary: LocalRouteBriefSummary, segmentCount: number): number {
+  if (segmentCount <= 0) return 0;
+  return Math.max(
+    0,
+    Math.min(100, Math.round((summary.busLaneMatchedLaneCount / segmentCount) * 100)),
+  );
+}
+
+function thinCoordinatePairs(
+  coordinates: readonly (readonly [number, number])[],
+): [number, number][] {
+  if (coordinates.length <= 8) {
+    return coordinates.map(([lon, lat]) => [rounded(lon), rounded(lat)]);
+  }
+  const step = Math.max(1, Math.ceil(coordinates.length / 18));
+  const output: [number, number][] = [];
+  for (let index = 0; index < coordinates.length; index += step) {
+    const coordinate = coordinates[index];
+    if (coordinate !== undefined) {
+      output.push([rounded(coordinate[0]), rounded(coordinate[1])]);
+    }
+  }
+  const last = coordinates.at(-1);
+  if (last !== undefined) {
+    const previous = output.at(-1);
+    const roundedLast: [number, number] = [rounded(last[0]), rounded(last[1])];
+    if (
+      previous === undefined ||
+      previous[0] !== roundedLast[0] ||
+      previous[1] !== roundedLast[1]
+    ) {
+      output.push(roundedLast);
+    }
+  }
+  return output;
+}
+
+export function buildNetworkMapFeatureCollection(input: {
+  routes: readonly NetworkRouteBuildInput[];
+}): NetworkMapFeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: input.routes.flatMap((route) => {
+      const coordinates = route.segmentPayload.features
+        .map((feature) => thinCoordinatePairs(feature.geometry.coordinates))
+        .filter((line) => line.length >= 2);
+      if (coordinates.length === 0) {
+        return [];
+      }
+      return [
+        {
+          type: "Feature" as const,
+          id: ["network-route", route.routeId].join(":"),
+          geometry: {
+            type: "MultiLineString" as const,
+            coordinates,
+          },
+          properties: {
+            routeId: route.routeId,
+            label: routeLabel(route.routeId),
+            borough: routeBorough(route.speedRows),
+            sbs: routeIsSbs(route.routeId),
+            scheduledMph: rounded(route.summary.averageSpeedMph * 1.18, 2),
+            currentMph: rounded(route.summary.averageSpeedMph, 2),
+            trend6mPct: null,
+            dailyRiders: Math.round(route.summary.totalRidership / 30),
+            riderHoursLost: null,
+            laneCoverage: laneCoverage(route.summary, route.segmentPayload.features.length),
+            ace: route.summary.aceActive,
+            hotspotCount: route.summary.hotspotCount,
+            segmentCount: route.segmentPayload.features.length,
+            hours: routeHourSpeeds(route.speedRows, route.summary.averageSpeedMph),
+          },
+        },
+      ];
+    }),
+  };
+}
+
 async function readSnapshotMetadata(input: {
   sourceId: string;
   snapshotPath: string;
@@ -773,6 +1016,7 @@ async function readMapBuildRows(input: { local: OpenLocalPipelineDb; month: stri
   busLanes: LocalBusLane[];
   routeRows: {
     routeId: string;
+    summary: LocalRouteBriefSummary;
     speedRows: LocalRouteSegmentSpeed[];
     hotspots: LocalRouteHotspot[];
   }[];
@@ -785,13 +1029,18 @@ async function readMapBuildRows(input: { local: OpenLocalPipelineDb; month: stri
     .filter((row) => row.publicVisible)
     .map((row) => row.routeId)
     .sort();
+  const summariesByRoute = new Map(briefs.map((row) => [row.routeId, row]));
   const routeRows = await Promise.all(
     publicRouteIds.map(async (routeId) => {
+      const summary = summariesByRoute.get(routeId);
+      if (summary === undefined) {
+        throw new Error(`Missing route brief summary for public route ${routeId}`);
+      }
       const [speedRows, hotspots] = await Promise.all([
         listRouteSegmentSpeeds(input.local.db, routeId, input.month),
         listRouteHotspots(input.local.db, routeId, input.month),
       ]);
-      return { routeId, speedRows, hotspots };
+      return { routeId, summary, speedRows, hotspots };
     }),
   );
   return { publicRouteIds, busLanes, routeRows };
@@ -837,6 +1086,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const stops = stopsFeatureCollection(stopSnapshot.stops);
   const busLanes = busLaneFeatureCollection(rows.busLanes);
   const artifacts: MapArtifactEntry[] = [];
+  const networkRoutes: NetworkRouteBuildInput[] = [];
 
   artifacts.push(
     await writeJsonArtifact({
@@ -912,6 +1162,12 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       hotspots: route.hotspots,
       shapesByDirection: routeShapes,
     });
+    networkRoutes.push({
+      routeId: route.routeId,
+      summary: route.summary,
+      speedRows: route.speedRows,
+      segmentPayload: payload,
+    });
     const artifactKey = routeSegmentMapArtifactKey(route.routeId, options.isoMonth);
     artifacts.push(
       await writeJsonArtifact({
@@ -925,6 +1181,18 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       }),
     );
   }
+  const networkPayload = buildNetworkMapFeatureCollection({ routes: networkRoutes });
+  artifacts.push(
+    await writeJsonArtifact({
+      path: mapArtifactPath(artifactRoot, options.isoMonth, "network-simplified.geojson"),
+      artifactKey: mapArtifactKey(options.isoMonth, "network-simplified.geojson"),
+      artifactKind: "map_network_simplified_geojson",
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+      routeId: null,
+      payload: networkPayload,
+      featureCount: networkPayload.features.length,
+    }),
+  );
 
   const routeSegmentFeatureCount = artifacts
     .filter((row) => row.artifactKind === "map_route_segments_geojson")
@@ -963,7 +1231,6 @@ export default defineCommand({
       busLaneSnapshot: z.string().optional().describe("Override bus-lane snapshot path"),
     }),
   },
-  middleware: [withLocalDb()],
   output: z.object({
     isoMonth: z.string(),
     manifestPath: z.string(),
@@ -974,27 +1241,41 @@ export default defineCommand({
     totalByteLength: z.number(),
     publicRouteCount: z.number(),
   }),
-  async run({ ctx, input }) {
-    return runMapArtifacts({
-      local: localDbFromCtx(ctx),
-      year: input.options.year,
-      month: input.options.month,
-      artifactRoot:
-        input.options.artifactRoot === undefined
-          ? undefined
-          : fromCliPath(input.options.artifactRoot),
-      routeShapeSnapshotPath:
-        input.options.routeShapeSnapshot === undefined
-          ? undefined
-          : fromCliPath(input.options.routeShapeSnapshot),
-      stopSnapshotPath:
-        input.options.stopSnapshot === undefined
-          ? undefined
-          : fromCliPath(input.options.stopSnapshot),
-      busLaneSnapshotPath:
-        input.options.busLaneSnapshot === undefined
-          ? undefined
-          : fromCliPath(input.options.busLaneSnapshot),
+  async run({ input }) {
+    const artifactRoot =
+      input.options.artifactRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.artifactRoot);
+    const routeShapeSnapshotPath =
+      input.options.routeShapeSnapshot === undefined
+        ? undefined
+        : fromCliPath(input.options.routeShapeSnapshot);
+    const stopSnapshotPath =
+      input.options.stopSnapshot === undefined
+        ? undefined
+        : fromCliPath(input.options.stopSnapshot);
+    const busLaneSnapshotPath =
+      input.options.busLaneSnapshot === undefined
+        ? undefined
+        : fromCliPath(input.options.busLaneSnapshot);
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db,
+      command: "map.artifacts",
+      operation: "runMapArtifacts",
+      spanAttributes: {
+        year: input.options.year,
+        month: input.options.month,
+      },
+      run: (local) =>
+        runMapArtifacts({
+          local,
+          year: input.options.year,
+          month: input.options.month,
+          artifactRoot,
+          routeShapeSnapshotPath,
+          stopSnapshotPath,
+          busLaneSnapshotPath,
+        }),
     });
   },
 });

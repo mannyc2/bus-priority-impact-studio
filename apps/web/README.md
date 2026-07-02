@@ -61,7 +61,7 @@ The first v1 website endpoint is `GET /api/v1/status`. It requires the `DB` D1 b
 
 `GET /api/v1/map/manifest` reads the generated R2 map manifest for the selected month and adds API artifact paths for each generated map layer. `GET /api/v1/artifacts/*` streams those R2 objects with immutable cache headers.
 
-`GET /api/v1/hotspots` serves ranked hotspot cards from D1 corridor hotspot summaries. `GET /api/v1/compare` serves a two-route comparison from D1 comparison ranks and observed reliability summaries.
+`GET /api/v1/hotspots` serves ranked hotspot cards from D1 corridor hotspot summaries.
 
 Related schema endpoint:
 
@@ -71,13 +71,12 @@ GET /api/schema/route-list
 GET /api/schema/route-profile
 GET /api/schema/map-manifest
 GET /api/schema/hotspots
-GET /api/schema/compare
 ```
 
-The main panel loaders are API-first now: hotspots, route profile, and compare call `/api/v1`
-endpoints and fall back to fixtures when the API is unavailable. The map also starts with fixture
-geometry for nonblank first paint, then replaces the route line source with generated route-shape
-GeoJSON discovered through `/api/v1/map/manifest` when the artifact API is available.
+The main panel loaders are API-first now: hotspots and route profiles call `/api/v1` endpoints.
+The map starts with fixture geometry for nonblank first paint, then replaces the route line source
+with generated route-shape GeoJSON discovered through `/api/v1/map/manifest` when the artifact API
+is available.
 
 ## Production operations
 

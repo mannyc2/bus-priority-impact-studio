@@ -4,20 +4,6 @@
   "main": "./src/worker/index.ts",
   "compatibility_date": "2026-04-27",
   "compatibility_flags": ["nodejs_compat"],
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "BRIEF_AUTHOR_AGENT",
-        "class_name": "BriefAuthorAgent"
-      }
-    ]
-  },
-  "migrations": [
-    {
-      "tag": "v1-brief-author-agent",
-      "new_sqlite_classes": ["BriefAuthorAgent"]
-    }
-  ],
   "vars": {
     "BASELINE_MONTH": "2026-03",
     "LAST_BUILT_SPEED_MONTH": "2026-03",

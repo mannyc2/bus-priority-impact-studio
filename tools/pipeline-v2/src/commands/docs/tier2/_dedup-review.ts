@@ -4,17 +4,17 @@
 // helpers from the core module; the core module never imports back here.
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import { writeJson } from "../../../lib/json.ts";
+import { defaultArtifactRootPath, fromCliPath } from "../../../lib/paths.ts";
 import {
+  type BuildTier2DuplicateReviewQueueArgs,
+  type CliOption,
   candidateBundlePath,
   canonicalInterventionEventsPath,
+  type DuplicateReviewCliArgs,
   latestDocsRunId,
   parseCliOptions,
   runArtifactRoot,
-  type BuildTier2DuplicateReviewQueueArgs,
-  type CliOption,
-  type DuplicateReviewCliArgs,
   type Tier2CandidateBundle,
   type Tier2CanonicalInterventionEventsArtifact,
   type Tier2DuplicateReviewEvent,

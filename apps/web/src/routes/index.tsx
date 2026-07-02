@@ -16,6 +16,6 @@ export const Route = createFileRoute("/")({
 });
 
 function HomeRoute() {
-  const routes = Route.useLoaderData({ select: (data) => data.routes });
-  return <HomePage routes={routes} />;
+  const data = Route.useLoaderData();
+  return <HomePage generatedAt={data.generatedAt} routes={data.routes} />;
 }

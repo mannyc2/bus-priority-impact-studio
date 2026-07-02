@@ -97,7 +97,9 @@ export default defineCommand({
         : fromCliPath(input.options.markdown);
 
     const backlogDoc = await readJsonIfExists<{ sources?: Tier2BacklogSource[] }>(backlogPath);
-    const captureDoc = await readJsonIfExists<{ sources?: Tier2CaptureSource[] }>(captureManifestPath);
+    const captureDoc = await readJsonIfExists<{ sources?: Tier2CaptureSource[] }>(
+      captureManifestPath,
+    );
     const verifiedDoc = await readJsonIfExists<{ sourceCoverageRows?: Tier2VerifiedCoverageRow[] }>(
       verifiedCoveragePath,
     );
@@ -123,9 +125,9 @@ export default defineCommand({
     const reviewedDoc = await readJsonIfExists<{ documentInterventionRecords?: Tier2RecordRef[] }>(
       reviewedRecordsPath,
     );
-    const publishableDoc = await readJsonIfExists<{ publishableInterventions?: Tier2PublishableRef[] }>(
-      publishablePath,
-    );
+    const publishableDoc = await readJsonIfExists<{
+      publishableInterventions?: Tier2PublishableRef[];
+    }>(publishablePath);
 
     if (backlogDoc === null && captureDoc === null) {
       throw new Error(
@@ -139,7 +141,8 @@ export default defineCommand({
         backlogPath: backlogDoc === null ? null : display(backlogPath),
         captureManifestPath: captureDoc === null ? null : display(captureManifestPath),
         verifiedCoveragePath: verifiedDoc === null ? null : display(verifiedCoveragePath),
-        derivedSurfacesManifestPath: derivedDoc === null ? null : display(derivedSurfacesManifestPath),
+        derivedSurfacesManifestPath:
+          derivedDoc === null ? null : display(derivedSurfacesManifestPath),
         reviewedRecordsPath: reviewedDoc === null ? null : display(reviewedRecordsPath),
         publishablePath: publishableDoc === null ? null : display(publishablePath),
       },

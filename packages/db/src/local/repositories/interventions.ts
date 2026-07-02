@@ -214,8 +214,7 @@ export function replaceRouteInterventionEvaluationRows(
   },
 ): void {
   db.transaction((tx) => {
-    tx
-      .delete(localRouteInterventionComparison)
+    tx.delete(localRouteInterventionComparison)
       .where(
         and(
           eq(localRouteInterventionComparison.month, month),
