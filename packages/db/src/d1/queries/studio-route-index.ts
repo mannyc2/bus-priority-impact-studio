@@ -107,9 +107,7 @@ type RouteSpeedHistoryCoverageIndexRow = z.output<typeof RouteSpeedHistoryCovera
 
 function isMissingRouteSpeedHistoryCoverageTable(error: unknown): boolean {
   const message = errorMessageWithCauses(error);
-  return (
-    message.includes("no such table") && message.includes("route_speed_history_coverage")
-  );
+  return message.includes("no such table") && message.includes("route_speed_history_coverage");
 }
 
 function errorMessageWithCauses(error: unknown): string {

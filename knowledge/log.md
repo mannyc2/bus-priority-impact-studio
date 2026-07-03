@@ -7761,3 +7761,59 @@ cross-repo mta-wiki work orders (028), and align/adopt nyc-transit-kit (029,
 supersedes 014). plans/README.md now leads with the generation-3 index and
 corrected constraints (bundle budget re-based to 145 KB entry; effect-ts skill
 path; live detector-readiness insights path).
+
+## [2026-07-02] product | Plan 021 route corpus verified at 381 routes
+
+Completed Plan 021 against the live/current serving state rather than restarting
+the old 12-route artifact. The required drift check still prints `12` for
+`data/artifacts/studio/v1/routes.json`, but the current D1 export and live
+Studio API are already tier-2 sized: `route_catalog = 381`,
+`route_batch_built_route = 381`, `route_batch_issue = 0`, and `route readiness`
+reports `381/381` build-eligible routes.
+
+Step 1 measurement: replayed `data/exports/d1/2026-03/schema.sql` plus
+`seed.sql` into `/tmp/bp-serving-measure.sqlite` and used SQLite `dbstat` as
+the D1 page-byte proxy. Route-linear D1 tables total 27,170 rows / 1,798,144
+page bytes, about 71.31 rows and 4,720 bytes per route. Largest route tables:
+`route_month_trend` 13,880 rows / 569,344 bytes,
+`route_month_source_status` 3,810 / 364,544,
+`route_intervention_comparison` 741 / 294,912,
+`route_artifact` 1,054 / 180,224, and
+`route_reliability_gap_window` 1,845 / 106,496. Local v2 route R2 artifacts:
+401 route directories, 1,155 files, 344,089,235 bytes (858,078 bytes/route
+directory); wiki evidence artifacts total 5,243,824 bytes.
+
+| Target routes | D1 route rows | D1 page bytes | R2 objects | R2 bytes | Route index payload |
+|---:|---:|---:|---:|---:|---:|
+| 50 | 3,566 | 235,977 | 144 | 42,903,895 | 80,174 |
+| 150 | 10,697 | 707,931 | 432 | 128,711,684 | 240,523 |
+| 300 | 21,394 | 1,415,861 | 864 | 257,423,368 | 481,046 |
+| 381 current | 27,170 | 1,798,144 | 1,097 projected | 326,927,677 projected | 610,928 live |
+
+Live smoke sizes: `/api/v1/studio/routes` 610,928 bytes,
+`/api/v1/studio/routes/m15-sbs` 17,202 bytes,
+`/api/v1/studio/routes/m15-sbs/timeline` 310,402 bytes, sparse
+`/api/v1/studio/routes/b102` 4,752 bytes, and sparse B102 timeline 321 bytes
+with zero timeline events, interventions, metric claims, and citations. No D1
+10 GB or route-detail response-size STOP condition is projected at 300 routes
+or at the current 381-route release.
+
+Command drift recorded while following the plan: the documented
+`route build-plan --max-routes 25 --json` fails on the current CLI with
+`Unknown option: --max-routes`; `route build-plan --limit 25 --json` is the
+current equivalent and reports 0 selected, 381 already built, 0 blocked, and 0
+backlog. The documented bare `bun run check:publish-completeness` now requires
+`--month`; `bun run check:publish-completeness -- --month 2026-03` passed with
+1 manifest, 1,627 D1 artifact refs, 1,977 keys, and 0 missing.
+
+Homepage discovery now matches the expanded corpus: the home route index uses
+the live route count instead of the stale hardcoded 327, renders the full
+grouped route directory, adds a route/corridor/borough text filter, and keeps
+stable ridership/label/slug ordering through `home-route-index` helper coverage.
+Verification passed:
+`bun test apps/web/test/shared/home-route-index.test.ts --timeout 5000`,
+`bun --filter @bp/web typecheck`,
+`bun --filter @bp/pipeline-v2 cli -- route readiness --json`,
+`bun --filter @bp/pipeline-v2 cli -- route build-plan --limit 25 --json`,
+`bun --filter @bp/pipeline-v2 cli -- verify d1 --year 2026 --month 3 --json`,
+and `bun run check:publish-completeness -- --month 2026-03`.
