@@ -2647,7 +2647,7 @@ describe("Studio API facade", () => {
     expect(history.coverage.pointCount).toBe(history.points.length);
   });
 
-  it("returns a JSON 502 when the Studio snapshot fails contract validation", async () => {
+  it("normalizes legacy display months in Snapshot 2.0 source coverage rows", async () => {
     const env = {
       ...createStudioProjectionEnv(),
       BASELINE_MONTH: "2026-03",
@@ -2656,6 +2656,45 @@ describe("Studio API facade", () => {
           {
             source_id: "local_route_segment_speed",
             month: "March 2026",
+            label: "Route segment speed rows",
+            source_kind: "source_table",
+            grain: "route x month x segment/hour speed observation",
+            status: "available",
+            row_count: 4200,
+            route_count: 350,
+            note: null,
+            generated_at: "2026-06-06T00:00:00.000Z",
+            artifact_path:
+              "data/artifacts/source-month-coverage/2023-04_to_2026-03/coverage-matrix.json",
+          },
+        ],
+      }) as unknown as D1Database,
+      LAST_BUILT_SPEED_MONTH: "2026-03",
+    };
+
+    const response = await fetchApi("/api/v1/studio/snapshot", env);
+
+    expect(response.status).toBe(200);
+    const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
+    const sourceMonth = snapshot.v2?.sourceMonths.find(
+      (row) => row.sourceId === "local_route_segment_speed",
+    );
+    expect(sourceMonth?.month).toBe("2026-03");
+    const sourceMonthProjection = snapshot.v2?.projections.find(
+      (projection) => projection.id === "source_month_coverage",
+    );
+    expect(sourceMonthProjection?.months).toEqual({ start: "2026-03", end: "2026-03" });
+  });
+
+  it("returns a JSON 502 when the Studio snapshot has an unrecoverable invalid month", async () => {
+    const env = {
+      ...createStudioProjectionEnv(),
+      BASELINE_MONTH: "2026-03",
+      DB: createSparseStudioRouteDb({
+        sourceMonthCoverage: [
+          {
+            source_id: "local_route_segment_speed",
+            month: "not-a-month",
             label: "Route segment speed rows",
             source_kind: "source_table",
             grain: "route x month x segment/hour speed observation",

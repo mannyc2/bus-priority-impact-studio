@@ -22,10 +22,42 @@ const RouteSpeedHistoryCoverageRowSchema = z
   })
   .strict();
 
+const DISPLAY_MONTHS = new Map([
+  ["january", "01"],
+  ["february", "02"],
+  ["march", "03"],
+  ["april", "04"],
+  ["may", "05"],
+  ["june", "06"],
+  ["july", "07"],
+  ["august", "08"],
+  ["september", "09"],
+  ["october", "10"],
+  ["november", "11"],
+  ["december", "12"],
+]);
+
+function normalizeSourceCoverageMonth(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  const displayMonthMatch =
+    /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})$/i.exec(
+      trimmed,
+    );
+  if (displayMonthMatch === null) return value;
+  const monthName = displayMonthMatch[1];
+  const year = displayMonthMatch[2];
+  if (monthName === undefined || year === undefined) return value;
+  const month = DISPLAY_MONTHS.get(monthName.toLowerCase());
+  return month === undefined ? value : `${year}-${month}`;
+}
+
+const SourceCoverageMonthSchema = z.preprocess(normalizeSourceCoverageMonth, IsoMonthSchema);
+
 const SourceMonthCoverageRowSchema = z
   .object({
     source_id: z.string().min(1),
-    month: IsoMonthSchema,
+    month: SourceCoverageMonthSchema,
     label: z.string().min(1),
     source_kind: z.string().min(1),
     grain: z.string().min(1),
