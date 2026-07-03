@@ -42,7 +42,7 @@ nyc-transit-kit pin gets fixed at its source so adoption can proceed (029).
 | 020 | Serve the MTA-wiki route evidence end-to-end | P1 | L | 019 | DONE (merged/deployed 2026-07-02; route evidence live smoke passed) |
 | 021 | Expand the served route corpus beyond the 12-route pilot | P1 | L | 019 (020 rec.) | DONE (381-route release verified 2026-07-02; homepage index grouped/filterable) |
 | 022 | Converge the route page on the canonical editorial design | P1 | L | 019, 020 | DONE (PR #40 verified 2026-07-03; screenshot gate approved) |
-| 023 | Serve the grains we already build (hourly, DOW, reliability) | P2 | M | 019 | TODO |
+| 023 | Serve the grains we already build (hourly, DOW, reliability) | P2 | M | 019 | BLOCKED (STOP: largest per-route hourly artifact measured 223,434 bytes, above ~50 KB threshold) |
 | 024 | Delete the Tier 2 document pipeline and stale doctrine | P2 | L | 019, 020 | TODO |
 | 025 | Finish the supporting pages (home, interventions, methods) | P2 | M | 019, 022 | TODO |
 | 026 | Worker on Effect HttpApi: spike ADR, then migrate | P2 | L | 019 (024 rec.) | TODO |
