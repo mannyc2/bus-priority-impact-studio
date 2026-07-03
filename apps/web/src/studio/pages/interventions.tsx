@@ -1,9 +1,7 @@
-import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { RouteBadge } from "@/components/RouteBadge";
-import { CitationChips } from "@/components/route/WikiEvidence";
+import { RPubInterventionCard } from "@/components/route/RoutePublicAtoms";
 import { SectionHeader } from "@/components/SectionHeader";
-import { Badge } from "@/components/ui/badge";
 import type {
   StudioIntervention,
   StudioRoute,
@@ -280,51 +278,49 @@ function isFutureEvent(event: InterventionDisplayEvent): boolean {
   return text.includes("future") || text.includes("scheduled") || text.includes("await");
 }
 
-function InterventionListRow({ row }: { row: InterventionRow }) {
+export function InterventionListRow({ row }: { row: InterventionRow }) {
   const cohort = row.event.comparisonCohort;
   return (
-    <Link
-      to="/routes/$routeId"
-      params={{ routeId: row.route.slug }}
-      viewTransition
-      className="grid grid-cols-[92px_96px_minmax(0,1fr)_160px] items-start gap-4 px-4 py-4 text-[var(--bp-color-ink)] no-underline shadow-[inset_0_-1px_0_var(--bp-color-rule)] transition-colors last:shadow-none hover:bg-[var(--bp-color-paper-deep)] max-lg:grid-cols-[82px_minmax(0,1fr)] max-lg:gap-y-2"
-    >
-      <RouteBadge route={row.route.label} sbs={row.route.sbs} size="md" />
-      <div className="font-mono text-[11.5px] font-semibold text-[var(--bp-color-accent)]">
-        {row.event.year}
-      </div>
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="m-0 text-[14px] font-semibold leading-tight">{row.event.title}</h3>
-          <Badge variant={toneVariant(row.event)}>{toneLabel(row.event)}</Badge>
-        </div>
-        <p className="m-0 mt-1 max-w-[780px] text-[12.5px] leading-[1.5] text-[var(--bp-color-ink-70)]">
-          {row.event.detail}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-[var(--bp-color-ink-55)]">
-          <span>{row.route.corridor}</span>
-          {row.event.sourceLabel ? <span>source: {row.event.sourceLabel}</span> : null}
-          {cohort ? <span>{cohort.routeCount} comparison routes</span> : null}
-        </div>
-        {row.event.citationKeys.length > 0 ? (
-          <div className="mt-3">
-            <CitationChips evidence={row.evidence} citationKeys={row.event.citationKeys} />
-          </div>
-        ) : null}
-      </div>
-      <div className="text-right text-[11.5px] text-[var(--bp-color-ink-55)] max-lg:col-start-2 max-lg:text-left">
+    <div className="grid grid-cols-[112px_minmax(0,1fr)_150px] items-start gap-4 px-4 py-4 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-[minmax(0,1fr)]">
+      <a
+        href={`/routes/${row.route.slug}`}
+        className="flex flex-col items-start gap-2 text-[var(--bp-color-ink)] no-underline"
+      >
+        <RouteBadge route={row.route.label} sbs={row.route.sbs} size="md" />
+        <span className="text-[11px] leading-[1.35] text-[var(--bp-color-ink-55)]">
+          {row.route.corridor}
+        </span>
+      </a>
+      <RPubInterventionCard
+        dateLabel={row.event.year}
+        yearLabel={interventionYearLabel(row.event)}
+        kind={interventionKind(row.event)}
+        title={row.event.title}
+        detail={row.event.detail}
+        tone={interventionTone(row.event)}
+        sourceLabel={row.event.sourceLabel ?? sourceLabel(row.event)}
+        citationKeys={row.event.citationKeys}
+        evidence={row.evidence}
+      />
+      <div className="text-right text-[11.5px] text-[var(--bp-color-ink-55)] max-lg:text-left">
         {cohort ? (
           <>
             <div className="font-mono text-[15px] font-semibold text-[var(--bp-color-ink)]">
               {formatDelta(cohort.adjustedSpeedDeltaMph ?? cohort.routeSpeedDeltaMph)}
             </div>
             <div className="mt-1">{cohort.causalInterpretation.replaceAll("_", " ")}</div>
+            <div className="mt-1">{cohort.routeCount} comparison routes</div>
           </>
         ) : (
-          "Open route for context"
+          <a
+            href={`/routes/${row.route.slug}`}
+            className="font-semibold text-[var(--bp-color-accent)] no-underline"
+          >
+            Open route for context
+          </a>
         )}
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -340,20 +336,32 @@ function InterventionStat({ label, value, sub }: { label: string; value: number;
   );
 }
 
-function toneVariant(
+export function interventionTone(
   event: InterventionDisplayEvent,
-): "accent" | "good" | "warn" | "bad" | "neutral" {
-  if (event.tone !== undefined) return event.tone;
-  return event.comparisonCohort === undefined ? "neutral" : "accent";
+): "accent" | "good" | "warn" | "bad" {
+  if (event.tone === "good" || event.tone === "warn" || event.tone === "bad") return event.tone;
+  if (event.source === "source_gap" || isFutureEvent(event)) return "warn";
+  return "accent";
 }
 
-function toneLabel(event: InterventionDisplayEvent): string {
+function interventionKind(event: InterventionDisplayEvent): string {
   if (event.comparisonCohort !== undefined) return "evaluated";
-  if (isFutureEvent(event)) return "future";
-  if (event.source === "wiki") return "cited";
-  if (event.source === "source_gap") return "needs source";
-  if (event.tone === "warn") return "caveated";
-  return "record";
+  if (event.source === "source_gap") return "source_gap";
+  if (event.source === "wiki") return "wiki_evidence";
+  return event.tone === "warn" ? "caveated" : "serving";
+}
+
+function sourceLabel(event: InterventionDisplayEvent): string {
+  if (event.source === "source_gap") return "MTA-wiki";
+  if (event.source === "wiki") return "MTA-wiki";
+  return "Serving record";
+}
+
+function interventionYearLabel(event: InterventionDisplayEvent): string {
+  const match = event.year.match(/\d{4}/);
+  if (match !== null) return match[0];
+  if (event.source === "source_gap") return "gap";
+  return "date";
 }
 
 function formatDelta(value: number | null): string {
