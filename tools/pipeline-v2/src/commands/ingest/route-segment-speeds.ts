@@ -8,7 +8,6 @@ import {
   normalizeSegmentSpeedCellRows,
   normalizeSegmentSpeedRows,
 } from "@bp/sources/adapters/mta/bus-speeds";
-import { soqlIn, soqlYearMonthRange } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
@@ -23,6 +22,8 @@ import {
   type SocrataFetch,
   type SocrataRow,
   type Soda3SoqlQuery,
+  soqlIn,
+  soqlYearMonthRange,
 } from "../../lib/soda3.ts";
 
 type SegmentSpeedSourceId = "bus_segment_speeds_2023_2024" | "bus_segment_speeds_2025";

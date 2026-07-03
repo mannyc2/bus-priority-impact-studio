@@ -1,9 +1,5 @@
 import type * as z from "zod";
-import type {
-  SocrataColumnSchema,
-  SocrataFetch,
-  SocrataMetadata,
-} from "../clients/socrata/index.js";
+import type { SocrataColumnSchema, SocrataFetch, SocrataMetadata } from "../core/index.js";
 import type { ManifestSource } from "../registry/manifest.js";
 
 export const probeSchemaVersion = 1;

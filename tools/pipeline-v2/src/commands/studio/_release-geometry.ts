@@ -7,9 +7,9 @@ import {
   normalizeRouteShapeRows,
   normalizeStopRows,
 } from "@bp/sources/adapters/mta/routes-stops";
-import type { SocrataRow } from "@bp/sources/clients/socrata";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import type { SocrataRow } from "../../lib/soda3.ts";
 import type {
   BBox,
   BusLanePath,

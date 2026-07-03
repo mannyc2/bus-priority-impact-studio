@@ -1,5 +1,4 @@
 import { listRouteMonthTrends, replaceRouteMonthTrends } from "@bp/db/local";
-import { soqlQuote } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
@@ -12,6 +11,7 @@ import {
   fetchSoda3RowsForSource,
   type SocrataFetch,
   type Soda3SoqlQuery,
+  soqlQuote,
 } from "../../lib/soda3.ts";
 
 type TrendRow = Awaited<ReturnType<typeof listRouteMonthTrends>>[number];

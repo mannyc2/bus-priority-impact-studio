@@ -1,11 +1,11 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { SocrataFetch } from "@bp/sources/clients/socrata";
 import type { SocrataManifestSource } from "@bp/sources/registry";
 import { arg, defineCommand, z } from "@liche/core";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
+import type { SocrataFetch } from "../../lib/soda3.ts";
 import {
   type RouteSpeedAvailabilityResult,
   runRouteSpeedAvailability,

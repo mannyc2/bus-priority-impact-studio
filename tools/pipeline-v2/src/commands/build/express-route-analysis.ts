@@ -9,7 +9,6 @@ import {
   summarizeExpressRouteCapacityRows,
 } from "@bp/analytics/feature-history";
 import { NormalizedExpressBusCapacitySchema } from "@bp/sources/adapters/mta/express-bus-capacity";
-import { soqlIn } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { defineCommand, z } from "@liche/core";
@@ -20,6 +19,7 @@ import {
   type SocrataFetch,
   type SocrataRow,
   type Soda3SoqlQuery,
+  soqlIn,
 } from "../../lib/soda3.ts";
 import { defaultExpressBusCapacityNormalizedPath } from "../ingest/express-bus-capacity.ts";
 

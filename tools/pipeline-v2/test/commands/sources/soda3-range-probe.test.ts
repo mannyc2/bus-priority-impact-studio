@@ -22,7 +22,6 @@ sources:
       supportsByteRange: true
       recommendedChunkBytes: 65536
       defaultQuery: SELECT route_id LIMIT 1
-      orderingSpecifier: total
 `;
 
 describe("runSoda3RangeProbe", () => {
@@ -63,7 +62,6 @@ describe("runSoda3RangeProbe", () => {
         expect(headers.get("Range")).toBe("bytes=10-19");
         expect(JSON.parse(String(init?.body))).toEqual({
           query: "SELECT route_id LIMIT 1",
-          orderingSpecifier: "total",
         });
         return new Response("0123456789", {
           status: 206,

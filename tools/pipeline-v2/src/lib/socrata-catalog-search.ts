@@ -1,5 +1,7 @@
 import * as z from "zod";
-import { SocrataDatasetIdSchema, type SocrataFetch } from "./soda3-client.js";
+import { SocrataDatasetIdSchema, type SocrataFetch } from "@bp/sources/core";
+
+export type { SocrataFetch } from "@bp/sources/core";
 
 const defaultCatalogDomain = "data.ny.gov";
 
@@ -28,7 +30,7 @@ export type SocrataCatalogSearchOptions = {
   fetcher?: SocrataFetch | undefined;
 };
 
-export type SocrataCatalogClientOptions = {
+export type RichSocrataCatalogSearchClientOptions = {
   domain?: string | undefined;
   fetcher?: SocrataFetch | undefined;
 };
@@ -249,11 +251,11 @@ export async function searchSocrataCatalog(
   return { ...parsed, url: url.toString() };
 }
 
-export class SocrataCatalogClient {
+export class RichSocrataCatalogSearchClient {
   readonly domain: string;
   readonly fetcher: SocrataFetch | undefined;
 
-  constructor(options: SocrataCatalogClientOptions = {}) {
+  constructor(options: RichSocrataCatalogSearchClientOptions = {}) {
     this.domain = catalogDomain(options);
     this.fetcher = options.fetcher;
   }

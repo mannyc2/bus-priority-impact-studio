@@ -1,15 +1,16 @@
-import {
-  buildSoda3ExportUrl,
-  createSoda3Client,
-  type SocrataFetch,
-  type Soda3ExportFormat,
-  soda3RangeHeader,
-} from "@bp/sources/clients/socrata";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { defineCommand, z } from "@liche/core";
+import { exportSoda3Response } from "@nyc-transit-kit/compat/soda3";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { fetchWithSocrataAppToken, socrataAppTokenFromEnv } from "../../lib/socrata-token.ts";
+import {
+  adaptSocrataFetch,
+  type SocrataFetch,
+  type Soda3ExportFormat,
+  soda3ExportUrl,
+  soda3RangeHeader,
+} from "../../lib/soda3.ts";
 
 const defaultFormat: Soda3ExportFormat = "csv";
 const defaultRangeStart = 0;
@@ -79,12 +80,7 @@ export async function runSoda3RangeProbe(
     endInclusive: inputs.rangeEndInclusive ?? defaultRangeEndInclusive,
   };
   const appToken = inputs.appToken === undefined ? socrataAppTokenFromEnv() : inputs.appToken;
-  const client = createSoda3Client({
-    domain: source.domain,
-    fetcher: fetchWithSocrataAppToken(inputs.fetcher, appToken),
-    retryCount: 0,
-  });
-  const url = buildSoda3ExportUrl(source.domain, source.dataset_id, format).href;
+  const url = soda3ExportUrl(source.domain, source.dataset_id, format).href;
   const rangeHeader = soda3RangeHeader(range);
   const dryRun = inputs.execute !== true;
   const checkedAt = (inputs.now ?? (() => new Date()))().toISOString();
@@ -117,16 +113,21 @@ export async function runSoda3RangeProbe(
     throw new Error("SOCRATA_APP_TOKEN is required for sources:soda3-range-probe --execute.");
   }
 
-  const orderingSpecifier = source.backfill?.orderingSpecifier;
-  const response = await client.export({
-    datasetId: source.dataset_id,
-    format,
-    body: {
+  const response = await exportSoda3Response(
+    {
+      domain: source.domain,
+      datasetId: source.dataset_id,
+      format,
       query,
-      ...(orderingSpecifier === undefined ? {} : { orderingSpecifier }),
+      range: {
+        start: range.start,
+        end: range.endInclusive ?? range.start,
+      },
     },
-    byteRange: range,
-  });
+    {
+      fetch: adaptSocrataFetch(fetchWithSocrataAppToken(inputs.fetcher, appToken)),
+    },
+  );
   const bytes = await response.arrayBuffer();
   const contentRange = response.headers.get("content-range");
 

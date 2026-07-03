@@ -348,7 +348,15 @@ describe("production boundary harness", () => {
       exports?: Record<string, Record<string, string>>;
     };
     const exportsMap = packageJson.exports ?? {};
-    const removedExports = ["./mta", "./socrata", "./nyc-public-data", "./nyc-geoclient"];
+    const removedExports = [
+      "./mta",
+      "./socrata",
+      "./nyc-public-data",
+      "./nyc-geoclient",
+      "./clients/socrata",
+      "./clients/socrata/catalog",
+      "./clients/socrata/soql",
+    ];
 
     expect(exportsMap["."], "@bp/sources must not expose a root barrel").toBeUndefined();
     for (const exportKey of removedExports) {
@@ -371,8 +379,6 @@ describe("production boundary harness", () => {
       "packages/sources/src/registry/loaders/bun-yaml.ts",
       "packages/sources/src/probes/transports/bun-curl.ts",
     ]);
-    const gtfsRealtimeBindingsAllowed =
-      "packages/sources/src/gtfs-realtime/vendor/gtfs-realtime-bindings.ts";
     const forbiddenImports = ["apps/", "tools/", "knowledge/", "@bp/db", "@bp/analytics"];
 
     for (const file of files) {
@@ -392,12 +398,10 @@ describe("production boundary harness", () => {
         expect(file.text.includes("Bun."), `${file.path} uses Bun outside an adapter`).toBe(false);
       }
 
-      if (file.path !== gtfsRealtimeBindingsAllowed) {
-        expect(
-          extractModuleSpecifiers(file.text).includes("gtfs-realtime-bindings"),
-          `${file.path} imports GTFS-RT vendor bindings directly`,
-        ).toBe(false);
-      }
+      expect(
+        extractModuleSpecifiers(file.text).includes("gtfs-realtime-bindings"),
+        `${file.path} imports GTFS-RT vendor bindings directly`,
+      ).toBe(false);
 
       for (const forbiddenImport of forbiddenImports) {
         expect(
@@ -420,6 +424,62 @@ describe("production boundary harness", () => {
       expect(
         extractModuleSpecifiers(file.text).includes("@bp/sources"),
         `${file.path} imports the @bp/sources root barrel`,
+      ).toBe(false);
+    }
+  });
+
+  test("repo code does not recreate deleted Socrata source-client imports", async () => {
+    const files = [
+      ...(await readFiles("apps")),
+      ...(await readFiles("packages")),
+      ...(await readFiles("tools")),
+      ...(await readFiles("tests")),
+    ];
+    const forbiddenSocrataImports = [
+      `@bp/sources/clients/${"socrata"}`,
+      `@bp/sources/clients/${"socrata"}/catalog`,
+      `@bp/sources/clients/${"socrata"}/soql`,
+    ];
+
+    for (const file of files) {
+      for (const forbiddenImport of forbiddenSocrataImports) {
+        expect(
+          extractModuleSpecifiers(file.text).includes(forbiddenImport),
+          `${file.path} imports deleted ${forbiddenImport}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  test("browser-facing web modules do not import transit kit or source packages", async () => {
+    const files = await readFiles("apps/web/src");
+
+    for (const file of files) {
+      if (file.path.includes("/worker/")) {
+        continue;
+      }
+
+      expect(
+        importsForbiddenSpecifier(file.text, "@nyc-transit-kit"),
+        `${file.path} imports @nyc-transit-kit outside the Worker boundary`,
+      ).toBe(false);
+      expect(
+        importsForbiddenSpecifier(file.text, "@bp/sources"),
+        `${file.path} imports @bp/sources outside the Worker boundary`,
+      ).toBe(false);
+    }
+  });
+
+  test("Studio API and web runtime do not import @bp/sources", async () => {
+    const files = [
+      ...(await readFiles("apps/web/src")),
+      ...(await readFiles("packages/studio-api/src")),
+    ];
+
+    for (const file of files) {
+      expect(
+        importsForbiddenSpecifier(file.text, "@bp/sources"),
+        `${file.path} imports @bp/sources in runtime code`,
       ).toBe(false);
     }
   });

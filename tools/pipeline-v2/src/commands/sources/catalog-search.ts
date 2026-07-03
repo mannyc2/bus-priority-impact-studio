@@ -1,8 +1,10 @@
-import type { SocrataFetch } from "@bp/sources/clients/socrata";
-import { SocrataCatalogClient } from "@bp/sources/clients/socrata/catalog";
 import { defineCommand, z } from "@liche/core";
+import {
+  RichSocrataCatalogSearchClient,
+  type SocrataFetch,
+} from "../../lib/socrata-catalog-search.ts";
 
-type SocrataCatalogSearchResponse = Awaited<ReturnType<SocrataCatalogClient["search"]>>;
+type SocrataCatalogSearchResponse = Awaited<ReturnType<RichSocrataCatalogSearchClient["search"]>>;
 
 export type SearchSourceCatalogArgs = {
   query?: string | undefined;
@@ -47,7 +49,7 @@ export async function searchSourceCatalog(
   const limit = args.limit ?? 20;
   const offset = args.offset ?? 0;
   const order = args.order ?? "relevance";
-  const client = new SocrataCatalogClient({ domain, fetcher: args.fetcher });
+  const client = new RichSocrataCatalogSearchClient({ domain, fetcher: args.fetcher });
   const response = await client.search({
     query,
     category: args.category,

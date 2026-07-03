@@ -43,12 +43,12 @@ import {
   normalizeRouteShapeRows,
   normalizeStopRows,
 } from "@bp/sources/adapters/mta/routes-stops";
-import type { SocrataRow } from "@bp/sources/clients/socrata";
 import { arg, defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import type { SocrataRow } from "../../lib/soda3.ts";
 
 const displayRouteTypes = new Set(["Local", "Limited", "SBS"]);
 

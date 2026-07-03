@@ -280,15 +280,16 @@ export type ParseGtfsRealtimeFeedOptions = {
 function decodeFeedObject(
   bytes: Uint8Array,
   decoder: GtfsRealtimeDecoder = createDefaultGtfsRealtimeDecoder(),
+  feedType?: GtfsRtFeedType | "mixed",
 ): PlainFeedMessage {
-  return decodeGtfsRealtimeFeedMessage(bytes, decoder) as PlainFeedMessage;
+  return decodeGtfsRealtimeFeedMessage(bytes, decoder, feedType) as PlainFeedMessage;
 }
 
 export function parseGtfsRealtimeFeed(
   bytes: Uint8Array,
   options: ParseGtfsRealtimeFeedOptions = {},
 ): NormalizedGtfsRtFeed {
-  const feed = decodeFeedObject(bytes, options.decoder);
+  const feed = decodeFeedObject(bytes, options.decoder, options.feedType);
   const gtfsRealtimeVersion = textOrNull(feed.header?.gtfsRealtimeVersion);
   const feedTimestamp = integerOrNull(feed.header?.timestamp);
   const entities = feed.entity ?? [];
@@ -301,7 +302,7 @@ export function parseGtfsRealtimeFeed(
     const entityId = textOrNull(entity.id) ?? `entity-${entityIndex + 1}`;
     const entityDeleted = booleanOrFalse(entity.isDeleted);
 
-    if (entity.vehicle !== undefined) {
+    if (entity.vehicle !== undefined && entity.vehicle !== null) {
       const vehicle = entity.vehicle;
       vehiclePositions.push(
         NormalizedGtfsRtVehiclePositionSchema.parse({
@@ -328,7 +329,7 @@ export function parseGtfsRealtimeFeed(
       );
     }
 
-    if (entity.tripUpdate !== undefined) {
+    if (entity.tripUpdate !== undefined && entity.tripUpdate !== null) {
       const tripUpdate = entity.tripUpdate;
       tripUpdates.push(
         NormalizedGtfsRtTripUpdateSchema.parse({
@@ -365,7 +366,7 @@ export function parseGtfsRealtimeFeed(
       }
     }
 
-    if (entity.alert !== undefined) {
+    if (entity.alert !== undefined && entity.alert !== null) {
       const alert = entity.alert;
       alerts.push(
         NormalizedGtfsRtAlertSchema.parse({

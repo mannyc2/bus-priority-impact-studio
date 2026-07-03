@@ -2,7 +2,7 @@
 title: Sources Adapter Cutover Plan
 type: engineering
 status: completed
-last_updated: 2026-06-05
+last_updated: 2026-07-03
 owner: codex
 source_count: 3
 tags: [sources, socrata, soda3, ingestion, package-boundaries, pipeline-v2]
@@ -264,6 +264,51 @@ bun --filter @bp/sources typecheck
 bun --filter @bp/sources test
 bun run check:web-architecture
 bun run check:types
+```
+
+## nyc-transit-kit consumer cutover on 2026-07-03
+
+Plan 029 completed the follow-up consumer cutover. The repo now pins and consumes
+`@nyc-transit-kit/*@0.1.3`, whose published packages align on `effect@4.0.0-beta.92`.
+
+- Generic SODA3 query/export execution and GTFS Realtime protobuf decoding come from the public
+  toolkit.
+- `@bp/sources` remains internal. It owns source manifest parsing, Bus Priority normalizers,
+  source-probe contracts, lightweight metadata URL helpers not exposed by the toolkit, and
+  project-specific DTO schemas.
+- `@bp/sources` no longer exposes `./clients/socrata*` subpaths and no longer owns
+  `gtfs-realtime-bindings` directly.
+- `tools/pipeline-v2` keeps a small pipeline-local rich catalog-search helper because the installed
+  toolkit catalog API still returns the narrower generic catalog shape and does not expose the
+  posting-frequency, time-period, granularity, owner/agency, column, and result-size fields used by
+  the `sources catalog-search` source-discovery command.
+- `packages/studio-api/src/source-refresh.ts` now uses the toolkit Promise compatibility wrapper
+  for the route-speed watcher. The Worker build remains within the web bundle budget, so no
+  direct-provider fallback is retained there.
+
+Verification completed for this cutover:
+
+```bash
+npm view @nyc-transit-kit/compat version
+npm view @nyc-transit-kit/contracts version
+npm view @nyc-transit-kit/mta version
+npm view @nyc-transit-kit/nyc-dot version
+npm view @nyc-transit-kit/nyc-open-data version
+npm view @nyc-transit-kit/soda3 version
+bun install
+bun pm why effect
+bun --filter @bp/sources typecheck
+bun --filter @bp/pipeline-v2 typecheck
+bun --filter @bp/studio-api typecheck
+bun --filter @bp/sources test
+bun --filter @bp/pipeline-v2 test --timeout 5000
+bun --filter @bp/studio-api test
+bun test tools/pipeline-v2/test/lib/socrata-monthly-ingest.test.ts --timeout 5000
+bun test packages/sources/test/gtfs-rt.test.ts --timeout 5000
+bun test tools/pipeline-v2/test/commands/sources/soda3-range-probe.test.ts tools/pipeline-v2/test/commands/sources/catalog-search.test.ts --timeout 5000
+bun test packages/studio-api/test/source-refresh.test.ts --timeout 5000
+bun run check:web-architecture
+bun --filter @bp/web build
 ```
 
 ## Sources

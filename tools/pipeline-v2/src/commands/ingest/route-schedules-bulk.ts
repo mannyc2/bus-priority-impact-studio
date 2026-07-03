@@ -3,7 +3,6 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { createLocalPipelineDb, listRouteCatalogIds } from "@bp/db/local";
-import { buildSoda3ExportUrl } from "@bp/sources/clients/socrata";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
@@ -13,6 +12,7 @@ import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { fetchWithSocrataAppToken } from "../../lib/socrata-token.ts";
 import type { SocrataFetch } from "../../lib/soda3.ts";
+import { soda3ExportUrl } from "../../lib/soda3.ts";
 import { readCsvRecords } from "../../lib/streaming-csv.ts";
 import {
   deleteRouteRows,
@@ -431,7 +431,7 @@ async function downloadCsvSnapshot(input: {
     throw new Error(`Bulk schedule CSV does not exist: ${input.csvPath}`);
   }
 
-  const url = buildSoda3ExportUrl(input.source.domain, input.source.dataset_id, "csv").href;
+  const url = soda3ExportUrl(input.source.domain, input.source.dataset_id, "csv").href;
   return downloadHttpFile({
     url,
     outputPath: input.csvPath,

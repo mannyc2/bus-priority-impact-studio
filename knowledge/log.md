@@ -2,6 +2,35 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-07-03] engineering | nyc-transit-kit 0.1.3 cutover lands in bus repo
+
+Completed Plan 029 in branch `codex/029-adopt-nyc-transit-kit`. `npm view` reported
+`@nyc-transit-kit/{compat,contracts,mta,nyc-dot,nyc-open-data,soda3}` latest as `0.1.3`, and the
+root catalog now pins all six packages to `0.1.3`. `bun pm why effect` shows a single resolved
+`effect@4.0.0-beta.92`, including the toolkit packages, so the previous downstream
+`exactOptionalPropertyTypes` blocker from the `0.1.2` package source is gone.
+
+The cutover deletes the local generic Socrata client subpaths and the local GTFS Realtime vendor
+wrapper. Generic SODA3 query/export calls and GTFS Realtime protobuf decoding now come from
+`nyc-transit-kit`; `@bp/sources` keeps only Bus Priority manifest parsing, normalizers, probes,
+lightweight metadata URL helpers, and source DTO contracts. `tools/pipeline-v2` intentionally keeps
+the rich catalog-search helper local because the installed toolkit catalog API still lacks the
+posting-frequency, time-period, granularity, agency/owner, column, and result-size fields used by
+`sources catalog-search`. The final tracked diff is 62 files changed, 827 insertions, and 1,054
+deletions.
+
+Verification run: `bun install`; `bun pm why effect`; `bun --filter @bp/sources typecheck`;
+`bun --filter @bp/pipeline-v2 typecheck`; `bun --filter @bp/studio-api typecheck`;
+`bun --filter @bp/sources test`; `bun --filter @bp/pipeline-v2 test --timeout 5000`;
+`bun --filter @bp/studio-api test`; `bun test tools/pipeline-v2/test/lib/socrata-monthly-ingest.test.ts --timeout 5000`;
+`bun test packages/sources/test/gtfs-rt.test.ts --timeout 5000`;
+`bun test tools/pipeline-v2/test/commands/sources/soda3-range-probe.test.ts tools/pipeline-v2/test/commands/sources/catalog-search.test.ts --timeout 5000`;
+`bun test packages/studio-api/test/source-refresh.test.ts --timeout 5000`;
+`bun run check:web-architecture`; `bun --filter @bp/web build`. The first full pipeline test run
+failed only because the ignored sandbox fixture `data/artifacts/findings/detector-specs.json` was
+absent in the clean worktree; after copying the documented local fixture into place, the rerun
+passed 384 tests.
+
 ## [2026-07-03] engineering | nyc-transit-kit 0.1.2 pin prepared, adoption waits on release
 
 Prepared upstream `nyc-transit-kit` branch `codex/029-effect-beta-92` and draft PR

@@ -6,7 +6,7 @@ import type {
   StudioSegment as DomainStudioSegment,
 } from "@bp/domain/studio/routes";
 import type { StudioAiPublicNote } from "@bp/domain/studio/segment-evidence";
-import type { SocrataRow } from "@bp/sources/clients/socrata";
+import type { SocrataRow } from "../../lib/soda3.ts";
 
 // The Studio release pipeline annotates the canonical domain Route/Segment
 // shapes with additional provenance fields such as lane source and TSP

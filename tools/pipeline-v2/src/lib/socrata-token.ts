@@ -1,4 +1,4 @@
-import type { SocrataFetch } from "@bp/sources/clients/socrata";
+export type SocrataFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
 type SocrataHeadersInit = ConstructorParameters<typeof Headers>[0];
 
