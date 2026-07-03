@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -63,6 +63,9 @@ describe("studio import-mta-wiki-route-evidence", () => {
       expect(route?.interventions[0]?.projectRecordIds).toEqual(["project_m15_busway"]);
       expect(route?.metricClaims[0]?.metricName).toBe("bus_lane_length");
       expect(route?.projects[0]?.projectName).toBe("M15 bus priority");
+      expect(route?.projects.map((project) => project.recordId)).not.toContain(
+        "project_m15_local_noise",
+      );
       expect(route?.sourceGaps[0]?.gapKind).toBe("missing_before_after");
       const citations = route?.citations ?? [];
       expect(new Set(citations.map((citation) => citation.key)).size).toBe(citations.length);
@@ -104,6 +107,7 @@ describe("studio import-mta-wiki-route-evidence", () => {
 
   test("builds an in-memory artifact from loaded canonical JSONL", async () => {
     const corpus = await loadMtaWikiCanonicalCorpus(fixtureMtaWikiRoot);
+    expect(corpus.routeAnchors).toHaveLength(1);
     const routes = (await Bun.file(fixtureRoutesPath).json()) as {
       routes: Parameters<typeof buildStudioRouteEvidenceArtifact>[0]["routes"];
     };
@@ -121,6 +125,29 @@ describe("studio import-mta-wiki-route-evidence", () => {
       sourceGapCount: 1,
       citationCount: 5,
     });
+  });
+
+  test("loads a named mta-wiki release with route anchors", async () => {
+    const root = await mkdtemp(join(tmpdir(), "route-evidence-release-"));
+    try {
+      const mtaWikiRoot = join(root, "mta-wiki");
+      const releaseRoot = join(mtaWikiRoot, "data", "exports", "releases", "fixture-v1");
+      await mkdir(join(mtaWikiRoot, "data", "exports", "releases"), { recursive: true });
+      await cp(join(fixtureMtaWikiRoot, "data", "canonical"), releaseRoot, { recursive: true });
+
+      const corpus = await loadMtaWikiCanonicalCorpus(mtaWikiRoot, {
+        wikiRelease: "fixture-v1",
+      });
+
+      expect(corpus.wikiRelease).toBe("fixture-v1");
+      expect(corpus.canonicalRoot).toBe(releaseRoot);
+      expect(corpus.routeAnchors[0]).toMatchObject({
+        gtfs_route_id: "M15+",
+        canonical_route_record_id: "route_m15-sbs",
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   test("fails with a line-numbered message when canonical JSONL is missing", async () => {

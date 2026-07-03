@@ -1,4 +1,5 @@
 import { dirname, isAbsolute, join } from "node:path";
+import { z } from "zod";
 import { runPipelineFileSystemBoundary } from "../effect/file-system.ts";
 import { fromCliPath, repoRoot } from "./paths.ts";
 
@@ -31,9 +32,23 @@ export type MtaWikiCanonicalRecord = {
   evidence_refs?: MtaWikiEvidenceRef[] | undefined;
 };
 
+const MtaWikiRouteAnchorSchema = z
+  .object({
+    gtfs_route_id: z.string().min(1).nullable(),
+    canonical_route_record_id: z.string().min(1).nullable(),
+    variant_record_ids: z.array(z.string().min(1)),
+    aliases: z.array(z.string().min(1)),
+    disposition: z.string().min(1),
+    anchor_reason: z.string().min(1).nullable(),
+  })
+  .strict();
+
+export type MtaWikiRouteAnchor = z.output<typeof MtaWikiRouteAnchorSchema>;
+
 export type MtaWikiCanonicalCorpus = {
   root: string;
   canonicalRoot: string;
+  wikiRelease?: string | undefined;
   sources: MtaWikiCanonicalRecord[];
   routes: MtaWikiCanonicalRecord[];
   projects: MtaWikiCanonicalRecord[];
@@ -42,6 +57,7 @@ export type MtaWikiCanonicalCorpus = {
   relations: MtaWikiCanonicalRecord[];
   treatmentComponents: MtaWikiCanonicalRecord[];
   sourceGaps: MtaWikiCanonicalRecord[];
+  routeAnchors: MtaWikiRouteAnchor[];
 };
 
 export const MTA_WIKI_CANONICAL_FILES = {
@@ -54,6 +70,8 @@ export const MTA_WIKI_CANONICAL_FILES = {
   treatmentComponents: "treatment_components.jsonl",
   sourceGaps: "source_gaps.jsonl",
 } as const;
+
+export const MTA_WIKI_ROUTE_ANCHORS_FILE = "route_anchors.jsonl";
 
 const RouteTokenPattern = /\b(?:SIM|BXM|BM|QM|BX|B|M|Q|S|X)\d{1,3}[A-Z]?(?:\+|[-\s]?SBS)?\b/giu;
 
@@ -120,8 +138,12 @@ export function mtaWikiCanonicalPath(root: string, fileName: string): string {
   return join(root, "data", "canonical", fileName);
 }
 
-export async function readMtaWikiJsonlRecords(path: string): Promise<MtaWikiCanonicalRecord[]> {
-  const text = await runPipelineFileSystemBoundary({
+export function mtaWikiReleasePath(root: string, releaseId: string): string {
+  return join(root, "data", "exports", "releases", releaseId);
+}
+
+async function readTextIfExists(path: string): Promise<string | null> {
+  return runPipelineFileSystemBoundary({
     command: "studio.import-mta-wiki-route-evidence",
     operation: "readCanonicalJsonl",
     run: (files) =>
@@ -131,6 +153,10 @@ export async function readMtaWikiJsonlRecords(path: string): Promise<MtaWikiCano
         path,
       }),
   });
+}
+
+export async function readMtaWikiJsonlRecords(path: string): Promise<MtaWikiCanonicalRecord[]> {
+  const text = await readTextIfExists(path);
   if (text === null) throw new Error(`mta-wiki canonical JSONL not found: ${path}`);
   const records: MtaWikiCanonicalRecord[] = [];
   let lineNumber = 0;
@@ -149,38 +175,68 @@ export async function readMtaWikiJsonlRecords(path: string): Promise<MtaWikiCano
   return records;
 }
 
+function routeAnchorValue(value: unknown, path: string, lineNumber: number): MtaWikiRouteAnchor {
+  const parsed = MtaWikiRouteAnchorSchema.safeParse(value);
+  if (!parsed.success) {
+    const detail = parsed.error.issues
+      .slice(0, 5)
+      .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+      .join("; ");
+    throw new Error(`Failed to parse ${path}:${lineNumber}: ${detail}`);
+  }
+  return parsed.data;
+}
+
+export async function readMtaWikiRouteAnchors(path: string): Promise<MtaWikiRouteAnchor[]> {
+  const text = await readTextIfExists(path);
+  if (text === null) return [];
+  const anchors: MtaWikiRouteAnchor[] = [];
+  let lineNumber = 0;
+  for (const line of text.split(/\r?\n/u)) {
+    lineNumber += 1;
+    if (line.trim().length === 0) continue;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(line);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to parse ${path}:${lineNumber}: ${message}`);
+    }
+    anchors.push(routeAnchorValue(parsed, path, lineNumber));
+  }
+  return anchors;
+}
+
 export async function loadMtaWikiCanonicalCorpus(
   rootInput: string | undefined,
+  options: { wikiRelease?: string | undefined } = {},
 ): Promise<MtaWikiCanonicalCorpus> {
   const root = resolveMtaWikiRoot(rootInput);
-  const canonicalRoot = join(root, "data", "canonical");
+  const canonicalRoot =
+    options.wikiRelease === undefined
+      ? join(root, "data", "canonical")
+      : mtaWikiReleasePath(root, options.wikiRelease);
   return {
     root,
     canonicalRoot,
-    sources: await readMtaWikiJsonlRecords(
-      mtaWikiCanonicalPath(root, MTA_WIKI_CANONICAL_FILES.sources),
-    ),
-    routes: await readMtaWikiJsonlRecords(
-      mtaWikiCanonicalPath(root, MTA_WIKI_CANONICAL_FILES.routes),
-    ),
-    projects: await readMtaWikiJsonlRecords(
-      mtaWikiCanonicalPath(root, MTA_WIKI_CANONICAL_FILES.projects),
-    ),
-    events: await readMtaWikiJsonlRecords(
-      mtaWikiCanonicalPath(root, MTA_WIKI_CANONICAL_FILES.events),
-    ),
+    ...(options.wikiRelease === undefined ? {} : { wikiRelease: options.wikiRelease }),
+    sources: await readMtaWikiJsonlRecords(join(canonicalRoot, MTA_WIKI_CANONICAL_FILES.sources)),
+    routes: await readMtaWikiJsonlRecords(join(canonicalRoot, MTA_WIKI_CANONICAL_FILES.routes)),
+    projects: await readMtaWikiJsonlRecords(join(canonicalRoot, MTA_WIKI_CANONICAL_FILES.projects)),
+    events: await readMtaWikiJsonlRecords(join(canonicalRoot, MTA_WIKI_CANONICAL_FILES.events)),
     metricClaims: await readMtaWikiJsonlRecords(
-      mtaWikiCanonicalPath(root, MTA_WIKI_CANONICAL_FILES.metricClaims),
+      join(canonicalRoot, MTA_WIKI_CANONICAL_FILES.metricClaims),
     ),
     relations: await readMtaWikiJsonlRecords(
-      mtaWikiCanonicalPath(root, MTA_WIKI_CANONICAL_FILES.relations),
+      join(canonicalRoot, MTA_WIKI_CANONICAL_FILES.relations),
     ),
     treatmentComponents: await readMtaWikiJsonlRecords(
-      mtaWikiCanonicalPath(root, MTA_WIKI_CANONICAL_FILES.treatmentComponents),
+      join(canonicalRoot, MTA_WIKI_CANONICAL_FILES.treatmentComponents),
     ),
     sourceGaps: await readMtaWikiJsonlRecords(
-      mtaWikiCanonicalPath(root, MTA_WIKI_CANONICAL_FILES.sourceGaps),
+      join(canonicalRoot, MTA_WIKI_CANONICAL_FILES.sourceGaps),
     ),
+    routeAnchors: await readMtaWikiRouteAnchors(join(canonicalRoot, MTA_WIKI_ROUTE_ANCHORS_FILE)),
   };
 }
 
