@@ -149,9 +149,10 @@ function adaptSourceRefreshFetch(fetcher: SourceRefreshFetch): typeof fetch {
     input instanceof Request
       ? fetcher(input.url, await requestInitFromRequest(input, init))
       : fetcher(input, requestInitWithNormalizedBody(init));
+  const nativeFetch = fetch as typeof fetch & { preconnect?: unknown };
 
   return Object.assign(compatFetch, {
-    preconnect: fetch.preconnect,
+    preconnect: nativeFetch.preconnect,
   });
 }
 

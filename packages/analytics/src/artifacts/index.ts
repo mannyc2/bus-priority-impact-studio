@@ -58,6 +58,13 @@ export function routeHourlyProfileArtifactPath(input: {
   );
 }
 
+export function routeHourlyProfileRouteArtifactPath(input: {
+  readonly artifactRoot: string;
+  readonly routeSlug: string;
+}): string {
+  return join(input.artifactRoot, "studio", "v2", "routes", input.routeSlug, "hourly-profile.json");
+}
+
 export function routeSegmentMapArtifactKey(routeId: string, month: string): string {
   return mapArtifactKey("route-segments", routeId.toLowerCase(), month, "all-day.geojson");
 }

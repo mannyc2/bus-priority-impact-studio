@@ -14,6 +14,7 @@ import { StudioRouteEvidenceBundleSchema } from "@bp/domain/studio/route-evidenc
 import {
   StudioRouteDetailResponseSchema,
   StudioRouteHistoryResponseSchema,
+  StudioRouteHourlyProfileResponseSchema,
   StudioRouteSectionsResponseSchema,
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
@@ -406,6 +407,92 @@ const quality = {
   caveats: [],
 } as const;
 
+function hourlyProfileArtifact() {
+  const hours = Array.from({ length: 24 }, (_, hour) => ({
+    hourOfDay: hour,
+    speedObservationCount: hour === 8 ? 12 : 1,
+    speedBusTripCount: hour === 8 ? 120 : 10,
+    averageSpeedMph: hour === 8 ? 6.2 : 8.4,
+    ridership: hour === 8 ? 14_000 : 1_000,
+    transfers: hour === 8 ? 2_000 : 100,
+  }));
+  return {
+    artifactKind: "studio_route_hourly_profile",
+    schemaVersion: 1,
+    generatedAt: "2026-06-06T00:00:00.000Z",
+    routeId: "M15+",
+    routeSlug: "m15-sbs",
+    source: {
+      tables: [
+        "local_route_hourly_ridership",
+        "local_route_segment_speed",
+        "local_route_observed_reliability_summary",
+        "local_observed_headway_sample",
+      ],
+      dbPath: "data/local/pipeline.sqlite",
+      startMonth: "2026-02",
+      endMonth: "2026-03",
+      artifactPath: "data/artifacts/studio/v2/routes/m15-sbs/hourly-profile.json",
+    },
+    dimensions: {
+      months: ["2026-02", "2026-03"],
+      hours: Array.from({ length: 24 }, (_, hour) => hour),
+    },
+    summary: {
+      monthCount: 2,
+      latestMonth: "2026-03",
+      hourCount: 24,
+      populatedHourCount: 24,
+      speedObservationCount: 35,
+      speedBusTripCount: 350,
+      totalRidership: 37_000,
+      totalTransfers: 4_300,
+      reliabilitySampleCount: 8,
+    },
+    hours,
+    peakWindows: [
+      {
+        month: "2026-03",
+        dayOfWeek: "Tuesday",
+        hourOfDay: 8,
+        ridership: 14_000,
+      },
+    ],
+    slowestWindows: [
+      {
+        month: "2026-03",
+        dayOfWeek: "Tuesday",
+        hourOfDay: 8,
+        observationCount: 12,
+        busTripCount: 120,
+        weightedAverageSpeedMph: 6.2,
+      },
+    ],
+    reliabilitySamples: [
+      {
+        month: "2026-03",
+        hourOfDay: 8,
+        sampleCount: 8,
+        averageObservedHeadwayMinutes: 9.5,
+      },
+    ],
+    monthlyProfiles: [
+      {
+        routeId: "M15+",
+        month: "2026-03",
+        hourlyRowCount: 168,
+        totalRidership: 37_000,
+        totalTransfers: 4_300,
+        peakWindow: {
+          dayOfWeek: "Tuesday",
+          hourOfDay: 8,
+          ridership: 14_000,
+        },
+      },
+    ],
+  } as const;
+}
+
 const scorecard = RouteScorecardSchema.parse({
   schemaVersion: 1,
   routeId: "M1",
@@ -473,6 +560,10 @@ function createStudioProjectionEnv(): StudioApiEnv {
           artifactRefs: [],
           quality,
         }),
+        "application/json",
+      ),
+      "studio/v2/routes/m15-sbs/hourly-profile.json": new FakeR2Object(
+        JSON.stringify(hourlyProfileArtifact()),
         "application/json",
       ),
       "studio/v2/routes/m15-sbs/speed-history.json": new FakeR2Object(
@@ -877,6 +968,7 @@ describe("Studio API facade", () => {
         "/api/v1/studio/routes": expect.any(Object),
         "/api/v1/studio/routes/sections": expect.any(Object),
         "/api/v1/studio/routes/{routeId}/history": expect.any(Object),
+        "/api/v1/studio/routes/{routeId}/hourly-profile": expect.any(Object),
         "/api/v1/studio/routes/{routeId}/speed-history": expect.any(Object),
         "/api/v1/studio/routes/{routeId}/timeline": expect.any(Object),
         "/api/v1/studio/snapshot": expect.any(Object),
@@ -1280,13 +1372,19 @@ describe("Studio API facade", () => {
 
   it("serves Studio projection-backed routes and methods", async () => {
     const env = createStudioProjectionEnv();
-    const [routesResponse, detailResponse, speedHistoryResponse, methodsResponse] =
-      await Promise.all([
-        fetchApi("/api/v1/studio/routes", env),
-        fetchApi("/api/v1/studio/routes/m15-sbs", env),
-        fetchApi("/api/v1/studio/routes/m15-sbs/speed-history", env),
-        fetchApi("/api/v1/studio/methods", env),
-      ]);
+    const [
+      routesResponse,
+      detailResponse,
+      hourlyProfileResponse,
+      speedHistoryResponse,
+      methodsResponse,
+    ] = await Promise.all([
+      fetchApi("/api/v1/studio/routes", env),
+      fetchApi("/api/v1/studio/routes/m15-sbs", env),
+      fetchApi("/api/v1/studio/routes/m15-sbs/hourly-profile", env),
+      fetchApi("/api/v1/studio/routes/m15-sbs/speed-history", env),
+      fetchApi("/api/v1/studio/methods", env),
+    ]);
 
     expect(routesResponse.headers.get("Server-Timing")).toContain("studio;dur=");
     expect(routesResponse.headers.get("X-Studio-Release")).toBe("studio/v1");
@@ -1304,8 +1402,21 @@ describe("Studio API facade", () => {
           speed: expect.objectContaining({ current: 6.9, movement6mPct: -8, peerPercentile: 12 }),
           worstSegment: expect.objectContaining({ segmentId: "seg-1", persistenceMonths: 3 }),
         }),
+        peakWindows: [
+          expect.objectContaining({ dayOfWeek: "Tuesday", hourOfDay: 8, ridership: 14_000 }),
+        ],
+        slowestWindows: [expect.objectContaining({ hourOfDay: 8, weightedAverageSpeedMph: 6.2 })],
+        reliabilitySamples: [
+          expect.objectContaining({ hourOfDay: 8, averageObservedHeadwayMinutes: 9.5 }),
+        ],
       }),
     );
+    const hourlyProfile = StudioRouteHourlyProfileResponseSchema.parse(
+      await hourlyProfileResponse.json(),
+    );
+    expect(hourlyProfile.routeSlug).toBe("m15-sbs");
+    expect(hourlyProfile.hours).toHaveLength(24);
+    expect(hourlyProfile.summary.reliabilitySampleCount).toBe(8);
     const speedHistory = StudioRouteSpeedHistoryResponseSchema.parse(
       await speedHistoryResponse.json(),
     );

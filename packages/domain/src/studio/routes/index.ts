@@ -263,6 +263,117 @@ export const StudioSegmentsResponseSchema = z
   })
   .strict();
 
+const HourOfDaySchema = z.number().int().min(0).max(23);
+
+export const StudioRouteHourlyProfileHourSchema = z
+  .object({
+    hourOfDay: HourOfDaySchema,
+    speedObservationCount: z.number().int().nonnegative(),
+    speedBusTripCount: z.number().int().nonnegative(),
+    averageSpeedMph: z.number().nullable(),
+    ridership: z.number().nullable(),
+    transfers: z.number().nullable(),
+  })
+  .strict();
+
+export const StudioRouteHourlyProfilePeakWindowSchema = z
+  .object({
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    dayOfWeek: z.string(),
+    hourOfDay: HourOfDaySchema,
+    ridership: z.number().nullable(),
+  })
+  .strict();
+
+export const StudioRouteHourlyProfileSlowestWindowSchema = z
+  .object({
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    dayOfWeek: z.string(),
+    hourOfDay: HourOfDaySchema,
+    observationCount: z.number().int().nonnegative(),
+    busTripCount: z.number().int().nonnegative(),
+    weightedAverageSpeedMph: z.number().nullable(),
+  })
+  .strict();
+
+export const StudioRouteReliabilitySampleSchema = z
+  .object({
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    hourOfDay: HourOfDaySchema,
+    sampleCount: z.number().int().nonnegative(),
+    averageObservedHeadwayMinutes: z.number().nonnegative(),
+  })
+  .strict();
+
+export const StudioRouteHourlyProfileMonthlyProfileSchema = z
+  .object({
+    routeId: z.string(),
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    hourlyRowCount: z.number().int().nonnegative(),
+    totalRidership: z.number().nonnegative(),
+    totalTransfers: z.number().nonnegative(),
+    peakWindow: z
+      .object({
+        dayOfWeek: z.string(),
+        hourOfDay: HourOfDaySchema,
+        ridership: z.number().nullable(),
+      })
+      .strict()
+      .nullable(),
+  })
+  .strict();
+
+export const StudioRouteHourlyProfileResponseSchema = z
+  .object({
+    artifactKind: z.literal("studio_route_hourly_profile"),
+    schemaVersion: z.literal(1),
+    generatedAt: z.string(),
+    routeId: z.string(),
+    routeSlug: z.string(),
+    source: z
+      .object({
+        tables: z.tuple([
+          z.literal("local_route_hourly_ridership"),
+          z.literal("local_route_segment_speed"),
+          z.literal("local_route_observed_reliability_summary"),
+          z.literal("local_observed_headway_sample"),
+        ]),
+        dbPath: z.string(),
+        startMonth: z.string().regex(/^\d{4}-\d{2}$/),
+        endMonth: z.string().regex(/^\d{4}-\d{2}$/),
+        artifactPath: z.string(),
+      })
+      .strict(),
+    dimensions: z
+      .object({
+        months: z.array(z.string().regex(/^\d{4}-\d{2}$/)),
+        hours: z.array(HourOfDaySchema).length(24),
+      })
+      .strict(),
+    summary: z
+      .object({
+        monthCount: z.number().int().nonnegative(),
+        latestMonth: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .nullable(),
+        hourCount: z.literal(24),
+        populatedHourCount: z.number().int().nonnegative(),
+        speedObservationCount: z.number().int().nonnegative(),
+        speedBusTripCount: z.number().int().nonnegative(),
+        totalRidership: z.number().nonnegative(),
+        totalTransfers: z.number().nonnegative(),
+        reliabilitySampleCount: z.number().int().nonnegative(),
+      })
+      .strict(),
+    hours: z.array(StudioRouteHourlyProfileHourSchema).length(24),
+    peakWindows: z.array(StudioRouteHourlyProfilePeakWindowSchema),
+    slowestWindows: z.array(StudioRouteHourlyProfileSlowestWindowSchema),
+    reliabilitySamples: z.array(StudioRouteReliabilitySampleSchema),
+    monthlyProfiles: z.array(StudioRouteHourlyProfileMonthlyProfileSchema),
+  })
+  .strict();
+
 /**
  * Route detail v2 (frontend §7.2 / hard-cutover C2): the route evidence dossier.
  * Identity + segments + the pipeline-built capability row and dossier summary
@@ -280,6 +391,9 @@ export const StudioRouteDetailResponseSchema = z
     segments: z.array(StudioSegmentSchema),
     artifactRefs: z.array(StudioRouteArtifactRefSchema),
     insights: z.array(StudioRouteInsightSchema).default([]),
+    peakWindows: z.array(StudioRouteHourlyProfilePeakWindowSchema).default([]),
+    slowestWindows: z.array(StudioRouteHourlyProfileSlowestWindowSchema).default([]),
+    reliabilitySamples: z.array(StudioRouteReliabilitySampleSchema).default([]),
     capability: StudioRouteCapabilitySchema.nullable().default(null),
     dossier: RouteDossierSummaryForDetailSchema.nullable().default(null),
     equityContext: StudioRouteEquityContextSchema.nullable().default(null),
@@ -515,6 +629,20 @@ export type StudioRouteDetailResponse = z.output<typeof StudioRouteDetailRespons
 export type StudioRouteHistoryPoint = z.output<typeof StudioRouteHistoryPointSchema>;
 export type StudioRouteHistoryCoverage = z.output<typeof StudioRouteHistoryCoverageSchema>;
 export type StudioRouteHistoryResponse = z.output<typeof StudioRouteHistoryResponseSchema>;
+export type StudioRouteHourlyProfileHour = z.output<typeof StudioRouteHourlyProfileHourSchema>;
+export type StudioRouteHourlyProfilePeakWindow = z.output<
+  typeof StudioRouteHourlyProfilePeakWindowSchema
+>;
+export type StudioRouteHourlyProfileSlowestWindow = z.output<
+  typeof StudioRouteHourlyProfileSlowestWindowSchema
+>;
+export type StudioRouteReliabilitySample = z.output<typeof StudioRouteReliabilitySampleSchema>;
+export type StudioRouteHourlyProfileMonthlyProfile = z.output<
+  typeof StudioRouteHourlyProfileMonthlyProfileSchema
+>;
+export type StudioRouteHourlyProfileResponse = z.output<
+  typeof StudioRouteHourlyProfileResponseSchema
+>;
 export type StudioRouteSpeedHistoryDaypart = z.output<typeof StudioRouteSpeedHistoryDaypartSchema>;
 export type StudioRouteSpeedHistoryCell = z.output<typeof StudioRouteSpeedHistoryCellSchema>;
 export type StudioRouteSpeedHistoryResponse = z.output<

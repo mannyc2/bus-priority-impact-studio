@@ -127,8 +127,14 @@ export {
   runRouteEquityContext,
 } from "./route-equity-context";
 export {
+  loadRouteHourlyProfileHourRows,
   loadRouteHourlyProfileLocalDbRows,
+  loadRouteHourlyProfileReliabilitySampleRows,
+  loadRouteHourlyProfileSlowestWindowRows,
+  type RouteHourlyProfileHourRow,
   type RouteHourlyProfileLocalDbQuery,
+  type RouteHourlyProfileReliabilitySampleRow,
+  type RouteHourlyProfileSlowestWindowRow,
   type RouteMonthHourlyProfileRow,
 } from "./route-hourly-profile-rows";
 export {

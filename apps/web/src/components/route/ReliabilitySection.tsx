@@ -59,6 +59,7 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
             <HeadwayStat label="P90" value={summary.p90HeadwayLabel} />
             <HeadwayStat label="Excess wait" value={summary.excessWaitLabel} tone="bad" />
           </div>
+          <ReliabilitySampleSparkline samples={data.reliabilitySamples} />
         </div>
         <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
           <SectionHeader
@@ -73,6 +74,47 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
         <AlertDescription>{summary.caveat}</AlertDescription>
       </Alert>
     </section>
+  );
+}
+
+function ReliabilitySampleSparkline({
+  samples,
+}: {
+  samples: StudioRouteDetailResponse["reliabilitySamples"];
+}) {
+  if (samples.length === 0) return null;
+  const byHour = new Map(samples.map((sample) => [sample.hourOfDay, sample] as const));
+  const max = Math.max(...samples.map((sample) => sample.averageObservedHeadwayMinutes), 1);
+  return (
+    <div className="mt-5">
+      <div className="mb-2 text-[11px] font-semibold text-[var(--bp-color-ink-55)]">
+        Observed headway samples by hour
+      </div>
+      <div
+        className="grid h-16 grid-cols-[repeat(24,minmax(0,1fr))] items-end gap-[3px]"
+        aria-hidden
+      >
+        {Array.from({ length: 24 }, (_, hour) => {
+          const sample = byHour.get(hour);
+          const height =
+            sample === undefined
+              ? 4
+              : Math.max(6, Math.round((sample.averageObservedHeadwayMinutes / max) * 64));
+          return (
+            <div
+              key={hour}
+              className="rounded-t-[2px] bg-[var(--bp-color-accent)] opacity-70"
+              style={{ height }}
+              title={
+                sample === undefined
+                  ? `${hour}:00, no samples`
+                  : `${hour}:00, ${sample.averageObservedHeadwayMinutes.toFixed(1)} min`
+              }
+            />
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

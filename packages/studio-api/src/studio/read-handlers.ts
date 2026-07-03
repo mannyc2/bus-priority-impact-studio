@@ -44,6 +44,8 @@ import {
   type StudioRouteEquityContext,
   type StudioRouteHistoryResponse,
   StudioRouteHistoryResponseSchema,
+  type StudioRouteHourlyProfileResponse,
+  StudioRouteHourlyProfileResponseSchema,
   type StudioRouteSection,
   type StudioRouteSectionId,
   type StudioRouteSectionMetric,
@@ -139,6 +141,10 @@ type BuildStudioRouteDetailResponseResult =
 
 type BuildStudioRouteHistoryResponseResult =
   | { ok: true; history: StudioRouteHistoryResponse }
+  | { ok: false; response: Response };
+
+type BuildStudioRouteHourlyProfileResponseResult =
+  | { ok: true; hourlyProfile: StudioRouteHourlyProfileResponse }
   | { ok: false; response: Response };
 
 type BuildStudioRouteSpeedHistoryResponseResult =
@@ -927,6 +933,43 @@ async function loadRouteDossierSummaryForDetail(input: {
   return null;
 }
 
+function routeHourlyProfileArtifactKey(slug: string): string {
+  return `studio/v2/routes/${slug}/hourly-profile.json`;
+}
+
+type HourlyProfileDetailFields = Pick<
+  StudioRouteDetailResponse,
+  "peakWindows" | "slowestWindows" | "reliabilitySamples"
+>;
+
+async function loadRouteHourlyProfileForDetail(input: {
+  env: StudioReadEnv;
+  routeId: string;
+  requestedSlug: string;
+}): Promise<HourlyProfileDetailFields | null> {
+  if (input.env.ARTIFACTS === undefined) return null;
+  for (const slug of routeDetailSlugCandidates(input.routeId, input.requestedSlug)) {
+    const object = await input.env.ARTIFACTS.get(routeHourlyProfileArtifactKey(slug));
+    if (object === null) continue;
+
+    let payload: unknown;
+    try {
+      payload = await object.json();
+    } catch {
+      continue;
+    }
+
+    const parsed = StudioRouteHourlyProfileResponseSchema.safeParse(payload);
+    if (!parsed.success) continue;
+    return {
+      peakWindows: parsed.data.peakWindows,
+      slowestWindows: parsed.data.slowestWindows,
+      reliabilitySamples: parsed.data.reliabilitySamples,
+    };
+  }
+  return null;
+}
+
 /**
  * Embeds pipeline-built capability, dossier, and D1 equity context into the
  * detail response (hard-cutover C2). Missing context stays null — the honest
@@ -937,12 +980,19 @@ function routeDetailWithCapabilityAndDossier(input: {
   capability: StudioRouteCapability | null;
   dossier: RouteDossierSummaryForDetail | null;
   equityContext: StudioRouteEquityContext | null;
+  hourlyProfile: HourlyProfileDetailFields | null;
 }): StudioRouteDetailResponse {
-  if (input.capability === null && input.dossier === null && input.equityContext === null) {
+  if (
+    input.capability === null &&
+    input.dossier === null &&
+    input.equityContext === null &&
+    input.hourlyProfile === null
+  ) {
     return input.routeDetail;
   }
   return StudioRouteDetailResponseSchema.parse({
     ...input.routeDetail,
+    ...(input.hourlyProfile ?? {}),
     capability: input.capability,
     dossier: input.dossier,
     equityContext: input.equityContext,
@@ -1450,6 +1500,7 @@ function buildDataCoverageRows(input: {
       const route = input.routeById.get(row.routeId);
       if (route === undefined) return null;
       const gaps = coverageGaps(route.capability);
+      // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are typed as an index signature.
       const noSummary = route.capability.surfaces["condition"]?.state === "insufficient_data";
       return gaps.length === 0 ? null : gaps.length * 10 + (noSummary ? 15 : 0);
     },
@@ -1772,22 +1823,25 @@ async function buildStudioRouteDetailResponseFromD1(
   if (row.artifactNames.length > 0) {
     const richDetail = await maybeLoadStudioRouteDetailProjection(env, slug);
     if (richDetail !== null) {
-      const [manifest, spines, capabilityManifest, dossier, equityContext] = await Promise.all([
-        loadDetectorReadinessServingManifest(env),
-        loadRouteSpeedSpineCandidatesForSegments({
-          env,
-          routeId: row.routeId,
-          requestedSlug: slug,
-        }),
-        loadRouteCapabilityManifest(env),
-        loadRouteDossierSummaryForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
-        findRouteEquityContext(servingDb, row.routeId, servingMonth),
-      ]);
+      const [manifest, spines, capabilityManifest, dossier, equityContext, hourlyProfile] =
+        await Promise.all([
+          loadDetectorReadinessServingManifest(env),
+          loadRouteSpeedSpineCandidatesForSegments({
+            env,
+            routeId: row.routeId,
+            requestedSlug: slug,
+          }),
+          loadRouteCapabilityManifest(env),
+          loadRouteDossierSummaryForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
+          findRouteEquityContext(servingDb, row.routeId, servingMonth),
+          loadRouteHourlyProfileForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
+        ]);
       const routeDetail = routeDetailWithCapabilityAndDossier({
         routeDetail: routeDetailWithInsights({ routeDetail: richDetail, manifest }),
         capability: routeCapabilityForRouteId(capabilityManifest, row.routeId),
         dossier,
         equityContext: studioRouteEquityContextFromD1(equityContext),
+        hourlyProfile,
       });
       return {
         ok: true,
@@ -1804,6 +1858,7 @@ async function buildStudioRouteDetailResponseFromD1(
     capabilityManifest,
     dossier,
     equityContext,
+    hourlyProfile,
   ] = await Promise.all([
     findObservedReliabilityRow({ env, baselineMonth: servingMonth, routeId: row.routeId }),
     loadDetectorReadinessServingManifest(env),
@@ -1820,6 +1875,7 @@ async function buildStudioRouteDetailResponseFromD1(
     loadRouteCapabilityManifest(env),
     loadRouteDossierSummaryForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
     findRouteEquityContext(servingDb, row.routeId, servingMonth),
+    loadRouteHourlyProfileForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
   ]);
   const capability = routeCapabilityForRouteId(capabilityManifest, row.routeId);
   const routeEquityContext = studioRouteEquityContextFromD1(equityContext);
@@ -1836,6 +1892,7 @@ async function buildStudioRouteDetailResponseFromD1(
       capability,
       dossier,
       equityContext: routeEquityContext,
+      hourlyProfile,
     });
     return {
       ok: true,
@@ -1861,6 +1918,7 @@ async function buildStudioRouteDetailResponseFromD1(
       route: buildStudioRouteCardFromIndexRow(row, observed),
       segments: [],
       artifactRefs: [],
+      ...(hourlyProfile ?? {}),
       capability,
       dossier,
       equityContext: routeEquityContext,
@@ -1996,6 +2054,65 @@ export async function buildStudioRouteHistoryResponse(
 
 function routeSpeedHistoryArtifactKey(slug: string): string {
   return `studio/v2/routes/${slug}/speed-history.json`;
+}
+
+export async function buildStudioRouteHourlyProfileResponse(
+  env: StudioReadEnv,
+  slug: string,
+): Promise<BuildStudioRouteHourlyProfileResponseResult> {
+  if (env.ARTIFACTS === undefined) {
+    return {
+      ok: false,
+      response: dependencyNotConfiguredResponse("ARTIFACTS", "Studio route hourly profile"),
+    };
+  }
+
+  const key = routeHourlyProfileArtifactKey(slug);
+  const object = await env.ARTIFACTS.get(key);
+  if (object === null) {
+    return {
+      ok: false,
+      response: errorResponse(404, "Studio route hourly profile was not found."),
+    };
+  }
+
+  let payload: unknown;
+  try {
+    payload = await object.json();
+  } catch {
+    return {
+      ok: false,
+      response: artifactNotAvailableResponse(
+        502,
+        "Studio route hourly profile is not valid JSON.",
+        key,
+      ),
+    };
+  }
+
+  const parsed = StudioRouteHourlyProfileResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      response: artifactNotAvailableResponse(
+        502,
+        "Studio route hourly profile failed contract validation.",
+        key,
+      ),
+    };
+  }
+  if (parsed.data.routeSlug !== slug) {
+    return {
+      ok: false,
+      response: artifactNotAvailableResponse(
+        502,
+        "Studio route hourly profile slug mismatch.",
+        key,
+      ),
+    };
+  }
+
+  return { ok: true, hourlyProfile: parsed.data };
 }
 
 export async function buildStudioRouteSpeedHistoryResponse(
@@ -2352,7 +2469,10 @@ function buildSnapshot2(input: {
       id: "route_speed_history",
       status:
         routeSpeedHistoryCoverageRows > 0
-          ? routes.some((route) => route.capability.surfaces["speedHistory"]?.state === "partial")
+          ? routes.some(
+              // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are typed as an index signature.
+              (route) => route.capability.surfaces["speedHistory"]?.state === "partial",
+            )
             ? "partial"
             : "available"
           : "missing",
@@ -2576,9 +2696,14 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
       StudioRouteDetailResponseSchema,
     );
     if (route instanceof Response) return route;
-    const [capabilityManifest, dossier] = await Promise.all([
+    const [capabilityManifest, dossier, hourlyProfile] = await Promise.all([
       loadRouteCapabilityManifest(env),
       loadRouteDossierSummaryForDetail({
+        env,
+        routeId: route.route.routeId,
+        requestedSlug: slug,
+      }),
+      loadRouteHourlyProfileForDetail({
         env,
         routeId: route.route.routeId,
         requestedSlug: slug,
@@ -2590,6 +2715,7 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
         capability: routeCapabilityForRouteId(capabilityManifest, route.route.routeId),
         dossier,
         equityContext: null,
+        hourlyProfile,
       }),
       env,
     );
@@ -2600,6 +2726,15 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
     const slug = decodeURIComponent(historyMatch[1] ?? "");
     const result = await buildStudioRouteHistoryResponse(env, slug);
     return result.ok ? studioJsonResponse(result.history, env) : result.response;
+  }
+
+  const hourlyProfileMatch = url.pathname.match(
+    /^\/api\/v1\/studio\/routes\/([^/]+)\/hourly-profile$/,
+  );
+  if (hourlyProfileMatch) {
+    const slug = decodeURIComponent(hourlyProfileMatch[1] ?? "");
+    const result = await buildStudioRouteHourlyProfileResponse(env, slug);
+    return result.ok ? studioJsonResponse(result.hourlyProfile, env) : result.response;
   }
 
   const speedHistoryMatch = url.pathname.match(

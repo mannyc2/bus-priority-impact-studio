@@ -1,8 +1,19 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
-import { routeHourlyProfileArtifactPath } from "@bp/analytics/artifacts";
-import { buildRouteHourlyProfileArtifact } from "@bp/analytics/feature-history";
-import { loadRouteHourlyProfileLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
+import {
+  routeHourlyProfileArtifactPath,
+  routeHourlyProfileRouteArtifactPath,
+} from "@bp/analytics/artifacts";
+import {
+  buildRouteHourlyProfileArtifact,
+  buildStudioRouteHourlyProfileArtifacts,
+} from "@bp/analytics/feature-history";
+import {
+  loadRouteHourlyProfileHourRows,
+  loadRouteHourlyProfileLocalDbRows,
+  loadRouteHourlyProfileReliabilitySampleRows,
+  loadRouteHourlyProfileSlowestWindowRows,
+} from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
@@ -38,6 +49,7 @@ export default defineCommand({
     profileCount: z.number().int().nonnegative(),
     routeCount: z.number().int().nonnegative(),
     monthCount: z.number().int().nonnegative(),
+    routeArtifactCount: z.number().int().nonnegative(),
   }),
   async run({ input }) {
     const startMonth = isoMonth(input.options.startYear, input.options.startMonth);
@@ -61,7 +73,23 @@ export default defineCommand({
         endMonth,
       },
       run: async (local) => {
+        const generatedAt = new Date().toISOString();
         const rows = loadRouteHourlyProfileLocalDbRows({
+          sqlite: local.sqlite,
+          startMonth,
+          endMonth,
+        });
+        const hourRows = loadRouteHourlyProfileHourRows({
+          sqlite: local.sqlite,
+          startMonth,
+          endMonth,
+        });
+        const slowestWindowRows = loadRouteHourlyProfileSlowestWindowRows({
+          sqlite: local.sqlite,
+          startMonth,
+          endMonth,
+        });
+        const reliabilitySampleRows = loadRouteHourlyProfileReliabilitySampleRows({
           sqlite: local.sqlite,
           startMonth,
           endMonth,
@@ -70,12 +98,32 @@ export default defineCommand({
           rows,
           startMonth,
           endMonth,
-          generatedAt: new Date().toISOString(),
+          generatedAt,
           dbPath: repoDisplayPath(local.path),
           artifactPath: repoDisplayPath(path),
         });
+        const routeArtifacts = buildStudioRouteHourlyProfileArtifacts({
+          profiles: rows,
+          hours: hourRows,
+          slowestWindows: slowestWindowRows,
+          reliabilitySamples: reliabilitySampleRows,
+          startMonth,
+          endMonth,
+          generatedAt,
+          dbPath: repoDisplayPath(local.path),
+          artifactPathForRoute: (routeSlug) =>
+            repoDisplayPath(routeHourlyProfileRouteArtifactPath({ artifactRoot, routeSlug })),
+        });
         await mkdir(dirname(path), { recursive: true });
         await writeJson(path, artifact);
+        for (const routeArtifact of routeArtifacts) {
+          const routePath = routeHourlyProfileRouteArtifactPath({
+            artifactRoot,
+            routeSlug: routeArtifact.routeSlug,
+          });
+          await mkdir(dirname(routePath), { recursive: true });
+          await writeJson(routePath, routeArtifact);
+        }
         return {
           startMonth,
           endMonth,
@@ -83,6 +131,7 @@ export default defineCommand({
           profileCount: artifact.summary.profileCount,
           routeCount: artifact.summary.routeCount,
           monthCount: artifact.window.monthCount,
+          routeArtifactCount: routeArtifacts.length,
         };
       },
     });

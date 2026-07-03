@@ -164,6 +164,17 @@ export const studioApiRoutes = [
     idempotency: noIdempotency,
   }),
   route({
+    id: "studio.routeHourlyProfile",
+    operationId: "getStudioRouteHourlyProfile",
+    method: "GET",
+    path: "/api/v1/studio/routes/:routeId/hourly-profile",
+    tags: ["Studio"],
+    summary: "Return route hourly ridership, speed, and reliability samples.",
+    auth: publicAuth,
+    cache: publicStudioCache,
+    idempotency: noIdempotency,
+  }),
+  route({
     id: "studio.routeSpeedHistory",
     operationId: "getStudioRouteSpeedHistory",
     method: "GET",

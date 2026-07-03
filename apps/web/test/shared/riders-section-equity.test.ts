@@ -58,6 +58,9 @@ const routeDetail = {
   ],
   artifactRefs: [],
   insights: [],
+  peakWindows: [],
+  slowestWindows: [],
+  reliabilitySamples: [],
   capability: null,
   dossier: null,
   equityContext: {
