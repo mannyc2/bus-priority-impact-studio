@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { SocrataDatasetIdSchema } from "../clients/socrata/index.js";
+import { SocrataDatasetIdSchema } from "../core/index.js";
 
 const SourceIdSchema = z
   .string()

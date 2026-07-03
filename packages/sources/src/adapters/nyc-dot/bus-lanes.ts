@@ -1,5 +1,5 @@
 import * as z from "zod";
-import type { SocrataRow } from "../../clients/socrata/index.js";
+import type { SocrataRow } from "../../core/index.js";
 
 const schemaVersion = 1;
 

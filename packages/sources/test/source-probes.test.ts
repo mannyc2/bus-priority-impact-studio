@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { SocrataDatasetIdSchema } from "@bp/sources/clients/socrata";
+import { SocrataDatasetIdSchema } from "@bp/sources/core";
 import { probeSource } from "@bp/sources/probes";
 import { parseCurlHeadOutput } from "@bp/sources/probes/transports/bun-curl";
 import type { ManifestSource, SocrataManifestSource } from "@bp/sources/registry";

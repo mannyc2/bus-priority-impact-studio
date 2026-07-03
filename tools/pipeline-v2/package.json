@@ -23,6 +23,7 @@
     "@earendil-works/pi-agent-core": "^0.78.0",
     "@earendil-works/pi-ai": "^0.78.0",
     "@effect/platform-bun": "catalog:",
+    "@nyc-transit-kit/compat": "catalog:",
     "@liche/core": "^0.7.0",
     "effect": "catalog:",
     "pdf-lib": "catalog:",

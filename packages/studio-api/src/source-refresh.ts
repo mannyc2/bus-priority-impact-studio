@@ -1,3 +1,4 @@
+import { isSoda3ClientError, querySoda3Rows } from "@nyc-transit-kit/compat/soda3";
 import type { StudioApiEnv } from "./env.js";
 
 type SourceRefreshEnv = Pick<
@@ -15,6 +16,12 @@ export const ROUTE_SPEED_WATCHER_CRON = "17 10 * * *";
 
 type SourceRefreshFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 type Delay = (milliseconds: number) => Promise<void>;
+type FetchInput = Parameters<typeof fetch>[0];
+type FetchInit = Parameters<typeof fetch>[1];
+type RouteSpeedRowsQueryResult = Awaited<ReturnType<typeof querySoda3Rows>>;
+type RouteSpeedRowsResult =
+  | { ok: true; response: RouteSpeedRowsQueryResult }
+  | { ok: false; error: unknown };
 
 export type SourceRefreshResult = {
   status: "skipped" | "captured" | "failed";
@@ -53,13 +60,7 @@ export type ScheduledProductionRefreshResult = {
   statusArtifactKey: string | null;
 };
 
-type RawSpeedRow = {
-  year?: string | number;
-  month?: string | number;
-  route_id?: string;
-  row_count?: string | number;
-  bus_trip_count?: string | number | null;
-};
+type RawSpeedRow = Readonly<Record<string, unknown>>;
 
 function ymd(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -78,7 +79,7 @@ function redactedVehiclePositionsUrl(): string {
   return "https://gtfsrt.prod.obanyc.com/vehiclePositions?key=REDACTED";
 }
 
-function parseInteger(input: string | number | null | undefined): number {
+function parseInteger(input: unknown): number {
   if (typeof input === "number") {
     return input;
   }
@@ -107,16 +108,63 @@ function defaultDelay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-function summarizeSpeedRows(rows: RawSpeedRow[], minSpeedRoutes: number): SpeedMonth[] {
+function normalizeRequestBody(
+  body: RequestInit["body"] | null | undefined,
+): RequestInit["body"] | undefined {
+  if (body === undefined || body === null) {
+    return undefined;
+  }
+  if (body instanceof Uint8Array) {
+    return new TextDecoder().decode(body);
+  }
+  if (body instanceof ArrayBuffer) {
+    return new TextDecoder().decode(body);
+  }
+  return body;
+}
+
+async function requestInitFromRequest(request: Request, init: FetchInit): Promise<RequestInit> {
+  const body = normalizeRequestBody(
+    init?.body ?? (request.body === null ? undefined : await request.clone().text()),
+  );
+  const baseInit: RequestInit = {
+    method: init?.method ?? request.method,
+    headers: init?.headers ?? request.headers,
+    signal: init?.signal ?? request.signal,
+  };
+
+  return body === undefined ? baseInit : { ...baseInit, body };
+}
+
+function requestInitWithNormalizedBody(init: FetchInit): RequestInit | undefined {
+  if (init === undefined) {
+    return undefined;
+  }
+  const body = normalizeRequestBody(init.body);
+  return body === undefined ? init : { ...init, body };
+}
+
+function adaptSourceRefreshFetch(fetcher: SourceRefreshFetch): typeof fetch {
+  const compatFetch = async (input: FetchInput, init?: FetchInit) =>
+    input instanceof Request
+      ? fetcher(input.url, await requestInitFromRequest(input, init))
+      : fetcher(input, requestInitWithNormalizedBody(init));
+
+  return Object.assign(compatFetch, {
+    preconnect: fetch.preconnect,
+  });
+}
+
+function summarizeSpeedRows(rows: readonly RawSpeedRow[], minSpeedRoutes: number): SpeedMonth[] {
   const months = new Map<
     string,
     { year: number; month: number; routes: Set<string>; rowCount: number; busTripCount: number }
   >();
 
   for (const row of rows) {
-    const year = parseInteger(row.year);
-    const month = parseInteger(row.month);
-    const routeId = row.route_id;
+    const year = parseInteger(row["year"]);
+    const month = parseInteger(row["month"]);
+    const routeId = typeof row["route_id"] === "string" ? row["route_id"] : undefined;
     if (year <= 0 || month <= 0 || routeId === undefined) {
       continue;
     }
@@ -130,8 +178,8 @@ function summarizeSpeedRows(rows: RawSpeedRow[], minSpeedRoutes: number): SpeedM
       busTripCount: 0,
     };
     existing.routes.add(routeId);
-    existing.rowCount += parseInteger(row.row_count);
-    existing.busTripCount += parseInteger(row.bus_trip_count);
+    existing.rowCount += parseInteger(row["row_count"]);
+    existing.busTripCount += parseInteger(row["bus_trip_count"]);
     months.set(key, existing);
   }
 
@@ -322,29 +370,37 @@ export async function runRouteSpeedMonthlyWatcher(
 
   const fetcher = options.fetcher ?? fetch;
   const year = now.getUTCFullYear();
-  const url = new URL("https://data.ny.gov/api/v3/views/kufs-yh3x/query.json");
-  const response = await fetcher(url, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-App-Token": appToken,
-    },
-    body: JSON.stringify({
-      query: [
-        "SELECT year,month,route_id,count(*) as row_count,sum(bus_trip_count) as bus_trip_count",
-        `WHERE year between ${year - 1} and ${year}`,
-        "GROUP BY year,month,route_id",
-        "ORDER BY year DESC,month DESC,route_id",
-        "LIMIT 50000",
-      ].join(" "),
+  const query = [
+    "SELECT year,month,route_id,count(*) as row_count,sum(bus_trip_count) as bus_trip_count",
+    `WHERE year between ${year - 1} and ${year}`,
+    "GROUP BY year,month,route_id",
+    "ORDER BY year DESC,month DESC,route_id",
+    "LIMIT 50000",
+  ].join(" ");
+  const rowsResult: RouteSpeedRowsResult = await querySoda3Rows(
+    {
+      domain: "data.ny.gov",
+      datasetId: "kufs-yh3x",
+      query,
       includeSynthetic: false,
-    }),
-  });
-  if (!response.ok) {
+    },
+    { appToken, fetch: adaptSourceRefreshFetch(fetcher) },
+  ).then(
+    (response): RouteSpeedRowsResult => ({ ok: true, response }),
+    (error: unknown): RouteSpeedRowsResult => ({ ok: false, error }),
+  );
+  if (!rowsResult.ok) {
+    const rowsError = rowsResult.error;
+    const status =
+      isSoda3ClientError(rowsError) && "status" in rowsError && typeof rowsError.status === "number"
+        ? rowsError.status
+        : null;
     return {
       status: "failed",
-      reason: `Route speed availability fetch failed with HTTP ${response.status}.`,
+      reason:
+        status === null
+          ? "Route speed availability fetch failed."
+          : `Route speed availability fetch failed with HTTP ${status}.`,
       latestCompleteMonth: null,
       lastBuiltMonth: parseBuiltMonth(env.LAST_BUILT_SPEED_MONTH),
       shouldRebuild: false,
@@ -353,10 +409,7 @@ export async function runRouteSpeedMonthlyWatcher(
     };
   }
 
-  const months = summarizeSpeedRows(
-    (await response.json()) as RawSpeedRow[],
-    options.minSpeedRoutes ?? 300,
-  );
+  const months = summarizeSpeedRows(rowsResult.response.rows, options.minSpeedRoutes ?? 300);
   const latestCompleteMonth = months.find((month) => month.status === "complete")?.isoMonth ?? null;
   const lastBuiltMonth = parseBuiltMonth(env.LAST_BUILT_SPEED_MONTH);
   const shouldRebuild =

@@ -1,5 +1,4 @@
 import type { Database } from "bun:sqlite";
-import { soqlIn } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
@@ -11,6 +10,7 @@ import {
   type PipelineSoda3Client,
   type SocrataFetch,
   type Soda3SoqlQuery,
+  soqlIn,
 } from "../../lib/soda3.ts";
 
 export type BusScheduleSourceId =

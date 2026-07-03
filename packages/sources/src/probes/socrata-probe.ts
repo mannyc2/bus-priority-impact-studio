@@ -1,13 +1,13 @@
+import { querySoda3Rows } from "@nyc-transit-kit/compat/soda3";
 import * as z from "zod";
 import {
   buildSocrataColumnsUrl,
   buildSocrataMetadataUrl,
-  buildSoda3ExportUrl,
-  buildSoda3QueryUrl,
-  createSoda3Client,
   parseSocrataMetadata,
   SocrataColumnSchema,
-} from "../clients/socrata/index.js";
+  soda3ExportUrl,
+  soda3QueryUrl,
+} from "../core/index.js";
 import type { SocrataManifestSource } from "../registry/manifest.js";
 import {
   createBaseProbe,
@@ -29,14 +29,76 @@ function rowsUpdatedAtIso(rowsUpdatedAt: number | undefined): string | undefined
 }
 
 function buildSocrataRowCountUrl(source: SocrataManifestSource): string {
-  return buildSoda3QueryUrl(source.domain, source.dataset_id).toString();
+  return soda3QueryUrl(source.domain, source.dataset_id).toString();
+}
+
+function normalizeRequestBody(
+  body: RequestInit["body"] | null | undefined,
+): RequestInit["body"] | undefined {
+  if (body === undefined || body === null) {
+    return undefined;
+  }
+  if (body instanceof Uint8Array) {
+    return new TextDecoder().decode(body);
+  }
+  if (body instanceof ArrayBuffer) {
+    return new TextDecoder().decode(body);
+  }
+  return body;
+}
+
+function requestInitWithNormalizedBody(init: RequestInit | undefined): RequestInit | undefined {
+  if (init === undefined) {
+    return undefined;
+  }
+  const body = normalizeRequestBody(init.body);
+  return body === undefined ? init : { ...init, body };
+}
+
+function adaptProbeFetch(fetcher: FetchLike): typeof fetch {
+  const compatFetch = async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    if (input instanceof Request) {
+      const body = normalizeRequestBody(
+        init?.body ?? (input.body === null ? undefined : await input.clone().text()),
+      );
+      const baseInit: RequestInit = {
+        method: init?.method ?? input.method,
+        headers: init?.headers ?? input.headers,
+        signal: init?.signal ?? input.signal,
+      };
+      return fetcher(input.url, body === undefined ? baseInit : { ...baseInit, body });
+    }
+
+    return fetcher(input, requestInitWithNormalizedBody(init));
+  };
+
+  return Object.assign(compatFetch, {
+    preconnect: fetch.preconnect,
+  });
 }
 
 async function fetchSocrataRowCount(
   source: SocrataManifestSource,
   fetcher: FetchLike,
 ): Promise<number> {
-  return createSoda3Client({ domain: source.domain, fetcher }).rowCount(source.dataset_id);
+  const response = await querySoda3Rows(
+    {
+      domain: source.domain,
+      datasetId: source.dataset_id,
+      query: "SELECT count(*)",
+      includeSynthetic: false,
+    },
+    {
+      fetch: adaptProbeFetch(fetcher),
+    },
+  );
+  const count = response.rows[0]?.["count"];
+  const parsed = typeof count === "number" ? count : Number(count);
+  if (!Number.isFinite(parsed)) {
+    throw new Error("Socrata row-count response did not include a numeric count.");
+  }
+
+  return parsed;
 }
 
 function withSocrataSummary(
@@ -55,7 +117,7 @@ export async function probeSocrataSource(
 ): Promise<SourceProbeOutput> {
   const metadataUrl = buildSocrataMetadataUrl(source.domain, source.dataset_id).toString();
   const columnsUrl = buildSocrataColumnsUrl(source.domain, source.dataset_id).toString();
-  const rowsCsvUrl = buildSoda3ExportUrl(source.domain, source.dataset_id, "csv").toString();
+  const rowsCsvUrl = soda3ExportUrl(source.domain, source.dataset_id, "csv").toString();
   const rowCountUrl = buildSocrataRowCountUrl(source);
   const fetcher = options.fetcher ?? fetch;
 

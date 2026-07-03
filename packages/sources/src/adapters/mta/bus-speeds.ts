@@ -1,6 +1,6 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
 import * as z from "zod";
-import type { SocrataRow } from "../../clients/socrata/index.js";
+import type { SocrataRow } from "../../core/index.js";
 import { IsoMonthStringSchema, isoMonth, schemaVersion } from "../../core/index.js";
 
 export const NormalizedSegmentSpeedSchema = z

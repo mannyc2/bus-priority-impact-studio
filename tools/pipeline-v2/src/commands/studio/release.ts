@@ -23,13 +23,13 @@ import { type StudioReleasePayload, StudioReleasePayloadSchema } from "@bp/domai
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
 import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
 import { normalizeScheduleTimepointRows } from "@bp/sources/adapters/mta/schedules";
-import type { SocrataRow } from "@bp/sources/clients/socrata";
 import { defineCommand, z } from "@liche/core";
 import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { buildRouteBriefSegmentUniverse } from "../../lib/route-briefs/index.ts";
+import type { SocrataRow } from "../../lib/soda3.ts";
 import { buildSourceCoverageLedger } from "../audit/source-coverage.ts";
 import {
   docsSections,

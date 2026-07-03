@@ -1,5 +1,4 @@
 import { listRouteBuildPlan, replaceRouteMonthTrends } from "@bp/db/local";
-import { soqlIn } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
@@ -13,6 +12,7 @@ import {
   type SocrataFetch,
   type SocrataRow,
   type Soda3SoqlQuery,
+  soqlIn,
 } from "../../lib/soda3.ts";
 
 const schemaVersion = 1;

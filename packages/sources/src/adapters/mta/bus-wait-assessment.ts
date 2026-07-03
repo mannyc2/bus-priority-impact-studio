@@ -1,6 +1,6 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
 import * as z from "zod";
-import type { SocrataRow } from "../../clients/socrata/index.js";
+import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
 export const NormalizedBusWaitAssessmentSchema = z

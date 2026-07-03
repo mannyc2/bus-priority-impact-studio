@@ -4,7 +4,6 @@ import {
   replaceRouteHourlyRidership,
 } from "@bp/db/local";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
-import { soqlIn } from "@bp/sources/clients/socrata/soql";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
@@ -18,6 +17,7 @@ import {
   type SocrataFetch,
   type SocrataRow,
   type Soda3SoqlQuery,
+  soqlIn,
 } from "../../lib/soda3.ts";
 
 type HourlyRidershipSourceId = "bus_hourly_ridership_2020_2024" | "bus_hourly_ridership_2025";

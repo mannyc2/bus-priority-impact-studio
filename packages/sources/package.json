@@ -16,18 +16,6 @@
       "types": "./src/registry/loaders/bun-yaml.ts",
       "bun": "./src/registry/loaders/bun-yaml.ts"
     },
-    "./clients/socrata": {
-      "types": "./src/clients/socrata/index.ts",
-      "bun": "./src/clients/socrata/index.ts"
-    },
-    "./clients/socrata/catalog": {
-      "types": "./src/clients/socrata/catalog-client.ts",
-      "bun": "./src/clients/socrata/catalog-client.ts"
-    },
-    "./clients/socrata/soql": {
-      "types": "./src/clients/socrata/soql.ts",
-      "bun": "./src/clients/socrata/soql.ts"
-    },
     "./clients/geoclient": {
       "types": "./src/clients/geoclient/index.ts",
       "bun": "./src/clients/geoclient/index.ts"
@@ -128,7 +116,9 @@
   },
   "dependencies": {
     "@bp/domain": "workspace:*",
-    "gtfs-realtime-bindings": "1.1.1",
+    "@nyc-transit-kit/compat": "catalog:",
+    "@nyc-transit-kit/mta": "catalog:",
+    "effect": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
