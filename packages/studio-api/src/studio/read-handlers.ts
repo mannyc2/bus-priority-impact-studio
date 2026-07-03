@@ -27,6 +27,12 @@ import {
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
   STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
   STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
+  type StudioInterventionsEvidenceBundle,
+  StudioInterventionsEvidenceBundleSchema,
+  type StudioInterventionsEvidenceCitation,
+  StudioInterventionsEvidenceCitationSchema,
+  type StudioInterventionsEvidenceResponse,
+  StudioInterventionsEvidenceResponseSchema,
   type StudioRouteCapability,
   type StudioRouteEvidenceBundle,
   StudioRouteEvidenceBundleSchema,
@@ -163,6 +169,10 @@ type BuildStudioRouteSpeedHistoryResponseResult =
 
 type BuildStudioRouteTimelineResponseResult =
   | { ok: true; timeline: StudioRouteEvidenceBundle }
+  | { ok: false; response: Response };
+
+type BuildStudioInterventionsEvidenceResponseResult =
+  | { ok: true; evidence: StudioInterventionsEvidenceResponse }
   | { ok: false; response: Response };
 
 type BuildStudioRouteIndex2ResponseResult =
@@ -2227,6 +2237,144 @@ export async function buildStudioRouteTimelineResponse(
   return { ok: true, timeline: parsed.data };
 }
 
+function compactInterventionsCitation(
+  citation: StudioRouteEvidenceBundle["citations"][number],
+): StudioInterventionsEvidenceCitation {
+  return StudioInterventionsEvidenceCitationSchema.parse({
+    key: citation.key,
+    sourceId: citation.sourceId,
+    ...(citation.pageNumber === undefined ? {} : { pageNumber: citation.pageNumber }),
+    ...(citation.sourceTitle === undefined ? {} : { sourceTitle: citation.sourceTitle }),
+    ...(citation.publisher === undefined ? {} : { publisher: citation.publisher }),
+    ...(citation.sourceUrl === undefined ? {} : { sourceUrl: citation.sourceUrl }),
+    ...(citation.publishedDate === undefined ? {} : { publishedDate: citation.publishedDate }),
+  });
+}
+
+function compactInterventionsEvidenceBundle(
+  bundle: StudioRouteEvidenceBundle,
+): StudioInterventionsEvidenceBundle {
+  const citationKeys = new Set<string>();
+  for (const record of [
+    ...bundle.timeline,
+    ...bundle.interventions,
+    ...bundle.projects,
+    ...bundle.sourceGaps,
+  ]) {
+    for (const key of record.citationKeys) {
+      citationKeys.add(key);
+    }
+  }
+  const citations = bundle.citations
+    .filter((citation) => citationKeys.has(citation.key))
+    .map((citation) => compactInterventionsCitation(citation));
+
+  return StudioInterventionsEvidenceBundleSchema.parse({
+    routeId: bundle.routeId,
+    routeSlug: bundle.routeSlug,
+    coverage: {
+      timelineCount: bundle.coverage.timelineCount,
+      interventionCount: bundle.coverage.interventionCount,
+      projectCount: bundle.coverage.projectCount,
+      sourceGapCount: bundle.coverage.sourceGapCount,
+      citationCount: citations.length,
+    },
+    timeline: bundle.timeline,
+    interventions: bundle.interventions,
+    projects: bundle.projects,
+    sourceGaps: bundle.sourceGaps,
+    citations,
+  });
+}
+
+function routeHasTimelineProjection(route: StudioRouteIndex2Row): boolean {
+  return route.projectionRefs.some(
+    (ref) => ref.id === "route_timeline" && ref.status === "available" && ref.path !== null,
+  );
+}
+
+async function loadCompactInterventionsEvidenceBundle(
+  env: StudioReadEnv & { ARTIFACTS: R2Bucket },
+  route: StudioRouteIndex2Row,
+): Promise<
+  { ok: true; bundle: StudioInterventionsEvidenceBundle | null } | { ok: false; response: Response }
+> {
+  const key = studioRouteEvidenceBundleKey(route.slug);
+  const object = await env.ARTIFACTS.get(key);
+  if (object === null) return { ok: true, bundle: null };
+
+  let payload: unknown;
+  try {
+    payload = await object.json();
+  } catch {
+    return {
+      ok: false,
+      response: artifactNotAvailableResponse(
+        502,
+        "Studio interventions evidence bundle is not valid JSON.",
+        key,
+      ),
+    };
+  }
+
+  const parsed = StudioRouteEvidenceBundleSchema.safeParse(payload);
+  if (
+    !parsed.success ||
+    parsed.data.routeId !== route.routeId ||
+    parsed.data.routeSlug !== route.slug
+  ) {
+    return {
+      ok: false,
+      response: artifactNotAvailableResponse(
+        502,
+        "Studio interventions evidence bundle failed contract validation.",
+        key,
+      ),
+    };
+  }
+
+  return { ok: true, bundle: compactInterventionsEvidenceBundle(parsed.data) };
+}
+
+async function buildStudioInterventionsEvidenceResponse(
+  env: StudioReadEnv,
+): Promise<BuildStudioInterventionsEvidenceResponseResult> {
+  if (env.ARTIFACTS === undefined) {
+    return {
+      ok: false,
+      response: dependencyNotConfiguredResponse("ARTIFACTS", "Studio interventions evidence"),
+    };
+  }
+  const artifacts = env.ARTIFACTS;
+
+  const routeIndexResult = await buildStudioRouteIndex2Response(env);
+  if (!routeIndexResult.ok) return routeIndexResult;
+
+  const bundleResults = await Promise.all(
+    routeIndexResult.routeIndex.routes
+      .filter((route) => routeHasTimelineProjection(route))
+      .map((route) =>
+        loadCompactInterventionsEvidenceBundle({ ...env, ARTIFACTS: artifacts }, route),
+      ),
+  );
+  const failed = bundleResults.find((result) => !result.ok);
+  if (failed !== undefined) return failed;
+  const bundles = bundleResults.flatMap((result) => {
+    if (!result.ok || result.bundle === null) return [];
+    return [result.bundle];
+  });
+
+  return {
+    ok: true,
+    evidence: StudioInterventionsEvidenceResponseSchema.parse({
+      schemaVersion: 1,
+      generatedAt: routeIndexResult.routeIndex.generatedAt,
+      routeCount: bundles.length,
+      bundles,
+    }),
+  };
+}
+
 function releaseIdForPrefix(prefix: string): string {
   return prefix.replace(/\/release$/, "");
 }
@@ -2674,6 +2822,11 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
   if (url.pathname === "/api/v1/studio/routes/sections") {
     const result = await buildStudioRouteSectionsResponse(env);
     return result.ok ? studioJsonResponse(result.routeSections, env) : result.response;
+  }
+
+  if (url.pathname === "/api/v1/studio/interventions/evidence") {
+    const result = await buildStudioInterventionsEvidenceResponse(env);
+    return result.ok ? studioJsonResponse(result.evidence, env) : result.response;
   }
 
   const routeMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)$/);

@@ -4,6 +4,7 @@ import { RPubInterventionCard } from "@/components/route/RoutePublicAtoms";
 import { SectionHeader } from "@/components/SectionHeader";
 import type {
   StudioIntervention,
+  StudioInterventionsEvidenceBundle,
   StudioRoute,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceIntervention,
@@ -13,13 +14,15 @@ import type {
 } from "../api-contract.js";
 import { StudioHero, StudioPage } from "../page.js";
 
+type InterventionEvidenceBundle = StudioInterventionsEvidenceBundle | StudioRouteEvidenceBundle;
+
 type InterventionFilter = "all" | "evaluated" | "future" | "source-gap";
 
 type InterventionRow = {
   key: string;
   route: StudioRoute;
   event: InterventionDisplayEvent;
-  evidence: StudioRouteEvidenceBundle | null;
+  evidence: InterventionEvidenceBundle | null;
 };
 
 type InterventionDisplayEvent = Pick<
@@ -46,7 +49,7 @@ export function InterventionsPage({
   evidence,
 }: {
   routes: readonly StudioRoute[];
-  evidence: readonly (StudioRouteEvidenceBundle | null)[];
+  evidence: readonly (InterventionEvidenceBundle | null)[];
 }) {
   const [filter, setFilter] = useState<InterventionFilter>("all");
   const rows = useMemo(() => interventionRows(routes, evidence), [routes, evidence]);
@@ -125,9 +128,9 @@ export function InterventionsLoadingPage() {
 
 export function interventionRows(
   routes: readonly StudioRoute[],
-  evidence: readonly (StudioRouteEvidenceBundle | null)[] = [],
+  evidence: readonly (InterventionEvidenceBundle | null)[] = [],
 ): InterventionRow[] {
-  const evidenceBySlug = new Map<string, StudioRouteEvidenceBundle>();
+  const evidenceBySlug = new Map<string, InterventionEvidenceBundle>();
   for (const bundle of evidence) {
     if (bundle !== null) evidenceBySlug.set(bundle.routeSlug, bundle);
   }
@@ -161,7 +164,7 @@ export function interventionRows(
 
 function wikiInterventionRows(
   route: StudioRoute,
-  evidence: StudioRouteEvidenceBundle | null,
+  evidence: InterventionEvidenceBundle | null,
 ): InterventionRow[] {
   if (evidence === null) return [];
   return [
@@ -176,7 +179,7 @@ function wikiInterventionRows(
 
 function wikiTimelineRow(
   route: StudioRoute,
-  evidence: StudioRouteEvidenceBundle,
+  evidence: InterventionEvidenceBundle,
   event: StudioRouteEvidenceTimelineEvent,
 ): InterventionRow {
   const year = event.dateNormalized ?? event.dateText ?? "undated";
@@ -198,7 +201,7 @@ function wikiTimelineRow(
 
 function wikiTreatmentRow(
   route: StudioRoute,
-  evidence: StudioRouteEvidenceBundle,
+  evidence: InterventionEvidenceBundle,
   intervention: StudioRouteEvidenceIntervention,
 ): InterventionRow {
   return {
@@ -225,7 +228,7 @@ function wikiTreatmentDescription(intervention: StudioRouteEvidenceIntervention)
 
 function wikiProjectRow(
   route: StudioRoute,
-  evidence: StudioRouteEvidenceBundle,
+  evidence: InterventionEvidenceBundle,
   project: StudioRouteEvidenceProject,
 ): InterventionRow {
   return {
@@ -246,7 +249,7 @@ function wikiProjectRow(
 
 function wikiSourceGapRow(
   route: StudioRoute,
-  evidence: StudioRouteEvidenceBundle,
+  evidence: InterventionEvidenceBundle,
   gap: StudioRouteEvidenceSourceGap,
 ): InterventionRow {
   return {

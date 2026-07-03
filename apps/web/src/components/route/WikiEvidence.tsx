@@ -1,12 +1,21 @@
-import type { StudioRouteEvidenceBundle, StudioRouteEvidenceCitation } from "@/studio/api-contract";
+import type { StudioRouteEvidenceCitation } from "@/studio/api-contract";
+
+export type WikiEvidenceCitation = Pick<
+  StudioRouteEvidenceCitation,
+  "key" | "sourceId" | "pageNumber" | "sourceTitle" | "publisher" | "sourceUrl" | "publishedDate"
+>;
+
+export type WikiCitationEvidence = {
+  citations: readonly WikiEvidenceCitation[];
+};
 
 export function citationByKey(
-  evidence: StudioRouteEvidenceBundle | null,
-): Map<string, StudioRouteEvidenceCitation> {
+  evidence: WikiCitationEvidence | null,
+): Map<string, WikiEvidenceCitation> {
   return new Map((evidence?.citations ?? []).map((citation) => [citation.key, citation]));
 }
 
-export function citationLabel(citation: StudioRouteEvidenceCitation): string {
+export function citationLabel(citation: WikiEvidenceCitation): string {
   const source = citation.sourceTitle ?? citation.sourceId;
   const page = citation.pageNumber === undefined ? null : `p. ${citation.pageNumber}`;
   return [source, citation.publisher, citation.publishedDate, page].filter(Boolean).join(" / ");
@@ -16,13 +25,13 @@ export function CitationChips({
   evidence,
   citationKeys,
 }: {
-  evidence: StudioRouteEvidenceBundle | null;
+  evidence: WikiCitationEvidence | null;
   citationKeys: readonly string[];
 }) {
   const citations = citationByKey(evidence);
   const rows = citationKeys
     .map((key) => citations.get(key))
-    .filter((citation): citation is StudioRouteEvidenceCitation => citation !== undefined);
+    .filter((citation): citation is WikiEvidenceCitation => citation !== undefined);
 
   if (rows.length === 0) {
     return (

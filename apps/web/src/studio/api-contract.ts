@@ -1,4 +1,5 @@
 export {
+  studioInterventionsEvidenceResponseJsonSchema,
   studioMethodsResponseJsonSchema,
   studioRouteDetailResponseJsonSchema,
   studioRouteEvidenceBundleJsonSchema,
@@ -24,6 +25,10 @@ export {
 } from "@bp/domain/studio/docs";
 export type { StudioIntervention } from "@bp/domain/studio/interventions";
 export type {
+  StudioInterventionsEvidenceBundle,
+  StudioInterventionsEvidenceCitation,
+  StudioInterventionsEvidenceCoverage,
+  StudioInterventionsEvidenceResponse,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceCitation,
   StudioRouteEvidenceIndex,
@@ -35,6 +40,10 @@ export type {
 } from "@bp/domain/studio/route-evidence";
 export {
   emptyStudioRouteEvidenceBundle,
+  StudioInterventionsEvidenceBundleSchema,
+  StudioInterventionsEvidenceCitationSchema,
+  StudioInterventionsEvidenceCoverageSchema,
+  StudioInterventionsEvidenceResponseSchema,
   StudioRouteEvidenceBundleSchema,
   StudioRouteEvidenceIndexSchema,
 } from "@bp/domain/studio/route-evidence";

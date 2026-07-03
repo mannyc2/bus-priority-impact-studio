@@ -109,6 +109,50 @@ export const StudioRouteEvidenceBundleSchema = z
   })
   .strict();
 
+export const StudioInterventionsEvidenceCitationSchema = z
+  .object({
+    key: z.string().min(1),
+    sourceId: z.string().min(1),
+    pageNumber: z.number().int().positive().optional(),
+    sourceTitle: z.string().min(1).optional(),
+    publisher: z.string().min(1).optional(),
+    sourceUrl: z.string().min(1).optional(),
+    publishedDate: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const StudioInterventionsEvidenceCoverageSchema = z
+  .object({
+    timelineCount: z.number().int().nonnegative(),
+    interventionCount: z.number().int().nonnegative(),
+    projectCount: z.number().int().nonnegative(),
+    sourceGapCount: z.number().int().nonnegative(),
+    citationCount: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const StudioInterventionsEvidenceBundleSchema = z
+  .object({
+    routeId: z.string().min(1),
+    routeSlug: z.string().min(1),
+    coverage: StudioInterventionsEvidenceCoverageSchema,
+    timeline: z.array(StudioRouteEvidenceTimelineEventSchema),
+    interventions: z.array(StudioRouteEvidenceInterventionSchema),
+    projects: z.array(StudioRouteEvidenceProjectSchema),
+    sourceGaps: z.array(StudioRouteEvidenceSourceGapSchema),
+    citations: z.array(StudioInterventionsEvidenceCitationSchema),
+  })
+  .strict();
+
+export const StudioInterventionsEvidenceResponseSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    generatedAt: z.string(),
+    routeCount: z.number().int().nonnegative(),
+    bundles: z.array(StudioInterventionsEvidenceBundleSchema),
+  })
+  .strict();
+
 export const StudioRouteEvidenceArtifactSchema = z
   .object({
     artifactKind: z.literal("bp.studio.route_evidence.v1"),
@@ -205,6 +249,18 @@ export type StudioRouteEvidenceProject = z.output<typeof StudioRouteEvidenceProj
 export type StudioRouteEvidenceSourceGap = z.output<typeof StudioRouteEvidenceSourceGapSchema>;
 export type StudioRouteEvidenceCoverage = z.output<typeof StudioRouteEvidenceCoverageSchema>;
 export type StudioRouteEvidenceBundle = z.output<typeof StudioRouteEvidenceBundleSchema>;
+export type StudioInterventionsEvidenceCitation = z.output<
+  typeof StudioInterventionsEvidenceCitationSchema
+>;
+export type StudioInterventionsEvidenceCoverage = z.output<
+  typeof StudioInterventionsEvidenceCoverageSchema
+>;
+export type StudioInterventionsEvidenceBundle = z.output<
+  typeof StudioInterventionsEvidenceBundleSchema
+>;
+export type StudioInterventionsEvidenceResponse = z.output<
+  typeof StudioInterventionsEvidenceResponseSchema
+>;
 export type StudioRouteEvidenceArtifact = z.output<typeof StudioRouteEvidenceArtifactSchema>;
 export type StudioRouteEvidenceIndexRoute = z.output<typeof StudioRouteEvidenceIndexRouteSchema>;
 export type StudioRouteEvidenceIndex = z.output<typeof StudioRouteEvidenceIndexSchema>;

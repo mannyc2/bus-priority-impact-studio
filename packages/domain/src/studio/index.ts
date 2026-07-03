@@ -152,6 +152,10 @@ export {
   routeDossierSummaryKey,
 } from "./route-dossier.js";
 export type {
+  StudioInterventionsEvidenceBundle,
+  StudioInterventionsEvidenceCitation,
+  StudioInterventionsEvidenceCoverage,
+  StudioInterventionsEvidenceResponse,
   StudioRouteEvidenceArtifact,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceCitation,
@@ -169,6 +173,10 @@ export {
   STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
   STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE,
   STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
+  StudioInterventionsEvidenceBundleSchema,
+  StudioInterventionsEvidenceCitationSchema,
+  StudioInterventionsEvidenceCoverageSchema,
+  StudioInterventionsEvidenceResponseSchema,
   StudioRouteEvidenceArtifactSchema,
   StudioRouteEvidenceBundleSchema,
   StudioRouteEvidenceCitationSchema,
