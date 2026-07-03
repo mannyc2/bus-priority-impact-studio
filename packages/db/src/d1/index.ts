@@ -109,12 +109,14 @@ export type {
 } from "./queries/route-timelines.js";
 export { getRouteTimelineIndex, listRouteTimelineIndex } from "./queries/route-timelines.js";
 export type {
+  PublicSnapshotSourceMonthCoverage,
   RouteSpeedHistoryCoverage,
   RouteSpeedHistoryCoverageRow,
   SourceMonthCoverage,
   SourceMonthCoverageRow,
 } from "./queries/snapshot-coverage.js";
 export {
+  listPublicSnapshotSourceMonthCoverage,
   listRouteSpeedHistoryCoverage,
   listSourceMonthCoverage,
 } from "./queries/snapshot-coverage.js";

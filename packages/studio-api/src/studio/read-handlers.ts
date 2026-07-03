@@ -6,9 +6,9 @@ import {
   findLatestSpeedTrendMonth,
   findLatestStudioServingMonth,
   findRouteEquityContext,
+  listPublicSnapshotSourceMonthCoverage,
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
-  listSourceMonthCoverage,
   listStudioRouteIndexSourceRows,
   type StudioRouteIndexSourceRow,
 } from "@bp/db/d1";
@@ -2552,6 +2552,7 @@ function sourceMonthStates(input: {
 function buildSnapshot2(input: {
   routeIndex: StudioRouteIndex2Response;
   sourceMonthCoverage: readonly D1SourceMonthCoverage[];
+  skippedSourceMonthCoverageRows: number;
   lastBuiltSpeedMonth: string | undefined;
   routeEvidenceIndex: StudioRouteEvidenceIndex | null;
   modelProjection: ModelArtifactServingProjection | null;
@@ -2694,6 +2695,11 @@ function buildSnapshot2(input: {
     caveats: [
       "Snapshot 2.0 is an addressability and coverage manifest, not the final route-page payload model.",
       "Route support levels describe which public surfaces are present; sparse catalog routes should still resolve to route shells.",
+      ...(input.skippedSourceMonthCoverageRows === 0
+        ? []
+        : [
+            `${input.skippedSourceMonthCoverageRows.toLocaleString("en-US")} source-month coverage row${input.skippedSourceMonthCoverageRows === 1 ? "" : "s"} failed the public month contract and ${input.skippedSourceMonthCoverageRows === 1 ? "was" : "were"} omitted from this snapshot.`,
+          ]),
       input.modelProjection === null
         ? "Detector model status is not yet published as a safe serving projection."
         : "Detector model status is published as a compact R2 projection; raw model rows remain internal.",
@@ -2719,15 +2725,16 @@ async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise
   const resolvedMonths = await resolveServingMonths(env);
   const routesAreD1Backed = env.DB !== undefined && resolvedMonths !== null;
   const routeIndex2Result = routesAreD1Backed ? await buildStudioRouteIndex2Response(env) : null;
-  const sourceMonthCoverage =
+  const publicSourceMonthCoverage =
     routeIndex2Result?.ok === true && env.DB !== undefined
-      ? await listSourceMonthCoverage(createD1ServingDb(env.DB))
-      : [];
+      ? await listPublicSnapshotSourceMonthCoverage(createD1ServingDb(env.DB))
+      : { rows: [], skippedRowCount: 0 };
   const snapshot2 =
     routeIndex2Result?.ok === true
       ? buildSnapshot2({
           routeIndex: routeIndex2Result.routeIndex,
-          sourceMonthCoverage,
+          sourceMonthCoverage: publicSourceMonthCoverage.rows,
+          skippedSourceMonthCoverageRows: publicSourceMonthCoverage.skippedRowCount,
           lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? undefined,
           routeEvidenceIndex,
           modelProjection,
