@@ -2,6 +2,10 @@
 
 Date: 2026-05-30
 
+> **Superseded (2026-07-03).** The generation-3 hard cutover retired this research mode as product
+> scope. Treat this ADR as decision history only; current route-evidence work is governed by
+> `plans/README.md`, ADR 0018, ADR 0019, and the mta-wiki evidence backend.
+
 ## Status
 
 **Proposed.** Specifies a "deep mode" for the codemode findings agent that targets

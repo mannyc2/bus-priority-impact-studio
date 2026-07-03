@@ -62,7 +62,7 @@ maybe("sandbox.runBash", () => {
   });
 
   test("artifact mount is readable read-only", async () => {
-    const r = await runBash("head -c 20 /work/data/artifacts/findings/detector-specs.json", {
+    const r = await runBash("head -c 20 /work/data/artifacts/detector-calibration-register.json", {
       image: TEST_IMAGE,
       timeoutSec: 10,
     });

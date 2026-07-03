@@ -7879,3 +7879,43 @@ Verification passed:
 `bun --filter @bp/pipeline-v2 cli -- route build-plan --limit 25 --json`,
 `bun --filter @bp/pipeline-v2 cli -- verify d1 --year 2026 --month 3 --json`,
 and `bun run check:publish-completeness -- --month 2026-03`.
+
+## [2026-07-03] engineering | Plan 024 retires in-repo document pipeline and stale doctrine
+
+Plan 024 deleted the retired `tools/pipeline-v2/src/commands/docs/**` tree and its tests/scripts,
+after the current document-evidence dependency moved to mta-wiki artifacts. The analytics data
+product registry now supersedes the old docs/Tier2 products with `mta_wiki_route_evidence_release`;
+no `packages/analytics` serving infrastructure was deleted.
+
+Dead D1 draft tables were prepared for retirement with
+`packages/db/migrations/d1/0029_drop_studio_brief_draft_tables.sql`, dropping
+`studio_brief_draft`, `studio_brief_draft_claim`, and `studio_brief_draft_block`. Production D1
+application remains an operator step.
+
+Stale doctrine cleanup spot-checked:
+
+| File | Disposition |
+| --- | --- |
+| `knowledge/wiki/analysis/bus-reliability-detectors-spec.md` | Superseded by `@bp/analytics`, ADR 0018, and engineering calibration/architecture pages. |
+| `knowledge/wiki/analysis/publishable_findings_review_2026_03.md` | Superseded by generation-3 public route-evidence scope and mta-wiki evidence artifacts. |
+| `knowledge/wiki/analysis/product_question_inventory.md` | Superseded by `plans/README.md` generation-3 product scope and current public page plans. |
+
+LOC census, same exclusions as Plan 024 (`node_modules`, `dist`, `data`, `*.gen.ts`):
+
+| Scope | Before | After | Delta |
+| --- | ---: | ---: | ---: |
+| Total visible repo LOC | 976,059 | 879,174 | -96,885 |
+| `tools` | 150,236 | 60,318 | -89,918 |
+| `knowledge` | 295,259 | 290,276 | -4,983 |
+| `packages` | 481,086 | 479,073 | -2,013 |
+| `docs` | 12,323 | 12,342 | +19 |
+
+Verification passed:
+
+- `bun --filter @bp/analytics typecheck`
+- `bun --filter @bp/pipeline-v2 cli -- --help`
+- `bun --filter @bp/pipeline-v2 typecheck`
+- `bun --filter @bp/pipeline-v2 test --timeout 5000`
+- `bun --filter @bp/db typecheck`
+- `bun --filter @bp/db test`
+- `bun --filter @bp/pipeline-v2 cli -- verify d1 --db /mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite --year 2026 --month 3 --export-root data/working/024-d1-verify --route-evidence-index-path /mnt/models/dev/bus-reliability-tracker/data/artifacts/studio/v2/wiki/index.json --json`

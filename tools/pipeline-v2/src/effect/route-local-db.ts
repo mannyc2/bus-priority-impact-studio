@@ -22,10 +22,7 @@ import { type LocalDbOpenError, RouteLocalDbCommandError } from "./errors.ts";
 import { LocalDbConnection, makeLocalDbLayer } from "./local-db.ts";
 
 export const defaultDocumentOperationalDateAssertionsPath = fromRepoRoot(
-  join(
-    "data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1",
-    "document-operational-date-assertions-v1.json",
-  ),
+  join("data/artifacts/studio/v2/wiki", "document-operational-date-assertions-v1.json"),
 );
 
 function isCausalAnchorEligibleRow(row: unknown): row is { causalAnchorEligible?: unknown } {

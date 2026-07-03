@@ -303,8 +303,8 @@ function sourceGapProgram(sourceId: string): string {
       return "NYC DOT Bus Lanes";
     case "mta_ace_routes":
       return "MTA ACE";
-    case "tier2_document_operational_date_assertions":
-      return "Tier 2 document operational dates";
+    case "mta_wiki_document_operational_date_assertions":
+      return "mta-wiki document operational dates";
     default:
       return sourceId;
   }

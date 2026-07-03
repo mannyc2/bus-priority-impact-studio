@@ -2,6 +2,10 @@
 
 Date: 2026-06-01
 
+> **Superseded (2026-07-03).** The Studio brief-author agent runtime was retired by the generation-3
+> hard cutover. Do not rebuild this Worker/agent surface from this ADR without a new accepted
+> decision.
+
 ## Status
 
 Accepted.

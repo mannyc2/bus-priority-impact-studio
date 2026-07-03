@@ -2,6 +2,9 @@
 
 Date: 2026-05-31
 
+> **Superseded (2026-07-03).** The Studio brief-draft live-write surface was retired by the
+> generation-3 hard cutover and plan 024 D1 cleanup. This ADR is retained only as decision history.
+
 ## Status
 
 Accepted.

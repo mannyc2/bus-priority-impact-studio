@@ -2,14 +2,14 @@ import type { RouteInterventionComparison } from "@bp/db";
 import { buildStudioInterventionsFromComparisons } from "@bp/domain/studio/interventions";
 import { routeKey } from "./_release-routes.ts";
 import type {
+  DocumentChunkIndex,
+  ManualInterventionCandidate,
+  ManualInterventionCandidatesArtifact,
   StudioIntervention,
-  Tier2DocumentChunkIndex,
-  Tier2ManualInterventionCandidate,
-  Tier2ManualInterventionCandidatesArtifact,
 } from "./_release-types.ts";
 
 function interventionLayerForCandidate(
-  candidate: Tier2ManualInterventionCandidate,
+  candidate: ManualInterventionCandidate,
 ): NonNullable<StudioIntervention["timelineLayer"]> {
   if (candidate.qualityTier === "canonical_milestone") return "canonical_milestone";
   if (candidate.qualityTier === "implemented_treatment_component") return "treatment_component";
@@ -18,14 +18,14 @@ function interventionLayerForCandidate(
 }
 
 function manualInterventionTone(
-  candidate: Tier2ManualInterventionCandidate,
+  candidate: ManualInterventionCandidate,
 ): NonNullable<StudioIntervention["tone"]> {
   if (candidate.status === "implemented") return "good";
   if (candidate.status === "planned" || candidate.status === "proposed") return "warn";
   return "accent";
 }
 
-function detailForManualIntervention(candidate: Tier2ManualInterventionCandidate): string {
+function detailForManualIntervention(candidate: ManualInterventionCandidate): string {
   const componentText =
     candidate.components.length === 1
       ? candidate.components[0]?.description
@@ -39,7 +39,7 @@ function detailForManualIntervention(candidate: Tier2ManualInterventionCandidate
 }
 
 function sourceLinksForManualIntervention(
-  candidate: Tier2ManualInterventionCandidate,
+  candidate: ManualInterventionCandidate,
 ): NonNullable<StudioIntervention["sourceLinks"]> {
   const byUrl = new Map<string, { label: string; url: string }>();
   for (const evidence of candidate.evidence) {
@@ -57,8 +57,8 @@ function sourceLinksForManualIntervention(
 }
 
 function sourceSpanRefsForManualIntervention(
-  candidate: Tier2ManualInterventionCandidate,
-  chunkIndex: Tier2DocumentChunkIndex,
+  candidate: ManualInterventionCandidate,
+  chunkIndex: DocumentChunkIndex,
 ): NonNullable<StudioIntervention["sourceSpanRefs"]> {
   const chunkIds = [...new Set(candidate.evidence.flatMap((evidence) => evidence.chunkIds))];
   return chunkIds.flatMap((chunkId) => {
@@ -68,8 +68,8 @@ function sourceSpanRefsForManualIntervention(
 }
 
 function buildStudioInterventionFromManualCandidate(
-  candidate: Tier2ManualInterventionCandidate,
-  chunkIndex: Tier2DocumentChunkIndex,
+  candidate: ManualInterventionCandidate,
+  chunkIndex: DocumentChunkIndex,
 ): StudioIntervention {
   const sourceSpanChunkIds = [
     ...new Set(candidate.evidence.flatMap((evidence) => evidence.chunkIds)),
@@ -104,8 +104,8 @@ function buildStudioInterventionFromManualCandidate(
 }
 
 export function manualInterventionIndex(
-  artifact: Tier2ManualInterventionCandidatesArtifact | null,
-  chunkIndex: Tier2DocumentChunkIndex,
+  artifact: ManualInterventionCandidatesArtifact | null,
+  chunkIndex: DocumentChunkIndex,
 ): Map<string, StudioIntervention[]> {
   const byRoute = new Map<string, StudioIntervention[]>();
   for (const candidate of artifact?.candidates ?? []) {
@@ -157,10 +157,10 @@ export function buildRouteInterventions(
   });
 }
 
-export async function tier2DocumentChunkIndex(
+export async function documentChunkIndex(
   path: string,
   fromRepoRoot: (relative: string) => string,
-): Promise<Tier2DocumentChunkIndex> {
+): Promise<DocumentChunkIndex> {
   const file = Bun.file(fromRepoRoot(path));
   if (!(await file.exists())) {
     return new Map();

@@ -3,7 +3,6 @@ import type {
   RouteTreatmentAceRow,
   RouteTreatmentBriefSummaryRow,
   RouteTreatmentInterventionEventRow,
-  RouteTreatmentTier2EventRow,
 } from "@bp/analytics/interventions";
 
 export type RouteTreatmentCatalogRow = {
@@ -24,7 +23,6 @@ export type RouteTreatmentSummaryLocalDbRows = {
   aceRows: readonly RouteTreatmentAceRow[];
   routeBriefRows: readonly RouteTreatmentBriefSummaryRow[];
   interventionEventRows: readonly RouteTreatmentInterventionEventRow[];
-  tier2EventRows: readonly RouteTreatmentTier2EventRow[];
   segmentUniverseRows: readonly RouteTreatmentSegmentUniverseRow[];
   missingTables: readonly string[];
 };
@@ -40,8 +38,6 @@ const REQUIRED_TABLES = [
   "local_route_brief_summary",
   "local_route_segment_speed",
   "local_intervention_event",
-  "local_tier2_intervention_event",
-  "local_tier2_intervention_event_route",
 ] as const;
 
 function tableExists(sqlite: Database, tableName: string): boolean {
@@ -69,8 +65,6 @@ export function loadRouteTreatmentSummaryLocalDbRows(
   input: RouteTreatmentSummaryLocalDbQuery,
 ): RouteTreatmentSummaryLocalDbRows {
   const missing = missingTables(input.sqlite);
-  const hasTier2Events = !missing.includes("local_tier2_intervention_event");
-  const hasTier2Routes = !missing.includes("local_tier2_intervention_event_route");
 
   return {
     routeRows: loadRows<RouteTreatmentCatalogRow>(
@@ -127,33 +121,6 @@ export function loadRouteTreatmentSummaryLocalDbRows(
         ORDER BY route_id, implementation_month, event_id
       `,
     ),
-    tier2EventRows:
-      hasTier2Events && hasTier2Routes
-        ? input.sqlite
-            .query<RouteTreatmentTier2EventRow, []>(
-              `
-                SELECT
-                  e.event_id,
-                  r.route_id,
-                  e.candidate_id,
-                  e.source_id,
-                  e.source_title,
-                  e.source_url,
-                  e.intervention_type,
-                  e.implementation_date,
-                  e.implementation_month,
-                  e.date_precision,
-                  e.event_status,
-                  e.validation_state,
-                  e.duplicate_review_state,
-                  e.promotion_state
-                FROM local_tier2_intervention_event e
-                JOIN local_tier2_intervention_event_route r ON r.event_id = e.event_id
-                ORDER BY r.route_id, e.implementation_month, e.event_id
-              `,
-            )
-            .all()
-        : [],
     segmentUniverseRows: loadRows<RouteTreatmentSegmentUniverseRow>(
       input.sqlite,
       "local_route_segment_speed",

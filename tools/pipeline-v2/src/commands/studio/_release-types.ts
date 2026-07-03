@@ -87,7 +87,7 @@ export type StudioIntervention = Omit<
   status?: "implemented" | "planned" | "proposed" | "historical_context" | "defer";
   interventionType?: string;
   sourceSpanChunkIds?: string[];
-  sourceSpanRefs?: Tier2DocumentChunkPreview[];
+  sourceSpanRefs?: DocumentChunkPreview[];
   sourceLinks?: Array<{ label: string; url: string }>;
 };
 
@@ -117,7 +117,7 @@ export type CliOptions = {
   routeShapeSnapshotPath: string;
   stopSnapshotPath: string;
   tspSourcePath: string;
-  tier2DocumentChunksPath: string;
+  documentChunksPath: string;
   manualInterventionsPath: string;
   publishableInterventionsByRoutePath: string | null;
   localDbPath: string;
@@ -265,17 +265,17 @@ export type RawTspSourceMetadata = {
   textArtifactKey?: string;
 };
 
-export type Tier2DocumentChunkPreview = {
+export type DocumentChunkPreview = {
   chunkId: string;
   pageRefs: number[];
   excerpt: string;
 };
 
-export type Tier2DocumentChunkIndex = ReadonlyMap<string, Tier2DocumentChunkPreview>;
+export type DocumentChunkIndex = ReadonlyMap<string, DocumentChunkPreview>;
 
-// Subset of the Tier 2 document chunk artifact we care about (inlined here
-// until tools/pipeline-v2 ports docs/tier2-docs.ts; see Batch D task #13).
-export type Tier2DocumentChunksArtifact = {
+// Subset of the document chunk artifact used to attach evidence previews to
+// manually curated intervention candidates.
+export type DocumentChunksArtifact = {
   chunks: Array<{
     chunkId: string;
     pageRefs: number[];
@@ -283,7 +283,7 @@ export type Tier2DocumentChunksArtifact = {
   }>;
 };
 
-export type Tier2ManualInterventionEvidence = {
+export type ManualInterventionEvidence = {
   evidenceId: string;
   sourceId: string;
   sourceTitle: string;
@@ -295,7 +295,7 @@ export type Tier2ManualInterventionEvidence = {
   supports: string[];
 };
 
-export type Tier2ManualInterventionComponent = {
+export type ManualInterventionComponent = {
   componentId: string;
   componentType: string;
   status: "implemented" | "planned" | "proposed" | "historical_context";
@@ -309,7 +309,7 @@ export type Tier2ManualInterventionComponent = {
   evidenceRefs: string[];
 };
 
-export type Tier2ManualInterventionCandidate = {
+export type ManualInterventionCandidate = {
   candidateId: string;
   reviewState: "manual_curated";
   qualityTier:
@@ -340,14 +340,14 @@ export type Tier2ManualInterventionCandidate = {
     notes: string | null;
   };
   locationUnknownReason?: string;
-  components: Tier2ManualInterventionComponent[];
-  evidence: Tier2ManualInterventionEvidence[];
+  components: ManualInterventionComponent[];
+  evidence: ManualInterventionEvidence[];
   sourceEventIds: string[];
   sourceCandidateIds: string[];
 };
 
-export type Tier2ManualInterventionCandidatesArtifact = {
-  candidates: Tier2ManualInterventionCandidate[];
+export type ManualInterventionCandidatesArtifact = {
+  candidates: ManualInterventionCandidate[];
 };
 
 export type Coordinate = {
