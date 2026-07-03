@@ -2,6 +2,21 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-07-03] engineering | nyc-transit-kit 0.1.2 pin prepared, adoption waits on release
+
+Prepared upstream `nyc-transit-kit` branch `codex/029-effect-beta-92` and draft PR
+<https://github.com/mannyc2/nyc-transit-kit/pull/4> to bump the kit to `0.1.2` and align
+`effect`, `@effect/platform-bun`, and the `@effect/platform-node-shared` override to
+`4.0.0-beta.92`. The kit checks are green: `bun run check` exits 0, and
+`bun run check:release-local` exits 0 from `/tmp/nyc-transit-kit-029-release` after `/mnt/models`
+ran out of room for the ~95 MB CLI binary artifact.
+
+The release plan still gates npm publication as irreversible trusted publishing through
+`release.yml`; `npm view @nyc-transit-kit/soda3@0.1.2 version` currently returns 404 while latest
+remains `0.1.1`. Plan 029 downstream adoption in this repo is therefore blocked until the operator
+approves and publishes `@nyc-transit-kit/*@0.1.2`; do not add local file/link dependencies to fake
+the release.
+
 ## [2026-07-03] engineering | MTA-wiki importer pins releases and consumes route anchors
 
 Extended `studio import-mta-wiki-route-evidence` so the bus repo can consume a named mta-wiki

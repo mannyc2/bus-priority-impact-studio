@@ -48,7 +48,7 @@ nyc-transit-kit pin gets fixed at its source so adoption can proceed (029).
 | 026 | Worker on Effect HttpApi: spike ADR, then migrate | P2 | L | 019 (024 rec.) | BLOCKED (spike STOP: `test:worker` regressed from baseline real 3.07s / Vitest 2.36s to real 8.71s / Vitest 7.96s after one-endpoint Effect skeleton) |
 | 027 | Effect the pipeline seams: retries, concurrency, ingest | P3 | M | 019, 024 | TODO |
 | 028 | MTA-wiki work orders (cross-repo; executed in mta-wiki) | P2 | M | — | ADOPTED (mta-wiki plan of record: `mta-wiki/docs/v1-release-plan.md`; execution pending there, starting with its Phase 0 baseline commit) |
-| 029 | nyc-transit-kit: align the Effect pin, then adopt | P3 | M | 019, 027 rec. | TODO |
+| 029 | nyc-transit-kit: align the Effect pin, then adopt | P3 | M | 019, 027 rec. | BLOCKED (kit PR #4 prepared 0.1.2/beta.92; npm release approval/publish required before adoption) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
