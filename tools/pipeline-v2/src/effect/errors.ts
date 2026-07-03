@@ -66,3 +66,27 @@ export class PipelineFileSystemError extends Schema.TaggedErrorClass<PipelineFil
     cause: Schema.Defect(),
   },
 ) {}
+
+export class HttpRequestError extends Schema.TaggedErrorClass<HttpRequestError>()(
+  "HttpRequestError",
+  {
+    command: Schema.String,
+    operation: Schema.String,
+    url: Schema.String,
+    attempt: Schema.Number,
+    maxAttempts: Schema.Number,
+    status: Schema.Number,
+    cause: Schema.Defect(),
+  },
+) {}
+
+export class RateLimitError extends Schema.TaggedErrorClass<RateLimitError>()("RateLimitError", {
+  command: Schema.String,
+  operation: Schema.String,
+  url: Schema.String,
+  attempt: Schema.Number,
+  maxAttempts: Schema.Number,
+  status: Schema.Number,
+  retryAfterMs: Schema.Number,
+  cause: Schema.Defect(),
+}) {}

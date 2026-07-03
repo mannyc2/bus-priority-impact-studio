@@ -7,6 +7,7 @@ import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-rider
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -134,22 +135,20 @@ export async function runRouteHourlyRidershipIngest(
   const rawRows: SocrataRow[] = [];
   const routeChunks = chunkArray(routeIds, routeChunkSize);
   for (const queryChunk of chunkArray(routeChunks, queryConcurrency)) {
-    const rowGroups = await Promise.all(
-      queryChunk.map((routeChunk) => {
-        const query: Soda3SoqlQuery = {
-          select:
-            "bus_route,date_extract_dow(transit_timestamp) as day_of_week_index,date_extract_hh(transit_timestamp) as hour_of_day,sum(ridership) as ridership,sum(transfers) as transfers",
-          where: [
-            `transit_timestamp >= '${isoMonthStart(inputs.year, inputs.month)}'`,
-            `transit_timestamp < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
-            soqlIn("bus_route", routeChunk),
-          ].join(" AND "),
-          group: "bus_route,date_extract_dow(transit_timestamp),date_extract_hh(transit_timestamp)",
-          order: "bus_route,day_of_week_index,hour_of_day",
-        };
-        return client.rows(query);
-      }),
-    );
+    const rowGroups = await runBoundedPromises(queryChunk, queryConcurrency, (routeChunk) => {
+      const query: Soda3SoqlQuery = {
+        select:
+          "bus_route,date_extract_dow(transit_timestamp) as day_of_week_index,date_extract_hh(transit_timestamp) as hour_of_day,sum(ridership) as ridership,sum(transfers) as transfers",
+        where: [
+          `transit_timestamp >= '${isoMonthStart(inputs.year, inputs.month)}'`,
+          `transit_timestamp < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
+          soqlIn("bus_route", routeChunk),
+        ].join(" AND "),
+        group: "bus_route,date_extract_dow(transit_timestamp),date_extract_hh(transit_timestamp)",
+        order: "bus_route,day_of_week_index,hour_of_day",
+      };
+      return client.rows(query);
+    });
     rawRows.push(...rowGroups.flat());
   }
   const normalizedRows = normalizeRouteHourlyRidershipRows(rawRows, {

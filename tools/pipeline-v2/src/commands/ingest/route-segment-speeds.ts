@@ -11,6 +11,7 @@ import {
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -172,16 +173,14 @@ export async function runRouteSegmentSpeedsIngest(
   let cellRowCount = 0;
   let writtenRouteCount = 0;
   for (const routeChunk of chunkArray(routeIds, routeConcurrency)) {
-    const results = await Promise.all(
-      routeChunk.map((routeId) =>
-        fetchRouteSegmentSpeedRows({
-          client,
-          year: inputs.year,
-          monthNumber: inputs.month,
-          isoMonth: month,
-          routeId,
-        }),
-      ),
+    const results = await runBoundedPromises(routeChunk, routeConcurrency, (routeId) =>
+      fetchRouteSegmentSpeedRows({
+        client,
+        year: inputs.year,
+        monthNumber: inputs.month,
+        isoMonth: month,
+        routeId,
+      }),
     );
 
     for (const result of results) {

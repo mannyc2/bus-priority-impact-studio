@@ -7919,3 +7919,43 @@ Verification passed:
 - `bun --filter @bp/db typecheck`
 - `bun --filter @bp/db test`
 - `bun --filter @bp/pipeline-v2 cli -- verify d1 --db /mnt/models/dev/bus-reliability-tracker/data/local/pipeline.sqlite --year 2026 --month 3 --export-root data/working/024-d1-verify --route-evidence-index-path /mnt/models/dev/bus-reliability-tracker/data/artifacts/studio/v2/wiki/index.json --json`
+
+## [2026-07-03] engineering | Plan 027 centralizes pipeline HTTP retry and bounded fan-out
+
+Plan 027 added one Effect-backed pipeline HTTP retry service in
+`tools/pipeline-v2/src/effect/http.ts`, with schema-tagged `HttpRequestError`
+and `RateLimitError`. The retry service now owns retries for HTTP file
+downloads, SODA3 page fetches, and LLM provider calls; the old local
+attempt/sleep loops in `lib/http-file-download.ts` and `lib/llm.ts` were
+deleted. SODA3 calls keep `@nyc-transit-kit/compat` retry disabled with
+`retryTimes: 0` so the pipeline service remains the single retry layer.
+
+Bounded fan-out now uses the shared Effect helper in
+`tools/pipeline-v2/src/effect/concurrency.ts`. The first bounded slices are
+route segment speeds, route hourly ridership, route schedules, route trends,
+map artifacts, and studio release generation. Command adoption is 69 of 98
+command files (70.4%) with an Effect boundary or bounded-concurrency seam.
+
+Deliberately left alone:
+
+| Site | Reason |
+| --- | --- |
+| `tools/pipeline-v2/src/commands/studio/release.ts` paired D1 reads | Small fixed-width local reads; not a rate-limit or unbounded fan-out seam. |
+| `tools/pipeline-v2/src/commands/map/artifacts.ts` paired local reads | Two-at-a-time local DB reads feeding one route payload; bounded per-route fan-out now wraps the larger loop. |
+| `tools/pipeline-v2/src/commands/ingest/route-coverage.ts` paired reads | Two local source reads only. |
+| `tools/pipeline-v2/src/commands/ingest/route-catalog.ts` paired reads/replacements | Fixed route/stop table operations; not an external API concurrency seam. |
+| `tools/pipeline-v2/src/commands/ingest/route-schedules-bulk.ts` spool closing | Flushes already-open writers; no useful Effect boundary to add in this slice. |
+
+Verification passed:
+
+- `bun test tools/pipeline-v2/test/effect/http.test.ts --timeout 5000`
+- `bun --filter @bp/pipeline-v2 typecheck`
+- `bun --filter @bp/pipeline-v2 test --timeout 5000`
+- per-package typechecks: `@bp/domain`, `@bp/sources`, `@bp/analytics`,
+  `@bp/db`, `@bp/studio-api`, `@bp/web`, and `@bp/pipeline-v2`
+- `bun run test:unit`
+- `bun run test:web`
+- `bun run test:worker`
+- `bun run check:web-architecture`
+- `bun --filter @bp/web build`
+- `bun run check:style`

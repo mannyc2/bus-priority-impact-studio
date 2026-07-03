@@ -1,5 +1,6 @@
 import type { SocrataManifestSource } from "@bp/sources/registry";
 import { querySoda3Rows } from "@nyc-transit-kit/compat/soda3";
+import { runPipelineHttpPromise } from "../effect/http.ts";
 import { fetchWithSocrataAppToken, type SocrataFetch } from "./socrata-token.ts";
 
 const defaultPageSize = 5_000;
@@ -86,6 +87,36 @@ function fetchWithTimeout(fetcher: SocrataFetch, timeoutMs: number | undefined):
     });
 }
 
+function fetchInputUrl(input: Parameters<SocrataFetch>[0]): string {
+  return typeof input === "string" ? input : input.toString();
+}
+
+function fetchWithPipelineHttpRetry(
+  source: SocrataManifestSource,
+  fetcher: SocrataFetch,
+  options: PipelineSoda3ClientOptions,
+): SocrataFetch {
+  const maxAttempts = Math.max(1, Math.floor((options.retryCount ?? 0) + 1));
+  return (input, init) => {
+    const url = fetchInputUrl(input);
+    return runPipelineHttpPromise({
+      command: "soda3",
+      operation: source.id,
+      url,
+      maxAttempts,
+      retryDelayMs: options.retryDelayMs,
+      run: async () => {
+        const response = await fetcher(input, init);
+        if (response.status === 429 || response.status >= 500) {
+          await response.body?.cancel();
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response;
+      },
+    });
+  };
+}
+
 export function adaptSocrataFetch(fetcher: SocrataFetch): typeof fetch {
   const compatFetch = async (input: FetchInput, init?: FetchInit) =>
     input instanceof Request
@@ -156,7 +187,11 @@ async function fetchRowsPage(
   pageNumber: number,
 ): Promise<readonly SocrataRow[]> {
   const compatFetch = adaptSocrataFetch(
-    fetchWithTimeout(fetchWithSocrataAppToken(options.fetcher), options.timeoutMs),
+    fetchWithPipelineHttpRetry(
+      source,
+      fetchWithTimeout(fetchWithSocrataAppToken(options.fetcher), options.timeoutMs),
+      options,
+    ),
   );
   const response = await querySoda3Rows(
     {
@@ -171,7 +206,7 @@ async function fetchRowsPage(
     },
     {
       fetch: compatFetch,
-      ...(options.retryCount === undefined ? {} : { retryTimes: options.retryCount }),
+      retryTimes: 0,
     },
   );
 
