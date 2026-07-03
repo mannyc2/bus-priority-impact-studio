@@ -2,9 +2,18 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useMemo, useState } from "react";
 import { RouteBadge } from "@/components/RouteBadge";
 import { type AutocompleteSuggestion, SearchAutocomplete } from "@/components/SearchAutocomplete";
+import { SearchField } from "@/components/SearchField";
 import { Spark } from "@/components/Spark";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { StudioRoute } from "../api-contract.js";
+import {
+  filterRoutesForIndex,
+  groupRoutesForIndex,
+  orderRoutesForIndex,
+  ROUTE_INDEX_ALL_BOROUGHS,
+  ROUTE_INDEX_BOROUGHS,
+  type RouteIndexBorough,
+} from "../home-route-index.js";
 
 // home.tsx - the studio's public front door: hero -> big stats -> narrative
 // route cards -> route index -> trust strip.
@@ -13,12 +22,7 @@ import type { StudioRoute } from "../api-contract.js";
 // the "Browse the full index" table, its borough filter, the featured-story
 // links, and the hero suggestion chips are driven by the live route listing
 // (the same /api/v1/studio/routes feed the loader already provides), shown as
-// a preview of the full 327-route directory.
-
-const CITYWIDE_ROUTE_COUNT = 327;
-// The homepage index is a preview of the full directory (the design shows ~10
-// rows with a "browse all" affordance), sorted by daily ridership.
-const INDEX_PREVIEW_LIMIT = 10;
+// a grouped directory sorted by daily ridership.
 
 type Tone = "bad" | "good" | "warn" | "neutral";
 
@@ -43,6 +47,8 @@ const boroughStripe: Record<string, string> = {
   Queens: "var(--bp-route-queens)",
   "Staten Island": "var(--bp-route-si)",
 };
+
+const boroughs = [ROUTE_INDEX_ALL_BOROUGHS, ...ROUTE_INDEX_BOROUGHS] as const;
 
 function formatRiders(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
@@ -288,7 +294,11 @@ export function HomePage({
   routes: readonly StudioRoute[];
 }) {
   const navigate = useNavigate();
-  const [borough, setBorough] = useState("All boroughs");
+  const [borough, setBorough] = useState<typeof ROUTE_INDEX_ALL_BOROUGHS | RouteIndexBorough>(
+    ROUTE_INDEX_ALL_BOROUGHS,
+  );
+  const [routeFilter, setRouteFilter] = useState("");
+  const routeCount = routes.length;
 
   const slugByLabel = useMemo(() => {
     const map = new Map<string, string>();
@@ -299,10 +309,7 @@ export function HomePage({
     return map;
   }, [routes]);
 
-  const byRidership = useMemo(
-    () => [...routes].sort((a, b) => b.dailyRiders - a.dailyRiders),
-    [routes],
-  );
+  const byRidership = useMemo(() => orderRoutesForIndex(routes), [routes]);
 
   const heroSuggestions = useMemo<AutocompleteSuggestion[]>(
     () =>
@@ -320,20 +327,11 @@ export function HomePage({
     [byRidership],
   );
 
-  const boroughs = [
-    "All boroughs",
-    "Manhattan",
-    "Brooklyn",
-    "Bronx",
-    "Queens",
-    "Staten Island",
-  ] as const;
-
-  const filteredRoutes =
-    borough === "All boroughs"
-      ? byRidership
-      : byRidership.filter((r) => r.borough.includes(borough));
-  const previewRoutes = filteredRoutes.slice(0, INDEX_PREVIEW_LIMIT);
+  const filteredRoutes = useMemo(
+    () => filterRoutesForIndex(byRidership, { borough, query: routeFilter }),
+    [borough, byRidership, routeFilter],
+  );
+  const routeGroups = useMemo(() => groupRoutesForIndex(filteredRoutes), [filteredRoutes]);
 
   const heroChips = byRidership.slice(0, 5);
   const generatedLabel = formatDate(generatedAt);
@@ -362,7 +360,7 @@ export function HomePage({
                 href="#route-index"
                 className="inline-flex h-11 items-center justify-center rounded-[3px] border border-[var(--bp-color-ink)] bg-[var(--bp-color-ink)] px-4.5 text-[13.5px] font-medium text-[var(--bp-color-paper)] no-underline transition-colors hover:bg-[var(--bp-color-ink)]/90"
               >
-                Browse all {CITYWIDE_ROUTE_COUNT} routes &rarr;
+                Browse all {routeCount} routes &rarr;
               </a>
               <Link
                 to="/interventions"
@@ -413,13 +411,13 @@ export function HomePage({
         <SectionHeader
           kicker="The picture today"
           title="What the data says about New York's buses right now."
-          sub="Numbers below cover all 327 local and Select Bus routes citywide, measured against their own scheduled timepoints across the past fourteen months."
+          sub={`Numbers below pair the current ${routeCount}-route index with route-level speed, ridership, treatment, and reliability signals.`}
         />
         <div className="mt-6 grid grid-cols-4 gap-9 max-lg:grid-cols-2 max-sm:grid-cols-1">
           <BigStat
-            value="327"
-            label="Routes tracked across all five boroughs"
-            sub="Every local and Select Bus route the MTA operates, including weekend-only and rush-only services."
+            value={String(routeCount)}
+            label="Routes in the public index"
+            sub="Route pages are grouped by borough and sorted by daily riders."
           />
           <BigStat
             value="88"
@@ -478,7 +476,7 @@ export function HomePage({
         <SectionHeader
           kicker="Every route"
           title="Browse the full index."
-          sub="Sorted by daily ridership. Sparkline shows the route's 12-month speed trend; the status column groups routes by direction of travel."
+          sub="Sorted by daily ridership. Narrow by borough or route text; sparkline shows each route's 12-month speed trend."
           right={
             <div className="flex flex-wrap gap-1.5">
               {boroughs.map((b) => (
@@ -503,6 +501,18 @@ export function HomePage({
             </div>
           }
         />
+        <div className="mb-4 grid grid-cols-[minmax(0,420px)_1fr] items-end gap-3 max-md:grid-cols-1">
+          <SearchField
+            value={routeFilter}
+            onChange={(event) => setRouteFilter(event.target.value)}
+            placeholder="Filter by route, corridor, or borough"
+            aria-label="Filter routes"
+            className="max-w-[420px] border-[1px] px-3.5 py-2 shadow-none"
+          />
+          <div className="text-right text-[12px] text-[var(--bp-color-ink-55)] max-md:text-left">
+            Showing {filteredRoutes.length} of {routeCount} routes
+          </div>
+        </div>
         <div className="overflow-hidden rounded-[4px] bg-[var(--bp-color-card)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
           <div className="grid grid-cols-[90px_1fr_90px_110px_120px_90px_16px] items-center gap-4 bg-[var(--bp-color-paper-deep)] px-4.5 py-3 text-[9.5px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)] shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:hidden">
             <span>Route</span>
@@ -513,49 +523,81 @@ export function HomePage({
             <span className="text-right">Direction</span>
             <span />
           </div>
-          {previewRoutes.map((r) => {
-            const { status, tone } = trendStatus(r.spark);
-            return (
-              <Link
-                key={r.slug}
-                to="/routes/$routeId"
-                params={{ routeId: r.slug }}
-                viewTransition
-                className="grid grid-cols-[90px_1fr_90px_110px_120px_90px_16px] items-center gap-4 px-4.5 py-3.5 text-[var(--bp-color-ink)] no-underline shadow-[inset_0_-1px_0_var(--bp-color-rule)] transition-colors hover:bg-[var(--bp-color-paper-deep)] max-md:grid-cols-[auto_1fr_auto]"
-              >
-                <RouteBadge route={r.label} sbs={r.sbs} size="md" />
-                <div className="min-w-0 truncate text-[13.5px] font-medium">{r.corridorFull}</div>
-                <div className="text-right max-md:hidden">
-                  <div className="font-mono text-[15px] font-semibold tabular-nums leading-none">
-                    {r.speedMph.toFixed(1)}
-                  </div>
-                  <div className="mt-[3px] text-[9.5px] font-bold uppercase tracking-[0.06em] text-[var(--bp-color-ink-40)]">
-                    mph today
-                  </div>
+          {routeGroups.length > 0 ? (
+            routeGroups.map((group) => (
+              <div key={group.borough}>
+                <div className="flex items-center gap-2.5 bg-[var(--bp-color-paper-deep)] px-4.5 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)] shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{
+                      background:
+                        group.borough === "Other"
+                          ? "var(--bp-color-ink-40)"
+                          : boroughStripe[group.borough],
+                    }}
+                    aria-hidden
+                  />
+                  <span>{group.borough}</span>
+                  <span className="font-mono text-[10px] tabular-nums text-[var(--bp-color-ink-40)]">
+                    {group.routes.length}
+                  </span>
                 </div>
-                <div className="max-md:hidden">
-                  <Spark data={r.spark} width={104} height={22} color={toneColor[tone]} fill />
-                </div>
-                <div className="text-right font-mono text-[12px] tabular-nums text-[var(--bp-color-ink-70)] max-md:hidden">
-                  {formatRiders(r.dailyRiders)}
-                </div>
-                <div
-                  className="text-right text-[10px] font-bold uppercase tracking-[0.06em] max-md:hidden"
-                  style={{ color: toneColor[tone] }}
-                >
-                  {status}
-                </div>
-                <div className="text-right text-[14px] text-[var(--bp-color-ink-40)] max-md:hidden">
-                  →
-                </div>
-              </Link>
-            );
-          })}
+                {group.routes.map((r) => {
+                  const { status, tone } = trendStatus(r.spark);
+                  return (
+                    <Link
+                      key={r.slug}
+                      to="/routes/$routeId"
+                      params={{ routeId: r.slug }}
+                      viewTransition
+                      className="grid grid-cols-[90px_1fr_90px_110px_120px_90px_16px] items-center gap-4 px-4.5 py-3.5 text-[var(--bp-color-ink)] no-underline shadow-[inset_0_-1px_0_var(--bp-color-rule)] transition-colors hover:bg-[var(--bp-color-paper-deep)] max-md:grid-cols-[auto_1fr_auto]"
+                    >
+                      <RouteBadge route={r.label} sbs={r.sbs} size="md" />
+                      <div className="min-w-0 truncate text-[13.5px] font-medium">
+                        {r.corridorFull}
+                      </div>
+                      <div className="text-right max-md:hidden">
+                        <div className="font-mono text-[15px] font-semibold tabular-nums leading-none">
+                          {r.speedMph.toFixed(1)}
+                        </div>
+                        <div className="mt-[3px] text-[9.5px] font-bold uppercase tracking-[0.06em] text-[var(--bp-color-ink-40)]">
+                          mph today
+                        </div>
+                      </div>
+                      <div className="max-md:hidden">
+                        <Spark
+                          data={r.spark}
+                          width={104}
+                          height={22}
+                          color={toneColor[tone]}
+                          fill
+                        />
+                      </div>
+                      <div className="text-right font-mono text-[12px] tabular-nums text-[var(--bp-color-ink-70)] max-md:hidden">
+                        {formatRiders(r.dailyRiders)}
+                      </div>
+                      <div
+                        className="text-right text-[10px] font-bold uppercase tracking-[0.06em] max-md:hidden"
+                        style={{ color: toneColor[tone] }}
+                      >
+                        {status}
+                      </div>
+                      <div className="text-right text-[14px] text-[var(--bp-color-ink-40)] max-md:hidden">
+                        →
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))
+          ) : (
+            <div className="px-4.5 py-8 text-[13px] text-[var(--bp-color-ink-55)]">
+              No routes match the current filter.
+            </div>
+          )}
           <div className="flex items-center gap-2.5 px-4.5 py-3.5 text-[12px] text-[var(--bp-color-ink-55)]">
             <span>
-              Showing {previewRoutes.length} of{" "}
-              {borough === "All boroughs" ? CITYWIDE_ROUTE_COUNT : filteredRoutes.length}{" "}
-              {borough === "All boroughs" ? "" : `${borough} `}routes
+              Showing {filteredRoutes.length} of {routeCount} routes
             </span>
             <span className="flex-1" />
             <Link
