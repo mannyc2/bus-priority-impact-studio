@@ -747,7 +747,7 @@ function createStudioProjectionEnv(): StudioApiEnv {
   };
 }
 
-function createSparseStudioRouteDb(): FakeDb {
+function createSparseStudioRouteDb(input: { sourceMonthCoverage?: unknown[] } = {}): FakeDb {
   return new FakeDb({
     route_artifact: [
       {
@@ -919,7 +919,7 @@ function createSparseStudioRouteDb(): FakeDb {
         non_hispanic_asian_share: 14.2,
       },
     ],
-    source_month_coverage: [
+    source_month_coverage: input.sourceMonthCoverage ?? [
       {
         source_id: "local_route_segment_speed",
         month: "2026-03",
@@ -2609,6 +2609,44 @@ describe("Studio API facade", () => {
     expect(history.route.slug).toBe(historyRoute.slug);
     expect(history.coverage).toEqual(historyRoute.historyCoverage);
     expect(history.coverage.pointCount).toBe(history.points.length);
+  });
+
+  it("returns a JSON 502 when the Studio snapshot fails contract validation", async () => {
+    const env = {
+      ...createStudioProjectionEnv(),
+      BASELINE_MONTH: "2026-03",
+      DB: createSparseStudioRouteDb({
+        sourceMonthCoverage: [
+          {
+            source_id: "local_route_segment_speed",
+            month: "March 2026",
+            label: "Route segment speed rows",
+            source_kind: "source_table",
+            grain: "route x month x segment/hour speed observation",
+            status: "available",
+            row_count: 4200,
+            route_count: 350,
+            note: null,
+            generated_at: "2026-06-06T00:00:00.000Z",
+            artifact_path:
+              "data/artifacts/source-month-coverage/2023-04_to_2026-03/coverage-matrix.json",
+          },
+        ],
+      }) as unknown as D1Database,
+      LAST_BUILT_SPEED_MONTH: "2026-03",
+    };
+
+    const response = await fetchApi("/api/v1/studio/snapshot", env);
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get("Content-Type")).toContain("application/json");
+    const body: unknown = JSON.parse(await response.text());
+    expect(body).toEqual({
+      error: {
+        code: "BAD_GATEWAY",
+        message: "Studio snapshot failed contract validation.",
+      },
+    });
   });
 
   it("serves D1-backed Studio route month history", async () => {
