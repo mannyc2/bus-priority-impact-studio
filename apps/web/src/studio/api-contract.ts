@@ -87,3 +87,13 @@ export {
 } from "@bp/domain/studio/routes";
 export type { ComparableRoute, StudioQuality } from "@bp/domain/studio/shared";
 export { ComparableRouteSchema, StudioQualitySchema } from "@bp/domain/studio/shared";
+export type {
+  StudioRouteIndex2Response,
+  StudioRouteIndex2Row,
+  StudioSnapshot2ProjectionRef,
+} from "@bp/domain/studio/snapshots";
+export {
+  StudioRouteIndex2ResponseSchema,
+  StudioRouteIndex2RowSchema,
+  StudioSnapshot2ProjectionRefSchema,
+} from "@bp/domain/studio/snapshots";

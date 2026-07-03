@@ -95,6 +95,7 @@ export type StudioReadEnv = Pick<StudioApiEnv, "ARTIFACTS" | "DB" | "STUDIO_RELE
 const OPENAPI_DOC_METHODS = ["get", "post", "put", "patch", "delete"] as const;
 const ARTIFACT_NOT_AVAILABLE_MESSAGE = "Artifact is not available.";
 const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
+const SNAPSHOT_CONTRACT_VALIDATION_MESSAGE = "Studio snapshot failed contract validation.";
 
 function dependencyNotConfiguredResponse(dependency: string, context: string): Response {
   console.error("Service dependency is not configured.", { context, dependency });
@@ -104,6 +105,11 @@ function dependencyNotConfiguredResponse(dependency: string, context: string): R
 function artifactNotAvailableResponse(status: number, context: string, key: string): Response {
   console.error(context, { key });
   return errorResponse(status, ARTIFACT_NOT_AVAILABLE_MESSAGE);
+}
+
+function snapshotContractFailureResponse(details: unknown): Response {
+  console.error(SNAPSHOT_CONTRACT_VALIDATION_MESSAGE, details);
+  return errorResponse(502, SNAPSHOT_CONTRACT_VALIDATION_MESSAGE);
 }
 
 function studioDocsEndpointsFromOpenApi(): StudioDocsResponse["endpoints"] {
@@ -2548,7 +2554,7 @@ function buildSnapshot2(input: {
   };
 }
 
-async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
+async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise<Response> {
   const [routesResult, methods, docs, routeEvidenceIndex, modelProjection] = await Promise.all([
     buildStudioRoutesResponse(env),
     loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
@@ -2601,27 +2607,40 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
   ];
   const prefix = studioProjectionPrefix(env);
 
-  return studioJsonResponse(
-    StudioSnapshotResponseSchema.parse({
-      schemaVersion: 1,
-      generatedAt,
-      releaseId: releaseIdForPrefix(prefix),
-      projectionPrefix: prefix,
-      releaseKey: studioReleaseKey(env),
-      baselineMonth: resolvedMonths?.servingMonth ?? null,
-      lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? null,
-      counts: {
-        routes: routesResult.routes.length,
-        methods: methods.datasets.length,
-        docsSections: docsProjection.sections.length,
-        docsEndpoints: docsProjection.endpoints.length,
-      },
-      projections,
-      quality: routesResult.quality,
-      ...(snapshot2 === undefined ? {} : { v2: snapshot2 }),
-    }),
-    env,
-  );
+  const parsedSnapshot = StudioSnapshotResponseSchema.safeParse({
+    schemaVersion: 1,
+    generatedAt,
+    releaseId: releaseIdForPrefix(prefix),
+    projectionPrefix: prefix,
+    releaseKey: studioReleaseKey(env),
+    baselineMonth: resolvedMonths?.servingMonth ?? null,
+    lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? null,
+    counts: {
+      routes: routesResult.routes.length,
+      methods: methods.datasets.length,
+      docsSections: docsProjection.sections.length,
+      docsEndpoints: docsProjection.endpoints.length,
+    },
+    projections,
+    quality: routesResult.quality,
+    ...(snapshot2 === undefined ? {} : { v2: snapshot2 }),
+  });
+
+  if (!parsedSnapshot.success) {
+    return snapshotContractFailureResponse({
+      issues: parsedSnapshot.error.issues,
+    });
+  }
+
+  return studioJsonResponse(parsedSnapshot.data, env);
+}
+
+async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
+  try {
+    return await buildStudioSnapshotResponseUnchecked(env);
+  } catch (error) {
+    return snapshotContractFailureResponse({ error });
+  }
 }
 
 export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(

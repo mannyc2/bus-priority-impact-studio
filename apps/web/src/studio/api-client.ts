@@ -10,6 +10,8 @@ import {
   StudioRouteDetailResponseSchema,
   StudioRouteEvidenceBundleSchema,
   StudioRouteHourlyProfileResponseSchema,
+  type StudioRouteIndex2Response,
+  StudioRouteIndex2ResponseSchema,
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
 } from "./api-contract.js";
@@ -142,6 +144,24 @@ async function loadNullableStudioJson<TSchema extends z.ZodType>(
 
 export function fetchStudioRoutes(options?: StudioQueryOptions) {
   return loadStudioJson(studioPath("studio.routes"), StudioRoutesResponseSchema, options);
+}
+
+export function fetchStudioRouteIndex(options?: StudioQueryOptions) {
+  return loadStudioJson(
+    `${studioPath("studio.routes")}?schema=2`,
+    StudioRouteIndex2ResponseSchema,
+    options,
+  );
+}
+
+export function timelineEvidenceRouteSlugs(routeIndex: StudioRouteIndex2Response): string[] {
+  return routeIndex.routes.flatMap((route) =>
+    route.projectionRefs.some(
+      (ref) => ref.id === "route_timeline" && ref.status === "available" && ref.path !== null,
+    )
+      ? [route.slug]
+      : [],
+  );
 }
 
 export function fetchStudioRoute(routeId: string, options?: StudioQueryOptions) {
