@@ -67,7 +67,7 @@ describe("route dossier archetype", () => {
   test("labels legacy routes without a capability manifest", () => {
     expect(routeDossierArchetype({ capability: null, dossier: null })).toMatchObject({
       id: "legacy",
-      label: "Legacy dossier",
+      label: "Legacy route",
       completeSurfaceCount: 0,
     });
   });
@@ -84,7 +84,7 @@ describe("route dossier archetype", () => {
       }),
     ).toMatchObject({
       id: "sparse",
-      label: "Sparse dossier",
+      label: "Sparse route",
       completeSurfaceCount: 1,
     });
   });
@@ -103,7 +103,7 @@ describe("route dossier archetype", () => {
       }),
     ).toMatchObject({
       id: "standard",
-      label: "Standard dossier",
+      label: "Standard route",
       completeSurfaceCount: 5,
       deepSurfaceCount: 0,
     });
@@ -126,7 +126,7 @@ describe("route dossier archetype", () => {
       }),
     ).toMatchObject({
       id: "flagship",
-      label: "Flagship dossier",
+      label: "Flagship route",
       completeSurfaceCount: 8,
       deepSurfaceCount: 3,
     });

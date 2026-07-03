@@ -12,7 +12,7 @@ import {
   formatCompact,
 } from "@/components/route/route-derived";
 import { safeInsightCaveats } from "@/components/route/route-insight-placement";
-import { routeSectionQuestion } from "@/components/route/section-registry";
+import { routeSectionTitle } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,6 +21,7 @@ import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
 export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
   const { route, segments } = data;
+  // biome-ignore lint/complexity/useLiteralKeys: surfaces is index-signature typed.
   const capability = data.capability?.surfaces["ridership"] ?? null;
   const summary = riderImpactSummary({ route, segments, dossier: data.dossier, capability });
   const riderInsights = riderImpactInsightRows(data.insights);
@@ -33,7 +34,7 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
 
   return (
     <div className="flex flex-col gap-7">
-      <SectionHeader title={routeSectionQuestion("riders")} sub={summary.sectionSubtitle} />
+      <SectionHeader title={routeSectionTitle("riders")} sub={summary.sectionSubtitle} />
       <div className="grid grid-cols-3 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-lg:grid-cols-1">
         <RiderKpi
           label="Daily riders"
@@ -147,8 +148,8 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
         <AlertTitle variant="info">Rider-hours</AlertTitle>
         <AlertDescription>
           A 1-minute delay for 1,000 riders is 16.7 rider-hours. This route loses{" "}
-          {route.riderHoursLost.toLocaleString()} per weekday, so this tab ranks rider burden rather
-          than bus slowness alone.
+          {route.riderHoursLost.toLocaleString()} per weekday, so this section ranks rider burden
+          rather than bus slowness alone.
         </AlertDescription>
       </Alert>
     </div>

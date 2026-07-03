@@ -73,13 +73,13 @@ export function reliabilitySummary({
     observed.source === "third_party_recovered"
       ? "third-party recovered GTFS-RT"
       : "self-collected GTFS-RT";
-  const statusLabel = observedMetrics ? "Observed" : "Insufficient samples";
+  const statusLabel = observedMetrics ? "Published" : "Insufficient samples";
   const kpiSub = observedMetrics
     ? `${longGap} long gaps · ${sampleLabel} samples`
     : `${sampleLabel} samples; headway stats withheld`;
 
   return {
-    kpiValue: observedMetrics ? "Observed" : "Low sample",
+    kpiValue: observedMetrics ? minutes(observed.excessWaitMinutes) : "Low sample",
     kpiSub,
     kpiTone: reliabilityTone(observed),
     sectionSubtitle: observedMetrics

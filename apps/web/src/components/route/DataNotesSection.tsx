@@ -21,10 +21,10 @@ import {
   routeEvidenceIndexRows,
 } from "@/components/route/route-insight-card";
 import {
-  type RouteDetailTabValue,
+  type RouteDetailSectionValue,
   type RouteSectionRegistry,
   routeSectionCanNavigate,
-  routeSectionQuestion,
+  routeSectionTitle,
 } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +45,7 @@ export function DataNotesSection({
   data: StudioRouteDetailResponse;
   evidence: StudioRouteEvidenceBundle | null;
   sectionRegistry: Pick<RouteSectionRegistry, "presentations" | "hiddenSections">;
-  onNavigate: (tab: RouteDetailTabValue) => void;
+  onNavigate: (section: RouteDetailSectionValue) => void;
 }) {
   const { route, quality, segments, dossier } = data;
   const historyWindow = dossierMetricWindow(dossier?.speed);
@@ -54,10 +54,10 @@ export function DataNotesSection({
   const checkedCleanChips = checkedCleanCoverageChips(coverage);
   const evidenceRows = routeEvidenceIndexRows(data.insights);
   const archetype = routeDossierArchetype({ capability: data.capability, dossier });
-  const hiddenTabs = sectionRegistry.hiddenSections;
+  const hiddenSections = sectionRegistry.hiddenSections;
   const datasets = [
     ["Segment speeds", "MTA Open Data", `${segments.length} segments`],
-    ["Speed history", "Dossier", historyWindow ?? "not built"],
+    ["Speed history", "Route summary", historyWindow ?? "not built"],
     [
       "Riders/time",
       "Studio projection",
@@ -72,56 +72,10 @@ export function DataNotesSection({
 
   return (
     <div className="flex flex-col gap-7">
-      <div className="flex flex-wrap items-center gap-7 rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-        <DataWindow
-          label="Window"
-          value={historyWindow ?? "Projection"}
-          sub={
-            dossier
-              ? `${dossier.speed.sparkline.length} route-months`
-              : `${segments.length} segments in route detail`
-          }
-        />
-        <DataWindow
-          label="Depth"
-          value={archetype.label}
-          sub={archetype.summary}
-          good={archetype.id === "flagship"}
-        />
-        <DataWindow
-          label="Release layer"
-          value={releaseLayerLabel(quality.releaseLayer)}
-          sub={releaseLayerDescription(quality.releaseLayer)}
-          good={quality.releaseLayer === "observed_release"}
-        />
-        <DataWindow
-          label="Quality"
-          value={quality.confidence}
-          sub={completenessStatusLabel(quality.completenessStatus)}
-          good={quality.confidence === "high"}
-        />
-        <div className="max-w-[280px]">
-          <div className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-            Freshness
-          </div>
-          <div className="mt-0.5 text-[11px] leading-[1.35] text-[var(--bp-color-ink-55)]">
-            latest month
-          </div>
-        </div>
-        <div className="ml-auto">
-          <Link
-            to="/methods"
-            className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
-          >
-            Methods &rarr;
-          </Link>
-        </div>
-      </div>
-
       <EvidenceIndexSection
         rows={evidenceRows}
         sectionRegistry={sectionRegistry}
-        hiddenSectionCount={hiddenTabs.length}
+        hiddenSectionCount={hiddenSections.length}
         onNavigate={onNavigate}
       />
 
@@ -165,29 +119,29 @@ export function DataNotesSection({
         </div>
       </div>
 
-      {hiddenTabs.length > 0 ? (
+      {hiddenSections.length > 0 ? (
         <div>
           <SectionHeader title="Hidden sections" sub="Hidden when evidence is thin." />
           <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-            {hiddenTabs.map(({ tab, presentation }) => (
+            {hiddenSections.map(({ section, presentation }) => (
               <div
-                key={tab.value}
+                key={section.value}
                 className="grid grid-cols-[220px_160px_minmax(0,1fr)_120px] items-center gap-5 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-1"
               >
                 <div className="text-[13px] font-semibold">
-                  {tab.label}
-                  {tab.badge ? (
+                  {section.label}
+                  {section.badge ? (
                     <Badge
                       variant={
-                        tab.badge.severity === "high"
+                        section.badge.severity === "high"
                           ? "bad"
-                          : tab.badge.severity === "medium"
+                          : section.badge.severity === "medium"
                             ? "warn"
                             : "neutral"
                       }
                       className="ml-2"
                     >
-                      {tab.badge.count}
+                      {section.badge.count}
                     </Badge>
                   ) : null}
                 </div>
@@ -219,6 +173,44 @@ export function DataNotesSection({
               <div className="text-[11.5px] text-[var(--bp-color-ink-55)]">{window}</div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-7 rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
+        <DataWindow
+          label="Window"
+          value={historyWindow ?? "Projection"}
+          sub={
+            dossier
+              ? `${dossier.speed.sparkline.length} route-months`
+              : `${segments.length} segments in route detail`
+          }
+        />
+        <DataWindow
+          label="Depth"
+          value={archetype.label}
+          sub={archetype.summary}
+          good={archetype.id === "flagship"}
+        />
+        <DataWindow
+          label="Release layer"
+          value={releaseLayerLabel(quality.releaseLayer)}
+          sub={releaseLayerDescription(quality.releaseLayer)}
+          good={quality.releaseLayer === "observed_release"}
+        />
+        <DataWindow
+          label="Quality"
+          value={quality.confidence}
+          sub={completenessStatusLabel(quality.completenessStatus)}
+          good={quality.confidence === "high"}
+        />
+        <div className="ml-auto">
+          <Link
+            to="/methods"
+            className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
+          >
+            Methods &rarr;
+          </Link>
         </div>
       </div>
     </div>
@@ -376,17 +368,17 @@ export function EvidenceIndexSection({
   rows: readonly RouteEvidenceIndexRow[];
   sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
   hiddenSectionCount: number;
-  onNavigate: (tab: RouteDetailTabValue) => void;
+  onNavigate: (section: RouteDetailSectionValue) => void;
 }) {
   const hiddenSignalCount = rows.filter(
-    (row) => row.tab !== "evidence" && !routeSectionCanNavigate(sectionRegistry, row.tab),
+    (row) => row.section !== "evidence" && !routeSectionCanNavigate(sectionRegistry, row.section),
   ).length;
   const hasSummary = rows.length > 0 || hiddenSectionCount > 0;
 
   return (
     <div>
       <SectionHeader
-        title={routeSectionQuestion("evidence")}
+        title={routeSectionTitle("evidence")}
         right={
           hasSummary ? (
             <div className="flex flex-wrap justify-end gap-2">
@@ -446,17 +438,17 @@ export function EvidenceIndexSection({
                 <div className="mt-1">{row.referenceDetailLabel}</div>
               </div>
               <div className="flex flex-col items-end gap-2 max-lg:items-start">
-                {row.tab === "evidence" ? (
+                {row.section === "evidence" ? (
                   <Badge variant="accent">In Evidence</Badge>
-                ) : !routeSectionCanNavigate(sectionRegistry, row.tab) ? (
+                ) : !routeSectionCanNavigate(sectionRegistry, row.section) ? (
                   <Badge variant="neutral">Covered in Evidence</Badge>
                 ) : (
                   <button
                     type="button"
-                    onClick={() => onNavigate(row.tab)}
+                    onClick={() => onNavigate(row.section)}
                     className="inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-ink-20)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
                   >
-                    Open {row.tabLabel}
+                    Open {row.sectionLabel}
                   </button>
                 )}
               </div>

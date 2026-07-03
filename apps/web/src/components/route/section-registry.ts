@@ -1,6 +1,6 @@
 import type { RouteSurfaceCapability, StudioRouteCapability } from "@/studio/api-contract";
 
-export type RouteDetailTabValue =
+export type RouteDetailSectionValue =
   | "overview"
   | "map"
   | "where-when"
@@ -9,55 +9,53 @@ export type RouteDetailTabValue =
   | "treatments"
   | "evidence";
 
-export type RouteDetailTab = {
-  value: RouteDetailTabValue;
+export type RouteDetailSection = {
+  value: RouteDetailSectionValue;
   label: string;
-  question?: string;
   badge?: { count: number; severity: "low" | "medium" | "high" } | undefined;
   emptyState?: HonestEmptyState | undefined;
 };
 
-export const ROUTE_SECTION_QUESTIONS = {
-  overview: "What's the story?",
-  map: "Where does it hurt?",
-  "where-when": "Where and when does it lose time?",
-  reliability: "Can riders count on it?",
-  riders: "Who bears it?",
-  treatments: "What was tried?",
-  evidence: "What can I cite?",
-} as const satisfies Record<RouteDetailTabValue, string>;
+export const ROUTE_SECTION_TITLES = {
+  overview: "Overview",
+  map: "Route map",
+  "where-when": "Slow segments",
+  reliability: "Reliability",
+  riders: "Riders",
+  treatments: "Treatments & history",
+  evidence: "Evidence & data notes",
+} as const satisfies Record<RouteDetailSectionValue, string>;
 
-/** The question-shaped route-section tabs (frontend §4.3). Treatments & history
- * absorbs the old Interventions and Timeline tabs; Evidence absorbs Data notes. */
-export const ROUTE_DETAIL_TABS = [
-  { value: "overview", label: "Overview", question: ROUTE_SECTION_QUESTIONS.overview },
-  { value: "map", label: "Map", question: ROUTE_SECTION_QUESTIONS.map },
-  { value: "where-when", label: "Where & when", question: ROUTE_SECTION_QUESTIONS["where-when"] },
-  { value: "reliability", label: "Reliability", question: ROUTE_SECTION_QUESTIONS.reliability },
-  { value: "riders", label: "Riders", question: ROUTE_SECTION_QUESTIONS.riders },
-  {
-    value: "treatments",
-    label: "Treatments & history",
-    question: ROUTE_SECTION_QUESTIONS.treatments,
-  },
-  { value: "evidence", label: "Evidence", question: ROUTE_SECTION_QUESTIONS.evidence },
-] as const satisfies readonly RouteDetailTab[];
+/** The route sections share one capability/honest-empty contract. */
+export const ROUTE_DETAIL_SECTIONS = [
+  { value: "overview", label: ROUTE_SECTION_TITLES.overview },
+  { value: "map", label: ROUTE_SECTION_TITLES.map },
+  { value: "where-when", label: ROUTE_SECTION_TITLES["where-when"] },
+  { value: "reliability", label: ROUTE_SECTION_TITLES.reliability },
+  { value: "riders", label: ROUTE_SECTION_TITLES.riders },
+  { value: "treatments", label: ROUTE_SECTION_TITLES.treatments },
+  { value: "evidence", label: ROUTE_SECTION_TITLES.evidence },
+] as const satisfies readonly RouteDetailSection[];
 
-export function routeSectionQuestion(tabValue: RouteDetailTabValue): string {
-  return ROUTE_SECTION_QUESTIONS[tabValue];
+export function routeSectionTitle(sectionValue: RouteDetailSectionValue): string {
+  return ROUTE_SECTION_TITLES[sectionValue];
+}
+
+export function routeSectionAnchorId(sectionValue: RouteDetailSectionValue): string {
+  return `route-section-${sectionValue}`;
 }
 
 /**
- * The manifest-driven section registry (frontend §8.1): each route-detail tab
- * declares which capability surfaces back it, and the manifest decides whether
- * the tab renders its section, shows one of the four honest-empty states
- * (§8.2), or disappears entirely. This is what kills the uniform page — a
- * sparse route and a flagship route no longer pretend to have the same dossier.
+ * The manifest-driven section registry (frontend §8.1): each route-detail
+ * section declares which capability surfaces back it, and the manifest decides
+ * whether the section renders, shows one of the four honest-empty states
+ * (§8.2), or disappears entirely. This is what keeps sparse and flagship
+ * routes from pretending to have the same evidence depth.
  *
- * `overview` and `evidence` are unconditional: the verdict and the
- * provenance story must render for every route, however thin.
+ * `overview` and `evidence` are unconditional: the public summary and
+ * provenance must render for every route, however thin.
  */
-const TAB_CONFIG: Record<RouteDetailTabValue, RouteSectionConfig> = {
+const SECTION_CONFIG: Record<RouteDetailSectionValue, RouteSectionConfig> = {
   overview: { surfaces: [] },
   map: { surfaces: ["map", "geometry", "routeGeometry"] },
   "where-when": { surfaces: ["speedHistory"] },
@@ -90,17 +88,17 @@ export type SectionPresentation =
     };
 
 export type HiddenRouteSectionEntry = {
-  tab: RouteDetailTab;
+  section: RouteDetailSection;
   presentation: Extract<SectionPresentation, { mode: "hidden" }>;
 };
 
 export type RouteSectionRegistry = {
-  presentations: Record<RouteDetailTabValue, SectionPresentation>;
-  visibleTabs: RouteDetailTab[];
+  presentations: Record<RouteDetailSectionValue, SectionPresentation>;
+  visibleSections: RouteDetailSection[];
   hiddenSections: HiddenRouteSectionEntry[];
 };
 
-/** Higher = closer to rendering. Governs which backing surface speaks for a tab. */
+/** Higher = closer to rendering. Governs which backing surface speaks for a section. */
 const STATE_RANK: Record<RouteSurfaceCapability["state"], number> = {
   ready: 6,
   partial: 5,
@@ -113,11 +111,11 @@ const STATE_RANK: Record<RouteSurfaceCapability["state"], number> = {
 
 export function sectionPresentation(
   capability: StudioRouteCapability | null,
-  tabValue: RouteDetailTabValue,
+  sectionValue: RouteDetailSectionValue,
 ): SectionPresentation {
-  const config = TAB_CONFIG[tabValue];
+  const config = SECTION_CONFIG[sectionValue];
   const surfaceKeys = config.surfaces;
-  // No manifest (legacy fallback) or unconditional tab: render as before.
+  // No manifest (legacy fallback) or unconditional section: render as before.
   if (capability === null || surfaceKeys.length === 0) return { mode: "render" };
 
   const surfaces = surfaceKeys
@@ -161,17 +159,17 @@ export function sectionPresentation(
 
 export function routeSectionRegistry(
   capability: StudioRouteCapability | null,
-  tabBadges: Partial<Record<RouteDetailTabValue, RouteDetailTab["badge"]>> = {},
+  sectionBadges: Partial<Record<RouteDetailSectionValue, RouteDetailSection["badge"]>> = {},
 ): RouteSectionRegistry {
-  const presentations = {} as Record<RouteDetailTabValue, SectionPresentation>;
-  const visibleTabs: RouteDetailTab[] = [];
+  const presentations = {} as Record<RouteDetailSectionValue, SectionPresentation>;
+  const visibleSections: RouteDetailSection[] = [];
   const hiddenSections: HiddenRouteSectionEntry[] = [];
 
-  for (const tab of ROUTE_DETAIL_TABS) {
-    const presentation = sectionPresentation(capability, tab.value);
-    const sourceBadge = tabBadges[tab.value];
+  for (const section of ROUTE_DETAIL_SECTIONS) {
+    const presentation = sectionPresentation(capability, section.value);
+    const sourceBadge = sectionBadges[section.value];
     const badge =
-      tab.value === "evidence" && hiddenSections.length > 0
+      section.value === "evidence" && hiddenSections.length > 0
         ? sourceBadge === undefined
           ? { count: hiddenSections.length, severity: "medium" as const }
           : {
@@ -179,34 +177,36 @@ export function routeSectionRegistry(
               severity: sourceBadge.severity === "low" ? "medium" : sourceBadge.severity,
             }
         : sourceBadge;
-    const badgedTab = badge === undefined ? tab : { ...tab, badge };
-    presentations[tab.value] = presentation;
+    const badgedSection = badge === undefined ? section : { ...section, badge };
+    presentations[section.value] = presentation;
     if (presentation.mode === "hidden") {
-      hiddenSections.push({ tab: badgedTab, presentation });
+      hiddenSections.push({ section: badgedSection, presentation });
       continue;
     }
 
-    visibleTabs.push(
-      presentation.mode === "empty" ? { ...badgedTab, emptyState: presentation.state } : badgedTab,
+    visibleSections.push(
+      presentation.mode === "empty"
+        ? { ...badgedSection, emptyState: presentation.state }
+        : badgedSection,
     );
   }
 
-  return { presentations, visibleTabs, hiddenSections };
+  return { presentations, visibleSections, hiddenSections };
 }
 
 export function routeSectionCanNavigate(
   registry: Pick<RouteSectionRegistry, "presentations">,
-  tabValue: RouteDetailTabValue,
+  sectionValue: RouteDetailSectionValue,
 ): boolean {
-  return registry.presentations[tabValue].mode !== "hidden";
+  return registry.presentations[sectionValue].mode !== "hidden";
 }
 
 export function routeSectionNavigationTarget(
   registry: Pick<RouteSectionRegistry, "presentations">,
-  tabValue: RouteDetailTabValue,
-  fallback: RouteDetailTabValue | null = "evidence",
-): RouteDetailTabValue | null {
-  if (routeSectionCanNavigate(registry, tabValue)) return tabValue;
+  sectionValue: RouteDetailSectionValue,
+  fallback: RouteDetailSectionValue | null = "evidence",
+): RouteDetailSectionValue | null {
+  if (routeSectionCanNavigate(registry, sectionValue)) return sectionValue;
   if (fallback === null) return null;
   return routeSectionCanNavigate(registry, fallback) ? fallback : null;
 }

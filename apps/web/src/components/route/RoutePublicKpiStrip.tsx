@@ -1,14 +1,8 @@
-import type { ReactNode } from "react";
-import {
-  MetricColumn,
-  MetricColumns,
-  MetricStat,
-  metricToneColor,
-} from "@/components/route/MetricColumns";
+import { RPubBigStat } from "@/components/route/RoutePublicAtoms";
 import { reliabilitySummary } from "@/components/route/reliability-summary";
 import { riderImpactSummary } from "@/components/route/rider-impact-summary";
 import {
-  type RouteDetailTabValue,
+  type RouteDetailSectionValue,
   type RouteSectionRegistry,
   routeSectionNavigationTarget,
 } from "@/components/route/section-registry";
@@ -18,12 +12,9 @@ import type {
   StudioRoute,
   StudioRouteCapability,
 } from "@/studio/api-contract";
-import type { MetricTone } from "@/studio/metric-model";
 
-/**
- * The route header KPI strip: five real numbers fed by the route dossier.
- * Each column clicks through to the tab that explains it.
- */
+/** The route header KPI strip: five real numbers fed by the route record.
+ * Each column scrolls to the section that explains it. */
 
 const RELIABILITY_SURFACE = "reliability";
 const RIDERSHIP_SURFACE = "ridership";
@@ -41,45 +32,7 @@ function peerSub(peerPercentile: number | null): string {
   return `slower than ${Math.round(100 - peerPercentile)}% of peers`;
 }
 
-function Kpi({
-  label,
-  divider,
-  onClick,
-  value,
-  unit,
-  tone = "ink",
-  trailing,
-  sub,
-}: {
-  label: string;
-  divider: boolean;
-  onClick?: (() => void) | undefined;
-  value: ReactNode;
-  unit?: string | undefined;
-  tone?: MetricTone;
-  trailing?: ReactNode;
-  sub: string;
-}) {
-  const body = (
-    <>
-      <MetricStat value={value} unit={unit} color={metricToneColor[tone]} trailing={trailing} />
-      <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">{sub}</div>
-    </>
-  );
-  return (
-    <MetricColumn label={label} divider={divider}>
-      {onClick ? (
-        <button type="button" onClick={onClick} className="block w-full cursor-pointer text-left">
-          {body}
-        </button>
-      ) : (
-        body
-      )}
-    </MetricColumn>
-  );
-}
-
-export function RouteJudgedKpiStrip({
+export function RoutePublicKpiStrip({
   route,
   dossier,
   capability,
@@ -90,7 +43,7 @@ export function RouteJudgedKpiStrip({
   dossier: RouteDossierSummaryForDetail | null;
   capability: StudioRouteCapability | null;
   sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
-  onNavigate: (tab: RouteDetailTabValue) => void;
+  onNavigate: (section: RouteDetailSectionValue) => void;
 }) {
   const speed = dossier?.speed ?? null;
   const posture = dossier?.treatmentPosture ?? null;
@@ -112,25 +65,23 @@ export function RouteJudgedKpiStrip({
   const aceSub = aceActive
     ? `ACE${posture?.aceSince ? ` since ${posture.aceSince.slice(0, 4)}` : " active"}`
     : "no camera enforcement";
-  const clickTarget = (tab: RouteDetailTabValue) => {
-    const target = routeSectionNavigationTarget(sectionRegistry, tab, "evidence");
+  const clickTarget = (section: RouteDetailSectionValue) => {
+    const target = routeSectionNavigationTarget(sectionRegistry, section, "evidence");
     return target === null ? undefined : () => onNavigate(target);
   };
 
   return (
-    <MetricColumns>
-      <Kpi
+    <div className="grid grid-cols-5 gap-5 max-xl:grid-cols-3 max-md:grid-cols-1">
+      <RPubBigStat
         label="Speed"
-        divider
         onClick={clickTarget("where-when")}
         value={currentSpeed > 0 ? currentSpeed.toFixed(1) : "—"}
         unit="mph"
         tone={currentSpeed > 0 && currentSpeed < 6 ? "bad" : "ink"}
         sub={peerSub(speed?.peerPercentile ?? null)}
       />
-      <Kpi
+      <RPubBigStat
         label="Trend"
-        divider
         onClick={clickTarget("where-when")}
         value={fmtPct(trendPct)}
         tone={trendPct === null ? "ink" : trendPct < 0 ? "bad" : "good"}
@@ -146,9 +97,8 @@ export function RouteJudgedKpiStrip({
         }
         sub="past 6 months"
       />
-      <Kpi
+      <RPubBigStat
         label="Excess wait"
-        divider
         onClick={clickTarget("reliability")}
         value={reliabilityKpi.hasObservedMetrics ? reliabilityKpi.excessWaitLabel : "—"}
         tone={reliabilityKpi.hasObservedMetrics ? reliabilityKpi.kpiTone : "ink"}
@@ -158,23 +108,21 @@ export function RouteJudgedKpiStrip({
             : "not yet measured"
         }
       />
-      <Kpi
+      <RPubBigStat
         label="Riders"
-        divider
         onClick={clickTarget("riders")}
         value={route.dailyRiders > 0 ? ridersKpi.kpiValue : "—"}
         tone={ridersKpi.kpiTone}
         sub={route.dailyRiders > 0 ? "daily riders" : "not yet measured"}
       />
-      <Kpi
+      <RPubBigStat
         label="Bus lane"
-        divider={false}
         onClick={clickTarget("treatments")}
         value={`${route.laneCoverage}%`}
         unit="of route"
         tone={route.laneCoverage > 0 ? "good" : "ink"}
         sub={aceSub}
       />
-    </MetricColumns>
+    </div>
   );
 }

@@ -1,10 +1,10 @@
 import type { StudioRouteInsight } from "@/studio/api-contract";
 import {
-  routeTabForInsight,
+  routeSectionForInsight,
   safeInsightCaveats,
   stableInsightSort,
 } from "./route-insight-placement";
-import type { RouteDetailTabValue } from "./section-registry";
+import type { RouteDetailSectionValue } from "./section-registry";
 
 export type RouteInsightMicroFigureKind =
   | "segment_strip"
@@ -16,8 +16,8 @@ export type RouteInsightCardSpec = {
   detectorLabel: string;
   evidenceLabel: string;
   microFigureKind: RouteInsightMicroFigureKind;
-  tab: RouteDetailTabValue;
-  tabLabel: string;
+  section: RouteDetailSectionValue;
+  sectionLabel: string;
 };
 
 export type RouteEvidenceIndexRow = {
@@ -26,23 +26,23 @@ export type RouteEvidenceIndexRow = {
   detectorLabel: string;
   severity: StudioRouteInsight["severity"];
   monthLabel: string | null;
-  tab: RouteDetailTabValue;
-  tabLabel: string;
+  section: RouteDetailSectionValue;
+  sectionLabel: string;
   citationLabel: string;
   referenceDetailLabel: string;
   caveats: string[];
 };
 
 export function routeInsightCardSpec(insight: StudioRouteInsight): RouteInsightCardSpec {
-  const tab = routeTabForInsight(insight);
-  const microFigureKind = routeInsightMicroFigureKind(insight, tab);
+  const section = routeSectionForInsight(insight);
+  const microFigureKind = routeInsightMicroFigureKind(insight, section);
 
   return {
     detectorLabel: labelFromToken(insight.detectorId),
     evidenceLabel: evidenceLabel(insight),
     microFigureKind,
-    tab,
-    tabLabel: routeInsightTabLabel(tab),
+    section,
+    sectionLabel: routeInsightSectionLabel(section),
   };
 }
 
@@ -59,8 +59,8 @@ export function routeEvidenceIndexRows(
       detectorLabel: spec.detectorLabel,
       severity: insight.severity,
       monthLabel: insight.asOfMonth ?? insight.month ?? null,
-      tab: spec.tab,
-      tabLabel: spec.tabLabel,
+      section: spec.section,
+      sectionLabel: spec.sectionLabel,
       citationLabel: citationLabel(insight.refs.length),
       referenceDetailLabel: referenceDetailLabel(counts),
       caveats: safeInsightCaveats(insight, 2),
@@ -68,34 +68,34 @@ export function routeEvidenceIndexRows(
   });
 }
 
-export function routeInsightTabLabel(tab: RouteDetailTabValue): string {
-  switch (tab) {
+export function routeInsightSectionLabel(section: RouteDetailSectionValue): string {
+  switch (section) {
     case "where-when":
       return "Where & when";
     case "treatments":
       return "Treatments & history";
     default:
-      return tab[0]?.toUpperCase() + tab.slice(1);
+      return section[0]?.toUpperCase() + section.slice(1);
   }
 }
 
 export function routeInsightMicroFigureKind(
   insight: StudioRouteInsight,
-  tab: RouteDetailTabValue = routeTabForInsight(insight),
+  section: RouteDetailSectionValue = routeSectionForInsight(insight),
 ): RouteInsightMicroFigureKind {
   if (
     insight.kind === "map_segment" ||
     insight.placement === "map_segment" ||
     (insight.target?.segmentIds?.length ?? 0) > 0 ||
-    tab === "map"
+    section === "map"
   ) {
     return "segment_strip";
   }
-  if (insight.detectorId === "source_gap" || tab === "evidence") return "coverage_chip";
+  if (insight.detectorId === "source_gap" || section === "evidence") return "coverage_chip";
   if (
     insight.kind === "timeline_annotation" ||
     insight.kind === "treatment_scope" ||
-    tab === "treatments"
+    section === "treatments"
   ) {
     return "timeline_tick";
   }

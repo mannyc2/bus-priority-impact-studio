@@ -1,26 +1,24 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect } from "react";
 import { KPISkeleton } from "@/components/KPI";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
 import { HonestEmptySection } from "@/components/route/HonestEmptySection";
-import { OverviewSection } from "@/components/route/OverviewSection";
 import { ReliabilitySection } from "@/components/route/ReliabilitySection";
 import { RidersSection } from "@/components/route/RidersSection";
 import { RouteDetailShell } from "@/components/route/RouteDetailShell";
-import { RouteHeader } from "@/components/route/RouteHeader";
-import { RouteJudgedKpiStrip } from "@/components/route/RouteJudgedKpiStrip";
 import { RouteMapSection } from "@/components/route/RouteMapSection";
-import { routeDossierArchetype } from "@/components/route/route-archetype";
-import { routeTabBadges } from "@/components/route/route-insight-placement";
+import { RPubHeader, routePublicLede } from "@/components/route/RoutePublicAtoms";
+import { RoutePublicKpiStrip } from "@/components/route/RoutePublicKpiStrip";
+import { routeSectionBadges } from "@/components/route/route-insight-placement";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
 import {
-  ROUTE_DETAIL_TABS,
-  type RouteDetailTabValue,
+  ROUTE_DETAIL_SECTIONS,
+  type RouteDetailSectionValue,
+  routeSectionAnchorId,
   routeSectionRegistry,
 } from "@/components/route/section-registry";
 import { TreatmentsHistorySection } from "@/components/route/TreatmentsHistorySection";
 import { SegmentRowHeader, SegmentRowSkeleton } from "@/components/SegmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TabsContent } from "@/components/ui/tabs";
 import { pushRecentRoute } from "@/lib/recent-routes";
 import type { StudioRouteDetailResponse, StudioRouteEvidenceBundle } from "../api-contract.js";
 import { StudioPage } from "../page.js";
@@ -44,22 +42,26 @@ export function RouteDetailPage({
 
   const { route, segments } = data;
   const flagged = segments.find((s) => s.flagged);
-  const [activeTab, setActiveTab] = useState<RouteDetailTabValue>("overview");
 
-  const tabBadges = routeTabBadges(data.insights);
-  const sectionRegistry = routeSectionRegistry(data.capability, tabBadges);
-  const archetype = routeDossierArchetype({ capability: data.capability, dossier: data.dossier });
-  const section = (tab: RouteDetailTabValue, render: () => ReactNode) => {
-    const presentation = sectionRegistry.presentations[tab];
+  const sectionBadges = routeSectionBadges(data.insights);
+  const sectionRegistry = routeSectionRegistry(data.capability, sectionBadges);
+  const navigateToSection = useCallback((sectionValue: RouteDetailSectionValue) => {
+    document.getElementById(routeSectionAnchorId(sectionValue))?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, []);
+  const section = (sectionValue: RouteDetailSectionValue, render: () => ReactNode) => {
+    const presentation = sectionRegistry.presentations[sectionValue];
     if (presentation.mode === "hidden") return null;
     return (
-      <TabsContent value={tab}>
+      <section id={routeSectionAnchorId(sectionValue)} className="scroll-mt-5">
         {presentation.mode === "render" ? (
           render()
         ) : (
           <HonestEmptySection state={presentation.state} reason={presentation.reason} />
         )}
-      </TabsContent>
+      </section>
     );
   };
 
@@ -68,35 +70,22 @@ export function RouteDetailPage({
       <TrackRecentRoute slug={route.slug} />
       <RouteDetailShell
         header={
-          <RouteHeader
+          <RPubHeader
             route={route}
-            contextLabel={archetype.label}
-            metricStrip={
-              <RouteJudgedKpiStrip
+            lede={routePublicLede({ route, dossier: data.dossier })}
+            stats={
+              <RoutePublicKpiStrip
                 route={route}
                 dossier={data.dossier}
                 capability={data.capability}
                 sectionRegistry={sectionRegistry}
-                onNavigate={(tab) => setActiveTab(tab)}
+                onNavigate={navigateToSection}
               />
             }
           />
         }
-        tabs={sectionRegistry.visibleTabs}
-        value={
-          sectionRegistry.visibleTabs.some((tab) => tab.value === activeTab)
-            ? activeTab
-            : "overview"
-        }
-        onValueChange={(value) => setActiveTab(value as RouteDetailTabValue)}
+        sections={sectionRegistry.visibleSections}
       >
-        {section("overview", () => (
-          <OverviewSection
-            data={data}
-            sectionRegistry={sectionRegistry}
-            onNavigate={(tab) => setActiveTab(tab)}
-          />
-        ))}
         {section("map", () => (
           <RouteMapSection data={data} />
         ))}
@@ -123,7 +112,7 @@ export function RouteDetailPage({
             data={data}
             evidence={evidence}
             sectionRegistry={sectionRegistry}
-            onNavigate={(tab) => setActiveTab(tab)}
+            onNavigate={navigateToSection}
           />
         ))}
       </RouteDetailShell>
@@ -162,8 +151,8 @@ export function RouteDetailLoadingPage() {
         </header>
         <div className="shrink-0 bg-[var(--bp-color-card)] px-7 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
           <div className="flex gap-6 py-[10px]">
-            {ROUTE_DETAIL_TABS.map((tab) => (
-              <Skeleton key={tab.value} className="h-[15px] w-[82px]" />
+            {ROUTE_DETAIL_SECTIONS.map((section) => (
+              <Skeleton key={section.value} className="h-[15px] w-[82px]" />
             ))}
           </div>
         </div>

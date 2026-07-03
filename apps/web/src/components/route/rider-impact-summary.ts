@@ -62,7 +62,7 @@ export function riderImpactSummary({
   const trendDetail =
     ridership?.movement6mPct === null || ridership?.movement6mPct === undefined
       ? "YoY in current projection"
-      : "6 mo dossier ridership";
+      : "6 mo ridership trend";
   const topSegments = [...segments].sort((a, b) => b.riderHours - a.riderHours).slice(0, 6);
   const topSegment = topSegments[0] ?? null;
   const topShare =

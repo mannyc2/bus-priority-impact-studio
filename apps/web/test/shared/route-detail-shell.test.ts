@@ -52,16 +52,14 @@ function renderShell(capability: StudioRouteCapability) {
   return renderToStaticMarkup(
     createElement(RouteDetailShell, {
       header: createElement("h1", null, "Route shell"),
-      tabs: registry.visibleTabs,
-      value: "overview",
-      onValueChange: () => undefined,
+      sections: registry.visibleSections,
       children: createElement("section", null, "Shell body"),
     }),
   );
 }
 
-describe("RouteDetailShell tab render contract", () => {
-  test("renders distinct tab sets for the §8.1 contrast route shapes", () => {
+describe("RouteDetailShell section render contract", () => {
+  test("renders distinct section indexes for the §8.1 contrast route shapes", () => {
     const richHtml = renderShell(rich);
     const cleanHtml = renderShell(clean);
     const sparseHtml = renderShell(sparse);
@@ -75,19 +73,20 @@ describe("RouteDetailShell tab render contract", () => {
 
     for (const html of [richHtml, cleanHtml, sparseHtml]) {
       expect(html).toContain("Overview");
-      expect(html).toContain("Map");
-      expect(html).toContain("Evidence");
+      expect(html).toContain("Route map");
+      expect(html).toContain("Evidence &amp; data notes");
+      expect(html).toContain('href="#route-section-overview"');
     }
   });
 
-  test("renders badges only for visible tabs", () => {
+  test("renders badges only for visible sections", () => {
     const sparseHtml = renderShell(sparse);
 
     expect(sparseHtml).toContain('aria-label="1 notice"');
     expect(sparseHtml).not.toContain('aria-label="2 notices"');
   });
 
-  test("marks visible honest-empty tabs without exposing hidden tabs", () => {
+  test("marks visible honest-empty sections without exposing hidden sections", () => {
     const cleanHtml = renderShell(clean);
     const sparseHtml = renderShell(sparse);
 
@@ -99,11 +98,12 @@ describe("RouteDetailShell tab render contract", () => {
     expect(sparseHtml).not.toContain("Reliability");
   });
 
-  test("preserves question-shaped tab titles in the shell chrome", () => {
+  test("does not render the retired question-shaped section titles", () => {
     const richHtml = renderShell(rich);
 
-    expect(richHtml).toContain('title="Where and when does it lose time?"');
-    expect(richHtml).toContain('title="Can riders count on it?"');
-    expect(richHtml).toContain('title="What can I cite?"');
+    expect(richHtml).not.toContain("Where and when does it lose time?");
+    expect(richHtml).not.toContain("Can riders count on it?");
+    expect(richHtml).not.toContain("What can I cite?");
+    expect(richHtml).toContain('href="#route-section-where-when"');
   });
 });

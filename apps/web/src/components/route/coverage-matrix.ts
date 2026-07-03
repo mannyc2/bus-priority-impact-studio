@@ -23,7 +23,7 @@ export type CheckedCleanCoverageChip = {
 };
 
 const SURFACE_LABELS: Record<string, string> = {
-  condition: "Condition",
+  condition: "Route condition",
   detectorFindings: "Evidence",
   geometry: "Geometry",
   map: "Map",

@@ -21,7 +21,7 @@ const COMPLETE_STATES = new Set<RouteSurfaceCapability["state"]>([
   "checked_clean",
 ]);
 
-const EVIDENCE_QUESTION_SURFACES = [
+const EVIDENCE_SECTION_SURFACES = [
   "condition",
   "speedHistory",
   "ridership",
@@ -44,7 +44,7 @@ export function routeDossierArchetype({
   if (capability === null) {
     return {
       id: "legacy",
-      label: "Legacy dossier",
+      label: "Legacy route",
       summary: "No capability manifest is published for this route yet.",
       badgeVariant: "neutral",
       completeSurfaceCount: 0,
@@ -61,7 +61,7 @@ export function routeDossierArchetype({
     [dossier?.speed.sparkline.length ?? 0, dossier?.ridership.sparkline.length ?? 0].filter(
       (months) => months >= 24,
     ).length;
-  const questionSurfaceCount = EVIDENCE_QUESTION_SURFACES.filter((key) => {
+  const sectionSurfaceCount = EVIDENCE_SECTION_SURFACES.filter((key) => {
     const surface = capability.surfaces[key];
     return surface !== undefined && COMPLETE_STATES.has(surface.state);
   }).length;
@@ -69,7 +69,7 @@ export function routeDossierArchetype({
   if (capability.overallState === "building" || completeSurfaceCount <= 2) {
     return {
       id: "sparse",
-      label: "Sparse dossier",
+      label: "Sparse route",
       summary: `${completeSurfaceCount} evidence surface(s) are published; several sections still need route-level support.`,
       badgeVariant: "warn",
       completeSurfaceCount,
@@ -77,10 +77,10 @@ export function routeDossierArchetype({
     };
   }
 
-  if (completeSurfaceCount >= 6 && questionSurfaceCount >= 5 && deepSurfaceCount > 0) {
+  if (completeSurfaceCount >= 6 && sectionSurfaceCount >= 5 && deepSurfaceCount > 0) {
     return {
       id: "flagship",
-      label: "Flagship dossier",
+      label: "Flagship route",
       summary: `${completeSurfaceCount} evidence surfaces are published, including ${deepSurfaceCount} multi-year surface(s).`,
       badgeVariant: "good",
       completeSurfaceCount,
@@ -90,7 +90,7 @@ export function routeDossierArchetype({
 
   return {
     id: "standard",
-    label: "Standard dossier",
+    label: "Standard route",
     summary: `${completeSurfaceCount} evidence surface(s) are published; richer multi-year sections appear as they clear support gates.`,
     badgeVariant: "accent",
     completeSurfaceCount,

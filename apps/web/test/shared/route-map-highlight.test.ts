@@ -169,7 +169,7 @@ describe("routeMapHighlight", () => {
     });
   });
 
-  test("summarizes a matched focus segment for the Map tab", () => {
+  test("summarizes a matched focus segment for the map section", () => {
     expect(
       routeMapFocusSummary({
         signalCount: 2,
