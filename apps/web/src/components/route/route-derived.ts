@@ -40,7 +40,7 @@ export function dossierMetricWindow(metric: RouteDossierMetricSummary | undefine
   return `${months[0]} to ${months[months.length - 1]}`;
 }
 
-export function routeVerdict(
+export function routePerformanceSummary(
   route: StudioRoute,
   dossier: RouteDossierSummaryForDetail | null,
 ): {

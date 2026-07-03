@@ -15,7 +15,7 @@ import {
   insightTargetsSegment,
   routeInsightPlacements,
 } from "@/components/route/route-insight-placement";
-import { routeSectionQuestion } from "@/components/route/section-registry";
+import { routeSectionTitle } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { TimeScrubber } from "@/components/TimeScrubber";
 import { Badge } from "@/components/ui/badge";
@@ -146,7 +146,7 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
   return (
     <section className="flex flex-col gap-5">
       <SectionHeader
-        title={routeSectionQuestion("map")}
+        title={routeSectionTitle("map")}
         sub="Observed segment speeds on the route's street geometry by hour."
         right={
           <div className="flex flex-wrap items-center gap-2">

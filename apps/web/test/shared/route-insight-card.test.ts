@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   routeInsightCardSpec,
   routeInsightMicroFigureKind,
-  routeInsightTabLabel,
+  routeInsightSectionLabel,
 } from "../../src/components/route/route-insight-card";
 import type { StudioRouteInsight } from "../../src/studio/api-contract";
 
@@ -38,12 +38,12 @@ describe("route insight card specs", () => {
       detectorLabel: "speed pace hotspot",
       evidenceLabel: "2 cited refs",
       microFigureKind: "segment_strip",
-      tab: "map",
-      tabLabel: "Map",
+      section: "map",
+      sectionLabel: "Map",
     });
   });
 
-  test("keeps source gaps pointed at the evidence tab with coverage cues", () => {
+  test("keeps source gaps pointed at the evidence section with coverage cues", () => {
     expect(
       routeInsightCardSpec(
         insight({
@@ -54,8 +54,8 @@ describe("route insight card specs", () => {
     ).toMatchObject({
       evidenceLabel: "Source gap",
       microFigureKind: "coverage_chip",
-      tab: "evidence",
-      tabLabel: "Evidence",
+      section: "evidence",
+      sectionLabel: "Evidence",
     });
   });
 
@@ -68,13 +68,13 @@ describe("route insight card specs", () => {
 
     expect(routeInsightMicroFigureKind(treatmentInsight)).toBe("timeline_tick");
     expect(routeInsightCardSpec(treatmentInsight)).toMatchObject({
-      tab: "treatments",
-      tabLabel: "Treatments & history",
+      section: "treatments",
+      sectionLabel: "Treatments & history",
     });
   });
 
-  test("falls back to compact tab labels for question-shaped tabs", () => {
-    expect(routeInsightTabLabel("where-when")).toBe("Where & when");
-    expect(routeInsightTabLabel("reliability")).toBe("Reliability");
+  test("uses compact labels for evidence index section links", () => {
+    expect(routeInsightSectionLabel("where-when")).toBe("Where & when");
+    expect(routeInsightSectionLabel("reliability")).toBe("Reliability");
   });
 });

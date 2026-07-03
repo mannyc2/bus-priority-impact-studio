@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   insightTargetsSegment,
   routeInsightPlacements,
-  routeTabBadges,
-  routeTabForInsight,
+  routeSectionBadges,
+  routeSectionForInsight,
   safeInsightCaveats,
 } from "../../src/components/route/route-insight-placement";
 import type { StudioRouteInsight } from "../../src/studio/api-contract";
@@ -22,7 +22,7 @@ function insight(input: Partial<StudioRouteInsight> & Pick<StudioRouteInsight, "
 }
 
 describe("route insight placement", () => {
-  test("selects top verdict insights while preserving section placements", () => {
+  test("selects top overview insights while preserving section placements", () => {
     const placements = routeInsightPlacements([
       insight({ placement: "overview", severity: "low", scopeId: "low" }),
       insight({ placement: "map_segment", severity: "medium", scopeId: "map" }),
@@ -81,9 +81,9 @@ describe("route insight placement", () => {
     ).toBe(true);
   });
 
-  test("routes insights to the tab that explains them", () => {
+  test("routes insights to the section that explains them", () => {
     expect(
-      routeTabForInsight(
+      routeSectionForInsight(
         insight({
           kind: "map_segment",
           placement: "map_segment",
@@ -92,7 +92,7 @@ describe("route insight placement", () => {
       ),
     ).toBe("map");
     expect(
-      routeTabForInsight(
+      routeSectionForInsight(
         insight({
           kind: "performance_annotation",
           placement: "chart_annotation",
@@ -101,7 +101,7 @@ describe("route insight placement", () => {
       ),
     ).toBe("reliability");
     expect(
-      routeTabForInsight(
+      routeSectionForInsight(
         insight({
           kind: "performance_annotation",
           placement: "overview",
@@ -110,7 +110,7 @@ describe("route insight placement", () => {
       ),
     ).toBe("riders");
     expect(
-      routeTabForInsight(
+      routeSectionForInsight(
         insight({
           kind: "performance_annotation",
           placement: "overview",
@@ -119,7 +119,7 @@ describe("route insight placement", () => {
       ),
     ).toBe("evidence");
     expect(
-      routeTabForInsight(
+      routeSectionForInsight(
         insight({
           kind: "treatment_scope",
           placement: "timeline",
@@ -129,9 +129,9 @@ describe("route insight placement", () => {
     ).toBe("treatments");
   });
 
-  test("counts tab badges and keeps the strongest severity per tab", () => {
+  test("counts section badges and keeps the strongest severity per section", () => {
     expect(
-      routeTabBadges([
+      routeSectionBadges([
         insight({
           kind: "performance_annotation",
           placement: "chart_annotation",

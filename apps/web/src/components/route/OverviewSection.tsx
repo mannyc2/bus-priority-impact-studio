@@ -7,7 +7,7 @@ import {
   dossierMetricWindow,
   dossierSpeedSeries,
   formatCompact,
-  routeVerdict,
+  routePerformanceSummary,
 } from "@/components/route/route-derived";
 import { routeInsightCardSpec } from "@/components/route/route-insight-card";
 import {
@@ -15,7 +15,7 @@ import {
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
 import {
-  type RouteDetailTabValue,
+  type RouteDetailSectionValue,
   type RouteSectionRegistry,
   routeSectionCanNavigate,
 } from "@/components/route/section-registry";
@@ -33,7 +33,7 @@ export function OverviewSection({
 }: {
   data: StudioRouteDetailResponse;
   sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
-  onNavigate: (tab: RouteDetailTabValue) => void;
+  onNavigate: (section: RouteDetailSectionValue) => void;
 }) {
   const { route, segments } = data;
   const historySpeeds = dossierSpeedSeries(data.dossier);
@@ -46,15 +46,15 @@ export function OverviewSection({
   const treatments = routeTreatments(route, segments);
   const overviewInsights = routeInsightPlacements(data.insights).overview;
   const mapTarget = routeSectionCanNavigate(sectionRegistry, "map") ? "map" : "evidence";
-  const verdict = routeVerdict(route, data.dossier);
+  const performance = routePerformanceSummary(route, data.dossier);
   const geo = useRouteSegmentsGeo(route.routeId);
 
   return (
     <div className="flex flex-col gap-7">
       <SummaryCard
         data={data}
-        verdictSpeed={verdict.speedMph}
-        peerPercentile={verdict.peerPercentile}
+        performanceSpeed={performance.speedMph}
+        peerPercentile={performance.peerPercentile}
         worstLabel={
           worst
             ? `${worst.label} has been the slowest stretch for ${worst.persistenceMonths} months`
@@ -142,13 +142,13 @@ export function OverviewSection({
 
 function SummaryCard({
   data,
-  verdictSpeed,
+  performanceSpeed,
   peerPercentile,
   worstLabel,
   treatments,
 }: {
   data: StudioRouteDetailResponse;
-  verdictSpeed: number;
+  performanceSpeed: number;
   peerPercentile: number | null;
   worstLabel: string | null;
   treatments: ReturnType<typeof routeTreatments>;
@@ -157,10 +157,10 @@ function SummaryCard({
   const speed = data.dossier?.speed ?? null;
   const sentences: string[] = [];
 
-  if (verdictSpeed > 0) {
+  if (performanceSpeed > 0) {
     const schedule =
       route.scheduledMph > 0 ? ` against a ${route.scheduledMph.toFixed(1)} mph schedule` : "";
-    sentences.push(`${route.label} runs ${verdictSpeed.toFixed(1)} mph${schedule}.`);
+    sentences.push(`${route.label} runs ${performanceSpeed.toFixed(1)} mph${schedule}.`);
   }
   const movement = speed?.movement6mPct ?? null;
   if (movement !== null && Math.abs(movement) >= 0.05) {
@@ -201,11 +201,11 @@ function InsightCard({
 }: {
   insight: StudioRouteInsight;
   sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
-  onNavigate: (tab: RouteDetailTabValue) => void;
+  onNavigate: (section: RouteDetailSectionValue) => void;
 }) {
   const caveats = safeInsightCaveats(insight, 2);
   const spec = routeInsightCardSpec(insight);
-  const target = routeSectionCanNavigate(sectionRegistry, spec.tab) ? spec.tab : "evidence";
+  const target = routeSectionCanNavigate(sectionRegistry, spec.section) ? spec.section : "evidence";
   return (
     <article className="flex flex-col rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
       <div className="flex items-start justify-between gap-3">

@@ -19,7 +19,7 @@ import {
 // route cards -> route index -> trust strip.
 //
 // Editorial copy and the citywide topline numbers are static civic framing;
-// the "Browse the full index" table, its borough filter, the featured-story
+// the "Browse the full index" table, its borough filter, the featured-route
 // links, and the hero suggestion chips are driven by the live route listing
 // (the same /api/v1/studio/routes feed the loader already provides), shown as
 // a grouped directory sorted by daily ridership.
@@ -256,7 +256,7 @@ function FeaturedCard({ item, slug }: { item: Featured; slug: string | undefined
             viewTransition
             className="mt-1 flex items-center gap-1 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
           >
-            Read the full story →
+            Open route profile →
           </Link>
         ) : (
           <a
@@ -351,9 +351,8 @@ export function HomePage({
             <p className="mt-5.5 max-w-[720px] text-pretty text-[18px] leading-[1.55] text-[var(--bp-color-ink-70)]">
               The city has spent the last fifteen years building tools to speed up its slowest buses
               — bus lanes, automated camera enforcement, signal priority. Some routes have moved
-              faster because of it. Others have kept slowing down. This site tells the story of
-              every route the program has touched, route by route, in plain numbers, from public
-              data.
+              faster because of it. Others have kept slowing down. This site tracks every route the
+              program has touched, route by route, in plain numbers, from public data.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3.5">
               <a

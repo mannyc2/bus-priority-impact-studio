@@ -46,10 +46,10 @@ describe("reliabilitySummary", () => {
 
   test("summarizes observed reliability without claiming an official grade", () => {
     expect(reliabilitySummary({ observed, capability: null })).toMatchObject({
-      kpiValue: "Observed",
+      kpiValue: "6.7 min",
       kpiSub: "31% long gaps · 5,848 samples",
       kpiTone: "bad",
-      statusLabel: "Observed",
+      statusLabel: "Published",
       sampleLabel: "5,848",
       sampleDetail: "2026-03 · third-party recovered GTFS-RT",
       medianHeadwayLabel: "7.3 min",

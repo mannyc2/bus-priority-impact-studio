@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { RouteJudgedKpiStrip } from "../../src/components/route/RouteJudgedKpiStrip";
+import { RoutePublicKpiStrip } from "../../src/components/route/RoutePublicKpiStrip";
 import { routeSectionRegistry } from "../../src/components/route/section-registry";
 import type {
   RouteDossierSummaryForDetail,
@@ -97,10 +97,10 @@ const dossier = {
   },
 } satisfies RouteDossierSummaryForDetail;
 
-describe("RouteJudgedKpiStrip", () => {
+describe("RoutePublicKpiStrip", () => {
   test("leads the speed KPI with the observed number and keeps peer framing in the sub", () => {
     const markup = renderToStaticMarkup(
-      createElement(RouteJudgedKpiStrip, {
+      createElement(RoutePublicKpiStrip, {
         route,
         dossier,
         capability,

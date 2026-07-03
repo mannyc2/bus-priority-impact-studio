@@ -97,7 +97,7 @@ describe("treatments history helpers", () => {
     ]);
   });
 
-  test("selects sorted timeline-placement insights for the treatment tab", () => {
+  test("selects sorted timeline-placement insights for the treatment section", () => {
     const rows = treatmentHistoryInsightRows([
       insight({ detectorId: "other", placement: "overview", severity: "high", scopeId: "skip" }),
       insight({

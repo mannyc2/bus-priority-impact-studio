@@ -1,11 +1,12 @@
 import { ChartFrame } from "@/components/ChartFrame";
+import { RPubInterventionCard } from "@/components/route/RoutePublicAtoms";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
   dossierSpeedSeries,
 } from "@/components/route/route-derived";
 import { routeInsightPlacements } from "@/components/route/route-insight-placement";
-import { routeSectionQuestion } from "@/components/route/section-registry";
+import { routeSectionTitle } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentInventory } from "@/components/TreatmentBadge";
@@ -54,6 +55,7 @@ export type TreatmentTimelineRow = {
   source: "serving" | "wiki";
   citationKeys: string[];
   sourceLabel: string | null;
+  tone: Tone;
 };
 
 export function treatmentHistoryInsightRows(
@@ -89,7 +91,7 @@ export function TreatmentsHistorySection({
     <div className="flex flex-col gap-7">
       <section>
         <SectionHeader
-          title={routeSectionQuestion("treatments")}
+          title={routeSectionTitle("treatments")}
           sub="What is in place, proposed, and comparable."
           right={
             <div className="flex flex-wrap items-center gap-2">
@@ -187,6 +189,7 @@ export function mergedTreatmentTimelineRows(
       source: "serving",
       citationKeys: [],
       sourceLabel: event.sourceLabel ?? event.sourceDetail ?? null,
+      tone: event.tone ?? "accent",
     };
     rows.set(timelineIdentity(row), row);
   }
@@ -197,10 +200,7 @@ export function mergedTreatmentTimelineRows(
     rows.set(timelineIdentity(row), row);
   }
 
-  return [...rows.values()].sort(
-    (left, right) =>
-      left.sortKey.localeCompare(right.sortKey) || left.title.localeCompare(right.title),
-  );
+  return [...rows.values()].sort(treatmentTimelineSort);
 }
 
 function timelineIdentity(row: TreatmentTimelineRow): string {
@@ -219,7 +219,41 @@ function wikiTimelineRow(event: StudioRouteEvidenceTimelineEvent): TreatmentTime
     source: "wiki",
     citationKeys: event.citationKeys,
     sourceLabel: "MTA-wiki",
+    tone: wikiEventTone(event),
   };
+}
+
+function treatmentTimelineSort(left: TreatmentTimelineRow, right: TreatmentTimelineRow): number {
+  const leftDated = isNormalizedDate(left.sortKey);
+  const rightDated = isNormalizedDate(right.sortKey);
+  if (leftDated && rightDated) {
+    return right.sortKey.localeCompare(left.sortKey) || left.title.localeCompare(right.title);
+  }
+  if (leftDated !== rightDated) return leftDated ? -1 : 1;
+  return left.dateLabel.localeCompare(right.dateLabel) || left.title.localeCompare(right.title);
+}
+
+function isNormalizedDate(value: string): boolean {
+  return /^\d{4}(?:-\d{2})?(?:-\d{2})?$/.test(value);
+}
+
+function wikiEventTone(event: StudioRouteEvidenceTimelineEvent): Tone {
+  const haystack = [
+    event.lifecyclePhase,
+    event.eventKind,
+    event.eventFamily,
+    event.recordKind,
+    event.title,
+  ]
+    .filter((value): value is string => value !== null)
+    .join(" ")
+    .toLowerCase();
+  if (/\b(complete|completed|open|opened|implemented|launch|launched)\b/.test(haystack)) {
+    return "good";
+  }
+  if (/\b(plan|planned|proposal|proposed|future|scheduled)\b/.test(haystack)) return "accent";
+  if (/\b(gap|unknown|missing|blocked|delayed)\b/.test(haystack)) return "warn";
+  return "accent";
 }
 
 function MergedTimelineList({
@@ -238,45 +272,28 @@ function MergedTimelineList({
   }
 
   return (
-    <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
+    <div className="grid grid-cols-2 gap-4 max-xl:grid-cols-1">
       {rows.map((row) => (
-        <div
+        <RPubInterventionCard
           key={row.key}
-          className="grid grid-cols-[92px_150px_minmax(0,1fr)_minmax(220px,0.8fr)] gap-4 px-4 py-4 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-lg:grid-cols-1 max-lg:gap-2"
-        >
-          <div className="font-mono text-[11.5px] font-semibold text-[var(--bp-color-accent)]">
-            {row.dateLabel}
-          </div>
-          <div>
-            <Badge variant={row.source === "wiki" ? "accent" : "neutral"}>
-              {row.source === "wiki" ? "wiki" : "serving"}
-            </Badge>
-            <div className="mt-1 font-mono text-[10px] text-[var(--bp-color-ink-55)]">
-              {row.kind.replaceAll("_", " ")}
-            </div>
-          </div>
-          <div className="min-w-0">
-            <div className="text-[13px] font-semibold leading-tight">{row.title}</div>
-            <div className="mt-1 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-70)]">
-              {row.detail}
-            </div>
-            {row.sourceLabel ? (
-              <div className="mt-2 font-mono text-[10px] text-[var(--bp-color-ink-55)]">
-                source / {row.sourceLabel}
-              </div>
-            ) : null}
-          </div>
-          {row.source === "wiki" ? (
-            <CitationChips evidence={evidence} citationKeys={row.citationKeys} />
-          ) : (
-            <div className="text-[11px] text-[var(--bp-color-ink-55)]">
-              {row.sourceLabel ?? "Serving record"}
-            </div>
-          )}
-        </div>
+          dateLabel={row.dateLabel}
+          yearLabel={timelineYearLabel(row.dateLabel)}
+          kind={row.source === "wiki" ? row.kind : "serving"}
+          title={row.title}
+          detail={row.detail}
+          tone={row.tone}
+          sourceLabel={row.sourceLabel}
+          citationKeys={row.citationKeys}
+          evidence={evidence}
+        />
       ))}
     </div>
   );
+}
+
+function timelineYearLabel(dateLabel: string): string {
+  const year = dateLabel.match(/\b\d{4}\b/)?.[0];
+  return year ?? dateLabel.slice(0, 4);
 }
 
 function WikiTreatmentEvidence({ evidence }: { evidence: StudioRouteEvidenceBundle | null }) {

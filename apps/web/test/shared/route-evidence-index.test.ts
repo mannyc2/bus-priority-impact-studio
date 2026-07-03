@@ -69,8 +69,8 @@ describe("route evidence index", () => {
         }),
       ])[0],
     ).toMatchObject({
-      tab: "evidence",
-      tabLabel: "Evidence",
+      section: "evidence",
+      sectionLabel: "Evidence",
       citationLabel: "No cited refs",
       referenceDetailLabel: "No public refs attached",
     });

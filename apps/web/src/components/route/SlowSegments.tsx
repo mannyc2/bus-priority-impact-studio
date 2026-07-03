@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChartFrame } from "@/components/ChartFrame";
-import { CorridorMap } from "@/components/CorridorMap";
 import { CorridorProfile } from "@/components/CorridorProfile";
 import { FilterChips } from "@/components/FilterChips";
 import { HourBars } from "@/components/HourBars";
+import { RPubSlowCard } from "@/components/route/RoutePublicAtoms";
 import { averageHourlySpeed } from "@/components/route/route-derived";
 import {
   insightTargetsSegment,
@@ -11,7 +11,7 @@ import {
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
 import { SegmentCarpet } from "@/components/route/SegmentCarpet";
-import { routeSectionQuestion } from "@/components/route/section-registry";
+import { routeSectionTitle } from "@/components/route/section-registry";
 import { buildSegmentCarpetModel } from "@/components/route/segment-carpet-data";
 import {
   type WhereWhenSummary,
@@ -19,8 +19,6 @@ import {
   whereWhenSummary,
 } from "@/components/route/where-when-summary";
 import { SectionHeader } from "@/components/SectionHeader";
-import { SegmentRow, SegmentRowHeader } from "@/components/SegmentRow";
-import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
 import { Badge } from "@/components/ui/badge";
 import { fetchStudioRouteSpeedHistory } from "@/studio/api-client";
 import type {
@@ -30,7 +28,6 @@ import type {
   StudioRouteSpeedHistoryResponse,
   StudioSegment,
 } from "@/studio/api-contract";
-import { legacyToTreatments } from "@/studio/treatment-model";
 
 type SegmentIdentity = {
   id: string;
@@ -65,7 +62,6 @@ export function SlowSegmentsSection({
   flaggedId?: string;
   dossier?: RouteDossierSummaryForDetail | null;
 }) {
-  const [openId, setOpenId] = useState<string | null>(flaggedId ?? null);
   const [direction, setDirection] = useState<"all" | "NB" | "SB" | "EB" | "WB">("all");
   const hourProfile = averageHourlySpeed(route, segments);
   const summary = whereWhenSummary({ route, segments, dossier: dossier ?? null });
@@ -95,12 +91,12 @@ export function SlowSegmentsSection({
     topVisible,
   );
   const featured = visible.slice(0, 3);
-  const tableRows = visible.slice(3);
+  const routeMedianMph = medianSegmentSpeed(directionSegments);
 
   return (
     <section className="flex flex-col gap-5">
       <SectionHeader
-        title={routeSectionQuestion("where-when")}
+        title={routeSectionTitle("where-when")}
         sub={summary.sectionSubtitle}
         right={
           <div className="flex items-center gap-2">
@@ -117,6 +113,28 @@ export function SlowSegmentsSection({
           </div>
         }
       />
+      {featured.length > 0 ? (
+        <div className="grid grid-cols-3 gap-4 max-xl:grid-cols-1">
+          {featured.map((segment, index) => (
+            <RPubSlowCard
+              key={segment.id}
+              segment={segment}
+              routeMedianMph={routeMedianMph}
+              badge={whereWhenSegmentBadge({ segment, dossier: dossier ?? null })}
+              rank={index + 1}
+              note={
+                segmentInsight(segment) ? (
+                  <SegmentInsightNote insight={segmentInsight(segment) as StudioRouteInsight} />
+                ) : segment.aiNote ? (
+                  <p className="m-0 text-[12px] leading-[1.55] text-[var(--bp-color-ink-70)]">
+                    {segment.aiNote}
+                  </p>
+                ) : null
+              }
+            />
+          ))}
+        </div>
+      ) : null}
       <WhereWhenSummaryCards summary={summary} />
       <div className="grid grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] gap-5 max-xl:grid-cols-1">
         <div className="rounded-[3px] bg-[var(--bp-color-card)] px-5 py-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
@@ -155,73 +173,8 @@ export function SlowSegmentsSection({
           <SegmentCarpet model={carpetModel} />
         )}
       </ChartFrame>
-      {featured.length > 0 ? (
-        <div className="grid grid-cols-3 gap-4 max-xl:grid-cols-1">
-          {featured.map((segment, index) => (
-            <SlowSegmentCard
-              key={segment.id}
-              route={route}
-              segments={segments}
-              segment={segment}
-              insight={segmentInsight(segment)}
-              segmentBadge={whereWhenSegmentBadge({ segment, dossier: dossier ?? null })}
-              index={index}
-            />
-          ))}
-        </div>
-      ) : null}
-      <div className="overflow-x-auto">
-        <div className="min-w-[760px]">
-          {tableRows.length > 0 ? <SegmentRowHeader /> : null}
-          {tableRows.map((segment) => {
-            const isOpen = openId === segment.id;
-            return (
-              <div key={segment.id}>
-                <SegmentRow
-                  dir={segment.direction}
-                  from={segment.from}
-                  to={segment.to}
-                  mph={segment.speedMph}
-                  sched={segment.scheduledMph}
-                  riderHours={segment.riderHours}
-                  hours={segment.hours}
-                  lane={segment.lane}
-                  ace={segment.ace}
-                  tsp={segment.tsp}
-                  treatments={legacyToTreatments({
-                    lane: segment.lane,
-                    ace: segment.ace,
-                    tsp: segment.tsp,
-                  })}
-                  hasNote={Boolean(segment.aiNote)}
-                  noteOpen={isOpen && Boolean(segment.aiNote)}
-                  {...(segment.flagged ? { flag: "top" as const } : {})}
-                  {...(segment.aiNote
-                    ? {
-                        onClick: () => setOpenId((cur) => (cur === segment.id ? null : segment.id)),
-                      }
-                    : {})}
-                />
-                {segmentInsight(segment) ? (
-                  <SegmentInsightNote insight={segmentInsight(segment) as StudioRouteInsight} />
-                ) : null}
-                {isOpen && segment.aiNote ? (
-                  <div className="flex items-start gap-2 bg-[var(--bp-color-accent-bg)] px-3 py-[11px] shadow-[inset_0_-1px_0_oklch(0.88_0.07_252)]">
-                    <span className="mt-[2px] shrink-0 font-mono text-[10px] font-bold text-[var(--bp-color-accent)]">
-                      &#9670;
-                    </span>
-                    <p className="m-0 text-[12px] leading-[1.6] text-[var(--bp-color-ink-70)]">
-                      {segment.aiNote}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </div>
       <div className="mt-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
-        {visible.length} of {segments.length} segments shown.
+        {featured.length} of {segments.length} segments highlighted.
       </div>
     </section>
   );
@@ -312,108 +265,14 @@ function WhereWhenStat({
   );
 }
 
-function SlowSegmentCard({
-  route,
-  segments,
-  segment,
-  insight,
-  segmentBadge,
-  index,
-}: {
-  route: StudioRouteDetailResponse["route"];
-  segments: readonly StudioSegment[];
-  segment: StudioSegment;
-  insight: StudioRouteInsight | null;
-  segmentBadge: string | null;
-  index: number;
-}) {
-  const color =
-    segment.speedMph < 5
-      ? "var(--bp-color-bad)"
-      : segment.speedMph < 6.5
-        ? "var(--bp-color-warn)"
-        : "var(--bp-color-good)";
-
-  return (
-    <article className="flex min-h-[226px] flex-col rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-[3px] bg-[var(--bp-color-ink)] font-mono text-[11px] font-bold text-[var(--bp-color-paper)]">
-            {index + 1}
-          </span>
-          <div className="min-w-0">
-            <div className="truncate text-[13.5px] font-semibold">
-              {segment.from} to {segment.to}
-            </div>
-            <div className="mt-0.5 font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">
-              {segment.direction} · {segment.miles ? `${segment.miles} mi · ` : ""}
-              {segment.timepoints ? `${segment.timepoints} timepoints` : "timepoint segment"}
-            </div>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          {segmentBadge ? <Badge variant="bad">{segmentBadge}</Badge> : null}
-          <Badge variant={segment.flagged ? "bad" : "warn"}>
-            {segment.speedMph.toFixed(1)} mph
-          </Badge>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-[1fr_150px] items-center gap-3">
-        <div>
-          <div className="font-mono text-[24px] font-semibold leading-none" style={{ color }}>
-            {segment.riderHours.toLocaleString()}
-          </div>
-          <div className="mt-1 text-[11px] text-[var(--bp-color-ink-55)]">rider-hr/day</div>
-        </div>
-        <CorridorMap route={route} segments={segments} highlightId={segment.id} mode="mini" />
-      </div>
-
-      <div className="mt-4">
-        <TreatmentBadgeRow
-          treatments={legacyToTreatments({
-            lane: segment.lane,
-            ace: segment.ace,
-            tsp: segment.tsp,
-          })}
-        />
-      </div>
-
-      {segment.aiNote ? (
-        <p className="m-0 mt-4 flex-1 text-[12px] leading-[1.55] text-[var(--bp-color-ink-70)]">
-          {segment.aiNote}
-        </p>
-      ) : (
-        <p className="m-0 mt-4 flex-1 text-[12px] leading-[1.55] text-[var(--bp-color-ink-55)]">
-          No note.
-        </p>
-      )}
-
-      {insight ? <SegmentInsightNote insight={insight} compact /> : null}
-    </article>
-  );
-}
-
-function SegmentInsightNote({
-  insight,
-  compact = false,
-}: {
-  insight: StudioRouteInsight;
-  compact?: boolean;
-}) {
+function SegmentInsightNote({ insight }: { insight: StudioRouteInsight }) {
   const caveats = safeInsightCaveats(insight, 2);
   return (
-    <div
-      className={
-        compact
-          ? "mt-3 rounded-[3px] bg-[var(--bp-color-accent-bg)] px-3 py-2 text-[12px] leading-[1.5] text-[var(--bp-color-ink-70)]"
-          : "flex items-start gap-2 bg-[var(--bp-color-accent-bg)] px-3 py-[10px] shadow-[inset_0_-1px_0_oklch(0.88_0.07_252)]"
-      }
-    >
+    <div className="rounded-[3px] bg-[var(--bp-color-accent-bg)] px-3 py-2 text-[12px] leading-[1.5] text-[var(--bp-color-ink-70)]">
       <span className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-accent)]">
         Note
       </span>
-      <span className={compact ? "mt-1 block" : "text-[12px] leading-[1.55]"}>
+      <span className="mt-1 block">
         {insight.shortText}
         {caveats.length > 0 ? (
           <span className="text-[var(--bp-color-ink-55)]"> {caveats.slice(0, 2).join(" ")}</span>
@@ -421,4 +280,17 @@ function SegmentInsightNote({
       </span>
     </div>
   );
+}
+
+function medianSegmentSpeed(segments: readonly StudioSegment[]): number | null {
+  const speeds = segments
+    .map((segment) => segment.speedMph)
+    .filter((speed) => Number.isFinite(speed) && speed > 0)
+    .toSorted((left, right) => left - right);
+  if (speeds.length === 0) return null;
+  const mid = Math.floor(speeds.length / 2);
+  if (speeds.length % 2 === 1) return speeds[mid] ?? null;
+  const left = speeds[mid - 1];
+  const right = speeds[mid];
+  return left === undefined || right === undefined ? null : (left + right) / 2;
 }

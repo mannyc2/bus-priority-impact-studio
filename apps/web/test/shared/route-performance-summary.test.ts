@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { routeVerdict } from "../../src/components/route/route-derived";
+import { routePerformanceSummary } from "../../src/components/route/route-derived";
 import type { RouteDossierSummaryForDetail, StudioRoute } from "../../src/studio/api-contract";
 
 const route = {
@@ -72,21 +72,21 @@ function dossier(current: number | null): RouteDossierSummaryForDetail {
   };
 }
 
-describe("route verdict derived clock", () => {
-  test("uses dossier speed for the Overview verdict when current speed is present", () => {
-    const verdict = routeVerdict(route, dossier(8.6));
+describe("route performance summary", () => {
+  test("uses dossier speed for the overview summary when current speed is present", () => {
+    const summary = routePerformanceSummary(route, dossier(8.6));
 
-    expect(verdict).toEqual({
+    expect(summary).toEqual({
       speedMph: 8.6,
       peerPercentile: 21,
       dataAsOf: "2026-05",
       lead: "M15 SBS: 8.6 mph, -4.2% 6 mo.",
     });
-    expect(verdict.lead).not.toContain("8.4 mph");
+    expect(summary.lead).not.toContain("8.4 mph");
   });
 
   test("falls back to the route projection when no dossier current speed exists", () => {
-    expect(routeVerdict(route, dossier(null))).toEqual({
+    expect(routePerformanceSummary(route, dossier(null))).toEqual({
       speedMph: 8.4,
       peerPercentile: 41,
       dataAsOf: null,

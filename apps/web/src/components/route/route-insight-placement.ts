@@ -1,5 +1,5 @@
 import type { StudioRouteInsight } from "@/studio/api-contract";
-import type { RouteDetailTabValue } from "./section-registry";
+import type { RouteDetailSectionValue } from "./section-registry";
 
 export type RouteInsightPlacements = {
   overview: StudioRouteInsight[];
@@ -8,7 +8,7 @@ export type RouteInsightPlacements = {
   timeline: StudioRouteInsight[];
 };
 
-export type RouteTabBadge = {
+export type RouteSectionBadge = {
   count: number;
   severity: StudioRouteInsight["severity"];
 };
@@ -58,7 +58,7 @@ export function routeInsightPlacements(
   };
 }
 
-export function routeTabForInsight(insight: StudioRouteInsight): RouteDetailTabValue {
+export function routeSectionForInsight(insight: StudioRouteInsight): RouteDetailSectionValue {
   const title = insight.title.toLowerCase();
   if (
     insight.kind === "timeline_annotation" ||
@@ -88,14 +88,14 @@ export function routeTabForInsight(insight: StudioRouteInsight): RouteDetailTabV
   return "where-when";
 }
 
-export function routeTabBadges(
+export function routeSectionBadges(
   insights: readonly StudioRouteInsight[],
-): Partial<Record<RouteDetailTabValue, RouteTabBadge>> {
-  const badges: Partial<Record<RouteDetailTabValue, RouteTabBadge>> = {};
+): Partial<Record<RouteDetailSectionValue, RouteSectionBadge>> {
+  const badges: Partial<Record<RouteDetailSectionValue, RouteSectionBadge>> = {};
   for (const insight of insights) {
-    const tab = routeTabForInsight(insight);
-    const existing = badges[tab];
-    badges[tab] =
+    const section = routeSectionForInsight(insight);
+    const existing = badges[section];
+    badges[section] =
       existing === undefined
         ? { count: 1, severity: insight.severity }
         : {

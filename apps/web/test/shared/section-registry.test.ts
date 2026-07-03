@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   routeSectionCanNavigate,
   routeSectionNavigationTarget,
-  routeSectionQuestion,
   routeSectionRegistry,
+  routeSectionTitle,
   sectionPresentation,
 } from "../../src/components/route/section-registry";
 import type { RouteSurfaceCapability, StudioRouteCapability } from "../../src/studio/api-contract";
@@ -62,14 +62,14 @@ const sparse = capability({
 });
 
 describe("sectionPresentation (frontend §8.1 registry)", () => {
-  test("route detail tabs carry the frontend §4.3 questions", () => {
-    expect(routeSectionQuestion("overview")).toBe("What's the story?");
-    expect(routeSectionQuestion("map")).toBe("Where does it hurt?");
-    expect(routeSectionQuestion("where-when")).toBe("Where and when does it lose time?");
-    expect(routeSectionQuestion("reliability")).toBe("Can riders count on it?");
-    expect(routeSectionQuestion("riders")).toBe("Who bears it?");
-    expect(routeSectionQuestion("treatments")).toBe("What was tried?");
-    expect(routeSectionQuestion("evidence")).toBe("What can I cite?");
+  test("route detail sections use plain public titles", () => {
+    expect(routeSectionTitle("overview")).toBe("Overview");
+    expect(routeSectionTitle("map")).toBe("Route map");
+    expect(routeSectionTitle("where-when")).toBe("Slow segments");
+    expect(routeSectionTitle("reliability")).toBe("Reliability");
+    expect(routeSectionTitle("riders")).toBe("Riders");
+    expect(routeSectionTitle("treatments")).toBe("Treatments & history");
+    expect(routeSectionTitle("evidence")).toBe("Evidence & data notes");
   });
 
   test("overview and evidence are unconditional on every contrast route", () => {
@@ -80,8 +80,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   });
 
   test("rich route renders every section", () => {
-    for (const tab of ["map", "where-when", "reliability", "riders", "treatments"] as const) {
-      expect(sectionPresentation(rich, tab)).toEqual({ mode: "render" });
+    for (const section of ["map", "where-when", "reliability", "riders", "treatments"] as const) {
+      expect(sectionPresentation(rich, section)).toEqual({ mode: "render" });
     }
   });
 
@@ -127,8 +127,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   });
 
   test("null capability (legacy fallback) renders everything", () => {
-    for (const tab of ["map", "where-when", "reliability", "riders", "treatments"] as const) {
-      expect(sectionPresentation(null, tab)).toEqual({ mode: "render" });
+    for (const section of ["map", "where-when", "reliability", "riders", "treatments"] as const) {
+      expect(sectionPresentation(null, section)).toEqual({ mode: "render" });
     }
   });
 
@@ -138,7 +138,10 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
 
   test("routeSectionRegistry reflects the three contrast route shapes", () => {
     expect(
-      routeSectionRegistry(rich).visibleTabs.map((tab) => [tab.value, tab.emptyState]),
+      routeSectionRegistry(rich).visibleSections.map((section) => [
+        section.value,
+        section.emptyState,
+      ]),
     ).toEqual([
       ["overview", undefined],
       ["map", undefined],
@@ -149,7 +152,10 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ["evidence", undefined],
     ]);
     expect(
-      routeSectionRegistry(clean).visibleTabs.map((tab) => [tab.value, tab.emptyState]),
+      routeSectionRegistry(clean).visibleSections.map((section) => [
+        section.value,
+        section.emptyState,
+      ]),
     ).toEqual([
       ["overview", undefined],
       ["map", undefined],
@@ -159,7 +165,10 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ["evidence", undefined],
     ]);
     expect(
-      routeSectionRegistry(sparse).visibleTabs.map((tab) => [tab.value, tab.emptyState]),
+      routeSectionRegistry(sparse).visibleSections.map((section) => [
+        section.value,
+        section.emptyState,
+      ]),
     ).toEqual([
       ["overview", undefined],
       ["map", undefined],
@@ -170,8 +179,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     ]);
   });
 
-  test("routeSectionRegistry keeps the visible tab order for contrast route shapes", () => {
-    expect(routeSectionRegistry(rich).visibleTabs.map((tab) => tab.value)).toEqual([
+  test("routeSectionRegistry keeps the visible section order for contrast route shapes", () => {
+    expect(routeSectionRegistry(rich).visibleSections.map((section) => section.value)).toEqual([
       "overview",
       "map",
       "where-when",
@@ -180,7 +189,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       "treatments",
       "evidence",
     ]);
-    expect(routeSectionRegistry(clean).visibleTabs.map((tab) => tab.value)).toEqual([
+    expect(routeSectionRegistry(clean).visibleSections.map((section) => section.value)).toEqual([
       "overview",
       "map",
       "where-when",
@@ -188,7 +197,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       "riders",
       "evidence",
     ]);
-    expect(routeSectionRegistry(sparse).visibleTabs.map((tab) => tab.value)).toEqual([
+    expect(routeSectionRegistry(sparse).visibleSections.map((section) => section.value)).toEqual([
       "overview",
       "map",
       "where-when",
@@ -198,33 +207,33 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     ]);
   });
 
-  test("routeSectionRegistry gives Evidence the withheld tab reasons", () => {
+  test("routeSectionRegistry gives Evidence the withheld section reasons", () => {
     expect(
-      routeSectionRegistry(clean).hiddenSections.map(({ tab, presentation }) => ({
-        tab: tab.value,
-        question: tab.question,
+      routeSectionRegistry(clean).hiddenSections.map(({ section, presentation }) => ({
+        section: section.value,
+        label: section.label,
         mode: presentation.mode,
         state: presentation.state,
       })),
     ).toEqual([
       {
-        tab: "treatments",
-        question: "What was tried?",
+        section: "treatments",
+        label: "Treatments & history",
         mode: "hidden",
         state: "not_applicable",
       },
     ]);
     expect(
-      routeSectionRegistry(sparse).hiddenSections.map(({ tab, presentation }) => ({
-        tab: tab.value,
-        question: tab.question,
+      routeSectionRegistry(sparse).hiddenSections.map(({ section, presentation }) => ({
+        section: section.value,
+        label: section.label,
         mode: presentation.mode,
         state: presentation.state,
       })),
     ).toEqual([
       {
-        tab: "reliability",
-        question: "Can riders count on it?",
+        section: "reliability",
+        label: "Reliability",
         mode: "hidden",
         state: "insufficient_data",
       },
@@ -237,7 +246,9 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       riders: { count: 1, severity: "medium" },
     });
 
-    expect(registry.visibleTabs.map((tab) => [tab.value, tab.badge?.count ?? 0])).toEqual([
+    expect(
+      registry.visibleSections.map((section) => [section.value, section.badge?.count ?? 0]),
+    ).toEqual([
       ["overview", 0],
       ["map", 0],
       ["where-when", 0],
@@ -245,12 +256,12 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ["treatments", 0],
       ["evidence", 1],
     ]);
-    expect(registry.visibleTabs.find((tab) => tab.value === "evidence")?.badge?.severity).toBe(
-      "medium",
-    );
-    expect(registry.hiddenSections.map(({ tab }) => [tab.value, tab.badge?.count ?? 0])).toEqual([
-      ["reliability", 2],
-    ]);
+    expect(
+      registry.visibleSections.find((section) => section.value === "evidence")?.badge?.severity,
+    ).toBe("medium");
+    expect(
+      registry.hiddenSections.map(({ section }) => [section.value, section.badge?.count ?? 0]),
+    ).toEqual([["reliability", 2]]);
   });
 
   test("routeSectionRegistry combines Evidence detector badges with hidden-section notices", () => {
@@ -258,7 +269,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       evidence: { count: 3, severity: "high" },
     });
 
-    const evidence = registry.visibleTabs.find((tab) => tab.value === "evidence");
+    const evidence = registry.visibleSections.find((section) => section.value === "evidence");
     expect(evidence?.badge).toEqual({ count: 4, severity: "high" });
   });
 
@@ -267,7 +278,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       evidence: { count: 1, severity: "low" },
     });
 
-    const evidence = registry.visibleTabs.find((tab) => tab.value === "evidence");
+    const evidence = registry.visibleSections.find((section) => section.value === "evidence");
     expect(evidence?.badge).toEqual({ count: 2, severity: "medium" });
   });
 

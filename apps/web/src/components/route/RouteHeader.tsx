@@ -16,7 +16,7 @@ export function RouteHeader({
   route: StudioRoute;
   actions?: ReactNode;
   contextLabel?: string;
-  /** Override for the KPI strip — the detail page passes the judged §4.1 strip. */
+  /** Override for the KPI strip. */
   metricStrip?: ReactNode;
 }) {
   return (

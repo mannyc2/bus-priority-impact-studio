@@ -1,6 +1,6 @@
 import { reliabilityInsightRows, reliabilitySummary } from "@/components/route/reliability-summary";
 import { safeInsightCaveats } from "@/components/route/route-insight-placement";
-import { routeSectionQuestion } from "@/components/route/section-registry";
+import { routeSectionTitle } from "@/components/route/section-registry";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,7 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
 
   return (
     <section className="flex flex-col gap-5">
-      <SectionHeader title={routeSectionQuestion("reliability")} sub={summary.sectionSubtitle} />
+      <SectionHeader title={routeSectionTitle("reliability")} sub={summary.sectionSubtitle} />
       <div className="grid grid-cols-4 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-xl:grid-cols-2 max-sm:grid-cols-1">
         <ReliabilityKpi
           label="Evidence state"
