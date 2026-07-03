@@ -75,7 +75,7 @@ describe("riderImpactSummary", () => {
       kpiSub: "6.2K rider-hours lost/day",
       kpiTone: "bad",
       dailyRidersLabel: "30.0K",
-      dailyRidersDetail: "+3.2% 6 mo dossier ridership",
+      dailyRidersDetail: "+3.2% 6 mo ridership trend",
       burdenLabel: "6.2K",
       historyLabel: "3 months",
       historyDetail: "2025-10 to 2026-03",
