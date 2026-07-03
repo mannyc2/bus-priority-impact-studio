@@ -2,6 +2,7 @@ import { once } from "node:events";
 import { createWriteStream, existsSync, statSync, type WriteStream } from "node:fs";
 import { mkdir, rename, rm } from "node:fs/promises";
 import { dirname } from "node:path";
+import { type PipelineHttpAttemptContext, runPipelineHttpPromise } from "../effect/http.ts";
 import type { SocrataFetch } from "./socrata-token.ts";
 
 export type HttpFileDownloadProgressEvent =
@@ -68,11 +69,6 @@ function existingFileSize(path: string): number {
   }
 }
 
-async function sleep(ms: number): Promise<void> {
-  if (ms <= 0) return;
-  await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function writeStreamChunk(stream: WriteStream, chunk: Uint8Array): Promise<void> {
   if (!stream.write(chunk)) {
     await once(stream, "drain");
@@ -88,15 +84,14 @@ async function closeStream(stream: WriteStream): Promise<void> {
 async function downloadAttempt(
   input: HttpFileDownloadInputs,
   tmpPath: string,
-  attempt: number,
-  maxAttempts: number,
+  context: PipelineHttpAttemptContext,
 ): Promise<number> {
   input.progress?.({
     kind: "download_started",
     url: input.url,
     outputPath: input.outputPath,
-    attempt,
-    maxAttempts,
+    attempt: context.attempt,
+    maxAttempts: context.maxAttempts,
   });
 
   const response = await (input.fetcher ?? fetch)(input.url, input.requestInit);
@@ -132,8 +127,8 @@ async function downloadAttempt(
           outputPath: input.outputPath,
           downloadedBytes,
           totalBytes,
-          attempt,
-          maxAttempts,
+          attempt: context.attempt,
+          maxAttempts: context.maxAttempts,
         });
       }
     }
@@ -162,36 +157,38 @@ export async function downloadHttpFile(
 
   await mkdir(dirname(input.outputPath), { recursive: true });
   const maxAttempts = Math.max(1, Math.floor((input.retryCount ?? 0) + 1));
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const tmpPath = `${input.outputPath}.tmp-${process.pid}-${Date.now()}-${attempt}`;
-    try {
-      const downloadedBytes = await downloadAttempt(input, tmpPath, attempt, maxAttempts);
-      await rename(tmpPath, input.outputPath);
+  return runPipelineHttpPromise({
+    command: "http-file-download",
+    operation: "download",
+    url: input.url,
+    maxAttempts,
+    retryDelayMs: input.retryDelayMs,
+    onAttemptFailed: ({ attempt, maxAttempts: attempts, error }) => {
       input.progress?.({
-        kind: "download_completed",
+        kind: "download_attempt_failed",
         url: input.url,
         outputPath: input.outputPath,
-        downloadedBytes,
+        attempt,
+        maxAttempts: attempts,
+        message: errorMessage(error.cause),
       });
-      return { downloaded: true, bytes: downloadedBytes };
-    } catch (error) {
-      lastError = error;
-      await rm(tmpPath, { force: true });
-      if (attempt < maxAttempts) {
+    },
+    run: async (context) => {
+      const tmpPath = `${input.outputPath}.tmp-${process.pid}-${Date.now()}-${context.attempt}`;
+      try {
+        const downloadedBytes = await downloadAttempt(input, tmpPath, context);
+        await rename(tmpPath, input.outputPath);
         input.progress?.({
-          kind: "download_attempt_failed",
+          kind: "download_completed",
           url: input.url,
           outputPath: input.outputPath,
-          attempt,
-          maxAttempts,
-          message: errorMessage(error),
+          downloadedBytes,
         });
-        await sleep(input.retryDelayMs ?? 1_000);
+        return { downloaded: true, bytes: downloadedBytes };
+      } catch (error) {
+        await rm(tmpPath, { force: true });
+        throw error;
       }
-    }
-  }
-
-  throw lastError;
+    },
+  });
 }

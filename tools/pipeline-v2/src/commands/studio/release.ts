@@ -9,7 +9,6 @@ import {
   listRouteReadiness,
   type RouteBriefSummary,
   type RouteInterventionComparison,
-  type RouteMonthTrend,
 } from "@bp/db";
 import type { StudioIntervention } from "@bp/domain/studio/interventions";
 import {
@@ -24,6 +23,7 @@ import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-rider
 import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
 import { normalizeScheduleTimepointRows } from "@bp/sources/adapters/mta/schedules";
 import { defineCommand, z } from "@liche/core";
+import { localTransformConcurrency, runBoundedPromises } from "../../effect/concurrency.ts";
 import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
@@ -107,7 +107,6 @@ const canonicalRouteIds = [
   "M14A+",
   "M14D+",
 ];
-
 async function writeJson(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
@@ -169,11 +168,13 @@ async function loadStudioReleaseD1Context(options: CliOptions) {
         selectedSummaries,
         readinessByRoute,
       );
-      const routeTrends = new Map<string, RouteMonthTrend[]>();
-      await Promise.all(
-        selectedSummaries.map(async (summary) => {
-          routeTrends.set(summary.routeId, await listRouteMonthTrends(db, summary.routeId));
-        }),
+      const routeTrends = new Map(
+        await runBoundedPromises(
+          selectedSummaries,
+          localTransformConcurrency,
+          async (summary) =>
+            [summary.routeId, await listRouteMonthTrends(db, summary.routeId)] as const,
+        ),
       );
 
       return {
@@ -295,10 +296,8 @@ async function routeBriefInputs(
     })
     .sort();
   const months = matchedMonths.length === 0 ? [month] : matchedMonths;
-  const artifacts = await Promise.all(
-    months.map((candidate) =>
-      routeBriefInput(routeId, candidate, routeSliceArtifactsRoot, routeSliceRawRoot),
-    ),
+  const artifacts = await runBoundedPromises(months, localTransformConcurrency, (candidate) =>
+    routeBriefInput(routeId, candidate, routeSliceArtifactsRoot, routeSliceRawRoot),
   );
   return artifacts.flatMap((artifact) => (artifact === null ? [] : [artifact]));
 }

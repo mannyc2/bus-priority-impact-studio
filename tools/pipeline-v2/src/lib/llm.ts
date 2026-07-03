@@ -7,6 +7,7 @@ import {
   registerBuiltInApiProviders,
   type ThinkingLevel,
 } from "@earendil-works/pi-ai";
+import { runPipelineHttpPromise } from "../effect/http.ts";
 
 let providersRegistered = false;
 function ensureProviders(): void {
@@ -160,6 +161,46 @@ export type CompleteJsonResult = {
   attempts: number;
 };
 
+function llmRequestUrl(model: Model<Api>): string {
+  return `llm://${model.provider}/${model.id}`;
+}
+
+async function withLlmTimeout<T>(
+  model: Model<Api>,
+  timeoutMs: number,
+  run: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await run(controller.signal);
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`LLM request timed out after ${timeoutMs}ms for ${model.id}.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function withTemporaryFetch<T>(
+  fetcher: typeof globalThis.fetch | undefined,
+  run: () => Promise<T>,
+): Promise<T> {
+  const originalFetch = globalThis.fetch;
+  if (fetcher !== undefined) {
+    globalThis.fetch = fetcher;
+  }
+  try {
+    return await run();
+  } finally {
+    if (fetcher !== undefined) {
+      globalThis.fetch = originalFetch;
+    }
+  }
+}
+
 /**
  * Run an OpenRouter chat completion with retry + abort-on-timeout and return the
  * assistant message text. The caller parses the text as JSON (or whatever shape
@@ -182,54 +223,46 @@ export async function completeJson(
     throw new Error("API key is required.");
   }
 
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= options.maxAttempts; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
-    try {
-      const providerOptions: Record<string, unknown> = {
-        ...(options.responseFormatJson ? { response_format: { type: "json_object" } } : {}),
-        ...(options.providerOptions ?? {}),
-      };
-      const result = await complete(model, context, {
-        apiKey: options.apiKey,
-        signal: controller.signal,
-        ...(options.maxOutputTokens === undefined
-          ? {}
-          : { maxOutputTokens: options.maxOutputTokens }),
-        ...(options.reasoning === undefined ? {} : { reasoning: options.reasoning }),
-        ...(Object.keys(providerOptions).length > 0 ? { providerOptions } : {}),
-        ...(options.headers === undefined ? {} : { headers: options.headers }),
-      });
-      // Propagate provider-reported errors verbatim — pi-ai stuffs them on
-      // result.errorMessage when stopReason is "error". The previous behavior
-      // ("LLM response did not include any text content") buried real causes
-      // like "402 Insufficient credits" or rate limits.
-      if (result.stopReason === "error" && result.errorMessage) {
-        throw new Error(`LLM provider error: ${result.errorMessage}`);
-      }
-      const text = result.content
-        .filter((block): block is { type: "text"; text: string } => block.type === "text")
-        .map((block) => block.text)
-        .join("");
-      if (text.length === 0) {
-        const blockTypes = result.content.map((b) => b.type).join(",");
-        throw new Error(
-          `LLM response had no text content (stopReason=${result.stopReason} blocks=[${blockTypes}]). Raise --max-output-tokens, drop --thinking, or check provider quotas.`,
-        );
-      }
-      return { text, attempts: attempt };
-    } catch (error) {
-      const resolved = controller.signal.aborted
-        ? new Error(`LLM request timed out after ${options.timeoutMs}ms for ${model.id}.`)
-        : error;
-      lastError = resolved;
-      if (attempt >= options.maxAttempts) break;
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-  throw lastError ?? new Error("LLM request failed with no error.");
+  return runPipelineHttpPromise({
+    command: "llm",
+    operation: "completeJson",
+    url: llmRequestUrl(model),
+    maxAttempts: options.maxAttempts,
+    run: (attemptContext) =>
+      withLlmTimeout(model, options.timeoutMs, async (signal) => {
+        const providerOptions: Record<string, unknown> = {
+          ...(options.responseFormatJson ? { response_format: { type: "json_object" } } : {}),
+          ...(options.providerOptions ?? {}),
+        };
+        const result = await complete(model, context, {
+          apiKey: options.apiKey,
+          signal,
+          ...(options.maxOutputTokens === undefined
+            ? {}
+            : { maxOutputTokens: options.maxOutputTokens }),
+          ...(options.reasoning === undefined ? {} : { reasoning: options.reasoning }),
+          ...(Object.keys(providerOptions).length > 0 ? { providerOptions } : {}),
+          ...(options.headers === undefined ? {} : { headers: options.headers }),
+        });
+        // Propagate provider-reported errors verbatim — pi-ai stuffs them on
+        // result.errorMessage when stopReason is "error". The previous behavior
+        // buried real causes like "402 Insufficient credits" or rate limits.
+        if (result.stopReason === "error" && result.errorMessage) {
+          throw new Error(`LLM provider error: ${result.errorMessage}`);
+        }
+        const text = result.content
+          .filter((block): block is { type: "text"; text: string } => block.type === "text")
+          .map((block) => block.text)
+          .join("");
+        if (text.length === 0) {
+          const blockTypes = result.content.map((b) => b.type).join(",");
+          throw new Error(
+            `LLM response had no text content (stopReason=${result.stopReason} blocks=[${blockTypes}]). Raise --max-output-tokens, drop --thinking, or check provider quotas.`,
+          );
+        }
+        return { text, attempts: attemptContext.attempt };
+      }),
+  });
 }
 
 /** A single OpenAI-style content block for forced tool-call requests. */
@@ -321,68 +354,63 @@ export async function completeToolCall(
     })),
   };
 
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= options.maxAttempts; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
-    const originalFetch = globalThis.fetch;
-    if (options.fetch !== undefined) {
-      globalThis.fetch = options.fetch;
-    }
-    try {
-      const result = await complete(model, context, {
-        apiKey: options.apiKey,
-        signal: controller.signal,
-        toolChoice: { type: "function", function: { name: options.toolName } },
-        maxRetries: 0,
-        ...(options.maxOutputTokens === undefined ? {} : { maxTokens: options.maxOutputTokens }),
-        ...(options.reasoning === undefined ? {} : { reasoning: options.reasoning }),
-        ...(options.providerOptions === undefined
-          ? {}
-          : { providerOptions: options.providerOptions }),
-        ...(options.headers === undefined ? {} : { headers: options.headers }),
-      } as never);
+  return runPipelineHttpPromise({
+    command: "llm",
+    operation: "completeToolCall",
+    url: llmRequestUrl(model),
+    maxAttempts: options.maxAttempts,
+    run: (attemptContext) =>
+      withTemporaryFetch(options.fetch, () =>
+        withLlmTimeout(model, options.timeoutMs, async (signal) => {
+          const result = await complete(model, context, {
+            apiKey: options.apiKey,
+            signal,
+            toolChoice: { type: "function", function: { name: options.toolName } },
+            maxRetries: 0,
+            ...(options.maxOutputTokens === undefined
+              ? {}
+              : { maxTokens: options.maxOutputTokens }),
+            ...(options.reasoning === undefined ? {} : { reasoning: options.reasoning }),
+            ...(options.providerOptions === undefined
+              ? {}
+              : { providerOptions: options.providerOptions }),
+            ...(options.headers === undefined ? {} : { headers: options.headers }),
+          } as never);
 
-      const toolCallBlock = result.content.find(
-        (
-          block,
-        ): block is {
-          type: "toolCall";
-          id: string;
-          name: string;
-          arguments: Record<string, unknown>;
-        } => block.type === "toolCall",
-      );
-      const usage = result.usage
-        ? {
-            input: result.usage.input,
-            output: result.usage.output,
-            totalTokens: result.usage.totalTokens,
-          }
-        : null;
-      return {
-        toolCall: toolCallBlock
-          ? { id: toolCallBlock.id, name: toolCallBlock.name, arguments: toolCallBlock.arguments }
-          : null,
-        usage,
-        stopReason: result.stopReason,
-        errorMessage:
-          result.stopReason === "error"
-            ? (result.errorMessage ?? "Provider returned an error stop reason")
-            : null,
-        attempts: attempt,
-      };
-    } catch (error) {
-      lastError = controller.signal.aborted
-        ? new Error(`LLM request timed out after ${options.timeoutMs}ms for ${model.id}.`)
-        : error;
-      if (attempt >= options.maxAttempts) break;
-    } finally {
-      clearTimeout(timeout);
-      if (options.fetch !== undefined) {
-        globalThis.fetch = originalFetch;
-      }
-    }
-  }
-  throw lastError ?? new Error("LLM request failed with no error.");
+          const toolCallBlock = result.content.find(
+            (
+              block,
+            ): block is {
+              type: "toolCall";
+              id: string;
+              name: string;
+              arguments: Record<string, unknown>;
+            } => block.type === "toolCall",
+          );
+          const usage = result.usage
+            ? {
+                input: result.usage.input,
+                output: result.usage.output,
+                totalTokens: result.usage.totalTokens,
+              }
+            : null;
+          return {
+            toolCall: toolCallBlock
+              ? {
+                  id: toolCallBlock.id,
+                  name: toolCallBlock.name,
+                  arguments: toolCallBlock.arguments,
+                }
+              : null,
+            usage,
+            stopReason: result.stopReason,
+            errorMessage:
+              result.stopReason === "error"
+                ? (result.errorMessage ?? "Provider returned an error stop reason")
+                : null,
+            attempts: attemptContext.attempt,
+          };
+        }),
+      ),
+  });
 }

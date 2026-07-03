@@ -46,7 +46,7 @@ nyc-transit-kit pin gets fixed at its source so adoption can proceed (029).
 | 024 | Delete the Tier 2 document pipeline and stale doctrine | P2 | L | 019, 020 | DONE (verified 2026-07-03; Tier 2 docs pipeline deleted, D1 brief-draft migration prepared, mta-wiki evidence registry dependency in place) |
 | 025 | Finish the supporting pages (home, interventions, methods) | P2 | M | 019, 022 | DONE (verified 2026-07-03; screenshots captured) |
 | 026 | Worker on Effect HttpApi: spike ADR, then migrate | P2 | L | 019 (024 rec.) | BLOCKED (spike STOP: `test:worker` regressed from baseline real 3.07s / Vitest 2.36s to real 8.71s / Vitest 7.96s after one-endpoint Effect skeleton) |
-| 027 | Effect the pipeline seams: retries, concurrency, ingest | P3 | M | 019, 024 | TODO |
+| 027 | Effect the pipeline seams: retries, concurrency, ingest | P3 | M | 019, 024 | DONE (verified 2026-07-03; HTTP retries centralized, bounded ingest/map/studio fan-out, adoption 69/98) |
 | 028 | MTA-wiki work orders (cross-repo; executed in mta-wiki) | P2 | M | — | DONE (v1-rc5 verified 2026-07-03; route anchors/taxonomy/date contract present; bus importer matched 10/12 served routes with 0 ambiguous omissions) |
 | 029 | nyc-transit-kit: align the Effect pin, then adopt | P3 | M | 019, 027 rec. | DONE (0.1.3 adopted 2026-07-03; sources/pipeline/Studio/web gates green) |
 

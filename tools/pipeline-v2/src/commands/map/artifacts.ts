@@ -44,6 +44,7 @@ import {
   normalizeStopRows,
 } from "@bp/sources/adapters/mta/routes-stops";
 import { arg, defineCommand, z } from "@liche/core";
+import { localTransformConcurrency, runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -340,14 +341,12 @@ export async function verifyMapArtifactManifest(input: {
     manifest === null
       ? []
       : (
-          await Promise.all(
-            manifest.artifacts.map((artifact) =>
-              verifyArtifactFile({
-                artifactRoot: input.artifactRoot,
-                month: input.month,
-                artifact,
-              }),
-            ),
+          await runBoundedPromises(manifest.artifacts, localTransformConcurrency, (artifact) =>
+            verifyArtifactFile({
+              artifactRoot: input.artifactRoot,
+              month: input.month,
+              artifact,
+            }),
           )
         ).flat();
 
@@ -1030,8 +1029,10 @@ async function readMapBuildRows(input: { local: OpenLocalPipelineDb; month: stri
     .map((row) => row.routeId)
     .sort();
   const summariesByRoute = new Map(briefs.map((row) => [row.routeId, row]));
-  const routeRows = await Promise.all(
-    publicRouteIds.map(async (routeId) => {
+  const routeRows = await runBoundedPromises(
+    publicRouteIds,
+    localTransformConcurrency,
+    async (routeId) => {
       const summary = summariesByRoute.get(routeId);
       if (summary === undefined) {
         throw new Error(`Missing route brief summary for public route ${routeId}`);
@@ -1041,7 +1042,7 @@ async function readMapBuildRows(input: { local: OpenLocalPipelineDb; month: stri
         listRouteHotspots(input.local.db, routeId, input.month),
       ]);
       return { routeId, summary, speedRows, hotspots };
-    }),
+    },
   );
   return { publicRouteIds, busLanes, routeRows };
 }
@@ -1133,53 +1134,58 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     }),
   );
 
-  for (const route of rows.routeRows) {
-    const routeDirectionIds = new Map<string, "0" | "1">();
-    const routeShapes = new Map<string, RouteShapePath[]>();
-    for (const [key, value] of directionIdByDirection) {
-      const [routeId, direction] = key.split(":");
-      if (routeId === route.routeId && direction !== undefined) {
-        routeDirectionIds.set(direction, value);
+  const routeArtifactResults = await runBoundedPromises(
+    rows.routeRows,
+    localTransformConcurrency,
+    async (route) => {
+      const routeDirectionIds = new Map<string, "0" | "1">();
+      const routeShapes = new Map<string, RouteShapePath[]>();
+      for (const [key, value] of directionIdByDirection) {
+        const [routeId, direction] = key.split(":");
+        if (routeId === route.routeId && direction !== undefined)
+          routeDirectionIds.set(direction, value);
       }
-    }
-    for (const [key, value] of shapesByDirection) {
-      const [routeId, direction] = key.split(":");
-      if (routeId === route.routeId && direction !== undefined) {
-        routeShapes.set(direction, value);
+      for (const [key, value] of shapesByDirection) {
+        const [routeId, direction] = key.split(":");
+        if (routeId === route.routeId && direction !== undefined) routeShapes.set(direction, value);
       }
-    }
 
-    const segments = segmentGroups({
-      routeId: route.routeId,
-      month: options.isoMonth,
-      rows: route.speedRows,
-      directionIdByDirection: routeDirectionIds,
-    });
-    const payload = routeSegmentsFeatureCollection({
-      routeId: route.routeId,
-      month: options.isoMonth,
-      segments,
-      hotspots: route.hotspots,
-      shapesByDirection: routeShapes,
-    });
-    networkRoutes.push({
-      routeId: route.routeId,
-      summary: route.summary,
-      speedRows: route.speedRows,
-      segmentPayload: payload,
-    });
-    const artifactKey = routeSegmentMapArtifactKey(route.routeId, options.isoMonth);
-    artifacts.push(
-      await writeJsonArtifact({
-        path: join(artifactRoot, artifactKey),
-        artifactKey,
-        artifactKind: "map_route_segments_geojson",
-        contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+      const segments = segmentGroups({
         routeId: route.routeId,
-        payload,
-        featureCount: payload.features.length,
-      }),
-    );
+        month: options.isoMonth,
+        rows: route.speedRows,
+        directionIdByDirection: routeDirectionIds,
+      });
+      const payload = routeSegmentsFeatureCollection({
+        routeId: route.routeId,
+        month: options.isoMonth,
+        segments,
+        hotspots: route.hotspots,
+        shapesByDirection: routeShapes,
+      });
+      const artifactKey = routeSegmentMapArtifactKey(route.routeId, options.isoMonth);
+      return {
+        networkRoute: {
+          routeId: route.routeId,
+          summary: route.summary,
+          speedRows: route.speedRows,
+          segmentPayload: payload,
+        },
+        artifact: await writeJsonArtifact({
+          path: join(artifactRoot, artifactKey),
+          artifactKey,
+          artifactKind: "map_route_segments_geojson",
+          contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+          routeId: route.routeId,
+          payload,
+          featureCount: payload.features.length,
+        }),
+      };
+    },
+  );
+  for (const result of routeArtifactResults) {
+    networkRoutes.push(result.networkRoute);
+    artifacts.push(result.artifact);
   }
   const networkPayload = buildNetworkMapFeatureCollection({ routes: networkRoutes });
   artifacts.push(

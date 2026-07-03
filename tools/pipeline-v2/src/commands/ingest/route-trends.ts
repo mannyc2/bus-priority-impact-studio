@@ -2,6 +2,7 @@ import { listRouteBuildPlan, replaceRouteMonthTrends } from "@bp/db/local";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -147,27 +148,6 @@ function chunkArray<T>(values: readonly T[], size: number): T[][] {
   return chunks;
 }
 
-async function mapWithConcurrency<T, U>(
-  values: T[],
-  concurrency: number,
-  mapper: (v: T) => Promise<U>,
-): Promise<U[]> {
-  const output: U[] = [];
-  let cursor = 0;
-  const worker = async (): Promise<void> => {
-    while (cursor < values.length) {
-      const index = cursor;
-      cursor += 1;
-      const value = values[index];
-      if (value !== undefined) output[index] = await mapper(value);
-    }
-  };
-  await Promise.all(
-    Array.from({ length: Math.max(1, Math.min(concurrency, values.length)) }, () => worker()),
-  );
-  return output;
-}
-
 function addSpeedRows(
   entries: Map<string, TrendRow>,
   rows: readonly LocalSpeedTrendRow[],
@@ -296,7 +276,7 @@ export async function runRouteTrendsIngest(
   const ridershipFetches = ridershipWindows.flatMap((window) =>
     chunkArray(routeIds, 50).map((routeChunk) => ({ window, routeChunk })),
   );
-  const ridershipRowBatches = await mapWithConcurrency(ridershipFetches, 4, async (f) => {
+  const ridershipRowBatches = await runBoundedPromises(ridershipFetches, 4, async (f) => {
     const source = getSocrataSource(manifest, f.window.sourceId);
     const query: Soda3SoqlQuery = {
       select:

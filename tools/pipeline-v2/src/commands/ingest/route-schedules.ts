@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { arg, defineCommand, z } from "@liche/core";
+import { runBoundedPromises, runBoundedSettledPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
@@ -332,15 +333,17 @@ async function fetchAndWriteRouteScheduleRows(input: {
   let fetchedRowCount = 0;
   let writtenRowCount = 0;
   for (const offsetChunk of chunkArray(offsets, input.pageConcurrency)) {
-    const pageResults = await Promise.allSettled(
-      offsetChunk.map(async (offset) => ({
+    const pageResults = await runBoundedSettledPromises(
+      offsetChunk,
+      input.pageConcurrency,
+      async (offset) => ({
         offset,
         rows: (await input.client.rows({
           ...baseQuery,
           limit: input.pageSize,
           offset,
         })) as RawScheduleStopRow[],
-      })),
+      }),
     );
     const rejected = pageResults.find((result) => result.status === "rejected");
     if (rejected !== undefined) {
@@ -493,55 +496,53 @@ export async function runRouteSchedulesIngest(
   }
 
   for (const routeChunk of chunkArray(pendingRouteIds, routeConcurrency)) {
-    const results = await Promise.all(
-      routeChunk.map(async (routeId) => {
-        try {
-          emitProgress(inputs, {
-            kind: "route_fetching",
-            sourceYear: inputs.sourceYear,
-            routeId,
-          });
-          const routeResult = await fetchAndWriteRouteScheduleRows({
-            client,
-            sqlite: inputs.sqlite,
-            sourceYear: inputs.sourceYear,
-            routeId,
-            pageConcurrency: routePageConcurrency,
-            pageSize,
-            onPageWritten: (event) =>
-              emitProgress(inputs, {
-                kind: "route_page_written",
-                sourceYear: inputs.sourceYear,
-                routeId,
-                offset: event.offset,
-                rowCount: event.rowCount,
-              }),
-          });
-          return {
-            routeId,
-            ...routeResult,
-            error: null,
-          };
-        } catch (error) {
-          const message = errorMessage(error);
-          deleteRouteRows(inputs.sqlite, inputs.sourceYear, routeId);
-          markRouteStatus({
-            sqlite: inputs.sqlite,
-            sourceYear: inputs.sourceYear,
-            routeId,
-            status: "failed",
-            rowCount: 0,
-            error: message,
-          });
-          return {
-            routeId,
-            fetchedRowCount: 0,
-            writtenRowCount: 0,
-            error,
-          };
-        }
-      }),
-    );
+    const results = await runBoundedPromises(routeChunk, routeConcurrency, async (routeId) => {
+      try {
+        emitProgress(inputs, {
+          kind: "route_fetching",
+          sourceYear: inputs.sourceYear,
+          routeId,
+        });
+        const routeResult = await fetchAndWriteRouteScheduleRows({
+          client,
+          sqlite: inputs.sqlite,
+          sourceYear: inputs.sourceYear,
+          routeId,
+          pageConcurrency: routePageConcurrency,
+          pageSize,
+          onPageWritten: (event) =>
+            emitProgress(inputs, {
+              kind: "route_page_written",
+              sourceYear: inputs.sourceYear,
+              routeId,
+              offset: event.offset,
+              rowCount: event.rowCount,
+            }),
+        });
+        return {
+          routeId,
+          ...routeResult,
+          error: null,
+        };
+      } catch (error) {
+        const message = errorMessage(error);
+        deleteRouteRows(inputs.sqlite, inputs.sourceYear, routeId);
+        markRouteStatus({
+          sqlite: inputs.sqlite,
+          sourceYear: inputs.sourceYear,
+          routeId,
+          status: "failed",
+          rowCount: 0,
+          error: message,
+        });
+        return {
+          routeId,
+          fetchedRowCount: 0,
+          writtenRowCount: 0,
+          error,
+        };
+      }
+    });
 
     for (const result of results) {
       if (result.error !== null) {
