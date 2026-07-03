@@ -20,10 +20,13 @@ import {
 } from "@/components/route/where-when-summary";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Badge } from "@/components/ui/badge";
-import { fetchStudioRouteSpeedHistory } from "@/studio/api-client";
+import { fetchStudioRouteHourlyProfile, fetchStudioRouteSpeedHistory } from "@/studio/api-client";
 import type {
   RouteDossierSummaryForDetail,
   StudioRouteDetailResponse,
+  StudioRouteHourlyProfilePeakWindow,
+  StudioRouteHourlyProfileResponse,
+  StudioRouteHourlyProfileSlowestWindow,
   StudioRouteInsight,
   StudioRouteSpeedHistoryResponse,
   StudioSegment,
@@ -36,6 +39,11 @@ type SegmentIdentity = {
 type RouteSpeedHistoryState =
   | { status: "loading"; data: null }
   | { status: "ready"; data: StudioRouteSpeedHistoryResponse }
+  | { status: "unavailable"; data: null };
+
+type RouteHourlyProfileState =
+  | { status: "loading"; data: null }
+  | { status: "ready"; data: StudioRouteHourlyProfileResponse }
   | { status: "unavailable"; data: null };
 
 export function prioritizeWhereWhenSegments<T extends SegmentIdentity>(
@@ -55,17 +63,26 @@ export function SlowSegmentsSection({
   insights,
   flaggedId,
   dossier,
+  peakWindows,
+  slowestWindows,
 }: {
   route: StudioRouteDetailResponse["route"];
   segments: readonly StudioSegment[];
   insights: readonly StudioRouteInsight[];
   flaggedId?: string;
   dossier?: RouteDossierSummaryForDetail | null;
+  peakWindows?: readonly StudioRouteHourlyProfilePeakWindow[];
+  slowestWindows?: readonly StudioRouteHourlyProfileSlowestWindow[];
 }) {
   const [direction, setDirection] = useState<"all" | "NB" | "SB" | "EB" | "WB">("all");
-  const hourProfile = averageHourlySpeed(route, segments);
+  const segmentHourProfile = averageHourlySpeed(route, segments);
   const summary = whereWhenSummary({ route, segments, dossier: dossier ?? null });
+  const hourlyProfile = useRouteHourlyProfile(route.slug);
   const speedHistory = useRouteSpeedHistory(route.slug);
+  const hourProfile = useMemo(
+    () => chartHoursFromHourlyProfile(hourlyProfile.data, segmentHourProfile),
+    [hourlyProfile.data, segmentHourProfile],
+  );
   const carpetModel = useMemo(
     () => buildSegmentCarpetModel(speedHistory.data, segments),
     [speedHistory.data, segments],
@@ -136,12 +153,17 @@ export function SlowSegmentsSection({
         </div>
       ) : null}
       <WhereWhenSummaryCards summary={summary} />
+      <WhereWhenWindowChips
+        hourlyProfile={hourlyProfile.data}
+        peakWindows={peakWindows ?? []}
+        slowestWindows={slowestWindows ?? []}
+      />
       <div className="grid grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] gap-5 max-xl:grid-cols-1">
         <div className="rounded-[3px] bg-[var(--bp-color-card)] px-5 py-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
           <SectionHeader title="Profile" />
           <CorridorProfile route={route} segments={segments} highlightId={flaggedId} />
         </div>
-        <ChartFrame title="By hour" height={164}>
+        <ChartFrame title="By hour" height={164} source={hourProfileSource(hourlyProfile)}>
           <HourBars
             data={hourProfile}
             sched={route.scheduledMph}
@@ -180,6 +202,28 @@ export function SlowSegmentsSection({
   );
 }
 
+function useRouteHourlyProfile(routeSlug: string): RouteHourlyProfileState {
+  const [state, setState] = useState<RouteHourlyProfileState>({ status: "loading", data: null });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setState({ status: "loading", data: null });
+    fetchStudioRouteHourlyProfile(routeSlug, { signal: controller.signal })
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setState(data === null ? { status: "unavailable", data: null } : { status: "ready", data });
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setState({ status: "unavailable", data: null });
+      });
+
+    return () => controller.abort();
+  }, [routeSlug]);
+
+  return state;
+}
+
 function useRouteSpeedHistory(routeSlug: string): RouteSpeedHistoryState {
   const [state, setState] = useState<RouteSpeedHistoryState>({ status: "loading", data: null });
 
@@ -202,6 +246,20 @@ function useRouteSpeedHistory(routeSlug: string): RouteSpeedHistoryState {
   return state;
 }
 
+function chartHoursFromHourlyProfile(
+  profile: StudioRouteHourlyProfileResponse | null,
+  fallback: readonly number[],
+): number[] {
+  if (profile === null) return [...fallback];
+  return profile.hours.map((hour, index) => hour.averageSpeedMph ?? fallback[index] ?? 0);
+}
+
+function hourProfileSource(state: RouteHourlyProfileState): string {
+  if (state.status === "loading") return "Loading route hourly profile.";
+  if (state.status === "unavailable") return "Segment-derived hourly fallback.";
+  return `${state.data.summary.latestMonth ?? "latest"} route-hour profile`;
+}
+
 function carpetSourceLabel(
   state: RouteSpeedHistoryState,
   monthCount: number,
@@ -210,6 +268,81 @@ function carpetSourceLabel(
   if (state.status === "loading") return "Loading speed history.";
   if (state.status === "unavailable") return "Speed history unavailable.";
   return `${monthCount} months / ${segmentCount} segments`;
+}
+
+function latestWindows<T extends { month: string }>(rows: readonly T[], limit = 3): T[] {
+  return [...rows].sort((left, right) => right.month.localeCompare(left.month)).slice(0, limit);
+}
+
+function WhereWhenWindowChips({
+  hourlyProfile,
+  peakWindows,
+  slowestWindows,
+}: {
+  hourlyProfile: StudioRouteHourlyProfileResponse | null;
+  peakWindows: readonly StudioRouteHourlyProfilePeakWindow[];
+  slowestWindows: readonly StudioRouteHourlyProfileSlowestWindow[];
+}) {
+  const peaks = latestWindows(
+    hourlyProfile?.peakWindows.length ? hourlyProfile.peakWindows : peakWindows,
+    2,
+  );
+  const slowest = latestWindows(
+    hourlyProfile?.slowestWindows.length ? hourlyProfile.slowestWindows : slowestWindows,
+    2,
+  );
+  const chips = [
+    ...peaks.map((window) => ({
+      id: `peak:${window.month}:${window.dayOfWeek}:${window.hourOfDay}`,
+      label: "Peak",
+      value: `${window.dayOfWeek} ${formatHour(window.hourOfDay)}`,
+      sub:
+        window.ridership === null
+          ? window.month
+          : `${compactWindowNumber(window.ridership)} riders`,
+    })),
+    ...slowest.map((window) => ({
+      id: `slow:${window.month}:${window.dayOfWeek}:${window.hourOfDay}`,
+      label: "Slowest",
+      value: `${window.dayOfWeek} ${formatHour(window.hourOfDay)}`,
+      sub:
+        window.weightedAverageSpeedMph === null
+          ? window.month
+          : `${window.weightedAverageSpeedMph.toFixed(1)} mph`,
+    })),
+  ];
+  if (chips.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {chips.map((chip) => (
+        <div
+          key={chip.id}
+          className="min-h-[34px] rounded-[3px] bg-[var(--bp-color-paper-deep)] px-3 py-2 shadow-[0_0_0_1px_var(--bp-color-rule)]"
+        >
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
+            {chip.label}
+          </span>
+          <span className="ml-2 text-[12px] font-semibold text-[var(--bp-color-ink)]">
+            {chip.value}
+          </span>
+          <span className="ml-2 text-[11px] text-[var(--bp-color-ink-55)]">{chip.sub}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatHour(hour: number): string {
+  const suffix = hour < 12 ? "AM" : "PM";
+  const display = hour % 12 === 0 ? 12 : hour % 12;
+  return `${display}${suffix}`;
+}
+
+function compactWindowNumber(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return String(Math.round(value));
 }
 
 function WhereWhenSummaryCards({ summary }: { summary: WhereWhenSummary }) {

@@ -23,6 +23,7 @@ import {
 import {
   StudioRouteDetailResponseSchema,
   StudioRouteHistoryResponseSchema,
+  StudioRouteHourlyProfileResponseSchema,
   StudioRouteSectionsResponseSchema,
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
@@ -56,6 +57,9 @@ export const studioRouteDetailResponseJsonSchema = toProjectJsonSchema(
 );
 export const studioRouteHistoryResponseJsonSchema = toProjectJsonSchema(
   StudioRouteHistoryResponseSchema,
+);
+export const studioRouteHourlyProfileResponseJsonSchema = toProjectJsonSchema(
+  StudioRouteHourlyProfileResponseSchema,
 );
 export const studioRouteSpeedHistoryResponseJsonSchema = toProjectJsonSchema(
   StudioRouteSpeedHistoryResponseSchema,

@@ -9,6 +9,7 @@ import {
   studioRouteDetailResponseJsonSchema,
   studioRouteEvidenceBundleJsonSchema,
   studioRouteHistoryResponseJsonSchema,
+  studioRouteHourlyProfileResponseJsonSchema,
   studioRouteSectionsResponseJsonSchema,
   studioRouteSpeedHistoryResponseJsonSchema,
   studioRoutesResponseJsonSchema,
@@ -237,6 +238,15 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
       summary: "Return route-month speed and ridership history.",
       tags: ["Studio"],
       responseSchema: studioRouteHistoryResponseJsonSchema,
+      parameters: [routeIdParameter],
+    }),
+  },
+  "/api/v1/studio/routes/{routeId}/hourly-profile": {
+    get: getOperation({
+      operationId: "getStudioRouteHourlyProfile",
+      summary: "Return route hourly ridership, speed, and reliability samples.",
+      tags: ["Studio"],
+      responseSchema: studioRouteHourlyProfileResponseJsonSchema,
       parameters: [routeIdParameter],
     }),
   },

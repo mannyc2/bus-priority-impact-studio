@@ -52,7 +52,7 @@ describe("Studio API package exports", () => {
     expect(studioRouteTemplate("/api/v1/studio/routes/m15-sbs")).toBe(
       "/api/v1/studio/routes/:routeId",
     );
-    expect(studioApiRoutes.length).toBe(17);
+    expect(studioApiRoutes.length).toBe(18);
 
     const route = getStudioApiRoute("studio.route");
     expect(buildRoutePath(route, { params: { routeId: "M15-SBS" } })).toBe(
@@ -63,6 +63,11 @@ describe("Studio API package exports", () => {
         params: { routeId: "m15-sbs" },
       }),
     ).toBe("/api/v1/studio/routes/m15-sbs/speed-history");
+    expect(
+      buildRoutePath(getStudioApiRoute("studio.routeHourlyProfile"), {
+        params: { routeId: "m15-sbs" },
+      }),
+    ).toBe("/api/v1/studio/routes/m15-sbs/hourly-profile");
 
     const client = createStudioApiClient();
     expect(client.path("studio.methods")).toBe("/api/v1/studio/methods");

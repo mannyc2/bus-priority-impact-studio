@@ -9,6 +9,7 @@ import {
   StudioMethodsResponseSchema,
   StudioRouteDetailResponseSchema,
   StudioRouteEvidenceBundleSchema,
+  StudioRouteHourlyProfileResponseSchema,
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
 } from "./api-contract.js";
@@ -155,6 +156,14 @@ export function fetchStudioRouteSpeedHistory(routeId: string, options?: StudioQu
   return loadNullableStudioJson(
     studioPath("studio.routeSpeedHistory", { params: { routeId } }),
     StudioRouteSpeedHistoryResponseSchema,
+    options,
+  );
+}
+
+export function fetchStudioRouteHourlyProfile(routeId: string, options?: StudioQueryOptions) {
+  return loadNullableStudioJson(
+    studioPath("studio.routeHourlyProfile", { params: { routeId } }),
+    StudioRouteHourlyProfileResponseSchema,
     options,
   );
 }

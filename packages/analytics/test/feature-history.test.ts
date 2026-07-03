@@ -6,6 +6,7 @@ import {
   buildRouteSpeedSpineArtifact,
   buildSegmentDaypartHistoryArtifact,
   buildSegmentDaypartPanelArtifact,
+  buildStudioRouteHourlyProfileArtifact,
   type RouteSpeedHistorySourceRow,
   type RouteSpeedSpineArtifact,
   type RouteSpeedSpineSourceRow,
@@ -172,6 +173,64 @@ describe("analytics feature-history artifacts", () => {
     });
 
     expect(hourly.summary.profileCount).toBe(1);
+    const servedHourly = buildStudioRouteHourlyProfileArtifact({
+      routeId: "M15",
+      profiles: [
+        {
+          route_id: "M15",
+          month: "2026-03",
+          hourly_row_count: 168,
+          total_ridership: 150,
+          total_transfers: 15,
+          peak_day_of_week: "weekday",
+          peak_hour_of_day: 8,
+          peak_ridership: 100,
+        },
+      ],
+      hours: [
+        {
+          route_id: "M15",
+          month: "2026-03",
+          hour_of_day: 8,
+          ridership_hourly_row_count: 7,
+          ridership: 100,
+          transfers: 10,
+          speed_observation_count: 4,
+          speed_bus_trip_count: 40,
+          average_speed_mph: 6.5,
+        },
+      ],
+      slowestWindows: [
+        {
+          route_id: "M15",
+          month: "2026-03",
+          day_of_week: "weekday",
+          hour_of_day: 8,
+          observation_count: 4,
+          bus_trip_count: 40,
+          weighted_average_speed_mph: 6.5,
+        },
+      ],
+      reliabilitySamples: [
+        {
+          route_id: "M15",
+          month: "2026-03",
+          hour_of_day: 8,
+          sample_count: 12,
+          average_observed_headway_minutes: 9.5,
+        },
+      ],
+      startMonth: "2026-01",
+      endMonth: "2026-03",
+      generatedAt: "2026-07-01T00:00:00.000Z",
+      dbPath: "data/local/pipeline.sqlite",
+      artifactPath: "data/artifacts/studio/v2/routes/m15/hourly-profile.json",
+    });
+    expect(servedHourly.hours).toHaveLength(24);
+    expect(servedHourly.hours[8]).toMatchObject({ averageSpeedMph: 6.5, ridership: 100 });
+    expect(servedHourly.peakWindows[0]).toMatchObject({ hourOfDay: 8, ridership: 100 });
+    expect(servedHourly.slowestWindows[0]).toMatchObject({ weightedAverageSpeedMph: 6.5 });
+    expect(servedHourly.reliabilitySamples[0]).toMatchObject({ sampleCount: 12 });
     expect(history.summary.featureCount).toBe(1);
     expect(panel.summary.eligiblePanelRowCount).toBe(1);
     expect(panel.panelManifest.spec.panelId).toBe(SEGMENT_DAYPART_PANEL_V1_ID);

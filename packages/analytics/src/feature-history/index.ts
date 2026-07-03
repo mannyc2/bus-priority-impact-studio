@@ -46,8 +46,15 @@ export {
 } from "./panel-spec.js";
 export {
   buildRouteHourlyProfileArtifact,
+  buildStudioRouteHourlyProfileArtifact,
+  buildStudioRouteHourlyProfileArtifacts,
   type RouteHourlyProfile,
   type RouteHourlyProfileArtifact,
+  type StudioRouteHourlyProfileArtifact,
+  type StudioRouteHourlyProfileHour,
+  type StudioRouteHourlyProfilePeakWindow,
+  type StudioRouteHourlyProfileSlowestWindow,
+  type StudioRouteReliabilitySample,
 } from "./route-hourly-profile.js";
 export {
   buildRouteExpectedServiceContext,

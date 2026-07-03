@@ -96,6 +96,8 @@ export function RouteDetailPage({
             insights={data.insights}
             {...(flagged?.id ? { flaggedId: flagged.id } : {})}
             dossier={data.dossier}
+            peakWindows={data.peakWindows}
+            slowestWindows={data.slowestWindows}
           />
         ))}
         {section("reliability", () => (
