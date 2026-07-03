@@ -19,6 +19,15 @@
 - **Depends on**: plan 019, plan 020
 - **Category**: simplification
 - **Planned at**: 2026-07-01
+- **Current STOP (2026-07-03)**: the old route-sections blocker was resolved
+  by PR #49, but Step 1 now stops on a live out-of-scope consumer:
+  `packages/analytics/src/data-products/registry.ts` still declares
+  docs/Tier2 products such as `tier2_structured_intervention_extraction_full_corpus`
+  and owners under `tools/pipeline-v2/docs/tier2`. `packages/analytics` is
+  protected live route-insight infrastructure, so this plan cannot continue
+  until the operator explicitly rules whether the registry may be updated to
+  retire/supersede those Tier2 products and point current dependencies at the
+  mta-wiki evidence backend.
 
 ## Why this matters
 
