@@ -52,7 +52,7 @@ describe("Studio API package exports", () => {
     expect(studioRouteTemplate("/api/v1/studio/routes/m15-sbs")).toBe(
       "/api/v1/studio/routes/:routeId",
     );
-    expect(studioApiRoutes.length).toBe(18);
+    expect(studioApiRoutes.length).toBe(19);
 
     const route = getStudioApiRoute("studio.route");
     expect(buildRoutePath(route, { params: { routeId: "M15-SBS" } })).toBe(
@@ -71,6 +71,9 @@ describe("Studio API package exports", () => {
 
     const client = createStudioApiClient();
     expect(client.path("studio.methods")).toBe("/api/v1/studio/methods");
+    expect(client.path("studio.interventionsEvidence")).toBe(
+      "/api/v1/studio/interventions/evidence",
+    );
   });
 
   test("server subpaths expose Worker entrypoints", () => {

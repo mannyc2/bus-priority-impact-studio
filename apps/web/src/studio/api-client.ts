@@ -6,6 +6,7 @@ import {
 } from "@bp/studio-api/client";
 import * as z from "zod";
 import {
+  StudioInterventionsEvidenceResponseSchema,
   StudioMethodsResponseSchema,
   StudioRouteDetailResponseSchema,
   StudioRouteEvidenceBundleSchema,
@@ -150,6 +151,14 @@ export function fetchStudioRouteIndex(options?: StudioQueryOptions) {
   return loadStudioJson(
     `${studioPath("studio.routes")}?schema=2`,
     StudioRouteIndex2ResponseSchema,
+    options,
+  );
+}
+
+export function fetchStudioInterventionsEvidence(options?: StudioQueryOptions) {
+  return loadStudioJson(
+    studioPath("studio.interventionsEvidence"),
+    StudioInterventionsEvidenceResponseSchema,
     options,
   );
 }

@@ -16,6 +16,7 @@ import {
   StudioSearchResponseSchema,
 } from "../studio/release.js";
 import {
+  StudioInterventionsEvidenceResponseSchema,
   StudioRouteEvidenceArtifactSchema,
   StudioRouteEvidenceBundleSchema,
   StudioRouteEvidenceIndexSchema,
@@ -72,6 +73,9 @@ export const studioRouteEvidenceBundleJsonSchema = toProjectJsonSchema(
 );
 export const studioRouteEvidenceIndexJsonSchema = toProjectJsonSchema(
   StudioRouteEvidenceIndexSchema,
+);
+export const studioInterventionsEvidenceResponseJsonSchema = toProjectJsonSchema(
+  StudioInterventionsEvidenceResponseSchema,
 );
 export const studioCompareResponseJsonSchema = toProjectJsonSchema(StudioCompareResponseSchema);
 export const studioMethodsResponseJsonSchema = toProjectJsonSchema(StudioMethodsResponseSchema);

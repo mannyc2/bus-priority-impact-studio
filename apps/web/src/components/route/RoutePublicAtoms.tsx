@@ -1,11 +1,10 @@
 import type { ReactNode } from "react";
 import { segmentSpeedAtHour, speedToColor } from "@/components/route/maplibre-style";
-import { CitationChips } from "@/components/route/WikiEvidence";
+import { CitationChips, type WikiCitationEvidence } from "@/components/route/WikiEvidence";
 import { Badge } from "@/components/ui/badge";
 import type {
   RouteDossierSummaryForDetail,
   StudioRoute,
-  StudioRouteEvidenceBundle,
   StudioSegment,
 } from "@/studio/api-contract";
 import type { MetricTone } from "@/studio/metric-model";
@@ -264,7 +263,7 @@ export function RPubInterventionCard({
   tone: Exclude<PublicTone, "ink">;
   sourceLabel: string | null;
   citationKeys: readonly string[];
-  evidence: StudioRouteEvidenceBundle | null;
+  evidence: WikiCitationEvidence | null;
 }) {
   return (
     <article

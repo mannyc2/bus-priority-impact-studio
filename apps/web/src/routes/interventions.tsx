@@ -1,11 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../lib/head.js";
 import {
-  fetchStudioRouteEvidence,
-  fetchStudioRouteIndex,
+  fetchStudioInterventionsEvidence,
   fetchStudioRoutes,
   staticStudioLoaderStaleTimeMs,
-  timelineEvidenceRouteSlugs,
 } from "../studio/api-client.js";
 import { InterventionsLoadingPage, InterventionsPage } from "../studio/pages/interventions.js";
 
@@ -15,28 +13,23 @@ function isAbortError(error: unknown): boolean {
 
 export const Route = createFileRoute("/interventions")({
   loader: async ({ abortController }) => {
-    const [routes, routeIndexResult] = await Promise.all([
+    const [routes, evidenceResult] = await Promise.all([
       fetchStudioRoutes({ signal: abortController.signal }),
-      fetchStudioRouteIndex({ signal: abortController.signal }).then(
-        (routeIndex) => ({ ok: true, routeIndex }) as const,
+      fetchStudioInterventionsEvidence({ signal: abortController.signal }).then(
+        (evidence) => ({ ok: true, evidence }) as const,
         (error: unknown) => ({ ok: false, error }) as const,
       ),
     ]);
 
-    if (!routeIndexResult.ok) {
-      if (isAbortError(routeIndexResult.error)) throw routeIndexResult.error;
-      console.warn("Interventions route index request failed; skipping route evidence fanout.", {
-        error: routeIndexResult.error,
+    if (!evidenceResult.ok) {
+      if (isAbortError(evidenceResult.error)) throw evidenceResult.error;
+      console.warn("Interventions evidence request failed; rendering route records only.", {
+        error: evidenceResult.error,
       });
       return { routes, evidence: [] };
     }
 
-    const evidence = await Promise.all(
-      timelineEvidenceRouteSlugs(routeIndexResult.routeIndex).map((slug) =>
-        fetchStudioRouteEvidence(slug, { signal: abortController.signal }),
-      ),
-    );
-    return { routes, evidence };
+    return { routes, evidence: evidenceResult.evidence.bundles };
   },
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: InterventionsLoadingPage,

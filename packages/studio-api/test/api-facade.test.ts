@@ -12,6 +12,7 @@ import {
 import { StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
 import {
   STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
+  StudioInterventionsEvidenceResponseSchema,
   StudioRouteEvidenceBundleSchema,
 } from "@bp/domain/studio/route-evidence";
 import {
@@ -1552,6 +1553,41 @@ describe("Studio API facade", () => {
       }),
     );
     expect(evidence.citations[0]?.sourceTitle).toBe("M15 SBS report");
+  });
+
+  it("serves compact MTA-wiki route evidence for the interventions page", async () => {
+    const env = {
+      ...createStudioProjectionEnv(),
+      BASELINE_MONTH: "2026-03",
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+    };
+
+    const response = await fetchApi("/api/v1/studio/interventions/evidence", env);
+
+    expect(response.status).toBe(200);
+    const evidence = StudioInterventionsEvidenceResponseSchema.parse(await response.json());
+    expect(evidence.routeCount).toBe(1);
+    expect(evidence.bundles).toHaveLength(1);
+    const bundle = evidence.bundles[0];
+    expect(bundle).toBeDefined();
+    if (bundle === undefined) return;
+    expect(bundle.routeSlug).toBe("m15-sbs");
+    expect(Object.keys(bundle)).not.toContain("metricClaims");
+    expect(bundle.timeline[0]?.recordId).toBe("event_m15_sbs_launch");
+    expect(bundle.interventions[0]?.recordId).toBe("treatment_m15_bus_lane");
+    expect(bundle.sourceGaps[0]?.recordId).toBe("gap_m15_before_after");
+    expect(bundle.citations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "m15_sbs_report#block-1",
+          sourceTitle: "M15 SBS report",
+          publisher: "NYC DOT",
+          sourceUrl: "https://example.test/m15-sbs-report",
+        }),
+      ]),
+    );
+    expect(Object.keys(bundle.citations[0] ?? {})).not.toContain("sourcePath");
+    expect(Object.keys(bundle.citations[0] ?? {})).not.toContain("blockId");
   });
 
   it("serves a typed empty MTA-wiki route evidence bundle for routes without evidence", async () => {
