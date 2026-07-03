@@ -26,9 +26,13 @@ import {
   routeDossierSummaryKey,
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
   STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
+  STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
   type StudioRouteCapability,
   type StudioRouteEvidenceBundle,
   StudioRouteEvidenceBundleSchema,
+  type StudioRouteEvidenceIndex,
+  type StudioRouteEvidenceIndexRoute,
+  StudioRouteEvidenceIndexSchema,
   studioRouteEvidenceBundleKey,
 } from "@bp/domain/studio";
 import {
@@ -162,29 +166,6 @@ type BuildStudioRouteIndex2ResponseResult =
 type BuildStudioRouteSectionsResponseResult =
   | { ok: true; routeSections: StudioRouteSectionsResponse }
   | { ok: false; response: Response };
-
-type Tier2RouteEvidenceBundle = {
-  routeId: string;
-  surfaceCount: number;
-  mappedFieldCount: number;
-  unresolvedFieldCount: number;
-  sourceCount: number;
-  sourceIds: string[];
-  timelineCandidateSurfaceCount: number;
-  metricObservationSurfaceCount: number;
-  treatmentSurfaceCount: number;
-  claimSurfaceCount: number;
-  evidencePointerCount: number;
-};
-
-type Tier2MaterializedViewsArtifact = {
-  artifactKind: "bp.tier2_vocab_materialized_views.v1";
-  schemaVersion: 1;
-  generatedAt: string;
-  routeEvidenceBundles: Tier2RouteEvidenceBundle[];
-};
-
-const TIER2_MATERIALIZED_VIEWS_KEY = "studio/v2/tier2/vocab-materialized-views.json";
 
 const ModelArtifactServingProjectionSchema = z
   .object({
@@ -806,20 +787,16 @@ function routeIdAliases(routeId: string): string[] {
   return [...aliases];
 }
 
-function routeEvidenceBundleRouteCandidates(bundle: Tier2RouteEvidenceBundle): string[] {
-  return routeIdAliases(bundle.routeId);
-}
-
 function routeDetailSlugCandidates(routeId: string, requestedSlug: string): string[] {
   const candidates = [requestedSlug, ...routeIdAliases(routeId).map(routeIdToStudioSlug)];
   return [...new Set(candidates)];
 }
 
-async function loadTier2MaterializedViews(
+async function loadStudioRouteEvidenceIndex(
   env: StudioReadEnv,
-): Promise<Tier2MaterializedViewsArtifact | null> {
+): Promise<StudioRouteEvidenceIndex | null> {
   if (env.ARTIFACTS === undefined) return null;
-  const object = await env.ARTIFACTS.get(TIER2_MATERIALIZED_VIEWS_KEY);
+  const object = await env.ARTIFACTS.get(STUDIO_ROUTE_EVIDENCE_INDEX_KEY);
   if (object === null) return null;
 
   let payload: unknown;
@@ -829,16 +806,8 @@ async function loadTier2MaterializedViews(
     return null;
   }
 
-  if (typeof payload !== "object" || payload === null) return null;
-  const candidate = payload as Partial<Tier2MaterializedViewsArtifact>;
-  if (
-    candidate.artifactKind !== "bp.tier2_vocab_materialized_views.v1" ||
-    candidate.schemaVersion !== 1 ||
-    !Array.isArray(candidate.routeEvidenceBundles)
-  ) {
-    return null;
-  }
-  return candidate as Tier2MaterializedViewsArtifact;
+  const parsed = StudioRouteEvidenceIndexSchema.safeParse(payload);
+  return parsed.success ? parsed.data : null;
 }
 
 async function loadModelArtifactServingProjection(
@@ -1534,35 +1503,44 @@ function buildDataCoverageRows(input: {
   });
 }
 
+function routeEvidenceFactCount(route: Pick<StudioRouteEvidenceIndexRoute, "coverage">): number {
+  return (
+    route.coverage.timelineCount +
+    route.coverage.interventionCount +
+    route.coverage.metricClaimCount +
+    route.coverage.projectCount +
+    route.coverage.sourceGapCount
+  );
+}
+
 function buildEvidenceReadyRows(input: {
-  bundles: readonly Tier2RouteEvidenceBundle[];
+  routes: readonly StudioRouteEvidenceIndexRoute[];
   routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
 }): StudioRouteSectionRow[] {
-  return input.bundles
-    .flatMap((bundle) => {
-      const route = routeEvidenceBundleRouteCandidates(bundle)
-        .map((routeId) => input.routeById.get(routeId))
-        .find((candidate): candidate is StudioRouteIndex2Row => candidate !== undefined);
+  return input.routes
+    .flatMap((evidenceRoute) => {
+      const route = input.routeById.get(evidenceRoute.routeId);
       if (route === undefined) return [];
+      const factCount = routeEvidenceFactCount(evidenceRoute);
       const score =
-        bundle.surfaceCount +
-        bundle.mappedFieldCount * 0.25 +
-        bundle.sourceCount * 3 +
-        bundle.timelineCandidateSurfaceCount * 2 +
-        bundle.metricObservationSurfaceCount +
-        bundle.treatmentSurfaceCount +
-        bundle.claimSurfaceCount;
+        evidenceRoute.coverage.citationCount * 3 +
+        evidenceRoute.coverage.timelineCount * 2 +
+        evidenceRoute.coverage.interventionCount * 2 +
+        evidenceRoute.coverage.metricClaimCount +
+        evidenceRoute.coverage.projectCount +
+        evidenceRoute.coverage.sourceGapCount +
+        (evidenceRoute.wikiRouteRecordId === null ? 0 : 5);
       if (!Number.isFinite(score) || score <= 0) return [];
-      return [{ bundle, route, score: Number(score.toFixed(3)) }];
+      return [{ evidenceRoute, factCount, route, score: Number(score.toFixed(3)) }];
     })
     .sort(
       (left, right) =>
         right.score - left.score ||
-        right.bundle.sourceCount - left.bundle.sourceCount ||
+        right.evidenceRoute.coverage.citationCount - left.evidenceRoute.coverage.citationCount ||
         left.route.routeId.localeCompare(right.route.routeId),
     )
     .slice(0, 12)
-    .map(({ bundle, route, score }, index) => ({
+    .map(({ evidenceRoute, factCount, route, score }, index) => ({
       rank: index + 1,
       routeId: route.routeId,
       slug: route.slug,
@@ -1572,28 +1550,30 @@ function buildEvidenceReadyRows(input: {
       score,
       scoreLabel: `${score.toFixed(0)} evidence score`,
       reasons: [
-        `${bundle.surfaceCount.toLocaleString("en-US")} route-linked Tier 2 surfaces`,
-        `${bundle.sourceCount.toLocaleString("en-US")} source${bundle.sourceCount === 1 ? "" : "s"}`,
-        `${bundle.mappedFieldCount.toLocaleString("en-US")} normalized fields`,
+        `${evidenceRoute.coverage.citationCount.toLocaleString("en-US")} cited evidence reference${evidenceRoute.coverage.citationCount === 1 ? "" : "s"}`,
+        `${factCount.toLocaleString("en-US")} wiki evidence row${factCount === 1 ? "" : "s"}`,
+        evidenceRoute.wikiRouteRecordId === null
+          ? "No canonical wiki route anchor"
+          : "Canonical wiki route anchor published",
       ],
       metrics: [
         metric({
-          id: "tier2_surfaces",
-          label: "T2 surfaces",
-          value: bundle.surfaceCount,
+          id: "wiki_citations",
+          label: "Citations",
+          value: evidenceRoute.coverage.citationCount,
         }),
         metric({
-          id: "source_count",
-          label: "Sources",
-          value: bundle.sourceCount,
+          id: "wiki_timeline_events",
+          label: "Timeline events",
+          value: evidenceRoute.coverage.timelineCount,
         }),
         metric({
-          id: "timeline_candidates",
-          label: "Timeline candidates",
-          value: bundle.timelineCandidateSurfaceCount,
+          id: "wiki_interventions",
+          label: "Interventions",
+          value: evidenceRoute.coverage.interventionCount,
         }),
       ],
-      // Evidence rows rank Tier 2 bundles, which carry no route-month trend; honest null.
+      // Evidence rows rank source-backed wiki bundles, which carry no route-month trend.
       movement6mPct: null,
       context12mPct: null,
     }));
@@ -1615,9 +1595,9 @@ export async function buildStudioRouteSectionsResponse(
 
   const generatedAt = new Date().toISOString();
   const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
-  const [rows, tier2Views, capabilityManifest] = await Promise.all([
+  const [rows, routeEvidenceIndex, capabilityManifest] = await Promise.all([
     listStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
-    loadTier2MaterializedViews(env),
+    loadStudioRouteEvidenceIndex(env),
     loadRouteCapabilityManifest(env),
   ]);
   const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
@@ -1699,15 +1679,15 @@ export async function buildStudioRouteSectionsResponse(
       notBuiltReason:
         "Route reliability summary projection is not yet served for Snapshot 2.0 sections.",
     }),
-    tier2Views === null
+    routeEvidenceIndex === null
       ? section({
           sectionId: "evidence_ready",
           title: "Evidence Ready",
           productQuestion: "Which routes can support source-backed findings or briefs now?",
           status: "not_built",
           rankMeaning:
-            "Will rank routes by reviewed findings, promoted timeline events, and stable public evidence ids.",
-          minCoverageRule: "Requires the Tier 2 route evidence materialized-view artifact in R2.",
+            "Will rank routes by published wiki evidence rows, citations, and route anchors.",
+          minCoverageRule: "Requires the MTA-wiki route evidence index in R2.",
           notBuiltReason:
             "Route evidence index has not been published to the serving artifact bucket.",
         })
@@ -1717,16 +1697,16 @@ export async function buildStudioRouteSectionsResponse(
           productQuestion: "Which routes can support source-backed findings or briefs now?",
           status: "partial",
           rankMeaning:
-            "Higher scores mean more route-linked Tier 2 surfaces, normalized fields, sources, and timeline/metric/treatment/claim evidence.",
+            "Higher scores mean more source-backed wiki citations and route-linked timeline, treatment, metric, project, or source-gap rows.",
           minCoverageRule:
-            "Requires route-linked rows in the Tier 2 vocabulary materialized views; this is evidence readiness, not a published claim.",
+            "Requires route-linked rows in the MTA-wiki route evidence index; this is evidence readiness, not a published claim.",
           rows: buildEvidenceReadyRows({
-            bundles: tier2Views.routeEvidenceBundles,
+            routes: routeEvidenceIndex.routes,
             routeById,
           }),
           caveats: [
-            "Tier 2 evidence rows are source-grounded and vocabulary-normalized, but they are not yet promoted findings.",
-            "SBS route joins accept base-route aliases such as B46 for B46 SBS.",
+            "Wiki-derived evidence rows are source-grounded and citation-backed, but they are not promoted findings.",
+            "Sparse routes can still be valid route pages when the wiki release has no coverage row for that route.",
           ],
         }),
   ];
@@ -1746,9 +1726,9 @@ export async function buildStudioRouteSectionsResponse(
         confidence: rows.length === 0 ? "low" : "medium",
         caveats: [
           "Route sections are transparent Snapshot 2.0 triage projections, not promoted detector findings.",
-          tier2Views === null
+          routeEvidenceIndex === null
             ? "Reliability Watch and Evidence Ready are intentionally marked not_built until their backing projections exist."
-            : "Reliability Watch is not_built; Evidence Ready is derived from the published Tier 2 materialized-view artifact.",
+            : "Reliability Watch is not_built; Evidence Ready is derived from the published MTA-wiki route evidence index.",
         ],
       },
     }),
@@ -2291,28 +2271,29 @@ function sourceMonthStates(input: {
   routeIndex: StudioRouteIndex2Response;
   sourceMonthCoverage: readonly D1SourceMonthCoverage[];
   lastBuiltSpeedMonth: string | undefined;
-  tier2Views: Tier2MaterializedViewsArtifact | null;
+  routeEvidenceIndex: StudioRouteEvidenceIndex | null;
   modelProjection: ModelArtifactServingProjection | null;
 }): StudioSourceMonthState[] {
-  const tier2EvidenceState: StudioSourceMonthState = {
-    sourceId: "tier2_evidence_catalog",
-    label: "Tier 2 evidence catalog",
+  const routeEvidenceRowCount =
+    input.routeEvidenceIndex === null
+      ? null
+      : input.routeEvidenceIndex.routes.reduce(
+          (sum, route) => sum + routeEvidenceFactCount(route),
+          0,
+        );
+  const routeEvidenceState: StudioSourceMonthState = {
+    sourceId: "mta_wiki_route_evidence",
+    label: "MTA-wiki route evidence",
     month: input.routeIndex.baselineMonth,
-    status: input.tier2Views === null ? "derived_not_built" : "available",
-    rowCount:
-      input.tier2Views === null
-        ? null
-        : input.tier2Views.routeEvidenceBundles.reduce(
-            (sum, bundle) => sum + bundle.surfaceCount,
-            0,
-          ),
-    routeCount: input.tier2Views?.routeEvidenceBundles.length ?? null,
-    grain: input.tier2Views === null ? null : "route_evidence_bundle",
+    status: input.routeEvidenceIndex === null ? "derived_not_built" : "available",
+    rowCount: routeEvidenceRowCount,
+    routeCount: input.routeEvidenceIndex?.summary.routeCount ?? null,
+    grain: input.routeEvidenceIndex === null ? null : "route_evidence_bundle",
     reason:
-      input.tier2Views === null
-        ? "Tier 2 route evidence materialized-view artifact is not published to R2."
-        : "Tier 2 vocabulary-normalized route evidence bundles are published to R2.",
-    producerCommand: "docs tier2 vocab-materialized-views",
+      input.routeEvidenceIndex === null
+        ? "MTA-wiki route evidence index is not published to R2."
+        : "MTA-wiki route evidence bundles are published to R2 with citation-backed coverage counts.",
+    producerCommand: "studio import-mta-wiki-route-evidence",
   };
   const modelArtifactState: StudioSourceMonthState = {
     sourceId: "detector_model_artifact_status",
@@ -2341,14 +2322,14 @@ function sourceMonthStates(input: {
       reason: row.note,
       producerCommand: "audit data-product-completeness",
     }));
-    const withTier2 = rows.some((row) => row.sourceId === "tier2_evidence_catalog")
-      ? rows.map((row) => (row.sourceId === "tier2_evidence_catalog" ? tier2EvidenceState : row))
-      : [...rows, tier2EvidenceState];
-    return withTier2.some((row) => row.sourceId === "detector_model_artifact_status")
-      ? withTier2.map((row) =>
+    const withRouteEvidence = rows.some((row) => row.sourceId === "mta_wiki_route_evidence")
+      ? rows.map((row) => (row.sourceId === "mta_wiki_route_evidence" ? routeEvidenceState : row))
+      : [...rows, routeEvidenceState];
+    return withRouteEvidence.some((row) => row.sourceId === "detector_model_artifact_status")
+      ? withRouteEvidence.map((row) =>
           row.sourceId === "detector_model_artifact_status" ? modelArtifactState : row,
         )
-      : [...withTier2, modelArtifactState];
+      : [...withRouteEvidence, modelArtifactState];
   }
 
   const speedMonthCount = input.routeIndex.routes.reduce(
@@ -2406,7 +2387,7 @@ function sourceMonthStates(input: {
       producerCommand: null,
     },
     {
-      ...tier2EvidenceState,
+      ...routeEvidenceState,
     },
     {
       ...modelArtifactState,
@@ -2418,7 +2399,7 @@ function buildSnapshot2(input: {
   routeIndex: StudioRouteIndex2Response;
   sourceMonthCoverage: readonly D1SourceMonthCoverage[];
   lastBuiltSpeedMonth: string | undefined;
-  tier2Views: Tier2MaterializedViewsArtifact | null;
+  routeEvidenceIndex: StudioRouteEvidenceIndex | null;
   modelProjection: ModelArtifactServingProjection | null;
 }): StudioSnapshot2 {
   const { routes } = input.routeIndex;
@@ -2545,7 +2526,7 @@ function buildSnapshot2(input: {
       routeIndex: input.routeIndex,
       sourceMonthCoverage: input.sourceMonthCoverage,
       lastBuiltSpeedMonth: input.lastBuiltSpeedMonth,
-      tier2Views: input.tier2Views,
+      routeEvidenceIndex: input.routeEvidenceIndex,
       modelProjection: input.modelProjection,
     }),
     counts: {
@@ -2568,11 +2549,11 @@ function buildSnapshot2(input: {
 }
 
 async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
-  const [routesResult, methods, docs, tier2Views, modelProjection] = await Promise.all([
+  const [routesResult, methods, docs, routeEvidenceIndex, modelProjection] = await Promise.all([
     buildStudioRoutesResponse(env),
     loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
     loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
-    loadTier2MaterializedViews(env),
+    loadStudioRouteEvidenceIndex(env),
     loadModelArtifactServingProjection(env),
   ]);
   if (!routesResult.ok) return routesResult.response;
@@ -2594,7 +2575,7 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
           routeIndex: routeIndex2Result.routeIndex,
           sourceMonthCoverage,
           lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? undefined,
-          tier2Views,
+          routeEvidenceIndex,
           modelProjection,
         })
       : undefined;

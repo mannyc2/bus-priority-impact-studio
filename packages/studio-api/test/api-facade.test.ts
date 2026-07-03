@@ -10,7 +10,10 @@ import {
   RouteScorecardSchema,
 } from "@bp/domain/routes";
 import { StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
-import { StudioRouteEvidenceBundleSchema } from "@bp/domain/studio/route-evidence";
+import {
+  STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
+  StudioRouteEvidenceBundleSchema,
+} from "@bp/domain/studio/route-evidence";
 import {
   StudioRouteDetailResponseSchema,
   StudioRouteHistoryResponseSchema,
@@ -326,6 +329,63 @@ function routeEvidenceBundleArtifact(): FakeR2Object {
           sourcePath: "raw/sources/m15_sbs_report/blocks.jsonl",
           sourceTitle: "M15 SBS report",
           publisher: "NYC DOT",
+        },
+      ],
+    }),
+    "application/json",
+  );
+}
+
+function routeEvidenceIndexArtifact(): FakeR2Object {
+  const sha256 = "0".repeat(64);
+  return new FakeR2Object(
+    JSON.stringify({
+      artifactKind: "bp.studio.route_evidence_index.v1",
+      schemaVersion: 1,
+      generatedAt: "2026-06-06T20:00:00.000Z",
+      sourceArtifactKey: "studio/v2/wiki/route-evidence.json",
+      summary: {
+        routeCount: 2,
+        matchedBusRouteCount: 2,
+        citationCount: 39,
+        totalByteLength: 2400,
+      },
+      routes: [
+        {
+          routeId: "M15+",
+          routeSlug: "m15-sbs",
+          wikiRouteRecordId: "route_m15_sbs",
+          artifactName: "route_evidence",
+          artifactKey: "studio/v2/wiki/routes/m15-sbs.json",
+          contentType: "application/json",
+          byteLength: 1800,
+          sha256,
+          coverage: {
+            timelineCount: 8,
+            interventionCount: 12,
+            metricClaimCount: 20,
+            projectCount: 3,
+            sourceGapCount: 2,
+            citationCount: 35,
+          },
+        },
+        {
+          routeId: "B99",
+          routeSlug: "b99",
+          wikiRouteRecordId: "route_b99",
+          artifactName: "route_evidence",
+          artifactKey: "studio/v2/wiki/routes/b99.json",
+          contentType: "application/json",
+          byteLength: 600,
+          sha256,
+          coverage: {
+            timelineCount: 1,
+            interventionCount: 0,
+            metricClaimCount: 2,
+            projectCount: 0,
+            sourceGapCount: 1,
+            citationCount: 4,
+          },
         },
       ],
     }),
@@ -2319,45 +2379,10 @@ describe("Studio API facade", () => {
     );
   });
 
-  it("promotes Evidence Ready route sections when Tier 2 materialized views are published", async () => {
+  it("promotes Evidence Ready route sections when the MTA-wiki route evidence index is published", async () => {
     const env = {
       ARTIFACTS: new FakeR2Bucket({
-        "studio/v2/tier2/vocab-materialized-views.json": new FakeR2Object(
-          JSON.stringify({
-            artifactKind: "bp.tier2_vocab_materialized_views.v1",
-            schemaVersion: 1,
-            generatedAt: "2026-06-06T20:00:00.000Z",
-            routeEvidenceBundles: [
-              {
-                routeId: "M15",
-                surfaceCount: 90,
-                mappedFieldCount: 104,
-                unresolvedFieldCount: 22,
-                sourceCount: 35,
-                sourceIds: ["mta-board-1", "nyc-dot-1"],
-                timelineCandidateSurfaceCount: 8,
-                metricObservationSurfaceCount: 20,
-                treatmentSurfaceCount: 12,
-                claimSurfaceCount: 7,
-                evidencePointerCount: 140,
-              },
-              {
-                routeId: "B99",
-                surfaceCount: 12,
-                mappedFieldCount: 20,
-                unresolvedFieldCount: 2,
-                sourceCount: 4,
-                sourceIds: ["mta-board-2"],
-                timelineCandidateSurfaceCount: 1,
-                metricObservationSurfaceCount: 2,
-                treatmentSurfaceCount: 0,
-                claimSurfaceCount: 1,
-                evidencePointerCount: 22,
-              },
-            ],
-          }),
-          "application/json",
-        ),
+        [STUDIO_ROUTE_EVIDENCE_INDEX_KEY]: routeEvidenceIndexArtifact(),
       }) as unknown as R2Bucket,
       BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
@@ -2381,13 +2406,13 @@ describe("Studio API facade", () => {
             slug: "m15-sbs",
             supportLevel: "evidence_ready",
             reasons: expect.arrayContaining([
-              "90 route-linked Tier 2 surfaces",
-              "35 sources",
-              "104 normalized fields",
+              "35 cited evidence references",
+              "45 wiki evidence rows",
+              "Canonical wiki route anchor published",
             ]),
             metrics: expect.arrayContaining([
-              expect.objectContaining({ id: "tier2_surfaces", value: 90 }),
-              expect.objectContaining({ id: "timeline_candidates", value: 8 }),
+              expect.objectContaining({ id: "wiki_citations", value: 35 }),
+              expect.objectContaining({ id: "wiki_timeline_events", value: 8 }),
             ]),
           }),
           expect.objectContaining({
@@ -2399,7 +2424,7 @@ describe("Studio API facade", () => {
       }),
     );
     expect(routeSections.quality.caveats).toContain(
-      "Reliability Watch is not_built; Evidence Ready is derived from the published Tier 2 materialized-view artifact.",
+      "Reliability Watch is not_built; Evidence Ready is derived from the published MTA-wiki route evidence index.",
     );
   });
 
