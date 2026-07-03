@@ -4,59 +4,30 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 Reader's map: [analytics-primer.html](../analytics-primer.html) is the visual walkthrough of the analytics architecture.
 
-> **Pipeline-v2 status (2026-05-29).** `tools/pipeline-v2` is the canonical pipeline CLI: all
-> 89 port-rated v1 commands now exist as v2 commands under `tools/pipeline-v2/src/commands/**`,
-> the three v1 monoliths (`tier2-docs.ts`, `studio-release.ts`, `audit/studio-coverage.ts`)
-> split during port, and root `package.json` collapsed from 114 scripts to 31 orchestration
-> entries (most pipeline calls now go through `bun --filter @bp/pipeline-v2 cli -- ...`).
-> v1 deletion is **gated on user-run integration tests**: the rebuild-trigger workflow against
-> the March 2026 fixture and the Tier 2 docs corpus pipeline end-to-end. See
-> `tools/pipeline-v2/migration-plan.md`.
+> **Generation 3 status (2026-07-03).** The current product is a public NYC bus route-evidence
+> website backed by compact D1 serving tables, R2 route artifacts, and the standalone mta-wiki
+> evidence backend. `tools/pipeline-v2` remains the canonical local CLI for source ingestion,
+> analytics materialization, D1/R2 export, and verification. The in-repo document-processing
+> command tree was retired in plan 024; do not revive it here.
 
-> **v1 command retirement note (2026-05-29).** v1 Tier 2 pipeline commands referenced in the
-> linked wiki pages — `docs:ocr`, `docs:ocr-review`, `docs:validate`, `docs:promote`,
-> `docs:audit-promoted-source-backing`, `docs:followup-curation-bundle`,
-> `docs:followup-curation-queue`, `docs:followup-curation-decisions`,
-> `docs:followup-resolution-audit`, `docs:verify-followup-curation`, and `build:artifacts` —
-> have been retired and no longer exist in `tools/pipeline/package.json` or
-> `tools/pipeline/src/cli.ts`. References in those pages describe past pipeline state and the
-> on-disk artifacts under `tier2-full-corpus-2026-05-24-pass2/`, not commands that exist today.
-> The Phase 2/3 successors in v2 are `docs:ocr-plan`, `docs:ocr-page-audit`,
-> `docs:ocr-markdown-candidates`, `docs:extract`, and `docs:intervention-records`. See
-> `tools/pipeline-v2/inventory-audit.md`.
+> **Design and evidence authority.** Public page design authority is
+> `knowledge/raw/downloads/design-handoffs/03-canonical/`. Document-derived route facts come from
+> mta-wiki release artifacts and must render with citations. Public pages should not fabricate
+> dates, metrics, impacts, or coverage claims.
 
 ## Architecture decisions (ADRs)
 
 ADRs live in `docs/decisions/` (not under `knowledge/wiki/`). Notable: 0007
 adopts spatialite as a loadable SQLite extension in the local pipeline only,
-for route ⇄ LION corridor joins; 0012 defines the registry-first,
-agent-assisted detector authoring plan after the analytics refactor; 0014 defines the D1 live-write
-serving model for Studio brief-draft authoring endpoints; 0015 adopts a lazy-loaded markdown
-pipeline + typed `BriefBlock` primitives for rendering brief prose with embeddable figures; 0016
-records the Cloudflare Think / Workers AI runtime for queued brief-author proposals; 0017 retires
+for route ⇄ LION corridor joins; 0011, 0012, 0014, 0015, and 0016 are superseded
+history after the generation-3 hard cutover and plan 024 cleanup; 0017 retires
 the broad "monthly release" slogan in favor of a multi-year, mixed-freshness model: historical
 corpus, baseline month, current signal, source-capture snapshot, serving projection, and deliberate
 publication gate; public surfaces should use multi-year route/corridor evidence by default where
 source coverage supports it;
 0018 records the detector calibration/readiness loop: reviewed gold labels, suppress-leakage
 evaluation, deterministic gates, and readiness buckets must separate detector signals from public
-finding eligibility. Draft creation, verdicts, body markdown, authoring ref resolution/persistence,
-draft-private review
-threads, send-to-brief attachment, candidate export audit wiring, and promotion receipt have landed.
-The remaining authoring/promotion follow-ups are tracked in
-`docs/architecture/studio-review-collaboration-and-promotion.md` alongside
-`docs/architecture/brief-markdown-primitives.md`. The brief authoring UX canon is now
-`docs/architecture/studio-brief-authoring-ux.md`: the composer/review/public reader are one
-document-shaped workflow where figures are evidence and AI works through typed artifacts, not chat.
-Agent-authored edit approvals and durable draft-version milestones are tracked in
-`docs/architecture/studio-agent-edit-approval-versioning.md`; the D1-backed
-agent run/proposal approval slice now supports propose/edit repair feedback,
-apply all or selected operations, reject, version snapshots, and restore, while
-`POST .../draft/generate` now queues the Cloudflare Think `BriefAuthorAgent` to call Workers AI and
-produce proposals for approval when bindings are configured.
-The production Studio agent stack is recorded in `docs/architecture/studio-agent-stack.md`:
-Cloudflare Think for authoring agents, D1/R2 for product state, operator-scoped tools for
-mutations, and Codemode deferred until a workflow needs it.
+page eligibility; 0019 records the Effect runtime boundary for pipeline code.
 
 ## Project pages
 
@@ -111,7 +82,7 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/pipeline_raw_prepare_audit|Pipeline raw prepare audit]] — Separate audit of the remaining 35 `tools/pipeline-v2` local SQLite prepares, with spatial, bulk-ingest, and Drizzle-candidate classifications.
 - [[wiki/engineering/local_db_usage_audit|Local database usage audit]] — Current-state audit of how the local SQLite DB is used (acquisition, read/write split, Drizzle vs raw `bun:sqlite` styles) and the roles of Drizzle and drizzle-zod, with ranked improvement opportunities (notably: drizzle-zod is unused; test/runtime migration drift).
 - [[wiki/engineering/analytics_local_db_first_principles_plan|Analytics / Local DB first-principles plan]] — Ownership model for `@bp/db`, `@bp/applied-research/local-db`, `@bp/applied-research`, `@bp/analytics`, pipeline orchestration, data-product completeness, validation gates, and serving boundaries.
-- [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]] — Approved v1 finish line for GTFS-RT reliability, intervention evaluation, corridors, briefs, exports, and QA gates.
+- [[wiki/engineering/data_pipeline_v1_completion_plan|Data Pipeline v1 completion plan]] — Historical v1 finish-line plan for GTFS-RT reliability, intervention evaluation, corridors, exports, and QA gates.
 - [[wiki/engineering/data_infrastructure_v1_finish_plan|Data Infrastructure v1 finish plan]] — Remaining recovered GTFS-RT integration, D1/R2 publish, scheduling, and website unfixture gates.
 - [[wiki/engineering/data_pipeline_finish_plan_v2|Data Pipeline Finish Plan v2]] — Current plan for source coverage, historical corpus completion, context features, manual PC rebuilds, and lightweight Worker refresh operations.
 - [[wiki/engineering/data_pipeline_finish_plan_v2_completion_audit|Data Pipeline Finish Plan v2 completion audit]] — Evidence checklist for the active finish-plan goal and the remaining deployed R2 GTFS-RT handoff proof.
@@ -121,16 +92,15 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/studio-api-refactor|Studio API hard-cutover refactor]] — Canonical plan to replace the broad `@bp/studio-api` root export with explicit contracts/client/server subpaths, generated route/OpenAPI ownership, and no legacy compatibility path.
 - [[wiki/engineering/serving_storage_split_plan|Serving storage split plan]] — Resource-first D1/R2 storage split, page-shaped projection rules, endpoint backing targets, and migration phases.
 - [[wiki/engineering/website_data_support_audit|Website data support audit]] — Current frontend/Worker data paths, mocked-vs-real status, Studio projection coverage gaps, and immediate support queue.
-- [[wiki/engineering/website_data_expansion_plan|Website data expansion plan]] — Serving Snapshot 2.0 plan for richer route pages, Tier 2 timelines, evidence catalog, context strips, and coverage manifests from the already-extracted corpus.
+- [[wiki/engineering/website_data_expansion_plan|Website data expansion plan]] — Superseded Snapshot 2.0 data-expansion plan; current route evidence uses mta-wiki artifacts and generation-3 route pages.
 - [[wiki/engineering/website_surface_data_plan|Website surface data plan]] — Surface-first data contract for `/routes`, route detail tabs, compare, shared route metrics, D1/R2 read models, and phased implementation.
-- [[wiki/engineering/route_treatment_summary_materializer_plan|Route treatment summary materializer plan]] — Deterministic plan to merge Tier 2 interventions, ACE/ABLE, bus-lane overlap, TSP source posture, local events, and source gaps into route/segment treatment read models.
+- [[wiki/engineering/route_treatment_summary_materializer_plan|Route treatment summary materializer plan]] — Historical treatment materializer plan; current document evidence dependencies point at mta-wiki artifacts.
 - [[wiki/engineering/serving_snapshot_2_surface_manifest|Serving Snapshot 2.0 surface manifest]] — Page/tab-shaped serving manifest for Snapshot 2.0: route sections, route detail tabs, compare, evidence/data notes, D1/R2 grains, empty states, and the non-public opportunity-lab lane.
 - [[wiki/engineering/serving_snapshot_2_full_route_baseline|Serving Snapshot 2.0 full-route baseline]] — Minimum all-route support contract: 381 route index, partial route pages, surface flags, D1/R2 split, and acceptance gates before richer 2.0 pages.
 - [[wiki/engineering/serving_snapshot_2_visualization_and_multiyear|Serving Snapshot 2.0 visualization & multi-year expansion]] — Multi-year speed panels + signal-month coverage, the case-study figure catalog (curb-pulse arc), `series_ready`/`case_ready` support levels, and the prototype sequence.
 - [[wiki/engineering/charting_library_evaluation|Charting library evaluation]] — Post-Recharts rendering decision: own a D3-primitive layer for argument figures, uPlot/Canvas for dense views, maplibre for spatial; comparison table, migration path, and first prototypes.
-- [[wiki/engineering/web_app_support_plan|Web app support plan]] — Briefs, composer workflows, route-loader caching, deferred evidence payloads, and TanStack Router data-loading policy.
-- [[wiki/engineering/agent_author_api|Agent-Author API]] — Write-side spec for agents-as-authors, canonical brief-composition walkthrough, draft body/block/ref endpoints, async job semantics, idempotency, and dogfeed test.
-- [[wiki/engineering/studio_brief_draft_authoring_worker_plan|Studio brief-draft authoring Worker plan]] — Step-by-step plan for D1-backed draft endpoints, authz, idempotency, draft-status overlays, generation-job recording, tests, OpenAPI, and docs.
+- [[wiki/engineering/web_app_support_plan|Web app support plan]] — Superseded web support plan; current public pages follow the generation-3 route-evidence scope.
+- [[wiki/engineering/agent_author_api|Agent-Author API]] — Superseded write-side authoring spec; retained as history only.
 - [[wiki/engineering/agent_first_contributor_leaderboard|Agent-first contributor leaderboard]] — Plan for agent-submitted transit issue artifacts, review states, scoring ledger, leaderboard snapshots, and dogfood walkthrough.
 - [[wiki/engineering/web_observability_performance_seo_plan|Web observability, performance, and SEO plan]] — Lighthouse route matrix, Core Web Vitals/RUM posture, SEO crawlability checks, Worker timing, and release gates.
 - [[wiki/engineering/web_ssr_tanstack_start_migration_plan|Web SSR (TanStack Start) migration sketch]] — Why SSR (collapse the browser→Worker data waterfall on content pages), one-worker vs. two-worker (site + API) topology with the site worker reading D1 directly, per-route SSR boundary, same-origin cookie constraint, phasing, and verification. Draft, not yet an ADR.
@@ -138,110 +108,32 @@ mutations, and Codemode deferred until a workflow needs it.
 - [[wiki/engineering/generated_cli_distribution_plan|Generated CLI and distribution plan]] — Cloudflare-style runtime schema/codegen pipeline, compiled Bun CLI binary release manifest, package-manager wrappers, guard rails, and rollback.
 - [[wiki/engineering/map_strategy|Map strategy]] — MapLibre, GeoJSON/PMTiles artifacts, NYC scope, and map package responsibilities.
 - [[wiki/engineering/llm_wiki_rag|LLM wiki + RAG layer]] — How the persistent wiki and cited answer layer should work.
-- [[wiki/engineering/tier_2_document_corpus_pipeline|Tier 2 document corpus pipeline]] — Plan for intervention/policy document capture, extraction, validation, and detector integration.
-- [[wiki/engineering/tier2_structured_extraction_harness_plan|Tier 2 structured extraction harness plan]] — Next-page/window schema and evaluation harness for turning OCR Markdown into validated claims, events, context signals, review questions, and applied-research inputs.
-- [[wiki/engineering/agentic_tier2_extraction_harness_goal|Agentic Tier 2 extraction harness goal]] — Improved source-scoped extraction harness goal: controlled PDF/source tools, prior-candidate context, field-level evidence support, deterministic verification, and downstream brief/finding/detector/causal projections.
-- [[wiki/engineering/tier2_extraction_target_spec|Tier 2 extraction target spec]] — Product-facing target schema for what Tier 2 documents must extract: evidence-by-field, route/date/treatment/timeline/metric/table/source-gap basics plus cost, service-delivery, ridership-demand, geographic/equity, and TSP posture fields.
-- [[wiki/engineering/tier2_machine_verifiable_feature_harness_plan|Tier 2 machine-verifiable feature harness plan]] — Compiler-style proof layer over qv1-qv10 + vocab artifacts: feature-family validators, proof ledger, promotion gates, and no row-by-row human review.
-- [[wiki/engineering/tier2_agentic_self_healing_architecture|Tier 2 agentic self-healing architecture]] — Audit-driven retry lanes, adaptive retry policy, source-tool enrichment gate, and quarantine contract for agentic extraction runs.
-- [[wiki/engineering/tier2_processing_status_and_resume|Tier 2 processing status and resume runbook]] — Current qv8/qv9/qv10 canonical merge, raw-field graduation, vocab synthesis progress, exact artifact paths, remaining chunks, provider caveats, and resumable queue commands.
-- [[wiki/engineering/tier2_extraction_best_practices|Tier 2 extraction best practices]] — qv1–qv10 lessons, raw-field alias pitfalls, missing-projection policy, and future queue/normalization rules.
-- [[wiki/engineering/document_derived_surfaces_v1|Document-derived surfaces v1]] — Final storage contract for Tier 2 OCR/discovery outputs as source-grounded research surfaces, with lifecycle gates before review, serving, causal, or forecasting use.
-- [[wiki/engineering/tier2_operational_date_extraction_review|Tier 2 operational-date assertions — build & review]] — Deterministic source-stated operational-date layer (trust official MTA/DOT status + date; no LLM). 929 trusted dates; review found/fixed three precision defects. Gated before sqlite load.
-- [[wiki/engineering/tier2_operational_date_extraction_audit_handoff|Tier 2 operational-date extraction audit handoff]] — SUPERSEDED by the review above; solved deterministically rather than handed to another audit session.
+- [[wiki/engineering/tier_2_document_corpus_pipeline|Document corpus pipeline]] — Superseded in-repo document-pipeline plan; current document evidence lives in mta-wiki.
+- [[wiki/engineering/tier2_structured_extraction_harness_plan|Structured extraction harness plan]] — Superseded in-repo extraction plan; retained as history only.
+- [[wiki/engineering/agentic_tier2_extraction_harness_goal|Agentic extraction harness goal]] — Superseded in-repo extraction goal; retained as history only.
+- [[wiki/engineering/tier2_extraction_target_spec|Extraction target spec]] — Superseded in-repo extraction target; retained as history only.
+- [[wiki/engineering/tier2_machine_verifiable_feature_harness_plan|Machine-verifiable feature harness plan]] — Superseded in-repo proof-layer plan; retained as history only.
+- [[wiki/engineering/tier2_agentic_self_healing_architecture|Agentic extraction self-healing architecture]] — Superseded in-repo retry architecture; retained as history only.
+- [[wiki/engineering/tier2_processing_status_and_resume|Document processing status and resume runbook]] — Superseded in-repo runbook; retained as history only.
+- [[wiki/engineering/tier2_extraction_best_practices|Document extraction best practices]] — Superseded in-repo extraction notes; retained as history only.
+- [[wiki/engineering/document_derived_surfaces_v1|Document-derived surfaces v1]] — Superseded storage contract; current source-grounded document facts come from mta-wiki.
+- [[wiki/engineering/tier2_operational_date_extraction_review|Operational-date assertions build and review]] — Superseded in-repo operational-date review; current backend is mta-wiki.
+- [[wiki/engineering/tier2_operational_date_extraction_audit_handoff|Operational-date extraction audit handoff]] — Superseded historical handoff.
 - [[wiki/engineering/cli_commands|CLI commands]] — TypeScript `/pipeline` command targets for source probes, ingest, analytics builds, exports, and wiki linting.
 - [[wiki/engineering/testing_standards|Testing standards]] — Bun-first tests, TDD loop, Zod contracts, optimized pre-push hooks, and Cloudflare Worker production harnesses.
 - [[wiki/engineering/source_linting|Source linting]] — Required checks before source-backed claims.
 - [[wiki/engineering/data_pipeline_operationalization_status|Data pipeline operationalization status]] — March release decision, R2 mirror validation, 311 coverage start, and parking scope.
 
-## Analysis pages
-
-- [[wiki/analysis/hotspot_detection|Hotspot detection]] — How to identify slow segments and persistent bottlenecks.
-- [[wiki/analysis/route_score|Route score]] — Transparent route ranking formula.
-- [[wiki/analysis/ace_impact_evaluation|ACE impact evaluation]] — Before/after and event-study design.
-- [[wiki/analysis/memo_generation|Memo generation]] — Route-improvement brief format.
-- [[wiki/analysis/methodology_validation|Methodology validation]] — Code-level audit of analysis correctness, limitations, and gaps.
-- [[wiki/analysis/finding_coverage_and_corpus_expansion|Finding coverage and corpus expansion]] — Post-v1 plan for missed-finding risk, detector coverage, source-gap findings, and data-corpus expansion.
-- [[wiki/analysis/ideal_detector_system|Ideal detector system]] — Registry-first detector doctrine for questions, evidence packets, claim tiers, promotion, calibration, LLM boundaries, and practical limits.
-- [[wiki/analysis/detector_catalog|Detector catalog]] — Human-readable map of the current detector registry, similarity clusters, duplicate warnings, feature grains, model artifacts, and new-detector intake checklist.
-- [[wiki/analysis/detector_calibration_results_2026_06|Detector calibration results 2026-06]] — Synthesis of the full calibration sweep: the label-backed publishable core (~70 findings across six families), the four killed analyses with root causes, the two label-verified feature fixes, serving-gate guarantees, and next steps in value order.
-- [[wiki/analysis/product_question_inventory|Product question inventory]] — Product-question family map that ties frontend surfaces, detectors, applied-research panels, serving projections, evidence readiness, and missing detector spaces together.
-- [[wiki/analysis/product_question_discovery_crosswalk|Product question discovery crosswalk]] — Source-doc and app-surface crosswalk that extracts product jobs, maps them to question families, and classifies missing-family candidates as promote, absorb, defer, or non-goal.
-- [[wiki/analysis/treatment_informed_detector_plan|Treatment-informed detector plan]] — High-quality detector plan for consuming route/segment treatment state, TSP source gaps, bus-lane scope matches, and underperformance guardrails.
-
 ## Templates
 
 - [[wiki/templates/dataset_page_template|Dataset page template]]
 - [[wiki/templates/analysis_page_template|Analysis page template]]
-- [[wiki/templates/route_brief_template|Route brief template]]
 
 ## Immediate open issues
 
-1. Done 2026-06-12: Data Pipeline Finish Plan v2 promotion is no longer blocked by the stale local
-   artifact gap. The recorded March 2026 production `publish:serving-release --execute` remains the
-   deliberate serving mutation, and the local release gate now materializes route-timeline R2
-   artifacts from the serving projection copy plan. `check:publish-completeness -- --month 2026-03`
-   reports 0 missing D1 artifact refs, and a dry-run `publish:serving-release` reverified the
-   March 2026 D1/R2 publish plan without mutating production.
-2. Done 2026-06-12: 311 geocoding is complete for the loaded current and historical corpora, with
-   zero unattempted rows after the targeted monthly slices. Current 311 has 2,504,843 geocoded
-   records and 16,291 misses; historical 311 has 37,707 geocoded records and 1,597 misses. Route
-   touches are materialized for both tables and can now be treated as loaded-corpus complete.
-3. Done 2026-06-12: scheduled refresh remains small and durable in the Worker. Cron captures
-   GTFS-RT protobuf/manifests plus compact health to R2/D1, the daily route-speed watcher writes
-   publication artifacts, and `shouldRebuild=true` stays a manual PC rebuild/publish handoff. The
-   source-refresh tests cover missing-binding skips, manifest capture, spaced snapshots, watcher
-   publication, minute-cron scope, and scheduled-facade delegation.
-4. Done 2026-06-12: `/api/v1/studio/*` public route addressability is D1-backed for route
-   listing/search/detail/history and generated public briefs. `audit studio-coverage` now fails
-   mandatory serving-contract gaps, reports `d1RouteAddressabilityShare: 1`, and downgrades legacy
-   curated `studio/v1` route-detail projection depth to a warning until those artifacts are rebuilt
-   from the v2 serving surfaces. Detector-backed findings keep the required candidate, detector,
-   decision, packet, and immutable hash refs.
-5. Done 2026-06-12: the current web app support plan is implemented for the live contract. Studio
-   API reads accept abort signals, high-traffic TanStack route loaders pass router cancellation and
-   route-specific stale times, search/compare/new-brief loaders keep independent fetches parallel,
-   brief evidence/history are split out of the public brief shell, route/chart-heavy UI is lazy
-   loaded where the current payload contract allows it, and the authoring UI writes to the live D1
-   draft create/edit/review/publish-candidate/retract APIs.
-6. Done 2026-06-12: web release gates are in place through `check:web-release`,
-   `check:web-seo`, `check:web-performance`, Lighthouse opt-in, Worker SEO tests, Studio
-   `Server-Timing`, and log-only no-D1 RUM.
-7. Done 2026-06-12: `/api/v1/studio/docs` endpoint metadata is generated from the same
-   `studioOpenApiDocument.paths` contract served by `GET /api/openapi.json`, and snapshot docs
-   endpoint counts follow that generated contract.
-8. Done 2026-06-12: `Baseline Release`, `Current Signal`, `Pending Publication`, and
-   `Observed Release` labels are wired through the Studio/API quality contract and route data notes,
-   with frontend label helpers covered by tests so raw enum names do not leak into public copy.
-   March 2026 remains the current observed release candidate with `third_party_recovered`
-   provenance; May 2026 remains the official self-collected current observed appendix until matching
-   public speed rows exist.
-9. Reduce remaining bus-lane source gaps where public dates can be recovered, and get external
-   transit-domain review of the peer-adjusted ACE/ABLE/bus-lane method before causal claims.
-10. Continue the post-v1 finding coverage track: detector considered/hit/skipped counts, source-gap
-    findings, join success metrics, source evidence eligibility, and route-month context features
-    now exist; the ideal detector doctrine now defines the target shape. Detector specs, review
-    packets, promotion queues, reviewer decision capture, immutable promoted-finding artifacts,
-    counter-evidence support, hotspot/observed-reliability/intervention/permit caveats, a 311
-    context detector, a matched multi-month peer-speed detector, and confidence-aware backtest
-    calibration hooks are implemented. A 200-finding manual curation pass now promotes reviewed
-    detector findings through Studio while preserving detector audit trails. Weather, equity,
-    traffic-volume, and current traffic-speed supplemental evidence now attach to detector review
-    packets as non-primary context/caveats with freshness labels, and a context appendix now exposes
-    the available portions of that evidence in public Studio finding reasoning. The first
-    route-day weather reliability split now compares observed headways on weather-impacted versus
-    reference days, including matched local day/hour/direction/stop control windows where enough
-    samples exist, planned-service controls with route-hour fallback schedule matching, and
-    route-hour passenger-load plus incident controls. Backtest calibration now uses those
-    normalized control fields for observed-reliability control readiness and adjusted confidence.
-    Next work is larger gold-set/reviewer-decision expansion, demotion/supersession records, and
-    normalized detector layers over day/window speed, traffic, passenger-load, and incident metrics.
-11. Add the Tier 2 document corpus pipeline for policy/intervention documents, but keep source
-    promotion, entity linking, metric computation, and publish validation deterministic.
-12. Route score uses a two-factor formula; incorporate ridership weight, persistence, reliability,
-    and intervention gap or demote score behind brief evidence.
-13. Keep the MVP TypeScript-only and D1 as a compact serving projection unless a documented
-    requirement forces Python/PostGIS/VPS or Postgres/Hyperdrive escalation.
-14. Plan the contributor leaderboard as an agent-first issue intake and review system: agents submit
-    typed `ContributorIssue` artifacts, deterministic validation and human/trusted review award
-    score ledger events, and the public leaderboard reads from precomputed D1 snapshots.
+1. Reduce remaining bus-lane source gaps where public dates can be recovered, and get external
+   transit-domain review before any causal claim language.
+2. Keep the MVP TypeScript-only and D1 as a compact serving projection unless a documented
+   requirement forces Python/PostGIS/VPS or Postgres/Hyperdrive escalation.
+3. Continue generation-3 execution from `plans/README.md`; production D1 migrations and deploys
+   remain operator-run steps.

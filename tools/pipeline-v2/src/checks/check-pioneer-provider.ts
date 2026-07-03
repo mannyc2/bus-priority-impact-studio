@@ -1,9 +1,13 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { callPioneerToolCallDirect } from "../commands/docs/tier2/_llm-clients.ts";
 import { writeJson } from "../lib/json.ts";
 
 type CheckStatus = "pass" | "warn" | "fail";
+type FetchLike = typeof globalThis.fetch;
+type FetchResponse = Awaited<ReturnType<FetchLike>>;
+type ResponseTextReader = {
+  text: () => Promise<string>;
+};
 
 type ProviderCheck = {
   id: string;
@@ -29,6 +33,22 @@ type PioneerCapabilityReport = {
     elapsedMs: number;
   };
   checks: ProviderCheck[];
+};
+
+type PioneerToolCallDirectInput = {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+  maxTokens: number;
+  toolName: string;
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  tools: Array<{
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  }>;
+  fetcher: FetchLike;
+  timeoutMs: number;
 };
 
 function parseArgs(argv: string[]): Record<string, string | boolean> {
@@ -125,6 +145,54 @@ async function fetchJson(
     body = { rawText: await response.text() };
   }
   return { status: response.status, body };
+}
+
+async function bodyJsonOrText(response: ResponseTextReader): Promise<unknown> {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { rawText: text };
+  }
+}
+
+async function callPioneerToolCallDirect(
+  input: PioneerToolCallDirectInput,
+): Promise<{ response: FetchResponse; body: unknown }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), input.timeoutMs);
+  try {
+    const response = await input.fetcher(`${input.baseUrl.replace(/\/+$/, "")}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${input.apiKey}`,
+        "X-API-Key": input.apiKey,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: input.model,
+        max_tokens: input.maxTokens,
+        temperature: 0,
+        messages: input.messages,
+        tools: input.tools.map((tool) => ({
+          type: "function",
+          function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters,
+          },
+        })),
+        tool_choice: {
+          type: "function",
+          function: { name: input.toolName },
+        },
+      }),
+    });
+    return { response, body: await bodyJsonOrText(response.clone()) };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function summarize(checks: ProviderCheck[], elapsedMs: number): PioneerCapabilityReport["summary"] {
@@ -226,6 +294,7 @@ async function main(): Promise<void> {
           },
         ],
         fetcher: fetch,
+        baseUrl: openAiBaseUrl,
         timeoutMs: 120_000,
       }),
     );

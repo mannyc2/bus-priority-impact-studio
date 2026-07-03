@@ -16,7 +16,7 @@ import { busLaneMatches } from "../route-briefs/index.ts";
 
 const sourceId = "mta_ace_routes";
 const busLaneSourceId = "nyc_dot_bus_lanes";
-export const documentOperationalDateSourceId = "tier2_document_operational_date_assertions";
+export const documentOperationalDateSourceId = "mta_wiki_document_operational_date_assertions";
 export const defaultInterventionEvaluationWindowMonths = 3;
 export const defaultInterventionEvaluationMinSampleMonths = 1;
 export const defaultInterventionEvaluationComparisonRouteCount = 10;
@@ -586,7 +586,7 @@ export function buildDocumentAnchorEventsForRouteEvaluation(input: {
       routeId,
       interventionType: documentAnchorInterventionType(assertion.interventionFamily),
       sourceId: documentOperationalDateSourceId,
-      program: "Tier 2 document operational dates",
+      program: "mta-wiki document operational dates",
       implementationDate: effectiveDateStart,
       implementationMonth,
       eventStatus:

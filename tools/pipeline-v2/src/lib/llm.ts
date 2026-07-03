@@ -232,7 +232,7 @@ export async function completeJson(
   throw lastError ?? new Error("LLM request failed with no error.");
 }
 
-/** A single OpenAI-style content block as the Tier 2 callers build them. */
+/** A single OpenAI-style content block for forced tool-call requests. */
 export type ToolCallContentBlock =
   | { type: "text"; text: string }
   | { type: "image"; data: string; mimeType: string };
@@ -277,9 +277,7 @@ export type CompleteToolCallResult = {
 
 /**
  * Run a forced-tool-call completion through the pi harness and surface the tool
- * call, usage, and stop reason in a transport-agnostic shape. The Tier 2 callers
- * synthesize the legacy `{response, body}` contract from this so their downstream
- * consumers (`extractToolCallArguments`, `openRouterErrorMessage`, …) are unchanged.
+ * call, usage, and stop reason in a transport-agnostic shape.
  *
  * pi-ai streams via the OpenAI SDK, so `service_tier`, OpenRouter file
  * annotations, and the raw provider body are NOT recoverable here; callers that
@@ -296,8 +294,7 @@ export async function completeToolCall(
 
   // pi-ai's Context carries the system prompt out-of-band (`systemPrompt`), not as
   // a `role:"system"` entry in `messages` — those are silently dropped. Hoist any
-  // system messages (always string content in the Tier 2 callers) into
-  // `systemPrompt`; the rest become user messages.
+  // system messages into `systemPrompt`; the rest become user messages.
   const systemPrompt = options.messages
     .filter((message) => message.role === "system")
     .map((message) => (typeof message.content === "string" ? message.content : ""))

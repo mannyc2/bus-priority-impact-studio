@@ -624,63 +624,6 @@ export const routeBatchIssue = sqliteTable(
   (table) => [primaryKey({ columns: [table.month, table.issueRank] })],
 );
 
-export const studioBriefDraft = sqliteTable("studio_brief_draft", {
-  briefId: text("brief_id").primaryKey(),
-  routeSlug: text("route_slug").notNull(),
-  sourceBriefId: text("source_brief_id"),
-  fromFindingId: text("from_finding_id"),
-  status: text("status").notNull(),
-  title: text("title").notNull(),
-  dek: text("dek").notNull(),
-  summary: text("summary").notNull(),
-  version: text("version").notNull(),
-  jobId: text("job_id").notNull(),
-  validationScore: integer("validation_score"),
-  validationWeakClaimsJson: text("validation_weak_claims_json"),
-  validationMissingEvidenceJson: text("validation_missing_evidence_json"),
-  validationBlockingIssuesJson: text("validation_blocking_issues_json"),
-  lastValidatedAt: text("last_validated_at"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  publishedAt: text("published_at"),
-  jobStatus: text("job_status").notNull().default("succeeded"),
-  jobStartedAt: text("job_started_at"),
-  jobCompletedAt: text("job_completed_at"),
-  jobError: text("job_error"),
-  workspaceId: text("workspace_id"),
-  jobGenerationMode: text("job_generation_mode").notNull().default("deterministic_seed"),
-  jobLlmStatus: text("job_llm_status").notNull().default("not_configured"),
-  jobLlmProvider: text("job_llm_provider"),
-  jobLlmModel: text("job_llm_model"),
-  bodyMd: text("body_md"),
-  promotionCandidateId: text("promotion_candidate_id"),
-  promotionTargetBriefId: text("promotion_target_brief_id"),
-  promotionArtifactKey: text("promotion_artifact_key"),
-  promotionArtifactSha256: text("promotion_artifact_sha256"),
-  promotionRecordedAt: text("promotion_recorded_at"),
-  ownerKind: text("owner_kind").notNull().default("workspace"),
-  ownerIdentityId: text("owner_identity_id"),
-  guestTokenHash: text("guest_token_hash"),
-  guestClaimedAt: text("guest_claimed_at"),
-});
-
-export const studioBriefDraftClaim = sqliteTable(
-  "studio_brief_draft_claim",
-  {
-    briefId: text("brief_id").notNull(),
-    claimN: integer("claim_n").notNull(),
-    title: text("title").notNull(),
-    body: text("body"),
-    strength: integer("strength").notNull(),
-    evidenceIdsJson: text("evidence_ids_json").notNull(),
-    caveatIdsJson: text("caveat_ids_json").notNull(),
-    state: text("state"),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.briefId, table.claimN] })],
-);
-
 export const studioBriefReviewComment = sqliteTable(
   "studio_brief_review_comment",
   {
@@ -855,22 +798,6 @@ export const publicComment = sqliteTable(
   (table) => [
     index("public_comment_brief_idx").on(table.briefId, table.createdAt),
     index("public_comment_identity_idx").on(table.identityId),
-  ],
-);
-
-export const studioBriefDraftBlock = sqliteTable(
-  "studio_brief_draft_block",
-  {
-    briefId: text("brief_id").notNull(),
-    blockId: text("block_id").notNull(),
-    blockType: text("block_type").notNull(),
-    blockJson: text("block_json").notNull(),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.briefId, table.blockId] }),
-    index("studio_brief_draft_block_brief_type_idx").on(table.briefId, table.blockType),
   ],
 );
 

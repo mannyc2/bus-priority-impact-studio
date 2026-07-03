@@ -12,7 +12,6 @@ import {
   routeTreatmentSourceRowsFromInterventionEvents,
   routeTreatmentSourceRowsFromPublishableInterventions,
   routeTreatmentSourceRowsFromRouteBriefSummaries,
-  routeTreatmentSourceRowsFromTier2Events,
   routeTreatmentSummaryMarkdown,
   segmentTreatmentRowsFromLaneOverlaps,
 } from "@bp/analytics/interventions";
@@ -30,7 +29,7 @@ import { segmentLaneOverlapIndex } from "./_release-geometry.ts";
 import type { RouteBriefInputArtifact } from "./_release-types.ts";
 
 const defaultPublishableInterventionsPath = fromRepoRoot(
-  "data/artifacts/docs/gap-roadmap-docs-2026-05-25/intervention-publishable-v1.json",
+  "data/artifacts/studio/v2/wiki/intervention-publishable-v1.json",
 );
 const defaultRouteShapeSnapshotPath = "data/raw/network/current_bus_routes.json";
 const defaultStopSnapshotPath = "data/raw/network/current_bus_stops.json";
@@ -188,10 +187,6 @@ export async function runRouteTreatmentSummary(input: {
       rows: localRows.interventionEventRows,
       month: input.month,
     }),
-    ...routeTreatmentSourceRowsFromTier2Events({
-      rows: localRows.tier2EventRows,
-      month: input.month,
-    }),
     ...routeTreatmentSourceRowsFromPublishableInterventions({
       rows: publishableInterventions,
       month: input.month,
@@ -244,7 +239,7 @@ export default defineCommand({
       publishableInterventions: z
         .string()
         .optional()
-        .describe("Reviewed Tier 2 publishable intervention artifact path"),
+        .describe("Reviewed publishable intervention artifact path"),
       routeShapeSnapshot: z
         .string()
         .default(defaultRouteShapeSnapshotPath)
@@ -256,7 +251,7 @@ export default defineCommand({
       skipPublishableInterventions: z
         .boolean()
         .default(false)
-        .describe("Skip optional Tier 2 publishable intervention artifact input"),
+        .describe("Skip optional publishable intervention artifact input"),
     }),
   },
   output: z.object({

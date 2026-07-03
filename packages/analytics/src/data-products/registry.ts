@@ -445,7 +445,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       kind: "local_table",
       owner: "tools/pipeline-v2/route",
       grain: "intervention event",
-      producerCommand: "route intervention-evaluation; docs tier2 promote-interventions",
+      producerCommand: "route intervention-evaluation",
       expectedUniverse: {
         description:
           "Intervention event rows used to date and type route/corridor treatment comparisons.",
@@ -453,7 +453,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       },
       requiredInputs: [
         "source_manifest:intervention_seed_events",
-        "tier2_structured_intervention_extraction_full_corpus",
+        "mta_wiki_route_evidence_release",
       ],
       downstreamConsumers: ["route_treatment_summary_artifact", "Studio intervention timelines"],
       freshnessPolicy: { cadence: "manual" },
@@ -833,7 +833,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
         "local_intervention_events_release",
         "local_context_event_route_touches_history",
         "map_base_geojson_artifacts",
-        "tier2_structured_intervention_extraction_full_corpus",
+        "mta_wiki_route_evidence_release",
       ],
       downstreamConsumers: ["Studio intervention timeline", "route evidence panels", "data notes"],
       freshnessPolicy: { cadence: "release_month" },
@@ -845,6 +845,54 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
           pathTemplate:
             "{artifactRoot}/studio/v2/route-treatment-summary/{releaseMonth}/route-treatment-summary.json",
           validateReleaseMonth: true,
+        },
+      ],
+    },
+    {
+      id: "mta_wiki_route_evidence_release",
+      label: "mta-wiki route evidence release",
+      kind: "artifact_family",
+      owner: "tools/pipeline-v2/studio",
+      grain: "route evidence bundle x route",
+      producerCommand: "studio import-mta-wiki-route-evidence",
+      expectedUniverse: {
+        description:
+          "Versioned mta-wiki evidence imported into the Studio route-evidence backend for public route pages.",
+        routes: "public_visible_routes",
+        months: "release_month",
+      },
+      requiredInputs: ["mta-wiki v1 release", "Studio route catalog"],
+      downstreamConsumers: [
+        "local_intervention_events_release",
+        "route_treatment_summary_artifact",
+        "Studio route evidence panels",
+        "route timeline evidence",
+      ],
+      freshnessPolicy: { cadence: "manual" },
+      checks: [
+        {
+          id: "route_evidence_artifact",
+          label: "mta-wiki route evidence artifact",
+          type: "json_artifact",
+          pathTemplate: "{artifactRoot}/studio/v2/wiki/route-evidence.json",
+          requiredJsonValues: [
+            {
+              path: "artifactKind",
+              equals: "bp.studio.route_evidence.v1",
+            },
+          ],
+        },
+        {
+          id: "route_evidence_index",
+          label: "mta-wiki route evidence serving index",
+          type: "json_artifact",
+          pathTemplate: "{artifactRoot}/studio/v2/wiki/index.json",
+          requiredJsonValues: [
+            {
+              path: "artifactKind",
+              equals: "bp.studio.route_evidence_index.v1",
+            },
+          ],
         },
       ],
     },
@@ -907,7 +955,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
       downstreamConsumers: [
         "planned_service_baseline_history",
         "scheduled_speed_gap_history",
-        "service_change_validation_history",
+        "mta-wiki route evidence validation backlog",
         "route vitals frequency history",
       ],
       freshnessPolicy: { cadence: "historical_window" },
@@ -997,39 +1045,6 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
           expectedMonths: "history_window",
           minRowsPerMonth: 250,
           minRoutesPerMonth: 250,
-        },
-      ],
-    },
-    {
-      id: "service_change_validation_history",
-      label: "Historical service-change validation",
-      kind: "artifact_family",
-      owner: "tools/pipeline-v2/docs/tier2",
-      grain: "document event x route x historical service proof",
-      producerCommand: "docs tier2 service-change-validation",
-      expectedUniverse: {
-        description:
-          "Validation surface for document-derived route/service-change timeline claims that require historical planned-service or GTFS proof.",
-        months: "history_window",
-      },
-      requiredInputs: [
-        "tier2_document_event_route_resolution_v1",
-        "historical_gtfs_static_bundle_snapshots",
-        "planned_service_baseline_history",
-      ],
-      downstreamConsumers: [
-        "Studio reviewed document timeline projections",
-        "route timeline service-change caveats",
-        "historical GTFS validation backlog",
-      ],
-      freshnessPolicy: { cadence: "manual" },
-      checks: [
-        {
-          id: "validation_json",
-          label: "Service-change validation JSON",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/service-change-validation/{historyStartMonth}_to_{releaseMonth}/validation.json",
         },
       ],
     },
@@ -2137,365 +2152,6 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = DataProductManifestSch
           label: "D1 verify summary JSON",
           type: "json_artifact",
           pathTemplate: "{repoRoot}/data/exports/d1/{releaseMonth}/verify-summary.json",
-        },
-      ],
-    },
-    {
-      id: "tier2_ocr_raw_handoff_archives",
-      label: "Tier 2 OCR raw handoff archives",
-      kind: "artifact_family",
-      owner: "tools/pipeline-v2/docs/tier2",
-      grain: "external OCR handoff archive",
-      producerCommand: "docs:tier2 OCR handoff/import",
-      expectedUniverse: {
-        description:
-          "Raw third-party/OCR handoff archives preserved outside operational logs so the OCR text layer can be re-audited or re-imported.",
-      },
-      requiredInputs: ["Tier 2 source registry/backlog", "LLM OCR runs"],
-      downstreamConsumers: ["tier2_ocr_page_markdown_corpus", "OCR provenance audits"],
-      freshnessPolicy: { cadence: "manual" },
-      checks: [
-        {
-          id: "raw_handoff_archives",
-          label: "Preserved OCR handoff zip archives",
-          type: "artifact_glob",
-          rootTemplate: "{repoRoot}/data/raw/third-party/tier2-ocr-handoffs",
-          pattern: "**/*.zip",
-          minFiles: 2,
-        },
-      ],
-    },
-    {
-      id: "tier2_ocr_page_markdown_corpus",
-      label: "Tier 2 OCR page Markdown corpus",
-      kind: "artifact_family",
-      owner: "tools/pipeline-v2/docs/tier2",
-      grain: "source PDF page Markdown",
-      producerCommand: "docs:tier2 ocr-page-markdown",
-      expectedUniverse: {
-        description:
-          "Full Tier 2 document corpus has one OCR Markdown page per rendered PDF page, plus audit/manifests proving page-level coverage. This is text coverage only; it is not the structured extraction layer.",
-      },
-      requiredInputs: [
-        "Tier 2 source registry/backlog",
-        "tier2_ocr_raw_handoff_archives",
-        "rendered per-page PNGs",
-      ],
-      downstreamConsumers: [
-        "tier2_structured_intervention_extraction_full_corpus",
-        "document evidence search",
-      ],
-      freshnessPolicy: { cadence: "manual" },
-      checks: [
-        {
-          id: "prepare_manifest",
-          label: "Full Tier 2 OCR prepare manifest",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/ocr-page-markdown-prepare-v1.json",
-        },
-        {
-          id: "page_markdown_files",
-          label: "Full Tier 2 OCR page Markdown files",
-          type: "artifact_glob",
-          rootTemplate:
-            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/ocr-page-markdown-pioneer-gemini35-lowhanging-v1",
-          pattern: "**/*.md",
-          minFiles: 9262,
-        },
-        {
-          id: "page_markdown_audit",
-          label: "Full Tier 2 OCR page Markdown audit",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-ocr-audits/gemini35-lowhanging-v1/ocr-page-markdown-audit.json",
-        },
-        {
-          id: "source_manifests",
-          label: "Full Tier 2 OCR per-source manifests",
-          type: "artifact_glob",
-          rootTemplate: "{artifactRoot}/docs/tier2-ocr-audits/gemini35-lowhanging-v1/manifests",
-          pattern: "*.json",
-          minFiles: 386,
-        },
-      ],
-    },
-    {
-      id: "tier2_ocr_preservation_overlay",
-      label: "Tier 2 OCR preservation overlay",
-      kind: "artifact_family",
-      owner: "tools/pipeline-v2/docs/tier2",
-      grain: "preserved OCR source reconciliation",
-      producerCommand: "docs:tier2 preserve/reconcile older OCR Markdown",
-      expectedUniverse: {
-        description:
-          "Overlay artifacts preserving older valid OCR Markdown and source reconciliation so the full text corpus can reuse rather than discard prior OCR work.",
-      },
-      requiredInputs: ["older OCR Markdown corpus", "tier2_ocr_page_markdown_corpus"],
-      downstreamConsumers: ["tier2_structured_intervention_extraction_full_corpus"],
-      freshnessPolicy: { cadence: "manual" },
-      checks: [
-        {
-          id: "preserved_source_registration",
-          label: "Preserved source registration",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-ocr-preservation-20260531/preserved-source-registration.json",
-        },
-        {
-          id: "ocr_reuse_overlay",
-          label: "Current full-corpus OCR reuse overlay",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-ocr-preservation-20260531/current-full-corpus-ocr-reuse-overlay.json",
-        },
-        {
-          id: "older_page_md_reconciliation",
-          label: "Older page Markdown source reconciliation",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-ocr-preservation-20260531/older-page-md-source-reconciliation.json",
-        },
-      ],
-    },
-    {
-      id: "tier2_structured_intervention_extraction_full_corpus",
-      label: "Tier 2 structured intervention extraction from OCR corpus",
-      kind: "artifact_family",
-      owner: "tools/pipeline-v2/docs/tier2",
-      grain: "reviewed document intervention/event records",
-      producerCommand: "docs:tier2 extract/promote structured interventions from OCR Markdown",
-      expectedUniverse: {
-        description:
-          "Structured intervention candidates/events extracted from the full OCR Markdown corpus, reviewed, de-duplicated, and promoted into publishable intervention records. This is the known missing layer after OCR text coverage.",
-      },
-      requiredInputs: ["tier2_ocr_page_markdown_corpus", "tier2_ocr_preservation_overlay"],
-      downstreamConsumers: ["Studio intervention timeline", "route evidence import"],
-      freshnessPolicy: { cadence: "manual" },
-      checks: [
-        {
-          id: "candidate_bundle_combined",
-          label: "Full Tier 2 combined candidate bundle",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/candidate-bundle-combined.json",
-        },
-        {
-          id: "intervention_events_combined",
-          label: "Full Tier 2 combined intervention events",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/tier2-intervention-events-combined.json",
-        },
-        {
-          id: "mta_wiki_canonical_bridge_review_queue",
-          label: "mta-wiki canonical bridge review queue",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/mta-wiki-tier2-bridge/mta-wiki-intervention-review-queue.json",
-          requiredJsonValues: [
-            { path: "mtaWikiCanonicalBridge", equals: true },
-            { path: "summary.externalCorpus", equals: "mta-wiki" },
-            { path: "summary.publicPromotionStatus", equals: "not_ready" },
-          ],
-          semantic: "mta_wiki_bridge_ready_for_review",
-        },
-        {
-          id: "full_corpus_materialized_research_views",
-          label: "Full qv1-qv10 Tier 2 materialized research views",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/agentic-runs-20260604/vocab-materialized-views-full-authority-qv1-qv10-manual-vocab-v1/vocab-materialized-views.json",
-          requiredJsonValues: [
-            { path: "artifactKind", equals: "bp.tier2_vocab_materialized_views.v1" },
-          ],
-          semantic: "tier2_full_corpus_materialized_views_ready",
-        },
-        {
-          id: "source_disposition_queue_full_corpus",
-          label: "Full qv1-qv10 Tier 2 source disposition queue",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/agentic-runs-20260604/source-disposition-queue-full-authority-qv1-qv10-v1/source-disposition-queue.json",
-          requiredJsonValues: [
-            { path: "artifactKind", equals: "bp.tier2_source_disposition_queue.v1" },
-            { path: "summary.publicPromotionStatus", equals: "not_ready" },
-          ],
-          semantic: "tier2_source_disposition_queue_ready",
-        },
-        {
-          id: "source_receipt_closure_full_corpus",
-          label: "Full qv1-qv10 Tier 2 source receipt closure audit",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/agentic-runs-20260604/source-receipt-closure-full-authority-qv1-qv10-v1/source-receipt-closure-audit.json",
-          requiredJsonValues: [
-            { path: "artifactKind", equals: "bp.tier2_source_receipt_closure_audit.v1" },
-            { path: "summary.publicPromotionStatus", equals: "not_ready" },
-          ],
-          semantic: "tier2_source_receipt_closure_ready",
-        },
-        {
-          id: "reviewed_intervention_records_full_corpus",
-          label: "Full Tier 2 reviewed intervention records",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/intervention-records-corpus-reviewed.json",
-        },
-        {
-          id: "publishable_interventions_full_corpus",
-          label: "Full Tier 2 publishable intervention artifact",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/intervention-publishable-v1.json",
-          semantic: "tier2_publishable_ready",
-        },
-      ],
-    },
-    {
-      id: "tier2_document_derived_surfaces_v1",
-      label: "Tier 2 document-derived surfaces v1",
-      kind: "artifact_family",
-      owner: "tools/pipeline-v2/docs/tier2",
-      grain: "source-grounded document surface row",
-      producerCommand: "docs tier2 derive-surfaces",
-      expectedUniverse: {
-        description:
-          "Normalized research substrate derived from canonical Tier 2 discovery candidates, preserving source/page/block-line evidence, raw candidate payloads, lifecycle states, and typed entities, metric claims, events, tables, claims, context signals, review questions, and relation placeholders.",
-      },
-      requiredInputs: [
-        "tier2_ocr_page_markdown_corpus",
-        "document-discovery-normalized-candidates-canonical-v1",
-      ],
-      downstreamConsumers: [
-        "mta-wiki route evidence import",
-        "route evidence import",
-        "document evidence search",
-        "source-gap review queue",
-        "Studio reviewed document timeline projections",
-      ],
-      freshnessPolicy: { cadence: "manual" },
-      checks: [
-        {
-          id: "manifest",
-          label: "Document-derived surfaces manifest",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1/manifest.json",
-          requiredJsonValues: [
-            {
-              path: "artifactKind",
-              equals: "bp.document_derived_surfaces.v1",
-            },
-          ],
-        },
-        {
-          id: "surface_files",
-          label: "Document-derived surface JSONL files",
-          type: "artifact_glob",
-          rootTemplate:
-            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1",
-          pattern: "*.jsonl",
-          minFiles: 8,
-        },
-      ],
-    },
-    {
-      id: "tier2_document_event_route_resolution_v1",
-      label: "Tier 2 document event route resolution v1",
-      kind: "artifact_family",
-      owner: "tools/pipeline-v2/docs/tier2",
-      grain: "document event surface row with timeline eligibility and route-resolution evidence",
-      producerCommand: "docs tier2 event-route-resolution",
-      expectedUniverse: {
-        description:
-          "Deterministic audit over document-derived event surfaces. It gates process/evaluation/context rows away from intervention timelines, resolves route identity through direct event text, single-route source context, and current-GTFS stop-street gazetteer matches, and explicitly marks event-date validation as requiring historical GTFS.",
-      },
-      requiredInputs: [
-        "tier2_document_derived_surfaces_v1",
-        "local_route_catalog",
-        "local_route_stop",
-      ],
-      downstreamConsumers: [
-        "route-specific Tier 2 review queues",
-        "mta-wiki route evidence import",
-        "historical GTFS validation backlog",
-        "Studio reviewed document timeline projections",
-      ],
-      freshnessPolicy: { cadence: "manual" },
-      checks: [
-        {
-          id: "route_resolution_artifact",
-          label: "Document event route-resolution artifact",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1/document-event-route-resolution-v1.json",
-          requiredJsonValues: [
-            {
-              path: "artifactKind",
-              equals: "bp.tier2_document_event_route_resolution.v1",
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "tier2_route_review_queue_v1",
-      label: "Tier 2 route review queue v1",
-      kind: "artifact_family",
-      owner: "tools/pipeline-v2/docs/tier2",
-      grain: "route-specific review queue item derived from document event route resolution",
-      producerCommand: "docs tier2 route-review-queue",
-      expectedUniverse: {
-        description:
-          "Reviewer-facing queue that fans route-resolved document intervention candidates into one row per route/event pair. Items preserve route-resolution evidence, source refs, review tasks, decision options, priority bands, and the required historical-GTFS date-validation caveat.",
-      },
-      requiredInputs: ["tier2_document_event_route_resolution_v1"],
-      downstreamConsumers: [
-        "route-specific Tier 2 review sessions",
-        "historical GTFS validation backlog",
-        "Studio reviewed document timeline projections",
-        "mta-wiki route evidence import",
-      ],
-      freshnessPolicy: { cadence: "manual" },
-      checks: [
-        {
-          id: "route_review_queue_artifact",
-          label: "Document route review queue artifact",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/tier2-full-corpus-2026-05-24-pass2/document-derived-surfaces-v1/document-route-review-queue-v1.json",
-          requiredJsonValues: [
-            {
-              path: "artifactKind",
-              equals: "bp.tier2_route_review_queue.v1",
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "tier2_docs_pipeline_status",
-      label: "Tier 2 docs selected publishable gate",
-      kind: "release_manifest",
-      owner: "tools/pipeline-v2/docs/tier2",
-      grain: "selected docs run publishable gate JSON",
-      producerCommand: "docs:tier2 promote-publishable-interventions",
-      expectedUniverse: {
-        description:
-          "Publishable gate artifact for the selected docs run. Historical/deleted pipeline status files are retained as provenance but are not the release gate.",
-      },
-      requiredInputs: ["selected Tier 2 docs run artifacts", "studio_release_projection_manifest"],
-      downstreamConsumers: ["release promotion checklist", "Studio Tier 2 affordance audit"],
-      freshnessPolicy: { cadence: "manual" },
-      checks: [
-        {
-          id: "publishable_gate_json",
-          label: "Selected Tier 2 publishable gate JSON",
-          type: "json_artifact",
-          pathTemplate:
-            "{artifactRoot}/docs/gap-roadmap-docs-2026-05-25/intervention-publishable-v1.json",
-          semantic: "tier2_publishable_ready",
         },
       ],
     },

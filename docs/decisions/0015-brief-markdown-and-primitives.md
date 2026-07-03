@@ -2,6 +2,10 @@
 
 Date: 2026-06-01
 
+> **Superseded (2026-07-03).** The brief markdown/primitives surface was retired by the generation-3
+> hard cutover. Public route-evidence pages now follow the canonical design handoff and mta-wiki
+> cited evidence artifacts.
+
 ## Status
 
 Accepted. Implementation phased; see `docs/architecture/brief-markdown-primitives.md`.

@@ -44,7 +44,7 @@ export default defineCommand({
       documentOperationalDateAssertionsPath: z
         .string()
         .optional()
-        .describe("Anchor-ready Tier 2 operational-date assertions artifact path"),
+        .describe("Anchor-ready wiki operational-date assertions artifact path"),
       windowMonths: arg
         .positiveInt()
         .default(defaultInterventionEvaluationWindowMonths)

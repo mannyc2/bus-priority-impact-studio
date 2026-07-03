@@ -47,8 +47,8 @@ import {
 } from "./_release-geometry.ts";
 import {
   buildRouteInterventions,
+  documentChunkIndex,
   manualInterventionIndex,
-  tier2DocumentChunkIndex,
 } from "./_release-interventions.ts";
 import {
   buildRoute,
@@ -68,6 +68,7 @@ import {
 } from "./_release-segments.ts";
 import type {
   CliOptions,
+  ManualInterventionCandidatesArtifact,
   RawSourceSnapshot,
   ReleaseProfile,
   RouteBriefInputArtifact,
@@ -75,7 +76,6 @@ import type {
   SegmentNoteLlmOptions,
   StudioRoute,
   StudioSegment,
-  Tier2ManualInterventionCandidatesArtifact,
 } from "./_release-types.ts";
 
 const defaultMonth = "2026-03";
@@ -86,12 +86,10 @@ const defaultRouteSliceArtifactsRoot = "data/artifacts/route-slices";
 const defaultRouteSliceRawRoot = "data/raw/route-slices";
 const defaultRouteShapeSnapshotPath = "data/raw/network/current_bus_routes.json";
 const defaultStopSnapshotPath = "data/raw/network/current_bus_stops.json";
-const defaultTspSourcePath =
-  "data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/sources/nyc_dot_tsp_status_2017";
-const defaultTier2DocumentChunksPath =
-  "data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/document-chunks.json";
+const defaultTspSourcePath = "data/artifacts/studio/v2/wiki/sources/nyc_dot_tsp_status_2017";
+const defaultDocumentChunksPath = "data/artifacts/studio/v2/wiki/document-chunks.json";
 const defaultManualInterventionsPath =
-  "data/artifacts/docs/tier2-full-corpus-2026-05-24-pass2/manual-intervention-candidates.json";
+  "data/artifacts/studio/v2/wiki/manual-intervention-candidates.json";
 const defaultSegmentNoteModel = "qwen/qwen3.7-max";
 const defaultSegmentNoteLlmLimit = 8;
 const defaultSegmentNoteLlmTimeoutMs = 60_000;
@@ -369,17 +367,13 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     stopSnapshotPath: options.stopSnapshotPath,
     routeInputs,
   });
-  const tier2DocumentChunks = await tier2DocumentChunkIndex(
-    options.tier2DocumentChunksPath,
-    fromRepoRoot,
+  const documentChunks = await documentChunkIndex(options.documentChunksPath, fromRepoRoot);
+  const manualInterventionsArtifact = await readJsonIfExists<ManualInterventionCandidatesArtifact>(
+    fromRepoRoot(options.manualInterventionsPath),
   );
-  const manualInterventionsArtifact =
-    await readJsonIfExists<Tier2ManualInterventionCandidatesArtifact>(
-      fromRepoRoot(options.manualInterventionsPath),
-    );
   const manualInterventionsByRoute = manualInterventionIndex(
     manualInterventionsArtifact,
-    tier2DocumentChunks,
+    documentChunks,
   );
 
   if (options.publishableInterventionsByRoutePath !== null) {
@@ -569,7 +563,7 @@ export type RunStudioReleaseInputs = {
   routeShapeSnapshotPath?: string | undefined;
   stopSnapshotPath?: string | undefined;
   tspSourcePath?: string | undefined;
-  tier2DocumentChunksPath?: string | undefined;
+  documentChunksPath?: string | undefined;
   manualInterventionsPath?: string | undefined;
   publishableInterventionsByRoutePath?: string | undefined;
   localDbPath?: string | undefined;
@@ -611,7 +605,7 @@ export async function runStudioRelease(
     routeShapeSnapshotPath: inputs.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath,
     stopSnapshotPath: inputs.stopSnapshotPath ?? defaultStopSnapshotPath,
     tspSourcePath: inputs.tspSourcePath ?? defaultTspSourcePath,
-    tier2DocumentChunksPath: inputs.tier2DocumentChunksPath ?? defaultTier2DocumentChunksPath,
+    documentChunksPath: inputs.documentChunksPath ?? defaultDocumentChunksPath,
     manualInterventionsPath: inputs.manualInterventionsPath ?? defaultManualInterventionsPath,
     publishableInterventionsByRoutePath: inputs.publishableInterventionsByRoutePath ?? null,
     localDbPath: inputs.localDbPath ?? defaultLocalPipelineDbPath(),
@@ -679,7 +673,7 @@ export default defineCommand({
       routeShapeSnapshot: z.string().optional(),
       stopSnapshot: z.string().optional(),
       tspSource: z.string().optional(),
-      tier2DocumentChunks: z.string().optional(),
+      documentChunks: z.string().optional(),
       manualInterventions: z.string().optional(),
       publishableInterventionsByRoute: z.string().optional(),
       localDb: z.string().optional(),
@@ -737,7 +731,7 @@ export default defineCommand({
       routeShapeSnapshotPath: input.options.routeShapeSnapshot,
       stopSnapshotPath: input.options.stopSnapshot,
       tspSourcePath: input.options.tspSource,
-      tier2DocumentChunksPath: input.options.tier2DocumentChunks,
+      documentChunksPath: input.options.documentChunks,
       manualInterventionsPath: input.options.manualInterventions,
       publishableInterventionsByRoutePath: input.options.publishableInterventionsByRoute,
       localDbPath:

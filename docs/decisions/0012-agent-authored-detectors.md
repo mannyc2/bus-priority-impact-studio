@@ -3,6 +3,10 @@
 Date: 2026-05-30
 Revised: 2026-05-31
 
+> **Superseded (2026-07-03).** The agent-authored-detector workflow is historical after the
+> generation-3 hard cutover. The accepted detector boundary that still matters is the deterministic
+> `@bp/analytics` registry plus ADR 0018 readiness gates.
+
 ## Status
 
 **Proposed, revised after the 2026-05-30 analytics refactor.**

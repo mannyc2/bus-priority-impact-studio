@@ -423,7 +423,7 @@ export function docsSections(month: string) {
       title: "Interventions and treatments",
       body: [
         "An intervention is a curated, source-backed change or proposed change to bus service, street priority, enforcement, boarding/fare policy, signal priority, stops, busways, or capital infrastructure. It must identify what changed, where, when or with what date status, which route/corridor it affects, and which source span supports it.",
-        "The current manual registry has 30 curated intervention records. The Tier 2 document corpus has 939 generated evidence rows, but those are discovery/backlink rows until manually promoted; they are not 939 interventions.",
+        "Curated intervention records and wiki-backed route evidence are treated as source material, not automatic impact claims.",
         "Treatments are as-of state snapshots, such as DOT bus-lane overlap, ACE route-month coverage, or TSP source status. Use /data/treatments for treatment state and /data/interventions for curated intervention records.",
       ],
     },
