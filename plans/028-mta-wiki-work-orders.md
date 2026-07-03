@@ -26,6 +26,14 @@
   record mapping) — when it exists, the bus importer's alias heuristics and
   the `--wiki-release` pinning become bus-side follow-ups under plan 020's
   maintenance notes.
+- **DONE 2026-07-03**: mta-wiki `v1-rc5` is the current release pointer and
+  ships `manifest.json`, `route_anchors.jsonl`, and `taxonomy.json`. Consumer
+  verification found 319 route records, 396 route anchors, 0 ambiguous anchor
+  dispositions, 0 empty route payloads, date precision on every event/project,
+  normalized dates on every known-precision event/project, and route-scoped
+  relation-family `unknown` rates below 10%. The bus importer resolved
+  `--wiki-release v1-rc5` through route anchors and produced 12 served route
+  bundles, 10 matched bus routes, 1,792 citations, and 0 ambiguous omissions.
 
 ## Why this matters
 
