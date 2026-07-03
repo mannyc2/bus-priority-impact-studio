@@ -282,6 +282,133 @@ function FeaturedStat({ label, children }: { label: string; children: ReactNode 
   );
 }
 
+function RoleCard({
+  persona,
+  body,
+  links,
+}: {
+  persona: string;
+  body: string;
+  links: readonly { href: string; label: string }[];
+}) {
+  return (
+    <article className="flex min-h-[200px] flex-col gap-3 rounded-[4px] bg-[var(--bp-color-card)] px-6 py-5.5 shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
+      <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--bp-color-accent)]">
+        {persona}
+      </div>
+      <p className="m-0 flex-1 text-pretty text-[13.5px] leading-[1.6] text-[var(--bp-color-ink-70)]">
+        {body}
+      </p>
+      <div className="mt-1 flex flex-col gap-1.5">
+        {links.map((link) => (
+          <a
+            key={`${persona}:${link.href}:${link.label}`}
+            href={link.href}
+            className="flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--bp-color-ink)] no-underline"
+          >
+            <span className="text-[var(--bp-color-accent)]" aria-hidden>
+              &rarr;
+            </span>
+            {link.label}
+          </a>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+export function HomeRoleCards({ flagshipRouteSlug }: { flagshipRouteSlug: string }) {
+  return (
+    <div className="grid grid-cols-3 gap-4.5 max-lg:grid-cols-1">
+      <RoleCard
+        persona="If you ride the bus"
+        body="Look up your route. Each route page tells you how fast it is moving now, how that compares to what the schedule promises, and where on the line the worst slowdowns happen."
+        links={[
+          { href: `/routes/${flagshipRouteSlug}`, label: "Open a flagship route" },
+          { href: "#route-index", label: "Browse routes by borough" },
+          { href: "/interventions", label: "See what is changing this month" },
+        ]}
+      />
+      <RoleCard
+        persona="If you plan service"
+        body="Use the route index and map to compare corridors, then open a route page for segment-level speeds, rider burden, treatment posture, and honest empty states."
+        links={[
+          { href: "/map", label: "Scan the network map" },
+          { href: "#route-index", label: "Compare route pages" },
+          { href: "/methods", label: "Check the data grain" },
+        ]}
+      />
+      <RoleCard
+        persona="If you report on transit"
+        body="Use the methods page and cited route evidence to see which numbers are public-serving projections, which claims are wiki-backed, and which gaps remain unresolved."
+        links={[
+          { href: "/methods", label: "Read methodology in full" },
+          { href: "/interventions", label: "Browse intervention timelines" },
+          {
+            href: "https://github.com/mannyc2/bus-priority-impact-studio",
+            label: "Open the project repository",
+          },
+        ]}
+      />
+    </div>
+  );
+}
+
+export function HomeTrustStrip({
+  routeCount,
+  sourceGroupCount,
+  generatedLabel,
+}: {
+  routeCount: number;
+  sourceGroupCount: number;
+  generatedLabel: string;
+}) {
+  return (
+    <section className="mt-16 bg-[var(--bp-color-ink)] text-[var(--bp-color-paper)]">
+      <div className="mx-auto grid max-w-[1180px] grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)] gap-10 px-9 py-12 max-lg:grid-cols-1 max-sm:px-4">
+        <div>
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgba(244,241,234,0.62)]">
+            How we know this
+          </div>
+          <h2 className="m-0 max-w-[760px] text-balance text-[30px] font-semibold leading-[1.12] tracking-[-0.02em]">
+            Public projections, source labels, and route pages that say when evidence is thin.
+          </h2>
+          <p className="m-0 mt-3 max-w-[760px] text-pretty text-[14px] leading-[1.65] text-[rgba(244,241,234,0.72)]">
+            The current public release serves {routeCount.toLocaleString("en-US")} route pages and{" "}
+            {sourceGroupCount.toLocaleString("en-US")} methods source groups. Pages link back to
+            methods, cited route evidence, and the code that builds the projections.
+          </p>
+        </div>
+        <div className="grid content-end gap-2.5 text-[13px]">
+          <TrustLink href="/methods" label="Methods and source catalog" />
+          <TrustLink href="/interventions" label="Intervention evidence timeline" />
+          <TrustLink
+            href="https://github.com/mannyc2/bus-priority-impact-studio"
+            label="GitHub repository"
+          />
+          <div className="pt-2 font-mono text-[11px] text-[rgba(244,241,234,0.55)]">
+            route feed generated {generatedLabel}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TrustLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      className="flex items-center justify-between gap-4 rounded-[3px] px-3 py-2 text-[var(--bp-color-paper)] no-underline shadow-[inset_0_0_0_1px_rgba(244,241,234,0.18)] transition-colors hover:bg-[rgba(244,241,234,0.08)]"
+    >
+      <span>{label}</span>
+      <span className="text-[rgba(244,241,234,0.55)]" aria-hidden>
+        &rarr;
+      </span>
+    </a>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // HomePage
 // ─────────────────────────────────────────────────────────────
@@ -289,9 +416,11 @@ function FeaturedStat({ label, children }: { label: string; children: ReactNode 
 export function HomePage({
   generatedAt,
   routes,
+  sourceGroupCount,
 }: {
   generatedAt: string;
   routes: readonly StudioRoute[];
+  sourceGroupCount: number;
 }) {
   const navigate = useNavigate();
   const [borough, setBorough] = useState<typeof ROUTE_INDEX_ALL_BOROUGHS | RouteIndexBorough>(
@@ -335,6 +464,8 @@ export function HomePage({
 
   const heroChips = byRidership.slice(0, 5);
   const generatedLabel = formatDate(generatedAt);
+  const flagshipRouteSlug =
+    slugByLabel.get("m15") ?? slugByLabel.get("m15 sbs") ?? byRidership[0]?.slug ?? "m15-sbs";
 
   return (
     <main className="min-h-full bg-[var(--bp-color-paper)]">
@@ -608,6 +739,21 @@ export function HomePage({
           </div>
         </div>
       </section>
+
+      {/* ── HOW TO USE THIS SITE ─────────────────────────────── */}
+      <section className="mx-auto max-w-[1180px] px-9 pb-3 pt-[72px] max-sm:px-4 max-sm:pt-12">
+        <SectionHeader
+          kicker="How to use this site"
+          title="The same data, three different entry points."
+        />
+        <HomeRoleCards flagshipRouteSlug={flagshipRouteSlug} />
+      </section>
+
+      <HomeTrustStrip
+        routeCount={routeCount}
+        sourceGroupCount={sourceGroupCount}
+        generatedLabel={generatedLabel}
+      />
 
       {/* Footer */}
       <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-3 px-9 pb-7 pt-5 text-[11.5px] text-[var(--bp-color-ink-55)] max-sm:px-4">

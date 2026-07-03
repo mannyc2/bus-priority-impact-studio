@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import type { StudioRoute, StudioRouteEvidenceBundle } from "../../src/studio/api-contract";
-import { interventionRows } from "../../src/studio/pages/interventions";
+import {
+  InterventionListRow,
+  interventionRows,
+  interventionTone,
+} from "../../src/studio/pages/interventions";
 
 const route = {
   slug: "m15-sbs",
@@ -89,5 +95,18 @@ describe("interventions page evidence aggregation", () => {
         }),
       }),
     ]);
+  });
+
+  test("renders intervention rows through the shared public card tone system", () => {
+    const row = interventionRows([route], [evidence])[0];
+    expect(row).toBeDefined();
+    if (row === undefined) return;
+    const markup = renderToStaticMarkup(createElement(InterventionListRow, { row }));
+
+    expect(interventionTone(row.event)).toBe("warn");
+    expect(markup).toContain("Source gap: missing_before_after");
+    expect(markup).toContain("MTA-wiki");
+    expect(markup).toContain("gap");
+    expect(markup).toContain("Open route for context");
   });
 });

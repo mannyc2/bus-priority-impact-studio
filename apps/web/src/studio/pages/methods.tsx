@@ -15,6 +15,13 @@ export function MethodsPage({ data }: { data: StudioMethodsResponse }) {
         <QualityPanel quality={data.quality} generatedAt={data.generatedAt} />
         <PrinciplesPanel />
       </section>
+      <section className="mb-7">
+        <SectionHeader
+          title="Route-page metrics"
+          sub="Every public KPI is named by grain, source, and wording rule before it appears as a claim."
+        />
+        <MetricCards />
+      </section>
       <section>
         <SectionHeader
           title="Datasets"
@@ -110,6 +117,183 @@ function PrinciplesPanel() {
         />
       </div>
     </section>
+  );
+}
+
+type MetricStatus = "use_now" | "api_work" | "pipeline" | "source_gap";
+
+type MetricCardDefinition = {
+  metric: string;
+  status: MetricStatus;
+  grain: string;
+  source: string;
+  plainEnglish: string;
+  callIt: string;
+  not: string;
+  caveat?: string;
+};
+
+const metricStatusMeta: Record<
+  MetricStatus,
+  { label: string; variant: "accent" | "good" | "warn" | "bad" }
+> = {
+  use_now: { label: "Use now", variant: "good" },
+  api_work: { label: "Needs API work", variant: "accent" },
+  pipeline: { label: "Pipeline only", variant: "warn" },
+  source_gap: { label: "Source gap", variant: "bad" },
+};
+
+const METRIC_CARDS: readonly MetricCardDefinition[] = [
+  {
+    metric: "Observed average speed",
+    status: "use_now",
+    grain: "route-month / segment-window",
+    source: "MTA Bus Speeds joined into Studio route projections",
+    plainEnglish:
+      "The speed riders experience on a route or segment, including time spent stopped in traffic, at signals, and at stops.",
+    callIt: "Observed speed, route speed, segment speed.",
+    not: "A promise that every stop-to-stop trip moves at that speed.",
+  },
+  {
+    metric: "Six-month route trend",
+    status: "use_now",
+    grain: "route-month",
+    source: "Dossier speed sparkline from monthly route history",
+    plainEnglish:
+      "The direction of the served route speed series over the recent comparison window shown on route pages.",
+    callIt: "Up or down over six months, with the percent shown when served.",
+    not: "A causal effect of any single intervention.",
+    caveat:
+      "Trend labels are descriptive; treatment attribution stays in the intervention context.",
+  },
+  {
+    metric: "Excess wait and observed headways",
+    status: "use_now",
+    grain: "route-month / GTFS-RT sample run",
+    source: "Observed reliability summary with sample-count gates",
+    plainEnglish:
+      "Observed waits, bunching, long gaps, and excess wait render only when the realtime sample threshold clears.",
+    callIt: "Observed excess wait, bunching share, long-gap share.",
+    not: "A filled-in reliability score for months with insufficient samples.",
+    caveat: "Low-sample months render as unavailable rather than interpolated.",
+  },
+  {
+    metric: "Daily riders",
+    status: "use_now",
+    grain: "route-month / route-hour",
+    source: "MTA ridership projections in the route index and route dossier",
+    plainEnglish:
+      "The served ridership signal used to sort routes, size rider context, and frame route-page burden.",
+    callIt: "Daily riders, monthly riders where the dossier history is present.",
+    not: "Stop-level boardings or segment-level passenger loads.",
+  },
+  {
+    metric: "Rider-hour burden",
+    status: "use_now",
+    grain: "segment-window / route-hour",
+    source: "Observed-vs-scheduled speed gap with route ridership exposure",
+    plainEnglish:
+      "A rider-weighted delay exposure measure that ranks where slow service costs the most passenger time.",
+    callIt: "Rider-hours lost or rider-hour burden.",
+    not: "A literal count of people waiting at each stop.",
+    caveat:
+      "The ridership denominator is route-level, so tiny segments should be read as ranking evidence.",
+  },
+  {
+    metric: "Bus-lane coverage and treatment posture",
+    status: "use_now",
+    grain: "route / route-segment",
+    source: "NYC DOT bus-lane GIS, MTA ACE/TSP inputs, and route treatment context",
+    plainEnglish:
+      "Route pages show whether a corridor already has bus priority tools and where lane overlap is present.",
+    callIt: "Bus-lane coverage, ACE active, TSP partial/none.",
+    not: "Audited regulatory lane mileage or a current TSP guarantee.",
+    caveat:
+      "Some treatment inventories are source dated; the route page carries caveats when served.",
+  },
+  {
+    metric: "Wiki evidence provenance",
+    status: "use_now",
+    grain: "route evidence bundle / citation block",
+    source: "MTA-wiki route evidence importer",
+    plainEnglish:
+      "Timeline events, projects, source gaps, and metric claims come with citation keys and source metadata.",
+    callIt: "Wiki-backed route evidence with citations.",
+    not: "Uncited editorial claims or generated impact statements.",
+  },
+];
+
+export function MetricCards() {
+  return (
+    <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
+      {METRIC_CARDS.map((definition) => (
+        <MetricCard key={definition.metric} definition={definition} />
+      ))}
+    </div>
+  );
+}
+
+function MetricCard({ definition }: { definition: MetricCardDefinition }) {
+  const status = metricStatusMeta[definition.status];
+  return (
+    <article className="flex flex-col gap-4 rounded-[4px] bg-[var(--bp-color-card)] p-5 shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h3 className="m-0 min-w-0 flex-1 text-[18px] font-semibold leading-tight tracking-[-0.01em]">
+          {definition.metric}
+        </h3>
+        <Badge variant={status.variant}>{status.label}</Badge>
+      </div>
+      <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-x-4 gap-y-2 text-[12px]">
+        <MetricMeta label="Grain" value={definition.grain} />
+        <MetricMeta label="Source" value={definition.source} />
+      </div>
+      <p className="m-0 text-[13px] leading-[1.65] text-[var(--bp-color-ink-70)]">
+        {definition.plainEnglish}
+      </p>
+      <div className="grid grid-cols-2 gap-4 pt-3 shadow-[inset_0_1px_0_var(--bp-color-rule)] max-sm:grid-cols-1">
+        <MetricWording label="We call it" tone="good" value={definition.callIt} />
+        <MetricWording label="Not" tone="bad" value={definition.not} />
+      </div>
+      {definition.caveat ? (
+        <div className="rounded-[3px] border-l-[3px] border-[var(--bp-color-warn)] bg-[var(--bp-color-warn-bg)] px-3 py-2 text-[12px] leading-[1.55] text-[var(--bp-color-ink-70)]">
+          <span className="mr-1 font-semibold text-[var(--bp-color-warn)]">Caveat</span>
+          {definition.caveat}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function MetricMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-40)]">
+        {label}
+      </span>
+      <span className="min-w-0 text-[var(--bp-color-ink-70)]">{value}</span>
+    </>
+  );
+}
+
+function MetricWording({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: "good" | "bad";
+  value: string;
+}) {
+  return (
+    <div>
+      <div
+        className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.1em]"
+        style={{ color: tone === "good" ? "var(--bp-color-good)" : "var(--bp-color-bad)" }}
+      >
+        {label}
+      </div>
+      <div className="text-[12.5px] leading-[1.55] text-[var(--bp-color-ink-70)]">{value}</div>
+    </div>
   );
 }
 

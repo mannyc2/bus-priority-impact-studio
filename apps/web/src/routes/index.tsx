@@ -1,10 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { routeHead } from "../lib/head.js";
-import { fetchStudioRoutes, staticStudioLoaderStaleTimeMs } from "../studio/api-client.js";
+import {
+  fetchStudioMethods,
+  fetchStudioRoutes,
+  staticStudioLoaderStaleTimeMs,
+} from "../studio/api-client.js";
 import { HomeLoadingPage, HomePage } from "../studio/pages/home.js";
 
 export const Route = createFileRoute("/")({
-  loader: ({ abortController }) => fetchStudioRoutes({ signal: abortController.signal }),
+  loader: ({ abortController }) =>
+    Promise.all([
+      fetchStudioRoutes({ signal: abortController.signal }),
+      fetchStudioMethods({ signal: abortController.signal }),
+    ]).then(([routes, methods]) => ({ methods, routes })),
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: HomeLoadingPage,
   head: () =>
@@ -17,5 +25,11 @@ export const Route = createFileRoute("/")({
 
 function HomeRoute() {
   const data = Route.useLoaderData();
-  return <HomePage generatedAt={data.generatedAt} routes={data.routes} />;
+  return (
+    <HomePage
+      generatedAt={data.routes.generatedAt}
+      routes={data.routes.routes}
+      sourceGroupCount={data.methods.datasets.length}
+    />
+  );
 }
