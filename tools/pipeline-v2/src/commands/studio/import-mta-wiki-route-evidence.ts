@@ -30,6 +30,7 @@ import {
   type MtaWikiCanonicalCorpus,
   type MtaWikiCanonicalRecord,
   type MtaWikiEvidenceRef,
+  type MtaWikiRouteAnchor,
   normalizeBusRouteKey,
 } from "../../lib/mta-wiki-canonical.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
@@ -50,6 +51,14 @@ const directRouteFactFamilies = new Set([
   "timeline_context",
   "metric_context",
   "claim_context",
+]);
+
+const unsupportedRelationEndpointPrefixes = new Set([
+  "claim",
+  "corridor",
+  "entity",
+  "source",
+  "table",
 ]);
 
 type RouteEvidenceRecordKind =
@@ -85,6 +94,7 @@ export type RunStudioImportMtaWikiRouteEvidenceInput = {
   routesPath?: string | undefined;
   output?: string | undefined;
   servingOutputDir?: string | undefined;
+  wikiRelease?: string | undefined;
   generatedAt?: string | undefined;
   minMatchedRoutes?: number | undefined;
   writeServingArtifacts?: boolean | undefined;
@@ -165,6 +175,15 @@ function routeKeysForStudioRoute(route: StudioRoute): Set<string> {
   return keys;
 }
 
+function exactGtfsRouteKey(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) return null;
+  const normalized = value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9+]/gu, "");
+  return normalized.length === 0 ? null : normalized;
+}
+
 function allRecords(corpus: MtaWikiCanonicalCorpus): MtaWikiCanonicalRecord[] {
   return [
     ...corpus.routes,
@@ -211,6 +230,7 @@ function sourcesById(corpus: MtaWikiCanonicalCorpus): Map<string, MtaWikiCanonic
 function routeWorkFor(routes: readonly StudioRoute[]): {
   works: RouteWork[];
   byRouteKey: Map<string, RouteWork[]>;
+  byGtfsRouteId: Map<string, RouteWork>;
 } {
   const works = routes
     .map((route) => ({
@@ -227,14 +247,17 @@ function routeWorkFor(routes: readonly StudioRoute[]): {
     }))
     .toSorted((left, right) => left.route.routeId.localeCompare(right.route.routeId));
   const byRouteKey = new Map<string, RouteWork[]>();
+  const byGtfsRouteId = new Map<string, RouteWork>();
   for (const work of works) {
     for (const key of routeKeysForStudioRoute(work.route)) {
       const existing = byRouteKey.get(key) ?? [];
       existing.push(work);
       byRouteKey.set(key, existing);
     }
+    const routeIdKey = exactGtfsRouteKey(work.route.routeId);
+    if (routeIdKey !== null) byGtfsRouteId.set(routeIdKey, work);
   }
-  return { works, byRouteKey };
+  return { works, byRouteKey, byGtfsRouteId };
 }
 
 function relationRecord(record: MtaWikiCanonicalRecord): RelationRecord {
@@ -259,6 +282,12 @@ function routeRecordKind(
   return null;
 }
 
+function shouldCountMissingRelationEndpoint(recordId: string): boolean {
+  const prefixBoundary = recordId.indexOf("_");
+  const prefix = prefixBoundary === -1 ? recordId : recordId.slice(0, prefixBoundary);
+  return !unsupportedRelationEndpointPrefixes.has(prefix);
+}
+
 function addRecordToRoute(work: RouteWork, record: MtaWikiCanonicalRecord | undefined): void {
   if (record === undefined) {
     work.omittedAmbiguousRecordCount += 1;
@@ -281,7 +310,6 @@ function addRecordToRoute(work: RouteWork, record: MtaWikiCanonicalRecord | unde
       work.interventions.set(record.record_id, record);
       break;
     case null:
-      work.omittedAmbiguousRecordCount += 1;
       break;
   }
 }
@@ -484,6 +512,25 @@ function directPayloadRouteKeys(record: MtaWikiCanonicalRecord): Set<string> {
   return busRouteKeysFromValue(record.payload as JsonValue | undefined);
 }
 
+function routeRecordIdsForAnchor(anchor: MtaWikiRouteAnchor): string[] {
+  return [
+    ...new Set([
+      ...(anchor.canonical_route_record_id === null ? [] : [anchor.canonical_route_record_id]),
+      ...anchor.variant_record_ids,
+    ]),
+  ].toSorted();
+}
+
+function addWikiRouteToWork(work: RouteWork, wikiRoute: MtaWikiCanonicalRecord): void {
+  work.wikiRoutes.set(wikiRoute.record_id, wikiRoute);
+  for (const alias of routeAliasesForWikiRoute(wikiRoute)) work.aliases.add(alias);
+}
+
+function addAnchorAliasesToWork(work: RouteWork, anchor: MtaWikiRouteAnchor): void {
+  if (anchor.gtfs_route_id !== null) work.aliases.add(anchor.gtfs_route_id);
+  for (const alias of anchor.aliases) work.aliases.add(alias);
+}
+
 function materializeBundle(input: {
   work: RouteWork;
   sources: ReadonlyMap<string, MtaWikiCanonicalRecord>;
@@ -618,24 +665,42 @@ export function buildStudioRouteEvidenceArtifact(input: {
   routes: readonly StudioRoute[];
   corpus: MtaWikiCanonicalCorpus;
 }): StudioRouteEvidenceArtifact {
-  const { works, byRouteKey } = routeWorkFor(input.routes);
-  let unmatchedWikiRouteCount = 0;
+  const { works, byRouteKey, byGtfsRouteId } = routeWorkFor(input.routes);
+  const matchedWikiRouteRecordIds = new Set<string>();
+  const routeRecordsById = new Map(input.corpus.routes.map((route) => [route.record_id, route]));
+  const hasRouteAnchors = input.corpus.routeAnchors.length > 0;
 
-  for (const wikiRoute of input.corpus.routes) {
-    const routeKeys = routeKeysForWikiRoute(wikiRoute);
-    const matchedWorks = new Set<RouteWork>();
-    for (const routeKey of routeKeys) {
-      for (const work of byRouteKey.get(routeKey) ?? []) matchedWorks.add(work);
+  if (hasRouteAnchors) {
+    for (const anchor of input.corpus.routeAnchors) {
+      const routeIdKey = exactGtfsRouteKey(anchor.gtfs_route_id);
+      if (routeIdKey === null) continue;
+      const work = byGtfsRouteId.get(routeIdKey);
+      if (work === undefined) continue;
+      addAnchorAliasesToWork(work, anchor);
+      for (const recordId of routeRecordIdsForAnchor(anchor)) {
+        const wikiRoute = routeRecordsById.get(recordId);
+        if (wikiRoute === undefined) {
+          throw new Error(
+            `MTA-wiki route anchor ${anchor.gtfs_route_id} references missing route record ${recordId}.`,
+          );
+        }
+        addWikiRouteToWork(work, wikiRoute);
+        matchedWikiRouteRecordIds.add(recordId);
+      }
     }
-    if (matchedWorks.size === 0) {
-      unmatchedWikiRouteCount += 1;
-      continue;
-    }
-    for (const work of matchedWorks) {
-      work.wikiRoutes.set(wikiRoute.record_id, wikiRoute);
-      for (const alias of routeAliasesForWikiRoute(wikiRoute)) work.aliases.add(alias);
+  } else {
+    for (const wikiRoute of input.corpus.routes) {
+      const routeKeys = routeKeysForWikiRoute(wikiRoute);
+      const matchedWorks = new Set<RouteWork>();
+      for (const routeKey of routeKeys) {
+        for (const work of byRouteKey.get(routeKey) ?? []) matchedWorks.add(work);
+      }
+      if (matchedWorks.size === 0) continue;
+      matchedWikiRouteRecordIds.add(wikiRoute.record_id);
+      for (const work of matchedWorks) addWikiRouteToWork(work, wikiRoute);
     }
   }
+  const unmatchedWikiRouteCount = input.corpus.routes.length - matchedWikiRouteRecordIds.size;
 
   const recordIndex = recordsById(input.corpus);
   const sourceIndex = sourcesById(input.corpus);
@@ -648,9 +713,11 @@ export function buildStudioRouteEvidenceArtifact(input: {
     ...input.corpus.sourceGaps,
   ];
 
-  for (const record of factRecords) {
-    for (const routeKey of directPayloadRouteKeys(record)) {
-      for (const work of byRouteKey.get(routeKey) ?? []) addRecordToRoute(work, record);
+  if (!hasRouteAnchors) {
+    for (const record of factRecords) {
+      for (const routeKey of directPayloadRouteKeys(record)) {
+        for (const work of byRouteKey.get(routeKey) ?? []) addRecordToRoute(work, record);
+      }
     }
   }
 
@@ -667,7 +734,7 @@ export function buildStudioRouteEvidenceArtifact(input: {
       }
       const otherRecord = recordIndex.get(otherId);
       if (otherRecord === undefined) {
-        work.omittedAmbiguousRecordCount += 1;
+        if (shouldCountMissingRelationEndpoint(otherId)) work.omittedAmbiguousRecordCount += 1;
         continue;
       }
       addRecordToRoute(work, otherRecord);
@@ -680,7 +747,7 @@ export function buildStudioRouteEvidenceArtifact(input: {
       if (otherId === null) continue;
       const otherRecord = recordIndex.get(otherId);
       if (otherRecord === undefined) {
-        work.omittedAmbiguousRecordCount += 1;
+        if (shouldCountMissingRelationEndpoint(otherId)) work.omittedAmbiguousRecordCount += 1;
         continue;
       }
       addRecordToRoute(work, otherRecord);
@@ -728,7 +795,9 @@ export async function runStudioImportMtaWikiRouteEvidence(
       ? dirname(outputPath)
       : fromCliPath(input.servingOutputDir);
   const routes = await loadStudioRoutes(routesPath);
-  const corpus = await loadMtaWikiCanonicalCorpus(input.mtaWikiRoot);
+  const corpus = await loadMtaWikiCanonicalCorpus(input.mtaWikiRoot, {
+    wikiRelease: input.wikiRelease,
+  });
   const artifact = buildStudioRouteEvidenceArtifact({
     generatedAt: input.generatedAt ?? new Date().toISOString(),
     routes,
@@ -754,6 +823,10 @@ export async function runStudioImportMtaWikiRouteEvidence(
 
 const optionsSchema = z.object({
   mtaWikiRoot: z.string().optional().describe("Path to the mta-wiki repo root."),
+  wikiRelease: z
+    .string()
+    .optional()
+    .describe("MTA-wiki release id under data/exports/releases/<id>."),
   routesPath: z.string().optional().describe("Studio routes.json path."),
   output: z.string().optional().describe("Output route evidence JSON artifact path."),
   servingOutputDir: z

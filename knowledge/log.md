@@ -2,6 +2,24 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-07-03] engineering | MTA-wiki importer pins releases and consumes route anchors
+
+Extended `studio import-mta-wiki-route-evidence` so the bus repo can consume a named mta-wiki
+release via `--wiki-release <id>` instead of requiring a live `data/canonical` checkout. When a
+release contains `route_anchors.jsonl`, route matching now uses exact GTFS route ids from the anchor
+file and treats the old route-alias heuristic as the no-anchor fallback. Unsupported relation
+endpoints such as `claim_*` and `entity_*` are no longer counted as ambiguous route omissions.
+
+Verified against `/mnt/models/dev/mta-wiki` release `v1-rc5` using the local generated Bus
+`routes.json`: the importer exits 0 with `routeCount: 12`, `matchedBusRouteCount: 10`,
+`unmatchedWikiRouteCount: 308`, `citationCount: 1792`, and
+`omittedAmbiguousRecordCount: 0`. The two unmatched served routes are the honest
+`no_wiki_coverage` M14A+/M14D+ anchor rows. Checks run: focused
+`bun test tools/pipeline-v2/test/studio-mta-wiki-route-evidence.test.ts --timeout 5000`,
+`bun --filter @bp/pipeline-v2 typecheck`, and `bun --filter @bp/pipeline-v2 test --timeout 5000`
+(after copying the ignored sandbox fixture `data/artifacts/findings/detector-specs.json` into the
+clean worktree).
+
 ## [2026-06-12] engineering | Route map gains real shoreline context and stop ticks
 
 Follow-up to the frontend regression slice: the bare route polyline now sits on real geography.
