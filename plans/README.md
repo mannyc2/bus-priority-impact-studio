@@ -43,7 +43,7 @@ nyc-transit-kit pin gets fixed at its source so adoption can proceed (029).
 | 021 | Expand the served route corpus beyond the 12-route pilot | P1 | L | 019 (020 rec.) | DONE (381-route release verified 2026-07-02; homepage index grouped/filterable) |
 | 022 | Converge the route page on the canonical editorial design | P1 | L | 019, 020 | DONE (PR #40 verified 2026-07-03; screenshot gate approved) |
 | 023 | Serve the grains we already build (hourly, DOW, reliability) | P2 | M | 019 | DONE (verified 2026-07-03; largest per-route hourly artifact 30,107 bytes) |
-| 024 | Delete the Tier 2 document pipeline and stale doctrine | P2 | L | 019, 020 | BLOCKED (STOP: route sections still serve `studio/v2/tier2/vocab-materialized-views.json`) |
+| 024 | Delete the Tier 2 document pipeline and stale doctrine | P2 | L | 019, 020 | BLOCKED (STOP: live `packages/analytics` data-product registry still declares docs/Tier2 products; operator ruling needed before touching protected analytics infrastructure) |
 | 025 | Finish the supporting pages (home, interventions, methods) | P2 | M | 019, 022 | DONE (verified 2026-07-03; screenshots captured) |
 | 026 | Worker on Effect HttpApi: spike ADR, then migrate | P2 | L | 019 (024 rec.) | BLOCKED (spike STOP: `test:worker` regressed from baseline real 3.07s / Vitest 2.36s to real 8.71s / Vitest 7.96s after one-endpoint Effect skeleton) |
 | 027 | Effect the pipeline seams: retries, concurrency, ingest | P3 | M | 019, 024 | TODO |
