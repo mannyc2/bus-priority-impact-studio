@@ -103,6 +103,11 @@ export type SourceMonthCoverage = {
   artifactPath: string | null;
 };
 
+export type PublicSnapshotSourceMonthCoverage = {
+  rows: SourceMonthCoverage[];
+  skippedRowCount: number;
+};
+
 function toRouteSpeedHistoryCoverage(row: RouteSpeedHistoryCoverageRow): RouteSpeedHistoryCoverage {
   return {
     routeId: row.route_id,
@@ -137,6 +142,39 @@ function toSourceMonthCoverage(row: SourceMonthCoverageRow): SourceMonthCoverage
   };
 }
 
+function logSkippedSourceMonthCoverageRow(input: {
+  row: {
+    source_id: string;
+    month: string;
+  };
+  issues: unknown;
+}): void {
+  console.error("Skipping source_month_coverage row for public Studio snapshot.", {
+    sourceId: input.row.source_id,
+    month: input.row.month,
+    issues: input.issues,
+  });
+}
+
+async function selectSourceMonthCoverageRows(db: D1ServingDb) {
+  return await db
+    .select({
+      source_id: sourceMonthCoverage.sourceId,
+      month: sourceMonthCoverage.month,
+      label: sourceMonthCoverage.label,
+      source_kind: sourceMonthCoverage.sourceKind,
+      grain: sourceMonthCoverage.grain,
+      status: sourceMonthCoverage.status,
+      row_count: sourceMonthCoverage.rowCount,
+      route_count: sourceMonthCoverage.routeCount,
+      note: sourceMonthCoverage.note,
+      generated_at: sourceMonthCoverage.generatedAt,
+      artifact_path: sourceMonthCoverage.artifactPath,
+    })
+    .from(sourceMonthCoverage)
+    .orderBy(asc(sourceMonthCoverage.sourceId), asc(sourceMonthCoverage.month));
+}
+
 export async function listRouteSpeedHistoryCoverage(
   db: D1ServingDb,
   month: string,
@@ -167,22 +205,31 @@ export async function listRouteSpeedHistoryCoverage(
 }
 
 export async function listSourceMonthCoverage(db: D1ServingDb): Promise<SourceMonthCoverage[]> {
-  const rows = await db
-    .select({
-      source_id: sourceMonthCoverage.sourceId,
-      month: sourceMonthCoverage.month,
-      label: sourceMonthCoverage.label,
-      source_kind: sourceMonthCoverage.sourceKind,
-      grain: sourceMonthCoverage.grain,
-      status: sourceMonthCoverage.status,
-      row_count: sourceMonthCoverage.rowCount,
-      route_count: sourceMonthCoverage.routeCount,
-      note: sourceMonthCoverage.note,
-      generated_at: sourceMonthCoverage.generatedAt,
-      artifact_path: sourceMonthCoverage.artifactPath,
-    })
-    .from(sourceMonthCoverage)
-    .orderBy(asc(sourceMonthCoverage.sourceId), asc(sourceMonthCoverage.month));
+  const rows = await selectSourceMonthCoverageRows(db);
 
   return rows.map((row) => toSourceMonthCoverage(SourceMonthCoverageRowSchema.parse(row)));
+}
+
+export async function listPublicSnapshotSourceMonthCoverage(
+  db: D1ServingDb,
+): Promise<PublicSnapshotSourceMonthCoverage> {
+  const rows = await selectSourceMonthCoverageRows(db);
+  const sourceMonthCoverageRows: SourceMonthCoverage[] = [];
+  let skippedRowCount = 0;
+
+  for (const row of rows) {
+    const parsed = SourceMonthCoverageRowSchema.safeParse(row);
+    if (!parsed.success) {
+      skippedRowCount += 1;
+      logSkippedSourceMonthCoverageRow({ row, issues: parsed.error.issues });
+      continue;
+    }
+
+    sourceMonthCoverageRows.push(toSourceMonthCoverage(parsed.data));
+  }
+
+  return {
+    rows: sourceMonthCoverageRows,
+    skippedRowCount,
+  };
 }

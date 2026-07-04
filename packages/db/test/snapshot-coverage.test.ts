@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { readdir } from "node:fs/promises";
 import { createBunSqliteServingDb } from "../src/d1/bun-sqlite.js";
-import { listSourceMonthCoverage } from "../src/d1/index.js";
+import { listPublicSnapshotSourceMonthCoverage, listSourceMonthCoverage } from "../src/d1/index.js";
 
 async function createDrizzleTestDb(): Promise<Database> {
   const sqlite = new Database(":memory:");
@@ -16,38 +16,42 @@ async function createDrizzleTestDb(): Promise<Database> {
   return sqlite;
 }
 
+function insertSourceMonthCoverageRow(sqlite: Database, month: string): void {
+  sqlite
+    .query(
+      `INSERT INTO source_month_coverage (
+        source_id,
+        month,
+        label,
+        source_kind,
+        grain,
+        status,
+        row_count,
+        route_count,
+        note,
+        generated_at,
+        artifact_path
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      "local_route_segment_speed",
+      month,
+      "Route segment speed rows",
+      "source_table",
+      "route x month x segment/hour speed observation",
+      "available",
+      4200,
+      350,
+      null,
+      "2026-06-06T00:00:00.000Z",
+      "data/artifacts/source-month-coverage/2023-04_to_2026-03/coverage-matrix.json",
+    );
+}
+
 describe("Snapshot coverage D1 read model", () => {
   test("normalizes legacy display months from source month coverage rows", async () => {
     const sqlite = await createDrizzleTestDb();
-    sqlite
-      .query(
-        `INSERT INTO source_month_coverage (
-          source_id,
-          month,
-          label,
-          source_kind,
-          grain,
-          status,
-          row_count,
-          route_count,
-          note,
-          generated_at,
-          artifact_path
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        "local_route_segment_speed",
-        "March 2026",
-        "Route segment speed rows",
-        "source_table",
-        "route x month x segment/hour speed observation",
-        "available",
-        4200,
-        350,
-        null,
-        "2026-06-06T00:00:00.000Z",
-        "data/artifacts/source-month-coverage/2023-04_to_2026-03/coverage-matrix.json",
-      );
+    insertSourceMonthCoverageRow(sqlite, "March 2026");
 
     const rows = await listSourceMonthCoverage(createBunSqliteServingDb(sqlite));
 
@@ -57,5 +61,26 @@ describe("Snapshot coverage D1 read model", () => {
         month: "2026-03",
       }),
     ]);
+  });
+
+  test("keeps strict validation for repository checks and skips invalid public snapshot rows", async () => {
+    const sqlite = await createDrizzleTestDb();
+    insertSourceMonthCoverageRow(sqlite, "not-a-month");
+    const db = createBunSqliteServingDb(sqlite);
+
+    await expect(listSourceMonthCoverage(db)).rejects.toThrow("Invalid string");
+
+    const originalConsoleError = console.error;
+    console.error = () => {};
+    try {
+      const publicRows = await listPublicSnapshotSourceMonthCoverage(db);
+
+      expect(publicRows).toEqual({
+        rows: [],
+        skippedRowCount: 1,
+      });
+    } finally {
+      console.error = originalConsoleError;
+    }
   });
 });

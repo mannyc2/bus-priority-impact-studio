@@ -572,7 +572,7 @@ const scorecard = RouteScorecardSchema.parse({
   ],
 });
 
-function createStudioProjectionEnv(): StudioApiEnv {
+function createStudioProjectionEnv(input: { modelArtifact?: FakeR2Object } = {}): StudioApiEnv {
   return {
     ARTIFACTS: new FakeR2Bucket({
       [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact(STANDARD_ROUTE_CAPABILITIES),
@@ -702,48 +702,50 @@ function createStudioProjectionEnv(): StudioApiEnv {
         "application/json",
       ),
       "studio/v2/wiki/routes/m15-sbs.json": routeEvidenceBundleArtifact(),
-      "studio/v2/detectors/model-artifacts.json": new FakeR2Object(
-        JSON.stringify({
-          artifactKind: "model_artifact_serving_projection",
-          schemaVersion: 1,
-          generatedAt: "2026-06-07T00:00:00.000Z",
-          releaseMonth: "2026-03",
-          historyWindow: { startMonth: "2023-04", endMonth: "2026-03" },
-          sourceEvaluationPath:
-            "data/artifacts/detector-evaluation/2023-04_to_2026-03/2026-03/detector-evaluation.json",
-          summary: {
-            modelCount: 2,
-            availableModelCount: 1,
-            missingModelCount: 1,
-            detectorConsumerCount: 3,
-          },
-          models: [
-            {
-              modelId: "segment_speed_residuals_v1",
-              status: "available",
-              panelId: "segment_month_panel_v1",
-              releaseMonth: "2026-03",
-              modeledReleaseRowCount: 404,
-              routeCount: 2,
-              segmentCount: 12,
-              detectorConsumers: ["speed_pace_hotspot", "treatment_scope_mismatch"],
-              limitations: ["fixture limitation"],
+      "studio/v2/detectors/model-artifacts.json":
+        input.modelArtifact ??
+        new FakeR2Object(
+          JSON.stringify({
+            artifactKind: "model_artifact_serving_projection",
+            schemaVersion: 1,
+            generatedAt: "2026-06-07T00:00:00.000Z",
+            releaseMonth: "2026-03",
+            historyWindow: { startMonth: "2023-04", endMonth: "2026-03" },
+            sourceEvaluationPath:
+              "data/artifacts/detector-evaluation/2023-04_to_2026-03/2026-03/detector-evaluation.json",
+            summary: {
+              modelCount: 2,
+              availableModelCount: 1,
+              missingModelCount: 1,
+              detectorConsumerCount: 3,
             },
-            {
-              modelId: "pulse_fingerprint_v1",
-              status: "missing",
-              panelId: "route_hour_of_week_pulse_panel_v1",
-              releaseMonth: "2026-03",
-              modeledReleaseRowCount: 0,
-              routeCount: 0,
-              segmentCount: 0,
-              detectorConsumers: ["pulse_fingerprint"],
-              limitations: ["not built in fixture"],
-            },
-          ],
-        }),
-        "application/json",
-      ),
+            models: [
+              {
+                modelId: "segment_speed_residuals_v1",
+                status: "available",
+                panelId: "segment_month_panel_v1",
+                releaseMonth: "2026-03",
+                modeledReleaseRowCount: 404,
+                routeCount: 2,
+                segmentCount: 12,
+                detectorConsumers: ["speed_pace_hotspot", "treatment_scope_mismatch"],
+                limitations: ["fixture limitation"],
+              },
+              {
+                modelId: "pulse_fingerprint_v1",
+                status: "missing",
+                panelId: "route_hour_of_week_pulse_panel_v1",
+                releaseMonth: "2026-03",
+                modeledReleaseRowCount: 0,
+                routeCount: 0,
+                segmentCount: 0,
+                detectorConsumers: ["pulse_fingerprint"],
+                limitations: ["not built in fixture"],
+              },
+            ],
+          }),
+          "application/json",
+        ),
     }) as unknown as R2Bucket,
   };
 }
@@ -2686,7 +2688,7 @@ describe("Studio API facade", () => {
     expect(sourceMonthProjection?.months).toEqual({ start: "2026-03", end: "2026-03" });
   });
 
-  it("returns a JSON 502 when the Studio snapshot has an unrecoverable invalid month", async () => {
+  it("omits invalid source coverage months from the public Studio snapshot", async () => {
     const env = {
       ...createStudioProjectionEnv(),
       BASELINE_MONTH: "2026-03",
@@ -2708,6 +2710,54 @@ describe("Studio API facade", () => {
           },
         ],
       }) as unknown as D1Database,
+      LAST_BUILT_SPEED_MONTH: "2026-03",
+    };
+
+    const response = await fetchApi("/api/v1/studio/snapshot", env);
+
+    expect(response.status).toBe(200);
+    const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
+    const sourceMonth = snapshot.v2?.sourceMonths.find(
+      (row) => row.sourceId === "local_route_segment_speed",
+    );
+    expect(sourceMonth).toBeUndefined();
+    expect(snapshot.v2?.caveats).toContain(
+      "1 source-month coverage row failed the public month contract and was omitted from this snapshot.",
+    );
+    expect(snapshot.v2?.projections).toContainEqual(
+      expect.objectContaining({
+        id: "source_month_coverage",
+        status: "missing",
+        months: { start: null, end: null },
+      }),
+    );
+  });
+
+  it("returns a JSON 502 when the Studio snapshot fails final contract validation", async () => {
+    const env = {
+      ...createStudioProjectionEnv({
+        modelArtifact: new FakeR2Object(
+          JSON.stringify({
+            artifactKind: "model_artifact_serving_projection",
+            schemaVersion: 1,
+            generatedAt: "2026-06-07T00:00:00.000Z",
+            releaseMonth: "2026-03",
+            historyWindow: { startMonth: "not-a-month", endMonth: "2026-03" },
+            sourceEvaluationPath:
+              "data/artifacts/detector-evaluation/2023-04_to_2026-03/2026-03/detector-evaluation.json",
+            summary: {
+              modelCount: 0,
+              availableModelCount: 0,
+              missingModelCount: 0,
+              detectorConsumerCount: 0,
+            },
+            models: [],
+          }),
+          "application/json",
+        ),
+      }),
+      BASELINE_MONTH: "2026-03",
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
       LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
