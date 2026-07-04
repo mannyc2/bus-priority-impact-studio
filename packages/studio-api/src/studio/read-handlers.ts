@@ -102,6 +102,8 @@ const OPENAPI_DOC_METHODS = ["get", "post", "put", "patch", "delete"] as const;
 const ARTIFACT_NOT_AVAILABLE_MESSAGE = "Artifact is not available.";
 const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
 const SNAPSHOT_CONTRACT_VALIDATION_MESSAGE = "Studio snapshot failed contract validation.";
+const SNAPSHOT_2_OMITTED_CAVEAT =
+  "Snapshot 2.0 manifest failed contract validation and is temporarily omitted.";
 
 function dependencyNotConfiguredResponse(dependency: string, context: string): Response {
   console.error("Service dependency is not configured.", { context, dependency });
@@ -116,6 +118,17 @@ function artifactNotAvailableResponse(status: number, context: string, key: stri
 function snapshotContractFailureResponse(details: unknown): Response {
   console.error(SNAPSHOT_CONTRACT_VALIDATION_MESSAGE, details);
   return errorResponse(502, SNAPSHOT_CONTRACT_VALIDATION_MESSAGE);
+}
+
+function snapshotQualityWithCaveat(
+  quality: StudioRoutesResponse["quality"],
+  caveat: string,
+): StudioRoutesResponse["quality"] {
+  return {
+    ...quality,
+    confidence: "low",
+    caveats: [...quality.caveats, caveat],
+  };
 }
 
 function studioDocsEndpointsFromOpenApi(): StudioDocsResponse["endpoints"] {
@@ -2725,21 +2738,26 @@ async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise
   const resolvedMonths = await resolveServingMonths(env);
   const routesAreD1Backed = env.DB !== undefined && resolvedMonths !== null;
   const routeIndex2Result = routesAreD1Backed ? await buildStudioRouteIndex2Response(env) : null;
-  const publicSourceMonthCoverage =
-    routeIndex2Result?.ok === true && env.DB !== undefined
-      ? await listPublicSnapshotSourceMonthCoverage(createD1ServingDb(env.DB))
-      : { rows: [], skippedRowCount: 0 };
-  const snapshot2 =
-    routeIndex2Result?.ok === true
-      ? buildSnapshot2({
-          routeIndex: routeIndex2Result.routeIndex,
-          sourceMonthCoverage: publicSourceMonthCoverage.rows,
-          skippedSourceMonthCoverageRows: publicSourceMonthCoverage.skippedRowCount,
-          lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? undefined,
-          routeEvidenceIndex,
-          modelProjection,
-        })
-      : undefined;
+  let snapshot2: StudioSnapshot2 | undefined;
+  let snapshot2BuildFailure: unknown = null;
+  if (routeIndex2Result?.ok === true && env.DB !== undefined) {
+    try {
+      const publicSourceMonthCoverage = await listPublicSnapshotSourceMonthCoverage(
+        createD1ServingDb(env.DB),
+      );
+      snapshot2 = buildSnapshot2({
+        routeIndex: routeIndex2Result.routeIndex,
+        sourceMonthCoverage: publicSourceMonthCoverage.rows,
+        skippedSourceMonthCoverageRows: publicSourceMonthCoverage.skippedRowCount,
+        lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? undefined,
+        routeEvidenceIndex,
+        modelProjection,
+      });
+    } catch (error) {
+      snapshot2BuildFailure = error;
+      console.error("Studio Snapshot 2.0 assembly failed; serving v1 snapshot only.", { error });
+    }
+  }
   const projections: StudioSnapshotProjection[] = [
     {
       resource: "routes",
@@ -2761,8 +2779,7 @@ async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise
     },
   ];
   const prefix = studioProjectionPrefix(env);
-
-  const parsedSnapshot = StudioSnapshotResponseSchema.safeParse({
+  const baseSnapshot = {
     schemaVersion: 1,
     generatedAt,
     releaseId: releaseIdForPrefix(prefix),
@@ -2777,11 +2794,30 @@ async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise
       docsEndpoints: docsProjection.endpoints.length,
     },
     projections,
-    quality: routesResult.quality,
-    ...(snapshot2 === undefined ? {} : { v2: snapshot2 }),
-  });
+    quality:
+      snapshot2BuildFailure === null
+        ? routesResult.quality
+        : snapshotQualityWithCaveat(routesResult.quality, SNAPSHOT_2_OMITTED_CAVEAT),
+  };
+
+  const parsedSnapshot = StudioSnapshotResponseSchema.safeParse(
+    snapshot2 === undefined ? baseSnapshot : { ...baseSnapshot, v2: snapshot2 },
+  );
 
   if (!parsedSnapshot.success) {
+    if (snapshot2 !== undefined) {
+      console.error("Studio Snapshot 2.0 contract validation failed; serving v1 snapshot only.", {
+        issues: parsedSnapshot.error.issues,
+      });
+      const fallbackSnapshot = StudioSnapshotResponseSchema.safeParse({
+        ...baseSnapshot,
+        quality: snapshotQualityWithCaveat(routesResult.quality, SNAPSHOT_2_OMITTED_CAVEAT),
+      });
+      if (fallbackSnapshot.success) {
+        return studioJsonResponse(fallbackSnapshot.data, env);
+      }
+    }
+
     return snapshotContractFailureResponse({
       issues: parsedSnapshot.error.issues,
     });
