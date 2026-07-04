@@ -2733,7 +2733,7 @@ describe("Studio API facade", () => {
     );
   });
 
-  it("returns a JSON 502 when the Studio snapshot fails final contract validation", async () => {
+  it("serves the v1 Studio snapshot when Snapshot 2.0 contract validation fails", async () => {
     const env = {
       ...createStudioProjectionEnv({
         modelArtifact: new FakeR2Object(
@@ -2763,15 +2763,13 @@ describe("Studio API facade", () => {
 
     const response = await fetchApi("/api/v1/studio/snapshot", env);
 
-    expect(response.status).toBe(502);
-    expect(response.headers.get("Content-Type")).toContain("application/json");
-    const body: unknown = JSON.parse(await response.text());
-    expect(body).toEqual({
-      error: {
-        code: "BAD_GATEWAY",
-        message: "Studio snapshot failed contract validation.",
-      },
-    });
+    expect(response.status).toBe(200);
+    const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
+    expect(snapshot.v2).toBeUndefined();
+    expect(snapshot.quality.confidence).toBe("low");
+    expect(snapshot.quality.caveats).toContain(
+      "Snapshot 2.0 manifest failed contract validation and is temporarily omitted.",
+    );
   });
 
   it("serves D1-backed Studio route month history", async () => {
