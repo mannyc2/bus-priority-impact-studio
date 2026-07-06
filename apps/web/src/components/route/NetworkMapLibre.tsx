@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { speedToColor } from "@/components/route/maplibre-style";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
-import type { NetworkMapFeatureCollection } from "@/studio/api-client";
+import type { NetworkMapFeature, NetworkMapFeatureCollection } from "@/studio/api-client";
 
 const NetworkMapLibreMap = lazy(() =>
   import("./NetworkMapLibre.map.js").then((module) => ({ default: module.NetworkMapLibreMap })),
@@ -10,21 +10,37 @@ const NetworkMapLibreMap = lazy(() =>
 export type NetworkMapLibreProps = {
   collection: NetworkMapFeatureCollection;
   context: RouteGeoContext | null;
-  hour: number;
+  period: MapPeriod;
   lens: NetworkMapLens;
   hoveredRouteId: string | null;
   setHoveredRouteId: (routeId: string | null) => void;
   selectedRouteId: string | null;
+  onSelectRoute?: (routeId: string) => void;
 };
 
 export type NetworkMapLens = "speed" | "riders" | "lanes";
 
+export type MapPeriod = "all" | "am" | "pm";
+
+export const PERIOD_HOURS: Record<MapPeriod, number[] | null> = {
+  all: null, // use currentMph
+  am: [7, 8, 9], // AM peak
+  pm: [16, 17, 18, 19], // PM peak
+};
+
+export function periodSpeed(feature: NetworkMapFeature, period: MapPeriod): number {
+  const hours = PERIOD_HOURS[period];
+  if (hours === null) return feature.properties.currentMph;
+  const values = hours
+    .map((h) => feature.properties.hours[h])
+    .filter((v): v is number => typeof v === "number" && v > 0);
+  if (values.length === 0) return feature.properties.currentMph;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
 function NetworkMapSkeleton() {
   return (
-    <div
-      className="h-[640px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"
-      aria-hidden
-    />
+    <div className="h-full min-h-[320px] animate-pulse bg-[var(--bp-color-ink-06)]" aria-hidden />
   );
 }
 
@@ -39,10 +55,11 @@ export function NetworkMapLibre(props: NetworkMapLibreProps) {
 
 function NetworkMapStatic({
   collection,
-  hour,
+  period,
   lens,
   hoveredRouteId,
   selectedRouteId,
+  onSelectRoute,
 }: NetworkMapLibreProps) {
   const width = 980;
   const height = 640;
@@ -50,7 +67,7 @@ function NetworkMapStatic({
   const bounds = networkBounds(collection);
   if (bounds === null) {
     return (
-      <div className="flex h-[640px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] text-[12.5px] text-[var(--bp-color-ink-55)]">
+      <div className="flex h-full min-h-[320px] items-center justify-center bg-[var(--bp-color-paper-deep)] text-[12.5px] text-[var(--bp-color-ink-55)]">
         Network geometry is unavailable.
       </div>
     );
@@ -59,7 +76,8 @@ function NetworkMapStatic({
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="block h-auto min-h-[640px] w-full rounded-[3px] bg-[var(--bp-color-card)]"
+      className="block h-full w-full bg-[var(--bp-color-card)]"
+      preserveAspectRatio="xMidYMid meet"
       role="img"
       aria-label="Citywide bus route speed map"
     >
@@ -69,9 +87,19 @@ function NetworkMapStatic({
           feature.properties.routeId === hoveredRouteId ||
           feature.properties.routeId === selectedRouteId;
         const hasFocus = hoveredRouteId !== null || selectedRouteId !== null;
-        const speed = feature.properties.hours[hour] ?? feature.properties.currentMph;
+        const speed = periodSpeed(feature, period);
         return (
-          <g key={feature.properties.routeId} opacity={hasFocus && !active ? 0.28 : 1}>
+          // biome-ignore lint/a11y/noStaticElementInteractions: static fallback mirrors the map's click-through
+          <g
+            key={feature.properties.routeId}
+            opacity={hasFocus && !active ? 0.28 : 1}
+            style={onSelectRoute === undefined ? undefined : { cursor: "pointer" }}
+            onClick={
+              onSelectRoute === undefined
+                ? undefined
+                : () => onSelectRoute(feature.properties.routeId)
+            }
+          >
             {feature.geometry.coordinates.map((line, index) => (
               <path
                 key={`${feature.properties.routeId}-${index}`}

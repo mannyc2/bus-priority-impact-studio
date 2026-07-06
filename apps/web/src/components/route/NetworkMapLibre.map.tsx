@@ -8,7 +8,11 @@ import {
   type MapLibreStyleSpecification,
 } from "@/components/route/load-maplibre";
 import { MAP_COLORS, speedToColor } from "@/components/route/maplibre-style";
-import type { NetworkMapLens } from "@/components/route/NetworkMapLibre";
+import {
+  type MapPeriod,
+  type NetworkMapLens,
+  periodSpeed,
+} from "@/components/route/NetworkMapLibre";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { NetworkMapFeatureCollection } from "@/studio/api-client";
 
@@ -29,11 +33,12 @@ type FeatureCollection<TGeometry, TProperties = Record<string, unknown>> = {
 export type NetworkMapLibreMapProps = {
   collection: NetworkMapFeatureCollection;
   context: RouteGeoContext | null;
-  hour: number;
+  period: MapPeriod;
   lens: NetworkMapLens;
   hoveredRouteId: string | null;
   setHoveredRouteId: (routeId: string | null) => void;
   selectedRouteId: string | null;
+  onSelectRoute?: (routeId: string) => void;
   fallback: ReactNode;
 };
 
@@ -57,7 +62,7 @@ const HIT_LAYER = "bp-network-hit";
 
 function networkFeatureCollection(input: {
   collection: NetworkMapFeatureCollection;
-  hour: number;
+  period: MapPeriod;
   lens: NetworkMapLens;
   hoveredRouteId: string | null;
   selectedRouteId: string | null;
@@ -65,7 +70,7 @@ function networkFeatureCollection(input: {
   return {
     type: "FeatureCollection",
     features: input.collection.features.map((feature) => {
-      const speedMph = feature.properties.hours[input.hour] ?? feature.properties.currentMph;
+      const speedMph = periodSpeed(feature, input.period);
       const active =
         feature.properties.routeId === input.hoveredRouteId ||
         feature.properties.routeId === input.selectedRouteId;
@@ -169,20 +174,23 @@ function supportsWebGl(): boolean {
 export function NetworkMapLibreMap({
   collection,
   context,
-  hour,
+  period,
   lens,
   hoveredRouteId,
   setHoveredRouteId,
   selectedRouteId,
+  onSelectRoute,
   fallback,
 }: NetworkMapLibreMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const onSelectRouteRef = useRef(onSelectRoute);
+  onSelectRouteRef.current = onSelectRoute;
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const networkData = useMemo(
-    () => networkFeatureCollection({ collection, hour, lens, hoveredRouteId, selectedRouteId }),
-    [collection, hour, lens, hoveredRouteId, selectedRouteId],
+    () => networkFeatureCollection({ collection, period, lens, hoveredRouteId, selectedRouteId }),
+    [collection, period, lens, hoveredRouteId, selectedRouteId],
   );
   const landData = useMemo(() => landCollection(context), [context]);
 
@@ -229,6 +237,14 @@ export function NetworkMapLibreMap({
         const onMouseLeave = () => {
           map.getCanvas().style.cursor = "";
           setHoveredRouteId(null);
+        };
+        const onClick = (event: MapLibreMapLayerMouseEvent) => {
+          const feature = event.features?.[0];
+          const properties = feature?.properties as { routeId?: unknown } | undefined;
+          const routeId = properties?.routeId;
+          if (typeof routeId === "string") {
+            onSelectRouteRef.current?.(routeId);
+          }
         };
         const onError = () => setFailed(true);
         const onLoad = () => {
@@ -279,6 +295,7 @@ export function NetworkMapLibreMap({
           }
           map.on("mousemove", HIT_LAYER, onMouseMove);
           map.on("mouseleave", HIT_LAYER, onMouseLeave);
+          map.on("click", HIT_LAYER, onClick);
           setReady(true);
         };
 
@@ -289,6 +306,7 @@ export function NetworkMapLibreMap({
           map.off("error", onError);
           map.off("mousemove", HIT_LAYER, onMouseMove);
           map.off("mouseleave", HIT_LAYER, onMouseLeave);
+          map.off("click", HIT_LAYER, onClick);
           map.remove();
           mapRef.current = null;
           setReady(false);
@@ -321,7 +339,7 @@ export function NetworkMapLibreMap({
   return (
     <div
       ref={containerRef}
-      className="min-h-[640px] overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]"
+      className="h-full min-h-[320px] overflow-hidden bg-[var(--bp-color-card)]"
       role="img"
       aria-label="Citywide bus route speed map"
     />
