@@ -14,6 +14,7 @@ const toneColor: Record<RPubStatTone, string> = {
   warn: "var(--bp-color-warn)",
 };
 
+// last consumer: studio/pages/interventions.tsx — plan 058 deletes
 export function RPubInterventionCard({
   dateLabel,
   yearLabel,
