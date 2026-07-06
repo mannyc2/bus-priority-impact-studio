@@ -2,11 +2,7 @@ import type { ReactNode } from "react";
 import { segmentSpeedAtHour, speedToColor } from "@/components/route/maplibre-style";
 import { CitationChips, type WikiCitationEvidence } from "@/components/route/WikiEvidence";
 import { Badge } from "@/components/ui/badge";
-import type {
-  RouteDossierSummaryForDetail,
-  StudioRoute,
-  StudioSegment,
-} from "@/studio/api-contract";
+import type { StudioSegment } from "@/studio/api-contract";
 import type { MetricTone } from "@/studio/metric-model";
 
 type PublicTone = MetricTone | "accent" | "warn";
@@ -20,47 +16,6 @@ const toneColor: Record<RPubStatTone, string> = {
   accent: "var(--bp-color-accent)",
   warn: "var(--bp-color-warn)",
 };
-
-// consumed by plan 054 (Overview tab summary); kept exported until then.
-export function routePublicLede({
-  route,
-  dossier,
-}: {
-  route: StudioRoute;
-  dossier: RouteDossierSummaryForDetail | null;
-}): string | null {
-  const parts: string[] = [];
-  const speed = dossier?.speed.current ?? route.weightedAvgSpeed;
-  const hasSpeed = speed > 0;
-  if (hasSpeed) {
-    const schedule =
-      route.scheduledMph !== null && route.scheduledMph > 0
-        ? ` against a ${route.scheduledMph.toFixed(1)} mph schedule`
-        : "";
-    parts.push(`${route.label} is running ${speed.toFixed(1)} mph${schedule}`);
-  }
-
-  const movement = dossier?.speed.movement6mPct ?? route.movement6mPct;
-  if (movement !== null && Math.abs(movement) >= 0.05) {
-    parts.push(`${movement > 0 ? "up" : "down"} ${Math.abs(movement).toFixed(1)}% in six months`);
-  }
-
-  const peerPercentile = dossier?.speed.peerPercentile ?? route.speedPercentile;
-  if (hasSpeed && peerPercentile !== null && Number.isFinite(peerPercentile)) {
-    parts.push(
-      peerPercentile >= 50
-        ? `faster than ${Math.round(peerPercentile)}% of comparable routes`
-        : `slower than ${Math.round(100 - peerPercentile)}% of comparable routes`,
-    );
-  }
-
-  const worst = dossier?.worstSegment ?? null;
-  if (worst !== null) {
-    parts.push(`${worst.label} is the slowest stretch in the route record`);
-  }
-
-  return parts.length === 0 ? null : `${parts.join("; ")}.`;
-}
 
 export function RPubSlowCard({
   segment,

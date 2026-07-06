@@ -61,7 +61,7 @@ Verified headline facts the plans are built on:
 | 051 | Homepage rewrite (neutral, search-first) + new /routes directory | P1 | L | 048-050 | DONE |
 | 052 | Delete the methods page end-to-end (incl. worker endpoint) | P2 | M | 051 (hard) | DONE |
 | 053 | Route detail: real tabs (?tab=) + compact self-evident header | P1 | L | 049 (hard), 048, 050 | DONE (plain-markup tab bar) |
-| 054 | Overview tab: one summary, one trend, mini map, insights | P1 | M | 053 (hard) | TODO |
+| 054 | Overview tab: one summary, one trend, mini map, insights | P1 | M | 053 (hard) | DONE |
 | 055 | Slow segments tab: ranked table, one hour chart, calm map; delete carpet + Profile | P1 | L | 053 (hard); 054 rec. | TODO |
 | 056 | Riders & reliability tab: rider-real numbers; meta-metrics → SourceNote | P1 | M | 053 (hard) | TODO |
 | 057 | Treatments & history tab: grouped bounded timeline; "unda" + citation-dupe fixes | P1 | L | 049+053 (hard); 054 rec. | TODO |

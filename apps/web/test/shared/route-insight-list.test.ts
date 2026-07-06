@@ -61,7 +61,8 @@ describe("RouteInsightList", () => {
       }),
     );
 
-    expect(markup).toContain("5 ranked findings");
+    expect(markup).toContain("What stands out");
+    expect(markup).toContain("Top 5 of 6 detector findings.");
     expect(markup).toContain("1 more in sections");
     expect(markup.indexOf("High")).toBeLessThan(markup.indexOf("Medium"));
     expect(markup.indexOf("Medium")).toBeLessThan(markup.indexOf("Low"));

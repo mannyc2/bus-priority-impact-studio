@@ -2,11 +2,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect } from "react";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
 import { HonestEmptySection } from "@/components/route/HonestEmptySection";
+import { OverviewSection } from "@/components/route/OverviewSection";
 import { ReliabilitySection } from "@/components/route/ReliabilitySection";
 import { RidersSection } from "@/components/route/RidersSection";
 import { RouteDetailHeader } from "@/components/route/RouteDetailHeader";
 import { RouteDetailShell } from "@/components/route/RouteDetailShell";
-import { RouteInsightList } from "@/components/route/RouteInsightList";
 import { RouteMapSection } from "@/components/route/RouteMapSection";
 import { routeSectionBadges } from "@/components/route/route-insight-placement";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
@@ -88,14 +88,7 @@ export function RouteDetailPage({
   let panel: ReactNode;
   switch (activeTab) {
     case "overview":
-      // Interim Overview content until plan 054 rebuilds the tab.
-      panel = (
-        <RouteInsightList
-          insights={data.insights}
-          capability={data.capability}
-          onNavigate={navigateToTab}
-        />
-      );
+      panel = <OverviewSection data={data} onNavigate={navigateToTab} />;
       break;
     case "segments":
       panel = (

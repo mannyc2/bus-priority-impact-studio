@@ -1,6 +1,7 @@
 import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
 import { RouteGeoMap } from "@/components/route/RouteGeoMap";
+import { RouteInsightList } from "@/components/route/RouteInsightList";
 import { routeMapHighlight, useRouteSegmentsGeo } from "@/components/route/RouteMapSection";
 import {
   dossierMetricMonthCount,
@@ -9,30 +10,29 @@ import {
   formatCompact,
   routePerformanceSummary,
 } from "@/components/route/route-derived";
-import { routeInsightCardSpec } from "@/components/route/route-insight-card";
-import {
-  routeInsightPlacements,
-  safeInsightCaveats,
-} from "@/components/route/route-insight-placement";
-import {
-  type RouteDetailSectionValue,
-  type RouteSectionRegistry,
-  routeSectionCanNavigate,
-} from "@/components/route/section-registry";
+import type { RouteDetailSectionValue } from "@/components/route/section-registry";
+import { SectionCard } from "@/components/SectionCard";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { StudioRouteDetailResponse, StudioRouteInsight } from "@/studio/api-contract";
+import type {
+  RouteDossierSummaryForDetail,
+  StudioRoute,
+  StudioRouteDetailResponse,
+} from "@/studio/api-contract";
 import { routeTreatments } from "@/studio/treatment-model";
 
+/**
+ * The Overview tab: one plain-language route summary, the route's one plain
+ * monthly speed-trend chart, a small locator map, and the ranked insight list.
+ * This is the canonical home for each of those data families — the Slow
+ * segments tab owns the analytical map, History owns the event timeline.
+ */
 export function OverviewSection({
   data,
-  sectionRegistry,
   onNavigate,
 }: {
   data: StudioRouteDetailResponse;
-  sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
   onNavigate: (section: RouteDetailSectionValue) => void;
 }) {
   const { route, segments } = data;
@@ -41,30 +41,30 @@ export function OverviewSection({
   const speedWindow = dossierMetricWindow(data.dossier?.speed);
   const slowestByRiders = [...segments].sort((a, b) => b.riderHours - a.riderHours)[0] ?? null;
   const worst = data.dossier?.worstSegment ?? null;
+  const worstLabel = worst
+    ? `${worst.label} has been the slowest stretch for ${worst.persistenceMonths} months`
+    : slowestByRiders
+      ? `${slowestByRiders.from} to ${slowestByRiders.to} costs riders the most time`
+      : null;
   const mapHighlightSegment = routeMapHighlight(segments, data.insights).segment ?? slowestByRiders;
   const treatments = routeTreatments(route, segments);
-  const overviewInsights = routeInsightPlacements(data.insights).overview;
-  const mapTarget = routeSectionCanNavigate(sectionRegistry, "map") ? "map" : "evidence";
-  const performance = routePerformanceSummary(route, data.dossier);
   const geo = useRouteSegmentsGeo(route.routeId);
 
   return (
     <div className="flex flex-col gap-7">
-      <SummaryCard
-        data={data}
-        performanceSpeed={performance.speedMph}
-        peerPercentile={performance.peerPercentile}
-        worstLabel={
-          worst
-            ? `${worst.label} has been the slowest stretch for ${worst.persistenceMonths} months`
-            : slowestByRiders
-              ? `${slowestByRiders.from} to ${slowestByRiders.to} costs riders the most time`
-              : null
-        }
-        treatments={treatments}
-      />
+      <SectionCard title={`${route.label} at a glance`}>
+        <p className="m-0 max-w-[980px] text-[14px] leading-[1.65] text-[var(--bp-color-ink)]">
+          {overviewSummary(route, data.dossier, worstLabel)}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <TreatmentBadgeRow treatments={treatments} max={6} />
+          {route.dailyRiders > 0 ? (
+            <Badge variant="neutral">{formatCompact(route.dailyRiders)} riders/day</Badge>
+          ) : null}
+        </div>
+      </SectionCard>
 
-      <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(320px,0.8fr)] gap-5 max-xl:grid-cols-1">
+      <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(320px,0.8fr)] items-stretch gap-5 max-xl:grid-cols-1">
         <ChartFrame
           title="Speed history"
           source={
@@ -95,172 +95,87 @@ export function OverviewSection({
           )}
         </ChartFrame>
 
-        <section className="flex flex-col rounded-[3px] bg-[var(--bp-color-card)] p-[18px] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-          <div className="mb-3.5 flex items-start justify-between gap-4">
-            <div>
-              <div className="text-sm font-semibold tracking-[-0.005em]">Route map</div>
-              <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">
-                Observed speed by segment.
-              </div>
-            </div>
+        <SectionCard
+          title="Route map"
+          sub="Observed speed by segment."
+          right={
             <button
               type="button"
-              onClick={() => onNavigate(mapTarget)}
+              onClick={() => onNavigate("map")}
               className="inline-flex shrink-0 items-center gap-1 rounded-[3px] border border-[var(--bp-color-ink-20)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
             >
               Full map →
             </button>
-          </div>
-          <div className="min-h-[172px]">
-            {geo.status === "ready" ? (
-              <RouteGeoMap collection={geo.collection} context={geo.context} variant="mini" />
-            ) : geo.status === "loading" ? (
-              <div
-                className="h-[200px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"
-                aria-hidden
-              />
-            ) : (
-              <CorridorMap
-                route={route}
-                segments={segments}
-                highlightId={mapHighlightSegment?.id}
-                mode="mini"
-              />
-            )}
-          </div>
-        </section>
+          }
+          bodyClassName="flex min-h-[172px] flex-1 flex-col"
+        >
+          {geo.status === "ready" ? (
+            <RouteGeoMap collection={geo.collection} context={geo.context} variant="mini" />
+          ) : geo.status === "loading" ? (
+            <div
+              className="h-[200px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"
+              aria-hidden
+            />
+          ) : (
+            <CorridorMap
+              route={route}
+              segments={segments}
+              highlightId={mapHighlightSegment?.id}
+              mode="mini"
+            />
+          )}
+        </SectionCard>
       </div>
 
-      {overviewInsights.length > 0 ? (
-        <section className="flex flex-col gap-4">
-          <h2 className="m-0 text-[15px] font-semibold tracking-[-0.005em]">What stands out</h2>
-          <div className="grid grid-cols-3 gap-4 max-xl:grid-cols-1">
-            {overviewInsights.map((insight) => (
-              <InsightCard
-                key={`${insight.detectorId}:${insight.scopeId ?? insight.title}`}
-                insight={insight}
-                sectionRegistry={sectionRegistry}
-                onNavigate={onNavigate}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <RouteInsightList
+        insights={data.insights}
+        capability={data.capability}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }
 
-function SummaryCard({
-  data,
-  performanceSpeed,
-  peerPercentile,
-  worstLabel,
-  treatments,
-}: {
-  data: StudioRouteDetailResponse;
-  performanceSpeed: number;
-  peerPercentile: number | null;
-  worstLabel: string | null;
-  treatments: ReturnType<typeof routeTreatments>;
-}) {
-  const { route } = data;
-  const speed = data.dossier?.speed ?? null;
+/**
+ * The single surviving route-summary prose builder (the old public-lede atom
+ * and this section's near-identical `SummaryCard` are gone). Sentences: speed
+ * vs schedule; movement over six months; peer percentile; worst stretch.
+ * Falls back to `route.diagnosis` only when every served part is missing.
+ */
+function overviewSummary(
+  route: StudioRoute,
+  dossier: RouteDossierSummaryForDetail | null,
+  worstLabel: string | null,
+): string {
+  const performance = routePerformanceSummary(route, dossier);
   const sentences: string[] = [];
 
-  if (performanceSpeed > 0) {
+  if (performance.speedMph > 0) {
     const schedule =
       route.scheduledMph !== null && route.scheduledMph > 0
         ? ` against a ${route.scheduledMph.toFixed(1)} mph schedule`
         : "";
-    sentences.push(`${route.label} runs ${performanceSpeed.toFixed(1)} mph${schedule}.`);
+    sentences.push(`${route.label} runs ${performance.speedMph.toFixed(1)} mph${schedule}.`);
   }
-  const movement = speed?.movement6mPct ?? null;
+
+  const movement = dossier?.speed.movement6mPct ?? null;
   if (movement !== null && Math.abs(movement) >= 0.05) {
     sentences.push(
       `Speed is ${movement < 0 ? "down" : "up"} ${Math.abs(movement).toFixed(1)}% over the past six months.`,
     );
   }
-  if (peerPercentile !== null) {
+
+  if (performance.peerPercentile !== null) {
     sentences.push(
-      peerPercentile >= 50
-        ? `It is faster than ${Math.round(peerPercentile)}% of comparable routes.`
-        : `It is slower than ${Math.round(100 - peerPercentile)}% of comparable routes.`,
+      performance.peerPercentile >= 50
+        ? `It is faster than ${Math.round(performance.peerPercentile)}% of comparable routes.`
+        : `It is slower than ${Math.round(100 - performance.peerPercentile)}% of comparable routes.`,
     );
   }
+
   if (worstLabel !== null) {
     sentences.push(`${worstLabel}.`);
   }
 
-  return (
-    <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <p className="m-0 max-w-[980px] text-[14px] leading-[1.65] text-[var(--bp-color-ink)]">
-        {sentences.length > 0 ? sentences.join(" ") : route.diagnosis}
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <TreatmentBadgeRow treatments={treatments} max={6} />
-        {route.dailyRiders > 0 ? (
-          <Badge variant="neutral">{formatCompact(route.dailyRiders)} riders/day</Badge>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function InsightCard({
-  insight,
-  sectionRegistry,
-  onNavigate,
-}: {
-  insight: StudioRouteInsight;
-  sectionRegistry: Pick<RouteSectionRegistry, "presentations">;
-  onNavigate: (section: RouteDetailSectionValue) => void;
-}) {
-  const caveats = safeInsightCaveats(insight, 2);
-  const spec = routeInsightCardSpec(insight);
-  const target = routeSectionCanNavigate(sectionRegistry, spec.section) ? spec.section : "evidence";
-  return (
-    <article className="flex flex-col rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-            {spec.detectorLabel}
-          </div>
-          <h3 className="m-0 mt-1 text-[14px] leading-[1.3]">{insight.title}</h3>
-        </div>
-        <Badge variant={insight.severity === "high" ? "bad" : "warn"}>{insight.severity}</Badge>
-      </div>
-      <p className="m-0 mt-3 flex-1 text-[12.5px] leading-[1.55] text-[var(--bp-color-ink-70)]">
-        {insight.shortText}
-        {caveats.length > 0 ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger
-                type="button"
-                className="ml-2 inline-flex align-baseline text-[11.5px] font-semibold text-[var(--bp-color-accent)] underline decoration-dotted underline-offset-2"
-              >
-                Why
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="start" className="max-w-[280px]">
-                <span className="leading-[1.45]">{caveats.join(" ")}</span>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : null}
-      </p>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <Badge variant="neutral" className="max-w-full truncate">
-            {spec.evidenceLabel}
-          </Badge>
-        </div>
-        <button
-          type="button"
-          onClick={() => onNavigate(target)}
-          className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--bp-color-accent)]"
-        >
-          Open
-        </button>
-      </div>
-    </article>
-  );
+  return sentences.length > 0 ? sentences.join(" ") : route.diagnosis;
 }

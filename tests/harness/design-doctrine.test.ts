@@ -37,7 +37,6 @@ const ALLOWLIST: Record<"interpunct" | "kicker" | "phrase", readonly string[]> =
     "components/route/reliability-summary.ts", // 056
   ],
   kicker: [
-    "components/route/RouteInsightList.tsx", // 054
     "components/route/RouteMapSection.tsx", // 053/055
     "components/route/RoutePublicAtoms.tsx", // 055 (RPubSlowCard slow-segment kicker)
     "studio/pages/network-map.tsx", // 059

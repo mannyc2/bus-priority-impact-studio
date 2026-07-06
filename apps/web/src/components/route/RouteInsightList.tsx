@@ -1,3 +1,4 @@
+import { SectionCard } from "@/components/SectionCard";
 import { Badge } from "@/components/ui/badge";
 import type { StudioRouteCapability, StudioRouteInsight } from "@/studio/api-contract";
 import {
@@ -37,31 +38,29 @@ export function RouteInsightList({
   const rows = [...insights].sort(stableInsightSort).slice(0, MAX_INSIGHTS);
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--bp-color-ink-55)]">
-            What stands out
-          </div>
-          <h2 className="m-0 mt-1 text-[18px] font-semibold leading-tight tracking-[-0.015em]">
-            {rows.length} ranked finding{rows.length === 1 ? "" : "s"}
-          </h2>
-        </div>
-        {insights.length > rows.length ? (
+    <SectionCard
+      title="What stands out"
+      sub={
+        rows.length === insights.length
+          ? "Detector findings, ranked by severity."
+          : `Top ${rows.length} of ${insights.length} detector findings.`
+      }
+      right={
+        insights.length > rows.length ? (
           <Badge variant="neutral">{insights.length - rows.length} more in sections</Badge>
-        ) : null}
-      </div>
-      <div className="divide-y divide-[var(--bp-color-rule)] rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-        {rows.map((insight, index) => (
-          <RankedInsightRow
-            key={`${insight.detectorId}:${insight.scopeId ?? insight.title}:${index}`}
-            insight={insight}
-            index={index}
-            onNavigate={onNavigate}
-          />
-        ))}
-      </div>
-    </section>
+        ) : undefined
+      }
+      bodyClassName="-mx-[18px] -mb-[18px] divide-y divide-[var(--bp-color-rule)] border-t border-[var(--bp-color-rule)]"
+    >
+      {rows.map((insight, index) => (
+        <RankedInsightRow
+          key={`${insight.detectorId}:${insight.scopeId ?? insight.title}:${index}`}
+          insight={insight}
+          index={index}
+          onNavigate={onNavigate}
+        />
+      ))}
+    </SectionCard>
   );
 }
 
@@ -149,9 +148,7 @@ function cleanInsightState(capability: StudioRouteCapability | null) {
 
   return (
     <section className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--bp-color-good)]">
-        No flags raised
-      </div>
+      <div className="text-[13px] font-semibold text-[var(--bp-color-good)]">No flags raised</div>
       <p className="m-0 mt-2 text-[13px] leading-[1.55] text-[var(--bp-color-ink-70)]">
         {checkedCount > 0
           ? `No detector flags raised for this route across ${checkedCount} checked surface${checkedCount === 1 ? "" : "s"}.`

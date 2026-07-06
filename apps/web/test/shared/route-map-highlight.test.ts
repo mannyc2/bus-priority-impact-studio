@@ -6,7 +6,6 @@ import {
   routeMapFocusSummary,
   routeMapHighlight,
 } from "../../src/components/route/RouteMapSection";
-import { routeSectionRegistry } from "../../src/components/route/section-registry";
 import type {
   RouteSurfaceCapability,
   StudioRoute,
@@ -208,14 +207,12 @@ describe("routeMapHighlight", () => {
   });
 
   test("renders the Overview route-map card with the geo loading state first", () => {
-    const registry = routeSectionRegistry(capability);
     const markup = renderToStaticMarkup(
       createElement(OverviewSection, {
         data: detail({
           segments: [segment({ id: "flagged", flagged: true }), segment({ id: "target" })],
           insights: [insight({ severity: "high", target: { segmentIds: ["target"] } })],
         }),
-        sectionRegistry: registry,
         onNavigate: () => undefined,
       }),
     );
