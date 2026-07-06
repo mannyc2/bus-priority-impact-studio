@@ -1,25 +1,22 @@
-import { type ReactNode, useCallback, useEffect } from "react";
-import { KPISkeleton } from "@/components/KPI";
+import { useNavigate } from "@tanstack/react-router";
+import { type ReactNode, useEffect } from "react";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
 import { HonestEmptySection } from "@/components/route/HonestEmptySection";
 import { ReliabilitySection } from "@/components/route/ReliabilitySection";
 import { RidersSection } from "@/components/route/RidersSection";
+import { RouteDetailHeader } from "@/components/route/RouteDetailHeader";
 import { RouteDetailShell } from "@/components/route/RouteDetailShell";
 import { RouteInsightList } from "@/components/route/RouteInsightList";
 import { RouteMapSection } from "@/components/route/RouteMapSection";
-import { RPubHeader, routePublicLede } from "@/components/route/RoutePublicAtoms";
-import { RoutePublicKpiStrip } from "@/components/route/RoutePublicKpiStrip";
-import { RouteVerdictLede } from "@/components/route/RouteVerdictLede";
 import { routeSectionBadges } from "@/components/route/route-insight-placement";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
 import {
-  ROUTE_DETAIL_SECTIONS,
   type RouteDetailSectionValue,
-  routeSectionAnchorId,
-  routeSectionRegistry,
+  type RouteDetailTabValue,
+  routeTabForSection,
+  routeTabRegistry,
 } from "@/components/route/section-registry";
 import { TreatmentsHistorySection } from "@/components/route/TreatmentsHistorySection";
-import { SegmentRowHeader, SegmentRowSkeleton } from "@/components/SegmentRow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { pushRecentRoute } from "@/lib/recent-routes";
 import type { StudioRouteDetailResponse, StudioRouteEvidenceBundle } from "../api-contract.js";
@@ -36,30 +33,49 @@ function TrackRecentRoute({ slug }: { slug: string }) {
 export function RouteDetailPage({
   data,
   evidence,
+  tab,
 }: {
   data: StudioRouteDetailResponse | null;
   evidence: StudioRouteEvidenceBundle | null;
+  tab?: RouteDetailTabValue | undefined;
 }) {
-  const navigateToSection = useCallback((sectionValue: RouteDetailSectionValue) => {
-    document.getElementById(routeSectionAnchorId(sectionValue))?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }, []);
+  const navigate = useNavigate();
 
   if (data === null) return <NotFoundPage />;
 
   const { route, segments } = data;
   const flagged = segments.find((s) => s.flagged);
-  const lede = routePublicLede({ route, dossier: data.dossier });
 
-  const sectionBadges = routeSectionBadges(data.insights);
-  const sectionRegistry = routeSectionRegistry(data.capability, sectionBadges);
+  const tabRegistry = routeTabRegistry(data.capability, routeSectionBadges(data.insights));
+  const requestedTab: RouteDetailTabValue = tab ?? "overview";
+  // Unknown or hidden tab downgrades to Overview (always visible).
+  const activeTab: RouteDetailTabValue = tabRegistry.visibleTabs.some(
+    (candidate) => candidate.value === requestedTab,
+  )
+    ? requestedTab
+    : "overview";
+
+  const onTabChange = (next: RouteDetailTabValue) => {
+    navigate({
+      to: "/routes/$routeId",
+      params: { routeId: route.slug },
+      // Overview is the default view (no query param); other tabs are shareable.
+      search: next === "overview" ? {} : { tab: next },
+      replace: true,
+    });
+  };
+  // The section-targeted `onNavigate` callbacks now switch tabs instead of
+  // scrolling; `evidence`-targeted insights map to no tab (always-present).
+  const navigateToTab = (sectionValue: RouteDetailSectionValue) => {
+    const target = routeTabForSection(sectionValue);
+    if (target !== null) onTabChange(target);
+  };
+
   const section = (sectionValue: RouteDetailSectionValue, render: () => ReactNode) => {
-    const presentation = sectionRegistry.presentations[sectionValue];
+    const presentation = tabRegistry.sectionRegistry.presentations[sectionValue];
     if (presentation.mode === "hidden") return null;
     return (
-      <section id={routeSectionAnchorId(sectionValue)} className="mb-8 scroll-mt-16 last:mb-0">
+      <section className="mb-8 last:mb-0">
         {presentation.mode === "render" ? (
           render()
         ) : (
@@ -69,65 +85,75 @@ export function RouteDetailPage({
     );
   };
 
+  let panel: ReactNode;
+  switch (activeTab) {
+    case "overview":
+      // Interim Overview content until plan 054 rebuilds the tab.
+      panel = (
+        <RouteInsightList
+          insights={data.insights}
+          capability={data.capability}
+          onNavigate={navigateToTab}
+        />
+      );
+      break;
+    case "segments":
+      panel = (
+        <>
+          {section("where-when", () => (
+            <SlowSegmentsSection
+              route={route}
+              segments={segments}
+              insights={data.insights}
+              {...(flagged?.id ? { flaggedId: flagged.id } : {})}
+              dossier={data.dossier}
+              peakWindows={data.peakWindows}
+              slowestWindows={data.slowestWindows}
+            />
+          ))}
+          {section("map", () => (
+            <RouteMapSection data={data} />
+          ))}
+        </>
+      );
+      break;
+    case "riders":
+      panel = (
+        <>
+          {section("riders", () => (
+            <RidersSection data={data} />
+          ))}
+          {section("reliability", () => (
+            <ReliabilitySection data={data} />
+          ))}
+        </>
+      );
+      break;
+    case "history":
+      panel = section("treatments", () => (
+        <TreatmentsHistorySection data={data} evidence={evidence} />
+      ));
+      break;
+  }
+
   return (
     <StudioPage flush>
       <TrackRecentRoute slug={route.slug} />
       <RouteDetailShell
-        header={
-          <RPubHeader
-            route={route}
-            stats={
-              <RoutePublicKpiStrip
-                route={route}
-                dossier={data.dossier}
-                capability={data.capability}
-                sectionRegistry={sectionRegistry}
-                onNavigate={navigateToSection}
-              />
-            }
-          />
-        }
-        sections={sectionRegistry.visibleSections}
-      >
-        <div className="mb-8 flex flex-col gap-5">
-          <RouteVerdictLede lede={lede} />
-          <RouteInsightList
-            insights={data.insights}
-            capability={data.capability}
-            onNavigate={navigateToSection}
-          />
-        </div>
-        {section("where-when", () => (
-          <SlowSegmentsSection
-            route={route}
-            segments={segments}
-            insights={data.insights}
-            {...(flagged?.id ? { flaggedId: flagged.id } : {})}
-            dossier={data.dossier}
-            peakWindows={data.peakWindows}
-            slowestWindows={data.slowestWindows}
-          />
-        ))}
-        {section("map", () => (
-          <RouteMapSection data={data} />
-        ))}
-        {section("reliability", () => (
-          <ReliabilitySection data={data} />
-        ))}
-        {section("riders", () => (
-          <RidersSection data={data} />
-        ))}
-        {section("treatments", () => (
-          <TreatmentsHistorySection data={data} evidence={evidence} />
-        ))}
-        {section("evidence", () => (
+        header={<RouteDetailHeader route={route} dossier={data.dossier} />}
+        tabs={tabRegistry.visibleTabs}
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        aboutData={
           <DataNotesSection
             data={data}
             evidence={evidence}
-            sectionRegistry={sectionRegistry}
-            onNavigate={navigateToSection}
+            sectionRegistry={tabRegistry.sectionRegistry}
+            onNavigate={navigateToTab}
           />
-        ))}
+        }
+      >
+        {panel}
       </RouteDetailShell>
     </StudioPage>
   );
@@ -137,71 +163,34 @@ export function RouteDetailLoadingPage() {
   return (
     <StudioPage flush>
       <div className="h-full min-h-0 overflow-auto">
-        <header className="bg-[var(--bp-color-card)] px-7 pb-[18px] pt-6 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
-          <div className="mb-[18px] flex items-start gap-[18px]">
-            <Skeleton className="h-[58px] w-[78px] rounded-[3px]" />
+        <header className="bg-[var(--bp-color-card)] px-7 py-5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:px-4">
+          <div className="flex flex-wrap items-start gap-5">
+            <Skeleton className="h-9 w-[100px] rounded-[4px]" />
             <div className="min-w-0 flex-1">
-              <Skeleton className="h-[27px] w-[430px] max-w-full" />
-              <Skeleton className="mt-2 h-[14px] w-[520px] max-w-full" />
+              <Skeleton className="h-[26px] w-[360px] max-w-full" />
+              <Skeleton className="mt-2 h-[14px] w-[240px] max-w-full" />
+              <Skeleton className="mt-2 h-[18px] w-[180px]" />
             </div>
-            <div className="flex shrink-0 items-center gap-2 max-md:hidden">
-              <Skeleton className="h-[36px] w-[170px] rounded-[3px]" />
-              <Skeleton className="h-[36px] w-[126px] rounded-[3px]" />
-            </div>
-          </div>
-          <div className="grid grid-cols-5 gap-6 max-lg:grid-cols-2 max-sm:grid-cols-1">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <div
-                key={index}
-                className={
-                  index < 4 ? "border-r border-[var(--bp-color-rule)] pr-5 max-lg:border-r-0" : ""
-                }
-              >
-                <KPISkeleton />
-              </div>
-            ))}
-          </div>
-        </header>
-        <div className="sticky top-0 z-10 bg-[var(--bp-color-card)] px-7 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
-          <div className="flex gap-6 py-[10px]">
-            {ROUTE_DETAIL_SECTIONS.map((section) => (
-              <Skeleton key={section.value} className="h-[15px] w-[82px]" />
-            ))}
-          </div>
-        </div>
-        <div className="px-8 py-7">
-          <div className="mb-11">
-            <div className="mb-4 flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
-              <div>
-                <Skeleton className="h-[22px] w-[360px] max-w-full" />
-                <Skeleton className="mt-2 h-[13px] w-[520px] max-w-full" />
-              </div>
-              <div className="flex gap-2">
-                <Skeleton className="h-[26px] w-[70px] rounded-full" />
-                <Skeleton className="h-[26px] w-[92px] rounded-full" />
-              </div>
-            </div>
-            <SegmentRowHeader />
-            {Array.from({ length: 5 }).map((_, index) => (
-              <SegmentRowSkeleton key={index} />
-            ))}
-          </div>
-          <div>
-            <Skeleton className="h-[22px] w-[280px]" />
-            <Skeleton className="mt-2 h-[13px] w-[520px] max-w-full" />
-            <div className="mt-6 grid grid-cols-3 gap-4 max-lg:grid-cols-1">
+            <div className="flex shrink-0 items-start gap-6 max-md:w-full max-md:justify-start">
               {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]"
-                >
-                  <Skeleton className="h-[14px] w-[140px]" />
-                  <Skeleton className="mt-3 h-[10px] w-full" />
-                  <Skeleton className="mt-2 h-[10px] w-[80%]" />
+                <div key={index} className="space-y-2">
+                  <Skeleton className="h-[11px] w-[64px]" />
+                  <Skeleton className="h-[20px] w-[72px]" />
+                  <Skeleton className="h-[11px] w-[80px]" />
                 </div>
               ))}
             </div>
           </div>
+        </header>
+        <div className="sticky top-0 z-10 bg-[var(--bp-color-card)] px-7 shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:px-4">
+          <div className="flex gap-6 py-[10px]">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-[15px] w-[110px]" />
+            ))}
+          </div>
+        </div>
+        <div className="px-8 py-8 max-md:px-4">
+          <Skeleton className="h-[220px] w-full rounded-[3px]" />
         </div>
       </div>
     </StudioPage>

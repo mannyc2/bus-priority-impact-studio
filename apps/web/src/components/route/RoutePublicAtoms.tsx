@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { RouteBadge } from "@/components/RouteBadge";
 import { segmentSpeedAtHour, speedToColor } from "@/components/route/maplibre-style";
 import { CitationChips, type WikiCitationEvidence } from "@/components/route/WikiEvidence";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +21,7 @@ const toneColor: Record<RPubStatTone, string> = {
   warn: "var(--bp-color-warn)",
 };
 
+// consumed by plan 054 (Overview tab summary); kept exported until then.
 export function routePublicLede({
   route,
   dossier,
@@ -60,95 +60,6 @@ export function routePublicLede({
   }
 
   return parts.length === 0 ? null : `${parts.join("; ")}.`;
-}
-
-export function RPubHeader({ route, stats }: { route: StudioRoute; stats: ReactNode }) {
-  const routeFacts = [
-    route.miles === null ? null : `${route.miles.toFixed(1)} mi`,
-    `${route.stops} stops`,
-  ].filter((part): part is string => part !== null);
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-5 max-sm:grid-cols-1">
-        <RouteBadge route={route.label} sbs={route.sbs} size="xl" express={false} />
-        <div className="min-w-0">
-          <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.12em] text-[var(--bp-color-ink-55)]">
-            {route.borough} route
-          </div>
-          <h1 className="m-0 mt-1 text-[24px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--bp-color-ink)] max-md:text-[21px]">
-            {route.corridorFull || route.corridor}
-          </h1>
-          <div className="mt-2 text-[13px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-            {route.termini.north} <span aria-hidden>-&gt;</span> {route.termini.south}
-            {routeFacts.length > 0 ? ` · ${routeFacts.join(" · ")}` : ""}
-          </div>
-        </div>
-      </div>
-      {stats}
-    </div>
-  );
-}
-
-export function RPubBigStat({
-  label,
-  value,
-  unit,
-  sub,
-  tone = "ink",
-  trailing,
-  footer,
-  onClick,
-}: {
-  label: string;
-  value: ReactNode;
-  unit?: string | undefined;
-  sub: string;
-  tone?: RPubStatTone | undefined;
-  trailing?: ReactNode | undefined;
-  footer?: string | undefined;
-  onClick?: (() => void) | undefined;
-}) {
-  const body = (
-    <>
-      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-        {label}
-      </div>
-      <div className="mt-2 flex min-h-[34px] items-baseline gap-1">
-        <div
-          className="font-mono text-[30px] font-semibold leading-none tabular-nums max-md:text-[26px]"
-          style={{ color: toneColor[tone] }}
-        >
-          {value}
-        </div>
-        {unit ? <div className="text-[11.5px] text-[var(--bp-color-ink-55)]">{unit}</div> : null}
-        {trailing ? <div className="ml-auto">{trailing}</div> : null}
-      </div>
-      <div className="mt-1 text-[11.5px] leading-[1.35] text-[var(--bp-color-ink-55)]">{sub}</div>
-      {footer ? (
-        <div className="mt-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--bp-color-ink-40)]">
-          {footer}
-        </div>
-      ) : null}
-    </>
-  );
-
-  return (
-    <div className="min-w-0 border-l border-[var(--bp-color-rule)] pl-5 first:border-l-0 first:pl-0 max-md:border-l-0 max-md:border-t max-md:pl-0 max-md:pt-4 max-md:first:border-t-0 max-md:first:pt-0">
-      {onClick ? (
-        <button
-          type="button"
-          onClick={onClick}
-          aria-label={`Open ${label} details`}
-          className="block w-full cursor-pointer text-left"
-        >
-          {body}
-        </button>
-      ) : (
-        body
-      )}
-    </div>
-  );
 }
 
 export function RPubSlowCard({

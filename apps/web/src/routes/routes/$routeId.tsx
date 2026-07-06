@@ -13,6 +13,18 @@ const RouteDetailPage = lazy(() =>
   })),
 );
 
+// Public `?tab=` surface. Overview is the default view and carries no param, so
+// only the three non-default tabs are valid search values; anything else is
+// dropped (the page then downgrades to Overview).
+const ROUTE_DETAIL_TAB_SEARCH = ["segments", "riders", "history"] as const;
+type RouteDetailTabSearch = (typeof ROUTE_DETAIL_TAB_SEARCH)[number];
+
+function isTabSearch(value: unknown): value is RouteDetailTabSearch {
+  return (
+    typeof value === "string" && (ROUTE_DETAIL_TAB_SEARCH as readonly string[]).includes(value)
+  );
+}
+
 export const Route = createFileRoute("/routes/$routeId")({
   // Detail and route evidence stay Worker-served; heavy route artifacts remain lazy.
   loader: ({ abortController, params }) =>
@@ -23,6 +35,10 @@ export const Route = createFileRoute("/routes/$routeId")({
       detail,
       evidence,
     })),
+  validateSearch: (search: Record<string, unknown>): { tab?: RouteDetailTabSearch } => {
+    const tab = search["tab"];
+    return isTabSearch(tab) ? { tab } : {};
+  },
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: RouteDetailRouteFallback,
   head: ({ params }) => routeHead(`${params.routeId} Route Detail`),
@@ -31,9 +47,10 @@ export const Route = createFileRoute("/routes/$routeId")({
 
 function RouteDetailRoute() {
   const data = Route.useLoaderData();
+  const search = Route.useSearch();
   return (
     <Suspense fallback={<RouteDetailRouteFallback />}>
-      <RouteDetailPage data={data.detail} evidence={data.evidence} />
+      <RouteDetailPage data={data.detail} evidence={data.evidence} tab={search.tab} />
     </Suspense>
   );
 }

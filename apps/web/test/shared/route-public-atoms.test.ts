@@ -2,12 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
-  RPubHeader,
   RPubInterventionCard,
   RPubSlowCard,
   routePublicLede,
 } from "../../src/components/route/RoutePublicAtoms";
-import { RouteVerdictLede } from "../../src/components/route/RouteVerdictLede";
 import type {
   RouteDossierSummaryForDetail,
   StudioRoute,
@@ -154,17 +152,7 @@ describe("route public atoms", () => {
       "M15 is running 5.8 mph against a 9.2 mph schedule; down 4.2% in six months; slower than 82% of comparable routes; 86 St to 59 St is the slowest stretch in the route record.",
     );
 
-    const emptyLede = routePublicLede({ route: noLedeRoute, dossier: null });
-    const markup = renderToStaticMarkup(
-      createElement(RPubHeader, {
-        route: noLedeRoute,
-        stats: createElement("div", null, "Stats"),
-      }),
-    );
-
-    expect(emptyLede).toBeNull();
-    expect(markup).not.toContain("placeholder");
-    expect(markup).not.toContain("slower than");
+    expect(routePublicLede({ route: noLedeRoute, dossier: null })).toBeNull();
   });
 
   test("omits schedule and miles claims when route-card fields are absent", () => {
@@ -177,21 +165,8 @@ describe("route public atoms", () => {
       spark: null,
       miles: null,
     } satisfies StudioRoute;
-    const lede = routePublicLede({ route: honestRoute, dossier: null });
-    const markup = renderToStaticMarkup(
-      createElement(RPubHeader, {
-        route: honestRoute,
-        stats: createElement("div", null, "Stats"),
-      }),
-    );
-    const ledeMarkup = renderToStaticMarkup(createElement(RouteVerdictLede, { lede }));
 
-    expect(lede).toBe("M15 is running 5.9 mph.");
-    expect(markup).not.toContain("M15 is running");
-    expect(ledeMarkup).toContain("The route right now");
-    expect(markup).toContain("28 stops");
-    expect(markup).not.toContain("mph schedule");
-    expect(markup).not.toContain("8.1 mi");
+    expect(routePublicLede({ route: honestRoute, dossier: null })).toBe("M15 is running 5.9 mph.");
   });
 
   test("renders slow cards with and without served hourly profile data", () => {

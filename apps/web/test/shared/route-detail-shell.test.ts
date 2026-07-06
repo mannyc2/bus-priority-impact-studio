@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { RouteDetailShell } from "../../src/components/route/RouteDetailShell";
-import { routeSectionRegistry } from "../../src/components/route/section-registry";
+import {
+  type RouteDetailSectionValue,
+  type RouteDetailTabValue,
+  routeTabRegistry,
+} from "../../src/components/route/section-registry";
 import type { RouteSurfaceCapability, StudioRouteCapability } from "../../src/studio/api-contract";
 
 function surface(state: RouteSurfaceCapability["state"], dataAsOf: string | null = "2026-03") {
@@ -43,76 +47,75 @@ const sparse = capability({
   treatment: surface("blocked"),
 });
 
-function renderShell(capability: StudioRouteCapability) {
-  const registry = routeSectionRegistry(capability, {
-    reliability: { count: 2, severity: "high" },
-    riders: { count: 1, severity: "medium" },
-  });
+function renderShell(
+  cap: StudioRouteCapability,
+  activeTab: RouteDetailTabValue = "overview",
+  sectionBadges: Partial<
+    Record<RouteDetailSectionValue, { count: number; severity: "low" | "medium" | "high" }>
+  > = {},
+) {
+  const registry = routeTabRegistry(cap, sectionBadges);
 
   return renderToStaticMarkup(
     createElement(RouteDetailShell, {
-      header: createElement("h1", null, "Route shell"),
-      sections: registry.visibleSections,
-      children: createElement("section", null, "Shell body"),
+      header: createElement("h1", null, "Route shell header"),
+      tabs: registry.visibleTabs,
+      activeTab,
+      onTabChange: () => {},
+      aboutData: createElement("div", null, "About body content"),
+      children: createElement("section", null, "Active panel body"),
     }),
   );
 }
 
-describe("RouteDetailShell section render contract", () => {
-  test("renders distinct section indexes for the §8.1 contrast route shapes", () => {
-    const richHtml = renderShell(rich);
-    const cleanHtml = renderShell(clean);
-    const sparseHtml = renderShell(sparse);
+describe("RouteDetailShell tab shell (plan 053)", () => {
+  test("renders one trigger per visible tab for the rich route", () => {
+    const html = renderShell(rich);
 
-    expect(richHtml).toContain("Reliability");
-    expect(richHtml).toContain("Treatments &amp; history");
-    expect(cleanHtml).toContain("Reliability");
-    expect(cleanHtml).not.toContain("Treatments &amp; history");
-    expect(sparseHtml).not.toContain("Reliability");
-    expect(sparseHtml).toContain("Treatments &amp; history");
-
-    for (const html of [richHtml, cleanHtml, sparseHtml]) {
-      expect(html).toContain("Overview");
-      expect(html).toContain("Route map");
-      expect(html).toContain("Evidence &amp; data notes");
-      expect(html).toContain('href="#route-section-overview"');
-    }
+    expect(html).toContain("Overview");
+    expect(html).toContain("Slow segments");
+    expect(html).toContain("Riders &amp; reliability");
+    expect(html).toContain("Treatments &amp; history");
+    expect(html).toContain('role="tablist"');
+    expect(html.split('role="tab"').length - 1).toBe(4);
   });
 
-  test("keeps only the slim section nav sticky inside the route scroller", () => {
-    const richHtml = renderShell(rich);
+  test("hides the History tab for the clean route", () => {
+    const html = renderShell(clean);
 
-    expect(richHtml).toContain('id="route-section-overview"');
-    expect(richHtml).toContain("h-full min-h-0 overflow-auto");
-    expect(richHtml).toContain("sticky top-0 z-10");
-    expect(richHtml).toContain("scroll-mt-16");
+    expect(html).toContain("Slow segments");
+    expect(html).toContain("Riders &amp; reliability");
+    expect(html).not.toContain("Treatments &amp; history");
+    expect(html.split('role="tab"').length - 1).toBe(3);
   });
 
-  test("renders badges only for visible sections", () => {
-    const sparseHtml = renderShell(sparse);
+  test("renders the active panel content and the About-this-data collapsible", () => {
+    const html = renderShell(rich);
 
-    expect(sparseHtml).toContain('aria-label="1 notice"');
-    expect(sparseHtml).not.toContain('aria-label="2 notices"');
+    expect(html).toContain("Active panel body");
+    expect(html).toContain("About this data");
+    expect(html).toContain('data-slot="collapsible"');
   });
 
-  test("marks visible honest-empty sections without exposing hidden sections", () => {
-    const cleanHtml = renderShell(clean);
-    const sparseHtml = renderShell(sparse);
+  test("marks the active tab and stamps honest-empty trigger badges", () => {
+    const html = renderShell(sparse);
 
-    expect(cleanHtml).toContain("Checked");
-    expect(cleanHtml).not.toContain("Treatments &amp; history");
-    expect(sparseHtml).toContain("Building");
-    expect(sparseHtml).toContain("Thin");
-    expect(sparseHtml).toContain("Blocked");
-    expect(sparseHtml).not.toContain("Reliability");
+    expect(html).toContain('aria-selected="true"');
+    // sparse: riders tab empty(insufficient_data) → "Thin"; history empty(blocked) → "Blocked".
+    expect(html).toContain("Thin");
+    expect(html).toContain("Blocked");
   });
 
-  test("does not render the retired question-shaped section titles", () => {
-    const richHtml = renderShell(rich);
+  test("sums member-section notices into a trigger badge", () => {
+    const html = renderShell(rich, "overview", { riders: { count: 1, severity: "medium" } });
 
-    expect(richHtml).not.toContain("Where and when does it lose time?");
-    expect(richHtml).not.toContain("Can riders count on it?");
-    expect(richHtml).not.toContain("What can I cite?");
-    expect(richHtml).toContain('href="#route-section-where-when"');
+    expect(html).toContain('aria-label="1 notice"');
+  });
+
+  test("drops the retired anchor-scroll nav (no #route-section hrefs)", () => {
+    const html = renderShell(rich);
+
+    expect(html).not.toContain("route-section-");
+    expect(html).not.toContain('href="#');
   });
 });

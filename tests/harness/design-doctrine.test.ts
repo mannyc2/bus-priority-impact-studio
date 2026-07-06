@@ -33,14 +33,13 @@ const ALLOWLIST: Record<"interpunct" | "kicker" | "phrase", readonly string[]> =
     "components/TreatmentBadge.tsx", // 054/057
     "components/route/RouteGeoMap.tsx", // 054/060
     "components/route/RouteMapLibre.map.tsx", // 055
-    "components/route/RoutePublicAtoms.tsx", // 053
+    "components/route/RoutePublicAtoms.tsx", // 055 (RPubSlowCard &middot;)
     "components/route/reliability-summary.ts", // 056
   ],
   kicker: [
     "components/route/RouteInsightList.tsx", // 054
     "components/route/RouteMapSection.tsx", // 053/055
-    "components/route/RoutePublicAtoms.tsx", // 053
-    "components/route/RouteVerdictLede.tsx", // 053
+    "components/route/RoutePublicAtoms.tsx", // 055 (RPubSlowCard slow-segment kicker)
     "studio/pages/network-map.tsx", // 059
   ],
   phrase: [],
