@@ -2,8 +2,6 @@ import { describe, expect, test } from "bun:test";
 import type { MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
 import {
   boundsOf,
-  formatMapHour,
-  hourTag,
   routeAverageSpeedAtHour,
   segmentSpeedAtHour,
   speedToColor,
@@ -74,15 +72,6 @@ describe("maplibre route style helpers", () => {
     expect(speedToColor(5.1)).toBe("oklch(0.585 0.143 48.0)");
     expect(speedToColor(9.5)).toBe("oklch(0.600 0.105 162.0)");
     expect(speedToColor(null)).toBe("rgba(16, 20, 24, 0.2)");
-  });
-
-  test("formats map hours and commute periods", () => {
-    expect(formatMapHour(5)).toBe("5:00 AM");
-    expect(formatMapHour(12)).toBe("12:00 PM");
-    expect(formatMapHour(17)).toBe("5:00 PM");
-    expect(hourTag(8)).toBe("AM peak");
-    expect(hourTag(14)).toBe("Midday");
-    expect(hourTag(17)).toBe("PM peak");
   });
 
   test("derives hourly speeds and weighted route averages from segment severity", () => {

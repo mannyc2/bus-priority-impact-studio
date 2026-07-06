@@ -125,17 +125,3 @@ export function boundsOf(
     [maxLon, maxLat],
   ];
 }
-
-export function formatMapHour(hour: number): string {
-  const suffix = hour < 12 || hour === 24 ? "AM" : "PM";
-  const display = hour % 12 === 0 ? 12 : hour % 12;
-  return `${display}:00 ${suffix}`;
-}
-
-export function hourTag(hour: number): "AM peak" | "Midday" | "PM peak" | "Shoulder" | "Off-peak" {
-  if (hour >= 7 && hour <= 9) return "AM peak";
-  if (hour >= 16 && hour <= 19) return "PM peak";
-  if (hour >= 10 && hour <= 15) return "Midday";
-  if (hour < 6 || hour > 21) return "Off-peak";
-  return "Shoulder";
-}

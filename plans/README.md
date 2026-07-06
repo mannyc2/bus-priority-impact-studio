@@ -231,7 +231,7 @@ Verified headline facts the plans are built on:
 | 057 | Treatments & history tab: grouped bounded timeline; "unda" + citation-dupe fixes | P1 | L | 049+053 (hard); 054 rec. | DONE (RPubInterventionCard + CitationChips kept: live consumers interventions.tsx/DataNotesSection → plans 058/060) |
 | 058 | Interventions page: bounded, filterable network chronicle | P2 | M | 049+057 (hard); 052 rec. | DONE (RPubInterventionCard + RoutePublicAtoms.tsx + StudioHero deleted; route file made lazy for bundle budget) |
 | 059 | Network map: full-bleed + in-map overlays; kill time-autoplay | P2 | M-L | 048; 055 (scrubber delete) | DONE (TimeScrubber deleted; period toggle All/AM/PM; map click-through; mobile gets map + legend + toggles, no bottom sheet) |
-| 060 | Dead-component sweep + close the doctrine ratchet (run LAST) | P3 | S-M | 051-059 | TODO |
+| 060 | Dead-component sweep + close the doctrine ratchet (run LAST) | P3 | S-M | 051-059 | DONE (17 dead files + 1 orphan test deleted; still live: SectionHeader ← DataNotesSection, CorridorMap + RouteGeoMap ← Overview/map sections; allowlist NOT empty — keeps live-pattern entries CorridorMap, RouteGeoMap, RouteMapLibre.map interpuncts + RouteMapSection kicker per operator drift note; bundle after sweep: entry 115.0 KB gz, total 312.6 KB gz) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)

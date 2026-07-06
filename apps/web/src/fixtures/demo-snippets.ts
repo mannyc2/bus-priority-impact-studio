@@ -2,21 +2,6 @@
 // shadcn-style example gallery). These are the swap point for real API
 // data once a route surface needs it.
 
-export const demoHeatmap = {
-  rows: ["NB", "SB"] as const,
-  cols: ["6", "9", "12", "15", "18", "21"] as const,
-  values: [
-    [6.1, 4.8, 5.2, 4.1, 5.7, 7.4],
-    [7.2, 5.6, 4.9, 4.4, 6.1, 8.0],
-  ] as const,
-};
-
-export const demoTimeline = [
-  { date: "2024", title: "Bus lane installed", tone: "good" as const },
-  { date: "2025", title: "ACE camera active", tone: "accent" as const },
-  { date: "2026", title: "PM-peak slowdown persists", tone: "bad" as const },
-];
-
 export const demoSpark = [8.2, 7.4, 6.2, 4.8, 5.1, 6.6, 6.1] as const;
 
 export const demoHourBars = [8.1, 7.8, 7.5, 7.1, 6.8, 6.1, 5.2, 4.8, 4.4, 4.9, 5.8, 6.4] as const;

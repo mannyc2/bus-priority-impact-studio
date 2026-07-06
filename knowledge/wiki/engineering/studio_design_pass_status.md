@@ -11,7 +11,11 @@ newspaper") tokens: surfaces are now cool near-white (`--bp-color-canvas`
 ink is `#101418`, and the working accent is MTA Blue `#0039a6` (Pantone 286)
 with a black signage nav bar (white Helvetica). The Helvetica body stack and the
 borough route roundels are unchanged. Generation-6 plans 048-059 implement this;
-plan 050 machine-enforces the 2026-06-12 and 2026-07-06 copy bans. The July-4
+plan 050 machine-enforces the 2026-06-12 and 2026-07-06 copy bans. Gen-6 is
+complete as of 2026-07-06: plan 060 swept the orphaned component layer and the
+`check:design-doctrine` ratchet is the standing guard (allowlist holds only the
+live-file exceptions CorridorMap/RouteGeoMap/RouteMapLibre.map interpuncts and
+the RouteMapSection kicker). The July-4
 export below remains a useful reference for layout/component structure, but its
 color tokens are retired.
 

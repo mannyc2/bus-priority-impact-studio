@@ -1,10 +1,7 @@
 import { EmptyState } from "@/components/EmptyState";
-import { KPISkeleton } from "@/components/KPI";
 import { SectionHeader } from "@/components/SectionHeader";
-import { Timeline } from "@/components/Timeline";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { demoTimeline } from "@/fixtures/demo-snippets";
 
 export function StatesDemo() {
   return (
@@ -34,8 +31,6 @@ export function StatesDemo() {
             separately.
           </AlertDescription>
         </Alert>
-        <KPISkeleton />
-        <Timeline events={demoTimeline} />
         <EmptyState
           title="No matching segments"
           body="Try a broader borough or route family filter."

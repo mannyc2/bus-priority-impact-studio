@@ -8172,3 +8172,16 @@ suggestions in the pre-existing analytics repair module.
 Plan 044 inherits the remaining zod leaves: sources adapters/probes/core schemas, pipeline CLI/local
 aggregate/export helper schemas, analytics feature-history/data-product schemas, and studio-api
 route-spec/read-handler local schemas.
+
+## [2026-07-06] design | gen-6 UI cutover complete (plans 048-060)
+
+Plan 060 swept the orphaned component layer left by earlier design passes:
+deleted TimelineSection, InterventionTimeline, BeforeAfter, the overlay chart
+cluster (Corridor/Hour/TrendOverlay + OverlayChart), Heatmap, Timeline, Rail,
+ConfidenceBar, MapThumb, KPI, Cite, the unused hourTag/formatMapHour helpers,
+and the unused routeSectionAnchorId export; dev demos were trimmed rather than
+kept alive. SectionHeader stays live (DataNotesSection). The
+`bun run check:design-doctrine` ratchet is the standing guard against
+interpunct chains, kicker eyebrows, and banned phrases; its allowlist now holds
+only live-file exceptions (CorridorMap, RouteGeoMap, RouteMapLibre.map
+interpuncts; RouteMapSection kicker).

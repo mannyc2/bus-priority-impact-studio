@@ -28,7 +28,6 @@ const BANNED_PHRASES = [
 const ALLOWLIST: Record<"interpunct" | "kicker" | "phrase", readonly string[]> = {
   interpunct: [
     "components/CorridorMap.tsx", // 054
-    "components/InterventionTimeline.tsx", // 057
     "components/route/RouteGeoMap.tsx", // 054/060
     "components/route/RouteMapLibre.map.tsx", // 055
   ],

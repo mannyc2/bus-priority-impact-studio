@@ -1,7 +1,6 @@
 import { lazy, Suspense } from "react";
 import { ChartFallback } from "@/components/ChartFallback";
 import { ChartFrame } from "@/components/ChartFrame";
-import { KPI } from "@/components/KPI";
 import type { CorridorPoint } from "./corridor.chart";
 
 // Lazy boundary: keeps Recharts out of the eager bundle, matching the other charts.
@@ -103,25 +102,6 @@ export function CorridorDemo() {
         <span className="rounded-[3px] bg-[var(--bp-color-paper-deep)] px-2 py-1 font-mono text-[10px] text-[var(--bp-color-ink-55)]">
           illustrative · fixture data
         </span>
-      </div>
-
-      <div className="mt-5 grid grid-cols-3 gap-4 max-md:grid-cols-1">
-        <KPI
-          label="Ridership · first 11 mo"
-          value="+7%"
-          tone="good"
-          sub="vs. prior M86 local"
-          citeN={1}
-        />
-        <KPI
-          label="Bus speed · SBS program"
-          value="15–23%"
-          unit="faster"
-          tone="good"
-          sub="NYC DOT SBS summary"
-          citeN={2}
-        />
-        <KPI label="Cited records" value="12" sub="across 4 DOT documents" />
       </div>
 
       <div className="mt-5">

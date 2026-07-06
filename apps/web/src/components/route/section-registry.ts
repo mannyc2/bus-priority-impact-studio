@@ -41,10 +41,6 @@ export function routeSectionTitle(sectionValue: RouteDetailSectionValue): string
   return ROUTE_SECTION_TITLES[sectionValue];
 }
 
-export function routeSectionAnchorId(sectionValue: RouteDetailSectionValue): string {
-  return `route-section-${sectionValue}`;
-}
-
 /**
  * The manifest-driven section registry (frontend §8.1): each route-detail
  * section declares which capability surfaces back it, and the manifest decides
