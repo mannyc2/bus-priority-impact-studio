@@ -3,19 +3,7 @@ import {
   reliabilityInsightRows,
   reliabilitySummary,
 } from "../../src/components/route/reliability-summary";
-import type {
-  RouteSurfaceCapability,
-  StudioRoute,
-  StudioRouteInsight,
-} from "../../src/studio/api-contract";
-
-const building = {
-  state: "building",
-  reason: "Reliability detector output is still being prepared.",
-  depth: null,
-  dataAsOf: "2026-03",
-  freshness: "current",
-} satisfies RouteSurfaceCapability;
+import type { StudioRoute, StudioRouteInsight } from "../../src/studio/api-contract";
 
 const observed = {
   month: "2026-03",
@@ -33,32 +21,18 @@ const observed = {
 } satisfies NonNullable<StudioRoute["observedReliability"]>;
 
 describe("reliabilitySummary", () => {
-  test("labels missing observed rows as manifest-gated building work", () => {
-    expect(reliabilitySummary({ observed: null, capability: building })).toMatchObject({
-      kpiValue: "Building",
-      kpiSub: "Reliability detector output is still being prepared.",
-      statusLabel: "building",
-      sampleLabel: "n/a",
-      dataAsOf: "2026-03",
-      hasObservedMetrics: false,
-    });
-  });
-
   test("summarizes observed reliability without claiming an official grade", () => {
-    expect(reliabilitySummary({ observed, capability: null })).toMatchObject({
-      kpiValue: "6.7 min",
-      kpiSub: "31% long gaps · 5,848 samples",
+    expect(reliabilitySummary({ observed })).toMatchObject({
       kpiTone: "bad",
       statusLabel: "Published",
       sampleLabel: "5,848",
-      sampleDetail: "2026-03 · third-party recovered GTFS-RT",
+      sampleDetail: "2026-03, third-party recovered GTFS-RT",
       medianHeadwayLabel: "7.3 min",
       p90HeadwayLabel: "19.9 min",
       bunchingLabel: "12%",
       longGapLabel: "31%",
       excessWaitLabel: "6.7 min",
       caveat: "Recovered GTFS-RT evidence has separate provenance.",
-      hasObservedMetrics: true,
     });
   });
 
@@ -75,15 +49,14 @@ describe("reliabilitySummary", () => {
           observedLongGapShare: null,
           excessWaitMinutes: null,
         },
-        capability: null,
       }),
     ).toMatchObject({
-      kpiValue: "Low sample",
-      kpiSub: "42 samples; headway stats withheld",
+      kpiTone: "ink",
       statusLabel: "Insufficient samples",
+      statusDetail: "Sample count is below the reporting threshold.",
+      sampleLabel: "42",
       medianHeadwayLabel: "n/a",
       longGapLabel: "n/a",
-      hasObservedMetrics: false,
     });
   });
 });

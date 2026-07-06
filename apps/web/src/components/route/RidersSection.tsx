@@ -1,9 +1,6 @@
 import { ChartFrame } from "@/components/ChartFrame";
 import { HourExposure } from "@/components/HourExposure";
-import {
-  riderImpactInsightRows,
-  riderImpactSummary,
-} from "@/components/route/rider-impact-summary";
+import { riderImpactSummary } from "@/components/route/rider-impact-summary";
 import {
   averageHourlySeverity,
   dossierMetricMonthCount,
@@ -11,69 +8,93 @@ import {
   dossierRidershipSeries,
   formatCompact,
 } from "@/components/route/route-derived";
-import { safeInsightCaveats } from "@/components/route/route-insight-placement";
-import { routeSectionTitle } from "@/components/route/section-registry";
-import { SectionHeader } from "@/components/SectionHeader";
+import { SectionCard } from "@/components/SectionCard";
+import { SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { SpeedTrend } from "@/components/SpeedTrend";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
+
+const KPI_GRID_COLS: Record<number, string> = {
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+};
 
 export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
   const { route, segments } = data;
   // biome-ignore lint/complexity/useLiteralKeys: surfaces is index-signature typed.
   const capability = data.capability?.surfaces["ridership"] ?? null;
   const summary = riderImpactSummary({ route, segments, dossier: data.dossier, capability });
-  const riderInsights = riderImpactInsightRows(data.insights);
   const topSegments = summary.topSegments;
+  const topSegment = topSegments[0] ?? null;
   const maxRiderHours = Math.max(...topSegments.map((s) => s.riderHours), 1);
   const hourlyExposure = averageHourlySeverity(segments);
   const ridershipHistory = dossierRidershipSeries(data.dossier);
   const hasRidershipHistory = ridershipHistory.length > 0;
   const equityItems = routeEquityContextItems(data.equityContext);
+  const showEquity = equityItems.length >= 2 && data.equityContext !== null;
+
+  const aboutEntries: SourceNoteEntry[] = [
+    summary.historyLabel === "current"
+      ? { label: "Ridership shown from the current projection", detail: summary.historyDetail }
+      : { label: `${summary.historyLabel} of monthly ridership`, detail: summary.historyDetail },
+  ];
+  if (showEquity && data.equityContext !== null) {
+    aboutEntries.push({
+      label: `ACS ${data.equityContext.acsYear} five-year estimates${
+        data.equityContext.assignedCountyName ? `, ${data.equityContext.assignedCountyName}` : ""
+      }`,
+      detail: "County-level census context, not route-level.",
+    });
+  }
+  if (route.riderHoursLost !== null) {
+    aboutEntries.push({
+      label: "Rider-hours: a 1-minute delay for 1,000 riders is 16.7 rider-hours.",
+      detail: `This route loses ${route.riderHoursLost.toLocaleString()} rider-hours per weekday, so this tab ranks rider burden rather than bus slowness alone.`,
+    });
+  }
+
+  const kpiTiles = [
+    {
+      label: "Daily riders",
+      value: summary.dailyRidersLabel,
+      sub:
+        summary.trendLabel === "not measured"
+          ? "average weekday boardings"
+          : summary.dailyRidersDetail,
+      tone: "neutral" as const,
+    },
+    route.riderHoursLost !== null
+      ? {
+          label: "Rider-hour burden",
+          value: summary.burdenLabel,
+          sub: summary.burdenDetail,
+          tone: route.riderHoursLost > 0 ? ("bad" as const) : ("neutral" as const),
+        }
+      : null,
+    {
+      label: "Highest-impact segment",
+      value: topSegment === null ? "n/a" : `${topSegment.from} to ${topSegment.to}`,
+      sub: topSegment === null ? "no segment data" : "riders here lose the most time per weekday",
+      tone: topSegment === null ? ("neutral" as const) : ("bad" as const),
+      compact: true,
+    },
+  ].filter((tile) => tile !== null);
 
   return (
-    <div className="flex flex-col gap-7">
-      <SectionHeader title={routeSectionTitle("riders")} sub={summary.sectionSubtitle} />
-      <div className="grid grid-cols-3 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-lg:grid-cols-1">
-        <RiderKpi
-          label="Daily riders"
-          value={summary.dailyRidersLabel}
-          sub={summary.dailyRidersDetail}
-        />
-        {route.riderHoursLost !== null ? (
-          <RiderKpi
-            label="Rider-hour burden"
-            value={summary.burdenLabel}
-            sub={summary.burdenDetail}
-            tone={route.riderHoursLost > 0 ? "bad" : "neutral"}
-          />
-        ) : null}
-        <RiderKpi
-          label="Highest-impact segment"
-          value={summary.topSegmentLabel}
-          sub={summary.topSegmentDetail}
-          tone={topSegments.length > 0 ? "bad" : "neutral"}
-        />
-      </div>
-
-      <div className="grid grid-cols-3 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-lg:grid-cols-1">
-        <RiderEvidence
-          label="Ridership evidence"
-          value={summary.historyLabel}
-          sub={summary.historyDetail}
-        />
-        <RiderEvidence label="Route trend" value={summary.trendLabel} sub={summary.trendDetail} />
-        <RiderEvidence
-          label="Top segment context"
-          value={summary.topSegmentShareLabel}
-          sub={summary.topSegmentDetail}
-        />
-      </div>
-
-      {equityItems.length >= 2 && data.equityContext !== null ? (
-        <RiderEquityContext equityContext={data.equityContext} items={equityItems} />
-      ) : null}
+    <div className="flex flex-col gap-5">
+      <SectionCard
+        title="Riders"
+        sub="Who this route carries and where they lose time."
+        right={<SourceNote label="About this data" entries={aboutEntries} />}
+      >
+        <div
+          className={`grid ${KPI_GRID_COLS[kpiTiles.length] ?? "grid-cols-3"} rounded-[3px] shadow-[0_0_0_1px_var(--bp-color-rule)] max-lg:grid-cols-1`}
+        >
+          {kpiTiles.map((tile) => (
+            <RiderKpi key={tile.label} {...tile} />
+          ))}
+        </div>
+      </SectionCard>
 
       <div className="grid grid-cols-2 items-start gap-5 max-xl:grid-cols-1">
         <ChartFrame
@@ -93,74 +114,80 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
           }
         >
           {hasRidershipHistory ? (
-            <RouteBoardingsTrend
-              data={ridershipHistory}
-              dailyRiders={route.dailyRiders}
-              mode="history"
-            />
+            <RouteBoardingsTrend data={ridershipHistory} dailyRiders={route.dailyRiders} />
           ) : (
             <div className="flex h-full min-h-[148px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
               Monthly ridership history is not attached yet.
             </div>
           )}
         </ChartFrame>
-        <div>
-          <SectionHeader title="Top burden segments" sub="Where riders lose the most time." />
-          <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-            {topSegments.length > 0 ? (
-              topSegments.map((segment) => (
-                <div
-                  key={segment.id}
-                  className="grid grid-cols-[minmax(0,1fr)_88px] items-center gap-4 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none"
-                >
-                  <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <div className="truncate text-[12.5px] font-medium">
-                        {segment.from} to {segment.to}
-                      </div>
-                      {segment.flagged ? <Badge variant="bad">flagged</Badge> : null}
+        <SectionCard
+          title="Top burden segments"
+          sub="Where riders lose the most time."
+          bodyClassName="min-w-0 -mx-[18px] -mb-[18px]"
+        >
+          {topSegments.length > 0 ? (
+            topSegments.map((segment) => (
+              <div
+                key={segment.id}
+                className="grid grid-cols-[minmax(0,1fr)_88px] items-center gap-4 px-[18px] py-3 shadow-[inset_0_1px_0_var(--bp-color-rule)]"
+              >
+                <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="truncate text-[12.5px] font-medium">
+                      {segment.from} to {segment.to}
                     </div>
-                    <div className="mt-1 h-1 rounded-full bg-[var(--bp-color-ink-06)]">
-                      <div
-                        className="h-full rounded-full bg-[var(--bp-color-ink-40)]"
-                        style={{ width: `${(segment.riderHours / maxRiderHours) * 100}%` }}
-                      />
-                    </div>
+                    {segment.flagged ? <Badge variant="bad">flagged</Badge> : null}
                   </div>
-                  <div className="text-right font-mono text-[13px] font-semibold tabular-nums">
-                    {formatCompact(segment.riderHours)}
+                  <div className="mt-1 h-1 rounded-full bg-[var(--bp-color-ink-06)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--bp-color-ink-40)]"
+                      style={{ width: `${(segment.riderHours / maxRiderHours) * 100}%` }}
+                    />
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="px-4 py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
-                No segment rider-hour burden is attached.
+                <div className="text-right font-mono text-[13px] font-semibold tabular-nums">
+                  {formatCompact(segment.riderHours)}
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+            ))
+          ) : (
+            <div className="px-[18px] py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
+              No segment rider-hour burden is attached.
+            </div>
+          )}
+        </SectionCard>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(280px,0.85fr)] gap-5 max-xl:grid-cols-1">
-        <ChartFrame
-          title="Rider exposure by hour"
-          source="Delay exposure by hour; red marks rush periods."
-          height={112}
+      <ChartFrame
+        title="Rider exposure by hour"
+        source="Delay exposure by hour; red marks rush periods."
+        height={112}
+      >
+        <HourExposure data={hourlyExposure} />
+      </ChartFrame>
+
+      {showEquity ? (
+        <SectionCard
+          title="Who rides here"
+          sub="Census context for the neighborhoods this route serves."
         >
-          <HourExposure data={hourlyExposure} />
-        </ChartFrame>
-        <RiderInsightPanel insights={riderInsights} />
-      </div>
-
-      {route.riderHoursLost !== null ? (
-        <Alert variant="info">
-          <AlertTitle variant="info">Rider-hours</AlertTitle>
-          <AlertDescription>
-            A 1-minute delay for 1,000 riders is 16.7 rider-hours. This route loses{" "}
-            {route.riderHoursLost.toLocaleString()} per weekday, so this section ranks rider burden
-            rather than bus slowness alone.
-          </AlertDescription>
-        </Alert>
+          <div className="flex flex-wrap border-y border-[var(--bp-color-rule)] py-3">
+            {equityItems.map((item) => (
+              <div
+                key={item.label}
+                className="min-w-[160px] flex-1 border-l border-[var(--bp-color-rule)] px-4 first:border-l-0 first:pl-0 max-md:basis-1/2 max-md:[&:nth-child(odd)]:border-l-0 max-md:[&:nth-child(odd)]:pl-0"
+              >
+                <div className="font-mono text-[10px] font-semibold uppercase tracking-normal text-[var(--bp-color-ink-55)]">
+                  {item.label}
+                </div>
+                <div className="mt-1 font-mono text-[21px] font-semibold leading-none tabular-nums">
+                  {item.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
       ) : null}
     </div>
   );
@@ -208,55 +235,18 @@ function formatShare(value: number): string {
   return `${Math.round(percent)}%`;
 }
 
-function RiderEquityContext({
-  equityContext,
-  items,
-}: {
-  equityContext: NonNullable<StudioRouteDetailResponse["equityContext"]>;
-  items: RouteEquityContextItem[];
-}) {
-  return (
-    <section className="flex flex-col gap-3">
-      <SectionHeader
-        title="Who rides here"
-        sub="Census context for the neighborhoods this route serves."
-      />
-      <div className="border-y border-[var(--bp-color-rule)] py-3">
-        <div className="flex flex-wrap">
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className="min-w-[160px] flex-1 border-l border-[var(--bp-color-rule)] px-4 first:border-l-0 first:pl-0 max-md:basis-1/2 max-md:[&:nth-child(odd)]:border-l-0 max-md:[&:nth-child(odd)]:pl-0"
-            >
-              <div className="font-mono text-[10px] font-semibold uppercase tracking-normal text-[var(--bp-color-ink-55)]">
-                {item.label}
-              </div>
-              <div className="mt-1 font-mono text-[21px] font-semibold leading-none tabular-nums">
-                {item.value}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="text-[11.5px] leading-[1.4] text-[var(--bp-color-ink-55)]">
-        ACS {equityContext.acsYear} five-year estimates
-        {equityContext.assignedCountyName ? ` - ${equityContext.assignedCountyName}` : ""}{" "}
-        (county-level proxy)
-      </div>
-    </section>
-  );
-}
-
 function RiderKpi({
   label,
   value,
   sub,
   tone = "neutral",
+  compact = false,
 }: {
   label: string;
   value: string;
   sub: string;
   tone?: "neutral" | "bad";
+  compact?: boolean;
 }) {
   return (
     <div className="p-5 shadow-[inset_-1px_0_0_var(--bp-color-rule)] last:shadow-none max-lg:shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
@@ -264,7 +254,7 @@ function RiderKpi({
         {label}
       </div>
       <div
-        className="font-mono text-[30px] font-semibold leading-none"
+        className={`font-mono font-semibold ${compact ? "text-[17px] leading-tight" : "text-[30px] leading-none"}`}
         style={{ color: tone === "bad" ? "var(--bp-color-bad)" : "var(--bp-color-ink)" }}
       >
         {value}
@@ -274,88 +264,19 @@ function RiderKpi({
   );
 }
 
-function RiderEvidence({ label, value, sub }: { label: string; value: string; sub: string }) {
-  return (
-    <div className="p-4 shadow-[inset_-1px_0_0_var(--bp-color-rule)] last:shadow-none max-lg:shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
-      <div className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-        {label}
-      </div>
-      <div className="font-mono text-[20px] font-semibold leading-none">{value}</div>
-      <div className="mt-1.5 text-[11px] leading-[1.35] text-[var(--bp-color-ink-55)]">{sub}</div>
-    </div>
-  );
-}
-
-function RiderInsightPanel({ insights }: { insights: StudioRouteDetailResponse["insights"] }) {
-  return (
-    <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <SectionHeader
-        title="Rider signals"
-        sub={
-          insights.length > 0
-            ? "Public customer-journey context for this route."
-            : "No public rider-impact insight yet."
-        }
-      />
-      {insights.length > 0 ? (
-        <div className="mt-3 flex flex-col gap-3">
-          {insights.map((insight) => {
-            const caveats = safeInsightCaveats(insight, 1);
-            return (
-              <div
-                key={`${insight.detectorId}:${insight.scopeId ?? insight.title}`}
-                className="rounded-[3px] bg-[var(--bp-color-paper-deep)] p-3 shadow-[0_0_0_1px_var(--bp-color-rule)]"
-              >
-                <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                  <Badge variant={insight.severity === "high" ? "bad" : "neutral"}>
-                    {insight.severity}
-                  </Badge>
-                </div>
-                <div className="text-[12.5px] font-semibold">{insight.title}</div>
-                <div className="mt-1 text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-                  {insight.shortText}
-                </div>
-                {caveats[0] ? (
-                  <div className="mt-1.5 text-[11px] leading-[1.4] text-[var(--bp-color-ink-40)]">
-                    {caveats[0]}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="mt-3 rounded-[3px] bg-[var(--bp-color-paper-deep)] px-3 py-2.5 text-[12px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-          The rider-hour projection can be cited, but no customer-journey card has cleared the
-          public gate.
-        </div>
-      )}
-    </div>
-  );
-}
-
 function RouteBoardingsTrend({
   data,
   dailyRiders,
-  mode,
 }: {
   data: readonly number[];
   dailyRiders: number;
-  mode: "history" | "proxy";
 }) {
-  const base = dailyRiders / 1000;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const series =
-    mode === "history"
-      ? data
-      : data.map((value) => base * (0.94 + ((value - min) / (max - min || 1)) * 0.12));
   return (
     <SpeedTrend
-      data={series}
-      scheduled={base}
+      data={data}
+      scheduled={dailyRiders / 1000}
       height={148}
-      seriesLabel={mode === "history" ? "Monthly riders (K)" : "Riders (est. K)"}
+      seriesLabel="Monthly riders (K)"
       scheduledLabel="baseline"
       tone="var(--bp-color-accent)"
     />

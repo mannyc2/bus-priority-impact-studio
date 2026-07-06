@@ -227,7 +227,7 @@ Verified headline facts the plans are built on:
 | 053 | Route detail: real tabs (?tab=) + compact self-evident header | P1 | L | 049 (hard), 048, 050 | DONE (plain-markup tab bar) |
 | 054 | Overview tab: one summary, one trend, mini map, insights | P1 | M | 053 (hard) | DONE |
 | 055 | Slow segments tab: ranked table, one hour chart, calm map; delete carpet + Profile | P1 | L | 053 (hard); 054 rec. | DONE |
-| 056 | Riders & reliability tab: rider-real numbers; meta-metrics → SourceNote | P1 | M | 053 (hard) | TODO |
+| 056 | Riders & reliability tab: rider-real numbers; meta-metrics → SourceNote | P1 | M | 053 (hard) | DONE |
 | 057 | Treatments & history tab: grouped bounded timeline; "unda" + citation-dupe fixes | P1 | L | 049+053 (hard); 054 rec. | TODO |
 | 058 | Interventions page: bounded, filterable network chronicle | P2 | M | 049+057 (hard); 052 rec. | TODO |
 | 059 | Network map: full-bleed + in-map overlays; kill time-autoplay | P2 | M-L | 048; 055 (scrubber delete) | TODO |

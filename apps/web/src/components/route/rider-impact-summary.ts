@@ -10,17 +10,12 @@ import type {
   StudioRouteInsight,
   StudioSegment,
 } from "@/studio/api-contract";
-import type { MetricTone } from "@/studio/metric-model";
 import { stableInsightSort } from "./route-insight-placement";
 
 type RiderImpactRoute = Pick<StudioRoute, "dailyRiders" | "ridersYoyPct" | "riderHoursLost">;
 type RiderImpactSegment = Pick<StudioSegment, "id" | "from" | "to" | "riderHours" | "flagged">;
 
 export type RiderImpactSummary = {
-  kpiValue: string;
-  kpiSub: string;
-  kpiTone: MetricTone;
-  sectionSubtitle: string;
   dailyRidersLabel: string;
   dailyRidersDetail: string;
   burdenLabel: string;
@@ -29,10 +24,6 @@ export type RiderImpactSummary = {
   trendDetail: string;
   historyLabel: string;
   historyDetail: string;
-  topSegmentLabel: string;
-  topSegmentDetail: string;
-  topSegmentShareLabel: string;
-  dataAsOf: string | null;
   topSegments: RiderImpactSegment[];
 };
 
@@ -68,17 +59,6 @@ export function riderImpactSummary({
         : "YoY in current projection"
       : "6 mo ridership trend";
   const topSegments = [...segments].sort((a, b) => b.riderHours - a.riderHours).slice(0, 6);
-  const topSegment = topSegments[0] ?? null;
-  const topShare =
-    topSegment !== null &&
-    route.riderHoursLost !== null &&
-    route.riderHoursLost > 0 &&
-    topSegment.riderHours <= route.riderHoursLost
-      ? `${Math.round((topSegment.riderHours / route.riderHoursLost) * 100)}% of route burden`
-      : topSegment === null
-        ? "share unavailable"
-        : "route-leading segment";
-  const dataAsOf = ridership?.dataAsOf ?? capability?.dataAsOf ?? null;
   const historyLabel = monthCount > 0 ? `${monthCount} months` : "current";
   const historyDetail =
     monthCount > 0
@@ -88,16 +68,6 @@ export function riderImpactSummary({
     route.riderHoursLost === null ? "not measured" : formatRiderHours(route.riderHoursLost);
 
   return {
-    kpiValue: formatCompact(route.dailyRiders),
-    kpiSub:
-      route.riderHoursLost !== null && route.riderHoursLost > 0
-        ? `${burdenLabel} rider-hours lost/day`
-        : `${trendLabel} rider trend`,
-    kpiTone: route.riderHoursLost !== null && route.riderHoursLost >= 5_000 ? "bad" : "ink",
-    sectionSubtitle:
-      topSegment === null
-        ? "Daily riders and burden from current projection."
-        : `Daily riders, burden, top segment: ${topSegment.from} to ${topSegment.to}.`,
     dailyRidersLabel: formatCompact(route.dailyRiders),
     dailyRidersDetail: `${trendLabel} ${trendDetail}`,
     burdenLabel,
@@ -111,11 +81,6 @@ export function riderImpactSummary({
     trendDetail,
     historyLabel,
     historyDetail,
-    topSegmentLabel: topSegment === null ? "n/a" : formatRiderHours(topSegment.riderHours),
-    topSegmentDetail:
-      topSegment === null ? "no segment data" : `${topSegment.from} to ${topSegment.to}`,
-    topSegmentShareLabel: topShare,
-    dataAsOf,
     topSegments,
   };
 }

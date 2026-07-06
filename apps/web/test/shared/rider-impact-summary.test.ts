@@ -56,33 +56,33 @@ const dossier = {
 
 describe("riderImpactSummary", () => {
   test("summarizes rider burden with dossier ridership history", () => {
-    expect(
-      riderImpactSummary({
-        route: {
-          dailyRiders: 30000,
-          ridersYoyPct: -2.4,
-          riderHoursLost: 6200,
-        },
-        segments: [
-          { id: "low", from: "A", to: "B", riderHours: 400, flagged: false },
-          { id: "top", from: "Flatbush Av", to: "Church Av", riderHours: 3100, flagged: true },
-        ],
-        dossier,
-        capability: ridershipCapability,
-      }),
-    ).toMatchObject({
-      kpiValue: "30.0K",
-      kpiSub: "6.2K rider-hours lost/day",
-      kpiTone: "bad",
+    const summary = riderImpactSummary({
+      route: {
+        dailyRiders: 30000,
+        ridersYoyPct: -2.4,
+        riderHoursLost: 6200,
+      },
+      segments: [
+        { id: "low", from: "A", to: "B", riderHours: 400, flagged: false },
+        { id: "top", from: "Flatbush Av", to: "Church Av", riderHours: 3100, flagged: true },
+      ],
+      dossier,
+      capability: ridershipCapability,
+    });
+    expect(summary).toMatchObject({
       dailyRidersLabel: "30.0K",
       dailyRidersDetail: "+3.2% 6 mo ridership trend",
       burdenLabel: "6.2K",
+      burdenDetail: "rider-hours lost/day in projection",
       historyLabel: "3 months",
       historyDetail: "2025-10 to 2026-03",
-      topSegmentLabel: "3.1K",
-      topSegmentDetail: "Flatbush Av to Church Av",
-      topSegmentShareLabel: "50% of route burden",
-      dataAsOf: "2026-03",
+      trendLabel: "+3.2%",
+      trendDetail: "6 mo ridership trend",
+    });
+    expect(summary.topSegments[0]).toMatchObject({
+      id: "top",
+      from: "Flatbush Av",
+      to: "Church Av",
     });
   });
 
@@ -101,30 +101,14 @@ describe("riderImpactSummary", () => {
         },
       }),
     ).toMatchObject({
-      kpiValue: "980",
-      kpiSub: "+1.2% rider trend",
-      kpiTone: "ink",
+      dailyRidersLabel: "980",
+      trendLabel: "+1.2%",
+      trendDetail: "YoY in current projection",
+      burdenDetail: "no rider-hour loss in projection",
       historyLabel: "current",
       historyDetail: "Monthly ridership history has not been built for this route.",
-      topSegmentLabel: "n/a",
-      topSegmentDetail: "no segment data",
-      dataAsOf: "2026-03",
+      topSegments: [],
     });
-  });
-
-  test("does not compute impossible top-segment shares", () => {
-    expect(
-      riderImpactSummary({
-        route: {
-          dailyRiders: 12000,
-          ridersYoyPct: 0,
-          riderHoursLost: 1000,
-        },
-        segments: [{ id: "top", from: "A", to: "B", riderHours: 4200, flagged: true }],
-        dossier: null,
-        capability: ridershipCapability,
-      }).topSegmentShareLabel,
-    ).toBe("route-leading segment");
   });
 
   test("reports absent rider trend and burden without inventing zeroes", () => {
@@ -140,12 +124,11 @@ describe("riderImpactSummary", () => {
         capability: ridershipCapability,
       }),
     ).toMatchObject({
-      kpiSub: "not measured rider trend",
-      kpiTone: "ink",
+      trendLabel: "not measured",
+      trendDetail: "trend unavailable",
       dailyRidersDetail: "not measured trend unavailable",
       burdenLabel: "not measured",
       burdenDetail: "rider-hour burden not measured",
-      topSegmentShareLabel: "route-leading segment",
     });
   });
 });

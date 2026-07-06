@@ -97,8 +97,9 @@ describe("RidersSection equity context", () => {
     expect(markup).toContain("No-vehicle households");
     expect(markup).toContain("77%");
     expect(markup).toContain("$98.0K");
-    expect(markup).toContain("ACS 2024 five-year estimates");
-    expect(markup).toContain("New York County");
+    // The ACS provenance line moved into the SourceNote popover (plan 056),
+    // so it no longer appears in the statically rendered markup.
+    expect(markup).not.toContain("ACS 2024 five-year estimates");
   });
 
   test("omits the ACS strip when the payload is too sparse", () => {
