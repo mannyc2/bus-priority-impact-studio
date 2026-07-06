@@ -2,6 +2,14 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-07-06] design | MTA visual language cutover
+
+Gen-6 plan 048 retires the warm "tarbell" surface ladder for the MTA signage
+palette: cool near-white surfaces, true-white cards, ink `#101418`, MTA Blue
+`#0039a6` accent, and a black signage nav bar. Touches `global.css` tokens,
+`MAP_COLORS`, and the shell header. The operator's 2026-07-06 critique is the
+new design authority, superseding the July-4 warm/editorial tokens.
+
 ## [2026-07-05] engineering | Plan 045 Order 1 and Plan 047 native kit migration land
 
 Completed the bus-repo half of Plan 045 Order 1 by bumping

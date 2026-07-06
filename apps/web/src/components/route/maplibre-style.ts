@@ -2,20 +2,20 @@ import type { MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
 import type { StudioRoute, StudioSegment } from "@/studio/api-contract";
 
 export const MAP_COLORS = {
-  paper: "#f4f1ea",
-  card: "oklch(0.99 0.007 75)",
-  ink: "#16140f",
-  ink70: "rgba(22, 20, 15, 0.7)",
-  ink55: "rgba(22, 20, 15, 0.66)",
-  ink40: "rgba(22, 20, 15, 0.4)",
-  ink20: "rgba(22, 20, 15, 0.2)",
-  ink10: "rgba(22, 20, 15, 0.1)",
-  ink06: "rgba(22, 20, 15, 0.06)",
-  rule: "rgba(22, 20, 15, 0.14)",
+  paper: "#fafbfc",
+  card: "#ffffff",
+  ink: "#101418",
+  ink70: "rgba(16, 20, 24, 0.72)",
+  ink55: "rgba(16, 20, 24, 0.6)",
+  ink40: "rgba(16, 20, 24, 0.42)",
+  ink20: "rgba(16, 20, 24, 0.2)",
+  ink10: "rgba(16, 20, 24, 0.1)",
+  ink06: "rgba(16, 20, 24, 0.06)",
+  rule: "rgba(16, 20, 24, 0.14)",
   bad: "oklch(0.52 0.16 28)",
   warn: "oklch(0.48 0.13 70)",
   good: "oklch(0.45 0.12 155)",
-  accent: "oklch(0.42 0.13 252)",
+  accent: "#0039a6",
   water: "oklch(0.9 0.016 234)",
 } as const;
 

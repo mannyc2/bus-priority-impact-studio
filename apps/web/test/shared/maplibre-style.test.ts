@@ -73,7 +73,7 @@ describe("maplibre route style helpers", () => {
     expect(speedToColor(3.3)).toBe("oklch(0.500 0.165 27.0)");
     expect(speedToColor(5.1)).toBe("oklch(0.585 0.143 48.0)");
     expect(speedToColor(9.5)).toBe("oklch(0.600 0.105 162.0)");
-    expect(speedToColor(null)).toBe("rgba(22, 20, 15, 0.2)");
+    expect(speedToColor(null)).toBe("rgba(16, 20, 24, 0.2)");
   });
 
   test("formats map hours and commute periods", () => {

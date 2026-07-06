@@ -5,28 +5,27 @@
   color-scheme: light;
 
   /* --- Bus Priority Impact Studio palette ---
-     Warm-white surface ladder (per tarbell design system):
-     canvas → paper → paperDeep → card → cardRaised. Each tier ~3-4%
-     apart with consistent warm undertone (hue ~75). Cold #ffffff is
-     never used as a surface; it's reserved for semantic whites
-     (SBS pill outline, map stop dots). */
-  --bp-color-canvas: #f0eee9;
-  --bp-color-paper: #f4f1ea;
-  --bp-color-paper-deep: #ece7db;
-  --bp-color-card: oklch(0.99 0.007 75);
-  --bp-color-card-raised: oklch(0.995 0.004 75);
-  --bp-color-ink: #16140f;
-  --bp-color-ink-70: rgba(22, 20, 15, 0.7);
-  --bp-color-ink-55: rgba(22, 20, 15, 0.66);
-  --bp-color-ink-40: rgba(22, 20, 15, 0.4);
-  --bp-color-ink-20: rgba(22, 20, 15, 0.2);
-  --bp-color-ink-10: rgba(22, 20, 15, 0.1);
-  --bp-color-ink-06: rgba(22, 20, 15, 0.06);
-  --bp-color-rule: rgba(22, 20, 15, 0.14);
-  --bp-color-accent: oklch(0.42 0.13 252);
-  --bp-color-accent-bg: oklch(0.95 0.04 252);
+     MTA signage system (operator verdict 2026-07-06; the warm "tarbell"
+     ladder is retired): cool near-white surface ladder
+     canvas → paper → paperDeep, true-white cards, ink #101418, and
+     MTA Blue #0039a6 (Pantone 286) as the working accent. */
+  --bp-color-canvas: #f4f5f7;
+  --bp-color-paper: #fafbfc;
+  --bp-color-paper-deep: #eceef1;
+  --bp-color-card: #ffffff;
+  --bp-color-card-raised: #ffffff;
+  --bp-color-ink: #101418;
+  --bp-color-ink-70: rgba(16, 20, 24, 0.72);
+  --bp-color-ink-55: rgba(16, 20, 24, 0.6);
+  --bp-color-ink-40: rgba(16, 20, 24, 0.42);
+  --bp-color-ink-20: rgba(16, 20, 24, 0.2);
+  --bp-color-ink-10: rgba(16, 20, 24, 0.1);
+  --bp-color-ink-06: rgba(16, 20, 24, 0.06);
+  --bp-color-rule: rgba(16, 20, 24, 0.14);
+  --bp-color-accent: #0039a6;
+  --bp-color-accent-bg: #e8eef8;
   /* Neutral chart series colors for overlays that should not imply good/bad. */
-  --bp-color-series-a: oklch(0.42 0.13 252);
+  --bp-color-series-a: #0039a6;
   --bp-color-series-b: oklch(0.48 0.15 300);
   --bp-color-bad: oklch(0.52 0.16 28);
   --bp-color-bad-bg: oklch(0.95 0.05 28);
@@ -186,11 +185,11 @@ body {
   background:
     linear-gradient(
       90deg,
-      rgba(22, 20, 15, 0.04) 0%,
-      rgba(22, 20, 15, 0.1) 50%,
-      rgba(22, 20, 15, 0.04) 100%
+      rgba(16, 20, 24, 0.04) 0%,
+      rgba(16, 20, 24, 0.1) 50%,
+      rgba(16, 20, 24, 0.04) 100%
     ),
-    rgba(22, 20, 15, 0.06);
+    rgba(16, 20, 24, 0.06);
   background-repeat: no-repeat;
   background-size: 200px 100%;
   animation: bpi-skeleton-shimmer 1.2s linear infinite;

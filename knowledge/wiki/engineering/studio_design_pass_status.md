@@ -2,6 +2,19 @@
 
 Current and historical design-source status for the Studio web app.
 
+## Current design source — 2026-07-06 (MTA visual language)
+
+The operator's 2026-07-06 UI/UX critique is the current design authority for the
+visual language. It supersedes the July-4 export's warm/editorial ("civic
+newspaper") tokens: surfaces are now cool near-white (`--bp-color-canvas`
+`#f4f5f7` → `paper` `#fafbfc` → `paper-deep` `#eceef1`), cards are true white,
+ink is `#101418`, and the working accent is MTA Blue `#0039a6` (Pantone 286)
+with a black signage nav bar (white Helvetica). The Helvetica body stack and the
+borough route roundels are unchanged. Generation-6 plans 048-059 implement this;
+plan 050 machine-enforces the 2026-06-12 and 2026-07-06 copy bans. The July-4
+export below remains a useful reference for layout/component structure, but its
+color tokens are retired.
+
 ## Current design source - 2026-07-04
 
 The latest design source is the July 4 source capture:
