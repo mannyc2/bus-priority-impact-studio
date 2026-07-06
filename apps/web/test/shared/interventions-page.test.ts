@@ -1,81 +1,159 @@
 import { describe, expect, test } from "bun:test";
-import { createElement } from "react";
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { timelineEvidenceRouteSlugs } from "../../src/studio/api-client";
 import type {
+  StudioIntervention,
   StudioRoute,
   StudioRouteEvidenceBundle,
   StudioRouteIndex2Response,
   StudioRouteIndex2Row,
 } from "../../src/studio/api-contract";
 import {
-  InterventionListRow,
+  InterventionsPage,
   interventionRows,
-  interventionTone,
+  yearLabel,
 } from "../../src/studio/pages/interventions";
 
-const route = {
-  slug: "m15-sbs",
-  routeId: "M15+",
-  label: "M15 SBS",
-  corridor: "First Avenue / Second Avenue",
-  corridorFull: "First Avenue / Second Avenue",
-  borough: "Manhattan",
-  sbs: true,
-  speedMph: 7.2,
-  scheduledMph: 8.4,
-  weightedAvgSpeed: 7.2,
-  speedPercentile: 12,
-  dailyRiders: 30_000,
-  ridersYoyPct: 0,
-  riderHoursLost: 0,
-  laneCoverage: 65,
-  aceStatus: "active",
-  aceSince: "2024",
-  tspCoverage: "none",
-  reliability: "High attention route",
-  observedReliability: null,
-  diagnosis: "M15 SBS has slow segments and active treatment evidence.",
-  spark: [7.2, 7.4, 7.1],
-  termini: { north: "East Harlem", south: "South Ferry" },
-  miles: 8.1,
-  stops: 42,
-  flags: ["ACE active"],
-  peerSlug: null,
-  interventions: [],
-  movement6mPct: null,
-  context12mPct: null,
-} satisfies StudioRoute;
+// InterventionsPage renders TanStack <Link>s, which need a router context.
+async function renderWithRouter(node: ReactNode): Promise<string> {
+  const rootRoute = createRootRoute({ component: () => node });
+  const router = createRouter({
+    routeTree: rootRoute,
+    history: createMemoryHistory({ initialEntries: ["/"] }),
+  });
+  await router.load();
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+}
 
-const evidence = {
-  routeId: "M15+",
-  routeSlug: "m15-sbs",
-  wikiRouteRecordId: "route_m15_sbs",
-  wikiRouteIds: ["M15"],
-  wikiAliases: ["M15 SBS"],
+function makeRoute(input: {
+  slug: string;
+  label: string;
+  borough?: string;
+  interventions?: StudioIntervention[];
+}): StudioRoute {
+  return {
+    slug: input.slug,
+    routeId: input.label.replace(" SBS", "+"),
+    label: input.label,
+    corridor: "Test Corridor",
+    corridorFull: "Test Corridor Full",
+    borough: input.borough ?? "Manhattan",
+    sbs: input.label.includes("SBS"),
+    speedMph: 7.2,
+    scheduledMph: 8.4,
+    weightedAvgSpeed: 7.2,
+    speedPercentile: 12,
+    dailyRiders: 30_000,
+    ridersYoyPct: 0,
+    riderHoursLost: 0,
+    laneCoverage: 65,
+    aceStatus: "active",
+    aceSince: "2024",
+    tspCoverage: "none",
+    reliability: "High attention route",
+    observedReliability: null,
+    diagnosis: "Test route diagnosis.",
+    spark: [7.2, 7.4, 7.1],
+    termini: { north: "North End", south: "South End" },
+    miles: 8.1,
+    stops: 42,
+    flags: [],
+    peerSlug: null,
+    interventions: input.interventions ?? [],
+    movement6mPct: null,
+    context12mPct: null,
+  } satisfies StudioRoute;
+}
+
+const evaluatedIntervention: StudioIntervention = {
+  year: "2024-06",
+  title: "Offset bus lane installed",
+  detail: "Curbside lane converted to an offset bus lane.",
+  tone: "good",
+  comparisonCohort: {
+    method: "peer_adjusted",
+    causalInterpretation: "peer_adjusted_before_after",
+    methodLimitations: [],
+    routeIds: ["B44+"],
+    routeCount: 3,
+    preWindow: { from: "2023-12", to: "2024-05", sampleMonths: 6 },
+    postWindow: { from: "2024-07", to: "2024-12", sampleMonths: 6 },
+    routeSpeedDeltaMph: 0.4,
+    comparisonSpeedDeltaMph: 0.1,
+    adjustedSpeedDeltaMph: 0.3,
+    caveat: "Descriptive comparison only.",
+  },
+};
+
+const datedIntervention: StudioIntervention = {
+  year: "2022-03",
+  title: "Camera enforcement begins",
+  detail: "ACE enforcement activated on the corridor.",
+  sourceLabel: "MTA press release",
+};
+
+const servingRoute = makeRoute({
+  slug: "m15-sbs",
+  label: "M15 SBS",
+  interventions: [evaluatedIntervention, datedIntervention],
+});
+
+const wikiRoute = makeRoute({ slug: "b41", label: "B41", borough: "Brooklyn" });
+const emptyRoute = makeRoute({ slug: "q10", label: "Q10", borough: "Queens" });
+
+const wikiEvidence = {
+  routeId: "B41",
+  routeSlug: "b41",
+  wikiRouteRecordId: "route_b41",
+  wikiRouteIds: ["B41"],
+  wikiAliases: [],
   coverage: {
-    timelineCount: 0,
+    timelineCount: 1,
     interventionCount: 0,
     metricClaimCount: 0,
-    projectCount: 0,
-    sourceGapCount: 1,
+    projectCount: 1,
+    sourceGapCount: 0,
     citationCount: 1,
   },
-  timeline: [],
-  interventions: [],
-  metricClaims: [],
-  projects: [],
-  sourceGaps: [
+  timeline: [
     {
-      recordId: "gap_m15_before_after",
-      recordKind: "source_gap",
-      citationKeys: ["source#block"],
-      gapKind: "missing_before_after",
-      gapText: "Needs before/after source.",
-      missingInformation: "Before/after table",
-      description: null,
+      recordId: "tl_b41_1",
+      recordKind: "timeline_event",
+      citationKeys: ["source#block", "source#block"],
+      eventKind: "bus_lane_opening",
+      eventFamily: "street_treatment",
+      lifecyclePhase: "implemented",
+      title: "Flatbush bus lane opens",
+      description: "Painted bus lane on Flatbush Avenue.",
+      dateText: "June 2019",
+      dateNormalized: "2019-06",
+      datePrecision: "month",
     },
   ],
+  interventions: [],
+  metricClaims: [],
+  projects: [
+    {
+      recordId: "pr_b41_1",
+      recordKind: "project",
+      citationKeys: ["source#block"],
+      projectName: "Flatbush busway study",
+      projectFamily: null,
+      projectType: null,
+      status: "planned",
+      description: "Study of a busway conversion.",
+      location: "Flatbush Avenue",
+      routesServed: ["B41"],
+    },
+  ],
+  sourceGaps: [],
   citations: [
     {
       key: "source#block",
@@ -83,9 +161,14 @@ const evidence = {
       blockId: "block",
       evidenceId: "source#block",
       sourcePath: "raw/source.jsonl",
+      sourceTitle: "Flatbush Progress Report",
+      publisher: "NYC DOT",
     },
   ],
 } satisfies StudioRouteEvidenceBundle;
+
+const routes = [servingRoute, wikiRoute, emptyRoute];
+const evidence = [wikiEvidence];
 
 function routeIndexRow(input: {
   routeId: string;
@@ -145,21 +228,6 @@ describe("interventions page evidence aggregation", () => {
             },
           ],
         }),
-        routeIndexRow({
-          routeId: "B25",
-          slug: "b25",
-          projectionRefs: [
-            {
-              id: "route_history_summary",
-              status: "available",
-              schemaVersion: 1,
-              grain: "route_month",
-              storage: "d1",
-              path: "/api/v1/studio/routes/b25/history",
-              months: { start: "2026-03", end: "2026-03" },
-            },
-          ],
-        }),
       ],
       quality: {
         releaseLayer: "baseline_release",
@@ -171,32 +239,76 @@ describe("interventions page evidence aggregation", () => {
 
     expect(timelineEvidenceRouteSlugs(routeIndex)).toEqual(["m15-sbs"]);
   });
+});
 
-  test("adds wiki source gaps with citations", () => {
-    const rows = interventionRows([route], [evidence]);
-
-    expect(rows).toEqual([
-      expect.objectContaining({
-        route,
-        event: expect.objectContaining({
-          source: "source_gap",
-          citationKeys: ["source#block"],
-          title: "Source gap: missing_before_after",
-        }),
-      }),
+describe("interventionRows", () => {
+  test("counts serving plus wiki rows and sorts newest first", () => {
+    const rows = interventionRows(routes, evidence);
+    // 2 serving + 1 wiki timeline + 1 wiki project; the empty route adds none.
+    expect(rows).toHaveLength(4);
+    expect(rows.map((row) => row.event.title)).toEqual([
+      "Offset bus lane installed",
+      "Camera enforcement begins",
+      "Flatbush bus lane opens",
+      "Flatbush busway study",
     ]);
+    expect(rows.every((row) => row.route.slug !== "q10")).toBe(true);
   });
 
-  test("renders intervention rows through the shared public card tone system", () => {
-    const row = interventionRows([route], [evidence])[0];
-    expect(row).toBeDefined();
-    if (row === undefined) return;
-    const markup = renderToStaticMarkup(createElement(InterventionListRow, { row }));
+  test("undated project rows never put a status string in the date position", () => {
+    const rows = interventionRows(routes, evidence);
+    const projectRow = rows.find((row) => row.event.title === "Flatbush busway study");
+    expect(projectRow?.event.year).toBe("undated");
+    expect(projectRow?.event.kind).toBe("planned");
+    expect(yearLabel("undated")).toBe("Undated");
+    expect(yearLabel("2024-06")).toBe("2024");
+  });
+});
 
-    expect(interventionTone(row.event)).toBe("warn");
-    expect(markup).toContain("Source gap: missing_before_after");
-    expect(markup).toContain("MTA-wiki");
-    expect(markup).toContain("gap");
-    expect(markup).toContain("Open route for context");
+describe("InterventionsPage render", () => {
+  test("groups by year with Undated last and a delta readout on evaluated rows", async () => {
+    const html = await renderWithRouter(createElement(InterventionsPage, { routes, evidence }));
+
+    expect(html).toContain("2024");
+    expect(html).toContain("2019");
+    expect(html).toContain("Undated");
+    expect(html.indexOf("2019")).toBeLessThan(html.indexOf("Undated"));
+    // Status renders as a chip, never a group header or date cell.
+    expect(html).toContain("planned");
+    expect(html).not.toContain(">planned</div>");
+    // Evaluated delta readout.
+    expect(html).toContain("+0.30 mph");
+    expect(html).toContain("3 comparison routes");
+    // Citations only via SourceNote popovers.
+    expect(html).toContain("Sources (1)");
+    // Filter counts in chip labels.
+    expect(html).toContain("Evaluated (1)");
+    expect(html).toContain("All (4)");
+    // Doctrine: no interpunct, no old editorial hero title.
+    expect(html).not.toContain("·");
+    expect(html).not.toContain("What changed on the street");
+  });
+
+  test("bounds the initial list to 30 rows with a show-more control", async () => {
+    const manyInterventions = Array.from(
+      { length: 40 },
+      (_, index): StudioIntervention => ({
+        year: `${2025 - index}-01`,
+        title: `Record ${String(index + 1).padStart(2, "0")}`,
+        detail: "Programmatic fixture record.",
+      }),
+    );
+    const bigRoute = makeRoute({
+      slug: "m15-sbs",
+      label: "M15 SBS",
+      interventions: manyInterventions,
+    });
+    const html = await renderWithRouter(
+      createElement(InterventionsPage, { routes: [bigRoute], evidence: [] }),
+    );
+
+    expect(html).toContain("Record 30");
+    expect(html).not.toContain("Record 31");
+    expect(html).toContain("Show 10 more (10 left)");
   });
 });
