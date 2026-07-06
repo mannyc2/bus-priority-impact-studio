@@ -27,8 +27,7 @@
     "test": "bun test ./test --timeout 5000"
   },
   "dependencies": {
-    "@bp/domain": "workspace:*",
-    "zod": "catalog:"
+    "@bp/domain": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

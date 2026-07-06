@@ -1,5 +1,4 @@
-import { decodeGtfsRealtimeBytes } from "@nyc-transit-kit/mta/gtfs-realtime";
-import { Effect } from "effect";
+import { decodeGtfsRealtimeBytesSync } from "@nyc-transit-kit/mta/gtfs-realtime";
 import type { GtfsRtFeedType } from "./index.js";
 
 export type GtfsRealtimeDecoder = {
@@ -15,7 +14,7 @@ export function createDefaultGtfsRealtimeDecoder(): GtfsRealtimeDecoder {
           : feedType === "alerts"
             ? "alerts"
             : "vehicle-positions";
-      return Effect.runSync(decodeGtfsRealtimeBytes(bytes, feed)).raw;
+      return decodeGtfsRealtimeBytesSync(bytes, feed).raw;
     },
   };
 }

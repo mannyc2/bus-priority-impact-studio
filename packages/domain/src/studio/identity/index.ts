@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../../schema-compat.js";
 
 // Public identity + magic-link auth contracts (ADR 0008) and the user-surface
 // features it unlocks: operator admin, alerts, saved searches, public comments.

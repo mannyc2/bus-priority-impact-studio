@@ -83,7 +83,6 @@ export function TreatmentsHistorySection({
   const treatmentInsights = treatmentHistoryInsightRows(data.insights);
   const historySpeeds = dossierSpeedSeries(data.dossier);
   const hasSpeedHistory = historySpeeds.length > 0;
-  const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
   const speedWindow = dossierMetricWindow(data.dossier?.speed);
   const currentSpeedMph = data.dossier?.speed.current ?? route.weightedAvgSpeed;
 
@@ -150,18 +149,28 @@ export function TreatmentsHistorySection({
           source={
             hasSpeedHistory
               ? `Avg speed${speedWindow ? `, ${speedWindow}` : ""}.`
-              : "Trend estimate."
+              : "No route speed history is attached yet."
           }
           height={196}
           right={
             <Badge variant={hasSpeedHistory ? "accent" : "warn"}>
               {hasSpeedHistory
-                ? `${dossierMetricMonthCount(data.dossier?.speed) || speedTrendData.length} months`
+                ? `${dossierMetricMonthCount(data.dossier?.speed) || historySpeeds.length} months`
                 : `${currentSpeedMph.toFixed(1)} mph now`}
             </Badge>
           }
         >
-          <SpeedTrend data={speedTrendData} scheduled={route.scheduledMph} height={196} />
+          {hasSpeedHistory ? (
+            <SpeedTrend
+              data={historySpeeds}
+              {...(route.scheduledMph === null ? {} : { scheduled: route.scheduledMph })}
+              height={196}
+            />
+          ) : (
+            <div className="flex h-full min-h-[196px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
+              No route speed history is attached yet.
+            </div>
+          )}
         </ChartFrame>
 
         <section>

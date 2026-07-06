@@ -1,5 +1,5 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { isoCalendarDateTime, schemaVersion } from "../../core/index.js";
 
@@ -45,9 +45,9 @@ const RawScheduleTimepointRowSchema = z
 export function normalizeScheduleTimepointRows(rows: SocrataRow[]): NormalizedScheduleTimepoint[] {
   return rows.map((row) => {
     const parsed = RawScheduleTimepointRowSchema.parse(row);
-    const output: NormalizedScheduleTimepoint = {
+    return {
       schemaVersion,
-      routeId: z.decode(RouteIdCodec, parsed.route_id),
+      routeId: RouteIdCodec.parse(parsed.route_id),
       scheduleDate: isoCalendarDateTime(parsed.schedule_date),
       dayType: parsed.day_type,
       direction: parsed.direction,
@@ -56,21 +56,12 @@ export function normalizeScheduleTimepointRows(rows: SocrataRow[]): NormalizedSc
       stopId: parsed.stop_id,
       scheduleTime: isoCalendarDateTime(parsed.schedule_time),
       blockId: parsed.block_id,
-    };
-
-    if (parsed.stop_name !== undefined) {
-      output.stopName = parsed.stop_name;
-    }
-    if (parsed.distance_from_start !== undefined) {
-      output.distanceFromStart = parsed.distance_from_start;
-    }
-    if (parsed.trip_headsign !== undefined) {
-      output.tripHeadsign = parsed.trip_headsign;
-    }
-    if (parsed.bundle !== undefined) {
-      output.bundle = parsed.bundle;
-    }
-
-    return output;
+      ...(parsed.stop_name === undefined ? {} : { stopName: parsed.stop_name }),
+      ...(parsed.distance_from_start === undefined
+        ? {}
+        : { distanceFromStart: parsed.distance_from_start }),
+      ...(parsed.trip_headsign === undefined ? {} : { tripHeadsign: parsed.trip_headsign }),
+      ...(parsed.bundle === undefined ? {} : { bundle: parsed.bundle }),
+    } satisfies NormalizedScheduleTimepoint;
   });
 }

@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../schema-compat.js";
 
 // Real-user web-vitals beacon payload. Shared by the Worker (decode/validate the POST body)
 // and the browser reporter (compile-time shape of the beacon) so both sides stay on one contract.

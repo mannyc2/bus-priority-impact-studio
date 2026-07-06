@@ -1,20 +1,18 @@
-import { MapManifestResponseSchema, MapRouteSegmentFeatureCollectionSchema } from "@bp/domain/maps";
+import type { MapManifestResponse, MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
 import {
   createStudioApiClient,
   type PathBuildInput,
   type StudioApiRouteId,
 } from "@bp/studio-api/client";
-import * as z from "zod";
-import {
-  StudioInterventionsEvidenceResponseSchema,
-  StudioMethodsResponseSchema,
-  StudioRouteDetailResponseSchema,
-  StudioRouteEvidenceBundleSchema,
-  StudioRouteHourlyProfileResponseSchema,
-  type StudioRouteIndex2Response,
-  StudioRouteIndex2ResponseSchema,
-  StudioRouteSpeedHistoryResponseSchema,
-  StudioRoutesResponseSchema,
+import type {
+  StudioInterventionsEvidenceResponse,
+  StudioMethodsResponse,
+  StudioRouteDetailResponse,
+  StudioRouteEvidenceBundle,
+  StudioRouteHourlyProfileResponse,
+  StudioRouteIndex2Response,
+  StudioRouteSpeedHistoryResponse,
+  StudioRoutesResponse,
 } from "./api-contract.js";
 
 type StudioApiErrorBody = {
@@ -60,20 +58,10 @@ export class StudioApiError extends Error {
   }
 }
 
-export class StudioApiContractError extends Error {
-  override readonly name = "StudioApiContractError";
-  readonly path: string;
-
-  constructor(path: string, cause: unknown) {
-    super(`Studio API response failed contract validation: ${path}`);
-    this.path = path;
-    this.cause = cause;
-  }
-}
-
 async function readErrorBody(response: Response): Promise<StudioApiErrorBody | null> {
   try {
-    return (await response.json()) as StudioApiErrorBody;
+    const body: StudioApiErrorBody = await response.json();
+    return body;
   } catch {
     return null;
   }
@@ -89,11 +77,7 @@ async function apiError(response: Response, path: string): Promise<StudioApiErro
   });
 }
 
-async function loadStudioJson<TSchema extends z.ZodType>(
-  path: string,
-  schema: TSchema,
-  options: StudioQueryOptions = {},
-): Promise<z.output<TSchema>> {
+async function loadStudioJson<T>(path: string, options: StudioQueryOptions = {}): Promise<T> {
   const response = await fetch(path, {
     credentials: "same-origin",
     headers: {
@@ -106,19 +90,14 @@ async function loadStudioJson<TSchema extends z.ZodType>(
     throw await apiError(response, path);
   }
 
-  const parsed = schema.safeParse(await response.json());
-  if (!parsed.success) {
-    throw new StudioApiContractError(path, parsed.error);
-  }
-
-  return parsed.data;
+  const body: T = await response.json();
+  return body;
 }
 
-async function loadNullableStudioJson<TSchema extends z.ZodType>(
+async function loadNullableStudioJson<T>(
   path: string,
-  schema: TSchema,
   options: StudioQueryOptions = {},
-): Promise<z.output<TSchema> | null> {
+): Promise<T | null> {
   const response = await fetch(path, {
     credentials: "same-origin",
     headers: {
@@ -135,30 +114,24 @@ async function loadNullableStudioJson<TSchema extends z.ZodType>(
     throw await apiError(response, path);
   }
 
-  const parsed = schema.safeParse(await response.json());
-  if (!parsed.success) {
-    throw new StudioApiContractError(path, parsed.error);
-  }
-
-  return parsed.data;
+  const body: T = await response.json();
+  return body;
 }
 
 export function fetchStudioRoutes(options?: StudioQueryOptions) {
-  return loadStudioJson(studioPath("studio.routes"), StudioRoutesResponseSchema, options);
+  return loadStudioJson<StudioRoutesResponse>(studioPath("studio.routes"), options);
 }
 
 export function fetchStudioRouteIndex(options?: StudioQueryOptions) {
-  return loadStudioJson(
+  return loadStudioJson<StudioRouteIndex2Response>(
     `${studioPath("studio.routes")}?schema=2`,
-    StudioRouteIndex2ResponseSchema,
     options,
   );
 }
 
 export function fetchStudioInterventionsEvidence(options?: StudioQueryOptions) {
-  return loadStudioJson(
+  return loadStudioJson<StudioInterventionsEvidenceResponse>(
     studioPath("studio.interventionsEvidence"),
-    StudioInterventionsEvidenceResponseSchema,
     options,
   );
 }
@@ -174,98 +147,85 @@ export function timelineEvidenceRouteSlugs(routeIndex: StudioRouteIndex2Response
 }
 
 export function fetchStudioRoute(routeId: string, options?: StudioQueryOptions) {
-  return loadNullableStudioJson(
+  return loadNullableStudioJson<StudioRouteDetailResponse>(
     studioPath("studio.route", { params: { routeId } }),
-    StudioRouteDetailResponseSchema,
     options,
   );
 }
 
 export function fetchStudioRouteSpeedHistory(routeId: string, options?: StudioQueryOptions) {
-  return loadNullableStudioJson(
+  return loadNullableStudioJson<StudioRouteSpeedHistoryResponse>(
     studioPath("studio.routeSpeedHistory", { params: { routeId } }),
-    StudioRouteSpeedHistoryResponseSchema,
     options,
   );
 }
 
 export function fetchStudioRouteHourlyProfile(routeId: string, options?: StudioQueryOptions) {
-  return loadNullableStudioJson(
+  return loadNullableStudioJson<StudioRouteHourlyProfileResponse>(
     studioPath("studio.routeHourlyProfile", { params: { routeId } }),
-    StudioRouteHourlyProfileResponseSchema,
     options,
   );
 }
 
 export function fetchStudioRouteEvidence(routeId: string, options?: StudioQueryOptions) {
-  return loadNullableStudioJson(
+  return loadNullableStudioJson<StudioRouteEvidenceBundle>(
     studioPath("studio.routeTimeline", { params: { routeId } }),
-    StudioRouteEvidenceBundleSchema,
     options,
   );
 }
 
 export function fetchStudioMethods(options?: StudioQueryOptions) {
-  return loadStudioJson(studioPath("studio.methods"), StudioMethodsResponseSchema, options);
+  return loadStudioJson<StudioMethodsResponse>(studioPath("studio.methods"), options);
 }
 
-const MapContextCollectionSchema = z.object({
-  features: z.array(
-    z.object({
-      geometry: z.object({
-        type: z.literal("MultiPolygon"),
-        coordinates: z.array(z.array(z.array(z.array(z.number()).length(2)))),
-      }),
-    }),
-  ),
-});
+export type MapContextCollection = {
+  features: Array<{
+    geometry: {
+      type: "MultiPolygon";
+      coordinates: number[][][][];
+    };
+  }>;
+};
 
 const MAP_CONTEXT_PATH = "/api/v1/artifacts/map/context/nyc-boroughs.min.geojson";
 
 /** NYC borough shoreline polygons used as the route map's land/water context. */
 export function fetchMapContext(options?: StudioQueryOptions) {
-  return loadNullableStudioJson(MAP_CONTEXT_PATH, MapContextCollectionSchema, options);
+  return loadNullableStudioJson<MapContextCollection>(MAP_CONTEXT_PATH, options);
 }
 
-const NetworkMapFeatureCollectionSchema = z.object({
-  type: z.literal("FeatureCollection"),
-  features: z.array(
-    z.object({
-      type: z.literal("Feature"),
-      id: z.string(),
-      geometry: z.object({
-        type: z.literal("MultiLineString"),
-        coordinates: z.array(z.array(z.tuple([z.number(), z.number()]))),
-      }),
-      properties: z.object({
-        routeId: z.string(),
-        label: z.string(),
-        borough: z.string(),
-        sbs: z.boolean(),
-        scheduledMph: z.number(),
-        currentMph: z.number(),
-        trend6mPct: z.number().nullable(),
-        dailyRiders: z.number(),
-        riderHoursLost: z.number().nullable(),
-        laneCoverage: z.number(),
-        ace: z.boolean(),
-        hotspotCount: z.number(),
-        segmentCount: z.number(),
-        hours: z.array(z.number()).length(24),
-      }),
-    }),
-  ),
-});
+export type NetworkMapFeature = {
+  type: "Feature";
+  id: string;
+  geometry: {
+    type: "MultiLineString";
+    coordinates: Array<Array<[number, number]>>;
+  };
+  properties: {
+    routeId: string;
+    label: string;
+    borough: string;
+    sbs: boolean;
+    scheduledMph: number;
+    currentMph: number;
+    trend6mPct: number | null;
+    dailyRiders: number;
+    riderHoursLost: number | null;
+    laneCoverage: number;
+    ace: boolean;
+    hotspotCount: number;
+    segmentCount: number;
+    hours: number[];
+  };
+};
 
-export type NetworkMapFeatureCollection = z.output<typeof NetworkMapFeatureCollectionSchema>;
-export type NetworkMapFeature = NetworkMapFeatureCollection["features"][number];
+export type NetworkMapFeatureCollection = {
+  type: "FeatureCollection";
+  features: NetworkMapFeature[];
+};
 
 async function fetchMapManifest(options?: StudioQueryOptions) {
-  return loadNullableStudioJson(
-    studioPath("public.mapManifest"),
-    MapManifestResponseSchema,
-    options,
-  );
+  return loadNullableStudioJson<MapManifestResponse>(studioPath("public.mapManifest"), options);
 }
 
 /** Fetch the precomputed route-segment GeoJSON for one route, via the map manifest. */
@@ -277,7 +237,7 @@ export async function fetchRouteSegmentsGeo(routeId: string, options?: StudioQue
       artifact.artifactKind === "map_route_segments_geojson" && artifact.routeId === routeId,
   );
   if (entry === undefined) return null;
-  return loadNullableStudioJson(entry.apiPath, MapRouteSegmentFeatureCollectionSchema, options);
+  return loadNullableStudioJson<MapRouteSegmentFeatureCollection>(entry.apiPath, options);
 }
 
 /** Fetch the citywide simplified network GeoJSON discovered through the map manifest. */
@@ -288,5 +248,5 @@ export async function fetchNetworkMapGeo(options?: StudioQueryOptions) {
     (artifact) => artifact.artifactKind === "map_network_simplified_geojson",
   );
   if (entry === undefined) return null;
-  return loadNullableStudioJson(entry.apiPath, NetworkMapFeatureCollectionSchema, options);
+  return loadNullableStudioJson<NetworkMapFeatureCollection>(entry.apiPath, options);
 }

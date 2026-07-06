@@ -79,6 +79,15 @@ describe("RouteDetailShell section render contract", () => {
     }
   });
 
+  test("keeps only the slim section nav sticky inside the route scroller", () => {
+    const richHtml = renderShell(rich);
+
+    expect(richHtml).toContain('id="route-section-overview"');
+    expect(richHtml).toContain("h-full min-h-0 overflow-auto");
+    expect(richHtml).toContain("sticky top-0 z-10");
+    expect(richHtml).toContain("scroll-mt-16");
+  });
+
   test("renders badges only for visible sections", () => {
     const sparseHtml = renderShell(sparse);
 

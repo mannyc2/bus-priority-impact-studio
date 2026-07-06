@@ -69,7 +69,8 @@ export function speedTier(speedMph: number): "bad" | "warn" | "good" {
   return "good";
 }
 
-export function segmentSpeedAtHour(segment: StudioSegment, hour: number): number {
+export function segmentSpeedAtHour(segment: StudioSegment, hour: number): number | null {
+  if (segment.scheduledMph === null) return null;
   const severity = segment.hours[hour] ?? 0;
   return Math.max(2, segment.scheduledMph - severity * 4.2);
 }
@@ -78,13 +79,16 @@ export function routeAverageSpeedAtHour(
   route: StudioRoute,
   segments: readonly StudioSegment[],
   hour: number,
-): number {
+): number | null {
+  if (route.scheduledMph === null) return null;
   if (segments.length === 0) return route.weightedAvgSpeed;
   let weighted = 0;
   let totalWeight = 0;
   for (const segment of segments) {
+    const speed = segmentSpeedAtHour(segment, hour);
+    if (speed === null) continue;
     const weight = Math.max(1, segment.riderHours);
-    weighted += segmentSpeedAtHour(segment, hour) * weight;
+    weighted += speed * weight;
     totalWeight += weight;
   }
   return totalWeight > 0 ? weighted / totalWeight : route.weightedAvgSpeed;

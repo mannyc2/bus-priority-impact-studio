@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../schema-compat.js";
 
 /**
  * The route capability manifest (frontend §7.1 / hard-cutover C1).

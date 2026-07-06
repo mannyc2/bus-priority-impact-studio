@@ -1,0 +1,196 @@
+/* Thematics Design System — Colors & Type
+ * Light-first. Editorial. Hyperlink-blue primary.
+ *
+ * Drop this <link>/import into any HTML artifact and you'll get tokens
+ * + semantic type classes. Body baseline (Source Serif 4 / IBM Plex Sans
+ * / IBM Plex Mono) is set on html/body at the end.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ── Surfaces ─────────────────────────────────────────────── */
+  --background:           #FFFFFF;             /* paper */
+  --surface:              #FAFAF9;             /* faint warm off-white — cards, panels */
+  --surface-2:            #F4F4F2;             /* deeper neutral — wells, code, input bg */
+  --surface-3:            #ECEBE7;             /* hover on light, dividers on surface */
+  --panel:                var(--surface);
+  --popover:              var(--background);
+
+  /* ── Ink / text ───────────────────────────────────────────── */
+  --foreground:           #0A0A0B;             /* near-black, slight warm */
+  --foreground-strong:    #000000;             /* reserved: wordmark, oversized display */
+  --muted-foreground:     #6B6B6F;             /* secondary text, metadata */
+  --subtle-foreground:    #9A9A9D;             /* tertiary, placeholders */
+  --on-primary:           #FFFFFF;             /* text on primary */
+
+  /* ── Primary: hyperlink blue ──────────────────────────────── */
+  --primary:              #1457E6;
+  --primary-hover:        #0E47C9;             /* press / active */
+  --primary-soft:         #E6EEFD;             /* primary at ~10% on white — selection, soft chips */
+  --primary-soft-border:  #C8D8FA;
+  --primary-foreground:   #FFFFFF;
+  --link:                 var(--primary);
+  --ring:                 rgb(20 87 230 / 35%);
+
+  /* ── Borders & lines ──────────────────────────────────────── */
+  --border:               #E7E5E4;             /* hairlines */
+  --border-strong:        #D6D3D1;             /* emphasized hairlines, inputs */
+  --input:                var(--border-strong);
+  --divider:              #EFEDEB;             /* very low-contrast subdivision */
+
+  /* ── Status (utility — not for chrome) ────────────────────── */
+  --success:              oklch(0.55 0.13 158);
+  --success-soft:         oklch(0.96 0.04 158);
+  --caution:              oklch(0.66 0.15 75);
+  --caution-soft:         oklch(0.97 0.05 80);
+  --danger:               oklch(0.55 0.20 25);
+  --danger-soft:          oklch(0.96 0.04 25);
+
+  /* ── Subject tags (theme-coded; muted ink, soft fill) ─────── */
+  /* Five colors. Choose by theme; never by hierarchy. */
+  --tag-amber-ink:        #8C6E2D;
+  --tag-amber-soft:       #FBF3E0;
+  --tag-emerald-ink:      #1F7A55;
+  --tag-emerald-soft:     #E6F4ED;
+  --tag-crimson-ink:      #B83A4F;
+  --tag-crimson-soft:     #FBE8EC;
+  --tag-violet-ink:       #6B4FB8;
+  --tag-violet-soft:      #EEEAFA;
+  --tag-ocean-ink:        #2A6EA8;
+  --tag-ocean-soft:       #E4EFF8;
+
+  /* ── Categorical ramps (for inline primitives: charts, diagrams, maps) ─
+   * Six hues × five stops. Choose hue by meaning, not order.
+   * Stop usage:
+   *   50  — page-level soft background (chart fills, choropleth lightest)
+   *   100 — chip background, faint fill
+   *   200 — border, dashed line, grid emphasis
+   *   500 — chart series mid-tone (bars, lines, scatter marks)
+   *   800 — text on a 50/100 fill, strong solid fill
+   * Defaults: violet → emerald → amber → crimson → ocean → slate.
+   * Reserve --primary blue for links/CTAs/focus only; do not use it
+   * as a chart series unless the data IS a hyperlink density measure.
+   */
+  --ramp-violet-50:       #F5F2FC;
+  --ramp-violet-100:      #EEEAFA;
+  --ramp-violet-200:      #D6CBF1;
+  --ramp-violet-500:      #8D72D6;
+  --ramp-violet-800:      #6B4FB8;
+
+  --ramp-emerald-50:      #F0F8F3;
+  --ramp-emerald-100:     #E6F4ED;
+  --ramp-emerald-200:     #C2E2D2;
+  --ramp-emerald-500:     #4FA177;
+  --ramp-emerald-800:     #1F7A55;
+
+  --ramp-amber-50:        #FDF8EC;
+  --ramp-amber-100:       #FBF3E0;
+  --ramp-amber-200:       #F1DFAA;
+  --ramp-amber-500:       #B89557;
+  --ramp-amber-800:       #8C6E2D;
+
+  --ramp-crimson-50:      #FCEFF2;
+  --ramp-crimson-100:     #FBE8EC;
+  --ramp-crimson-200:     #F2C7CF;
+  --ramp-crimson-500:     #D8657A;
+  --ramp-crimson-800:     #B83A4F;
+
+  --ramp-ocean-50:        #EEF5FB;
+  --ramp-ocean-100:       #E4EFF8;
+  --ramp-ocean-200:       #C0DAEE;
+  --ramp-ocean-500:       #5391C6;
+  --ramp-ocean-800:       #2A6EA8;
+
+  --ramp-slate-50:        #F5F5F4;
+  --ramp-slate-100:       #EBEAE7;
+  --ramp-slate-200:       #D6D3CE;
+  --ramp-slate-500:       #807D78;
+  --ramp-slate-800:       #4F4D49;
+
+  /* ── Radii ────────────────────────────────────────────────── */
+  --radius:               8px;                 /* base — buttons, inputs */
+  --radius-sm:            4px;                 /* tags, dividers */
+  --radius-md:            6px;
+  --radius-lg:            8px;
+  --radius-xl:            12px;                /* cards */
+  --radius-2xl:           16px;                /* surfaces, sheets */
+  --radius-pill:          999px;
+
+  /* ── Spacing scale (4px grid) ─────────────────────────────── */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-5: 20px; --space-6: 24px;
+  --space-8: 32px; --space-10: 40px; --space-12: 48px;
+  --space-16: 64px; --space-20: 80px; --space-24: 96px;
+
+  /* ── Shadows (used sparingly — depth comes from hairlines) ── */
+  --shadow-1:             0 1px 2px rgb(10 10 11 / 0.04);
+  --shadow-2:             0 4px 14px -4px rgb(10 10 11 / 0.08), 0 2px 4px -2px rgb(10 10 11 / 0.04);
+  --shadow-3:             0 12px 32px -8px rgb(10 10 11 / 0.12), 0 4px 8px -4px rgb(10 10 11 / 0.06);
+  --shadow-focus:         0 0 0 3px var(--ring);
+
+  /* ── Typography ───────────────────────────────────────────── */
+  --font-serif:           'Source Serif 4', 'Iowan Old Style', 'Georgia', serif;
+  --font-sans:            'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:            'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Reading column widths */
+  --measure-narrow:       560px;
+  --measure-body:         680px;
+  --measure-wide:         880px;
+
+  /* Layout caps */
+  --width-shell:          1280px;
+  --width-page:           1080px;
+  --width-reader:         720px;
+}
+
+/* ── Semantic type styles ──────────────────────────────────── */
+/* Display + headings: SERIF (editorial)                       */
+.display    { font: 600 56px/1.05 var(--font-serif); letter-spacing: -0.02em; color: var(--foreground); font-optical-sizing: auto; }
+.h1, h1     { font: 600 40px/1.1  var(--font-serif); letter-spacing: -0.018em; color: var(--foreground); font-optical-sizing: auto; }
+.h2, h2     { font: 600 28px/1.18 var(--font-serif); letter-spacing: -0.012em; color: var(--foreground); }
+.h3, h3     { font: 600 22px/1.25 var(--font-serif); letter-spacing: -0.008em; color: var(--foreground); }
+.h4, h4     { font: 600 17px/1.35 var(--font-sans);  color: var(--foreground); }
+
+/* Body: SERIF for reading, SANS for UI/chrome              */
+.prose      { font: 400 18px/1.6  var(--font-serif); color: var(--foreground); font-optical-sizing: auto; }
+.prose-sm   { font: 400 16px/1.65 var(--font-serif); color: var(--foreground); }
+.body       { font: 400 14px/1.5  var(--font-sans);  color: var(--foreground); }
+.body-lg    { font: 400 16px/1.55 var(--font-sans);  color: var(--foreground); }
+.caption    { font: 500 12px/1.4  var(--font-sans);  color: var(--muted-foreground); }
+.mono       { font: 400 13px/1.45 var(--font-mono);  color: var(--foreground); }
+.lede       { font: 400 20px/1.5  var(--font-serif); color: color-mix(in oklab, var(--foreground) 88%, transparent); font-style: italic; }
+
+/* ─────────────────────────────────────────────────────────────
+ * Banned patterns — do not add classes for these.
+ *   • Uppercase-mono "overlines" (LAST EDITED · 14 BACKLINKS).
+ *   • Mono-num metadata chains (1,247 entries · 14 backlinks · 2026-03-14).
+ *   • Ghost buttons.
+ * If a label is genuinely needed, use sentence-case sans at .caption.
+ * Citations: name the source (and its mark, if you have one).
+ * See README §Anti-patterns.
+ * ───────────────────────────────────────────────────────────── */
+
+/* Links — knowledge-base default. Subtle underline, primary on hover. */
+.link, a.link {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--primary) 35%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color 120ms ease, text-decoration-color 120ms ease;
+}
+.link:hover { color: var(--primary); text-decoration-color: var(--primary); }
+
+/* Internal vs external link decoration is a chrome decision, not type */
+
+/* ── Baseline reset ───────────────────────────────────────── */
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+*::selection { background: var(--primary-soft); color: var(--foreground); }

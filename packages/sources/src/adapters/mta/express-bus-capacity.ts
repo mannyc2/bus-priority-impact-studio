@@ -1,5 +1,5 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
@@ -55,7 +55,7 @@ export function normalizeExpressBusCapacityRows(
       weekStartDate: weekStartDate(parsed.week),
       dayType: parsed.day_type,
       borough: parsed.borough,
-      routeId: z.decode(RouteIdCodec, parsed.route),
+      routeId: RouteIdCodec.parse(parsed.route),
       direction: parsed.direction,
       hourOfDay: parsed.hour,
       loadPercentage: parsed.load_percentage,

@@ -1,0 +1,65 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background)}
+  .figure{max-width:680px}
+  .legend{display:flex;flex-wrap:wrap;gap:18px;font:400 13px var(--font-sans);color:var(--muted-foreground);margin:0 0 14px}
+  .legend span{display:inline-flex;align-items:center;gap:8px}
+  .legend i{width:14px;height:10px;display:inline-block;border-radius:2px}
+  .legend b{color:var(--foreground);font-weight:500}
+  figcaption{font:italic 400 14px/1.5 var(--font-serif);color:var(--muted-foreground);margin-top:14px;max-width:560px}
+</style></head><body>
+<figure class="figure" style="margin:0">
+  <div class="legend">
+    <span><i style="background:#1F7A55"></i>Accepted — <b>62%</b></span>
+    <span><i style="background:#F1DFAA;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,#B89557 4px,#B89557 5px)"></i>Revised — <b>28%</b></span>
+    <span><i style="background:#B83A4F"></i>Declined — <b>10%</b></span>
+  </div>
+  <div style="position:relative;width:100%;height:300px">
+    <canvas id="chart" role="img" aria-label="Stacked horizontal bar chart showing editor decision outcomes across the seven themes of Thematics. Accepted, revised, and declined drafts as a share of all submissions.">
+      Across seven themes, between 50% and 75% of drafts are accepted on first review. Revised drafts (returning to author) range from 18% to 40%. Declined rates stay between 5% and 14%.
+    </canvas>
+  </div>
+  <figcaption>Editor decisions across seven themes. Stacked horizontals, two visual cues per series — colour plus a 45° hatch on revised. Source: editorial log, 2024 – 2026.</figcaption>
+</figure>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  Chart.defaults.font.family = 'IBM Plex Sans, system-ui, sans-serif';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = '#6B6B6F';
+  Chart.defaults.borderColor = 'rgba(10,10,11,0.06)';
+
+  const hatch = (() => {
+    const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#F1DFAA'; ctx.fillRect(0,0,8,8);
+    ctx.strokeStyle = '#B89557'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(0,8); ctx.lineTo(8,0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-2,2); ctx.lineTo(2,-2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6,10); ctx.lineTo(10,6); ctx.stroke();
+    return ctx.createPattern(c, 'repeat');
+  })();
+
+  const themes = ['Architecture history','Botany','Cinema','Cartography','Philosophy','Typography','Linguistics'];
+
+  new Chart(document.getElementById('chart'), {
+    type: 'bar',
+    data: {
+      labels: themes,
+      datasets: [
+        { label:'Accepted', data:[62,55,71,48,68,75,58], backgroundColor:'#1F7A55', borderWidth:0 },
+        { label:'Revised',  data:[28,32,21,40,22,18,30], backgroundColor: hatch, borderColor:'#B89557', borderWidth:1 },
+        { label:'Declined', data:[10,13, 8,12,10, 7,12], backgroundColor:'#B83A4F', borderWidth:0 },
+      ]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor:'#0A0A0B', padding:8 } },
+      scales: {
+        x: { stacked: true, max: 100, grid: { color: 'rgba(10,10,11,0.06)' }, ticks: { callback:(v)=>v+'%' } },
+        y: { stacked: true, grid: { display: false } }
+      }
+    }
+  });
+</script>
+</body></html>

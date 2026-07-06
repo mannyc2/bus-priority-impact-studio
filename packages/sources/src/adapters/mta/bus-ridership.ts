@@ -1,5 +1,5 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { IsoMonthStringSchema, isoMonth, schemaVersion } from "../../core/index.js";
 
@@ -41,7 +41,7 @@ export function normalizeHourlyRidershipRows(
 
     return {
       schemaVersion,
-      routeId: z.decode(RouteIdCodec, args.routeId),
+      routeId: RouteIdCodec.parse(args.routeId),
       isoMonth: isoMonth(args.year, args.month),
       dayOfWeek,
       hourOfDay: parsed.hour_of_day,

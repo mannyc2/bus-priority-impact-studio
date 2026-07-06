@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
@@ -73,24 +73,24 @@ export function normalizeNypdCollisionRows(rows: SocrataRow[]): NormalizedNypdCo
         schemaVersion,
         collisionId: p.collision_id,
         crashDate: p.crash_date.slice(0, 10),
-        crashTime: p.crash_time,
-        borough: p.borough,
-        zipCode: p.zip_code,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        onStreetName: p.on_street_name,
-        offStreetName: p.off_street_name,
-        crossStreetName: p.cross_street_name,
-        personsInjured: p.number_of_persons_injured,
-        personsKilled: p.number_of_persons_killed,
-        pedestriansInjured: p.number_of_pedestrians_injured,
-        pedestriansKilled: p.number_of_pedestrians_killed,
-        cyclistInjured: p.number_of_cyclist_injured,
-        cyclistKilled: p.number_of_cyclist_killed,
-        motoristInjured: p.number_of_motorist_injured,
-        motoristKilled: p.number_of_motorist_killed,
-        contributingFactorVehicle1: p.contributing_factor_vehicle_1,
-        contributingFactorVehicle2: p.contributing_factor_vehicle_2,
+        crashTime: p.crash_time ?? null,
+        borough: p.borough ?? null,
+        zipCode: p.zip_code ?? null,
+        latitude: p.latitude ?? null,
+        longitude: p.longitude ?? null,
+        onStreetName: p.on_street_name ?? null,
+        offStreetName: p.off_street_name ?? null,
+        crossStreetName: p.cross_street_name ?? null,
+        personsInjured: p.number_of_persons_injured ?? null,
+        personsKilled: p.number_of_persons_killed ?? null,
+        pedestriansInjured: p.number_of_pedestrians_injured ?? null,
+        pedestriansKilled: p.number_of_pedestrians_killed ?? null,
+        cyclistInjured: p.number_of_cyclist_injured ?? null,
+        cyclistKilled: p.number_of_cyclist_killed ?? null,
+        motoristInjured: p.number_of_motorist_injured ?? null,
+        motoristKilled: p.number_of_motorist_killed ?? null,
+        contributingFactorVehicle1: p.contributing_factor_vehicle_1 ?? null,
+        contributingFactorVehicle2: p.contributing_factor_vehicle_2 ?? null,
       } satisfies NormalizedNypdCollision;
     })
     .sort((a, b) => a.collisionId.localeCompare(b.collisionId));

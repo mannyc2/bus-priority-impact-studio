@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { fetchWithSocrataAppToken } from "../../lib/socrata-token.ts";

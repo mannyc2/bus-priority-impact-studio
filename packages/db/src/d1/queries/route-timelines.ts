@@ -1,45 +1,16 @@
 import { and, asc, eq } from "drizzle-orm";
-import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { routeTimelineIndex } from "../schema.js";
-import { IsoMonthSchema } from "./shared.js";
+import { parseJsonArray, parseJsonStringArray } from "./shared.js";
 
-const RouteTimelineSupportLevelSchema = z.enum([
+const routeTimelineSupportLevels = [
   "timeline_ready",
   "timeline_sparse",
   "timeline_review_only",
   "invalid",
-]);
+] as const;
 
-const RouteTimelineIndexRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    month: IsoMonthSchema,
-    support_level: RouteTimelineSupportLevelSchema,
-    quality_flags_json: z.string(),
-    default_event_count: z.number().int().nonnegative(),
-    secondary_event_count: z.number().int().nonnegative(),
-    review_only_event_count: z.number().int().nonnegative(),
-    event_count: z.number().int().nonnegative(),
-    source_backed_event_count: z.number().int().nonnegative(),
-    date_assertion_backed_event_count: z.number().int().nonnegative(),
-    unresolved_date_event_count: z.number().int().nonnegative(),
-    low_confidence_event_count: z.number().int().nonnegative(),
-    unaccounted_candidate_count: z.number().int().nonnegative(),
-    validation_error_count: z.number().int().nonnegative(),
-    validation_warning_count: z.number().int().nonnegative(),
-    total_tokens: z.number().int().nonnegative().nullable(),
-    default_events_json: z.string(),
-    bundle_artifact_key: z.string().min(1),
-    bundle_artifact_sha256: z.string().length(64),
-    bundle_artifact_byte_length: z.number().int().nonnegative(),
-    source_bundle_path: z.string().min(1),
-    generated_at: z.string().min(1),
-  })
-  .strict();
-
-export type RouteTimelineSupportLevel = z.output<typeof RouteTimelineSupportLevelSchema>;
-export type RouteTimelineIndexRow = z.output<typeof RouteTimelineIndexRowSchema>;
+export type RouteTimelineSupportLevel = (typeof routeTimelineSupportLevels)[number];
 
 export type RouteTimelineIndex = {
   routeId: string;
@@ -66,28 +37,32 @@ export type RouteTimelineIndex = {
   generatedAt: string;
 };
 
-function parseStringArrayJson(value: string, fieldName: string): string[] {
-  try {
-    return z.array(z.string()).parse(JSON.parse(value));
-  } catch (error) {
-    throw new Error(`Invalid ${fieldName} JSON in route_timeline_index: ${String(error)}`);
-  }
+function logInvalidTimelineJson(row: RouteTimelineIndexRow, fieldName: string): void {
+  console.error("Skipping route_timeline_index row with invalid JSON.", {
+    routeId: row.route_id,
+    month: row.month,
+    fieldName,
+  });
 }
 
-function parseArrayJson(value: string, fieldName: string): unknown[] {
-  try {
-    return z.array(z.unknown()).parse(JSON.parse(value));
-  } catch (error) {
-    throw new Error(`Invalid ${fieldName} JSON in route_timeline_index: ${String(error)}`);
+function toRouteTimelineIndex(row: RouteTimelineIndexRow): RouteTimelineIndex | null {
+  const qualityFlags = parseJsonStringArray(row.quality_flags_json);
+  if (qualityFlags === null) {
+    logInvalidTimelineJson(row, "quality_flags_json");
+    return null;
   }
-}
 
-function toRouteTimelineIndex(row: RouteTimelineIndexRow): RouteTimelineIndex {
+  const defaultEvents = parseJsonArray(row.default_events_json);
+  if (defaultEvents === null) {
+    logInvalidTimelineJson(row, "default_events_json");
+    return null;
+  }
+
   return {
     routeId: row.route_id,
     month: row.month,
     supportLevel: row.support_level,
-    qualityFlags: parseStringArrayJson(row.quality_flags_json, "quality_flags_json"),
+    qualityFlags,
     defaultEventCount: row.default_event_count,
     secondaryEventCount: row.secondary_event_count,
     reviewOnlyEventCount: row.review_only_event_count,
@@ -100,7 +75,7 @@ function toRouteTimelineIndex(row: RouteTimelineIndexRow): RouteTimelineIndex {
     validationErrorCount: row.validation_error_count,
     validationWarningCount: row.validation_warning_count,
     totalTokens: row.total_tokens,
-    defaultEvents: parseArrayJson(row.default_events_json, "default_events_json"),
+    defaultEvents,
     bundleArtifactKey: row.bundle_artifact_key,
     bundleArtifactSha256: row.bundle_artifact_sha256,
     bundleArtifactByteLength: row.bundle_artifact_byte_length,
@@ -134,29 +109,43 @@ const routeTimelineIndexSelect = {
   generated_at: routeTimelineIndex.generatedAt,
 };
 
+async function selectRouteTimelineIndexRow(db: D1ServingDb, routeId: string, month: string) {
+  return db
+    .select(routeTimelineIndexSelect)
+    .from(routeTimelineIndex)
+    .where(and(eq(routeTimelineIndex.routeId, routeId), eq(routeTimelineIndex.month, month)))
+    .limit(1);
+}
+
+async function selectRouteTimelineIndexRows(db: D1ServingDb, month: string) {
+  return db
+    .select(routeTimelineIndexSelect)
+    .from(routeTimelineIndex)
+    .where(eq(routeTimelineIndex.month, month))
+    .orderBy(asc(routeTimelineIndex.routeId));
+}
+
+export type RouteTimelineIndexRow = Awaited<
+  ReturnType<typeof selectRouteTimelineIndexRows>
+>[number];
+
 export async function getRouteTimelineIndex(
   db: D1ServingDb,
   routeId: string,
   month: string,
 ): Promise<RouteTimelineIndex | null> {
-  const rows = await db
-    .select(routeTimelineIndexSelect)
-    .from(routeTimelineIndex)
-    .where(and(eq(routeTimelineIndex.routeId, routeId), eq(routeTimelineIndex.month, month)))
-    .limit(1);
+  const rows = await selectRouteTimelineIndexRow(db, routeId, month);
   const row = rows[0];
-  return row === undefined ? null : toRouteTimelineIndex(RouteTimelineIndexRowSchema.parse(row));
+  return row === undefined ? null : toRouteTimelineIndex(row);
 }
 
 export async function listRouteTimelineIndex(
   db: D1ServingDb,
   month: string,
 ): Promise<RouteTimelineIndex[]> {
-  const rows = await db
-    .select(routeTimelineIndexSelect)
-    .from(routeTimelineIndex)
-    .where(eq(routeTimelineIndex.month, month))
-    .orderBy(asc(routeTimelineIndex.routeId));
-
-  return rows.map((row) => toRouteTimelineIndex(RouteTimelineIndexRowSchema.parse(row)));
+  const rows = await selectRouteTimelineIndexRows(db, month);
+  return rows.flatMap((row) => {
+    const timeline = toRouteTimelineIndex(row);
+    return timeline === null ? [] : [timeline];
+  });
 }

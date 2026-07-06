@@ -1,12 +1,21 @@
 import type { SocrataManifestSource } from "@bp/sources/registry";
-import { querySoda3Rows } from "@nyc-transit-kit/compat/soda3";
-import { runPipelineHttpPromise } from "../effect/http.ts";
-import { fetchWithSocrataAppToken, type SocrataFetch } from "./socrata-token.ts";
+import {
+  type FetchImplementation,
+  queryAllRows,
+  queryRows,
+  type Soda3ClientConfig,
+  soda3ConfigLayer,
+  soda3FetchLayer,
+} from "@nyc-transit-kit/soda3/client";
+import type { Soda3ClientError } from "@nyc-transit-kit/soda3/errors";
+import { Effect, Layer, Schedule } from "effect";
+import { HttpClient } from "effect/unstable/http";
+import { HttpRequestError, RateLimitError } from "../effect/errors.ts";
+import { runPipelineEffect } from "../effect/runtime.ts";
 
 const defaultPageSize = 5_000;
 
-export type { SocrataFetch } from "./socrata-token.ts";
-
+export type SocrataFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 export type SocrataRow = Readonly<Record<string, unknown>>;
 export type Soda3ExportFormat = "csv" | "json" | "geojson";
 
@@ -30,14 +39,56 @@ export type PipelineSoda3Client = {
 
 export type PipelineSoda3ClientOptions = {
   fetcher?: SocrataFetch | undefined;
+  appToken?: string | null | undefined;
   pageSize?: number | undefined;
   retryCount?: number | undefined;
   retryDelayMs?: number | undefined;
   timeoutMs?: number | undefined;
 };
 
-type FetchInput = Parameters<typeof fetch>[0];
-type FetchInit = Parameters<typeof fetch>[1];
+type PipelineSoda3Requirements = Soda3ClientConfig | HttpClient.HttpClient;
+type PipelineSoda3Error = HttpRequestError | RateLimitError;
+
+export function socrataAppTokenFromEnv(): string | null {
+  const token = process.env["SOCRATA_APP_TOKEN"]?.trim();
+  return token === undefined || token.length === 0 ? null : token;
+}
+
+function maxAttempts(options: PipelineSoda3ClientOptions): number {
+  return Math.max(1, Math.floor((options.retryCount ?? 0) + 1));
+}
+
+function retryingHttpClient(
+  baseClient: HttpClient.HttpClient,
+  options: PipelineSoda3ClientOptions,
+) {
+  const retries = Math.max(0, Math.floor(options.retryCount ?? 0));
+  if (retries === 0) {
+    return baseClient;
+  }
+
+  const baseDelayMs = Math.max(0, options.retryDelayMs ?? 1_000);
+  if (baseDelayMs === 0) {
+    return baseClient.pipe(
+      HttpClient.retryTransient({
+        retryOn: "errors-and-responses",
+        times: retries,
+      }),
+    );
+  }
+
+  const schedule = Schedule.exponential(baseDelayMs, 1.5).pipe(
+    Schedule.jittered,
+    Schedule.both(Schedule.recurs(retries)),
+    Schedule.map(() => undefined),
+  );
+  return baseClient.pipe(
+    HttpClient.retryTransient({
+      retryOn: "errors-and-responses",
+      schedule,
+    }),
+  );
+}
 
 function normalizeRequestBody(
   body: RequestInit["body"] | null | undefined,
@@ -54,20 +105,7 @@ function normalizeRequestBody(
   return body;
 }
 
-async function requestInitFromRequest(request: Request, init: FetchInit): Promise<RequestInit> {
-  const body = normalizeRequestBody(
-    init?.body ?? (request.body === null ? undefined : await request.clone().text()),
-  );
-  const baseInit: RequestInit = {
-    method: init?.method ?? request.method,
-    headers: init?.headers ?? request.headers,
-    signal: init?.signal ?? request.signal,
-  };
-
-  return body === undefined ? baseInit : { ...baseInit, body };
-}
-
-function requestInitWithNormalizedBody(init: FetchInit): RequestInit | undefined {
+function requestInitWithNormalizedBody(init: RequestInit | undefined): RequestInit | undefined {
   if (init === undefined) {
     return undefined;
   }
@@ -75,57 +113,95 @@ function requestInitWithNormalizedBody(init: FetchInit): RequestInit | undefined
   return body === undefined ? init : { ...init, body };
 }
 
-function fetchWithTimeout(fetcher: SocrataFetch, timeoutMs: number | undefined): SocrataFetch {
-  if (timeoutMs === undefined) {
-    return fetcher;
+function adaptFetchImplementation(
+  fetcher: SocrataFetch | undefined,
+): FetchImplementation | undefined {
+  if (fetcher === undefined) {
+    return undefined;
   }
 
   return (input, init) =>
-    fetcher(input, {
-      ...init,
-      signal: init?.signal ?? AbortSignal.timeout(timeoutMs),
-    });
+    input instanceof Request
+      ? fetcher(input.url, requestInitWithNormalizedBody(init))
+      : fetcher(input, requestInitWithNormalizedBody(init));
 }
 
-function fetchInputUrl(input: Parameters<SocrataFetch>[0]): string {
-  return typeof input === "string" ? input : input.toString();
-}
-
-function fetchWithPipelineHttpRetry(
-  source: SocrataManifestSource,
-  fetcher: SocrataFetch,
+function pipelineSoda3HttpLayer(
   options: PipelineSoda3ClientOptions,
-): SocrataFetch {
-  const maxAttempts = Math.max(1, Math.floor((options.retryCount ?? 0) + 1));
-  return (input, init) => {
-    const url = fetchInputUrl(input);
-    return runPipelineHttpPromise({
+): Layer.Layer<HttpClient.HttpClient> {
+  return Layer.effect(
+    HttpClient.HttpClient,
+    Effect.gen(function* () {
+      const baseClient = yield* HttpClient.HttpClient;
+      return retryingHttpClient(baseClient, options);
+    }),
+  ).pipe(Layer.provide(soda3FetchLayer(adaptFetchImplementation(options.fetcher))));
+}
+
+export function pipelineSoda3Layer(
+  options: PipelineSoda3ClientOptions = {},
+): Layer.Layer<PipelineSoda3Requirements> {
+  const appToken = options.appToken === undefined ? socrataAppTokenFromEnv() : options.appToken;
+  return Layer.mergeAll(
+    soda3ConfigLayer({
+      retryTimes: 0,
+      ...(appToken === null ? {} : { appToken }),
+      ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
+    }),
+    pipelineSoda3HttpLayer(options),
+  );
+}
+
+function soda3ClientStatus(error: Soda3ClientError): number {
+  return error._tag === "ProviderHttpError" ? error.status : 0;
+}
+
+function mapPipelineSoda3Error(
+  source: SocrataManifestSource,
+  url: string,
+  options: PipelineSoda3ClientOptions,
+  error: Soda3ClientError,
+): PipelineSoda3Error {
+  const attempts = maxAttempts(options);
+  const status = soda3ClientStatus(error);
+  if (status === 429) {
+    return RateLimitError.make({
       command: "soda3",
       operation: source.id,
       url,
-      maxAttempts,
-      retryDelayMs: options.retryDelayMs,
-      run: async () => {
-        const response = await fetcher(input, init);
-        if (response.status === 429 || response.status >= 500) {
-          await response.body?.cancel();
-          throw new Error(`HTTP ${response.status}`);
-        }
-        return response;
-      },
+      attempt: attempts,
+      maxAttempts: attempts,
+      status,
+      retryAfterMs: 0,
+      cause: error,
     });
-  };
+  }
+
+  return HttpRequestError.make({
+    command: "soda3",
+    operation: source.id,
+    url,
+    attempt: attempts,
+    maxAttempts: attempts,
+    status,
+    cause: error,
+  });
 }
 
-export function adaptSocrataFetch(fetcher: SocrataFetch): typeof fetch {
-  const compatFetch = async (input: FetchInput, init?: FetchInit) =>
-    input instanceof Request
-      ? fetcher(input.url, await requestInitFromRequest(input, init))
-      : fetcher(input, requestInitWithNormalizedBody(init));
+export function runPipelineSoda3Effect<A>(
+  source: SocrataManifestSource,
+  url: string,
+  effect: Effect.Effect<A, Soda3ClientError, PipelineSoda3Requirements>,
+  options: PipelineSoda3ClientOptions = {},
+): Promise<A> {
+  return runPipelineEffect(
+    effect.pipe(Effect.mapError((error) => mapPipelineSoda3Error(source, url, options, error))),
+    pipelineSoda3Layer(options),
+  );
+}
 
-  return Object.assign(compatFetch, {
-    preconnect: fetch.preconnect,
-  });
+export function soda3QueryUrl(domain: string, datasetId: string): URL {
+  return new URL(`/api/v3/views/${datasetId}/query.json`, `https://${domain}`);
 }
 
 export function soda3ExportUrl(domain: string, datasetId: string, format: Soda3ExportFormat): URL {
@@ -186,15 +262,10 @@ async function fetchRowsPage(
   options: PipelineSoda3ClientOptions,
   pageNumber: number,
 ): Promise<readonly SocrataRow[]> {
-  const compatFetch = adaptSocrataFetch(
-    fetchWithPipelineHttpRetry(
-      source,
-      fetchWithTimeout(fetchWithSocrataAppToken(options.fetcher), options.timeoutMs),
-      options,
-    ),
-  );
-  const response = await querySoda3Rows(
-    {
+  const response = await runPipelineSoda3Effect(
+    source,
+    soda3QueryUrl(source.domain, source.dataset_id).href,
+    queryRows({
       domain: source.domain,
       datasetId: source.dataset_id,
       query: soda3SoqlQueryText(query),
@@ -203,14 +274,30 @@ async function fetchRowsPage(
         pageSize: options.pageSize ?? defaultPageSize,
       },
       includeSynthetic: false,
-    },
-    {
-      fetch: compatFetch,
-      retryTimes: 0,
-    },
+    }),
+    options,
   );
 
   return response.rows;
+}
+
+function fetchAllRows(
+  source: SocrataManifestSource,
+  query: Soda3SoqlQuery,
+  options: PipelineSoda3ClientOptions,
+): Promise<readonly SocrataRow[]> {
+  return runPipelineSoda3Effect(
+    source,
+    soda3QueryUrl(source.domain, source.dataset_id).href,
+    queryAllRows({
+      domain: source.domain,
+      datasetId: source.dataset_id,
+      query: soda3SoqlQueryText(query),
+      pageSize: options.pageSize ?? defaultPageSize,
+      includeSynthetic: false,
+    }),
+    options,
+  );
 }
 
 export function createSoda3SourceClient(
@@ -223,17 +310,7 @@ export function createSoda3SourceClient(
         return fetchRowsPage(source, query, options, 1);
       }
 
-      const rows: SocrataRow[] = [];
-      const pageSize = options.pageSize ?? defaultPageSize;
-      let pageNumber = 1;
-      while (true) {
-        const page = await fetchRowsPage(source, query, options, pageNumber);
-        rows.push(...page);
-        if (page.length < pageSize) {
-          return rows;
-        }
-        pageNumber += 1;
-      }
+      return fetchAllRows(source, query, options);
     },
   };
 }

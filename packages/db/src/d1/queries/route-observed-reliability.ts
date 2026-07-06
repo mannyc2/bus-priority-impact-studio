@@ -1,39 +1,7 @@
 import { asc, desc, eq } from "drizzle-orm";
-import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { routeObservedReliabilitySummary } from "../schema.js";
-import { IsoMonthSchema } from "./shared.js";
 import { groupSourceStatuses, listRouteMonthSourceStatuses } from "./source-statuses.js";
-
-const RouteObservedReliabilitySummaryRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    month: IsoMonthSchema,
-    run_id: z.string().min(1),
-    reliability_status: z.enum(["observed", "insufficient_gtfs_rt_samples"]),
-    min_sample_threshold: z.number().int().nonnegative(),
-    sample_count: z.number().int().nonnegative(),
-    stop_count: z.number().int().nonnegative(),
-    direction_count: z.number().int().nonnegative(),
-    average_observed_headway_minutes: z.number().nonnegative().nullable(),
-    median_observed_headway_minutes: z.number().nonnegative().nullable(),
-    p90_observed_headway_minutes: z.number().nonnegative().nullable(),
-    max_observed_headway_minutes: z.number().nonnegative().nullable(),
-    scheduled_median_headway_minutes: z.number().nonnegative().nullable(),
-    bunching_threshold_minutes: z.number().nonnegative().nullable(),
-    long_gap_threshold_minutes: z.number().nonnegative().nullable(),
-    observed_bunching_share: z.number().nonnegative().nullable(),
-    observed_long_gap_share: z.number().nonnegative().nullable(),
-    expected_wait_minutes: z.number().nonnegative().nullable(),
-    scheduled_expected_wait_minutes: z.number().nonnegative().nullable(),
-    excess_wait_minutes: z.number().nullable(),
-    wait_reliability_ratio: z.number().nonnegative().nullable(),
-  })
-  .strict();
-
-export type RouteObservedReliabilitySummaryRow = z.output<
-  typeof RouteObservedReliabilitySummaryRowSchema
->;
 
 export type RouteObservedReliabilitySummary = {
   routeId: string;
@@ -72,7 +40,8 @@ function toRouteObservedReliabilitySummary(
     routeId: row.route_id,
     month: row.month,
     runId: row.run_id,
-    reliabilityStatus: row.reliability_status,
+    reliabilityStatus:
+      row.reliability_status as RouteObservedReliabilitySummary["reliabilityStatus"],
     minSampleThreshold: row.min_sample_threshold,
     sampleCount: row.sample_count,
     stopCount: row.stop_count,
@@ -98,7 +67,16 @@ export async function listRouteObservedReliabilitySummaries(
   db: D1ServingDb,
   month: string,
 ): Promise<RouteObservedReliabilitySummary[]> {
-  const rows = await db
+  const rows = await selectRouteObservedReliabilitySummaryRows(db, month);
+  const statuses = groupSourceStatuses(
+    await listRouteMonthSourceStatuses(db, month, "reliability"),
+  );
+
+  return rows.map((row) => toRouteObservedReliabilitySummary(row, statuses));
+}
+
+async function selectRouteObservedReliabilitySummaryRows(db: D1ServingDb, month: string) {
+  return db
     .select({
       route_id: routeObservedReliabilitySummary.routeId,
       month: routeObservedReliabilitySummary.month,
@@ -130,14 +108,11 @@ export async function listRouteObservedReliabilitySummaries(
       asc(routeObservedReliabilitySummary.routeId),
       asc(routeObservedReliabilitySummary.runId),
     );
-
-  const parsedRows = rows.map((row) => RouteObservedReliabilitySummaryRowSchema.parse(row));
-  const statuses = groupSourceStatuses(
-    await listRouteMonthSourceStatuses(db, month, "reliability"),
-  );
-
-  return parsedRows.map((row) => toRouteObservedReliabilitySummary(row, statuses));
 }
+
+export type RouteObservedReliabilitySummaryRow = Awaited<
+  ReturnType<typeof selectRouteObservedReliabilitySummaryRows>
+>[number];
 
 export async function findLatestNonBaselineObservedMonth(
   db: D1ServingDb,

@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../../schema-compat.js";
 
 /**
  * Operational-date assertions for Tier 2 document-derived events.

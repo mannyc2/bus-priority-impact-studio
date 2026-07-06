@@ -2,7 +2,7 @@
 title: Web API Endpoint Architecture
 type: engineering
 status: active
-last_updated: 2026-06-01
+last_updated: 2026-07-05
 owner: codex
 source_count: 0
 tags: [api, worker, frontend, d1, r2, contracts, studio]
@@ -66,7 +66,7 @@ projection-backed BFF:
 3. The publish step uploads those projections and referenced artifacts to R2 under versioned
    private keys.
 4. The Worker maps REST URLs to private projection keys, validates every response with the same
-   Zod contracts, and fails closed when a projection is missing or invalid.
+   Effect Schema contracts, and fails closed when a projection is missing or invalid.
 
 This keeps the API RESTful without forcing every request to join route summaries, route-slice
 artifacts, brief artifacts, finding metadata, and docs metadata at the edge. It also avoids leaking

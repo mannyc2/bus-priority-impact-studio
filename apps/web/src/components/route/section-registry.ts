@@ -29,8 +29,8 @@ export const ROUTE_SECTION_TITLES = {
 /** The route sections share one capability/honest-empty contract. */
 export const ROUTE_DETAIL_SECTIONS = [
   { value: "overview", label: ROUTE_SECTION_TITLES.overview },
-  { value: "map", label: ROUTE_SECTION_TITLES.map },
   { value: "where-when", label: ROUTE_SECTION_TITLES["where-when"] },
+  { value: "map", label: ROUTE_SECTION_TITLES.map },
   { value: "reliability", label: ROUTE_SECTION_TITLES.reliability },
   { value: "riders", label: ROUTE_SECTION_TITLES.riders },
   { value: "treatments", label: ROUTE_SECTION_TITLES.treatments },

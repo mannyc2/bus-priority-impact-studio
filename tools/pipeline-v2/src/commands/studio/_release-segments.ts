@@ -5,8 +5,7 @@ import {
   StudioAiPublicNoteSchema,
   type StudioRouteSegmentEvidence,
 } from "@bp/domain/studio/segment-evidence";
-import { complete } from "@earendil-works/pi-ai";
-import { openRouterModel } from "../../lib/llm.ts";
+import { completeOpenRouterChat } from "../../lib/llm.ts";
 import {
   tspMatchMethodForSegment,
   tspStatusForSegment,
@@ -300,13 +299,15 @@ export function buildRouteSegmentEvidence(
 // ---- deterministic + LLM segment notes ----
 
 export function buildSegmentAnalystNote(input: StudioSegment): StudioAiAnalystNote {
-  const speedGap = Number(Math.max(0, input.scheduledMph - input.speedMph).toFixed(1));
+  const speedGap = segmentSpeedGap(input);
   const laneText = segmentNoteLaneText(input);
   const tspText = segmentNoteTspText(input);
   const peakText = segmentNotePeakText(input.hours);
   const exposureText = `${input.riderHours.toLocaleString()} hours of route-slice delay exposure`;
   const gapText =
-    speedGap > 0
+    input.scheduledMph === null
+      ? `observed at ${input.speedMph.toFixed(1)} mph, with no schedule-implied speed available`
+      : speedGap > 0
       ? `${speedGap.toFixed(1)} mph below schedule`
       : "at or above the schedule-implied speed";
   const caveats = [
@@ -435,6 +436,7 @@ function wordCount(value: string): number {
 }
 
 function segmentSpeedGap(segment: StudioSegment): number {
+  if (segment.scheduledMph === null) return 0;
   return Number(Math.max(0, segment.scheduledMph - segment.speedMph).toFixed(1));
 }
 
@@ -671,40 +673,32 @@ async function callOpenRouterSegmentNote(input: {
     throw new Error("OPENROUTER_API_KEY is required for --segment-note-llm.");
   }
 
-  const model = openRouterModel(input.options.model);
   let previousError: string | undefined;
   let lastError: unknown;
   for (let attempt = 1; attempt <= input.options.maxAttempts; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), input.options.timeoutMs);
     try {
-      const result = await complete(
-        model,
-        {
-          systemPrompt:
-            "You write evidence-bounded public transit analysis notes. You improve analyst usefulness without inventing facts or causal claims.",
-          messages: [
-            {
-              role: "user",
-              content: buildSegmentNoteLlmPrompt(input.segment, previousError),
-              timestamp: Date.now(),
-            },
-          ],
-        },
-        {
-          apiKey: input.options.apiKey,
-          signal: controller.signal,
-          maxOutputTokens: input.options.maxTokens,
-          providerOptions: { response_format: { type: "json_object" }, temperature: 0.2 },
-        },
-      );
-      const text = result.content
-        .filter((block): block is { type: "text"; text: string } => block.type === "text")
-        .map((block) => block.text)
-        .join("");
-      if (text.trim().length === 0) {
-        throw new Error(`LLM segment note for ${input.segment.id} returned no text content.`);
-      }
+      const text = await completeOpenRouterChat({
+        apiKey: input.options.apiKey,
+        fetcher: input.options.fetcher,
+        maxOutputTokens: input.options.maxTokens,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You write evidence-bounded public transit analysis notes. You improve analyst usefulness without inventing facts or causal claims.",
+          },
+          {
+            role: "user",
+            content: buildSegmentNoteLlmPrompt(input.segment, previousError),
+          },
+        ],
+        model: input.options.model,
+        responseFormat: "json_object",
+        signal: controller.signal,
+        temperature: 0.2,
+      });
       return applyStudioLlmSegmentNoteOutput(input.segment, text);
     } catch (error) {
       const resolvedError = controller.signal.aborted

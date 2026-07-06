@@ -41,12 +41,14 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
           value={summary.dailyRidersLabel}
           sub={summary.dailyRidersDetail}
         />
-        <RiderKpi
-          label="Rider-hour burden"
-          value={summary.burdenLabel}
-          sub={summary.burdenDetail}
-          tone={route.riderHoursLost > 0 ? "bad" : "neutral"}
-        />
+        {route.riderHoursLost !== null ? (
+          <RiderKpi
+            label="Rider-hour burden"
+            value={summary.burdenLabel}
+            sub={summary.burdenDetail}
+            tone={route.riderHoursLost > 0 ? "bad" : "neutral"}
+          />
+        ) : null}
         <RiderKpi
           label="Highest-impact segment"
           value={summary.topSegmentLabel}
@@ -90,11 +92,17 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
             ) : null
           }
         >
-          <RouteBoardingsTrend
-            data={hasRidershipHistory ? ridershipHistory : route.spark}
-            dailyRiders={route.dailyRiders}
-            mode={hasRidershipHistory ? "history" : "proxy"}
-          />
+          {hasRidershipHistory ? (
+            <RouteBoardingsTrend
+              data={ridershipHistory}
+              dailyRiders={route.dailyRiders}
+              mode="history"
+            />
+          ) : (
+            <div className="flex h-full min-h-[148px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
+              Monthly ridership history is not attached yet.
+            </div>
+          )}
         </ChartFrame>
         <div>
           <SectionHeader title="Top burden segments" sub="Where riders lose the most time." />
@@ -144,14 +152,16 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
         <RiderInsightPanel insights={riderInsights} />
       </div>
 
-      <Alert variant="info">
-        <AlertTitle variant="info">Rider-hours</AlertTitle>
-        <AlertDescription>
-          A 1-minute delay for 1,000 riders is 16.7 rider-hours. This route loses{" "}
-          {route.riderHoursLost.toLocaleString()} per weekday, so this section ranks rider burden
-          rather than bus slowness alone.
-        </AlertDescription>
-      </Alert>
+      {route.riderHoursLost !== null ? (
+        <Alert variant="info">
+          <AlertTitle variant="info">Rider-hours</AlertTitle>
+          <AlertDescription>
+            A 1-minute delay for 1,000 riders is 16.7 rider-hours. This route loses{" "}
+            {route.riderHoursLost.toLocaleString()} per weekday, so this section ranks rider burden
+            rather than bus slowness alone.
+          </AlertDescription>
+        </Alert>
+      ) : null}
     </div>
   );
 }

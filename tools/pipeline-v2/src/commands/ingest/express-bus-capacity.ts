@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { normalizeExpressBusCapacityRows } from "@bp/sources/adapters/mta/express-bus-capacity";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { fetchSoda3RowsForSource, type SocrataFetch, type SocrataRow } from "../../lib/soda3.ts";

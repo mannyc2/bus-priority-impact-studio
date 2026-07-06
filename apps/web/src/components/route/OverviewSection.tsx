@@ -38,7 +38,6 @@ export function OverviewSection({
   const { route, segments } = data;
   const historySpeeds = dossierSpeedSeries(data.dossier);
   const hasSpeedHistory = historySpeeds.length > 0;
-  const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
   const speedWindow = dossierMetricWindow(data.dossier?.speed);
   const slowestByRiders = [...segments].sort((a, b) => b.riderHours - a.riderHours)[0] ?? null;
   const worst = data.dossier?.worstSegment ?? null;
@@ -70,19 +69,30 @@ export function OverviewSection({
           title="Speed history"
           source={
             hasSpeedHistory
-              ? `Observed average speed${speedWindow ? `, ${speedWindow}` : ""}, vs. schedule.`
-              : "Recent observed speed vs. schedule."
+              ? `Observed average speed${speedWindow ? `, ${speedWindow}` : ""}.`
+              : "No route speed history is attached yet."
           }
           height={172}
           right={
             hasSpeedHistory ? (
               <Badge variant="neutral">
-                {dossierMetricMonthCount(data.dossier?.speed) || speedTrendData.length} months
+                {dossierMetricMonthCount(data.dossier?.speed) || historySpeeds.length} months
               </Badge>
             ) : undefined
           }
         >
-          <SpeedTrend data={speedTrendData} scheduled={route.scheduledMph} height={172} legend />
+          {hasSpeedHistory ? (
+            <SpeedTrend
+              data={historySpeeds}
+              {...(route.scheduledMph === null ? {} : { scheduled: route.scheduledMph })}
+              height={172}
+              legend
+            />
+          ) : (
+            <div className="flex h-full min-h-[172px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
+              No route speed history is attached yet.
+            </div>
+          )}
         </ChartFrame>
 
         <section className="flex flex-col rounded-[3px] bg-[var(--bp-color-card)] p-[18px] shadow-[0_0_0_1px_var(--bp-color-rule)]">
@@ -159,7 +169,9 @@ function SummaryCard({
 
   if (performanceSpeed > 0) {
     const schedule =
-      route.scheduledMph > 0 ? ` against a ${route.scheduledMph.toFixed(1)} mph schedule` : "";
+      route.scheduledMph !== null && route.scheduledMph > 0
+        ? ` against a ${route.scheduledMph.toFixed(1)} mph schedule`
+        : "";
     sentences.push(`${route.label} runs ${performanceSpeed.toFixed(1)} mph${schedule}.`);
   }
   const movement = speed?.movement6mPct ?? null;

@@ -55,7 +55,7 @@ export function DataNotesSection({
   const evidenceRows = routeEvidenceIndexRows(data.insights);
   const archetype = routeDossierArchetype({ capability: data.capability, dossier });
   const hiddenSections = sectionRegistry.hiddenSections;
-  const datasets = [
+  const datasets: Array<readonly [string, string, string]> = [
     ["Segment speeds", "MTA Open Data", `${segments.length} segments`],
     ["Speed history", "Route summary", historyWindow ?? "not built"],
     [
@@ -65,10 +65,20 @@ export function DataNotesSection({
         ? `${ridershipMonthCount} ridership rows`
         : `${formatCompact(route.dailyRiders)} riders/day`,
     ],
-    ["Schedule", "MTA GTFS", `${route.scheduledMph.toFixed(1)} mph scheduled`],
+    ...(route.scheduledMph === null
+      ? []
+      : ([["Schedule", "MTA GTFS", `${route.scheduledMph.toFixed(1)} mph scheduled`]] as const)),
     ["Bus lanes", "NYC DOT", `${route.laneCoverage}% coverage`],
-    ["ACE record", "MTA Open Data", route.aceSince ? `since ${route.aceSince}` : "none active"],
-  ] as const;
+    [
+      "ACE record",
+      "MTA Open Data",
+      route.aceStatus === "active"
+        ? route.aceSince
+          ? `active since ${route.aceSince}`
+          : "active"
+        : "none active",
+    ],
+  ];
 
   return (
     <div className="flex flex-col gap-7">
@@ -446,6 +456,7 @@ export function EvidenceIndexSection({
                   <button
                     type="button"
                     onClick={() => onNavigate(row.section)}
+                    aria-label={`Open ${row.sectionLabel} section`}
                     className="inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--bp-color-ink-20)] px-3 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
                   >
                     Open {row.sectionLabel}

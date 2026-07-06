@@ -1,4 +1,5 @@
-import * as z from "zod";
+import type { ZodType } from "./schema-compat.js";
+import { toJsonSchema } from "./schema-compat.js";
 
 export type SchemaStability = "draft" | "stable";
 
@@ -9,9 +10,9 @@ export type ProjectSchemaMeta = {
   stability: SchemaStability;
 };
 
-export const projectSchemaRegistry = z.registry<ProjectSchemaMeta>();
+export const projectSchemaRegistry = new Map<ZodType, ProjectSchemaMeta>();
 
-export function registerProjectSchema<const TSchema extends z.ZodType>(
+export function registerProjectSchema<const TSchema extends ZodType>(
   schema: TSchema,
   metadata: ProjectSchemaMeta,
 ): TSchema {
@@ -21,15 +22,11 @@ export function registerProjectSchema<const TSchema extends z.ZodType>(
     description: metadata.description,
   }) as TSchema;
 
-  projectSchemaRegistry.add(withGlobalMeta, metadata);
+  projectSchemaRegistry.set(withGlobalMeta, metadata);
 
   return withGlobalMeta;
 }
 
-export function toProjectJsonSchema(schema: z.ZodType): unknown {
-  return z.toJSONSchema(schema, {
-    metadata: z.globalRegistry,
-    target: "draft-2020-12",
-    unrepresentable: "throw",
-  });
+export function toProjectJsonSchema(schema: ZodType): unknown {
+  return toJsonSchema(schema);
 }

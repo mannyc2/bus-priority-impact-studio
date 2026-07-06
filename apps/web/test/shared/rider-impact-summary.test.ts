@@ -126,6 +126,28 @@ describe("riderImpactSummary", () => {
       }).topSegmentShareLabel,
     ).toBe("route-leading segment");
   });
+
+  test("reports absent rider trend and burden without inventing zeroes", () => {
+    expect(
+      riderImpactSummary({
+        route: {
+          dailyRiders: 12000,
+          ridersYoyPct: null,
+          riderHoursLost: null,
+        },
+        segments: [{ id: "top", from: "A", to: "B", riderHours: 4200, flagged: true }],
+        dossier: null,
+        capability: ridershipCapability,
+      }),
+    ).toMatchObject({
+      kpiSub: "not measured rider trend",
+      kpiTone: "ink",
+      dailyRidersDetail: "not measured trend unavailable",
+      burdenLabel: "not measured",
+      burdenDetail: "rider-hour burden not measured",
+      topSegmentShareLabel: "route-leading segment",
+    });
+  });
 });
 
 describe("riderImpactInsightRows", () => {

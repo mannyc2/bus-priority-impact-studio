@@ -1,4 +1,5 @@
-import { isSoda3ClientError, querySoda3Rows } from "@nyc-transit-kit/compat/soda3";
+import { isSoda3ClientError } from "@nyc-transit-kit/compat/errors";
+import { querySoda3Rows } from "@nyc-transit-kit/compat/soda3";
 import type { StudioApiEnv } from "./env.js";
 
 type SourceRefreshEnv = Pick<

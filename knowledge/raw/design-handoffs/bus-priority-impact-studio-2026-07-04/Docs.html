@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Docs — Bus Priority Impact Studio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: #f0eee9; color: #16140f;
+  font-size: 14.5px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: oklch(0.42 0.13 252); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── Top bar ──────────────────────────────────────────────── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 52px; background: oklch(0.99 0.007 75);
+  border-bottom: 1px solid rgba(22,20,15,.12);
+  display: flex; align-items: center; padding: 0 20px; gap: 14px;
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
+  color: #16140f; text-decoration: none; flex-shrink: 0;
+}
+.topbar-brand:hover { text-decoration: none; opacity: 0.8; }
+.topbar-div { width: 1px; height: 18px; background: rgba(22,20,15,.18); flex-shrink: 0; }
+.topbar-label { font-size: 13px; color: rgba(22,20,15,.48); flex-shrink: 0; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.version-badge {
+  font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+  font-size: 11px; font-weight: 500;
+  background: #ece7db; color: rgba(22,20,15,.58);
+  padding: 2px 8px; border-radius: 3px; flex-shrink: 0;
+}
+.topbar-studio-link {
+  font-size: 13px; color: rgba(22,20,15,.52);
+  padding: 5px 10px; border-radius: 3px;
+  transition: background .1s, color .1s;
+}
+.topbar-studio-link:hover { background: rgba(22,20,15,.06); color: #16140f; text-decoration: none; }
+
+/* Copy markdown button */
+.copy-md-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid rgba(22,20,15,.18);
+  border-radius: 3px; padding: 5px 10px; cursor: pointer;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 12px; font-weight: 500; color: rgba(22,20,15,.52);
+  transition: border-color .1s, color .1s, background .1s;
+  flex-shrink: 0;
+}
+.copy-md-btn:hover { border-color: rgba(22,20,15,.32); color: #16140f; background: rgba(22,20,15,.04); }
+.copy-md-btn.copied { border-color: oklch(0.42 0.13 252); color: oklch(0.42 0.13 252); }
+
+.page-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.page-top-eyebrow {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(22,20,15,.38);
+}
+
+/* ─── Layout ───────────────────────────────────────────────── */
+.layout { display: flex; height: calc(100vh - 52px); margin-top: 52px; }
+
+/* ─── Sidebar ──────────────────────────────────────────────── */
+.sidebar {
+  width: 228px; flex-shrink: 0;
+  height: 100%; overflow-y: auto;
+  background: #f4f1ea; border-right: 1px solid rgba(22,20,15,.12);
+  padding: 24px 0 48px;
+  scrollbar-width: thin; scrollbar-color: rgba(22,20,15,.15) transparent;
+}
+.sb-group { margin-bottom: 24px; }
+.sb-group-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(22,20,15,.38);
+  padding: 0 18px; margin-bottom: 4px;
+}
+.sb-link {
+  display: block; padding: 5px 18px;
+  font-size: 13px; color: rgba(22,20,15,.58);
+  text-decoration: none; border-left: 2px solid transparent;
+  transition: color .1s, background .1s;
+}
+.sb-link:hover { color: #16140f; background: rgba(22,20,15,.04); text-decoration: none; }
+.sb-link.active {
+  color: oklch(0.42 0.13 252); border-left-color: oklch(0.42 0.13 252);
+  background: oklch(0.96 0.03 252); font-weight: 500;
+}
+
+/* ─── Content ──────────────────────────────────────────────── */
+.content-wrap {
+  flex: 1; min-width: 0; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(22,20,15,.15) transparent;
+}
+.content-inner {
+  max-width: 760px; padding: 52px 64px 100px 60px;
+}
+
+/* ─── Page navigation ──────────────────────────────────────── */
+.page-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 64px; padding-top: 24px;
+  border-top: 1px solid rgba(22,20,15,.11);
+}
+.page-nav a {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13.5px; font-weight: 500; color: rgba(22,20,15,.60);
+  padding: 7px 12px; border: 1px solid rgba(22,20,15,.14); border-radius: 3px;
+  transition: border-color .1s, color .1s, background .1s;
+}
+.page-nav a:hover { color: #16140f; border-color: rgba(22,20,15,.28); background: rgba(22,20,15,.03); text-decoration: none; }
+.page-nav-spacer { flex: 1; }
+
+/* ─── Responsive ───────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .sidebar { display: none; }
+  .content-inner { padding: 32px 24px 80px; }
+}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="system.jsx"></script>
+<script type="text/babel" src="docs-pages.jsx"></script>
+<script type="text/babel">
+
+function getPage() {
+  const h = window.location.hash.slice(1);
+  return PAGE_ORDER.includes(h) ? h : 'overview';
+}
+
+// ── Icons ──────────────────────────────────────────────────────
+function IconCopy({ size = 13 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 13 13" fill="none" style={{ display: 'block', flexShrink: 0 }}>
+      <rect x="4" y="4" width="7.5" height="7.5" rx="1.2" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M1.5 9V1.5H9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconCheck({ size = 13 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 13 13" fill="none" style={{ display: 'block', flexShrink: 0 }}>
+      <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// ── Top bar ────────────────────────────────────────────────────
+function TopBar({ page }) {
+  return (
+    <header className="topbar">
+      <a href="index.html" className="topbar-brand">
+        <svg width="20" height="20" viewBox="0 0 22 22" style={{ display: 'block', flexShrink: 0 }}>
+          <rect width="22" height="22" rx="3.5" fill="#16140f" />
+          <rect x="4" y="4.5" width="14" height="13" rx="1.8" fill="#f4f1ea" />
+          <rect x="5.5" y="6.5" width="4" height="3" rx="0.6" fill="#16140f" />
+          <rect x="12.5" y="6.5" width="4" height="3" rx="0.6" fill="#16140f" />
+          <rect x="4" y="11.5" width="14" height="0.6" fill="#16140f" opacity="0.35" />
+          <rect x="4" y="14.5" width="14" height="1.6" fill="#1a50a3" />
+          <rect x="5.5" y="17.4" width="2.6" height="1.4" rx="0.5" fill="#f4f1ea" />
+          <rect x="13.5" y="17.4" width="2.6" height="1.4" rx="0.5" fill="#f4f1ea" />
+        </svg>
+        BPI Studio
+      </a>
+      <div className="topbar-div"></div>
+      <span className="topbar-label">Docs</span>
+      <div className="topbar-right">
+        <span className="version-badge">v0.1</span>
+        <a href="index.html" className="topbar-studio-link">← Open Studio</a>
+      </div>
+    </header>
+  );
+}
+
+// ── Sidebar ────────────────────────────────────────────────────
+const NAV = [
+  { label: 'Introduction', pages: ['overview','authentication'] },
+  { label: 'Get started',  pages: ['quickstart','cli'] },
+  { label: 'API Reference',pages: ['routes','findings','briefs'] },
+  { label: 'Resources',    pages: ['data-credits','changelog'] },
+];
+
+function Sidebar({ current }) {
+  return (
+    <nav className="sidebar">
+      {NAV.map(group => (
+        <div key={group.label} className="sb-group">
+          <div className="sb-group-label">{group.label}</div>
+          {group.pages.map(id => (
+            <a key={id} href={`#${id}`} className={`sb-link${current === id ? ' active' : ''}`}>
+              {PAGE_TITLES[id]}
+            </a>
+          ))}
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+// ── Prev / Next nav ────────────────────────────────────────────
+function PageNav({ page }) {
+  const idx  = PAGE_ORDER.indexOf(page);
+  const prev = idx > 0 ? PAGE_ORDER[idx - 1] : null;
+  const next = idx < PAGE_ORDER.length - 1 ? PAGE_ORDER[idx + 1] : null;
+  return (
+    <div className="page-nav">
+      {prev
+        ? <a href={`#${prev}`}>← {PAGE_TITLES[prev]}</a>
+        : <span />}
+      {next
+        ? <a href={`#${next}`}>{PAGE_TITLES[next]} →</a>
+        : <span />}
+    </div>
+  );
+}
+
+// ── App ────────────────────────────────────────────────────────
+function DocsApp() {
+  const [page, setPage]     = React.useState(getPage);
+  const [copied, setCopied] = React.useState(false);
+  const wrapRef             = React.useRef(null);
+
+  React.useEffect(() => {
+    const onHash = () => setPage(getPage());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  // scroll content to top on page change
+  React.useEffect(() => {
+    if (wrapRef.current) wrapRef.current.scrollTop = 0;
+    setCopied(false);
+  }, [page]);
+
+  function handleCopy() {
+    const md = MARKDOWN[page] || '';
+    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 1800); };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(md).then(done).catch(done);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = md; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      document.body.removeChild(ta); done();
+    }
+  }
+
+  const PageComponent = PAGES[page] || PAGES['overview'];
+
+  return (
+    <>
+      <TopBar page={page} />
+      <div className="layout">
+        <Sidebar current={page} />
+        <div className="content-wrap" ref={wrapRef}>
+          <div className="content-inner">
+            <div className="page-top">
+              <span className="page-top-eyebrow">{PAGE_SECTIONS[page]}</span>
+              <button className={`copy-md-btn${copied ? ' copied' : ''}`} onClick={handleCopy} title="Copy this page as Markdown">
+                {copied ? <IconCheck /> : <IconCopy />}
+                {copied ? 'Copied' : 'Copy Markdown'}
+              </button>
+            </div>
+            <PageComponent key={page} />
+            <PageNav page={page} />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<DocsApp />);
+</script>
+</body>
+</html>

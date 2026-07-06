@@ -1,4 +1,3 @@
-import * as z from "zod";
 import {
   DirectionIdSchema,
   IsoMonthSchema,
@@ -6,6 +5,7 @@ import {
   RouteIdSchema,
 } from "../primitives/index.js";
 import { ApiDataQualitySchema } from "../routes/index.js";
+import * as z from "../schema-compat.js";
 import { registerProjectSchema } from "../schema-registry.js";
 
 export type { LongitudeLatitudeCoordinate, MapLayerMetric } from "../primitives/index.js";

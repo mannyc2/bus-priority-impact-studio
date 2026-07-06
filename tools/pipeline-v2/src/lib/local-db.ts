@@ -6,7 +6,7 @@ import {
   type LocalPipelineDb,
   migrateLocalPipelineDb,
 } from "@bp/db/local";
-import { z } from "@liche/core";
+import { z } from "@bp/pipeline-v2/cli/compat";
 import { fromRepoRoot } from "./paths.ts";
 import { loadSpatialite } from "./spatialite.ts";
 

@@ -1,4 +1,4 @@
-import type * as z from "zod";
+import type * as z from "@bp/domain/schema-compat";
 import type { SocrataColumnSchema, SocrataFetch, SocrataMetadata } from "../core/index.js";
 import type { ManifestSource } from "../registry/manifest.js";
 

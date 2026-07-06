@@ -14,7 +14,7 @@ export type CorridorRow = {
   from: string;
   to: string;
   observed: number;
-  scheduled: number;
+  scheduled: number | null;
   riderHours: number;
   lane: StudioSegment["lane"];
   ace: boolean;
@@ -42,9 +42,13 @@ export function CorridorProfile({
   }
 
   const minSpeed = Math.min(...ordered.map((s) => s.speedMph), route.weightedAvgSpeed);
+  const scheduledSpeeds = [
+    ...ordered.flatMap((segment) => (segment.scheduledMph === null ? [] : [segment.scheduledMph])),
+    ...(route.scheduledMph === null ? [] : [route.scheduledMph]),
+  ];
   const maxSpeed = Math.max(
-    ...ordered.map((s) => s.scheduledMph),
-    route.scheduledMph,
+    ...ordered.map((s) => s.speedMph),
+    ...scheduledSpeeds,
     route.weightedAvgSpeed,
   );
   const lo = Math.max(0, Math.floor(minSpeed - 1));

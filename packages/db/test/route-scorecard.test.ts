@@ -1,9 +1,7 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { RouteIdCodec } from "@bp/domain/primitives";
 import { RouteScorecardSchema } from "@bp/domain/routes";
 import { drizzle } from "drizzle-orm/bun-sqlite";
-import * as z from "zod";
 import type { D1ServingDb } from "../src/d1/index.js";
 import {
   deserializeRouteScorecard,
@@ -15,7 +13,7 @@ import { routeScorecard, routeScorecardCitation } from "../src/d1/schema.js";
 
 const scorecard = RouteScorecardSchema.parse({
   schemaVersion: 1,
-  routeId: z.decode(RouteIdCodec, "m1"),
+  routeId: "M1",
   month: "2026-01",
   routeScore: 80,
   coverageStatus: "full",

@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 
 const schemaVersion = 1;
@@ -47,45 +47,22 @@ const RawBusLaneRowSchema = z
 export function normalizeBusLaneRows(rows: SocrataRow[]): NormalizedBusLane[] {
   return rows.map((row) => {
     const parsed = RawBusLaneRowSchema.parse(row);
-    const output: NormalizedBusLane = {
+    return {
       schemaVersion,
       segmentId: parsed.segmentid,
       street: parsed.street,
       borough: parsed.boro,
       facility: parsed.facility,
-    };
-
-    if (parsed.direction !== undefined) {
-      output.direction = parsed.direction;
-    }
-    if (parsed.bltrafdir !== undefined) {
-      output.trafficDirection = parsed.bltrafdir;
-    }
-    if (parsed.hours !== undefined) {
-      output.hours = parsed.hours;
-    }
-    if (parsed.days !== undefined) {
-      output.days = parsed.days;
-    }
-    if (parsed.lane_type !== undefined) {
-      output.laneType = parsed.lane_type;
-    }
-    if (parsed.lane_type1 !== undefined) {
-      output.laneSubtype = parsed.lane_type1;
-    }
-    if (parsed.lane_width !== undefined) {
-      output.laneWidth = parsed.lane_width;
-    }
-    if (parsed.open_dates !== undefined) {
-      output.openDate = parsed.open_dates;
-    }
-    if (parsed.shape_leng !== undefined) {
-      output.shapeLength = parsed.shape_leng;
-    }
-    if (parsed.the_geom !== undefined) {
-      output.geometry = parsed.the_geom;
-    }
-
-    return output;
+      ...(parsed.direction === undefined ? {} : { direction: parsed.direction }),
+      ...(parsed.bltrafdir === undefined ? {} : { trafficDirection: parsed.bltrafdir }),
+      ...(parsed.hours === undefined ? {} : { hours: parsed.hours }),
+      ...(parsed.days === undefined ? {} : { days: parsed.days }),
+      ...(parsed.lane_type === undefined ? {} : { laneType: parsed.lane_type }),
+      ...(parsed.lane_type1 === undefined ? {} : { laneSubtype: parsed.lane_type1 }),
+      ...(parsed.lane_width === undefined ? {} : { laneWidth: parsed.lane_width }),
+      ...(parsed.open_dates === undefined ? {} : { openDate: parsed.open_dates }),
+      ...(parsed.shape_leng === undefined ? {} : { shapeLength: parsed.shape_leng }),
+      ...(parsed.the_geom === undefined ? {} : { geometry: parsed.the_geom }),
+    } satisfies NormalizedBusLane;
   });
 }

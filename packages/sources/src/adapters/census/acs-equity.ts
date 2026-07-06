@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 const schemaVersion = 1;
 

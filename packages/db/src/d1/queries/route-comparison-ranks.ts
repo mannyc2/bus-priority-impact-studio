@@ -1,23 +1,6 @@
 import { asc, eq } from "drizzle-orm";
-import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { routeComparisonRank } from "../schema.js";
-import { IsoMonthSchema } from "./shared.js";
-
-const RouteComparisonRankRowSchema = z
-  .object({
-    month: IsoMonthSchema,
-    rank: z.number().int().positive(),
-    route_id: z.string().min(1),
-    route_score: z.number().int().min(0).max(100),
-    average_speed_mph: z.number().nonnegative(),
-    total_ridership: z.number().nonnegative(),
-    ace_violation_count: z.number().int().nonnegative(),
-    bus_lane_matched_lane_count: z.number().int().nonnegative(),
-  })
-  .strict();
-
-export type RouteComparisonRankRow = z.output<typeof RouteComparisonRankRowSchema>;
 
 export type RouteComparisonRank = {
   month: string;
@@ -29,6 +12,27 @@ export type RouteComparisonRank = {
   aceViolationCount: number;
   busLaneMatchedLaneCount: number;
 };
+
+async function selectRouteComparisonRankRows(db: D1ServingDb, month: string) {
+  return db
+    .select({
+      month: routeComparisonRank.month,
+      rank: routeComparisonRank.rank,
+      route_id: routeComparisonRank.routeId,
+      route_score: routeComparisonRank.routeScore,
+      average_speed_mph: routeComparisonRank.averageSpeedMph,
+      total_ridership: routeComparisonRank.totalRidership,
+      ace_violation_count: routeComparisonRank.aceViolationCount,
+      bus_lane_matched_lane_count: routeComparisonRank.busLaneMatchedLaneCount,
+    })
+    .from(routeComparisonRank)
+    .where(eq(routeComparisonRank.month, month))
+    .orderBy(asc(routeComparisonRank.rank));
+}
+
+export type RouteComparisonRankRow = Awaited<
+  ReturnType<typeof selectRouteComparisonRankRows>
+>[number];
 
 function toRouteComparisonRank(row: RouteComparisonRankRow): RouteComparisonRank {
   return {
@@ -47,20 +51,6 @@ export async function listRouteComparisonRanks(
   db: D1ServingDb,
   month: string,
 ): Promise<RouteComparisonRank[]> {
-  const rows = await db
-    .select({
-      month: routeComparisonRank.month,
-      rank: routeComparisonRank.rank,
-      route_id: routeComparisonRank.routeId,
-      route_score: routeComparisonRank.routeScore,
-      average_speed_mph: routeComparisonRank.averageSpeedMph,
-      total_ridership: routeComparisonRank.totalRidership,
-      ace_violation_count: routeComparisonRank.aceViolationCount,
-      bus_lane_matched_lane_count: routeComparisonRank.busLaneMatchedLaneCount,
-    })
-    .from(routeComparisonRank)
-    .where(eq(routeComparisonRank.month, month))
-    .orderBy(asc(routeComparisonRank.rank));
-
-  return rows.map((row) => toRouteComparisonRank(RouteComparisonRankRowSchema.parse(row)));
+  const rows = await selectRouteComparisonRankRows(db, month);
+  return rows.map(toRouteComparisonRank);
 }

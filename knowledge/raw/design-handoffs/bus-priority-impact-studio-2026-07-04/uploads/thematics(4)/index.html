@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Thematics — Design System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="assets/thematics-favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="colors_and_type.css">
+<style>
+  body { margin: 0; background: var(--background); color: var(--foreground); }
+
+  .nav {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 24px;
+    padding: 14px 40px;
+    background: color-mix(in oklab, var(--background) 92%, transparent);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: saturate(180%) blur(6px);
+  }
+  .nav .wordmark { display: flex; align-items: center; gap: 12px; color: var(--foreground); }
+  .nav .wordmark svg { width: 22px; height: 22px; }
+  .nav .wordmark span { font: 600 22px/1 var(--font-serif); letter-spacing: -0.018em; }
+  .nav .crumb { font: 400 13px var(--font-serif); font-style: italic; color: var(--muted-foreground); }
+  .nav .spacer { flex: 1; }
+
+  .page { max-width: var(--width-page); margin: 0 auto; padding: 0 40px; }
+
+  .hero { padding: 96px 0 64px; }
+  .hero h1 {
+    font: 600 64px/1.04 var(--font-serif);
+    letter-spacing: -0.022em;
+    margin: 0 0 24px;
+    max-width: 820px;
+  }
+  .hero .lede {
+    font: 400 21px/1.5 var(--font-serif);
+    font-style: italic;
+    color: color-mix(in oklab, var(--foreground) 85%, transparent);
+    max-width: 620px;
+    margin: 0 0 36px;
+  }
+  .hero .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 38px; padding: 0 16px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    font: 500 14px var(--font-sans);
+    cursor: pointer; transition: all 140ms ease;
+    text-decoration: none;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: var(--background); color: var(--foreground); border-color: var(--border-strong); }
+  .btn-secondary:hover { background: var(--surface); }
+
+  section.section {
+    padding: 80px 0;
+    border-top: 1px solid var(--border);
+  }
+  .section-head { max-width: 720px; margin-bottom: 40px; }
+  .section-head h2 {
+    font: 600 36px/1.12 var(--font-serif);
+    letter-spacing: -0.018em;
+    margin: 0 0 12px;
+  }
+  .section-head p {
+    font: 400 18px/1.55 var(--font-serif);
+    color: color-mix(in oklab, var(--foreground) 78%, transparent);
+    margin: 0;
+  }
+
+  .specimens {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 28px 24px;
+  }
+  .specimen { display: flex; flex-direction: column; gap: 12px; }
+  .specimen-frame {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--background);
+    overflow: hidden;
+  }
+  .specimen iframe { display: block; width: 100%; border: 0; background: var(--background); }
+  .specimen-caption {
+    font: 400 14px/1.5 var(--font-serif);
+    font-style: italic;
+    color: var(--muted-foreground);
+    padding: 0 2px;
+    max-width: 560px;
+  }
+  .specimen-caption b {
+    font-style: normal; font-weight: 500;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    margin-right: 6px;
+  }
+
+  .col-4  { grid-column: span 4; }
+  .col-6  { grid-column: span 6; }
+  .col-7  { grid-column: span 7; }
+  .col-5  { grid-column: span 5; }
+  .col-8  { grid-column: span 8; }
+  .col-12 { grid-column: span 12; }
+
+  .voice {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: start;
+  }
+  .voice h3 { font: 600 24px/1.2 var(--font-serif); letter-spacing: -0.01em; margin: 0 0 14px; }
+  .voice p { font: 400 17px/1.6 var(--font-serif); color: var(--foreground); margin: 0 0 14px; max-width: 480px; }
+  .voice .quote {
+    border-left: 2px solid var(--primary);
+    padding-left: 20px;
+    font: 400 19px/1.5 var(--font-serif);
+    font-style: italic;
+    color: var(--foreground);
+    margin: 22px 0 0;
+  }
+  .voice .quote cite {
+    display: block; margin-top: 10px;
+    font: 400 13px var(--font-serif); font-style: italic;
+    color: var(--muted-foreground);
+  }
+  .voice ul { list-style: none; padding: 0; margin: 0; }
+  .voice li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--divider);
+    font: 400 16px/1.45 var(--font-serif);
+  }
+  .voice li:last-child { border-bottom: 0; }
+  .voice .dos li { color: var(--foreground); }
+  .voice .donts li {
+    color: var(--muted-foreground);
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in oklab, oklch(0.55 0.20 25) 55%, transparent);
+    text-decoration-thickness: 1px;
+  }
+  .voice .col-label {
+    font: 400 13px var(--font-serif); font-style: italic;
+    color: var(--muted-foreground); margin-bottom: 10px;
+  }
+
+  .anti {
+    margin-top: 48px;
+    padding: 32px 36px;
+    background: var(--surface);
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--border);
+  }
+  .anti h3 { font: 600 22px/1.25 var(--font-serif); letter-spacing: -0.008em; margin: 0 0 10px; }
+  .anti p.intro { font: 400 16px/1.55 var(--font-serif); color: var(--foreground); margin: 0 0 18px; max-width: 600px; }
+  .anti .list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 32px; }
+  .anti .item .title { font: 600 15px var(--font-sans); color: var(--foreground); margin-bottom: 4px; }
+  .anti .item p { font: 400 14px/1.5 var(--font-serif); color: var(--muted-foreground); margin: 0; }
+
+  .reader-frame {
+    display: grid;
+    grid-template-columns: 220px 1fr 220px;
+    gap: 40px;
+    padding: 48px 36px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-1);
+  }
+  .rf-rail { font: 500 13px/1.6 var(--font-sans); color: var(--muted-foreground); }
+  .rf-rail .rail-label {
+    font: 400 13px var(--font-serif); font-style: italic;
+    color: var(--muted-foreground); margin-bottom: 14px;
+  }
+  .rf-rail ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+  .rf-rail li {
+    counter-increment: toc; padding: 6px 0;
+    display: flex; gap: 12px;
+    font: 400 14px/1.45 var(--font-sans);
+  }
+  .rf-rail li::before {
+    content: counter(toc, decimal-leading-zero);
+    font: 400 13px var(--font-mono); color: var(--subtle-foreground);
+  }
+  .rf-rail li.current { color: var(--primary); }
+  .rf-rail li.current::before { color: var(--primary); }
+
+  .rf-body { max-width: 620px; }
+  .rf-byline {
+    font: 400 14px/1.5 var(--font-serif); font-style: italic;
+    color: var(--muted-foreground); margin: 0 0 22px;
+  }
+  .rf-byline .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 22px; padding: 0 9px;
+    border-radius: var(--radius-pill);
+    font: 500 12px var(--font-sans); font-style: normal;
+    background: var(--tag-amber-soft); color: var(--tag-amber-ink);
+    vertical-align: -2px; margin-right: 6px;
+  }
+  .rf-byline .chip .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--tag-amber-ink); }
+  .rf-title { font: 600 48px/1.06 var(--font-serif); letter-spacing: -0.022em; margin: 0 0 16px; }
+  .rf-lede { font: 400 21px/1.5 var(--font-serif); font-style: italic; color: color-mix(in oklab, var(--foreground) 80%, transparent); margin: 0 0 28px; }
+  .rf-prose { font: 400 18px/1.65 var(--font-serif); color: var(--foreground); }
+  .rf-prose p { margin: 0 0 16px; }
+  .rf-prose a {
+    color: var(--foreground); text-decoration: underline;
+    text-decoration-color: color-mix(in oklab, var(--primary) 35%, transparent);
+    text-underline-offset: 3px;
+  }
+  .rf-prose a:hover { color: var(--primary); text-decoration-color: var(--primary); }
+  .rf-break { text-align: center; color: var(--muted-foreground); font: 400 22px/1 var(--font-serif); padding: 22px 0; }
+  .rf-cite {
+    margin-top: 22px; padding-top: 18px;
+    border-top: 1px solid var(--divider);
+    font: 400 15px/1.55 var(--font-serif); color: var(--muted-foreground);
+  }
+  .rf-cite em { font-style: italic; color: var(--foreground); }
+
+  .rf-aside .rail-label { margin-bottom: 14px; }
+  .rf-aside a.back {
+    font: 400 14px/1.45 var(--font-sans); color: var(--foreground);
+    display: block; padding: 10px 0;
+    border-bottom: 1px solid var(--divider);
+    text-decoration: none;
+  }
+  .rf-aside a.back:hover { color: var(--primary); }
+  .rf-aside a.back:last-child { border-bottom: 0; }
+  .rf-aside a.back .sub {
+    font: 400 13px var(--font-serif); font-style: italic;
+    color: var(--muted-foreground); display: block; margin-top: 3px;
+  }
+
+  .foot {
+    border-top: 1px solid var(--border);
+    padding: 36px 0 80px;
+    margin-top: 64px;
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--muted-foreground);
+    font: 400 14px var(--font-serif); font-style: italic;
+  }
+  .foot .ast { font-style: normal; font-size: 18px; color: var(--subtle-foreground); }
+
+  @media (max-width: 960px) {
+    .reader-frame { grid-template-columns: 1fr; }
+    .voice { grid-template-columns: 1fr; gap: 40px; }
+    .anti .list { grid-template-columns: 1fr; }
+    .col-4, .col-5, .col-6, .col-7, .col-8 { grid-column: span 12; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wordmark">
+    <svg viewBox="0 0 64 64"><g fill="currentColor"><circle cx="20" cy="22" r="6"/><circle cx="44" cy="22" r="6"/><circle cx="32" cy="44" r="6"/></g></svg>
+    <span>thematics</span>
+  </div>
+  <div class="crumb">design system, v0.1</div>
+  <div class="spacer"></div>
+</nav>
+
+<div class="page">
+
+<header class="hero">
+  <h1>A library of themes — read carefully, linked deliberately.</h1>
+  <p class="lede">Thematics organizes knowledge by <em>theme</em>, not by folder. The system is light-first, set in Source Serif and IBM Plex, and uses a single hyperlink blue so the reader's eye always knows where the connections live.</p>
+  <div class="actions">
+    <a class="btn btn-primary" href="README.md">Read the README →</a>
+    <a class="btn btn-secondary" href="colors_and_type.css">View tokens</a>
+  </div>
+</header>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Foundations</h2>
+    <p>Surfaces, ink, and the single shade of blue that does all the link-work in the product.</p>
+  </div>
+
+  <div class="specimens">
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/colors-surfaces.html" style="height:200px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Surfaces.</b>Paper white for the reader; a faint warm off-white for cards and rails; two deeper neutrals for wells and hover.</div>
+    </div>
+    <div class="specimen col-6">
+      <div class="specimen-frame"><iframe src="preview/colors-ink.html" style="height:200px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Ink.</b>Three levels — body, metadata, and tertiary. Each is contrast-checked on paper white.</div>
+    </div>
+    <div class="specimen col-6">
+      <div class="specimen-frame"><iframe src="preview/colors-primary.html" style="height:200px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Hyperlink blue.</b>Reserved for the moments a reader's about to follow a connection or commit a change. It never fills chrome.</div>
+    </div>
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/colors-subjects.html" style="height:160px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Subject tags.</b>Five hues for theme-coding. Pick by subject, not by hierarchy — they all read at the same weight.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Typography</h2>
+    <p>Source Serif 4 reads the prose. IBM Plex Sans runs the chrome. IBM Plex Mono is reserved for things that are literally code — slugs, DOIs, identifiers.</p>
+  </div>
+
+  <div class="specimens">
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/type-display.html" style="height:380px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Display & headings.</b>Source Serif, optical-sized, at 56 / 40 / 28 / 22.</div>
+    </div>
+    <div class="specimen col-7">
+      <div class="specimen-frame"><iframe src="preview/type-prose.html" style="height:280px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Prose.</b>The reading column lives at 18 over 1.6 in serif. This is the only place we let the type take over.</div>
+    </div>
+    <div class="specimen col-5">
+      <div class="specimen-frame"><iframe src="preview/type-ui.html" style="height:280px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>UI sans.</b>Plex Sans at 14 / 1.5 for everything that isn't reading.</div>
+    </div>
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/type-mono.html" style="height:260px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Mono — sparingly.</b>For slugs, DOIs, raw identifiers. Citations get the source's own mark and name, not a mono-numeric label.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Brand</h2>
+    <p>A lowercase serif wordmark and an asterism (<span style="font-family:var(--font-serif)">⁂</span>) — the centuries-old typographic glyph for a section break. We've co-opted it to mean <em>theme</em>.</p>
+  </div>
+
+  <div class="specimens">
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/brand-marks.html" style="height:260px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Wordmark & mark.</b>Source Serif 4 at 600 weight, with the asterism leading.</div>
+    </div>
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/brand-asterism.html" style="height:340px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>The asterism, in context.</b>It does double duty as section break inside a long entry. Reserved for these two roles only — never decorative.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Shape &amp; elevation</h2>
+    <p>Depth comes from hairlines and surface tint. Shadows appear only when an element genuinely rises off the page.</p>
+  </div>
+  <div class="specimens">
+    <div class="specimen col-7">
+      <div class="specimen-frame"><iframe src="preview/spacing-radii.html" style="height:180px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Radii.</b>4 / 6 / 8 / 12 / 16 / pill. Cards at 12, surfaces at 16, chips full-round.</div>
+    </div>
+    <div class="specimen col-5">
+      <div class="specimen-frame"><iframe src="preview/spacing-shadows.html" style="height:180px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Shadows.</b>Three depths, used only on popovers, hover-elevated cards, and modals.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Components</h2>
+    <p>The vocabulary the reading and authoring surfaces share. Every interaction defaults to quiet; primary blue only lights up where the reader is about to follow a link or commit a change.</p>
+  </div>
+
+  <div class="specimens">
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/components-buttons.html" style="height:220px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Buttons.</b>Primary, secondary, danger, link, icon. No ghost variant — quiet actions become text links.</div>
+    </div>
+    <div class="specimen col-6">
+      <div class="specimen-frame"><iframe src="preview/components-inputs.html" style="height:500px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Inputs, selects, toggles.</b>Hairline borders by default; a 3px primary ring on focus.</div>
+    </div>
+    <div class="specimen col-6">
+      <div class="specimen-frame"><iframe src="preview/components-tags.html" style="height:300px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Theme & filter chips.</b>The only widespread use of color outside primary — and only on chips, never on chrome.</div>
+    </div>
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/components-search.html" style="height:400px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Search & command menu.</b>Opens to a grouped result list, keyboard-first.</div>
+    </div>
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/components-cards.html" style="height:400px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Entry & theme cards.</b>The two formats the explorer uses — both lead with the title; metadata reads as a sentence.</div>
+    </div>
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/components-crossref.html" style="height:360px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Crossref hover preview.</b>The signature interaction — a link expands inline, with the destination's chip, title, lede, and a way in.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Inline primitives</h2>
+    <p>Small visual figures — charts, diagrams, comparison cards, sliders — that drop inline into an entry's reading column or a chat response. Same column width, same hairlines, same serif captions. They earn their place when an idea is faster to see than to read. <a href="PRIMITIVES.md" style="color:var(--foreground);text-decoration:underline;text-decoration-color:color-mix(in oklab,var(--primary) 35%,transparent);text-underline-offset:3px">Read the full spec →</a></p>
+  </div>
+
+  <div class="specimens">
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/primitives-metrics.html" style="height:220px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Metric.</b>One number with its label. Numbers set in Source Serif so the figure feels like part of the entry, not a dashboard cell.</div>
+    </div>
+
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/primitives-comparison.html" style="height:380px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Comparison cards.</b>Three options for a real choice. The recommended option uses a hairline blue border and an inline label — never a floating badge.</div>
+    </div>
+
+    <div class="specimen col-6">
+      <div class="specimen-frame"><iframe src="preview/primitives-record.html" style="height:420px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Data record.</b>One bounded object — a person, a citation, an entry's metadata. Monogram tiles in serif, never circular.</div>
+    </div>
+    <div class="specimen col-6">
+      <div class="specimen-frame"><iframe src="preview/primitives-slider.html" style="height:320px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Slider with live readout.</b>Drives a one-sentence summary in serif. Drag the year and read what the Bauhaus looked like then.</div>
+    </div>
+
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/primitives-flowchart.html" style="height:400px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Flowchart.</b>Sequential steps, one branching decision. The decision node carries a soft amber tint; arrows route in L-shapes.</div>
+    </div>
+
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/primitives-structural.html" style="height:340px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Structural.</b>Things inside other things. One frame, hairline dividers, colour-coded only on the column labels — the way a printed table of contents would mark its sections.</div>
+    </div>
+
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/primitives-illustrative.html" style="height:440px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Illustrative.</b>A spatial metaphor for an abstract idea. The radial violet field is the system's one permitted gradient — only for continuous physical metaphors.</div>
+    </div>
+
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/primitives-chart-line.html" style="height:400px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Line chart.</b>Three series, three ramp hues — pre-built Chart.js with our Plex Sans defaults. Dashed segment marks the dissolution years.</div>
+    </div>
+
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/primitives-chart-bar.html" style="height:420px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Bar chart.</b>Stacked horizontal across seven themes. Hatch on the middle series so colour isn't the only encoding — the chart parses in greyscale.</div>
+    </div>
+
+    <div class="specimen col-12">
+      <div class="specimen-frame"><iframe src="preview/primitives-choropleth.html" style="height:520px" loading="lazy"></iframe></div>
+      <div class="specimen-caption"><b>Choropleth.</b>Real topology, ocean ramp. State borders drawn in paper white so the divisions read without competing with the data.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Voice</h2>
+    <p>Thematics writes like a patient editor — not a marketer, not an assistant. Every empty state explains what the surface is <em>for</em>. Every error tells the reader what to do next.</p>
+  </div>
+
+  <div class="voice">
+    <div>
+      <h3>Curious, careful, generous.</h3>
+      <p>We name what's true — number of entries, last edit, who contributed — only when the reader needs it. Never as a row of pills under a title.</p>
+      <blockquote class="quote">
+        A theme is not a folder. It is a chosen vantage from which a constellation of entries reads coherently.
+        <cite>— README, §1</cite>
+      </blockquote>
+    </div>
+    <div>
+      <div class="col-label">Do — sentences, in plain serif</div>
+      <ul class="dos">
+        <li>"No entries in this theme yet. Add the first one."</li>
+        <li>"Saved two minutes ago."</li>
+        <li>"Linked from fourteen entries."</li>
+        <li>"An eight-minute read."</li>
+      </ul>
+      <div class="col-label" style="margin-top:24px">Don't — metadata slop, marketing puff</div>
+      <ul class="donts">
+        <li>"You don't have any documents yet 🚀"</li>
+        <li>"LAST EDITED · 14 BACKLINKS · ~8 MIN READ"</li>
+        <li>"Successfully saved your changes ✨"</li>
+        <li>"Estimated read time: 8 minutes"</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="anti">
+    <h3>Anti-patterns</h3>
+    <p class="intro">Things the system explicitly forbids. These are the visual tells of generic, design-system-by-the-numbers work — they have no place in Thematics.</p>
+    <div class="list">
+      <div class="item"><div class="title">Metadata slop</div><p>Chains of mono numbers strung under a title to look authoritative. If a number is worth surfacing, it earns a sentence.</p></div>
+      <div class="item"><div class="title">Uppercase-mono overlines</div><p>Letter-spaced caps used as labels. Rigidity without information. If a section needs a label, use its heading.</p></div>
+      <div class="item"><div class="title">Ghost buttons</div><p>Transparent buttons read as not-buttons. Quiet actions become text links instead.</p></div>
+      <div class="item"><div class="title">Specimen-card chrome</div><p>The rounded-top header strip with title-left, tag-right, and a separator. Design-system clip-art. Specimens sit in flow with a sentence-case caption.</p></div>
+      <div class="item"><div class="title">Hero stat strips</div><p>Four-column rows of mono numerals under a hero. Same family as metadata slop.</p></div>
+      <div class="item"><div class="title">Emoji in chrome</div><p>The em-dash, the asterism, and Lucide icons are the entire pictographic vocabulary.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>A reading surface, in full</h2>
+    <p>The reader is the product's centerpiece — a 720-pixel column flanked by an outline on the left and backlinks on the right. Everything else is exhaust.</p>
+  </div>
+
+  <div class="reader-frame">
+    <aside class="rf-rail">
+      <div class="rail-label">In this entry</div>
+      <ol>
+        <li>Origins of the Vorkurs</li>
+        <li class="current">Itten's curriculum, 1919–23</li>
+        <li>Moholy-Nagy's reform</li>
+        <li>Pedagogical legacy</li>
+      </ol>
+    </aside>
+
+    <article class="rf-body">
+      <p class="rf-byline">
+        <span class="chip"><span class="dot"></span>Architecture history</span>
+        Edited last week. Linked from fourteen entries.
+      </p>
+      <h1 class="rf-title">The Bauhaus pedagogy</h1>
+      <p class="rf-lede">A school built on the premise that a year of seeing must precede a single act of making.</p>
+
+      <div class="rf-prose">
+        <p>The Vorkurs — Bauhaus shorthand for the <em>preliminary course</em> — arrived in 1919 not as a curriculum but as a refusal. <a href="#">Johannes Itten</a> insisted that a student's prior habits, however well-meant, were the first obstacle to the craft they came to learn. A year of unlearning preceded any workshop assignment.</p>
+
+        <p>By 1923 the experiment had drifted. <a href="#">László Moholy-Nagy</a>, newly arrived from Berlin, pulled the foundation course decisively toward industrial form. The break with Itten was sharp; the curriculum followed within a single term.</p>
+
+        <div class="rf-break">⁂</div>
+
+        <p>What survived was the underlying conviction: that a school of design must begin with seeing, not making. The form of the course changed; the premise traveled — to Chicago, to Ulm, to Black Mountain — and shaped the next half-century of design pedagogy.</p>
+
+        <div class="rf-cite">Wingler, <em>The Bauhaus: Weimar, Dessau, Berlin, Chicago</em>. MIT Press, 1969, pages 33–47.</div>
+      </div>
+    </article>
+
+    <aside class="rf-rail rf-aside">
+      <div class="rail-label">Linked from</div>
+      <a class="back" href="#">Black Mountain College<span class="sub">An American refraction</span></a>
+      <a class="back" href="#">Hochschule für Gestaltung Ulm<span class="sub">The Bauhaus's German heir</span></a>
+      <a class="back" href="#">Itten, Johannes<span class="sub">Painter, mystic, teacher</span></a>
+      <a class="back" href="#">Vorkurs as method<span class="sub">A pedagogy of unlearning</span></a>
+    </aside>
+  </div>
+</section>
+
+<footer class="foot">
+  <span>thematics design system, version 0.1, 2026</span>
+  <span class="ast">⁂</span>
+  <span>last revised this week</span>
+</footer>
+
+</div>
+</body>
+</html>

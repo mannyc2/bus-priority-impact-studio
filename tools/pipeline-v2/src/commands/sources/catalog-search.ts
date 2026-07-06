@@ -1,4 +1,4 @@
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   RichSocrataCatalogSearchClient,
   type SocrataFetch,

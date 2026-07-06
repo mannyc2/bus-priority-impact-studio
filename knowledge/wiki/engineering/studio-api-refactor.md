@@ -459,7 +459,7 @@ bun --filter @bp/studio-api test
 - Define route specs for existing public, Studio read, authoring, auth, observability, and schema
   routes.
 - Generate path builders, matcher inputs, route templates, and OpenAPI from the registry.
-- Keep domain Zod schemas in `@bp/domain`; move route/path/OpenAPI ownership into
+- Keep domain Effect Schema contracts in `@bp/domain`; move route/path/OpenAPI ownership into
   `@bp/studio-api/contracts`.
 
 Verification:

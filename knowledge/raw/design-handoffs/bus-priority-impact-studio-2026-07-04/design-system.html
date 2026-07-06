@@ -1,0 +1,1786 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Bus Priority Studio — Design System v0.1</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #f4f1ea; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #16140f; }
+  .ds-page { max-width: 1280px; margin: 0 auto; padding: 48px 56px 96px; }
+  .ds-section { margin-top: 64px; }
+  .ds-section:first-of-type { margin-top: 32px; }
+  .ds-h2 {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: rgba(22,20,15,.55);
+    margin: 0 0 6px;
+  }
+  .ds-h3 {
+    font-size: 22px; font-weight: 600; letter-spacing: -0.015em;
+    margin: 0 0 6px;
+  }
+  .ds-sub {
+    font-size: 13px; color: rgba(22,20,15,.70); line-height: 1.55;
+    margin: 0 0 24px; max-width: 720px;
+  }
+  .ds-grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(12, 1fr);
+  }
+  .ds-card {
+    background: #ffffff; border-radius: 4px;
+    box-shadow: 0 0 0 1px rgba(22,20,15,.10);
+    padding: 18px; display: flex; flex-direction: column; gap: 14px;
+    min-width: 0;
+  }
+  .ds-card .label {
+    font-size: 11px; color: rgba(22,20,15,.55);
+    font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+    letter-spacing: 0.02em;
+  }
+  .ds-card .stage {
+    display: flex; align-items: center; gap: 10px;
+    min-height: 40px; flex-wrap: wrap;
+  }
+  .ds-card .stage.col { flex-direction: column; align-items: stretch; }
+  .ds-card .name {
+    font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em;
+  }
+  .ds-card .note {
+    font-size: 11.5px; color: rgba(22,20,15,.55); line-height: 1.5;
+  }
+  .ds-card .tok {
+    font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+    font-size: 10.5px; color: rgba(22,20,15,.55);
+  }
+  .span-3  { grid-column: span 3; }
+  .span-4  { grid-column: span 4; }
+  .span-6  { grid-column: span 6; }
+  .span-8  { grid-column: span 8; }
+  .span-12 { grid-column: span 12; }
+  .swatch {
+    width: 56px; height: 56px; border-radius: 3px;
+    box-shadow: inset 0 0 0 1px rgba(22,20,15,.08);
+  }
+  .typescale-row {
+    display: flex; align-items: baseline; gap: 24px;
+    padding: 14px 0; border-bottom: 1px solid rgba(22,20,15,.10);
+  }
+  .typescale-row:last-child { border-bottom: none; }
+  .typescale-row .meta {
+    width: 130px; flex-shrink: 0;
+    font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+    font-size: 11px; color: rgba(22,20,15,.55);
+  }
+  .ds-header {
+    display: flex; align-items: flex-end; gap: 24px;
+    padding-bottom: 28px; border-bottom: 1px solid rgba(22,20,15,.14);
+  }
+  .ds-header h1 {
+    margin: 0; font-size: 36px; font-weight: 600; letter-spacing: -0.025em;
+  }
+  .ds-toc {
+    display: flex; flex-wrap: wrap; gap: 10px 22px;
+    margin: 28px 0 12px;
+    font-size: 12.5px;
+  }
+  .ds-toc a { color: rgba(22,20,15,.70); text-decoration: none; }
+  .ds-toc a:hover { color: rgba(22,20,15,1); }
+  .ds-toc .pre {
+    font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+    color: rgba(22,20,15,.40); margin-right: 6px;
+  }
+  pre.code {
+    background: #ece7db; padding: 10px 12px; border-radius: 3px;
+    font-size: 11px; font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+    color: rgba(22,20,15,.85); margin: 0; overflow: auto;
+    line-height: 1.5;
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="ds-page">
+
+  <header class="ds-header">
+    <div style="flex:1">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:rgba(22,20,15,.55);margin-bottom:10px">Bus Priority Impact Studio</div>
+      <h1>Design system <span style="color:rgba(22,20,15,.40);font-weight:500">v0.1</span></h1>
+      <div style="font-size:13.5px;color:rgba(22,20,15,.70);line-height:1.55;margin-top:8px;max-width:720px">
+        Civic, evidence-heavy, opinionated about ranking. The system here is intentionally small — a few tokens,
+        a few primitives, a few composite patterns. Everything inside <code style="font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:12px;background:#ece7db;padding:1px 5px;border-radius:2px">system.jsx</code> is the source of truth; the&nbsp;three&nbsp;concept directions all draw from it.
+      </div>
+    </div>
+    <a href="index.html" style="font-size:13px;color:#16140f;text-decoration:none;padding:9px 14px;border:1px solid rgba(22,20,15,.20);border-radius:3px;font-weight:500">← Concepts canvas</a>
+  </header>
+
+  <nav class="ds-toc">
+    <a href="#brand"><span class="pre">00</span>Brand mark</a>
+    <a href="#color"><span class="pre">01</span>Color</a>
+    <a href="#type"><span class="pre">02</span>Type</a>
+    <a href="#space"><span class="pre">03</span>Spacing &amp; rhythm</a>
+    <a href="#route"><span class="pre">04</span>Route badges</a>
+    <a href="#chips"><span class="pre">05</span>Chips &amp; citations</a>
+    <a href="#buttons"><span class="pre">06</span>Buttons</a>
+    <a href="#fields"><span class="pre">07</span>Search field</a>
+    <a href="#dataviz"><span class="pre">08</span>Data viz primitives</a>
+    <a href="#charts"><span class="pre">09</span>Chart components</a>
+    <a href="#segment"><span class="pre">10</span>Segment row</a>
+    <a href="#states"><span class="pre">11</span>States</a>
+    <a href="#authoring"><span class="pre">12</span>Authoring pattern</a>
+    <a href="#composite"><span class="pre">13</span>Composite patterns</a>
+    <a href="#antipatterns"><span class="pre">14</span>Anti-patterns</a>
+    <a href="#codeblock"><span class="pre">15</span>Code block</a>
+  </nav>
+
+  <div id="root"></div>
+</div>
+
+<script type="text/babel" src="system.jsx"></script>
+
+<script type="text/babel">
+// Tiny doc helpers
+function Section({ id, num, title, sub, children }) {
+  return (
+    <section className="ds-section" id={id}>
+      <div className="ds-h2"><span style={{ color: 'rgba(22,20,15,.40)', marginRight: 8 }}>{num}</span>{id.toUpperCase()}</div>
+      <h2 className="ds-h3">{title}</h2>
+      {sub && <p className="ds-sub">{sub}</p>}
+      <div className="ds-grid">{children}</div>
+    </section>
+  );
+}
+
+// Ladder mini-glyphs (used in the Composite patterns ladder demo)
+function MiniLaneStub({ state }) {
+  const count = state === 'yes' ? 3 : state === 'partial' ? 2 : state === 'minimal' ? 1 : 0;
+  const color = state === 'yes' ? BPI.good : state === 'partial' ? BPI.warn : BPI.ink20;
+  return (
+    <div style={{ display: 'flex', gap: 1.5, height: 9, alignItems: 'center' }}>
+      {Array.from({ length: 3 }, (_, i) => (
+        <div key={i} style={{
+          width: 3, height: 9, borderRadius: 1,
+          background: i < count ? color : 'transparent',
+          boxShadow: i < count ? 'none' : `inset 0 0 0 1px ${BPI.ink20}`,
+        }} />
+      ))}
+    </div>
+  );
+}
+function MiniDotStub({ on, tone = 'good' }) {
+  const color = tone === 'good' ? BPI.good : BPI.accent;
+  return (
+    <div style={{
+      width: 9, height: 9, borderRadius: 5,
+      background: on ? color : 'transparent',
+      boxShadow: on ? 'none' : `inset 0 0 0 1px ${BPI.ink20}`,
+    }} />
+  );
+}
+function Card({ span = 4, label, name, note, children, col }) {
+  return (
+    <div className={`ds-card span-${span}`}>
+      {label && <div className="label">{label}</div>}
+      <div className={`stage ${col ? 'col' : ''}`}>{children}</div>
+      {name && <div className="name">{name}</div>}
+      {note && <div className="note">{note}</div>}
+    </div>
+  );
+}
+function Swatch({ color, name, token, on = 'paper' }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+      <div className="swatch" style={{ background: color }} />
+      <div>
+        <div style={{ fontSize: 12.5, fontWeight: 600 }}>{name}</div>
+        <div className="tok" style={{ wordBreak: 'break-all' }}>{token}</div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <>
+      {/* 00 — Brand mark */}
+      <Section id="brand" num="00" title="Brand mark"
+        sub="A bus front silhouette inside a rounded ink square, with a single accent priority stripe — what the studio is, in one glyph. Legible at 18–32px; scales up cleanly for larger placements.">
+        <Card span={3} label="22px (in StudioBar)" name="default" note="Used in the top bar at this size next to the wordmark.">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <StudioMark size={22} />
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Bus Priority <span style={{ color: BPI.ink55, fontWeight: 400 }}>Impact Studio</span></div>
+          </div>
+        </Card>
+        <Card span={3} label="MARK ONLY · 32px" name="favicon / share image" note="Used as the favicon and as the avatar wherever the studio is referenced externally.">
+          <StudioMark size={32} />
+        </Card>
+        <Card span={3} label="MARK ONLY · 48px" name="empty states · loading" note="At this size the mark stands alone — typically against paper-deep.">
+          <StudioMark size={48} />
+        </Card>
+        <Card span={3} label="ON INK" name="light variant" note="When sitting on an ink hero band the mark inverts: paper background, ink bus, accent stripe.">
+          <div style={{ background: BPI.ink, padding: 16, borderRadius: 3, display: 'flex', justifyContent: 'center' }}>
+            <StudioMark size={48} tone="light" />
+          </div>
+        </Card>
+
+        <div className="ds-card span-12">
+          <div className="label">ANATOMY · 96px</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
+            <StudioMark size={96} />
+            <div style={{ fontSize: 12.5, color: BPI.ink70, lineHeight: 1.7, maxWidth: 520 }}>
+              <div style={{ marginBottom: 6 }}><b style={{ color: BPI.ink }}>Container.</b> 3.5-radius rounded square in ink.</div>
+              <div style={{ marginBottom: 6 }}><b style={{ color: BPI.ink }}>Bus.</b> Paper-colored rounded rect, 1.8 radius. Two paper-cut windows. Sized so the bus reads as a bus, not a truck.</div>
+              <div style={{ marginBottom: 6 }}><b style={{ color: BPI.ink }}>Priority stripe.</b> Single horizontal accent bar under the body — the only colored element. This is the studio's whole thesis in one mark.</div>
+              <div><b style={{ color: BPI.ink }}>Wheels.</b> Two small paper rounded rects at the base; they disappear visually below ~16px, which is fine.</div>
+            </div>
+            <div style={{ flex: 1 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
+              <div style={{ background: BPI.paper, padding: 12, borderRadius: 3 }}><StudioMark size={24} /></div>
+              <div style={{ background: BPI.paperDeep, padding: 12, borderRadius: 3 }}><StudioMark size={24} /></div>
+              <div style={{ background: BPI.card, padding: 12, borderRadius: 3, boxShadow: `0 0 0 1px ${BPI.rule}` }}><StudioMark size={24} /></div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* 01 — Color */}
+      <Section id="color" num="01" title="Color"
+        sub="A warm-paper background, near-black ink, a single civic accent (deep blue), three muted status hues, and the public MTA borough convention for route badges. Saturations are kept low so that bold accent use reads as meaningful, not decorative.">
+
+        <div className="ds-card span-12">
+          <div className="label">SURFACE &amp; INK</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 18 }}>
+            <Swatch color={BPI.paper}     name="paper"      token="#f4f1ea" />
+            <Swatch color={BPI.paperDeep} name="paper deep" token="#ece7db" />
+            <Swatch color={BPI.card}      name="card"       token="#ffffff" />
+            <Swatch color={BPI.ink}       name="ink"        token="#16140f" />
+            <Swatch color={BPI.ink70}     name="ink-70"     token="rgba(22,20,15,.70)" />
+            <Swatch color={BPI.ink40}     name="ink-40"     token="rgba(22,20,15,.40)" />
+          </div>
+        </div>
+
+        <div className="ds-card span-6">
+          <div className="label">ACCENT &amp; STATUS</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18 }}>
+            <Swatch color={BPI.accent} name="accent"  token="oklch(.42 .13 252)" />
+            <Swatch color={BPI.good}   name="good"    token="oklch(.55 .12 155)" />
+            <Swatch color={BPI.warn}   name="warn"    token="oklch(.65 .13 70)"  />
+            <Swatch color={BPI.bad}    name="bad"     token="oklch(.52 .16 28)"  />
+          </div>
+          <div className="note">
+            Accent is reserved for live links, citation numbers, and the single primary action on a screen.
+            Status hues are used for chips, before/after bars, and intervention timeline events.
+          </div>
+        </div>
+
+        <div className="ds-card span-6">
+          <div className="label">BOROUGH (ROUTE BADGES ONLY)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
+            {[
+              ['Manhattan', BPI.bx.manhattan],
+              ['Bronx',     BPI.bx.bronx],
+              ['Brooklyn',  BPI.bx.brooklyn],
+              ['Queens',    BPI.bx.queens],
+              ['S.I.',      BPI.bx.si],
+              ['Express',   BPI.bx.express],
+            ].map(([n, c]) => (
+              <div key={n} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ height: 40, background: c, borderRadius: 3 }} />
+                <div style={{ fontSize: 11, fontWeight: 500 }}>{n}</div>
+              </div>
+            ))}
+          </div>
+          <div className="note">
+            Public MTA borough color convention. Used <i>only</i> inside <code>RouteBadge</code>;
+            never as page surfaces or as accent. Redrawn in our own shape (rounded rect) and type.
+          </div>
+        </div>
+
+        <div className="ds-card span-12">
+          <div className="label">USAGE RULES</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, fontSize: 12.5, color: BPI.ink70, lineHeight: 1.6 }}>
+            <div><b style={{ color: BPI.ink }}>Do</b><br />Use accent for citations, the single primary action, and live links. Use status hues for severity, delta direction, and intervention outcome.</div>
+            <div><b style={{ color: BPI.ink }}>Don't</b><br />Use status hues as decoration. Don't introduce additional accents — if you need a second emphasis, vary weight or scale instead.</div>
+            <div><b style={{ color: BPI.ink }}>Pair</b><br />Paper-deep + card + ink covers ~95% of surfaces. The hero band on segment detail (ink on paper) is the one inverted exception.</div>
+          </div>
+        </div>
+      </Section>
+
+      {/* 02 — Type */}
+      <Section id="type" num="02" title="Typography"
+        sub="Helvetica Neue with system fallbacks, plus a monospace stack for tokens and tabular data. Tabular numerics on every metric. Tight tracking on headlines (−0.02em), normal body, slightly looser eyebrows (+0.12em uppercase).">
+
+        <div className="ds-card span-8">
+          <div className="label">SCALE</div>
+          {[
+            { s: 44, w: 600, t: '-0.025em', name: 'display',     samp: 'Pick a route. See the evidence.', m: '44 / 600 / track −0.025' },
+            { s: 32, w: 600, t: '-0.02em',  name: 'title',       samp: 'The Madison corridor problem',     m: '32 / 600 / track −0.02' },
+            { s: 24, w: 600, t: '-0.02em',  name: 'section',     samp: '1st Avenue / 2nd Avenue SBS',      m: '24 / 600 / track −0.02' },
+            { s: 18, w: 600, t: '-0.01em',  name: 'subhead',     samp: 'Top slow segments by rider-hours', m: '18 / 600 / track −0.01' },
+            { s: 14.5, w: 400, t: '0',      name: 'body',        samp: 'On weekdays in March 2026, M15 SBS buses traversed Madison Avenue between 28th and 58th at 4.2 mph.', m: '14.5 / 400 / 1.55 leading' },
+            { s: 12.5, w: 500, t: '0',      name: 'ui',          samp: 'Generate brief →',                 m: '12.5 / 500' },
+            { s: 11.5, w: 600, t: '-0.003em', name: 'label',       samp: 'Selected segment',                 m: '11.5 / 600 / Title Case' },
+            { s: 10.5, w: 500, t: '0',      name: 'mono / data', samp: '37.2K rider-trips · 2026-05-12',   m: '10.5 / 500 / mono', mono: true },
+          ].map((r) => (
+            <div key={r.name} className="typescale-row">
+              <div className="meta">{r.m}<br /><span style={{ color: 'rgba(22,20,15,.35)' }}>{r.name}</span></div>
+              <div style={{
+                fontSize: r.s, fontWeight: r.w, letterSpacing: r.t,
+                fontFamily: r.mono ? "'SF Mono', ui-monospace, Menlo, monospace" : 'inherit',
+                fontVariantNumeric: 'tabular-nums',
+                lineHeight: r.s > 30 ? 1.05 : 1.4,
+                flex: 1, minWidth: 0,
+              }}>{r.samp}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="ds-card span-4">
+          <div className="label">FAMILIES</div>
+          <div style={{ fontSize: 20, fontWeight: 600 }}>Helvetica Neue</div>
+          <pre className="code">'Helvetica Neue', Helvetica, Arial,{`
+`}'Liberation Sans', sans-serif</pre>
+          <div style={{ fontSize: 20, fontWeight: 500, fontFamily: "'SF Mono', ui-monospace, Menlo, monospace" }}>SF Mono · 6.74 mph</div>
+          <pre className="code">'SF Mono', ui-monospace,{`
+`}'JetBrains Mono', Menlo, monospace</pre>
+          <div className="note">
+            Two families, no display font. Mono is used for tokens, dates, timestamps,
+            anything that should resist line breaks, and any number where columns need to align.
+          </div>
+          <div className="label" style={{ marginTop: 4 }}>NUMERICS RULE</div>
+          <div className="note">
+            All numbers shown inside a metric, table cell, or KPI use <code>font-variant-numeric: tabular-nums</code> via the
+            <code>.num</code> utility — applied automatically by <code>KPI</code> and <code>Spark</code>.
+          </div>
+        </div>
+      </Section>
+
+      {/* 03 — Spacing */}
+      <Section id="space" num="03" title="Spacing &amp; rhythm"
+        sub="A 4-unit base. We use a small set of step values rather than a continuous scale — keeps composition disciplined and predictable. Radii are kept very small; this is an analyst tool, not a marketing site.">
+
+        <div className="ds-card span-8">
+          <div className="label">SPACING SCALE (px)</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
+            {[4, 8, 12, 14, 18, 22, 28, 36, 48, 64].map((px) => (
+              <div key={px} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: px, height: px, background: BPI.ink, borderRadius: 1 }} />
+                <div className="tok">{px}</div>
+              </div>
+            ))}
+          </div>
+          <div className="note">
+            Section gutters use 28–36. Card padding 14–22. KPI strip spacing 18–24. Page header padding 24–48.
+          </div>
+        </div>
+
+        <Card span={4} label="RADII" name="0 · 2 · 3 · 4" col
+          note="Almost everything is 3px. 4px on hero cards. Chips use 3px. We don't go above 4px — pill radii feel friendly; we want serious.">
+          <div style={{ display: 'flex', gap: 12 }}>
+            {[0, 2, 3, 4].map((r) => (
+              <div key={r} style={{ width: 52, height: 36, background: BPI.ink, borderRadius: r, display: 'flex', alignItems: 'center', justifyContent: 'center', color: BPI.paper, fontFamily: BPIMono, fontSize: 10.5 }}>{r}</div>
+            ))}
+          </div>
+        </Card>
+
+        <Card span={6} label="ELEVATION" name="One drop, one inset"
+          note="A single subtle drop on cards (0 0 0 1px hairline + 1px Y, 3 blur). For the focused / active item, we use a 1.5–2px ink border with a 2px solid drop offset instead of a soft shadow.">
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ width: 120, height: 56, background: BPI.card, borderRadius: 3, boxShadow: `0 1px 3px ${BPI.ink10}, 0 0 0 1px ${BPI.rule}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5 }}>card</div>
+            <div style={{ width: 120, height: 56, background: BPI.card, borderRadius: 3, border: `1.5px solid ${BPI.ink}`, boxShadow: `0 2px 0 ${BPI.ink}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 600 }}>focused</div>
+          </div>
+        </Card>
+
+        <Card span={6} label="DIVIDERS" name="One hairline color"
+          note="Use rule (rgba(22,20,15,.14)) everywhere a divider is needed. Don't introduce secondary divider weights — promote to a margin if you want more separation.">
+          <div style={{ width: '100%' }}>
+            <div style={{ padding: '12px 0', fontSize: 12.5, boxShadow: `inset 0 -1px 0 ${BPI.rule}` }}>Segment row</div>
+            <div style={{ padding: '12px 0', fontSize: 12.5, boxShadow: `inset 0 -1px 0 ${BPI.rule}` }}>Segment row</div>
+            <div style={{ padding: '12px 0', fontSize: 12.5 }}>Segment row</div>
+          </div>
+        </Card>
+      </Section>
+
+      {/* 04 — Route badges */}
+      <Section id="route" num="04" title="Route badges"
+        sub="Rounded-rect badge per route. Borough-colored. Optional SBS pill in outline style next to it. Four sizes. Express buses use green regardless of borough.">
+        {[
+          { size: 'sm', name: 'sm · 18px high', use: 'inline in long lists & recent-routes row' },
+          { size: 'md', name: 'md · 22px (default)', use: 'feed rows, search results, default everywhere' },
+          { size: 'lg', name: 'lg · 28px', use: 'brief intro line, evidence drill-down header' },
+          { size: 'xl', name: 'xl · 36px', use: 'route detail header only' },
+        ].map((r) => (
+          <Card key={r.size} span={3} label={r.size.toUpperCase()} name={r.name} note={r.use}>
+            <RouteBadge route="M15" sbs size={r.size} />
+            <RouteBadge route="Bx12" sbs size={r.size} />
+            <RouteBadge route="B41" size={r.size} />
+            <RouteBadge route="Q44" sbs size={r.size} />
+            <RouteBadge route="X27" size={r.size} />
+          </Card>
+        ))}
+        <Card span={12} label="ALL BOROUGHS · md" name="Borough inference is automatic from prefix" note="The component reads the route prefix (M, Bx, B, Q, SI/S, X / BM / BxM / QM) and picks the borough color. SBS is the only modifier prop required at the call site.">
+          <RouteBadge route="M15"  sbs /><RouteBadge route="M101" />
+          <RouteBadge route="Bx12" sbs /><RouteBadge route="Bx41" sbs />
+          <RouteBadge route="B41"  /><RouteBadge route="B44" sbs />
+          <RouteBadge route="B46"  sbs /><RouteBadge route="B82" sbs />
+          <RouteBadge route="Q44"  sbs /><RouteBadge route="Q58"  />
+          <RouteBadge route="SIM1" /><RouteBadge route="S46"  />
+          <RouteBadge route="X27"  />
+        </Card>
+      </Section>
+
+      {/* 05 — Chips & citations */}
+      <Section id="chips" num="05" title="Chips, citations, labels"
+        sub="Three small primitives that do a lot of lifting. Chips for status / filter / tag; superscript Cite for inline citation numbers; the .eyebrow class is a small Title Case label used for sidebar group headers and metric names.">
+        <Card span={6} label="CHIP" name="status &amp; tag" note="Use neutral chips for tags and filter values. Use coloured chips only when they carry meaning — severity, treatment status, brief status.">
+          <span className="bpi"><span className="chip">All boroughs</span></span>
+          <span className="bpi"><span className="chip">AM peak</span></span>
+          <span className="bpi"><span className="chip accent">ACE</span></span>
+          <span className="bpi"><span className="chip good">LANE</span></span>
+          <span className="bpi"><span className="chip warn">LANE: PARTIAL</span></span>
+          <span className="bpi"><span className="chip bad">NO LANE</span></span>
+        </Card>
+        <Card span={3} label="CITE" name="superscript number"
+          note="Always rendered as an accent-color superscript. Lives inline in body copy and headlines; readers learn that numbers are sources.">
+          <span className="bpi" style={{ fontSize: 15, color: BPI.ink, lineHeight: 1.5 }}>
+            … runs at 4.2 mph<Cite n={2} /> — slower than walking pace<Cite n={3} />.
+          </span>
+        </Card>
+        <Card span={3} label="LABEL" name="11.5px / 600 / Title Case"
+          note="Small text label used above values in KPIs, as sidebar group headers, and as card titles. No more uppercase tracked-out 'eyebrows' — section titles now carry their own weight via H.">
+          <div className="bpi" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span className="eyebrow">Selected segment</span>
+            <span className="eyebrow">Treatments</span>
+            <span className="eyebrow">Evidence in view</span>
+          </div>
+        </Card>
+
+        <div className="ds-card span-6">
+          <div className="label">REVIEWER CHIP &amp; STACK · <span style={{ color: BPI.ink70 }}>&lt;ReviewerChip&gt; / &lt;ReviewerStack&gt;</span></div>
+          <div className="bpi" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div>
+              <div style={{ fontSize: 11, color: BPI.ink55, marginBottom: 10 }}>Single chip — ring tone tracks review state</div>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                {[
+                  { i: 'SR', state: 'approved',          tone: BPI.good,  label: 'approved' },
+                  { i: 'CP', state: 'requested-changes', tone: BPI.bad,   label: 'changes requested' },
+                  { i: 'JL', state: 'reviewing',         tone: BPI.warn,  label: 'reviewing' },
+                  { i: 'MK', state: 'idle',              tone: BPI.ink40, label: 'not started' },
+                ].map((r) => (
+                  <div key={r.i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <div title={r.state} style={{
+                      width: 28, height: 28, borderRadius: 14,
+                      background: BPI.paper, color: BPI.ink,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10.5, fontWeight: 700,
+                      boxShadow: `inset 0 0 0 1.5px ${r.tone}, 0 0 0 1.5px white`,
+                    }}>{r.i}</div>
+                    <div style={{ fontSize: 9.5, color: BPI.ink55, textAlign: 'center', maxWidth: 56, lineHeight: 1.3 }}>{r.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: BPI.ink55, marginBottom: 10 }}>Stack — overlapping, ring alone tells the story. No text summary alongside.</div>
+              <div style={{ display: 'flex' }}>
+                {[
+                  { i: 'JL', tone: BPI.warn },
+                  { i: 'SR', tone: BPI.good },
+                  { i: 'CP', tone: BPI.bad  },
+                ].map((r, i) => (
+                  <div key={r.i} style={{ marginLeft: i ? -8 : 0 }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 14,
+                      background: BPI.paper, color: BPI.ink,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10.5, fontWeight: 700,
+                      boxShadow: `inset 0 0 0 1.5px ${r.tone}, 0 0 0 2px white`,
+                    }}>{r.i}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="name">Initials + status ring. Stack uses card-white gap to separate.</div>
+          <div className="note">
+            The ring is the only status indicator — never add text alongside that restates the count or states (AP02). Ring colors: good = approved, bad = changes requested, warn = reviewing, ink-40 = not started. Stack overlap is −8px. Use <code>title</code> for the accessible name.
+          </div>
+        </div>
+
+        <div className="ds-card span-6">
+          <div className="label">COMMENT BADGE — claim outline &amp; body copy</div>
+          <div className="bpi" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ fontSize: 11, color: BPI.ink55, marginBottom: 2 }}>On outline rows — count bubble at far right</div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {[1, 3, 7].map(n => (
+                <div key={n} style={{
+                  display: 'flex', alignItems: 'center', gap: 3,
+                  padding: '2px 7px', borderRadius: 10,
+                  background: n >= 3 ? BPI.warnBg : BPI.ink06,
+                  color: n >= 3 ? BPI.warn : BPI.ink70,
+                  fontSize: 10.5, fontWeight: 700,
+                }}>
+                  <svg width="9" height="9" viewBox="0 0 12 12" fill="currentColor"><path d="M2 2h8a1 1 0 011 1v5a1 1 0 01-1 1H6l-3 2V9H2a1 1 0 01-1-1V3a1 1 0 011-1z"/></svg>
+                  {n}
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: BPI.ink55, marginTop: 4, marginBottom: 2 }}>On body copy — underline + lettered marker</div>
+            <div style={{ fontSize: 14, lineHeight: 1.65, color: BPI.ink }}>
+              On this corridor, buses average{' '}
+              <span style={{ borderBottom: `1.5px solid ${BPI.warn}`, background: BPI.warnBg, padding: '0 2px' }}>4.2 mph</span>
+              {' '}— slower than walking pace.
+              <sup style={{ fontSize: 9, fontWeight: 700, color: BPI.accent, marginLeft: 1 }}>a</sup>
+            </div>
+          </div>
+          <div className="name">Two contexts: outline row count · inline body annotation</div>
+          <div className="note">
+            Neutral (ink-06) for 1–2 comments; warn for 3+. The inline body marker uses a lettered superscript (not a number — numbers are citations) and a warn underline on the commented span. The badge sits at the far right of the outline row — never inline with the claim title.
+          </div>
+        </div>
+      </Section>
+
+      {/* 06 — Buttons */}
+      <Section id="buttons" num="06" title="Buttons"
+        sub="Four variants. One primary action per screen. Secondary is the default for everything else. Ghost is for tertiary in-flow actions; accent is reserved for navigational ↗ steps inside dense panels.">
+        <Card span={3} label="PRIMARY" name="<Button variant='primary'>" note="One per screen. The thing this screen exists to let you do.">
+          <Button variant="primary">Generate brief →</Button>
+        </Card>
+        <Card span={3} label="SECONDARY" name="<Button variant='secondary'>" note="Default. Use for any action that isn't the primary.">
+          <Button variant="secondary">Compare with M15 local</Button>
+        </Card>
+        <Card span={3} label="ACCENT" name="<Button variant='accent'>" note="Use sparingly inside evidence panels for ↗ jumps.">
+          <Button variant="accent">Open evidence ↗</Button>
+        </Card>
+        <Card span={3} label="GHOST" name="<Button variant='ghost'>" note="Inline tertiary. No border. Looks like a link.">
+          <Button variant="ghost">← Back to brief</Button>
+        </Card>
+        <Card span={6} label="SIZES" name="sm · md · lg" note="md is default. sm for dense lists or compact panels; lg only on hero CTAs.">
+          <Button size="sm">Save draft</Button>
+          <Button size="md">Save draft</Button>
+          <Button size="lg" variant="primary">Read brief →</Button>
+        </Card>
+        <Card span={6} label="DANGER" name="<Button variant='danger'>" note="Reserved for irreversible destructive actions. We don't have many — most edits are reversible (drafts, soft-deletes).">
+          <Button variant="danger">Discard draft</Button>
+          <Button variant="primary" full>Roll this hotspot up into the M15 brief →</Button>
+        </Card>
+      </Section>
+
+      {/* 07 — Search field, fully modelled */}
+      <Section id="fields" num="07" title="Search field"
+        sub="The studio's primary entry affordance. One canonical input — bordered + offset-shadow on the homepage; compact in StudioBar. Every state, every variant, lives here.">
+
+        <Card span={6} label="DEFAULT · large · homepage" name="empty, unfocused" note="Lives at the top of every entry page. ⌘K shortcut hint at right. 1.5px ink border + 2px offset shadow. Distinctive enough that it never gets lost on a busy page.">
+          <div style={{ width: '100%' }}>
+            <SearchField placeholder="Search by route number, street, or borough…" shortcut="⌘K" />
+          </div>
+        </Card>
+
+        <Card span={6} label="FOCUSED · with value" name="active state" note="The accent ring appears on focus. When the user has typed, a clear (×) button sits before the shortcut hint.">
+          <div style={{ width: '100%', position: 'relative' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              background: BPI.card, border: `1.5px solid ${BPI.accent}`,
+              padding: '14px 18px', borderRadius: 4,
+              boxShadow: `0 2px 0 ${BPI.accent}, 0 0 0 3px ${BPI.accentBg}`,
+            }}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={BPI.accent} strokeWidth="1.8">
+                <circle cx="8" cy="8" r="5.5" /><path d="M12.5 12.5L16 16" strokeLinecap="round" />
+              </svg>
+              <input style={{
+                flex: 1, border: 'none', outline: 'none', fontFamily: 'inherit',
+                fontSize: 17, background: 'transparent', color: BPI.ink,
+              }} defaultValue="M15" />
+              <button className="bpi" style={{
+                background: BPI.ink06, border: 'none', borderRadius: '50%',
+                width: 20, height: 20, cursor: 'pointer', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', color: BPI.ink55,
+                padding: 0, fontSize: 12, lineHeight: 1,
+              }}>×</button>
+              <span className="bpi"><span className="mono" style={{ fontSize: 11, color: BPI.ink40, padding: '2px 6px', border: `1px solid ${BPI.ink20}`, borderRadius: 3 }}>⌘K</span></span>
+            </div>
+          </div>
+        </Card>
+
+        <div className="ds-card span-12">
+          <div className="label">WITH SUGGESTION DROPDOWN · multi-type results</div>
+          <div className="bpi" style={{ width: '100%', maxWidth: 720 }}>
+            <SearchField defaultValue="madison" placeholder="…" shortcut="⌘K" />
+            <div style={{
+              marginTop: 8, background: BPI.card,
+              boxShadow: `0 2px 0 ${BPI.ink20}, 0 0 0 1px ${BPI.rule}`,
+              borderRadius: 4, overflow: 'hidden',
+            }}>
+              {/* Routes group */}
+              <div style={{ padding: '8px 18px 4px', fontSize: 10, color: BPI.ink55, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700, background: BPI.paperDeep }}>Routes (3)</div>
+              {[
+                { route: 'M15',  sbs: true,  name: '1 Av / 2 Av',         hint: '37.2K daily · ACE active', active: true },
+                { route: 'M101', sbs: false, name: '3 Av / Lexington Av', hint: '29.7K daily' },
+                { route: 'M102', sbs: false, name: '3 Av / Lexington Av', hint: '14.2K daily' },
+              ].map((row, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 14, padding: '10px 18px',
+                  background: row.active ? BPI.ink06 : 'transparent',
+                  boxShadow: `inset 0 -1px 0 ${BPI.rule}`,
+                }}>
+                  <RouteBadge route={row.route} sbs={row.sbs} />
+                  <div style={{ fontSize: 13.5, fontWeight: 500 }}>{row.name}</div>
+                  <div style={{ flex: 1 }} />
+                  <div style={{ fontSize: 12, color: BPI.ink55 }}>{row.hint}</div>
+                  {row.active && <span style={{ fontSize: 11, color: BPI.ink40, fontFamily: BPIMono }}>↵</span>}
+                </div>
+              ))}
+              {/* Segments group */}
+              <div style={{ padding: '8px 18px 4px', fontSize: 10, color: BPI.ink55, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700, background: BPI.paperDeep }}>Segments (2)</div>
+              {[
+                { dir: 'NB', from: 'Madison Av / E 28 St', to: 'Madison Av / E 58 St', tag: '#1 hotspot' },
+                { dir: 'SB', from: 'Madison Av / E 96 St', to: 'Madison Av / E 79 St', tag: '#14 hotspot' },
+              ].map((row, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 14, padding: '10px 18px',
+                  boxShadow: `inset 0 -1px 0 ${BPI.rule}`,
+                }}>
+                  <DirIndicator dir={row.dir} />
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{row.from} <span style={{ color: BPI.ink40 }}>→</span> {row.to}</div>
+                  <div style={{ flex: 1 }} />
+                  <span className="chip bad" style={{ fontSize: 10 }}>{row.tag}</span>
+                </div>
+              ))}
+              {/* Briefs group */}
+              <div style={{ padding: '8px 18px 4px', fontSize: 10, color: BPI.ink55, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700, background: BPI.paperDeep }}>Briefs (1)</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 18px' }}>
+                <span style={{ fontSize: 9.5, letterSpacing: '0.12em', fontWeight: 700, padding: '2px 6px', background: BPI.goodBg, color: BPI.good, borderRadius: 2 }}>PUBLISHED</span>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>M15 SBS: The Madison corridor problem</div>
+                <div style={{ flex: 1 }} />
+                <div style={{ fontSize: 11, color: BPI.ink55, fontFamily: BPIMono }}>May 2026</div>
+              </div>
+              {/* Footer */}
+              <div style={{
+                padding: '8px 18px', background: BPI.paper, fontSize: 11, color: BPI.ink55,
+                display: 'flex', alignItems: 'center', gap: 12, boxShadow: `inset 0 1px 0 ${BPI.rule}`,
+              }}>
+                <span><span style={{ fontFamily: BPIMono, color: BPI.ink70 }}>↑↓</span> navigate</span>
+                <span><span style={{ fontFamily: BPIMono, color: BPI.ink70 }}>↵</span> open</span>
+                <span><span style={{ fontFamily: BPIMono, color: BPI.ink70 }}>tab</span> filter</span>
+                <div style={{ flex: 1 }} />
+                <span style={{ color: BPI.accent, cursor: 'pointer' }}>Open methodology →</span>
+              </div>
+            </div>
+          </div>
+          <div className="name">With suggestion dropdown</div>
+          <div className="note">
+            Results are grouped by type (Routes · Segments · Briefs) with a small caps section header
+            in paper-deep. The selected row uses ink-06 background and a return-arrow glyph. Keyboard hints
+            and a methodology shortcut live in the footer.
+          </div>
+        </div>
+
+        <Card span={6} label="EMPTY · no results" name="no-match state"
+          note="When the query returns nothing. Lead with an explanation, then offer two recovery actions — search tips and the methodology page (where users often go to confirm scope).">
+          <div style={{ width: '100%' }}>
+            <SearchField defaultValue="staten island ferry" placeholder="…" shortcut="⌘K" />
+            <div style={{
+              marginTop: 8, background: BPI.card, padding: '24px 22px',
+              boxShadow: `0 2px 0 ${BPI.ink20}, 0 0 0 1px ${BPI.rule}`, borderRadius: 4,
+              display: 'flex', alignItems: 'center', gap: 16,
+            }}>
+              <div style={{ width: 38, height: 38, borderRadius: 19, background: BPI.ink06, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke={BPI.ink55} strokeWidth="1.6"><circle cx="8" cy="8" r="5.5" /><path d="M12.5 12.5L16 16" strokeLinecap="round" /></svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="bpi" style={{ fontSize: 13.5, fontWeight: 600 }}>No bus routes match "staten island ferry"</div>
+                <div className="bpi" style={{ fontSize: 12, color: BPI.ink70, marginTop: 3 }}>
+                  Try a route number, an avenue, or a borough name.
+                </div>
+              </div>
+              <Button size="sm" variant="secondary">Search tips</Button>
+            </div>
+          </div>
+        </Card>
+
+        <Card span={6} label="COMPACT · in StudioBar" name="header variant"
+          note="Used in the top bar on detail pages. No offset shadow; no shortcut hint. Hover reveals the search icon-only affordance; clicking expands the full search overlay.">
+          <div style={{ width: '100%' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: BPI.paper, border: `1px solid ${BPI.rule}`,
+              padding: '7px 12px', borderRadius: 3,
+              width: 280,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke={BPI.ink55} strokeWidth="1.8">
+                <circle cx="8" cy="8" r="5.5" /><path d="M12.5 12.5L16 16" strokeLinecap="round" />
+              </svg>
+              <input style={{
+                flex: 1, border: 'none', outline: 'none', fontFamily: 'inherit',
+                fontSize: 12.5, background: 'transparent', color: BPI.ink,
+              }} placeholder="Search route, segment, brief…" />
+              <span className="bpi"><span className="mono" style={{ fontSize: 10, color: BPI.ink40, padding: '1px 5px', border: `1px solid ${BPI.ink20}`, borderRadius: 2 }}>⌘K</span></span>
+            </div>
+          </div>
+        </Card>
+
+        <Card span={12} label="USAGE" name="">
+          <div className="bpi" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, fontSize: 12.5, color: BPI.ink70, lineHeight: 1.6 }}>
+            <div><b style={{ color: BPI.ink }}>Do</b><br />Use large variant once per page, as the primary entry. Default to a route placeholder string. Always show a working ⌘K shortcut hint — it's a meaningful affordance, not decoration.</div>
+            <div><b style={{ color: BPI.ink }}>Don't</b><br />Use two search fields on one page. Don't use search as a filter (filter pills do that). Don't open the dropdown until the user has typed ≥ 1 character.</div>
+            <div><b style={{ color: BPI.ink }}>Group results by type.</b><br />Routes first, then Segments, then Briefs, then Methodology. Each group header is small caps on paper-deep. A single selected row uses ink-06.</div>
+          </div>
+        </Card>
+      </Section>
+
+      {/* 08 — Data viz */}
+      <Section id="dataviz" num="08" title="Data viz primitives"
+        sub="Five small components do most of the work. Each one is monochrome by default and only takes color when it carries a meaning (severity tier, delta direction, treatment outcome).">
+
+        <Card span={4} label="SPARK" name="<Spark>" note="14-day or 24-hour trend. Pair with a current value. Color the line by delta sign, not by aesthetic preference.">
+          <Spark data={[7.1, 6.8, 6.7, 6.5, 6.0, 5.4, 5.0, 4.8, 4.6, 4.4, 4.3, 4.2, 4.2, 4.2]} width={220} height={48} color={BPI.bad} fill />
+          <Spark data={[6.2, 6.4, 6.4, 6.6, 6.7, 6.7, 6.9, 6.9, 7.0, 7.0]} width={220} height={36} color={BPI.good} />
+        </Card>
+
+        <Card span={4} label="HOURSTRIP" name="<HourStrip>" note="24 cells, one per hour. Color encodes severity tier (low / mid / warn / bad). Pair with a 0/6/12/18/24 axis underneath when used full-width.">
+          <HourStrip hours={Array.from({ length: 24 }, (_, h) => {
+            if (h >= 7 && h <= 9) return 0.7;
+            if (h >= 11 && h <= 14) return 0.5;
+            if (h >= 16 && h <= 19) return 0.9;
+            if (h >= 6 && h <= 21) return 0.3;
+            return 0.1;
+          })} width={250} height={20} />
+          <div className="bpi" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: BPI.ink55, fontFamily: BPIMono, width: 250, marginTop: 2 }}>
+            <span>0:00</span><span>6:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+          </div>
+        </Card>
+
+        <Card span={4} label="BEFOREAFTER" name="<BeforeAfter>" note="Single before / after comparison. Use inside intervention impact rows. Outcome direction colors the after bar (good = green, bad = red).">
+          <BeforeAfter before={6.2} after={6.9} max={9} />
+          <BeforeAfter before={1840} after={590} max={2000} />
+        </Card>
+
+        <Card span={4} label="MAPTHUMB" name="<MapThumb>" note="Placeholder map. Striped background = 'this is a map, not finished art.' Use until real map tiles are wired up.">
+          <MapThumb width={200} height={120} emphasis={BPI.bad} label="Madison Av NB" />
+        </Card>
+
+        <Card span={4} label="KPI" name="<KPI>" note="Metric block. Eyebrow + value + unit + sub. Tone colors the value (good / warn / bad). Reserve large size for hero strips.">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%' }}>
+            <KPI label="Weighted avg speed" value="6.74" unit="mph" sub="7th percentile of NYC SBS" />
+            <KPI label="Rider-hours lost / day" value="4,310" sub="vs scheduled" tone="bad" />
+          </div>
+        </Card>
+
+        <Card span={4} label="SEVERITY DOT" name="ranking primitive" note="Two-digit number inside a 26px disc. Tiers at 75+ (warn) and 85+ (bad). Used in hotspot triage feed.">
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[94, 86, 78, 64, 42].map((v) => (
+              <div key={v} style={{
+                width: 32, height: 32, borderRadius: 16,
+                background: v > 85 ? BPI.bad : v > 75 ? BPI.warn : BPI.ink40,
+                color: '#fff', fontSize: 12, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontVariantNumeric: 'tabular-nums',
+              }}>{v}</div>
+            ))}
+          </div>
+        </Card>
+
+        <div className="ds-card span-6">
+          <div className="label">CONFIDENCE BAR — 3-segment indicator</div>
+          <div className="bpi" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[
+              { label: 'High confidence',     filled: 3, color: BPI.good },
+              { label: 'Moderate confidence', filled: 2, color: BPI.warn },
+              { label: 'Low confidence',      filled: 1, color: BPI.bad  },
+            ].map((c) => (
+              <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 3 }}>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{
+                      width: 22, height: 4, borderRadius: 1,
+                      background: i <= c.filled ? c.color : BPI.ink10,
+                    }} />
+                  ))}
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: c.color }}>{c.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="name">Three segments. Color and fill count encode tier.</div>
+          <div className="note">
+            Used on FindingCard and FindingDetail headers. Three tiers only: high (3 filled, good), moderate (2 filled, warn), low (1 filled, bad). Never show a percentage — that implies false precision. Always pair with a text label so colorblind readers aren't excluded.
+          </div>
+        </div>
+      </Section>
+
+      {/* 09 — Chart components */}
+      <Section id="charts" num="09" title="Chart components"
+        sub="Two reusable chart components built on the primitives above. They share a single ChartFrame wrapper for title, source line, and axis style — so two charts on the same page never disagree about how an axis label looks.">
+
+        <div className="ds-card span-12">
+          <div className="label">HOURBARS · <span style={{ color: BPI.ink70 }}>&lt;HourBars data sched /&gt;</span></div>
+          <div className="bpi" style={{ width: '100%' }}>
+            <ChartFrame title="Median speed by hour" source="Madison Av NB, E 28 St → E 58 St · weekdays · n = 2,003" height={220}
+              right={<span className="mono" style={{ fontSize: 10, color: BPI.ink55 }}>source: MTA Bus Speeds</span>}>
+              <HourBars data={[7.4,7.6,7.8,8.1,7.9,7.0,5.4,4.7,5.0,5.9,6.0,5.8,5.6,5.4,5.5,5.0,4.2,3.8,4.1,5.2,6.4,7.0,7.2,7.4]}
+                sched={7.1} width={1100} height={200} min={3} max={9} />
+            </ChartFrame>
+          </div>
+          <div className="name">24-hour bar chart</div>
+          <div className="note">
+            One bar per hour. Color-tiered (red &lt; 5, warn &lt; 6.5, neutral otherwise). Optional dashed accent
+            baseline shows the scheduled timepoint pace. Used in the brief-first evidence drill-down.
+          </div>
+        </div>
+
+        <div className="ds-card span-12">
+          <div className="label">HEATMAP · <span style={{ color: BPI.ink70 }}>&lt;Heatmap rows cols values min max /&gt;</span></div>
+          <div className="bpi" style={{ width: '100%' }}>
+            <ChartFrame title="Speed by hour × day of week" source="Median segment speed, mph · Madison Av NB · last 8 weeks" height={210}>
+              <Heatmap
+                rows={['Mon','Tue','Wed','Thu','Fri','Sat','Sun']}
+                cols={Array.from({ length: 18 }, (_, i) => ((i + 5) % 12 || 12).toString())}
+                values={Array.from({ length: 7 }, (_, d) => Array.from({ length: 18 }, (_, h) => {
+                  const hh = h + 5; let b = 7.5;
+                  if (d <= 4 && hh >= 7 && hh <= 9) b = 4.5;
+                  else if (d <= 4 && hh >= 16 && hh <= 19) b = 3.9;
+                  else if (d <= 4 && hh >= 12 && hh <= 14) b = 6.0;
+                  else if (d >= 5 && hh >= 12 && hh <= 18) b = 6.6;
+                  return b + Math.sin(d * 1.5 + hh * 0.7) * 0.4;
+                }))}
+                min={3.5} max={8.5} cellW={42} cellH={22} labelGutter={42} colTickEvery={3} />
+            </ChartFrame>
+          </div>
+          <div className="name">Severity heatmap</div>
+          <div className="note">
+            Rows × columns with a continuous severity-mapped color scale. Column-label gutter ticks every N steps
+            (default 6). The legend gradient under the cells is automatic and uses the same color ramp as the cells
+            so the scale is self-documenting.
+          </div>
+        </div>
+
+        <Card span={12} label="USAGE" name="">
+          <div className="bpi" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, fontSize: 12.5, color: BPI.ink70, lineHeight: 1.6 }}>
+            <div><b style={{ color: BPI.ink }}>Always wrap in ChartFrame.</b><br />The frame owns the title, source line, and the chrome around the chart. Don't render a chart directly into the page.</div>
+            <div><b style={{ color: BPI.ink }}>One severity scale.</b><br />Color in charts always carries severity meaning — bad / warn / neutral / accent. Don't color-code by category (route, segment, etc.); use position or labels for that.</div>
+            <div><b style={{ color: BPI.ink }}>Cite under the chart, not on it.</b><br />Source lines go in the ChartFrame's <code>source</code> prop. Inline citation numbers may appear in the caption but not as visual marks on the chart itself.</div>
+          </div>
+        </Card>
+      </Section>
+
+      {/* 10 — Segment row */}
+      <Section id="segment" num="10" title="Segment row"
+        sub="The most-reused composite in the studio. Direction shown inline with an arrow (not a placeholder-looking mono pill), MPH colored by severity, treatments rendered as compact glyphs in one ordered row (LANE / ACE / TSP). Built from primitives below.">
+
+        <Card span={4} label="DIRECTION" name="<DirIndicator>"
+          note="Compass-letter + arrow. Used inline with from→to. Reads as a directional cue, not a tag.">
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            <DirIndicator dir="NB" />
+            <DirIndicator dir="SB" />
+            <DirIndicator dir="EB" />
+            <DirIndicator dir="WB" />
+            <DirIndicator dir="NB" muted />
+          </div>
+        </Card>
+
+        <Card span={4} label="LANE COVERAGE" name="<LaneGlyph>"
+          note="Three-segment bar showing coverage. Filled count = coverage tier. Color tracks the tier (good / warn / neutral). Label always under the bar so a row of glyphs reads as a status board.">
+          <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
+            <LaneGlyph state="yes"     />
+            <LaneGlyph state="partial" />
+            <LaneGlyph state="minimal" />
+            <LaneGlyph state="none"    />
+          </div>
+          <div className="note" style={{ fontSize: 10.5 }}>
+            yes (3) · partial (2) · minimal (1) · none (0)
+          </div>
+        </Card>
+
+        <Card span={4} label="STATE DOT" name="<DotGlyph>"
+          note="Binary on/off indicator with a small label. Used for ACE and TSP. Filled = installed; outline = not. Tone changes the filled color (accent for ACE, good for TSP).">
+          <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
+            <DotGlyph label="ACE" on={true}  tone="accent" />
+            <DotGlyph label="ACE" on={false} tone="accent" />
+            <DotGlyph label="TSP" on={true}  tone="good"   />
+            <DotGlyph label="TSP" on={false} tone="good"   />
+          </div>
+        </Card>
+
+        <Card span={12} label="TREATMENT ROW" name="<TreatmentRow lane='partial' ace tsp />"
+          note="Three glyphs in fixed order: LANE · ACE · TSP. Always shown in this order so a reader scanning a column of rows can compare across segments without re-orienting. Fixed width so they align with the column header below.">
+          <div style={{ display: 'flex', gap: 36 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <TreatmentRow lane="yes"     ace={true}  tsp={true}  align="flex-start" />
+              <div style={{ fontSize: 10, color: BPI.ink55, fontFamily: BPIMono }}>fully treated</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <TreatmentRow lane="yes"     ace={true}  tsp={false} align="flex-start" />
+              <div style={{ fontSize: 10, color: BPI.ink55, fontFamily: BPIMono }}>typical SBS today</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <TreatmentRow lane="partial" ace={false} tsp={false} align="flex-start" />
+              <div style={{ fontSize: 10, color: BPI.ink55, fontFamily: BPIMono }}>top hotspot — Madison Av</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <TreatmentRow lane="none"    ace={false} tsp={false} align="flex-start" />
+              <div style={{ fontSize: 10, color: BPI.ink55, fontFamily: BPIMono }}>untreated corridor</div>
+            </div>
+          </div>
+        </Card>
+
+        <div className="ds-card span-12">
+          <div className="label">FULL ROW · <span style={{ color: BPI.ink70 }}>&lt;SegmentRowHeader /&gt; + &lt;SegmentRow /&gt;</span></div>
+          <div className="bpi" style={{ width: '100%' }}>
+            <SegmentRowHeader />
+            <SegmentRow
+              dir="NB" from="Madison Av / E 28 St" to="Madison Av / E 58 St"
+              mph={4.2} sched={7.1} rh={18420}
+              hours={Array.from({ length: 24 }, (_, h) => h >= 7 && h <= 9 ? 0.7 : h >= 11 && h <= 14 ? 0.5 : h >= 16 && h <= 19 ? 0.9 : h >= 6 && h <= 21 ? 0.3 : 0.1)}
+              lane="partial" ace={false} tsp={false} flag="top"
+            />
+            <SegmentRow
+              dir="NB" from="1 Av / E 14 St" to="1 Av / E 34 St"
+              mph={4.9} sched={7.6} rh={14110}
+              hours={Array.from({ length: 24 }, (_, h) => h >= 7 && h <= 9 ? 0.6 : h >= 11 && h <= 14 ? 0.5 : h >= 16 && h <= 19 ? 0.85 : h >= 6 && h <= 21 ? 0.3 : 0.1)}
+              lane="yes" ace={true} tsp={false}
+            />
+            <SegmentRow
+              dir="SB" from="2 Av / E 60 St" to="2 Av / E 42 St"
+              mph={5.2} sched={7.8} rh={12880}
+              hours={Array.from({ length: 24 }, (_, h) => h >= 7 && h <= 9 ? 0.55 : h >= 11 && h <= 14 ? 0.6 : h >= 16 && h <= 19 ? 0.7 : h >= 6 && h <= 21 ? 0.3 : 0.1)}
+              lane="yes" ace={true} tsp={false}
+            />
+            <SegmentRow
+              dir="NB" from="1 Av / E 86 St" to="1 Av / E 96 St"
+              mph={6.4} sched={8.2} rh={9640}
+              hours={Array.from({ length: 24 }, (_, h) => h >= 7 && h <= 9 ? 0.5 : h >= 16 && h <= 19 ? 0.6 : h >= 6 && h <= 21 ? 0.3 : 0.1)}
+              lane="yes" ace={true} tsp={true}
+            />
+          </div>
+          <div className="name">Slow segments table</div>
+          <div className="note">
+            The "top rider-impact" segment is highlighted by changing the row background to accent-bg
+            and showing a single-line note under the segment name. The row itself stays the same shape —
+            no special chips, no extra columns. Treatment glyphs use the same fixed slot order
+            (LANE · ACE · TSP) across every row so the eye can scan vertically.
+          </div>
+        </div>
+      </Section>
+
+      {/* 11 — States */}
+      <Section id="states" num="11" title="Empty, loading &amp; error states"
+        sub="Placeholder content is a first-class part of the system. Skeletons match the shape of what's loading; empty and error states are always opinionated with an icon, an explanation, and a recovery action.">
+
+        <div className="ds-card span-6">
+          <div className="label">SKELETON ATOMS</div>
+          <div className="bpi" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <Skeleton w={220} h={28} />
+            <Skeleton w={160} h={14} />
+            <SkeletonText lines={3} />
+          </div>
+          <div className="name">&lt;Skeleton&gt; · &lt;SkeletonText&gt;</div>
+          <div className="note">
+            One animated atom. Shimmer pulses every 1.2s. Use exact widths/heights to match the
+            real content that will replace them — don't render a full-row block where a 60-char headline will load.
+          </div>
+        </div>
+
+        <div className="ds-card span-6">
+          <div className="label">SKELETON KPI</div>
+          <div className="bpi" style={{ display: 'flex', gap: 28 }}>
+            <SkeletonKPI /><SkeletonKPI /><SkeletonKPI />
+          </div>
+          <div className="name">&lt;SkeletonKPI&gt;</div>
+          <div className="note">
+            Three-line placeholder for the KPI strip on the route header. Sized to match the real KPI's eyebrow + value + sub heights so no layout shift occurs.
+          </div>
+        </div>
+
+        <div className="ds-card span-12">
+          <div className="label">SKELETON SEGMENT ROW</div>
+          <div className="bpi" style={{ width: '100%' }}>
+            <SegmentRowHeader />
+            <SkeletonSegmentRow />
+            <SkeletonSegmentRow />
+            <SkeletonSegmentRow />
+          </div>
+          <div className="name">&lt;SkeletonSegmentRow&gt;</div>
+          <div className="note">
+            Matches the SegmentRow grid exactly. Drop in while data loads to avoid layout shift when rows arrive.
+            Render exactly as many as you expect rows; don't render an arbitrary number.
+          </div>
+        </div>
+
+        <div className="ds-card span-6">
+          <div className="label">EMPTY · FILTER YIELDS NOTHING</div>
+          <div className="bpi" style={{ width: '100%' }}>
+            <EmptyState icon="∅"
+              title="No segments match these filters"
+              body="No bus segments in Manhattan currently lose more than 5,000 rider-hours/day. Try widening the borough filter or lowering the threshold."
+              primary="Clear filters" secondary="Adjust thresholds" />
+          </div>
+          <div className="name">&lt;EmptyState&gt;</div>
+          <div className="note">
+            Composed: icon · title · body · 1–2 actions. The title is always a complete sentence about what's
+            missing and why. Never use bare "No results."
+          </div>
+        </div>
+
+        <div className="ds-card span-6">
+          <div className="label">EMPTY · NEW DRAFT</div>
+          <div className="bpi" style={{ width: '100%' }}>
+            <EmptyState icon="+"
+              title="Start a new brief"
+              body="Briefs build from claims. Each claim attaches its own evidence and caveats. Pick a route or compose freely."
+              primary="Choose a route →" secondary="Compose freely" />
+          </div>
+          <div className="name">First-run / blank-canvas state</div>
+          <div className="note">
+            Use on the Briefs gallery before any drafts exist. Same component, different rhetorical posture —
+            an invitation rather than an explanation.
+          </div>
+        </div>
+
+        <div className="ds-card span-6">
+          <div className="label">ERROR · DATA LOAD FAILED</div>
+          <div className="bpi" style={{ width: '100%' }}>
+            <ErrorState
+              title="Could not load segment speeds"
+              body="The MTA segments table is responding slowly. Numbers shown elsewhere on this page may be older."
+              retry="Retry" />
+          </div>
+          <div className="name">&lt;ErrorState&gt;</div>
+          <div className="note">
+            Same shape as EmptyState but with a bad-tone icon and a retry affordance. Never use a generic
+            "something went wrong" — name the data source and what's at stake.
+          </div>
+        </div>
+
+        <Card span={6} label="USAGE" name="">
+          <div className="bpi" style={{ fontSize: 12.5, color: BPI.ink70, lineHeight: 1.7 }}>
+            <b style={{ color: BPI.ink }}>Match the shape.</b><br />
+            A skeleton must occupy the same box as the content it stands in for. Never use a generic
+            rectangular shimmer where a structured row will load — it just shifts the page when data arrives.
+            <br /><br />
+            <b style={{ color: BPI.ink }}>Be specific about emptiness.</b><br />
+            "No segments match these filters" is far more useful than "No results."
+            The studio's audience is technical; tell them what the empty set is, not just that it's empty.
+          </div>
+        </Card>
+      </Section>
+
+      {/* 12 — Authoring pattern */}
+      <Section id="authoring" num="12" title="Authoring pattern"
+        sub="The brief composer is built from this pattern. Three primitives — a strength meter, a claim card, and an evidence-attached row — compose into the workspace shown on the Route-first canvas (A4).">
+
+        <Card span={4} label="STRENGTH BARS" name="0–5 horizontal pip meter"
+          note='Five small pips reading left-to-right. Color tracks strength: bad / warn / accent / good. Used inline next to claim numbers; size="lg" stands alone in the strength callout.'>
+          <div className="bpi" style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap' }}>
+            {[1, 2, 3, 4, 5].map((s) => (
+              <div key={s} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                <StrengthBars strength={s} size="sm" />
+                <div className="num" style={{ fontSize: 10, color: BPI.ink55, fontFamily: BPIMono }}>{s}/5</div>
+              </div>
+            ))}
+          </div>
+          <div className="bpi" style={{ display: 'flex', gap: 18, alignItems: 'center', marginTop: 12 }}>
+            <div><StrengthBars strength={4} size="sm" /></div>
+            <div><StrengthBars strength={4} size="md" /></div>
+            <div><StrengthBars strength={4} size="lg" /></div>
+          </div>
+        </Card>
+
+        <div className="ds-card span-8">
+          <div className="label">CLAIM LIST · <span style={{ color: BPI.ink70 }}>&lt;ClaimList&gt; / &lt;ClaimRow&gt;</span></div>
+          <div className="bpi" style={{ width: '100%' }}>
+            <ClaimList
+              claims={[
+                { n: 1, title: 'M15 SBS is the slowest SBS route in Manhattan',          strength: 5, evidence: 3, caveats: 1 },
+                { n: 2, title: 'A single corridor accounts for 43% of measured delay',   strength: 4, evidence: 4, caveats: 2, editing: true },
+                { n: 3, title: 'ACE rollout coincides with +0.7 mph PM-peak gain',       strength: 3, evidence: 3, caveats: 2 },
+                { n: 4, title: 'Treatment gap on Madison Av',                            strength: 2, evidence: 1, caveats: 0, weak: true },
+              ]}
+              onAdd={() => {}}
+            />
+          </div>
+          <div className="name">Comfortable density</div>
+          <div className="note">
+            The single primitive used to render claims in any list context — the right-rail "Brief in progress"
+            on the annotation screen, the left-rail "Outline" on the composer screen.
+            Four states: default; <b style={{ color: BPI.ink }}>editing</b> (accent ring + accentBg + EDITING chip);
+            <b style={{ color: BPI.ink }}> active</b> (ink ring + card bg); plus the <b style={{ color: BPI.warn }}>weak</b> flag in metadata.
+            Pass <code>reorderable</code> for a drag handle, <code>density="compact"</code> for tighter layout,
+            and a <code>summary</code> node for the optional footer.
+          </div>
+        </div>
+
+        <div className="ds-card span-4">
+          <div className="label">COMPACT + REORDERABLE</div>
+          <div className="bpi" style={{ width: '100%' }}>
+            <ClaimList
+              reorderable density="compact" onAdd={() => {}}
+              claims={[
+                { n: 1, title: 'Slowest SBS in Manhattan',         strength: 5, evidence: 3, caveats: 1 },
+                { n: 2, title: 'Madison · 43% of delay',           strength: 4, evidence: 4, caveats: 2, editing: true },
+                { n: 3, title: 'ACE rollout + 0.7 mph',            strength: 3, evidence: 3, caveats: 2 },
+                { n: 4, title: 'Treatment gap on Madison',         strength: 2, evidence: 1, caveats: 0, weak: true },
+              ]}
+              summary={<>Avg strength <b style={{ color: BPI.ink }}>3.5</b> / 5<br />11 evidence · 5 caveats</>}
+            />
+          </div>
+          <div className="name">Composer outline density</div>
+          <div className="note">Same primitive — denser padding, drag handles, footer summary.</div>
+        </div>
+
+        <Card span={8} label="CLAIM CARD" name="claim · evidence · caveats · strength"
+          note="The unit the brief is built from. Statement on top (highlight = computed citation). Evidence list with type chips. Caveat row. Strength readout with a one-sentence justification.">
+          <div className="bpi" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{
+              padding: '12px 14px', background: BPI.paper, borderRadius: 3,
+              fontSize: 14, fontWeight: 500, lineHeight: 1.5,
+              boxShadow: `inset 0 0 0 1px ${BPI.rule}`,
+            }}>
+              A 1.5-mile stretch of Madison Avenue accounts for <span style={{ background: BPI.accentBg, color: BPI.accent, padding: '0 4px', borderRadius: 2, fontWeight: 600 }}>43%</span> of the M15 SBS's total measured rider-hour delay.
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[
+                { glyph: '#', name: '43% computed' },
+                { glyph: '▤', name: 'Rider-hours by segment' },
+                { glyph: '#', name: '18,420 RH/day' },
+                { glyph: '¶', name: 'Madison wiki' },
+              ].map((e, i) => (
+                <div key={i} style={{
+                  padding: '6px 9px', background: BPI.card, borderRadius: 3,
+                  boxShadow: `inset 0 0 0 1px ${BPI.rule}`, fontSize: 11, color: BPI.ink70,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <span style={{ fontFamily: BPIMono, fontWeight: 700, color: BPI.ink55 }}>{e.glyph}</span>
+                  {e.name}
+                </div>
+              ))}
+            </div>
+            <div style={{
+              padding: '10px 12px', background: BPI.goodBg, borderRadius: 3,
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <StrengthBars strength={4} size="lg" />
+              <div style={{ fontSize: 11.5, color: BPI.ink70 }}>
+                <b style={{ color: BPI.good }}>Strength 4/5 — defensible.</b> 4 primary sources · 2 caveats acknowledged.
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card span={12} label="FULL WORKSPACE LAYOUT" name="" note="">
+          <div className="bpi" style={{ width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 200px', gap: 0, height: 240, boxShadow: `0 0 0 1px ${BPI.rule}`, borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ background: BPI.paper, padding: 14, boxShadow: `inset -1px 0 0 ${BPI.rule}` }}>
+                <div className="eyebrow" style={{ marginBottom: 8 }}>Outline</div>
+                {[
+                  { n: 1, t: 'Slowest SBS in Manhattan', s: 5 },
+                  { n: 2, t: 'Madison · 43% of delay', s: 4, active: true },
+                  { n: 3, t: 'ACE + 0.7 mph', s: 3 },
+                  { n: 4, t: 'Treatment gap', s: 2, weak: true },
+                ].map((c) => (
+                  <div key={c.n} style={{
+                    padding: '6px 8px', borderRadius: 2,
+                    background: c.active ? BPI.card : 'transparent',
+                    boxShadow: c.active ? `0 0 0 1.5px ${BPI.ink}` : 'none',
+                    marginBottom: 3, fontSize: 11, fontWeight: c.active ? 600 : 400,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}>
+                    <span className="num" style={{ fontSize: 9, color: BPI.ink55, fontFamily: BPIMono }}>0{c.n}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{c.t}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: BPI.card, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span className="eyebrow" style={{ color: BPI.accent }}>Claim 02 · editing</span>
+                <div style={{ padding: 10, background: BPI.paper, borderRadius: 2, fontSize: 12, boxShadow: `inset 0 0 0 1px ${BPI.rule}` }}>
+                  Madison Av accounts for <b style={{ color: BPI.accent }}>43%</b> of M15 SBS delay…
+                </div>
+                <div style={{ fontSize: 10, color: BPI.ink55, fontFamily: BPIMono }}>4 evidence attached · 2 caveats applied</div>
+                <div style={{ padding: 8, background: BPI.goodBg, borderRadius: 2, fontSize: 10.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <StrengthBars strength={4} />
+                  <span style={{ color: BPI.good, fontWeight: 600 }}>4/5 defensible</span>
+                </div>
+              </div>
+              <div style={{ background: BPI.paper, padding: 12, boxShadow: `inset 1px 0 0 ${BPI.rule}` }}>
+                <div className="eyebrow" style={{ marginBottom: 8 }}>Inspector</div>
+                <div style={{ fontSize: 10, color: BPI.ink55, marginBottom: 6 }}>Numbers · Charts · Sources · Caveats</div>
+                {['18,420 RH/day', '43% share', '4.2 mph weekday'].map((n, i) => (
+                  <div key={i} style={{ padding: '5px 7px', background: BPI.card, borderRadius: 2, fontSize: 10, marginBottom: 3, boxShadow: `inset 0 0 0 1px ${BPI.rule}` }}>
+                    {n}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="name">Three-column composer</div>
+          <div className="note">
+            Left rail · claim outline with strength meters and drag handles.
+            Center · the single active claim, statement + attached evidence + applied caveats + auto-computed strength.
+            Right rail · evidence inspector tabs (Numbers / Charts / Sources / Caveats) with a drag-to-attach affordance. Full screen in the Route-first canvas (A4).
+          </div>
+        </Card>
+
+        <div className="ds-card span-12">
+          <div className="label">◆ AI ATTRIBUTION — glyph + strip + inline annotation</div>
+          <div className="bpi" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, color: BPI.ink55, marginBottom: 8 }}>Proactive strip — route detail header</div>
+              <div style={{
+                padding: '12px 16px', background: BPI.accentBg,
+                boxShadow: `inset 0 0 0 1px oklch(0.88 0.07 252)`,
+                borderRadius: 3, display: 'flex', gap: 12, alignItems: 'flex-start',
+              }}>
+                <span style={{ fontSize: 10, fontFamily: "'SF Mono', monospace", fontWeight: 700, color: BPI.accent, marginTop: 2, flexShrink: 0 }}>◆</span>
+                <div style={{ flex: 1, fontSize: 12.5, color: BPI.ink, lineHeight: 1.55 }}>
+                  Full treatment stack in place, yet PM-peak speed has declined 0.6 mph over 14 months.{' '}
+                  <span style={{ color: BPI.accent, fontWeight: 500 }}>Madison Av shows no correlated violation reduction — unusual for ACE corridors.</span>
+                </div>
+                <button style={{
+                  flexShrink: 0, padding: '4px 10px',
+                  background: BPI.accent, color: '#fff',
+                  border: 'none', borderRadius: 3,
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                }}>What explains this? →</button>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: BPI.ink55, marginBottom: 8 }}>Inline segment annotation — below AI-flagged row</div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '4px 0' }}>
+                <span style={{ fontFamily: "'SF Mono', monospace", fontWeight: 700, fontSize: 10, color: BPI.accent, marginTop: 1.5, flexShrink: 0 }}>◆</span>
+                <span style={{ fontSize: 12, color: BPI.ink70, lineHeight: 1.5 }}>No violation reduction despite ACE active on adjacent blocks — painted-only lane may be structurally unenforceable here.</span>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: BPI.ink55, marginBottom: 6 }}>The glyph alone</div>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                <span style={{ fontFamily: "'SF Mono', monospace", fontWeight: 700, fontSize: 10, color: BPI.accent }}>◆ AI</span>
+                <span style={{ fontFamily: "'SF Mono', monospace", fontWeight: 700, fontSize: 10, color: BPI.ink55 }}>◆ AI-ANALYZED</span>
+                <span style={{ fontFamily: "'SF Mono', monospace", fontWeight: 700, fontSize: 10, color: BPI.ink40 }}>◆ {14} sources</span>
+              </div>
+            </div>
+          </div>
+          <div className="name">◆ in BPIMono is the sole AI attribution mark.</div>
+          <div className="note">
+            The ◆ glyph (mono, 10px, accent color) is the only signal that content is AI-generated. Never use "AI says," chat bubbles, or robot icons. Three contexts: (1) proactive strip — accentBg band with expand affordance, used once per screen; (2) inline annotation — ◆ + ink-70 prose below a flagged row; (3) micro-label — ◆ + "AI" or source count in metadata lines. On-demand triggers (buttons) use the primary button style, not a special AI style.
+          </div>
+        </div>
+      </Section>
+
+      {/* 13 — Composite patterns */}
+      <Section id="composite" num="13" title="Composite patterns"
+        sub="The handful of higher-order patterns built from the primitives above. These are the building blocks of full screens.">
+
+        <div className="ds-card span-12">
+          <div className="label">ROUTE LADDER · <span style={{ color: BPI.ink70 }}>signature visualization</span></div>
+          <div className="bpi" style={{ width: '100%', padding: '6px 0' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '28px 96px 28px 50px 1fr 80px 36px',
+              gap: 6, padding: '0 6px 6px',
+              fontSize: 9.5, color: BPI.ink55,
+              letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700,
+              boxShadow: `inset 0 -1px 0 ${BPI.rule}`, marginBottom: 4,
+            }}>
+              <span /><span style={{ textAlign: 'right' }}>← Speed</span><span /><span>Treat.</span><span>Segment</span><span>Rider-hr →</span><span />
+            </div>
+            {[
+              { mph: 7.4, sched: 8.4, rh: 4200,  label: 'E 125 St ↔ E 116 St',         lane: 'yes',     ace: true,  tsp: false },
+              { mph: 5.8, sched: 8.2, rh: 9640,  label: 'E 96 St ↔ E 79 St',           lane: 'yes',     ace: true,  tsp: true  },
+              { mph: 4.2, sched: 7.1, rh: 18420, label: 'Madison Av · E 58 ↔ E 28',    lane: 'partial', ace: false, tsp: false, selected: true },
+              { mph: 5.5, sched: 7.4, rh: 8210,  label: 'E 14 St ↔ Houston St',        lane: 'yes',     ace: true,  tsp: false },
+              { mph: 7.2, sched: 8.0, rh: 4900,  label: 'Madison / Allen ↔ S. Ferry',  lane: 'yes',     ace: false, tsp: false },
+            ].map((s, i, arr) => {
+              const sev = s.mph < 5 ? BPI.bad : s.mph < 6.5 ? BPI.warn : BPI.ink40;
+              const speedW = (s.mph / 9) * 96;
+              const schedX = (s.sched / 9) * 96;
+              const rhW = (s.rh / 20000) * 80;
+              const spineColor = s.lane === 'yes' ? BPI.good : s.lane === 'partial' ? BPI.warn : BPI.ink20;
+              return (
+                <div key={i} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '28px 96px 28px 50px 1fr 80px 36px',
+                  gap: 6, alignItems: 'center', height: 44, padding: '0 6px',
+                  background: s.selected ? BPI.accentBg : 'transparent', borderRadius: 3,
+                }}>
+                  <div className="num" style={{ textAlign: 'right', fontSize: 12, fontWeight: 700, color: s.selected ? BPI.ink : sev }}>{s.mph.toFixed(1)}</div>
+                  <div style={{ position: 'relative', height: 12 }}>
+                    <div style={{ position: 'absolute', right: 0, top: 4, width: 96, height: 4, background: BPI.ink06, borderRadius: 1 }} />
+                    <div style={{ position: 'absolute', right: 0, top: 2, height: 8, width: speedW, background: sev, borderRadius: 1 }} />
+                    <div style={{ position: 'absolute', right: schedX - 1, top: -1, height: 14, width: 2, background: BPI.accent }} />
+                  </div>
+                  <div style={{ position: 'relative', height: '100%' }}>
+                    <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 4, background: spineColor, transform: 'translateX(-50%)', borderRadius: 2 }} />
+                    <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: s.selected ? 14 : 10, height: s.selected ? 14 : 10, borderRadius: 7, background: s.selected ? BPI.accent : BPI.card, boxShadow: s.selected ? `0 0 0 3px ${BPI.paper}, 0 0 0 5px ${BPI.accent}` : `0 0 0 2.5px ${BPI.ink}`, zIndex: 2 }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <MiniLaneStub state={s.lane} />
+                    <MiniDotStub on={s.ace} tone="accent" />
+                    <MiniDotStub on={s.tsp} tone="good" />
+                  </div>
+                  <div style={{ fontSize: 11.5, fontWeight: s.selected ? 600 : 500, color: s.selected ? BPI.ink : BPI.ink70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</div>
+                  <div style={{ position: 'relative', height: 8 }}>
+                    <div style={{ position: 'absolute', left: 0, top: 2, width: 80, height: 4, background: BPI.ink06, borderRadius: 1 }} />
+                    <div style={{ position: 'absolute', left: 0, top: 0, height: 8, width: rhW, background: s.selected ? BPI.ink : BPI.ink40, borderRadius: 1 }} />
+                  </div>
+                  <div className="num" style={{ fontSize: 10.5, fontWeight: 600, color: BPI.ink70 }}>{(s.rh/1000).toFixed(1)}K</div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="name">Vertical route diagram</div>
+          <div className="note">
+            A subway-diagram-style view of a single route, with performance data baked in. Spine color tracks
+            bus-lane continuity — so a discontinuity in the spine is, literally, a treatment gap. Speed bars grow
+            leftward from the spine with an accent tick at the scheduled timepoint pace; ridership bars grow
+            rightward. Click any segment to focus (right rail updates). The pulsing red ring above marks the route's
+            top rider-impact segment. The full screen is on the Route-first canvas (A3) and includes a bottom
+            time scrubber for stepping through past months.
+          </div>
+        </div>
+
+        <div className="ds-card span-12">
+          <div className="label">STUDIOBAR</div>
+          <div style={{ margin: '0 -18px' }}>
+            <StudioBar active="Routes" breadcrumb="Routes / M15 +SBS" />
+          </div>
+          <div className="name">Top navigation</div>
+          <div className="note">
+            One per screen, at the top. Logo + product name + 5 nav items + optional breadcrumb (mono, right-aligned)
+            + a data-currency indicator. The active nav item gets a 2px ink underline. Never use tabs at this level.
+          </div>
+        </div>
+
+        <Card span={6} label="TABS" name="<Tabs>" note="In-page section switcher. Single active state via a 2px ink underline. Never use tabs for top-level navigation — that lives in StudioBar.">
+          <Tabs items={['Overview', 'Slow segments', 'Riders', 'Interventions', 'Methodology']} active="Slow segments" />
+        </Card>
+        <Card span={6} label="FILTER PILL" name="value-bearing chip" note="Used in dense filter strips. Label + value + caret. Click opens a popover (not built here).">
+          <div className="bpi" style={{ display: 'flex', gap: 10 }}>
+            {[
+              ['Borough', 'All'],
+              ['Window', 'AM + PM peak'],
+              ['Treatment', 'Any'],
+            ].map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', background: BPI.paper, borderRadius: 3, boxShadow: `inset 0 0 0 1px ${BPI.rule}`, fontSize: 12.5 }}>
+                <span style={{ color: BPI.ink55, fontSize: 11 }}>{k}</span>
+                <span style={{ fontWeight: 600 }}>{v}</span>
+                <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke={BPI.ink40} strokeWidth="1.4"><path d="M2 3.5L4.5 6 7 3.5" /></svg>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card span={6} label="SECTION HEADER" name="<H>"
+          note="Pairs a title with an optional subtitle on the left and an optional chip cluster on the right. Used to introduce every block on every screen. No more uppercase-tracked eyebrow prelude — titles carry their own weight.">
+          <div className="bpi" style={{ width: '100%' }}>
+            <H title="Top slow segments by rider-hours lost"
+              sub="13 timepoint segments. Hour strip shows severity by time of day."
+              right={<div style={{ display: 'flex', gap: 6 }}>
+                <span className="chip accent">Mar 2026</span><span className="chip">All directions</span>
+              </div>} />
+          </div>
+        </Card>
+
+        <Card span={6} label="CAVEAT" name="<Caveat>"
+          note="Inline callout used in briefs to flag interpretation. Always use rather than burying caveats in prose — the studio's promise depends on visibility of caveats.">
+          <Caveat tone="warn" title="What 'speed' means here.">
+            MTA segment speeds reflect real rider experience — they include dwell time, traffic, signals, and stops.
+            Read as <i>observed bus travel speed</i>, not pure traffic speed.
+          </Caveat>
+        </Card>
+
+        <Card span={6} label="TIMELINE" name="<Timeline>" note="Vertical event list for interventions. Tone colors the dot (accent / good / bad). Dates are tabular-num mono.">
+          <div className="bpi" style={{ width: '100%' }}>
+            <Timeline events={[
+              { date: '2010', title: 'M15 SBS launches', detail: 'Off-board fare, limited stops, painted lanes.', tone: 'accent' },
+              { date: '2019', title: 'ACE enforcement begins', tone: 'accent' },
+              { date: '2023', title: 'Bus lane redesign, E 23 → E 14 St', detail: 'Concrete bus lane upgrade per DOT.', tone: 'good' },
+            ]} />
+          </div>
+        </Card>
+
+        <Card span={6} label="KPI STRIP" name="card row with rule dividers" note="Up to 5 KPIs across a route header. Vertical hairline between cells; last one has no rule. Use the lg size when this strip is the page hero.">
+          <div className="bpi" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, width: '100%' }}>
+            {[
+              { lbl: 'Speed',  val: '6.74', unit: 'mph' },
+              { lbl: 'Riders/day', val: '37.2K' },
+              { lbl: 'Lost / day', val: '4,310', tone: 'bad' },
+              { lbl: 'Lane',   val: '72%' },
+            ].map((k, i, a) => (
+              <div key={i} style={{ borderRight: i < a.length - 1 ? `1px solid ${BPI.rule}` : 'none', paddingRight: 14 }}>
+                <KPI label={k.lbl} value={k.val} unit={k.unit} tone={k.tone} />
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <div className="ds-card span-12">
+          <div className="label">DATA PAGE · <span style={{ color: BPI.ink70 }}>where sources live</span></div>
+          <div className="bpi" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '6px 0' }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 4, background: BPI.ink, color: BPI.paper,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16,
+            }}>§</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600 }}>Methods → Data</div>
+              <div style={{ fontSize: 12, color: BPI.ink70, marginTop: 2 }}>
+                Datasets · Qualitative sources · Computed metrics · Caveats library · Glossary
+              </div>
+            </div>
+            <span className="chip">one page, product-wide</span>
+          </div>
+          <div className="name">No per-screen sources footer</div>
+          <div className="note">
+            We don't put a "Sources:" footer on every screen. The Data page (accessed via the Methods nav item)
+            is the single canonical reference. Where a specific data slice appears on a screen, the source is
+            attached close to it — chart captions via the <code>source</code> prop on ChartFrame, superscript
+            citation numbers inside the brief reading view, and a small "data: …" caption under tables when needed.
+          </div>
+        </div>
+      </Section>
+
+      {/* 14 — Anti-patterns */}
+      <Section id="antipatterns" num="14" title="Anti-patterns to avoid"
+        sub="These patterns appear constantly in analyst tooling and feel expedient in the moment. Each one erodes information hierarchy, creates redundancy, or signals that no judgment has been made about what matters.">
+
+        {/* AP01 — The dot-dump */}
+        <div className="ds-card span-12">
+          <div className="label">AP01 · THE DOT-DUMP — concatenating all available fields with ·</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: BPI.bad, letterSpacing: '0.04em', marginBottom: 8 }}>✗ Before</div>
+              <div className="bpi" style={{
+                padding: '14px 18px', background: BPI.card,
+                boxShadow: `inset 0 0 0 1.5px ${BPI.bad}`, borderRadius: 3,
+                display: 'flex', flexDirection: 'column', gap: 6,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <RouteBadge route="M15" sbs size="md" />
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>The Madison corridor problem</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '2px 7px', background: BPI.warnBg, color: BPI.warn, borderRadius: 2 }}>IN REVIEW</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: BPI.ink55, fontFamily: "'SF Mono', ui-monospace, monospace" }}>
+                  3 reviewers · 10 comments · 1 change requested
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: BPI.good, letterSpacing: '0.04em', marginBottom: 8 }}>✓ After</div>
+              <div className="bpi" style={{
+                padding: '14px 18px', background: BPI.card,
+                boxShadow: `inset 0 0 0 1.5px ${BPI.good}`, borderRadius: 3,
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <RouteBadge route="M15" sbs size="md" />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>The Madison corridor problem</div>
+                  <div style={{ fontSize: 11, color: BPI.ink55, fontFamily: "'SF Mono', ui-monospace, monospace" }}>IN REVIEW · sent 2 days ago</div>
+                </div>
+                <div style={{ flex: 1 }} />
+                <div style={{ display: 'flex' }}>
+                  {[{i:'JL',s:'reviewing'},{i:'SR',s:'approved'},{i:'CP',s:'changes'}].map((r, idx) => (
+                    <div key={idx} style={{
+                      width: 28, height: 28, borderRadius: 14,
+                      background: r.s === 'approved' ? BPI.goodBg : r.s === 'changes' ? BPI.warnBg : BPI.ink06,
+                      border: `2px solid white`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10, fontWeight: 700,
+                      color: r.s === 'approved' ? BPI.good : r.s === 'changes' ? BPI.warn : BPI.ink55,
+                      marginLeft: idx > 0 ? -8 : 0,
+                    }}>{r.i}</div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="name" style={{ marginTop: 4 }}>Don't list all available fields. Make a judgment about what matters.</div>
+          <div className="note">
+            "3 reviewers · 10 comments · 1 change requested" is a status dump — every data field that was available, separated by a dot. The dots signal "here is what I had," not "here is what you need." Reviewer avatars already communicate count and state visually; the text line is pure redundancy. The rule: a subtitle communicates the single most actionable fact, or nothing at all.
+          </div>
+        </div>
+
+        {/* AP02 — Text + visual redundancy */}
+        <div className="ds-card span-12">
+          <div className="label">AP02 · TEXT RESTATING WHAT A VISUAL ALREADY COMMUNICATES</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: BPI.bad, letterSpacing: '0.04em', marginBottom: 8 }}>✗ Before — same concept stated twice</div>
+              <div className="bpi" style={{
+                padding: '14px 18px', background: BPI.card,
+                boxShadow: `inset 0 0 0 1.5px ${BPI.bad}`, borderRadius: 3,
+                display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+                <div style={{ fontSize: 11.5, color: BPI.ink55, fontFamily: "'SF Mono', ui-monospace, monospace" }}>
+                  3 reviewers · 1 approved · 1 changes requested
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {[{i:'JL',s:'reviewing'},{i:'SR',s:'approved'},{i:'CP',s:'changes'}].map((r, idx) => (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 16, background: r.s === 'approved' ? BPI.goodBg : r.s === 'changes' ? BPI.warnBg : BPI.ink06, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: r.s === 'approved' ? BPI.good : r.s === 'changes' ? BPI.warn : BPI.ink55 }}>{r.i}</div>
+                      <div style={{ fontSize: 9, color: BPI.ink55 }}>{r.s}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: BPI.good, letterSpacing: '0.04em', marginBottom: 8 }}>✓ After — visuals own the concept entirely</div>
+              <div className="bpi" style={{
+                padding: '14px 18px', background: BPI.card,
+                boxShadow: `inset 0 0 0 1.5px ${BPI.good}`, borderRadius: 3,
+              }}>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {[{i:'JL',s:'reviewing'},{i:'SR',s:'approved'},{i:'CP',s:'changes'}].map((r, idx) => (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 16, background: r.s === 'approved' ? BPI.goodBg : r.s === 'changes' ? BPI.warnBg : BPI.ink06, border: r.s === 'changes' ? `2px solid ${BPI.warn}` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: r.s === 'approved' ? BPI.good : r.s === 'changes' ? BPI.warn : BPI.ink55 }}>{r.i}</div>
+                      <div style={{ fontSize: 9, fontWeight: r.s === 'changes' ? 700 : 400, color: r.s === 'approved' ? BPI.good : r.s === 'changes' ? BPI.warn : BPI.ink40 }}>
+                        {r.s === 'approved' ? '✓' : r.s === 'changes' ? 'changes' : '…'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="name" style={{ marginTop: 4 }}>When you introduce a visual, it owns that concept. Remove the text that repeats it.</div>
+          <div className="note">
+            The test: if you removed the text, would the analyst lose information? If the avatars already show count and state, the answer is no — remove the text. If the visual isn't doing its job clearly, fix the visual rather than adding parallel text. Two representations of the same concept create noise and raise the question of which one to trust.
+          </div>
+        </div>
+
+        {/* AP03 — Aggregate vs specific */}
+        <div className="ds-card span-12">
+          <div className="label">AP03 · AGGREGATE COUNTS WHERE ONLY THE SPECIFIC MATTERS</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: BPI.bad, letterSpacing: '0.04em', marginBottom: 8 }}>✗ Before — count without context</div>
+              <div className="bpi" style={{
+                padding: '14px 18px', background: BPI.card,
+                boxShadow: `inset 0 0 0 1.5px ${BPI.bad}`, borderRadius: 3,
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.1em', padding: '3px 8px', background: BPI.warnBg, color: BPI.warn, borderRadius: 2 }}>1 CHANGE REQUESTED</span>
+                <div style={{ flex: 1 }} />
+                <Button variant="secondary" size="sm">Resolve changes →</Button>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: BPI.good, letterSpacing: '0.04em', marginBottom: 8 }}>✓ After — named, specific, immediately actionable</div>
+              <div className="bpi" style={{
+                padding: '14px 18px', background: BPI.card,
+                boxShadow: `inset 0 0 0 1.5px ${BPI.good}`, borderRadius: 3,
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>C. Pherson requested changes</div>
+                  <div style={{ fontSize: 11, color: BPI.ink55, marginTop: 2 }}>on Claim 03 · ACE rollout attribution</div>
+                </div>
+                <Button variant="primary" size="sm">Resolve →</Button>
+              </div>
+            </div>
+          </div>
+          <div className="name" style={{ marginTop: 4 }}>Name the person and the thing. Never just the count.</div>
+          <div className="note">
+            "1 change requested" answers "how many?" but not "by whom?" or "where?" or "about what?" — none of which the analyst can skip. The count forces a second lookup that the interface should have avoided. Name the reviewer, name the claim. If there are multiple, list them or summarize in context: "C. Pherson and J. Lim · 2 change requests on Claim 03."
+          </div>
+        </div>
+
+        {/* AP04 — Context-free stats in bars */}
+        <div className="ds-card span-12">
+          <div className="label">AP04 · CONTEXT-FREE STATS FILLING HEADER SPACE</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: BPI.bad, letterSpacing: '0.04em', marginBottom: 8 }}>✗ Before — inventory, not information</div>
+              <div className="bpi" style={{
+                padding: '12px 18px', background: BPI.card,
+                boxShadow: `inset 0 0 0 1.5px ${BPI.bad}`, borderRadius: 3,
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <RouteBadge route="M15" sbs size="md" />
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>The Madison corridor problem</div>
+                  <div style={{ fontSize: 11, color: BPI.ink55, fontFamily: "'SF Mono', ui-monospace, monospace" }}>
+                    auto-saved 12s ago · 4 claims · 11 citations · 3 caveats
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: BPI.good, letterSpacing: '0.04em', marginBottom: 8 }}>✓ After — one purposeful fact</div>
+              <div className="bpi" style={{
+                padding: '12px 18px', background: BPI.card,
+                boxShadow: `inset 0 0 0 1.5px ${BPI.good}`, borderRadius: 3,
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <RouteBadge route="M15" sbs size="md" />
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>The Madison corridor problem</div>
+                  <div style={{ fontSize: 11, color: BPI.ink55, fontFamily: "'SF Mono', ui-monospace, monospace" }}>
+                    draft v0.4 · auto-saved 12s ago
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="name" style={{ marginTop: 4 }}>A header is not a database record. Every meta field must earn its place.</div>
+          <div className="note">
+            "4 claims · 11 citations · 3 caveats" answers questions the analyst didn't ask and can't act on from the header. These numbers live inside the composer where they're useful. The test for any meta field: if removing it doesn't change what the analyst does next, remove it. The only fields that survive are ones that directly inform the primary action on that screen.
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="ds-card span-12">
+          <div className="label">THE RULE</div>
+          <div className="bpi" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 28, fontSize: 13, color: BPI.ink70, lineHeight: 1.65 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: BPI.ink, marginBottom: 6 }}>One fact wins</div>
+              Headers communicate the most actionable state, not a summary of all states. Ask: what should the analyst do next? Show only what answers that.
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: BPI.ink, marginBottom: 6 }}>Visuals own their concept</div>
+              If a visual communicates a concept, text does not also communicate it. If the visual isn't clear enough, fix the visual — don't add parallel text.
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: BPI.ink, marginBottom: 6 }}>Specificity over aggregation</div>
+              Name the person, claim, segment. "1 change requested" is an aggregate; "C. Pherson · Claim 03" is specific. Aggregates force a second lookup the interface should absorb.
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: BPI.ink, marginBottom: 6 }}>No dot-separated dumps</div>
+              The · separator is not a design pattern — it signals that fields were concatenated without a decision. Each piece of metadata needs a reason to exist at that hierarchy level.
+            </div>
+          </div>
+        </div>
+
+      </Section>
+
+      {/* 15 — Code block */}
+      <Section id="codeblock" num="15" title="Code block"
+        sub="Canonical code display. Always shows a copy button — no exceptions. Use the lang prop for short lowercase language labels (bash, json, typescript). Use label to override with a contextual header like 'response shape' or 'config file'. Use CodeTabs when showing the same snippet in multiple languages; the copy button moves to the tab bar. Syntax highlighting is the consumer's responsibility — pass plain strings or pre-styled JSX children.">
+
+        {/* Default: no label */}
+        <Card span={6} label="DEFAULT · no label" name="<CodeBlock>" note="Header shows only the copy button. Use for short standalone snippets where the language is obvious from context.">
+          <CodeBlock>
+{`curl https://api.bpi.studio/v1/routes/M15-SBS \\
+  -H "Authorization: Bearer $BPI_API_KEY"`}
+          </CodeBlock>
+        </Card>
+
+        {/* With lang label */}
+        <Card span={6} label="WITH LANG LABEL" name={`<CodeBlock lang="bash">`} note="Short lowercase language name. Monospaced label anchors the block when multiple languages appear on the same page.">
+          <CodeBlock lang="bash">
+{`export BPI_API_KEY=bpi_sk_live_••••••••••••••••
+
+bpi routes list --borough manhattan --status degraded --json \\
+  | jq -r 'sort_by(.perf.week_over_week_delta) | .[0].id'`}
+          </CodeBlock>
+        </Card>
+
+        {/* Custom label */}
+        <Card span={6} label="CUSTOM LABEL" name={`<CodeBlock label="response shape">`} note="Use label (not lang) for contextual headers that describe what the block shows rather than what language it is.">
+          <CodeBlock label="response shape">
+{`{
+  "id": "M15-SBS",
+  "status": "degraded",
+  "perf": {
+    "avg_speed_mph": 6.2,
+    "week_over_week_delta": -0.18
+  },
+  "updated_at": "2026-05-17T04:00:00Z"
+}`}
+          </CodeBlock>
+        </Card>
+
+        {/* No header */}
+        <Card span={6} label="NO HEADER · noHeader prop" name={`<CodeBlock noHeader>`} note="Suppress the header entirely for inline-ish use: inside a callout, table cell, or anywhere the surrounding context already makes language and copy obvious.">
+          <CodeBlock noHeader>
+{`bpi auth login`}
+          </CodeBlock>
+          <div style={{ fontSize: 11.5, color: BPI.ink55, marginTop: 6, lineHeight: 1.5 }}>
+            When using <code style={{ fontFamily: BPIMono, fontSize: 11, background: BPI.paperDeep, padding: '1px 5px', borderRadius: 2 }}>noHeader</code>, ensure the block appears in a context where copy is either not needed or provided by a parent.
+          </div>
+        </Card>
+
+        {/* CodeTabs */}
+        <Card span={12} label="CODETABS · multi-language" name="<CodeTabs tabs={[…]} />" note="Copy button lives in the tab bar so it's always accessible regardless of active tab. Tab labels use the lang or label field. Switching tabs resets the copied state." col>
+          <CodeTabs tabs={[
+            {
+              lang: 'curl',
+              children:
+`curl -X POST https://api.bpi.studio/v1/briefs \\
+  -H "Authorization: Bearer $BPI_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "route_id": "M15-SBS",
+    "claims": [{ "text": "Speed declined 18% week-over-week", "segment_id": "M15-SBS-12" }]
+  }'`,
+            },
+            {
+              lang: 'typescript',
+              children:
+`const draft = await fetch("https://api.bpi.studio/v1/briefs", {
+  method: "POST",
+  headers: {
+    Authorization: \`Bearer \${process.env.BPI_API_KEY}\`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    route_id: "M15-SBS",
+    claims: [{ text: "Speed declined 18% week-over-week", segment_id: "M15-SBS-12" }],
+  }),
+}).then(r => r.json());`,
+            },
+            {
+              lang: 'python',
+              children:
+`draft = httpx.post(
+    "https://api.bpi.studio/v1/briefs",
+    headers={"Authorization": f"Bearer {os.environ['BPI_API_KEY']}"},
+    json={
+        "route_id": "M15-SBS",
+        "claims": [{"text": "Speed declined 18% week-over-week", "segment_id": "M15-SBS-12"}],
+    },
+).json()`,
+            },
+          ]} />
+        </Card>
+
+        {/* Usage rules */}
+        <div className="ds-card span-12">
+          <div className="label">USAGE RULES</div>
+          <div className="bpi" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 24, fontSize: 13, color: BPI.ink70, lineHeight: 1.6 }}>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: BPI.ink, marginBottom: 5 }}>Always copy-able</div>
+              Every code block has a copy button. The only exception is <code style={{ fontFamily: BPIMono, fontSize: 11, background: BPI.paperDeep, padding: '1px 4px', borderRadius: 2 }}>noHeader</code>, which is reserved for contexts where copying is not the primary interaction.
+            </div>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: BPI.ink, marginBottom: 5 }}>lang vs label</div>
+              <code style={{ fontFamily: BPIMono, fontSize: 11, background: BPI.paperDeep, padding: '1px 4px', borderRadius: 2 }}>lang</code> is a language tag (bash, json, ts). <code style={{ fontFamily: BPIMono, fontSize: 11, background: BPI.paperDeep, padding: '1px 4px', borderRadius: 2 }}>label</code> is a free-form header. Never use both — label takes precedence.
+            </div>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: BPI.ink, marginBottom: 5 }}>CodeTabs threshold</div>
+              Reach for <code style={{ fontFamily: BPIMono, fontSize: 11, background: BPI.paperDeep, padding: '1px 4px', borderRadius: 2 }}>CodeTabs</code> when the same operation is shown in 2+ languages. Don't stack separate CodeBlock components — that forces the reader to scan vertically.
+            </div>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: BPI.ink, marginBottom: 5 }}>Syntax highlighting</div>
+              The component is highlight-agnostic. Pass pre-styled JSX children with <code style={{ fontFamily: BPIMono, fontSize: 11, background: BPI.paperDeep, padding: '1px 4px', borderRadius: 2 }}>{`<span>`}</code> elements, or use copyText to provide a clean plaintext fallback for the clipboard.
+            </div>
+          </div>
+        </div>
+
+      </Section>
+
+      <div style={{ marginTop: 80, padding: '24px 0 0', borderTop: `1px solid ${BPI.rule}`, display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ fontSize: 12, color: BPI.ink55 }}>
+          Design system v0.1 · {new Date().toISOString().slice(0, 10)} ·
+          all primitives live in <code style={{ fontFamily: BPIMono, fontSize: 11.5, background: BPI.paperDeep, padding: '1px 5px', borderRadius: 2 }}>system.jsx</code>
+        </div>
+        <div style={{ flex: 1 }} />
+        <a href="index.html" style={{ fontSize: 13, color: BPI.ink, textDecoration: 'none', padding: '9px 14px', border: `1px solid ${BPI.ink20}`, borderRadius: 3, fontWeight: 500 }}>← Back to concepts</a>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

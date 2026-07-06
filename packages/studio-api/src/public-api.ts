@@ -10,7 +10,7 @@ import {
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/d1";
 import { MapManifestResponseSchema } from "@bp/domain/maps";
-import { IsoMonthSchema, RouteIdCodec } from "@bp/domain/primitives";
+import { IsoMonthSchema, type RouteId, RouteIdCodec } from "@bp/domain/primitives";
 import {
   HotspotListResponseSchema,
   ReleaseStatusResponseSchema,
@@ -18,7 +18,6 @@ import {
   RouteProfileResponseSchema,
   RouteScorecardSchema,
 } from "@bp/domain/routes";
-import * as z from "zod";
 import type { StudioApiEnv } from "./env.js";
 import { errorResponse as errorJson } from "./http/errors.js";
 import { jsonResponse as json } from "./http/json.js";
@@ -48,9 +47,9 @@ async function buildRouteScorecardResponse(url: URL, env: StudioApiEnv): Promise
     return errorJson(400, "Query parameter month must use YYYY-MM format.");
   }
 
-  let routeId: z.output<typeof RouteIdCodec>;
+  let routeId: RouteId;
   try {
-    routeId = z.decode(RouteIdCodec, decodeURIComponent(rawRouteId));
+    routeId = RouteIdCodec.parse(decodeURIComponent(rawRouteId));
   } catch {
     return errorJson(400, "Route ID is invalid.");
   }
@@ -424,9 +423,9 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
     return errorJson(400, "Query parameter month or BASELINE_MONTH must use YYYY-MM format.");
   }
 
-  let routeId: z.output<typeof RouteIdCodec>;
+  let routeId: RouteId;
   try {
-    routeId = z.decode(RouteIdCodec, decodeURIComponent(rawRouteId));
+    routeId = RouteIdCodec.parse(decodeURIComponent(rawRouteId));
   } catch {
     return errorJson(400, "Route ID is invalid.");
   }

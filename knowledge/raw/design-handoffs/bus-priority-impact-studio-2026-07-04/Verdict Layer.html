@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Verdict Layer — Bus Priority Impact Studio</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="system.jsx"></script>
+<script type="text/babel" src="verdict-data.jsx"></script>
+<script type="text/babel" src="verdict-primitives.jsx"></script>
+<script type="text/babel" src="verdict-shell.jsx"></script>
+<script type="text/babel" src="verdict-compositions.jsx"></script>
+<script type="text/babel" src="verdict-mobile.jsx"></script>
+
+<script type="text/babel">
+const R = window.VERDICT_ROUTES;
+
+function App() {
+  return (
+    <DesignCanvas>
+
+      <DCSection id="compositions" title="Verdict Overview — three divergent compositions"
+        subtitle="The Overview tab reimagined as a verdict: a 20-second answer to ‘what’s the story of this route?’, sitting below the fixed judged-KPI header and the question-shaped tabs. All three carry the same four elements — what stands out (ranked insights), a story figure, a mini-map, and a verdict footer — but diverge on reading order and on how each encodes severity × confidence (always two channels, never collapsed). Shown on the M15 (worsening, flagship). Two-clocks is resolved with a single clock + a legible reconciliation in the footer.">
+        <DCArtboard id="comp-a" label="A · Ranked column — insights-first, sparse-safe default (severity = colored blocks · confidence = ink pips)" width={1320} height={1620}><VerdictScreenA route={R.m15} /></DCArtboard>
+        <DCArtboard id="comp-b" label="B · Story spread — figure-first flagship dossier (carpet hero · severity tag + labeled confidence track)" width={1320} height={1500}><VerdictScreenB route={R.m15} /></DCArtboard>
+        <DCArtboard id="comp-c" label="C · Masthead + grid — verdict-sentence-first report card (3-up grid · bracket confidence meter)" width={1320} height={1420}><VerdictScreenC route={R.m15} /></DCArtboard>
+      </DCSection>
+
+      <DCSection id="postures" title="Three postures, one skeleton (composition A)"
+        subtitle="The verdict is composed per route — designed sparse-first so a thin route still looks intentional. Same ranked-column skeleton as comp A, three different stories: a treated-and-improving route (before/after framing, good-news insight uses the same two channels), and a healthy route where zero insights becomes the report card — the checked-clean roster reads as a credibility feature, not an apology. The M15 worsening case is comp A above.">
+        <DCArtboard id="posture-b44" label="B44 · treated & improving · standard density — before/after story, watch-item insight" width={1320} height={1520}><VerdictScreenA route={R.b44} /></DCArtboard>
+        <DCArtboard id="posture-s79" label="S79 · healthy · sparse density — zero insights → checked-clean report card, thin tabs muted" width={1320} height={1360}><VerdictScreenA route={R.s79} /></DCArtboard>
+      </DCSection>
+
+      <DCSection id="mobile" title="Mobile — real 390px frame"
+        subtitle="The verdict and its KPI snapshot degrade to a single column. Reading order is the mobile question: insights-led (KPI snapshot → verdict → findings) versus masthead-led (the verdict sentence and hero number first). The healthy route shows the checked-clean state inline on mobile.">
+        <DCArtboard id="m-insights" label="M15 · insights-led (KPI snapshot first)" width={390} height={1700}><VerdictMobile route={R.m15} lead="insights" /></DCArtboard>
+        <DCArtboard id="m-masthead" label="M15 · masthead-led (verdict sentence first)" width={390} height={1740}><VerdictMobile route={R.m15} lead="masthead" /></DCArtboard>
+        <DCArtboard id="m-healthy" label="S79 · healthy — checked-clean inline" width={390} height={1500}><VerdictMobile route={R.s79} lead="insights" /></DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

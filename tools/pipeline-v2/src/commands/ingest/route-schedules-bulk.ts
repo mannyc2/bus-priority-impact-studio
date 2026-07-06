@@ -5,7 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { createLocalPipelineDb, listRouteCatalogIds } from "@bp/db/local";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
 import { dbOptions } from "../../lib/local-db.ts";

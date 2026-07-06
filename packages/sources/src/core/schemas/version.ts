@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 export const schemaVersion = 1;
 export const IsoMonthStringSchema = z.string().regex(/^\d{4}-\d{2}$/);

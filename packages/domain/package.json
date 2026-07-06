@@ -14,16 +14,6 @@
       "bun": "./src/documents/candidates/index.ts",
       "import": "./src/documents/candidates/index.ts"
     },
-    "./documents/derived-surfaces": {
-      "types": "./src/documents/derived-surfaces/index.ts",
-      "bun": "./src/documents/derived-surfaces/index.ts",
-      "import": "./src/documents/derived-surfaces/index.ts"
-    },
-    "./documents/discovery": {
-      "types": "./src/documents/discovery/index.ts",
-      "bun": "./src/documents/discovery/index.ts",
-      "import": "./src/documents/discovery/index.ts"
-    },
     "./documents/intervention-records": {
       "types": "./src/documents/intervention-records/index.ts",
       "bun": "./src/documents/intervention-records/index.ts",
@@ -33,16 +23,6 @@
       "types": "./src/documents/operational-date/index.ts",
       "bun": "./src/documents/operational-date/index.ts",
       "import": "./src/documents/operational-date/index.ts"
-    },
-    "./documents/research-surfaces": {
-      "types": "./src/documents/research-surfaces/index.ts",
-      "bun": "./src/documents/research-surfaces/index.ts",
-      "import": "./src/documents/research-surfaces/index.ts"
-    },
-    "./documents/structured-extraction": {
-      "types": "./src/documents/structured-extraction/index.ts",
-      "bun": "./src/documents/structured-extraction/index.ts",
-      "import": "./src/documents/structured-extraction/index.ts"
     },
     "./findings": {
       "types": "./src/findings/index.ts",
@@ -69,10 +49,10 @@
       "bun": "./src/routes/index.ts",
       "import": "./src/routes/index.ts"
     },
-    "./schema-registry": {
-      "types": "./src/schema-registry/index.ts",
-      "bun": "./src/schema-registry/index.ts",
-      "import": "./src/schema-registry/index.ts"
+    "./schema-compat": {
+      "types": "./src/schema-compat.ts",
+      "bun": "./src/schema-compat.ts",
+      "import": "./src/schema-compat.ts"
     },
     "./studio": {
       "types": "./src/studio/index.ts",
@@ -147,7 +127,7 @@
     "test": "bun test ./test --timeout 5000"
   },
   "dependencies": {
-    "zod": "catalog:"
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

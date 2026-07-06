@@ -1,5 +1,6 @@
-import { querySoda3Rows } from "@nyc-transit-kit/compat/soda3";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
+import { type FetchImplementation, queryRows, soda3Layer } from "@nyc-transit-kit/soda3/client";
+import { Effect } from "effect";
 import {
   buildSocrataColumnsUrl,
   buildSocrataMetadataUrl,
@@ -55,42 +56,24 @@ function requestInitWithNormalizedBody(init: RequestInit | undefined): RequestIn
   return body === undefined ? init : { ...init, body };
 }
 
-function adaptProbeFetch(fetcher: FetchLike): typeof fetch {
-  const compatFetch = async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
-    if (input instanceof Request) {
-      const body = normalizeRequestBody(
-        init?.body ?? (input.body === null ? undefined : await input.clone().text()),
-      );
-      const baseInit: RequestInit = {
-        method: init?.method ?? input.method,
-        headers: init?.headers ?? input.headers,
-        signal: init?.signal ?? input.signal,
-      };
-      return fetcher(input.url, body === undefined ? baseInit : { ...baseInit, body });
-    }
-
-    return fetcher(input, requestInitWithNormalizedBody(init));
-  };
-
-  return Object.assign(compatFetch, {
-    preconnect: fetch.preconnect,
-  });
+function adaptProbeFetch(fetcher: FetchLike): FetchImplementation {
+  return (input, init) =>
+    input instanceof Request
+      ? fetcher(input.url, requestInitWithNormalizedBody(init))
+      : fetcher(input, requestInitWithNormalizedBody(init));
 }
 
 async function fetchSocrataRowCount(
   source: SocrataManifestSource,
   fetcher: FetchLike,
 ): Promise<number> {
-  const response = await querySoda3Rows(
-    {
+  const response = await Effect.runPromise(
+    queryRows({
       domain: source.domain,
       datasetId: source.dataset_id,
       query: "SELECT count(*)",
       includeSynthetic: false,
-    },
-    {
-      fetch: adaptProbeFetch(fetcher),
-    },
+    }).pipe(Effect.provide(soda3Layer({ fetch: adaptProbeFetch(fetcher) }))),
   );
   const count = response.rows[0]?.["count"];
   const parsed = typeof count === "number" ? count : Number(count);

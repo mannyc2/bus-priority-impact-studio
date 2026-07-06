@@ -81,7 +81,7 @@ import {
   StudioSnapshotResponseSchema,
   type StudioSourceMonthState,
 } from "@bp/domain/studio/snapshots";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import { studioOpenApiDocument } from "../contracts/openapi.js";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
@@ -196,6 +196,8 @@ type BuildStudioRouteSectionsResponseResult =
   | { ok: true; routeSections: StudioRouteSectionsResponse }
   | { ok: false; response: Response };
 
+const IsoMonthStringSchema = z.string().regex(/^\d{4}-\d{2}$/);
+
 const ModelArtifactServingProjectionSchema = z
   .object({
     artifactKind: z.literal("model_artifact_serving_projection"),
@@ -204,8 +206,8 @@ const ModelArtifactServingProjectionSchema = z
     releaseMonth: z.string(),
     historyWindow: z
       .object({
-        startMonth: z.string(),
-        endMonth: z.string(),
+        startMonth: IsoMonthStringSchema,
+        endMonth: IsoMonthStringSchema,
       })
       .strict(),
     summary: z
@@ -617,10 +619,10 @@ function routeFlagsForIndexRow(row: StudioRouteIndexSourceRow): string[] {
 function buildStudioRouteCardFromIndexRow(
   row: StudioRouteIndexSourceRow,
   observed: D1RouteObservedReliabilitySummary | undefined,
+  speedPercentile: number | null,
 ): StudioRoute {
   const slug = routeIdToStudioSlug(row.routeId);
   const speedMph = routeSpeedMphForIndexRow(row);
-  const scheduledMph = Number((speedMph * 1.18).toFixed(1));
   const coverage = routeLaneCoverageForIndexRow(row);
   const corridor = row.routeLongName ?? row.routeShortName;
   return {
@@ -632,50 +634,47 @@ function buildStudioRouteCardFromIndexRow(
     borough: boroughForRouteId(row.routeId),
     sbs: row.routeId.includes("+") || row.routeShortName.includes("SBS"),
     speedMph,
-    scheduledMph,
+    scheduledMph: null,
     weightedAvgSpeed: speedMph,
-    speedPercentile: Math.max(1, Math.min(99, 101 - (row.summary?.routeScore ?? 100))),
+    speedPercentile,
     dailyRiders: Math.round((row.summary?.totalRidership ?? 0) / 30),
-    ridersYoyPct: 0,
-    riderHoursLost: 0,
+    ridersYoyPct: null,
+    riderHoursLost: null,
     laneCoverage: coverage,
     aceStatus: row.summary?.aceActive === true ? "active" : "none",
-    aceSince: row.summary?.aceActive === true ? "Serving export" : null,
+    aceSince: null,
     tspCoverage: "none",
     reliability: routeReliabilityLabelForIndexRow(row),
     observedReliability: buildObservedReliabilityFromD1(observed),
     diagnosis: routeDiagnosisForIndexRow(row, speedMph, coverage),
-    spark: [0.92, 0.96, 1, 0.98, 1.02, 0.99, 1].map((factor) =>
-      Number((speedMph * factor).toFixed(1)),
-    ),
+    spark: null,
     termini: routeTerminiForIndexRow(row),
-    miles: Number(Math.max(1, row.shapeCount * 1.2).toFixed(1)),
+    miles: null,
     stops: row.readiness?.stopCount ?? row.stopCount,
     flags: routeFlagsForIndexRow(row),
     peerSlug: null,
     movement6mPct: roundPct(row.historyStats.speedMovement6mPct),
     context12mPct: roundPct(row.historyStats.speedMovement12mPct),
-    interventions:
-      row.summary === null
-        ? []
-        : [
-            {
-              year: "Baseline",
-              title: "Serving export generated",
-              detail: "D1 route score, speed, ridership, and treatment rows are available.",
-            },
-            ...(row.summary.aceActive
-              ? [
-                  {
-                    year: "Baseline",
-                    title: "ACE evidence present",
-                    detail: "Automated camera enforcement evidence is present in serving data.",
-                    tone: "warn" as const,
-                  },
-                ]
-              : []),
-          ],
+    interventions: [],
   };
+}
+
+function speedPercentilesForRouteIndexRows(
+  rows: readonly StudioRouteIndexSourceRow[],
+): Map<string, number> {
+  const ranked = rows
+    .filter((row) => row.summary !== null)
+    .map((row) => ({
+      routeId: row.routeId,
+      speedMph: routeSpeedMphForIndexRow(row),
+    }))
+    .toSorted(
+      (left, right) => left.speedMph - right.speedMph || left.routeId.localeCompare(right.routeId),
+    );
+  const denominator = ranked.length - 1 || 1;
+  return new Map(
+    ranked.map((row, index) => [row.routeId, Math.round((index / denominator) * 98) + 1]),
+  );
 }
 
 async function listStudioRouteCardsFromD1(
@@ -690,13 +689,20 @@ async function listStudioRouteCardsFromD1(
     listRouteObservedReliabilitySummaries(db, month),
   ]);
   const observedByRoute = new Map(observed.map((row) => [row.routeId, row]));
+  const speedPercentileByRoute = speedPercentilesForRouteIndexRows(rows);
   const routes = rows
     .toSorted((left, right) => {
       const leftScore = left.summary?.routeScore ?? 101;
       const rightScore = right.summary?.routeScore ?? 101;
       return leftScore - rightScore || left.routeId.localeCompare(right.routeId);
     })
-    .map((row) => buildStudioRouteCardFromIndexRow(row, observedByRoute.get(row.routeId)));
+    .map((row) =>
+      buildStudioRouteCardFromIndexRow(
+        row,
+        observedByRoute.get(row.routeId),
+        row.summary === null ? null : (speedPercentileByRoute.get(row.routeId) ?? null),
+      ),
+    );
   return limit !== undefined ? routes.slice(0, limit) : routes;
 }
 
@@ -850,11 +856,21 @@ async function loadModelArtifactServingProjection(
   try {
     payload = await object.json();
   } catch {
+    console.error("Model artifact serving projection is not valid JSON.", {
+      key: STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
+    });
     return null;
   }
 
   const parsed = ModelArtifactServingProjectionSchema.safeParse(payload);
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) {
+    console.error("Model artifact serving projection failed contract validation.", {
+      key: STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
+      issues: parsed.error.issues,
+    });
+    return null;
+  }
+  return parsed.data;
 }
 
 async function loadDetectorReadinessServingManifest(
@@ -1130,7 +1146,7 @@ function segmentLabelParts(
 
 function segmentFromSpeedSpineTarget(input: {
   routeSlug: string;
-  routeScheduledMph: number;
+  routeScheduledMph: number | null;
   targetId: string;
   target: RawTreatmentTarget;
   segment: RouteSpeedSpineSegmentForSegments;
@@ -1237,7 +1253,7 @@ function aliasedRouteDetailForD1Row(input: {
 }): StudioRouteDetailResponse {
   return StudioRouteDetailResponseSchema.parse({
     ...input.richDetail,
-    route: buildStudioRouteCardFromIndexRow(input.row, input.observed),
+    route: buildStudioRouteCardFromIndexRow(input.row, input.observed, null),
     segments: input.richDetail.segments,
     artifactRefs: input.richDetail.artifactRefs,
     quality: {
@@ -1924,7 +1940,7 @@ async function buildStudioRouteDetailResponseFromD1(
     routeDetail: StudioRouteDetailResponseSchema.parse({
       schemaVersion: 2,
       generatedAt: new Date().toISOString(),
-      route: buildStudioRouteCardFromIndexRow(row, observed),
+      route: buildStudioRouteCardFromIndexRow(row, observed, null),
       segments: [],
       artifactRefs: [],
       ...(hourlyProfile ?? {}),
@@ -2031,7 +2047,7 @@ export async function buildStudioRouteHistoryResponse(
     listRouteMonthTrends(createD1ServingDb(env.DB), row.routeId),
     findObservedReliabilityRow({ env, baselineMonth: months.servingMonth, routeId: row.routeId }),
   ]);
-  const route = buildStudioRouteCardFromIndexRow(row, observed);
+  const route = buildStudioRouteCardFromIndexRow(row, observed, null);
   const coverage = buildRouteHistoryCoverage(points);
   const speedCaveat =
     months.latestSpeedMonth === null
@@ -2236,7 +2252,17 @@ export async function buildStudioRouteTimelineResponse(
   }
 
   const parsed = StudioRouteEvidenceBundleSchema.safeParse(payload);
-  if (!parsed.success || parsed.data.routeId !== row.routeId || parsed.data.routeSlug !== slug) {
+  if (!parsed.success) {
+    console.error("Studio route evidence bundle failed contract validation.", {
+      key,
+      issues: parsed.error.issues,
+    });
+    return {
+      ok: false,
+      response: errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE),
+    };
+  }
+  if (parsed.data.routeId !== row.routeId || parsed.data.routeSlug !== slug) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
@@ -2309,9 +2335,7 @@ function routeHasTimelineProjection(route: StudioRouteIndex2Row): boolean {
 async function loadCompactInterventionsEvidenceBundle(
   env: StudioReadEnv & { ARTIFACTS: R2Bucket },
   route: StudioRouteIndex2Row,
-): Promise<
-  { ok: true; bundle: StudioInterventionsEvidenceBundle | null } | { ok: false; response: Response }
-> {
+): Promise<{ ok: true; bundle: StudioInterventionsEvidenceBundle | null }> {
   const key = studioRouteEvidenceBundleKey(route.slug);
   const object = await env.ARTIFACTS.get(key);
   if (object === null) return { ok: true, bundle: null };
@@ -2320,30 +2344,21 @@ async function loadCompactInterventionsEvidenceBundle(
   try {
     payload = await object.json();
   } catch {
-    return {
-      ok: false,
-      response: artifactNotAvailableResponse(
-        502,
-        "Studio interventions evidence bundle is not valid JSON.",
-        key,
-      ),
-    };
+    console.error("Studio interventions evidence bundle is not valid JSON.", { key });
+    return { ok: true, bundle: null };
   }
 
   const parsed = StudioRouteEvidenceBundleSchema.safeParse(payload);
-  if (
-    !parsed.success ||
-    parsed.data.routeId !== route.routeId ||
-    parsed.data.routeSlug !== route.slug
-  ) {
-    return {
-      ok: false,
-      response: artifactNotAvailableResponse(
-        502,
-        "Studio interventions evidence bundle failed contract validation.",
-        key,
-      ),
-    };
+  if (!parsed.success) {
+    console.error("Studio interventions evidence bundle failed contract validation.", {
+      key,
+      issues: parsed.error.issues,
+    });
+    return { ok: true, bundle: null };
+  }
+  if (parsed.data.routeId !== route.routeId || parsed.data.routeSlug !== route.slug) {
+    console.error("Studio interventions evidence bundle failed contract validation.", { key });
+    return { ok: true, bundle: null };
   }
 
   return { ok: true, bundle: compactInterventionsEvidenceBundle(parsed.data) };
@@ -2370,10 +2385,8 @@ async function buildStudioInterventionsEvidenceResponse(
         loadCompactInterventionsEvidenceBundle({ ...env, ARTIFACTS: artifacts }, route),
       ),
   );
-  const failed = bundleResults.find((result) => !result.ok);
-  if (failed !== undefined) return failed;
   const bundles = bundleResults.flatMap((result) => {
-    if (!result.ok || result.bundle === null) return [];
+    if (result.bundle === null) return [];
     return [result.bundle];
   });
 

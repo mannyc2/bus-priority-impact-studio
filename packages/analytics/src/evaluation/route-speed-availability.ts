@@ -1,5 +1,5 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import { z } from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 export const ROUTE_SPEED_AVAILABILITY_SOURCE_ID = "bus_segment_speeds_2025" as const;
 export type RouteSpeedAvailabilitySourceId = typeof ROUTE_SPEED_AVAILABILITY_SOURCE_ID;
@@ -86,7 +86,7 @@ export function summarizeRouteSpeedAvailabilityMonths(input: {
       busTripCount: 0,
     };
 
-    existing.routes.add(z.decode(RouteIdCodec, parsed.route_id));
+    existing.routes.add(RouteIdCodec.parse(parsed.route_id));
     existing.rowCount += parsed.row_count;
     existing.busTripCount += parsed.bus_trip_count;
     monthRows.set(monthKey, existing);

@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../schema-compat.js";
 
 export type StudioRouteSegmentEvidence = {
   id: string;

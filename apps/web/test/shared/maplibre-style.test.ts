@@ -97,6 +97,10 @@ describe("maplibre route style helpers", () => {
     expect(segmentSpeedAtHour(slow, 17)).toBeCloseTo(6.85);
     expect(segmentSpeedAtHour(steady, 17)).toBeCloseTo(6.95);
     expect(routeAverageSpeedAtHour(route, [slow, steady], 17)).toBeCloseTo(6.875);
+    expect(segmentSpeedAtHour({ ...slow, scheduledMph: null }, 17)).toBeNull();
+    expect(
+      routeAverageSpeedAtHour({ ...route, scheduledMph: null }, [slow, steady], 17),
+    ).toBeNull();
   });
 
   test("computes lon-lat bounds across route segment features", () => {

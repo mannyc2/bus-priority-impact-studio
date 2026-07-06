@@ -9,6 +9,8 @@ tags: [agent, sandbox, codemode, findings, typescript, analytics]
 
 # Agent corpus map
 
+> **Retired 2026-07-04**: the agent corpus tooling this page maps was deleted (plan 037). Kept as history.
+
 Codemode now uses the Bun/TypeScript sandbox described in
 `docs/decisions/0013-bun-typescript-codemode-sandbox.md`. The active tool pair is
 `ts_exec(code)` plus `bash_exec(code)`. Python and `bp_corpus` are historical

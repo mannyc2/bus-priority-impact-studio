@@ -1,6 +1,6 @@
 import { stat } from "node:fs/promises";
 import { relative } from "node:path";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { type CloudflareCostSummary, estimateD1PaidCost } from "../../lib/cloudflare-costs.ts";
 
 export type D1SqlFileEstimate = {

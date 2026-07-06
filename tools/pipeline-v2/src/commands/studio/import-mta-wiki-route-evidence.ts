@@ -19,7 +19,7 @@ import {
   studioRouteEvidenceBundleKey,
 } from "@bp/domain/studio/route-evidence";
 import { type StudioRoute, StudioRoutesResponseSchema } from "@bp/domain/studio/routes";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { readJsonArtifact, writeJson } from "../../lib/json.ts";
 import {
   busRouteKeysFromText,

@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type * as z from "@bp/domain/schema-compat";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
 

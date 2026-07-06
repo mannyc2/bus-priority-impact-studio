@@ -104,9 +104,11 @@ export function averageHourlySeverity(segments: readonly StudioSegment[]): numbe
 export function averageHourlySpeed(
   route: StudioRoute,
   segments: readonly StudioSegment[],
-): number[] {
+): number[] | null {
+  const scheduledMph = route.scheduledMph;
+  if (scheduledMph === null) return null;
   const severity = averageHourlySeverity(segments);
-  return severity.map((value) => Math.max(2, route.scheduledMph - value * 4.2));
+  return severity.map((value) => Math.max(2, scheduledMph - value * 4.2));
 }
 
 export function formatCompact(value: number): string {

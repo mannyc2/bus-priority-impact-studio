@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background);display:flex;flex-direction:column;gap:14px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .label{font:400 13px var(--font-sans);color:var(--muted-foreground);min-width:80px}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:var(--radius);border:1px solid transparent;font:500 13px var(--font-sans);cursor:pointer;transition:all 140ms ease}
+  .primary{background:var(--primary);color:#fff}
+  .primary:hover{background:var(--primary-hover)}
+  .secondary{background:var(--background);color:var(--foreground);border-color:var(--border-strong)}
+  .secondary:hover{background:var(--surface)}
+  .danger{background:var(--background);color:oklch(0.55 0.20 25);border-color:color-mix(in oklab,oklch(0.55 0.20 25) 30%,transparent)}
+  .danger:hover{background:oklch(0.96 0.04 25)}
+  .small{height:26px;padding:0 10px;font-size:12px;border-radius:var(--radius-md)}
+  .link{color:var(--primary);background:transparent;padding:0;border:0;text-decoration:underline;text-decoration-color:color-mix(in oklab,var(--primary) 35%,transparent);text-underline-offset:3px;cursor:pointer;font:500 13px var(--font-sans)}
+  .icon{display:inline-flex;align-items:center;justify-content:center;width:34px;padding:0;height:34px;border-radius:var(--radius);border:1px solid var(--border-strong);background:var(--background);color:var(--foreground);cursor:pointer}
+  .icon:hover{background:var(--surface)}
+  svg{width:14px;height:14px;flex:0 0 14px}
+  .caption{font:400 13px/1.5 var(--font-serif);font-style:italic;color:var(--muted-foreground);margin-top:4px}
+</style></head><body>
+
+<div class="row">
+  <div class="label">Primary</div>
+  <button class="btn primary">New entry</button>
+  <button class="btn secondary">Cancel</button>
+  <button class="btn danger">Delete</button>
+  <button class="btn link">Open in reader →</button>
+</div>
+
+<div class="row">
+  <div class="label">With icon</div>
+  <button class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add cross-reference</button>
+  <button class="btn secondary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</button>
+  <button class="icon" aria-label="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+</div>
+
+<div class="row">
+  <div class="label">Small</div>
+  <button class="btn primary small">Save</button>
+  <button class="btn secondary small">Discard</button>
+</div>
+
+<div class="caption">Primary · secondary · danger · link · icon. No ghost variant — quiet actions become text links.</div>
+
+</body></html>

@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 

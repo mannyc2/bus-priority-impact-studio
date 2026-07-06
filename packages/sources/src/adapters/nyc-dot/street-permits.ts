@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
@@ -106,33 +106,33 @@ export function normalizeDotStreetPermitRows(
         schemaVersion,
         permitNumber: parsed.permitnumber,
         permitKind: classifyPermitKind(parsed.permittypedesc),
-        applicationTrackingId: parsed.applicationtrackingid,
-        permitTypeId: parsed.permittypeid,
-        permitTypeDesc: parsed.permittypedesc,
-        permitStatusId: parsed.permitstatusid,
-        permitStatusDesc: parsed.permitstatusshortdesc,
-        permitSeriesId: parsed.permitseriesid,
-        permitSeriesDesc: parsed.permitseriesshortdesc,
-        applicationTypeShortDesc: parsed.applicationtypeshortdesc,
-        equipmentTypeDesc: parsed.equipmenttypedesc,
+        applicationTrackingId: parsed.applicationtrackingid ?? null,
+        permitTypeId: parsed.permittypeid ?? null,
+        permitTypeDesc: parsed.permittypedesc ?? null,
+        permitStatusId: parsed.permitstatusid ?? null,
+        permitStatusDesc: parsed.permitstatusshortdesc ?? null,
+        permitSeriesId: parsed.permitseriesid ?? null,
+        permitSeriesDesc: parsed.permitseriesshortdesc ?? null,
+        applicationTypeShortDesc: parsed.applicationtypeshortdesc ?? null,
+        equipmentTypeDesc: parsed.equipmenttypedesc ?? null,
         numberOfZones:
-          parsed.permitnumberofzones === null ? null : Math.round(parsed.permitnumberofzones),
-        linearFeet: parsed.permitlinearfeet,
-        totalSqFeet: parsed.permittotalsqfeet,
+          parsed.permitnumberofzones == null ? null : Math.round(parsed.permitnumberofzones),
+        linearFeet: parsed.permitlinearfeet ?? null,
+        totalSqFeet: parsed.permittotalsqfeet ?? null,
         estimatedNumberOfCuts:
-          parsed.permitestimatednumberofcuts === null
+          parsed.permitestimatednumberofcuts == null
             ? null
             : Math.round(parsed.permitestimatednumberofcuts),
-        permitIssueDate: parsed.permitissuedate,
-        emergencyIssueDate: parsed.emergencyissuedate,
-        issuedWorkStartDate: parsed.issuedworkstartdate,
-        issuedWorkEndDate: parsed.issuedworkenddate,
-        boroughName: parsed.boroughname,
-        houseNumber: parsed.permithousenumber,
-        onStreetName: parsed.onstreetname,
-        fromStreetName: parsed.fromstreetname,
-        toStreetName: parsed.tostreetname,
-        purposeComments: parsed.permitpurposecomments,
+        permitIssueDate: parsed.permitissuedate ?? null,
+        emergencyIssueDate: parsed.emergencyissuedate ?? null,
+        issuedWorkStartDate: parsed.issuedworkstartdate ?? null,
+        issuedWorkEndDate: parsed.issuedworkenddate ?? null,
+        boroughName: parsed.boroughname ?? null,
+        houseNumber: parsed.permithousenumber ?? null,
+        onStreetName: parsed.onstreetname ?? null,
+        fromStreetName: parsed.fromstreetname ?? null,
+        toStreetName: parsed.tostreetname ?? null,
+        purposeComments: parsed.permitpurposecomments ?? null,
       } satisfies NormalizedDotStreetPermit;
     })
     .sort((a, b) => a.permitNumber.localeCompare(b.permitNumber));

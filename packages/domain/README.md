@@ -10,10 +10,10 @@ contracts shared across the pipeline, serving API, and web app.
 - Public serving contracts: route cards/profiles, hotspot lists, compare,
   release status, and map GeoJSON artifacts.
 - Internal pipeline contracts: detector findings, review/promotion artifacts,
-  document research/extraction surfaces, and intervention records.
+  document candidate drafts, intervention records, and operational-date anchors.
 - Studio analyst contracts: brief drafts, read models, findings, identity,
   snapshots, and the projection helpers that build them.
-- A Zod schema registry plus a `toProjectJsonSchema` helper that emits
+- A schema registry plus a `toProjectJsonSchema` helper that emits
   draft-2020-12 JSON Schema for the worker and tooling.
 - Pure helpers (projections, intervention assembly, operational-date parsing)
   that derive read models without touching the network, filesystem, D1, R2, or
@@ -29,9 +29,8 @@ The package has no root entrypoint. Import the explicit subpath you need:
 | `@bp/domain/routes` | Public route/hotspot/compare API responses and the data-quality envelope. |
 | `@bp/domain/maps` | GeoJSON segment features and map-manifest contracts. |
 | `@bp/domain/findings` | Detector candidate, evidence, coverage, review-packet, promotion, and agent-proposal contracts. |
-| `@bp/domain/documents/*` | Document discovery, structured extraction, research surfaces, candidates, intervention records, and operational-date helpers. |
+| `@bp/domain/documents/*` | Document candidates, intervention records, and operational-date helpers. |
 | `@bp/domain/studio` | Studio analyst contracts and the `buildStudio*` projection helpers (also re-split into `studio/routes`, `studio/identity`, `studio/snapshots`, `studio/release`, `studio/segment-evidence`, …). |
-| `@bp/domain/schema-registry` | `registerProjectSchema` and the shared `projectSchemaRegistry`. |
 | `@bp/domain/json-schema` | Precomputed JSON Schemas and `toProjectJsonSchema`. |
 
 ## Schema registry
@@ -43,7 +42,7 @@ schema to draft-2020-12 JSON Schema for runtime validation and codegen.
 
 ## Rules
 
-- No runtime dependency on other local packages; `zod` is the only dependency.
+- No runtime dependency on other local packages.
 - No Cloudflare types, source-fetching code, or database queries (those belong
   in `packages/sources`, `packages/db`, and `tools/pipeline-v2`).
 - No root entrypoint: consumers import explicit `@bp/domain/*` subpaths.

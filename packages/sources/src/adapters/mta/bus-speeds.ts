@@ -1,5 +1,5 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { IsoMonthStringSchema, isoMonth, schemaVersion } from "../../core/index.js";
 
@@ -157,7 +157,7 @@ export function normalizeSegmentSpeedCellRows(rows: SocrataRow[]): NormalizedSeg
 
     return {
       schemaVersion,
-      routeId: z.decode(RouteIdCodec, parsed.route_id),
+      routeId: RouteIdCodec.parse(parsed.route_id),
       isoMonth: isoMonth(parsed.year, parsed.month),
       timestamp: parsed.timestamp,
       dayOfWeek: parsed.day_of_week,
@@ -188,7 +188,7 @@ export function normalizeSegmentSpeedRows(rows: SocrataRow[]): NormalizedSegment
 
     return {
       schemaVersion,
-      routeId: z.decode(RouteIdCodec, parsed.route_id),
+      routeId: RouteIdCodec.parse(parsed.route_id),
       isoMonth: isoMonth(parsed.year, parsed.month),
       timestamp: parsed.timestamp,
       dayOfWeek: parsed.day_of_week,

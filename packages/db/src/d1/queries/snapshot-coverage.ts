@@ -1,26 +1,6 @@
 import { asc, eq } from "drizzle-orm";
-import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { routeSpeedHistoryCoverage, sourceMonthCoverage } from "../schema.js";
-import { IsoMonthSchema } from "./shared.js";
-
-const RouteSpeedHistoryCoverageRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    month: IsoMonthSchema,
-    route_slug: z.string().min(1),
-    history_start_month: IsoMonthSchema,
-    history_end_month: IsoMonthSchema,
-    artifact_path: z.string().min(1),
-    artifact_status: z.string().min(1),
-    month_count: z.number().int().nonnegative(),
-    segment_count: z.number().int().nonnegative(),
-    cell_count: z.number().int().nonnegative(),
-    available_cell_count: z.number().int().nonnegative(),
-    missing_cell_count: z.number().int().nonnegative(),
-    generated_at: z.string().min(1),
-  })
-  .strict();
 
 const DISPLAY_MONTHS = new Map([
   ["january", "01"],
@@ -37,8 +17,7 @@ const DISPLAY_MONTHS = new Map([
   ["december", "12"],
 ]);
 
-function normalizeSourceCoverageMonth(value: unknown): unknown {
-  if (typeof value !== "string") return value;
+function normalizeSourceCoverageMonth(value: string): string {
   const trimmed = value.trim();
   const displayMonthMatch =
     /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})$/i.exec(
@@ -51,27 +30,6 @@ function normalizeSourceCoverageMonth(value: unknown): unknown {
   const month = DISPLAY_MONTHS.get(monthName.toLowerCase());
   return month === undefined ? value : `${year}-${month}`;
 }
-
-const SourceCoverageMonthSchema = z.preprocess(normalizeSourceCoverageMonth, IsoMonthSchema);
-
-const SourceMonthCoverageRowSchema = z
-  .object({
-    source_id: z.string().min(1),
-    month: SourceCoverageMonthSchema,
-    label: z.string().min(1),
-    source_kind: z.string().min(1),
-    grain: z.string().min(1),
-    status: z.string().min(1),
-    row_count: z.number().int().nonnegative().nullable(),
-    route_count: z.number().int().nonnegative().nullable(),
-    note: z.string().nullable(),
-    generated_at: z.string().min(1),
-    artifact_path: z.string().nullable(),
-  })
-  .strict();
-
-export type RouteSpeedHistoryCoverageRow = z.output<typeof RouteSpeedHistoryCoverageRowSchema>;
-export type SourceMonthCoverageRow = z.output<typeof SourceMonthCoverageRowSchema>;
 
 export type RouteSpeedHistoryCoverage = {
   routeId: string;
@@ -147,7 +105,7 @@ function logSkippedSourceMonthCoverageRow(input: {
     source_id: string;
     month: string;
   };
-  issues: unknown;
+  issues: readonly string[];
 }): void {
   console.error("Skipping source_month_coverage row for public Studio snapshot.", {
     sourceId: input.row.source_id,
@@ -157,7 +115,7 @@ function logSkippedSourceMonthCoverageRow(input: {
 }
 
 async function selectSourceMonthCoverageRows(db: D1ServingDb) {
-  return await db
+  return db
     .select({
       source_id: sourceMonthCoverage.sourceId,
       month: sourceMonthCoverage.month,
@@ -175,11 +133,8 @@ async function selectSourceMonthCoverageRows(db: D1ServingDb) {
     .orderBy(asc(sourceMonthCoverage.sourceId), asc(sourceMonthCoverage.month));
 }
 
-export async function listRouteSpeedHistoryCoverage(
-  db: D1ServingDb,
-  month: string,
-): Promise<RouteSpeedHistoryCoverage[]> {
-  const rows = await db
+async function selectRouteSpeedHistoryCoverageRows(db: D1ServingDb, month: string) {
+  return db
     .select({
       route_id: routeSpeedHistoryCoverage.routeId,
       month: routeSpeedHistoryCoverage.month,
@@ -198,16 +153,44 @@ export async function listRouteSpeedHistoryCoverage(
     .from(routeSpeedHistoryCoverage)
     .where(eq(routeSpeedHistoryCoverage.month, month))
     .orderBy(asc(routeSpeedHistoryCoverage.routeId));
+}
 
-  return rows.map((row) =>
-    toRouteSpeedHistoryCoverage(RouteSpeedHistoryCoverageRowSchema.parse(row)),
-  );
+export type RouteSpeedHistoryCoverageRow = Awaited<
+  ReturnType<typeof selectRouteSpeedHistoryCoverageRows>
+>[number];
+
+type SourceMonthCoverageRawRow = Awaited<ReturnType<typeof selectSourceMonthCoverageRows>>[number];
+
+export type SourceMonthCoverageRow = Omit<SourceMonthCoverageRawRow, "month"> & {
+  month: string;
+};
+
+function toSourceMonthCoverageRow(row: SourceMonthCoverageRawRow): SourceMonthCoverageRow | null {
+  const month = normalizeSourceCoverageMonth(row.month);
+  if (/^\d{4}-\d{2}$/.test(month)) {
+    return { ...row, month };
+  }
+  return null;
+}
+
+function assertSourceMonthCoverageRow(row: SourceMonthCoverageRawRow): SourceMonthCoverageRow {
+  const normalized = toSourceMonthCoverageRow(row);
+  if (normalized !== null) return normalized;
+  throw new Error("Invalid string");
+}
+
+export async function listRouteSpeedHistoryCoverage(
+  db: D1ServingDb,
+  month: string,
+): Promise<RouteSpeedHistoryCoverage[]> {
+  const rows = await selectRouteSpeedHistoryCoverageRows(db, month);
+  return rows.map(toRouteSpeedHistoryCoverage);
 }
 
 export async function listSourceMonthCoverage(db: D1ServingDb): Promise<SourceMonthCoverage[]> {
   const rows = await selectSourceMonthCoverageRows(db);
 
-  return rows.map((row) => toSourceMonthCoverage(SourceMonthCoverageRowSchema.parse(row)));
+  return rows.map((row) => toSourceMonthCoverage(assertSourceMonthCoverageRow(row)));
 }
 
 export async function listPublicSnapshotSourceMonthCoverage(
@@ -218,14 +201,14 @@ export async function listPublicSnapshotSourceMonthCoverage(
   let skippedRowCount = 0;
 
   for (const row of rows) {
-    const parsed = SourceMonthCoverageRowSchema.safeParse(row);
-    if (!parsed.success) {
+    const parsed = toSourceMonthCoverageRow(row);
+    if (parsed === null) {
       skippedRowCount += 1;
-      logSkippedSourceMonthCoverageRow({ row, issues: parsed.error.issues });
+      logSkippedSourceMonthCoverageRow({ row, issues: ["Invalid string"] });
       continue;
     }
 
-    sourceMonthCoverageRows.push(toSourceMonthCoverage(parsed.data));
+    sourceMonthCoverageRows.push(toSourceMonthCoverage(parsed));
   }
 
   return {

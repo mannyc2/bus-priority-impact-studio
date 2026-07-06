@@ -16,6 +16,7 @@ export function RouteMetricStrip({ route }: { route: StudioRoute }) {
     <MetricColumns>
       {ROUTE_METRICS.map((metric, i) => {
         const tone = metric.tone?.(route) ?? "ink";
+        const sub = metric.sub(route);
         return (
           <MetricColumn key={metric.key} label={metric.label} divider={i < 4}>
             <MetricStat
@@ -23,7 +24,7 @@ export function RouteMetricStrip({ route }: { route: StudioRoute }) {
               unit={metric.unit}
               color={metricToneColor[tone]}
               trailing={
-                metric.key === "speed" ? (
+                metric.key === "speed" && route.spark !== null ? (
                   <Spark
                     data={route.spark}
                     width={68}
@@ -31,14 +32,14 @@ export function RouteMetricStrip({ route }: { route: StudioRoute }) {
                     color={
                       route.weightedAvgSpeed < 6 ? "var(--bp-color-bad)" : "var(--bp-color-warn)"
                     }
-                    baseline={route.scheduledMph}
+                    {...(route.scheduledMph === null ? {} : { baseline: route.scheduledMph })}
                   />
                 ) : undefined
               }
             />
-            <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">
-              {metric.sub(route)}
-            </div>
+            {sub ? (
+              <div className="mt-[3px] text-[11px] text-[var(--bp-color-ink-55)]">{sub}</div>
+            ) : null}
           </MetricColumn>
         );
       })}

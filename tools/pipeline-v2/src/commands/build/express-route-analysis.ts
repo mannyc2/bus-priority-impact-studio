@@ -11,7 +11,7 @@ import {
 import { NormalizedExpressBusCapacitySchema } from "@bp/sources/adapters/mta/express-bus-capacity";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {

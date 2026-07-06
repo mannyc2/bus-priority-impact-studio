@@ -144,8 +144,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ]),
     ).toEqual([
       ["overview", undefined],
-      ["map", undefined],
       ["where-when", undefined],
+      ["map", undefined],
       ["reliability", undefined],
       ["riders", undefined],
       ["treatments", undefined],
@@ -158,8 +158,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ]),
     ).toEqual([
       ["overview", undefined],
-      ["map", undefined],
       ["where-when", "checked_clean"],
+      ["map", undefined],
       ["reliability", "checked_clean"],
       ["riders", undefined],
       ["evidence", undefined],
@@ -171,8 +171,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ]),
     ).toEqual([
       ["overview", undefined],
-      ["map", undefined],
       ["where-when", "building"],
+      ["map", undefined],
       ["riders", "insufficient_data"],
       ["treatments", "blocked"],
       ["evidence", undefined],
@@ -182,8 +182,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   test("routeSectionRegistry keeps the visible section order for contrast route shapes", () => {
     expect(routeSectionRegistry(rich).visibleSections.map((section) => section.value)).toEqual([
       "overview",
-      "map",
       "where-when",
+      "map",
       "reliability",
       "riders",
       "treatments",
@@ -191,16 +191,16 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     ]);
     expect(routeSectionRegistry(clean).visibleSections.map((section) => section.value)).toEqual([
       "overview",
-      "map",
       "where-when",
+      "map",
       "reliability",
       "riders",
       "evidence",
     ]);
     expect(routeSectionRegistry(sparse).visibleSections.map((section) => section.value)).toEqual([
       "overview",
-      "map",
       "where-when",
+      "map",
       "riders",
       "treatments",
       "evidence",
@@ -250,8 +250,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       registry.visibleSections.map((section) => [section.value, section.badge?.count ?? 0]),
     ).toEqual([
       ["overview", 0],
-      ["map", 0],
       ["where-when", 0],
+      ["map", 0],
       ["riders", 1],
       ["treatments", 0],
       ["evidence", 1],

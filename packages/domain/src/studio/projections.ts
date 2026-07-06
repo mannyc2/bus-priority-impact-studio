@@ -82,7 +82,10 @@ export function buildStudioCompareProjection(
     routes: [routeA, routeB],
     deltas: {
       speedMph: routeB.speedMph - routeA.speedMph,
-      riderHoursLost: routeA.riderHoursLost - routeB.riderHoursLost,
+      riderHoursLost:
+        routeA.riderHoursLost === null || routeB.riderHoursLost === null
+          ? null
+          : routeA.riderHoursLost - routeB.riderHoursLost,
       laneCoverage: routeB.laneCoverage - routeA.laneCoverage,
     },
     quality: release.quality,

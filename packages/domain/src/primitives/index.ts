@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../schema-compat.js";
 import { registerProjectSchema } from "../schema-registry.js";
 
 export const RouteIdSchema = registerProjectSchema(

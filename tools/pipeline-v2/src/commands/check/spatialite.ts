@@ -1,4 +1,4 @@
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 

@@ -71,4 +71,42 @@ describe("D1 route timeline index read model", () => {
       sqlite.close();
     }
   });
+
+  test("skips rows with malformed timeline JSON", async () => {
+    const { db, sqlite } = await createTestDb();
+    const originalConsoleError = console.error;
+    console.error = () => {};
+    try {
+      await db.insert(routeTimelineIndex).values({
+        routeId: "B46",
+        month: "2026-03",
+        supportLevel: "timeline_ready",
+        qualityFlagsJson: JSON.stringify([123]),
+        defaultEventCount: 1,
+        secondaryEventCount: 0,
+        reviewOnlyEventCount: 0,
+        eventCount: 1,
+        sourceBackedEventCount: 1,
+        dateAssertionBackedEventCount: 1,
+        unresolvedDateEventCount: 0,
+        lowConfidenceEventCount: 0,
+        unaccountedCandidateCount: 0,
+        validationErrorCount: 0,
+        validationWarningCount: 0,
+        totalTokens: null,
+        defaultEventsJson: JSON.stringify([{ eventId: "b46-launch" }]),
+        bundleArtifactKey: "studio/v2/routes/b46/timeline.json",
+        bundleArtifactSha256: "a".repeat(64),
+        bundleArtifactByteLength: 456,
+        sourceBundlePath: "/tmp/b46-timeline.json",
+        generatedAt: "2026-06-06T20:10:00.000Z",
+      });
+
+      await expect(getRouteTimelineIndex(db, "B46", "2026-03")).resolves.toBeNull();
+      await expect(listRouteTimelineIndex(db, "2026-03")).resolves.toEqual([]);
+    } finally {
+      console.error = originalConsoleError;
+      sqlite.close();
+    }
+  });
 });

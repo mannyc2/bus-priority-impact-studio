@@ -22,7 +22,7 @@ import { type StudioReleasePayload, StudioReleasePayloadSchema } from "@bp/domai
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
 import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
 import { normalizeScheduleTimepointRows } from "@bp/sources/adapters/mta/schedules";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { localTransformConcurrency, runBoundedPromises } from "../../effect/concurrency.ts";
 import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";

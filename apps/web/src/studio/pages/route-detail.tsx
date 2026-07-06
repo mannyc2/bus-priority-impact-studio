@@ -5,9 +5,11 @@ import { HonestEmptySection } from "@/components/route/HonestEmptySection";
 import { ReliabilitySection } from "@/components/route/ReliabilitySection";
 import { RidersSection } from "@/components/route/RidersSection";
 import { RouteDetailShell } from "@/components/route/RouteDetailShell";
+import { RouteInsightList } from "@/components/route/RouteInsightList";
 import { RouteMapSection } from "@/components/route/RouteMapSection";
 import { RPubHeader, routePublicLede } from "@/components/route/RoutePublicAtoms";
 import { RoutePublicKpiStrip } from "@/components/route/RoutePublicKpiStrip";
+import { RouteVerdictLede } from "@/components/route/RouteVerdictLede";
 import { routeSectionBadges } from "@/components/route/route-insight-placement";
 import { SlowSegmentsSection } from "@/components/route/SlowSegments";
 import {
@@ -38,24 +40,26 @@ export function RouteDetailPage({
   data: StudioRouteDetailResponse | null;
   evidence: StudioRouteEvidenceBundle | null;
 }) {
-  if (data === null) return <NotFoundPage />;
-
-  const { route, segments } = data;
-  const flagged = segments.find((s) => s.flagged);
-
-  const sectionBadges = routeSectionBadges(data.insights);
-  const sectionRegistry = routeSectionRegistry(data.capability, sectionBadges);
   const navigateToSection = useCallback((sectionValue: RouteDetailSectionValue) => {
     document.getElementById(routeSectionAnchorId(sectionValue))?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
   }, []);
+
+  if (data === null) return <NotFoundPage />;
+
+  const { route, segments } = data;
+  const flagged = segments.find((s) => s.flagged);
+  const lede = routePublicLede({ route, dossier: data.dossier });
+
+  const sectionBadges = routeSectionBadges(data.insights);
+  const sectionRegistry = routeSectionRegistry(data.capability, sectionBadges);
   const section = (sectionValue: RouteDetailSectionValue, render: () => ReactNode) => {
     const presentation = sectionRegistry.presentations[sectionValue];
     if (presentation.mode === "hidden") return null;
     return (
-      <section id={routeSectionAnchorId(sectionValue)} className="scroll-mt-5">
+      <section id={routeSectionAnchorId(sectionValue)} className="mb-8 scroll-mt-16 last:mb-0">
         {presentation.mode === "render" ? (
           render()
         ) : (
@@ -72,7 +76,6 @@ export function RouteDetailPage({
         header={
           <RPubHeader
             route={route}
-            lede={routePublicLede({ route, dossier: data.dossier })}
             stats={
               <RoutePublicKpiStrip
                 route={route}
@@ -86,9 +89,14 @@ export function RouteDetailPage({
         }
         sections={sectionRegistry.visibleSections}
       >
-        {section("map", () => (
-          <RouteMapSection data={data} />
-        ))}
+        <div className="mb-8 flex flex-col gap-5">
+          <RouteVerdictLede lede={lede} />
+          <RouteInsightList
+            insights={data.insights}
+            capability={data.capability}
+            onNavigate={navigateToSection}
+          />
+        </div>
         {section("where-when", () => (
           <SlowSegmentsSection
             route={route}
@@ -99,6 +107,9 @@ export function RouteDetailPage({
             peakWindows={data.peakWindows}
             slowestWindows={data.slowestWindows}
           />
+        ))}
+        {section("map", () => (
+          <RouteMapSection data={data} />
         ))}
         {section("reliability", () => (
           <ReliabilitySection data={data} />
@@ -125,8 +136,8 @@ export function RouteDetailPage({
 export function RouteDetailLoadingPage() {
   return (
     <StudioPage flush>
-      <div className="flex h-full min-h-0 flex-col">
-        <header className="shrink-0 bg-[var(--bp-color-card)] px-7 pb-[18px] pt-6 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+      <div className="h-full min-h-0 overflow-auto">
+        <header className="bg-[var(--bp-color-card)] px-7 pb-[18px] pt-6 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
           <div className="mb-[18px] flex items-start gap-[18px]">
             <Skeleton className="h-[58px] w-[78px] rounded-[3px]" />
             <div className="min-w-0 flex-1">
@@ -151,14 +162,14 @@ export function RouteDetailLoadingPage() {
             ))}
           </div>
         </header>
-        <div className="shrink-0 bg-[var(--bp-color-card)] px-7 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+        <div className="sticky top-0 z-10 bg-[var(--bp-color-card)] px-7 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
           <div className="flex gap-6 py-[10px]">
             {ROUTE_DETAIL_SECTIONS.map((section) => (
               <Skeleton key={section.value} className="h-[15px] w-[82px]" />
             ))}
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto px-8 py-7">
+        <div className="px-8 py-7">
           <div className="mb-11">
             <div className="mb-4 flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
               <div>

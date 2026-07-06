@@ -57,16 +57,23 @@ export function riderImpactSummary({
   const historyWindow = dossierMetricWindow(ridership);
   const trendLabel =
     ridership?.movement6mPct === null || ridership?.movement6mPct === undefined
-      ? `${route.ridersYoyPct >= 0 ? "+" : ""}${route.ridersYoyPct.toFixed(1)}%`
+      ? route.ridersYoyPct === null
+        ? "not measured"
+        : `${route.ridersYoyPct >= 0 ? "+" : ""}${route.ridersYoyPct.toFixed(1)}%`
       : formatSignedPct(ridership.movement6mPct);
   const trendDetail =
     ridership?.movement6mPct === null || ridership?.movement6mPct === undefined
-      ? "YoY in current projection"
+      ? route.ridersYoyPct === null
+        ? "trend unavailable"
+        : "YoY in current projection"
       : "6 mo ridership trend";
   const topSegments = [...segments].sort((a, b) => b.riderHours - a.riderHours).slice(0, 6);
   const topSegment = topSegments[0] ?? null;
   const topShare =
-    topSegment !== null && route.riderHoursLost > 0 && topSegment.riderHours <= route.riderHoursLost
+    topSegment !== null &&
+    route.riderHoursLost !== null &&
+    route.riderHoursLost > 0 &&
+    topSegment.riderHours <= route.riderHoursLost
       ? `${Math.round((topSegment.riderHours / route.riderHoursLost) * 100)}% of route burden`
       : topSegment === null
         ? "share unavailable"
@@ -77,15 +84,16 @@ export function riderImpactSummary({
     monthCount > 0
       ? `${historyWindow ?? "monthly ridership history"}`
       : (capability?.reason ?? "Monthly ridership not attached yet.");
-  const burdenLabel = formatRiderHours(route.riderHoursLost);
+  const burdenLabel =
+    route.riderHoursLost === null ? "not measured" : formatRiderHours(route.riderHoursLost);
 
   return {
     kpiValue: formatCompact(route.dailyRiders),
     kpiSub:
-      route.riderHoursLost > 0
+      route.riderHoursLost !== null && route.riderHoursLost > 0
         ? `${burdenLabel} rider-hours lost/day`
         : `${trendLabel} rider trend`,
-    kpiTone: route.riderHoursLost >= 5_000 ? "bad" : "ink",
+    kpiTone: route.riderHoursLost !== null && route.riderHoursLost >= 5_000 ? "bad" : "ink",
     sectionSubtitle:
       topSegment === null
         ? "Daily riders and burden from current projection."
@@ -94,9 +102,11 @@ export function riderImpactSummary({
     dailyRidersDetail: `${trendLabel} ${trendDetail}`,
     burdenLabel,
     burdenDetail:
-      route.riderHoursLost > 0
-        ? "rider-hours lost/day in projection"
-        : "no rider-hour loss in projection",
+      route.riderHoursLost === null
+        ? "rider-hour burden not measured"
+        : route.riderHoursLost > 0
+          ? "rider-hours lost/day in projection"
+          : "no rider-hour loss in projection",
     trendLabel,
     trendDetail,
     historyLabel,

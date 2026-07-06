@@ -7,7 +7,7 @@ import {
   type RouteDossierWorstSegmentMonth,
 } from "@bp/analytics/evaluation";
 import { type RouteDossierEvent, routeDossierSummaryKey } from "@bp/domain/studio";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import { routeIdToSlug } from "../studio/_release-routes.ts";
 import type { D1CanonicalInputs } from "./d1-inputs.ts";
 

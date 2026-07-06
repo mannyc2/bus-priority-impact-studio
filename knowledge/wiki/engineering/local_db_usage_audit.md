@@ -2,7 +2,7 @@
 title: Local Database Usage Audit
 type: engineering
 status: current
-last_updated: 2026-06-07
+last_updated: 2026-07-05
 owner: claude
 source_count: 0
 tags: [drizzle, drizzle-zod, sqlite, local-db, pipeline, usage-audit, validation]
@@ -44,17 +44,21 @@ Raw Prepare Audit]]. Numbers below are from a 2026-06-07 grep inventory and are 
 
 ### Acquisition & lifecycle (one dominant pattern)
 
-Almost all pipeline access goes through the `@liche` command middleware:
+Most pipeline command access now goes through thin command descriptors running under the
+`effect/unstable/cli` adapter. The old `@liche` middleware was removed in Plan 040; commands either
+open the local database through explicit Effect command layers (`make*CommandLayer` +
+`runPipelineEffect`) or call `openLocalPipelineDb()` directly for non-shared command paths.
 
-- `withLocalDb()` middleware — ~66 command call sites; `localDbFromCtx()` — ~67 sites.
-- ~13 direct `openLocalPipelineDb()` calls (tests, non-command flows); ~6 raw `new Database(...)`
-  opens inside `tools/pipeline-v2/src` (readonly readers + one repair command).
+- Shared local-DB command layers cover the high-traffic route/build/read-only paths.
+- Direct `openLocalPipelineDb()` calls remain in tests, non-command flows, and command bodies that
+  have not yet been rewritten to native Effect handlers.
 
 `openLocalPipelineDb` (`tools/pipeline-v2/src/lib/local-db.ts`) is the funnel: it **migrates on every
 open** (`migrations-drizzle/local`), applies pragmas via `applyLocalPragmas` (WAL,
 `busy_timeout`, `foreign_keys=ON`, `synchronous=NORMAL`), optionally loads SpatiaLite, hands back
-`{ db, sqlite, path, spatialite }`, and the middleware closes `sqlite` in a `finally`. So commands
-get **both** a typed Drizzle handle (`db`) and the raw handle (`sqlite`) from the same connection.
+`{ db, sqlite, path, spatialite }`, and command layers/direct callers close `sqlite` in finalizers or
+`finally` blocks. So commands get **both** a typed Drizzle handle (`db`) and the raw handle
+(`sqlite`) from the same connection.
 
 ### Read-dominated workload
 

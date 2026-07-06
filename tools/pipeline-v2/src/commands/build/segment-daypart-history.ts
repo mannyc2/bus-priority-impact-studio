@@ -3,7 +3,7 @@ import { dirname, isAbsolute, relative } from "node:path";
 import { segmentDaypartHistoryArtifactPath } from "@bp/analytics/artifacts";
 import { buildSegmentDaypartHistoryArtifact } from "@bp/analytics/feature-history";
 import { loadSegmentDaypartHistoryLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";

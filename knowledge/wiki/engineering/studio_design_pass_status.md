@@ -1,7 +1,88 @@
 # Studio design-pass status
 
-Per-page status of the Studio web app vs. the tarbell design bundle at
-`/tmp/tarbell-design/bus-priority-impact-studio/project/`.
+Current and historical design-source status for the Studio web app.
+
+## Current design source - 2026-07-04
+
+The latest design source is the July 4 source capture:
+
+```text
+knowledge/raw/design-handoffs/bus-priority-impact-studio-2026-07-04/
+```
+
+This export supersedes the May tarbell bundle as the reference for new frontend
+audit and planning. If this source capture is missing in a future checkout, ask
+the operator for the current design export instead of treating the historical
+status rows below as current acceptance.
+
+The export includes these relevant design sources:
+
+| July 4 source | Purpose for future audit/plans |
+| --- | --- |
+| `design-system.html`, `system.jsx` | Current warm civic/editorial tokens, route badges, shell primitives, chips, buttons, data-viz primitives, states, and anti-patterns. |
+| `verdict-compositions.jsx`, `verdict-shell.jsx`, `verdict-primitives.jsx`, `verdict-data.jsx`, `verdict-editorial.jsx`, `verdict-mobile.jsx` | Route-detail verdict layer, shell, KPI strip, question tabs, ranked insights, mini-map, zero-insight states, density variants, and mobile direction. |
+| `route-public.jsx`, `route-detail-tabs.jsx` | Public-facing route detail and analyst/tab detail reference. Use both when auditing the current route detail page. |
+| `home-public.jsx`, `route-first.jsx`, `search-results.jsx` | Public routes home, analyst route search/triage, and search-results direction. |
+| `interventions-refactor.jsx`, `compare-public.jsx`, `compare-analytical.jsx`, `methods-public.jsx`, `docs-pages.jsx` | Secondary public/product surfaces that should be checked after shell and route detail. |
+| `authoring-v2.jsx`, `authoring-v2-review.jsx`, `authoring-v2-corpus.jsx`, `Evidence Composer.html`, `composer-focus.html` | Authoring and review workflow references. Audit after the public route surfaces unless authoring becomes the immediate task. |
+| `screenshots/*.png` | Visual evidence for before/after and composition checks. Use these to calibrate spacing, density, and header behavior. |
+
+### Current frontend audit priorities
+
+Generation-4 plans 033-035 completed the first three priority repairs: route
+detail now uses a single route scroller with slim sticky section nav, the
+public route page has a verdict lede plus ranked insight list above the section
+stack, the section order matches the Slow segments -> Route map reading flow,
+and the routes home/search surface supports free-text hero search, mobile route
+directory labels, accessible borough chips, and the July editorial CTA voice.
+Remaining design work should start with secondary public surfaces and any
+operator-approved product revivals, not by re-auditing 033-035.
+
+Screenshot note: Codex workspace verification on 2026-07-04 had no Playwright
+or headless browser binary available, so the completed pass is backed by
+typecheck/tests/build/style plus dev-server HTTP smoke rather than desktop/375px
+screenshots.
+
+1. **Shell/header/navigation**: inspect `apps/web/src/studio/shell.tsx`,
+   `apps/web/src/components/route/RouteDetailShell.tsx`, `RouteHeader.tsx`,
+   and `RoutePublicKpiStrip.tsx` against `system.jsx` and `verdict-shell.jsx`.
+   The user specifically called out the header as ugly and overbearing,
+   especially while scrolling.
+2. **Route detail page**: inspect `apps/web/src/studio/pages/route-detail.tsx`
+   and `apps/web/src/components/route/*` against `route-public.jsx`,
+   `route-detail-tabs.jsx`, and the verdict files. The current page should be
+   audited as a public evidence product first, not as a dense internal dashboard.
+3. **Routes home/search**: inspect `apps/web/src/studio/pages/home.tsx` and
+   route-index helpers against `home-public.jsx`, `route-first.jsx`, and
+   `search-results.jsx`.
+4. **Secondary public surfaces**: inspect interventions, compare, methods, docs,
+   and map after the first three priorities.
+5. **Authoring/review**: use the `authoring-v2*` and composer files when
+   returning to draft/review UX; do not let authoring polish block public route
+   page repair.
+
+### Current design doctrine for follow-up plans
+
+- Prefer incremental repairs over a total redesign. The target is a credible
+  civic evidence product: dense enough for analysts, quiet enough for public
+  readers, and never a marketing page.
+- Treat warm paper/card surfaces, restrained ink, sparse civic accent blue,
+  route badges, mono labels, and small sharp-radius components as the current
+  visual language.
+- Use real serving data and honest empty states. Do not add fake insight
+  micro-figures, fabricated analysts, fabricated contact/stats, or explanatory
+  pipeline jargon to make a screen feel fuller.
+- Separate public route reading from analyst/editor workbench density. The
+  public route detail should read as a ranked, narrated evidence page; detailed
+  tables and workbench controls belong behind section depth or authoring flows.
+- Validate desktop and mobile screenshots before marking a design pass done.
+
+## Legacy May tarbell status
+
+The rows below record the older May tarbell design pass. A status of `done`
+means the app was aligned to that older bundle at the time. It does **not** mean
+the page is current against the July 4 export or against the user's latest UI/UX
+feedback.
 
 A "design pass" means: the corresponding tarbell `.jsx` was read top-to-bottom
 and the live page (under `apps/web/src/studio/pages/`) was rebuilt or audited

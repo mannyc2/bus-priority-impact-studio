@@ -5,15 +5,13 @@ import {
   buildParkingViolationMatchAuditArtifact,
   countParkingViolationLocationGroups,
   hydrateParkingViolationLionRawFields,
-  hydrateParkingViolationRawFields,
   type RawLionParkingMatchHydrationRow,
-  type RawParkingViolationMatchHydrationRow,
   refreshParkingViolationLocationKeys,
   runBuildParkingViolationMatchesLocalDb,
   summarizeParkingViolationMatches,
 } from "@bp/pipeline-v2/local-db-aggregates";
 import type { Geoclient } from "@bp/sources/clients/geoclient";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { createGeoclientFromEnv, Geocoder } from "../../lib/geocoder.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -25,7 +23,6 @@ export type BuildParkingViolationMatchesInputs = {
   artifactRoot?: string | undefined;
   output?: string | undefined;
   hydrateRawFields?: boolean | undefined;
-  rawParkingDir?: string | undefined;
   rawLionPath?: string | undefined;
   skipGeoclient?: boolean | undefined;
   maxCameraGroups?: number | undefined;
@@ -70,7 +67,7 @@ export async function runBuildParkingViolationMatches(
   } else {
     if (inputs.hydrateRawFields === true) {
       hydratedLionRows = await hydrateLionRawFields(local, inputs.rawLionPath);
-      hydratedParkingRows = await hydrateParkingRawFields(local, inputs.rawParkingDir);
+      refreshedLocationKeyRows = refreshParkingViolationLocationKeys(local.sqlite);
     }
 
     const existingLocationKeys =
@@ -79,10 +76,10 @@ export async function runBuildParkingViolationMatches(
           "SELECT count(*) AS n FROM local_parking_violation WHERE match_location_key IS NOT NULL",
         )
         .get()?.n ?? 0;
-    refreshedLocationKeyRows =
-      inputs.hydrateRawFields === true || existingLocationKeys > 0
-        ? 0
-        : refreshParkingViolationLocationKeys(local.sqlite);
+    if (inputs.hydrateRawFields !== true) {
+      refreshedLocationKeyRows =
+        existingLocationKeys > 0 ? 0 : refreshParkingViolationLocationKeys(local.sqlite);
+    }
 
     const geoclient =
       inputs.skipGeoclient === true
@@ -150,23 +147,6 @@ export async function runBuildParkingViolationMatches(
   return result;
 }
 
-async function hydrateParkingRawFields(
-  local: OpenLocalPipelineDb,
-  rawParkingDir = fromRepoRoot(join("data/raw/parking-violations")),
-): Promise<number> {
-  const entries = (await readdir(rawParkingDir))
-    .filter((entry) => entry.startsWith("parking-violations-") && entry.endsWith(".json"))
-    .sort();
-  let changed = 0;
-  for (const entry of entries) {
-    const path = join(rawParkingDir, entry);
-    const snapshot = await Bun.file(path).json();
-    const rows = snapshotRows<RawParkingViolationMatchHydrationRow>(snapshot);
-    changed += hydrateParkingViolationRawFields(local.sqlite, rows);
-  }
-  return changed;
-}
-
 async function hydrateLionRawFields(
   local: OpenLocalPipelineDb,
   rawLionPath?: string,
@@ -206,12 +186,11 @@ export default defineCommand({
     options: dbOptions.extend({
       artifactRoot: z.string().optional().describe("Artifact root (defaults to data/artifacts/)"),
       output: z.string().optional().describe("Override path for the audit JSON"),
-      rawParkingDir: z.string().optional().describe("Raw parking-violations snapshot directory"),
       rawLion: z.string().optional().describe("Raw lion-centerline snapshot path"),
       hydrateRawFields: arg
         .boolean()
         .default(false)
-        .describe("Re-hydrate parking + LION raw fields from snapshots"),
+        .describe("Re-hydrate LION raw fields from snapshots and refresh parking match keys"),
       skipGeoclient: arg
         .boolean()
         .default(false)
@@ -260,10 +239,6 @@ export default defineCommand({
               : fromCliPath(input.options.artifactRoot),
           output:
             input.options.output === undefined ? undefined : fromCliPath(input.options.output),
-          rawParkingDir:
-            input.options.rawParkingDir === undefined
-              ? undefined
-              : fromCliPath(input.options.rawParkingDir),
           rawLionPath:
             input.options.rawLion === undefined ? undefined : fromCliPath(input.options.rawLion),
           hydrateRawFields: input.options.hydrateRawFields,

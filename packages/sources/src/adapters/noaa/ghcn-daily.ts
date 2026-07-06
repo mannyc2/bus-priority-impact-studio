@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 /**
  * NOAA GHCN-Daily — Global Historical Climatology Network, daily summaries.

@@ -4,16 +4,18 @@ Read this file first. It is the navigation layer for the LLM wiki.
 
 Reader's map: [analytics-primer.html](../analytics-primer.html) is the visual walkthrough of the analytics architecture.
 
-> **Generation 3 status (2026-07-03).** The current product is a public NYC bus route-evidence
+> **Generation 4 status (2026-07-04).** The current product is a public NYC bus route-evidence
 > website backed by compact D1 serving tables, R2 route artifacts, and the standalone mta-wiki
 > evidence backend. `tools/pipeline-v2` remains the canonical local CLI for source ingestion,
 > analytics materialization, D1/R2 export, and verification. The in-repo document-processing
-> command tree was retired in plan 024; do not revive it here.
+> command tree was retired in plan 024; do not revive it here. Plans 030-035 restored Snapshot 2.0
+> degradation, added Worker error envelopes/request IDs, removed fabricated route-card metrics, and
+> repaired the public route shell/home scanability against the July design source.
 
 > **Design and evidence authority.** Public page design authority is
-> `knowledge/raw/downloads/design-handoffs/03-canonical/`. Document-derived route facts come from
-> mta-wiki release artifacts and must render with citations. Public pages should not fabricate
-> dates, metrics, impacts, or coverage claims.
+> `knowledge/raw/design-handoffs/bus-priority-impact-studio-2026-07-04/`. Document-derived route
+> facts come from mta-wiki release artifacts and must render with citations. Public pages should not
+> fabricate dates, metrics, impacts, or coverage claims.
 
 ## Architecture decisions (ADRs)
 
@@ -27,7 +29,10 @@ publication gate; public surfaces should use multi-year route/corridor evidence 
 source coverage supports it;
 0018 records the detector calibration/readiness loop: reviewed gold labels, suppress-leakage
 evaluation, deterministic gates, and readiness buckets must separate detector signals from public
-page eligibility; 0019 records the Effect runtime boundary for pipeline code.
+page eligibility; 0019 records the Effect runtime boundary for pipeline code; 0020 records Effect
+Schema as the only first-party runtime schema layer and supersedes the Zod clause of ADR 0001; 0021
+records native `nyc-transit-kit` consumption in the Effect zone, with compat limited to Promise-edge
+packages such as Studio API.
 
 ## Project pages
 
@@ -55,11 +60,11 @@ page eligibility; 0019 records the Effect runtime boundary for pipeline code.
 - [[wiki/data/tsp_data_acquisition|Transit Signal Priority data acquisition]] — Source-gap doctrine, public evidence leads, candidate corridors, FOIL record classes, and safe product claims for TSP.
 - [[wiki/data/service_alerts_and_planned_changes|Service alerts and planned changes]] — Disruption/context filters.
 - [[wiki/data/policy_docs_corpus|Policy/docs corpus]] — Board materials, open-data plans, press releases, MTA blog posts, and LLM-assisted candidate extraction.
-- [[wiki/data/agent_corpus_map|Agent corpus map]] — Codemode sandbox layout for `ts_exec`/`bash_exec`, read-only analytics access, and deterministic `code_execution` evidence.
+- [[wiki/data/agent_corpus_map|Agent corpus map]] (retired) — Historical codemode sandbox layout for deleted agent-corpus research tooling.
 
 ## Engineering pages
 
-- [[wiki/engineering/package_structure|Repo package structure]] — TypeScript-only monorepo layout, package boundaries, Drizzle adoption boundaries, wiki relocation, and Python/PostGIS/VPS escalation rules.
+- [[wiki/engineering/package_structure|Repo package structure]] — TypeScript-only monorepo layout, package boundaries, Effect Schema type discipline, Drizzle adoption boundaries, wiki relocation, and Python/PostGIS/VPS escalation rules.
 - [[wiki/engineering/domain_contract_package_refactor_plan|Domain contract package refactor plan]] — Audit-backed plan to split `@bp/domain` into explicit contract subpaths, shrink the root barrel, move JSON Schema/OpenAPI generation out of core schema imports, and add package-shape gates.
 - [[wiki/engineering/ambitious_analytics_workstreams|Ambitious analytics workstreams]] — Ranked high-value analytics/serving/corpus work packages with copy-ready prompts for one or more Codex sessions.
 - [[wiki/engineering/analytics_architecture|Analytics architecture]] — Pure `packages/analytics` detector kernel architecture, feature contracts, registry doctrine, FeatureResolver runner seam, and migration plan.
@@ -99,6 +104,7 @@ page eligibility; 0019 records the Effect runtime boundary for pipeline code.
 - [[wiki/engineering/serving_snapshot_2_full_route_baseline|Serving Snapshot 2.0 full-route baseline]] — Minimum all-route support contract: 381 route index, partial route pages, surface flags, D1/R2 split, and acceptance gates before richer 2.0 pages.
 - [[wiki/engineering/serving_snapshot_2_visualization_and_multiyear|Serving Snapshot 2.0 visualization & multi-year expansion]] — Multi-year speed panels + signal-month coverage, the case-study figure catalog (curb-pulse arc), `series_ready`/`case_ready` support levels, and the prototype sequence.
 - [[wiki/engineering/charting_library_evaluation|Charting library evaluation]] — Post-Recharts rendering decision: own a D3-primitive layer for argument figures, uPlot/Canvas for dense views, maplibre for spatial; comparison table, migration path, and first prototypes.
+- [[wiki/engineering/studio_design_pass_status|Studio design-pass status]] — Current design-source pointer, July 2026 design export audit priorities, and historical May tarbell implementation status.
 - [[wiki/engineering/web_app_support_plan|Web app support plan]] — Superseded web support plan; current public pages follow the generation-3 route-evidence scope.
 - [[wiki/engineering/agent_author_api|Agent-Author API]] — Superseded write-side authoring spec; retained as history only.
 - [[wiki/engineering/agent_first_contributor_leaderboard|Agent-first contributor leaderboard]] — Plan for agent-submitted transit issue artifacts, review states, scoring ledger, leaderboard snapshots, and dogfood walkthrough.
@@ -120,7 +126,7 @@ page eligibility; 0019 records the Effect runtime boundary for pipeline code.
 - [[wiki/engineering/tier2_operational_date_extraction_review|Operational-date assertions build and review]] — Superseded in-repo operational-date review; current backend is mta-wiki.
 - [[wiki/engineering/tier2_operational_date_extraction_audit_handoff|Operational-date extraction audit handoff]] — Superseded historical handoff.
 - [[wiki/engineering/cli_commands|CLI commands]] — TypeScript `/pipeline` command targets for source probes, ingest, analytics builds, exports, and wiki linting.
-- [[wiki/engineering/testing_standards|Testing standards]] — Bun-first tests, TDD loop, Zod contracts, optimized pre-push hooks, and Cloudflare Worker production harnesses.
+- [[wiki/engineering/testing_standards|Testing standards]] — Bun-first tests, TDD loop, Effect Schema contracts, optimized pre-push hooks, and Cloudflare Worker production harnesses.
 - [[wiki/engineering/source_linting|Source linting]] — Required checks before source-backed claims.
 - [[wiki/engineering/data_pipeline_operationalization_status|Data pipeline operationalization status]] — March release decision, R2 mirror validation, 311 coverage start, and parking scope.
 
@@ -135,5 +141,5 @@ page eligibility; 0019 records the Effect runtime boundary for pipeline code.
    transit-domain review before any causal claim language.
 2. Keep the MVP TypeScript-only and D1 as a compact serving projection unless a documented
    requirement forces Python/PostGIS/VPS or Postgres/Hyperdrive escalation.
-3. Continue generation-3 execution from `plans/README.md`; production D1 migrations and deploys
+3. Continue generation-5 execution from `plans/README.md`; production D1 migrations and deploys
    remain operator-run steps.

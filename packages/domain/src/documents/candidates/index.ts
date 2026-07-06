@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../../schema-compat.js";
 import { registerProjectSchema } from "../../schema-registry.js";
 
 export const DocumentCandidateValidationStateSchema = z.enum([
@@ -121,7 +121,7 @@ export type DocumentEvidenceCandidate = z.output<typeof DocumentEvidenceCandidat
 // block. Promoted out of the pipeline `_shared.ts` monolith so the policy can
 // live in a package without depending on the tool.
 //
-// FOLLOW-UP: formalize as a registered zod schema and reconcile with
+// FOLLOW-UP: formalize as a registered schema and reconcile with
 // `DocumentEvidenceCandidate` once the upstream candidate-extraction steps are
 // themselves cut over.
 // ---------------------------------------------------------------------------
@@ -306,7 +306,7 @@ export type DocumentServiceChangeKind = z.output<typeof DocumentServiceChangeKin
 function draftVariant<TType extends DocumentEvidenceCandidateType>(
   candidateType: TType,
   description: string,
-  fields: z.ZodObject,
+  fields: z.ZodType,
 ) {
   return z
     .object({

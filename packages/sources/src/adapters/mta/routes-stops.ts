@@ -1,5 +1,5 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
@@ -90,45 +90,30 @@ function parseBoolean(value: boolean | number | string): boolean {
 export function normalizeRouteShapeRows(rows: SocrataRow[]): NormalizedRouteShape[] {
   return rows.map((row) => {
     const parsed = RawRouteShapeRowSchema.parse(row);
-    const output: NormalizedRouteShape = {
+    return {
       schemaVersion,
-      routeId: z.decode(RouteIdCodec, parsed.route_id),
+      routeId: RouteIdCodec.parse(parsed.route_id),
       routeShortName: parsed.route_short_name ?? parsed.route_id,
       inEffect: parseBoolean(parsed.in_effect),
       directionId: parsed.direction_id,
       direction: parsed.direction,
       shapeId: parsed.shape_id,
-    };
-
-    if (parsed.route_long_name !== undefined) {
-      output.routeLongName = parsed.route_long_name;
-    }
-    if (parsed.route_type !== undefined) {
-      output.routeType = parsed.route_type;
-    }
-    if (parsed.trip_type !== undefined) {
-      output.tripType = parsed.trip_type;
-    }
-    if (parsed.bundle !== undefined) {
-      output.bundle = parsed.bundle;
-    }
-    if (parsed.shape_length !== undefined) {
-      output.shapeLength = parsed.shape_length;
-    }
-    if (parsed.geometry !== undefined) {
-      output.geometry = parsed.geometry;
-    }
-
-    return output;
+      ...(parsed.route_long_name === undefined ? {} : { routeLongName: parsed.route_long_name }),
+      ...(parsed.route_type === undefined ? {} : { routeType: parsed.route_type }),
+      ...(parsed.trip_type === undefined ? {} : { tripType: parsed.trip_type }),
+      ...(parsed.bundle === undefined ? {} : { bundle: parsed.bundle }),
+      ...(parsed.shape_length === undefined ? {} : { shapeLength: parsed.shape_length }),
+      ...(parsed.geometry === undefined ? {} : { geometry: parsed.geometry }),
+    } satisfies NormalizedRouteShape;
   });
 }
 
 export function normalizeStopRows(rows: SocrataRow[]): NormalizedStop[] {
   return rows.map((row) => {
     const parsed = RawStopRowSchema.parse(row);
-    const output: NormalizedStop = {
+    return {
       schemaVersion,
-      routeId: z.decode(RouteIdCodec, parsed.route_id),
+      routeId: RouteIdCodec.parse(parsed.route_id),
       routeShortName: parsed.route_short_name ?? parsed.route_id,
       stopId: parsed.stop_id,
       stopName: parsed.stop_name,
@@ -138,12 +123,7 @@ export function normalizeStopRows(rows: SocrataRow[]): NormalizedStop[] {
       timepoint: parseBoolean(parsed.timepoint),
       latitude: parsed.latitude,
       longitude: parsed.longitude,
-    };
-
-    if (parsed.georeference !== undefined) {
-      output.georeference = parsed.georeference;
-    }
-
-    return output;
+      ...(parsed.georeference === undefined ? {} : { georeference: parsed.georeference }),
+    } satisfies NormalizedStop;
   });
 }

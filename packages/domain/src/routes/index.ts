@@ -1,5 +1,5 @@
-import * as z from "zod";
 import { IsoMonthSchema, RouteIdSchema, SourceCitationSchema } from "../primitives/index.js";
+import * as z from "../schema-compat.js";
 import { registerProjectSchema } from "../schema-registry.js";
 
 const schemaVersion = 1;

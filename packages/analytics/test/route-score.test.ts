@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
 import { calculateRouteScore } from "../src/index.js";
 
 const citation = {
@@ -13,7 +12,7 @@ const citation = {
 describe("route scoring", () => {
   test("produces a validated route scorecard", () => {
     const scorecard = calculateRouteScore({
-      routeId: z.decode(RouteIdCodec, "m1"),
+      routeId: RouteIdCodec.parse("m1"),
       month: "2026-01",
       coverageStatus: "full",
       averageSpeedMph: 9,
@@ -27,7 +26,7 @@ describe("route scoring", () => {
 
   test("does not produce impossible scores", () => {
     const scorecard = calculateRouteScore({
-      routeId: z.decode(RouteIdCodec, "m1"),
+      routeId: RouteIdCodec.parse("m1"),
       month: "2026-01",
       coverageStatus: "no_observed_speed",
       averageSpeedMph: 99,

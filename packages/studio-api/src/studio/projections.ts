@@ -6,9 +6,16 @@ import {
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
 } from "@bp/domain/studio/routes";
-import type * as z from "zod";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
+
+type StudioProjectionSchema<T> = {
+  safeParse(
+    input: unknown,
+  ): { success: true; data: T } | { success: false; error: { issues: unknown } };
+};
+
+type SchemaOutput<TSchema> = TSchema extends StudioProjectionSchema<infer T> ? T : never;
 
 const defaultStudioReleaseArtifactKey = "studio/v1/release.json";
 const ARTIFACT_NOT_AVAILABLE_MESSAGE = "Artifact is not available.";
@@ -61,11 +68,11 @@ export function studioJsonResponse(
   });
 }
 
-export async function loadStudioProjection<TSchema extends z.ZodType>(
+export async function loadStudioProjection<TSchema extends StudioProjectionSchema<unknown>>(
   env: Pick<StudioApiEnv, "ARTIFACTS" | "STUDIO_RELEASE_KEY">,
   path: string,
   schema: TSchema,
-): Promise<Response | z.output<TSchema>> {
+): Promise<Response | SchemaOutput<TSchema>> {
   if (env.ARTIFACTS === undefined) {
     console.error("Service dependency is not configured.", {
       context: "Studio API projection load",
@@ -91,11 +98,14 @@ export async function loadStudioProjection<TSchema extends z.ZodType>(
 
   const projection = schema.safeParse(payload);
   if (!projection.success) {
-    console.error("Studio API projection artifact failed contract validation.", { key });
+    console.error("Studio API projection artifact failed contract validation.", {
+      key,
+      issues: projection.error.issues,
+    });
     return errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE);
   }
 
-  return projection.data;
+  return projection.data as SchemaOutput<TSchema>;
 }
 
 export async function loadStudioRouteProjection(

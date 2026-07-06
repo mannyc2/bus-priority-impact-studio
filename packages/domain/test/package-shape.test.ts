@@ -2,14 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DocumentDiscoveryExtractionSchema } from "@bp/domain/documents/discovery";
+import { DocumentEvidenceCandidateSchema } from "@bp/domain/documents/candidates";
 import { FindingCandidateSchema } from "@bp/domain/findings";
 import { toProjectJsonSchema } from "@bp/domain/json-schema";
 import { MapManifestResponseSchema } from "@bp/domain/maps";
 import { RouteIdCodec } from "@bp/domain/primitives";
 import { RouteScorecardSchema } from "@bp/domain/routes";
 import { StudioRouteSchema } from "@bp/domain/studio/routes";
-import * as z from "zod";
+import * as z from "../src/schema-compat.js";
 
 type DomainPackageJson = {
   exports: Record<string, unknown>;
@@ -55,18 +55,13 @@ describe("domain package shape", () => {
       expect.arrayContaining([
         "./documents",
         "./documents/candidates",
-        "./documents/derived-surfaces",
-        "./documents/discovery",
         "./documents/intervention-records",
         "./documents/operational-date",
-        "./documents/research-surfaces",
-        "./documents/structured-extraction",
         "./findings",
         "./json-schema",
         "./maps",
         "./primitives",
         "./routes",
-        "./schema-registry",
         "./studio",
         "./studio/docs",
         "./studio/identity",
@@ -126,7 +121,7 @@ describe("domain package shape", () => {
       }).success,
     ).toBe(true);
     expect(typeof FindingCandidateSchema.safeParse).toBe("function");
-    expect(typeof DocumentDiscoveryExtractionSchema.safeParse).toBe("function");
+    expect(typeof DocumentEvidenceCandidateSchema.safeParse).toBe("function");
     expect(typeof StudioRouteSchema.safeParse).toBe("function");
     expect(toProjectJsonSchema(RouteScorecardSchema)).toEqual(
       expect.objectContaining({

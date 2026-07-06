@@ -1,5 +1,5 @@
 import { SocrataDatasetIdSchema, type SocrataFetch } from "@bp/sources/core";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 export type { SocrataFetch } from "@bp/sources/core";
 

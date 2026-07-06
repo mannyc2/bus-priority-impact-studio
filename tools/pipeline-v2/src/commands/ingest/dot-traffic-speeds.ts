@@ -3,7 +3,7 @@ import { insertDotTrafficSpeedSnapshot } from "@bp/db/local";
 import { normalizeDotTrafficSpeedRows } from "@bp/sources/adapters/nyc-dot/traffic-speeds";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";

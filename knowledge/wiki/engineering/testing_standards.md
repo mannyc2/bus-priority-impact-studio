@@ -2,10 +2,10 @@
 title: Testing Standards
 type: engineering
 status: active
-last_updated: 2026-04-27
+last_updated: 2026-07-05
 owner: codex
 source_count: 8
-tags: [testing, bun, vitest, cloudflare, zod, tdd, prepush]
+tags: [testing, bun, vitest, cloudflare, effect-schema, tdd, prepush]
 ---
 
 # Testing Standards
@@ -24,13 +24,13 @@ This follows the repo behavior rules in `CLAUDE.md`: think first, prefer simple 
 - Bun's built-in test runner supports TypeScript tests, path filters, per-test timeouts, watch mode, GitHub Actions annotations, reruns, randomization, and concurrency controls.
 - Bun is a local runtime/toolchain. Cloudflare Workers are deployed to Cloudflare's `workerd` runtime, and Wrangler is the Cloudflare CLI.
 - Cloudflare recommends its Workers Vitest integration for Worker and Pages Functions tests; the integration runs tests inside the Workers runtime, provides runtime APIs/bindings, supports isolated per-test-file storage, and uses Miniflare locally.
-- Zod 4 provides strongly typed metadata registries, global `.meta()` metadata, native JSON Schema conversion, branded types, and codecs for bidirectional boundary transforms.
+- Effect Schema provides runtime contracts for decoding/encoding, transformations, branded values, tagged variants, metadata, and JSON Schema generation in the installed Effect v4 line.
 
 ### Inferences for this project
 
 - Use Bun for dependency install, workspace scripts, source/package tests, and fast pre-push checks.
 - Use Cloudflare's Vitest integration only for Worker production-behavior harnesses because Bun's test runner does not execute tests inside `workerd`.
-- Use Zod schemas as production contracts, not just test helpers. Tests should import the same schemas used by the Worker, DB serializers, source adapters, and analytics outputs.
+- Use Effect Schema contracts as production contracts, not just test helpers. Tests should import the same contracts used by the Worker, source adapters, pipeline artifacts, and analytics outputs.
 - Keep live-network tests opt-in. Most tests should use fixtures so pre-push is deterministic and cheap.
 
 ## Testing layers
@@ -75,9 +75,9 @@ Use these locations:
 
 Package tests may import from `../src/index.js` when they are validating that package's public barrel, or from a focused source module when a narrow internal behavior needs direct coverage. Avoid deep relative imports from app code.
 
-## Zod standards
+## Effect Schema Standards
 
-Use Zod v4 in production code for data entering or leaving package boundaries:
+Use Effect Schema in production code for data entering or leaving package boundaries:
 
 - Source API responses.
 - Pipeline artifact inputs/outputs.
@@ -85,19 +85,19 @@ Use Zod v4 in production code for data entering or leaving package boundaries:
 - Worker JSON responses.
 - Generated JSON Schema contracts.
 
-Use these Zod 4 features intentionally:
+Use these Effect Schema capabilities intentionally:
 
 | Feature | Project use |
 |---|---|
-| `.brand()` | Route IDs, Socrata dataset IDs, ISO months, and other validated identifiers |
-| `.strict()` / strict object schemas | Public API responses and serving read models |
-| `.readonly()` | Immutable outputs such as route scorecards |
-| `z.codec()` | Boundary normalization, such as raw route-id strings to branded route IDs |
-| `z.registry()` and `.meta()` | Schema documentation and auditability |
-| `z.toJSONSchema()` | Generated contracts for public API and route-brief artifacts |
-| `z.discriminatedUnion()` | Use later for source manifest records only when there are multiple real source kinds |
+| Branded schemas | Route IDs, Socrata dataset IDs, ISO months, and other validated identifiers |
+| Strict/closed object contracts | Public API responses and serving read models |
+| Readonly output types | Immutable outputs such as route scorecards |
+| Transformations/codecs | Boundary normalization, such as raw route-id strings to branded route IDs |
+| Schema metadata/annotations | Schema documentation and auditability |
+| JSON Schema generation | Generated contracts for public API and route-brief artifacts |
+| Tagged variants/unions | Source manifest records when there are multiple real source kinds |
 
-Do not wrap every function in Zod. Validate at boundaries, then use typed values internally.
+Do not wrap every function in Effect Schema. Decode at boundaries, then use typed values internally.
 
 ## Production-behavior harnesses
 
@@ -170,7 +170,7 @@ bun run hooks:install
 - Bun test runner docs — https://bun.sh/docs/test — verified_at: 2026-04-27
 - Bun bunfig docs — https://bun.sh/docs/runtime/bunfig — verified_at: 2026-04-27
 - Bun TypeScript declarations guide — https://bun.com/docs/guides/runtime/typescript — verified_at: 2026-04-27
-- Zod 4 metadata and registries docs — https://zod.dev/metadata — verified_at: 2026-04-27
-- Zod 4 JSON Schema docs — https://zod.dev/json-schema — verified_at: 2026-04-27
-- Zod 4 codecs docs — https://zod.dev/codecs — verified_at: 2026-04-27
+- Effect Schema source mirror — `.agent-sources/effect/packages/effect/src/Schema.ts` — verified_at: 2026-07-05
+- Effect JSON Schema source mirror — `.agent-sources/effect/packages/effect/src/JsonSchema.ts` — verified_at: 2026-07-05
+- Effect Schema guide — `/home/cjpher/.codex/skills/effect-ts/references/guide-schema.md` — verified_at: 2026-07-05
 - Cloudflare Workers Vitest integration docs — https://developers.cloudflare.com/workers/testing/vitest-integration/ — verified_at: 2026-04-27

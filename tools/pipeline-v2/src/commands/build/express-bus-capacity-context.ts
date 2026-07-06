@@ -6,7 +6,7 @@ import {
   summarizeExpressBusCapacityRows,
 } from "@bp/analytics/feature-history";
 import { NormalizedExpressBusCapacitySchema } from "@bp/sources/adapters/mta/express-bus-capacity";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { defaultExpressBusCapacityNormalizedPath } from "../ingest/express-bus-capacity.ts";

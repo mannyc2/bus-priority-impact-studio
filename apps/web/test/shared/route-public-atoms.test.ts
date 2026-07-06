@@ -7,6 +7,7 @@ import {
   RPubSlowCard,
   routePublicLede,
 } from "../../src/components/route/RoutePublicAtoms";
+import { RouteVerdictLede } from "../../src/components/route/RouteVerdictLede";
 import type {
   RouteDossierSummaryForDetail,
   StudioRoute,
@@ -157,7 +158,6 @@ describe("route public atoms", () => {
     const markup = renderToStaticMarkup(
       createElement(RPubHeader, {
         route: noLedeRoute,
-        lede: emptyLede,
         stats: createElement("div", null, "Stats"),
       }),
     );
@@ -165,6 +165,33 @@ describe("route public atoms", () => {
     expect(emptyLede).toBeNull();
     expect(markup).not.toContain("placeholder");
     expect(markup).not.toContain("slower than");
+  });
+
+  test("omits schedule and miles claims when route-card fields are absent", () => {
+    const honestRoute = {
+      ...route,
+      scheduledMph: null,
+      speedPercentile: null,
+      ridersYoyPct: null,
+      riderHoursLost: null,
+      spark: null,
+      miles: null,
+    } satisfies StudioRoute;
+    const lede = routePublicLede({ route: honestRoute, dossier: null });
+    const markup = renderToStaticMarkup(
+      createElement(RPubHeader, {
+        route: honestRoute,
+        stats: createElement("div", null, "Stats"),
+      }),
+    );
+    const ledeMarkup = renderToStaticMarkup(createElement(RouteVerdictLede, { lede }));
+
+    expect(lede).toBe("M15 is running 5.9 mph.");
+    expect(markup).not.toContain("M15 is running");
+    expect(ledeMarkup).toContain("The route right now");
+    expect(markup).toContain("28 stops");
+    expect(markup).not.toContain("mph schedule");
+    expect(markup).not.toContain("8.1 mi");
   });
 
   test("renders slow cards with and without served hourly profile data", () => {
@@ -191,6 +218,17 @@ describe("route public atoms", () => {
     expect(withHours).toContain("4.8 mph");
     expect(withHours).toContain("1.9 mph below the route median");
     expect(withoutHours).not.toContain("Hourly speed profile");
+    expect(
+      renderToStaticMarkup(
+        createElement(RPubSlowCard, {
+          segment: { ...segment, scheduledMph: null },
+          rank: 1,
+          routeMedianMph: 6.7,
+          badge: null,
+          note: null,
+        }),
+      ),
+    ).not.toContain("Hourly speed profile");
   });
 
   test("renders intervention card citations from wiki evidence", () => {

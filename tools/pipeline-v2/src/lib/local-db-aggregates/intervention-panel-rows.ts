@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { z } from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 export type InterventionComparisonRow = {
   route_id: string;
@@ -31,7 +31,7 @@ export type InterventionPanelLocalDbQuery = {
 const SqlNumberSchema = z.union([
   z.number(),
   z.bigint().transform(Number),
-  z.string().pipe(z.coerce.number()),
+  z.preprocess((value) => (typeof value === "string" ? value : Number.NaN), z.coerce.number()),
 ]);
 
 const SqlNullableNumberSchema = z.preprocess(

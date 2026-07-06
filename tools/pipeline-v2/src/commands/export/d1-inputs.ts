@@ -39,7 +39,7 @@ import {
   StudioRouteEvidenceIndexSchema,
 } from "@bp/domain/studio/route-evidence";
 import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import { defaultArtifactRootPath } from "../../lib/paths.ts";
 
 const DEFAULT_HISTORY_START_MONTH = "2023-04";

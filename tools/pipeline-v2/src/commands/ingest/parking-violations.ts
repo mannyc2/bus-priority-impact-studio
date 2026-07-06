@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import { upsertParkingViolations } from "@bp/db/local";
 import {
   BUS_RELEVANT_PARKING_CODES,
@@ -6,7 +5,7 @@ import {
 } from "@bp/sources/adapters/nyc-open-data/parking-violations";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -18,7 +17,6 @@ import {
   type SocrataRow,
   type Soda3SoqlQuery,
 } from "../../lib/soda3.ts";
-import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
 
 const parkingFiscalYearSources = [
   { start: "2022-07", end: "2023-06", sourceId: "nyc_parking_violations_fy2023" },
@@ -32,14 +30,11 @@ export type ParkingViolationsRunInputs = {
   year: number;
   month: number;
   codes?: readonly number[] | undefined;
-  fetchedAt?: Date | undefined;
   fetcher?: SocrataFetch | undefined;
   manifestText?: string | undefined;
-  snapshotPath?: string | undefined;
 };
 
 export type ParkingViolationsIngestResult = {
-  rawPath: string;
   isoMonth: string;
   sourceId: string;
   rowCount: number;
@@ -67,10 +62,6 @@ export async function runParkingViolationsIngest(
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
   const sourceId = parkingSourceIdForMonth(inputs.year, inputs.month);
   const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
-  const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
-  const rawPath =
-    inputs.snapshotPath ??
-    fromRepoRoot(join("data/raw/parking-violations", `parking-violations-${monthKey}.json`));
 
   const codeList = codes.join(",");
   const query: Soda3SoqlQuery = {
@@ -103,20 +94,11 @@ export async function runParkingViolationsIngest(
 
   await upsertParkingViolations(inputs.local.db, rows);
 
-  await writeRawSourceSnapshot({
-    path: rawPath,
-    sourceId,
-    extra: { isoMonth: monthKey, codes: [...codes] },
-    fetchedAt,
-    query: { grain: "summons_number", month: monthKey, codeFilter: codes.length },
-    rows: rawRows,
-  });
-
   const codeBreakdown = [...codes].map((code) => ({
     code,
     count: rows.filter((r) => r.violationCode === code).length,
   }));
-  return { rawPath, isoMonth: monthKey, sourceId, rowCount: rows.length, codeBreakdown };
+  return { isoMonth: monthKey, sourceId, rowCount: rows.length, codeBreakdown };
 }
 
 export default defineCommand({
@@ -133,7 +115,6 @@ export default defineCommand({
     }),
   },
   output: z.object({
-    rawPath: z.string(),
     isoMonth: z.string(),
     sourceId: z.string(),
     rowCount: z.number(),

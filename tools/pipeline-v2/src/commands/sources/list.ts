@@ -1,5 +1,5 @@
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { fromRepoRoot } from "../../lib/paths.ts";
 
 export default defineCommand({

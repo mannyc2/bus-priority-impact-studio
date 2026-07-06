@@ -54,7 +54,7 @@ type SegmentMapProperties = {
   from: string;
   to: string;
   speedMph: number;
-  scheduledMph: number;
+  scheduledMph: number | null;
   riderHours: number;
   color: string;
   opacity: number;
@@ -159,7 +159,7 @@ function routeSegmentCollection(input: {
       const speedMph =
         segment === null
           ? (feature.properties.averageSpeedMph ?? input.route.weightedAvgSpeed)
-          : segmentSpeedAtHour(segment, input.hour);
+          : (segmentSpeedAtHour(segment, input.hour) ?? segment.speedMph);
       const hovered = input.hoveredSegmentId === studioSegmentId;
       const hasHover = input.hoveredSegmentId !== null;
       const isWorst = studioSegmentId === worstId;

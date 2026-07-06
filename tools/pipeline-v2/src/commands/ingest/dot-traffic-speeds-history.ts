@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { Glob } from "bun";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";

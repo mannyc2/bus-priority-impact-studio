@@ -140,6 +140,7 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
   const treatmentSegments = segments.filter((segment) => segment.ace || segment.tsp).length;
   const activeSpeed = displaySegment === null ? null : segmentSpeedAtHour(displaySegment, hour);
   const routeSpeed = routeAverageSpeedAtHour(route, segments, hour);
+  const hasHourlySpeed = routeSpeed !== null;
   const highlightId = activeSegment?.id ?? highlight.segment?.id;
   const geo = useRouteSegmentsGeo(route.routeId);
 
@@ -193,38 +194,46 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.12em] text-[var(--bp-color-ink-55)]">
-                {hourTag(hour)}
+                {hasHourlySpeed ? hourTag(hour) : "Observed speed"}
               </div>
               <div className="mt-1 text-[18px] font-semibold leading-tight text-[var(--bp-color-ink)]">
-                {formatMapHour(hour)}
+                {hasHourlySpeed ? formatMapHour(hour) : "All-day"}
               </div>
             </div>
             <Badge variant={activeSpeed !== null && activeSpeed < 5 ? "bad" : "neutral"}>
-              {routeSpeed.toFixed(1)} mph
+              {(routeSpeed ?? route.weightedAvgSpeed).toFixed(1)} mph
             </Badge>
           </div>
-          <div className="mt-5">
-            <TimeScrubber
-              hour={hour}
-              setHour={setHour}
-              playing={playing}
-              setPlaying={setPlaying}
-              accent="var(--bp-color-accent)"
-            />
-          </div>
-          <RouteMapReadout
-            routeSpeed={routeSpeed}
-            segment={displaySegment}
-            segmentSpeed={activeSpeed}
-            hour={hour}
-          />
+          {hasHourlySpeed ? (
+            <>
+              <div className="mt-5">
+                <TimeScrubber
+                  hour={hour}
+                  setHour={setHour}
+                  playing={playing}
+                  setPlaying={setPlaying}
+                  accent="var(--bp-color-accent)"
+                />
+              </div>
+              <RouteMapReadout
+                routeSpeed={routeSpeed}
+                segment={displaySegment}
+                segmentSpeed={activeSpeed}
+                hour={hour}
+              />
+            </>
+          ) : (
+            <StaticMapReadout route={route} segment={displaySegment} />
+          )}
           <LayerControls layers={layers} setLayers={setLayers} />
-          <LinkedSpeedStrip
-            segments={orderedSegments}
-            hour={hour}
-            activeId={highlightId}
-            setHoveredSegmentId={setHoveredSegmentId}
-          />
+          {hasHourlySpeed ? (
+            <LinkedSpeedStrip
+              segments={orderedSegments}
+              hour={hour}
+              activeId={highlightId}
+              setHoveredSegmentId={setHoveredSegmentId}
+            />
+          ) : null}
         </aside>
       </div>
       {geo.status === "unavailable" ? (
@@ -285,6 +294,44 @@ function RouteMapReadout({
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11.5px] text-[var(--bp-color-ink-55)]">
             <span className="font-mono font-bold text-[var(--bp-color-ink)]">
               {segmentSpeed.toFixed(1)} mph
+            </span>
+            <span>{Math.round(segment.riderHours)} rider hr</span>
+            <span>{segmentTreatment(segment)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StaticMapReadout({
+  route,
+  segment,
+}: {
+  route: StudioRouteDetailResponse["route"];
+  segment: StudioSegment | null;
+}) {
+  return (
+    <div className="mt-5 border-t border-[var(--bp-color-rule)] pt-4">
+      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--bp-color-ink-40)]">
+        All-day observed
+      </div>
+      <div className="mt-1 font-mono text-[30px] font-semibold leading-none tabular-nums">
+        {route.weightedAvgSpeed.toFixed(1)}
+        <span className="ml-1 text-[12px] text-[var(--bp-color-ink-55)]">mph</span>
+      </div>
+      {segment === null ? (
+        <p className="m-0 mt-4 text-[12.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
+          Hourly speed profile is not attached yet.
+        </p>
+      ) : (
+        <div className="mt-4">
+          <div className="text-[13px] font-semibold leading-snug text-[var(--bp-color-ink)]">
+            {segment.from} to {segment.to}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11.5px] text-[var(--bp-color-ink-55)]">
+            <span className="font-mono font-bold text-[var(--bp-color-ink)]">
+              {segment.speedMph.toFixed(1)} mph
             </span>
             <span>{Math.round(segment.riderHours)} rider hr</span>
             <span>{segmentTreatment(segment)}</span>
@@ -357,6 +404,7 @@ function LinkedSpeedStrip({
       <div className="flex gap-2 overflow-x-auto pb-1">
         {segments.map((segment) => {
           const speed = segmentSpeedAtHour(segment, hour);
+          if (speed === null) return null;
           const active = segment.id === activeId;
           return (
             <button

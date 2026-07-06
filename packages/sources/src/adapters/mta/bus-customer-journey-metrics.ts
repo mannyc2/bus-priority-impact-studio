@@ -1,5 +1,5 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
@@ -59,7 +59,7 @@ export function normalizeBusCustomerJourneyMetricRows(
         {
           schemaVersion,
           month: toIsoMonth(parsed.month),
-          routeId: z.decode(RouteIdCodec, parsed.route_id),
+          routeId: RouteIdCodec.parse(parsed.route_id),
           borough: parsed.borough,
           tripType: parsed.trip_type,
           period: parsed.period,

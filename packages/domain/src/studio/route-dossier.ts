@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../schema-compat.js";
 
 /**
  * The per-route dossier summary (frontend §7.2 / hard-cutover C2).

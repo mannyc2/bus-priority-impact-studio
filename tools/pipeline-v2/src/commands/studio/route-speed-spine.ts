@@ -8,7 +8,7 @@ import {
   routeSpeedSpineRouteSlug,
 } from "@bp/analytics/feature-history";
 import { loadRouteSpeedSpineLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";

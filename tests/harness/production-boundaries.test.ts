@@ -34,10 +34,10 @@ async function readFiles(root: string): Promise<Array<{ path: string; text: stri
 function extractModuleSpecifiers(text: string): string[] {
   const specifiers: string[] = [];
   const moduleSpecifierPattern =
-    /(?:import|export)\s+(?:type\s+)?(?:[^'"]*?\s+from\s+)?["']([^"']+)["']|import\s*\(\s*["']([^"']+)["']\s*\)/g;
+    /(?:import|export)\s+(?:type\s+)?(?:[^'"]*?\s+from\s+)?["']([^"']+)["']|import\s*\(\s*["']([^"']+)["']\s*\)|require\s*\(\s*["']([^"']+)["']\s*\)/g;
 
   for (const match of text.matchAll(moduleSpecifierPattern)) {
-    const specifier = match[1] ?? match[2];
+    const specifier = match[1] ?? match[2] ?? match[3];
     if (specifier !== undefined) {
       specifiers.push(specifier);
     }
@@ -306,6 +306,45 @@ describe("production boundary harness", () => {
     }
   });
 
+  test("Effect-zone source code consumes nyc-transit-kit through native packages, not compat", async () => {
+    const files = [
+      ...(await readFiles("tools/pipeline-v2/src")),
+      ...(await readFiles("packages/sources/src")),
+    ];
+    const packageJsons = [
+      "tools/pipeline-v2/package.json",
+      "packages/sources/package.json",
+    ] as const;
+
+    for (const file of files) {
+      expect(
+        importsForbiddenSpecifier(file.text, "@nyc-transit-kit/compat"),
+        `${file.path} imports @nyc-transit-kit/compat; Effect-zone code must use native kit APIs/layers`,
+      ).toBe(false);
+    }
+
+    for (const path of packageJsons) {
+      const packageJson = (await Bun.file(path).json()) as {
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+        optionalDependencies?: Record<string, string>;
+        peerDependencies?: Record<string, string>;
+      };
+
+      const dependencySections = [
+        packageJson.dependencies,
+        packageJson.devDependencies,
+        packageJson.optionalDependencies,
+        packageJson.peerDependencies,
+      ];
+
+      expect(
+        dependencySections.some((dependencies) => dependencies?.["@nyc-transit-kit/compat"]),
+        `${path} depends on @nyc-transit-kit/compat; only Promise-edge packages may keep compat`,
+      ).toBe(false);
+    }
+  });
+
   test("pipeline-v2 command modules keep SQLite runtime construction behind Effect services", async () => {
     const files = await readFiles("tools/pipeline-v2/src/commands");
 
@@ -425,6 +464,24 @@ describe("production boundary harness", () => {
         extractModuleSpecifiers(file.text).includes("@bp/sources"),
         `${file.path} imports the @bp/sources root barrel`,
       ).toBe(false);
+    }
+  });
+
+  test("repo code does not import zod directly", async () => {
+    const files = [
+      ...(await readFiles("apps")),
+      ...(await readFiles("packages")),
+      ...(await readFiles("scripts")),
+      ...(await readFiles("tools")),
+      ...(await readFiles("tests")),
+    ];
+
+    for (const file of files) {
+      const zodSpecifier = extractModuleSpecifiers(file.text).find(
+        (specifier) => specifier === "zod" || specifier.startsWith("zod/"),
+      );
+
+      expect(zodSpecifier, `${file.path} imports ${zodSpecifier ?? "zod"}`).toBeUndefined();
     }
   });
 

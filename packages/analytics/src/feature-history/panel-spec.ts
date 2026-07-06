@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 export const SEGMENT_DAYPART_PANEL_V1_ID = "segment_daypart_panel_v1" as const;
 

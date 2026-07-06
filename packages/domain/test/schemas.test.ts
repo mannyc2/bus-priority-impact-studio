@@ -10,13 +10,14 @@ import {
 import { healthResponseJsonSchema, studioReleasePayloadJsonSchema } from "@bp/domain/json-schema";
 import { RouteIdCodec } from "@bp/domain/primitives";
 import { HealthResponseSchema, RouteScorecardSchema } from "@bp/domain/routes";
+import { StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
 import { buildStudioRouteProjection } from "@bp/domain/studio/projections";
 import { StudioReleasePayloadSchema } from "@bp/domain/studio/release";
 import { StudioRouteDetailResponseSchema } from "@bp/domain/studio/routes";
-import * as z from "zod";
+import * as z from "../src/schema-compat.js";
 
 describe("domain schemas", () => {
-  test("normalizes route IDs at the boundary with a Zod codec", () => {
+  test("normalizes route IDs at the boundary with the domain codec", () => {
     const normalizedRouteId: string = z.decode(RouteIdCodec, " m1 ");
 
     expect(normalizedRouteId).toBe("M1");
@@ -69,6 +70,44 @@ describe("domain schemas", () => {
         extra: "not allowed",
       }),
     ).toThrow();
+  });
+
+  test("parses generated Studio method projection dataset metadata", () => {
+    const methods = StudioMethodsResponseSchema.parse({
+      schemaVersion: 1,
+      generatedAt: "2026-05-25T20:11:06.387Z",
+      datasets: [
+        {
+          sourceId: "route_month_trends",
+          name: "MTA route speed and ridership summaries",
+          publisher: "MTA",
+          grain: "Route/month",
+          cadence: "Monthly",
+          description:
+            "Route/month speed, ridership, and transfer trend rows generated from MTA public source data.",
+          rowCount: 12_075,
+          rowLabel: "route-month rows",
+          period: "2023-04 through 2026-03",
+          schemaKeys: [
+            "route_id",
+            "month",
+            "average_speed_mph",
+            "ridership",
+            "has_speed_trend",
+          ],
+          method: "route-month-trends",
+          sourceRefCount: 4,
+        },
+      ],
+      quality: {
+        releaseLayer: "baseline_release",
+        completenessStatus: "complete",
+        confidence: "medium",
+        caveats: [],
+      },
+    });
+
+    expect(methods.datasets[0]?.sourceId).toBe("route_month_trends");
   });
 
   test("parses review packets with explicit counter-evidence", () => {

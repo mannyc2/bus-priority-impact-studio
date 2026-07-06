@@ -33,7 +33,9 @@ export function routePublicLede({
   const hasSpeed = speed > 0;
   if (hasSpeed) {
     const schedule =
-      route.scheduledMph > 0 ? ` against a ${route.scheduledMph.toFixed(1)} mph schedule` : "";
+      route.scheduledMph !== null && route.scheduledMph > 0
+        ? ` against a ${route.scheduledMph.toFixed(1)} mph schedule`
+        : "";
     parts.push(`${route.label} is running ${speed.toFixed(1)} mph${schedule}`);
   }
 
@@ -59,15 +61,12 @@ export function routePublicLede({
   return parts.length === 0 ? null : `${parts.join("; ")}.`;
 }
 
-export function RPubHeader({
-  route,
-  lede,
-  stats,
-}: {
-  route: StudioRoute;
-  lede: string | null;
-  stats: ReactNode;
-}) {
+export function RPubHeader({ route, stats }: { route: StudioRoute; stats: ReactNode }) {
+  const routeFacts = [
+    route.miles === null ? null : `${route.miles.toFixed(1)} mi`,
+    `${route.stops} stops`,
+  ].filter((part): part is string => part !== null);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-[86px_minmax(0,1fr)] items-start gap-5 max-sm:grid-cols-1">
@@ -81,18 +80,13 @@ export function RPubHeader({
           <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.12em] text-[var(--bp-color-ink-55)]">
             {route.borough} route
           </div>
-          <h1 className="m-0 mt-1 text-[34px] font-semibold leading-[1.05] tracking-normal text-[var(--bp-color-ink)] max-md:text-[28px]">
+          <h1 className="m-0 mt-1 text-[24px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--bp-color-ink)] max-md:text-[21px]">
             {route.corridorFull || route.corridor}
           </h1>
           <div className="mt-2 text-[13px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-            {route.termini.north} <span aria-hidden>-&gt;</span> {route.termini.south} &middot;{" "}
-            {route.miles.toFixed(1)} mi &middot; {route.stops} stops
+            {route.termini.north} <span aria-hidden>-&gt;</span> {route.termini.south}
+            {routeFacts.length > 0 ? ` · ${routeFacts.join(" · ")}` : ""}
           </div>
-          {lede ? (
-            <p className="m-0 mt-4 max-w-[960px] text-[16px] leading-[1.6] text-[var(--bp-color-ink)]">
-              {lede}
-            </p>
-          ) : null}
         </div>
       </div>
       {stats}
@@ -107,6 +101,7 @@ export function RPubBigStat({
   sub,
   tone = "ink",
   trailing,
+  footer,
   onClick,
 }: {
   label: string;
@@ -115,6 +110,7 @@ export function RPubBigStat({
   sub: string;
   tone?: RPubStatTone | undefined;
   trailing?: ReactNode | undefined;
+  footer?: string | undefined;
   onClick?: (() => void) | undefined;
 }) {
   const body = (
@@ -122,9 +118,9 @@ export function RPubBigStat({
       <div className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
         {label}
       </div>
-      <div className="mt-2 flex min-h-[40px] items-baseline gap-1">
+      <div className="mt-2 flex min-h-[34px] items-baseline gap-1">
         <div
-          className="font-mono text-[38px] font-semibold leading-none tabular-nums max-md:text-[32px]"
+          className="font-mono text-[30px] font-semibold leading-none tabular-nums max-md:text-[26px]"
           style={{ color: toneColor[tone] }}
         >
           {value}
@@ -133,13 +129,23 @@ export function RPubBigStat({
         {trailing ? <div className="ml-auto">{trailing}</div> : null}
       </div>
       <div className="mt-1 text-[11.5px] leading-[1.35] text-[var(--bp-color-ink-55)]">{sub}</div>
+      {footer ? (
+        <div className="mt-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--bp-color-ink-40)]">
+          {footer}
+        </div>
+      ) : null}
     </>
   );
 
   return (
     <div className="min-w-0 border-l border-[var(--bp-color-rule)] pl-5 first:border-l-0 first:pl-0 max-md:border-l-0 max-md:border-t max-md:pl-0 max-md:pt-4 max-md:first:border-t-0 max-md:first:pt-0">
       {onClick ? (
-        <button type="button" onClick={onClick} className="block w-full cursor-pointer text-left">
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={`Open ${label} details`}
+          className="block w-full cursor-pointer text-left"
+        >
           {body}
         </button>
       ) : (
@@ -169,7 +175,10 @@ export function RPubSlowCard({
     segment.ace ? "ACE" : null,
     segment.tsp ? "TSP" : null,
   ].filter((item): item is string => item !== null);
-  const hasHourData = segment.hours.length === 24 && segment.hours.some((value) => value > 0);
+  const hasHourData =
+    segment.scheduledMph !== null &&
+    segment.hours.length === 24 &&
+    segment.hours.some((value) => value > 0);
 
   return (
     <article className="flex min-h-[270px] flex-col rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
@@ -226,6 +235,7 @@ export function RPubSlowCard({
           >
             {segment.hours.map((_, hour) => {
               const speed = segmentSpeedAtHour(segment, hour);
+              if (speed === null) return null;
               return (
                 <span
                   key={hour}

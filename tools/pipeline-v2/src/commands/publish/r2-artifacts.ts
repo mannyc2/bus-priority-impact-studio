@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { Glob } from "bun";
 import { type CloudflareCostSummary, estimateR2StandardCost } from "../../lib/cloudflare-costs.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";

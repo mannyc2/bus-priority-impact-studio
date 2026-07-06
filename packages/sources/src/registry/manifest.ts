@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import { SocrataDatasetIdSchema } from "../core/index.js";
 
 const SourceIdSchema = z

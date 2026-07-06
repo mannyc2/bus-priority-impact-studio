@@ -17,7 +17,6 @@ export function TimelineSection({ data }: { data: StudioRouteDetailResponse }) {
   const { route } = data;
   const historySpeeds = dossierSpeedSeries(data.dossier);
   const hasSpeedHistory = historySpeeds.length > 0;
-  const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
   return (
     <div className="flex flex-col gap-7">
       <InterventionHistory
@@ -32,18 +31,28 @@ export function TimelineSection({ data }: { data: StudioRouteDetailResponse }) {
           source={
             hasSpeedHistory
               ? `Monthly average speed${dossierMetricWindow(data.dossier?.speed) ? `, ${dossierMetricWindow(data.dossier?.speed)}` : ""}.`
-              : "Recent trend estimate; the dashed line is the schedule."
+              : "No route speed history is attached yet."
           }
           height={196}
           right={
             <Badge variant={route.weightedAvgSpeed < 6 ? "bad" : "warn"}>
               {hasSpeedHistory
-                ? `${dossierMetricMonthCount(data.dossier?.speed) || speedTrendData.length} months`
+                ? `${dossierMetricMonthCount(data.dossier?.speed) || historySpeeds.length} months`
                 : `${route.weightedAvgSpeed.toFixed(1)} mph now`}
             </Badge>
           }
         >
-          <SpeedTrend data={speedTrendData} scheduled={route.scheduledMph} height={196} />
+          {hasSpeedHistory ? (
+            <SpeedTrend
+              data={historySpeeds}
+              {...(route.scheduledMph === null ? {} : { scheduled: route.scheduledMph })}
+              height={196}
+            />
+          ) : (
+            <div className="flex h-full min-h-[196px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
+              No route speed history is attached yet.
+            </div>
+          )}
         </ChartFrame>
         {route.slug === "m15-sbs" ? <BeforeAfterSection /> : <TimelineCaveat route={route} />}
       </div>

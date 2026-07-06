@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runBoundedPromises, runBoundedSettledPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions } from "../../lib/local-db.ts";

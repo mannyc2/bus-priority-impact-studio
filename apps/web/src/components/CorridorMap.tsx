@@ -56,9 +56,13 @@ function CorridorMapFull({
   const tspY = 267;
   const railLabelX = padL - 11;
   const minSpeed = Math.min(...segments.map((segment) => segment.speedMph), route.weightedAvgSpeed);
+  const scheduledSpeeds = [
+    ...segments.flatMap((segment) => (segment.scheduledMph === null ? [] : [segment.scheduledMph])),
+    ...(route.scheduledMph === null ? [] : [route.scheduledMph]),
+  ];
   const maxSpeed = Math.max(
-    ...segments.map((segment) => segment.scheduledMph),
-    route.scheduledMph,
+    ...segments.map((segment) => segment.speedMph),
+    ...scheduledSpeeds,
     route.weightedAvgSpeed,
   );
   const lo = Math.max(0, Math.floor(minSpeed - 1));
@@ -72,11 +76,10 @@ function CorridorMapFull({
     xOf,
     yOf,
   );
-  const scheduledStair = stairPath(
-    segments.map((segment) => segment.scheduledMph),
-    xOf,
-    yOf,
-  );
+  const scheduledValues = segments.every((segment) => segment.scheduledMph !== null)
+    ? segments.map((segment) => segment.scheduledMph as number)
+    : null;
+  const scheduledStair = scheduledValues === null ? null : stairPath(scheduledValues, xOf, yOf);
   const area = `${speedStair} L${xOf(segments.length).toFixed(1)},${profileBottom} L${xOf(0).toFixed(1)},${profileBottom} Z`;
   const worstIndex = Math.max(
     0,
@@ -114,7 +117,7 @@ function CorridorMapFull({
       >
         CORRIDOR · VISIBLE TIMEPOINT SEGMENTS
       </text>
-      <Legend x={padL} y={38} />
+      <Legend x={padL} y={38} showScheduled={scheduledStair !== null} />
       <text
         x={padL}
         y={74}
@@ -154,14 +157,16 @@ function CorridorMapFull({
       )}
 
       <path d={area} fill={`url(#corridor-area-${route.slug})`} />
-      <path
-        d={scheduledStair}
-        fill="none"
-        stroke="var(--bp-color-ink-40)"
-        strokeWidth="1.3"
-        strokeDasharray="4 3"
-        opacity="0.85"
-      />
+      {scheduledStair === null ? null : (
+        <path
+          d={scheduledStair}
+          fill="none"
+          stroke="var(--bp-color-ink-40)"
+          strokeWidth="1.3"
+          strokeDasharray="4 3"
+          opacity="0.85"
+        />
+      )}
       {segments.slice(0, -1).map((segment, index) => (
         <line
           key={`step-${segment.id}`}
@@ -436,7 +441,7 @@ function CoverageRail({
   );
 }
 
-function Legend({ x, y }: { x: number; y: number }) {
+function Legend({ x, y, showScheduled }: { x: number; y: number; showScheduled: boolean }) {
   return (
     <g transform={`translate(${x}, ${y})`}>
       <circle cx="4" cy="4" r="4" fill="var(--bp-color-good)" />
@@ -451,18 +456,22 @@ function Legend({ x, y }: { x: number; y: number }) {
       <text x="136" y="7.5" fontSize="10" fill="var(--bp-color-ink-70)">
         &lt; 5 mph
       </text>
-      <line
-        x1="210"
-        x2="238"
-        y1="4"
-        y2="4"
-        stroke="var(--bp-color-ink-40)"
-        strokeWidth="1.4"
-        strokeDasharray="4 3"
-      />
-      <text x="244" y="7.5" fontSize="10" fill="var(--bp-color-ink-70)">
-        scheduled
-      </text>
+      {showScheduled ? (
+        <>
+          <line
+            x1="210"
+            x2="238"
+            y1="4"
+            y2="4"
+            stroke="var(--bp-color-ink-40)"
+            strokeWidth="1.4"
+            strokeDasharray="4 3"
+          />
+          <text x="244" y="7.5" fontSize="10" fill="var(--bp-color-ink-70)">
+            scheduled
+          </text>
+        </>
+      ) : null}
     </g>
   );
 }

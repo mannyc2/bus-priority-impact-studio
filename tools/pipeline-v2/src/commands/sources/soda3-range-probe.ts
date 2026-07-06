@@ -1,13 +1,13 @@
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
-import { exportSoda3Response } from "@nyc-transit-kit/compat/soda3";
+import { exportResponse } from "@nyc-transit-kit/soda3/client";
 import { fromRepoRoot } from "../../lib/paths.ts";
-import { fetchWithSocrataAppToken, socrataAppTokenFromEnv } from "../../lib/socrata-token.ts";
 import {
-  adaptSocrataFetch,
+  runPipelineSoda3Effect,
   type SocrataFetch,
   type Soda3ExportFormat,
+  socrataAppTokenFromEnv,
   soda3ExportUrl,
   soda3RangeHeader,
 } from "../../lib/soda3.ts";
@@ -113,8 +113,10 @@ export async function runSoda3RangeProbe(
     throw new Error("SOCRATA_APP_TOKEN is required for sources:soda3-range-probe --execute.");
   }
 
-  const response = await exportSoda3Response(
-    {
+  const response = await runPipelineSoda3Effect(
+    source,
+    url,
+    exportResponse({
       domain: source.domain,
       datasetId: source.dataset_id,
       format,
@@ -123,9 +125,10 @@ export async function runSoda3RangeProbe(
         start: range.start,
         end: range.endInclusive ?? range.start,
       },
-    },
+    }),
     {
-      fetch: adaptSocrataFetch(fetchWithSocrataAppToken(inputs.fetcher, appToken)),
+      fetcher: inputs.fetcher,
+      appToken,
     },
   );
   const bytes = await response.arrayBuffer();

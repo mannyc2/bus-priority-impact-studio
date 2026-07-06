@@ -1,0 +1,881 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Route Badge — Sizing Exploration</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #f4f1ea; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #16140f; }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 48px 56px 96px; }
+
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: rgba(22,20,15,.45); margin: 0 0 8px;
+  }
+  h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.022em; margin: 0 0 6px; }
+  .lede { font-size: 14px; color: rgba(22,20,15,.65); line-height: 1.6; margin: 0 0 48px; max-width: 680px; }
+
+  .section { margin-top: 56px; }
+  .section-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.13em;
+    text-transform: uppercase; color: rgba(22,20,15,.4);
+    margin: 0 0 4px;
+  }
+  h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 6px; }
+  .sub { font-size: 13px; color: rgba(22,20,15,.6); line-height: 1.55; margin: 0 0 20px; }
+
+  .card {
+    background: #fff; border-radius: 4px;
+    box-shadow: 0 0 0 1px rgba(22,20,15,.1);
+    padding: 20px 24px;
+  }
+  .card + .card { margin-top: 12px; }
+
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; }
+
+  .card-label {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: rgba(22,20,15,.4);
+    margin-bottom: 16px; font-family: 'SF Mono', ui-monospace, monospace;
+  }
+
+  /* annotation helpers */
+  .badge-row { display: flex; align-items: flex-end; gap: 0; }
+  .anno-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .anno-label {
+    font-size: 10px; font-family: 'SF Mono', ui-monospace, monospace;
+    color: rgba(22,20,15,.5); white-space: nowrap;
+  }
+  .anno-bad { color: #b84c4c; }
+  .ruler-bar {
+    height: 2px; background: rgba(184,76,76,.45); border-radius: 1px;
+    position: relative;
+  }
+  .ruler-bar::before, .ruler-bar::after {
+    content: ''; position: absolute; top: -3px;
+    width: 1.5px; height: 8px; background: rgba(184,76,76,.5);
+  }
+  .ruler-bar::before { left: 0; }
+  .ruler-bar::after  { right: 0; }
+
+  .ruler-ok { background: rgba(55,140,90,.45); }
+  .ruler-ok::before, .ruler-ok::after { background: rgba(55,140,90,.5); }
+  .anno-ok { color: #2d7a50; }
+
+  /* cause breakdown */
+  .cause-row {
+    display: flex; align-items: baseline; gap: 16px;
+    padding: 11px 0; border-bottom: 1px solid rgba(22,20,15,.09);
+    font-size: 13px; line-height: 1.5;
+  }
+  .cause-row:last-child { border-bottom: none; }
+  .cause-num {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 10px;
+    background: rgba(184,76,76,.12); color: #b84c4c;
+    font-size: 10.5px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cause-title { font-weight: 600; margin-bottom: 2px; font-size: 13.5px; }
+  .cause-detail { color: rgba(22,20,15,.6); font-size: 12.5px; }
+  code {
+    font-family: 'SF Mono', ui-monospace, monospace;
+    font-size: 11px; background: #ece7db;
+    padding: 1px 5px; border-radius: 2px;
+  }
+
+  /* approach cards */
+  .approach { display: flex; flex-direction: column; gap: 0; }
+  .approach-head {
+    display: flex; align-items: baseline; gap: 10px;
+    padding-bottom: 14px; border-bottom: 1px solid rgba(22,20,15,.09);
+    margin-bottom: 16px;
+  }
+  .approach-letter {
+    width: 22px; height: 22px; border-radius: 3px;
+    background: #16140f; color: #f4f1ea;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.03em;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-bottom: 2px;
+  }
+  .approach-letter.rec { background: oklch(0.42 0.13 252); }
+  .approach-name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .approach-desc { font-size: 12px; color: rgba(22,20,15,.6); margin-top: 3px; line-height: 1.5; }
+  .approach-pros-cons {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid rgba(22,20,15,.09);
+    font-size: 11.5px; line-height: 1.55;
+  }
+  .pros { color: #2d7a50; }
+  .cons { color: #b84c4c; }
+  .pros-label, .cons-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 5px;
+  }
+  .pros-label { color: #2d7a50; }
+  .cons-label { color: #b84c4c; }
+
+  .stage {
+    min-height: 56px; display: flex; align-items: center;
+    gap: 10px; flex-wrap: wrap; margin-bottom: 4px;
+  }
+
+  /* spec table */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th {
+    text-align: left; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(22,20,15,.4); padding: 0 10px 8px 0;
+    border-bottom: 1px solid rgba(22,20,15,.14);
+    font-family: 'SF Mono', ui-monospace, monospace;
+  }
+  td {
+    padding: 8px 10px 8px 0; border-bottom: 1px solid rgba(22,20,15,.09);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { font-size: 10.5px; }
+
+  pre.snippet {
+    background: #ece7db; border-radius: 4px;
+    padding: 16px 18px; font-size: 11.5px;
+    font-family: 'SF Mono', ui-monospace, monospace;
+    color: rgba(22,20,15,.85); line-height: 1.65;
+    margin: 0; overflow: auto; white-space: pre;
+  }
+  .kw { color: #0039A6; }
+  .cm { color: rgba(22,20,15,.4); }
+
+  .verdict-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px; border-radius: 4px;
+    background: oklch(0.95 0.04 252); border: 1px solid oklch(0.85 0.07 252);
+    font-size: 13px; line-height: 1.5; color: #16140f;
+    margin-top: 12px;
+  }
+  .verdict-icon {
+    width: 24px; height: 24px; border-radius: 12px;
+    background: oklch(0.42 0.13 252); color: #fff;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .divider { height: 1px; background: rgba(22,20,15,.12); margin: 48px 0; }
+
+  .back-link {
+    font-size: 12.5px; color: rgba(22,20,15,.55); text-decoration: none;
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-bottom: 32px;
+  }
+  .back-link:hover { color: #16140f; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="page">
+  <a href="design-system.html" class="back-link">← Design system</a>
+
+  <div class="eyebrow">Design system · Section 04</div>
+  <h1>Route badges — sizing audit</h1>
+  <p class="lede">
+    The current <code>RouteBadge</code> component has no fixed-width constraint, so badge width
+    is fully content-driven. This produces three different widths — and two different font sizes —
+    within the same size tier. This document diagnoses the cause and evaluates three fixes.
+  </p>
+
+  <div id="root"></div>
+</div>
+
+<script type="text/babel" src="system.jsx"></script>
+
+<script type="text/babel">
+
+// ─── Borough colors (mirrors system.jsx) ───────────────────────────────────
+const BOROUGH_COLORS = {
+  M: '#0039A6', Bx: '#EE352E', B: '#6E3219',
+  Q: '#FF6319', SI: '#6E4C9F', S: '#6E4C9F',
+  X: '#00933C', BM: '#00933C', BxM: '#00933C', QM: '#00933C',
+};
+function routeColor(route) {
+  const m = String(route).match(/^(BxM|BM|QM|Bx|SI|M|B|Q|S|X)/);
+  return m ? (BOROUGH_COLORS[m[1]] || '#0039A6') : '#0039A6';
+}
+
+const FONTS = `'Helvetica Neue', Helvetica, Arial, sans-serif`;
+
+// ─── CURRENT (buggy) badge ─────────────────────────────────────────────────
+function CurrentBadge({ route, sbs, size = 'md' }) {
+  const sizes = {
+    sm: { h: 18, fs: 10.5, px: 5, gap: 3, sbsFs: 8.5, sbsPx: 3 },
+    md: { h: 22, fs: 12.5, px: 7, gap: 4, sbsFs: 9.5, sbsPx: 3.5 },
+    lg: { h: 28, fs: 15,   px: 9, gap: 5, sbsFs: 11,  sbsPx: 4 },
+    xl: { h: 36, fs: 19,   px: 12, gap: 6, sbsFs: 13, sbsPx: 6 },
+  };
+  const sz = sizes[size];
+  const bg = routeColor(route);
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: sz.gap, verticalAlign: 'middle' }}>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        height: sz.h, minWidth: sz.h, padding: `0 ${sz.px}px`,
+        background: bg, color: '#fff',
+        fontWeight: 700, fontSize: sz.fs, letterSpacing: '0.01em',
+        borderRadius: 3, fontFamily: FONTS, lineHeight: 1,
+        fontVariantNumeric: 'tabular-nums',
+      }}>{route}</span>
+      {sbs && (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          height: sz.h, padding: `0 ${sz.sbsPx + 2}px`,
+          background: '#fff', color: bg, border: `1.5px solid ${bg}`,
+          fontWeight: 700, fontSize: sz.sbsFs, letterSpacing: '0.04em',
+          borderRadius: 3, fontFamily: FONTS, lineHeight: 1,
+        }}>SBS</span>
+      )}
+    </span>
+  );
+}
+
+// ─── APPROACH A: Character-count width buckets ─────────────────────────────
+// Widths are pre-computed per (size × char-count). Font stays fixed per tier.
+// "2-char" covers routes ≤2 chars; "5-char" covers ≥5 chars.
+const BUCKET_WIDTHS = {
+  //       2ch   3ch   4ch   5ch+
+  sm: [    24,   32,   40,   50  ],
+  md: [    30,   40,   50,   62  ],
+  lg: [    38,   51,   64,   79  ],
+  xl: [    48,   65,   81,  100  ],
+};
+function bucketWidth(size, charCount) {
+  const bw = BUCKET_WIDTHS[size];
+  if (charCount <= 2) return bw[0];
+  if (charCount === 3) return bw[1];
+  if (charCount === 4) return bw[2];
+  return bw[3];
+}
+function BadgeA({ route, sbs, size = 'md' }) {
+  const sizes = {
+    sm: { h: 18, fs: 10.5, gap: 3, sbsW: 32 },
+    md: { h: 22, fs: 12.5, gap: 4, sbsW: 40 },
+    lg: { h: 28, fs: 15,   gap: 5, sbsW: 51 },
+    xl: { h: 36, fs: 19,   gap: 6, sbsW: 65 },
+  };
+  const sz = sizes[size];
+  const bg = routeColor(route);
+  const w = bucketWidth(size, route.length);
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: sz.gap, verticalAlign: 'middle' }}>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        height: sz.h, width: w,
+        background: bg, color: '#fff',
+        fontWeight: 700, fontSize: sz.fs, letterSpacing: '0.01em',
+        borderRadius: 3, fontFamily: FONTS, lineHeight: 1,
+        fontVariantNumeric: 'tabular-nums',
+      }}>{route}</span>
+      {sbs && (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          height: sz.h, width: sz.sbsW,
+          background: '#fff', color: bg, border: `1.5px solid ${bg}`,
+          fontWeight: 700, fontSize: sz.fs, letterSpacing: '0.06em',
+          borderRadius: 3, fontFamily: FONTS, lineHeight: 1,
+        }}>SBS</span>
+      )}
+    </span>
+  );
+}
+
+// ─── APPROACH B: Single fixed width per tier (fits 4-char; 5-char gets +12px) ─
+function BadgeB({ route, sbs, size = 'md' }) {
+  const sizes = {
+    sm: { h: 18, fs: 10.5, gap: 3, baseW: 40,  sbsW: 32 },
+    md: { h: 22, fs: 12.5, gap: 4, baseW: 50,  sbsW: 40 },
+    lg: { h: 28, fs: 15,   gap: 5, baseW: 64,  sbsW: 51 },
+    xl: { h: 36, fs: 19,   gap: 6, baseW: 81,  sbsW: 65 },
+  };
+  const sz = sizes[size];
+  const bg = routeColor(route);
+  const w = route.length >= 5 ? sz.baseW + 12 : sz.baseW;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: sz.gap, verticalAlign: 'middle' }}>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        height: sz.h, width: w,
+        background: bg, color: '#fff',
+        fontWeight: 700, fontSize: sz.fs, letterSpacing: '0.01em',
+        borderRadius: 3, fontFamily: FONTS, lineHeight: 1,
+        fontVariantNumeric: 'tabular-nums',
+      }}>{route}</span>
+      {sbs && (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          height: sz.h, width: sz.sbsW,
+          background: '#fff', color: bg, border: `1.5px solid ${bg}`,
+          fontWeight: 700, fontSize: sz.fs, letterSpacing: '0.06em',
+          borderRadius: 3, fontFamily: FONTS, lineHeight: 1,
+        }}>SBS</span>
+      )}
+    </span>
+  );
+}
+
+// ─── APPROACH C: Font scales down to fit, fixed aspect-ratio cell ──────────
+// Badge height × 2.0 = width for 4-char max; shorter routes get that width too.
+// Font shrinks proportionally so text always fits without overflow.
+const FONT_SCALE = { 2: 1.0, 3: 1.0, 4: 1.0, 5: 0.82 };
+function BadgeC({ route, sbs, size = 'md' }) {
+  const sizes = {
+    sm: { h: 18, fs: 10.5, gap: 3, sbsW: 32 },
+    md: { h: 22, fs: 12.5, gap: 4, sbsW: 40 },
+    lg: { h: 28, fs: 15,   gap: 5, sbsW: 51 },
+    xl: { h: 36, fs: 19,   gap: 6, sbsW: 65 },
+  };
+  const sz = sizes[size];
+  const bg = routeColor(route);
+  const len = route.length;
+  const scale = FONT_SCALE[Math.min(len, 5)] || 0.82;
+  // Fixed width: accommodate up to 4 chars comfortably; same for shorter
+  const W = sz.h * 2.2;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: sz.gap, verticalAlign: 'middle' }}>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        height: sz.h, width: W,
+        background: bg, color: '#fff',
+        fontWeight: 700, fontSize: sz.fs * scale, letterSpacing: '0.01em',
+        borderRadius: 3, fontFamily: FONTS, lineHeight: 1,
+        fontVariantNumeric: 'tabular-nums',
+      }}>{route}</span>
+      {sbs && (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          height: sz.h, width: sz.sbsW,
+          background: '#fff', color: bg, border: `1.5px solid ${bg}`,
+          fontWeight: 700, fontSize: sz.fs, letterSpacing: '0.06em',
+          borderRadius: 3, fontFamily: FONTS, lineHeight: 1,
+        }}>SBS</span>
+      )}
+    </span>
+  );
+}
+
+// ─── Width measurement helper ──────────────────────────────────────────────
+function MeasuredBadge({ route, sbs, size = 'md', highlight = false }) {
+  const ref = React.useRef(null);
+  const sbsRef = React.useRef(null);
+  const [w, setW] = React.useState(null);
+  const [sbsW, setSbsW] = React.useState(null);
+
+  React.useEffect(() => {
+    if (ref.current) setW(Math.round(ref.current.getBoundingClientRect().width));
+    if (sbsRef.current) setSbsW(Math.round(sbsRef.current.getBoundingClientRect().width));
+  }, []);
+
+  const sizes = {
+    sm: { h: 18, fs: 10.5, px: 5, gap: 3, sbsFs: 8.5, sbsPx: 3 },
+    md: { h: 22, fs: 12.5, px: 7, gap: 4, sbsFs: 9.5, sbsPx: 3.5 },
+    lg: { h: 28, fs: 15,   px: 9, gap: 5, sbsFs: 11,  sbsPx: 4 },
+    xl: { h: 36, fs: 19,   px: 12, gap: 6, sbsFs: 13, sbsPx: 6 },
+  };
+  const sz = sizes[size];
+  const bg = routeColor(route);
+  const annotateColor = highlight ? '#b84c4c' : 'rgba(22,20,15,.4)';
+  const rulerBg = highlight ? 'rgba(184,76,76,.4)' : 'rgba(22,20,15,.2)';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      {/* Badge */}
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: sz.gap }}>
+        <span ref={ref} style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          height: sz.h, minWidth: sz.h, padding: `0 ${sz.px}px`,
+          background: bg, color: '#fff',
+          fontWeight: 700, fontSize: sz.fs, letterSpacing: '0.01em',
+          borderRadius: 3, fontFamily: FONTS, lineHeight: 1,
+          fontVariantNumeric: 'tabular-nums',
+        }}>{route}</span>
+        {sbs && (
+          <span ref={sbsRef} style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            height: sz.h, padding: `0 ${sz.sbsPx + 2}px`,
+            background: '#fff', color: bg, border: `1.5px solid ${bg}`,
+            fontWeight: 700, fontSize: sz.sbsFs, letterSpacing: '0.04em',
+            borderRadius: 3, fontFamily: FONTS, lineHeight: 1,
+          }}>SBS</span>
+        )}
+      </div>
+      {/* Width ruler */}
+      {w && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Badge ruler */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <div style={{ width: w, height: 2, background: rulerBg, borderRadius: 1, position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 0, top: -3, width: 1.5, height: 8, background: rulerBg }} />
+              <div style={{ position: 'absolute', right: 0, top: -3, width: 1.5, height: 8, background: rulerBg }} />
+            </div>
+            <div style={{ fontSize: 10, fontFamily: 'SF Mono, ui-monospace, monospace', color: annotateColor, fontWeight: 600 }}>
+              {w}px {sbs ? '(badge)' : ''}
+            </div>
+          </div>
+          {/* SBS ruler */}
+          {sbs && sbsW && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <div style={{ width: sbsW, height: 2, background: 'rgba(184,76,76,.35)', borderRadius: 1, position: 'relative' }}>
+                <div style={{ position: 'absolute', left: 0, top: -3, width: 1.5, height: 8, background: 'rgba(184,76,76,.4)' }} />
+                <div style={{ position: 'absolute', right: 0, top: -3, width: 1.5, height: 8, background: 'rgba(184,76,76,.4)' }} />
+              </div>
+              <div style={{ fontSize: 10, fontFamily: 'SF Mono, ui-monospace, monospace', color: '#b84c4c', fontWeight: 600 }}>{sbsW}px (SBS)</div>
+            </div>
+          )}
+        </div>
+      )}
+      {/* Font size note */}
+      <div style={{
+        fontSize: 9.5, fontFamily: 'SF Mono, ui-monospace, monospace',
+        color: sbs ? '#b84c4c' : 'rgba(22,20,15,.35)',
+      }}>
+        {sbs ? `badge ${sz.fs}px · SBS ${sz.sbsFs}px ← mismatch` : `${sz.fs}px`}
+      </div>
+    </div>
+  );
+}
+
+// ─── Comparison row: all four size tiers ───────────────────────────────────
+function SizeRow({ BadgeComp, routes, label }) {
+  const tiers = ['sm', 'md', 'lg', 'xl'];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {tiers.map(tier => (
+        <div key={tier} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{
+            width: 28, fontSize: 10, fontFamily: 'SF Mono, ui-monospace, monospace',
+            color: 'rgba(22,20,15,.4)', fontWeight: 600, flexShrink: 0,
+          }}>{tier}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {routes.map(r => (
+              <BadgeComp key={r.route} route={r.route} sbs={r.sbs} size={tier} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main render ───────────────────────────────────────────────────────────
+function App() {
+  const SAMPLE_ROUTES = [
+    { route: 'M15',  sbs: true  },
+    { route: 'Bx12', sbs: true  },
+    { route: 'B41',  sbs: false },
+    { route: 'Q44',  sbs: true  },
+    { route: 'SIM1', sbs: false },
+    { route: 'X27',  sbs: false },
+  ];
+
+  const PROBLEM_ROUTES = [
+    { route: 'M15',  sbs: false, highlight: false },
+    { route: 'Bx12', sbs: false, highlight: true  },
+    { route: 'M101', sbs: false, highlight: true  },
+    { route: 'SIM1', sbs: false, highlight: true  },
+    { route: 'M15',  sbs: true,  highlight: true  }, // font mismatch
+  ];
+
+  const ALIGN_ROUTES = ['M15','M42','B41','Q58','Bx12','M101'];
+
+  return (
+    <div>
+
+      {/* ── 01 THE PROBLEM ── */}
+      <div className="section">
+        <div className="section-label">01</div>
+        <h2>The problem, measured</h2>
+        <p className="sub">
+          Same size tier (<code>md</code>). Different widths. Different font sizes between badge and SBS pill.
+          No two badges share a width unless they share the exact same text string.
+        </p>
+
+        <div className="card">
+          <div className="card-label">CURRENT · md size tier · widths annotated</div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 28, flexWrap: 'wrap', paddingTop: 8 }}>
+            {PROBLEM_ROUTES.map((r, i) => (
+              <MeasuredBadge key={i} route={r.route} sbs={r.sbs} size="md" highlight={r.highlight} />
+            ))}
+          </div>
+
+          {/* alignment failure demo */}
+          <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid rgba(22,20,15,.09)' }}>
+            <div style={{ fontSize: 10.5, fontFamily: 'SF Mono, ui-monospace, monospace', color: 'rgba(22,20,15,.4)', marginBottom: 10, letterSpacing: '0.05em' }}>
+              ALIGNMENT FAILURE — routes stacked in a list, md
+            </div>
+            <div style={{ display: 'flex', gap: 20 }}>
+              {/* bad: current */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {ALIGN_ROUTES.map((r, i) => (
+                  <div key={r} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '7px 10px', borderBottom: '1px solid rgba(22,20,15,.08)',
+                    background: i % 2 === 0 ? 'transparent' : 'rgba(22,20,15,.02)',
+                  }}>
+                    <CurrentBadge route={r} size="md" />
+                    <span style={{ fontSize: 13, color: 'rgba(22,20,15,.7)' }}>Ridership corridor</span>
+                  </div>
+                ))}
+                <div style={{ fontSize: 10, color: '#b84c4c', fontFamily: 'SF Mono, ui-monospace, monospace', marginTop: 6 }}>✗ ragged left edge</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 02 CAUSES ── */}
+      <div className="section">
+        <div className="section-label">02</div>
+        <h2>Root causes</h2>
+        <p className="sub">Three independent issues compound each other.</p>
+
+        <div className="card">
+          {[
+            {
+              n: 1,
+              title: 'minWidth instead of width',
+              detail: <>The badge uses <code>minWidth: sz.h</code> + <code>padding: 0 {'{sz.px}'}px</code>. This creates a minimum square but lets the badge grow freely with text. <em>"M15" and "Bx12" at md are 37px and 47px respectively</em> — a 10px gap with no justification.</>,
+            },
+            {
+              n: 2,
+              title: 'No character-count normalization',
+              detail: <>"M15" (3 chars), "B41" (3 chars), "Q44" (3 chars) are all logically equivalent in the route system — they should be the same width. There is no grouping by character count, so every unique text string produces a unique width.</>,
+            },
+            {
+              n: 3,
+              title: 'SBS uses a separate, smaller font scale',
+              detail: <><code>sbsFs</code> is ~75% of <code>fs</code> at every tier (e.g. 9.5 vs 12.5 at md). This was likely intended to make SBS feel like a "tag" modifier, but since heights match, you get a badge with large text next to a pill with small text — they don't read as the same component.</>,
+            },
+          ].map(c => (
+            <div key={c.n} className="cause-row">
+              <div className="cause-num">{c.n}</div>
+              <div>
+                <div className="cause-title">{c.title}</div>
+                <div className="cause-detail">{c.detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 03 APPROACHES ── */}
+      <div className="section">
+        <div className="section-label">03</div>
+        <h2>Three approaches</h2>
+        <p className="sub">
+          Each approach fixes all three root causes. They differ in how they handle the width dimension.
+        </p>
+
+        <div className="grid-3">
+          {/* Approach A */}
+          <div className="card approach">
+            <div className="approach-head">
+              <div className="approach-letter rec">A</div>
+              <div>
+                <div className="approach-name">Character-count buckets</div>
+                <div className="approach-desc">Width is pre-computed by character count (2, 3, 4, ≥5 chars). All 3-char routes share one fixed width. SBS pill has its own fixed width.</div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 10.5, fontFamily: 'SF Mono, ui-monospace, monospace', color: 'rgba(22,20,15,.4)', marginBottom: 8, letterSpacing: '0.05em' }}>LIVE PREVIEW · all four tiers</div>
+            <SizeRow BadgeComp={BadgeA} routes={SAMPLE_ROUTES} />
+
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(22,20,15,.09)' }}>
+              <div style={{ fontSize: 10.5, fontFamily: 'SF Mono, ui-monospace, monospace', color: 'rgba(22,20,15,.4)', marginBottom: 8, letterSpacing: '0.05em' }}>ALIGNMENT CHECK · md</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {ALIGN_ROUTES.map((r, i) => (
+                  <div key={r} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '7px 10px', borderBottom: '1px solid rgba(22,20,15,.08)',
+                    background: i % 2 === 0 ? 'transparent' : 'rgba(22,20,15,.02)',
+                  }}>
+                    <BadgeA route={r} size="md" />
+                    <span style={{ fontSize: 13, color: 'rgba(22,20,15,.7)' }}>Ridership corridor</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="approach-pros-cons">
+              <div>
+                <div className="pros-label">Pros</div>
+                <div className="pros" style={{ fontSize: 11.5, lineHeight: 1.55 }}>
+                  Tight fit — no extra whitespace<br />
+                  All same-length routes align<br />
+                  Scales naturally across tiers
+                </div>
+              </div>
+              <div>
+                <div className="cons-label">Cons</div>
+                <div className="cons" style={{ fontSize: 11.5, lineHeight: 1.55 }}>
+                  Mixed-length routes still differ<br />
+                  4 width buckets to document<br />
+                  "Bx12" ≠ "M101" width
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Approach B */}
+          <div className="card approach">
+            <div className="approach-head">
+              <div className="approach-letter">B</div>
+              <div>
+                <div className="approach-name">Single fixed width</div>
+                <div className="approach-desc">One fixed width per size tier fits the widest common route (4 chars). 5-char routes add 12px. All routes are the same width within a tier.</div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 10.5, fontFamily: 'SF Mono, ui-monospace, monospace', color: 'rgba(22,20,15,.4)', marginBottom: 8, letterSpacing: '0.05em' }}>LIVE PREVIEW · all four tiers</div>
+            <SizeRow BadgeComp={BadgeB} routes={SAMPLE_ROUTES} />
+
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(22,20,15,.09)' }}>
+              <div style={{ fontSize: 10.5, fontFamily: 'SF Mono, ui-monospace, monospace', color: 'rgba(22,20,15,.4)', marginBottom: 8, letterSpacing: '0.05em' }}>ALIGNMENT CHECK · md</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {ALIGN_ROUTES.map((r, i) => (
+                  <div key={r} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '7px 10px', borderBottom: '1px solid rgba(22,20,15,.08)',
+                    background: i % 2 === 0 ? 'transparent' : 'rgba(22,20,15,.02)',
+                  }}>
+                    <BadgeB route={r} size="md" />
+                    <span style={{ fontSize: 13, color: 'rgba(22,20,15,.7)' }}>Ridership corridor</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="approach-pros-cons">
+              <div>
+                <div className="pros-label">Pros</div>
+                <div className="pros" style={{ fontSize: 11.5, lineHeight: 1.55 }}>
+                  Perfect column alignment<br />
+                  Simplest token set (1 per tier)<br />
+                  Easiest to implement
+                </div>
+              </div>
+              <div>
+                <div className="cons-label">Cons</div>
+                <div className="cons" style={{ fontSize: 11.5, lineHeight: 1.55 }}>
+                  "M1" looks sparse/oversized<br />
+                  Extra whitespace in short names<br />
+                  Less compact inline in prose
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Approach C */}
+          <div className="card approach">
+            <div className="approach-head">
+              <div className="approach-letter">C</div>
+              <div>
+                <div className="approach-name">Fixed cell, compressed font</div>
+                <div className="approach-desc">Fixed width × height cell (like a transit sign). Font size scales down as character count increases so text always fits the cell.</div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 10.5, fontFamily: 'SF Mono, ui-monospace, monospace', color: 'rgba(22,20,15,.4)', marginBottom: 8, letterSpacing: '0.05em' }}>LIVE PREVIEW · all four tiers</div>
+            <SizeRow BadgeComp={BadgeC} routes={SAMPLE_ROUTES} />
+
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(22,20,15,.09)' }}>
+              <div style={{ fontSize: 10.5, fontFamily: 'SF Mono, ui-monospace, monospace', color: 'rgba(22,20,15,.4)', marginBottom: 8, letterSpacing: '0.05em' }}>ALIGNMENT CHECK · md</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {ALIGN_ROUTES.map((r, i) => (
+                  <div key={r} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '7px 10px', borderBottom: '1px solid rgba(22,20,15,.08)',
+                    background: i % 2 === 0 ? 'transparent' : 'rgba(22,20,15,.02)',
+                  }}>
+                    <BadgeC route={r} size="md" />
+                    <span style={{ fontSize: 13, color: 'rgba(22,20,15,.7)' }}>Ridership corridor</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="approach-pros-cons">
+              <div>
+                <div className="pros-label">Pros</div>
+                <div className="pros" style={{ fontSize: 11.5, lineHeight: 1.55 }}>
+                  Perfect alignment everywhere<br />
+                  Consistent rectangular shape<br />
+                  Matches transit signage idiom
+                </div>
+              </div>
+              <div>
+                <div className="cons-label">Cons</div>
+                <div className="cons" style={{ fontSize: 11.5, lineHeight: 1.55 }}>
+                  Font inconsistency within tier<br />
+                  "M1" wastes horizontal space<br />
+                  Less compact in prose/inline
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 04 RECOMMENDATION ── */}
+      <div className="section">
+        <div className="section-label">04</div>
+        <h2>Recommendation</h2>
+        <p className="sub">
+          Approach A — with two additional fixes applied to all three options: SBS unifies to badge font size, and <code>font-variant-numeric: tabular-nums</code> prevents numeral-width jitter.
+        </p>
+
+        <div className="verdict-bar">
+          <div className="verdict-icon">A</div>
+          <div>
+            <strong>Use Approach A (character-count buckets)</strong> — this is the transit-native pattern. 
+            Route numbers are categorized by length in real MTA signage too. Compact in prose, tight in lists within the same borough, and the "mixed length" case (M15 vs Bx12 in the same list) is rare and acceptable.
+            Fix SBS font to match the badge and add <code>tabular-nums</code> everywhere.
+          </div>
+        </div>
+
+        <div className="card" style={{ marginTop: 12 }}>
+          <div className="card-label">UPDATED TOKEN TABLE</div>
+          <table>
+            <thead>
+              <tr>
+                <th>size</th>
+                <th>height</th>
+                <th>font</th>
+                <th>w-2ch</th>
+                <th>w-3ch</th>
+                <th>w-4ch</th>
+                <th>w-5ch+</th>
+                <th>sbs-width</th>
+                <th>radius</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { s:'sm', h:18, fs:'10.5', w2:24, w3:32, w4:40, w5:50, sbsW:32, r:3 },
+                { s:'md', h:22, fs:'12.5', w2:30, w3:40, w4:50, w5:62, sbsW:40, r:3 },
+                { s:'lg', h:28, fs:'15',   w2:38, w3:51, w4:64, w5:79, sbsW:51, r:3 },
+                { s:'xl', h:36, fs:'19',   w2:48, w3:65, w4:81, w5:100,sbsW:65, r:4 },
+              ].map(r => (
+                <tr key={r.s}>
+                  <td><strong>{r.s}</strong></td>
+                  <td>{r.h}px</td>
+                  <td>{r.fs}px / 700</td>
+                  <td><code>{r.w2}px</code></td>
+                  <td><code>{r.w3}px</code></td>
+                  <td><code>{r.w4}px</code></td>
+                  <td><code>{r.w5}px</code></td>
+                  <td><code>{r.sbsW}px</code></td>
+                  <td>{r.r}px</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ marginTop: 10, fontSize: 11.5, color: 'rgba(22,20,15,.5)', lineHeight: 1.5 }}>
+            SBS width = same as the 3ch bucket at each tier — SBS is always 3 chars, so it shares that bucket's visual weight.
+            All badges and pills use <code>font-variant-numeric: tabular-nums</code>.
+            Drop the separate <code>sbsFs</code> and <code>sbsPx</code> scales entirely.
+          </div>
+        </div>
+
+        <div className="card" style={{ marginTop: 12 }}>
+          <div className="card-label">UPDATED system.jsx — RouteBadge</div>
+<pre className="snippet">{`<span className="kw">const</span> BADGE_SIZES = {
+  <span className="cm">// h: height · fs: font-size · gap: badge↔SBS gap · r: border-radius</span>
+  <span className="cm">// w: [2ch, 3ch, 4ch, 5ch+]  · sbsW: SBS pill fixed width</span>
+  sm: { h: 18, fs: 10.5, gap: 3, r: 3, w: [24, 32, 40,  50], sbsW: 32 },
+  md: { h: 22, fs: 12.5, gap: 4, r: 3, w: [30, 40, 50,  62], sbsW: 40 },
+  lg: { h: 28, fs: 15,   gap: 5, r: 3, w: [38, 51, 64,  79], sbsW: 51 },
+  xl: { h: 36, fs: 19,   gap: 6, r: 4, w: [48, 65, 81, 100], sbsW: 65 },
+};
+
+<span className="kw">function</span> badgeWidth(sz, charCount) {
+  <span className="kw">if</span> (charCount <= 2) <span className="kw">return</span> sz.w[0];
+  <span className="kw">if</span> (charCount === 3) <span className="kw">return</span> sz.w[1];
+  <span className="kw">if</span> (charCount === 4) <span className="kw">return</span> sz.w[2];
+  <span className="kw">return</span> sz.w[3];
+}
+
+<span className="kw">function</span> RouteBadge({ route, size = 'md', sbs = false, express = false }) {
+  <span className="kw">const</span> sz = BADGE_SIZES[size];
+  <span className="kw">const</span> bg = express ? BPI.bx.express : routeColor(route);
+  <span className="kw">const</span> shared = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    height: sz.h, borderRadius: sz.r, fontFamily: BPIFonts,
+    fontWeight: 700, fontSize: sz.fs, letterSpacing: '0.01em',
+    lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+  };
+  <span className="kw">return</span> (
+    &lt;span style={{ display:'inline-flex', alignItems:'center', gap:sz.gap }}&gt;
+      &lt;span style={{ ...shared, width: badgeWidth(sz, route.length),
+        background: bg, color: '#fff' }}&gt;
+        {route}
+      &lt;/span&gt;
+      {sbs &amp;&amp; (
+        &lt;span style={{ ...shared, width: sz.sbsW,
+          background: '#fff', color: bg, border: \`1.5px solid \${bg}\`,
+          letterSpacing: '0.06em' }}&gt;
+          SBS
+        &lt;/span&gt;
+      )}
+    &lt;/span&gt;
+  );
+}`}</pre>
+        </div>
+
+        {/* Final comparison */}
+        <div className="card" style={{ marginTop: 12 }}>
+          <div className="card-label">BEFORE vs AFTER · md · same routes</div>
+          <div className="grid-2" style={{ gap: 24, marginTop: 4 }}>
+            <div>
+              <div style={{ fontSize: 11, color: '#b84c4c', fontFamily: 'SF Mono, ui-monospace, monospace', marginBottom: 10, letterSpacing: '0.04em' }}>✗ CURRENT</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {['M15','Bx12','B41','M101','SIM1','Q44'].map((r, i) => (
+                  <div key={r} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '7px 10px', borderBottom: '1px solid rgba(22,20,15,.08)',
+                  }}>
+                    <CurrentBadge route={r} size="md" />
+                    <span style={{ fontSize: 13, color: 'rgba(22,20,15,.65)' }}>Corridor analysis</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: '#2d7a50', fontFamily: 'SF Mono, ui-monospace, monospace', marginBottom: 10, letterSpacing: '0.04em' }}>✓ APPROACH A</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {['M15','Bx12','B41','M101','SIM1','Q44'].map((r, i) => (
+                  <div key={r} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '7px 10px', borderBottom: '1px solid rgba(22,20,15,.08)',
+                  }}>
+                    <BadgeA route={r} size="md" />
+                    <span style={{ fontSize: 13, color: 'rgba(22,20,15,.65)' }}>Corridor analysis</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

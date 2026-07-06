@@ -5,7 +5,6 @@ import {
   buildMapJsonArtifact,
   buildRouteCapabilityManifest,
   buildRouteSpeedAvailabilityResult,
-  classifyTier2StructuredArtifact,
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,
   type MapArtifactEntry,
@@ -220,20 +219,5 @@ describe("evaluation data products", () => {
     expect(missingRoute.issues.map((issue) => issue.code)).toContain(
       "map_route_segment_artifact_routes_missing",
     );
-  });
-
-  test("classifies current Tier 2 research and serving artifacts", () => {
-    expect(
-      classifyTier2StructuredArtifact({
-        fileName: "intervention-records-corpus-v3-reviewed.json",
-        value: { documentInterventionRecords: [{ recordId: "record-1" }] },
-      }).layer,
-    ).toBe("reviewed_intervention_records");
-    expect(
-      classifyTier2StructuredArtifact({
-        fileName: "intervention-publishable-v1.json",
-        value: { publishableInterventions: [{ recordId: "record-1", routes: ["B44"] }] },
-      }).trustTier,
-    ).toBe("serving_projection");
   });
 });

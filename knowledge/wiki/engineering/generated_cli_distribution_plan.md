@@ -2,7 +2,7 @@
 title: Generated CLI and Distribution Plan
 type: engineering
 status: active
-last_updated: 2026-05-18
+last_updated: 2026-07-05
 owner: codex
 source_count: 1
 tags: [cli, api, codegen, binary, release, bun, agents]
@@ -283,7 +283,7 @@ Rollback should not require manually discovering all package names; they derive 
 
 ### Phase 1: Contracts
 
-- Add runtime schema builder/Zod contracts for the Studio API and CLI command vocabulary.
+- Add Effect Schema runtime contracts for the Studio API and CLI command vocabulary.
 - Add schema linter for verbs, flags, locality, output contracts, and override bounds.
 - Generate OpenAPI and docs inventory from the same runtime value.
 

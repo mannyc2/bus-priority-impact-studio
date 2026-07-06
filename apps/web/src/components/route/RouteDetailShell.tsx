@@ -20,16 +20,16 @@ export function RouteDetailShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="h-full min-h-0 overflow-auto">
       <header
         id={routeSectionAnchorId("overview")}
-        className="shrink-0 bg-[var(--bp-color-card)] px-7 pb-6 pt-6 shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:px-4"
+        className="scroll-mt-16 bg-[var(--bp-color-card)] px-7 pb-6 pt-6 shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:px-4"
       >
         {header}
       </header>
       <nav
         aria-label="Route page sections"
-        className="shrink-0 overflow-x-auto bg-[var(--bp-color-card)] px-7 shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:px-4"
+        className="sticky top-0 z-10 overflow-x-auto bg-[var(--bp-color-card)] px-7 shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:px-4"
       >
         <div className="flex w-max min-w-full items-center gap-6 py-[10px]">
           {sections.map((section) => (
@@ -62,7 +62,7 @@ export function RouteDetailShell({
           ))}
         </div>
       </nav>
-      <div className="min-h-0 flex-1 overflow-auto px-8 py-8 max-md:px-4">{children}</div>
+      <div className="px-8 py-8 max-md:px-4">{children}</div>
     </div>
   );
 }

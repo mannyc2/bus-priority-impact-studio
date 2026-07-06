@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../schema-compat.js";
 import { type StudioRouteInsight, StudioRouteInsightSchema } from "./routes/index.js";
 
 const DetectorReadinessServingRefSchema = z

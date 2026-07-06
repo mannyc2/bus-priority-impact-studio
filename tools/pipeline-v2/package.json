@@ -2,9 +2,10 @@
   "name": "@bp/pipeline-v2",
   "private": true,
   "type": "module",
-  "description": "Liche-based rewrite of @bp/pipeline. Stage 1 pilot.",
+  "description": "Effect CLI rewrite of @bp/pipeline. Stage 1 pilot.",
   "exports": {
     ".": "./src/index.ts",
+    "./cli/compat": "./src/cli/compat.ts",
     "./local-db-aggregates": "./src/lib/local-db-aggregates/index.ts"
   },
   "bin": {
@@ -20,14 +21,9 @@
     "@bp/db": "workspace:*",
     "@bp/domain": "workspace:*",
     "@bp/sources": "workspace:*",
-    "@earendil-works/pi-agent-core": "^0.78.0",
-    "@earendil-works/pi-ai": "^0.78.0",
     "@effect/platform-bun": "catalog:",
-    "@nyc-transit-kit/compat": "catalog:",
-    "@liche/core": "^0.7.0",
-    "effect": "catalog:",
-    "pdf-lib": "catalog:",
-    "zod": "catalog:"
+    "@nyc-transit-kit/soda3": "catalog:",
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

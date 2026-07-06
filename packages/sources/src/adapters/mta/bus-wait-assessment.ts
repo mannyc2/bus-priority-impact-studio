@@ -1,5 +1,5 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
@@ -53,14 +53,14 @@ export function normalizeBusWaitAssessmentRows(rows: SocrataRow[]): NormalizedBu
       return {
         schemaVersion,
         month: toIsoMonth(parsed.month),
-        routeId: z.decode(RouteIdCodec, parsed.route_id),
+        routeId: RouteIdCodec.parse(parsed.route_id),
         borough: parsed.borough,
         dayType: parsed.day_type,
         tripType: parsed.trip_type,
         period: parsed.period,
         tripsPassingWait: parsed.number_of_trips_passing_wait,
         scheduledTrips: parsed.number_of_scheduled_trips,
-        waitAssessment: parsed.wait_assessment,
+        waitAssessment: parsed.wait_assessment ?? null,
       } satisfies NormalizedBusWaitAssessment;
     })
     .sort((a, b) => {

@@ -572,7 +572,9 @@ const scorecard = RouteScorecardSchema.parse({
   ],
 });
 
-function createStudioProjectionEnv(input: { modelArtifact?: FakeR2Object } = {}): StudioApiEnv {
+function createStudioProjectionEnv(
+  input: { modelArtifact?: FakeR2Object; extraArtifacts?: Record<string, FakeR2Object> } = {},
+): StudioApiEnv {
   return {
     ARTIFACTS: new FakeR2Bucket({
       [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact(STANDARD_ROUTE_CAPABILITIES),
@@ -593,10 +595,18 @@ function createStudioProjectionEnv(input: { modelArtifact?: FakeR2Object } = {})
           generatedAt: "2026-06-05T00:00:00.000Z",
           datasets: [
             {
+              sourceId: "route_month_trends",
               name: "MTA Bus Speeds",
               publisher: "MTA",
               grain: "route-month",
               cadence: "monthly",
+              description: "Route/month speed and ridership summary rows.",
+              rowCount: 120,
+              rowLabel: "route-month rows",
+              period: "2026-03",
+              schemaKeys: ["route_id", "month", "average_speed_mph"],
+              method: "route-month-trends",
+              sourceRefCount: 1,
             },
           ],
           quality,
@@ -702,6 +712,7 @@ function createStudioProjectionEnv(input: { modelArtifact?: FakeR2Object } = {})
         "application/json",
       ),
       "studio/v2/wiki/routes/m15-sbs.json": routeEvidenceBundleArtifact(),
+      ...input.extraArtifacts,
       "studio/v2/detectors/model-artifacts.json":
         input.modelArtifact ??
         new FakeR2Object(
@@ -750,9 +761,11 @@ function createStudioProjectionEnv(input: { modelArtifact?: FakeR2Object } = {})
   };
 }
 
-function createSparseStudioRouteDb(input: { sourceMonthCoverage?: unknown[] } = {}): FakeDb {
+function createSparseStudioRouteDb(
+  input: { sourceMonthCoverage?: unknown[]; routeArtifacts?: unknown[] } = {},
+): FakeDb {
   return new FakeDb({
-    route_artifact: [
+    route_artifact: input.routeArtifacts ?? [
       {
         route_id: "M15+",
         month: "2026-03",
@@ -1080,6 +1093,43 @@ describe("Studio API facade", () => {
         message: "Method is not allowed for this API route.",
       },
     });
+  });
+
+  it("wraps unhandled Studio API failures in a JSON error envelope", async () => {
+    const response = await fetchApi("/api/v1/studio/routes?schema=2", {
+      ARTIFACTS: {
+        get: async () => {
+          throw new Error("simulated R2 outage");
+        },
+      } as unknown as R2Bucket,
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+    });
+
+    expect(response.status).toBe(500);
+    expect(response.headers.get("Content-Type")).toContain("application/json");
+    expect(response.headers.get("X-Request-ID")).toBeString();
+    expect(response.headers.get("X-Request-ID")?.length).toBeGreaterThan(0);
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: "INTERNAL",
+        message: "Internal error.",
+      },
+    });
+  });
+
+  it("does not cache unhandled Studio API failure envelopes", async () => {
+    const response = await fetchApi("/api/v1/studio/routes?schema=2", {
+      ARTIFACTS: {
+        get: async () => {
+          throw new Error("simulated R2 outage");
+        },
+      } as unknown as R2Bucket,
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+    });
+
+    expect(response.status).toBe(500);
+    expect(response.headers.has("Cache-Control")).toBe(false);
+    expect(response.headers.get("X-Request-ID")).toBeString();
   });
 
   it("serves a D1-backed route scorecard", async () => {
@@ -1590,6 +1640,43 @@ describe("Studio API facade", () => {
     );
     expect(Object.keys(bundle.citations[0] ?? {})).not.toContain("sourcePath");
     expect(Object.keys(bundle.citations[0] ?? {})).not.toContain("blockId");
+  });
+
+  it("skips malformed route evidence bundles when building interventions evidence", async () => {
+    const env = {
+      ...createStudioProjectionEnv({
+        extraArtifacts: {
+          "studio/v2/wiki/routes/b99.json": new FakeR2Object("not json", "application/json"),
+        },
+      }),
+      BASELINE_MONTH: "2026-03",
+      DB: createSparseStudioRouteDb({
+        routeArtifacts: [
+          {
+            route_id: "M15+",
+            month: "2026-03",
+            artifact_name: "brief.json",
+          },
+          {
+            route_id: "M15+",
+            month: "2026-03",
+            artifact_name: "route_evidence",
+          },
+          {
+            route_id: "B99",
+            month: "2026-03",
+            artifact_name: "route_evidence",
+          },
+        ],
+      }) as unknown as D1Database,
+    };
+
+    const response = await fetchApi("/api/v1/studio/interventions/evidence", env);
+
+    expect(response.status).toBe(200);
+    const evidence = StudioInterventionsEvidenceResponseSchema.parse(await response.json());
+    expect(evidence.routeCount).toBe(1);
+    expect(evidence.bundles.map((bundle) => bundle.routeSlug)).toEqual(["m15-sbs"]);
   });
 
   it("serves a typed empty MTA-wiki route evidence bundle for routes without evidence", async () => {
@@ -2483,6 +2570,32 @@ describe("Studio API facade", () => {
     expect(routesResponse.status).toBe(200);
     const routes = StudioRoutesResponseSchema.parse(await routesResponse.json());
     expect(routes.routes.map((candidate) => candidate.slug)).toEqual(["m15-sbs", "b99"]);
+    expect(routes.routes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          slug: "m15-sbs",
+          scheduledMph: null,
+          speedPercentile: 1,
+          ridersYoyPct: null,
+          riderHoursLost: null,
+          aceSince: null,
+          spark: null,
+          miles: null,
+          interventions: [],
+        }),
+        expect.objectContaining({
+          slug: "b99",
+          scheduledMph: null,
+          speedPercentile: 99,
+          ridersYoyPct: null,
+          riderHoursLost: null,
+          aceSince: null,
+          spark: null,
+          miles: null,
+          interventions: [],
+        }),
+      ]),
+    );
     expect(routes.routes.find((candidate) => candidate.slug === "b99")?.flags).toContain(
       "No rich artifact",
     );
@@ -2490,6 +2603,7 @@ describe("Studio API facade", () => {
     expect(detailResponse.status).toBe(200);
     const detail = StudioRouteDetailResponseSchema.parse(await detailResponse.json());
     expect(detail.route.slug).toBe("b99");
+    expect(detail.route.speedPercentile).toBeNull();
     expect(detail.equityContext).toBeNull();
     expect(detail.segments).toEqual([]);
     expect(detail.artifactRefs).toEqual([]);
@@ -2733,7 +2847,30 @@ describe("Studio API facade", () => {
     );
   });
 
-  it("serves the v1 Studio snapshot when Snapshot 2.0 contract validation fails", async () => {
+  it("serves Snapshot 2.0 model projection months when the model artifact is well formed", async () => {
+    const env = {
+      ...createStudioProjectionEnv(),
+      BASELINE_MONTH: "2026-03",
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+      LAST_BUILT_SPEED_MONTH: "2026-03",
+    };
+
+    const response = await fetchApi("/api/v1/studio/snapshot", env);
+
+    expect(response.status).toBe(200);
+    const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
+    const modelProjection = snapshot.v2?.projections.find(
+      (projection) => projection.id === "detector_model_status",
+    );
+    expect(modelProjection).toEqual(
+      expect.objectContaining({
+        status: "partial",
+        months: { start: "2023-04", end: "2026-03" },
+      }),
+    );
+  });
+
+  it("serves Snapshot 2.0 with a degraded model projection when the model artifact months are malformed", async () => {
     const env = {
       ...createStudioProjectionEnv({
         modelArtifact: new FakeR2Object(
@@ -2765,9 +2902,12 @@ describe("Studio API facade", () => {
 
     expect(response.status).toBe(200);
     const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
-    expect(snapshot.v2).toBeUndefined();
-    expect(snapshot.quality.confidence).toBe("low");
-    expect(snapshot.quality.caveats).toContain(
+    expect(snapshot.v2).toBeDefined();
+    const modelProjection = snapshot.v2?.projections.find(
+      (projection) => projection.id === "detector_model_status",
+    );
+    expect(modelProjection?.status).toBe("not_built");
+    expect(snapshot.quality.caveats).not.toContain(
       "Snapshot 2.0 manifest failed contract validation and is temporarily omitted.",
     );
   });

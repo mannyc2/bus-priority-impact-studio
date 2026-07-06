@@ -164,14 +164,25 @@ export function SlowSegmentsSection({
           <CorridorProfile route={route} segments={segments} highlightId={flaggedId} />
         </div>
         <ChartFrame title="By hour" height={164} source={hourProfileSource(hourlyProfile)}>
-          <HourBars
-            data={hourProfile}
-            sched={route.scheduledMph}
-            height={164}
-            min={Math.max(0, Math.floor(Math.min(...hourProfile) - 1))}
-            max={Math.ceil(Math.max(route.scheduledMph, ...hourProfile) + 1)}
-            legend
-          />
+          {hourProfile === null ? (
+            <div className="flex h-full min-h-[164px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
+              Route hourly profile is not attached yet.
+            </div>
+          ) : (
+            <HourBars
+              data={hourProfile}
+              {...(route.scheduledMph === null ? {} : { sched: route.scheduledMph })}
+              height={164}
+              min={Math.max(0, Math.floor(Math.min(...hourProfile) - 1))}
+              max={Math.ceil(
+                Math.max(
+                  ...(route.scheduledMph === null ? [] : [route.scheduledMph]),
+                  ...hourProfile,
+                ) + 1,
+              )}
+              legend
+            />
+          )}
         </ChartFrame>
       </div>
       <ChartFrame
@@ -248,15 +259,15 @@ function useRouteSpeedHistory(routeSlug: string): RouteSpeedHistoryState {
 
 function chartHoursFromHourlyProfile(
   profile: StudioRouteHourlyProfileResponse | null,
-  fallback: readonly number[],
-): number[] {
-  if (profile === null) return [...fallback];
-  return profile.hours.map((hour, index) => hour.averageSpeedMph ?? fallback[index] ?? 0);
+  fallback: readonly number[] | null,
+): number[] | null {
+  if (profile === null) return fallback === null ? null : [...fallback];
+  return profile.hours.map((hour, index) => hour.averageSpeedMph ?? fallback?.[index] ?? 0);
 }
 
 function hourProfileSource(state: RouteHourlyProfileState): string {
   if (state.status === "loading") return "Loading route hourly profile.";
-  if (state.status === "unavailable") return "Segment-derived hourly fallback.";
+  if (state.status === "unavailable") return "Route hourly profile unavailable.";
   return `${state.data.summary.latestMonth ?? "latest"} route-hour profile`;
 }
 

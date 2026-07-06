@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
@@ -84,23 +84,23 @@ export function normalizeParkingViolationRows(rows: SocrataRow[]): NormalizedPar
         summonsNumber: p.summons_number,
         issueDate: p.issue_date.slice(0, 10),
         violationCode: p.violation_code,
-        violationDescription: p.violation_description,
-        plateId: p.plate_id,
-        registrationState: p.registration_state,
-        plateType: p.plate_type,
-        vehicleBodyType: p.vehicle_body_type,
-        vehicleMake: p.vehicle_make,
-        issuingAgency: p.issuing_agency,
-        streetCode1: p.street_code1,
-        streetCode2: p.street_code2,
-        streetCode3: p.street_code3,
-        violationLocation: p.violation_location,
-        violationPrecinct: p.violation_precinct,
-        violationCounty: p.violation_county,
-        houseNumber: p.house_number,
-        streetName: p.street_name,
-        intersectingStreet: p.intersecting_street,
-        violationTime: p.violation_time,
+        violationDescription: p.violation_description ?? null,
+        plateId: p.plate_id ?? null,
+        registrationState: p.registration_state ?? null,
+        plateType: p.plate_type ?? null,
+        vehicleBodyType: p.vehicle_body_type ?? null,
+        vehicleMake: p.vehicle_make ?? null,
+        issuingAgency: p.issuing_agency ?? null,
+        streetCode1: p.street_code1 ?? null,
+        streetCode2: p.street_code2 ?? null,
+        streetCode3: p.street_code3 ?? null,
+        violationLocation: p.violation_location ?? null,
+        violationPrecinct: p.violation_precinct ?? null,
+        violationCounty: p.violation_county ?? null,
+        houseNumber: p.house_number ?? null,
+        streetName: p.street_name ?? null,
+        intersectingStreet: p.intersecting_street ?? null,
+        violationTime: p.violation_time ?? null,
       } satisfies NormalizedParkingViolation;
     })
     .sort((a, b) => a.summonsNumber.localeCompare(b.summonsNumber));

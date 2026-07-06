@@ -13,12 +13,6 @@ const manifest = {
   routes: [
     {
       routeId: "B47",
-      counts: {
-        public_finding_candidate: 2,
-        route_context: 1,
-        review_queue: 2,
-        suppressed: 3,
-      },
       publicFindingCandidateRefs: [
         {
           detectorId: "customer_journey_shortfall",
@@ -71,8 +65,6 @@ const manifest = {
           caveats: ["fit_status:true_uncovered", "moderate_speed_or_history_caveat"],
         },
       ],
-      reviewQueueCounts: { customer_journey_shortfall: 2 },
-      suppressedCounts: { customer_journey_shortfall: 3 },
     },
     {
       routeId: "Q1",

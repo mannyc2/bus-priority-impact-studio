@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:32px;background:var(--background);display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+  .ov{font:500 12px var(--font-sans);color:var(--muted-foreground);margin-bottom:10px}
+  .reader{font:400 17px/1.6 var(--font-serif);color:var(--foreground);max-width:520px}
+  .reader p{margin:0 0 14px}
+  .break{text-align:center;color:var(--muted-foreground);font:400 22px/1 var(--font-serif);padding:18px 0}
+  .specimen{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .glyph{font:400 96px/1 var(--font-serif);color:var(--foreground)}
+  .name{font:400 13px var(--font-mono);color:var(--muted-foreground)}
+  .desc{font:400 13px/1.5 var(--font-serif);color:var(--muted-foreground);font-style:italic;text-align:center;max-width:240px;margin-top:6px}
+</style></head><body>
+
+<div>
+  <div class="ov">Section break — in use</div>
+  <div class="reader">
+    <p>…the preliminary course was, in effect, a workshop in seeing — a year-long erasure of the student's earlier visual habits before a single craft was chosen.</p>
+    <div class="break">⁂</div>
+    <p>By 1923, Moholy-Nagy's arrival pulled the school decisively toward industrial form. The break was sharp; the curriculum followed within a term.</p>
+  </div>
+</div>
+
+<div class="specimen">
+  <div class="ov" style="text-align:center">The asterism · ⁂</div>
+  <div class="glyph">⁂</div>
+  <div class="name">U+2042 (asterism)</div>
+  <div class="desc">Brand mark and in-text section break. Reserved for these two roles — never decorative.</div>
+</div>
+
+</body></html>

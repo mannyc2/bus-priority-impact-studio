@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import type { PanelSpec } from "@bp/analytics/feature-history";
-import { z } from "zod";
+import * as z from "@bp/domain/schema-compat";
 import {
   buildLocalDbPanelResolutionManifest,
   type LocalDbPanelResolution,
@@ -96,7 +96,7 @@ export type SegmentMonthPanelLocalDbResolutionQuery = {
 const SqlNumberSchema = z.union([
   z.number(),
   z.bigint().transform(Number),
-  z.string().pipe(z.coerce.number()),
+  z.preprocess((value) => (typeof value === "string" ? value : Number.NaN), z.coerce.number()),
 ]);
 
 const SqlNullableNumberSchema = z.preprocess(

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 export const EXPRESS_ROUTE_ANALYSIS_SCHEMA_VERSION = 1;
 export const EXPRESS_ROUTE_ANALYSIS_STATIC_PERIOD = "2023-04-2023-09";

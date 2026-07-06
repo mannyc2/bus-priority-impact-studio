@@ -1,14 +1,22 @@
-import type { ZodType } from "zod";
 import { runPipelineFileSystemBoundary } from "../effect/file-system.ts";
 
 const COMMAND = "pipeline.json";
 
-function parseJsonArtifact<T>(path: string, raw: unknown, schema: ZodType<T>): T {
+type JsonArtifactSchema<T> = {
+  safeParse(input: unknown):
+    | { success: true; data: T }
+    | {
+        success: false;
+        error: { issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }> };
+      };
+};
+
+function parseJsonArtifact<T>(path: string, raw: unknown, schema: JsonArtifactSchema<T>): T {
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     const detail = parsed.error.issues
       .slice(0, 5)
-      .map((i) => `${i.path.join(".") || "<root>"}: ${i.message}`)
+      .map((i) => `${i.path.map(String).join(".") || "<root>"}: ${i.message}`)
       .join("; ");
     throw new Error(`Failed to parse artifact at ${path}: ${detail}`);
   }
@@ -43,7 +51,7 @@ export async function readJsonIfExists(path: string): Promise<unknown | null> {
   });
 }
 
-export async function readJsonArtifact<T>(path: string, schema: ZodType<T>): Promise<T> {
+export async function readJsonArtifact<T>(path: string, schema: JsonArtifactSchema<T>): Promise<T> {
   const raw = await readJsonIfExists<unknown>(path);
   if (raw === null) {
     throw new Error(`Artifact not found at ${path}`);
@@ -53,7 +61,7 @@ export async function readJsonArtifact<T>(path: string, schema: ZodType<T>): Pro
 
 export async function readOptionalJsonArtifact<T>(
   path: string | null,
-  schema: ZodType<T>,
+  schema: JsonArtifactSchema<T>,
 ): Promise<T | null> {
   if (!path) return null;
   const raw = await readJsonIfExists<unknown>(path);

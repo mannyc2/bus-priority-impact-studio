@@ -1,5 +1,5 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { isoCalendarDateTime, schemaVersion } from "../../core/index.js";
 
@@ -49,7 +49,7 @@ export function normalizeAceRouteRows(rows: SocrataRow[]): NormalizedAceRoute[] 
 
       return {
         schemaVersion,
-        routeId: z.decode(RouteIdCodec, parsed.route),
+        routeId: RouteIdCodec.parse(parsed.route),
         program: parsed.program,
         implementationDate: isoCalendarDateTime(parsed.implementation_date),
       } satisfies NormalizedAceRoute;
@@ -73,7 +73,7 @@ export function normalizeAceViolationSummaryRows(
 
       return {
         schemaVersion,
-        routeId: z.decode(RouteIdCodec, parsed.bus_route_id),
+        routeId: RouteIdCodec.parse(parsed.bus_route_id),
         violationType: parsed.violation_type,
         violationStatus: parsed.violation_status,
         violationCount: parsed.violation_count,

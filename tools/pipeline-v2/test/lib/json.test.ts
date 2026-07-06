@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { z } from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 import {
   readJsonArtifact,

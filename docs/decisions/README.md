@@ -6,7 +6,7 @@ Create a new ADR before introducing Python, hosted Postgres/PostGIS, a VPS, or a
 
 ## ADRs
 
-- `0001-bun-zod-testing-toolchain.md` - Bun-first toolchain, Zod v4 contracts, and test harnesses.
+- `0001-bun-zod-testing-toolchain.md` - Bun-first toolchain and test harnesses; its original Zod contract clause is superseded by ADR 0020.
 - `0002-postgres-drizzle-and-d1-serving-projections.md` - Postgres/Hyperdrive as the planned canonical analytics store, Drizzle as the typed DB layer, and D1 as an optional serving projection.
 - `0003-maplibre-public-map-stack.md` - MapLibre GL JS for the public app map, with generated GeoJSON first and PMTiles/R2 as the larger artifact path.
 - `0004-drizzle-schema-split-and-d1-serving-guardrails.md` - Separate Drizzle schemas for D1 serving projection and future Postgres canonical analytics, with D1 size guardrails and JSON cleanup plan.
@@ -23,3 +23,5 @@ Create a new ADR before introducing Python, hosted Postgres/PostGIS, a VPS, or a
 - `0017-mixed-freshness-publication-model.md` - Product/data doctrine replacing the broad "monthly release" slogan with historical corpus, baseline month, current signal, source snapshot, serving projection, and deliberate publication gates.
 - `0018-detector-calibration-readiness-loop.md` - Reviewed-gold detector calibration loop, readiness buckets, and publication rules that prevent raw detector candidates from becoming public findings.
 - `0019-effect-runtime-for-pipeline.md` - Effect runtime, layers, services, and typed errors for pipeline commands, with CLI parser migration deferred until the runtime pattern is established.
+- `0020-effect-schema-only.md` - Effect Schema as the only first-party runtime schema layer, superseding the Zod clause of ADR 0001.
+- `0021-native-transit-kit-in-effect-zone.md` - Native nyc-transit-kit APIs/layers in Effect-zone code, with compat limited to Promise-edge packages such as Studio API.

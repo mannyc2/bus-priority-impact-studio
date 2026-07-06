@@ -1,15 +1,13 @@
 # 0010 - Python inside the codemode sandbox
 
-Status: Superseded on 2026-05-31 by
-`0013-bun-typescript-codemode-sandbox.md`. This ADR is retained as historical
-context for why the first codemode slice used Python; new codemode work uses
-Bun/TypeScript with analytics-package access.
+Status: Retired 2026-07-04 — agent-corpus research experiments ended; tooling
+deleted (plan 037).
 
 Date: 2026-05-30
 
 ## Status
 
-Accepted. Python 3.12 is permitted **only** inside the Docker sandbox used by `tools/pipeline-v2` for codemode-style findings-agent runs. Python remains prohibited everywhere else in the repo (apps, workers, `packages/`, other CI jobs).
+Retired 2026-07-04 — agent-corpus research experiments ended; tooling deleted (plan 037).
 
 ## Context
 

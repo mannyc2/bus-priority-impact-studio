@@ -63,31 +63,3 @@ export {
   scoreFromShare,
   weightedMeanScore,
 } from "./scorecard.js";
-export {
-  buildMtaWikiTier2BridgeArtifact,
-  buildMtaWikiTier2SourceAlignmentArtifact,
-  type MtaWikiBridgeCanonicalInputs,
-  type MtaWikiBridgeEvidencePreview,
-  type MtaWikiBridgeReviewGroup,
-  type MtaWikiCanonicalRecord,
-  type MtaWikiTier2BridgeArtifact,
-  type MtaWikiTier2SourceAlignmentArtifact,
-  type MtaWikiTier2SourceAlignmentRow,
-  renderMtaWikiTier2BridgeMarkdown,
-  renderMtaWikiTier2SourceAlignmentMarkdown,
-  type Tier2SourceQueueForMtaWikiAlignment,
-} from "./tier2-mta-wiki-bridge.js";
-export {
-  buildTier2StructuredDataInventoryFromArtifacts,
-  classifyTier2StructuredArtifact,
-  renderTier2StructuredDataInventoryMarkdown,
-  summarizeTier2StructuredArtifactValue,
-  summarizeTier2StructuredCounts,
-  type Tier2StructuredArtifactClassification,
-  type Tier2StructuredArtifactSummary,
-  type Tier2StructuredArtifactValueSummary,
-  type Tier2StructuredCounts,
-  type Tier2StructuredDataInventory,
-  type Tier2StructuredLayer,
-  type Tier2StructuredTrustTier,
-} from "./tier2-structured-data.js";

@@ -15,6 +15,16 @@ export type PipelineFileInput = {
   readonly spanAttributes?: PipelineFileSpanAttributes | undefined;
 };
 
+export type PipelineDirectoryEntry = {
+  readonly path: string;
+  readonly type: string;
+  readonly size: number;
+};
+
+export type PipelineDirectoryInput = PipelineFileInput & {
+  readonly recursive?: boolean | undefined;
+};
+
 export type PipelineFileWriteInput = PipelineFileInput & {
   readonly contents: string;
   readonly ensureParentDirectory?: boolean | undefined;
@@ -28,6 +38,9 @@ export type PipelineFileSystem = {
   readonly readJsonIfExists: (
     input: PipelineFileInput,
   ) => Effect.Effect<unknown | null, PipelineFileSystemError>;
+  readonly listDirectory: (
+    input: PipelineDirectoryInput,
+  ) => Effect.Effect<PipelineDirectoryEntry[], PipelineFileSystemError>;
   readonly writeText: (
     input: PipelineFileWriteInput,
   ) => Effect.Effect<void, PipelineFileSystemError>;
@@ -100,6 +113,28 @@ export const PipelineFileSystemServiceLayer: Layer.Layer<
       });
     });
 
+    const listDirectory = Effect.fn("PipelineFileSystemService.listDirectory")(function* (
+      input: PipelineDirectoryInput,
+    ) {
+      yield* annotateFileSpan(input);
+      const entries = yield* fs
+        .readDirectory(input.path, { recursive: input.recursive ?? false })
+        .pipe(Effect.mapError((cause) => fileError(input, cause)));
+      const result: PipelineDirectoryEntry[] = [];
+      for (const entry of entries) {
+        const entryPath = path.isAbsolute(entry) ? entry : path.join(input.path, entry);
+        const info = yield* fs
+          .stat(entryPath)
+          .pipe(Effect.mapError((cause) => fileError({ ...input, path: entryPath }, cause)));
+        result.push({
+          path: entryPath,
+          type: info.type,
+          size: Number(info.size),
+        });
+      }
+      return result;
+    });
+
     const writeText = Effect.fn("PipelineFileSystemService.writeText")(function* (
       input: PipelineFileWriteInput,
     ) {
@@ -114,7 +149,7 @@ export const PipelineFileSystemServiceLayer: Layer.Layer<
         .pipe(Effect.mapError((cause) => fileError(input, cause)));
     });
 
-    return { readText, readTextIfExists, readJsonIfExists, writeText };
+    return { readText, readTextIfExists, readJsonIfExists, listDirectory, writeText };
   }),
 );
 

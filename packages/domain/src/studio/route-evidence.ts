@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../schema-compat.js";
 
 export const STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME = "route_evidence";
 export const STUDIO_ROUTE_EVIDENCE_INDEX_KEY = "studio/v2/wiki/index.json";

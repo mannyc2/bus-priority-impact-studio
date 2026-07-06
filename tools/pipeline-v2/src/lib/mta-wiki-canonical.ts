@@ -1,5 +1,5 @@
 import { dirname, isAbsolute, join } from "node:path";
-import { z } from "zod";
+import * as z from "@bp/domain/schema-compat";
 import { runPipelineFileSystemBoundary } from "../effect/file-system.ts";
 import { fromCliPath, repoRoot } from "./paths.ts";
 

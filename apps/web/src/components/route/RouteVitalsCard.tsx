@@ -16,14 +16,14 @@ export function RouteVitalsCard({
   route: StudioRouteDetailResponse["route"];
   segments: readonly StudioSegment[];
 }) {
-  const rows = [
+  const rows: Array<readonly [string, string]> = [
     ["Borough", route.borough],
-    ["Length", `${route.miles} mi`],
+    ...(route.miles === null ? [] : ([["Length", `${route.miles} mi`]] as const)),
     ["Stops", String(route.stops)],
     ["Service type", route.sbs ? "Select Bus Service" : "Local"],
     ["Reliability", reliabilityLabel(route.reliability)],
     ["Visible segments", String(segments.length)],
-  ] as const;
+  ];
 
   return (
     <div className="rounded-[3px] bg-[var(--bp-color-card)] px-4 py-1 shadow-[0_0_0_1px_var(--bp-color-rule)]">

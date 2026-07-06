@@ -69,20 +69,25 @@ export function RoutePublicKpiStrip({
     const target = routeSectionNavigationTarget(sectionRegistry, section, "evidence");
     return target === null ? undefined : () => onNavigate(target);
   };
+  const whereWhenClick = clickTarget("where-when");
+  const reliabilityClick = clickTarget("reliability");
+  const ridersClick = clickTarget("riders");
+  const treatmentsClick = clickTarget("treatments");
 
   return (
     <div className="grid grid-cols-5 gap-5 max-xl:grid-cols-3 max-md:grid-cols-1">
       <RPubBigStat
         label="Speed"
-        onClick={clickTarget("where-when")}
+        onClick={whereWhenClick}
         value={currentSpeed > 0 ? currentSpeed.toFixed(1) : "—"}
         unit="mph"
         tone={currentSpeed > 0 && currentSpeed < 6 ? "bad" : "ink"}
         sub={peerSub(speed?.peerPercentile ?? null)}
+        footer={whereWhenClick ? "Where & when →" : undefined}
       />
       <RPubBigStat
         label="Trend"
-        onClick={clickTarget("where-when")}
+        onClick={whereWhenClick}
         value={fmtPct(trendPct)}
         tone={trendPct === null ? "ink" : trendPct < 0 ? "bad" : "good"}
         trailing={
@@ -96,10 +101,11 @@ export function RoutePublicKpiStrip({
           ) : undefined
         }
         sub="past 6 months"
+        footer={whereWhenClick ? "Where & when →" : undefined}
       />
       <RPubBigStat
         label="Excess wait"
-        onClick={clickTarget("reliability")}
+        onClick={reliabilityClick}
         value={reliabilityKpi.hasObservedMetrics ? reliabilityKpi.excessWaitLabel : "—"}
         tone={reliabilityKpi.hasObservedMetrics ? reliabilityKpi.kpiTone : "ink"}
         sub={
@@ -107,21 +113,24 @@ export function RoutePublicKpiStrip({
             ? `${reliabilityKpi.longGapLabel} long gaps`
             : "not yet measured"
         }
+        footer={reliabilityClick ? "Reliability →" : undefined}
       />
       <RPubBigStat
         label="Riders"
-        onClick={clickTarget("riders")}
+        onClick={ridersClick}
         value={route.dailyRiders > 0 ? ridersKpi.kpiValue : "—"}
         tone={ridersKpi.kpiTone}
         sub={route.dailyRiders > 0 ? "daily riders" : "not yet measured"}
+        footer={ridersClick ? "Riders →" : undefined}
       />
       <RPubBigStat
         label="Bus lane"
-        onClick={clickTarget("treatments")}
+        onClick={treatmentsClick}
         value={`${route.laneCoverage}%`}
         unit="of route"
         tone={route.laneCoverage > 0 ? "good" : "ink"}
         sub={aceSub}
+        footer={treatmentsClick ? "Treatments →" : undefined}
       />
     </div>
   );

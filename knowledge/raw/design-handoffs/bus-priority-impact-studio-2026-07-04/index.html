@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Bus Priority Impact Studio</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="system.jsx"></script>
+<script type="text/babel" src="corridor-map.jsx"></script>
+<script type="text/babel" src="geo-data.jsx"></script>
+<script type="text/babel" src="network-map.jsx"></script>
+<script type="text/babel" src="corridor-geo.jsx"></script>
+<script type="text/babel" src="treatments.jsx"></script>
+<script type="text/babel" src="treatment-glyphs.jsx"></script>
+<script type="text/babel" src="treatment-badges.jsx"></script>
+<script type="text/babel" src="interventions-refactor.jsx"></script>
+<script type="text/babel" src="route-detail-tabs.jsx"></script>
+<script type="text/babel" src="route-first.jsx"></script>
+<script type="text/babel" src="route-public.jsx"></script>
+<script type="text/babel" src="home-public.jsx"></script>
+<script type="text/babel" src="authoring.jsx"></script>
+<script type="text/babel" src="ladder.jsx"></script>
+<script type="text/babel" src="compare.jsx"></script>
+<script type="text/babel" src="compare-analytical.jsx"></script>
+<script type="text/babel" src="route-compare-inline.jsx"></script>
+<script type="text/babel" src="route-compare-inline-screen.jsx"></script>
+<script type="text/babel" src="search-results.jsx"></script>
+<script type="text/babel" src="brief-lifecycle.jsx"></script>
+<script type="text/babel" src="states.jsx"></script>
+<script type="text/babel" src="findings.jsx"></script>
+<script type="text/babel" src="finding-detail-audit.jsx"></script>
+<script type="text/babel" src="brief-public.jsx"></script>
+<script type="text/babel" src="brief-primitives.jsx"></script>
+<script type="text/babel" src="brief-primitives-views.jsx"></script>
+<script type="text/babel" src="authoring-v2.jsx"></script>
+<script type="text/babel" src="authoring-v2-corpus.jsx"></script>
+<script type="text/babel" src="authoring-v2-review.jsx"></script>
+<script type="text/babel" src="compare-public.jsx"></script>
+<script type="text/babel" src="methods-public.jsx"></script>
+<script type="text/babel" src="ladder-public.jsx"></script>
+
+<script type="text/babel">
+const AW = 1320, AH = 880;
+
+function App() {
+  return (
+    <DesignCanvas>
+
+      {/* MAPS & INTERACTIVITY */}
+      <DCSection id="maps" title="Maps &amp; interactivity"
+        subtitle="A maps-first direction in the studio's own warm-paper palette — no external tiles. Maps get their own home: a citywide 'Map' in the top nav, and a 'Map' tab on the route page (rather than burying it in Overview). Both are live — hover a corridor or a row to read it in the persistent detail panel, click to pin, drag or play the clock to run the day. On the route map, hovering links the geography ↔ the speed-profile strip, and priority layers toggle on and off.">
+        <DCArtboard id="map-network" label="Map (citywide) — the network by time of day · hover or pick a row · click to pin · press play" width={1320} height={1000}><RF_NetworkScreen /></DCArtboard>
+        <DCArtboard id="map-corridor-geo" label="Route detail · Map tab — geographic M15 (linked hover · time scrubber · priority layers)" width={1320} height={1000}><RF_CorridorGeoScreen /></DCArtboard>
+      </DCSection>
+
+      {/* ── INTERVENTIONS REFACTOR ────────────────────────────── */}
+      <DCSection id="interventions-refactor" title="Interventions · Refactor"
+        subtitle="Two-layer model — Interventions (dated, source-backed events) and Treatments (what's present today). Compact display caps visible signals at three (Street · Enforcement · Signals) with +N overflow. Three primitive directions to choose from: typographic badges (recommended), drawn glyphs, and the original bars/dots.">
+        <DCArtboard id="int-badges"     label="Badge primitives — full library + state matrix"   width={1320} height={2400}><INT_BadgeSpecimens /></DCArtboard>
+        <DCArtboard id="int-v3"         label="Compact display v3 — badge-based (G1 / G2 / G3)"  width={1320} height={1900}><INT_CompactV3 /></DCArtboard>
+        <DCArtboard id="int-glyphs"     label="Glyph primitives — drawn SVG (alt direction)"     width={1320} height={2400}><INT_GlyphSpecimens /></DCArtboard>
+        <DCArtboard id="int-v2"         label="Compact display v2 — glyph-based (E1 / E2 / E3)"  width={1320} height={2200}><INT_CompactV2 /></DCArtboard>
+        <DCArtboard id="int-v1"         label="Compact display v1 — bars / dots (reference)"     width={1320} height={620}><INT_CompactV1Legacy /></DCArtboard>
+        <DCArtboard id="int-fulldetail" label="Full detail — inventory + timeline"               width={1320} height={1200}><INT_FullDetail /></DCArtboard>
+        <DCArtboard id="int-taxonomy"   label="Taxonomy — families, treatments, states"          width={1320} height={2200}><INT_Taxonomy /></DCArtboard>
+      </DCSection>
+
+      {/* ── ROUTES ────────────────────────────────────────────── */}
+      <DCSection id="routes-home" title="Routes · Home"
+        subtitle="Public-facing landing reads as a civic-data project front page. The ‘Browse all routes’ CTA leads to the analyst search/triage view (Home — search), which feeds the route-detail pages.">
+        <DCArtboard id="rf-home-public" label="Home — public-facing (landing)" width={1320} height={2700}><RF_HomePublic /></DCArtboard>
+        <DCArtboard id="rf-home"        label="Home — search & triage (analyst)" width={AW} height={AH}><RF_Home /></DCArtboard>
+        <DCArtboard id="rf-results"     label="Search results"           width={AW} height={AH}><RF_SearchResults /></DCArtboard>
+      </DCSection>
+
+      <DCSection id="routes-detail" title="Routes · Detail"
+        subtitle="Route detail with interactive tabs: Overview, Slow segments, Riders, Interventions, Timeline, Data notes. Click tabs to switch. Overview leads with a corridor speed-profile; history now lives in its own Timeline tab.">
+        <DCArtboard id="rf-route"   label="Route detail — Overview tab"               width={AW} height={AH}><RF_RouteDetail initialTab="Overview" /></DCArtboard>
+        <DCArtboard id="rf-route-timeline" label="Route detail — Timeline tab"          width={AW} height={AH}><RF_RouteDetail initialTab="Timeline" /></DCArtboard>
+        <DCArtboard id="rf-route-slow" label="Route detail — Slow segments tab"       width={AW} height={AH}><RF_RouteDetail initialTab="Slow segments" /></DCArtboard>
+        <DCArtboard id="rf-compare" label="Compare — switch either route (M15 · Bx12 · M14 · Q44)"  width={AW} height={AH}><RF_Compare /></DCArtboard>
+        <DCArtboard id="rf-compare-inline" label="Compare — layered onto the route page (relative KPIs · overlaid viz)" width={AW} height={AH}><RF_RouteCompareInline /></DCArtboard>
+        <DCArtboard id="rf-compare-analytical" label="Compare — analytical workbench (window · normalize · direction)" width={1480} height={980}><RF_CompareAnalytical /></DCArtboard>
+        <DCArtboard id="rf-public"  label="Route detail — public-facing"                 width={1320} height={2380}><RF_RoutePublic /></DCArtboard>
+        <DCArtboard id="rf-ladder-public" label="Walk the corridor — public-facing"     width={1320} height={3200}><RF_LadderPublic /></DCArtboard>
+        <DCArtboard id="rf-compare-public" label="Compare — public-facing"               width={1320} height={2520}><RF_ComparePublic /></DCArtboard>
+      </DCSection>
+
+      {/* ── FINDINGS ──────────────────────────────────────────── */}
+      <DCSection id="findings" title="Findings · AI-surfaced discovery"
+        subtitle="The AI has pre-read all routes and surfaces notable patterns here. Not a chatbot — each finding reads as data, traces to sources, and links directly to the route view.">
+        <DCArtboard id="findings-feed"   label="Findings feed — all routes"         width={AW} height={AH}><FindingsFeed /></DCArtboard>
+        <DCArtboard id="findings-detail" label="Finding detail — AI reasoning trail" width={AW} height={AH}><FindingDetail /></DCArtboard>
+        <DCArtboard id="findings-audit"  label="Finding detail — public-facing" width={1320} height={1800}><FindingDetailAudit /></DCArtboard>
+      </DCSection>
+
+      {/* ── BRIEFS ────────────────────────────────────────────── */}
+      <DCSection id="briefs-authoring" title="Briefs · Authoring v2"
+        subtitle="Redesigned & converged. Capture evidence from anywhere → the brief composes itself as you work. You edit real prose directly; AI streams the existing brief primitives in from the whole corpus through one unified surface — “insert from the corpus” — which proposes its best match as you write and is summonable on demand. No chat, no scoring rails, no “drag to reorder,” no evidence shelf (the figures on the page are the evidence).">
+        <DCArtboard id="rf-send"     label="Send to brief — universal capture, replaces the old annotation page" width={1320} height={880}><RF_SendToBrief /></DCArtboard>
+        <DCArtboard id="rf-compose"  label="Composer — the brief writes with you (A+B+C, resolved)" width={1320} height={1240}><RF_ComposeBrief /></DCArtboard>
+        <DCArtboard id="rf-corpus"   label="Insert from the corpus — palette + crafted preview primitives" width={1320} height={920}><RF_CorpusPalette /></DCArtboard>
+        <DCArtboard id="rf-brief"     label="Brief — cited narrative + claims panel"   width={AW} height={AH}><RF_Brief /></DCArtboard>
+        <DCArtboard id="rf-brief-public" label="Brief — published, public-facing"      width={1320} height={2780}><RF_BriefPublic /></DCArtboard>
+      </DCSection>
+
+      {/* ── BRIEF PRIMITIVES v2 ───────────────────────────────── */}
+      <DCSection id="brief-primitives" title="Briefs · Primitives v2"
+        subtitle="Richer composable pieces for brief authoring. Inline chips that carry data inside a sentence, and embedded figure-style widgets (segment cards, before/after, projection, AI-finding callouts, data-lineage panels) that break the prose.">
+        <DCArtboard id="brief-primitives-catalog" label="Brief primitives — specimen catalog" width={1320} height={4200}><BriefPrimitivesCatalog /></DCArtboard>
+        <DCArtboard id="rf-brief-rich" label="Brief — rich reading view using primitives inline" width={1320} height={3400}><RF_BriefRich /></DCArtboard>
+      </DCSection>
+
+      {/* ── METHODS ─────────────────────────────────── */}
+      <DCSection id="methods" title="Methods · Public-facing"
+        subtitle="The public methods page. Built from the data catalog—every metric carries a status label, every dataset has a row, every source gap is named.">
+        <DCArtboard id="rf-methods-public" label="Methods — public-facing" width={1320} height={2520}><RF_MethodsPublic /></DCArtboard>
+      </DCSection>
+
+      <DCSection id="briefs-lifecycle" title="Briefs · Review &amp; versioning"
+        subtitle="Downstream of authoring, in the same editorial language: the brief reads exactly as authored — one column of prose and figures — and review happens on it directly. Reviewers pin comments and suggested edits to the prose (with approve / request-changes and reviewer assignment); the author works a resolve queue where accepting a suggestion lands it in the text. Versioning is lightweight undo/redo in the editing chrome (composer + resolve) — no autosave-scrubber screen — and the liked avatar component is generalized: ‘N of M reviewed’ here, a Share / access control in the composer. No claims outline, strength bars, or evidence counts — retired upstream.">
+        <DCArtboard id="rf-review2"  label="Review — reviewer pins comments & suggested edits to the prose" width={AW} height={AH}><RF_BriefReview2 /></DCArtboard>
+        <DCArtboard id="rf-triage"   label="Resolve — author triages incoming comments (accept edits, resolve)" width={AW} height={AH}><RF_BriefTriage /></DCArtboard>
+        <DCArtboard id="rf-review"  label="Review — pre-refactor (claims outline · retired)"      width={AW} height={AH}><RF_BriefReview /></DCArtboard>
+        <DCArtboard id="rf-history" label="Version history — pre-refactor (claim diffs · retired)"        width={AW} height={AH}><RF_BriefHistory /></DCArtboard>
+      </DCSection>
+
+      {/* ── STATES ────────────────────────────────────────────── */}
+      <DCSection id="states" title="States"
+        subtitle="Loading, empty, and error — the design system handling real lifecycles, not just happy paths.">
+        <DCArtboard id="rf-loading" label="Route detail — loading state" width={AW} height={AH}><RF_RouteDetail_Loading /></DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

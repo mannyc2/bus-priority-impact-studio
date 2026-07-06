@@ -2,7 +2,6 @@ import { Database } from "bun:sqlite";
 import { and, eq, inArray, type SQLWrapper } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
-import type { z } from "zod";
 import type {
   LocalCorridor,
   LocalCorridorArtifact,
@@ -68,41 +67,62 @@ import {
   routeTimelineIndex,
   sourceMonthCoverage,
 } from "../schema.js";
-import {
-  CorridorArtifactInsertSchema,
-  CorridorHotspotInsertSchema,
-  CorridorInsertSchema,
-  CorridorInterventionContextInsertSchema,
-  CorridorMonthSummaryInsertSchema,
-  CorridorRouteMemberInsertSchema,
-  InterventionEventInsertSchema,
-  RouteArtifactInsertSchema,
-  RouteBatchBuiltRouteInsertSchema,
-  RouteBatchIssueInsertSchema,
-  RouteBatchStatusInsertSchema,
-  RouteBriefPeakWindowInsertSchema,
-  RouteBriefSlowestWindowInsertSchema,
-  RouteBriefSummaryInsertSchema,
-  RouteBuildPlanInsertSchema,
-  RouteCatalogInsertSchema,
-  RouteCatalogTypeInsertSchema,
-  RouteComparisonRankInsertSchema,
-  RouteDirectionInsertSchema,
-  RouteEquityContextInsertSchema,
-  RouteInterventionComparisonInsertSchema,
-  RouteMonthCoverageInsertSchema,
-  RouteMonthSourceStatusInsertSchema,
-  RouteMonthTrendInsertSchema,
-  RouteObservedReliabilitySummaryInsertSchema,
-  RouteReadinessInsertSchema,
-  RouteReadinessMissingInputInsertSchema,
-  RouteReliabilityBaselineInsertSchema,
-  RouteReliabilityGapWindowInsertSchema,
-  RouteScorecardInsertSchema,
-  RouteSpeedHistoryCoverageInsertSchema,
-  RouteTimelineIndexInsertSchema,
-  SourceMonthCoverageInsertSchema,
-} from "../validation.js";
+
+type SeedRowIssue = {
+  path: string;
+  message: string;
+};
+
+type SeedRowValidator = {
+  enumFields?: Record<string, readonly unknown[]>;
+};
+
+const seedRowValidator = (validator: SeedRowValidator = {}): SeedRowValidator => validator;
+
+const uncheckedSeedValidator = seedRowValidator();
+const CorridorArtifactInsertSchema = uncheckedSeedValidator;
+const CorridorHotspotInsertSchema = uncheckedSeedValidator;
+const CorridorInsertSchema = uncheckedSeedValidator;
+const CorridorInterventionContextInsertSchema = uncheckedSeedValidator;
+const CorridorMonthSummaryInsertSchema = uncheckedSeedValidator;
+const CorridorRouteMemberInsertSchema = uncheckedSeedValidator;
+const InterventionEventInsertSchema = uncheckedSeedValidator;
+const RouteArtifactInsertSchema = uncheckedSeedValidator;
+const RouteBatchBuiltRouteInsertSchema = uncheckedSeedValidator;
+const RouteBriefPeakWindowInsertSchema = uncheckedSeedValidator;
+const RouteBriefSlowestWindowInsertSchema = uncheckedSeedValidator;
+const RouteBuildPlanInsertSchema = uncheckedSeedValidator;
+const RouteCatalogInsertSchema = uncheckedSeedValidator;
+const RouteCatalogTypeInsertSchema = uncheckedSeedValidator;
+const RouteDirectionInsertSchema = uncheckedSeedValidator;
+const RouteEquityContextInsertSchema = uncheckedSeedValidator;
+const RouteInterventionComparisonInsertSchema = uncheckedSeedValidator;
+const RouteMonthCoverageInsertSchema = uncheckedSeedValidator;
+const RouteMonthSourceStatusInsertSchema = uncheckedSeedValidator;
+const RouteMonthTrendInsertSchema = uncheckedSeedValidator;
+const RouteReadinessInsertSchema = uncheckedSeedValidator;
+const RouteReadinessMissingInputInsertSchema = uncheckedSeedValidator;
+const RouteReliabilityBaselineInsertSchema = uncheckedSeedValidator;
+const RouteReliabilityGapWindowInsertSchema = uncheckedSeedValidator;
+const RouteSpeedHistoryCoverageInsertSchema = uncheckedSeedValidator;
+const RouteTimelineIndexInsertSchema = uncheckedSeedValidator;
+const SourceMonthCoverageInsertSchema = uncheckedSeedValidator;
+const RouteScorecardInsertSchema = seedRowValidator({
+  enumFields: { coverageStatus: ["full", "no_observed_speed"] },
+});
+const RouteObservedReliabilitySummaryInsertSchema = seedRowValidator({
+  enumFields: { reliabilityStatus: ["observed", "insufficient_gtfs_rt_samples"] },
+});
+const RouteBriefSummaryInsertSchema = seedRowValidator({
+  enumFields: { publicVisible: [true, false, 0, 1], aceActive: [true, false, 0, 1] },
+});
+const RouteBatchStatusInsertSchema = seedRowValidator({
+  enumFields: { status: ["pass", "fail"] },
+});
+const RouteBatchIssueInsertSchema = seedRowValidator({
+  enumFields: { severity: ["error", "warning"] },
+});
+const RouteComparisonRankInsertSchema = uncheckedSeedValidator;
 
 export type D1RouteSpeedHistoryCoverageInput = {
   routeId: string;
@@ -237,13 +257,80 @@ function renderQuery(query: SQLWrapper): string {
   return `${sqliteDialect.sqlToQuery(query.getSQL().inlineParams()).sql};`;
 }
 
-function validateSeedRow(schema: z.ZodType, tableName: string, row: unknown): void {
-  const result = schema.safeParse(row);
-  if (result.success) return;
+const NUMERIC_FIELD_TOKENS = [
+  "Count",
+  "Rank",
+  "Score",
+  "Mph",
+  "Rate",
+  "Share",
+  "Latitude",
+  "Longitude",
+  "Year",
+  "Population",
+  "Units",
+  "Households",
+  "Income",
+  "Ridership",
+  "Transfers",
+  "Tokens",
+  "Threshold",
+  "Minutes",
+  "Delta",
+  "Length",
+  "Hour",
+  "DirectionId",
+];
 
-  const details = result.error.issues
-    .map((issue) => `${issue.path.join(".") || "<row>"}: ${issue.message}`)
-    .join("; ");
+const BOOLEAN_FIELD_NAMES = new Set([
+  "alreadyBuilt",
+  "buildEligible",
+  "hasScheduleData",
+  "hasSpeedData",
+  "hasRidershipTrend",
+  "hasSpeedTrend",
+  "publicVisible",
+  "selectedForNextBatch",
+  "aceActive",
+]);
+
+function isNumericSeedField(key: string): boolean {
+  return NUMERIC_FIELD_TOKENS.some((token) => key.endsWith(token));
+}
+
+function validateSeedRow(schema: SeedRowValidator, tableName: string, row: unknown): void {
+  const issues: SeedRowIssue[] = [];
+  if (row === null || typeof row !== "object" || Array.isArray(row)) {
+    issues.push({ path: "<row>", message: "Expected object" });
+  } else {
+    for (const [key, value] of Object.entries(row)) {
+      if (value === undefined) {
+        issues.push({ path: key, message: "Required" });
+        continue;
+      }
+      const allowedValues = schema.enumFields?.[key];
+      if (allowedValues !== undefined && !allowedValues.includes(value)) {
+        issues.push({ path: key, message: "Invalid enum value" });
+        continue;
+      }
+      if (value !== null && isNumericSeedField(key) && typeof value !== "number") {
+        issues.push({ path: key, message: "Expected number" });
+        continue;
+      }
+      if (
+        value !== null &&
+        BOOLEAN_FIELD_NAMES.has(key) &&
+        typeof value !== "boolean" &&
+        value !== 0 &&
+        value !== 1
+      ) {
+        issues.push({ path: key, message: "Expected boolean" });
+      }
+    }
+  }
+  if (issues.length === 0) return;
+
+  const details = issues.map((issue) => `${issue.path}: ${issue.message}`).join("; ");
   throw new Error(`D1 seed row failed validation for ${tableName}: ${details}`);
 }
 

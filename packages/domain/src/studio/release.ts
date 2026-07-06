@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../schema-compat.js";
 import {
   StudioDocsEndpointSchema,
   StudioDocsSectionSchema,
@@ -60,7 +60,7 @@ export const StudioCompareResponseSchema = z
     deltas: z
       .object({
         speedMph: z.number(),
-        riderHoursLost: z.number(),
+        riderHoursLost: z.number().nullable(),
         laneCoverage: z.number(),
       })
       .strict(),

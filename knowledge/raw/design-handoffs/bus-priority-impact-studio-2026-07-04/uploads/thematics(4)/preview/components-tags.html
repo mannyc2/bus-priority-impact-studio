@@ -1,0 +1,41 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background)}
+  .ov{font:500 12px var(--font-sans);color:var(--muted-foreground);margin-bottom:10px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--radius-pill);font:500 12px var(--font-sans);border:1px solid transparent;cursor:pointer}
+  .neutral{background:var(--surface-2);color:var(--foreground);border-color:var(--border)}
+  .selected{background:var(--primary-soft);color:var(--primary);border-color:var(--primary-soft-border)}
+  .dot{width:6px;height:6px;border-radius:50%}
+  .filter{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:var(--radius-pill);font:500 13px var(--font-sans);background:var(--background);color:var(--muted-foreground);border:1px solid var(--border)}
+  .filter.active{background:var(--foreground);color:var(--background);border-color:var(--foreground)}
+</style></head><body>
+
+<div class="ov">Subject tags · select to filter a theme</div>
+<div class="row">
+  <span class="chip" style="background:var(--tag-amber-soft);color:var(--tag-amber-ink)"><span class="dot" style="background:var(--tag-amber-ink)"></span>Typography</span>
+  <span class="chip" style="background:var(--tag-emerald-soft);color:var(--tag-emerald-ink)"><span class="dot" style="background:var(--tag-emerald-ink)"></span>Botany</span>
+  <span class="chip" style="background:var(--tag-crimson-soft);color:var(--tag-crimson-ink)"><span class="dot" style="background:var(--tag-crimson-ink)"></span>Cinema</span>
+  <span class="chip" style="background:var(--tag-violet-soft);color:var(--tag-violet-ink)"><span class="dot" style="background:var(--tag-violet-ink)"></span>Philosophy</span>
+  <span class="chip" style="background:var(--tag-ocean-soft);color:var(--tag-ocean-ink)"><span class="dot" style="background:var(--tag-ocean-ink)"></span>Cartography</span>
+</div>
+
+<div class="ov">Neutral chips · counts, statuses</div>
+<div class="row">
+  <span class="chip neutral">14 entries</span>
+  <span class="chip neutral">8 contributors</span>
+  <span class="chip selected">In this theme</span>
+  <span class="chip neutral" style="color:var(--muted-foreground)">Draft</span>
+</div>
+
+<div class="ov">Filter chips · explorer toolbar</div>
+<div class="row">
+  <span class="filter active">All</span>
+  <span class="filter">Themes</span>
+  <span class="filter">Entries</span>
+  <span class="filter">References</span>
+  <span class="filter">Backlinks</span>
+</div>
+
+</body></html>

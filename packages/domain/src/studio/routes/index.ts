@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../../schema-compat.js";
 import { StudioInterventionSchema } from "../interventions.js";
 import { StudioRouteCapabilitySchema } from "../route-capability.js";
 import { RouteDossierSummaryForDetailSchema } from "../route-dossier.js";
@@ -99,12 +99,12 @@ export const StudioRouteSchema = z.preprocess(
       borough: z.string(),
       sbs: z.boolean(),
       speedMph: z.number(),
-      scheduledMph: z.number(),
+      scheduledMph: z.number().nullable(),
       weightedAvgSpeed: z.number(),
-      speedPercentile: z.number(),
+      speedPercentile: z.number().nullable(),
       dailyRiders: z.number(),
-      ridersYoyPct: z.number(),
-      riderHoursLost: z.number(),
+      ridersYoyPct: z.number().nullable(),
+      riderHoursLost: z.number().nullable(),
       laneCoverage: z.number(),
       aceStatus: z.enum(["active", "none"]),
       aceSince: z.string().nullable(),
@@ -112,14 +112,14 @@ export const StudioRouteSchema = z.preprocess(
       reliability: z.string(),
       observedReliability: StudioObservedReliabilitySchema.nullable(),
       diagnosis: z.string(),
-      spark: z.array(z.number()),
+      spark: z.array(z.number()).nullable(),
       termini: z
         .object({
           north: z.string(),
           south: z.string(),
         })
         .strict(),
-      miles: z.number(),
+      miles: z.number().nullable(),
       stops: z.number(),
       flags: z.array(z.string()),
       peerSlug: z.string().nullable(),
@@ -155,7 +155,7 @@ export const StudioSegmentSchema = z.preprocess(
       from: z.string(),
       to: z.string(),
       speedMph: z.number(),
-      scheduledMph: z.number(),
+      scheduledMph: z.number().nullable(),
       riderHours: z.number(),
       lane: z.enum(["yes", "partial", "minimal", "none"]),
       ace: z.boolean(),

@@ -1,20 +1,18 @@
 import { and, desc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
-import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { identity, identitySession, studioActorRole } from "../schema.js";
 
-export const IdentitySessionKindSchema = z.enum(["magic_pending", "session", "legacy_bearer"]);
-export type IdentitySessionKind = z.output<typeof IdentitySessionKindSchema>;
+export const identitySessionKinds = ["magic_pending", "session", "legacy_bearer"] as const;
+export type IdentitySessionKind = (typeof identitySessionKinds)[number];
 
-export const StudioActorScopeSchema = z.enum([
+export const studioActorScopes = [
   "read:briefs",
   "write:briefs",
   "review:briefs",
   "publish:briefs",
   "admin:identities",
-]);
-const StudioActorScopesJsonSchema = z.array(StudioActorScopeSchema);
-export type StudioActorScope = z.output<typeof StudioActorScopeSchema>;
+] as const;
+export type StudioActorScope = (typeof studioActorScopes)[number];
 
 export type IdentityRecord = {
   identityId: string;
@@ -35,29 +33,14 @@ export type OperatorRoleRecord = {
   scopes: StudioActorScope[];
 };
 
-const IdentitySessionLookupRowSchema = z
-  .object({
-    session_id: z.string(),
-    identity_id: z.string(),
-    kind: IdentitySessionKindSchema,
-    email: z.string(),
-    display_name: z.string().nullable(),
-    identity_active: z.number().int(),
-  })
-  .strict();
-
-const OperatorRoleRowSchema = z
-  .object({
-    role_id: z.string(),
-    identity_id: z.string(),
-    workspace_id: z.string(),
-    scopes_json: z.string(),
-  })
-  .strict();
+function isStudioActorScope(value: unknown): value is StudioActorScope {
+  return studioActorScopes.includes(value as StudioActorScope);
+}
 
 function parseScopes(scopesJson: string): StudioActorScope[] {
   try {
-    return StudioActorScopesJsonSchema.parse(JSON.parse(scopesJson));
+    const parsed: unknown = JSON.parse(scopesJson);
+    return Array.isArray(parsed) && parsed.every(isStudioActorScope) ? parsed : [];
   } catch {
     return [];
   }
@@ -90,18 +73,17 @@ export async function getIdentityBySessionTokenHash(
     )
     .limit(1);
   if (row === undefined) return null;
-  const parsed = IdentitySessionLookupRowSchema.parse(row);
-  if (parsed.identity_active !== 1) return null;
+  if (row.identity_active !== 1) return null;
   return {
     identity: {
-      identityId: parsed.identity_id,
-      email: parsed.email,
-      displayName: parsed.display_name,
+      identityId: row.identity_id,
+      email: row.email,
+      displayName: row.display_name,
     },
     session: {
-      sessionId: parsed.session_id,
-      identityId: parsed.identity_id,
-      kind: parsed.kind,
+      sessionId: row.session_id,
+      identityId: row.identity_id,
+      kind: row.kind as IdentitySessionKind,
     },
   };
 }
@@ -121,12 +103,11 @@ export async function getOperatorRoleForIdentity(
     .where(and(eq(studioActorRole.identityId, identityId), eq(studioActorRole.active, true)))
     .limit(1);
   if (row === undefined) return null;
-  const parsed = OperatorRoleRowSchema.parse(row);
   return {
-    roleId: parsed.role_id,
-    identityId: parsed.identity_id,
-    workspaceId: parsed.workspace_id,
-    scopes: parseScopes(parsed.scopes_json),
+    roleId: row.role_id,
+    identityId: row.identity_id,
+    workspaceId: row.workspace_id,
+    scopes: parseScopes(row.scopes_json),
   };
 }
 
@@ -139,14 +120,6 @@ export async function recordSessionUse(
     .set({ lastUsedAt: input.usedAt })
     .where(eq(identitySession.sessionId, input.sessionId));
 }
-
-const IdentityRowSchema = z
-  .object({
-    identity_id: z.string(),
-    email: z.string(),
-    display_name: z.string().nullable(),
-  })
-  .strict();
 
 export async function getIdentityById(
   db: D1ServingDb,
@@ -162,11 +135,10 @@ export async function getIdentityById(
     .where(and(eq(identity.identityId, identityId), eq(identity.active, true)))
     .limit(1);
   if (row === undefined) return null;
-  const parsed = IdentityRowSchema.parse(row);
   return {
-    identityId: parsed.identity_id,
-    email: parsed.email,
-    displayName: parsed.display_name,
+    identityId: row.identity_id,
+    email: row.email,
+    displayName: row.display_name,
   };
 }
 
@@ -184,11 +156,10 @@ export async function getIdentityByEmailNormalized(
     .where(and(eq(identity.emailNormalized, emailNormalized), eq(identity.active, true)))
     .limit(1);
   if (row === undefined) return null;
-  const parsed = IdentityRowSchema.parse(row);
   return {
-    identityId: parsed.identity_id,
-    email: parsed.email,
-    displayName: parsed.display_name,
+    identityId: row.identity_id,
+    email: row.email,
+    displayName: row.display_name,
   };
 }
 
@@ -232,16 +203,6 @@ export async function createMagicLinkRequest(
   return { identityId, created };
 }
 
-const MagicConsumeRowSchema = z
-  .object({
-    session_id: z.string(),
-    identity_id: z.string(),
-    expires_at: z.string().nullable(),
-    consumed_at: z.string().nullable(),
-    revoked_at: z.string().nullable(),
-  })
-  .strict();
-
 export async function consumeMagicLinkRequest(
   db: D1ServingDb,
   input: { tokenHash: string; now: string },
@@ -263,19 +224,16 @@ export async function consumeMagicLinkRequest(
     )
     .limit(1);
   if (row === undefined) return null;
-  const parsed = MagicConsumeRowSchema.parse(row);
-  if (parsed.consumed_at !== null) return null;
-  if (parsed.revoked_at !== null) return null;
-  if (parsed.expires_at !== null && parsed.expires_at <= input.now) return null;
+  if (row.consumed_at !== null) return null;
+  if (row.revoked_at !== null) return null;
+  if (row.expires_at !== null && row.expires_at <= input.now) return null;
   const result = await db
     .update(identitySession)
     .set({ consumedAt: input.now })
-    .where(
-      and(eq(identitySession.sessionId, parsed.session_id), isNull(identitySession.consumedAt)),
-    );
+    .where(and(eq(identitySession.sessionId, row.session_id), isNull(identitySession.consumedAt)));
   const meta = (result as { meta?: { changes?: number } }).meta;
   if (meta?.changes === 0) return null;
-  return { identityId: parsed.identity_id };
+  return { identityId: row.identity_id };
 }
 
 export async function createSession(
@@ -329,17 +287,6 @@ export async function revokeAllSessionsForIdentity(
     );
 }
 
-const IdentitySessionListRowSchema = z
-  .object({
-    session_id: z.string(),
-    kind: IdentitySessionKindSchema,
-    user_agent: z.string().nullable(),
-    expires_at: z.string().nullable(),
-    created_at: z.string(),
-    last_used_at: z.string().nullable(),
-  })
-  .strict();
-
 export type IdentitySessionListEntry = {
   sessionId: string;
   kind: IdentitySessionKind;
@@ -372,14 +319,13 @@ export async function listSessionsForIdentity(
     )
     .orderBy(desc(identitySession.createdAt));
   return rows.map((row) => {
-    const parsed = IdentitySessionListRowSchema.parse(row);
     return {
-      sessionId: parsed.session_id,
-      kind: parsed.kind,
-      userAgent: parsed.user_agent,
-      expiresAt: parsed.expires_at,
-      createdAt: parsed.created_at,
-      lastUsedAt: parsed.last_used_at,
+      sessionId: row.session_id,
+      kind: row.kind as IdentitySessionKind,
+      userAgent: row.user_agent,
+      expiresAt: row.expires_at,
+      createdAt: row.created_at,
+      lastUsedAt: row.last_used_at,
     };
   });
 }

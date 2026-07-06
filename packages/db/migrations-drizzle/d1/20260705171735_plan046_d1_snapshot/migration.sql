@@ -1,0 +1,9 @@
+-- Snapshot-only catch-up for the Drizzle D1 migration cache.
+--
+-- The matching live D1 SQL already exists in packages/db/migrations/d1:
+-- 0027_snapshot_coverage.sql creates route_speed_history_coverage and
+-- source_month_coverage, 0028_route_timeline_index.sql creates
+-- route_timeline_index, and 0029/0030 drop the retired studio_brief_* tables.
+--
+-- Do not apply the create/drop SQL that Drizzle generated while reconciling
+-- from the stale 20260602191203_perpetual_banshee snapshot.

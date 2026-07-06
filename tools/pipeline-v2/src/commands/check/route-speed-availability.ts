@@ -9,7 +9,7 @@ import {
 } from "@bp/analytics/evaluation";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { writeJson } from "../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import {

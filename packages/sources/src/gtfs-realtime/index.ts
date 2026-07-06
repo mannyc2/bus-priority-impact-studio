@@ -1,5 +1,5 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import { schemaVersion } from "../core/index.js";
 import {
   createDefaultGtfsRealtimeDecoder,
@@ -246,7 +246,7 @@ export function normalizeGtfsRealtimeRouteId(value: unknown): string | null {
     return null;
   }
 
-  return z.decode(RouteIdCodec, routeId);
+  return RouteIdCodec.parse(routeId);
 }
 
 function commonTripFields(trip: PlainTripDescriptor | undefined) {

@@ -1,5 +1,5 @@
 import { updateTrafficVolumeGeocode } from "@bp/db/local";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import {
   createGeoclientFromEnv,

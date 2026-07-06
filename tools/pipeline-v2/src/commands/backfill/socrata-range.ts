@@ -6,7 +6,7 @@
  * tasks in flight at once.
  */
 import { spawn } from "node:child_process";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { fromRepoRoot } from "../../lib/paths.ts";
 
 type Task = { source: string; year: number; month: number; label: string };

@@ -1,6 +1,6 @@
 import { replaceBusWaitAssessmentRows } from "@bp/db/local";
 import { normalizeBusWaitAssessmentRows } from "@bp/sources/adapters/mta/bus-wait-assessment";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";

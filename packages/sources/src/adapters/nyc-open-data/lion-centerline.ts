@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
@@ -73,26 +73,26 @@ export function normalizeLionSegmentRows(rows: SocrataRow[]): NormalizedLionSegm
   return rows
     .map((row) => {
       const p = RawCenterlineRowSchema.parse(row);
-      const streetName = p.full_street_name ?? p.street_name;
-      const borough = p.borough_indicator ?? p.boroughcode;
+      const streetName = p.full_street_name ?? p.street_name ?? null;
+      const borough = p.borough_indicator ?? p.boroughcode ?? null;
       return {
         schemaVersion,
         physicalId: p.physicalid,
-        streetCodeMaster: p.b5sc,
+        streetCodeMaster: p.b5sc ?? null,
         streetName,
         borough,
-        boroughCode: p.boroughcode,
-        leftLowHouseNumber: p.l_low_hn,
-        leftHighHouseNumber: p.l_high_hn,
-        rightLowHouseNumber: p.r_low_hn,
-        rightHighHouseNumber: p.r_high_hn,
-        l_zip: p.l_zip,
-        r_zip: p.r_zip,
+        boroughCode: p.boroughcode ?? null,
+        leftLowHouseNumber: p.l_low_hn ?? null,
+        leftHighHouseNumber: p.l_high_hn ?? null,
+        rightLowHouseNumber: p.r_low_hn ?? null,
+        rightHighHouseNumber: p.r_high_hn ?? null,
+        l_zip: p.l_zip ?? null,
+        r_zip: p.r_zip ?? null,
         rwTypeCode: p.rw_type === undefined ? null : p.rw_type,
         rwTypeDesc: null,
-        trafficDir: p.trafdir,
-        shapeLength: p.segmentlength,
-        wktGeom: p.the_geom,
+        trafficDir: p.trafdir ?? null,
+        shapeLength: p.segmentlength ?? null,
+        wktGeom: p.the_geom ?? null,
       } satisfies NormalizedLionSegment;
     })
     .sort((a, b) => a.physicalId.localeCompare(b.physicalId));

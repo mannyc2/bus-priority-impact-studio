@@ -1,0 +1,40 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background)}
+  .figure{max-width:680px}
+  .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .card{background:var(--background);border:1px solid var(--border);border-radius:var(--radius-xl);padding:20px;position:relative;display:flex;flex-direction:column;gap:10px}
+  .card.recommended{border-color:var(--primary)}
+  .recommended-label{font:500 12px var(--font-sans);color:var(--primary);letter-spacing:-0.005em}
+  .icon{display:inline-flex;width:24px;height:24px;color:var(--foreground)}
+  .icon svg{width:20px;height:20px}
+  .title{font:600 17px/1.3 var(--font-serif);letter-spacing:-0.008em;color:var(--foreground);margin:0}
+  .desc{font:400 14px/1.55 var(--font-serif);color:var(--muted-foreground);margin:0;flex:1}
+  .meta{font:400 13px var(--font-sans);color:var(--muted-foreground);margin:0;font-style:italic}
+  figcaption{font:italic 400 14px/1.5 var(--font-serif);color:var(--muted-foreground);margin-top:14px;max-width:560px}
+</style></head><body>
+<figure class="figure" style="margin:0">
+  <div class="cards">
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
+      <h3 class="title">Read in order</h3>
+      <p class="desc">Follow the curated sequence. Each entry assumes the last; cross-references introduced gradually.</p>
+      <p class="meta">Roughly an hour and a half.</p>
+    </div>
+    <div class="card recommended">
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div><span class="recommended-label">Recommended</span></div>
+      <h3 class="title">Skim and dive</h3>
+      <p class="desc">A guided overview entry first; jump to detail entries through the crossrefs that catch your eye.</p>
+      <p class="meta">Variable, usually thirty to forty minutes.</p>
+    </div>
+    <div class="card">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+      <h3 class="title">Search-led</h3>
+      <p class="desc">Skip the structure. Open the search and follow whichever entry first answers the question you brought.</p>
+      <p class="meta">As short as a single page.</p>
+    </div>
+  </div>
+  <figcaption>Three ways into a theme. The recommended option carries a hairline blue border and an inline label — never a floating badge.</figcaption>
+</figure>
+</body></html>

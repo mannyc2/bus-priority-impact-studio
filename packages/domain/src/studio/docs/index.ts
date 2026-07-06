@@ -1,14 +1,22 @@
-import * as z from "zod";
+import * as z from "../../schema-compat.js";
 import { StudioQualitySchema } from "../shared.js";
 
 export const StudioMethodDatasetSchema = z
   .object({
+    sourceId: z.string().min(1),
     name: z.string(),
     publisher: z.string(),
     grain: z.string(),
     cadence: z.string(),
+    description: z.string(),
+    rowCount: z.number().int().nonnegative(),
+    rowLabel: z.string(),
+    period: z.string(),
+    schemaKeys: z.array(z.string()),
+    method: z.string(),
+    sourceRefCount: z.number().int().nonnegative(),
   })
-  .strip();
+  .strict();
 
 export const StudioMethodsResponseSchema = z
   .object({

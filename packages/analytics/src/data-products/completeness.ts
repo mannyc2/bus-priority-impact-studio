@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "@bp/domain/schema-compat";
 import type {
   DataProduct,
   DataProductCheck,

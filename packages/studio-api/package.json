@@ -21,8 +21,7 @@
   "dependencies": {
     "@bp/db": "workspace:*",
     "@bp/domain": "workspace:*",
-    "@nyc-transit-kit/compat": "catalog:",
-    "zod": "catalog:"
+    "@nyc-transit-kit/compat": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",

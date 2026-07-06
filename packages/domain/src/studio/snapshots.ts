@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "../schema-compat.js";
 import { StudioRouteCapabilitySchema } from "./route-capability.js";
 import { StudioRouteHistoryCoverageSchema } from "./routes/index.js";
 import { StudioQualitySchema } from "./shared.js";

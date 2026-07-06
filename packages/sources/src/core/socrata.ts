@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 export const SocrataDatasetIdSchema = z
   .string()

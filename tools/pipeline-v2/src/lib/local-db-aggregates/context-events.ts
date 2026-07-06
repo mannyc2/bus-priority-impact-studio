@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { type LocalContextEvent, type LocalPipelineDb, upsertContextEvents } from "@bp/db/local";
-import { z } from "zod";
+import * as z from "@bp/domain/schema-compat";
 
 export type BuildContextEventsResult = {
   inserted311: number;

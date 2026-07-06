@@ -111,6 +111,8 @@ describe("RoutePublicKpiStrip", () => {
 
     expect(markup).toContain("5.8");
     expect(markup).toContain("slower than 82% of peers");
+    expect(markup).toContain("Where &amp; when →");
+    expect(markup).toContain("Riders →");
     expect(markup.indexOf("5.8")).toBeLessThan(markup.indexOf("slower than 82% of peers"));
   });
 });

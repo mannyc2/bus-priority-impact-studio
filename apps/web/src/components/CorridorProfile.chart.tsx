@@ -38,7 +38,7 @@ export type CorridorProfileChartProps = {
   rows: readonly CorridorRow[];
   lo: number;
   hi: number;
-  scheduledTarget: number;
+  scheduledTarget: number | null;
 };
 
 export function CorridorProfileChart({ rows, lo, hi, scheduledTarget }: CorridorProfileChartProps) {
@@ -86,26 +86,30 @@ export function CorridorProfileChart({ rows, lo, hi, scheduledTarget }: Corridor
               formatter={(value) => (typeof value === "number" ? value.toFixed(1) : value)}
             />
           </Bar>
-          <ReferenceLine
-            x={scheduledTarget}
-            stroke="var(--bp-color-ink-55)"
-            strokeDasharray="4 3"
-            strokeWidth={1.25}
-            label={{
-              value: `scheduled ${scheduledTarget.toFixed(1)}`,
-              position: "top",
-              fill: "var(--bp-color-ink-55)",
-              fontSize: 10,
-              fontWeight: 600,
-            }}
-          />
+          {scheduledTarget === null ? null : (
+            <ReferenceLine
+              x={scheduledTarget}
+              stroke="var(--bp-color-ink-55)"
+              strokeDasharray="4 3"
+              strokeWidth={1.25}
+              label={{
+                value: `scheduled ${scheduledTarget.toFixed(1)}`,
+                position: "top",
+                fill: "var(--bp-color-ink-55)",
+                fontSize: 10,
+                fontWeight: 600,
+              }}
+            />
+          )}
         </BarChart>
       </ChartContainer>
       <ChartLegendContent
         className="flex-wrap"
         items={[
           ...SPEED_BANDS,
-          { label: "scheduled", shape: "dashed", color: "var(--bp-color-ink-55)" },
+          ...(scheduledTarget === null
+            ? []
+            : [{ label: "scheduled", shape: "dashed" as const, color: "var(--bp-color-ink-55)" }]),
         ]}
       />
     </div>
@@ -146,7 +150,7 @@ type TooltipLike = {
 function CorridorTooltip({ active, payload }: TooltipLike) {
   const row = active ? payload?.[0]?.payload : undefined;
   if (!row) return null;
-  const delta = row.observed - row.scheduled;
+  const delta = row.scheduled === null ? null : row.observed - row.scheduled;
   const treatments = [
     row.lane === "yes" ? "Bus lane" : row.lane === "none" ? null : `Bus lane (${row.lane})`,
     row.ace ? "ACE" : null,
@@ -163,8 +167,12 @@ function CorridorTooltip({ active, payload }: TooltipLike) {
         value={`${row.observed.toFixed(1)} mph`}
         color={bandColor(SPEED_BANDS, row.observed)}
       />
-      <Stat label="Scheduled" value={`${row.scheduled.toFixed(1)} mph`} />
-      <Stat label="vs scheduled" value={`${delta >= 0 ? "+" : ""}${delta.toFixed(1)} mph`} />
+      {row.scheduled === null ? null : (
+        <Stat label="Scheduled" value={`${row.scheduled.toFixed(1)} mph`} />
+      )}
+      {delta === null ? null : (
+        <Stat label="vs scheduled" value={`${delta >= 0 ? "+" : ""}${delta.toFixed(1)} mph`} />
+      )}
       <Stat label="Rider-hours lost" value={row.riderHours.toLocaleString()} />
       <div className="mt-0.5 border-t border-[var(--bp-color-rule)] pt-1.5 text-[10.5px] text-[var(--bp-color-ink-55)]">
         {treatments.length ? treatments.join(" · ") : "No segment-level treatments"}
