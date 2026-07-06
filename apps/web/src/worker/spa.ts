@@ -15,7 +15,7 @@ export function canServeSpaFallback(request: Request, url: URL): boolean {
 
 const publicStudioPathPatterns = [
   /^\/$/,
-  /^\/(?:interventions|map|methods)\/?$/,
+  /^\/(?:interventions|map|methods|routes)\/?$/,
   /^\/routes\/[^/]+\/?$/,
 ] as const;
 

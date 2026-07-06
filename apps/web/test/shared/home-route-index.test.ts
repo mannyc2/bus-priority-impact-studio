@@ -1,6 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import type { StudioRoute } from "../../src/studio/api-contract";
 import {
   filterRoutesForIndex,
@@ -8,7 +6,6 @@ import {
   orderRoutesForIndex,
   ROUTE_INDEX_ALL_BOROUGHS,
 } from "../../src/studio/home-route-index";
-import { HomeRoleCards, HomeTrustStrip } from "../../src/studio/pages/home";
 
 function route(input: {
   slug: string;
@@ -121,26 +118,5 @@ describe("home route index helpers", () => {
       { borough: "Brooklyn", routes: ["b41"] },
       { borough: "Queens", routes: ["q58"] },
     ]);
-  });
-
-  test("renders public role cards and trust strip with served counts", () => {
-    const roleMarkup = renderToStaticMarkup(
-      createElement(HomeRoleCards, { flagshipRouteSlug: "m15-sbs" }),
-    );
-    const trustMarkup = renderToStaticMarkup(
-      createElement(HomeTrustStrip, {
-        routeCount: 381,
-        sourceGroupCount: 7,
-        generatedLabel: "Jul 3, 2026",
-      }),
-    );
-
-    expect(roleMarkup).toContain("If you ride the bus");
-    expect(roleMarkup).toContain("If you plan service");
-    expect(roleMarkup).toContain("If you report on transit");
-    expect(roleMarkup).toContain("/routes/m15-sbs");
-    expect(trustMarkup).toContain("381 route pages");
-    expect(trustMarkup).toContain("7 methods source groups");
-    expect(trustMarkup).toContain("Methods and source catalog");
   });
 });

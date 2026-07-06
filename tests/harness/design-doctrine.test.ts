@@ -35,19 +35,15 @@ const ALLOWLIST: Record<"interpunct" | "kicker" | "phrase", readonly string[]> =
     "components/route/RouteMapLibre.map.tsx", // 055
     "components/route/RoutePublicAtoms.tsx", // 053
     "components/route/reliability-summary.ts", // 056
-    "studio/pages/home.tsx", // 051
   ],
   kicker: [
     "components/route/RouteInsightList.tsx", // 054
     "components/route/RouteMapSection.tsx", // 053/055
     "components/route/RoutePublicAtoms.tsx", // 053
     "components/route/RouteVerdictLede.tsx", // 053
-    "studio/pages/home.tsx", // 051
     "studio/pages/network-map.tsx", // 059
   ],
-  phrase: [
-    "studio/pages/home.tsx", // 051
-  ],
+  phrase: [],
 };
 
 type SrcFile = { rel: string; text: string };

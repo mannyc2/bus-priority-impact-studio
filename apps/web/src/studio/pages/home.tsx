@@ -1,28 +1,18 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { type ReactNode, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { RouteBadge } from "@/components/RouteBadge";
 import { type AutocompleteSuggestion, SearchAutocomplete } from "@/components/SearchAutocomplete";
-import { SearchField } from "@/components/SearchField";
-import { Spark } from "@/components/Spark";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { StudioRoute } from "../api-contract.js";
-import {
-  filterRoutesForIndex,
-  groupRoutesForIndex,
-  orderRoutesForIndex,
-  ROUTE_INDEX_ALL_BOROUGHS,
-  ROUTE_INDEX_BOROUGHS,
-  type RouteIndexBorough,
-} from "../home-route-index.js";
+import { orderRoutesForIndex } from "../home-route-index.js";
+import { formatRiders, RouteIndexRow } from "./routes-directory.js";
 
-// home.tsx - the studio's public front door: hero -> big stats -> narrative
-// route cards -> route index -> trust strip.
+// home.tsx - the studio's public front door: a short, neutral, search-first
+// page. Hero (search + top-5 chips) -> static citywide topline -> top-15 route
+// preview -> footer. The full grouped/filterable index lives at /routes.
 //
-// Editorial copy and the citywide topline numbers are static civic framing;
-// the "Browse the full index" table, its borough filter, the featured-route
-// links, and the hero suggestion chips are driven by the live route listing
-// (the same /api/v1/studio/routes feed the loader already provides), shown as
-// a grouped directory sorted by daily ridership.
+// The citywide topline numbers ("88", "11.4M", borough mph) are static
+// editorial copy by decision; only routeCount is data-driven.
 
 type Tone = "bad" | "good" | "warn" | "neutral";
 
@@ -32,49 +22,6 @@ const toneColor: Record<Tone, string> = {
   warn: "var(--bp-color-warn)",
   neutral: "var(--bp-color-ink-70)",
 };
-
-const toneBg: Record<Tone, string> = {
-  bad: "var(--bp-color-bad-bg)",
-  good: "var(--bp-color-good-bg)",
-  warn: "var(--bp-color-warn-bg)",
-  neutral: "var(--bp-color-ink-06)",
-};
-
-const boroughStripe: Record<string, string> = {
-  Manhattan: "var(--bp-route-manhattan)",
-  Bronx: "var(--bp-route-bronx)",
-  Brooklyn: "var(--bp-route-brooklyn)",
-  Queens: "var(--bp-route-queens)",
-  "Staten Island": "var(--bp-route-si)",
-};
-
-const boroughs = [ROUTE_INDEX_ALL_BOROUGHS, ...ROUTE_INDEX_BOROUGHS] as const;
-const ROUTE_DIRECTORY_ID = "route-index";
-
-function formatRiders(n: number): string {
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
-}
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.valueOf())) return value;
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function trendStatus(movement6mPct: number | null): { status: string; tone: Tone } {
-  if (movement6mPct === null) return { status: "No trend", tone: "neutral" };
-  if (movement6mPct > 0.05) return { status: "Improving", tone: "good" };
-  if (movement6mPct < -0.05) return { status: "Declining", tone: "bad" };
-  return { status: "Steady", tone: "warn" };
-}
-
-// ─────────────────────────────────────────────────────────────
-// Atoms — kept local to match the design's editorial styling.
-// ─────────────────────────────────────────────────────────────
 
 function BigStat({
   value,
@@ -114,328 +61,9 @@ function BigStat({
   );
 }
 
-function SectionHeader({
-  kicker,
-  title,
-  sub,
-  right,
-}: {
-  kicker: string;
-  title: string;
-  sub?: string;
-  right?: ReactNode;
-}) {
-  return (
-    <div className="mb-5.5 flex items-end justify-between gap-6 max-md:flex-col max-md:items-start">
-      <div className="min-w-0 flex-1">
-        <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--bp-color-ink-55)]">
-          {kicker}
-        </div>
-        <div className="max-w-[820px] text-balance text-[26px] font-semibold leading-[1.15] tracking-[-0.022em]">
-          {title}
-        </div>
-        {sub ? (
-          <div className="mt-2.5 max-w-[720px] text-pretty text-[15px] leading-[1.55] text-[var(--bp-color-ink-70)]">
-            {sub}
-          </div>
-        ) : null}
-      </div>
-      {right ? <div className="shrink-0 max-md:w-full">{right}</div> : null}
-    </div>
-  );
-}
-
-type Featured = {
-  label: string;
-  sbs: boolean;
-  borough: keyof typeof boroughStripe;
-  kicker: string;
-  status: string;
-  statusTone: Tone;
-  headline: string;
-  body: string;
-  mph: string;
-  delta14mo: string;
-  riders: string;
-};
-
-const FEATURED: readonly Featured[] = [
-  {
-    label: "M15",
-    sbs: true,
-    borough: "Manhattan",
-    kicker: "THE OUTLIER",
-    status: "Declining",
-    statusTone: "bad",
-    headline: "The slowest Select Bus in Manhattan, and it's still getting slower.",
-    body: "The M15 has every tool the city uses to speed up buses — concrete and painted lanes on 72% of its route, all-day camera enforcement, signal priority at four in ten intersections. Six of eight comparable routes sped up after enforcement turned on. This one didn't. Madison Avenue is the reason.",
-    mph: "6.3",
-    delta14mo: "−1.6",
-    riders: "42.1K",
-  },
-  {
-    label: "Bx12",
-    sbs: true,
-    borough: "Bronx",
-    kicker: "THE COUNTER-EXAMPLE",
-    status: "Improving",
-    statusTone: "good",
-    headline: "The route that figured it out — and stayed faster three years later.",
-    body: "The Bx12 SBS got concrete-buffered lanes on Fordham Road in 2022, all-day enforcement in 2024, and signal priority at every major intersection by mid-2025. Speed rose 0.8 mph and hasn't backslid since. The closest thing the city has to a controlled experiment in stacked bus priority.",
-    mph: "6.9",
-    delta14mo: "+0.4",
-    riders: "41.0K",
-  },
-  {
-    label: "B41",
-    sbs: false,
-    borough: "Brooklyn",
-    kicker: "THE UNTOUCHED CORRIDOR",
-    status: "Declining",
-    statusTone: "bad",
-    headline: "Flatbush Avenue has lost a mile per hour, and nothing has been tried.",
-    body: "Twenty-five thousand riders a day, no bus lane, no enforcement program, no signal priority. The B41 is what the studio's data looks like in absence of any intervention at all. The slowdown is the steadiest of any corridor we track.",
-    mph: "5.1",
-    delta14mo: "−1.0",
-    riders: "24.8K",
-  },
-];
-
-function FeaturedCard({ item, slug }: { item: Featured; slug: string | undefined }) {
-  const deltaNegative = item.delta14mo.startsWith("−") || item.delta14mo.startsWith("-");
-  return (
-    <div className="grid grid-cols-[6px_1fr] overflow-hidden rounded-[4px] bg-[var(--bp-color-card)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
-      <div style={{ background: boroughStripe[item.borough] }} />
-      <div className="flex flex-col gap-3.5 px-6 pb-5.5 pt-6">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <RouteBadge route={item.label} sbs={item.sbs} size="md" />
-          <span className="font-mono text-[10.5px] font-bold tracking-[0.06em] text-[var(--bp-color-ink-55)]">
-            {item.kicker}
-          </span>
-          <span className="flex-1" />
-          <span
-            className="rounded-[2px] px-2 py-[3px] text-[10.5px] font-bold uppercase tracking-[0.06em]"
-            style={{ color: toneColor[item.statusTone], background: toneBg[item.statusTone] }}
-          >
-            {item.status}
-          </span>
-        </div>
-        <div className="text-pretty text-[19px] font-semibold leading-[1.25] tracking-[-0.015em]">
-          {item.headline}
-        </div>
-        <div className="min-h-[80px] flex-1 text-pretty text-[13px] leading-[1.6] text-[var(--bp-color-ink-70)]">
-          {item.body}
-        </div>
-        <div className="grid grid-cols-3 gap-3.5 pt-3.5 shadow-[inset_0_1px_0_var(--bp-color-rule)]">
-          <FeaturedStat label="Current">
-            <span className="font-mono text-[18px] font-semibold tabular-nums leading-none tracking-[-0.02em]">
-              {item.mph}
-              <span className="ml-0.5 text-[10.5px] text-[var(--bp-color-ink-55)]">mph</span>
-            </span>
-          </FeaturedStat>
-          <FeaturedStat label="14-mo Δ">
-            <span
-              className="font-mono text-[18px] font-semibold tabular-nums leading-none tracking-[-0.02em]"
-              style={{ color: deltaNegative ? "var(--bp-color-bad)" : "var(--bp-color-good)" }}
-            >
-              {item.delta14mo}
-              <span className="ml-0.5 text-[10.5px] text-[var(--bp-color-ink-55)]">mph</span>
-            </span>
-          </FeaturedStat>
-          <FeaturedStat label="Riders / day">
-            <span className="font-mono text-[18px] font-semibold tabular-nums leading-none tracking-[-0.02em]">
-              {item.riders}
-            </span>
-          </FeaturedStat>
-        </div>
-        {slug ? (
-          <Link
-            to="/routes/$routeId"
-            params={{ routeId: slug }}
-            viewTransition
-            className="mt-1 flex items-center gap-1 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
-          >
-            Read the full story →
-          </Link>
-        ) : (
-          <a
-            href="#route-index"
-            className="mt-1 flex items-center gap-1 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
-          >
-            Find it in the index &rarr;
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function FeaturedStat({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <div className="mb-[3px] text-[9.5px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-40)]">
-        {label}
-      </div>
-      <div className="leading-none">{children}</div>
-    </div>
-  );
-}
-
-function RoleCard({
-  persona,
-  body,
-  links,
-}: {
-  persona: string;
-  body: string;
-  links: readonly { href: string; label: string }[];
-}) {
-  return (
-    <article className="flex min-h-[200px] flex-col gap-3 rounded-[4px] bg-[var(--bp-color-card)] px-6 py-5.5 shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
-      <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--bp-color-accent)]">
-        {persona}
-      </div>
-      <p className="m-0 flex-1 text-pretty text-[13.5px] leading-[1.6] text-[var(--bp-color-ink-70)]">
-        {body}
-      </p>
-      <div className="mt-1 flex flex-col gap-1.5">
-        {links.map((link) => (
-          <a
-            key={`${persona}:${link.href}:${link.label}`}
-            href={link.href}
-            className="flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--bp-color-ink)] no-underline"
-          >
-            <span className="text-[var(--bp-color-accent)]" aria-hidden>
-              &rarr;
-            </span>
-            {link.label}
-          </a>
-        ))}
-      </div>
-    </article>
-  );
-}
-
-export function HomeRoleCards({ flagshipRouteSlug }: { flagshipRouteSlug: string }) {
-  return (
-    <div className="grid grid-cols-3 gap-4.5 max-lg:grid-cols-1">
-      <RoleCard
-        persona="If you ride the bus"
-        body="Look up your route. Each route page tells you how fast it is moving now, how that compares to what the schedule promises, and where on the line the worst slowdowns happen."
-        links={[
-          { href: `/routes/${flagshipRouteSlug}`, label: "Open a flagship route" },
-          { href: "#route-index", label: "Browse routes by borough" },
-          { href: "/interventions", label: "See what is changing this month" },
-        ]}
-      />
-      <RoleCard
-        persona="If you plan service"
-        body="Use the route index and map to compare corridors, then open a route page for segment-level speeds, rider burden, treatment posture, and honest empty states."
-        links={[
-          { href: "/map", label: "Scan the network map" },
-          { href: "#route-index", label: "Compare route pages" },
-          { href: "/methods", label: "Check the data grain" },
-        ]}
-      />
-      <RoleCard
-        persona="If you report on transit"
-        body="Use the methods page and cited route evidence to see which numbers are public-serving projections, which claims are wiki-backed, and which gaps remain unresolved."
-        links={[
-          { href: "/methods", label: "Read methodology in full" },
-          { href: "/interventions", label: "Browse intervention timelines" },
-          {
-            href: "https://github.com/mannyc2/bus-priority-impact-studio",
-            label: "Open the project repository",
-          },
-        ]}
-      />
-    </div>
-  );
-}
-
-export function HomeTrustStrip({
-  routeCount,
-  sourceGroupCount,
-  generatedLabel,
-}: {
-  routeCount: number;
-  sourceGroupCount: number;
-  generatedLabel: string;
-}) {
-  return (
-    <section className="mt-16 bg-[var(--bp-color-ink)] text-[var(--bp-color-paper)]">
-      <div className="mx-auto grid max-w-[1180px] grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)] gap-10 px-9 py-12 max-lg:grid-cols-1 max-sm:px-4">
-        <div>
-          <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgba(244,241,234,0.62)]">
-            How we know this
-          </div>
-          <h2 className="m-0 max-w-[760px] text-balance text-[30px] font-semibold leading-[1.12] tracking-[-0.02em]">
-            Public projections, source labels, and route pages that say when evidence is thin.
-          </h2>
-          <p className="m-0 mt-3 max-w-[760px] text-pretty text-[14px] leading-[1.65] text-[rgba(244,241,234,0.72)]">
-            The current public release serves {routeCount.toLocaleString("en-US")} route pages and{" "}
-            {sourceGroupCount.toLocaleString("en-US")} methods source groups. Pages link back to
-            methods, cited route evidence, and the code that builds the projections.
-          </p>
-        </div>
-        <div className="grid content-end gap-2.5 text-[13px]">
-          <TrustLink href="/methods" label="Methods and source catalog" />
-          <TrustLink href="/interventions" label="Intervention evidence timeline" />
-          <TrustLink
-            href="https://github.com/mannyc2/bus-priority-impact-studio"
-            label="GitHub repository"
-          />
-          <div className="pt-2 font-mono text-[11px] text-[rgba(244,241,234,0.55)]">
-            route feed generated {generatedLabel}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function TrustLink({ href, label }: { href: string; label: string }) {
-  return (
-    <a
-      href={href}
-      className="flex items-center justify-between gap-4 rounded-[3px] px-3 py-2 text-[var(--bp-color-paper)] no-underline shadow-[inset_0_0_0_1px_rgba(244,241,234,0.18)] transition-colors hover:bg-[rgba(244,241,234,0.08)]"
-    >
-      <span>{label}</span>
-      <span className="text-[rgba(244,241,234,0.55)]" aria-hidden>
-        &rarr;
-      </span>
-    </a>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// HomePage
-// ─────────────────────────────────────────────────────────────
-
-export function HomePage({
-  generatedAt,
-  routes,
-  sourceGroupCount,
-}: {
-  generatedAt: string;
-  routes: readonly StudioRoute[];
-  sourceGroupCount: number;
-}) {
+export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
   const navigate = useNavigate();
-  const [borough, setBorough] = useState<typeof ROUTE_INDEX_ALL_BOROUGHS | RouteIndexBorough>(
-    ROUTE_INDEX_ALL_BOROUGHS,
-  );
-  const [routeFilter, setRouteFilter] = useState("");
   const routeCount = routes.length;
-
-  const slugByLabel = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const r of routes) {
-      const key = r.label.toLowerCase();
-      if (!map.has(key)) map.set(key, r.slug);
-    }
-    return map;
-  }, [routes]);
 
   const byRidership = useMemo(() => orderRoutesForIndex(routes), [routes]);
 
@@ -455,23 +83,11 @@ export function HomePage({
     [byRidership],
   );
 
-  const filteredRoutes = useMemo(
-    () => filterRoutesForIndex(byRidership, { borough, query: routeFilter }),
-    [borough, byRidership, routeFilter],
-  );
-  const routeGroups = useMemo(() => groupRoutesForIndex(filteredRoutes), [filteredRoutes]);
-
   const heroChips = byRidership.slice(0, 5);
-  const generatedLabel = formatDate(generatedAt);
-  const flagshipRouteSlug =
-    slugByLabel.get("m15") ?? slugByLabel.get("m15 sbs") ?? byRidership[0]?.slug ?? "m15-sbs";
+  const previewRoutes = byRidership.slice(0, 15);
+
   function submitHeroQuery(query: string) {
-    setBorough(ROUTE_INDEX_ALL_BOROUGHS);
-    setRouteFilter(query);
-    document.getElementById(ROUTE_DIRECTORY_ID)?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    navigate({ to: "/routes", search: { q: query } });
   }
 
   return (
@@ -480,25 +96,22 @@ export function HomePage({
       <section className="bg-[var(--bp-color-card)] shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
         <div className="mx-auto grid max-w-[1180px] grid-cols-[1.6fr_1fr] items-end gap-14 px-9 pb-16 pt-[72px] max-lg:grid-cols-1 max-lg:gap-10 max-sm:px-4 max-sm:pb-10 max-sm:pt-12">
           <div>
-            <div className="mb-4.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--bp-color-accent)]">
-              Bus Priority Impact Studio · A civic data project
-            </div>
             <h1 className="m-0 max-w-[900px] text-balance text-[52px] font-semibold leading-[1.05] tracking-[-0.03em] max-sm:text-[36px]">
-              We track every bus route in New York that should be moving faster than it is.
+              Speed and reliability for every NYC bus route.
             </h1>
             <p className="mt-5.5 max-w-[720px] text-pretty text-[18px] leading-[1.55] text-[var(--bp-color-ink-70)]">
-              The city has spent the last fifteen years building tools to speed up its slowest buses
-              — bus lanes, automated camera enforcement, signal priority. Some routes have moved
-              faster because of it. Others have kept slowing down. This site tracks every route the
-              program has touched, route by route, in plain numbers, from public data.
+              Bus Priority Impact Studio tracks monthly speeds, slow segments, ridership, and
+              documented street treatments for {routeCount} routes — built from public MTA and NYC
+              DOT data.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3.5">
-              <a
-                href="#route-index"
+              <Link
+                to="/routes"
+                viewTransition
                 className="inline-flex h-11 items-center justify-center rounded-[3px] border border-[var(--bp-color-ink)] bg-[var(--bp-color-ink)] px-4.5 text-[13.5px] font-medium text-[var(--bp-color-paper)] no-underline transition-colors hover:bg-[var(--bp-color-ink)]/90"
               >
-                Browse all {routeCount} routes &rarr;
-              </a>
+                Browse all {routeCount} routes →
+              </Link>
               <Link
                 to="/interventions"
                 viewTransition
@@ -506,18 +119,12 @@ export function HomePage({
               >
                 Browse interventions
               </Link>
-              <span className="flex-1" />
-              <span className="font-mono text-[12px] text-[var(--bp-color-ink-55)]">
-                route feed generated {generatedLabel}
-              </span>
             </div>
           </div>
 
           {/* Right rail: find a route */}
           <div className="rounded-[4px] bg-[var(--bp-color-paper-deep)] px-6 pb-5.5 pt-6 shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
-            <div className="mb-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--bp-color-ink-55)]">
-              Find a route
-            </div>
+            <div className="mb-3.5 text-[15px] font-semibold tracking-[-0.005em]">Find a route</div>
             <SearchAutocomplete
               placeholder="Route number, street, or borough…"
               suggestions={heroSuggestions}
@@ -546,11 +153,9 @@ export function HomePage({
 
       {/* ── CITYWIDE TOPLINE ─────────────────────────────────── */}
       <section className="mx-auto max-w-[1180px] px-9 pb-3 pt-14 max-sm:px-4">
-        <SectionHeader
-          kicker="The picture today"
-          title="What the data says about New York's buses right now."
-          sub={`Numbers below pair the current ${routeCount}-route index with route-level speed, ridership, treatment, and reliability signals.`}
-        />
+        <h2 className="max-w-[820px] text-balance text-[26px] font-semibold leading-[1.15] tracking-[-0.022em]">
+          The system today
+        </h2>
         <div className="mt-6 grid grid-cols-4 gap-9 max-lg:grid-cols-2 max-sm:grid-cols-1">
           <BigStat
             value={String(routeCount)}
@@ -574,88 +179,17 @@ export function HomePage({
             value="6.1"
             unit="mph"
             label="Median bus speed in the Bronx, the slowest borough"
-            sub="Manhattan: 6.4 mph · Brooklyn: 6.6 · Queens: 7.2 · Staten Island: 9.8."
+            sub="Manhattan averages 6.4, Brooklyn 6.6, Queens 7.2, and Staten Island 9.8 mph."
           />
         </div>
       </section>
 
-      {/* ── IN FOCUS THIS MONTH ──────────────────────────────── */}
-      <section className="mx-auto max-w-[1180px] px-9 pb-5 pt-[72px] max-sm:px-4 max-sm:pt-12">
-        <SectionHeader
-          kicker="In focus this month"
-          title="Three routes telling three different stories."
-          sub="Each links to a route page with charts, segments, intervention history, and methodology."
-          right={
-            <Link
-              to="/interventions"
-              viewTransition
-              className="whitespace-nowrap text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
-            >
-              See intervention timeline &rarr;
-            </Link>
-          }
-        />
-        <div className="grid grid-cols-3 gap-4.5 max-lg:grid-cols-1">
-          {FEATURED.map((item) => (
-            <FeaturedCard
-              key={item.label}
-              item={item}
-              slug={slugByLabel.get(item.label.toLowerCase())}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ── BROWSE THE FULL INDEX ────────────────────────────── */}
-      <section
-        id={ROUTE_DIRECTORY_ID}
-        className="mx-auto max-w-[1180px] scroll-mt-20 px-9 pb-3 pt-[72px] max-sm:px-4 max-sm:pt-12"
-      >
-        <SectionHeader
-          kicker="Every route"
-          title="Browse the full index."
-          sub="Sorted by daily ridership. Narrow by borough or route text; trend status uses the measured six-month speed movement when available."
-          right={
-            <div className="flex w-[420px] max-w-full flex-col gap-2 max-md:w-full">
-              <div className="flex flex-wrap justify-end gap-1.5 max-md:justify-start">
-                {boroughs.map((b) => (
-                  <button
-                    key={b}
-                    type="button"
-                    onClick={() => setBorough(b)}
-                    aria-pressed={borough === b}
-                    aria-label={
-                      b === ROUTE_INDEX_ALL_BOROUGHS ? "Show all boroughs" : `Filter to ${b}`
-                    }
-                    className="cursor-pointer rounded-[3px] px-3 py-1.5 text-[12px] font-semibold transition-colors"
-                    style={
-                      borough === b
-                        ? { background: "var(--bp-color-ink)", color: "var(--bp-color-paper)" }
-                        : {
-                            background: "transparent",
-                            color: "var(--bp-color-ink-70)",
-                            boxShadow: "inset 0 0 0 1px var(--bp-color-ink-20)",
-                          }
-                    }
-                  >
-                    {b}
-                  </button>
-                ))}
-              </div>
-              <SearchField
-                value={routeFilter}
-                onChange={(event) => setRouteFilter(event.target.value)}
-                placeholder="Filter by route, corridor, or borough"
-                aria-label="Filter routes"
-                className="w-full border-[1px] px-3.5 py-2 shadow-none"
-              />
-            </div>
-          }
-        />
-        <div className="mb-4 text-[12px] text-[var(--bp-color-ink-55)]">
-          Showing {filteredRoutes.length} of {routeCount} routes
-        </div>
-        <div className="overflow-hidden rounded-[4px] bg-[var(--bp-color-card)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
+      {/* ── ROUTE PREVIEW ────────────────────────────────────── */}
+      <section className="mx-auto max-w-[1180px] px-9 pb-3 pt-[72px] max-sm:px-4 max-sm:pt-12">
+        <h2 className="max-w-[820px] text-balance text-[26px] font-semibold leading-[1.15] tracking-[-0.022em]">
+          Find your route
+        </h2>
+        <div className="mt-6 overflow-hidden rounded-[4px] bg-[var(--bp-color-card)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
           <div className="grid grid-cols-[90px_1fr_90px_110px_120px_90px_16px] items-center gap-4 bg-[var(--bp-color-paper-deep)] px-4.5 py-3 text-[9.5px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)] shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:hidden">
             <span>Route</span>
             <span>Corridor</span>
@@ -665,124 +199,28 @@ export function HomePage({
             <span className="text-right">Direction</span>
             <span />
           </div>
-          {routeGroups.length > 0 ? (
-            routeGroups.map((group) => (
-              <div key={group.borough}>
-                <div className="flex items-center gap-2.5 bg-[var(--bp-color-paper-deep)] px-4.5 py-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)] shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{
-                      background:
-                        group.borough === "Other"
-                          ? "var(--bp-color-ink-40)"
-                          : boroughStripe[group.borough],
-                    }}
-                    aria-hidden
-                  />
-                  <span>{group.borough}</span>
-                  <span className="font-mono text-[10px] tabular-nums text-[var(--bp-color-ink-40)]">
-                    {group.routes.length}
-                  </span>
-                </div>
-                {group.routes.map((r) => {
-                  const { status, tone } = trendStatus(r.movement6mPct);
-                  return (
-                    <Link
-                      key={r.slug}
-                      to="/routes/$routeId"
-                      params={{ routeId: r.slug }}
-                      viewTransition
-                      className="grid grid-cols-[90px_1fr_90px_110px_120px_90px_16px] items-center gap-4 px-4.5 py-3.5 text-[var(--bp-color-ink)] no-underline shadow-[inset_0_-1px_0_var(--bp-color-rule)] transition-colors hover:bg-[var(--bp-color-paper-deep)] max-md:grid-cols-[auto_minmax(0,1fr)] max-md:gap-x-3 max-md:gap-y-2 max-md:px-3.5 max-md:py-3"
-                    >
-                      <RouteBadge route={r.label} sbs={r.sbs} size="md" />
-                      <div className="min-w-0 truncate text-[13.5px] font-medium">
-                        {r.corridorFull}
-                      </div>
-                      <div className="hidden min-w-0 flex-wrap items-center gap-1.5 text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)] max-md:col-span-2 max-md:flex">
-                        <span className="font-mono font-semibold tabular-nums text-[var(--bp-color-ink)]">
-                          {r.speedMph.toFixed(1)} mph
-                        </span>
-                        <span aria-hidden>·</span>
-                        <span style={{ color: toneColor[tone] }}>{status}</span>
-                        <span aria-hidden>·</span>
-                        <span>{formatRiders(r.dailyRiders)} riders/day</span>
-                      </div>
-                      <div className="text-right max-md:hidden">
-                        <div className="font-mono text-[15px] font-semibold tabular-nums leading-none">
-                          {r.speedMph.toFixed(1)}
-                        </div>
-                        <div className="mt-[3px] text-[9.5px] font-bold uppercase tracking-[0.06em] text-[var(--bp-color-ink-40)]">
-                          mph today
-                        </div>
-                      </div>
-                      <div className="max-md:hidden">
-                        {r.spark === null ? null : (
-                          <Spark
-                            data={r.spark}
-                            width={104}
-                            height={22}
-                            color={toneColor[tone]}
-                            fill
-                          />
-                        )}
-                      </div>
-                      <div className="text-right font-mono text-[12px] tabular-nums text-[var(--bp-color-ink-70)] max-md:hidden">
-                        {formatRiders(r.dailyRiders)}
-                      </div>
-                      <div
-                        className="text-right text-[10px] font-bold uppercase tracking-[0.06em] max-md:hidden"
-                        style={{ color: toneColor[tone] }}
-                      >
-                        {status}
-                      </div>
-                      <div className="text-right text-[14px] text-[var(--bp-color-ink-40)] max-md:hidden">
-                        →
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            ))
-          ) : (
-            <div className="px-4.5 py-8 text-[13px] text-[var(--bp-color-ink-55)]">
-              No routes match the current filter.
-            </div>
-          )}
-          <div className="flex items-center gap-2.5 px-4.5 py-3.5 text-[12px] text-[var(--bp-color-ink-55)]">
-            <span>
-              Showing {filteredRoutes.length} of {routeCount} routes
-            </span>
-            <span className="flex-1" />
-            <Link
-              to="/methods"
-              className="font-semibold text-[var(--bp-color-accent)] no-underline"
-            >
-              How this index is built &rarr;
-            </Link>
-          </div>
+          {previewRoutes.map((route) => (
+            <RouteIndexRow key={route.slug} route={route} />
+          ))}
+          <Link
+            to="/routes"
+            viewTransition
+            className="flex items-center justify-center gap-1.5 px-4.5 py-3.5 text-[13px] font-semibold text-[var(--bp-color-accent)] no-underline transition-colors hover:bg-[var(--bp-color-paper-deep)]"
+          >
+            View all {routeCount} routes →
+          </Link>
         </div>
       </section>
 
-      {/* ── HOW TO USE THIS SITE ─────────────────────────────── */}
-      <section className="mx-auto max-w-[1180px] px-9 pb-3 pt-[72px] max-sm:px-4 max-sm:pt-12">
-        <SectionHeader
-          kicker="How to use this site"
-          title="The same data, three different entry points."
-        />
-        <HomeRoleCards flagshipRouteSlug={flagshipRouteSlug} />
-      </section>
-
-      <HomeTrustStrip
-        routeCount={routeCount}
-        sourceGroupCount={sourceGroupCount}
-        generatedLabel={generatedLabel}
-      />
-
       {/* Footer */}
-      <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-3 px-9 pb-7 pt-5 text-[11.5px] text-[var(--bp-color-ink-55)] max-sm:px-4">
-        <span>Bus Priority Impact Studio · A civic data project</span>
-        <span className="text-[var(--bp-color-ink-20)]">·</span>
-        <span>Public-domain data, MIT-licensed code</span>
+      <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-1.5 px-9 pb-7 pt-8 text-[11.5px] text-[var(--bp-color-ink-55)] max-sm:px-4">
+        <span>Built from public MTA and NYC DOT data. Code and data are open —</span>
+        <a
+          href="https://github.com/mannyc2/bus-priority-impact-studio"
+          className="font-medium text-[var(--bp-color-accent)] no-underline"
+        >
+          GitHub
+        </a>
       </div>
     </main>
   );
@@ -794,7 +232,6 @@ export function HomeLoadingPage() {
       <section className="bg-[var(--bp-color-card)] shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
         <div className="mx-auto grid max-w-[1180px] grid-cols-[1.6fr_1fr] items-end gap-14 px-9 pb-16 pt-[72px] max-lg:grid-cols-1 max-sm:px-4">
           <div className="space-y-4">
-            <Skeleton className="h-[13px] w-[320px]" />
             <Skeleton className="h-[52px] w-full max-w-[820px]" />
             <Skeleton className="h-[52px] w-[70%]" />
             <Skeleton className="mt-2 h-[18px] w-full max-w-[680px]" />
@@ -804,7 +241,7 @@ export function HomeLoadingPage() {
               <Skeleton className="h-11 w-[200px] rounded-[3px]" />
             </div>
           </div>
-          <Skeleton className="h-[180px] w-full rounded-[4px]" />
+          <Skeleton className="h-[220px] w-full rounded-[4px]" />
         </div>
       </section>
       <section className="mx-auto max-w-[1180px] px-9 pt-14 max-sm:px-4">
@@ -815,6 +252,13 @@ export function HomeLoadingPage() {
               <Skeleton className="h-[14px] w-full max-w-[240px]" />
               <Skeleton className="h-[12px] w-[80%]" />
             </div>
+          ))}
+        </div>
+      </section>
+      <section className="mx-auto max-w-[1180px] px-9 pt-[72px] max-sm:px-4">
+        <div className="space-y-3 rounded-[4px] bg-[var(--bp-color-card)] p-4.5 shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-full" />
           ))}
         </div>
       </section>

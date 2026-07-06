@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { StudioMark } from "@/components/StudioMark";
 
 const navItems = [
-  { to: "/", label: "Routes" },
+  { to: "/", label: "Home" },
+  { to: "/routes", label: "Routes" },
   { to: "/map", label: "Map" },
   { to: "/interventions", label: "Interventions" },
   { to: "/methods", label: "Methods" },
@@ -41,9 +42,7 @@ export function StudioShell({ children }: { children: ReactNode }) {
 
 function StudioNavLink({ item, pathname }: { item: (typeof navItems)[number]; pathname: string }) {
   const active =
-    item.to === "/"
-      ? pathname === "/" || pathname.startsWith("/routes/")
-      : pathname === item.to || pathname.startsWith(`${item.to}/`);
+    item.to === "/" ? pathname === "/" : pathname === item.to || pathname.startsWith(`${item.to}/`);
 
   return (
     <Link
