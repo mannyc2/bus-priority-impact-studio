@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  whereWhenSegmentBadge,
-  whereWhenSummary,
-} from "../../src/components/route/where-when-summary";
+import { whereWhenSegmentBadge } from "../../src/components/route/where-when-summary";
 import type { RouteDossierSummaryForDetail } from "../../src/studio/api-contract";
 
 const dossier = {
@@ -48,53 +45,7 @@ const dossier = {
   },
 } satisfies RouteDossierSummaryForDetail;
 
-describe("whereWhenSummary", () => {
-  test("summarizes the dossier speed window and persistent worst segment", () => {
-    expect(
-      whereWhenSummary({
-        route: { weightedAvgSpeed: 6.4 },
-        segments: [{ from: "A", to: "B", riderHours: 1200, speedMph: 4.9 }],
-        dossier,
-      }),
-    ).toEqual({
-      currentSpeedLabel: "5.8 mph",
-      peerLabel: "slower than 88% of local routes",
-      movementLabel: "-8.2%",
-      movementDetail: "slower over 6 mo",
-      movementTone: "bad",
-      coverageLabel: "2 months speed history",
-      windowLabel: "2026-01 to 2026-03",
-      worstSegmentLabel: "First Avenue 67 St to 79 St",
-      worstSegmentDetail: "4 months slowest",
-      dataAsOf: "2026-03",
-      sectionSubtitle: "1 segment with 2 months history (2026-01 to 2026-03).",
-    });
-  });
-
-  test("falls back to current projection labels when no dossier exists", () => {
-    expect(
-      whereWhenSummary({
-        route: { weightedAvgSpeed: 7.123 },
-        segments: [
-          { from: "Low", to: "Impact", riderHours: 150, speedMph: 4.5 },
-          { from: "High", to: "Impact", riderHours: 12345, speedMph: 5.5 },
-        ],
-        dossier: null,
-      }),
-    ).toMatchObject({
-      currentSpeedLabel: "7.1 mph",
-      peerLabel: "no peer ranking yet",
-      movementLabel: "n/a",
-      movementDetail: "not enough 6-month history",
-      movementTone: "neutral",
-      coverageLabel: "2 timepoint segments",
-      windowLabel: "current projection",
-      worstSegmentLabel: "High to Impact",
-      worstSegmentDetail: "12.3K rider-hr/day",
-      dataAsOf: null,
-    });
-  });
-
+describe("whereWhenSegmentBadge", () => {
   test("badges the segment that matches the dossier persistent worst segment", () => {
     expect(
       whereWhenSegmentBadge({

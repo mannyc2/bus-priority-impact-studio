@@ -26,7 +26,6 @@ export type RouteMapLibreProps = {
   context: RouteGeoContext | null;
   route: StudioRoute;
   segments: readonly StudioSegment[];
-  hour: number;
   hoveredSegmentId: string | null;
   setHoveredSegmentId: (segmentId: string | null) => void;
   layers: RouteMapLayerState;

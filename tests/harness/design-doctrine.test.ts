@@ -28,17 +28,14 @@ const BANNED_PHRASES = [
 const ALLOWLIST: Record<"interpunct" | "kicker" | "phrase", readonly string[]> = {
   interpunct: [
     "components/CorridorMap.tsx", // 054
-    "components/CorridorProfile.chart.tsx", // 055
     "components/InterventionTimeline.tsx", // 057
     "components/TreatmentBadge.tsx", // 054/057
     "components/route/RouteGeoMap.tsx", // 054/060
     "components/route/RouteMapLibre.map.tsx", // 055
-    "components/route/RoutePublicAtoms.tsx", // 055 (RPubSlowCard &middot;)
     "components/route/reliability-summary.ts", // 056
   ],
   kicker: [
     "components/route/RouteMapSection.tsx", // 053/055
-    "components/route/RoutePublicAtoms.tsx", // 055 (RPubSlowCard slow-segment kicker)
     "studio/pages/network-map.tsx", // 059
   ],
   phrase: [],

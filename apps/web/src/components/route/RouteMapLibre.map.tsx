@@ -10,7 +10,7 @@ import {
 } from "@/components/route/load-maplibre";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { StudioRoute, StudioSegment } from "@/studio/api-contract";
-import { boundsOf, MAP_COLORS, segmentSpeedAtHour, speedToColor } from "./maplibre-style";
+import { boundsOf, MAP_COLORS, speedToColor } from "./maplibre-style";
 
 type Position = [number, number];
 type LineString = { type: "LineString"; coordinates: Position[] };
@@ -38,7 +38,6 @@ export type RouteMapLibreMapProps = {
   context: RouteGeoContext | null;
   route: StudioRoute;
   segments: readonly StudioSegment[];
-  hour: number;
   hoveredSegmentId: string | null;
   setHoveredSegmentId: (segmentId: string | null) => void;
   layers: RouteMapLayerState;
@@ -136,7 +135,6 @@ function routeSegmentCollection(input: {
   collection: MapRouteSegmentFeatureCollection;
   route: StudioRoute;
   segments: readonly StudioSegment[];
-  hour: number;
   hoveredSegmentId: string | null;
   highlightId?: string | undefined;
 }): FeatureCollection<LineString, SegmentMapProperties> {
@@ -159,7 +157,7 @@ function routeSegmentCollection(input: {
       const speedMph =
         segment === null
           ? (feature.properties.averageSpeedMph ?? input.route.weightedAvgSpeed)
-          : (segmentSpeedAtHour(segment, input.hour) ?? segment.speedMph);
+          : segment.speedMph;
       const hovered = input.hoveredSegmentId === studioSegmentId;
       const hasHover = input.hoveredSegmentId !== null;
       const isWorst = studioSegmentId === worstId;
@@ -308,7 +306,6 @@ export function RouteMapLibreMap({
   context,
   route,
   segments,
-  hour,
   hoveredSegmentId,
   setHoveredSegmentId,
   layers,
@@ -320,9 +317,8 @@ export function RouteMapLibreMap({
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const segmentData = useMemo(
-    () =>
-      routeSegmentCollection({ collection, route, segments, hour, hoveredSegmentId, highlightId }),
-    [collection, route, segments, hour, hoveredSegmentId, highlightId],
+    () => routeSegmentCollection({ collection, route, segments, hoveredSegmentId, highlightId }),
+    [collection, route, segments, hoveredSegmentId, highlightId],
   );
   const markerData = useMemo(() => markerCollection(segmentData, layers), [segmentData, layers]);
   const landData = useMemo(() => landCollection(context), [context]);
