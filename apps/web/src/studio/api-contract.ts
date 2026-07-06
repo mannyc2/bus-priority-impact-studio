@@ -4,10 +4,6 @@ export type {
   RouteSurfaceCapability,
   StudioRouteCapability,
 } from "@bp/domain/studio";
-export type {
-  StudioMethodDataset,
-  StudioMethodsResponse,
-} from "@bp/domain/studio/docs";
 export type { StudioIntervention } from "@bp/domain/studio/interventions";
 export type {
   StudioInterventionsEvidenceBundle,

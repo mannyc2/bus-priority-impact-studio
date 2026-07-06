@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-  fetchStudioMethods,
+  fetchStudioInterventionsEvidence,
   fetchStudioRoute,
   StudioApiError,
 } from "../../src/studio/api-client.js";
@@ -30,8 +30,8 @@ describe("Studio API client", () => {
     mockFetch(fetchFailure as unknown as typeof globalThis.fetch);
 
     try {
-      await fetchStudioMethods();
-      throw new Error("Expected fetchStudioMethods to throw");
+      await fetchStudioInterventionsEvidence();
+      throw new Error("Expected fetchStudioInterventionsEvidence to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(StudioApiError);
       if (error instanceof StudioApiError) {

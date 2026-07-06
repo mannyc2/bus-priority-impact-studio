@@ -59,7 +59,7 @@ Verified headline facts the plans are built on:
 | 049 | Shared primitives: SectionCard, SourceNote, BoroughBadge, RouteBadge fix, dead-component deletes | P1 | M | 048 rec. | DONE |
 | 050 | Design-doctrine harness check (slop lint + ratchet allowlist) | P1 | S-M | 049 | DONE |
 | 051 | Homepage rewrite (neutral, search-first) + new /routes directory | P1 | L | 048-050 | DONE |
-| 052 | Delete the methods page end-to-end (incl. worker endpoint) | P2 | M | 051 (hard) | TODO |
+| 052 | Delete the methods page end-to-end (incl. worker endpoint) | P2 | M | 051 (hard) | DONE |
 | 053 | Route detail: real tabs (?tab=) + compact self-evident header | P1 | L | 049 (hard), 048, 050 | TODO |
 | 054 | Overview tab: one summary, one trend, mini map, insights | P1 | M | 053 (hard) | TODO |
 | 055 | Slow segments tab: ranked table, one hour chart, calm map; delete carpet + Profile | P1 | L | 053 (hard); 054 rec. | TODO |

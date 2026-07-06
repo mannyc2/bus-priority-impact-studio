@@ -105,7 +105,6 @@ describe("Worker adapter and SPA shell", () => {
     const cases = [
       { path: "/map", title: "Network Map | Bus Priority Impact Studio" },
       { path: "/interventions", title: "Interventions | Bus Priority Impact Studio" },
-      { path: "/methods", title: "Methods | Bus Priority Impact Studio" },
     ] as const;
 
     for (const { path, title } of cases) {
@@ -124,7 +123,6 @@ describe("Worker adapter and SPA shell", () => {
   it("keeps unknown and retired product routes closed in production fallback", async () => {
     for (const path of [
       "/system",
-      "/routes",
       "/routes/m57/annotate",
       "/routes/m57/ladder",
       "/briefs",

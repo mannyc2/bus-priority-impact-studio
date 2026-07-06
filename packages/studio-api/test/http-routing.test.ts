@@ -9,7 +9,6 @@ import {
 import { studioOpenApiDocument } from "@bp/studio-api/contracts/openapi";
 import { handleStudioApiRequest } from "@bp/studio-api/server";
 import { studioProjectionKey, studioProjectionPrefix } from "../src/studio/projections.js";
-import { handleStudioReadRequest } from "../src/studio/read-handlers.js";
 
 const quality = {
   releaseLayer: "baseline_release",
@@ -118,42 +117,6 @@ describe("Studio API HTTP helpers", () => {
     expect(studioProjectionKey(env, "routes/m15-sbs.json")).toBe(
       "studio/v2/releases/2026-06-05/routes/m15-sbs.json",
     );
-  });
-
-  test("serves projection-backed read responses with Studio release headers", async () => {
-    const url = new URL("https://example.test/api/v1/studio/methods");
-    const response = await handleStudioReadRequest(new Request(url), url, {
-      ARTIFACTS: r2Bucket({
-        "studio/v1/methods.json": {
-          schemaVersion: 1,
-          generatedAt: "2026-06-05T00:00:00.000Z",
-          datasets: [
-            {
-              sourceId: "route_month_trends",
-              name: "MTA Bus Speeds",
-              publisher: "MTA",
-              grain: "route-month",
-              cadence: "monthly",
-              description: "Route/month speed and ridership summary rows.",
-              rowCount: 120,
-              rowLabel: "route-month rows",
-              period: "2026-03",
-              schemaKeys: ["route_id", "month", "average_speed_mph"],
-              method: "route-month-trends",
-              sourceRefCount: 1,
-            },
-          ],
-          quality,
-        },
-      }),
-    });
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("X-Studio-Release")).toBe("studio/v1");
-    expect(response.headers.get("Cache-Control")).toContain("stale-while-revalidate=86400");
-
-    const body = (await response.json()) as { datasets: Array<{ name: string }> };
-    expect(body.datasets[0]?.name).toBe("MTA Bus Speeds");
   });
 
   test("routes OpenAPI through the package API facade", async () => {

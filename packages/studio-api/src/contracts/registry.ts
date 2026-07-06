@@ -207,17 +207,6 @@ export const studioApiRoutes = [
     cache: publicStudioCache,
     idempotency: noIdempotency,
   }),
-  route({
-    id: "studio.methods",
-    operationId: "getStudioMethods",
-    method: "GET",
-    path: "/api/v1/studio/methods",
-    tags: ["Studio"],
-    summary: "Return Studio method metadata.",
-    auth: publicAuth,
-    cache: publicStudioCache,
-    idempotency: noIdempotency,
-  }),
 ] as const;
 
 export type StudioApiRoute = (typeof studioApiRoutes)[number];

@@ -5,7 +5,6 @@ import {
   releaseStatusResponseJsonSchema,
   routeListResponseJsonSchema,
   routeProfileResponseJsonSchema,
-  studioMethodsResponseJsonSchema,
   studioRouteDetailResponseJsonSchema,
   studioRouteEvidenceBundleJsonSchema,
   studioRouteHistoryResponseJsonSchema,
@@ -266,14 +265,6 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
       tags: ["Studio"],
       responseSchema: studioRouteEvidenceBundleJsonSchema,
       parameters: [routeIdParameter],
-    }),
-  },
-  "/api/v1/studio/methods": {
-    get: getOperation({
-      operationId: "getStudioMethods",
-      summary: "Return Studio method metadata.",
-      tags: ["Studio"],
-      responseSchema: studioMethodsResponseJsonSchema,
     }),
   },
 };

@@ -6,7 +6,6 @@ import {
 } from "@bp/studio-api/client";
 import type {
   StudioInterventionsEvidenceResponse,
-  StudioMethodsResponse,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteHourlyProfileResponse,
@@ -172,10 +171,6 @@ export function fetchStudioRouteEvidence(routeId: string, options?: StudioQueryO
     studioPath("studio.routeTimeline", { params: { routeId } }),
     options,
   );
-}
-
-export function fetchStudioMethods(options?: StudioQueryOptions) {
-  return loadStudioJson<StudioMethodsResponse>(studioPath("studio.methods"), options);
 }
 
 export type MapContextCollection = {

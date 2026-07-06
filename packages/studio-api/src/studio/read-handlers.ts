@@ -2962,10 +2962,5 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
     return result.ok ? studioJsonResponse(result.timeline, env) : result.response;
   }
 
-  if (url.pathname === "/api/v1/studio/methods") {
-    const methods = await loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema);
-    return methods instanceof Response ? methods : studioJsonResponse(methods, env);
-  }
-
   return errorResponse(404, "Studio API endpoint was not found.");
 }

@@ -9,7 +9,6 @@ import {
   RouteProfileResponseSchema,
   RouteScorecardSchema,
 } from "@bp/domain/routes";
-import { StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
 import {
   STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
   StudioInterventionsEvidenceResponseSchema,
@@ -1048,7 +1047,6 @@ describe("Studio API facade", () => {
         "/api/v1/studio/routes/{routeId}/speed-history": expect.any(Object),
         "/api/v1/studio/routes/{routeId}/timeline": expect.any(Object),
         "/api/v1/studio/snapshot": expect.any(Object),
-        "/api/v1/studio/methods": expect.any(Object),
       }),
     );
   });
@@ -1483,21 +1481,15 @@ describe("Studio API facade", () => {
     });
   });
 
-  it("serves Studio projection-backed routes and methods", async () => {
+  it("serves Studio projection-backed routes", async () => {
     const env = createStudioProjectionEnv();
-    const [
-      routesResponse,
-      detailResponse,
-      hourlyProfileResponse,
-      speedHistoryResponse,
-      methodsResponse,
-    ] = await Promise.all([
-      fetchApi("/api/v1/studio/routes", env),
-      fetchApi("/api/v1/studio/routes/m15-sbs", env),
-      fetchApi("/api/v1/studio/routes/m15-sbs/hourly-profile", env),
-      fetchApi("/api/v1/studio/routes/m15-sbs/speed-history", env),
-      fetchApi("/api/v1/studio/methods", env),
-    ]);
+    const [routesResponse, detailResponse, hourlyProfileResponse, speedHistoryResponse] =
+      await Promise.all([
+        fetchApi("/api/v1/studio/routes", env),
+        fetchApi("/api/v1/studio/routes/m15-sbs", env),
+        fetchApi("/api/v1/studio/routes/m15-sbs/hourly-profile", env),
+        fetchApi("/api/v1/studio/routes/m15-sbs/speed-history", env),
+      ]);
 
     expect(routesResponse.headers.get("Server-Timing")).toContain("studio;dur=");
     expect(routesResponse.headers.get("X-Studio-Release")).toBe("studio/v1");
@@ -1536,8 +1528,6 @@ describe("Studio API facade", () => {
     expect(speedHistory.routeSlug).toBe("m15-sbs");
     expect(speedHistory.summary.cellCount).toBe(8);
     expect(speedHistory.cells.map((cell) => cell.status)).toEqual(["available", "missing"]);
-    const methods = StudioMethodsResponseSchema.parse(await methodsResponse.json());
-    expect(methods.datasets[0]?.name).toBe("MTA Bus Speeds");
   });
 
   it("keeps the Tier-1 route dossier response within the 60 KB gzip budget (C2)", async () => {
@@ -3025,10 +3015,10 @@ describe("Studio API facade", () => {
 
   it("fails Studio API reads closed when projection artifacts are missing", async () => {
     const [missingProjection, missingBinding] = await Promise.all([
-      fetchApi("/api/v1/studio/methods", {
+      fetchApi("/api/v1/studio/routes", {
         ARTIFACTS: new FakeR2Bucket({}) as unknown as R2Bucket,
       }),
-      fetchApi("/api/v1/studio/methods"),
+      fetchApi("/api/v1/studio/routes"),
     ]);
 
     expect(missingProjection.status).toBe(503);

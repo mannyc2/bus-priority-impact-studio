@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as MethodsRouteImport } from "./routes/methods"
 import { Route as MapRouteImport } from "./routes/map"
 import { Route as InterventionsRouteImport } from "./routes/interventions"
 import { Route as SplatRouteImport } from "./routes/$"
@@ -17,11 +16,6 @@ import { Route as IndexRouteImport } from "./routes/index"
 import { Route as RoutesIndexRouteImport } from "./routes/routes/index"
 import { Route as RoutesRouteIdRouteImport } from "./routes/routes/$routeId"
 
-const MethodsRoute = MethodsRouteImport.update({
-  id: "/methods",
-  path: "/methods",
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MapRoute = MapRouteImport.update({
   id: "/map",
   path: "/map",
@@ -58,7 +52,6 @@ export interface FileRoutesByFullPath {
   "/$": typeof SplatRoute
   "/interventions": typeof InterventionsRoute
   "/map": typeof MapRoute
-  "/methods": typeof MethodsRoute
   "/routes": typeof RoutesIndexRoute
   "/routes/$routeId": typeof RoutesRouteIdRoute
 }
@@ -67,7 +60,6 @@ export interface FileRoutesByTo {
   "/$": typeof SplatRoute
   "/interventions": typeof InterventionsRoute
   "/map": typeof MapRoute
-  "/methods": typeof MethodsRoute
   "/routes": typeof RoutesIndexRoute
   "/routes/$routeId": typeof RoutesRouteIdRoute
 }
@@ -77,7 +69,6 @@ export interface FileRoutesById {
   "/$": typeof SplatRoute
   "/interventions": typeof InterventionsRoute
   "/map": typeof MapRoute
-  "/methods": typeof MethodsRoute
   "/routes/": typeof RoutesIndexRoute
   "/routes/$routeId": typeof RoutesRouteIdRoute
 }
@@ -88,7 +79,6 @@ export interface FileRouteTypes {
     | "/$"
     | "/interventions"
     | "/map"
-    | "/methods"
     | "/routes"
     | "/routes/$routeId"
   fileRoutesByTo: FileRoutesByTo
@@ -97,7 +87,6 @@ export interface FileRouteTypes {
     | "/$"
     | "/interventions"
     | "/map"
-    | "/methods"
     | "/routes"
     | "/routes/$routeId"
   id:
@@ -106,7 +95,6 @@ export interface FileRouteTypes {
     | "/$"
     | "/interventions"
     | "/map"
-    | "/methods"
     | "/routes/"
     | "/routes/$routeId"
   fileRoutesById: FileRoutesById
@@ -116,20 +104,12 @@ export interface RootRouteChildren {
   SplatRoute: typeof SplatRoute
   InterventionsRoute: typeof InterventionsRoute
   MapRoute: typeof MapRoute
-  MethodsRoute: typeof MethodsRoute
   RoutesIndexRoute: typeof RoutesIndexRoute
   RoutesRouteIdRoute: typeof RoutesRouteIdRoute
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/methods": {
-      id: "/methods"
-      path: "/methods"
-      fullPath: "/methods"
-      preLoaderRoute: typeof MethodsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     "/map": {
       id: "/map"
       path: "/map"
@@ -180,7 +160,6 @@ const rootRouteChildren: RootRouteChildren = {
   SplatRoute: SplatRoute,
   InterventionsRoute: InterventionsRoute,
   MapRoute: MapRoute,
-  MethodsRoute: MethodsRoute,
   RoutesIndexRoute: RoutesIndexRoute,
   RoutesRouteIdRoute: RoutesRouteIdRoute,
 }

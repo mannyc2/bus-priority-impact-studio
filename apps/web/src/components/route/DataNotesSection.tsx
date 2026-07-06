@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import {
   type CheckedCleanCoverageChip,
   checkedCleanCoverageChips,
@@ -214,14 +213,6 @@ export function DataNotesSection({
           sub={completenessStatusLabel(quality.completenessStatus)}
           good={quality.confidence === "high"}
         />
-        <div className="ml-auto">
-          <Link
-            to="/methods"
-            className="inline-flex items-center rounded-[3px] border border-[var(--bp-color-accent)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-accent)] no-underline"
-          >
-            Methods &rarr;
-          </Link>
-        </div>
       </div>
     </div>
   );

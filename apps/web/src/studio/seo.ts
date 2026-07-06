@@ -23,7 +23,6 @@ export const PUBLIC_STUDIO_ROUTES: readonly PublicStudioRoute[] = [
   { path: "/routes/m15-sbs", label: "Route detail", expectedTitleText: "M15" },
   { path: "/map", label: "Map", expectedTitleText: "Network Map" },
   { path: "/interventions", label: "Interventions", expectedTitleText: "Interventions" },
-  { path: "/methods", label: "Methods", expectedTitleText: "Methods" },
 ] as const;
 
 export function getStudioSeoMetadata(input: URL | string): StudioSeoMetadata | null {
@@ -53,14 +52,6 @@ export function getStudioSeoMetadata(input: URL | string): StudioSeoMetadata | n
     return metadata(
       "Interventions",
       "Review bus-lane, ACE, and service-change timelines with before and after route context where public data supports it.",
-      pathname,
-    );
-  }
-
-  if (pathname === "/methods") {
-    return metadata(
-      "Methods",
-      "Read how Bus Priority Impact Studio assembles route speeds, treatment records, coverage caveats, and serving projections.",
       pathname,
     );
   }

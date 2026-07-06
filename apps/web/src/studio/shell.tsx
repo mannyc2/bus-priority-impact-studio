@@ -7,7 +7,6 @@ const navItems = [
   { to: "/routes", label: "Routes" },
   { to: "/map", label: "Map" },
   { to: "/interventions", label: "Interventions" },
-  { to: "/methods", label: "Methods" },
 ] as const;
 
 export function StudioShell({ children }: { children: ReactNode }) {
