@@ -1,6 +1,4 @@
-import { StudioFooter } from "@/components/StudioFooter";
 import { StudioMark } from "@/components/StudioMark";
-import { demoFooterSources } from "@/fixtures/demo-snippets";
 
 function StudioBar({
   active,
@@ -72,7 +70,6 @@ export function StudioBarDemo() {
           </p>
         </div>
       </div>
-      <StudioFooter sources={demoFooterSources} />
     </div>
   );
 }

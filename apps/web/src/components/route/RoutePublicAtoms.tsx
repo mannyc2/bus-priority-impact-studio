@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { RouteBadge } from "@/components/RouteBadge";
 import { segmentSpeedAtHour, speedToColor } from "@/components/route/maplibre-style";
 import { CitationChips, type WikiCitationEvidence } from "@/components/route/WikiEvidence";
 import { Badge } from "@/components/ui/badge";
@@ -69,13 +70,8 @@ export function RPubHeader({ route, stats }: { route: StudioRoute; stats: ReactN
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-[86px_minmax(0,1fr)] items-start gap-5 max-sm:grid-cols-1">
-        <div
-          className="inline-flex h-10 min-w-[82px] items-center justify-center rounded-[3px] px-3 font-mono text-[17px] font-bold text-white"
-          style={{ backgroundColor: route.sbs ? "var(--bp-color-accent)" : boroughColor(route) }}
-        >
-          {route.sbs ? `${route.label}-SBS` : route.label}
-        </div>
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-5 max-sm:grid-cols-1">
+        <RouteBadge route={route.label} sbs={route.sbs} size="xl" express={false} />
         <div className="min-w-0">
           <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.12em] text-[var(--bp-color-ink-55)]">
             {route.borough} route
@@ -337,13 +333,4 @@ function SlowCardStat({ label, value }: { label: string; value: string }) {
       </div>
     </div>
   );
-}
-
-function boroughColor(route: StudioRoute): string {
-  const key = route.borough.toLowerCase();
-  if (key.includes("brooklyn")) return "var(--bp-route-brooklyn)";
-  if (key.includes("bronx")) return "var(--bp-route-bronx)";
-  if (key.includes("queens")) return "var(--bp-route-queens)";
-  if (key.includes("staten")) return "var(--bp-route-si)";
-  return "var(--bp-route-manhattan)";
 }

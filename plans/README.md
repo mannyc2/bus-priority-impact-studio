@@ -56,7 +56,7 @@ Verified headline facts the plans are built on:
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 048 | MTA visual language: cool palette, MTA-blue accent, black nav bar | P1 | M | — (land tree first) | DONE |
-| 049 | Shared primitives: SectionCard, SourceNote, BoroughBadge, RouteBadge fix, dead-component deletes | P1 | M | 048 rec. | TODO |
+| 049 | Shared primitives: SectionCard, SourceNote, BoroughBadge, RouteBadge fix, dead-component deletes | P1 | M | 048 rec. | DONE |
 | 050 | Design-doctrine harness check (slop lint + ratchet allowlist) | P1 | S-M | 049 | TODO |
 | 051 | Homepage rewrite (neutral, search-first) + new /routes directory | P1 | L | 048-050 | TODO |
 | 052 | Delete the methods page end-to-end (incl. worker endpoint) | P2 | M | 051 (hard) | TODO |
