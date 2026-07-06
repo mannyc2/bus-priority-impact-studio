@@ -1,13 +1,177 @@
 # Implementation Plans
 
-**Current generation: 6 (plans 048-060, the MTA-visual-language UI/UX
-overhaul — below).** Generations 4 (030-035) and 5 (036-047) are DONE but
-sit UNCOMMITTED in the working tree at planning time — the operator must
-land that tree before gen-6 execution starts. Generation 3 (019-029) is
-complete except 026 (BLOCKED); generations 1-2 (001-018) are complete or
+**Current generations: 6 (plans 048-060, the MTA-visual-language UI/UX
+overhaul; 048-054 DONE, 055-060 in flight) and 7 (plans 061-067, the
+determinism/LOC-reduction track — both below).** Gen-6 owns
+`apps/web`'s UI; gen-7 owns `packages/*` and `tools/pipeline-v2`; they
+can interleave except where a dependency note says otherwise (052 landed
+mid-gen-7-planning; 063 records the verified interaction). Generations 4
+(030-035) and 5 (036-047) are DONE; generation 3 (019-029) is complete
+except 026 (BLOCKED); generations 1-2 (001-018) are complete or
 superseded; older sections are kept further down as history and rationale.
 Each executor: read your plan fully before starting, honor its STOP
 conditions, and update your row when done.
+
+---
+
+# Generation 7 — deterministic machine: delete the dead, decode once, finish Effect Schema (2026-07-06)
+
+Planned at commit `4c1afe7` on a dirty tree (gen-6 execution in flight;
+048-054 landed during planning) by a read-only advisor session (6
+parallel package surveys + direct verification of every load-bearing
+claim) on the operator's direction: reduce LOC and complexity by making
+the codebase more Effect-idiomatic — eliminate local defenses, broad
+fallbacks, weak invariants, duplicated workflows, and machinery that
+compensates for unclear design; prefer making invalid states
+unrepresentable.
+
+Verified headline facts the plans are built on:
+
+- **The gen-5 zod eviction removed the dependency, not the dialect.**
+  `packages/domain/src/schema-compat.ts` (663 LOC) is a hand-rolled zod
+  emulator over Effect Schema with 43 importers and real semantic
+  hazards: brands collapse to one runtime identity (`"DomainBrand"`),
+  `safeParse` flattens every issue to a path-less message (live bite:
+  `mta-wiki-canonical.ts:183` and `intervention-records.ts:1698-1703`
+  render every validation error as `<root>`), `discriminatedUnion`
+  ignores its discriminator, and object strictness lives in WeakMaps that
+  silently revert across `.extend()`. ADR-0020 already calls it
+  "migration scaffolding" — plans 065-067 finish the migration leaf-first
+  and delete it.
+- **~13.1K LOC of packages/analytics is dead**: `findings/` (8,531),
+  `registry/` (1,623), most of `calibration/` (~2,400), `detectors/`
+  (237), `corpus/` (260), `lattice-deduction.ts` (111) have zero
+  pipeline/serving reachability; route-page insights serve from a static
+  Phase-B readiness artifact whose builder was already deleted with
+  Tier 2. Operator authorized deletion 2026-07-06 (plan 061).
+- **The retired pipeline-v1 monthly-QA doctrine still ships**: `audit
+  pipeline-v1` (886) + `check pipeline-v1` (1,351) + `pipeline finalize`
+  (311, exists only to chain the QA gate) have zero invocation surfaces.
+  Operator authorized deletion 2026-07-06 (plan 062).
+- **The serving read path defends per-request against its own types**:
+  `read-handlers.ts` (2,966 LOC post-052) safeParses its own composed
+  snapshot on every request and re-parses a v1-only variant on failure;
+  projection loads are all-or-nothing while v2/evidence degrade
+  (asymmetric); `summary ?? readiness ?? 0` repeats at 15+ sites;
+  dispatch restates paths `contracts/registry.ts` already declares
+  (plan 063 — plain TS, the plan-026 no-Effect-in-Worker block stands).
+- **One ingest workflow exists 22 times**: every `run*Ingest` hand-builds
+  manifest→fetch→normalize→snapshot→upsert→report; the correct
+  abstraction already exists (`lib/socrata-monthly-ingest.ts`, one
+  adopter). Plan 064 finishes the adoption; fixture tests are the parity
+  proof.
+- Expected net effect when all land: roughly **−19K src LOC and −5-7K
+  test LOC** (061 ≈ −13.1K src, 062 ≈ −2.5K, 063 ≈ −0.9K, 064 ≈ −0.8K,
+  065-067 ≈ −0.9K net incl. the shim), the last schema dialect gone, real
+  brands/unions/error-paths, one declared degrade policy in serving, and
+  a harness gate (`schema-compat` specifier) that makes the dialect
+  unrepresentable — mirroring the existing zod gate.
+
+## Execution order & status (gen 7)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 061 | Delete the dead detector/calibration subgraph in analytics | P1 | M | — | TODO |
+| 062 | Delete the retired pipeline-v1 QA-gate commands + residue | P1 | S-M | — | TODO |
+| 063 | Serving read path: decode once, compose totally, registry dispatch | P1 | L | — (052 interaction recorded in-plan) | TODO |
+| 064 | One ingest workflow: extend the existing factory, collapse 22 copies | P1 | M-L | 062 rec.; before 066 | TODO |
+| 065 | packages/sources on native Effect Schema (+ `@bp/domain/decode`) | P2 | M-L | — ; before 066/067 | TODO |
+| 066 | Pipeline/analytics/studio-api native (CLI AST introspection port) | P1 | L | 061, 063, 064, 065 (hard) | TODO |
+| 067 | Domain native: real brands/unions, DELETE schema-compat, close gate | P1 | L | 065, 066 (hard) | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+## Dependency notes (gen 7)
+
+- 061 and 062 are independent deletions and the best first executions
+  (isolated worktrees, parallel-safe). Both shrink 066's migration
+  surface.
+- 063 before 066 (hard): both edit `read-handlers.ts`; 063 restructures,
+  066 swaps its schema dialect.
+- 064 before 066 (hard): after consolidation the descriptor sweep touches
+  2 factories + bespoke files instead of 22 commands. 062 before 064
+  (recommended): finalize's imports disappear first.
+- 065 → 066 → 067 is the leaf-first shim eviction: shim-built schemas ARE
+  Effect Schema instances, so native leaves can consume shim-built domain
+  schemas during the transition; domain flips last and the shim is
+  deleted with zero importers. 067 adds the module-specifier gate.
+- **Gen-6 coordination**: 052 already deleted the methods DISPATCH
+  endpoint; the snapshot still loads `methods.json`, so 063's degrade
+  table keeps a methods row (details in 063's drift note). No other
+  gen-6 overlap: gen-7 does not touch `apps/web/src`.
+- The operator's standing gate applies: land the in-flight tree before
+  executing any gen-7 plan; every plan's drift check compares excerpts,
+  not SHAs.
+
+## Findings considered and rejected (gen-7 audit — do not re-audit)
+
+- **Migrate the 99 command descriptors to raw `effect/unstable/cli`
+  `Command.make` per file** — rejected: plan 040 deliberately kept the
+  thin `defineCommand` descriptor + glob discovery + completeness test;
+  replacing it is churn with no state-space reduction. 066 migrates the
+  descriptors' SCHEMA dialect only and ports the flag-reflection to a
+  native AST walk.
+- **Unify packages/db local/d1 row mappers** (`routeReadiness` vs
+  `localRouteReadiness` duplication) — real but HIGH-risk L for ~200 LOC;
+  the two schemas serve different databases with different casings.
+  Not planned.
+- **Consolidate/structuralize the 8 check scripts** — 5 are legitimately
+  runtime scanners (perf/SEO/smoke/provider/publish-completeness); the 3
+  file-inventory ones are ~175 LOC total. Marginal; root scripts pin the
+  paths (gen-5 rejection stands).
+- **Delete `schema-routes.ts`/OpenAPI serving** (no product consumer) —
+  kept: 47+291 LOC, it is portfolio-visible API surface, and after 067 it
+  costs one native `toJsonSchemaDocument` call.
+- **`.passthrough()`→strict on RAW upstream row schemas** — deliberate
+  tolerance of Socrata column additions; only NORMALIZED outputs tighten
+  (rule recorded in plan 065 and the ADR-0020 addendum).
+- **Borough-heuristic semantic fix, web-vitals lazy-install,
+  feature-contract memoization, `dev/`/`fixtures/` bundle exclusion** —
+  cosmetic or unproven cost (bundle claim unverified against
+  tree-shaking; entry has real headroom). Not planned.
+- **Typed-error (`Schema.TaggedErrorClass`) sweep of the 32 non-Effect
+  pipeline commands** — deferred per ADR-0019's own "as commands are
+  touched" rule; 064/066 touch the highest-traffic ones naturally.
+  Blanket migration is churn without a failing behavior.
+- **`loadStudioProjection`'s `Response | T` union → tagged result** —
+  real weak invariant, deliberately deferred: pervasive mechanical sweep
+  best done in one dedicated PR after 063/066 settle the file (named in
+  063's maintenance notes).
+- **Deleting `domain/findings` wholesale after 061** — WRONG: analytics
+  `core/{detector,evidence,coverage}.ts` and `features/route-month.ts`
+  are live importers. 067 Step 3 deletes only zero-importer exports.
+- **"dev/fixtures ship in the prod bundle" (subagent claim)** — recorded
+  as UNVERIFIED, not a finding: no route imports them; Vite tree-shakes
+  route-reachable graphs. Re-check only if the bundle budget ever trips.
+- **`route-equity-contexts.ts` unchecked `rows[0]` + enum cast** —
+  REAL (verified); folded into plan 063 Step 1 rather than planned
+  separately.
+- **Unmanaged `Effect.runPromise` in `effect/concurrency.ts`** — REAL;
+  folded into plan 064 Step 4.
+
+## Shared constraints (generation 7)
+
+- **No Effect runtime in the Worker or browser.** Plan 026's measured
+  block stands; 063 is plain TypeScript; "Effect-idiomatic" there means
+  parse-don't-validate, total composition, one envelope. `rg 'from
+  "effect' apps/web/src` must stay empty through 067 (type-only domain
+  imports are fine).
+- **Effect v4 beta APIs**: trust the installed `effect@4.0.0-beta.92` —
+  vendored source at `.repos/effect`, guides at
+  `/home/cjpher/.codex/skills/effect-ts/`. The shim
+  (`schema-compat.ts`) is the Rosetta stone for dialect→native mappings
+  until 067 deletes it.
+- Root `bun run check:types` OOMs — always per-package
+  `bun --filter <pkg> typecheck`.
+- `data/` is operator-owned: no executor ever deletes or rewrites
+  anything under `data/` (readiness artifacts become the frozen record of
+  the deleted detector program).
+- Verification default per plan, then the pre-merge gate: per-package
+  typechecks, `test:unit`, `test:web` + `test:worker` where studio-api or
+  domain is touched, `check:web-architecture`, `check:style`; worker
+  wall-time regressions >1.5× baseline are STOP conditions (plan-026
+  precedent).
 
 ---
 
@@ -62,7 +226,7 @@ Verified headline facts the plans are built on:
 | 052 | Delete the methods page end-to-end (incl. worker endpoint) | P2 | M | 051 (hard) | DONE |
 | 053 | Route detail: real tabs (?tab=) + compact self-evident header | P1 | L | 049 (hard), 048, 050 | DONE (plain-markup tab bar) |
 | 054 | Overview tab: one summary, one trend, mini map, insights | P1 | M | 053 (hard) | DONE |
-| 055 | Slow segments tab: ranked table, one hour chart, calm map; delete carpet + Profile | P1 | L | 053 (hard); 054 rec. | TODO |
+| 055 | Slow segments tab: ranked table, one hour chart, calm map; delete carpet + Profile | P1 | L | 053 (hard); 054 rec. | DONE |
 | 056 | Riders & reliability tab: rider-real numbers; meta-metrics → SourceNote | P1 | M | 053 (hard) | TODO |
 | 057 | Treatments & history tab: grouped bounded timeline; "unda" + citation-dupe fixes | P1 | L | 049+053 (hard); 054 rec. | TODO |
 | 058 | Interventions page: bounded, filterable network chronicle | P2 | M | 049+057 (hard); 052 rec. | TODO |
