@@ -5,8 +5,8 @@ import {
   buildSegmentDaypartPanelArtifact,
   SEGMENT_DAYPART_PANEL_V1_ID,
 } from "@bp/analytics/feature-history";
-import { loadSegmentDaypartHistoryLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { loadSegmentDaypartHistoryLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";

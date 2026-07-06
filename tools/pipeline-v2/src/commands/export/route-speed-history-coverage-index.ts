@@ -2,11 +2,11 @@ import { existsSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 import { routeSpeedHistoryManifestPath } from "@bp/analytics/artifacts";
 import { ROUTE_SPEED_SPINE_DEFAULT_START_MONTH } from "@bp/analytics/feature-history";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   materializeRouteSpeedHistoryCoverageIndex,
   type RouteSpeedHistoryCoverageIndexRoute,
 } from "@bp/pipeline-v2/local-db-aggregates";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";

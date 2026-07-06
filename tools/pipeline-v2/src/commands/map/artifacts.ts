@@ -37,13 +37,13 @@ import {
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   type NormalizedRouteShape,
   type NormalizedStop,
   normalizeRouteShapeRows,
   normalizeStopRows,
 } from "@bp/sources/adapters/mta/routes-stops";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { localTransformConcurrency, runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";

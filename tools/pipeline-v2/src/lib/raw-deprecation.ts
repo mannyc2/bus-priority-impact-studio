@@ -107,7 +107,8 @@ export type RawReclaimScriptInput = {
 export type SqliteLike = Pick<Database, "query">;
 
 const MONTHLY_SNAPSHOT_RE = /^.+-(\d{4}-\d{2})\.json$/;
-const PARTITION_CHUNK_MONTH_RE = /(?:^|\/)[A-Za-z_][A-Za-z0-9_]*-(\d{4}-\d{2})-\d{2}-to-\d{4}-\d{2}-\d{2}(?:\/|$)/;
+const PARTITION_CHUNK_MONTH_RE =
+  /(?:^|\/)[A-Za-z_][A-Za-z0-9_]*-(\d{4}-\d{2})-\d{2}-to-\d{4}-\d{2}-\d{2}(?:\/|$)/;
 const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export const RAW_FAMILY_MAPPINGS: readonly RawFamilyMapping[] = [
@@ -602,8 +603,7 @@ function verdictFor(input: {
   const existingTables = input.sqlite.tables.filter((table) => table.exists);
   const coverageTables = existingTables.filter(
     (table) =>
-      table.monthGranularity === "month-column" ||
-      table.monthGranularity === "indexed-date-column",
+      table.monthGranularity === "month-column" || table.monthGranularity === "indexed-date-column",
   );
   const indexedDateTables = existingTables.filter(
     (table) => table.monthGranularity === "indexed-date-column",

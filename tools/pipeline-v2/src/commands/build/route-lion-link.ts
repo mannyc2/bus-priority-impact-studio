@@ -1,8 +1,8 @@
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   defaultRouteLionLinkBufferMeters,
   runBuildRouteLionLink,
 } from "@bp/pipeline-v2/local-db-aggregates";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   makeBuildLocalDbCommandLayer,
   runBuildRouteLionLinkCommand,

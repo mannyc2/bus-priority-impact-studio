@@ -1,12 +1,12 @@
 import { join } from "node:path";
 import { upsertDotStreetPermits } from "@bp/db/local";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   normalizeDotStreetPermitRows,
   type PermitKind,
 } from "@bp/sources/adapters/nyc-dot/street-permits";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";

@@ -1,9 +1,9 @@
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   type BuildRouteShapeGeometryIndexResult,
   runBuildRouteShapeGeometryIndexFromShapes,
 } from "@bp/pipeline-v2/local-db-aggregates";
 import { normalizeRouteShapeRows } from "@bp/sources/adapters/mta/routes-stops";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";

@@ -14,8 +14,8 @@ import {
   type RouteSpeedHistoryBatchRoute,
   type RouteSpeedSpineReadiness,
 } from "@bp/analytics/feature-history";
-import { loadCompleteRouteSpeedScheduleMonths } from "@bp/pipeline-v2/local-db-aggregates";
 import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { loadCompleteRouteSpeedScheduleMonths } from "@bp/pipeline-v2/local-db-aggregates";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { readJsonArtifact, readJsonIfExists, writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";

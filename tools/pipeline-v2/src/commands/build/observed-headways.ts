@@ -1,3 +1,4 @@
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   type BuildObservedHeadwaysResult,
   deriveObservedHeadwayRows,
@@ -5,7 +6,6 @@ import {
   type ObservedStopEvent,
   runBuildObservedHeadways,
 } from "@bp/pipeline-v2/local-db-aggregates";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   makeBuildLocalDbCommandLayer,
   runBuildObservedHeadwaysCommand,

@@ -1,3 +1,4 @@
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   buildHeadwayGroups,
   type HeadwayGroup,
@@ -6,7 +7,6 @@ import {
   routeBaseline,
   runRouteReliabilityBaseline,
 } from "@bp/pipeline-v2/local-db-aggregates";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   makeRouteLocalDbCommandLayer,
   runRouteReliabilityBaselineCommand,

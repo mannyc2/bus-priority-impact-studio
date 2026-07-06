@@ -1,5 +1,5 @@
-import { runBuildContextEvents } from "@bp/pipeline-v2/local-db-aggregates";
 import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { runBuildContextEvents } from "@bp/pipeline-v2/local-db-aggregates";
 import {
   makeBuildLocalDbCommandLayer,
   runBuildContextEventsCommand,

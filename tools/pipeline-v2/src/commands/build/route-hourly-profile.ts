@@ -8,13 +8,13 @@ import {
   buildRouteHourlyProfileArtifact,
   buildStudioRouteHourlyProfileArtifacts,
 } from "@bp/analytics/feature-history";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   loadRouteHourlyProfileHourRows,
   loadRouteHourlyProfileLocalDbRows,
   loadRouteHourlyProfileReliabilitySampleRows,
   loadRouteHourlyProfileSlowestWindowRows,
 } from "@bp/pipeline-v2/local-db-aggregates";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";

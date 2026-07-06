@@ -1,5 +1,5 @@
-import { runBuildLionGeometryIndex } from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { runBuildLionGeometryIndex } from "@bp/pipeline-v2/local-db-aggregates";
 import {
   makeBuildLocalDbCommandLayer,
   runBuildLionGeometryIndexCommand,

@@ -340,7 +340,10 @@ function enhance<T, Optional extends boolean = false>(
         ) as unknown as ZodString<Optional>;
       },
       url(): ZodString<Optional> {
-        return check(schema, Schema.isPattern(/^https?:\/\/\S+$/)) as unknown as ZodString<Optional>;
+        return check(
+          schema,
+          Schema.isPattern(/^https?:\/\/\S+$/),
+        ) as unknown as ZodString<Optional>;
       },
     });
   }

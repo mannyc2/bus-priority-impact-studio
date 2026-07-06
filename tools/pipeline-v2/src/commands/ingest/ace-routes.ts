@@ -1,9 +1,9 @@
 import { join } from "node:path";
 import { replaceAceRoutes } from "@bp/db/local";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { normalizeAceRouteRows } from "@bp/sources/adapters/mta/ace";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";

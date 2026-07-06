@@ -1,5 +1,5 @@
-import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/clients/geoclient";
 import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/clients/geoclient";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { createGeoclientFromEnv, type GeocodeOutcome, Geocoder } from "../../lib/geocoder.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";

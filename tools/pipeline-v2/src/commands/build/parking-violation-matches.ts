@@ -1,6 +1,7 @@
 import { mkdir, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { parkingViolationMatchAuditPath } from "@bp/analytics/artifacts";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   buildParkingViolationMatchAuditArtifact,
   countParkingViolationLocationGroups,
@@ -11,7 +12,6 @@ import {
   summarizeParkingViolationMatches,
 } from "@bp/pipeline-v2/local-db-aggregates";
 import type { Geoclient } from "@bp/sources/clients/geoclient";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { createGeoclientFromEnv, Geocoder } from "../../lib/geocoder.ts";
 import { writeJson } from "../../lib/json.ts";

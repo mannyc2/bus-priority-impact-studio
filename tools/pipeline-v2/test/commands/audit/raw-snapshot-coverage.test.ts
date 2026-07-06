@@ -46,7 +46,10 @@ describe("raw snapshot coverage audit", () => {
       file("/raw/network/current_bus_routes.json", 30),
       directory("/raw/socrata-partitioned"),
       file("/raw/socrata-partitioned/source/run/partition-manifest.json", 40),
-      file("/raw/socrata-partitioned/source/run/chunks/event_date-2026-03-01-to-2026-04-01/rows.csv", 50),
+      file(
+        "/raw/socrata-partitioned/source/run/chunks/event_date-2026-03-01-to-2026-04-01/rows.csv",
+        50,
+      ),
       file("/raw/.gitkeep", 0),
     ]);
 

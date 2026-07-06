@@ -12,6 +12,7 @@ import {
   listStudioRouteIndexSourceRows,
   type StudioRouteIndexSourceRow,
 } from "@bp/db/d1";
+import * as z from "@bp/domain/schema-compat";
 import {
   buildRouteInsightsFromDetectorReadiness,
   type DetectorReadinessServingManifestForInsights,
@@ -81,7 +82,6 @@ import {
   StudioSnapshotResponseSchema,
   type StudioSourceMonthState,
 } from "@bp/domain/studio/snapshots";
-import * as z from "@bp/domain/schema-compat";
 import { studioOpenApiDocument } from "../contracts/openapi.js";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";

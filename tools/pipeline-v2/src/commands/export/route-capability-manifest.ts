@@ -6,8 +6,8 @@ import {
   type RouteCapabilityInputRow,
   type RouteCapabilitySourceStatus,
 } from "@bp/analytics/evaluation";
-import { STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY } from "@bp/domain/studio";
 import * as z from "@bp/domain/schema-compat";
+import { STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY } from "@bp/domain/studio";
 import type { D1CanonicalInputs } from "./d1-inputs";
 
 /**

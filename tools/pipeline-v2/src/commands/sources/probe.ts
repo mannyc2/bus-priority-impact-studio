@@ -1,9 +1,9 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { probeSource, type SourceProbeOutput } from "@bp/sources/probes";
 import { fetchCurlHeadMetadata } from "@bp/sources/probes/transports/bun-curl";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 

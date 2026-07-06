@@ -6,8 +6,8 @@ import {
   listRouteMonthCoverage,
   listRouteStops,
 } from "@bp/db/local";
-import { parseBusLaneOpenDates } from "@bp/pipeline-v2/local-db-aggregates";
 import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { parseBusLaneOpenDates } from "@bp/pipeline-v2/local-db-aggregates";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";

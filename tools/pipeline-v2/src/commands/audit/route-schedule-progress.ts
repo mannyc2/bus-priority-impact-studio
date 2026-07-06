@@ -1,5 +1,5 @@
-import { auditRouteScheduleProgress } from "@bp/pipeline-v2/local-db-aggregates";
 import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { auditRouteScheduleProgress } from "@bp/pipeline-v2/local-db-aggregates";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";

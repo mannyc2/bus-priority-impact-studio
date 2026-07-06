@@ -1,7 +1,7 @@
+import type * as z from "@bp/domain/schema-compat";
+import { getObjectShape, getSchemaInfo, type ZodType } from "@bp/domain/schema-compat";
 import { Option } from "effect";
 import { Flag, Param } from "effect/unstable/cli";
-import { getObjectShape, getSchemaInfo, type ZodType } from "@bp/domain/schema-compat";
-import type * as z from "@bp/domain/schema-compat";
 
 export type ParsedCliControls = {
   json: boolean;

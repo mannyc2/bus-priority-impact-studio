@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { SocrataManifestSource } from "@bp/sources/registry";
 import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import type { SocrataManifestSource } from "@bp/sources/registry";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";

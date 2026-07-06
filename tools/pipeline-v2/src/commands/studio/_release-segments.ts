@@ -308,8 +308,8 @@ export function buildSegmentAnalystNote(input: StudioSegment): StudioAiAnalystNo
     input.scheduledMph === null
       ? `observed at ${input.speedMph.toFixed(1)} mph, with no schedule-implied speed available`
       : speedGap > 0
-      ? `${speedGap.toFixed(1)} mph below schedule`
-      : "at or above the schedule-implied speed";
+        ? `${speedGap.toFixed(1)} mph below schedule`
+        : "at or above the schedule-implied speed";
   const caveats = [
     "This is a route-slice hotspot segment, not a complete stop-to-stop universe.",
     "Delay exposure uses monthly route/hour ridership exposure, not service-day or stop-level boardings.",

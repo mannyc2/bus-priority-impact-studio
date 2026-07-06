@@ -1,12 +1,12 @@
 import { join } from "node:path";
 import { geometryCoordinates, replaceBusLanes } from "@bp/db/local";
+import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   type NormalizedBusLane,
   normalizeBusLaneRows,
 } from "@bp/sources/adapters/nyc-dot/bus-lanes";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";

@@ -1,9 +1,9 @@
 import { join } from "node:path";
 import { insertDotTrafficVolumeCounts } from "@bp/db/local";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { normalizeDotTrafficVolumeRows } from "@bp/sources/adapters/nyc-dot/traffic-volume";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";

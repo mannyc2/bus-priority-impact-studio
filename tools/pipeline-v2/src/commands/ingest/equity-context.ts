@@ -1,12 +1,12 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceCensusTractEquityContext } from "@bp/db/local";
+import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import {
   censusAcsProfileVariables,
   type NormalizedCensusTractEquityContext,
 } from "@bp/sources/adapters/census/acs-equity";
 import { type CensusAcsFetch, fetchCensusTractEquityContext } from "@bp/sources/clients/census";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
