@@ -1,10 +1,11 @@
+import { Effect } from "effect";
 import {
   type GtfsRtFeedType,
   replaceGtfsRtCollectionRun,
   replaceGtfsRtFeedSnapshots,
   replaceGtfsRtParsedSnapshot,
 } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeGtfsRealtimeRouteId } from "@bp/sources/gtfs-realtime";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
@@ -457,31 +458,50 @@ export default defineCommand({
   summary:
     "Import a canonicalized Bus Observatory recovered GTFS-RT CSV into the local pipeline DB.",
   input: {
-    options: dbOptions.extend({
-      runId: z.string().min(1).describe("Stable run identifier"),
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      canonicalCsv: z.string().min(1).describe("Path to canonicalized vehicle-positions CSV"),
-      sampleSeconds: arg.positiveInt().default(30).describe("Sample period in seconds"),
-      maxGapSeconds: arg.positiveInt().default(300).describe("Maximum allowed inter-sample gap"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        runId: Schema.String.check(Schema.isMinLength(1)).annotate({
+          description: "Stable run identifier",
+        }),
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        canonicalCsv: Schema.String.check(Schema.isMinLength(1)).annotate({
+          description: "Path to canonicalized vehicle-positions CSV",
+        }),
+        sampleSeconds: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(30)))
+          .annotate({ description: "Sample period in seconds" }),
+        maxGapSeconds: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(300)))
+          .annotate({ description: "Maximum allowed inter-sample gap" }),
+      },
     }),
   },
-  output: z.object({
-    runId: z.string(),
-    month: z.string(),
-    provenance: z.string(),
-    sourceId: z.string(),
-    csvPath: z.string(),
-    sampleCount: z.number(),
-    vehiclePositionCount: z.number(),
-    skippedRowCount: z.number(),
-    routeCount: z.number(),
-    vehicleCount: z.number(),
-    minTimestamp: z.number().nullable(),
-    maxTimestamp: z.number().nullable(),
-    maxTimestampGapSeconds: z.number().nullable(),
-    qaStatus: z.enum(["pass", "warning", "fail"]),
-    qaIssues: z.array(z.string()),
+  output: Schema.Struct({
+    runId: Schema.String,
+    month: Schema.String,
+    provenance: Schema.String,
+    sourceId: Schema.String,
+    csvPath: Schema.String,
+    sampleCount: Schema.Number,
+    vehiclePositionCount: Schema.Number,
+    skippedRowCount: Schema.Number,
+    routeCount: Schema.Number,
+    vehicleCount: Schema.Number,
+    minTimestamp: Schema.NullOr(Schema.Number),
+    maxTimestamp: Schema.NullOr(Schema.Number),
+    maxTimestampGapSeconds: Schema.NullOr(Schema.Number),
+    qaStatus: Schema.Literals(["pass", "warning", "fail"]),
+    qaIssues: Schema.Array(Schema.String),
   }),
   async run({ input }) {
     const canonicalCsv = fromCliPath(input.options.canonicalCsv);
