@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { scaledMapColor, speedToColor } from "@/components/route/maplibre-style";
+import { MAP_COLORS, scaledMapColor, speedToColor } from "@/components/route/maplibre-style";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { NetworkMapFeature, NetworkMapFeatureCollection } from "@/studio/api-client";
 
@@ -28,14 +28,29 @@ export const PERIOD_HOURS: Record<MapPeriod, number[] | null> = {
   pm: [16, 17, 18, 19], // PM peak
 };
 
-export function periodSpeed(feature: NetworkMapFeature, period: MapPeriod): number {
+export function periodSpeed(
+  feature: NetworkMapFeature,
+  period: MapPeriod,
+): { value: number | null; observedHours: number; expectedHours: number } {
   const hours = PERIOD_HOURS[period];
-  if (hours === null) return feature.properties.currentMph;
-  const values = hours
-    .map((h) => feature.properties.hours[h])
-    .filter((v): v is number => typeof v === "number" && v > 0);
-  if (values.length === 0) return feature.properties.currentMph;
-  return values.reduce((sum, v) => sum + v, 0) / values.length;
+  if (hours === null) {
+    return { value: feature.properties.currentMph, observedHours: 1, expectedHours: 1 };
+  }
+  const observed = hours.flatMap((hour) => {
+    const speed = feature.properties.hourlySpeedMph[hour];
+    const traversals = feature.properties.hourlyTraversalCount[hour] ?? 0;
+    return speed === null || speed === undefined || traversals <= 0 ? [] : [{ speed, traversals }];
+  });
+  const minimumHours = period === "am" ? 2 : 3;
+  if (observed.length < minimumHours) {
+    return { value: null, observedHours: observed.length, expectedHours: hours.length };
+  }
+  const traversals = observed.reduce((sum, row) => sum + row.traversals, 0);
+  return {
+    value: observed.reduce((sum, row) => sum + row.speed * row.traversals, 0) / traversals,
+    observedHours: observed.length,
+    expectedHours: hours.length,
+  };
 }
 
 function NetworkMapSkeleton() {
@@ -90,7 +105,7 @@ function NetworkMapStatic({
           feature.properties.routeId === hoveredRouteId ||
           feature.properties.routeId === selectedRouteId;
         const hasFocus = hoveredRouteId !== null || selectedRouteId !== null;
-        const speed = periodSpeed(feature, period);
+        const speed = periodSpeed(feature, period).value;
         return (
           // biome-ignore lint/a11y/noStaticElementInteractions: static fallback mirrors the map's click-through
           <g
@@ -114,7 +129,8 @@ function NetworkMapStatic({
                 strokeLinejoin="round"
               >
                 <title>
-                  {feature.properties.label} / {speed.toFixed(1)} mph
+                  {feature.properties.label} /{" "}
+                  {speed === null ? "No data" : `${speed.toFixed(1)} mph`}
                 </title>
               </path>
             ))}
@@ -190,11 +206,13 @@ function linePath(
 function networkLensColor(
   feature: NetworkMapFeatureCollection["features"][number],
   lens: NetworkMapLens,
-  speedMph: number,
+  speedMph: number | null,
 ): string {
-  if (lens === "speed") return speedToColor(speedMph);
+  if (lens === "speed") return speedMph === null ? MAP_COLORS.ink20 : speedToColor(speedMph);
   if (lens === "lanes") {
-    return scaledMapColor(feature.properties.laneCoverage, 0, 100, "lanes");
+    return feature.properties.laneCoverage === null
+      ? MAP_COLORS.ink20
+      : scaledMapColor(feature.properties.laneCoverage, 0, 100, "lanes");
   }
   return scaledMapColor(feature.properties.dailyRiders, 0, 45_000, "riders");
 }

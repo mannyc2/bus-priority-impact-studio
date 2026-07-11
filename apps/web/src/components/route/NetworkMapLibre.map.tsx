@@ -77,7 +77,7 @@ function networkFeatureCollection(input: {
   return {
     type: "FeatureCollection",
     features: input.collection.features.map((feature) => {
-      const speedMph = periodSpeed(feature, input.period);
+      const speedMph = periodSpeed(feature, input.period).value;
       const active =
         feature.properties.routeId === input.hoveredRouteId ||
         feature.properties.routeId === input.selectedRouteId;
@@ -95,7 +95,7 @@ function networkFeatureCollection(input: {
           routeId: feature.properties.routeId,
           label: feature.properties.label,
           borough: feature.properties.borough,
-          speedMph,
+          speedMph: speedMph ?? 0,
           color: networkLensColor(feature, input.lens, speedMph),
           opacity: hasFocus && !active ? 0.2 : 0.92,
           lineWidth: active ? 5.8 : feature.properties.sbs ? 3.6 : 2.4,
@@ -352,11 +352,13 @@ export function NetworkMapLibreMap({
 function networkLensColor(
   feature: NetworkMapFeatureCollection["features"][number],
   lens: NetworkMapLens,
-  speedMph: number,
+  speedMph: number | null,
 ): string {
-  if (lens === "speed") return speedToColor(speedMph);
+  if (lens === "speed") return speedMph === null ? MAP_COLORS.ink20 : speedToColor(speedMph);
   if (lens === "lanes") {
-    return scaledMapColor(feature.properties.laneCoverage, 0, 100, "lanes");
+    return feature.properties.laneCoverage === null
+      ? MAP_COLORS.ink20
+      : scaledMapColor(feature.properties.laneCoverage, 0, 100, "lanes");
   }
   return scaledMapColor(feature.properties.dailyRiders, 0, 45_000, "riders");
 }

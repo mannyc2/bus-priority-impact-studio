@@ -101,16 +101,18 @@ export function NetworkMapPage({
               { label: "Lanes", value: "lanes" },
             ]}
           />
-          <MapToggle
-            label="Time period"
-            value={period}
-            setValue={setPeriod}
-            options={[
-              { label: "All day", value: "all" },
-              { label: "AM peak", value: "am" },
-              { label: "PM peak", value: "pm" },
-            ]}
-          />
+          {lens === "speed" ? (
+            <MapToggle
+              label="Time period"
+              value={period}
+              setValue={setPeriod}
+              options={[
+                { label: "All day", value: "all" },
+                { label: "AM peak", value: "am" },
+                { label: "PM peak", value: "pm" },
+              ]}
+            />
+          ) : null}
         </div>
         <div className="absolute bottom-6 left-4 z-10">
           <NetworkLegend lens={lens} period={period} />
@@ -191,6 +193,9 @@ function NetworkLegend({ lens, period }: { lens: NetworkMapLens; period: MapPeri
         <div className="mt-1.5 text-[10.5px] text-[var(--bp-color-ink-55)]">
           average {periodLabel(period)} speed
         </div>
+        <div className="mt-1 text-[10.5px] text-[var(--bp-color-ink-55)]">
+          Gray means unavailable
+        </div>
       </div>
     );
   }
@@ -215,26 +220,42 @@ function NetworkReadout({
   if (feature === null) {
     return <div className="text-[12.5px] text-[var(--bp-color-ink-55)]">No route is selected.</div>;
   }
-  const speed = periodSpeed(feature, period);
+  const speed = periodSpeed(feature, period).value;
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
         <div className="text-[10.5px] font-semibold text-[var(--bp-color-ink-55)]">Focus route</div>
-        <Badge variant={lens === "speed" && speed < 5 ? "bad" : "neutral"}>
+        <Badge variant={lens === "speed" && speed !== null && speed < 5 ? "bad" : "neutral"}>
           {rankValue(feature, period, lens)}
         </Badge>
       </div>
       <div className="mt-1 flex items-baseline justify-between gap-3">
         <div className="text-[24px] font-semibold leading-none">{feature.properties.label}</div>
         <div className="font-mono text-[20px] font-semibold tabular-nums">
-          {speed.toFixed(1)}
-          <span className="ml-1 text-[11px] text-[var(--bp-color-ink-55)]">mph</span>
+          {speed === null ? "No data" : speed.toFixed(1)}
+          {speed === null ? null : (
+            <span className="ml-1 text-[11px] text-[var(--bp-color-ink-55)]">mph</span>
+          )}
         </div>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
         <NetworkMiniStat label="Riders" value={compactNumber(feature.properties.dailyRiders)} />
-        <NetworkMiniStat label="Lanes" value={`${feature.properties.laneCoverage}%`} />
-        <NetworkMiniStat label="Hotspots" value={String(feature.properties.hotspotCount)} />
+        <NetworkMiniStat
+          label="Lanes"
+          value={
+            feature.properties.laneCoverage === null
+              ? "No data"
+              : `${feature.properties.laneCoverage}%`
+          }
+        />
+        <NetworkMiniStat
+          label="Delay"
+          value={
+            feature.properties.riderHoursLost === null
+              ? "No data"
+              : `${compactNumber(feature.properties.riderHoursLost)} hr`
+          }
+        />
       </div>
     </div>
   );
@@ -345,12 +366,21 @@ export function compareRankedRoutes(
   period: MapPeriod,
   lens: NetworkMapLens,
 ): number {
-  const delta =
+  const leftValue =
     lens === "riders"
-      ? right.properties.dailyRiders - left.properties.dailyRiders
+      ? left.properties.dailyRiders
       : lens === "lanes"
-        ? left.properties.laneCoverage - right.properties.laneCoverage
-        : periodSpeed(left, period) - periodSpeed(right, period);
+        ? left.properties.laneCoverage
+        : periodSpeed(left, period).value;
+  const rightValue =
+    lens === "riders"
+      ? right.properties.dailyRiders
+      : lens === "lanes"
+        ? right.properties.laneCoverage
+        : periodSpeed(right, period).value;
+  if (leftValue === null) return rightValue === null ? 0 : 1;
+  if (rightValue === null) return -1;
+  const delta = lens === "riders" ? rightValue - leftValue : leftValue - rightValue;
   return delta === 0 ? left.properties.label.localeCompare(right.properties.label) : delta;
 }
 
@@ -366,8 +396,12 @@ export function rankValue(
   lens: NetworkMapLens,
 ): string {
   if (lens === "riders") return compactNumber(feature.properties.dailyRiders);
-  if (lens === "lanes") return `${Math.round(feature.properties.laneCoverage)}%`;
-  return `${periodSpeed(feature, period).toFixed(1)} mph`;
+  if (lens === "lanes")
+    return feature.properties.laneCoverage === null
+      ? "No data"
+      : `${Math.round(feature.properties.laneCoverage)}%`;
+  const speed = periodSpeed(feature, period).value;
+  return speed === null ? "No data" : `${speed.toFixed(1)} mph`;
 }
 
 export function rankSubline(
@@ -378,7 +412,8 @@ export function rankSubline(
   if (lens === "speed") {
     return `${feature.properties.borough} / ${compactNumber(feature.properties.dailyRiders)} riders`;
   }
-  return `${feature.properties.borough} / ${periodSpeed(feature, period).toFixed(1)} mph`;
+  const speed = periodSpeed(feature, period).value;
+  return `${feature.properties.borough} / ${speed === null ? "No speed data" : `${speed.toFixed(1)} mph`}`;
 }
 
 function compactNumber(value: number): string {

@@ -7,7 +7,8 @@ function feature(overrides: {
   routeId?: string;
   label?: string;
   currentMph?: number;
-  hours?: number[];
+  hourlySpeedMph?: Array<number | null>;
+  hourlyTraversalCount?: number[];
   dailyRiders?: number;
   laneCoverage?: number;
 }): NetworkMapFeature {
@@ -20,54 +21,83 @@ function feature(overrides: {
       label: overrides.label ?? "B1",
       borough: "Brooklyn",
       sbs: false,
-      scheduledMph: 9,
       currentMph: overrides.currentMph ?? 8,
       trend6mPct: null,
       dailyRiders: overrides.dailyRiders ?? 10_000,
       riderHoursLost: null,
       laneCoverage: overrides.laneCoverage ?? 40,
       ace: false,
-      hotspotCount: 2,
-      segmentCount: 12,
-      hours: overrides.hours ?? [],
+      hourlySpeedMph: overrides.hourlySpeedMph ?? new Array<number | null>(24).fill(null),
+      hourlyTraversalCount: overrides.hourlyTraversalCount ?? new Array<number>(24).fill(0),
+      servedBoroughs: ["Brooklyn"],
     },
   };
 }
 
-function hoursWith(values: Record<number, number>): number[] {
-  const hours = new Array<number>(24).fill(0);
-  for (const [hour, value] of Object.entries(values)) hours[Number(hour)] = value;
-  return hours;
+function hoursWith(values: Record<number, { speed: number; traversals: number }>): {
+  hourlySpeedMph: Array<number | null>;
+  hourlyTraversalCount: number[];
+} {
+  const hourlySpeedMph = new Array<number | null>(24).fill(null);
+  const hourlyTraversalCount = new Array<number>(24).fill(0);
+  for (const [hour, value] of Object.entries(values)) {
+    hourlySpeedMph[Number(hour)] = value.speed;
+    hourlyTraversalCount[Number(hour)] = value.traversals;
+  }
+  return { hourlySpeedMph, hourlyTraversalCount };
 }
 
 describe("periodSpeed", () => {
   test("all-day returns currentMph", () => {
-    const f = feature({ currentMph: 7.5, hours: hoursWith({ 8: 5 }) });
-    expect(periodSpeed(f, "all")).toBe(7.5);
+    const f = feature({
+      currentMph: 7.5,
+      ...hoursWith({ 8: { speed: 5, traversals: 1 } }),
+    });
+    expect(periodSpeed(f, "all")).toEqual({ value: 7.5, observedHours: 1, expectedHours: 1 });
   });
 
   test("am averages hours 7-9", () => {
     expect(PERIOD_HOURS.am).toEqual([7, 8, 9]);
-    const f = feature({ hours: hoursWith({ 7: 4, 8: 6, 9: 8 }) });
-    expect(periodSpeed(f, "am")).toBe(6);
+    const f = feature({
+      ...hoursWith({
+        7: { speed: 4, traversals: 1 },
+        8: { speed: 6, traversals: 2 },
+        9: { speed: 8, traversals: 1 },
+      }),
+    });
+    expect(periodSpeed(f, "am")).toEqual({ value: 6, observedHours: 3, expectedHours: 3 });
   });
 
   test("pm averages hours 16-19", () => {
     expect(PERIOD_HOURS.pm).toEqual([16, 17, 18, 19]);
-    const f = feature({ hours: hoursWith({ 16: 4, 17: 4, 18: 6, 19: 6 }) });
-    expect(periodSpeed(f, "pm")).toBe(5);
+    const f = feature({
+      ...hoursWith({
+        16: { speed: 4, traversals: 1 },
+        17: { speed: 4, traversals: 1 },
+        18: { speed: 6, traversals: 1 },
+        19: { speed: 6, traversals: 1 },
+      }),
+    });
+    expect(periodSpeed(f, "pm")).toEqual({ value: 5, observedHours: 4, expectedHours: 4 });
   });
 
-  test("zero or missing hour values fall back to currentMph", () => {
-    const zeroed = feature({ currentMph: 9.2, hours: hoursWith({ 7: 0, 8: 0, 9: 0 }) });
-    expect(periodSpeed(zeroed, "am")).toBe(9.2);
-    const empty = feature({ currentMph: 6.1, hours: [] });
-    expect(periodSpeed(empty, "am")).toBe(6.1);
+  test("insufficient coverage remains unavailable without an all-day fallback", () => {
+    const sparse = feature({
+      currentMph: 9.2,
+      ...hoursWith({ 8: { speed: 6, traversals: 3 } }),
+    });
+    expect(periodSpeed(sparse, "am")).toEqual({ value: null, observedHours: 1, expectedHours: 3 });
   });
 
-  test("mixed present and missing hours average only the present ones", () => {
-    const f = feature({ currentMph: 9, hours: hoursWith({ 7: 4, 9: 8 }) });
-    expect(periodSpeed(f, "am")).toBe(6);
+  test("weights qualifying hours by traversal count", () => {
+    const f = feature({
+      currentMph: 9,
+      ...hoursWith({
+        7: { speed: 4, traversals: 1 },
+        9: { speed: 8, traversals: 3 },
+      }),
+    });
+    expect(periodSpeed(f, "am")).toEqual({ value: 7, observedHours: 2, expectedHours: 3 });
   });
 });
 

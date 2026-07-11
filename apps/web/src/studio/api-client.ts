@@ -1,4 +1,9 @@
-import type { MapManifestResponse, MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
+import type {
+  MapManifestResponse,
+  MapNetworkFeatureCollection as MapNetworkGeometryCollection,
+  MapRouteFactsResponse,
+  MapRouteSegmentFeatureCollection,
+} from "@bp/domain/maps";
 import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key";
 import {
   createStudioApiClient,
@@ -210,23 +215,22 @@ export type NetworkMapFeature = {
   id: string;
   geometry: {
     type: "MultiLineString";
-    coordinates: Array<Array<[number, number]>>;
+    coordinates: readonly (readonly (readonly [number, number])[])[];
   };
   properties: {
     routeId: string;
     label: string;
     borough: string;
     sbs: boolean;
-    scheduledMph: number;
     currentMph: number;
     trend6mPct: number | null;
     dailyRiders: number;
     riderHoursLost: number | null;
-    laneCoverage: number;
-    ace: boolean;
-    hotspotCount: number;
-    segmentCount: number;
-    hours: number[];
+    laneCoverage: number | null;
+    ace: boolean | null;
+    hourlySpeedMph: Array<number | null>;
+    hourlyTraversalCount: number[];
+    servedBoroughs: string[];
   };
 };
 
@@ -237,6 +241,44 @@ export type NetworkMapFeatureCollection = {
 
 async function fetchMapManifest(options?: StudioQueryOptions) {
   return loadNullableStudioJson<MapManifestResponse>(studioPath("public.mapManifest"), options);
+}
+
+async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function fetchVerifiedJson<T>(
+  path: string,
+  expectedSha256: string,
+  options: StudioQueryOptions = {},
+): Promise<T | null> {
+  const response = await fetch(path, {
+    credentials: "same-origin",
+    headers: { Accept: "application/json" },
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw await apiError(response, path);
+  const bytes = await response.arrayBuffer();
+  if ((await sha256Hex(bytes)) !== expectedSha256) return null;
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes)) as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchMapRouteFacts(
+  manifest: MapManifestResponse,
+  options?: StudioQueryOptions,
+): Promise<MapRouteFactsResponse | null> {
+  if (manifest.routeFacts.status === "unavailable") return null;
+  return fetchVerifiedJson<MapRouteFactsResponse>(
+    publicArtifactPath(manifest.routeFacts.artifactKey),
+    manifest.routeFacts.sha256,
+    options,
+  );
 }
 
 /** Fetch the precomputed route-segment GeoJSON for one route, via the map manifest. */
@@ -259,5 +301,42 @@ export async function fetchNetworkMapGeo(options?: StudioQueryOptions) {
     (artifact) => artifact.artifactKind === "map_network_simplified_geojson",
   );
   if (entry === undefined) return null;
-  return loadNullableStudioJson<NetworkMapFeatureCollection>(entry.apiPath, options);
+  const [geometry, facts] = await Promise.all([
+    fetchVerifiedJson<MapNetworkGeometryCollection>(entry.apiPath, entry.sha256, options),
+    fetchMapRouteFacts(manifest, options),
+  ]);
+  if (geometry === null || facts === null || facts.baselineMonth !== manifest.baselineMonth) {
+    return null;
+  }
+  const factsByRoute = new Map(facts.routes.map((fact) => [fact.route.routeId, fact] as const));
+  const features = geometry.features.flatMap((feature) => {
+    const fact = factsByRoute.get(feature.properties.routeId);
+    if (fact === undefined) return [];
+    return [
+      {
+        type: "Feature" as const,
+        id: `network-route:${feature.properties.routeId}`,
+        geometry: feature.geometry,
+        properties: {
+          routeId: feature.properties.routeId,
+          label: fact.route.label,
+          borough: fact.route.borough,
+          sbs: fact.route.sbs,
+          currentMph: fact.route.speedMph,
+          trend6mPct: fact.route.movement6mPct,
+          dailyRiders: fact.route.dailyRiders,
+          riderHoursLost: fact.delayExposure.valueRiderHours,
+          laneCoverage: fact.provenance.lane.valuePct,
+          ace:
+            fact.provenance.ace.status === "unknown"
+              ? null
+              : fact.provenance.ace.status === "active",
+          hourlySpeedMph: [...feature.properties.hourlySpeedMph],
+          hourlyTraversalCount: [...feature.properties.hourlyTraversalCount],
+          servedBoroughs: [...feature.properties.servedBoroughs],
+        },
+      },
+    ];
+  });
+  return { type: "FeatureCollection" as const, features };
 }
