@@ -33,6 +33,7 @@ export type SocrataMonthlyIngestConfig<Row, Extra extends Record<string, unknown
   readonly rawDir: string;
   readonly rawFilePrefix: string;
   readonly queryGrain: string;
+  readonly pageSize?: number | undefined;
   query(input: {
     readonly year: number;
     readonly month: number;
@@ -81,6 +82,7 @@ export function defineSocrataMonthlyIngest<Row, Extra extends Record<string, unk
     const rawRows = [
       ...(await fetchSoda3RowsForSource(source, query, {
         fetcher: inputs.fetcher,
+        pageSize: config.pageSize,
       })),
     ];
     const rows = [

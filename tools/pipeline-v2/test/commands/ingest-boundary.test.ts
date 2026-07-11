@@ -27,11 +27,19 @@ const localDbIngestCommandFiles = [
 
 describe("ingest command boundaries", () => {
   test("use the Effect local DB boundary instead of Liche local DB middleware", () => {
+    const helperSource = readFileSync(
+      join(import.meta.dir, "../../src/commands/ingest/_define-ingest-command.ts"),
+      "utf8",
+    );
+    expect(helperSource).toContain("runLocalDbCommandBoundary({");
+    expect(helperSource).toContain("dbPath: input.options.db");
+
     for (const file of localDbIngestCommandFiles) {
       const source = readFileSync(join(import.meta.dir, "../../src/commands/ingest", file), "utf8");
 
-      expect(source).toContain("runLocalDbCommandBoundary({");
-      expect(source).toContain("dbPath: input.options.db");
+      expect(
+        source.includes("runLocalDbCommandBoundary({") || source.includes("defineIngestCommand({"),
+      ).toBe(true);
       expect(source).not.toContain("withLocalDb");
       expect(source).not.toContain("localDbFromCtx");
     }

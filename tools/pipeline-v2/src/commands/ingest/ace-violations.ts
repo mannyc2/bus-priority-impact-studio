@@ -1,35 +1,22 @@
-import { join } from "node:path";
 import { replaceAceViolationSummaries } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, z } from "@bp/pipeline-v2/cli/compat";
 import { normalizeAceViolationSummaryRows } from "@bp/sources/adapters/mta/ace";
-import { getSocrataSource } from "@bp/sources/registry";
-import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
-import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
-import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
-import { fromRepoRoot } from "../../lib/paths.ts";
+import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
+import { dbOptions } from "../../lib/local-db.ts";
 import {
-  fetchSoda3RowsForSource,
-  type SocrataFetch,
-  type SocrataRow,
-  type Soda3SoqlQuery,
-} from "../../lib/soda3.ts";
-import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
+  defineSocrataMonthlyIngest,
+  type SocrataMonthlyIngestInputs,
+} from "../../lib/socrata-monthly-ingest.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
-const sourceId = "ace_violations";
-const ROUTE_ID_PATTERN = /^[A-Z][A-Z0-9+-]*$/;
-const busRouteIdField = "bus_route_id";
+const routeIdPattern = /^[A-Z][A-Z0-9+-]*$/;
 
-export type AceViolationsRunInputs = {
-  local: OpenLocalPipelineDb;
-  year: number;
-  month: number;
-  fetchedAt?: Date | undefined;
-  fetcher?: SocrataFetch | undefined;
-  manifestText?: string | undefined;
-  snapshotPath?: string | undefined;
-};
+function hasCanonicalRouteId(row: Record<string, unknown>): boolean {
+  const routeId = row["bus_route_id"];
+  return routeIdPattern.test(typeof routeId === "string" ? routeId.trim().toUpperCase() : "");
+}
 
+export type AceViolationsRunInputs = SocrataMonthlyIngestInputs;
 export type AceViolationsIngestResult = {
   rawPath: string;
   isoMonth: string;
@@ -39,79 +26,52 @@ export type AceViolationsIngestResult = {
   skippedMalformedRouteIdCount: number;
 };
 
-export async function runAceViolationsIngest(
-  inputs: AceViolationsRunInputs,
-): Promise<AceViolationsIngestResult> {
-  const monthKey = isoMonth(inputs.year, inputs.month);
-  const manifestText =
-    inputs.manifestText ??
-    (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
-  const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
-  const rawPath =
-    inputs.snapshotPath ??
-    fromRepoRoot(join("data/raw/interventions", `ace-violations-${monthKey}.json`));
-
-  const query: Soda3SoqlQuery = {
+const runAceViolationsMonthlyIngest = defineSocrataMonthlyIngest({
+  sourceId: "ace_violations",
+  rawDir: "data/raw/interventions",
+  rawFilePrefix: "ace-violations",
+  queryGrain: "bus_route_id, violation_type, violation_status",
+  query: ({ year, month }) => ({
     select: "bus_route_id,violation_type,violation_status,count(*) as violation_count",
     where: [
-      `first_occurrence >= '${isoMonthStart(inputs.year, inputs.month)}'`,
-      `first_occurrence < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
+      `first_occurrence >= '${isoMonthStart(year, month)}'`,
+      `first_occurrence < '${nextIsoMonthStart(year, month)}'`,
       "bus_route_id IS NOT NULL",
       "violation_type IS NOT NULL",
       "violation_status IS NOT NULL",
     ].join(" AND "),
     group: "bus_route_id,violation_type,violation_status",
     order: "bus_route_id,violation_type,violation_status",
-  };
-  const rawRows: SocrataRow[] = [
-    ...(await fetchSoda3RowsForSource(source, query, {
-      fetcher: inputs.fetcher,
-    })),
-  ];
-  const filteredRawRows = rawRows.filter((row) => {
-    const routeId = row[busRouteIdField];
-    const id = typeof routeId === "string" ? routeId.trim().toUpperCase() : "";
-    return ROUTE_ID_PATTERN.test(id);
-  });
-  const skippedMalformedRouteIdCount = rawRows.length - filteredRawRows.length;
-  const rows = normalizeAceViolationSummaryRows(filteredRawRows);
-  const routeIds = [...new Set(rows.map((row) => row.routeId))].sort();
-  const violationCount = rows.reduce((sum, row) => sum + row.violationCount, 0);
-
-  await replaceAceViolationSummaries(
-    inputs.local.db,
-    monthKey,
-    rows.map((row) => ({ ...row, month: monthKey })),
-  );
-  await writeRawSourceSnapshot({
-    path: rawPath,
-    sourceId,
-    extra: { isoMonth: monthKey },
-    fetchedAt,
-    query: { grain: "bus_route_id, violation_type, violation_status", month: monthKey },
-    rows: rawRows,
-  });
-
-  return {
-    rawPath,
-    isoMonth: monthKey,
-    routeCount: routeIds.length,
+  }),
+  normalize: ({ rawRows }) => normalizeAceViolationSummaryRows(rawRows.filter(hasCanonicalRouteId)),
+  replaceRows: ({ local, isoMonth, rows }) =>
+    replaceAceViolationSummaries(
+      local.db,
+      isoMonth,
+      rows.map((row) => ({ ...row, month: isoMonth })),
+    ),
+  summarize: ({ rows, rawRows }) => ({
+    routeCount: new Set(rows.map((row) => row.routeId)).size,
     groupedRowCount: rows.length,
-    violationCount,
-    skippedMalformedRouteIdCount,
-  };
+    violationCount: rows.reduce((sum, row) => sum + row.violationCount, 0),
+    skippedMalformedRouteIdCount: rawRows.filter((row) => !hasCanonicalRouteId(row)).length,
+  }),
+});
+
+export async function runAceViolationsIngest(
+  inputs: AceViolationsRunInputs,
+): Promise<AceViolationsIngestResult> {
+  const { rowCount: _rowCount, ...result } = await runAceViolationsMonthlyIngest(inputs);
+  return result;
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "ace-violations"],
   summary: "Fetch monthly ACE/ABLE violation summaries from Socrata.",
-  input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-    }),
-  },
+  options: dbOptions.extend({
+    year: arg.positiveInt().default(2026).describe("Calendar year"),
+    month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
+  }),
   output: z.object({
     rawPath: z.string(),
     isoMonth: z.string(),
@@ -120,21 +80,7 @@ export default defineCommand({
     violationCount: z.number(),
     skippedMalformedRouteIdCount: z.number(),
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.ace-violations",
-      operation: "runAceViolationsIngest",
-      spanAttributes: {
-        year: input.options.year,
-        month: input.options.month,
-      },
-      run: (local) =>
-        runAceViolationsIngest({
-          local,
-          year: input.options.year,
-          month: input.options.month,
-        }),
-    });
-  },
+  operation: "runAceViolationsIngest",
+  spanAttributes: ({ year, month }) => ({ year, month }),
+  runner: (local, { year, month }) => runAceViolationsIngest({ local, year, month }),
 });
