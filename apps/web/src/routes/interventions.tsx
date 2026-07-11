@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { routeHead } from "../lib/head.js";
 import {
+  fetchStudioInterventionCorpus,
   fetchStudioInterventionsEvidence,
   fetchStudioRoutes,
   staticStudioLoaderStaleTimeMs,
@@ -20,10 +21,14 @@ function isAbortError(error: unknown): boolean {
 
 export const Route = createFileRoute("/interventions")({
   loader: async ({ abortController }) => {
-    const [routes, evidenceResult] = await Promise.all([
+    const [routes, evidenceResult, corpusResult] = await Promise.all([
       fetchStudioRoutes({ signal: abortController.signal }),
       fetchStudioInterventionsEvidence({ signal: abortController.signal }).then(
         (evidence) => ({ ok: true, evidence }) as const,
+        (error: unknown) => ({ ok: false, error }) as const,
+      ),
+      fetchStudioInterventionCorpus({ signal: abortController.signal }).then(
+        (corpus) => ({ ok: true, corpus }) as const,
         (error: unknown) => ({ ok: false, error }) as const,
       ),
     ]);
@@ -33,10 +38,22 @@ export const Route = createFileRoute("/interventions")({
       console.warn("Interventions evidence request failed; rendering route records only.", {
         error: evidenceResult.error,
       });
-      return { routes, evidence: [] };
+      if (!corpusResult.ok && isAbortError(corpusResult.error)) throw corpusResult.error;
+      return { routes, evidence: [], corpus: corpusResult.ok ? corpusResult.corpus : null };
     }
 
-    return { routes, evidence: evidenceResult.evidence.bundles };
+    if (!corpusResult.ok) {
+      if (isAbortError(corpusResult.error)) throw corpusResult.error;
+      console.warn("Intervention corpus request failed; rendering registry records only.", {
+        error: corpusResult.error,
+      });
+    }
+
+    return {
+      routes,
+      evidence: evidenceResult.evidence.bundles,
+      corpus: corpusResult.ok ? corpusResult.corpus : null,
+    };
   },
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: InterventionsRouteFallback,
@@ -52,7 +69,11 @@ function InterventionsRoute() {
   const data = Route.useLoaderData();
   return (
     <Suspense fallback={<InterventionsRouteFallback />}>
-      <InterventionsPage routes={data.routes.routes} evidence={data.evidence} />
+      <InterventionsPage
+        routes={data.routes.routes}
+        evidence={data.evidence}
+        corpus={data.corpus}
+      />
     </Suspense>
   );
 }

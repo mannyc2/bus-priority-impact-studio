@@ -6,6 +6,8 @@ import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/
 import { Badge } from "@/components/ui/badge";
 import type {
   StudioIntervention,
+  StudioInterventionCorpus,
+  StudioInterventionCorpusRecord,
   StudioInterventionsEvidenceBundle,
   StudioRoute,
   StudioRouteEvidenceBundle,
@@ -25,22 +27,25 @@ type BoroughFilter = typeof ROUTE_INDEX_ALL_BOROUGHS | (typeof ROUTE_INDEX_BOROU
 
 type InterventionRow = {
   key: string;
-  route: StudioRoute;
+  routes: readonly StudioRoute[];
   event: InterventionDisplayEvent;
   evidence: InterventionEvidenceBundle | null;
 };
 
 type InterventionDisplayEvent = Pick<
   StudioIntervention,
-  "comparisonCohort" | "sourceDetail" | "sourceLabel" | "tone"
+  "comparisonCohort" | "eventId" | "interventionType" | "sourceDetail" | "sourceLabel" | "tone"
 > & {
   year: string;
   sortKey: string;
   kind: string;
   title: string;
   detail: string;
-  source: "serving" | "wiki" | "source_gap";
+  source: "serving" | "wiki" | "corpus" | "source_gap";
   citationKeys: string[];
+  sourceEntries?: SourceNoteEntry[];
+  filterState?: "future" | "source-gap";
+  documented?: boolean;
 };
 
 const filters: readonly { id: InterventionFilter; label: string }[] = [
@@ -55,18 +60,23 @@ export const INTERVENTIONS_PAGE_SIZE = 30;
 export function InterventionsPage({
   routes,
   evidence,
+  corpus = null,
 }: {
   routes: readonly StudioRoute[];
   evidence: readonly (InterventionEvidenceBundle | null)[];
+  corpus?: StudioInterventionCorpus | null;
 }) {
   const [filter, setFilter] = useState<InterventionFilter>("all");
   const [borough, setBorough] = useState<BoroughFilter>(ROUTE_INDEX_ALL_BOROUGHS);
   const [limit, setLimit] = useState(INTERVENTIONS_PAGE_SIZE);
-  const rows = useMemo(() => interventionRows(routes, evidence), [routes, evidence]);
+  const rows = useMemo(
+    () => interventionRows(routes, evidence, corpus),
+    [routes, evidence, corpus],
+  );
   const boroughRows =
     borough === ROUTE_INDEX_ALL_BOROUGHS
       ? rows
-      : rows.filter((row) => row.route.borough.includes(borough));
+      : rows.filter((row) => row.routes.some((route) => route.borough.includes(borough)));
   const filteredRows = boroughRows.filter((row) => matchesFilter(row.event, filter));
   const visibleRows = filteredRows.slice(0, limit);
   const remaining = filteredRows.length - visibleRows.length;
@@ -199,10 +209,15 @@ export function yearGroups(
 function ChronicleRow({ row }: { row: InterventionRow }) {
   const cohort = row.event.comparisonCohort;
   const undated = yearLabel(row.event.year) === "Undated";
-  const entries: SourceNoteEntry[] =
+  const citationSourceEntries: SourceNoteEntry[] =
     row.event.citationKeys.length > 0
       ? citationEntries(row.evidence, row.event.citationKeys)
       : [{ label: row.event.sourceLabel ?? "Serving record" }];
+  const entries = dedupeSourceEntries([
+    ...citationSourceEntries,
+    ...(row.event.sourceEntries ?? []),
+  ]);
+  const primaryRoute = row.routes[0] ?? null;
 
   return (
     <div className="grid grid-cols-[64px_auto_minmax(0,1fr)_auto] items-start gap-3 py-2.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-md:grid-cols-[64px_minmax(0,1fr)]">
@@ -211,25 +226,41 @@ function ChronicleRow({ row }: { row: InterventionRow }) {
       >
         {undated ? "Undated" : row.event.year}
       </div>
-      <Link
-        to="/routes/$routeId"
-        params={{ routeId: row.route.slug }}
-        viewTransition
-        className="pt-0.5 no-underline"
-      >
-        <RouteBadge route={row.route.label} sbs={row.route.sbs} size="sm" />
-      </Link>
+      <div className="flex flex-wrap gap-1 pt-0.5">
+        {row.routes.length === 0 ? (
+          <span className="font-mono text-[10.5px] text-[var(--bp-color-ink-40)]">Network</span>
+        ) : (
+          row.routes.map((route) => (
+            <Link
+              key={route.slug}
+              to="/routes/$routeId"
+              params={{ routeId: route.slug }}
+              viewTransition
+              className="no-underline"
+            >
+              <RouteBadge route={route.label} sbs={route.sbs} size="sm" />
+            </Link>
+          ))
+        )}
+      </div>
       <div className="min-w-0 max-md:col-span-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="neutral">{row.event.kind.replaceAll("_", " ")}</Badge>
-          <Link
-            to="/routes/$routeId"
-            params={{ routeId: row.route.slug }}
-            viewTransition
-            className="text-[13px] font-semibold leading-tight text-[var(--bp-color-ink)] no-underline"
-          >
-            {row.event.title}
-          </Link>
+          {row.event.documented ? <Badge variant="neutral">documented</Badge> : null}
+          {primaryRoute === null ? (
+            <span className="text-[13px] font-semibold leading-tight text-[var(--bp-color-ink)]">
+              {row.event.title}
+            </span>
+          ) : (
+            <Link
+              to="/routes/$routeId"
+              params={{ routeId: primaryRoute.slug }}
+              viewTransition
+              className="text-[13px] font-semibold leading-tight text-[var(--bp-color-ink)] no-underline"
+            >
+              {row.event.title}
+            </Link>
+          )}
         </div>
         <div className="mt-1 line-clamp-2 text-[12px] leading-[1.45] text-[var(--bp-color-ink-55)]">
           {row.event.detail}
@@ -258,38 +289,138 @@ function ChronicleRow({ row }: { row: InterventionRow }) {
 export function interventionRows(
   routes: readonly StudioRoute[],
   evidence: readonly (InterventionEvidenceBundle | null)[] = [],
+  corpus: StudioInterventionCorpus | null = null,
 ): InterventionRow[] {
   const evidenceBySlug = new Map<string, InterventionEvidenceBundle>();
   for (const bundle of evidence) {
     if (bundle !== null) evidenceBySlug.set(bundle.routeSlug, bundle);
   }
-  return routes
-    .flatMap((route) => {
-      const bundle = evidenceBySlug.get(route.slug) ?? null;
-      return [
-        ...route.interventions.map(
-          (event, index): InterventionRow => ({
-            key: `${route.slug}:serving:${event.year}:${index}`,
-            route,
-            evidence: bundle,
-            event: {
-              ...event,
-              sortKey: event.year,
-              kind: "program record",
-              source: "serving",
-              citationKeys: [],
-            },
-          }),
-        ),
-        ...wikiInterventionRows(route, bundle),
-      ];
-    })
-    .sort(
-      (left, right) =>
-        right.event.sortKey.localeCompare(left.event.sortKey) ||
-        left.route.label.localeCompare(right.route.label) ||
-        left.event.title.localeCompare(right.event.title),
+  const registryRows = routes.flatMap((route) => {
+    const bundle = evidenceBySlug.get(route.slug) ?? null;
+    return [
+      ...route.interventions.map(
+        (event, index): InterventionRow => ({
+          key: `${route.slug}:serving:${event.year}:${index}`,
+          routes: [route],
+          evidence: bundle,
+          event: {
+            ...event,
+            sortKey: event.year,
+            kind: "program record",
+            source: "serving",
+            citationKeys: [],
+          },
+        }),
+      ),
+      ...wikiInterventionRows(route, bundle),
+    ];
+  });
+  const registryEventIds = new Set(
+    registryRows.flatMap((row) => (row.event.eventId === undefined ? [] : [row.event.eventId])),
+  );
+  const corpusEntriesByRegistryEventId = corpusSourceEntriesByRegistryEventId(corpus);
+  const enrichedRegistryRows: InterventionRow[] = registryRows.map((row) => {
+    const sourceEntries =
+      row.event.eventId === undefined
+        ? undefined
+        : corpusEntriesByRegistryEventId.get(row.event.eventId);
+    if (sourceEntries === undefined) return row;
+    return { ...row, event: { ...row.event, sourceEntries } };
+  });
+
+  return [
+    ...enrichedRegistryRows,
+    ...corpusInterventionRows(routes, corpus, registryEventIds),
+  ].sort(
+    (left, right) =>
+      right.event.sortKey.localeCompare(left.event.sortKey) ||
+      (left.routes[0]?.label ?? "").localeCompare(right.routes[0]?.label ?? "") ||
+      left.event.title.localeCompare(right.event.title),
+  );
+}
+
+function routeJoinKey(routeId: string): string {
+  return routeId.trim().toUpperCase().replace(/-SBS$/, "").replace(/\+$/, "");
+}
+
+function corpusSourceEntry(record: StudioInterventionCorpusRecord): SourceNoteEntry {
+  return {
+    label: record.sourceLabel,
+    ...(record.sourceUrl === null ? {} : { href: record.sourceUrl }),
+    detail: `${record.sourceId}; ${record.recordId}`,
+  };
+}
+
+function corpusSourceEntriesByRegistryEventId(
+  corpus: StudioInterventionCorpus | null,
+): ReadonlyMap<string, SourceNoteEntry[]> {
+  const entries = new Map<string, SourceNoteEntry[]>();
+  for (const record of corpus?.records ?? []) {
+    for (const eventId of record.matchedRegistryEventIds) {
+      const current = entries.get(eventId) ?? [];
+      current.push(corpusSourceEntry(record));
+      entries.set(eventId, current);
+    }
+  }
+  return entries;
+}
+
+function corpusInterventionRows(
+  routes: readonly StudioRoute[],
+  corpus: StudioInterventionCorpus | null,
+  visibleRegistryEventIds: ReadonlySet<string>,
+): InterventionRow[] {
+  const routesByJoinKey = new Map(routes.map((route) => [routeJoinKey(route.routeId), route]));
+  return (corpus?.records ?? []).flatMap((record): InterventionRow[] => {
+    if (record.matchedRegistryEventIds.some((eventId) => visibleRegistryEventIds.has(eventId))) {
+      return [];
+    }
+    const matchedRoutes = record.routes.flatMap((routeId) => {
+      const route = routesByJoinKey.get(routeJoinKey(routeId));
+      return route === undefined ? [] : [route];
+    });
+    const unmatchedRouteIds = record.routes.filter(
+      (routeId) => !routesByJoinKey.has(routeJoinKey(routeId)),
     );
+    const status = record.statusLatest ?? record.recordKind.replaceAll("_", " ");
+    const corridor = record.corridorStreets.join(", ");
+    const unmatchedRoutes =
+      unmatchedRouteIds.length > 0 ? ` — Unmatched routes: ${unmatchedRouteIds.join(", ")}` : "";
+    return [
+      {
+        key: `corpus:${record.recordId}`,
+        routes: matchedRoutes,
+        evidence: null,
+        event: {
+          year: record.effectiveDate ?? "undated",
+          sortKey: record.effectiveDate ?? "0000",
+          kind: record.primaryTreatments[0] ?? record.customTreatments[0] ?? "intervention",
+          title: record.title,
+          detail: `${status}${corridor.length > 0 ? ` — ${corridor}` : ""}${unmatchedRoutes}`,
+          source: "corpus",
+          sourceLabel: record.sourceLabel,
+          citationKeys: [],
+          sourceEntries: [corpusSourceEntry(record)],
+          ...(record.recordKind === "proposed"
+            ? { filterState: "future" as const }
+            : record.effectiveDate === null
+              ? { filterState: "source-gap" as const }
+              : {}),
+          documented: !record.evaluableInWindow,
+        },
+      },
+    ];
+  });
+}
+
+function dedupeSourceEntries(entries: readonly SourceNoteEntry[]): SourceNoteEntry[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    const key = `${entry.label}|${entry.href ?? ""}|${entry.detail ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function wikiInterventionRows(
@@ -315,7 +446,7 @@ function wikiTimelineRow(
   const year = event.dateNormalized ?? event.dateText ?? "undated";
   return {
     key: `${route.slug}:wiki-timeline:${event.recordId}`,
-    route,
+    routes: [route],
     evidence,
     event: {
       year,
@@ -337,7 +468,7 @@ function wikiTreatmentRow(
 ): InterventionRow {
   return {
     key: `${route.slug}:wiki-treatment:${intervention.recordId}`,
-    route,
+    routes: [route],
     evidence,
     event: {
       year: "undated",
@@ -365,7 +496,7 @@ function wikiProjectRow(
 ): InterventionRow {
   return {
     key: `${route.slug}:wiki-project:${project.recordId}`,
-    route,
+    routes: [route],
     evidence,
     event: {
       year: "undated",
@@ -387,7 +518,7 @@ function wikiSourceGapRow(
 ): InterventionRow {
   return {
     key: `${route.slug}:wiki-source-gap:${gap.recordId}`,
-    route,
+    routes: [route],
     evidence,
     event: {
       year: "undated",
@@ -406,11 +537,13 @@ function wikiSourceGapRow(
 function matchesFilter(event: InterventionDisplayEvent, filter: InterventionFilter): boolean {
   if (filter === "evaluated") return event.comparisonCohort !== undefined;
   if (filter === "future") return isFutureEvent(event);
-  if (filter === "source-gap") return event.source === "source_gap";
+  if (filter === "source-gap")
+    return event.source === "source_gap" || event.filterState === "source-gap";
   return true;
 }
 
 function isFutureEvent(event: InterventionDisplayEvent): boolean {
+  if (event.filterState === "future") return true;
   const text = `${event.title} ${event.detail}`.toLowerCase();
   return text.includes("future") || text.includes("scheduled") || text.includes("await");
 }

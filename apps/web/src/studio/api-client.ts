@@ -1,10 +1,12 @@
 import type { MapManifestResponse, MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
+import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key";
 import {
   createStudioApiClient,
   type PathBuildInput,
   type StudioApiRouteId,
 } from "@bp/studio-api/client";
 import type {
+  StudioInterventionCorpus,
   StudioInterventionsEvidenceResponse,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
@@ -131,6 +133,20 @@ export function fetchStudioRouteIndex(options?: StudioQueryOptions) {
 export function fetchStudioInterventionsEvidence(options?: StudioQueryOptions) {
   return loadStudioJson<StudioInterventionsEvidenceResponse>(
     studioPath("studio.interventionsEvidence"),
+    options,
+  );
+}
+
+function publicArtifactPath(key: string): string {
+  return `/api/v1/artifacts/${key
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/")}`;
+}
+
+export function fetchStudioInterventionCorpus(options?: StudioQueryOptions) {
+  return loadNullableStudioJson<StudioInterventionCorpus>(
+    publicArtifactPath(interventionCorpusKey()),
     options,
   );
 }

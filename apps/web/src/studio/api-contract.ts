@@ -2,6 +2,8 @@ export type {
   RouteDossierMetricSummary,
   RouteDossierSummaryForDetail,
   RouteSurfaceCapability,
+  StudioInterventionCorpus,
+  StudioInterventionCorpusRecord,
   StudioRouteCapability,
 } from "@bp/domain/studio";
 export type { StudioIntervention } from "@bp/domain/studio/interventions";

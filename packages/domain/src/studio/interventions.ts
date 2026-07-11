@@ -21,6 +21,8 @@ const StudioInterventionComparisonCohortSchema = Schema.Struct({
 });
 
 const StudioInterventionShapeSchema = Schema.Struct({
+  eventId: Schema.optional(Schema.String),
+  interventionType: Schema.optional(Schema.String),
   year: Schema.String,
   title: Schema.String,
   detail: Schema.String,
@@ -36,11 +38,22 @@ export const StudioInterventionSchema = Schema.Unknown.pipe(
       if (typeof value !== "object" || value === null) {
         return Schema.decodeUnknownSync(Schema.toEncoded(StudioInterventionShapeSchema))(value);
       }
-      const { year, title, detail, tone, sourceLabel, sourceDetail, comparisonCohort } =
-        value as Record<string, unknown>;
+      const {
+        eventId,
+        interventionType,
+        year,
+        title,
+        detail,
+        tone,
+        sourceLabel,
+        sourceDetail,
+        comparisonCohort,
+      } = value as Record<string, unknown>;
       return Schema.decodeUnknownSync(Schema.toEncoded(StudioInterventionShapeSchema), {
         onExcessProperty: "ignore",
       })({
+        eventId,
+        interventionType,
         year,
         title,
         detail,
@@ -212,6 +225,8 @@ export function buildStudioInterventionsFromComparisons(
     .map((comparison) => {
       const cohort = comparisonCohort(comparison);
       return {
+        eventId: comparison.eventId,
+        interventionType: comparison.interventionType,
         year: comparison.implementationMonth,
         title: interventionTitle(comparison),
         detail: statusDetail(comparison),

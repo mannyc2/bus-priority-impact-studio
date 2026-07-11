@@ -80,6 +80,27 @@ export {
   UserDirectoryStatusSchema,
 } from "./identity/index.js";
 export type {
+  StudioInterventionCorpus,
+  StudioInterventionCorpusReconciliation,
+  StudioInterventionCorpusReconciliationRecord,
+  StudioInterventionCorpusRecord,
+  StudioInterventionCorpusRegistryEvent,
+  StudioInterventionCorpusSource,
+} from "./intervention-corpus.js";
+export {
+  StudioInterventionCorpusReconciliationRecordSchema,
+  StudioInterventionCorpusReconciliationSchema,
+  StudioInterventionCorpusReconciliationSummarySchema,
+  StudioInterventionCorpusRecordSchema,
+  StudioInterventionCorpusRegistryEventSchema,
+  StudioInterventionCorpusSchema,
+  StudioInterventionCorpusSourceSchema,
+} from "./intervention-corpus.js";
+export {
+  interventionCorpusKey,
+  interventionCorpusReconciliationKey,
+} from "./intervention-corpus-key.js";
+export type {
   StudioIntervention,
   StudioInterventionComparisonCohort,
   StudioInterventionComparisonInput,

@@ -51,6 +51,8 @@ describe("Studio intervention timeline projection", () => {
 
     expect(interventions).toEqual([
       {
+        eventId: "ace:M15+:ACE:2024-06-20",
+        interventionType: "automated_bus_lane_enforcement",
         year: "2024-06",
         title: "ACE enforcement begins",
         detail: "Documented intervention; not enough pre-period speed data for comparison.",
@@ -59,6 +61,8 @@ describe("Studio intervention timeline projection", () => {
         sourceDetail: "Structured intervention source",
       },
       {
+        eventId: "bus-lane:M15+:2025-07",
+        interventionType: "bus_lane_infrastructure",
         year: "2025-07",
         title: "Bus lane opening evidence",
         detail: "Peer-adjusted speed change +0.15 mph using 10 comparison routes.",

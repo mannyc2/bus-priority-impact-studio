@@ -10,6 +10,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { timelineEvidenceRouteSlugs } from "../../src/studio/api-client";
 import type {
   StudioIntervention,
+  StudioInterventionCorpus,
   StudioRoute,
   StudioRouteEvidenceBundle,
   StudioRouteIndex2Response,
@@ -73,6 +74,8 @@ function makeRoute(input: {
 }
 
 const evaluatedIntervention: StudioIntervention = {
+  eventId: "registry-m15",
+  interventionType: "bus_lane_infrastructure",
   year: "2024-06",
   title: "Offset bus lane installed",
   detail: "Curbside lane converted to an offset bus lane.",
@@ -170,6 +173,73 @@ const wikiEvidence = {
 const routes = [servingRoute, wikiRoute, emptyRoute];
 const evidence = [wikiEvidence];
 
+const corpus = {
+  schemaVersion: 1,
+  generatedAt: "2026-07-11T00:00:00.000Z",
+  sourceCorpus: {
+    path: "data/artifacts/docs/reviewed.json",
+    version: 3,
+    generatedAt: "2026-05-27T00:00:00.000Z",
+    recordCount: 3,
+  },
+  records: [
+    {
+      recordId: "corpus-matched",
+      routes: ["M15"],
+      primaryTreatments: ["bus_lane"],
+      customTreatments: [],
+      title: "First Avenue — Bus Lane",
+      effectiveDate: "2024-06",
+      datePrecision: "month",
+      recordKind: "implemented",
+      statusLatest: "complete",
+      corridorStreets: ["First Avenue"],
+      evaluableInWindow: true,
+      sourceId: "source-matched",
+      sourceLabel: "Matched source",
+      sourceUrl: "https://example.test/matched",
+      caveatCount: 0,
+      matchedRegistryEventIds: ["registry-m15"],
+    },
+    {
+      recordId: "corpus-b41",
+      routes: ["B41"],
+      primaryTreatments: ["busway"],
+      customTreatments: [],
+      title: "Flatbush Avenue — Busway",
+      effectiveDate: "2021-10",
+      datePrecision: "month",
+      recordKind: "implemented",
+      statusLatest: "complete",
+      corridorStreets: ["Flatbush Avenue"],
+      evaluableInWindow: false,
+      sourceId: "source-b41",
+      sourceLabel: "B41 source",
+      sourceUrl: null,
+      caveatCount: 1,
+      matchedRegistryEventIds: [],
+    },
+    {
+      recordId: "corpus-network",
+      routes: [],
+      primaryTreatments: ["reroute"],
+      customTreatments: [],
+      title: "Queens — Reroute",
+      effectiveDate: null,
+      datePrecision: null,
+      recordKind: "proposed",
+      statusLatest: "proposed",
+      corridorStreets: ["Queens"],
+      evaluableInWindow: false,
+      sourceId: "source-network",
+      sourceLabel: "Network source",
+      sourceUrl: null,
+      caveatCount: 0,
+      matchedRegistryEventIds: [],
+    },
+  ],
+} satisfies StudioInterventionCorpus;
+
 function routeIndexRow(input: {
   routeId: string;
   slug: string;
@@ -252,7 +322,7 @@ describe("interventionRows", () => {
       "Flatbush bus lane opens",
       "Flatbush busway study",
     ]);
-    expect(rows.every((row) => row.route.slug !== "q10")).toBe(true);
+    expect(rows.every((row) => row.routes.every((route) => route.slug !== "q10"))).toBe(true);
   });
 
   test("undated project rows never put a status string in the date position", () => {
@@ -262,6 +332,21 @@ describe("interventionRows", () => {
     expect(projectRow?.event.kind).toBe("planned");
     expect(yearLabel("undated")).toBe("Undated");
     expect(yearLabel("2024-06")).toBe("2024");
+  });
+
+  test("deduplicates exact registry matches, appends corpus citations, and keeps route-less records", () => {
+    const rows = interventionRows(routes, evidence, corpus);
+    expect(rows).toHaveLength(6);
+    expect(rows.filter((row) => row.event.eventId === "registry-m15")).toHaveLength(1);
+    expect(rows.find((row) => row.event.eventId === "registry-m15")?.event.sourceEntries).toEqual([
+      {
+        label: "Matched source",
+        href: "https://example.test/matched",
+        detail: "source-matched; corpus-matched",
+      },
+    ]);
+    expect(rows.find((row) => row.key === "corpus:corpus-b41")?.routes[0]?.slug).toBe("b41");
+    expect(rows.find((row) => row.key === "corpus:corpus-network")?.routes).toEqual([]);
   });
 });
 
