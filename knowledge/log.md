@@ -8271,3 +8271,17 @@ records. Root and `ingest ace-routes` help output are byte-identical to their pr
 The leaf gate is empty across pipeline, analytics, Studio API, and web. Final verification passed:
 211 pipeline tests, 102 analytics tests, 54 Studio API tests, 22 Worker tests in 6.30 seconds, 155
 web tests, 550 repo unit tests, web architecture, CLI help diffs, `git diff --check`, and style.
+
+## [2026-07-11] engineering | Plan 067 removes the domain schema compatibility facade
+
+Migrated the domain registry, primitives, routes, maps, Studio, documents, and findings contracts
+to native Effect Schema with real per-type brands, literal-tagged unions, and explicit boundary
+decode policies. Removed `schema-compat.ts` and its package export, then added and deliberately
+tripped an architecture gate that prevents the compatibility facade or imports from returning.
+Pruning the migrated findings surface removed 1,166 unused migrated-format lines while preserving
+the dependency closure used by production and tests.
+
+Every served JSON Schema artifact is byte-identical to its pre-migration capture. Final
+verification passed: repository typechecking, 553 unit tests, 155 web tests, 22 Worker tests,
+architecture gates, `git diff --check`, and style. The production entry remains 105.5 KB gzip and
+the full web bundle remains 312.5 KB gzip.
