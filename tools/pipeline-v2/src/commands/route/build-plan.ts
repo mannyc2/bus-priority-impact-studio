@@ -1,4 +1,5 @@
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   buildPlanRows,
   defaultRouteBuildPlanLimit,
@@ -25,23 +26,32 @@ export default defineCommand({
   path: ["route", "build-plan"],
   summary: "Rank eligible routes for the next build batch.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      limit: arg
-        .positiveInt()
-        .default(defaultRouteBuildPlanLimit)
-        .describe("Maximum routes selected per batch"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        limit: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultRouteBuildPlanLimit)))
+          .annotate({ description: "Maximum routes selected per batch" }),
+      },
     }),
   },
-  output: z.object({
-    isoMonth: z.string(),
-    routeCount: z.number(),
-    selectedRouteCount: z.number(),
-    alreadyBuiltRouteCount: z.number(),
-    blockedRouteCount: z.number(),
-    backlogRouteCount: z.number(),
-    dbPath: z.string(),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    routeCount: Schema.Number,
+    selectedRouteCount: Schema.Number,
+    alreadyBuiltRouteCount: Schema.Number,
+    blockedRouteCount: Schema.Number,
+    backlogRouteCount: Schema.Number,
+    dbPath: Schema.String,
   }),
   async run({ input }) {
     return runPipelineEffect(

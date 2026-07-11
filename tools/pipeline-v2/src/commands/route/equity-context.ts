@@ -1,4 +1,5 @@
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type AssignedCounty,
   assignRouteCounty,
@@ -29,17 +30,29 @@ export default defineCommand({
   path: ["route", "equity-context"],
   summary: "Assign county-proxy ACS equity context to routes for a given month.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      acsYear: arg.positiveInt().default(2024).describe("ACS vintage year"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        acsYear: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2024)))
+          .annotate({ description: "ACS vintage year" }),
+      },
     }),
   },
-  output: z.object({
-    analysisPeriod: z.string(),
-    acsYear: z.number(),
-    routeCount: z.number(),
-    assignedRouteCount: z.number(),
+  output: Schema.Struct({
+    analysisPeriod: Schema.String,
+    acsYear: Schema.Number,
+    routeCount: Schema.Number,
+    assignedRouteCount: Schema.Number,
   }),
   async run({ input }) {
     return runPipelineEffect(

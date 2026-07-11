@@ -1,4 +1,5 @@
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   buildDocumentAnchorEventsForRouteEvaluation,
   defaultInterventionEvaluationComparisonRouteCount,
@@ -30,47 +31,65 @@ export default defineCommand({
   summary:
     "Evaluate route-level before/after for ACE, bus-lane, and document-anchor interventions.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      routeUniverseYear: arg
-        .positiveInt()
-        .optional()
-        .describe("Year for route universe/treatment inventory; defaults to analysis year"),
-      routeUniverseMonth: arg
-        .positiveInt()
-        .optional()
-        .describe("Month for route universe/treatment inventory; defaults to analysis month"),
-      documentOperationalDateAssertionsPath: z
-        .string()
-        .optional()
-        .describe("Anchor-ready wiki operational-date assertions artifact path"),
-      windowMonths: arg
-        .positiveInt()
-        .default(defaultInterventionEvaluationWindowMonths)
-        .describe("Pre/post window length in months"),
-      minSampleMonths: arg
-        .positiveInt()
-        .default(defaultInterventionEvaluationMinSampleMonths)
-        .describe("Minimum monthly samples per side"),
-      comparisonRouteCount: arg
-        .positiveInt()
-        .default(defaultInterventionEvaluationComparisonRouteCount)
-        .describe("Number of comparison routes for peer adjustment"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        routeUniverseYear: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Year for route universe/treatment inventory; defaults to analysis year",
+        }),
+        routeUniverseMonth: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Month for route universe/treatment inventory; defaults to analysis month",
+        }),
+        documentOperationalDateAssertionsPath: Schema.optionalKey(Schema.String).annotate({
+          description: "Anchor-ready wiki operational-date assertions artifact path",
+        }),
+        windowMonths: arg
+          .positiveInt()
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(defaultInterventionEvaluationWindowMonths),
+            ),
+          )
+          .annotate({ description: "Pre/post window length in months" }),
+        minSampleMonths: arg
+          .positiveInt()
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(defaultInterventionEvaluationMinSampleMonths),
+            ),
+          )
+          .annotate({ description: "Minimum monthly samples per side" }),
+        comparisonRouteCount: arg
+          .positiveInt()
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(defaultInterventionEvaluationComparisonRouteCount),
+            ),
+          )
+          .annotate({ description: "Number of comparison routes for peer adjustment" }),
+      },
     }),
   },
-  output: z.object({
-    isoMonth: z.string(),
-    routeUniverseMonth: z.string(),
-    routeCount: z.number(),
-    eventCount: z.number(),
-    comparisonCount: z.number(),
-    documentAnchorEventCount: z.number(),
-    documentAnchorComparisonCount: z.number(),
-    evaluatedComparisonCount: z.number(),
-    futureComparisonCount: z.number(),
-    insufficientComparisonCount: z.number(),
-    sourceGapComparisonCount: z.number(),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    routeUniverseMonth: Schema.String,
+    routeCount: Schema.Number,
+    eventCount: Schema.Number,
+    comparisonCount: Schema.Number,
+    documentAnchorEventCount: Schema.Number,
+    documentAnchorComparisonCount: Schema.Number,
+    evaluatedComparisonCount: Schema.Number,
+    futureComparisonCount: Schema.Number,
+    insufficientComparisonCount: Schema.Number,
+    sourceGapComparisonCount: Schema.Number,
   }),
   async run({ input }) {
     const documentOperationalDateAssertionsPath =

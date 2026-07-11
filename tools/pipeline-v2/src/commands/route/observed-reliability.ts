@@ -1,4 +1,5 @@
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   buildSummary,
   defaultObservedReliabilityMinSampleThreshold,
@@ -27,23 +28,38 @@ export default defineCommand({
   path: ["route", "observed-reliability"],
   summary: "Build route/month observed reliability, bunching, and wait metrics.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      runId: z.string().min(1).describe("GTFS-RT collection run id"),
-      minSamples: arg
-        .positiveInt()
-        .default(defaultObservedReliabilityMinSampleThreshold)
-        .describe("Minimum headway samples to mark a route observed"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        runId: Schema.String.check(Schema.isMinLength(1)).annotate({
+          description: "GTFS-RT collection run id",
+        }),
+        minSamples: arg
+          .positiveInt()
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(defaultObservedReliabilityMinSampleThreshold),
+            ),
+          )
+          .annotate({ description: "Minimum headway samples to mark a route observed" }),
+      },
     }),
   },
-  output: z.object({
-    isoMonth: z.string(),
-    runId: z.string(),
-    routeCount: z.number(),
-    observedRouteCount: z.number(),
-    insufficientRouteCount: z.number(),
-    headwaySampleCount: z.number(),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    runId: Schema.String,
+    routeCount: Schema.Number,
+    observedRouteCount: Schema.Number,
+    insufficientRouteCount: Schema.Number,
+    headwaySampleCount: Schema.Number,
   }),
   async run({ input }) {
     return runPipelineEffect(

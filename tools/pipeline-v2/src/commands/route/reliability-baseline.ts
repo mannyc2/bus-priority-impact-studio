@@ -1,4 +1,5 @@
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   buildHeadwayGroups,
   type HeadwayGroup,
@@ -27,15 +28,24 @@ export default defineCommand({
   path: ["route", "reliability-baseline"],
   summary: "Build scheduled-headway reliability baselines per route.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+      },
     }),
   },
-  output: z.object({
-    isoMonth: z.string(),
-    routeCount: z.number(),
-    headwaySampleCount: z.number(),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    routeCount: Schema.Number,
+    headwaySampleCount: Schema.Number,
   }),
   async run({ input }) {
     return runPipelineEffect(
