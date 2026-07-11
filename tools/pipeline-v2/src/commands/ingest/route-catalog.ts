@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { replaceRouteCatalog } from "@bp/db/local";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { z } from "@bp/pipeline-v2/cli/compat";
 import {
   type NormalizedRouteShape,
   type NormalizedStop,
@@ -9,11 +9,11 @@ import {
 } from "@bp/sources/adapters/mta/routes-stops";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { fetchSoda3RowsForSource, type SocrataFetch } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const schemaVersion = 1;
 
@@ -280,11 +280,11 @@ export async function runRouteCatalogIngest(
   };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "route-catalog"],
   summary:
     "Build the route catalog from Socrata routes + stops, with terminus and length summaries.",
-  input: { options: dbOptions },
+  options: dbOptions,
   output: z.object({
     rawDir: z.string(),
     routeCount: z.number(),
@@ -293,12 +293,6 @@ export default defineCommand({
     timepointStopCount: z.number(),
     dbPath: z.string(),
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.route-catalog",
-      operation: "runRouteCatalogIngest",
-      run: (local) => runRouteCatalogIngest({ local }),
-    });
-  },
+  operation: "runRouteCatalogIngest",
+  runner: (local) => runRouteCatalogIngest({ local }),
 });

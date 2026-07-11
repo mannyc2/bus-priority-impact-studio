@@ -1,11 +1,10 @@
 import type { Database } from "bun:sqlite";
 import { isAbsolute, join, relative } from "node:path";
 import { replaceBusCustomerJourneyMetricRows } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, z } from "@bp/pipeline-v2/cli/compat";
 import { normalizeBusCustomerJourneyMetricRows } from "@bp/sources/adapters/mta/bus-customer-journey-metrics";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot, repoRoot } from "../../lib/paths.ts";
@@ -16,6 +15,7 @@ import {
   type Soda3SoqlQuery,
 } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const sourceId = "bus_customer_journey_metrics";
 
@@ -139,17 +139,15 @@ export async function runBusCustomerJourneyMetricsIngest(
   };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "bus-customer-journey-metrics"],
   summary: "Fetch monthly bus customer journey metrics from Socrata.",
-  input: {
-    options: dbOptions.extend({
-      startYear: arg.positiveInt().default(2023).describe("Start year"),
-      startMonth: arg.positiveInt().default(4).describe("Start month, 1-12"),
-      endYear: arg.positiveInt().default(2026).describe("End year"),
-      endMonth: arg.positiveInt().default(3).describe("End month, 1-12"),
-    }),
-  },
+  options: dbOptions.extend({
+    startYear: arg.positiveInt().default(2023).describe("Start year"),
+    startMonth: arg.positiveInt().default(4).describe("Start month, 1-12"),
+    endYear: arg.positiveInt().default(2026).describe("End year"),
+    endMonth: arg.positiveInt().default(3).describe("End month, 1-12"),
+  }),
   output: z.object({
     rawPath: z.string(),
     startMonth: z.string(),
@@ -158,25 +156,13 @@ export default defineCommand({
     rowCount: z.number().int().nonnegative(),
     routeCount: z.number().int().nonnegative(),
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.bus-customer-journey-metrics",
-      operation: "runBusCustomerJourneyMetricsIngest",
-      spanAttributes: {
-        startYear: input.options.startYear,
-        startMonth: input.options.startMonth,
-        endYear: input.options.endYear,
-        endMonth: input.options.endMonth,
-      },
-      run: (local) =>
-        runBusCustomerJourneyMetricsIngest({
-          local,
-          startYear: input.options.startYear,
-          startMonth: input.options.startMonth,
-          endYear: input.options.endYear,
-          endMonth: input.options.endMonth,
-        }),
-    });
-  },
+  operation: "runBusCustomerJourneyMetricsIngest",
+  spanAttributes: ({ startYear, startMonth, endYear, endMonth }) => ({
+    startYear,
+    startMonth,
+    endYear,
+    endMonth,
+  }),
+  runner: (local, { startYear, startMonth, endYear, endMonth }) =>
+    runBusCustomerJourneyMetricsIngest({ local, startYear, startMonth, endYear, endMonth }),
 });

@@ -10,6 +10,7 @@ export function defineIngestCommand<Options extends IngestCommandOptions, Output
   readonly options: z.ZodType<Options>;
   readonly output: z.ZodType<Output>;
   readonly operation: string;
+  readonly dbPath?: ((options: Options) => string | undefined) | undefined;
   readonly spanAttributes?:
     | ((options: Options) => Record<string, string | number | boolean | null>)
     | undefined;
@@ -24,7 +25,7 @@ export function defineIngestCommand<Options extends IngestCommandOptions, Output
     output: config.output,
     run({ input }) {
       return runLocalDbCommandBoundary({
-        dbPath: input.options.db,
+        dbPath: config.dbPath?.(input.options) ?? input.options.db,
         command,
         operation: config.operation,
         spanAttributes: config.spanAttributes?.(input.options),

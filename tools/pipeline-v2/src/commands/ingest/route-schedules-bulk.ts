@@ -3,10 +3,9 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { createLocalPipelineDb, listRouteCatalogIds } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, z } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
@@ -14,6 +13,7 @@ import { fetchWithSocrataAppToken } from "../../lib/socrata-token.ts";
 import type { SocrataFetch } from "../../lib/soda3.ts";
 import { soda3ExportUrl } from "../../lib/soda3.ts";
 import { readCsvRecords } from "../../lib/streaming-csv.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 import {
   deleteRouteRows,
   ensureRouteScheduleStopTable,
@@ -886,76 +886,74 @@ export async function runRouteSchedulesBulkIngest(
   }
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "route-schedules-bulk"],
   summary:
     "Download or reuse Socrata schedule CSV snapshots and stream-import route schedule stop rows.",
-  input: {
-    options: dbOptions.extend({
-      sourceYear: arg
-        .positiveInt()
-        .default(2026)
-        .describe("MTA Bus Schedules source year to bulk ingest"),
-      route: z.string().optional().describe("Single route ID convenience filter"),
-      routes: z
-        .array(z.string())
-        .default([])
-        .describe("Specific route IDs (default: all routes in source year)"),
-      csvPath: z.string().optional().describe("Existing or target full rows.csv path"),
-      partitionManifestPath: z
-        .string()
-        .optional()
-        .describe("Existing SODA3 partition-manifest.json to import instead of one full CSV"),
-      cacheDir: z.string().optional().describe("Directory for the downloaded rows.csv cache"),
-      spoolDir: z.string().optional().describe("Scratch directory for per-route spool files"),
-      forceDownload: z.coerce
-        .boolean()
-        .default(false)
-        .describe("Redownload the full CSV even if csvPath already exists"),
-      skipDownload: z.coerce
-        .boolean()
-        .default(false)
-        .describe("Require csvPath to already exist; do not fetch Socrata"),
-      downloadRetryCount: z.coerce
-        .number()
-        .int()
-        .min(0)
-        .default(2)
-        .describe("Number of retry attempts after a failed CSV download attempt"),
-      downloadRetryDelayMs: z.coerce
-        .number()
-        .int()
-        .min(0)
-        .default(5_000)
-        .describe("Delay between CSV download retry attempts"),
-      downloadOnly: z.coerce
-        .boolean()
-        .default(false)
-        .describe("Download or verify the CSV cache without importing route rows"),
-      skipExisting: z.coerce
-        .boolean()
-        .default(true)
-        .describe("Skip routes already marked complete for the source year"),
-      onlyMissingCurrentRoutes: z.coerce
-        .boolean()
-        .default(false)
-        .describe(
-          "Restrict import to current-catalog routes that are not already complete for the source year",
-        ),
-      keepSpool: z.coerce
-        .boolean()
-        .default(false)
-        .describe("Keep per-route scratch NDJSON files after import"),
-      batchSize: arg
-        .positiveInt()
-        .default(defaultBatchSize)
-        .describe("SQLite insert batch size per route"),
-      logProgress: z.coerce
-        .boolean()
-        .default(true)
-        .describe("Write bulk ingest progress events to stderr"),
-    }),
-  },
+  options: dbOptions.extend({
+    sourceYear: arg
+      .positiveInt()
+      .default(2026)
+      .describe("MTA Bus Schedules source year to bulk ingest"),
+    route: z.string().optional().describe("Single route ID convenience filter"),
+    routes: z
+      .array(z.string())
+      .default([])
+      .describe("Specific route IDs (default: all routes in source year)"),
+    csvPath: z.string().optional().describe("Existing or target full rows.csv path"),
+    partitionManifestPath: z
+      .string()
+      .optional()
+      .describe("Existing SODA3 partition-manifest.json to import instead of one full CSV"),
+    cacheDir: z.string().optional().describe("Directory for the downloaded rows.csv cache"),
+    spoolDir: z.string().optional().describe("Scratch directory for per-route spool files"),
+    forceDownload: z.coerce
+      .boolean()
+      .default(false)
+      .describe("Redownload the full CSV even if csvPath already exists"),
+    skipDownload: z.coerce
+      .boolean()
+      .default(false)
+      .describe("Require csvPath to already exist; do not fetch Socrata"),
+    downloadRetryCount: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .default(2)
+      .describe("Number of retry attempts after a failed CSV download attempt"),
+    downloadRetryDelayMs: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .default(5_000)
+      .describe("Delay between CSV download retry attempts"),
+    downloadOnly: z.coerce
+      .boolean()
+      .default(false)
+      .describe("Download or verify the CSV cache without importing route rows"),
+    skipExisting: z.coerce
+      .boolean()
+      .default(true)
+      .describe("Skip routes already marked complete for the source year"),
+    onlyMissingCurrentRoutes: z.coerce
+      .boolean()
+      .default(false)
+      .describe(
+        "Restrict import to current-catalog routes that are not already complete for the source year",
+      ),
+    keepSpool: z.coerce
+      .boolean()
+      .default(false)
+      .describe("Keep per-route scratch NDJSON files after import"),
+    batchSize: arg
+      .positiveInt()
+      .default(defaultBatchSize)
+      .describe("SQLite insert batch size per route"),
+    logProgress: z.coerce
+      .boolean()
+      .default(true)
+      .describe("Write bulk ingest progress events to stderr"),
+  }),
   output: z.object({
     sourceYear: z.number(),
     sourceId: z.enum([
@@ -974,50 +972,38 @@ export default defineCommand({
     downloaded: z.boolean(),
     downloadOnly: z.boolean(),
   }),
-  async run({ input }) {
-    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
-    return runLocalDbCommandBoundary({
-      dbPath,
-      command: "ingest.route-schedules-bulk",
-      operation: "runRouteSchedulesBulkIngest",
-      run: async (local) =>
-        runRouteSchedulesBulkIngest({
-          sqlite: local.sqlite,
-          sourceYear: input.options.sourceYear,
-          routes:
-            input.options.route === undefined
-              ? input.options.routes
-              : [...input.options.routes, input.options.route],
-          csvPath:
-            input.options.csvPath === undefined ? undefined : fromCliPath(input.options.csvPath),
-          partitionManifestPath:
-            input.options.partitionManifestPath === undefined
-              ? undefined
-              : fromCliPath(input.options.partitionManifestPath),
-          cacheDir:
-            input.options.cacheDir === undefined ? undefined : fromCliPath(input.options.cacheDir),
-          spoolDir:
-            input.options.spoolDir === undefined ? undefined : fromCliPath(input.options.spoolDir),
-          forceDownload: input.options.forceDownload,
-          skipDownload: input.options.skipDownload,
-          downloadRetryCount: input.options.downloadRetryCount,
-          downloadRetryDelayMs: input.options.downloadRetryDelayMs,
-          downloadOnly: input.options.downloadOnly,
-          skipExisting: input.options.skipExisting,
-          onlyMissingCurrentRoutes: input.options.onlyMissingCurrentRoutes,
-          keepSpool: input.options.keepSpool,
-          batchSize: input.options.batchSize,
-          progress: input.options.logProgress
-            ? (event) => {
-                console.error(
-                  JSON.stringify({
-                    event: "route_schedules_bulk_ingest_progress",
-                    ...event,
-                  }),
-                );
-              }
-            : undefined,
-        }),
-    });
-  },
+  operation: "runRouteSchedulesBulkIngest",
+  dbPath: ({ db }) => (db === undefined ? undefined : fromCliPath(db)),
+  runner: async (local, options) =>
+    runRouteSchedulesBulkIngest({
+      sqlite: local.sqlite,
+      sourceYear: options.sourceYear,
+      routes: options.route === undefined ? options.routes : [...options.routes, options.route],
+      csvPath: options.csvPath === undefined ? undefined : fromCliPath(options.csvPath),
+      partitionManifestPath:
+        options.partitionManifestPath === undefined
+          ? undefined
+          : fromCliPath(options.partitionManifestPath),
+      cacheDir: options.cacheDir === undefined ? undefined : fromCliPath(options.cacheDir),
+      spoolDir: options.spoolDir === undefined ? undefined : fromCliPath(options.spoolDir),
+      forceDownload: options.forceDownload,
+      skipDownload: options.skipDownload,
+      downloadRetryCount: options.downloadRetryCount,
+      downloadRetryDelayMs: options.downloadRetryDelayMs,
+      downloadOnly: options.downloadOnly,
+      skipExisting: options.skipExisting,
+      onlyMissingCurrentRoutes: options.onlyMissingCurrentRoutes,
+      keepSpool: options.keepSpool,
+      batchSize: options.batchSize,
+      progress: options.logProgress
+        ? (event) => {
+            console.error(
+              JSON.stringify({
+                event: "route_schedules_bulk_ingest_progress",
+                ...event,
+              }),
+            );
+          }
+        : undefined,
+    }),
 });

@@ -1,10 +1,9 @@
 import { join } from "node:path";
 import { upsertLionSegments } from "@bp/db/local";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { z } from "@bp/pipeline-v2/cli/compat";
 import { normalizeLionSegmentRows } from "@bp/sources/adapters/nyc-open-data/lion-centerline";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {
@@ -14,6 +13,7 @@ import {
   type Soda3SoqlQuery,
 } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const sourceId = "nyc_lion_street_centerline";
 
@@ -101,34 +101,18 @@ export async function runLionCenterlineIngest(
   return { rawPath, rowCount: rows.length };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "lion-centerline"],
   summary: "Fetch LION street centerline segments from Socrata.",
-  input: {
-    options: dbOptions.extend({
-      borough: z.string().optional().describe("Filter by borough indicator"),
-      status: z.string().optional().describe("LION status code (default: 2 = in service)"),
-    }),
-  },
+  options: dbOptions.extend({
+    borough: z.string().optional().describe("Filter by borough indicator"),
+    status: z.string().optional().describe("LION status code (default: 2 = in service)"),
+  }),
   output: z.object({
     rawPath: z.string(),
     rowCount: z.number(),
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.lion-centerline",
-      operation: "runLionCenterlineIngest",
-      spanAttributes: {
-        borough: input.options.borough ?? null,
-        status: input.options.status ?? null,
-      },
-      run: (local) =>
-        runLionCenterlineIngest({
-          local,
-          borough: input.options.borough,
-          status: input.options.status,
-        }),
-    });
-  },
+  operation: "runLionCenterlineIngest",
+  spanAttributes: ({ borough, status }) => ({ borough: borough ?? null, status: status ?? null }),
+  runner: (local, { borough, status }) => runLionCenterlineIngest({ local, borough, status }),
 });

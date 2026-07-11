@@ -1,13 +1,12 @@
 import { join } from "node:path";
 import { upsertDotStreetPermits } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, z } from "@bp/pipeline-v2/cli/compat";
 import {
   normalizeDotStreetPermitRows,
   type PermitKind,
 } from "@bp/sources/adapters/nyc-dot/street-permits";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
@@ -18,6 +17,7 @@ import {
   type Soda3SoqlQuery,
 } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const sourceIdForKind: Record<PermitKind, string> = {
   construction: "nyc_dot_street_construction_permits",
@@ -100,48 +100,34 @@ export async function runDotStreetPermitsIngest(
   return { rawPath, isoMonth: monthKey, rowCount: rows.length, kind };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "dot-street-permits"],
   summary: "Fetch monthly DOT street construction or opening permits.",
-  input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      kind: z
-        .enum(["construction", "opening"])
-        .default("construction")
-        .describe("Permit dataset to fetch"),
-      fromSnapshot: z
-        .string()
-        .optional()
-        .describe("Reuse rows from a local raw snapshot file instead of fetching"),
-    }),
-  },
+  options: dbOptions.extend({
+    year: arg.positiveInt().default(2026).describe("Calendar year"),
+    month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
+    kind: z
+      .enum(["construction", "opening"])
+      .default("construction")
+      .describe("Permit dataset to fetch"),
+    fromSnapshot: z
+      .string()
+      .optional()
+      .describe("Reuse rows from a local raw snapshot file instead of fetching"),
+  }),
   output: z.object({
     rawPath: z.string(),
     isoMonth: z.string(),
     rowCount: z.number(),
     kind: z.enum(["construction", "opening"]),
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.dot-street-permits",
-      operation: "runDotStreetPermitsIngest",
-      spanAttributes: {
-        year: input.options.year,
-        month: input.options.month,
-        kind: input.options.kind,
-        fromSnapshot: input.options.fromSnapshot ?? null,
-      },
-      run: (local) =>
-        runDotStreetPermitsIngest({
-          local,
-          year: input.options.year,
-          month: input.options.month,
-          kind: input.options.kind,
-          fromSnapshot: input.options.fromSnapshot,
-        }),
-    });
-  },
+  operation: "runDotStreetPermitsIngest",
+  spanAttributes: ({ year, month, kind, fromSnapshot }) => ({
+    year,
+    month,
+    kind,
+    fromSnapshot: fromSnapshot ?? null,
+  }),
+  runner: (local, { year, month, kind, fromSnapshot }) =>
+    runDotStreetPermitsIngest({ local, year, month, kind, fromSnapshot }),
 });

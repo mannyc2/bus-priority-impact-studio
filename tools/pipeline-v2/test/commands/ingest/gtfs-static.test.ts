@@ -34,7 +34,7 @@ describe("ingest gtfs-static", () => {
       new URL("../../../src/commands/ingest/gtfs-static.ts", import.meta.url),
     ).text();
 
-    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("defineIngestCommand({");
     expect(source).toContain("runGtfsStaticIngest({");
     expect(source).toContain('import type { Database } from "bun:sqlite"');
     expect(source).not.toContain("Database as BunDatabase");

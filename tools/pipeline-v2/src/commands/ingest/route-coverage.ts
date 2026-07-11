@@ -1,8 +1,7 @@
 import { replaceRouteMonthCoverage } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, z } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
@@ -12,6 +11,7 @@ import {
   type SocrataRow,
   type Soda3SoqlQuery,
 } from "../../lib/soda3.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const schemaVersion = 1;
 
@@ -156,15 +156,13 @@ export async function runRouteCoverageIngest(
   };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "route-coverage"],
   summary: "Build route/month coverage from speed and schedule sources.",
-  input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-    }),
-  },
+  options: dbOptions.extend({
+    year: arg.positiveInt().default(2026).describe("Calendar year"),
+    month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
+  }),
   output: z.object({
     routeCount: z.number(),
     speedRouteCount: z.number(),
@@ -172,21 +170,7 @@ export default defineCommand({
     completeCoverageRouteCount: z.number(),
     dbPath: z.string(),
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.route-coverage",
-      operation: "runRouteCoverageIngest",
-      spanAttributes: {
-        year: input.options.year,
-        month: input.options.month,
-      },
-      run: (local) =>
-        runRouteCoverageIngest({
-          local,
-          year: input.options.year,
-          month: input.options.month,
-        }),
-    });
-  },
+  operation: "runRouteCoverageIngest",
+  spanAttributes: ({ year, month }) => ({ year, month }),
+  runner: (local, { year, month }) => runRouteCoverageIngest({ local, year, month }),
 });

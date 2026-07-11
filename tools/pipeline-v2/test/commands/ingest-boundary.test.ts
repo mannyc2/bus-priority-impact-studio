@@ -14,6 +14,7 @@ const localDbIngestCommandFiles = [
   "dot-traffic-volumes.ts",
   "equity-context.ts",
   "gtfs-rt-snapshots.ts",
+  "gtfs-static.ts",
   "lion-centerline.ts",
   "noaa-weather.ts",
   "nypd-collisions.ts",
@@ -22,6 +23,8 @@ const localDbIngestCommandFiles = [
   "route-coverage.ts",
   "route-hourly-ridership.ts",
   "route-segment-speeds.ts",
+  "route-schedules-bulk.ts",
+  "route-schedules.ts",
   "route-trends.ts",
 ];
 
@@ -32,7 +35,7 @@ describe("ingest command boundaries", () => {
       "utf8",
     );
     expect(helperSource).toContain("runLocalDbCommandBoundary({");
-    expect(helperSource).toContain("dbPath: input.options.db");
+    expect(helperSource).toContain("input.options.db");
 
     for (const file of localDbIngestCommandFiles) {
       const source = readFileSync(join(import.meta.dir, "../../src/commands/ingest", file), "utf8");

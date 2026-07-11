@@ -3,10 +3,10 @@ import {
   listGtfsRtFeedSnapshots,
   replaceGtfsRtParsedSnapshot,
 } from "@bp/db/local";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { z } from "@bp/pipeline-v2/cli/compat";
 import { parseGtfsRealtimeFeed } from "@bp/sources/gtfs-realtime";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 export type IngestGtfsRtSnapshotsRunInputs = {
   local: OpenLocalPipelineDb;
@@ -138,15 +138,13 @@ export async function runIngestGtfsRtSnapshots(
   return result;
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "gtfs-rt-snapshots"],
   summary: "Parse stored GTFS-RT raw snapshots into structured local pipeline rows.",
-  input: {
-    options: dbOptions.extend({
-      runId: z.string().min(1).describe("Collection run identifier to parse"),
-      parsedAt: z.string().optional().describe("Override parsed-at timestamp (ISO)"),
-    }),
-  },
+  options: dbOptions.extend({
+    runId: z.string().min(1).describe("Collection run identifier to parse"),
+    parsedAt: z.string().optional().describe("Override parsed-at timestamp (ISO)"),
+  }),
   output: z.object({
     runId: z.string(),
     snapshotCount: z.number(),
@@ -158,22 +156,12 @@ export default defineCommand({
     stopTimeUpdateCount: z.number(),
     alertCount: z.number(),
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.gtfs-rt-snapshots",
-      operation: "runIngestGtfsRtSnapshots",
-      spanAttributes: {
-        runId: input.options.runId,
-        parsedAt: input.options.parsedAt ?? null,
-      },
-      run: (local) =>
-        runIngestGtfsRtSnapshots({
-          local,
-          runId: input.options.runId,
-          parsedAt:
-            input.options.parsedAt === undefined ? undefined : new Date(input.options.parsedAt),
-        }),
-    });
-  },
+  operation: "runIngestGtfsRtSnapshots",
+  spanAttributes: ({ runId, parsedAt }) => ({ runId, parsedAt: parsedAt ?? null }),
+  runner: (local, { runId, parsedAt }) =>
+    runIngestGtfsRtSnapshots({
+      local,
+      runId,
+      parsedAt: parsedAt === undefined ? undefined : new Date(parsedAt),
+    }),
 });

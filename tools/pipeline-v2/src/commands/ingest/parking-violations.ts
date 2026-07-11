@@ -1,12 +1,11 @@
 import { upsertParkingViolations } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, z } from "@bp/pipeline-v2/cli/compat";
 import {
   BUS_RELEVANT_PARKING_CODES,
   normalizeParkingViolationRows,
 } from "@bp/sources/adapters/nyc-open-data/parking-violations";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { parkingLocationKey } from "../../lib/parking-location.ts";
@@ -17,6 +16,7 @@ import {
   type SocrataRow,
   type Soda3SoqlQuery,
 } from "../../lib/soda3.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const parkingFiscalYearSources = [
   { start: "2022-07", end: "2023-06", sourceId: "nyc_parking_violations_fy2023" },
@@ -101,42 +101,30 @@ export async function runParkingViolationsIngest(
   return { isoMonth: monthKey, sourceId, rowCount: rows.length, codeBreakdown };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "parking-violations"],
   summary: "Fetch monthly bus-relevant parking violations across fiscal-year datasets.",
-  input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      codes: z
-        .array(arg.int())
-        .default([])
-        .describe("Override violation codes (default: BUS_RELEVANT_PARKING_CODES)"),
-    }),
-  },
+  options: dbOptions.extend({
+    year: arg.positiveInt().default(2026).describe("Calendar year"),
+    month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
+    codes: z
+      .array(arg.int())
+      .default([])
+      .describe("Override violation codes (default: BUS_RELEVANT_PARKING_CODES)"),
+  }),
   output: z.object({
     isoMonth: z.string(),
     sourceId: z.string(),
     rowCount: z.number(),
     codeBreakdown: z.array(z.object({ code: z.number(), count: z.number() })),
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.parking-violations",
-      operation: "runParkingViolationsIngest",
-      spanAttributes: {
-        year: input.options.year,
-        month: input.options.month,
-        codeCount: input.options.codes.length,
-      },
-      run: (local) =>
-        runParkingViolationsIngest({
-          local,
-          year: input.options.year,
-          month: input.options.month,
-          codes: input.options.codes.length > 0 ? input.options.codes : undefined,
-        }),
-    });
-  },
+  operation: "runParkingViolationsIngest",
+  spanAttributes: ({ year, month, codes }) => ({ year, month, codeCount: codes.length }),
+  runner: (local, { year, month, codes }) =>
+    runParkingViolationsIngest({
+      local,
+      year,
+      month,
+      codes: codes.length > 0 ? codes : undefined,
+    }),
 });
