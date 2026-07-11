@@ -1,178 +1,163 @@
-import * as z from "../../schema-compat.js";
+import { Schema } from "effect";
 
 // Public identity + magic-link auth contracts (ADR 0008) and the user-surface
 // features it unlocks: operator admin, alerts, saved searches, public comments.
 // Shapes mirror the D1 query records in @bp/db (identity.ts, identity-surfaces.ts,
 // studio-auth.ts) without importing them — the domain package stays infra-free.
 
-export const StudioActorScopeSchema = z.enum([
+export const StudioActorScopeSchema = Schema.Literals([
   "read:briefs",
   "write:briefs",
   "review:briefs",
   "publish:briefs",
   "admin:identities",
 ]);
-export type StudioActorScope = z.output<typeof StudioActorScopeSchema>;
+export type StudioActorScope = typeof StudioActorScopeSchema.Type;
 
-export const PublicAccountAuthStatusSchema = z.enum(["magic_link", "not_available"]);
-export type PublicAccountAuthStatus = z.output<typeof PublicAccountAuthStatusSchema>;
+export const PublicAccountAuthStatusSchema = Schema.Literals(["magic_link", "not_available"]);
+export type PublicAccountAuthStatus = typeof PublicAccountAuthStatusSchema.Type;
 
-export const UserDirectoryStatusSchema = z.enum(["d1_identity", "not_available"]);
-export type UserDirectoryStatus = z.output<typeof UserDirectoryStatusSchema>;
+export const UserDirectoryStatusSchema = Schema.Literals(["d1_identity", "not_available"]);
+export type UserDirectoryStatus = typeof UserDirectoryStatusSchema.Type;
 
 // --- Identity / session ---
 
-export const IdentityProfileSchema = z
-  .object({
-    identityId: z.string(),
-    email: z.string(),
-    displayName: z.string().nullable(),
-  })
-  .strict();
-export type IdentityProfile = z.output<typeof IdentityProfileSchema>;
+export const IdentityProfileSchema = Schema.Struct({
+  identityId: Schema.String,
+  email: Schema.String,
+  displayName: Schema.NullOr(Schema.String),
+});
+export type IdentityProfile = typeof IdentityProfileSchema.Type;
 
-export const StudioActorProfileSchema = z
-  .object({
-    workspaceId: z.string(),
-    scopes: z.array(StudioActorScopeSchema),
-  })
-  .strict();
-export type StudioActorProfile = z.output<typeof StudioActorProfileSchema>;
+export const StudioActorProfileSchema = Schema.Struct({
+  workspaceId: Schema.String,
+  scopes: Schema.Array(StudioActorScopeSchema),
+});
+export type StudioActorProfile = typeof StudioActorProfileSchema.Type;
 
-export const IdentityMeResponseSchema = z
-  .object({
-    identity: IdentityProfileSchema,
-    operator: StudioActorProfileSchema.nullable(),
-  })
-  .strict();
-export type IdentityMeResponse = z.output<typeof IdentityMeResponseSchema>;
+export const IdentityMeResponseSchema = Schema.Struct({
+  identity: IdentityProfileSchema,
+  operator: Schema.NullOr(StudioActorProfileSchema),
+});
+export type IdentityMeResponse = typeof IdentityMeResponseSchema.Type;
 
-export const IdentityAnonymousMeResponseSchema = z
-  .object({
-    identity: z.null(),
-    operator: z.null(),
-  })
-  .strict();
-export type IdentityAnonymousMeResponse = z.output<typeof IdentityAnonymousMeResponseSchema>;
+export const IdentityAnonymousMeResponseSchema = Schema.Struct({
+  identity: Schema.Null,
+  operator: Schema.Null,
+});
+export type IdentityAnonymousMeResponse = typeof IdentityAnonymousMeResponseSchema.Type;
 
 // Operator-facing /api/v1/studio/me. Unchanged for operators (ADR 0008); the two
 // status fields are now real enums rather than "not_available" literals.
-export const StudioActorMeResponseSchema = z
-  .object({
-    publicAccountAuthStatus: PublicAccountAuthStatusSchema,
-    userDirectoryStatus: UserDirectoryStatusSchema,
-    operator: StudioActorProfileSchema.nullable(),
-  })
-  .strict();
-export type StudioActorMeResponse = z.output<typeof StudioActorMeResponseSchema>;
+export const StudioActorMeResponseSchema = Schema.Struct({
+  publicAccountAuthStatus: PublicAccountAuthStatusSchema,
+  userDirectoryStatus: UserDirectoryStatusSchema,
+  operator: Schema.NullOr(StudioActorProfileSchema),
+});
+export type StudioActorMeResponse = typeof StudioActorMeResponseSchema.Type;
 
-export const MagicLinkRequestSchema = z
-  .object({ email: z.string().email(), next: z.string().optional() })
-  .strict();
-export type MagicLinkRequest = z.output<typeof MagicLinkRequestSchema>;
+export const MagicLinkRequestSchema = Schema.Struct({
+  email: Schema.String.check(Schema.isPattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)),
+  next: Schema.optional(Schema.String),
+});
+export type MagicLinkRequest = typeof MagicLinkRequestSchema.Type;
 
-export const MagicLinkConsumeRequestSchema = z.object({ token: z.string().min(1) }).strict();
-export type MagicLinkConsumeRequest = z.output<typeof MagicLinkConsumeRequestSchema>;
+export const MagicLinkConsumeRequestSchema = Schema.Struct({
+  token: Schema.String.check(Schema.isMinLength(1)),
+});
+export type MagicLinkConsumeRequest = typeof MagicLinkConsumeRequestSchema.Type;
 
 // --- Operator admin (manage identities + roles) ---
 
-export const AdminIdentityEntrySchema = z
-  .object({
-    identityId: z.string(),
-    email: z.string(),
-    displayName: z.string().nullable(),
-    operator: StudioActorProfileSchema.nullable(),
-  })
-  .strict();
-export type AdminIdentityEntry = z.output<typeof AdminIdentityEntrySchema>;
+export const AdminIdentityEntrySchema = Schema.Struct({
+  identityId: Schema.String,
+  email: Schema.String,
+  displayName: Schema.NullOr(Schema.String),
+  operator: Schema.NullOr(StudioActorProfileSchema),
+});
+export type AdminIdentityEntry = typeof AdminIdentityEntrySchema.Type;
 
-export const AdminIdentitiesListResponseSchema = z
-  .object({ identities: z.array(AdminIdentityEntrySchema) })
-  .strict();
-export type AdminIdentitiesListResponse = z.output<typeof AdminIdentitiesListResponseSchema>;
+export const AdminIdentitiesListResponseSchema = Schema.Struct({
+  identities: Schema.Array(AdminIdentityEntrySchema),
+});
+export type AdminIdentitiesListResponse = typeof AdminIdentitiesListResponseSchema.Type;
 
-export const AdminGrantOperatorRequestSchema = z
-  .object({
-    workspaceId: z.string(),
-    scopes: z.array(StudioActorScopeSchema),
-  })
-  .strict();
-export type AdminGrantOperatorRequest = z.output<typeof AdminGrantOperatorRequestSchema>;
+export const AdminGrantOperatorRequestSchema = Schema.Struct({
+  workspaceId: Schema.String,
+  scopes: Schema.Array(StudioActorScopeSchema),
+});
+export type AdminGrantOperatorRequest = typeof AdminGrantOperatorRequestSchema.Type;
 
-export const AdminRevokeOperatorRequestSchema = z.object({ workspaceId: z.string() }).strict();
-export type AdminRevokeOperatorRequest = z.output<typeof AdminRevokeOperatorRequestSchema>;
+export const AdminRevokeOperatorRequestSchema = Schema.Struct({
+  workspaceId: Schema.String,
+});
+export type AdminRevokeOperatorRequest = typeof AdminRevokeOperatorRequestSchema.Type;
 
 // --- Alerts ---
 
-export const AlertKindSchema = z.enum(["route", "segment", "search"]);
-export type AlertKind = z.output<typeof AlertKindSchema>;
+export const AlertKindSchema = Schema.Literals(["route", "segment", "search"]);
+export type AlertKind = typeof AlertKindSchema.Type;
 
-export const AlertCreateRequestSchema = z
-  .object({
-    kind: AlertKindSchema,
-    payload: z.unknown(),
-  })
-  .strict();
-export type AlertCreateRequest = z.output<typeof AlertCreateRequestSchema>;
+export const AlertCreateRequestSchema = Schema.Struct({
+  kind: AlertKindSchema,
+  payload: Schema.Unknown,
+});
+export type AlertCreateRequest = typeof AlertCreateRequestSchema.Type;
 
-export const AlertResponseSchema = z
-  .object({
-    alertId: z.string(),
-    kind: AlertKindSchema,
-    payload: z.unknown(),
-    active: z.boolean(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .strict();
-export type AlertResponse = z.output<typeof AlertResponseSchema>;
+export const AlertResponseSchema = Schema.Struct({
+  alertId: Schema.String,
+  kind: AlertKindSchema,
+  payload: Schema.Unknown,
+  active: Schema.Boolean,
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
+});
+export type AlertResponse = typeof AlertResponseSchema.Type;
 
-export const AlertsListResponseSchema = z.object({ alerts: z.array(AlertResponseSchema) }).strict();
-export type AlertsListResponse = z.output<typeof AlertsListResponseSchema>;
+export const AlertsListResponseSchema = Schema.Struct({
+  alerts: Schema.Array(AlertResponseSchema),
+});
+export type AlertsListResponse = typeof AlertsListResponseSchema.Type;
 
 // --- Saved searches ---
 
-export const SavedSearchCreateRequestSchema = z
-  .object({
-    label: z.string(),
-    query: z.unknown(),
-  })
-  .strict();
-export type SavedSearchCreateRequest = z.output<typeof SavedSearchCreateRequestSchema>;
+export const SavedSearchCreateRequestSchema = Schema.Struct({
+  label: Schema.String,
+  query: Schema.Unknown,
+});
+export type SavedSearchCreateRequest = typeof SavedSearchCreateRequestSchema.Type;
 
-export const SavedSearchResponseSchema = z
-  .object({
-    savedSearchId: z.string(),
-    label: z.string(),
-    query: z.unknown(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-  })
-  .strict();
-export type SavedSearchResponse = z.output<typeof SavedSearchResponseSchema>;
+export const SavedSearchResponseSchema = Schema.Struct({
+  savedSearchId: Schema.String,
+  label: Schema.String,
+  query: Schema.Unknown,
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
+});
+export type SavedSearchResponse = typeof SavedSearchResponseSchema.Type;
 
-export const SavedSearchesListResponseSchema = z
-  .object({ savedSearches: z.array(SavedSearchResponseSchema) })
-  .strict();
-export type SavedSearchesListResponse = z.output<typeof SavedSearchesListResponseSchema>;
+export const SavedSearchesListResponseSchema = Schema.Struct({
+  savedSearches: Schema.Array(SavedSearchResponseSchema),
+});
+export type SavedSearchesListResponse = typeof SavedSearchesListResponseSchema.Type;
 
 // --- Public comments on briefs ---
 
-export const PublicCommentCreateRequestSchema = z.object({ body: z.string() }).strict();
-export type PublicCommentCreateRequest = z.output<typeof PublicCommentCreateRequestSchema>;
+export const PublicCommentCreateRequestSchema = Schema.Struct({
+  body: Schema.String,
+});
+export type PublicCommentCreateRequest = typeof PublicCommentCreateRequestSchema.Type;
 
-export const PublicCommentResponseSchema = z
-  .object({
-    commentId: z.string(),
-    briefId: z.string(),
-    displayName: z.string().nullable(),
-    body: z.string(),
-    createdAt: z.string(),
-  })
-  .strict();
-export type PublicCommentResponse = z.output<typeof PublicCommentResponseSchema>;
+export const PublicCommentResponseSchema = Schema.Struct({
+  commentId: Schema.String,
+  briefId: Schema.String,
+  displayName: Schema.NullOr(Schema.String),
+  body: Schema.String,
+  createdAt: Schema.String,
+});
+export type PublicCommentResponse = typeof PublicCommentResponseSchema.Type;
 
-export const PublicCommentsListResponseSchema = z
-  .object({ comments: z.array(PublicCommentResponseSchema) })
-  .strict();
-export type PublicCommentsListResponse = z.output<typeof PublicCommentsListResponseSchema>;
+export const PublicCommentsListResponseSchema = Schema.Struct({
+  comments: Schema.Array(PublicCommentResponseSchema),
+});
+export type PublicCommentsListResponse = typeof PublicCommentsListResponseSchema.Type;

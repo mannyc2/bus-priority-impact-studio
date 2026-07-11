@@ -1,36 +1,32 @@
-import * as z from "../schema-compat.js";
+import { Schema } from "effect";
 
-export const StudioQualitySchema = z
-  .object({
-    releaseLayer: z.enum([
-      "baseline_release",
-      "observed_release",
-      "current_signal",
-      "pending_publication",
-    ]),
-    completenessStatus: z.enum([
-      "complete",
-      "partial_public_monthly_only",
-      "missing_realtime",
-      "insufficient_samples",
-      "source_lag_expected",
-      "unavailable",
-    ]),
-    confidence: z.enum(["high", "medium", "low"]),
-    caveats: z.array(z.string()),
-  })
-  .strict();
+export const StudioQualitySchema = Schema.Struct({
+  releaseLayer: Schema.Literals([
+    "baseline_release",
+    "observed_release",
+    "current_signal",
+    "pending_publication",
+  ]),
+  completenessStatus: Schema.Literals([
+    "complete",
+    "partial_public_monthly_only",
+    "missing_realtime",
+    "insufficient_samples",
+    "source_lag_expected",
+    "unavailable",
+  ]),
+  confidence: Schema.Literals(["high", "medium", "low"]),
+  caveats: Schema.Array(Schema.String),
+});
 
-export const ComparableRouteSchema = z
-  .object({
-    slug: z.string(),
-    label: z.string(),
-    sbs: z.boolean(),
-    outcome: z.enum(["reversed", "flat", "declining"]),
-    delta: z.string(),
-    detail: z.string(),
-  })
-  .strict();
+export const ComparableRouteSchema = Schema.Struct({
+  slug: Schema.String,
+  label: Schema.String,
+  sbs: Schema.Boolean,
+  outcome: Schema.Literals(["reversed", "flat", "declining"]),
+  delta: Schema.String,
+  detail: Schema.String,
+});
 
-export type StudioQuality = z.output<typeof StudioQualitySchema>;
-export type ComparableRoute = z.output<typeof ComparableRouteSchema>;
+export type StudioQuality = typeof StudioQualitySchema.Type;
+export type ComparableRoute = typeof ComparableRouteSchema.Type;

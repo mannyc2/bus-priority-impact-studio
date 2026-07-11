@@ -1,4 +1,4 @@
-import * as z from "../schema-compat.js";
+import { Schema } from "effect";
 
 export type StudioRouteSegmentEvidence = {
   id: string;
@@ -48,24 +48,24 @@ export type StudioRouteSegmentEvidence = {
   riderImpactScore: number | null;
 };
 
-export const StudioAiNoteEvidenceKeySchema = z.string().min(1);
-export type StudioAiNoteEvidenceKey = z.output<typeof StudioAiNoteEvidenceKeySchema>;
+export const StudioAiNoteEvidenceKeySchema = Schema.String.check(Schema.isMinLength(1));
+export type StudioAiNoteEvidenceKey = typeof StudioAiNoteEvidenceKeySchema.Type;
 
-export const StudioAiAnalystNoteSchema = z.object({
-  generationMode: z.string().min(1),
-  headline: z.string().min(1),
-  body: z.string().min(1),
-  primaryEvidence: z.array(StudioAiNoteEvidenceKeySchema),
-  caveats: z.array(z.string().min(1)),
-  nextChecks: z.array(z.string().min(1)),
-  blockedClaims: z.array(z.string().min(1)),
-  confidence: z.enum(["low", "medium", "high"]),
+export const StudioAiAnalystNoteSchema = Schema.Struct({
+  generationMode: Schema.String.check(Schema.isMinLength(1)),
+  headline: Schema.String.check(Schema.isMinLength(1)),
+  body: Schema.String.check(Schema.isMinLength(1)),
+  primaryEvidence: Schema.mutable(Schema.Array(StudioAiNoteEvidenceKeySchema)),
+  caveats: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  nextChecks: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  blockedClaims: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  confidence: Schema.Literals(["low", "medium", "high"]),
 });
-export type StudioAiAnalystNote = z.output<typeof StudioAiAnalystNoteSchema>;
+export type StudioAiAnalystNote = typeof StudioAiAnalystNoteSchema.Type;
 
-export const StudioAiPublicNoteSchema = z.object({
-  generationMode: z.string().min(1),
-  body: z.string().min(1),
-  source: z.string().min(1),
+export const StudioAiPublicNoteSchema = Schema.Struct({
+  generationMode: Schema.String.check(Schema.isMinLength(1)),
+  body: Schema.String.check(Schema.isMinLength(1)),
+  source: Schema.String.check(Schema.isMinLength(1)),
 });
-export type StudioAiPublicNote = z.output<typeof StudioAiPublicNoteSchema>;
+export type StudioAiPublicNote = typeof StudioAiPublicNoteSchema.Type;

@@ -1,3 +1,4 @@
+import { decodeStrict } from "../decode.js";
 import {
   type StudioDocsResponse,
   StudioDocsResponseSchema,
@@ -35,7 +36,7 @@ function routeArtifactRefs(release: StudioReleasePayload, routeId: string) {
 }
 
 export function buildStudioRoutesProjection(release: StudioReleasePayload): StudioRoutesResponse {
-  return StudioRoutesResponseSchema.parse({
+  return decodeStrict(StudioRoutesResponseSchema)({
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     routes: release.routes,
@@ -46,7 +47,7 @@ export function buildStudioRoutesProjection(release: StudioReleasePayload): Stud
 export function buildStudioSegmentsProjection(
   release: StudioReleasePayload,
 ): StudioSegmentsResponse {
-  return StudioSegmentsResponseSchema.parse({
+  return decodeStrict(StudioSegmentsResponseSchema)({
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     segments: release.segments,
@@ -60,7 +61,7 @@ export function buildStudioRouteProjection(
 ): StudioRouteDetailResponse {
   // capability + dossier default to null here; the Worker joins the pipeline-built
   // capability row and dossier summary at read time (hard-cutover C2).
-  return StudioRouteDetailResponseSchema.parse({
+  return decodeStrict(StudioRouteDetailResponseSchema)({
     schemaVersion: 2,
     generatedAt: release.generatedAt,
     route,
@@ -76,7 +77,7 @@ export function buildStudioCompareProjection(
   routeA: StudioRoute,
   routeB: StudioRoute,
 ): StudioCompareResponse {
-  return StudioCompareResponseSchema.parse({
+  return decodeStrict(StudioCompareResponseSchema)({
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     routes: [routeA, routeB],
@@ -93,7 +94,7 @@ export function buildStudioCompareProjection(
 }
 
 export function buildStudioMethodsProjection(release: StudioReleasePayload): StudioMethodsResponse {
-  return StudioMethodsResponseSchema.parse({
+  return decodeStrict(StudioMethodsResponseSchema)({
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     datasets: release.methods,
@@ -102,7 +103,7 @@ export function buildStudioMethodsProjection(release: StudioReleasePayload): Stu
 }
 
 export function buildStudioDocsProjection(release: StudioReleasePayload): StudioDocsResponse {
-  return StudioDocsResponseSchema.parse({
+  return decodeStrict(StudioDocsResponseSchema)({
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     sections: release.docsSections,

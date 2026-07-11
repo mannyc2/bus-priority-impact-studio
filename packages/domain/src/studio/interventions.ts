@@ -1,53 +1,62 @@
-import * as z from "../schema-compat.js";
+import { Schema, SchemaGetter } from "effect";
 
-const StudioInterventionWindowSchema = z
-  .object({
-    from: z.string(),
-    to: z.string(),
-    sampleMonths: z.number().int().nonnegative(),
-  })
-  .strict();
+const StudioInterventionWindowSchema = Schema.Struct({
+  from: Schema.String,
+  to: Schema.String,
+  sampleMonths: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+});
 
-const StudioInterventionComparisonCohortSchema = z
-  .object({
-    method: z.string(),
-    causalInterpretation: z.string(),
-    methodLimitations: z.array(z.string()),
-    routeIds: z.array(z.string()),
-    routeCount: z.number().int().nonnegative(),
-    preWindow: StudioInterventionWindowSchema.nullable(),
-    postWindow: StudioInterventionWindowSchema.nullable(),
-    routeSpeedDeltaMph: z.number().nullable(),
-    comparisonSpeedDeltaMph: z.number().nullable(),
-    adjustedSpeedDeltaMph: z.number().nullable(),
-    caveat: z.string(),
-  })
-  .strict();
+const StudioInterventionComparisonCohortSchema = Schema.Struct({
+  method: Schema.String,
+  causalInterpretation: Schema.String,
+  methodLimitations: Schema.Array(Schema.String),
+  routeIds: Schema.Array(Schema.String),
+  routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  preWindow: Schema.NullOr(StudioInterventionWindowSchema),
+  postWindow: Schema.NullOr(StudioInterventionWindowSchema),
+  routeSpeedDeltaMph: Schema.NullOr(Schema.Number),
+  comparisonSpeedDeltaMph: Schema.NullOr(Schema.Number),
+  adjustedSpeedDeltaMph: Schema.NullOr(Schema.Number),
+  caveat: Schema.String,
+});
 
-export const StudioInterventionSchema = z.preprocess(
-  (value) => {
-    if (typeof value !== "object" || value === null) return value;
-    const { year, title, detail, tone, sourceLabel, sourceDetail, comparisonCohort } =
-      value as Record<string, unknown>;
-    return { year, title, detail, tone, sourceLabel, sourceDetail, comparisonCohort };
-  },
-  z
-    .object({
-      year: z.string(),
-      title: z.string(),
-      detail: z.string(),
-      tone: z.enum(["accent", "good", "warn", "bad"]).optional(),
-      sourceLabel: z.string().optional(),
-      sourceDetail: z.string().optional(),
-      comparisonCohort: StudioInterventionComparisonCohortSchema.optional(),
-    })
-    .strict(),
+const StudioInterventionShapeSchema = Schema.Struct({
+  year: Schema.String,
+  title: Schema.String,
+  detail: Schema.String,
+  tone: Schema.optional(Schema.Literals(["accent", "good", "warn", "bad"])),
+  sourceLabel: Schema.optional(Schema.String),
+  sourceDetail: Schema.optional(Schema.String),
+  comparisonCohort: Schema.optional(StudioInterventionComparisonCohortSchema),
+});
+
+export const StudioInterventionSchema = Schema.Unknown.pipe(
+  Schema.decodeTo(StudioInterventionShapeSchema, {
+    decode: SchemaGetter.transform((value) => {
+      if (typeof value !== "object" || value === null) {
+        return Schema.decodeUnknownSync(Schema.toEncoded(StudioInterventionShapeSchema))(value);
+      }
+      const { year, title, detail, tone, sourceLabel, sourceDetail, comparisonCohort } =
+        value as Record<string, unknown>;
+      return Schema.decodeUnknownSync(Schema.toEncoded(StudioInterventionShapeSchema), {
+        onExcessProperty: "ignore",
+      })({
+        year,
+        title,
+        detail,
+        tone,
+        sourceLabel,
+        sourceDetail,
+        comparisonCohort,
+      });
+    }),
+    encode: SchemaGetter.passthrough(),
+  }),
 );
 
-export type StudioInterventionComparisonCohort = z.output<
-  typeof StudioInterventionComparisonCohortSchema
->;
-export type StudioIntervention = z.output<typeof StudioInterventionSchema>;
+export type StudioInterventionComparisonCohort =
+  typeof StudioInterventionComparisonCohortSchema.Type;
+export type StudioIntervention = typeof StudioInterventionSchema.Type;
 
 export type StudioInterventionComparisonInput = {
   eventId: string;
