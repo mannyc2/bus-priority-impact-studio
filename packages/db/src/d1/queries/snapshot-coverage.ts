@@ -53,13 +53,37 @@ export type SourceMonthCoverage = {
   label: string;
   sourceKind: string;
   grain: string;
-  status: string;
+  status: SourceMonthCoverageStatus;
   rowCount: number | null;
   routeCount: number | null;
   note: string | null;
   generatedAt: string;
   artifactPath: string | null;
 };
+
+export type SourceMonthCoverageStatus =
+  | "available"
+  | "partial"
+  | "available_not_fetched"
+  | "upstream_blocked"
+  | "downstream_blocked"
+  | "derived_not_built"
+  | "source_absent";
+
+function sourceMonthCoverageStatus(value: string): SourceMonthCoverageStatus {
+  if (
+    value === "available" ||
+    value === "partial" ||
+    value === "available_not_fetched" ||
+    value === "upstream_blocked" ||
+    value === "downstream_blocked" ||
+    value === "derived_not_built" ||
+    value === "source_absent"
+  ) {
+    return value;
+  }
+  return "source_absent";
+}
 
 export type PublicSnapshotSourceMonthCoverage = {
   rows: SourceMonthCoverage[];
@@ -91,7 +115,7 @@ function toSourceMonthCoverage(row: SourceMonthCoverageRow): SourceMonthCoverage
     label: row.label,
     sourceKind: row.source_kind,
     grain: row.grain,
-    status: row.status,
+    status: sourceMonthCoverageStatus(row.status),
     rowCount: row.row_count,
     routeCount: row.route_count,
     note: row.note,

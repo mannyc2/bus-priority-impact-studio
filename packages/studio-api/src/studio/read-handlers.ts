@@ -297,7 +297,7 @@ function routeIdToStudioSlug(routeId: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-function boroughForRouteId(routeId: string): string {
+function boroughForRouteId(routeId: string): StudioRouteIndex2Row["borough"] {
   const upper = routeId.toUpperCase();
   if (upper.startsWith("BX")) return "Bronx";
   if (upper.startsWith("B")) return "Brooklyn";
@@ -306,7 +306,44 @@ function boroughForRouteId(routeId: string): string {
   return "Manhattan";
 }
 
-function routeFamilyForIndexRow(row: StudioRouteIndexSourceRow): StudioRouteFamily {
+type NormalizedStudioRouteIndexSourceRow = StudioRouteIndexSourceRow & {
+  averageSpeedMph: number;
+  busLaneMatchedLaneCount: number;
+  effectiveStopCount: number;
+  totalRidership: number;
+  aceActive: boolean;
+  readinessStatus: string;
+  readinessScore: number | null;
+  routeScoreSort: number;
+  missingSpeedHistoryCellCount: number;
+};
+
+function normalizeStudioRouteIndexSourceRow(
+  row: StudioRouteIndexSourceRow,
+): NormalizedStudioRouteIndexSourceRow {
+  return {
+    ...row,
+    averageSpeedMph: row.summary?.averageSpeedMph ?? row.readiness?.averageSpeedMph ?? 0,
+    busLaneMatchedLaneCount: row.summary?.busLaneMatchedLaneCount ?? 0,
+    effectiveStopCount: row.readiness?.stopCount ?? row.stopCount,
+    totalRidership: row.summary?.totalRidership ?? 0,
+    aceActive: row.summary?.aceActive ?? false,
+    readinessStatus: row.readiness?.status ?? "No readiness row",
+    readinessScore: row.readiness?.score ?? null,
+    routeScoreSort: row.summary?.routeScore ?? 101,
+    missingSpeedHistoryCellCount: row.speedHistoryCoverage?.missingCellCount ?? 0,
+  };
+}
+
+async function listNormalizedStudioRouteIndexSourceRows(
+  db: ReturnType<typeof createD1ServingDb>,
+  month: string,
+): Promise<NormalizedStudioRouteIndexSourceRow[]> {
+  const rows = await listStudioRouteIndexSourceRows(db, month);
+  return rows.map(normalizeStudioRouteIndexSourceRow);
+}
+
+function routeFamilyForIndexRow(row: NormalizedStudioRouteIndexSourceRow): StudioRouteFamily {
   const text = [row.routeId, row.routeShortName, row.routeLongName, ...row.routeTypes]
     .join(" ")
     .toLowerCase();
@@ -324,7 +361,7 @@ function routeProjectionRef(ref: StudioSnapshot2ProjectionRef): StudioSnapshot2P
   return ref;
 }
 
-function hasRouteTimelineBundle(row: StudioRouteIndexSourceRow): boolean {
+function hasRouteTimelineBundle(row: NormalizedStudioRouteIndexSourceRow): boolean {
   return row.artifactNames.includes(STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME);
 }
 
@@ -370,7 +407,9 @@ const CORE_COVERAGE_SURFACES: readonly { key: string; label: string }[] = [
   { key: "scheduleBaseline", label: "schedule baseline" },
 ];
 
-function isCoverageGap(state: RouteSurfaceState | undefined): boolean {
+function isCoverageGap(
+  state: RouteSurfaceState | undefined,
+): state is Exclude<RouteSurfaceState, "ready" | "checked_clean" | "not_applicable"> {
   return (
     state !== undefined &&
     state !== "ready" &&
@@ -382,11 +421,11 @@ function isCoverageGap(state: RouteSurfaceState | undefined): boolean {
 function coverageGaps(capability: StudioRouteCapability): { label: string; state: string }[] {
   return CORE_COVERAGE_SURFACES.flatMap(({ key, label }) => {
     const state = capability.surfaces[key]?.state;
-    return isCoverageGap(state) ? [{ label, state: state as string }] : [];
+    return isCoverageGap(state) ? [{ label, state }] : [];
   });
 }
 
-function routeIndexCaveats(row: StudioRouteIndexSourceRow): string[] {
+function routeIndexCaveats(row: NormalizedStudioRouteIndexSourceRow): string[] {
   const caveats: string[] = [];
   if (row.summary === null) {
     caveats.push("No rich route summary is available for the baseline month.");
@@ -402,9 +441,9 @@ function routeIndexCaveats(row: StudioRouteIndexSourceRow): string[] {
   if (row.historyCoverage.speedMonthCount > 0 && row.speedHistoryCoverage === null) {
     caveats.push("Monthly speed rows exist, but no route speed-history R2 artifact is indexed.");
   }
-  if ((row.speedHistoryCoverage?.missingCellCount ?? 0) > 0) {
+  if (row.missingSpeedHistoryCellCount > 0) {
     caveats.push(
-      `Route speed-history artifact has ${row.speedHistoryCoverage?.missingCellCount ?? 0} missing cells.`,
+      `Route speed-history artifact has ${row.missingSpeedHistoryCellCount} missing cells.`,
     );
   }
   if (row.readiness === null) {
@@ -414,7 +453,7 @@ function routeIndexCaveats(row: StudioRouteIndexSourceRow): string[] {
 }
 
 function routeProjectionRefs(input: {
-  row: StudioRouteIndexSourceRow;
+  row: NormalizedStudioRouteIndexSourceRow;
   lastBuiltSpeedMonth: string | undefined;
 }): StudioSnapshot2ProjectionRef[] {
   const { row } = input;
@@ -498,7 +537,7 @@ function buildStudioRouteIndex2Row(input: {
   baselineMonth: string;
   generatedAt: string;
   lastBuiltSpeedMonth: string | undefined;
-  row: StudioRouteIndexSourceRow;
+  row: NormalizedStudioRouteIndexSourceRow;
   capability: StudioRouteCapability;
 }): StudioRouteIndex2Row {
   const slug = routeIdToStudioSlug(input.row.routeId);
@@ -509,7 +548,7 @@ function buildStudioRouteIndex2Row(input: {
     slug,
     label: input.row.routeShortName.replace("-SBS", " SBS"),
     longName: input.row.routeLongName,
-    borough: boroughForRouteId(input.row.routeId) as StudioRouteIndex2Row["borough"],
+    borough: boroughForRouteId(input.row.routeId),
     routeFamily: routeFamilyForIndexRow(input.row),
     publicUrl: `/routes/${slug}`,
     capability: input.capability,
@@ -557,7 +596,10 @@ function buildObservedReliabilityFromD1(
   };
 }
 
-function routeTerminiForIndexRow(row: StudioRouteIndexSourceRow): { north: string; south: string } {
+function routeTerminiForIndexRow(row: NormalizedStudioRouteIndexSourceRow): {
+  north: string;
+  south: string;
+} {
   const longName = row.routeLongName ?? row.routeShortName;
   const [north, south] = longName.split(" - ");
   return {
@@ -566,21 +608,20 @@ function routeTerminiForIndexRow(row: StudioRouteIndexSourceRow): { north: strin
   };
 }
 
-function routeLabelForIndexRow(row: StudioRouteIndexSourceRow): string {
+function routeLabelForIndexRow(row: NormalizedStudioRouteIndexSourceRow): string {
   return row.routeShortName.replace("-SBS", " SBS");
 }
 
-function routeSpeedMphForIndexRow(row: StudioRouteIndexSourceRow): number {
-  return Number((row.summary?.averageSpeedMph ?? row.readiness?.averageSpeedMph ?? 0).toFixed(1));
+function routeSpeedMphForIndexRow(row: NormalizedStudioRouteIndexSourceRow): number {
+  return Number(row.averageSpeedMph.toFixed(1));
 }
 
-function routeLaneCoverageForIndexRow(row: StudioRouteIndexSourceRow): number {
-  const stopCount = row.readiness?.stopCount ?? row.stopCount;
-  if (stopCount === 0) return 0;
-  return Math.min(100, Math.round(((row.summary?.busLaneMatchedLaneCount ?? 0) / stopCount) * 100));
+function routeLaneCoverageForIndexRow(row: NormalizedStudioRouteIndexSourceRow): number {
+  if (row.effectiveStopCount === 0) return 0;
+  return Math.min(100, Math.round((row.busLaneMatchedLaneCount / row.effectiveStopCount) * 100));
 }
 
-function routeReliabilityLabelForIndexRow(row: StudioRouteIndexSourceRow): string {
+function routeReliabilityLabelForIndexRow(row: NormalizedStudioRouteIndexSourceRow): string {
   if (row.summary === null) return "Indexed route";
   if (row.summary.routeScore >= 70) return "High attention route";
   if (row.summary.routeScore >= 40) return "Watch list route";
@@ -588,7 +629,7 @@ function routeReliabilityLabelForIndexRow(row: StudioRouteIndexSourceRow): strin
 }
 
 function routeDiagnosisForIndexRow(
-  row: StudioRouteIndexSourceRow,
+  row: NormalizedStudioRouteIndexSourceRow,
   speedMph: number,
   coverage: number,
 ): string {
@@ -602,16 +643,16 @@ function routeDiagnosisForIndexRow(
   return `${row.routeShortName} is indexed from the route catalog, but no baseline readiness or rich route summary is available yet.`;
 }
 
-function routeFlagsForIndexRow(row: StudioRouteIndexSourceRow): string[] {
+function routeFlagsForIndexRow(row: NormalizedStudioRouteIndexSourceRow): string[] {
   return [
-    row.summary?.aceActive === true ? "ACE active" : "ACE inactive",
+    row.aceActive ? "ACE active" : "ACE inactive",
     row.artifactNames.length > 0 ? "Rich artifact indexed" : "No rich artifact",
     row.summary === null
       ? "No baseline summary"
       : row.summary.publicVisible
         ? "Public summary"
         : "Summary gated",
-    row.readiness?.status ?? "No readiness row",
+    row.readinessStatus,
     row.historyCoverage.pointCount > 0
       ? `${row.historyCoverage.pointCount} history months`
       : "No history rows",
@@ -619,7 +660,7 @@ function routeFlagsForIndexRow(row: StudioRouteIndexSourceRow): string[] {
 }
 
 function buildStudioRouteCardFromIndexRow(
-  row: StudioRouteIndexSourceRow,
+  row: NormalizedStudioRouteIndexSourceRow,
   observed: D1RouteObservedReliabilitySummary | undefined,
   speedPercentile: number | null,
 ): StudioRoute {
@@ -639,11 +680,11 @@ function buildStudioRouteCardFromIndexRow(
     scheduledMph: null,
     weightedAvgSpeed: speedMph,
     speedPercentile,
-    dailyRiders: Math.round((row.summary?.totalRidership ?? 0) / 30),
+    dailyRiders: Math.round(row.totalRidership / 30),
     ridersYoyPct: null,
     riderHoursLost: null,
     laneCoverage: coverage,
-    aceStatus: row.summary?.aceActive === true ? "active" : "none",
+    aceStatus: row.aceActive ? "active" : "none",
     aceSince: null,
     tspCoverage: "none",
     reliability: routeReliabilityLabelForIndexRow(row),
@@ -652,7 +693,7 @@ function buildStudioRouteCardFromIndexRow(
     spark: null,
     termini: routeTerminiForIndexRow(row),
     miles: null,
-    stops: row.readiness?.stopCount ?? row.stopCount,
+    stops: row.effectiveStopCount,
     flags: routeFlagsForIndexRow(row),
     peerSlug: null,
     movement6mPct: roundPct(row.historyStats.speedMovement6mPct),
@@ -662,7 +703,7 @@ function buildStudioRouteCardFromIndexRow(
 }
 
 function speedPercentilesForRouteIndexRows(
-  rows: readonly StudioRouteIndexSourceRow[],
+  rows: readonly NormalizedStudioRouteIndexSourceRow[],
 ): Map<string, number> {
   const ranked = rows
     .filter((row) => row.summary !== null)
@@ -687,16 +728,16 @@ async function listStudioRouteCardsFromD1(
   if (env.DB === undefined) return [];
   const db = createD1ServingDb(env.DB);
   const [rows, observed] = await Promise.all([
-    listStudioRouteIndexSourceRows(db, month),
+    listNormalizedStudioRouteIndexSourceRows(db, month),
     listRouteObservedReliabilitySummaries(db, month),
   ]);
   const observedByRoute = new Map(observed.map((row) => [row.routeId, row]));
   const speedPercentileByRoute = speedPercentilesForRouteIndexRows(rows);
   const routes = rows
     .toSorted((left, right) => {
-      const leftScore = left.summary?.routeScore ?? 101;
-      const rightScore = right.summary?.routeScore ?? 101;
-      return leftScore - rightScore || left.routeId.localeCompare(right.routeId);
+      return (
+        left.routeScoreSort - right.routeScoreSort || left.routeId.localeCompare(right.routeId)
+      );
     })
     .map((row) =>
       buildStudioRouteCardFromIndexRow(
@@ -746,7 +787,7 @@ async function buildStudioRouteIndex2Response(
   const generatedAt = new Date().toISOString();
   const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
   const [rows, capabilityManifest] = await Promise.all([
-    listStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
+    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
     loadRouteCapabilityManifest(env),
   ]);
   const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
@@ -1249,7 +1290,7 @@ async function maybeLoadAliasedStudioRouteDetailProjection(input: {
 }
 
 function aliasedRouteDetailForD1Row(input: {
-  row: StudioRouteIndexSourceRow;
+  row: NormalizedStudioRouteIndexSourceRow;
   observed: D1RouteObservedReliabilitySummary | undefined;
   richDetail: StudioRouteDetailResponse;
 }): StudioRouteDetailResponse {
@@ -1269,11 +1310,11 @@ function aliasedRouteDetailForD1Row(input: {
 }
 
 function metricRows(input: {
-  rows: readonly StudioRouteIndexSourceRow[];
+  rows: readonly NormalizedStudioRouteIndexSourceRow[];
   routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
-  score: (row: StudioRouteIndexSourceRow) => number | null;
-  reasons: (row: StudioRouteIndexSourceRow) => string[];
-  metrics: (row: StudioRouteIndexSourceRow) => StudioRouteSectionMetric[];
+  score: (row: NormalizedStudioRouteIndexSourceRow) => number | null;
+  reasons: (row: NormalizedStudioRouteIndexSourceRow) => string[];
+  metrics: (row: NormalizedStudioRouteIndexSourceRow) => StudioRouteSectionMetric[];
   scoreLabel: (score: number) => string;
   limit?: number;
 }): StudioRouteSectionRow[] {
@@ -1343,7 +1384,7 @@ function section(input: {
 }
 
 function buildNeedsAttentionRows(input: {
-  rows: readonly StudioRouteIndexSourceRow[];
+  rows: readonly NormalizedStudioRouteIndexSourceRow[];
   routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
 }): StudioRouteSectionRow[] {
   return metricRows({
@@ -1394,7 +1435,7 @@ function buildNeedsAttentionRows(input: {
 
 function buildWorseningFastRows(input: {
   currentSpeedMonth: string;
-  rows: readonly StudioRouteIndexSourceRow[];
+  rows: readonly NormalizedStudioRouteIndexSourceRow[];
   routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
 }): StudioRouteSectionRow[] {
   return metricRows({
@@ -1450,7 +1491,7 @@ function buildWorseningFastRows(input: {
 }
 
 function buildTreatmentGapRows(input: {
-  rows: readonly StudioRouteIndexSourceRow[];
+  rows: readonly NormalizedStudioRouteIndexSourceRow[];
   routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
 }): StudioRouteSectionRow[] {
   return metricRows({
@@ -1506,7 +1547,7 @@ function buildTreatmentGapRows(input: {
 }
 
 function buildDataCoverageRows(input: {
-  rows: readonly StudioRouteIndexSourceRow[];
+  rows: readonly NormalizedStudioRouteIndexSourceRow[];
   routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
 }): StudioRouteSectionRow[] {
   return metricRows({
@@ -1542,7 +1583,7 @@ function buildDataCoverageRows(input: {
         metric({
           id: "readiness_score",
           label: "Readiness",
-          value: row.readiness?.score ?? null,
+          value: row.readinessScore,
         }),
       ];
     },
@@ -1643,7 +1684,7 @@ export async function buildStudioRouteSectionsResponse(
   const generatedAt = new Date().toISOString();
   const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
   const [rows, routeEvidenceIndex, capabilityManifest] = await Promise.all([
-    listStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
+    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
     loadStudioRouteEvidenceIndex(env),
     loadRouteCapabilityManifest(env),
   ]);
@@ -1786,9 +1827,9 @@ async function findStudioRouteIndexSourceRow(input: {
   env: StudioReadEnv;
   slug: string;
   baselineMonth: string;
-}): Promise<StudioRouteIndexSourceRow | null> {
+}): Promise<NormalizedStudioRouteIndexSourceRow | null> {
   if (input.env.DB === undefined) return null;
-  const rows = await listStudioRouteIndexSourceRows(
+  const rows = await listNormalizedStudioRouteIndexSourceRows(
     createD1ServingDb(input.env.DB),
     input.baselineMonth,
   );
@@ -2434,21 +2475,6 @@ function evidenceReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): numbe
   return routes.filter((route) => route.capability.overallState === "ready").length;
 }
 
-function sourceMonthStatus(value: string): StudioSourceMonthState["status"] {
-  if (
-    value === "available" ||
-    value === "partial" ||
-    value === "available_not_fetched" ||
-    value === "upstream_blocked" ||
-    value === "downstream_blocked" ||
-    value === "derived_not_built" ||
-    value === "source_absent"
-  ) {
-    return value;
-  }
-  return "source_absent";
-}
-
 function sourceMonthStates(input: {
   routeIndex: StudioRouteIndex2Response;
   sourceMonthCoverage: readonly D1SourceMonthCoverage[];
@@ -2497,7 +2523,7 @@ function sourceMonthStates(input: {
       sourceId: row.sourceId,
       label: row.label,
       month: row.month,
-      status: sourceMonthStatus(row.status),
+      status: row.status,
       rowCount: row.rowCount,
       routeCount: row.routeCount,
       grain: row.grain,
