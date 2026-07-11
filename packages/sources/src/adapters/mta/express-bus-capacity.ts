@@ -1,39 +1,55 @@
+import { decodePreserve } from "@bp/domain/decode";
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "@bp/domain/schema-compat";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
-const ExpressBusDayTypeSchema = z.enum(["Weekday", "Weekend"]);
-const ExpressBusDirectionSchema = z.enum(["NB", "SB", "EB", "WB"]);
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const HourOfDay = Schema.Number.check(
+  Schema.isInt(),
+  Schema.isGreaterThanOrEqualTo(0),
+  Schema.isLessThanOrEqualTo(23),
+);
+const LoadPercentage = Schema.Number.check(
+  Schema.isGreaterThanOrEqualTo(0),
+  Schema.isLessThanOrEqualTo(1),
+);
+const NonNegativeInteger = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
+const coerceNumberTo = <S extends Schema.Top>(schema: S) =>
+  Schema.Unknown.pipe(
+    Schema.decodeTo(schema, {
+      decode: SchemaGetter.transform((value) => Number(value)),
+      encode: SchemaGetter.passthrough(),
+    }),
+  );
 
-export const NormalizedExpressBusCapacitySchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    weekStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    dayType: ExpressBusDayTypeSchema,
-    borough: z.string().min(1),
-    routeId: z.string().min(1),
-    direction: ExpressBusDirectionSchema,
-    hourOfDay: z.number().int().min(0).max(23),
-    loadPercentage: z.number().min(0).max(1),
-    tripsWithApc: z.number().int().nonnegative(),
-  })
-  .strict();
+const ExpressBusDayTypeSchema = Schema.Literals(["Weekday", "Weekend"]);
+const ExpressBusDirectionSchema = Schema.Literals(["NB", "SB", "EB", "WB"]);
 
-export type NormalizedExpressBusCapacity = z.output<typeof NormalizedExpressBusCapacitySchema>;
+export const NormalizedExpressBusCapacitySchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  weekStartDate: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+  dayType: ExpressBusDayTypeSchema,
+  borough: NonEmptyString,
+  routeId: NonEmptyString,
+  direction: ExpressBusDirectionSchema,
+  hourOfDay: HourOfDay,
+  loadPercentage: LoadPercentage,
+  tripsWithApc: NonNegativeInteger,
+});
 
-const RawExpressBusCapacityRowSchema = z
-  .object({
-    week: z.string().min(1),
-    day_type: ExpressBusDayTypeSchema,
-    borough: z.string().min(1),
-    route: z.string().min(1),
-    direction: ExpressBusDirectionSchema,
-    hour: z.coerce.number().int().min(0).max(23),
-    load_percentage: z.coerce.number().min(0).max(1),
-    trips_with_apc: z.coerce.number().int().nonnegative(),
-  })
-  .passthrough();
+export type NormalizedExpressBusCapacity = typeof NormalizedExpressBusCapacitySchema.Type;
+
+const RawExpressBusCapacityRowSchema = Schema.Struct({
+  week: NonEmptyString,
+  day_type: ExpressBusDayTypeSchema,
+  borough: NonEmptyString,
+  route: NonEmptyString,
+  direction: ExpressBusDirectionSchema,
+  hour: coerceNumberTo(HourOfDay),
+  load_percentage: coerceNumberTo(LoadPercentage),
+  trips_with_apc: coerceNumberTo(NonNegativeInteger),
+});
 
 function weekStartDate(value: string): string {
   const [date] = value.split("T");
@@ -48,7 +64,7 @@ export function normalizeExpressBusCapacityRows(
   rows: SocrataRow[],
 ): NormalizedExpressBusCapacity[] {
   return rows.map((row) => {
-    const parsed = RawExpressBusCapacityRowSchema.parse(row);
+    const parsed = decodePreserve(RawExpressBusCapacityRowSchema)(row);
 
     return {
       schemaVersion,

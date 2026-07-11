@@ -1,50 +1,61 @@
+import { decodePreserve } from "@bp/domain/decode";
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "@bp/domain/schema-compat";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { isoCalendarDateTime, schemaVersion } from "../../core/index.js";
 
-export const NormalizedScheduleTimepointSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    routeId: z.string().min(1),
-    scheduleDate: z.iso.datetime(),
-    dayType: z.string().min(1),
-    direction: z.string().min(1),
-    shapeId: z.string().min(1),
-    stopSequence: z.number().int().nonnegative(),
-    stopId: z.string().min(1),
-    stopName: z.string().min(1).optional(),
-    scheduleTime: z.iso.datetime(),
-    distanceFromStart: z.number().nonnegative().optional(),
-    tripHeadsign: z.string().min(1).optional(),
-    blockId: z.string().min(1),
-    bundle: z.string().min(1).optional(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const NonNegativeInteger = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
+const NonNegativeNumber = Schema.Number.check(Schema.isGreaterThanOrEqualTo(0));
+const IsoDateTime = Schema.String.check(
+  Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+);
+const coerceNumberTo = <S extends Schema.Top>(schema: S) =>
+  Schema.Unknown.pipe(
+    Schema.decodeTo(schema, {
+      decode: SchemaGetter.transform((value) => Number(value)),
+      encode: SchemaGetter.passthrough(),
+    }),
+  );
 
-export type NormalizedScheduleTimepoint = z.output<typeof NormalizedScheduleTimepointSchema>;
+export const NormalizedScheduleTimepointSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  routeId: NonEmptyString,
+  scheduleDate: IsoDateTime,
+  dayType: NonEmptyString,
+  direction: NonEmptyString,
+  shapeId: NonEmptyString,
+  stopSequence: NonNegativeInteger,
+  stopId: NonEmptyString,
+  stopName: Schema.optionalKey(NonEmptyString),
+  scheduleTime: IsoDateTime,
+  distanceFromStart: Schema.optionalKey(NonNegativeNumber),
+  tripHeadsign: Schema.optionalKey(NonEmptyString),
+  blockId: NonEmptyString,
+  bundle: Schema.optionalKey(NonEmptyString),
+});
 
-const RawScheduleTimepointRowSchema = z
-  .object({
-    schedule_date: z.string().min(1),
-    day_type: z.string().min(1),
-    direction: z.string().min(1),
-    shape_id: z.string().min(1),
-    route_id: z.string().min(1),
-    stop_sequence: z.coerce.number().int().nonnegative(),
-    stop_id: z.string().min(1),
-    stop_name: z.string().min(1).optional(),
-    schedule_time: z.string().min(1),
-    distance_from_start: z.coerce.number().nonnegative().optional(),
-    trip_headsign: z.string().min(1).optional(),
-    block_id: z.string().min(1),
-    bundle: z.string().min(1).optional(),
-  })
-  .passthrough();
+export type NormalizedScheduleTimepoint = typeof NormalizedScheduleTimepointSchema.Type;
+
+const RawScheduleTimepointRowSchema = Schema.Struct({
+  schedule_date: NonEmptyString,
+  day_type: NonEmptyString,
+  direction: NonEmptyString,
+  shape_id: NonEmptyString,
+  route_id: NonEmptyString,
+  stop_sequence: coerceNumberTo(NonNegativeInteger),
+  stop_id: NonEmptyString,
+  stop_name: Schema.optionalKey(NonEmptyString),
+  schedule_time: NonEmptyString,
+  distance_from_start: Schema.optionalKey(coerceNumberTo(NonNegativeNumber)),
+  trip_headsign: Schema.optionalKey(NonEmptyString),
+  block_id: NonEmptyString,
+  bundle: Schema.optionalKey(NonEmptyString),
+});
 
 export function normalizeScheduleTimepointRows(rows: SocrataRow[]): NormalizedScheduleTimepoint[] {
   return rows.map((row) => {
-    const parsed = RawScheduleTimepointRowSchema.parse(row);
+    const parsed = decodePreserve(RawScheduleTimepointRowSchema)(row);
     return {
       schemaVersion,
       routeId: RouteIdCodec.parse(parsed.route_id),

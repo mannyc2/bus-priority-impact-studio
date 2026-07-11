@@ -1,78 +1,79 @@
+import { decodePreserve } from "@bp/domain/decode";
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "@bp/domain/schema-compat";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
-export const NormalizedRouteShapeSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    routeId: z.string().min(1),
-    routeShortName: z.string().min(1),
-    routeLongName: z.string().min(1).optional(),
-    inEffect: z.boolean(),
-    directionId: z.string().min(1),
-    direction: z.string().min(1),
-    shapeId: z.string().min(1),
-    routeType: z.string().optional(),
-    tripType: z.string().optional(),
-    bundle: z.string().optional(),
-    shapeLength: z.number().optional(),
-    geometry: z.unknown().optional(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const CoercedNumber = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.Number, {
+    decode: SchemaGetter.transform((value) => Number(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
 
-export const NormalizedStopSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    routeId: z.string().min(1),
-    routeShortName: z.string().min(1),
-    stopId: z.string().min(1),
-    stopName: z.string().min(1),
-    inEffect: z.boolean(),
-    directionId: z.string().min(1),
-    direction: z.string().min(1),
-    timepoint: z.boolean(),
-    latitude: z.number(),
-    longitude: z.number(),
-    georeference: z.unknown().optional(),
-  })
-  .strict();
+export const NormalizedRouteShapeSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  routeId: NonEmptyString,
+  routeShortName: NonEmptyString,
+  routeLongName: Schema.optionalKey(NonEmptyString),
+  inEffect: Schema.Boolean,
+  directionId: NonEmptyString,
+  direction: NonEmptyString,
+  shapeId: NonEmptyString,
+  routeType: Schema.optionalKey(Schema.String),
+  tripType: Schema.optionalKey(Schema.String),
+  bundle: Schema.optionalKey(Schema.String),
+  shapeLength: Schema.optionalKey(Schema.Number),
+  geometry: Schema.optionalKey(Schema.Unknown),
+});
 
-export type NormalizedRouteShape = z.output<typeof NormalizedRouteShapeSchema>;
-export type NormalizedStop = z.output<typeof NormalizedStopSchema>;
+export const NormalizedStopSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  routeId: NonEmptyString,
+  routeShortName: NonEmptyString,
+  stopId: NonEmptyString,
+  stopName: NonEmptyString,
+  inEffect: Schema.Boolean,
+  directionId: NonEmptyString,
+  direction: NonEmptyString,
+  timepoint: Schema.Boolean,
+  latitude: Schema.Number,
+  longitude: Schema.Number,
+  georeference: Schema.optionalKey(Schema.Unknown),
+});
 
-const RawRouteShapeRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    route_short_name: z.string().min(1).optional(),
-    route_long_name: z.string().min(1).optional(),
-    in_effect: z.union([z.boolean(), z.string()]),
-    direction_id: z.string().min(1),
-    direction: z.string().min(1),
-    shape_id: z.string().min(1),
-    route_type: z.string().optional(),
-    trip_type: z.string().optional(),
-    bundle: z.string().optional(),
-    shape_length: z.coerce.number().optional(),
-    geometry: z.unknown().optional(),
-  })
-  .passthrough();
+export type NormalizedRouteShape = typeof NormalizedRouteShapeSchema.Type;
+export type NormalizedStop = typeof NormalizedStopSchema.Type;
 
-const RawStopRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    route_short_name: z.string().min(1).optional(),
-    stop_id: z.string().min(1),
-    stop_name: z.string().min(1),
-    in_effect: z.union([z.boolean(), z.string()]),
-    direction_id: z.string().min(1),
-    direction: z.string().min(1),
-    timepoint: z.union([z.boolean(), z.string(), z.number()]),
-    latitude: z.coerce.number(),
-    longitude: z.coerce.number(),
-    georeference: z.unknown().optional(),
-  })
-  .passthrough();
+const RawRouteShapeRowSchema = Schema.Struct({
+  route_id: NonEmptyString,
+  route_short_name: Schema.optionalKey(NonEmptyString),
+  route_long_name: Schema.optionalKey(NonEmptyString),
+  in_effect: Schema.Union([Schema.Boolean, Schema.String]),
+  direction_id: NonEmptyString,
+  direction: NonEmptyString,
+  shape_id: NonEmptyString,
+  route_type: Schema.optionalKey(Schema.String),
+  trip_type: Schema.optionalKey(Schema.String),
+  bundle: Schema.optionalKey(Schema.String),
+  shape_length: Schema.optionalKey(CoercedNumber),
+  geometry: Schema.optionalKey(Schema.Unknown),
+});
+
+const RawStopRowSchema = Schema.Struct({
+  route_id: NonEmptyString,
+  route_short_name: Schema.optionalKey(NonEmptyString),
+  stop_id: NonEmptyString,
+  stop_name: NonEmptyString,
+  in_effect: Schema.Union([Schema.Boolean, Schema.String]),
+  direction_id: NonEmptyString,
+  direction: NonEmptyString,
+  timepoint: Schema.Union([Schema.Boolean, Schema.String, Schema.Number]),
+  latitude: CoercedNumber,
+  longitude: CoercedNumber,
+  georeference: Schema.optionalKey(Schema.Unknown),
+});
 
 function parseBoolean(value: boolean | number | string): boolean {
   if (typeof value === "boolean") {
@@ -89,7 +90,7 @@ function parseBoolean(value: boolean | number | string): boolean {
 
 export function normalizeRouteShapeRows(rows: SocrataRow[]): NormalizedRouteShape[] {
   return rows.map((row) => {
-    const parsed = RawRouteShapeRowSchema.parse(row);
+    const parsed = decodePreserve(RawRouteShapeRowSchema)(row);
     return {
       schemaVersion,
       routeId: RouteIdCodec.parse(parsed.route_id),
@@ -110,7 +111,7 @@ export function normalizeRouteShapeRows(rows: SocrataRow[]): NormalizedRouteShap
 
 export function normalizeStopRows(rows: SocrataRow[]): NormalizedStop[] {
   return rows.map((row) => {
-    const parsed = RawStopRowSchema.parse(row);
+    const parsed = decodePreserve(RawStopRowSchema)(row);
     return {
       schemaVersion,
       routeId: RouteIdCodec.parse(parsed.route_id),
