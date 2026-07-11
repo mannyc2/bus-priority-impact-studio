@@ -40,6 +40,8 @@ import {
   listRouteSegmentSpeeds,
 } from "@bp/db/local";
 import {
+  type MapNetworkFeatureCollection,
+  MapNetworkFeatureCollectionSchema,
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
@@ -126,35 +128,10 @@ type LineStringGeometry = {
   coordinates: [number, number][];
 };
 
-type MultiLineStringGeometry = {
-  type: "MultiLineString";
-  coordinates: [number, number][][];
-};
-
 type PointGeometry = {
   type: "Point";
   coordinates: [number, number];
 };
-
-export type NetworkMapProperties = {
-  routeId: string;
-  label: string;
-  borough: string;
-  sbs: boolean;
-  scheduledMph: number;
-  currentMph: number;
-  trend6mPct: number | null;
-  dailyRiders: number;
-  riderHoursLost: number | null;
-  laneCoverage: number;
-  ace: boolean;
-  hotspotCount: number;
-  segmentCount: number;
-  hours: number[];
-};
-
-export type NetworkMapFeature = GeoJsonFeature<MultiLineStringGeometry, NetworkMapProperties>;
-export type NetworkMapFeatureCollection = FeatureCollection<NetworkMapFeature>;
 
 export type NetworkRouteBuildInput = {
   routeId: string;
@@ -593,11 +570,7 @@ function weightedAverageSpeed(rows: readonly LocalRouteSegmentSpeed[]): number |
     return rounded(weightedSpeed / totalWeight, 2);
   }
 
-  if (rows.length === 0) {
-    return null;
-  }
-
-  return rounded(rows.reduce((sum, row) => sum + row.averageRoadSpeedMph, 0) / rows.length, 2);
+  return null;
 }
 
 function segmentGroups(input: {
@@ -847,44 +820,19 @@ function busLaneFeatureCollection(lanes: readonly LocalBusLane[]): FeatureCollec
   };
 }
 
-function routeLabel(routeId: string): string {
-  return routeId.endsWith("+") ? `${routeId.slice(0, -1)} SBS` : routeId;
-}
-
-function routeIsSbs(routeId: string): boolean {
-  return routeId.endsWith("+");
-}
-
-function routeBorough(speedRows: readonly LocalRouteSegmentSpeed[]): string {
-  const counts = new Map<string, number>();
-  for (const row of speedRows) {
-    counts.set(row.borough, (counts.get(row.borough) ?? 0) + 1);
-  }
-  let best: { borough: string; count: number } | null = null;
-  for (const [borough, count] of counts) {
-    if (best === null || count > best.count) {
-      best = { borough, count };
-    }
-  }
-  return best?.borough ?? "Citywide";
-}
-
-function routeHourSpeeds(
-  speedRows: readonly LocalRouteSegmentSpeed[],
-  fallbackSpeedMph: number,
-): number[] {
-  return Array.from({ length: 24 }, (_, hour) => {
+function routeHourEvidence(speedRows: readonly LocalRouteSegmentSpeed[]): {
+  hourlySpeedMph: Array<number | null>;
+  hourlyTraversalCount: number[];
+} {
+  const hourlySpeedMph: Array<number | null> = [];
+  const hourlyTraversalCount: number[] = [];
+  for (let hour = 0; hour < 24; hour += 1) {
     const rows = speedRows.filter((row) => row.hourOfDay === hour);
-    return weightedAverageSpeed(rows) ?? rounded(fallbackSpeedMph, 2);
-  });
-}
-
-function laneCoverage(summary: LocalRouteBriefSummary, segmentCount: number): number {
-  if (segmentCount <= 0) return 0;
-  return Math.max(
-    0,
-    Math.min(100, Math.round((summary.busLaneMatchedLaneCount / segmentCount) * 100)),
-  );
+    const traversalCount = rows.reduce((sum, row) => sum + Math.max(0, row.busTripCount), 0);
+    hourlyTraversalCount.push(traversalCount);
+    hourlySpeedMph.push(traversalCount > 0 ? weightedAverageSpeed(rows) : null);
+  }
+  return { hourlySpeedMph, hourlyTraversalCount };
 }
 
 function thinCoordinatePairs(
@@ -918,8 +866,8 @@ function thinCoordinatePairs(
 
 export function buildNetworkMapFeatureCollection(input: {
   routes: readonly NetworkRouteBuildInput[];
-}): NetworkMapFeatureCollection {
-  return {
+}): MapNetworkFeatureCollection {
+  return decodeSchemaStrict(MapNetworkFeatureCollectionSchema, {
     type: "FeatureCollection",
     features: input.routes.flatMap((route) => {
       const coordinates = route.segmentPayload.features
@@ -928,34 +876,25 @@ export function buildNetworkMapFeatureCollection(input: {
       if (coordinates.length === 0) {
         return [];
       }
+      const hourly = routeHourEvidence(route.speedRows);
       return [
         {
           type: "Feature" as const,
-          id: ["network-route", route.routeId].join(":"),
           geometry: {
             type: "MultiLineString" as const,
             coordinates,
           },
           properties: {
             routeId: route.routeId,
-            label: routeLabel(route.routeId),
-            borough: routeBorough(route.speedRows),
-            sbs: routeIsSbs(route.routeId),
-            scheduledMph: rounded(route.summary.averageSpeedMph * 1.18, 2),
-            currentMph: rounded(route.summary.averageSpeedMph, 2),
-            trend6mPct: null,
-            dailyRiders: Math.round(route.summary.totalRidership / 30),
-            riderHoursLost: null,
-            laneCoverage: laneCoverage(route.summary, route.segmentPayload.features.length),
-            ace: route.summary.aceActive,
-            hotspotCount: route.summary.hotspotCount,
-            segmentCount: route.segmentPayload.features.length,
-            hours: routeHourSpeeds(route.speedRows, route.summary.averageSpeedMph),
+            month: route.summary.month,
+            ...hourly,
+            servedBoroughs: [],
+            servedBoroughsStatus: "unavailable",
           },
         },
       ];
     }),
-  };
+  });
 }
 
 async function readSnapshotMetadata(input: {

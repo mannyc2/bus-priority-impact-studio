@@ -103,19 +103,16 @@ describe("buildNetworkMapFeatureCollection", () => {
     const feature = collection.features[0];
     expect(feature?.properties).toMatchObject({
       routeId: "M15+",
-      label: "M15 SBS",
-      borough: "Manhattan",
-      sbs: true,
-      currentMph: 6.2,
-      dailyRiders: 3000,
-      laneCoverage: 100,
-      ace: true,
-      hotspotCount: 3,
-      segmentCount: 1,
+      month: "2026-03",
+      servedBoroughs: [],
+      servedBoroughsStatus: "unavailable",
     });
-    expect(feature?.properties.hours).toHaveLength(24);
-    expect(feature?.properties.hours[8]).toBe(7);
-    expect(feature?.properties.hours[0]).toBe(6.2);
+    expect(feature?.properties.hourlySpeedMph).toHaveLength(24);
+    expect(feature?.properties.hourlyTraversalCount).toHaveLength(24);
+    expect(feature?.properties.hourlySpeedMph[8]).toBe(7);
+    expect(feature?.properties.hourlyTraversalCount[8]).toBe(4);
+    expect(feature?.properties.hourlySpeedMph[0]).toBeNull();
+    expect(feature?.properties.hourlyTraversalCount[0]).toBe(0);
     expect(feature?.geometry.coordinates[0]?.[0]).toEqual([-73.99, 40.7]);
     expect(feature?.geometry.coordinates[0]?.at(-1)).toEqual([-73.969, 40.721]);
     expect(feature?.geometry.coordinates[0]?.length).toBeLessThan(22);
