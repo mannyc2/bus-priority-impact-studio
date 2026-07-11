@@ -121,9 +121,12 @@ describe("release-only route backfill normalizers", () => {
       "Q08",
       "Q09",
     ]);
-    expect(
-      ["Q06", "Q07", "Q08", "Q09"].map(canonicalHourlyRidershipRouteId),
-    ).toEqual(["Q6", "Q7", "Q8", "Q9"]);
+    expect(["Q06", "Q07", "Q08", "Q09"].map(canonicalHourlyRidershipRouteId)).toEqual([
+      "Q6",
+      "Q7",
+      "Q8",
+      "Q9",
+    ]);
 
     const rows = normalizeRouteHourlyRidershipRows(
       [

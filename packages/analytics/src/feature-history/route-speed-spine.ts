@@ -136,7 +136,10 @@ export type RouteSpeedSpineArtifact = {
 };
 
 export type RouteSpeedSpineReadiness =
-  "series_ready" | "series_ready_with_gaps" | "needs_pattern_review" | "failed";
+  | "series_ready"
+  | "series_ready_with_gaps"
+  | "needs_pattern_review"
+  | "failed";
 
 export type RouteSpeedSpineReadinessAudit = {
   readiness: RouteSpeedSpineReadiness;
@@ -232,11 +235,9 @@ function rawSegmentKey(row: RouteSpeedSpineSourceRow): string {
 }
 
 function rawStopPairKey(row: RouteSpeedSpineSourceRow): string {
-  return [
-    row.direction,
-    textKey(row.timepoint_stop_id),
-    textKey(row.next_timepoint_stop_id),
-  ].join("|");
+  return [row.direction, textKey(row.timepoint_stop_id), textKey(row.next_timepoint_stop_id)].join(
+    "|",
+  );
 }
 
 function rawStopPairAccumulatorKey(row: RouteSpeedSpineSourceRow): string {
@@ -248,9 +249,7 @@ function rawStopPairAccumulatorKey(row: RouteSpeedSpineSourceRow): string {
   ].join("|");
 }
 
-function classifiedSourceKey(
-  row: RouteSpeedSpineSourceRow,
-): ClassifiedRouteSegmentSourceKey {
+function classifiedSourceKey(row: RouteSpeedSpineSourceRow): ClassifiedRouteSegmentSourceKey {
   return classifyRouteSegmentSourceKey({
     routeId: row.route_id,
     month: row.month,
@@ -261,11 +260,8 @@ function classifiedSourceKey(
   });
 }
 
-function classifiedSourceKeyIdentity(
-  classified: ClassifiedRouteSegmentSourceKey,
-): string {
-  const value =
-    classified.status === "keyed" ? classified.key : classified.observed;
+function classifiedSourceKeyIdentity(classified: ClassifiedRouteSegmentSourceKey): string {
+  const value = classified.status === "keyed" ? classified.key : classified.observed;
   return JSON.stringify([
     classified.status,
     value.routeId,
@@ -277,10 +273,7 @@ function classifiedSourceKeyIdentity(
   ]);
 }
 
-function isFiniteCoordinate(
-  latitude: number | null,
-  longitude: number | null,
-): boolean {
+function isFiniteCoordinate(latitude: number | null, longitude: number | null): boolean {
   return (
     typeof latitude === "number" &&
     typeof longitude === "number" &&
@@ -299,24 +292,15 @@ function haversineMeters(
   const dLambda = ((right.longitude - left.longitude) * Math.PI) / 180;
   const a =
     Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
-    Math.cos(phi1) *
-      Math.cos(phi2) *
-      Math.sin(dLambda / 2) *
-      Math.sin(dLambda / 2);
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
   return 2 * EARTH_RADIUS_METERS * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function weightedAverage(
-  values: Array<{ value: number; weight: number }>,
-): number {
+function weightedAverage(values: Array<{ value: number; weight: number }>): number {
   let total = 0;
   let weight = 0;
   for (const entry of values) {
-    if (
-      !Number.isFinite(entry.value) ||
-      !Number.isFinite(entry.weight) ||
-      entry.weight <= 0
-    ) {
+    if (!Number.isFinite(entry.value) || !Number.isFinite(entry.weight) || entry.weight <= 0) {
       continue;
     }
     total += entry.value * entry.weight;
@@ -326,9 +310,7 @@ function weightedAverage(
 }
 
 function weightedMedian(values: Map<number, number>): number {
-  const entries = [...values.entries()].sort(
-    (left, right) => left[0] - right[0],
-  );
+  const entries = [...values.entries()].sort((left, right) => left[0] - right[0]);
   const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0);
   if (entries.length === 0 || totalWeight <= 0) return 0;
   let seen = 0;
@@ -369,12 +351,7 @@ function createPoints(rows: readonly RouteSpeedSpineSourceRow[]): {
     let toPointIndex: number | null = null;
     const weight = Math.max(1, Number(row.source_row_count) || 1);
 
-    if (
-      isFiniteCoordinate(
-        row.timepoint_stop_latitude,
-        row.timepoint_stop_longitude,
-      )
-    ) {
+    if (isFiniteCoordinate(row.timepoint_stop_latitude, row.timepoint_stop_longitude)) {
       fromPointIndex = points.length;
       points.push({
         index: fromPointIndex,
@@ -401,12 +378,7 @@ function createPoints(rows: readonly RouteSpeedSpineSourceRow[]): {
       });
     }
 
-    if (
-      isFiniteCoordinate(
-        row.next_timepoint_stop_latitude,
-        row.next_timepoint_stop_longitude,
-      )
-    ) {
+    if (isFiniteCoordinate(row.next_timepoint_stop_latitude, row.next_timepoint_stop_longitude)) {
       toPointIndex = points.length;
       points.push({
         index: toPointIndex,
@@ -439,10 +411,7 @@ function createPoints(rows: readonly RouteSpeedSpineSourceRow[]): {
   return { points, rowRefs, issues };
 }
 
-function clusterPoints(
-  points: readonly SourcePoint[],
-  toleranceMeters: number,
-): NodeCluster[] {
+function clusterPoints(points: readonly SourcePoint[], toleranceMeters: number): NodeCluster[] {
   const clusters: NodeCluster[] = [];
   for (const point of points) {
     let bestCluster: number[] | null = null;
@@ -521,16 +490,10 @@ function buildNodes(input: {
       observationCount += point.weight;
       months.add(point.month);
       if (point.stopId !== null) {
-        stopIds.set(
-          point.stopId,
-          (stopIds.get(point.stopId) ?? 0) + point.weight,
-        );
+        stopIds.set(point.stopId, (stopIds.get(point.stopId) ?? 0) + point.weight);
       }
       if (point.stopName !== null) {
-        stopNames.set(
-          point.stopName,
-          (stopNames.get(point.stopName) ?? 0) + point.weight,
-        );
+        stopNames.set(point.stopName, (stopNames.get(point.stopName) ?? 0) + point.weight);
       }
     }
 
@@ -564,8 +527,7 @@ function buildNodes(input: {
 
   const sorted = provisional.toSorted((left, right) => {
     if (left.latitude !== right.latitude) return left.latitude - right.latitude;
-    if (left.longitude !== right.longitude)
-      return left.longitude - right.longitude;
+    if (left.longitude !== right.longitude) return left.longitude - right.longitude;
     return left.label.localeCompare(right.label);
   });
 
@@ -579,8 +541,7 @@ function buildNodes(input: {
       input.issues.push({
         severity: "warn",
         code: "wide_node_cluster",
-        message:
-          "A geographic node merged points spanning more than twice the tolerance.",
+        message: "A geographic node merged points spanning more than twice the tolerance.",
         context: {
           nodeId,
           maxSourceSeparationMeters: round(node.maxSourceSeparationMeters, 1),
@@ -674,8 +635,7 @@ function buildSegments(input: {
       input.issues.push({
         severity: "error",
         code: "missing_node_assignment",
-        message:
-          "A source row had coordinates but could not be assigned to a spine node.",
+        message: "A source row had coordinates but could not be assigned to a spine node.",
         context: {
           month: row.month,
           direction: row.direction,
@@ -688,8 +648,7 @@ function buildSegments(input: {
       input.issues.push({
         severity: "warn",
         code: "zero_length_spine_segment",
-        message:
-          "A source segment collapsed to the same from/to geographic node.",
+        message: "A source segment collapsed to the same from/to geographic node.",
         context: {
           month: row.month,
           direction: row.direction,
@@ -810,18 +769,14 @@ function buildSegments(input: {
           rawStopPairCount: segment.rawStopPairs.size,
           sourceStopPairs,
           sourceKeys: [...segment.sourceKeys.values()].toSorted((left, right) =>
-            classifiedSourceKeyIdentity(left).localeCompare(
-              classifiedSourceKeyIdentity(right),
-            ),
+            classifiedSourceKeyIdentity(left).localeCompare(classifiedSourceKeyIdentity(right)),
           ),
         },
       } satisfies RouteSpeedSpineSegment;
     })
     .sort((left, right) => {
-      if (left.direction !== right.direction)
-        return left.direction.localeCompare(right.direction);
-      if (left.displayOrder !== right.displayOrder)
-        return left.displayOrder - right.displayOrder;
+      if (left.direction !== right.direction) return left.direction.localeCompare(right.direction);
+      if (left.displayOrder !== right.displayOrder) return left.displayOrder - right.displayOrder;
       return left.segmentId.localeCompare(right.segmentId);
     });
 }
@@ -862,15 +817,8 @@ function buildMonthCoverage(input: {
     if (fromPointIndex === null || toPointIndex === null) continue;
     const fromNodeId = input.nodeIdByPointIndex.get(fromPointIndex);
     const toNodeId = input.nodeIdByPointIndex.get(toPointIndex);
-    if (
-      fromNodeId === undefined ||
-      toNodeId === undefined ||
-      fromNodeId === toNodeId
-    )
-      continue;
-    byMonth
-      .get(row.month)
-      ?.spineSegments.add(`${row.direction}|${fromNodeId}|${toNodeId}`);
+    if (fromNodeId === undefined || toNodeId === undefined || fromNodeId === toNodeId) continue;
+    byMonth.get(row.month)?.spineSegments.add(`${row.direction}|${fromNodeId}|${toNodeId}`);
   }
 
   return [...byMonth.entries()]
@@ -902,18 +850,13 @@ export function buildRouteSpeedSpineArtifact(input: {
 }): RouteSpeedSpineArtifact {
   const routeId = normalizeRouteId(input.routeId);
   const routeSlug = input.routeSlug ?? routeSpeedSpineRouteSlug(routeId);
-  const toleranceMeters =
-    input.toleranceMeters ?? ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS;
+  const toleranceMeters = input.toleranceMeters ?? ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS;
   const issues: RouteSpeedSpineIssue[] = [];
-  const rows = input.rows.filter(
-    (row) => normalizeRouteId(row.route_id) === routeId,
-  );
+  const rows = input.rows.filter((row) => normalizeRouteId(row.route_id) === routeId);
   const observedSourceKeys = rows
     .map(classifiedSourceKey)
     .toSorted((left, right) =>
-      classifiedSourceKeyIdentity(left).localeCompare(
-        classifiedSourceKeyIdentity(right),
-      ),
+      classifiedSourceKeyIdentity(left).localeCompare(classifiedSourceKeyIdentity(right)),
     );
   const sourceRowCount = rows.reduce(
     (sum, row) => sum + Math.max(1, Number(row.source_row_count) || 1),
@@ -928,8 +871,7 @@ export function buildRouteSpeedSpineArtifact(input: {
     issues.push({
       severity: "error",
       code: "no_source_rows",
-      message:
-        "No local_route_segment_speed rows were found for the requested route/window.",
+      message: "No local_route_segment_speed rows were found for the requested route/window.",
       context: {
         routeId,
         startMonth: input.startMonth,
@@ -1013,9 +955,7 @@ export function buildRouteSpeedSpineArtifact(input: {
       mergedNodeCount,
       segmentWithRawVariantCount,
       issueCount: issues.length,
-      keyedSourceKeyCount: observedSourceKeys.filter(
-        (key) => key.status === "keyed",
-      ).length,
+      keyedSourceKeyCount: observedSourceKeys.filter((key) => key.status === "keyed").length,
       unkeyableSourceKeyCount: observedSourceKeys.filter(
         (key) => key.status === "unkeyable_missing_stop_pair",
       ).length,
@@ -1033,34 +973,26 @@ export function classifyRouteSpeedSpineArtifact(
 ): RouteSpeedSpineReadinessAudit {
   const monthCount = artifact.summary.monthCount;
   const coverageShares = artifact.monthCoverage.map((row) => row.coverageShare);
-  const minCoverageShare =
-    coverageShares.length === 0 ? 0 : Math.min(...coverageShares);
+  const minCoverageShare = coverageShares.length === 0 ? 0 : Math.min(...coverageShares);
   const meanCoverageShare =
     coverageShares.length === 0
       ? 0
-      : coverageShares.reduce((sum, value) => sum + value, 0) /
-        coverageShares.length;
+      : coverageShares.reduce((sum, value) => sum + value, 0) / coverageShares.length;
   const fullCoverageMonthCount = artifact.monthCoverage.filter(
     (row) => row.coverageShare >= 1,
   ).length;
-  const partialCoverageMonthCount =
-    artifact.summary.monthsWithPartialSpineCoverageCount;
-  const partialCoverageMonthShare =
-    monthCount === 0 ? 0 : partialCoverageMonthCount / monthCount;
+  const partialCoverageMonthCount = artifact.summary.monthsWithPartialSpineCoverageCount;
+  const partialCoverageMonthShare = monthCount === 0 ? 0 : partialCoverageMonthCount / monthCount;
   const rawKeyDriftMonthCount = artifact.summary.monthsWithRawKeyDriftCount;
-  const rawKeyDriftMonthShare =
-    monthCount === 0 ? 0 : rawKeyDriftMonthCount / monthCount;
+  const rawKeyDriftMonthShare = monthCount === 0 ? 0 : rawKeyDriftMonthCount / monthCount;
   const reasons: string[] = [];
 
   if (artifact.validation.status === "fail") reasons.push("validation_failed");
-  if (artifact.summary.spineSegmentCount === 0)
-    reasons.push("no_spine_segments");
+  if (artifact.summary.spineSegmentCount === 0) reasons.push("no_spine_segments");
   if (monthCount === 0) reasons.push("no_source_months");
   if (minCoverageShare < 0.75) reasons.push("low_monthly_spine_coverage");
-  if (partialCoverageMonthShare > 0.25)
-    reasons.push("partial_months_require_pattern_grouping");
-  if (rawKeyDriftMonthShare > 0.5)
-    reasons.push("high_raw_key_drift_collapsed_by_spine");
+  if (partialCoverageMonthShare > 0.25) reasons.push("partial_months_require_pattern_grouping");
+  if (rawKeyDriftMonthShare > 0.5) reasons.push("high_raw_key_drift_collapsed_by_spine");
 
   let readiness: RouteSpeedSpineReadiness;
   if (

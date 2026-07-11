@@ -83,10 +83,7 @@ describe("route brief schedule comparisons", () => {
   });
 
   test("collapses adjacent stop-order aliases for the same physical segment", () => {
-    const speedRow = (
-      stopOrder: number,
-      hourOfDay: number,
-    ): LocalRouteSegmentSpeed => ({
+    const speedRow = (stopOrder: number, hourOfDay: number): LocalRouteSegmentSpeed => ({
       routeId: "Q4",
       isoMonth: "2026-03",
       timestamp: `2026-03-02T${String(hourOfDay).padStart(2, "0")}:00:00.000`,
@@ -109,16 +106,14 @@ describe("route brief schedule comparisons", () => {
       averageRoadSpeedMph: 6,
       busTripCount: 5,
     });
-    const ridershipRows: LocalRouteHourlyRidership[] = [8, 9].map(
-      (hourOfDay) => ({
-        routeId: "Q4",
-        isoMonth: "2026-03",
-        dayOfWeek: "Monday",
-        hourOfDay,
-        ridership: 100,
-        transfers: 10,
-      }),
-    );
+    const ridershipRows: LocalRouteHourlyRidership[] = [8, 9].map((hourOfDay) => ({
+      routeId: "Q4",
+      isoMonth: "2026-03",
+      dayOfWeek: "Monday",
+      hourOfDay,
+      ridership: 100,
+      transfers: 10,
+    }));
     const schedules: LocalRouteScheduleTimepoint[] = [
       {
         ...scheduleRow({

@@ -2,10 +2,7 @@ import {
   classifyRouteSegmentSourceKey,
   serializeStudioSegmentId,
 } from "@bp/analytics/feature-history";
-import type {
-  SegmentHotspot,
-  SegmentSpeedObservation,
-} from "@bp/analytics/hotspots";
+import type { SegmentHotspot, SegmentSpeedObservation } from "@bp/analytics/hotspots";
 import { detectSegmentHotspots } from "@bp/analytics/hotspots";
 import type { PublicRouteVisibilityReason } from "@bp/analytics/public-route-visibility";
 import { classifyPublicRouteVisibility } from "@bp/analytics/public-route-visibility";
@@ -167,9 +164,7 @@ export type RouteBriefSegmentUniverse = {
     caveats: string[];
   };
   segments: RouteBriefSegment[];
-  scheduleComparisons: ReturnType<
-    typeof scheduleComparisons
-  >["hotspotComparisons"];
+  scheduleComparisons: ReturnType<typeof scheduleComparisons>["hotspotComparisons"];
   scheduledPairCount: number;
   matchedSegmentCount: number;
 };
@@ -188,9 +183,7 @@ function segmentIdFromSpeedRow(row: LocalRouteSegmentSpeed): string {
     toStopId: row.nextTimepointStopId,
   });
   if (classified.status !== "keyed") {
-    throw new Error(
-      `Studio segment ${row.routeId} ${row.isoMonth} has no stop pair.`,
-    );
+    throw new Error(`Studio segment ${row.routeId} ${row.isoMonth} has no stop pair.`);
   }
   return serializeStudioSegmentId(classified.key);
 }
@@ -240,16 +233,11 @@ function addRidershipToSpeedRows(
   ridershipRows: readonly LocalRouteHourlyRidership[],
 ): SegmentSpeedObservation[] {
   const ridershipByWindow = new Map(
-    ridershipRows.map((row) => [
-      ridershipKey(row.dayOfWeek, row.hourOfDay),
-      row,
-    ]),
+    ridershipRows.map((row) => [ridershipKey(row.dayOfWeek, row.hourOfDay), row]),
   );
 
   return rows.map((row) => {
-    const ridership = ridershipByWindow.get(
-      ridershipKey(row.dayOfWeek, row.hourOfDay),
-    );
+    const ridership = ridershipByWindow.get(ridershipKey(row.dayOfWeek, row.hourOfDay));
     if (ridership === undefined) {
       return row;
     }
@@ -262,10 +250,7 @@ function addRidershipToSpeedRows(
   });
 }
 
-function weekdayCountsInMonth(
-  year: number,
-  month: number,
-): Map<string, number> {
+function weekdayCountsInMonth(year: number, month: number): Map<string, number> {
   const counts = new Map(dayNames.map((day) => [day, 0]));
   const date = new Date(Date.UTC(year, month - 1, 1));
   while (date.getUTCMonth() === month - 1) {
@@ -278,13 +263,7 @@ function weekdayCountsInMonth(
   return counts;
 }
 
-const weekdayNames = new Set([
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-]);
+const weekdayNames = new Set(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
 
 function isoMonthString(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`;
@@ -324,14 +303,8 @@ function routeHourlyBoardings(input: {
     dayType: "weekday_average",
     bins: bins.map((bin) => ({
       hourOfDay: bin.hourOfDay,
-      boardings:
-        bin.serviceDayCount === 0
-          ? 0
-          : round(bin.ridership / bin.serviceDayCount),
-      transfers:
-        bin.serviceDayCount === 0
-          ? 0
-          : round(bin.transfers / bin.serviceDayCount),
+      boardings: bin.serviceDayCount === 0 ? 0 : round(bin.ridership / bin.serviceDayCount),
+      transfers: bin.serviceDayCount === 0 ? 0 : round(bin.transfers / bin.serviceDayCount),
       serviceDayCount: bin.serviceDayCount,
     })),
   };
@@ -355,25 +328,15 @@ type SegmentHourStats = {
   weightedTravelTimeSum: number;
 };
 
-function speedWindowKey(
-  segmentId: string,
-  dayOfWeek: string,
-  hourOfDay: number,
-): string {
+function speedWindowKey(segmentId: string, dayOfWeek: string, hourOfDay: number): string {
   return `${segmentId}:${dayOfWeek}:${hourOfDay}`;
 }
 
-function segmentHourStats(
-  rows: readonly LocalRouteSegmentSpeed[],
-): Map<string, SegmentHourStats> {
+function segmentHourStats(rows: readonly LocalRouteSegmentSpeed[]): Map<string, SegmentHourStats> {
   const stats = new Map<string, SegmentHourStats>();
   for (const row of rows) {
     if (row.busTripCount <= 0) continue;
-    const key = speedWindowKey(
-      segmentIdFromSpeedRow(row),
-      row.dayOfWeek,
-      row.hourOfDay,
-    );
+    const key = speedWindowKey(segmentIdFromSpeedRow(row), row.dayOfWeek, row.hourOfDay);
     const accumulator = stats.get(key) ?? {
       observationCount: 0,
       busTripCount: 0,
@@ -381,8 +344,7 @@ function segmentHourStats(
     };
     accumulator.observationCount += 1;
     accumulator.busTripCount += row.busTripCount;
-    accumulator.weightedTravelTimeSum +=
-      row.averageTravelTimeMinutes * row.busTripCount;
+    accumulator.weightedTravelTimeSum += row.averageTravelTimeMinutes * row.busTripCount;
     stats.set(key, accumulator);
   }
   return stats;
@@ -390,9 +352,7 @@ function segmentHourStats(
 
 function hourlyPassengerDelayRows(input: {
   segment: SegmentHotspot;
-  comparison:
-    | ReturnType<typeof scheduleComparisons>["hotspotComparisons"][number]
-    | undefined;
+  comparison: ReturnType<typeof scheduleComparisons>["hotspotComparisons"][number] | undefined;
   speedStats: ReadonlyMap<string, SegmentHourStats>;
   ridershipByWindow: ReadonlyMap<string, LocalRouteHourlyRidership>;
   weekdayCounts: ReadonlyMap<string, number>;
@@ -409,21 +369,13 @@ function hourlyPassengerDelayRows(input: {
       const scheduledMedianTravelTimeMinutes =
         input.comparison?.scheduledMedianTravelTimeMinutes ?? null;
       const observedMinusScheduledMinutes =
-        observedTravelTimeMinutes === null ||
-        scheduledMedianTravelTimeMinutes === null
+        observedTravelTimeMinutes === null || scheduledMedianTravelTimeMinutes === null
           ? null
-          : round(
-              observedTravelTimeMinutes - scheduledMedianTravelTimeMinutes,
-              4,
-            );
-      const ridership = input.ridershipByWindow.get(
-        ridershipKey(dayOfWeek, hourOfDay),
-      );
+          : round(observedTravelTimeMinutes - scheduledMedianTravelTimeMinutes, 4);
+      const ridership = input.ridershipByWindow.get(ridershipKey(dayOfWeek, hourOfDay));
       const serviceDayCount = input.weekdayCounts.get(dayOfWeek) ?? null;
       const averageServiceDayRouteRidership =
-        ridership === undefined ||
-        serviceDayCount === null ||
-        serviceDayCount <= 0
+        ridership === undefined || serviceDayCount === null || serviceDayCount <= 0
           ? null
           : round(ridership.ridership / serviceDayCount, 4);
       const riderDelayHours =
@@ -431,12 +383,7 @@ function hourlyPassengerDelayRows(input: {
         observedMinusScheduledMinutes <= 0 ||
         averageServiceDayRouteRidership === null
           ? 0
-          : round(
-              (observedMinusScheduledMinutes *
-                averageServiceDayRouteRidership) /
-                60,
-              4,
-            );
+          : round((observedMinusScheduledMinutes * averageServiceDayRouteRidership) / 60, 4);
 
       return {
         dayOfWeek,
@@ -467,8 +414,7 @@ function toRouteBriefSegment(input: {
     from: input.segment.timepointStopName,
     to: input.segment.nextTimepointStopName,
     weightedAverageSpeedMph: input.segment.weightedAverageSpeedMph,
-    weightedAverageTravelTimeMinutes:
-      input.segment.weightedAverageTravelTimeMinutes,
+    weightedAverageTravelTimeMinutes: input.segment.weightedAverageTravelTimeMinutes,
     averageRoadDistanceMiles: input.segment.averageRoadDistanceMiles,
     slowWindowPercent: pct(input.segment.slowWindowShare),
     busTripCount: input.segment.busTripCount,
@@ -523,17 +469,11 @@ export function buildRouteBriefSegmentUniverse(input: {
   const segments = [...detected.hotspots].sort(segmentOrder);
   const comparisons = scheduleComparisons(input.schedules, segments);
   const comparisonsBySegment = new Map(
-    comparisons.hotspotComparisons.map((comparison) => [
-      comparison.segmentId,
-      comparison,
-    ]),
+    comparisons.hotspotComparisons.map((comparison) => [comparison.segmentId, comparison]),
   );
   const speedStats = segmentHourStats(speedRows);
   const ridershipByWindow = new Map(
-    input.ridershipRows.map((row) => [
-      ridershipKey(row.dayOfWeek, row.hourOfDay),
-      row,
-    ]),
+    input.ridershipRows.map((row) => [ridershipKey(row.dayOfWeek, row.hourOfDay), row]),
   );
   const weekdayCounts = weekdayCountsInMonth(input.year, input.month);
   const hourlySlowWindowBins = segmentHourlySlowWindowBins(input.speedRows);
@@ -586,12 +526,9 @@ export function buildRouteBriefModel(input: RouteBriefModelInput) {
     stops,
     catalog,
   } = input.rows;
-  const coverageStatus =
-    summary.observationCount > 0 ? "full" : "no_observed_speed";
+  const coverageStatus = summary.observationCount > 0 ? "full" : "no_observed_speed";
   const scorecard = calculateRouteScore({
-    routeId: summary.routeId as unknown as Parameters<
-      typeof calculateRouteScore
-    >[0]["routeId"],
+    routeId: summary.routeId as unknown as Parameters<typeof calculateRouteScore>[0]["routeId"],
     month: summary.isoMonth,
     coverageStatus,
     averageSpeedMph: summary.routeWeightedAverageSpeedMph,
@@ -638,31 +575,25 @@ export function buildRouteBriefModel(input: RouteBriefModelInput) {
     month: input.month,
   });
   const matchedLanes = matchedBusLanes(busLanes, stops);
-  const matchedStreets = [
-    ...new Set(matchedLanes.map((lane) => lane.street)),
-  ].sort();
-  const topSegments = hotspots
-    .slice(0, input.topSegmentLimit)
-    .map((hotspot) => ({
-      segmentId: hotspot.segmentId,
-      direction: hotspot.direction,
-      stopOrder: hotspot.stopOrder,
-      from: hotspot.timepointStopName,
-      to: hotspot.nextTimepointStopName,
-      weightedAverageSpeedMph: hotspot.weightedAverageSpeedMph,
-      weightedAverageTravelTimeMinutes:
-        hotspot.weightedAverageTravelTimeMinutes,
-      averageRoadDistanceMiles: hotspot.averageRoadDistanceMiles,
-      slowWindowPercent: pct(hotspot.slowWindowShare),
-      busTripCount: hotspot.busTripCount,
-      observationCount: hotspot.observationCount,
-      hotspotScore: hotspot.hotspotScore,
-      riderImpactScore: hotspot.riderImpactScore ?? null,
-      ridershipExposure: hotspot.ridershipExposure ?? null,
-      hourlySlowWindowBins:
-        hourlySlowWindowBins.get(hotspot.segmentId) ??
-        Array.from({ length: 24 }, () => 0),
-    }));
+  const matchedStreets = [...new Set(matchedLanes.map((lane) => lane.street))].sort();
+  const topSegments = hotspots.slice(0, input.topSegmentLimit).map((hotspot) => ({
+    segmentId: hotspot.segmentId,
+    direction: hotspot.direction,
+    stopOrder: hotspot.stopOrder,
+    from: hotspot.timepointStopName,
+    to: hotspot.nextTimepointStopName,
+    weightedAverageSpeedMph: hotspot.weightedAverageSpeedMph,
+    weightedAverageTravelTimeMinutes: hotspot.weightedAverageTravelTimeMinutes,
+    averageRoadDistanceMiles: hotspot.averageRoadDistanceMiles,
+    slowWindowPercent: pct(hotspot.slowWindowShare),
+    busTripCount: hotspot.busTripCount,
+    observationCount: hotspot.observationCount,
+    hotspotScore: hotspot.hotspotScore,
+    riderImpactScore: hotspot.riderImpactScore ?? null,
+    ridershipExposure: hotspot.ridershipExposure ?? null,
+    hourlySlowWindowBins:
+      hourlySlowWindowBins.get(hotspot.segmentId) ?? Array.from({ length: 24 }, () => 0),
+  }));
   const briefInput = {
     schemaVersion: 1,
     routeId: summary.routeId,
@@ -680,8 +611,7 @@ export function buildRouteBriefModel(input: RouteBriefModelInput) {
       busTripCount: summary.busTripCount,
       ridershipWeighted: summary.ridershipWeighted,
       ridershipWindowCount: summary.ridershipWindowCount,
-      ridershipMatchedObservationCount:
-        summary.ridershipMatchedObservationCount,
+      ridershipMatchedObservationCount: summary.ridershipMatchedObservationCount,
       ridershipExposure: summary.ridershipExposure,
       totalRidership: ridershipProfile.totalRidership,
       totalTransfers: ridershipProfile.totalTransfers,
@@ -804,16 +734,10 @@ export function buildRouteBriefModel(input: RouteBriefModelInput) {
                 hourOfDay: peakWindow.hourOfDay,
                 ridership: optionalNumber(peakWindow.ridership),
                 transfers: optionalNumber(peakWindow.transfers),
-                matchedObservationCount: optionalNumber(
-                  peakWindow.matchedObservationCount,
-                ),
+                matchedObservationCount: optionalNumber(peakWindow.matchedObservationCount),
                 busTripCount: optionalNumber(peakWindow.busTripCount),
-                weightedAverageSpeedMph: optionalNumber(
-                  peakWindow.weightedAverageSpeedMph,
-                ),
-                slowObservationShare: optionalNumber(
-                  peakWindow.slowObservationShare,
-                ),
+                weightedAverageSpeedMph: optionalNumber(peakWindow.weightedAverageSpeedMph),
+                slowObservationShare: optionalNumber(peakWindow.slowObservationShare),
               },
             ],
       slowestWindows:
@@ -826,20 +750,14 @@ export function buildRouteBriefModel(input: RouteBriefModelInput) {
                 windowRank: 1,
                 dayOfWeek: slowestWindow.dayOfWeek,
                 hourOfDay: slowestWindow.hourOfDay,
-                observationCount: optionalNumber(
-                  slowestWindow.observationCount,
-                ),
+                observationCount: optionalNumber(slowestWindow.observationCount),
                 busTripCount: optionalNumber(slowestWindow.busTripCount),
                 segmentCount: optionalNumber(slowestWindow.segmentCount),
-                weightedAverageSpeedMph: optionalNumber(
-                  slowestWindow.weightedAverageSpeedMph,
-                ),
+                weightedAverageSpeedMph: optionalNumber(slowestWindow.weightedAverageSpeedMph),
                 weightedAverageTravelTimeMinutes: optionalNumber(
                   slowestWindow.weightedAverageTravelTimeMinutes,
                 ),
-                slowObservationShare: optionalNumber(
-                  slowestWindow.slowObservationShare,
-                ),
+                slowObservationShare: optionalNumber(slowestWindow.slowObservationShare),
               },
             ],
     },
@@ -863,9 +781,7 @@ export function planRouteBriefModelRoutes(input: {
       ? catalogRouteIds
       : [...new Set(input.requestedRoutes)].sort();
   const catalogRouteIdSet = new Set(catalogRouteIds);
-  const routeIds = requestedRouteIds.filter((routeId) =>
-    catalogRouteIdSet.has(routeId),
-  );
+  const routeIds = requestedRouteIds.filter((routeId) => catalogRouteIdSet.has(routeId));
   const issues = requestedRouteIds
     .filter((routeId) => !catalogRouteIdSet.has(routeId))
     .map((routeId) => ({
@@ -908,9 +824,7 @@ export function routeBriefVisibilityReason(input: {
   };
 }
 
-export function routeBriefModelServingProjection(
-  model: ReturnType<typeof buildRouteBriefModel>,
-) {
+export function routeBriefModelServingProjection(model: ReturnType<typeof buildRouteBriefModel>) {
   const visibility = routeBriefVisibilityReason({
     reason: model.routeBriefRows.summary.publicVisibilityReason,
     coverageStatus: model.routeScorecardRow.coverageStatus,
@@ -997,8 +911,7 @@ export function buildRouteBriefHotspotProjection(input: {
       busTripCount: detected.busTripCount,
       ridershipWeighted: detected.ridershipWeighted,
       ridershipWindowCount: input.ridershipRows.length,
-      ridershipMatchedObservationCount:
-        detected.ridershipMatchedObservationCount ?? 0,
+      ridershipMatchedObservationCount: detected.ridershipMatchedObservationCount ?? 0,
       ridershipExposure: detected.ridershipExposure ?? 0,
       segmentCount: detected.segmentCount,
       hotspotCount: detected.hotspots.length,
@@ -1014,8 +927,7 @@ function compareRouteBriefSummaries(
   left: ReturnType<typeof buildRouteBriefModel>["routeBriefRows"]["summary"],
   right: ReturnType<typeof buildRouteBriefModel>["routeBriefRows"]["summary"],
 ): number {
-  if (left.routeScore !== right.routeScore)
-    return left.routeScore - right.routeScore;
+  if (left.routeScore !== right.routeScore) return left.routeScore - right.routeScore;
   if (left.averageSpeedMph !== right.averageSpeedMph) {
     return left.averageSpeedMph - right.averageSpeedMph;
   }
@@ -1026,9 +938,7 @@ function compareRouteBriefSummaries(
 
 export function routeBriefComparisonRankRows(
   month: string,
-  summaries: readonly ReturnType<
-    typeof buildRouteBriefModel
-  >["routeBriefRows"]["summary"][],
+  summaries: readonly ReturnType<typeof buildRouteBriefModel>["routeBriefRows"]["summary"][],
 ) {
   return summaries
     .filter((summary) => summary.averageSpeedMph > 0)

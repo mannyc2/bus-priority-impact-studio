@@ -38,9 +38,7 @@ function sourceRow(input: {
   };
 }
 
-function artifact(
-  rows: readonly RouteSpeedSpineSourceRow[],
-): RouteSpeedSpineArtifact {
+function artifact(rows: readonly RouteSpeedSpineSourceRow[]): RouteSpeedSpineArtifact {
   return buildRouteSpeedSpineArtifact({
     routeId: "B41",
     rows,
@@ -75,9 +73,7 @@ describe("route speed spine source crosswalk", () => {
     });
 
     expect(serializeSourceSegmentId(sourceKey)).toBe("S:34:303324:901681");
-    expect(serializeStudioSegmentId(sourceKey)).toBe(
-      "B41:2026-03:S:34:303324:901681",
-    );
+    expect(serializeStudioSegmentId(sourceKey)).toBe("B41:2026-03:S:34:303324:901681");
   });
 
   test("matches exact aliases independent of row order and schedule renumbering", () => {
@@ -109,8 +105,7 @@ describe("route speed spine source crosswalk", () => {
     ]);
     const crosswalk = buildRouteSpeedSpineCrosswalk(spine);
     const spineSegmentId = spine.segments[0]?.segmentId;
-    if (spineSegmentId === undefined)
-      throw new Error("Fixture spine has no segment.");
+    if (spineSegmentId === undefined) throw new Error("Fixture spine has no segment.");
 
     expect(matchRouteSpeedSpineSegment(crosswalk, february)).toEqual({
       status: "matched",
@@ -158,8 +153,7 @@ describe("route speed spine source crosswalk", () => {
     expect(spine.segments).toHaveLength(2);
     expect(firstMatch.status).toBe("matched");
     expect(secondMatch.status).toBe("matched");
-    if (firstMatch.status !== "matched" || secondMatch.status !== "matched")
-      return;
+    if (firstMatch.status !== "matched" || secondMatch.status !== "matched") return;
     expect(firstMatch.spineSegmentId).not.toBe(secondMatch.spineSegmentId);
   });
 
@@ -179,12 +173,7 @@ describe("route speed spine source crosswalk", () => {
       toStopId: "c",
     });
 
-    expect(
-      matchRouteSpeedSpineSegment(
-        buildRouteSpeedSpineCrosswalk(spine),
-        unmatched,
-      ),
-    ).toEqual({
+    expect(matchRouteSpeedSpineSegment(buildRouteSpeedSpineCrosswalk(spine), unmatched)).toEqual({
       status: "unmatched",
       studioSegmentId: serializeStudioSegmentId(unmatched),
     });
@@ -231,8 +220,7 @@ describe("route speed spine source crosswalk", () => {
       }),
     ]);
     const first = spine.segments[0];
-    if (first === undefined)
-      throw new Error("Fixture did not produce a spine segment.");
+    if (first === undefined) throw new Error("Fixture did not produce a spine segment.");
     const ambiguous = {
       ...spine,
       segments: [
