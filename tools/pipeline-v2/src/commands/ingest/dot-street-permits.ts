@@ -1,6 +1,7 @@
+import { Effect } from "effect";
 import { join } from "node:path";
 import { upsertDotStreetPermits } from "@bp/db/local";
-import { arg, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   normalizeDotStreetPermitRows,
   type PermitKind,
@@ -103,23 +104,30 @@ export async function runDotStreetPermitsIngest(
 export default defineIngestCommand({
   path: ["ingest", "dot-street-permits"],
   summary: "Fetch monthly DOT street construction or opening permits.",
-  options: dbOptions.extend({
-    year: arg.positiveInt().default(2026).describe("Calendar year"),
-    month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-    kind: z
-      .enum(["construction", "opening"])
-      .default("construction")
-      .describe("Permit dataset to fetch"),
-    fromSnapshot: z
-      .string()
-      .optional()
-      .describe("Reuse rows from a local raw snapshot file instead of fetching"),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      year: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+        .annotate({ description: "Calendar year" }),
+      month: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+        .annotate({ description: "Calendar month, 1-12" }),
+      kind: Schema.Literals(["construction", "opening"])
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("construction")))
+        .annotate({ description: "Permit dataset to fetch" }),
+      fromSnapshot: Schema.optionalKey(Schema.String).annotate({
+        description: "Reuse rows from a local raw snapshot file instead of fetching",
+      }),
+    },
   }),
-  output: z.object({
-    rawPath: z.string(),
-    isoMonth: z.string(),
-    rowCount: z.number(),
-    kind: z.enum(["construction", "opening"]),
+  output: Schema.Struct({
+    rawPath: Schema.String,
+    isoMonth: Schema.String,
+    rowCount: Schema.Number,
+    kind: Schema.Literals(["construction", "opening"]),
   }),
   operation: "runDotStreetPermitsIngest",
   spanAttributes: ({ year, month, kind, fromSnapshot }) => ({

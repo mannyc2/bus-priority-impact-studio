@@ -1,5 +1,6 @@
+import { Effect } from "effect";
 import { join } from "node:path";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
@@ -157,43 +158,41 @@ export default defineCommand({
   path: ["ingest", "socrata-csv-snapshot"],
   summary: "Download or reuse a Socrata rows.csv source snapshot from the source manifest.",
   input: {
-    options: z.object({
-      sourceId: z
-        .string()
-        .min(1)
-        .describe("Socrata source ID from knowledge/raw/source_manifest.yaml"),
-      outputPath: z
-        .string()
-        .optional()
-        .describe("Target CSV path; defaults under data/raw/socrata-bulk"),
-      force: z.coerce
+    options: Schema.Struct({
+      sourceId: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Socrata source ID from knowledge/raw/source_manifest.yaml",
+      }),
+      outputPath: Schema.optionalKey(Schema.String).annotate({
+        description: "Target CSV path; defaults under data/raw/socrata-bulk",
+      }),
+      force: arg
         .boolean()
-        .default(false)
-        .describe("Redownload even when the CSV already exists"),
-      downloadRetryCount: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Redownload even when the CSV already exists" }),
+      downloadRetryCount: arg
         .number()
-        .int()
-        .min(0)
-        .default(2)
-        .describe("Number of retry attempts after a failed CSV download attempt"),
-      downloadRetryDelayMs: z.coerce
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2)))
+        .annotate({ description: "Number of retry attempts after a failed CSV download attempt" }),
+      downloadRetryDelayMs: arg
         .number()
-        .int()
-        .min(0)
-        .default(5_000)
-        .describe("Delay between CSV download retry attempts"),
-      logProgress: z.coerce
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(5_000)))
+        .annotate({ description: "Delay between CSV download retry attempts" }),
+      logProgress: arg
         .boolean()
-        .default(true)
-        .describe("Write download progress events to stderr"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+        .annotate({ description: "Write download progress events to stderr" }),
     }),
   },
-  output: z.object({
-    sourceId: z.string(),
-    datasetId: z.string(),
-    outputPath: z.string(),
-    downloaded: z.boolean(),
-    bytes: z.number(),
+  output: Schema.Struct({
+    sourceId: Schema.String,
+    datasetId: Schema.String,
+    outputPath: Schema.String,
+    downloaded: Schema.Boolean,
+    bytes: Schema.Number,
   }),
   async run({ input }) {
     return runSocrataCsvSnapshot({

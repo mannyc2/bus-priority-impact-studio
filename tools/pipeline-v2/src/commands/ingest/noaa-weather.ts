@@ -1,6 +1,7 @@
+import { Effect } from "effect";
 import { join } from "node:path";
 import { upsertWeatherObservations } from "@bp/db/local";
-import { z } from "@bp/pipeline-v2/cli/compat";
+import { Schema } from "@bp/pipeline-v2/cli/compat";
 import { NOAA_NYC_STATIONS, parseGhcnDailyCsv } from "@bp/sources/adapters/noaa/ghcn-daily";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
@@ -74,19 +75,25 @@ export async function runNoaaWeatherIngest(
 export default defineIngestCommand({
   path: ["ingest", "noaa-weather"],
   summary: "Fetch NOAA GHCN-Daily observations for NYC stations.",
-  options: dbOptions.extend({
-    since: z.string().optional().describe("Window start date, YYYY-MM-DD"),
-    until: z.string().optional().describe("Window end date, YYYY-MM-DD"),
-    stations: z
-      .array(z.string())
-      .default([])
-      .describe("Override station IDs (default: NOAA_NYC_STATIONS)"),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      since: Schema.optionalKey(Schema.String).annotate({
+        description: "Window start date, YYYY-MM-DD",
+      }),
+      until: Schema.optionalKey(Schema.String).annotate({
+        description: "Window end date, YYYY-MM-DD",
+      }),
+      stations: Schema.Array(Schema.String)
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+        .annotate({ description: "Override station IDs (default: NOAA_NYC_STATIONS)" }),
+    },
   }),
-  output: z.object({
-    rowCount: z.number(),
-    stations: z.array(z.object({ id: z.string(), rows: z.number() })),
-    sinceDate: z.string(),
-    untilDate: z.string(),
+  output: Schema.Struct({
+    rowCount: Schema.Number,
+    stations: Schema.Array(Schema.Struct({ id: Schema.String, rows: Schema.Number })),
+    sinceDate: Schema.String,
+    untilDate: Schema.String,
   }),
   operation: "runNoaaWeatherIngest",
   spanAttributes: ({ since, until, stations }) => ({

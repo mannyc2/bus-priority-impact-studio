@@ -1,5 +1,5 @@
 import { replaceAceRoutes } from "@bp/db/local";
-import { z } from "@bp/pipeline-v2/cli/compat";
+import { Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeAceRouteRows } from "@bp/sources/adapters/mta/ace";
 import { dbOptions } from "../../lib/local-db.ts";
 import {
@@ -35,11 +35,11 @@ export default defineIngestCommand({
   path: ["ingest", "ace-routes"],
   summary: "Fetch ACE/ABLE route implementation rows and replace the local table.",
   options: dbOptions,
-  output: z.object({
-    rawPath: z.string(),
-    routeCount: z.number(),
-    aceCount: z.number(),
-    ableCount: z.number(),
+  output: Schema.Struct({
+    rawPath: Schema.String,
+    routeCount: Schema.Number,
+    aceCount: Schema.Number,
+    ableCount: Schema.Number,
   }),
   operation: "runAceRoutesIngest",
   runner: (local) => runAceRoutesIngest({ local }),

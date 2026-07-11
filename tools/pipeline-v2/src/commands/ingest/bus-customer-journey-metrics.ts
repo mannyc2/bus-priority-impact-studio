@@ -1,7 +1,8 @@
+import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { isAbsolute, join, relative } from "node:path";
 import { replaceBusCustomerJourneyMetricRows } from "@bp/db/local";
-import { arg, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeBusCustomerJourneyMetricRows } from "@bp/sources/adapters/mta/bus-customer-journey-metrics";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
@@ -142,19 +143,34 @@ export async function runBusCustomerJourneyMetricsIngest(
 export default defineIngestCommand({
   path: ["ingest", "bus-customer-journey-metrics"],
   summary: "Fetch monthly bus customer journey metrics from Socrata.",
-  options: dbOptions.extend({
-    startYear: arg.positiveInt().default(2023).describe("Start year"),
-    startMonth: arg.positiveInt().default(4).describe("Start month, 1-12"),
-    endYear: arg.positiveInt().default(2026).describe("End year"),
-    endMonth: arg.positiveInt().default(3).describe("End month, 1-12"),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      startYear: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2023)))
+        .annotate({ description: "Start year" }),
+      startMonth: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(4)))
+        .annotate({ description: "Start month, 1-12" }),
+      endYear: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+        .annotate({ description: "End year" }),
+      endMonth: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+        .annotate({ description: "End month, 1-12" }),
+    },
   }),
-  output: z.object({
-    rawPath: z.string(),
-    startMonth: z.string(),
-    endMonth: z.string(),
-    monthCount: z.number().int().nonnegative(),
-    rowCount: z.number().int().nonnegative(),
-    routeCount: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    rawPath: Schema.String,
+    startMonth: Schema.String,
+    endMonth: Schema.String,
+    monthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    rowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   }),
   operation: "runBusCustomerJourneyMetricsIngest",
   spanAttributes: ({ startYear, startMonth, endYear, endMonth }) => ({

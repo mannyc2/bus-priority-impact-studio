@@ -1,5 +1,6 @@
+import { Effect } from "effect";
 import { upsert311ServiceRequests } from "@bp/db/local";
-import { arg, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   CURB_FRICTION_311_COMPLAINT_TYPES,
   normalize311ServiceRequestRows,
@@ -80,17 +81,30 @@ export async function runNyc311Ingest(inputs: Nyc311IngestRunInputs): Promise<Ny
 export default defineIngestCommand({
   path: ["ingest", "311-service-requests"],
   summary: "Fetch monthly curb-friction 311 service requests.",
-  options: dbOptions.extend({
-    year: arg.positiveInt().default(2026).describe("Calendar year"),
-    month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-    era: z.enum(["current", "historical"]).default("current").describe("311 dataset era"),
-    complaintTypes: z.array(z.string()).default([]).describe("Override complaint type filter"),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      year: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+        .annotate({ description: "Calendar year" }),
+      month: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+        .annotate({ description: "Calendar month, 1-12" }),
+      era: Schema.Literals(["current", "historical"])
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("current")))
+        .annotate({ description: "311 dataset era" }),
+      complaintTypes: Schema.Array(Schema.String)
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+        .annotate({ description: "Override complaint type filter" }),
+    },
   }),
-  output: z.object({
-    rawPath: z.string(),
-    isoMonth: z.string(),
-    rowCount: z.number(),
-    era: z.enum(["current", "historical"]),
+  output: Schema.Struct({
+    rawPath: Schema.String,
+    isoMonth: Schema.String,
+    rowCount: Schema.Number,
+    era: Schema.Literals(["current", "historical"]),
   }),
   operation: "runNyc311Ingest",
   spanAttributes: ({ year, month, era, complaintTypes }) => ({

@@ -1,7 +1,8 @@
+import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
-import { arg, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 import { defineIngestCommand } from "./_define-ingest-command.ts";
@@ -541,46 +542,46 @@ function resolveBundles(gtfsRoot: string, sources: readonly string[]): GtfsBundl
 export default defineIngestCommand({
   path: ["ingest", "gtfs-static"],
   summary: "Parse downloaded bus GTFS static ZIPs into local all-stop schedule tables.",
-  options: dbOptions.extend({
-    runId: z
-      .string()
-      .default("20260531T010822Z")
-      .describe("GTFS static snapshot/run ID to stamp on staged rows"),
-    gtfsRoot: z
-      .string()
-      .default(defaultGtfsRoot)
-      .describe("Directory containing downloaded bus_gtfs_*.zip files"),
-    source: z.string().optional().describe("Single GTFS source id convenience filter"),
-    sources: z
-      .array(z.string())
-      .default([])
-      .describe("GTFS source ids to ingest (default: all six bus bundles)"),
-    routeLimitNote: arg
-      .positiveInt()
-      .optional()
-      .describe(
-        "No-op guardrail placeholder; route-level filtering is not supported for GTFS ZIP parsing",
-      ),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      runId: Schema.String.pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed("20260531T010822Z")),
+      ).annotate({ description: "GTFS static snapshot/run ID to stamp on staged rows" }),
+      gtfsRoot: Schema.String.pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultGtfsRoot)),
+      ).annotate({ description: "Directory containing downloaded bus_gtfs_*.zip files" }),
+      source: Schema.optionalKey(Schema.String).annotate({
+        description: "Single GTFS source id convenience filter",
+      }),
+      sources: Schema.Array(Schema.String)
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+        .annotate({ description: "GTFS source ids to ingest (default: all six bus bundles)" }),
+      routeLimitNote: Schema.optionalKey(arg.positiveInt()).annotate({
+        description:
+          "No-op guardrail placeholder; route-level filtering is not supported for GTFS ZIP parsing",
+      }),
+    },
   }),
-  output: z.object({
-    runId: z.string(),
-    bundleCount: z.number(),
-    routeCount: z.number(),
-    tripCount: z.number(),
-    stopCount: z.number(),
-    stopTimeCount: z.number(),
-    calendarCount: z.number(),
-    calendarDateCount: z.number(),
-    bundles: z.array(
-      z.object({
-        sourceId: z.string(),
-        zipPath: z.string(),
-        routeCount: z.number(),
-        tripCount: z.number(),
-        stopCount: z.number(),
-        stopTimeCount: z.number(),
-        calendarCount: z.number(),
-        calendarDateCount: z.number(),
+  output: Schema.Struct({
+    runId: Schema.String,
+    bundleCount: Schema.Number,
+    routeCount: Schema.Number,
+    tripCount: Schema.Number,
+    stopCount: Schema.Number,
+    stopTimeCount: Schema.Number,
+    calendarCount: Schema.Number,
+    calendarDateCount: Schema.Number,
+    bundles: Schema.Array(
+      Schema.Struct({
+        sourceId: Schema.String,
+        zipPath: Schema.String,
+        routeCount: Schema.Number,
+        tripCount: Schema.Number,
+        stopCount: Schema.Number,
+        stopTimeCount: Schema.Number,
+        calendarCount: Schema.Number,
+        calendarDateCount: Schema.Number,
       }),
     ),
   }),

@@ -1,5 +1,5 @@
 import { geometryCoordinates, replaceBusLanes } from "@bp/db/local";
-import { z } from "@bp/pipeline-v2/cli/compat";
+import { Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type NormalizedBusLane,
   normalizeBusLaneRows,
@@ -74,10 +74,10 @@ export default defineIngestCommand({
   path: ["ingest", "bus-lanes"],
   summary: "Fetch and dedupe the NYC DOT bus lanes local-streets dataset.",
   options: dbOptions,
-  output: z.object({
-    rawPath: z.string(),
-    laneCount: z.number(),
-    manhattanLaneCount: z.number(),
+  output: Schema.Struct({
+    rawPath: Schema.String,
+    laneCount: Schema.Number,
+    manhattanLaneCount: Schema.Number,
   }),
   operation: "runBusLanesIngest",
   runner: (local) => runBusLanesIngest({ local }),

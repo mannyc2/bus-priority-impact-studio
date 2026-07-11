@@ -1,9 +1,10 @@
+import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { existsSync, statSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { createLocalPipelineDb, listRouteCatalogIds } from "@bp/db/local";
-import { arg, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
@@ -890,87 +891,97 @@ export default defineIngestCommand({
   path: ["ingest", "route-schedules-bulk"],
   summary:
     "Download or reuse Socrata schedule CSV snapshots and stream-import route schedule stop rows.",
-  options: dbOptions.extend({
-    sourceYear: arg
-      .positiveInt()
-      .default(2026)
-      .describe("MTA Bus Schedules source year to bulk ingest"),
-    route: z.string().optional().describe("Single route ID convenience filter"),
-    routes: z
-      .array(z.string())
-      .default([])
-      .describe("Specific route IDs (default: all routes in source year)"),
-    csvPath: z.string().optional().describe("Existing or target full rows.csv path"),
-    partitionManifestPath: z
-      .string()
-      .optional()
-      .describe("Existing SODA3 partition-manifest.json to import instead of one full CSV"),
-    cacheDir: z.string().optional().describe("Directory for the downloaded rows.csv cache"),
-    spoolDir: z.string().optional().describe("Scratch directory for per-route spool files"),
-    forceDownload: z.coerce
-      .boolean()
-      .default(false)
-      .describe("Redownload the full CSV even if csvPath already exists"),
-    skipDownload: z.coerce
-      .boolean()
-      .default(false)
-      .describe("Require csvPath to already exist; do not fetch Socrata"),
-    downloadRetryCount: z.coerce
-      .number()
-      .int()
-      .min(0)
-      .default(2)
-      .describe("Number of retry attempts after a failed CSV download attempt"),
-    downloadRetryDelayMs: z.coerce
-      .number()
-      .int()
-      .min(0)
-      .default(5_000)
-      .describe("Delay between CSV download retry attempts"),
-    downloadOnly: z.coerce
-      .boolean()
-      .default(false)
-      .describe("Download or verify the CSV cache without importing route rows"),
-    skipExisting: z.coerce
-      .boolean()
-      .default(true)
-      .describe("Skip routes already marked complete for the source year"),
-    onlyMissingCurrentRoutes: z.coerce
-      .boolean()
-      .default(false)
-      .describe(
-        "Restrict import to current-catalog routes that are not already complete for the source year",
-      ),
-    keepSpool: z.coerce
-      .boolean()
-      .default(false)
-      .describe("Keep per-route scratch NDJSON files after import"),
-    batchSize: arg
-      .positiveInt()
-      .default(defaultBatchSize)
-      .describe("SQLite insert batch size per route"),
-    logProgress: z.coerce
-      .boolean()
-      .default(true)
-      .describe("Write bulk ingest progress events to stderr"),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      sourceYear: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+        .annotate({ description: "MTA Bus Schedules source year to bulk ingest" }),
+      route: Schema.optionalKey(Schema.String).annotate({
+        description: "Single route ID convenience filter",
+      }),
+      routes: Schema.Array(Schema.String)
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+        .annotate({ description: "Specific route IDs (default: all routes in source year)" }),
+      csvPath: Schema.optionalKey(Schema.String).annotate({
+        description: "Existing or target full rows.csv path",
+      }),
+      partitionManifestPath: Schema.optionalKey(Schema.String).annotate({
+        description: "Existing SODA3 partition-manifest.json to import instead of one full CSV",
+      }),
+      cacheDir: Schema.optionalKey(Schema.String).annotate({
+        description: "Directory for the downloaded rows.csv cache",
+      }),
+      spoolDir: Schema.optionalKey(Schema.String).annotate({
+        description: "Scratch directory for per-route spool files",
+      }),
+      forceDownload: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Redownload the full CSV even if csvPath already exists" }),
+      skipDownload: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Require csvPath to already exist; do not fetch Socrata" }),
+      downloadRetryCount: arg
+        .number()
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2)))
+        .annotate({ description: "Number of retry attempts after a failed CSV download attempt" }),
+      downloadRetryDelayMs: arg
+        .number()
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(5_000)))
+        .annotate({ description: "Delay between CSV download retry attempts" }),
+      downloadOnly: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Download or verify the CSV cache without importing route rows" }),
+      skipExisting: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+        .annotate({ description: "Skip routes already marked complete for the source year" }),
+      onlyMissingCurrentRoutes: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({
+          description:
+            "Restrict import to current-catalog routes that are not already complete for the source year",
+        }),
+      keepSpool: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Keep per-route scratch NDJSON files after import" }),
+      batchSize: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultBatchSize)))
+        .annotate({ description: "SQLite insert batch size per route" }),
+      logProgress: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+        .annotate({ description: "Write bulk ingest progress events to stderr" }),
+    },
   }),
-  output: z.object({
-    sourceYear: z.number(),
-    sourceId: z.enum([
+  output: Schema.Struct({
+    sourceYear: Schema.Number,
+    sourceId: Schema.Literals([
       "bus_schedules_2023",
       "bus_schedules_2024",
       "bus_schedules_2025",
       "bus_schedules_2026",
     ]),
-    csvPath: z.string(),
-    csvPathCount: z.number(),
-    routeCount: z.number(),
-    skippedRouteCount: z.number(),
-    spooledRowCount: z.number(),
-    writtenRowCount: z.number(),
-    emptyRouteCount: z.number(),
-    downloaded: z.boolean(),
-    downloadOnly: z.boolean(),
+    csvPath: Schema.String,
+    csvPathCount: Schema.Number,
+    routeCount: Schema.Number,
+    skippedRouteCount: Schema.Number,
+    spooledRowCount: Schema.Number,
+    writtenRowCount: Schema.Number,
+    emptyRouteCount: Schema.Number,
+    downloaded: Schema.Boolean,
+    downloadOnly: Schema.Boolean,
   }),
   operation: "runRouteSchedulesBulkIngest",
   dbPath: ({ db }) => (db === undefined ? undefined : fromCliPath(db)),

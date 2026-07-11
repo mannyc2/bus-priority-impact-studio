@@ -1,5 +1,6 @@
+import { Effect } from "effect";
 import { upsertNypdCollisions } from "@bp/db/local";
-import { arg, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeNypdCollisionRows } from "@bp/sources/adapters/nyc-open-data/nypd-collisions";
 import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions } from "../../lib/local-db.ts";
@@ -41,11 +42,24 @@ export const runNypdCollisionsIngest = defineSocrataMonthlyIngest({
 export default defineIngestCommand({
   path: ["ingest", "nypd-collisions"],
   summary: "Fetch monthly NYPD motor vehicle collisions.",
-  options: dbOptions.extend({
-    year: arg.positiveInt().default(2026).describe("Calendar year"),
-    month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      year: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+        .annotate({ description: "Calendar year" }),
+      month: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+        .annotate({ description: "Calendar month, 1-12" }),
+    },
   }),
-  output: z.object({ rawPath: z.string(), isoMonth: z.string(), rowCount: z.number() }),
+  output: Schema.Struct({
+    rawPath: Schema.String,
+    isoMonth: Schema.String,
+    rowCount: Schema.Number,
+  }),
   operation: "runNypdCollisionsIngest",
   spanAttributes: ({ year, month }) => ({ year, month }),
   runner: (local, { year, month }) => runNypdCollisionsIngest({ local, year, month }),

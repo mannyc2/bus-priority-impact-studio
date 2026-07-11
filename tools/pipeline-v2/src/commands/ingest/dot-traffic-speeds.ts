@@ -1,5 +1,6 @@
+import { Effect } from "effect";
 import { insertDotTrafficSpeedSnapshot } from "@bp/db/local";
-import { arg, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeDotTrafficSpeedRows } from "@bp/sources/adapters/nyc-dot/traffic-speeds";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defineSocrataReplaceIngest } from "../../lib/socrata-replace-ingest.ts";
@@ -81,15 +82,24 @@ export async function runDotTrafficSpeedsIngest(
 export default defineIngestCommand({
   path: ["ingest", "dot-traffic-speeds"],
   summary: "Fetch the latest DOT real-time traffic-speed snapshot.",
-  options: dbOptions.extend({
-    sinceHours: arg.positiveInt().default(1).describe("Lookback window in hours"),
-    maxRows: arg.positiveInt().default(10_000).describe("Max rows to fetch"),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      sinceHours: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+        .annotate({ description: "Lookback window in hours" }),
+      maxRows: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(10_000)))
+        .annotate({ description: "Max rows to fetch" }),
+    },
   }),
-  output: z.object({
-    rawPath: z.string(),
-    sampledAt: z.string(),
-    linkCount: z.number(),
-    rowCount: z.number(),
+  output: Schema.Struct({
+    rawPath: Schema.String,
+    sampledAt: Schema.String,
+    linkCount: Schema.Number,
+    rowCount: Schema.Number,
   }),
   operation: "runDotTrafficSpeedsIngest",
   spanAttributes: ({ sinceHours, maxRows }) => ({ sinceHours, maxRows }),

@@ -1,5 +1,6 @@
+import { Effect } from "effect";
 import { upsertParkingViolations } from "@bp/db/local";
-import { arg, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   BUS_RELEVANT_PARKING_CODES,
   normalizeParkingViolationRows,
@@ -104,19 +105,29 @@ export async function runParkingViolationsIngest(
 export default defineIngestCommand({
   path: ["ingest", "parking-violations"],
   summary: "Fetch monthly bus-relevant parking violations across fiscal-year datasets.",
-  options: dbOptions.extend({
-    year: arg.positiveInt().default(2026).describe("Calendar year"),
-    month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-    codes: z
-      .array(arg.int())
-      .default([])
-      .describe("Override violation codes (default: BUS_RELEVANT_PARKING_CODES)"),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      year: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+        .annotate({ description: "Calendar year" }),
+      month: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+        .annotate({ description: "Calendar month, 1-12" }),
+      codes: Schema.Array(arg.int())
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+        .annotate({
+          description: "Override violation codes (default: BUS_RELEVANT_PARKING_CODES)",
+        }),
+    },
   }),
-  output: z.object({
-    isoMonth: z.string(),
-    sourceId: z.string(),
-    rowCount: z.number(),
-    codeBreakdown: z.array(z.object({ code: z.number(), count: z.number() })),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    sourceId: Schema.String,
+    rowCount: Schema.Number,
+    codeBreakdown: Schema.Array(Schema.Struct({ code: Schema.Number, count: Schema.Number })),
   }),
   operation: "runParkingViolationsIngest",
   spanAttributes: ({ year, month, codes }) => ({ year, month, codeCount: codes.length }),

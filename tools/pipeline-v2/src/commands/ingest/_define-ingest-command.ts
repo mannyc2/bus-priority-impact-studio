@@ -1,4 +1,4 @@
-import { type CommandDefinition, defineCommand, type z } from "@bp/pipeline-v2/cli/compat";
+import { type CommandDefinition, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import type { OpenLocalPipelineDb } from "../../lib/local-db.ts";
 
@@ -7,8 +7,8 @@ type IngestCommandOptions = { readonly db?: string | undefined };
 export function defineIngestCommand<Options extends IngestCommandOptions, Output>(config: {
   readonly path: readonly ["ingest", string];
   readonly summary: string;
-  readonly options: z.ZodType<Options>;
-  readonly output: z.ZodType<Output>;
+  readonly options: Schema.Schema<Options>;
+  readonly output: Schema.Schema<Output>;
   readonly operation: string;
   readonly dbPath?: ((options: Options) => string | undefined) | undefined;
   readonly spanAttributes?:

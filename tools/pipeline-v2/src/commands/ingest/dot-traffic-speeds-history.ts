@@ -1,7 +1,8 @@
+import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Glob } from "bun";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -142,24 +143,37 @@ export default defineCommand({
   path: ["ingest", "dot-traffic-speeds-history"],
   summary: "Import partitioned historical DOT traffic-speed CSV snapshots into the local DB.",
   input: {
-    options: dbOptions.extend({
-      rawRoot: z
-        .string()
-        .default("data/raw/socrata-partitioned/nyc_dot_traffic_speeds")
-        .describe("Partitioned DOT traffic-speed CSV root"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      output: z.string().optional().describe("Override import manifest output path"),
-      batchSize: arg.positiveInt().default(5_000).describe("SQLite insert batch size"),
-      maxFiles: arg.positiveInt().optional().describe("Optional cap for smoke imports"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        rawRoot: Schema.String.pipe(
+          Schema.withDecodingDefaultTypeKey(
+            Effect.succeed("data/raw/socrata-partitioned/nyc_dot_traffic_speeds"),
+          ),
+        ).annotate({ description: "Partitioned DOT traffic-speed CSV root" }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Override import manifest output path",
+        }),
+        batchSize: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(5_000)))
+          .annotate({ description: "SQLite insert batch size" }),
+        maxFiles: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Optional cap for smoke imports",
+        }),
+      },
     }),
   },
-  output: z.object({
-    dbPath: z.string(),
-    rawRoot: z.string(),
-    outputPath: z.string(),
-    fileCount: z.number().int().nonnegative(),
-    parsedRowCount: z.number().int().nonnegative(),
-    skippedRowCount: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    dbPath: Schema.String,
+    rawRoot: Schema.String,
+    outputPath: Schema.String,
+    fileCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    parsedRowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    skippedRowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   }),
   async run({ input }) {
     const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);

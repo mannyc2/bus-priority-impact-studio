@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { replaceRouteCatalog } from "@bp/db/local";
-import { z } from "@bp/pipeline-v2/cli/compat";
+import { Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type NormalizedRouteShape,
   type NormalizedStop,
@@ -285,13 +285,13 @@ export default defineIngestCommand({
   summary:
     "Build the route catalog from Socrata routes + stops, with terminus and length summaries.",
   options: dbOptions,
-  output: z.object({
-    rawDir: z.string(),
-    routeCount: z.number(),
-    shapeCount: z.number(),
-    stopCount: z.number(),
-    timepointStopCount: z.number(),
-    dbPath: z.string(),
+  output: Schema.Struct({
+    rawDir: Schema.String,
+    routeCount: Schema.Number,
+    shapeCount: Schema.Number,
+    stopCount: Schema.Number,
+    timepointStopCount: Schema.Number,
+    dbPath: Schema.String,
   }),
   operation: "runRouteCatalogIngest",
   runner: (local) => runRouteCatalogIngest({ local }),

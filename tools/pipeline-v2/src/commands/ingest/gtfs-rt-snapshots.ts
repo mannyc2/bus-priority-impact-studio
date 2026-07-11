@@ -3,7 +3,7 @@ import {
   listGtfsRtFeedSnapshots,
   replaceGtfsRtParsedSnapshot,
 } from "@bp/db/local";
-import { z } from "@bp/pipeline-v2/cli/compat";
+import { Schema } from "@bp/pipeline-v2/cli/compat";
 import { parseGtfsRealtimeFeed } from "@bp/sources/gtfs-realtime";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defineIngestCommand } from "./_define-ingest-command.ts";
@@ -141,20 +141,27 @@ export async function runIngestGtfsRtSnapshots(
 export default defineIngestCommand({
   path: ["ingest", "gtfs-rt-snapshots"],
   summary: "Parse stored GTFS-RT raw snapshots into structured local pipeline rows.",
-  options: dbOptions.extend({
-    runId: z.string().min(1).describe("Collection run identifier to parse"),
-    parsedAt: z.string().optional().describe("Override parsed-at timestamp (ISO)"),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      runId: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Collection run identifier to parse",
+      }),
+      parsedAt: Schema.optionalKey(Schema.String).annotate({
+        description: "Override parsed-at timestamp (ISO)",
+      }),
+    },
   }),
-  output: z.object({
-    runId: z.string(),
-    snapshotCount: z.number(),
-    parsedSnapshotCount: z.number(),
-    parseErrorCount: z.number(),
-    skippedSnapshotCount: z.number(),
-    vehiclePositionCount: z.number(),
-    tripUpdateCount: z.number(),
-    stopTimeUpdateCount: z.number(),
-    alertCount: z.number(),
+  output: Schema.Struct({
+    runId: Schema.String,
+    snapshotCount: Schema.Number,
+    parsedSnapshotCount: Schema.Number,
+    parseErrorCount: Schema.Number,
+    skippedSnapshotCount: Schema.Number,
+    vehiclePositionCount: Schema.Number,
+    tripUpdateCount: Schema.Number,
+    stopTimeUpdateCount: Schema.Number,
+    alertCount: Schema.Number,
   }),
   operation: "runIngestGtfsRtSnapshots",
   spanAttributes: ({ runId, parsedAt }) => ({ runId, parsedAt: parsedAt ?? null }),

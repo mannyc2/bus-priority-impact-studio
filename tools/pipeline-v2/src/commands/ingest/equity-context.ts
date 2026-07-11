@@ -1,7 +1,8 @@
+import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceCensusTractEquityContext } from "@bp/db/local";
-import { arg, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   censusAcsProfileVariables,
   type NormalizedCensusTractEquityContext,
@@ -82,15 +83,21 @@ export async function runEquityContextIngest(
 export default defineIngestCommand({
   path: ["ingest", "equity-context"],
   summary: "Fetch Census ACS-5 tract-level equity context for NYC.",
-  options: dbOptions.extend({
-    year: arg.positiveInt().default(2024).describe("ACS-5 vintage year"),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      year: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2024)))
+        .annotate({ description: "ACS-5 vintage year" }),
+    },
   }),
-  output: z.object({
-    acsYear: z.number(),
-    rawPath: z.string(),
-    tractCount: z.number(),
-    totalPopulation: z.number(),
-    noVehicleHouseholds: z.number(),
+  output: Schema.Struct({
+    acsYear: Schema.Number,
+    rawPath: Schema.String,
+    tractCount: Schema.Number,
+    totalPopulation: Schema.Number,
+    noVehicleHouseholds: Schema.Number,
   }),
   operation: "runEquityContextIngest",
   spanAttributes: ({ year }) => ({ year }),

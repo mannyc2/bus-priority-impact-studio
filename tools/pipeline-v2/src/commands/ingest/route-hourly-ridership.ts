@@ -1,9 +1,10 @@
+import { Effect } from "effect";
 import {
   type LocalRouteHourlyRidership,
   listRouteMonthTrends,
   replaceRouteHourlyRidership,
 } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
@@ -175,31 +176,45 @@ export default defineCommand({
   path: ["ingest", "route-hourly-ridership"],
   summary: "Fetch route hourly ridership rows for a month and replace local route/month slices.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Year to ingest"),
-      month: arg.positiveInt().default(3).describe("Month to ingest, 1-12"),
-      route: z.string().optional().describe("Single route ID convenience filter"),
-      routes: z
-        .array(z.string())
-        .default([])
-        .describe("Specific route IDs (default: all routes in source month)"),
-      routesFile: z.string().optional().describe("JSON file containing route IDs"),
-      routeChunkSize: arg
-        .positiveInt()
-        .default(DEFAULT_ROUTE_CHUNK_SIZE)
-        .describe("Number of routes per Socrata aggregate query"),
-      queryConcurrency: arg
-        .positiveInt()
-        .default(DEFAULT_QUERY_CONCURRENCY)
-        .describe("Number of Socrata hourly-ridership aggregate queries to run concurrently"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Year to ingest" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Month to ingest, 1-12" }),
+        route: Schema.optionalKey(Schema.String).annotate({
+          description: "Single route ID convenience filter",
+        }),
+        routes: Schema.Array(Schema.String)
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+          .annotate({ description: "Specific route IDs (default: all routes in source month)" }),
+        routesFile: Schema.optionalKey(Schema.String).annotate({
+          description: "JSON file containing route IDs",
+        }),
+        routeChunkSize: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_ROUTE_CHUNK_SIZE)))
+          .annotate({ description: "Number of routes per Socrata aggregate query" }),
+        queryConcurrency: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_QUERY_CONCURRENCY)))
+          .annotate({
+            description: "Number of Socrata hourly-ridership aggregate queries to run concurrently",
+          }),
+      },
     }),
   },
-  output: z.object({
-    month: z.string(),
-    sourceId: z.enum(["bus_hourly_ridership_2020_2024", "bus_hourly_ridership_2025"]),
-    fetchedRowCount: z.number(),
-    normalizedRowCount: z.number(),
-    routeCount: z.number(),
+  output: Schema.Struct({
+    month: Schema.String,
+    sourceId: Schema.Literals(["bus_hourly_ridership_2020_2024", "bus_hourly_ridership_2025"]),
+    fetchedRowCount: Schema.Number,
+    normalizedRowCount: Schema.Number,
+    routeCount: Schema.Number,
   }),
   async run({ input }) {
     const routes = await mergeRoutesWithFile(

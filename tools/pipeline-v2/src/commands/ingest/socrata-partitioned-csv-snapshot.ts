@@ -1,6 +1,7 @@
+import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { join, relative } from "node:path";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
@@ -99,7 +100,7 @@ export type SocrataPartitionedCsvSnapshotResult = {
   chunks: SocrataPartitionedCsvSnapshotChunkResult[];
 };
 
-const DateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const DateOnlySchema = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/));
 
 const identifierPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -411,74 +412,82 @@ export default defineCommand({
   path: ["ingest", "socrata-partitioned-csv-snapshot"],
   summary: "Download or reuse authenticated SODA3 CSV exports partitioned by a timestamp column.",
   input: {
-    options: z.object({
-      sourceId: z
-        .string()
-        .min(1)
-        .describe("Socrata source ID from knowledge/raw/source_manifest.yaml"),
-      partitionField: z.string().min(1).describe("Timestamp field to partition on"),
-      startDate: DateOnlySchema.describe("Inclusive partition start date, YYYY-MM-DD"),
-      endDate: DateOnlySchema.describe("Exclusive partition end date, YYYY-MM-DD"),
-      interval: z.enum(["day", "month", "year"]).default("month").describe("Partition interval"),
-      outputDir: z
-        .string()
-        .optional()
-        .describe("Target directory; defaults under data/raw/socrata-partitioned"),
-      select: z.string().optional().describe("SoQL SELECT expression, defaults to *"),
-      where: z.string().optional().describe("Additional SoQL WHERE predicate"),
-      orderBy: z.string().optional().describe("Simple SoQL ORDER BY field"),
-      limit: z.coerce
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("Optional per-partition LIMIT, useful for smoke tests"),
-      maxChunks: z.coerce
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("Optional maximum number of partitions to download"),
-      force: z.coerce
+    options: Schema.Struct({
+      sourceId: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Socrata source ID from knowledge/raw/source_manifest.yaml",
+      }),
+      partitionField: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Timestamp field to partition on",
+      }),
+      startDate: DateOnlySchema.annotate({
+        description: "Inclusive partition start date, YYYY-MM-DD",
+      }),
+      endDate: DateOnlySchema.annotate({
+        description: "Exclusive partition end date, YYYY-MM-DD",
+      }),
+      interval: Schema.Literals(["day", "month", "year"])
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("month")))
+        .annotate({ description: "Partition interval" }),
+      outputDir: Schema.optionalKey(Schema.String).annotate({
+        description: "Target directory; defaults under data/raw/socrata-partitioned",
+      }),
+      select: Schema.optionalKey(Schema.String).annotate({
+        description: "SoQL SELECT expression, defaults to *",
+      }),
+      where: Schema.optionalKey(Schema.String).annotate({
+        description: "Additional SoQL WHERE predicate",
+      }),
+      orderBy: Schema.optionalKey(Schema.String).annotate({
+        description: "Simple SoQL ORDER BY field",
+      }),
+      limit: Schema.optionalKey(
+        arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+      ).annotate({ description: "Optional per-partition LIMIT, useful for smoke tests" }),
+      maxChunks: Schema.optionalKey(
+        arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+      ).annotate({ description: "Optional maximum number of partitions to download" }),
+      force: arg
         .boolean()
-        .default(false)
-        .describe("Redownload chunks even when they already exist"),
-      downloadRetryCount: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Redownload chunks even when they already exist" }),
+      downloadRetryCount: arg
         .number()
-        .int()
-        .min(0)
-        .default(2)
-        .describe("Number of retry attempts after a failed chunk download attempt"),
-      downloadRetryDelayMs: z.coerce
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2)))
+        .annotate({
+          description: "Number of retry attempts after a failed chunk download attempt",
+        }),
+      downloadRetryDelayMs: arg
         .number()
-        .int()
-        .min(0)
-        .default(5_000)
-        .describe("Delay between CSV download retry attempts"),
-      logProgress: z.coerce
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(5_000)))
+        .annotate({ description: "Delay between CSV download retry attempts" }),
+      logProgress: arg
         .boolean()
-        .default(true)
-        .describe("Write chunk progress events to stderr"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+        .annotate({ description: "Write chunk progress events to stderr" }),
     }),
   },
-  output: z.object({
-    sourceId: z.string(),
-    datasetId: z.string(),
-    outputDir: z.string(),
-    manifestPath: z.string(),
-    chunkCount: z.number(),
-    downloadedChunkCount: z.number(),
-    reusedChunkCount: z.number(),
-    bytes: z.number(),
-    chunks: z.array(
-      z.object({
-        chunkId: z.string(),
-        startDate: z.string(),
-        endDate: z.string(),
-        outputPath: z.string(),
-        query: z.string(),
-        downloaded: z.boolean(),
-        bytes: z.number(),
+  output: Schema.Struct({
+    sourceId: Schema.String,
+    datasetId: Schema.String,
+    outputDir: Schema.String,
+    manifestPath: Schema.String,
+    chunkCount: Schema.Number,
+    downloadedChunkCount: Schema.Number,
+    reusedChunkCount: Schema.Number,
+    bytes: Schema.Number,
+    chunks: Schema.Array(
+      Schema.Struct({
+        chunkId: Schema.String,
+        startDate: Schema.String,
+        endDate: Schema.String,
+        outputPath: Schema.String,
+        query: Schema.String,
+        downloaded: Schema.Boolean,
+        bytes: Schema.Number,
       }),
     ),
   }),
