@@ -24,6 +24,7 @@
       "@nyc-transit-kit/nyc-dot": "0.2.0",
       "@nyc-transit-kit/nyc-open-data": "0.2.0",
       "@nyc-transit-kit/soda3": "0.2.0",
+      "@maplibre/maplibre-gl-style-spec": "^24.8.1",
       "@tanstack/react-router": "^1.170.4",
       "@types/react": "^19.0.0",
       "@types/react-dom": "^19.0.0",

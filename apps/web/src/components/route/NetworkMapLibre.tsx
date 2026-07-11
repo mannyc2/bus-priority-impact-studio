@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { speedToColor } from "@/components/route/maplibre-style";
+import { scaledMapColor, speedToColor } from "@/components/route/maplibre-style";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { NetworkMapFeature, NetworkMapFeatureCollection } from "@/studio/api-client";
 
@@ -40,7 +40,10 @@ export function periodSpeed(feature: NetworkMapFeature, period: MapPeriod): numb
 
 function NetworkMapSkeleton() {
   return (
-    <div className="h-full min-h-[320px] animate-pulse bg-[var(--bp-color-ink-06)]" aria-hidden />
+    <div
+      className="h-full min-h-[320px] animate-pulse bg-[var(--bp-color-ink-06)] motion-reduce:animate-none"
+      aria-hidden
+    />
   );
 }
 
@@ -190,13 +193,8 @@ function networkLensColor(
   speedMph: number,
 ): string {
   if (lens === "speed") return speedToColor(speedMph);
-  if (lens === "lanes") return scaledOklch(feature.properties.laneCoverage, 0, 100, 155);
-  return scaledOklch(feature.properties.dailyRiders, 0, 45_000, 252);
-}
-
-function scaledOklch(value: number, min: number, max: number, hue: number): string {
-  const t = Math.max(0, Math.min(1, (value - min) / Math.max(1, max - min)));
-  const lightness = 0.78 - t * 0.28;
-  const chroma = 0.065 + t * 0.075;
-  return `oklch(${lightness.toFixed(3)} ${chroma.toFixed(3)} ${hue.toFixed(1)})`;
+  if (lens === "lanes") {
+    return scaledMapColor(feature.properties.laneCoverage, 0, 100, "lanes");
+  }
+  return scaledMapColor(feature.properties.dailyRiders, 0, 45_000, "riders");
 }

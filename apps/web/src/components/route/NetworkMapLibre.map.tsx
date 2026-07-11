@@ -5,9 +5,13 @@ import {
   type MapLibreGeoJSONSource,
   type MapLibreMap,
   type MapLibreMapLayerMouseEvent,
-  type MapLibreStyleSpecification,
 } from "@/components/route/load-maplibre";
-import { MAP_COLORS, speedToColor } from "@/components/route/maplibre-style";
+import {
+  MAP_COLORS,
+  mapBaseStyle,
+  scaledMapColor,
+  speedToColor,
+} from "@/components/route/maplibre-style";
 import {
   type MapPeriod,
   type NetworkMapLens,
@@ -143,20 +147,6 @@ function boundsOfNetwork(
   ];
 }
 
-function baseStyle(): MapLibreStyleSpecification {
-  return {
-    version: 8,
-    sources: {},
-    layers: [
-      {
-        id: "background",
-        type: "background",
-        paint: { "background-color": MAP_COLORS.water },
-      },
-    ],
-  };
-}
-
 function source(map: MapLibreMap, id: string): MapLibreGeoJSONSource | null {
   const found = map.getSource(id);
   return found === undefined ? null : (found as MapLibreGeoJSONSource);
@@ -213,7 +203,7 @@ export function NetworkMapLibreMap({
         try {
           map = new maplibregl.Map({
             container,
-            style: baseStyle(),
+            style: mapBaseStyle(),
             attributionControl: false,
             dragRotate: false,
             pitchWithRotate: false,
@@ -352,13 +342,8 @@ function networkLensColor(
   speedMph: number,
 ): string {
   if (lens === "speed") return speedToColor(speedMph);
-  if (lens === "lanes") return scaledOklch(feature.properties.laneCoverage, 0, 100, 155);
-  return scaledOklch(feature.properties.dailyRiders, 0, 45_000, 252);
-}
-
-function scaledOklch(value: number, min: number, max: number, hue: number): string {
-  const t = Math.max(0, Math.min(1, (value - min) / Math.max(1, max - min)));
-  const lightness = 0.78 - t * 0.28;
-  const chroma = 0.065 + t * 0.075;
-  return `oklch(${lightness.toFixed(3)} ${chroma.toFixed(3)} ${hue.toFixed(1)})`;
+  if (lens === "lanes") {
+    return scaledMapColor(feature.properties.laneCoverage, 0, 100, "lanes");
+  }
+  return scaledMapColor(feature.properties.dailyRiders, 0, 45_000, "riders");
 }

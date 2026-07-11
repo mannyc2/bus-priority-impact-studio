@@ -36,6 +36,7 @@
     "vite": "catalog:"
   },
   "devDependencies": {
+    "@maplibre/maplibre-gl-style-spec": "catalog:",
     "@cloudflare/vitest-pool-workers": "file:../../vendor/npm/cloudflare-vitest-pool-workers-0.14.9-no-zod.tgz",
     "@cloudflare/workers-types": "catalog:",
     "@types/bun": "catalog:",

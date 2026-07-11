@@ -14,7 +14,7 @@ const RouteMapLibreMap = lazy(() =>
 function RouteMapSkeleton() {
   return (
     <div
-      className="animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"
+      className="animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none"
       style={{ height: 560 }}
       aria-hidden
     />

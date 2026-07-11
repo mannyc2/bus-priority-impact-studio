@@ -6,11 +6,10 @@ import {
   type MapLibreGeoJSONSource,
   type MapLibreMap,
   type MapLibreMapLayerMouseEvent,
-  type MapLibreStyleSpecification,
 } from "@/components/route/load-maplibre";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { StudioRoute, StudioSegment } from "@/studio/api-contract";
-import { boundsOf, MAP_COLORS, speedToColor } from "./maplibre-style";
+import { boundsOf, MAP_COLORS, mapBaseStyle, speedToColor } from "./maplibre-style";
 
 type Position = [number, number];
 type LineString = { type: "LineString"; coordinates: Position[] };
@@ -273,20 +272,6 @@ function landCollection(context: RouteGeoContext | null): FeatureCollection<Mult
   };
 }
 
-function baseStyle(): MapLibreStyleSpecification {
-  return {
-    version: 8,
-    sources: {},
-    layers: [
-      {
-        id: "background",
-        type: "background",
-        paint: { "background-color": MAP_COLORS.water },
-      },
-    ],
-  };
-}
-
 function source(map: MapLibreMap, id: string): MapLibreGeoJSONSource | null {
   const found = map.getSource(id);
   return found === undefined ? null : (found as MapLibreGeoJSONSource);
@@ -342,7 +327,7 @@ export function RouteMapLibreMap({
         try {
           map = new maplibregl.Map({
             container,
-            style: baseStyle(),
+            style: mapBaseStyle(),
             attributionControl: false,
             dragRotate: false,
             pitchWithRotate: false,
