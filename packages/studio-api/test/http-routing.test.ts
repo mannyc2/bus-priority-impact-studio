@@ -4,11 +4,14 @@ import {
   findRouteSpec,
   isApiPath,
   isStudioApiPath,
+  matchRouteSpec,
+  studioApiRoutes,
   studioRouteTemplate,
 } from "@bp/studio-api/contracts";
 import { studioOpenApiDocument } from "@bp/studio-api/contracts/openapi";
 import { handleStudioApiRequest } from "@bp/studio-api/server";
 import { studioProjectionKey, studioProjectionPrefix } from "../src/studio/projections.js";
+import { studioReadHandlerRouteIds } from "../src/studio/read-handlers.js";
 
 const quality = {
   releaseLayer: "baseline_release",
@@ -106,6 +109,21 @@ describe("Studio API HTTP helpers", () => {
     expect(findRouteSpec("POST", "/api/v1/rum")?.id).toBe("observability.rum");
     expect(findRouteSpec("POST", "/api/v1/studio/routes")).toBeNull();
     expect(findRouteSpec("GET", "/api/v1/studio/unknown")).toBeNull();
+    expect(matchRouteSpec("GET", "/api/v1/studio/routes/m15-sbs/history")).toEqual(
+      expect.objectContaining({
+        spec: expect.objectContaining({ id: "studio.routeHistory" }),
+        params: { routeId: "m15-sbs" },
+      }),
+    );
+  });
+
+  test("keeps Studio registry routes and read handlers complete", () => {
+    const registryRouteIds = studioApiRoutes
+      .filter((route) => route.tags.includes("Studio"))
+      .map((route) => route.id)
+      .toSorted();
+
+    expect(studioReadHandlerRouteIds).toEqual(registryRouteIds);
   });
 
   test("builds projection keys from the configured release artifact", () => {

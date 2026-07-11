@@ -84,6 +84,8 @@ import {
   type StudioSourceMonthState,
 } from "@bp/domain/studio/snapshots";
 import { studioOpenApiDocument } from "../contracts/openapi.js";
+import type { StudioApiRouteId } from "../contracts/registry.js";
+import { matchRouteSpec } from "../contracts/routing.js";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 import {
@@ -2914,12 +2916,19 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
   return studioJsonResponse(snapshot, env);
 }
 
-export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
-  _request: Request,
-  url: URL,
-  env: TEnv,
-): Promise<Response> {
-  if (url.pathname === "/api/v1/studio/routes") {
+type StudioReadRouteId = Extract<StudioApiRouteId, `studio.${string}`>;
+type StudioReadHandler = (input: {
+  url: URL;
+  env: StudioReadEnv;
+  params: Readonly<Record<string, string>>;
+}) => Promise<Response>;
+
+function routeSlug(params: Readonly<Record<string, string>>): string {
+  return decodeURIComponent(params["routeId"] ?? "");
+}
+
+const studioReadHandlers = {
+  "studio.routes": async ({ url, env }) => {
     if (url.searchParams.get("schema") === "2") {
       const result = await buildStudioRouteIndex2Response(env);
       return result.ok ? studioJsonResponse(result.routeIndex, env) : result.response;
@@ -2934,25 +2943,18 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
       quality: result.quality,
     };
     return studioJsonResponse(response, env);
-  }
-
-  if (url.pathname === "/api/v1/studio/snapshot") {
-    return buildStudioSnapshotResponse(env);
-  }
-
-  if (url.pathname === "/api/v1/studio/routes/sections") {
+  },
+  "studio.snapshot": ({ env }) => buildStudioSnapshotResponse(env),
+  "studio.routeSections": async ({ env }) => {
     const result = await buildStudioRouteSectionsResponse(env);
     return result.ok ? studioJsonResponse(result.routeSections, env) : result.response;
-  }
-
-  if (url.pathname === "/api/v1/studio/interventions/evidence") {
+  },
+  "studio.interventionsEvidence": async ({ env }) => {
     const result = await buildStudioInterventionsEvidenceResponse(env);
     return result.ok ? studioJsonResponse(result.evidence, env) : result.response;
-  }
-
-  const routeMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)$/);
-  if (routeMatch) {
-    const slug = decodeURIComponent(routeMatch[1] ?? "");
+  },
+  "studio.route": async ({ env, params }) => {
+    const slug = routeSlug(params);
     if (env.DB !== undefined) {
       const result = await buildStudioRouteDetailResponseFromD1(env, slug);
       return result.ok ? studioJsonResponse(result.routeDetail, env) : result.response;
@@ -2993,38 +2995,43 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
       }),
       env,
     );
-  }
-
-  const historyMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)\/history$/);
-  if (historyMatch) {
-    const slug = decodeURIComponent(historyMatch[1] ?? "");
+  },
+  "studio.routeHistory": async ({ env, params }) => {
+    const slug = routeSlug(params);
     const result = await buildStudioRouteHistoryResponse(env, slug);
     return result.ok ? studioJsonResponse(result.history, env) : result.response;
-  }
-
-  const hourlyProfileMatch = url.pathname.match(
-    /^\/api\/v1\/studio\/routes\/([^/]+)\/hourly-profile$/,
-  );
-  if (hourlyProfileMatch) {
-    const slug = decodeURIComponent(hourlyProfileMatch[1] ?? "");
+  },
+  "studio.routeHourlyProfile": async ({ env, params }) => {
+    const slug = routeSlug(params);
     const result = await buildStudioRouteHourlyProfileResponse(env, slug);
     return result.ok ? studioJsonResponse(result.hourlyProfile, env) : result.response;
-  }
-
-  const speedHistoryMatch = url.pathname.match(
-    /^\/api\/v1\/studio\/routes\/([^/]+)\/speed-history$/,
-  );
-  if (speedHistoryMatch) {
-    const slug = decodeURIComponent(speedHistoryMatch[1] ?? "");
+  },
+  "studio.routeSpeedHistory": async ({ env, params }) => {
+    const slug = routeSlug(params);
     const result = await buildStudioRouteSpeedHistoryResponse(env, slug);
     return result.ok ? studioJsonResponse(result.speedHistory, env) : result.response;
-  }
-
-  const timelineMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)\/timeline$/);
-  if (timelineMatch) {
-    const slug = decodeURIComponent(timelineMatch[1] ?? "");
+  },
+  "studio.routeTimeline": async ({ env, params }) => {
+    const slug = routeSlug(params);
     const result = await buildStudioRouteTimelineResponse(env, slug);
     return result.ok ? studioJsonResponse(result.timeline, env) : result.response;
+  },
+} satisfies Record<StudioReadRouteId, StudioReadHandler>;
+
+export const studioReadHandlerRouteIds = Object.keys(studioReadHandlers).toSorted();
+
+function isStudioReadRouteId(routeId: string): routeId is StudioReadRouteId {
+  return routeId in studioReadHandlers;
+}
+
+export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
+  request: Request,
+  url: URL,
+  env: TEnv,
+): Promise<Response> {
+  const match = matchRouteSpec(request.method, url.pathname);
+  if (match !== null && isStudioReadRouteId(match.spec.id)) {
+    return studioReadHandlers[match.spec.id]({ url, env, params: match.params });
   }
 
   return errorResponse(404, "Studio API endpoint was not found.");

@@ -15,10 +15,12 @@ export type {
   RouteCachePolicy,
   RouteSpec,
 } from "./route-spec.js";
+export type { RouteMatch } from "./routing.js";
 export {
   allowedApiMethodsForPath,
   findRouteSpec,
   isApiPath,
   isStudioApiPath,
+  matchRouteSpec,
   studioRouteTemplate,
 } from "./routing.js";
