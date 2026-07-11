@@ -11,6 +11,11 @@ describe("studio release D1 replay boundary", () => {
     expect(source).toContain("Bun.file(fromCliPath(options.schemaPath)).text()");
     expect(source).toContain("Bun.file(fromCliPath(options.seedPath)).text()");
     expect(source).toContain("const root = fromCliPath(routeSliceArtifactsRoot)");
+    expect(source).toContain('operation: "loadCurrentMonthRouteSchedules"');
+    expect(source).toContain("FROM local_route_schedule_stop");
+    expect(source).toContain("schedule_date >= ?");
+    expect(source).toContain("schedule_date < ?");
+    expect(source).toContain("currentScheduleRowsByRoute");
     expect(source).not.toContain("fromRepoRoot(options.");
     expect(source).not.toContain('from "bun:sqlite"');
     expect(source).not.toContain("new Database");

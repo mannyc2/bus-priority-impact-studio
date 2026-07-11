@@ -10,6 +10,7 @@ import {
   type RouteBriefSummary,
   type RouteInterventionComparison,
 } from "@bp/db";
+import type { LocalRouteScheduleTimepoint } from "@bp/db/local";
 import type { StudioIntervention } from "@bp/domain/studio/interventions";
 import {
   buildMapRouteFactsProjection,
@@ -219,17 +220,28 @@ async function augmentRouteBriefInputFromRaw(
   month: string,
   artifact: RouteBriefInputArtifact | null,
   routeSliceRawRoot: string,
+  currentScheduleRows: readonly LocalRouteScheduleTimepoint[],
 ): Promise<RouteBriefInputArtifact | null> {
-  if (artifact === null || (artifact.segments?.length ?? 0) > 0) {
+  if (artifact === null) {
     return artifact;
   }
 
-  const [speedRows, ridershipRows, scheduleRows] = await Promise.all([
+  if ((artifact.segments?.length ?? 0) > 0 && currentScheduleRows.length === 0) {
+    return artifact;
+  }
+
+  const [speedRows, ridershipRows, snapshotScheduleRows] = await Promise.all([
     rawRouteSliceRows(routeId, month, "bus_segment_speeds_2025.json", routeSliceRawRoot),
     rawRouteSliceRows(routeId, month, "bus_hourly_ridership_2025.json", routeSliceRawRoot),
-    rawRouteSliceRows(routeId, month, "bus_schedules_2026.json", routeSliceRawRoot),
+    currentScheduleRows.length === 0
+      ? rawRouteSliceRows(routeId, month, "bus_schedules_2026.json", routeSliceRawRoot)
+      : Promise.resolve(null),
   ]);
-  if (speedRows === null || ridershipRows === null || scheduleRows === null) {
+  if (
+    speedRows === null ||
+    ridershipRows === null ||
+    (currentScheduleRows.length === 0 && snapshotScheduleRows === null)
+  ) {
     return artifact;
   }
 
@@ -247,10 +259,13 @@ async function augmentRouteBriefInputFromRaw(
       year,
       month: monthNumber,
     }),
-    schedules: normalizeScheduleTimepointRows(scheduleRows).map((row) => ({
-      ...row,
-      isoMonth: month,
-    })),
+    schedules:
+      currentScheduleRows.length > 0
+        ? currentScheduleRows
+        : normalizeScheduleTimepointRows(snapshotScheduleRows ?? []).map((row) => ({
+            ...row,
+            isoMonth: month,
+          })),
     year,
     month: monthNumber,
   });
@@ -278,13 +293,20 @@ async function routeBriefInput(
   month: string,
   routeSliceArtifactsRoot: string,
   routeSliceRawRoot: string,
+  currentScheduleRows: readonly LocalRouteScheduleTimepoint[],
 ): Promise<RouteBriefInputArtifact | null> {
   const slug = routeId.toLowerCase();
   const path = fromCliPath(
     join(routeSliceArtifactsRoot, `${slug}-${month}`, "route-brief-input.json"),
   );
   const artifact = await readJsonIfExists<RouteBriefInputArtifact>(path);
-  return augmentRouteBriefInputFromRaw(routeId, month, artifact, routeSliceRawRoot);
+  return augmentRouteBriefInputFromRaw(
+    routeId,
+    month,
+    artifact,
+    routeSliceRawRoot,
+    currentScheduleRows,
+  );
 }
 
 async function routeBriefInputs(
@@ -292,6 +314,7 @@ async function routeBriefInputs(
   month: string,
   routeSliceArtifactsRoot: string,
   routeSliceRawRoot: string,
+  currentScheduleRowsByRoute: ReadonlyMap<string, readonly LocalRouteScheduleTimepoint[]>,
 ): Promise<RouteBriefInputArtifact[]> {
   const slug = routeId.toLowerCase();
   const root = fromCliPath(routeSliceArtifactsRoot);
@@ -308,9 +331,106 @@ async function routeBriefInputs(
     .sort();
   const months = matchedMonths.length === 0 ? [month] : matchedMonths;
   const artifacts = await runBoundedPromises(months, localTransformConcurrency, (candidate) =>
-    routeBriefInput(routeId, candidate, routeSliceArtifactsRoot, routeSliceRawRoot),
+    routeBriefInput(
+      routeId,
+      candidate,
+      routeSliceArtifactsRoot,
+      routeSliceRawRoot,
+      candidate === month ? (currentScheduleRowsByRoute.get(routeId) ?? []) : [],
+    ),
   );
   return artifacts.flatMap((artifact) => (artifact === null ? [] : [artifact]));
+}
+
+async function currentMonthScheduleRowsByRoute(
+  localDbPath: string,
+  month: string,
+  routeIds: readonly string[],
+): Promise<Map<string, LocalRouteScheduleTimepoint[]>> {
+  if (routeIds.length === 0) return new Map();
+  const [yearText, monthText] = month.split("-");
+  const year = Number(yearText);
+  const monthNumber = Number(monthText);
+  if (!Number.isInteger(year) || !Number.isInteger(monthNumber)) return new Map();
+  const nextMonth = new Date(Date.UTC(year, monthNumber, 1)).toISOString().slice(0, 7);
+
+  return runLocalDbCommandBoundary({
+    dbPath: localDbPath,
+    localDbOptions: { readonly: true },
+    command: "studio.release",
+    operation: "loadCurrentMonthRouteSchedules",
+    spanAttributes: { month, routeCount: routeIds.length },
+    run: async (local) => {
+      const table = local.sqlite
+        .query(
+          "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'local_route_schedule_stop'",
+        )
+        .get();
+      if (table === null) return new Map();
+
+      const placeholders = routeIds.map(() => "?").join(", ");
+      const rows = local.sqlite
+        .query(
+          `
+            SELECT route_id, schedule_date, day_type, direction, shape_id, stop_sequence,
+                   stop_id, stop_name, schedule_time, distance_from_start, trip_headsign,
+                   block_id, bundle
+            FROM local_route_schedule_stop
+            WHERE source_year = ?
+              AND schedule_date >= ?
+              AND schedule_date < ?
+              AND route_id IN (${placeholders})
+            ORDER BY route_id, schedule_date, direction, shape_id, block_id,
+                     schedule_time, stop_sequence
+          `,
+        )
+        .all(
+          year,
+          `${month}-01T00:00:00.000`,
+          `${nextMonth}-01T00:00:00.000`,
+          ...routeIds,
+        ) as Array<{
+        route_id: string;
+        schedule_date: string;
+        day_type: string;
+        direction: string;
+        shape_id: string;
+        stop_sequence: number;
+        stop_id: string;
+        stop_name: string | null;
+        schedule_time: string;
+        distance_from_start: number | null;
+        trip_headsign: string | null;
+        block_id: string;
+        bundle: string | null;
+      }>;
+      const byRoute = new Map<string, LocalRouteScheduleTimepoint[]>();
+      for (const row of rows) {
+        const schedule: LocalRouteScheduleTimepoint = {
+          routeId: row.route_id,
+          isoMonth: month,
+          scheduleDate: row.schedule_date,
+          dayType: row.day_type,
+          direction: row.direction,
+          shapeId: row.shape_id,
+          stopSequence: row.stop_sequence,
+          stopId: row.stop_id,
+          scheduleTime: row.schedule_time,
+          blockId: row.block_id,
+          ...(row.stop_name === null ? {} : { stopName: row.stop_name }),
+          ...(row.distance_from_start === null
+            ? {}
+            : { distanceFromStart: row.distance_from_start }),
+          ...(row.trip_headsign === null ? {} : { tripHeadsign: row.trip_headsign }),
+          ...(row.bundle === null ? {} : { bundle: row.bundle }),
+        };
+        const routeRows = byRoute.get(row.route_id) ?? [];
+        routeRows.push(schedule);
+        byRoute.set(row.route_id, routeRows);
+      }
+      return byRoute;
+    },
+  });
 }
 
 async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> {
@@ -344,6 +464,11 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       }).sources.map(docsSourceFromLedgerEntry),
   });
   const selectedRouteIds = new Set(selectedSummaries.map((summary) => summary.routeId));
+  const currentScheduleRowsByRoute = await currentMonthScheduleRowsByRoute(
+    options.localDbPath,
+    options.month,
+    [...selectedRouteIds],
+  );
   assertRouteGeometryCoverage(
     selectedSummaries.flatMap((summary) =>
       readinessByRoute.has(summary.routeId) ? [summary.routeId] : [],
@@ -362,6 +487,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       options.month,
       options.routeSliceArtifactsRoot,
       options.routeSliceRawRoot,
+      currentScheduleRowsByRoute,
     );
     const currentInput =
       inputs.find((input) => (input.analysisPeriod ?? options.month) === options.month) ??

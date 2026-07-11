@@ -196,7 +196,7 @@ export default defineCommand({
     const path = (value: string | undefined) =>
       value === undefined ? undefined : fromCliPath(value);
     return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
+      dbPath: path(input.options.db),
       command: "map.release",
       operation: "runMapRelease",
       run: (local) =>

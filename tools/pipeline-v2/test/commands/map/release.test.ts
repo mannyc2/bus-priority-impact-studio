@@ -6,6 +6,15 @@ import { type MapReleaseDependencies, runMapRelease } from "../../../src/command
 import type { OpenLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
 describe("runMapRelease", () => {
+  test("resolves an explicit local database path from the repository root", async () => {
+    const source = await Bun.file(
+      new URL("../../../src/commands/map/release.ts", import.meta.url),
+    ).text();
+
+    expect(source).toContain("dbPath: path(input.options.db)");
+    expect(source).not.toContain("dbPath: input.options.db");
+  });
+
   test("uses one custom root and orders D1 before Studio before map", async () => {
     const root = mkdtempSync(join(tmpdir(), "map-release-"));
     try {
@@ -31,7 +40,9 @@ describe("runMapRelease", () => {
         },
         async speedSpines(input: unknown) {
           record("speedSpines", input);
-          return { manifestPath: join(artifactRoot, "route-speed-spines", "manifest.json") };
+          return {
+            manifestPath: join(artifactRoot, "route-speed-spines", "manifest.json"),
+          };
         },
         async verifyD1(input: unknown) {
           record("verifyD1", input);
@@ -50,7 +61,9 @@ describe("runMapRelease", () => {
         },
         async map(input: unknown) {
           record("map", input);
-          return { manifestPath: join(artifactRoot, "map", "2026-04", "manifest.json") };
+          return {
+            manifestPath: join(artifactRoot, "map", "2026-04", "manifest.json"),
+          };
         },
         async audit(input: unknown) {
           record("audit", input);
