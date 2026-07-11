@@ -1,6 +1,6 @@
-import * as z from "@bp/domain/schema-compat";
+import { Schema, SchemaGetter } from "effect";
 
-export { z };
+export { Schema };
 
 export type CommandRunContext<Options = Record<string, unknown>> = {
   ctx: {
@@ -15,9 +15,9 @@ export type CommandDefinition<Options = Record<string, unknown>, Output = unknow
   path: readonly [string, ...string[]];
   summary?: string;
   input?: {
-    options?: z.ZodType<Options>;
+    options?: Schema.Schema<Options>;
   };
-  output?: z.ZodType<Output> | unknown;
+  output?: Schema.Schema<Output>;
   run: (ctx: CommandRunContext<Options>) => Output | Promise<Output>;
 };
 
@@ -32,9 +32,23 @@ export function defineCommand<const Options = Record<string, unknown>, const Out
   return command;
 }
 
+const CoercedBoolean = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.Boolean, {
+    decode: SchemaGetter.transform(Boolean),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
+
+const CoercedNumber = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.Number, {
+    decode: SchemaGetter.transform(Number),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
+
 export const arg = {
-  boolean: () => z.coerce.boolean(),
-  int: () => z.coerce.number().int(),
-  number: () => z.coerce.number(),
-  positiveInt: () => z.coerce.number().int().positive(),
+  boolean: () => CoercedBoolean,
+  int: () => CoercedNumber.check(Schema.isInt()),
+  number: () => CoercedNumber,
+  positiveInt: () => CoercedNumber.check(Schema.isInt(), Schema.isGreaterThan(0)),
 };

@@ -6,7 +6,7 @@ import {
   type LocalPipelineDb,
   migrateLocalPipelineDb,
 } from "@bp/db/local";
-import { z } from "@bp/pipeline-v2/cli/compat";
+import { Schema } from "@bp/pipeline-v2/cli/compat";
 import { fromRepoRoot } from "./paths.ts";
 import { loadSpatialite } from "./spatialite.ts";
 
@@ -23,8 +23,8 @@ export type OpenLocalDbOptions = {
   readonly?: boolean;
 };
 
-export const dbOptions = z.object({
-  db: z.string().optional().describe("Local pipeline SQLite path"),
+export const dbOptions = Schema.Struct({
+  db: Schema.optionalKey(Schema.String).annotate({ description: "Local pipeline SQLite path" }),
 });
 
 export function defaultLocalPipelineDbPath(): string {

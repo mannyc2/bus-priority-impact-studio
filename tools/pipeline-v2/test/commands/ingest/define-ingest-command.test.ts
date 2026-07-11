@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { z } from "@bp/pipeline-v2/cli/compat";
+import { Schema } from "effect";
 import { defineIngestCommand } from "../../../src/commands/ingest/_define-ingest-command.ts";
 import { dbOptions } from "../../../src/lib/local-db.ts";
 
@@ -9,7 +9,7 @@ describe("defineIngestCommand", () => {
       path: ["ingest", "fixture"],
       summary: "Fixture ingest.",
       options: dbOptions,
-      output: z.object({ path: z.string() }),
+      output: Schema.Struct({ path: Schema.String }),
       operation: "runFixtureIngest",
       runner: async (local) => ({ path: local.path }),
     });
