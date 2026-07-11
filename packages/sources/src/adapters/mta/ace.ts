@@ -1,51 +1,56 @@
+import { decodePreserve } from "@bp/domain/decode";
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "@bp/domain/schema-compat";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { isoCalendarDateTime, schemaVersion } from "../../core/index.js";
 
-export const NormalizedAceRouteSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    routeId: z.string().min(1),
-    program: z.enum(["ABLE", "ACE"]),
-    implementationDate: z.iso.datetime(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const IsoDateTimeString = Schema.String.check(
+  Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+);
+const NonNegativeInteger = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
+const CoercedNonNegativeInteger = Schema.Unknown.pipe(
+  Schema.decodeTo(NonNegativeInteger, {
+    decode: SchemaGetter.transform((value) => Number(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
 
-export const NormalizedAceViolationSummarySchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    routeId: z.string().min(1),
-    violationType: z.string().min(1),
-    violationStatus: z.string().min(1),
-    violationCount: z.number().int().nonnegative(),
-  })
-  .strict();
+export const NormalizedAceRouteSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  routeId: NonEmptyString,
+  program: Schema.Literals(["ABLE", "ACE"]),
+  implementationDate: IsoDateTimeString,
+});
 
-export type NormalizedAceRoute = z.output<typeof NormalizedAceRouteSchema>;
-export type NormalizedAceViolationSummary = z.output<typeof NormalizedAceViolationSummarySchema>;
+export const NormalizedAceViolationSummarySchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  routeId: NonEmptyString,
+  violationType: NonEmptyString,
+  violationStatus: NonEmptyString,
+  violationCount: NonNegativeInteger,
+});
 
-const RawAceRouteRowSchema = z
-  .object({
-    route: z.string().min(1),
-    program: z.enum(["ABLE", "ACE"]),
-    implementation_date: z.string().min(1),
-  })
-  .passthrough();
+export type NormalizedAceRoute = typeof NormalizedAceRouteSchema.Type;
+export type NormalizedAceViolationSummary = typeof NormalizedAceViolationSummarySchema.Type;
 
-const RawAceViolationSummaryRowSchema = z
-  .object({
-    bus_route_id: z.string().min(1),
-    violation_type: z.string().min(1),
-    violation_status: z.string().min(1),
-    violation_count: z.coerce.number().int().nonnegative(),
-  })
-  .passthrough();
+const RawAceRouteRowSchema = Schema.Struct({
+  route: NonEmptyString,
+  program: Schema.Literals(["ABLE", "ACE"]),
+  implementation_date: NonEmptyString,
+});
+
+const RawAceViolationSummaryRowSchema = Schema.Struct({
+  bus_route_id: NonEmptyString,
+  violation_type: NonEmptyString,
+  violation_status: NonEmptyString,
+  violation_count: CoercedNonNegativeInteger,
+});
 
 export function normalizeAceRouteRows(rows: SocrataRow[]): NormalizedAceRoute[] {
   return rows
     .map((row) => {
-      const parsed = RawAceRouteRowSchema.parse(row);
+      const parsed = decodePreserve(RawAceRouteRowSchema)(row);
 
       return {
         schemaVersion,
@@ -69,7 +74,7 @@ export function normalizeAceViolationSummaryRows(
 ): NormalizedAceViolationSummary[] {
   return rows
     .map((row) => {
-      const parsed = RawAceViolationSummaryRowSchema.parse(row);
+      const parsed = decodePreserve(RawAceViolationSummaryRowSchema)(row);
 
       return {
         schemaVersion,
