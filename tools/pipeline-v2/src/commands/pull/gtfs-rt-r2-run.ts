@@ -1,6 +1,7 @@
+import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { type CloudflareCostSummary, estimateR2StandardCost } from "../../lib/cloudflare-costs.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 
@@ -258,31 +259,49 @@ export default defineCommand({
   path: ["pull", "gtfs-rt-r2-run"],
   summary: "Mirror GTFS-RT manifest + raw R2 objects to local disk for a stable run.",
   input: {
-    options: z.object({
-      bucket: z.string().min(1).describe("R2 bucket name (alias for --r2)"),
-      runId: z.string().min(1).describe("Stable run identifier"),
-      manifestList: z.string().min(1).describe("Path to manifest-list text file"),
-      output: z.string().optional().describe("Override output directory"),
-      endpoint: z.string().optional().describe("R2 S3 endpoint (overrides R2_ENDPOINT)"),
-      accountId: z.string().optional().describe("Cloudflare account ID (informational)"),
-      concurrency: arg.positiveInt().default(16).describe("Parallel mirror workers"),
-      execute: z.coerce.boolean().default(false).describe("Mirror objects (default dry-run)"),
+    options: Schema.Struct({
+      bucket: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "R2 bucket name (alias for --r2)",
+      }),
+      runId: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Stable run identifier",
+      }),
+      manifestList: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Path to manifest-list text file",
+      }),
+      output: Schema.optionalKey(Schema.String).annotate({
+        description: "Override output directory",
+      }),
+      endpoint: Schema.optionalKey(Schema.String).annotate({
+        description: "R2 S3 endpoint (overrides R2_ENDPOINT)",
+      }),
+      accountId: Schema.optionalKey(Schema.String).annotate({
+        description: "Cloudflare account ID (informational)",
+      }),
+      concurrency: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(16)))
+        .annotate({ description: "Parallel mirror workers" }),
+      execute: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Mirror objects (default dry-run)" }),
     }),
   },
-  output: z.object({
-    runId: z.string(),
-    bucket: z.string(),
-    outputDir: z.string(),
-    manifestRoot: z.string(),
-    manifestCount: z.number(),
-    downloadedCount: z.number(),
-    skippedCount: z.number(),
-    failedCount: z.number(),
-    dryRun: z.boolean(),
-    nextCommand: z.string(),
-    cost: z.object({
-      actual: z.unknown(),
-      projectedExecute: z.unknown(),
+  output: Schema.Struct({
+    runId: Schema.String,
+    bucket: Schema.String,
+    outputDir: Schema.String,
+    manifestRoot: Schema.String,
+    manifestCount: Schema.Number,
+    downloadedCount: Schema.Number,
+    skippedCount: Schema.Number,
+    failedCount: Schema.Number,
+    dryRun: Schema.Boolean,
+    nextCommand: Schema.String,
+    cost: Schema.Struct({
+      actual: Schema.Unknown,
+      projectedExecute: Schema.Unknown,
     }),
   }),
   async run({ input }) {
