@@ -4,13 +4,9 @@
   "type": "module",
   "description": "Deterministic local transforms and metrics.",
   "exports": {
-    ".": "./src/index.ts",
     "./artifacts": "./src/artifacts/index.ts",
     "./baselines": "./src/baselines/index.ts",
-    "./calibration": "./src/calibration/index.ts",
     "./core": "./src/core/index.ts",
-    "./corpus": "./src/corpus/index.ts",
-    "./detectors": "./src/detectors/index.ts",
     "./data-products": "./src/data-products/index.ts",
     "./evaluation": "./src/evaluation/index.ts",
     "./feature-history": "./src/feature-history/index.ts",
@@ -18,7 +14,6 @@
     "./hotspots": "./src/hotspots.ts",
     "./interventions": "./src/interventions/index.ts",
     "./public-route-visibility": "./src/public-route-visibility.ts",
-    "./registry": "./src/registry/index.ts",
     "./route-score": "./src/route-score.ts"
   },
   "scripts": {

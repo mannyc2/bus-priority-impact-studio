@@ -8201,3 +8201,10 @@ imports it.
 ADR-0017 retired that QA-gate doctrine; `scripts/publish-serving-release.sh` and the `studio release`
 command family remain the live publish path. The CLI registry now exposes 96 descriptors and no
 empty `pipeline` command group.
+
+## [2026-07-11] engineering | Plan 061 deletes the dead detector subgraph
+
+Deleted the unreachable detector, registry, calibration, corpus, and lattice subgraph from
+`packages/analytics`: about 13,600 source lines and 4,400 coupled test lines. Preserved the live,
+pure gold-set evaluator by moving it under `evaluation/` with focused coverage; all remaining
+analytics consumers now use explicit live subpath exports.

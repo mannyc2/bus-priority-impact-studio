@@ -12,12 +12,10 @@ import {
   buildCoverageAudit,
   buildEvidenceLink,
   clamp,
-  mergeThresholds,
   round,
   severityFromScore,
   stableId,
 } from "@bp/analytics/core";
-import { DEFAULT_DELAY_CONCENTRATION_THRESHOLDS } from "@bp/analytics/detectors";
 import { routeMonthFeatureKey } from "@bp/analytics/features";
 import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 
@@ -35,11 +33,6 @@ describe("analytics architecture primitives", () => {
     expect(severityFromScore(95)).toBe("high");
     expect(severityFromScore(70)).toBe("medium");
     expect(severityFromScore(60)).toBe("low");
-    expect(
-      mergeThresholds(DEFAULT_DELAY_CONCENTRATION_THRESHOLDS, {
-        minFleetForBenchmark: 12,
-      }).minFleetForBenchmark,
-    ).toBe(12);
   });
 
   test("builds schema-validated evidence and coverage rows", () => {

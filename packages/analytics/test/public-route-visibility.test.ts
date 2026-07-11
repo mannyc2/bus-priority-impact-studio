@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { classifyPublicRouteVisibility } from "../src/index.js";
+import { classifyPublicRouteVisibility } from "@bp/analytics/public-route-visibility";
 
 const visibleRoute = {
   routeId: "M1",

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { calculateRouteScore } from "@bp/analytics/route-score";
 import { RouteIdCodec } from "@bp/domain/primitives";
-import { calculateRouteScore } from "../src/index.js";
 
 const citation = {
   sourceId: "fixture.mta.bus.segment_speeds",

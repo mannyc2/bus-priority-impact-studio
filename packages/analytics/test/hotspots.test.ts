@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { SegmentSpeedObservation } from "../src/index.js";
-import { detectSegmentHotspots } from "../src/index.js";
+import { detectSegmentHotspots, type SegmentSpeedObservation } from "@bp/analytics/hotspots";
 
 const baseObservation = {
   routeId: "M1",
