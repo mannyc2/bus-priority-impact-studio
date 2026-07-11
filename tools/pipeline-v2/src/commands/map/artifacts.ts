@@ -46,6 +46,7 @@ import {
 } from "@bp/db/local";
 import {
   type MapBorough,
+  type MapBusLaneFeatureCollection,
   MapBusLaneFeatureCollectionSchema,
   MapContextFeatureCollectionSchema,
   MapLayerStatusSchema,
@@ -948,39 +949,61 @@ function stopsFeatureCollection(stops: readonly NormalizedStop[]): FeatureCollec
   };
 }
 
-function busLaneFeatureCollection(lanes: readonly LocalBusLane[]): FeatureCollection<
-  GeoJsonFeature<
-    LineStringGeometry,
-    {
-      segmentId: string;
-      street: string;
-      borough: string;
-      facility: string;
-      laneType: string | null;
-      openDate: string | null;
-    }
-  >
-> {
+export function normalizeBusLaneBorough(value: string): MapBorough | null {
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "MAN" || normalized === "MN") return "Manhattan";
+  if (normalized === "BK") return "Brooklyn";
+  if (normalized === "BX") return "Bronx";
+  if (normalized === "QNS" || normalized === "QN") return "Queens";
+  if (normalized === "SI") return "Staten Island";
+  return null;
+}
+
+export function normalizeBusLaneOpenDate(value: string | null): string | null {
+  if (value === null) return null;
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(value.trim());
+  if (match === null) return null;
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  const rawYear = Number(match[3]);
+  const year = rawYear < 100 ? (rawYear >= 70 ? 1900 + rawYear : 2000 + rawYear) : rawYear;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+export function busLaneFeatureCollection(
+  lanes: readonly LocalBusLane[],
+): MapBusLaneFeatureCollection {
   return {
     type: "FeatureCollection",
-    features: lanes
-      .filter((row) => row.coordinates.length >= 2)
-      .map((row) => ({
-        type: "Feature" as const,
-        id: ["bus-lane", row.segmentId].join(":"),
-        geometry: {
-          type: "LineString" as const,
-          coordinates: row.coordinates.map((coordinate) => roundedCoordinate(coordinate)),
+    features: lanes.flatMap((row) => {
+      const borough = normalizeBusLaneBorough(row.borough);
+      if (row.coordinates.length < 2 || borough === null) return [];
+      return [
+        {
+          type: "Feature" as const,
+          geometry: {
+            type: "LineString" as const,
+            coordinates: row.coordinates.map((coordinate) => roundedCoordinate(coordinate)),
+          },
+          properties: {
+            segmentId: row.segmentId,
+            street: row.street,
+            borough,
+            facility: row.facility,
+            laneType: row.laneType ?? null,
+            openDate: normalizeBusLaneOpenDate(row.openDate ?? null),
+          },
         },
-        properties: {
-          segmentId: row.segmentId,
-          street: row.street,
-          borough: row.borough,
-          facility: row.facility,
-          laneType: row.laneType ?? null,
-          openDate: row.openDate ?? null,
-        },
-      })),
+      ];
+    }),
   };
 }
 
@@ -1003,20 +1026,20 @@ function thinCoordinatePairs(
   coordinates: readonly (readonly [number, number])[],
 ): [number, number][] {
   if (coordinates.length <= 8) {
-    return coordinates.map(([lon, lat]) => [rounded(lon), rounded(lat)]);
+    return coordinates.map(([lon, lat]) => [rounded(lon, 5), rounded(lat, 5)]);
   }
   const step = Math.max(1, Math.ceil(coordinates.length / 18));
   const output: [number, number][] = [];
   for (let index = 0; index < coordinates.length; index += step) {
     const coordinate = coordinates[index];
     if (coordinate !== undefined) {
-      output.push([rounded(coordinate[0]), rounded(coordinate[1])]);
+      output.push([rounded(coordinate[0], 5), rounded(coordinate[1], 5)]);
     }
   }
   const last = coordinates.at(-1);
   if (last !== undefined) {
     const previous = output.at(-1);
-    const roundedLast: [number, number] = [rounded(last[0]), rounded(last[1])];
+    const roundedLast: [number, number] = [rounded(last[0], 5), rounded(last[1], 5)];
     if (
       previous === undefined ||
       previous[0] !== roundedLast[0] ||
