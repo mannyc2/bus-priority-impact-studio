@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { routeSpeedAvailabilityArtifactPath } from "@bp/analytics/artifacts";
@@ -7,7 +8,7 @@ import {
   type RouteSpeedAvailabilityResult,
   type RouteSpeedAvailabilitySourceId as RouteSpeedAvailabilitySourceIdValue,
 } from "@bp/analytics/evaluation";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { writeJson } from "../../lib/json.ts";
@@ -120,53 +121,54 @@ export default defineCommand({
   path: ["check", "route-speed-availability"],
   summary: "Check Socrata bus segment speeds for a complete route-speed month.",
   input: {
-    options: z.object({
-      startYear: arg
-        .positiveInt()
-        .optional()
-        .describe("Start of year range (defaults to last year)"),
-      endYear: arg
-        .positiveInt()
-        .optional()
-        .describe("End of year range (defaults to current year)"),
-      year: arg.positiveInt().optional().describe("Requested calendar year (with --month)"),
-      month: arg.positiveInt().optional().describe("Requested calendar month, 1-12 (with --year)"),
-      lastBuiltYear: arg
-        .positiveInt()
-        .optional()
-        .describe("Last built calendar year (with --last-built-month)"),
-      lastBuiltMonth: arg
-        .positiveInt()
-        .optional()
-        .describe("Last built calendar month, 1-12 (with --last-built-year)"),
+    options: Schema.Struct({
+      startYear: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Start of year range (defaults to last year)",
+      }),
+      endYear: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "End of year range (defaults to current year)",
+      }),
+      year: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Requested calendar year (with --month)",
+      }),
+      month: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Requested calendar month, 1-12 (with --year)",
+      }),
+      lastBuiltYear: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Last built calendar year (with --last-built-month)",
+      }),
+      lastBuiltMonth: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Last built calendar month, 1-12 (with --last-built-year)",
+      }),
       minSpeedRoutes: arg
         .positiveInt()
-        .default(1)
-        .describe("Minimum distinct route count for a 'complete' month"),
-      output: z.string().optional().describe("Override path for the artifact JSON"),
-      artifactRoot: z
-        .string()
-        .optional()
-        .describe("Artifact root directory (defaults to data/artifacts/)"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+        .annotate({ description: "Minimum distinct route count for a 'complete' month" }),
+      output: Schema.optionalKey(Schema.String).annotate({
+        description: "Override path for the artifact JSON",
+      }),
+      artifactRoot: Schema.optionalKey(Schema.String).annotate({
+        description: "Artifact root directory (defaults to data/artifacts/)",
+      }),
     }),
   },
-  output: z.object({
-    sourceId: z.literal(ROUTE_SPEED_AVAILABILITY_SOURCE_ID),
-    checkedAt: z.string(),
-    startYear: z.number(),
-    endYear: z.number(),
-    minSpeedRoutes: z.number(),
-    months: z.array(z.unknown()),
-    latestSpeedMonth: z.unknown().nullable(),
-    requestedMonth: z.unknown().nullable(),
-    releaseDecision: z.object({
-      status: z.string(),
-      latestCompleteMonth: z.string().nullable(),
-      lastBuiltMonth: z.string().nullable(),
-      shouldRebuild: z.boolean(),
-      reason: z.string(),
+  output: Schema.Struct({
+    sourceId: Schema.Literal(ROUTE_SPEED_AVAILABILITY_SOURCE_ID),
+    checkedAt: Schema.String,
+    startYear: Schema.Number,
+    endYear: Schema.Number,
+    minSpeedRoutes: Schema.Number,
+    months: Schema.Array(Schema.Unknown),
+    latestSpeedMonth: Schema.NullOr(Schema.Unknown),
+    requestedMonth: Schema.NullOr(Schema.Unknown),
+    releaseDecision: Schema.Struct({
+      status: Schema.String,
+      latestCompleteMonth: Schema.NullOr(Schema.String),
+      lastBuiltMonth: Schema.NullOr(Schema.String),
+      shouldRebuild: Schema.Boolean,
+      reason: Schema.String,
     }),
-    artifactPath: z.string(),
+    artifactPath: Schema.String,
   }),
   async run({ input }) {
     return runRouteSpeedAvailability({

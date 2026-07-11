@@ -1,6 +1,7 @@
 import { mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { decodeStrip } from "@bp/domain/decode";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { writeJson } from "../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
 
@@ -47,9 +48,9 @@ export type BusObservatoryAvailabilityResult = {
     compactedWindowNote: string;
   };
   coverage: {
-    expectedMonthFileDates: string[];
-    foundMonthFileDates: string[];
-    missingMonthFileDates: string[];
+    expectedMonthFileDates: readonly string[];
+    foundMonthFileDates: readonly string[];
+    missingMonthFileDates: readonly string[];
     bridgeFileDate: string;
     bridgeFilePresent: boolean;
     fileCount: number;
@@ -62,13 +63,13 @@ export type BusObservatoryAvailabilityResult = {
       | "third_party_partial_month_candidate"
       | "third_party_missing";
   };
-  objects: BusObservatoryObject[];
+  objects: readonly BusObservatoryObject[];
   qa: {
     rowLevelQaRequired: true;
-    checksBeforeUse: string[];
-    limitations: string[];
+    checksBeforeUse: readonly string[];
+    limitations: readonly string[];
   };
-  nextActions: string[];
+  nextActions: readonly string[];
   artifactPath?: string;
 };
 
@@ -76,60 +77,68 @@ const S3_BUCKET_URL = "https://busobservatory-lake.s3.amazonaws.com";
 const S3_PREFIX = "feeds/nyct_mta_bus_gtfsrt/";
 const FEED_NAME = "nyct_mta_bus_gtfsrt";
 
-export const BusObservatoryAvailabilityResultSchema = z.object({
-  sourceId: z.literal("bus_observatory_nyct_mta_bus_gtfsrt"),
-  checkedAt: z.string().min(1),
-  requestedMonth: z.string().regex(/^\d{4}-\d{2}$/),
-  provider: z.object({
-    name: z.literal("Bus Observatory"),
-    organization: z.literal("Jacobs Urban Tech Hub at Cornell Tech"),
-    documentationUrl: z.literal("https://api.busobservatory.org/nyct"),
-    bucket: z.literal("busobservatory-lake"),
-    prefix: z.literal("feeds/nyct_mta_bus_gtfsrt/"),
-    license: z.literal("CC BY-NC 4.0"),
-    attributionRequired: z.literal(true),
+export const BusObservatoryAvailabilityResultSchema = Schema.Struct({
+  sourceId: Schema.Literal("bus_observatory_nyct_mta_bus_gtfsrt"),
+  checkedAt: Schema.String.check(Schema.isMinLength(1)),
+  requestedMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  provider: Schema.Struct({
+    name: Schema.Literal("Bus Observatory"),
+    organization: Schema.Literal("Jacobs Urban Tech Hub at Cornell Tech"),
+    documentationUrl: Schema.Literal("https://api.busobservatory.org/nyct"),
+    bucket: Schema.Literal("busobservatory-lake"),
+    prefix: Schema.Literal("feeds/nyct_mta_bus_gtfsrt/"),
+    license: Schema.Literal("CC BY-NC 4.0"),
+    attributionRequired: Schema.Literal(true),
   }),
-  provenance: z.object({
-    gtfsRtSource: z.literal("third_party_recovered"),
-    officialMtaBackfill: z.literal(false),
-    officialSelfCollected: z.literal(false),
-    rawFormat: z.literal("parquet"),
-    feedName: z.literal("nyct_mta_bus_gtfsrt"),
-    compactedWindowNote: z.string().min(1),
+  provenance: Schema.Struct({
+    gtfsRtSource: Schema.Literal("third_party_recovered"),
+    officialMtaBackfill: Schema.Literal(false),
+    officialSelfCollected: Schema.Literal(false),
+    rawFormat: Schema.Literal("parquet"),
+    feedName: Schema.Literal("nyct_mta_bus_gtfsrt"),
+    compactedWindowNote: Schema.String.check(Schema.isMinLength(1)),
   }),
-  coverage: z.object({
-    expectedMonthFileDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
-    foundMonthFileDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
-    missingMonthFileDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
-    bridgeFileDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    bridgeFilePresent: z.boolean(),
-    fileCount: z.number().int().nonnegative(),
-    totalSizeBytes: z.number().int().nonnegative(),
-    minFileSizeBytes: z.number().int().nonnegative().nullable(),
-    maxFileSizeBytes: z.number().int().nonnegative().nullable(),
-    status: z.enum(["full_month_candidate", "partial_month_candidate", "missing"]),
-    candidateLabel: z.enum([
+  coverage: Schema.Struct({
+    expectedMonthFileDates: Schema.Array(
+      Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+    ),
+    foundMonthFileDates: Schema.Array(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/))),
+    missingMonthFileDates: Schema.Array(
+      Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+    ),
+    bridgeFileDate: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+    bridgeFilePresent: Schema.Boolean,
+    fileCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    totalSizeBytes: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    minFileSizeBytes: Schema.NullOr(
+      Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    ),
+    maxFileSizeBytes: Schema.NullOr(
+      Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    ),
+    status: Schema.Literals(["full_month_candidate", "partial_month_candidate", "missing"]),
+    candidateLabel: Schema.Literals([
       "third_party_full_month_candidate_pending_row_level_qa",
       "third_party_partial_month_candidate",
       "third_party_missing",
     ]),
   }),
-  objects: z.array(
-    z.object({
-      key: z.string().min(1),
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      lastModified: z.string().min(1),
-      sizeBytes: z.number().int().nonnegative(),
-      url: z.string().url(),
+  objects: Schema.Array(
+    Schema.Struct({
+      key: Schema.String.check(Schema.isMinLength(1)),
+      date: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+      lastModified: Schema.String.check(Schema.isMinLength(1)),
+      sizeBytes: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      url: Schema.String.check(Schema.isPattern(/^https?:\/\/\S+$/)),
     }),
   ),
-  qa: z.object({
-    rowLevelQaRequired: z.literal(true),
-    checksBeforeUse: z.array(z.string().min(1)),
-    limitations: z.array(z.string().min(1)),
+  qa: Schema.Struct({
+    rowLevelQaRequired: Schema.Literal(true),
+    checksBeforeUse: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+    limitations: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
   }),
-  nextActions: z.array(z.string().min(1)),
-  artifactPath: z.string().min(1).optional(),
+  nextActions: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  artifactPath: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
 });
 
 function isoMonth(year: number, month: number): string {
@@ -172,15 +181,11 @@ export async function readBusObservatoryAvailabilityArtifact(
 ): Promise<BusObservatoryAvailabilityResult | null> {
   const path = busObservatoryAvailabilityArtifactPath(artifactRoot, month);
   try {
-    return BusObservatoryAvailabilityResultSchema.parse(
+    return decodeStrip(BusObservatoryAvailabilityResultSchema)(
       JSON.parse(await readFile(path, "utf8")),
-    ) as BusObservatoryAvailabilityResult;
+    );
   } catch (error) {
-    if (
-      error instanceof Error &&
-      "code" in error &&
-      (error as NodeJS.ErrnoException).code === "ENOENT"
-    ) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
       return null;
     }
     throw error;
@@ -337,9 +342,7 @@ export async function runCheckBusObservatoryGtfsRt(
     artifactPath: outputPath,
   };
 
-  const parsed = BusObservatoryAvailabilityResultSchema.parse(
-    result,
-  ) as BusObservatoryAvailabilityResult;
+  const parsed = decodeStrip(BusObservatoryAvailabilityResultSchema)(result);
   await mkdir(dirname(outputPath), { recursive: true });
   await writeJson(outputPath, parsed);
   return parsed;
@@ -349,24 +352,30 @@ export default defineCommand({
   path: ["check", "bus-observatory-gtfs-rt"],
   summary: "Check Bus Observatory S3 for recovered GTFS-RT parquet files for a calendar month.",
   input: {
-    options: z.object({
-      year: arg.positiveInt().optional().describe("Calendar year (defaults to current)"),
-      month: arg.positiveInt().optional().describe("Calendar month, 1-12 (defaults to current)"),
-      artifactRoot: z.string().optional().describe("Artifact root directory"),
-      output: z.string().optional().describe("Override artifact JSON path"),
+    options: Schema.Struct({
+      year: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Calendar year (defaults to current)",
+      }),
+      month: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Calendar month, 1-12 (defaults to current)",
+      }),
+      artifactRoot: Schema.optionalKey(Schema.String).annotate({
+        description: "Artifact root directory",
+      }),
+      output: Schema.optionalKey(Schema.String).annotate({
+        description: "Override artifact JSON path",
+      }),
     }),
   },
-  output: z
-    .object({
-      sourceId: z.string(),
-      checkedAt: z.string(),
-      requestedMonth: z.string(),
-      coverage: z.unknown(),
-      objects: z.array(z.unknown()),
-      nextActions: z.array(z.string()),
-      artifactPath: z.string().optional(),
-    })
-    .passthrough(),
+  output: Schema.Struct({
+    sourceId: Schema.String,
+    checkedAt: Schema.String,
+    requestedMonth: Schema.String,
+    coverage: Schema.Unknown,
+    objects: Schema.Array(Schema.Unknown),
+    nextActions: Schema.Array(Schema.String),
+    artifactPath: Schema.optionalKey(Schema.String),
+  }),
   async run({ input }) {
     return runCheckBusObservatoryGtfsRt({
       year: input.options.year,
