@@ -1,6 +1,7 @@
+import { Effect } from "effect";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 
 /**
@@ -136,25 +137,33 @@ export default defineCommand({
   path: ["map", "context"],
   summary: "Build the simplified NYC borough shoreline GeoJSON map-context artifact.",
   input: {
-    options: z.object({
-      source: z.string().optional().describe("Override borough-boundary CSV path"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
+    options: Schema.Struct({
+      source: Schema.optionalKey(Schema.String).annotate({
+        description: "Override borough-boundary CSV path",
+      }),
+      artifactRoot: Schema.optionalKey(Schema.String).annotate({
+        description: "Override artifact root directory",
+      }),
       toleranceDegrees: arg
         .number()
-        .default(0.0004)
-        .describe("Douglas-Peucker simplification tolerance in degrees (~40m default)"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0.0004)))
+        .annotate({
+          description: "Douglas-Peucker simplification tolerance in degrees (~40m default)",
+        }),
       minRingArea: arg
         .number()
-        .default(0.00001)
-        .describe("Drop rings smaller than this area in square degrees (tiny islands)"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0.00001)))
+        .annotate({
+          description: "Drop rings smaller than this area in square degrees (tiny islands)",
+        }),
     }),
   },
-  output: z.object({
-    artifactPath: z.string(),
-    boroughCount: z.number(),
-    ringCount: z.number(),
-    pointCount: z.number(),
-    byteLength: z.number(),
+  output: Schema.Struct({
+    artifactPath: Schema.String,
+    boroughCount: Schema.Number,
+    ringCount: Schema.Number,
+    pointCount: Schema.Number,
+    byteLength: Schema.Number,
   }),
   async run({ input }) {
     const sourcePath =

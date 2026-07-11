@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
@@ -37,7 +38,7 @@ import {
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type NormalizedRouteShape,
   type NormalizedStop,
@@ -1228,24 +1229,41 @@ export default defineCommand({
   path: ["map", "artifacts"],
   summary: "Build map GeoJSON artifacts (routes, stops, bus lanes, route segments) and manifest.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      routeShapeSnapshot: z.string().optional().describe("Override route-shape snapshot path"),
-      stopSnapshot: z.string().optional().describe("Override stop snapshot path"),
-      busLaneSnapshot: z.string().optional().describe("Override bus-lane snapshot path"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        routeShapeSnapshot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override route-shape snapshot path",
+        }),
+        stopSnapshot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override stop snapshot path",
+        }),
+        busLaneSnapshot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override bus-lane snapshot path",
+        }),
+      },
     }),
   },
-  output: z.object({
-    isoMonth: z.string(),
-    manifestPath: z.string(),
-    artifactCount: z.number(),
-    routeSegmentArtifactCount: z.number(),
-    routeSegmentFeatureCount: z.number(),
-    totalFeatureCount: z.number(),
-    totalByteLength: z.number(),
-    publicRouteCount: z.number(),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    manifestPath: Schema.String,
+    artifactCount: Schema.Number,
+    routeSegmentArtifactCount: Schema.Number,
+    routeSegmentFeatureCount: Schema.Number,
+    totalFeatureCount: Schema.Number,
+    totalByteLength: Schema.Number,
+    publicRouteCount: Schema.Number,
   }),
   async run({ input }) {
     const artifactRoot =
