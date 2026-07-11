@@ -65,16 +65,26 @@ import {
   normalizeStopRows,
 } from "@bp/sources/adapters/mta/routes-stops";
 import { Effect, Result } from "effect";
-import { localTransformConcurrency, runBoundedPromises } from "../../effect/concurrency.ts";
+import {
+  localTransformConcurrency,
+  runBoundedPromises,
+} from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
-import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import {
+  defaultArtifactRootPath,
+  fromCliPath,
+  fromRepoRoot,
+} from "../../lib/paths.ts";
 import {
   type LoadedRouteSpeedSpineCrosswalk,
   loadRouteSpeedSpineCrosswalk,
 } from "../../lib/route-speed-spine-crosswalk.ts";
-import { decodeSchemaEitherStrict, decodeSchemaStrict } from "../../lib/schema-decode.ts";
+import {
+  decodeSchemaEitherStrict,
+  decodeSchemaStrict,
+} from "../../lib/schema-decode.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
 import { pointInPolygon } from "./context.ts";
 
@@ -211,7 +221,10 @@ export async function servedBoroughsByRoute(input: {
 }): Promise<Map<string, MapBorough[]> | null> {
   const contextFile = Bun.file(input.contextPath);
   if (!(await contextFile.exists())) return null;
-  const context = decodeSchemaStrict(MapContextFeatureCollectionSchema, await contextFile.json());
+  const context = decodeSchemaStrict(
+    MapContextFeatureCollectionSchema,
+    await contextFile.json(),
+  );
   const result = new Map<string, Set<MapBorough>>();
   for (const stop of input.stops) {
     if (!stop.inEffect) continue;
@@ -227,7 +240,9 @@ export async function servedBoroughsByRoute(input: {
     }
   }
   return new Map(
-    [...result].map(([routeId, boroughs]) => [routeId, [...boroughs].toSorted()] as const),
+    [...result].map(
+      ([routeId, boroughs]) => [routeId, [...boroughs].toSorted()] as const,
+    ),
   );
 }
 
@@ -252,7 +267,9 @@ function routeSegmentIdFor(
     toStopId: input.row.nextTimepointStopId,
   });
   if (classified.status !== "keyed") {
-    throw new Error(`Published map segment ${input.routeId} ${input.month} has no stop pair.`);
+    throw new Error(
+      `Published map segment ${input.routeId} ${input.month} has no stop pair.`,
+    );
   }
   return serializeSourceSegmentId(classified.key);
 }
@@ -274,7 +291,9 @@ function roundedCoordinate(coordinate: Coordinate): [number, number] {
   return [rounded(coordinate.longitude), rounded(coordinate.latitude)];
 }
 
-function uniqueCoordinateList(coordinates: readonly Coordinate[]): Coordinate[] {
+function uniqueCoordinateList(
+  coordinates: readonly Coordinate[],
+): Coordinate[] {
   const output: Coordinate[] = [];
   for (const coordinate of coordinates) {
     const previous = output.at(-1);
@@ -314,7 +333,9 @@ export async function readMapArtifactManifest(input: {
   artifactRoot: string;
   month: string;
 }): Promise<MapArtifactManifest | null> {
-  const file = Bun.file(mapArtifactManifestPath(input.artifactRoot, input.month));
+  const file = Bun.file(
+    mapArtifactManifestPath(input.artifactRoot, input.month),
+  );
   if (!(await file.exists())) {
     return null;
   }
@@ -450,7 +471,9 @@ async function verifyRouteFactsReference(input: {
       const factRouteIds = new Set<string>(
         facts.routes.map((fact) => fact.route.routeId as string),
       );
-      const missing = input.expectedRouteIds.filter((routeId) => !factRouteIds.has(routeId));
+      const missing = input.expectedRouteIds.filter(
+        (routeId) => !factRouteIds.has(routeId),
+      );
       if (missing.length > 0) {
         issues.push({
           code: "map_route_facts_routes_missing",
@@ -488,12 +511,15 @@ export async function verifyMapArtifactManifest(input: {
       ? []
       : [
           ...(
-            await runBoundedPromises(manifest.artifacts, localTransformConcurrency, (artifact) =>
-              verifyArtifactFile({
-                artifactRoot: input.artifactRoot,
-                month: input.month,
-                artifact,
-              }),
+            await runBoundedPromises(
+              manifest.artifacts,
+              localTransformConcurrency,
+              (artifact) =>
+                verifyArtifactFile({
+                  artifactRoot: input.artifactRoot,
+                  month: input.month,
+                  artifact,
+                }),
             )
           ).flat(),
           ...(await verifyRouteFactsReference({
@@ -511,8 +537,12 @@ export async function verifyMapArtifactManifest(input: {
     month: input.month,
     manifest,
     artifactIssues,
-    ...(input.expectedRouteIds === undefined ? {} : { expectedRouteIds: input.expectedRouteIds }),
-    ...(input.expectedProfile === undefined ? {} : { expectedProfile: input.expectedProfile }),
+    ...(input.expectedRouteIds === undefined
+      ? {}
+      : { expectedRouteIds: input.expectedRouteIds }),
+    ...(input.expectedProfile === undefined
+      ? {}
+      : { expectedProfile: input.expectedProfile }),
   });
 }
 
@@ -530,18 +560,25 @@ function extractLineStrings(geometry: unknown): Coordinate[][] {
     ];
   }
 
-  if (candidate.type === "MultiLineString" && Array.isArray(candidate.coordinates)) {
+  if (
+    candidate.type === "MultiLineString" &&
+    Array.isArray(candidate.coordinates)
+  ) {
     return candidate.coordinates
       .filter((line): line is unknown[] => Array.isArray(line))
       .map((line) =>
-        line.filter(isCoordinatePair).map((coordinate) => coordinateFromPair(coordinate)),
+        line
+          .filter(isCoordinatePair)
+          .map((coordinate) => coordinateFromPair(coordinate)),
       );
   }
 
   return [];
 }
 
-function normalizedRouteShapes(rows: readonly NormalizedRouteShape[]): RouteShapePath[] {
+function normalizedRouteShapes(
+  rows: readonly NormalizedRouteShape[],
+): RouteShapePath[] {
   return rows.flatMap((row) => {
     if (!row.inEffect || !isDirectionId(row.directionId)) {
       return [];
@@ -571,7 +608,8 @@ function metersBetween(left: Coordinate, right: Coordinate): number {
   const deltaLat = (right.latitude - left.latitude) * toRadians;
   const deltaLon = (right.longitude - left.longitude) * toRadians;
   const a =
-    Math.sin(deltaLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
 
   return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
@@ -597,7 +635,10 @@ function projectPointToSegment(
   const segmentShare =
     lengthSquared === 0
       ? 0
-      : Math.max(0, Math.min(1, ((px - sx) * dx + (py - sy) * dy) / lengthSquared));
+      : Math.max(
+          0,
+          Math.min(1, ((px - sx) * dx + (py - sy) * dy) / lengthSquared),
+        );
   const nearest = {
     longitude: (sx + segmentShare * dx) / metersPerDegreeLongitude,
     latitude: (sy + segmentShare * dy) / metersPerDegreeLatitude,
@@ -610,7 +651,10 @@ function projectPointToSegment(
   };
 }
 
-function projectPointToShape(point: Coordinate, shape: RouteShapePath): Projection | null {
+function projectPointToShape(
+  point: Coordinate,
+  shape: RouteShapePath,
+): Projection | null {
   let best: Projection | null = null;
   let accumulatedMeters = 0;
 
@@ -625,11 +669,15 @@ function projectPointToShape(point: Coordinate, shape: RouteShapePath): Projecti
     const projection = projectPointToSegment(point, start, end);
     const candidate: Projection = {
       coordinate: projection.coordinate,
-      distanceAlongMeters: accumulatedMeters + segmentLengthMeters * projection.segmentShare,
+      distanceAlongMeters:
+        accumulatedMeters + segmentLengthMeters * projection.segmentShare,
       distanceToLineMeters: projection.distanceMeters,
       segmentIndex: index,
     };
-    if (best === null || candidate.distanceToLineMeters < best.distanceToLineMeters) {
+    if (
+      best === null ||
+      candidate.distanceToLineMeters < best.distanceToLineMeters
+    ) {
       best = candidate;
     }
     accumulatedMeters += segmentLengthMeters;
@@ -643,12 +691,17 @@ function sliceShape(
   startProjection: Projection,
   endProjection: Projection,
 ): Coordinate[] {
-  const forward = startProjection.distanceAlongMeters <= endProjection.distanceAlongMeters;
+  const forward =
+    startProjection.distanceAlongMeters <= endProjection.distanceAlongMeters;
   const start = forward ? startProjection : endProjection;
   const end = forward ? endProjection : startProjection;
   const coordinates: Coordinate[] = [start.coordinate];
 
-  for (let index = start.segmentIndex + 1; index <= end.segmentIndex; index += 1) {
+  for (
+    let index = start.segmentIndex + 1;
+    index <= end.segmentIndex;
+    index += 1
+  ) {
     const coordinate = shape.coordinates[index];
     if (coordinate !== undefined) {
       coordinates.push(coordinate);
@@ -683,10 +736,15 @@ function segmentGeometry(
       continue;
     }
 
-    const orderPenalty = start.distanceAlongMeters <= end.distanceAlongMeters ? 0 : 1_000_000;
+    const orderPenalty =
+      start.distanceAlongMeters <= end.distanceAlongMeters ? 0 : 1_000_000;
     const candidate = {
-      endpointDistanceMeters: Math.max(start.distanceToLineMeters, end.distanceToLineMeters),
-      geometryDistanceMeters: start.distanceToLineMeters + end.distanceToLineMeters,
+      endpointDistanceMeters: Math.max(
+        start.distanceToLineMeters,
+        end.distanceToLineMeters,
+      ),
+      geometryDistanceMeters:
+        start.distanceToLineMeters + end.distanceToLineMeters,
       orderPenalty,
       coordinates,
     };
@@ -709,7 +767,9 @@ function segmentGeometry(
   };
 }
 
-function weightedAverageSpeed(rows: readonly LocalRouteSegmentSpeed[]): number | null {
+function weightedAverageSpeed(
+  rows: readonly LocalRouteSegmentSpeed[],
+): number | null {
   let weightedSpeed = 0;
   let totalWeight = 0;
   for (const row of rows) {
@@ -736,15 +796,21 @@ function segmentGroups(input: {
 }): RouteSegmentGroup[] {
   const groups = new Map<string, LocalRouteSegmentSpeed[]>();
   for (const row of input.rows) {
-    const segmentId = routeSegmentIdFor({ routeId: input.routeId, month: input.month, row });
-    const group = groups.get(segmentId) ?? [];
+    const physicalSegmentKey = [
+      row.direction,
+      row.timepointStopId,
+      row.nextTimepointStopId,
+    ].join(":");
+    const group = groups.get(physicalSegmentKey) ?? [];
     group.push(row);
-    groups.set(segmentId, group);
+    groups.set(physicalSegmentKey, group);
   }
 
-  return [...groups.entries()]
-    .map(([segmentId, rows]) => {
-      const first = rows[0];
+  return [...groups.values()]
+    .map((rows) => {
+      const first = rows.toSorted(
+        (left, right) => left.stopOrder - right.stopOrder,
+      )[0];
       if (first === undefined) {
         return null;
       }
@@ -754,7 +820,11 @@ function segmentGroups(input: {
       }
 
       return {
-        segmentId,
+        segmentId: routeSegmentIdFor({
+          routeId: input.routeId,
+          month: input.month,
+          row: first,
+        }),
         routeId: input.routeId,
         month: input.month,
         direction: first.direction,
@@ -801,7 +871,10 @@ function routeSegmentsFeatureCollection(input: {
   const features: unknown[] = [];
 
   for (const segment of input.segments) {
-    const geometry = segmentGeometry(segment, input.shapesByDirection.get(segment.direction) ?? []);
+    const geometry = segmentGeometry(
+      segment,
+      input.shapesByDirection.get(segment.direction) ?? [],
+    );
     if (geometry === null) {
       continue;
     }
@@ -837,7 +910,8 @@ function routeSegmentsFeatureCollection(input: {
         segmentId: segment.segmentId,
         sourceSegmentId,
         studioSegmentId,
-        spineSegmentId: spineMatch?.status === "matched" ? spineMatch.spineSegmentId : null,
+        spineSegmentId:
+          spineMatch?.status === "matched" ? spineMatch.spineSegmentId : null,
         spineJoinStatus:
           input.spine.status === "not_built"
             ? "not_built"
@@ -863,7 +937,9 @@ function routeSegmentsFeatureCollection(input: {
   });
 }
 
-function routeShapesFeatureCollection(shapes: readonly RouteShapePath[]): FeatureCollection<
+function routeShapesFeatureCollection(
+  shapes: readonly RouteShapePath[],
+): FeatureCollection<
   GeoJsonFeature<
     LineStringGeometry,
     {
@@ -880,7 +956,9 @@ function routeShapesFeatureCollection(shapes: readonly RouteShapePath[]): Featur
   return {
     type: "FeatureCollection",
     features: shapes
-      .filter((row) => row.routeType !== null && displayRouteTypes.has(row.routeType))
+      .filter(
+        (row) => row.routeType !== null && displayRouteTypes.has(row.routeType),
+      )
       .flatMap((row, index) => ({
         type: "Feature" as const,
         id: routeShapeId(row, index),
@@ -901,7 +979,9 @@ function routeShapesFeatureCollection(shapes: readonly RouteShapePath[]): Featur
   };
 }
 
-function stopsFeatureCollection(stops: readonly NormalizedStop[]): FeatureCollection<
+function stopsFeatureCollection(
+  stops: readonly NormalizedStop[],
+): FeatureCollection<
   GeoJsonFeature<
     PointGeometry,
     {
@@ -924,7 +1004,10 @@ function stopsFeatureCollection(stops: readonly NormalizedStop[]): FeatureCollec
         id: ["stop", row.routeId, row.directionId, row.stopId].join(":"),
         geometry: {
           type: "Point" as const,
-          coordinates: roundedCoordinate({ longitude: row.longitude, latitude: row.latitude }),
+          coordinates: roundedCoordinate({
+            longitude: row.longitude,
+            latitude: row.latitude,
+          }),
         },
         properties: {
           routeId: row.routeId,
@@ -939,7 +1022,9 @@ function stopsFeatureCollection(stops: readonly NormalizedStop[]): FeatureCollec
   };
 }
 
-function busLaneFeatureCollection(lanes: readonly LocalBusLane[]): FeatureCollection<
+function busLaneFeatureCollection(
+  lanes: readonly LocalBusLane[],
+): FeatureCollection<
   GeoJsonFeature<
     LineStringGeometry,
     {
@@ -961,7 +1046,9 @@ function busLaneFeatureCollection(lanes: readonly LocalBusLane[]): FeatureCollec
         id: ["bus-lane", row.segmentId].join(":"),
         geometry: {
           type: "LineString" as const,
-          coordinates: row.coordinates.map((coordinate) => roundedCoordinate(coordinate)),
+          coordinates: row.coordinates.map((coordinate) =>
+            roundedCoordinate(coordinate),
+          ),
         },
         properties: {
           segmentId: row.segmentId,
@@ -983,7 +1070,10 @@ function routeHourEvidence(speedRows: readonly LocalRouteSegmentSpeed[]): {
   const hourlyTraversalCount: number[] = [];
   for (let hour = 0; hour < 24; hour += 1) {
     const rows = speedRows.filter((row) => row.hourOfDay === hour);
-    const traversalCount = rows.reduce((sum, row) => sum + Math.max(0, row.busTripCount), 0);
+    const traversalCount = rows.reduce(
+      (sum, row) => sum + Math.max(0, row.busTripCount),
+      0,
+    );
     hourlyTraversalCount.push(traversalCount);
     hourlySpeedMph.push(traversalCount > 0 ? weightedAverageSpeed(rows) : null);
   }
@@ -1044,7 +1134,8 @@ export function buildNetworkMapFeatureCollection(input: {
             month: route.summary.month,
             ...hourly,
             servedBoroughs: route.servedBoroughs ?? [],
-            servedBoroughsStatus: route.servedBoroughs === undefined ? "unavailable" : "verified",
+            servedBoroughsStatus:
+              route.servedBoroughs === undefined ? "unavailable" : "verified",
           },
         },
       ];
@@ -1090,7 +1181,9 @@ async function readSnapshotMetadata(input: {
   };
 }
 
-async function readRouteShapeSnapshot(path: string): Promise<RouteShapeSnapshot> {
+async function readRouteShapeSnapshot(
+  path: string,
+): Promise<RouteShapeSnapshot> {
   const snapshot = await readSnapshotMetadata({
     sourceId: "current_bus_routes",
     snapshotPath: path,
@@ -1120,7 +1213,9 @@ async function readStopSnapshot(path: string): Promise<StopSnapshot> {
   };
 }
 
-function shapesByRouteDirection(shapes: readonly RouteShapePath[]): Map<string, RouteShapePath[]> {
+function shapesByRouteDirection(
+  shapes: readonly RouteShapePath[],
+): Map<string, RouteShapePath[]> {
   const output = new Map<string, RouteShapePath[]>();
   for (const shape of shapes) {
     const key = routeKey(shape.routeId, shape.direction);
@@ -1131,7 +1226,9 @@ function shapesByRouteDirection(shapes: readonly RouteShapePath[]): Map<string, 
   return output;
 }
 
-function directionIdsByRouteDirection(shapes: readonly RouteShapePath[]): Map<string, "0" | "1"> {
+function directionIdsByRouteDirection(
+  shapes: readonly RouteShapePath[],
+): Map<string, "0" | "1"> {
   const output = new Map<string, "0" | "1">();
   for (const shape of shapes) {
     const key = routeKey(shape.routeId, shape.direction);
@@ -1158,7 +1255,10 @@ async function writeJsonArtifact(input: {
   return artifact.entry;
 }
 
-async function readMapBuildRows(input: { local: OpenLocalPipelineDb; month: string }): Promise<{
+async function readMapBuildRows(input: {
+  local: OpenLocalPipelineDb;
+  month: string;
+}): Promise<{
   publicRouteIds: string[];
   busLanes: LocalBusLane[];
   routeRows: {
@@ -1183,7 +1283,9 @@ async function readMapBuildRows(input: { local: OpenLocalPipelineDb; month: stri
     async (routeId) => {
       const summary = summariesByRoute.get(routeId);
       if (summary === undefined) {
-        throw new Error(`Missing route brief summary for public route ${routeId}`);
+        throw new Error(
+          `Missing route brief summary for public route ${routeId}`,
+        );
       }
       const [speedRows, hotspots] = await Promise.all([
         listRouteSegmentSpeeds(input.local.db, routeId, input.month),
@@ -1211,16 +1313,22 @@ export type MapArtifactsInputs = {
   routeIds?: readonly string[] | undefined;
 };
 
-export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArtifactsResult> {
+export async function runMapArtifacts(
+  args: MapArtifactsInputs,
+): Promise<MapArtifactsResult> {
   const isoMonthStr = isoMonth(args.year, args.month);
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
   const speedSpineRoot = args.speedSpineRoot ?? artifactRoot;
   const generatedAt = new Date().toISOString();
   const routeFactsPath =
-    args.routeFactsPath ?? join(artifactRoot, "studio", "v1", "map-route-facts.json");
+    args.routeFactsPath ??
+    join(artifactRoot, "studio", "v1", "map-route-facts.json");
   const routeFactsFile = Bun.file(routeFactsPath);
   const routeFacts = (await routeFactsFile.exists())
-    ? decodeSchemaStrict(MapRouteFactsResponseSchema, await routeFactsFile.json())
+    ? decodeSchemaStrict(
+        MapRouteFactsResponseSchema,
+        await routeFactsFile.json(),
+      )
     : null;
   if (routeFacts !== null && routeFacts.baselineMonth !== isoMonthStr) {
     throw new Error(
@@ -1228,13 +1336,20 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     );
   }
   if (args.releaseProfile === "full" && routeFacts === null) {
-    throw new Error(`Full map release requires route facts at ${routeFactsPath}.`);
+    throw new Error(
+      `Full map release requires route facts at ${routeFactsPath}.`,
+    );
   }
   const routeFactsBytes =
-    routeFacts === null ? null : new Uint8Array(await routeFactsFile.arrayBuffer());
+    routeFacts === null
+      ? null
+      : new Uint8Array(await routeFactsFile.arrayBuffer());
   const routeFactsReference: MapArtifactManifest["routeFacts"] =
     routeFacts === null
-      ? { status: "unavailable", reason: "Same-month map route facts are unavailable." }
+      ? {
+          status: "unavailable",
+          reason: "Same-month map route facts are unavailable.",
+        }
       : {
           status: "available",
           artifactKey: "studio/v1/map-route-facts.json",
@@ -1243,19 +1358,27 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
           baselineMonth: routeFacts.baselineMonth,
           routeCount: routeFacts.routes.length,
           byteLength: (routeFactsBytes as Uint8Array).byteLength,
-          gzipByteLength: gzipSync(routeFactsBytes as Uint8Array, { level: 9 }).byteLength,
+          gzipByteLength: gzipSync(routeFactsBytes as Uint8Array, { level: 9 })
+            .byteLength,
         };
   const routeShapeSnapshot = await readRouteShapeSnapshot(
     args.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath(),
   );
-  const stopSnapshot = await readStopSnapshot(args.stopSnapshotPath ?? defaultStopSnapshotPath());
+  const stopSnapshot = await readStopSnapshot(
+    args.stopSnapshotPath ?? defaultStopSnapshotPath(),
+  );
   const contextPath = args.contextPath ?? defaultContextPath(artifactRoot);
   const contextFile = Bun.file(contextPath);
   const context = (await contextFile.exists())
-    ? decodeSchemaStrict(MapContextFeatureCollectionSchema, await contextFile.json())
+    ? decodeSchemaStrict(
+        MapContextFeatureCollectionSchema,
+        await contextFile.json(),
+      )
     : null;
   const contextSourceFile =
-    args.contextSourcePath === undefined ? null : Bun.file(args.contextSourcePath);
+    args.contextSourcePath === undefined
+      ? null
+      : Bun.file(args.contextSourcePath);
   const contextSourceBytes =
     contextSourceFile !== null && (await contextSourceFile.exists())
       ? new Uint8Array(await contextSourceFile.arrayBuffer())
@@ -1266,7 +1389,10 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     embeddedSha256: context?.sourceRevision.sha256 ?? null,
     sourceSha256: contextSourceSha256,
   });
-  if (args.releaseProfile === "full" && contextCurrency.status !== "revision_pinned") {
+  if (
+    args.releaseProfile === "full" &&
+    contextCurrency.status !== "revision_pinned"
+  ) {
     throw new Error(
       `Full map release requires borough context pinned to its exact source bytes: ${contextCurrency.reason}`,
     );
@@ -1284,7 +1410,9 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     local: args.local,
     month: options.isoMonth,
   });
-  const routeFilter = new Set((args.routeIds ?? []).map((routeId) => routeId.trim().toUpperCase()));
+  const routeFilter = new Set(
+    (args.routeIds ?? []).map((routeId) => routeId.trim().toUpperCase()),
+  );
   const selectedRouteRows = rows.routeRows.filter(
     (route) => routeFilter.size === 0 || routeFilter.has(route.routeId),
   );
@@ -1302,7 +1430,9 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     coveragePassed:
       selectedRouteRows.length > 0 &&
       selectedRouteRows.every((route) =>
-        route.speedRows.some((row) => row.busTripCount > 0 && row.averageRoadSpeedMph >= 0),
+        route.speedRows.some(
+          (row) => row.busTripCount > 0 && row.averageRoadSpeedMph >= 0,
+        ),
       ),
   });
   const routeFactsCurrency = evaluateAnalysisPeriodCurrency({
@@ -1332,13 +1462,19 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     }
   }
   const shapesByDirection = shapesByRouteDirection(routeShapeSnapshot.shapes);
-  const directionIdByDirection = directionIdsByRouteDirection(routeShapeSnapshot.shapes);
+  const directionIdByDirection = directionIdsByRouteDirection(
+    routeShapeSnapshot.shapes,
+  );
   const sourcePayload = {
     schemaVersion: MAP_ARTIFACT_SCHEMA_VERSION,
     artifactKind: "map_source_snapshot",
     analysisPeriod: options.isoMonth,
     generatedAt,
-    sources: [routeShapeSnapshot.metadata, stopSnapshot.metadata, busLaneSnapshot.metadata],
+    sources: [
+      routeShapeSnapshot.metadata,
+      stopSnapshot.metadata,
+      busLaneSnapshot.metadata,
+    ],
   };
   const routeShapes = routeShapesFeatureCollection(routeShapeSnapshot.shapes);
   const stops = stopsFeatureCollection(stopSnapshot.stops);
@@ -1372,8 +1508,15 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   }
   artifacts.push(
     await writeJsonArtifact({
-      path: mapArtifactPath(artifactRoot, "routes", "current-local-limited-sbs.min.geojson"),
-      artifactKey: mapArtifactKey("routes", "current-local-limited-sbs.min.geojson"),
+      path: mapArtifactPath(
+        artifactRoot,
+        "routes",
+        "current-local-limited-sbs.min.geojson",
+      ),
+      artifactKey: mapArtifactKey(
+        "routes",
+        "current-local-limited-sbs.min.geojson",
+      ),
       artifactKind: "map_route_shapes_geojson",
       contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
@@ -1383,7 +1526,11 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   );
   artifacts.push(
     await writeJsonArtifact({
-      path: mapArtifactPath(artifactRoot, "stops", "current-timepoints.min.geojson"),
+      path: mapArtifactPath(
+        artifactRoot,
+        "stops",
+        "current-timepoints.min.geojson",
+      ),
       artifactKey: mapArtifactKey("stops", "current-timepoints.min.geojson"),
       artifactKind: "map_timepoint_stops_geojson",
       contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
@@ -1419,7 +1566,11 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     busLaneBudgetIssues.length === 0 &&
     busLaneContractValid
   ) {
-    const busLanePath = mapArtifactPath(artifactRoot, "bus-lanes", "local-streets.min.geojson");
+    const busLanePath = mapArtifactPath(
+      artifactRoot,
+      "bus-lanes",
+      "local-streets.min.geojson",
+    );
     await mkdir(dirname(busLanePath), { recursive: true });
     await Bun.write(busLanePath, busLaneArtifact.bytes);
     artifacts.push(busLaneArtifact.entry);
@@ -1438,7 +1589,8 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       }
       for (const [key, value] of shapesByDirection) {
         const [routeId, direction] = key.split(":");
-        if (routeId === route.routeId && direction !== undefined) routeShapes.set(direction, value);
+        if (routeId === route.routeId && direction !== undefined)
+          routeShapes.set(direction, value);
       }
 
       const segments = segmentGroups({
@@ -1481,7 +1633,10 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
           `Map route ${route.routeId} is series_ready but has ${unmatchedSegmentCount} unmatched current segments.`,
         );
       }
-      const artifactKey = routeSegmentMapArtifactKey(route.routeId, options.isoMonth);
+      const artifactKey = routeSegmentMapArtifactKey(
+        route.routeId,
+        options.isoMonth,
+      );
       return {
         networkRoute: {
           routeId: route.routeId,
@@ -1508,11 +1663,20 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     networkRoutes.push(result.networkRoute);
     artifacts.push(result.artifact);
   }
-  const networkPayload = buildNetworkMapFeatureCollection({ routes: networkRoutes });
+  const networkPayload = buildNetworkMapFeatureCollection({
+    routes: networkRoutes,
+  });
   artifacts.push(
     await writeJsonArtifact({
-      path: mapArtifactPath(artifactRoot, options.isoMonth, "network-simplified.geojson"),
-      artifactKey: mapArtifactKey(options.isoMonth, "network-simplified.geojson"),
+      path: mapArtifactPath(
+        artifactRoot,
+        options.isoMonth,
+        "network-simplified.geojson",
+      ),
+      artifactKey: mapArtifactKey(
+        options.isoMonth,
+        "network-simplified.geojson",
+      ),
       artifactKind: "map_network_simplified_geojson",
       contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
@@ -1524,7 +1688,9 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const routeSegmentFeatureCount = artifacts
     .filter((row) => row.artifactKind === "map_route_segments_geojson")
     .reduce((sum, row) => sum + row.featureCount, 0);
-  const artifactFor = (kind: MapArtifactEntry["artifactKind"]): MapArtifactEntry | null =>
+  const artifactFor = (
+    kind: MapArtifactEntry["artifactKind"],
+  ): MapArtifactEntry | null =>
     artifacts.find((artifact) => artifact.artifactKind === kind) ?? null;
   const routeSegmentArtifacts = artifacts.filter(
     (artifact) => artifact.artifactKind === "map_route_segments_geojson",
@@ -1565,7 +1731,8 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       sourceId: "mta_bus_segment_speeds",
       priority: "p0",
       requiredForFull: true,
-      readiness: speedCurrency.status === "period_aligned" ? "available" : "partial",
+      readiness:
+        speedCurrency.status === "period_aligned" ? "available" : "partial",
       currencyStatus: speedCurrency.status,
       currency: {
         policy: "analysis_period",
@@ -1620,7 +1787,8 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
           : busLaneCurrency.reason,
     }),
   ];
-  const layer = (value: unknown) => decodeSchemaStrict(MapLayerStatusSchema, value);
+  const layer = (value: unknown) =>
+    decodeSchemaStrict(MapLayerStatusSchema, value);
   const layers = [
     layer({
       layerId: "route_shapes",
@@ -1638,7 +1806,9 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       sourceIds: ["current_bus_routes"],
       artifactKey: artifactFor("map_route_shapes_geojson")?.artifactKey ?? null,
       featureCount: routeShapes.features.length,
-      routeCount: new Set(routeShapes.features.map((feature) => feature.properties.routeId)).size,
+      routeCount: new Set(
+        routeShapes.features.map((feature) => feature.properties.routeId),
+      ).size,
       reason: routeShapeCurrency.reason,
     }),
     layer({
@@ -1655,9 +1825,12 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
         maxAgeDays: 45,
       },
       sourceIds: ["current_bus_stops"],
-      artifactKey: artifactFor("map_timepoint_stops_geojson")?.artifactKey ?? null,
+      artifactKey:
+        artifactFor("map_timepoint_stops_geojson")?.artifactKey ?? null,
       featureCount: stops.features.length,
-      routeCount: new Set(stops.features.map((feature) => feature.properties.routeId)).size,
+      routeCount: new Set(
+        stops.features.map((feature) => feature.properties.routeId),
+      ).size,
       reason: stopCurrency.reason,
     }),
     layer({
@@ -1665,15 +1838,22 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       priority: "p0",
       requiredForFull: true,
       readiness:
-        networkPayload.features.length === selectedRouteRows.length ? "available" : "partial",
+        networkPayload.features.length === selectedRouteRows.length
+          ? "available"
+          : "partial",
       currencyStatus: speedCurrency.status,
       currency: {
         policy: "analysis_period",
         baselineMonth: isoMonthStr,
         coveragePassed: speedCurrency.status === "period_aligned",
       },
-      sourceIds: ["mta_bus_segment_speeds", "current_bus_routes", "current_bus_stops"],
-      artifactKey: artifactFor("map_network_simplified_geojson")?.artifactKey ?? null,
+      sourceIds: [
+        "mta_bus_segment_speeds",
+        "current_bus_routes",
+        "current_bus_stops",
+      ],
+      artifactKey:
+        artifactFor("map_network_simplified_geojson")?.artifactKey ?? null,
       featureCount: networkPayload.features.length,
       routeCount: networkPayload.features.length,
       reason: speedCurrency.reason,
@@ -1683,7 +1863,9 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       priority: "p0",
       requiredForFull: true,
       readiness:
-        routeSegmentArtifacts.length === selectedRouteRows.length ? "available" : "partial",
+        routeSegmentArtifacts.length === selectedRouteRows.length
+          ? "available"
+          : "partial",
       currencyStatus: speedCurrency.status,
       currency: {
         policy: "analysis_period",
@@ -1709,7 +1891,8 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
         sourceSha256: contextSourceSha256,
       },
       sourceIds: ["nyc_borough_boundaries"],
-      artifactKey: artifactFor("map_borough_context_geojson")?.artifactKey ?? null,
+      artifactKey:
+        artifactFor("map_borough_context_geojson")?.artifactKey ?? null,
       featureCount: context?.features.length ?? 0,
       routeCount: 0,
       reason: contextCurrency.reason,
@@ -1727,7 +1910,9 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       },
       sourceIds: ["studio_map_route_facts"],
       artifactKey:
-        routeFactsReference.status === "available" ? routeFactsReference.artifactKey : null,
+        routeFactsReference.status === "available"
+          ? routeFactsReference.artifactKey
+          : null,
       featureCount: 0,
       routeCount: routeFacts?.routes.length ?? 0,
       reason: routeFactsCurrency.reason,
@@ -1755,16 +1940,22 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const routeUniverse = decodeSchemaStrict(MapRouteUniverseSchema, {
     includedRouteTypes: ["Local", "Limited", "SBS"],
     excludedRouteTypes: ["Express", "School"],
-    expectedRouteIds: selectedRouteRows.map((route) => route.routeId).toSorted(),
+    expectedRouteIds: selectedRouteRows
+      .map((route) => route.routeId)
+      .toSorted(),
     geometryRouteIds: networkPayload.features
       .map((feature) => feature.properties.routeId)
       .toSorted(),
     routeSegmentRouteIds: routeSegmentArtifacts
-      .flatMap((artifact) => (artifact.routeId === null ? [] : [artifact.routeId]))
+      .flatMap((artifact) =>
+        artifact.routeId === null ? [] : [artifact.routeId],
+      )
       .toSorted(),
     routeFactRouteIds: (routeFacts?.routes ?? [])
       .map((fact) => fact.route.routeId)
-      .filter((routeId) => selectedRouteRows.some((route) => route.routeId === routeId))
+      .filter((routeId) =>
+        selectedRouteRows.some((route) => route.routeId === routeId),
+      )
       .toSorted(),
   });
   const manifest = buildMapArtifactManifest({
@@ -1791,7 +1982,10 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     status: verification.status,
     issueCount: verification.issueCount,
   };
-  await Bun.write(manifestPath, `${JSON.stringify(verifiedManifest, null, 2)}\n`);
+  await Bun.write(
+    manifestPath,
+    `${JSON.stringify(verifiedManifest, null, 2)}\n`,
+  );
   if (args.releaseProfile === "full" && verification.status === "fail") {
     throw new Error(
       `Full map release verification failed with ${verification.issueCount} issue(s); see ${manifestPath}.`,
@@ -1812,7 +2006,8 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
 
 export default defineCommand({
   path: ["map", "artifacts"],
-  summary: "Build map GeoJSON artifacts (routes, stops, bus lanes, route segments) and manifest.",
+  summary:
+    "Build map GeoJSON artifacts (routes, stops, bus lanes, route segments) and manifest.",
   input: {
     options: Schema.Struct({
       ...dbOptions.fields,
@@ -1847,10 +2042,12 @@ export default defineCommand({
           description: "Override generated borough-context artifact path",
         }),
         contextSource: Schema.optionalKey(Schema.String).annotate({
-          description: "Exact raw borough-boundary source used to build context",
+          description:
+            "Exact raw borough-boundary source used to build context",
         }),
         routeFacts: Schema.optionalKey(Schema.String).annotate({
-          description: "Override compact same-month map-route-facts projection path",
+          description:
+            "Override compact same-month map-route-facts projection path",
         }),
         profile: Schema.Literals(["demo", "full"])
           .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("demo")))
@@ -1890,13 +2087,17 @@ export default defineCommand({
         ? undefined
         : fromCliPath(input.options.busLaneSnapshot);
     const contextPath =
-      input.options.context === undefined ? undefined : fromCliPath(input.options.context);
+      input.options.context === undefined
+        ? undefined
+        : fromCliPath(input.options.context);
     const contextSourcePath =
       input.options.contextSource === undefined
         ? undefined
         : fromCliPath(input.options.contextSource);
     const routeFactsPath =
-      input.options.routeFacts === undefined ? undefined : fromCliPath(input.options.routeFacts);
+      input.options.routeFacts === undefined
+        ? undefined
+        : fromCliPath(input.options.routeFacts);
     return runLocalDbCommandBoundary({
       dbPath: input.options.db,
       command: "map.artifacts",
@@ -1919,7 +2120,9 @@ export default defineCommand({
           contextPath,
           contextSourcePath,
           routeFactsPath,
-          routeIds: input.options.routes?.split(",").map((routeId) => routeId.trim()),
+          routeIds: input.options.routes
+            ?.split(",")
+            .map((routeId) => routeId.trim()),
         }),
     });
   },

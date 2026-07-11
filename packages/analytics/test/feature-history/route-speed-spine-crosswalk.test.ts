@@ -38,7 +38,9 @@ function sourceRow(input: {
   };
 }
 
-function artifact(rows: readonly RouteSpeedSpineSourceRow[]): RouteSpeedSpineArtifact {
+function artifact(
+  rows: readonly RouteSpeedSpineSourceRow[],
+): RouteSpeedSpineArtifact {
   return buildRouteSpeedSpineArtifact({
     routeId: "B41",
     rows,
@@ -73,7 +75,9 @@ describe("route speed spine source crosswalk", () => {
     });
 
     expect(serializeSourceSegmentId(sourceKey)).toBe("S:34:303324:901681");
-    expect(serializeStudioSegmentId(sourceKey)).toBe("B41:2026-03:S:34:303324:901681");
+    expect(serializeStudioSegmentId(sourceKey)).toBe(
+      "B41:2026-03:S:34:303324:901681",
+    );
   });
 
   test("matches exact aliases independent of row order and schedule renumbering", () => {
@@ -105,7 +109,8 @@ describe("route speed spine source crosswalk", () => {
     ]);
     const crosswalk = buildRouteSpeedSpineCrosswalk(spine);
     const spineSegmentId = spine.segments[0]?.segmentId;
-    if (spineSegmentId === undefined) throw new Error("Fixture spine has no segment.");
+    if (spineSegmentId === undefined)
+      throw new Error("Fixture spine has no segment.");
 
     expect(matchRouteSpeedSpineSegment(crosswalk, february)).toEqual({
       status: "matched",
@@ -119,9 +124,53 @@ describe("route speed spine source crosswalk", () => {
     });
   });
 
+  test("keeps concurrent nearby stop variants on distinct spine segments", () => {
+    const first = key({
+      month: "2026-03",
+      stopOrder: 12,
+      fromStopId: "503471",
+      toStopId: "502992",
+    });
+    const second = key({
+      month: "2026-03",
+      stopOrder: 13,
+      fromStopId: "504503",
+      toStopId: "502992",
+    });
+    const spine = artifact([
+      sourceRow({
+        month: first.month,
+        stopOrder: first.stopOrder,
+        fromStopId: first.fromStopId,
+        toStopId: first.toStopId,
+      }),
+      sourceRow({
+        month: second.month,
+        stopOrder: second.stopOrder,
+        fromStopId: second.fromStopId,
+        toStopId: second.toStopId,
+      }),
+    ]);
+    const crosswalk = buildRouteSpeedSpineCrosswalk(spine);
+    const firstMatch = matchRouteSpeedSpineSegment(crosswalk, first);
+    const secondMatch = matchRouteSpeedSpineSegment(crosswalk, second);
+
+    expect(spine.segments).toHaveLength(2);
+    expect(firstMatch.status).toBe("matched");
+    expect(secondMatch.status).toBe("matched");
+    if (firstMatch.status !== "matched" || secondMatch.status !== "matched")
+      return;
+    expect(firstMatch.spineSegmentId).not.toBe(secondMatch.spineSegmentId);
+  });
+
   test("returns an explicit unmatched result", () => {
     const spine = artifact([
-      sourceRow({ month: "2026-03", stopOrder: 34, fromStopId: "a", toStopId: "b" }),
+      sourceRow({
+        month: "2026-03",
+        stopOrder: 34,
+        fromStopId: "a",
+        toStopId: "b",
+      }),
     ]);
     const unmatched = key({
       month: "2026-03",
@@ -130,7 +179,12 @@ describe("route speed spine source crosswalk", () => {
       toStopId: "c",
     });
 
-    expect(matchRouteSpeedSpineSegment(buildRouteSpeedSpineCrosswalk(spine), unmatched)).toEqual({
+    expect(
+      matchRouteSpeedSpineSegment(
+        buildRouteSpeedSpineCrosswalk(spine),
+        unmatched,
+      ),
+    ).toEqual({
       status: "unmatched",
       studioSegmentId: serializeStudioSegmentId(unmatched),
     });
@@ -177,12 +231,21 @@ describe("route speed spine source crosswalk", () => {
       }),
     ]);
     const first = spine.segments[0];
-    if (first === undefined) throw new Error("Fixture did not produce a spine segment.");
+    if (first === undefined)
+      throw new Error("Fixture did not produce a spine segment.");
     const ambiguous = {
       ...spine,
       segments: [
-        { ...first, segmentId: "spine-a", raw: { ...first.raw, sourceKeys: [classified] } },
-        { ...first, segmentId: "spine-b", raw: { ...first.raw, sourceKeys: [classified] } },
+        {
+          ...first,
+          segmentId: "spine-a",
+          raw: { ...first.raw, sourceKeys: [classified] },
+        },
+        {
+          ...first,
+          segmentId: "spine-b",
+          raw: { ...first.raw, sourceKeys: [classified] },
+        },
       ],
     } satisfies RouteSpeedSpineArtifact;
 

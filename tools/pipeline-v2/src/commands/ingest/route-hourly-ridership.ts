@@ -22,10 +22,42 @@ import {
   soqlIn,
 } from "../../lib/soda3.ts";
 
-type HourlyRidershipSourceId = "bus_hourly_ridership_2020_2024" | "bus_hourly_ridership_2025";
+type HourlyRidershipSourceId =
+  "bus_hourly_ridership_2020_2024" | "bus_hourly_ridership_2025";
 
 const DEFAULT_ROUTE_CHUNK_SIZE = 5;
 const DEFAULT_QUERY_CONCURRENCY = 4;
+
+const QUEENS_RIDERSHIP_ROUTE_ALIASES = {
+  Q6: "Q06",
+  Q7: "Q07",
+  Q8: "Q08",
+  Q9: "Q09",
+} as const;
+
+type QueensRidershipCanonicalRouteId =
+  keyof typeof QUEENS_RIDERSHIP_ROUTE_ALIASES;
+
+const QUEENS_RIDERSHIP_CANONICAL_ROUTE_IDS = Object.fromEntries(
+  Object.entries(QUEENS_RIDERSHIP_ROUTE_ALIASES).map(([canonical, source]) => [
+    source,
+    canonical,
+  ]),
+) as Readonly<Record<string, QueensRidershipCanonicalRouteId>>;
+
+export function hourlyRidershipSourceRouteId(routeId: string): string {
+  const canonicalRouteId = routeId.toUpperCase();
+  return (
+    QUEENS_RIDERSHIP_ROUTE_ALIASES[
+      canonicalRouteId as QueensRidershipCanonicalRouteId
+    ] ?? canonicalRouteId
+  );
+}
+
+export function canonicalHourlyRidershipRouteId(routeId: string): string {
+  const sourceRouteId = routeId.toUpperCase();
+  return QUEENS_RIDERSHIP_CANONICAL_ROUTE_IDS[sourceRouteId] ?? sourceRouteId;
+}
 
 export type RouteHourlyRidershipIngestInputs = {
   local: OpenLocalPipelineDb;
@@ -47,7 +79,9 @@ export type RouteHourlyRidershipIngestResult = {
 };
 
 function sourceIdForMonth(month: string): HourlyRidershipSourceId {
-  return month < "2025-01" ? "bus_hourly_ridership_2020_2024" : "bus_hourly_ridership_2025";
+  return month < "2025-01"
+    ? "bus_hourly_ridership_2020_2024"
+    : "bus_hourly_ridership_2025";
 }
 
 function chunkArray<T>(values: readonly T[], size: number): T[][] {
@@ -72,7 +106,10 @@ function sortRidershipRows(
   left: LocalRouteHourlyRidership,
   right: LocalRouteHourlyRidership,
 ): number {
-  return left.dayOfWeek.localeCompare(right.dayOfWeek) || left.hourOfDay - right.hourOfDay;
+  return (
+    left.dayOfWeek.localeCompare(right.dayOfWeek) ||
+    left.hourOfDay - right.hourOfDay
+  );
 }
 
 export function normalizeRouteHourlyRidershipRows(
@@ -85,7 +122,11 @@ export function normalizeRouteHourlyRidershipRows(
   for (const row of rows) {
     const routeId = row[busRouteField];
     if (typeof routeId !== "string" || routeId.length === 0) continue;
-    rowsByRawRoute.set(routeId, [...(rowsByRawRoute.get(routeId) ?? []), row]);
+    const canonicalRouteId = canonicalHourlyRidershipRouteId(routeId);
+    rowsByRawRoute.set(canonicalRouteId, [
+      ...(rowsByRawRoute.get(canonicalRouteId) ?? []),
+      row,
+    ]);
   }
 
   return [...rowsByRawRoute.entries()]
@@ -99,7 +140,9 @@ export function normalizeRouteHourlyRidershipRows(
     .filter((row) => row.isoMonth === month)
     .map(({ schemaVersion: _schemaVersion, ...row }) => row)
     .sort(
-      (left, right) => left.routeId.localeCompare(right.routeId) || sortRidershipRows(left, right),
+      (left, right) =>
+        left.routeId.localeCompare(right.routeId) ||
+        sortRidershipRows(left, right),
     );
 }
 
@@ -108,10 +151,15 @@ async function routeIdsForMonth(input: {
   month: string;
   providedRoutes: readonly string[];
 }): Promise<string[]> {
-  if (input.providedRoutes.length > 0) return [...new Set(input.providedRoutes)].sort();
+  if (input.providedRoutes.length > 0)
+    return [...new Set(input.providedRoutes)].sort();
   const trendRows = await listRouteMonthTrends(input.local.db);
   return [
-    ...new Set(trendRows.filter((row) => row.month === input.month).map((row) => row.routeId)),
+    ...new Set(
+      trendRows
+        .filter((row) => row.month === input.month)
+        .map((row) => row.routeId),
+    ),
   ].sort();
 }
 
@@ -136,20 +184,25 @@ export async function runRouteHourlyRidershipIngest(
   const rawRows: SocrataRow[] = [];
   const routeChunks = chunkArray(routeIds, routeChunkSize);
   for (const queryChunk of chunkArray(routeChunks, queryConcurrency)) {
-    const rowGroups = await runBoundedPromises(queryChunk, queryConcurrency, (routeChunk) => {
-      const query: Soda3SoqlQuery = {
-        select:
-          "bus_route,date_extract_dow(transit_timestamp) as day_of_week_index,date_extract_hh(transit_timestamp) as hour_of_day,sum(ridership) as ridership,sum(transfers) as transfers",
-        where: [
-          `transit_timestamp >= '${isoMonthStart(inputs.year, inputs.month)}'`,
-          `transit_timestamp < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
-          soqlIn("bus_route", routeChunk),
-        ].join(" AND "),
-        group: "bus_route,date_extract_dow(transit_timestamp),date_extract_hh(transit_timestamp)",
-        order: "bus_route,day_of_week_index,hour_of_day",
-      };
-      return client.rows(query);
-    });
+    const rowGroups = await runBoundedPromises(
+      queryChunk,
+      queryConcurrency,
+      (routeChunk) => {
+        const query: Soda3SoqlQuery = {
+          select:
+            "bus_route,date_extract_dow(transit_timestamp) as day_of_week_index,date_extract_hh(transit_timestamp) as hour_of_day,sum(ridership) as ridership,sum(transfers) as transfers",
+          where: [
+            `transit_timestamp >= '${isoMonthStart(inputs.year, inputs.month)}'`,
+            `transit_timestamp < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
+            soqlIn("bus_route", routeChunk.map(hourlyRidershipSourceRouteId)),
+          ].join(" AND "),
+          group:
+            "bus_route,date_extract_dow(transit_timestamp),date_extract_hh(transit_timestamp)",
+          order: "bus_route,day_of_week_index,hour_of_day",
+        };
+        return client.rows(query);
+      },
+    );
     rawRows.push(...rowGroups.flat());
   }
   const normalizedRows = normalizeRouteHourlyRidershipRows(rawRows, {
@@ -174,7 +227,8 @@ export async function runRouteHourlyRidershipIngest(
 
 export default defineCommand({
   path: ["ingest", "route-hourly-ridership"],
-  summary: "Fetch route hourly ridership rows for a month and replace local route/month slices.",
+  summary:
+    "Fetch route hourly ridership rows for a month and replace local route/month slices.",
   input: {
     options: Schema.Struct({
       ...dbOptions.fields,
@@ -192,26 +246,43 @@ export default defineCommand({
         }),
         routes: Schema.Array(Schema.String)
           .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
-          .annotate({ description: "Specific route IDs (default: all routes in source month)" }),
+          .annotate({
+            description:
+              "Specific route IDs (default: all routes in source month)",
+          }),
         routesFile: Schema.optionalKey(Schema.String).annotate({
           description: "JSON file containing route IDs",
         }),
         routeChunkSize: arg
           .positiveInt()
-          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_ROUTE_CHUNK_SIZE)))
-          .annotate({ description: "Number of routes per Socrata aggregate query" }),
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(DEFAULT_ROUTE_CHUNK_SIZE),
+            ),
+          )
+          .annotate({
+            description: "Number of routes per Socrata aggregate query",
+          }),
         queryConcurrency: arg
           .positiveInt()
-          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_QUERY_CONCURRENCY)))
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(DEFAULT_QUERY_CONCURRENCY),
+            ),
+          )
           .annotate({
-            description: "Number of Socrata hourly-ridership aggregate queries to run concurrently",
+            description:
+              "Number of Socrata hourly-ridership aggregate queries to run concurrently",
           }),
       },
     }),
   },
   output: Schema.Struct({
     month: Schema.String,
-    sourceId: Schema.Literals(["bus_hourly_ridership_2020_2024", "bus_hourly_ridership_2025"]),
+    sourceId: Schema.Literals([
+      "bus_hourly_ridership_2020_2024",
+      "bus_hourly_ridership_2025",
+    ]),
     fetchedRowCount: Schema.Number,
     normalizedRowCount: Schema.Number,
     routeCount: Schema.Number,
