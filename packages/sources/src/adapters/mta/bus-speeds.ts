@@ -1,92 +1,108 @@
+import { decodePreserve } from "@bp/domain/decode";
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "@bp/domain/schema-compat";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { IsoMonthStringSchema, isoMonth, schemaVersion } from "../../core/index.js";
 
-export const NormalizedSegmentSpeedSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    routeId: z.string().min(1),
-    isoMonth: IsoMonthStringSchema,
-    timestamp: z.string().min(1),
-    dayOfWeek: z.string().min(1),
-    hourOfDay: z.number().int(),
-    direction: z.string().min(1),
-    borough: z.string().min(1),
-    routeType: z.string().min(1),
-    stopOrder: z.number().int(),
-    timepointStopId: z.string().min(1),
-    timepointStopName: z.string().min(1),
-    timepointStopLatitude: z.number(),
-    timepointStopLongitude: z.number(),
-    nextTimepointStopId: z.string().min(1),
-    nextTimepointStopName: z.string().min(1),
-    nextTimepointStopLatitude: z.number(),
-    nextTimepointStopLongitude: z.number(),
-    roadDistanceMiles: z.number(),
-    averageTravelTimeMinutes: z.number(),
-    averageRoadSpeedMph: z.number(),
-    busTripCount: z.number().int(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const Integer = Schema.Number.check(Schema.isInt());
+const CoercedNumber = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.Number, {
+    decode: SchemaGetter.transform((value) => Number(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
+const CoercedInteger = Schema.Unknown.pipe(
+  Schema.decodeTo(Integer, {
+    decode: SchemaGetter.transform((value) => Number(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
+const CoercedString = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.String, {
+    decode: SchemaGetter.transform((value) => String(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
 
-export type NormalizedSegmentSpeed = z.output<typeof NormalizedSegmentSpeedSchema>;
+export const NormalizedSegmentSpeedSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  routeId: NonEmptyString,
+  isoMonth: IsoMonthStringSchema,
+  timestamp: NonEmptyString,
+  dayOfWeek: NonEmptyString,
+  hourOfDay: Integer,
+  direction: NonEmptyString,
+  borough: NonEmptyString,
+  routeType: NonEmptyString,
+  stopOrder: Integer,
+  timepointStopId: NonEmptyString,
+  timepointStopName: NonEmptyString,
+  timepointStopLatitude: Schema.Number,
+  timepointStopLongitude: Schema.Number,
+  nextTimepointStopId: NonEmptyString,
+  nextTimepointStopName: NonEmptyString,
+  nextTimepointStopLatitude: Schema.Number,
+  nextTimepointStopLongitude: Schema.Number,
+  roadDistanceMiles: Schema.Number,
+  averageTravelTimeMinutes: Schema.Number,
+  averageRoadSpeedMph: Schema.Number,
+  busTripCount: Integer,
+});
 
-export const NormalizedSegmentSpeedCellSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    routeId: z.string().min(1),
-    isoMonth: IsoMonthStringSchema,
-    timestamp: z.string().min(1),
-    dayOfWeek: z.string().min(1),
-    hourOfDay: z.number().int(),
-    direction: z.string().min(1),
-    borough: z.string().min(1),
-    routeType: z.string().min(1),
-    stopOrder: z.number().int(),
-    timepointStopId: z.string().nullable(),
-    timepointStopName: z.string().nullable(),
-    timepointStopLatitude: z.number().nullable(),
-    timepointStopLongitude: z.number().nullable(),
-    nextTimepointStopId: z.string().nullable(),
-    nextTimepointStopName: z.string().nullable(),
-    nextTimepointStopLatitude: z.number().nullable(),
-    nextTimepointStopLongitude: z.number().nullable(),
-    roadDistanceMiles: z.number().nullable(),
-    averageTravelTimeMinutes: z.number().nullable(),
-    averageRoadSpeedMph: z.number().nullable(),
-    busTripCount: z.number().int().nullable(),
-  })
-  .strict();
+export type NormalizedSegmentSpeed = typeof NormalizedSegmentSpeedSchema.Type;
 
-export type NormalizedSegmentSpeedCell = z.output<typeof NormalizedSegmentSpeedCellSchema>;
+export const NormalizedSegmentSpeedCellSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  routeId: NonEmptyString,
+  isoMonth: IsoMonthStringSchema,
+  timestamp: NonEmptyString,
+  dayOfWeek: NonEmptyString,
+  hourOfDay: Integer,
+  direction: NonEmptyString,
+  borough: NonEmptyString,
+  routeType: NonEmptyString,
+  stopOrder: Integer,
+  timepointStopId: Schema.NullOr(Schema.String),
+  timepointStopName: Schema.NullOr(Schema.String),
+  timepointStopLatitude: Schema.NullOr(Schema.Number),
+  timepointStopLongitude: Schema.NullOr(Schema.Number),
+  nextTimepointStopId: Schema.NullOr(Schema.String),
+  nextTimepointStopName: Schema.NullOr(Schema.String),
+  nextTimepointStopLatitude: Schema.NullOr(Schema.Number),
+  nextTimepointStopLongitude: Schema.NullOr(Schema.Number),
+  roadDistanceMiles: Schema.NullOr(Schema.Number),
+  averageTravelTimeMinutes: Schema.NullOr(Schema.Number),
+  averageRoadSpeedMph: Schema.NullOr(Schema.Number),
+  busTripCount: Schema.NullOr(Integer),
+});
 
-const RawSegmentSpeedRowSchema = z
-  .object({
-    year: z.coerce.number().int(),
-    month: z.coerce.number().int(),
-    timestamp: z.string().min(1),
-    day_of_week: z.string().min(1),
-    hour_of_day: z.coerce.number().int(),
-    route_id: z.string().min(1),
-    direction: z.string().min(1),
-    borough: z.string().min(1),
-    route_type: z.string().min(1),
-    stop_order: z.coerce.number().int(),
-    timepoint_stop_id: z.coerce.string().min(1),
-    timepoint_stop_name: z.string().min(1),
-    timepoint_stop_latitude: z.coerce.number(),
-    timepoint_stop_longitude: z.coerce.number(),
-    next_timepoint_stop_id: z.coerce.string().min(1),
-    next_timepoint_stop_name: z.string().min(1),
-    next_timepoint_stop_latitude: z.coerce.number(),
-    next_timepoint_stop_longitude: z.coerce.number(),
-    road_distance: z.coerce.number(),
-    average_travel_time: z.coerce.number(),
-    average_road_speed: z.coerce.number(),
-    bus_trip_count: z.coerce.number().int(),
-  })
-  .passthrough();
+export type NormalizedSegmentSpeedCell = typeof NormalizedSegmentSpeedCellSchema.Type;
+
+const RawSegmentSpeedRowSchema = Schema.Struct({
+  year: CoercedInteger,
+  month: CoercedInteger,
+  timestamp: NonEmptyString,
+  day_of_week: NonEmptyString,
+  hour_of_day: CoercedInteger,
+  route_id: NonEmptyString,
+  direction: NonEmptyString,
+  borough: NonEmptyString,
+  route_type: NonEmptyString,
+  stop_order: CoercedInteger,
+  timepoint_stop_id: CoercedString.check(Schema.isMinLength(1)),
+  timepoint_stop_name: NonEmptyString,
+  timepoint_stop_latitude: CoercedNumber,
+  timepoint_stop_longitude: CoercedNumber,
+  next_timepoint_stop_id: CoercedString.check(Schema.isMinLength(1)),
+  next_timepoint_stop_name: NonEmptyString,
+  next_timepoint_stop_latitude: CoercedNumber,
+  next_timepoint_stop_longitude: CoercedNumber,
+  road_distance: CoercedNumber,
+  average_travel_time: CoercedNumber,
+  average_road_speed: CoercedNumber,
+  bus_trip_count: CoercedInteger,
+});
 
 function hasText(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -120,32 +136,30 @@ function hasUsableTimepointSegment(row: SocrataRow): boolean {
   );
 }
 
-const RawSegmentSpeedCellRowSchema = z
-  .object({
-    year: z.coerce.number().int(),
-    month: z.coerce.number().int(),
-    timestamp: z.string().min(1),
-    day_of_week: z.string().min(1),
-    hour_of_day: z.coerce.number().int(),
-    route_id: z.string().min(1),
-    direction: z.string().min(1),
-    borough: z.string().min(1),
-    route_type: z.string().min(1),
-    stop_order: z.coerce.number().int(),
-    timepoint_stop_id: z.coerce.string().optional(),
-    timepoint_stop_name: z.string().optional(),
-    timepoint_stop_latitude: z.coerce.number().optional(),
-    timepoint_stop_longitude: z.coerce.number().optional(),
-    next_timepoint_stop_id: z.coerce.string().optional(),
-    next_timepoint_stop_name: z.string().optional(),
-    next_timepoint_stop_latitude: z.coerce.number().optional(),
-    next_timepoint_stop_longitude: z.coerce.number().optional(),
-    road_distance: z.coerce.number().optional(),
-    average_travel_time: z.coerce.number().optional(),
-    average_road_speed: z.coerce.number().optional(),
-    bus_trip_count: z.coerce.number().int().optional(),
-  })
-  .passthrough();
+const RawSegmentSpeedCellRowSchema = Schema.Struct({
+  year: CoercedInteger,
+  month: CoercedInteger,
+  timestamp: NonEmptyString,
+  day_of_week: NonEmptyString,
+  hour_of_day: CoercedInteger,
+  route_id: NonEmptyString,
+  direction: NonEmptyString,
+  borough: NonEmptyString,
+  route_type: NonEmptyString,
+  stop_order: CoercedInteger,
+  timepoint_stop_id: Schema.optionalKey(CoercedString),
+  timepoint_stop_name: Schema.optionalKey(Schema.String),
+  timepoint_stop_latitude: Schema.optionalKey(CoercedNumber),
+  timepoint_stop_longitude: Schema.optionalKey(CoercedNumber),
+  next_timepoint_stop_id: Schema.optionalKey(CoercedString),
+  next_timepoint_stop_name: Schema.optionalKey(Schema.String),
+  next_timepoint_stop_latitude: Schema.optionalKey(CoercedNumber),
+  next_timepoint_stop_longitude: Schema.optionalKey(CoercedNumber),
+  road_distance: Schema.optionalKey(CoercedNumber),
+  average_travel_time: Schema.optionalKey(CoercedNumber),
+  average_road_speed: Schema.optionalKey(CoercedNumber),
+  bus_trip_count: Schema.optionalKey(CoercedInteger),
+});
 
 function nullable<T>(value: T | undefined): T | null {
   return value === undefined ? null : value;
@@ -153,7 +167,7 @@ function nullable<T>(value: T | undefined): T | null {
 
 export function normalizeSegmentSpeedCellRows(rows: SocrataRow[]): NormalizedSegmentSpeedCell[] {
   return rows.map((row) => {
-    const parsed = RawSegmentSpeedCellRowSchema.parse(row);
+    const parsed = decodePreserve(RawSegmentSpeedCellRowSchema)(row);
 
     return {
       schemaVersion,
@@ -184,7 +198,7 @@ export function normalizeSegmentSpeedCellRows(rows: SocrataRow[]): NormalizedSeg
 
 export function normalizeSegmentSpeedRows(rows: SocrataRow[]): NormalizedSegmentSpeed[] {
   return rows.filter(hasUsableTimepointSegment).map((row) => {
-    const parsed = RawSegmentSpeedRowSchema.parse(row);
+    const parsed = decodePreserve(RawSegmentSpeedRowSchema)(row);
 
     return {
       schemaVersion,
