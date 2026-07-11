@@ -1,5 +1,15 @@
 # Master Plan: Product Question Inventory → Evidence Studio
 
+> **Status update (2026-07-09).** This plan predates two structural changes:
+> (1) the `@bp/applied-research` package was deleted — surviving study/gate
+> machinery lives in `@bp/analytics` (gen-7 plan 061 deletes the dead detector
+> subgraph); (2) all authoring/composer surfaces (Track F) were hard-deleted by
+> the plan-017 cutover — Track F as written is void. Track A1 (native
+> segment-speed cell grain) is DONE. The Track C study engine and Track D
+> mta-wiki contract are being executed as plans 073-076 (see `plans/README.md`,
+> generation 8). Read sections referencing `applied-research` or the composer
+> as historical.
+
 **For:** the maintainer and implementing agents. This is the umbrella plan above
 `docs/research/backend-goal-finish-detectors.md` (the detector calibration plan, referenced here as
 **Track B**) and alongside `knowledge/wiki/engineering/curb_pulse_natural_experiment_plan.md` (the

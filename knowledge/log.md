@@ -8185,3 +8185,10 @@ kept alive. SectionHeader stays live (DataNotesSection). The
 interpunct chains, kicker eyebrows, and banned phrases; its allowlist now holds
 only live-file exceptions (CorridorMap, RouteGeoMap, RouteMapLibre.map
 interpuncts; RouteMapSection kicker).
+
+## [2026-07-11] engineering | Plan 071 steering-doc truth sweep
+
+Aligned the root README with ADR-0020's Effect Schema-only contract, removed the deleted
+`/methods` page from the public SEO path list and sitemap while preserving the serving snapshot's
+`methods.json` dependency for plan 063, and prepended a dated status block to the umbrella product
+plan so deleted applied-research and authoring surfaces are read as history.

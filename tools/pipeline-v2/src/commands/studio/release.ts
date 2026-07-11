@@ -540,6 +540,7 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
   await writeJson(analystNotesOutputPath(outputDir), buildSegmentAnalystNotesArtifact(release));
   await writeJson(resolve(outputDir, "routes.json"), buildStudioRoutesProjection(release));
   await writeJson(resolve(outputDir, "segments.json"), buildStudioSegmentsProjection(release));
+  // methods.json is still loaded by the serving snapshot; its deletion is owned by plan 063.
   await writeJson(resolve(outputDir, "methods.json"), buildStudioMethodsProjection(release));
   await writeJson(resolve(outputDir, "docs.json"), buildStudioDocsProjection(release));
 

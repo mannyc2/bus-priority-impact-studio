@@ -108,7 +108,7 @@ scripts/with-repo-env.sh -- bun --filter @bp/pipeline-v2 cli -- <command>
 
 The current scaffold includes:
 
-- Zod v4 domain contracts with branded route IDs, codecs, registries, metadata, and JSON Schema export.
+- Effect Schema domain contracts (ADR-0020) with branded route IDs, registries, metadata, and JSON Schema export.
 - Strict repo-wide TypeScript config in `tsconfig.base.json` and `tsconfig.typecheck.json`.
 - Biome formatting/linting in `biome.jsonc`.
 - Bun unit tests for domain/source/analytics/DB/frontend basics.
