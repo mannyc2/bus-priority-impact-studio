@@ -4,6 +4,11 @@
   "type": "module",
   "description": "Pure domain schemas, branded types, and metric contracts.",
   "exports": {
+    "./decode": {
+      "types": "./src/decode.ts",
+      "bun": "./src/decode.ts",
+      "import": "./src/decode.ts"
+    },
     "./documents": {
       "types": "./src/documents/index.ts",
       "bun": "./src/documents/index.ts",
