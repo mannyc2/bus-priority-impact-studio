@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { LocalRouteBriefSummary, LocalRouteSegmentSpeed } from "@bp/db/local";
+import { decodeStrict } from "@bp/domain/decode";
 import {
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
@@ -54,7 +55,7 @@ function segmentPayload(): MapRouteSegmentFeatureCollection {
     -73.99 + index * 0.001,
     40.7 + index * 0.001,
   ]) as [number, number][];
-  return MapRouteSegmentFeatureCollectionSchema.parse({
+  return decodeStrict(MapRouteSegmentFeatureCollectionSchema)({
     type: "FeatureCollection",
     features: [
       {

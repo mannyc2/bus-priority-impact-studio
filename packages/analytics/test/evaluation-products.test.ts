@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
 import { RouteCapabilityManifestSchema } from "@bp/domain/studio";
 import {
   buildMapArtifactManifest,
@@ -23,7 +24,12 @@ function capabilityRow(overrides: Partial<RouteCapabilityInputRow> = {}): RouteC
     publicVisible: true,
     baselineMonth: "2026-03",
     hasArtifact: true,
-    history: { endMonth: "2026-03", pointCount: 12, speedMonthCount: 12, ridershipMonthCount: 12 },
+    history: {
+      endMonth: "2026-03",
+      pointCount: 12,
+      speedMonthCount: 12,
+      ridershipMonthCount: 12,
+    },
     speedHistory: { endMonth: "2026-03", monthCount: 12, missingCellCount: 0 },
     scheduleTimepointCount: 20,
     treatment: { aceActive: true, busLaneMatchedLaneCount: 3 },
@@ -131,10 +137,34 @@ describe("evaluation data products", () => {
     const months = summarizeRouteSpeedAvailabilityMonths({
       minSpeedRoutes: 2,
       rows: [
-        { year: 2026, month: 3, route_id: " b41 ", row_count: 100, bus_trip_count: 10 },
-        { year: 2026, month: 3, route_id: "B41", row_count: 20, bus_trip_count: 2 },
-        { year: 2026, month: 3, route_id: "M14A", row_count: 80, bus_trip_count: 8 },
-        { year: 2026, month: 2, route_id: "B41", row_count: 90, bus_trip_count: 9 },
+        {
+          year: 2026,
+          month: 3,
+          route_id: " b41 ",
+          row_count: 100,
+          bus_trip_count: 10,
+        },
+        {
+          year: 2026,
+          month: 3,
+          route_id: "B41",
+          row_count: 20,
+          bus_trip_count: 2,
+        },
+        {
+          year: 2026,
+          month: 3,
+          route_id: "M14A",
+          row_count: 80,
+          bus_trip_count: 8,
+        },
+        {
+          year: 2026,
+          month: 2,
+          route_id: "B41",
+          row_count: 90,
+          bus_trip_count: 9,
+        },
       ],
     });
 
@@ -171,7 +201,7 @@ describe("evaluation data products", () => {
       rows: [capabilityRow()],
     });
 
-    expect(() => RouteCapabilityManifestSchema.parse(manifest)).not.toThrow();
+    expect(() => decodeStrict(RouteCapabilityManifestSchema)(manifest)).not.toThrow();
     expect(manifest.routes[0]?.overallState).toBe("ready");
     expect(manifest.routes[0]?.surfaces["speedHistory"]?.state).toBe("ready");
     expect(manifest.routes[0]?.surfaces["reliability"]?.state).toBe("ready");

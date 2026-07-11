@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
 import { RouteScorecardSchema } from "@bp/domain/routes";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import type { D1ServingDb } from "../src/d1/index.js";
@@ -11,7 +12,7 @@ import {
 } from "../src/d1/index.js";
 import { routeScorecard, routeScorecardCitation } from "../src/d1/schema.js";
 
-const scorecard = RouteScorecardSchema.parse({
+const scorecard = decodeStrict(RouteScorecardSchema)({
   schemaVersion: 1,
   routeId: "M1",
   month: "2026-01",

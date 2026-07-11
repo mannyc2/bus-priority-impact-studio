@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { serializeRouteScorecard, serializeRouteScorecardCitations } from "@bp/db/d1";
+import { decodeStrict } from "@bp/domain/decode";
 import { MapManifestResponseSchema } from "@bp/domain/maps";
 import {
   HealthResponseSchema,
@@ -553,7 +554,7 @@ function hourlyProfileArtifact() {
   } as const;
 }
 
-const scorecard = RouteScorecardSchema.parse({
+const scorecard = decodeStrict(RouteScorecardSchema)({
   schemaVersion: 1,
   routeId: "M1",
   month: "2026-03",
@@ -1022,7 +1023,7 @@ describe("Studio API facade", () => {
     expect(healthResponse.headers.get("Cache-Control")).toBe(
       "public, max-age=60, stale-while-revalidate=86400",
     );
-    expect(HealthResponseSchema.parse(await healthResponse.json())).toEqual(
+    expect(decodeStrict(HealthResponseSchema)(await healthResponse.json())).toEqual(
       expect.objectContaining({ ok: true, service: "bus-priority-impact-studio" }),
     );
 
@@ -1140,7 +1141,7 @@ describe("Studio API facade", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(RouteScorecardSchema.parse(await response.json())).toEqual(scorecard);
+    expect(decodeStrict(RouteScorecardSchema)(await response.json())).toEqual(scorecard);
     expect(db.calls[0]?.bound).toEqual(expect.arrayContaining(["M1", "2026-03"]));
   });
 
@@ -1384,7 +1385,7 @@ describe("Studio API facade", () => {
       fetchApi("/api/v1/hotspots?month=2026-03&limit=1", env),
     ]);
 
-    expect(ReleaseStatusResponseSchema.parse(await status.json())).toEqual(
+    expect(decodeStrict(ReleaseStatusResponseSchema)(await status.json())).toEqual(
       expect.objectContaining({
         baselineMonth: "2026-03",
         canonicalMonthlyRelease: expect.objectContaining({ status: "pass", routeCount: 2 }),
@@ -1394,14 +1395,14 @@ describe("Studio API facade", () => {
         }),
       }),
     );
-    expect(RouteListResponseSchema.parse(await routes.json()).routes).toHaveLength(2);
-    expect(RouteProfileResponseSchema.parse(await profile.json())).toEqual(
+    expect(decodeStrict(RouteListResponseSchema)(await routes.json()).routes).toHaveLength(2);
+    expect(decodeStrict(RouteProfileResponseSchema)(await profile.json())).toEqual(
       expect.objectContaining({
         route: expect.objectContaining({ routeId: "B46-SBS" }),
         artifacts: [expect.objectContaining({ key: "briefs/2026-03/b46-sbs.json" })],
       }),
     );
-    expect(HotspotListResponseSchema.parse(await hotspots.json()).hotspots[0]).toEqual(
+    expect(decodeStrict(HotspotListResponseSchema)(await hotspots.json()).hotspots[0]).toEqual(
       expect.objectContaining({ corridorName: "Utica Avenue", routeId: "B46-SBS" }),
     );
   });
@@ -1452,7 +1453,7 @@ describe("Studio API facade", () => {
       env,
     );
 
-    expect(MapManifestResponseSchema.parse(await manifestResponse.json())).toEqual(
+    expect(decodeStrict(MapManifestResponseSchema)(await manifestResponse.json())).toEqual(
       expect.objectContaining({
         baselineMonth: "2026-03",
         artifactCount: 1,
@@ -1493,9 +1494,9 @@ describe("Studio API facade", () => {
 
     expect(routesResponse.headers.get("Server-Timing")).toContain("studio;dur=");
     expect(routesResponse.headers.get("X-Studio-Release")).toBe("studio/v1");
-    expect(StudioRoutesResponseSchema.parse(await routesResponse.json()).routes[0]?.slug).toBe(
-      "m15-sbs",
-    );
+    expect(
+      decodeStrict(StudioRoutesResponseSchema)(await routesResponse.json()).routes[0]?.slug,
+    ).toBe("m15-sbs");
     // C2: the detail response embeds the pipeline-built capability row + dossier summary.
     expect((await detailResponse.json()) as unknown).toEqual(
       expect.objectContaining({
@@ -1516,13 +1517,13 @@ describe("Studio API facade", () => {
         ],
       }),
     );
-    const hourlyProfile = StudioRouteHourlyProfileResponseSchema.parse(
+    const hourlyProfile = decodeStrict(StudioRouteHourlyProfileResponseSchema)(
       await hourlyProfileResponse.json(),
     );
     expect(hourlyProfile.routeSlug).toBe("m15-sbs");
     expect(hourlyProfile.hours).toHaveLength(24);
     expect(hourlyProfile.summary.reliabilitySampleCount).toBe(8);
-    const speedHistory = StudioRouteSpeedHistoryResponseSchema.parse(
+    const speedHistory = decodeStrict(StudioRouteSpeedHistoryResponseSchema)(
       await speedHistoryResponse.json(),
     );
     expect(speedHistory.routeSlug).toBe("m15-sbs");
@@ -1536,7 +1537,7 @@ describe("Studio API facade", () => {
     // case measured 2026-06-10: ~5.3 KB gz across the 12 rich routes).
     const env = createStudioProjectionEnv();
     const response = await fetchApi("/api/v1/studio/routes/m15-sbs", env);
-    const detail = StudioRouteDetailResponseSchema.parse(await response.json());
+    const detail = decodeStrict(StudioRouteDetailResponseSchema)(await response.json());
     const padded = {
       ...detail,
       segments: Array.from({ length: 60 }, (_, i) => ({
@@ -1586,7 +1587,7 @@ describe("Studio API facade", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("X-Studio-Release")).toBe("studio/v1");
-    const evidence = StudioRouteEvidenceBundleSchema.parse(await response.json());
+    const evidence = decodeStrict(StudioRouteEvidenceBundleSchema)(await response.json());
     expect(evidence.routeId).toBe("M15+");
     expect(evidence.timeline[0]).toEqual(
       expect.objectContaining({
@@ -1607,7 +1608,7 @@ describe("Studio API facade", () => {
     const response = await fetchApi("/api/v1/studio/interventions/evidence", env);
 
     expect(response.status).toBe(200);
-    const evidence = StudioInterventionsEvidenceResponseSchema.parse(await response.json());
+    const evidence = decodeStrict(StudioInterventionsEvidenceResponseSchema)(await response.json());
     expect(evidence.routeCount).toBe(1);
     expect(evidence.bundles).toHaveLength(1);
     const bundle = evidence.bundles[0];
@@ -1664,7 +1665,7 @@ describe("Studio API facade", () => {
     const response = await fetchApi("/api/v1/studio/interventions/evidence", env);
 
     expect(response.status).toBe(200);
-    const evidence = StudioInterventionsEvidenceResponseSchema.parse(await response.json());
+    const evidence = decodeStrict(StudioInterventionsEvidenceResponseSchema)(await response.json());
     expect(evidence.routeCount).toBe(1);
     expect(evidence.bundles.map((bundle) => bundle.routeSlug)).toEqual(["m15-sbs"]);
   });
@@ -1679,7 +1680,7 @@ describe("Studio API facade", () => {
     const response = await fetchApi("/api/v1/studio/routes/b99/timeline", env);
 
     expect(response.status).toBe(200);
-    expect(StudioRouteEvidenceBundleSchema.parse(await response.json())).toEqual(
+    expect(decodeStrict(StudioRouteEvidenceBundleSchema)(await response.json())).toEqual(
       expect.objectContaining({
         routeId: "B99",
         routeSlug: "b99",
@@ -1778,7 +1779,7 @@ describe("Studio API facade", () => {
     } satisfies StudioApiEnv;
 
     const response = await fetchApi("/api/v1/studio/routes/m15-sbs", env);
-    const detail = StudioRouteDetailResponseSchema.parse(await response.json());
+    const detail = decodeStrict(StudioRouteDetailResponseSchema)(await response.json());
 
     expect(detail.insights).toEqual(
       expect.arrayContaining([
@@ -1969,7 +1970,7 @@ describe("Studio API facade", () => {
     } satisfies StudioApiEnv;
 
     const response = await fetchApi("/api/v1/studio/routes/bx12", env);
-    const detail = StudioRouteDetailResponseSchema.parse(await response.json());
+    const detail = decodeStrict(StudioRouteDetailResponseSchema)(await response.json());
 
     expect(detail.route.routeId).toBe("BX12");
     expect(detail.route.slug).toBe("bx12");
@@ -2140,7 +2141,7 @@ describe("Studio API facade", () => {
     });
 
     expect(response.status).toBe(200);
-    const index = StudioRouteIndex2ResponseSchema.parse(await response.json());
+    const index = decodeStrict(StudioRouteIndex2ResponseSchema)(await response.json());
     expect(index.routes.map((route) => route.routeId)).toEqual(["M15+", "B99"]);
     const richRoute = index.routes.find((route) => route.routeId === "M15+");
     // Capability is joined from the pipeline manifest, not computed in the Worker.
@@ -2416,7 +2417,7 @@ describe("Studio API facade", () => {
     });
 
     expect(response.status).toBe(200);
-    const routeSections = StudioRouteSectionsResponseSchema.parse(await response.json());
+    const routeSections = decodeStrict(StudioRouteSectionsResponseSchema)(await response.json());
     // C3: months are resolved internally from D1, and rankings declare their freshness.
     expect(routeSections.baselineMonth).toBe("2026-03");
     expect(routeSections.dataAsOf).toBe("2026-03");
@@ -2507,7 +2508,7 @@ describe("Studio API facade", () => {
     const response = await fetchApi("/api/v1/studio/routes/sections", env);
 
     expect(response.status).toBe(200);
-    const routeSections = StudioRouteSectionsResponseSchema.parse(await response.json());
+    const routeSections = decodeStrict(StudioRouteSectionsResponseSchema)(await response.json());
     const evidenceReady = routeSections.sections.find(
       (section) => section.sectionId === "evidence_ready",
     );
@@ -2558,7 +2559,7 @@ describe("Studio API facade", () => {
     ]);
 
     expect(routesResponse.status).toBe(200);
-    const routes = StudioRoutesResponseSchema.parse(await routesResponse.json());
+    const routes = decodeStrict(StudioRoutesResponseSchema)(await routesResponse.json());
     expect(routes.routes.map((candidate) => candidate.slug)).toEqual(["m15-sbs", "b99"]);
     expect(routes.routes).toEqual(
       expect.arrayContaining([
@@ -2591,7 +2592,7 @@ describe("Studio API facade", () => {
     );
 
     expect(detailResponse.status).toBe(200);
-    const detail = StudioRouteDetailResponseSchema.parse(await detailResponse.json());
+    const detail = decodeStrict(StudioRouteDetailResponseSchema)(await detailResponse.json());
     expect(detail.route.slug).toBe("b99");
     expect(detail.route.speedPercentile).toBeNull();
     expect(detail.equityContext).toBeNull();
@@ -2602,7 +2603,7 @@ describe("Studio API facade", () => {
     );
 
     expect(historyResponse.status).toBe(200);
-    const history = StudioRouteHistoryResponseSchema.parse(await historyResponse.json());
+    const history = decodeStrict(StudioRouteHistoryResponseSchema)(await historyResponse.json());
     expect(history.route.slug).toBe("b99");
     expect(history.points).toHaveLength(1);
     expect(history.coverage).toEqual({
@@ -2628,9 +2629,11 @@ describe("Studio API facade", () => {
       fetchApi("/api/v1/studio/routes", env),
     ]);
 
-    const snapshot = StudioSnapshotResponseSchema.parse(await snapshotResponse.json());
-    const routeIndex = StudioRouteIndex2ResponseSchema.parse(await routeIndexResponse.json());
-    const routes = StudioRoutesResponseSchema.parse(await routesResponse.json());
+    const snapshot = decodeStrict(StudioSnapshotResponseSchema)(await snapshotResponse.json());
+    const routeIndex = decodeStrict(StudioRouteIndex2ResponseSchema)(
+      await routeIndexResponse.json(),
+    );
+    const routes = decodeStrict(StudioRoutesResponseSchema)(await routesResponse.json());
     const snapshot2 = snapshot.v2;
 
     expect(snapshot2).toBeDefined();
@@ -2738,7 +2741,7 @@ describe("Studio API facade", () => {
       fetchApi(`/api/v1/studio/routes/${historyRoute.slug}/history`, env),
     ]);
 
-    const detail = StudioRouteDetailResponseSchema.parse(await detailResponse.json());
+    const detail = decodeStrict(StudioRouteDetailResponseSchema)(await detailResponse.json());
     expect(detail.route.slug).toBe(sparseRoute.slug);
     expect(detail.segments).toEqual([]);
     expect(detail.quality.caveats).toEqual(
@@ -2747,7 +2750,7 @@ describe("Studio API facade", () => {
       ]),
     );
 
-    const history = StudioRouteHistoryResponseSchema.parse(await historyResponse.json());
+    const history = decodeStrict(StudioRouteHistoryResponseSchema)(await historyResponse.json());
     expect(history.route.slug).toBe(historyRoute.slug);
     expect(history.coverage).toEqual(historyRoute.historyCoverage);
     expect(history.coverage.pointCount).toBe(history.points.length);
@@ -2781,7 +2784,7 @@ describe("Studio API facade", () => {
     const response = await fetchApi("/api/v1/studio/snapshot", env);
 
     expect(response.status).toBe(200);
-    const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
+    const snapshot = decodeStrict(StudioSnapshotResponseSchema)(await response.json());
     const sourceMonth = snapshot.v2?.sourceMonths.find(
       (row) => row.sourceId === "local_route_segment_speed",
     );
@@ -2820,7 +2823,7 @@ describe("Studio API facade", () => {
     const response = await fetchApi("/api/v1/studio/snapshot", env);
 
     expect(response.status).toBe(200);
-    const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
+    const snapshot = decodeStrict(StudioSnapshotResponseSchema)(await response.json());
     const sourceMonth = snapshot.v2?.sourceMonths.find(
       (row) => row.sourceId === "local_route_segment_speed",
     );
@@ -2848,7 +2851,7 @@ describe("Studio API facade", () => {
     const response = await fetchApi("/api/v1/studio/snapshot", env);
 
     expect(response.status).toBe(200);
-    const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
+    const snapshot = decodeStrict(StudioSnapshotResponseSchema)(await response.json());
     const modelProjection = snapshot.v2?.projections.find(
       (projection) => projection.id === "detector_model_status",
     );
@@ -2891,7 +2894,7 @@ describe("Studio API facade", () => {
     const response = await fetchApi("/api/v1/studio/snapshot", env);
 
     expect(response.status).toBe(200);
-    const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
+    const snapshot = decodeStrict(StudioSnapshotResponseSchema)(await response.json());
     expect(snapshot.v2).toBeDefined();
     const modelProjection = snapshot.v2?.projections.find(
       (projection) => projection.id === "detector_model_status",
@@ -2930,7 +2933,7 @@ describe("Studio API facade", () => {
       const response = await fetchApi("/api/v1/studio/snapshot", env);
 
       expect(response.status).toBe(200);
-      const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
+      const snapshot = decodeStrict(StudioSnapshotResponseSchema)(await response.json());
       // Snapshot degrade policy: tolerated projections compose as legal empty contributions.
       expect(snapshot.counts[testCase.countKey]).toBe(0);
       if (testCase.countKey === "docsSections") {
@@ -2959,7 +2962,7 @@ describe("Studio API facade", () => {
     };
     const toleratedResponse = await fetchApi("/api/v1/studio/snapshot", evidenceToleratedEnv);
     expect(toleratedResponse.status).toBe(200);
-    const snapshot = StudioSnapshotResponseSchema.parse(await toleratedResponse.json());
+    const snapshot = decodeStrict(StudioSnapshotResponseSchema)(await toleratedResponse.json());
     // Snapshot degrade policy: evidence-index failure omits evidence without failing routes.
     expect(snapshot.quality.caveats).toContain(
       "Route evidence index is temporarily unavailable and is omitted from Snapshot 2.0.",
@@ -3057,7 +3060,7 @@ describe("Studio API facade", () => {
     });
 
     expect(response.status).toBe(200);
-    const history = StudioRouteHistoryResponseSchema.parse(await response.json());
+    const history = decodeStrict(StudioRouteHistoryResponseSchema)(await response.json());
     expect(history.route.slug).toBe("b46-sbs");
     expect(history.coverage).toEqual({
       startMonth: "2023-04",

@@ -1,12 +1,14 @@
 import { describe, expect, test } from "bun:test";
+import { decodeEitherStrict, decodeStrict } from "@bp/domain/decode";
 import {
   MapRouteSegmentFeatureCollectionSchema,
   MapRouteSegmentFeatureSchema,
 } from "@bp/domain/maps";
+import { Result } from "effect";
 
 describe("map route segment schemas", () => {
   test("accepts a strict route-segment feature collection", () => {
-    const parsed = MapRouteSegmentFeatureCollectionSchema.parse({
+    const parsed = decodeStrict(MapRouteSegmentFeatureCollectionSchema)({
       type: "FeatureCollection",
       features: [
         {
@@ -39,7 +41,7 @@ describe("map route segment schemas", () => {
   });
 
   test("rejects out-of-range coordinates", () => {
-    const result = MapRouteSegmentFeatureSchema.safeParse({
+    const result = decodeEitherStrict(MapRouteSegmentFeatureSchema)({
       type: "Feature",
       id: "bad-coordinate",
       geometry: {
@@ -63,6 +65,6 @@ describe("map route segment schemas", () => {
       },
     });
 
-    expect(result.success).toBe(false);
+    expect(Result.isFailure(result)).toBe(true);
   });
 });

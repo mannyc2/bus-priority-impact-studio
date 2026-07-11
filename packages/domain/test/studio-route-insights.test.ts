@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
 import {
   buildRouteInsightsFromDetectorReadiness,
   type DetectorReadinessServingManifestForInsights,
@@ -215,7 +216,10 @@ describe("route insight projection", () => {
   });
 
   test("turns public detector refs into human-facing route insights", () => {
-    const insights = buildRouteInsightsFromDetectorReadiness({ manifest, routeId: "B47" });
+    const insights = buildRouteInsightsFromDetectorReadiness({
+      manifest,
+      routeId: "B47",
+    });
 
     expect(insights).toEqual(
       expect.arrayContaining([
@@ -228,8 +232,14 @@ describe("route insight projection", () => {
             "Customer journey shortfall appears in peak and off-peak service, mainly on the wait-time side.",
           detectorId: "customer_journey_shortfall",
           refs: [
-            { evidenceRefPath: "cjtp.json#scope:peak", sourceProjectionPath: "cjtp.json" },
-            { evidenceRefPath: "cjtp.json#scope:off-peak", sourceProjectionPath: "cjtp.json" },
+            {
+              evidenceRefPath: "cjtp.json#scope:peak",
+              sourceProjectionPath: "cjtp.json",
+            },
+            {
+              evidenceRefPath: "cjtp.json#scope:off-peak",
+              sourceProjectionPath: "cjtp.json",
+            },
           ],
         }),
         expect.objectContaining({
@@ -256,7 +266,10 @@ describe("route insight projection", () => {
   });
 
   test("keeps route-context refs soft and can omit them by caller choice", () => {
-    const withContext = buildRouteInsightsFromDetectorReadiness({ manifest, routeId: "B47" });
+    const withContext = buildRouteInsightsFromDetectorReadiness({
+      manifest,
+      routeId: "B47",
+    });
     expect(withContext).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -280,10 +293,16 @@ describe("route insight projection", () => {
   });
 
   test("maps caveat tokens to readable labels and fails closed for unknown detectors", () => {
-    const b47 = buildRouteInsightsFromDetectorReadiness({ manifest, routeId: "B47" });
+    const b47 = buildRouteInsightsFromDetectorReadiness({
+      manifest,
+      routeId: "B47",
+    });
     expect(b47[0]?.caveatsForTooltip).toContain("Wait-time evidence is the main contributor.");
 
-    const q1 = buildRouteInsightsFromDetectorReadiness({ manifest, routeId: "Q1" });
+    const q1 = buildRouteInsightsFromDetectorReadiness({
+      manifest,
+      routeId: "Q1",
+    });
     expect(q1).toEqual([
       expect.objectContaining({
         title: "Customer journey context",
@@ -299,7 +318,7 @@ describe("route insight projection", () => {
   });
 
   test("route detail contract defaults insights for older artifacts", () => {
-    const detail = StudioRouteDetailResponseSchema.parse({
+    const detail = decodeStrict(StudioRouteDetailResponseSchema)({
       schemaVersion: 2,
       generatedAt: "2026-06-08T00:00:00.000Z",
       route: {

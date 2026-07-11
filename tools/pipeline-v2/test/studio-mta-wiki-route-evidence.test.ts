@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { decodeStrict } from "@bp/domain/decode";
 import {
   StudioRouteEvidenceArtifactSchema,
   StudioRouteEvidenceBundleSchema,
@@ -44,7 +45,7 @@ describe("studio import-mta-wiki-route-evidence", () => {
       });
 
       expect(await Bun.file(output).exists()).toBe(true);
-      const parsed = StudioRouteEvidenceArtifactSchema.parse(await Bun.file(output).json());
+      const parsed = decodeStrict(StudioRouteEvidenceArtifactSchema)(await Bun.file(output).json());
       expect(parsed).toEqual(artifact);
       expect(parsed.artifactKind).toBe("bp.studio.route_evidence.v1");
       expect(parsed.summary).toMatchObject({
@@ -81,10 +82,12 @@ describe("studio import-mta-wiki-route-evidence", () => {
 
       const routeBundlePath = join(root, "routes", "m15-sbs.json");
       const routeBundleBody = await readFile(routeBundlePath, "utf8");
-      const routeBundle = StudioRouteEvidenceBundleSchema.parse(JSON.parse(routeBundleBody));
+      const routeBundle = decodeStrict(StudioRouteEvidenceBundleSchema)(
+        JSON.parse(routeBundleBody),
+      );
       expect(routeBundle).toEqual(route);
 
-      const index = StudioRouteEvidenceIndexSchema.parse(
+      const index = decodeStrict(StudioRouteEvidenceIndexSchema)(
         await Bun.file(join(root, "index.json")).json(),
       );
       expect(index.routes).toEqual([

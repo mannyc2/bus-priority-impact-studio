@@ -1,15 +1,21 @@
 import { describe, expect, test } from "bun:test";
-import { RouteIdCodec, RouteIdSchema } from "@bp/domain/primitives";
+import { decodeEitherStrict, decodePreserve, decodeStrict, decodeStrip } from "@bp/domain/decode";
+import {
+  DirectionIdSchema,
+  type RouteId,
+  RouteIdCodec,
+  RouteIdSchema,
+} from "@bp/domain/primitives";
 import { DetectorReadinessServingManifestForInsightsSchema } from "@bp/domain/studio";
 import { StudioReleasePayloadSchema } from "@bp/domain/studio/release";
 import { StudioSegmentSchema } from "@bp/domain/studio/routes";
 import { StudioAiPublicNoteSchema } from "@bp/domain/studio/segment-evidence";
-import * as z from "../src/schema-compat.js";
+import { Result } from "effect";
 
 describe("schema semantic compatibility", () => {
   test("keeps object excess-key modes distinct", () => {
     expect(() =>
-      StudioReleasePayloadSchema.parse({
+      decodeStrict(StudioReleasePayloadSchema)({
         schemaVersion: 1,
         generatedAt: "2026-05-18T00:00:00.000Z",
         quality: {
@@ -27,7 +33,7 @@ describe("schema semantic compatibility", () => {
       }),
     ).toThrow();
 
-    const passthrough = DetectorReadinessServingManifestForInsightsSchema.parse({
+    const passthrough = decodePreserve(DetectorReadinessServingManifestForInsightsSchema)({
       artifactKind: "detector_readiness_serving_manifest",
       schemaVersion: 1,
       routes: [],
@@ -35,7 +41,7 @@ describe("schema semantic compatibility", () => {
     });
     expect(passthrough).toHaveProperty("extra", "passthrough keeps this");
 
-    const stripped = StudioAiPublicNoteSchema.parse({
+    const stripped = decodeStrip(StudioAiPublicNoteSchema)({
       generationMode: "fixture",
       body: "A public note.",
       source: "fixture",
@@ -45,12 +51,19 @@ describe("schema semantic compatibility", () => {
   });
 
   test("keeps route ID strict validation and boundary normalization separate", () => {
-    expect(RouteIdSchema.safeParse("m1").success).toBe(false);
-    expect(z.decode(RouteIdCodec, " m1 ")).toBe(RouteIdCodec.parse("M1"));
+    expect(Result.isFailure(decodeEitherStrict(RouteIdSchema)("m1"))).toBe(true);
+    expect(decodeStrict(RouteIdCodec)(" m1 ")).toBe(decodeStrict(RouteIdCodec)("M1"));
+  });
+
+  test("keeps domain brands type-distinct", () => {
+    const directionId = decodeStrict(DirectionIdSchema)("0");
+    // @ts-expect-error DirectionId must not collapse into the RouteId brand.
+    const routeId: RouteId = directionId;
+    expect(String(routeId)).toBe("0");
   });
 
   test("keeps Studio segment compatibility preprocessing", () => {
-    const parsed = StudioSegmentSchema.parse({
+    const parsed = decodeStrict(StudioSegmentSchema)({
       id: "M1:0:1",
       routeSlug: "m1",
       direction: "NB",

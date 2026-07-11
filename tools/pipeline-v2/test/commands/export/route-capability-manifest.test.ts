@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { decodeStrict } from "@bp/domain/decode";
 import { RouteCapabilityManifestSchema } from "@bp/domain/studio";
 import {
   buildAndWriteRouteCapabilityManifest,
@@ -149,7 +150,7 @@ describe("buildAndWriteRouteCapabilityManifest", () => {
     expect(result.outputPath).toContain("studio/v2/routes/route-capability-manifest.json");
 
     const written = JSON.parse(await Bun.file(result.outputPath).text());
-    expect(() => RouteCapabilityManifestSchema.parse(written)).not.toThrow();
+    expect(() => decodeStrict(RouteCapabilityManifestSchema)(written)).not.toThrow();
     const m15 = written.routes.find((route: { routeId: string }) => route.routeId === "M15+");
     expect(m15.surfaces.speedHistory.state).toBe("partial");
     expect(m15.surfaces.ridership.state).toBe("blocked"); // equity_context source blocked

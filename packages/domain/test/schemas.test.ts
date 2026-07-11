@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
+import { DocumentEvidenceCandidateDraftToolSchema } from "@bp/domain/documents/candidates";
 import {
   AgentFindingProposalEvidenceRefSchema,
   FindingEvidenceLinkSchema,
@@ -14,18 +16,17 @@ import { StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
 import { buildStudioRouteProjection } from "@bp/domain/studio/projections";
 import { StudioReleasePayloadSchema } from "@bp/domain/studio/release";
 import { StudioRouteDetailResponseSchema } from "@bp/domain/studio/routes";
-import * as z from "../src/schema-compat.js";
 
 describe("domain schemas", () => {
   test("normalizes route IDs at the boundary with the domain codec", () => {
-    const normalizedRouteId: string = z.decode(RouteIdCodec, " m1 ");
+    const normalizedRouteId: string = decodeStrict(RouteIdCodec)(" m1 ");
 
     expect(normalizedRouteId).toBe("M1");
   });
 
   test("rejects scorecards without citations", () => {
     expect(() =>
-      RouteScorecardSchema.parse({
+      decodeStrict(RouteScorecardSchema)({
         schemaVersion: 1,
         routeId: "M1",
         month: "2026-01",
@@ -36,6 +37,18 @@ describe("domain schemas", () => {
         citations: [],
       }),
     ).toThrow();
+  });
+
+  test("reports the selected document-union member for a wrong-tag payload", () => {
+    expect(() =>
+      decodeStrict(DocumentEvidenceCandidateDraftToolSchema)({
+        candidateType: "document_claim_candidate",
+        factClassification: "official_claim",
+        evidenceQuote: "A source-backed claim.",
+        summary: "Claim summary",
+        fields: { metricName: "bus_travel_time" },
+      }),
+    ).toThrow(/fields.*metricName/s);
   });
 
   test("exports JSON Schema for generated docs and contracts", () => {
@@ -53,7 +66,7 @@ describe("domain schemas", () => {
 
   test("keeps Studio release payloads strict", () => {
     expect(() =>
-      StudioReleasePayloadSchema.parse({
+      decodeStrict(StudioReleasePayloadSchema)({
         schemaVersion: 1,
         generatedAt: "2026-05-18T00:00:00.000Z",
         quality: {
@@ -73,7 +86,7 @@ describe("domain schemas", () => {
   });
 
   test("parses generated Studio method projection dataset metadata", () => {
-    const methods = StudioMethodsResponseSchema.parse({
+    const methods = decodeStrict(StudioMethodsResponseSchema)({
       schemaVersion: 1,
       generatedAt: "2026-05-25T20:11:06.387Z",
       datasets: [
@@ -127,7 +140,7 @@ describe("domain schemas", () => {
       windowEnd: null,
       createdAt: "2026-05-23T00:00:00.000Z",
     };
-    const primary = FindingEvidenceLinkSchema.parse({
+    const primary = decodeStrict(FindingEvidenceLinkSchema)({
       linkId: "primary-1",
       candidateId: "candidate-1",
       evidenceKind: "metric",
@@ -136,7 +149,7 @@ describe("domain schemas", () => {
       evidenceWeight: 1,
       note: null,
     });
-    const counter = FindingEvidenceLinkSchema.parse({
+    const counter = decodeStrict(FindingEvidenceLinkSchema)({
       linkId: "counter-1",
       candidateId: "candidate-1",
       evidenceKind: "metric",
@@ -146,7 +159,7 @@ describe("domain schemas", () => {
       note: "Segment scope caveat.",
     });
 
-    const artifact = FindingReviewPacketsArtifactSchema.parse({
+    const artifact = decodeStrict(FindingReviewPacketsArtifactSchema)({
       artifactKind: "finding_review_packets",
       schemaVersion: 1,
       month: "2026-03",
@@ -176,7 +189,11 @@ describe("domain schemas", () => {
             promotionChecklist: ["Keep segment-scoped."],
             knownFailureModes: ["Route-wide overclaim."],
           },
-          priority: { score: 98, band: "high", signals: ["persistent_speed_hotspot"] },
+          priority: {
+            score: 98,
+            band: "high",
+            signals: ["persistent_speed_hotspot"],
+          },
           evidence: {
             primary: [primary],
             context: [],
@@ -230,7 +247,7 @@ describe("domain schemas", () => {
   });
 
   test("parses reviewer promotion queues with explicit decisions", () => {
-    const artifact = FindingPromotionQueueArtifactSchema.parse({
+    const artifact = decodeStrict(FindingPromotionQueueArtifactSchema)({
       artifactKind: "finding_promotion_queue",
       schemaVersion: 1,
       month: "2026-03",
@@ -239,7 +256,11 @@ describe("domain schemas", () => {
       candidateCount: 1,
       summary: {
         candidateCount: 1,
-        readinessCounts: { ready_for_review: 1, needs_enrichment: 0, blocked: 0 },
+        readinessCounts: {
+          ready_for_review: 1,
+          needs_enrichment: 0,
+          blocked: 0,
+        },
         recommendedNextActionCounts: {
           review_for_promotion: 1,
           revise_claim_before_promotion: 0,
@@ -344,7 +365,7 @@ describe("domain schemas", () => {
     const candidateSnapshotHash = "b".repeat(64);
     const promotedFindingHash = "c".repeat(64);
 
-    const decisions = FindingReviewDecisionsArtifactSchema.parse({
+    const decisions = decodeStrict(FindingReviewDecisionsArtifactSchema)({
       artifactKind: "finding_review_decisions",
       schemaVersion: 1,
       month: "2026-03",
@@ -382,7 +403,7 @@ describe("domain schemas", () => {
         },
       ],
     });
-    const promoted = PromotedFindingsArtifactSchema.parse({
+    const promoted = decodeStrict(PromotedFindingsArtifactSchema)({
       artifactKind: "promoted_findings",
       schemaVersion: 1,
       month: "2026-03",
@@ -429,7 +450,7 @@ describe("domain schemas", () => {
   });
 
   test("projects route artifact refs into Studio route detail contracts", () => {
-    const release = StudioReleasePayloadSchema.parse({
+    const release = decodeStrict(StudioReleasePayloadSchema)({
       schemaVersion: 1,
       generatedAt: "2026-05-18T00:00:00.000Z",
       quality: {
@@ -493,7 +514,7 @@ describe("domain schemas", () => {
       throw new Error("expected route fixture");
     }
 
-    const detail = StudioRouteDetailResponseSchema.parse(
+    const detail = decodeStrict(StudioRouteDetailResponseSchema)(
       buildStudioRouteProjection(release, route),
     );
 
@@ -507,7 +528,7 @@ describe("domain schemas", () => {
 
   test("keeps health responses strict", () => {
     expect(() =>
-      HealthResponseSchema.parse({
+      decodeStrict(HealthResponseSchema)({
         ok: true,
         service: "bus-priority-impact-studio",
         checkedAt: "2026-04-27T12:00:00Z",
@@ -517,7 +538,7 @@ describe("domain schemas", () => {
   });
 
   test("AgentFindingProposalEvidenceRefSchema accepts a code_execution ref", () => {
-    const parsed = AgentFindingProposalEvidenceRefSchema.parse({
+    const parsed = decodeStrict(AgentFindingProposalEvidenceRefSchema)({
       kind: "code_execution",
       language: "typescript",
       code: "import { listAnalyticsDetectors } from '@bp/analytics/registry';\nconsole.log(listAnalyticsDetectors().length)",
@@ -532,7 +553,7 @@ describe("domain schemas", () => {
 
   test("AgentFindingProposalEvidenceRefSchema rejects code_execution refs with bad stdoutHash", () => {
     expect(() =>
-      AgentFindingProposalEvidenceRefSchema.parse({
+      decodeStrict(AgentFindingProposalEvidenceRefSchema)({
         kind: "code_execution",
         language: "typescript",
         code: "console.log(1)",
@@ -542,7 +563,7 @@ describe("domain schemas", () => {
   });
 
   test("AgentFindingProposalEvidenceRefSchema still accepts existing review_packet_link kind", () => {
-    const parsed = AgentFindingProposalEvidenceRefSchema.parse({
+    const parsed = decodeStrict(AgentFindingProposalEvidenceRefSchema)({
       kind: "review_packet_link",
       packetId: "pkt-1",
       linkId: "link-1",

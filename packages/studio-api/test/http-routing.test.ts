@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
 import { StudioSnapshotResponseSchema } from "@bp/domain/studio/snapshots";
 import {
   findRouteSpec,
@@ -119,7 +120,7 @@ describe("Studio API HTTP helpers", () => {
 
   test("keeps Studio registry routes and read handlers complete", () => {
     const registryRouteIds = studioApiRoutes
-      .filter((route) => route.tags.includes("Studio"))
+      .filter((route) => route.tags.some((tag) => tag === "Studio"))
       .map((route) => route.id)
       .toSorted();
 
@@ -197,7 +198,7 @@ describe("Studio API HTTP helpers", () => {
         }),
       },
     );
-    const body = StudioSnapshotResponseSchema.parse(await response?.json());
+    const body = decodeStrict(StudioSnapshotResponseSchema)(await response?.json());
 
     expect(response?.status).toBe(200);
     expect(response?.headers.get("ETag")).toMatch(/^"studio-[a-f0-9]{8}"$/);

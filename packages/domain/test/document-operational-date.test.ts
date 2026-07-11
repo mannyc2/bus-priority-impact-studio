@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { decodeEitherStrict } from "@bp/domain/decode";
 import {
   classifyOperationalDate,
   computeCausalAnchorEligibility,
@@ -7,6 +8,7 @@ import {
   operationalDateConfidence,
   parseOperationalDate,
 } from "@bp/domain/documents/operational-date";
+import { Result } from "effect";
 
 describe("normalizeStatedStatus", () => {
   test("maps done-ish raw statuses", () => {
@@ -232,7 +234,13 @@ test("OperationalDateAssertionSchema accepts a fully-formed assertion row", () =
       "source states a planned/scheduled operational date (trusted per source)",
     ],
     evidenceRefs: [
-      { blockId: "B0001", pageNumber: 1, lineStart: 2, lineEnd: 2, roleRaw: "start_date" },
+      {
+        blockId: "B0001",
+        pageNumber: 1,
+        lineStart: 2,
+        lineEnd: 2,
+        roleRaw: "start_date",
+      },
     ],
     effectiveDateStart: "2019-10-03",
     effectiveDateEnd: "2019-10-03",
@@ -248,7 +256,7 @@ test("OperationalDateAssertionSchema accepts a fully-formed assertion row", () =
     confidence: 0.8,
     causalAnchorEligible: false,
   };
-  expect(OperationalDateAssertionSchema.safeParse(row).success).toBe(true);
+  expect(Result.isSuccess(decodeEitherStrict(OperationalDateAssertionSchema)(row))).toBe(true);
 });
 
 describe("parseOperationalDate", () => {
@@ -286,13 +294,17 @@ describe("parseOperationalDate", () => {
       precision: "year",
       implementationMonth: null,
     });
-    expect(parseOperationalDate("by 2022")).toMatchObject({ precision: "year" });
+    expect(parseOperationalDate("by 2022")).toMatchObject({
+      precision: "year",
+    });
     expect(parseOperationalDate("2015-2016")).toMatchObject({
       precision: "range",
       effectiveDateStart: "2015-01-01",
       effectiveDateEnd: "2016-12-31",
     });
-    expect(parseOperationalDate("Spring/Summer 2017")).toMatchObject({ precision: "season" });
+    expect(parseOperationalDate("Spring/Summer 2017")).toMatchObject({
+      precision: "season",
+    });
   });
   test("non-dates -> unknown (rejected as anchors)", () => {
     for (const text of [
