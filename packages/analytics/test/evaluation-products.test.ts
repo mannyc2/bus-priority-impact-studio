@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { decodeStrict } from "@bp/domain/decode";
+import {
+  MapLayerStatusSchema,
+  MapRouteUniverseSchema,
+  MapSourceStatusSchema,
+} from "@bp/domain/maps";
 import { RouteCapabilityManifestSchema } from "@bp/domain/studio";
 import {
   buildMapArtifactManifest,
@@ -169,8 +174,32 @@ function artifactDefinitions(month: string) {
       artifactKind: "map_network_simplified_geojson" as const,
       contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
-      payload: emptyFeatureCollection,
-      featureCount: 0,
+      payload: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "MultiLineString",
+              coordinates: [
+                [
+                  [-73.99, 40.75],
+                  [-73.98, 40.76],
+                ],
+              ],
+            },
+            properties: {
+              routeId: "M1",
+              month,
+              hourlySpeedMph: Array.from({ length: 24 }, () => null),
+              hourlyTraversalCount: Array.from({ length: 24 }, () => 0),
+              servedBoroughs: [],
+              servedBoroughsStatus: "unavailable",
+            },
+          },
+        ],
+      },
+      featureCount: 1,
     },
     {
       artifactKey: `maps/routes/M1/${month}/segments.min.geojson`,
@@ -313,6 +342,60 @@ describe("evaluation data products", () => {
       artifacts: artifacts.map((artifact) => artifact.entry),
       releaseProfile: "demo",
       routeFacts: { status: "unavailable", reason: "Fixture omits route facts." },
+      sources: [
+        decodeStrict(MapSourceStatusSchema)({
+          sourceId: "fixture",
+          priority: "p0",
+          requiredForFull: true,
+          readiness: "available",
+          currencyStatus: "current",
+          currency: {
+            policy: "max_age_snapshot",
+            fetchedAt: "2026-06-06T00:00:00.000Z",
+            evaluatedAt: "2026-06-06T00:00:00.000Z",
+            ageDays: 0,
+            maxAgeDays: 45,
+          },
+          reason: "Fixture source posture.",
+        }),
+      ],
+      layers: [
+        ["route_shapes", "p0", true, "maps/routes/current-local-limited-sbs.min.geojson"],
+        ["timepoint_stops", "p0", true, "maps/stops/current-timepoints.min.geojson"],
+        ["network_simplified", "p0", true, `maps/${month}/network-simplified.geojson`],
+        ["route_segments", "p0", true, null],
+        ["borough_context", "p0", true, "maps/context/nyc-boroughs.min.geojson"],
+        ["route_facts", "p0", true, null],
+        ["bus_lanes", "p1", false, "maps/bus-lanes/local-streets.min.geojson"],
+      ].map(([layerId, priority, requiredForFull, artifactKey]) =>
+        decodeStrict(MapLayerStatusSchema)({
+          layerId,
+          priority,
+          requiredForFull,
+          readiness: layerId === "route_facts" ? "missing" : "available",
+          currencyStatus: "current",
+          currency: {
+            policy: "max_age_snapshot",
+            fetchedAt: "2026-06-06T00:00:00.000Z",
+            evaluatedAt: "2026-06-06T00:00:00.000Z",
+            ageDays: 0,
+            maxAgeDays: 45,
+          },
+          sourceIds: ["fixture"],
+          artifactKey,
+          featureCount: 0,
+          routeCount: layerId === "network_simplified" || layerId === "route_segments" ? 1 : 0,
+          reason: "Fixture posture.",
+        }),
+      ),
+      routeUniverse: decodeStrict(MapRouteUniverseSchema)({
+        includedRouteTypes: ["Local", "Limited", "SBS"],
+        excludedRouteTypes: ["Express", "School"],
+        expectedRouteIds: ["M1"],
+        geometryRouteIds: ["M1"],
+        routeSegmentRouteIds: ["M1"],
+        routeFactRouteIds: [],
+      }),
     });
     const artifactIssues = artifacts.flatMap((artifact, index) =>
       mapArtifactPayloadIssues({

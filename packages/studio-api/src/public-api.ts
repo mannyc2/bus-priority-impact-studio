@@ -553,6 +553,9 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
     buildStatus?: unknown;
     verificationStatus?: unknown;
     routeFacts?: unknown;
+    sources?: unknown;
+    layers?: unknown;
+    routeUniverse?: unknown;
     status?: unknown;
     artifactCount?: unknown;
     routeSegmentArtifactCount?: unknown;
@@ -564,8 +567,10 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
       artifactKey?: unknown;
       contentType?: unknown;
       byteLength?: unknown;
+      gzipByteLength?: unknown;
       sha256?: unknown;
       featureCount?: unknown;
+      coordinateCount?: unknown;
       routeId?: unknown;
     }>;
   };
@@ -582,6 +587,21 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
         status: "unavailable",
         reason: "Legacy map manifest does not declare a route-facts projection.",
       },
+      sources: Array.isArray(manifest.sources) ? manifest.sources : [],
+      layers: Array.isArray(manifest.layers) ? manifest.layers : [],
+      routeUniverse:
+        typeof manifest.routeUniverse === "object" && manifest.routeUniverse !== null
+          ? manifest.routeUniverse
+          : {
+              includedRouteTypes: ["Local", "Limited", "SBS"],
+              excludedRouteTypes: ["Express", "School"],
+              expectedRouteIds: [],
+              geometryRouteIds: [],
+              routeSegmentRouteIds: (manifest.artifacts ?? []).flatMap((artifact) =>
+                typeof artifact.routeId === "string" ? [artifact.routeId] : [],
+              ),
+              routeFactRouteIds: [],
+            },
       status: manifest.status,
       artifactCount: manifest.artifactCount,
       routeSegmentArtifactCount: manifest.routeSegmentArtifactCount,
@@ -593,16 +613,28 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
         artifactKey: artifact.artifactKey,
         contentType: artifact.contentType,
         byteLength: artifact.byteLength,
+        gzipByteLength: artifact.gzipByteLength,
         sha256: artifact.sha256,
         featureCount: artifact.featureCount,
+        coordinateCount: artifact.coordinateCount,
         routeId: artifact.routeId,
         apiPath:
           typeof artifact.artifactKey === "string" ? artifactApiPath(artifact.artifactKey) : "",
       })),
       quality: {
         releaseLayer: "baseline_release",
-        completenessStatus: manifest.status === "pass" ? "complete" : "partial_public_monthly_only",
-        confidence: "high",
+        completenessStatus:
+          manifest.verificationStatus === "pass" &&
+          Array.isArray(manifest.layers) &&
+          manifest.layers.length > 0
+            ? "complete"
+            : "partial_public_monthly_only",
+        confidence:
+          manifest.verificationStatus === "pass" &&
+          Array.isArray(manifest.layers) &&
+          manifest.layers.length > 0
+            ? "high"
+            : "low",
         caveats: [
           "Map payloads are generated artifacts served from R2; the manifest only carries metadata and fetch paths.",
         ],

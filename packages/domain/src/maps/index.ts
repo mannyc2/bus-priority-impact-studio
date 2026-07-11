@@ -429,8 +429,10 @@ export const MapArtifactEntrySchema = registerProjectSchema(
     artifactKey: Schema.String.check(Schema.isMinLength(1)),
     contentType: Schema.String.check(Schema.isMinLength(1)),
     byteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    gzipByteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
     sha256: Schema.String.check(Schema.isLengthBetween(64, 64)),
     featureCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    coordinateCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
     routeId: Schema.NullOr(RouteIdSchema),
     apiPath: Schema.String.check(Schema.isMinLength(1)),
   }),
@@ -452,6 +454,8 @@ export const MapRouteFactsReferenceSchema = Schema.Union([
     schemaVersion: Schema.Literal(1),
     baselineMonth: IsoMonthSchema,
     routeCount: NonNegativeIntSchema,
+    byteLength: NonNegativeIntSchema,
+    gzipByteLength: NonNegativeIntSchema,
   }),
   Schema.Struct({
     status: Schema.Literal("unavailable"),
@@ -459,6 +463,123 @@ export const MapRouteFactsReferenceSchema = Schema.Union([
   }),
 ]);
 export type MapRouteFactsReference = typeof MapRouteFactsReferenceSchema.Type;
+
+export const MapLayerReadinessSchema = Schema.Literals([
+  "available",
+  "partial",
+  "missing",
+  "failed",
+]);
+export type MapLayerReadiness = typeof MapLayerReadinessSchema.Type;
+
+export const MapCurrencyStatusSchema = Schema.Literals([
+  "current",
+  "stale",
+  "period_aligned",
+  "revision_pinned",
+  "unknown",
+]);
+export type MapCurrencyStatus = typeof MapCurrencyStatusSchema.Type;
+
+const IsoTimestampSchema = Schema.String.check(
+  Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+);
+
+export const MapCurrencyEvidenceSchema = Schema.Union([
+  Schema.Struct({
+    policy: Schema.Literal("max_age_snapshot"),
+    fetchedAt: Schema.NullOr(IsoTimestampSchema),
+    evaluatedAt: IsoTimestampSchema,
+    ageDays: Schema.NullOr(Schema.Number),
+    maxAgeDays: Schema.Literal(45),
+  }),
+  Schema.Struct({
+    policy: Schema.Literal("analysis_period"),
+    baselineMonth: IsoMonthSchema,
+    coveragePassed: Schema.Boolean,
+  }),
+  Schema.Struct({
+    policy: Schema.Literal("revision_pinned"),
+    sourceId: Schema.Literal("nyc_borough_boundaries"),
+    embeddedSha256: Schema.NullOr(Sha256Schema),
+    sourceSha256: Schema.NullOr(Sha256Schema),
+  }),
+]);
+export type MapCurrencyEvidence = typeof MapCurrencyEvidenceSchema.Type;
+
+export const MAP_LAYER_CONTRACTS = {
+  route_shapes: { priority: "p0", requiredForFull: true },
+  timepoint_stops: { priority: "p0", requiredForFull: true },
+  network_simplified: { priority: "p0", requiredForFull: true },
+  route_segments: { priority: "p0", requiredForFull: true },
+  borough_context: { priority: "p0", requiredForFull: true },
+  route_facts: { priority: "p0", requiredForFull: true },
+  bus_lanes: { priority: "p1", requiredForFull: false },
+} as const;
+
+export const MapLayerIdSchema = Schema.Literals([
+  "route_shapes",
+  "timepoint_stops",
+  "network_simplified",
+  "route_segments",
+  "borough_context",
+  "route_facts",
+  "bus_lanes",
+]);
+export type MapLayerId = typeof MapLayerIdSchema.Type;
+
+export const MapSourceStatusSchema = Schema.Struct({
+  sourceId: NonEmptyStringSchema,
+  priority: Schema.Literals(["p0", "p1"]),
+  requiredForFull: Schema.Boolean,
+  readiness: MapLayerReadinessSchema,
+  currencyStatus: MapCurrencyStatusSchema,
+  currency: MapCurrencyEvidenceSchema,
+  reason: NonEmptyStringSchema,
+});
+export type MapSourceStatus = typeof MapSourceStatusSchema.Type;
+
+export const MapLayerStatusSchema = Schema.Struct({
+  layerId: MapLayerIdSchema,
+  priority: Schema.Literals(["p0", "p1"]),
+  requiredForFull: Schema.Boolean,
+  readiness: MapLayerReadinessSchema,
+  currencyStatus: MapCurrencyStatusSchema,
+  currency: MapCurrencyEvidenceSchema,
+  sourceIds: Schema.Array(NonEmptyStringSchema).check(Schema.isMinLength(1)),
+  artifactKey: Schema.NullOr(NonEmptyStringSchema),
+  featureCount: NonNegativeIntSchema,
+  routeCount: NonNegativeIntSchema,
+  reason: NonEmptyStringSchema,
+}).check(
+  Schema.makeFilter((layer) => {
+    const contract = MAP_LAYER_CONTRACTS[layer.layerId];
+    return layer.priority === contract.priority &&
+      layer.requiredForFull === contract.requiredForFull
+      ? []
+      : [
+          {
+            path: ["layerId"],
+            issue: `Layer ${layer.layerId} cannot override its fixed priority contract.`,
+          },
+        ];
+  }),
+);
+export type MapLayerStatus = typeof MapLayerStatusSchema.Type;
+
+export const MapRouteUniverseSchema = Schema.Struct({
+  includedRouteTypes: Schema.Tuple([
+    Schema.Literal("Local"),
+    Schema.Literal("Limited"),
+    Schema.Literal("SBS"),
+  ]),
+  excludedRouteTypes: Schema.Tuple([Schema.Literal("Express"), Schema.Literal("School")]),
+  expectedRouteIds: Schema.Array(RouteIdSchema),
+  geometryRouteIds: Schema.Array(RouteIdSchema),
+  routeSegmentRouteIds: Schema.Array(RouteIdSchema),
+  routeFactRouteIds: Schema.Array(RouteIdSchema),
+});
+export type MapRouteUniverse = typeof MapRouteUniverseSchema.Type;
 
 export const MapManifestResponseSchema = registerProjectSchema(
   Schema.Struct({
@@ -471,6 +592,9 @@ export const MapManifestResponseSchema = registerProjectSchema(
     buildStatus: Schema.Literals(["pass", "fail"]),
     verificationStatus: Schema.Literals(["not_run", "pass", "fail"]),
     routeFacts: MapRouteFactsReferenceSchema,
+    sources: Schema.Array(MapSourceStatusSchema),
+    layers: Schema.Array(MapLayerStatusSchema),
+    routeUniverse: MapRouteUniverseSchema,
     status: Schema.Literals(["pass", "fail"]),
     artifactCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
     routeSegmentArtifactCount: Schema.Number.check(Schema.isInt()).check(

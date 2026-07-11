@@ -4,6 +4,7 @@ import {
   collectD1ArtifactKeys,
   collectManifestArtifactKeys,
 } from "../commands/publish/publish-artifact-keys.ts";
+import { verifyMapArtifactManifest } from "../commands/map/artifacts.ts";
 
 const repoRoot = new URL("../../../../", import.meta.url).pathname.replace(/\/$/, "");
 const defaultArtifactRoot = join(repoRoot, "data", "artifacts");
@@ -110,6 +111,29 @@ if (mapManifest === null) {
     : [];
   if (!artifacts.some((entry) => entry["artifactKind"] === "map_network_simplified_geojson"))
     conflicts.push("Map manifest lacks the required network artifact.");
+  const routeUniverse = mapManifest["routeUniverse"] as Record<string, unknown> | undefined;
+  const expectedRouteIds = Array.isArray(routeUniverse?.["expectedRouteIds"])
+    ? routeUniverse["expectedRouteIds"].filter(
+        (routeId): routeId is string => typeof routeId === "string",
+      )
+    : null;
+  if (expectedRouteIds === null) {
+    conflicts.push("Map manifest lacks its expected route universe.");
+  } else {
+    const verification = await verifyMapArtifactManifest({
+      artifactRoot,
+      month,
+      expectedRouteIds,
+    });
+    if (verification.status !== "pass") {
+      conflicts.push(
+        `Map artifact verification failed: ${verification.issues
+          .slice(0, 5)
+          .map((issue) => issue.code)
+          .join(", ")}.`,
+      );
+    }
+  }
 }
 
 const studioRoutes = await readJson(join(artifactRoot, "studio", "v1", "routes.json"));

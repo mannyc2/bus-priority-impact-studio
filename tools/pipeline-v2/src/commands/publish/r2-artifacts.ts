@@ -6,6 +6,7 @@ import { Glob } from "bun";
 import { Effect } from "effect";
 import { type CloudflareCostSummary, estimateR2StandardCost } from "../../lib/cloudflare-costs.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { verifyMapArtifactManifest } from "../map/artifacts.ts";
 import { collectD1ArtifactKeys, collectManifestArtifactKeys } from "./publish-artifact-keys.ts";
 
 const DEFAULT_PREFIXES = ["map", "studio", "source-availability"] as const;
@@ -164,6 +165,28 @@ async function assertPublishableMapManifest(options: PublishR2Options): Promise<
     failures.push(`analysisPeriod must equal ${options.month}`);
   const routeFacts = manifest["routeFacts"] as Record<string, unknown> | undefined;
   if (routeFacts?.["status"] !== "available") failures.push("routeFacts must be available");
+  const routeUniverse = manifest["routeUniverse"] as Record<string, unknown> | undefined;
+  const expectedRouteIds = Array.isArray(routeUniverse?.["expectedRouteIds"])
+    ? routeUniverse["expectedRouteIds"].filter(
+        (routeId): routeId is string => typeof routeId === "string",
+      )
+    : null;
+  if (expectedRouteIds === null) failures.push("routeUniverse.expectedRouteIds must be declared");
+  else {
+    const verification = await verifyMapArtifactManifest({
+      artifactRoot: options.artifactRoot,
+      month: options.month,
+      expectedRouteIds,
+    });
+    if (verification.status !== "pass") {
+      failures.push(
+        `local map verification failed: ${verification.issues
+          .slice(0, 3)
+          .map((issue) => issue.code)
+          .join(", ")}`,
+      );
+    }
+  }
   if (failures.length > 0) {
     throw new Error(`Map manifest is not publishable: ${failures.join("; ")}.`);
   }

@@ -1,8 +1,22 @@
 import { describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { gzipSync } from "node:zlib";
+import {
+  buildMapArtifactManifest,
+  buildMapJsonArtifact,
+  MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+  MAP_ARTIFACT_JSON_CONTENT_TYPE,
+} from "@bp/analytics/evaluation";
+import { decodeStrict } from "@bp/domain/decode";
+import {
+  MapLayerStatusSchema,
+  MapRouteUniverseSchema,
+  MapSourceStatusSchema,
+} from "@bp/domain/maps";
 import {
   runPublishR2Artifacts,
   type S3Driver,
@@ -63,6 +77,208 @@ async function seedStudioDetectorReadinessManifest(root: string): Promise<void> 
   await writeFile(
     join(dir, "route-detector-readiness-manifest.json"),
     '{"artifactKind":"detector_readiness_serving_manifest","schemaVersion":1}',
+  );
+}
+
+async function seedPublishableFullMap(
+  root: string,
+  input?: { staleLane?: boolean },
+): Promise<void> {
+  const generatedAt = "2026-04-01T00:00:00.000Z";
+  const definitions = [
+    {
+      artifactKey: "map/sources/source-snapshot.json",
+      artifactKind: "map_source_snapshot" as const,
+      contentType: MAP_ARTIFACT_JSON_CONTENT_TYPE,
+      routeId: null,
+      payload: { sources: [] },
+      featureCount: 0,
+    },
+    {
+      artifactKey: "map/routes/current-local-limited-sbs.min.geojson",
+      artifactKind: "map_route_shapes_geojson" as const,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+      routeId: null,
+      payload: { type: "FeatureCollection", features: [] },
+      featureCount: 0,
+    },
+    {
+      artifactKey: "map/stops/current-timepoints.min.geojson",
+      artifactKind: "map_timepoint_stops_geojson" as const,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+      routeId: null,
+      payload: { type: "FeatureCollection", features: [] },
+      featureCount: 0,
+    },
+    {
+      artifactKey: "map/context/nyc-boroughs.min.geojson",
+      artifactKind: "map_borough_context_geojson" as const,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+      routeId: null,
+      payload: {
+        type: "FeatureCollection",
+        sourceRevision: {
+          sourceId: "nyc_borough_boundaries",
+          sha256: "a".repeat(64),
+          currencyPolicy: "revision_pinned",
+        },
+        features: [
+          {
+            type: "Feature",
+            properties: { boroName: "Manhattan", labelPoint: [-73.98, 40.76] },
+            geometry: {
+              type: "MultiPolygon",
+              coordinates: [
+                [
+                  [
+                    [-74, 40.7],
+                    [-73.9, 40.7],
+                    [-73.9, 40.8],
+                    [-74, 40.7],
+                  ],
+                ],
+              ],
+            },
+          },
+        ],
+      },
+      featureCount: 1,
+    },
+    {
+      artifactKey: `map/${MONTH}/network-simplified.geojson`,
+      artifactKind: "map_network_simplified_geojson" as const,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+      routeId: null,
+      payload: { type: "FeatureCollection", features: [] },
+      featureCount: 0,
+    },
+    ...(input?.staleLane
+      ? [
+          {
+            artifactKey: "map/bus-lanes/stale.geojson",
+            artifactKind: "map_bus_lanes_geojson" as const,
+            contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+            routeId: null,
+            payload: { type: "FeatureCollection", features: [] },
+            featureCount: 0,
+          },
+        ]
+      : []),
+  ];
+  const artifacts = definitions.map((definition) => buildMapJsonArtifact(definition));
+  for (const artifact of artifacts) {
+    const path = join(root, artifact.entry.artifactKey);
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, artifact.bytes);
+  }
+  const routeFactsKey = "studio/v1/map-route-facts.json";
+  const routeFactsBytes = new TextEncoder().encode(
+    `${JSON.stringify({ schemaVersion: 1, baselineMonth: MONTH, generatedAt, routes: [] }, null, 2)}\n`,
+  );
+  await mkdir(join(root, "studio", "v1"), { recursive: true });
+  await writeFile(join(root, routeFactsKey), routeFactsBytes);
+  const source = (value: unknown) => decodeStrict(MapSourceStatusSchema)(value);
+  const sources = [
+    source({
+      sourceId: "fixture_snapshot",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: "available",
+      currencyStatus: "current",
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: generatedAt,
+        evaluatedAt: generatedAt,
+        ageDays: 0,
+        maxAgeDays: 45,
+      },
+      reason: "Current fixture snapshot.",
+    }),
+  ];
+  const layer = (value: unknown) => decodeStrict(MapLayerStatusSchema)(value);
+  const layers = [
+    ["route_shapes", "p0", true, "current", "map/routes/current-local-limited-sbs.min.geojson"],
+    ["timepoint_stops", "p0", true, "current", "map/stops/current-timepoints.min.geojson"],
+    ["network_simplified", "p0", true, "period_aligned", `map/${MONTH}/network-simplified.geojson`],
+    ["route_segments", "p0", true, "period_aligned", null],
+    ["borough_context", "p0", true, "revision_pinned", "map/context/nyc-boroughs.min.geojson"],
+    ["route_facts", "p0", true, "period_aligned", routeFactsKey],
+    [
+      "bus_lanes",
+      "p1",
+      false,
+      input?.staleLane ? "stale" : "current",
+      input?.staleLane ? "map/bus-lanes/stale.geojson" : null,
+    ],
+  ].map(([layerId, priority, requiredForFull, currencyStatus, artifactKey]) =>
+    layer({
+      layerId,
+      priority,
+      requiredForFull,
+      readiness:
+        layerId === "bus_lanes" ? (input?.staleLane ? "available" : "missing") : "available",
+      currencyStatus,
+      currency:
+        layerId === "borough_context"
+          ? {
+              policy: "revision_pinned",
+              sourceId: "nyc_borough_boundaries",
+              embeddedSha256: "a".repeat(64),
+              sourceSha256: "a".repeat(64),
+            }
+          : layerId === "network_simplified" ||
+              layerId === "route_segments" ||
+              layerId === "route_facts"
+            ? { policy: "analysis_period", baselineMonth: MONTH, coveragePassed: true }
+            : {
+                policy: "max_age_snapshot",
+                fetchedAt:
+                  input?.staleLane && layerId === "bus_lanes"
+                    ? "2026-02-14T00:00:00.000Z"
+                    : generatedAt,
+                evaluatedAt: generatedAt,
+                ageDays: input?.staleLane && layerId === "bus_lanes" ? 46 : 0,
+                maxAgeDays: 45,
+              },
+      sourceIds: ["fixture_snapshot"],
+      artifactKey,
+      featureCount: layerId === "borough_context" ? 1 : 0,
+      routeCount: 0,
+      reason: "Fixture layer posture.",
+    }),
+  );
+  const routeUniverse = decodeStrict(MapRouteUniverseSchema)({
+    includedRouteTypes: ["Local", "Limited", "SBS"],
+    excludedRouteTypes: ["Express", "School"],
+    expectedRouteIds: [],
+    geometryRouteIds: [],
+    routeSegmentRouteIds: [],
+    routeFactRouteIds: [],
+  });
+  const manifest = buildMapArtifactManifest({
+    month: MONTH,
+    generatedAt,
+    artifacts: artifacts.map((artifact) => artifact.entry),
+    releaseProfile: "full",
+    routeFacts: {
+      status: "available",
+      artifactKey: routeFactsKey,
+      sha256: createHash("sha256").update(routeFactsBytes).digest("hex"),
+      schemaVersion: 1,
+      baselineMonth: MONTH,
+      routeCount: 0,
+      byteLength: routeFactsBytes.byteLength,
+      gzipByteLength: gzipSync(routeFactsBytes, { level: 9 }).byteLength,
+    },
+    sources,
+    layers,
+    routeUniverse,
+  });
+  const path = join(root, "map", MONTH, "manifest.json");
+  await mkdir(join(root, "map", MONTH), { recursive: true });
+  await writeFile(
+    path,
+    `${JSON.stringify({ ...manifest, verificationStatus: "pass", status: "pass" }, null, 2)}\n`,
   );
 }
 
@@ -167,6 +383,45 @@ describe("runPublishR2Artifacts", () => {
           manifestDirs: ["map"],
         }),
       ).rejects.toThrow("Map manifest is not publishable");
+      expect(calls).toEqual([]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("publishes a verified full P0 map release with typed unavailable lanes", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-full-no-lanes-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await seedPublishableFullMap(artifactRoot);
+      const { driver, calls } = recordingDriver(new Map());
+      const report = await runPublishR2Artifacts({
+        ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+        manifestDirs: ["map"],
+      });
+      expect(report.status).toBe("pass");
+      expect(report.candidateCount).toBe(7);
+      expect(calls.every((call) => call.kind === "stat")).toBe(true);
+      expect(calls.some((call) => call.key.includes("bus-lanes"))).toBe(false);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a stale optional lane key before remote HEAD or PUT calls", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-stale-lanes-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await seedPublishableFullMap(artifactRoot, { staleLane: true });
+      const { driver, calls } = recordingDriver(new Map());
+      await expect(
+        runPublishR2Artifacts({
+          ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+          manifestDirs: ["map"],
+        }),
+      ).rejects.toThrow("map_optional_lane_reference_unpublishable");
       expect(calls).toEqual([]);
     } finally {
       rmSync(tmp, { recursive: true, force: true });

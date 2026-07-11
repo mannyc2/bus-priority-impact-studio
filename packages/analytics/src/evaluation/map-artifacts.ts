@@ -1,9 +1,15 @@
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import {
+  MAP_LAYER_CONTRACTS,
   MapBusLaneFeatureCollectionSchema,
   MapContextFeatureCollectionSchema,
+  type MapCurrencyEvidence,
+  type MapLayerStatus,
   MapNetworkFeatureCollectionSchema,
+  type MapRouteUniverse,
   MapRouteSegmentFeatureCollectionSchema,
+  type MapSourceStatus,
 } from "@bp/domain/maps";
 import { Result } from "effect";
 import { decodeSchemaEitherStrict } from "../schema-decode.js";
@@ -12,15 +18,7 @@ export const MAP_ARTIFACT_SCHEMA_VERSION = 1;
 export const MAP_ARTIFACT_JSON_CONTENT_TYPE = "application/json" as const;
 export const MAP_ARTIFACT_GEOJSON_CONTENT_TYPE = "application/geo+json" as const;
 
-export const MAP_LAYER_REGISTRY = {
-  route_shapes: { priority: "p0", requiredForFull: true },
-  timepoint_stops: { priority: "p0", requiredForFull: true },
-  network_simplified: { priority: "p0", requiredForFull: true },
-  route_segments: { priority: "p0", requiredForFull: true },
-  borough_context: { priority: "p0", requiredForFull: true },
-  route_facts: { priority: "p0", requiredForFull: true },
-  bus_lanes: { priority: "p1", requiredForFull: false },
-} as const;
+export const MAP_LAYER_REGISTRY = MAP_LAYER_CONTRACTS;
 
 export type MapLayerId = keyof typeof MAP_LAYER_REGISTRY;
 export type MapCurrencyStatus =
@@ -97,6 +95,31 @@ export function evaluateRevisionPinnedCurrency(input: {
     : { status: "stale", reason: "Derived context does not match the captured source revision." };
 }
 
+export function evaluateMapCurrencyEvidence(
+  evidence: MapCurrencyEvidence,
+  releaseMonth: string,
+): MapCurrencyResult {
+  switch (evidence.policy) {
+    case "max_age_snapshot":
+      return evaluateMaxAgeSnapshotCurrency({
+        fetchedAt: evidence.fetchedAt,
+        evaluatedAt: evidence.evaluatedAt,
+        maxAgeDays: evidence.maxAgeDays,
+      });
+    case "analysis_period":
+      return evaluateAnalysisPeriodCurrency({
+        baselineMonth: evidence.baselineMonth,
+        releaseMonth,
+        coveragePassed: evidence.coveragePassed,
+      });
+    case "revision_pinned":
+      return evaluateRevisionPinnedCurrency({
+        embeddedSha256: evidence.embeddedSha256,
+        sourceSha256: evidence.sourceSha256,
+      });
+  }
+}
+
 export const MAP_ARTIFACT_BUDGETS = {
   network: { rawBytes: 4_610_607, gzipBytes: 400_000, features: 400, coordinates: 60_000 },
   routeFacts: { rawBytes: 600_000, gzipBytes: 100_000, routes: 400 },
@@ -140,8 +163,10 @@ export type MapArtifactEntry = {
   artifactKey: string;
   contentType: typeof MAP_ARTIFACT_JSON_CONTENT_TYPE | typeof MAP_ARTIFACT_GEOJSON_CONTENT_TYPE;
   byteLength: number;
+  gzipByteLength: number;
   sha256: string;
   featureCount: number;
+  coordinateCount: number;
   routeId: string | null;
 };
 
@@ -161,8 +186,13 @@ export type MapArtifactManifest = {
         schemaVersion: 1;
         baselineMonth: string;
         routeCount: number;
+        byteLength: number;
+        gzipByteLength: number;
       }
     | { status: "unavailable"; reason: string };
+  sources: MapSourceStatus[];
+  layers: MapLayerStatus[];
+  routeUniverse: MapRouteUniverse;
   status: "pass" | "fail";
   artifactCount: number;
   routeSegmentArtifactCount: number;
@@ -203,6 +233,9 @@ type ManifestCandidate = {
   buildStatus?: unknown;
   verificationStatus?: unknown;
   routeFacts?: unknown;
+  sources?: unknown;
+  layers?: unknown;
+  routeUniverse?: unknown;
   status?: unknown;
   artifactCount?: unknown;
   routeSegmentArtifactCount?: unknown;
@@ -214,6 +247,22 @@ type ManifestCandidate = {
 
 export function mapArtifactSha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function coordinateCount(value: unknown): number {
+  if (!Array.isArray(value)) return 0;
+  if (value.length >= 2 && typeof value[0] === "number" && typeof value[1] === "number") {
+    return 1;
+  }
+  return value.reduce((sum, member) => sum + coordinateCount(member), 0);
+}
+
+function payloadCoordinateCount(payload: unknown): number {
+  if (!isJsonObject(payload) || !Array.isArray(payload["features"])) return 0;
+  return payload["features"].reduce((sum, feature) => {
+    if (!isJsonObject(feature) || !isJsonObject(feature["geometry"])) return sum;
+    return sum + coordinateCount(feature["geometry"]["coordinates"]);
+  }, 0);
 }
 
 export function buildMapJsonArtifact(input: {
@@ -232,8 +281,10 @@ export function buildMapJsonArtifact(input: {
       artifactKey: input.artifactKey,
       contentType: input.contentType,
       byteLength: bytes.byteLength,
+      gzipByteLength: gzipSync(bytes, { level: 9 }).byteLength,
       sha256: mapArtifactSha256(bytes),
       featureCount: input.featureCount,
+      coordinateCount: payloadCoordinateCount(input.payload),
       routeId: input.routeId,
     },
   };
@@ -245,6 +296,9 @@ export function buildMapArtifactManifest(input: {
   artifacts: readonly MapArtifactEntry[];
   releaseProfile: "demo" | "full";
   routeFacts: MapArtifactManifest["routeFacts"];
+  sources: readonly MapSourceStatus[];
+  layers: readonly MapLayerStatus[];
+  routeUniverse: MapRouteUniverse;
 }): MapArtifactManifest {
   const artifacts = [...input.artifacts];
   const routeSegmentArtifactCount = artifacts.filter(
@@ -259,6 +313,9 @@ export function buildMapArtifactManifest(input: {
     buildStatus: "pass",
     verificationStatus: "not_run",
     routeFacts: input.routeFacts,
+    sources: [...input.sources],
+    layers: [...input.layers],
+    routeUniverse: input.routeUniverse,
     status: "pass",
     artifactCount: artifacts.length,
     routeSegmentArtifactCount,
@@ -286,6 +343,9 @@ export function isMapArtifactManifest(value: unknown): value is MapArtifactManif
       candidate.verificationStatus === "pass" ||
       candidate.verificationStatus === "fail") &&
     isJsonObject(candidate.routeFacts) &&
+    Array.isArray(candidate.sources) &&
+    Array.isArray(candidate.layers) &&
+    isJsonObject(candidate.routeUniverse) &&
     (candidate.status === "pass" || candidate.status === "fail") &&
     typeof candidate.artifactCount === "number" &&
     typeof candidate.routeSegmentArtifactCount === "number" &&
@@ -385,6 +445,19 @@ export function mapArtifactPayloadIssues(input: {
         });
       }
     }
+    for (const issue of mapBudgetIssues({
+      kind: "network",
+      rawBytes: input.artifact.byteLength,
+      gzipBytes: input.artifact.gzipByteLength,
+      features: input.artifact.featureCount,
+      coordinates: input.artifact.coordinateCount,
+    })) {
+      issues.push({
+        code: "map_network_budget_exceeded",
+        artifactKey: input.artifact.artifactKey,
+        message: `Map network artifact ${input.artifact.artifactKey} exceeds its budget: ${issue}.`,
+      });
+    }
   }
   for (const [kind, schema, code] of [
     [
@@ -400,6 +473,20 @@ export function mapArtifactPayloadIssues(input: {
         code,
         artifactKey: input.artifact.artifactKey,
         message: `Map artifact ${input.artifact.artifactKey} failed its domain GeoJSON contract.`,
+      });
+    }
+  }
+  if (input.artifact.artifactKind === "map_bus_lanes_geojson") {
+    for (const issue of mapBudgetIssues({
+      kind: "busLanes",
+      rawBytes: input.artifact.byteLength,
+      gzipBytes: input.artifact.gzipByteLength,
+      features: input.artifact.featureCount,
+    })) {
+      issues.push({
+        code: "map_bus_lane_budget_exceeded",
+        artifactKey: input.artifact.artifactKey,
+        message: `Map bus-lane artifact ${input.artifact.artifactKey} exceeds its budget: ${issue}.`,
       });
     }
   }
@@ -441,6 +528,100 @@ export function verifyMapArtifactManifestContents(input: {
     });
   }
 
+  const acceptableCurrency = new Set(["current", "period_aligned", "revision_pinned"]);
+  const layerIds = new Set(manifest.layers.map((layer) => layer.layerId));
+  for (const [layerId, contract] of Object.entries(MAP_LAYER_REGISTRY)) {
+    const matching = manifest.layers.filter((layer) => layer.layerId === layerId);
+    if (matching.length !== 1) {
+      issues.push({
+        code: "map_layer_registry_coverage_invalid",
+        message: `Map manifest must contain exactly one ${layerId} layer record; found ${matching.length}.`,
+      });
+      continue;
+    }
+    const layer = matching[0];
+    if (
+      layer === undefined ||
+      layer.priority !== contract.priority ||
+      layer.requiredForFull !== contract.requiredForFull
+    ) {
+      issues.push({
+        code: "map_layer_registry_contract_mismatch",
+        message: `Map layer ${layerId} does not match its fixed priority contract.`,
+      });
+      continue;
+    }
+    if (
+      manifest.releaseProfile === "full" &&
+      contract.requiredForFull &&
+      (layer.readiness !== "available" || !acceptableCurrency.has(layer.currencyStatus))
+    ) {
+      issues.push({
+        code: "map_required_layer_unpublishable",
+        message: `Required ${layerId} layer is ${layer.readiness}/${layer.currencyStatus}: ${layer.reason}`,
+      });
+    }
+    const evaluatedCurrency = evaluateMapCurrencyEvidence(layer.currency, input.month);
+    if (layer.currencyStatus !== evaluatedCurrency.status) {
+      issues.push({
+        code: "map_layer_currency_mismatch",
+        message: `Map layer ${layerId} declares ${layer.currencyStatus}, but its evidence evaluates to ${evaluatedCurrency.status}.`,
+      });
+    }
+  }
+  if (layerIds.size !== manifest.layers.length) {
+    issues.push({
+      code: "map_layer_registry_duplicate",
+      message: "Map manifest contains duplicate layer records.",
+    });
+  }
+  const sourceIds = new Set(manifest.sources.map((source) => source.sourceId));
+  if (sourceIds.size !== manifest.sources.length) {
+    issues.push({
+      code: "map_source_registry_duplicate",
+      message: "Map manifest contains duplicate source records.",
+    });
+  }
+  for (const source of manifest.sources) {
+    const evaluatedCurrency = evaluateMapCurrencyEvidence(source.currency, input.month);
+    if (source.currencyStatus !== evaluatedCurrency.status) {
+      issues.push({
+        code: "map_source_currency_mismatch",
+        message: `Map source ${source.sourceId} declares ${source.currencyStatus}, but its evidence evaluates to ${evaluatedCurrency.status}.`,
+      });
+    }
+    if (
+      manifest.releaseProfile === "full" &&
+      source.requiredForFull &&
+      (source.readiness !== "available" || !acceptableCurrency.has(source.currencyStatus))
+    ) {
+      issues.push({
+        code: "map_required_source_unpublishable",
+        message: `Required source ${source.sourceId} is ${source.readiness}/${source.currencyStatus}: ${source.reason}`,
+      });
+    }
+  }
+  for (const layer of manifest.layers) {
+    const missingSources = layer.sourceIds.filter((sourceId) => !sourceIds.has(sourceId));
+    if (missingSources.length > 0) {
+      issues.push({
+        code: "map_layer_source_reference_missing",
+        message: `Map layer ${layer.layerId} references missing source(s): ${missingSources.join(", ")}.`,
+      });
+    }
+  }
+  const laneLayer = manifest.layers.find((layer) => layer.layerId === "bus_lanes");
+  if (
+    laneLayer !== undefined &&
+    laneLayer.artifactKey !== null &&
+    (laneLayer.readiness !== "available" || laneLayer.currencyStatus !== "current")
+  ) {
+    issues.push({
+      code: "map_optional_lane_reference_unpublishable",
+      message: "Optional bus-lane artifact is referenced without available/current posture.",
+    });
+  }
+
   const requiredKinds: MapArtifactKind[] = [
     "map_source_snapshot",
     "map_route_shapes_geojson",
@@ -466,25 +647,64 @@ export function verifyMapArtifactManifestContents(input: {
       message: `Map artifact manifest routeSegmentArtifactCount is ${manifest.routeSegmentArtifactCount}; actual rows ${routeSegmentArtifacts.length}.`,
     });
   }
+  const expectedRouteIds = input.expectedRouteIds ?? manifest.routeUniverse.expectedRouteIds;
   if (input.expectedRouteIds !== undefined) {
+    const callerExpected = new Set(input.expectedRouteIds);
+    const declaredExpected = new Set<string>(manifest.routeUniverse.expectedRouteIds);
+    const declarationMismatch =
+      input.expectedRouteIds.some((routeId) => !declaredExpected.has(routeId)) ||
+      manifest.routeUniverse.expectedRouteIds.some((routeId) => !callerExpected.has(routeId));
+    if (declarationMismatch) {
+      issues.push({
+        code: "map_route_universe_expected_mismatch",
+        message: "Manifest expected-route universe differs from the authoritative build universe.",
+      });
+    }
+  }
+  {
     const actualRouteIds = new Set(
       routeSegmentArtifacts
         .map((row) => row.routeId)
         .filter((routeId): routeId is string => routeId !== null),
     );
-    const missingRoutes = input.expectedRouteIds.filter((routeId) => !actualRouteIds.has(routeId));
+    const missingRoutes = expectedRouteIds.filter((routeId) => !actualRouteIds.has(routeId));
     if (missingRoutes.length > 0) {
       issues.push({
         code: "map_route_segment_artifact_routes_missing",
         message: `${missingRoutes.length} public route(s) lack map route-segment artifacts: ${missingRoutes.slice(0, 5).join(", ")}.`,
       });
     }
-    const expected = new Set(input.expectedRouteIds);
+    const expected = new Set(expectedRouteIds);
     const extraRoutes = [...actualRouteIds].filter((routeId) => !expected.has(routeId));
     if (extraRoutes.length > 0) {
       issues.push({
         code: "map_route_segment_artifact_routes_extra",
         message: `${extraRoutes.length} map route-segment artifact route(s) are outside the expected universe: ${extraRoutes.slice(0, 5).join(", ")}.`,
+      });
+    }
+  }
+  for (const [field, routeIds] of [
+    ["geometry", manifest.routeUniverse.geometryRouteIds],
+    ["route-segment", manifest.routeUniverse.routeSegmentRouteIds],
+  ] as const) {
+    const actual = new Set<string>(routeIds);
+    const missing = expectedRouteIds.filter((routeId) => !actual.has(routeId));
+    const expected = new Set(expectedRouteIds);
+    const extra = routeIds.filter((routeId) => !expected.has(routeId));
+    if (missing.length > 0 || extra.length > 0) {
+      issues.push({
+        code: `map_route_universe_${field}_mismatch`,
+        message: `${field} universe differs from expected routes (${missing.length} missing, ${extra.length} extra).`,
+      });
+    }
+  }
+  if (manifest.routeFacts.status === "available") {
+    const actual = new Set<string>(manifest.routeUniverse.routeFactRouteIds);
+    const missing = expectedRouteIds.filter((routeId) => !actual.has(routeId));
+    if (missing.length > 0) {
+      issues.push({
+        code: "map_route_universe_route_fact_mismatch",
+        message: `route-fact universe differs from expected routes (${missing.length} missing).`,
       });
     }
   }

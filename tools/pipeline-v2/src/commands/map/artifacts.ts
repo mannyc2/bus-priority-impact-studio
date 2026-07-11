@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { gzipSync } from "node:zlib";
 import {
   mapArtifactKey,
   mapArtifactManifestPath,
@@ -9,10 +10,14 @@ import {
 import {
   buildMapArtifactManifest,
   buildMapJsonArtifact,
+  evaluateAnalysisPeriodCurrency,
+  evaluateMaxAgeSnapshotCurrency,
+  evaluateRevisionPinnedCurrency,
   isMapArtifactManifest,
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,
   MAP_ARTIFACT_SCHEMA_VERSION,
+  mapBudgetIssues,
   type MapArtifactEntry,
   type MapArtifactIssue,
   type MapArtifactManifest,
@@ -41,12 +46,16 @@ import {
 } from "@bp/db/local";
 import {
   type MapBorough,
+  MapBusLaneFeatureCollectionSchema,
   MapContextFeatureCollectionSchema,
+  MapLayerStatusSchema,
   type MapNetworkFeatureCollection,
   MapNetworkFeatureCollectionSchema,
   MapRouteFactsResponseSchema,
+  MapRouteUniverseSchema,
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
+  MapSourceStatusSchema,
 } from "@bp/domain/maps";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
@@ -55,7 +64,7 @@ import {
   normalizeRouteShapeRows,
   normalizeStopRows,
 } from "@bp/sources/adapters/mta/routes-stops";
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
 import { localTransformConcurrency, runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
@@ -65,7 +74,7 @@ import {
   type LoadedRouteSpeedSpineCrosswalk,
   loadRouteSpeedSpineCrosswalk,
 } from "../../lib/route-speed-spine-crosswalk.ts";
-import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
+import { decodeSchemaEitherStrict, decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
 import { pointInPolygon } from "./context.ts";
 
@@ -367,6 +376,105 @@ async function verifyArtifactFile(input: {
   return issues;
 }
 
+async function verifyRouteFactsReference(input: {
+  artifactRoot: string;
+  month: string;
+  manifest: MapArtifactManifest;
+  expectedRouteIds?: readonly string[];
+}): Promise<MapArtifactIssue[]> {
+  if (input.manifest.routeFacts.status === "unavailable") return [];
+  const reference = input.manifest.routeFacts;
+  const file = Bun.file(join(input.artifactRoot, reference.artifactKey));
+  if (!(await file.exists())) {
+    return [
+      {
+        code: "map_route_facts_file_missing",
+        artifactKey: reference.artifactKey,
+        message: `Missing map route-facts file ${reference.artifactKey}.`,
+      },
+    ];
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const gzipByteLength = gzipSync(bytes, { level: 9 }).byteLength;
+  const issues: MapArtifactIssue[] = [];
+  if (bytes.byteLength !== reference.byteLength) {
+    issues.push({
+      code: "map_route_facts_byte_length_mismatch",
+      artifactKey: reference.artifactKey,
+      message: `Map route facts expected ${reference.byteLength} bytes but found ${bytes.byteLength}.`,
+    });
+  }
+  if (gzipByteLength !== reference.gzipByteLength) {
+    issues.push({
+      code: "map_route_facts_gzip_length_mismatch",
+      artifactKey: reference.artifactKey,
+      message: `Map route facts expected ${reference.gzipByteLength} gzip bytes but found ${gzipByteLength}.`,
+    });
+  }
+  if (mapArtifactSha256(bytes) !== reference.sha256) {
+    issues.push({
+      code: "map_route_facts_hash_mismatch",
+      artifactKey: reference.artifactKey,
+      message: `Map route facts ${reference.artifactKey} failed SHA-256 verification.`,
+    });
+  }
+  let facts: typeof MapRouteFactsResponseSchema.Type | null = null;
+  try {
+    facts = decodeSchemaStrict(
+      MapRouteFactsResponseSchema,
+      JSON.parse(new TextDecoder().decode(bytes)),
+    );
+  } catch {
+    issues.push({
+      code: "map_route_facts_payload_invalid",
+      artifactKey: reference.artifactKey,
+      message: `Map route facts ${reference.artifactKey} failed the domain contract.`,
+    });
+  }
+  if (facts !== null) {
+    if (facts.baselineMonth !== input.month) {
+      issues.push({
+        code: "map_route_facts_payload_month_mismatch",
+        artifactKey: reference.artifactKey,
+        message: `Map route facts payload is for ${facts.baselineMonth}, expected ${input.month}.`,
+      });
+    }
+    if (facts.routes.length !== reference.routeCount) {
+      issues.push({
+        code: "map_route_facts_route_count_mismatch",
+        artifactKey: reference.artifactKey,
+        message: `Map route facts declare ${reference.routeCount} routes but contain ${facts.routes.length}.`,
+      });
+    }
+    if (input.expectedRouteIds !== undefined) {
+      const factRouteIds = new Set<string>(
+        facts.routes.map((fact) => fact.route.routeId as string),
+      );
+      const missing = input.expectedRouteIds.filter((routeId) => !factRouteIds.has(routeId));
+      if (missing.length > 0) {
+        issues.push({
+          code: "map_route_facts_routes_missing",
+          artifactKey: reference.artifactKey,
+          message: `${missing.length} expected map route(s) lack route facts: ${missing.slice(0, 5).join(", ")}.`,
+        });
+      }
+    }
+    for (const issue of mapBudgetIssues({
+      kind: "routeFacts",
+      rawBytes: bytes.byteLength,
+      gzipBytes: gzipByteLength,
+      routes: facts.routes.length,
+    })) {
+      issues.push({
+        code: "map_route_facts_budget_exceeded",
+        artifactKey: reference.artifactKey,
+        message: `Map route facts ${reference.artifactKey} exceed their budget: ${issue}.`,
+      });
+    }
+  }
+  return issues;
+}
+
 export async function verifyMapArtifactManifest(input: {
   artifactRoot: string;
   month: string;
@@ -377,15 +485,25 @@ export async function verifyMapArtifactManifest(input: {
   const artifactIssues =
     manifest === null
       ? []
-      : (
-          await runBoundedPromises(manifest.artifacts, localTransformConcurrency, (artifact) =>
-            verifyArtifactFile({
-              artifactRoot: input.artifactRoot,
-              month: input.month,
-              artifact,
-            }),
-          )
-        ).flat();
+      : [
+          ...(
+            await runBoundedPromises(manifest.artifacts, localTransformConcurrency, (artifact) =>
+              verifyArtifactFile({
+                artifactRoot: input.artifactRoot,
+                month: input.month,
+                artifact,
+              }),
+            )
+          ).flat(),
+          ...(await verifyRouteFactsReference({
+            artifactRoot: input.artifactRoot,
+            month: input.month,
+            manifest,
+            ...(input.expectedRouteIds === undefined
+              ? {}
+              : { expectedRouteIds: input.expectedRouteIds }),
+          })),
+        ];
 
   return verifyMapArtifactManifestContents({
     manifestPath,
@@ -1086,6 +1204,7 @@ export type MapArtifactsInputs = {
   stopSnapshotPath?: string | undefined;
   busLaneSnapshotPath?: string | undefined;
   contextPath?: string | undefined;
+  contextSourcePath?: string | undefined;
   routeFactsPath?: string | undefined;
   routeIds?: readonly string[] | undefined;
 };
@@ -1109,16 +1228,20 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   if (args.releaseProfile === "full" && routeFacts === null) {
     throw new Error(`Full map release requires route facts at ${routeFactsPath}.`);
   }
+  const routeFactsBytes =
+    routeFacts === null ? null : new Uint8Array(await routeFactsFile.arrayBuffer());
   const routeFactsReference: MapArtifactManifest["routeFacts"] =
     routeFacts === null
       ? { status: "unavailable", reason: "Same-month map route facts are unavailable." }
       : {
           status: "available",
           artifactKey: "studio/v1/map-route-facts.json",
-          sha256: mapArtifactSha256(new Uint8Array(await routeFactsFile.arrayBuffer())),
+          sha256: mapArtifactSha256(routeFactsBytes as Uint8Array),
           schemaVersion: 1,
           baselineMonth: routeFacts.baselineMonth,
           routeCount: routeFacts.routes.length,
+          byteLength: (routeFactsBytes as Uint8Array).byteLength,
+          gzipByteLength: gzipSync(routeFactsBytes as Uint8Array, { level: 9 }).byteLength,
         };
   const routeShapeSnapshot = await readRouteShapeSnapshot(
     args.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath(),
@@ -1129,6 +1252,23 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const context = (await contextFile.exists())
     ? decodeSchemaStrict(MapContextFeatureCollectionSchema, await contextFile.json())
     : null;
+  const contextSourceFile =
+    args.contextSourcePath === undefined ? null : Bun.file(args.contextSourcePath);
+  const contextSourceBytes =
+    contextSourceFile !== null && (await contextSourceFile.exists())
+      ? new Uint8Array(await contextSourceFile.arrayBuffer())
+      : null;
+  const contextSourceSha256 =
+    contextSourceBytes === null ? null : mapArtifactSha256(contextSourceBytes);
+  const contextCurrency = evaluateRevisionPinnedCurrency({
+    embeddedSha256: context?.sourceRevision.sha256 ?? null,
+    sourceSha256: contextSourceSha256,
+  });
+  if (args.releaseProfile === "full" && contextCurrency.status !== "revision_pinned") {
+    throw new Error(
+      `Full map release requires borough context pinned to its exact source bytes: ${contextCurrency.reason}`,
+    );
+  }
   const boroughsByRoute = await servedBoroughsByRoute({
     contextPath,
     stops: stopSnapshot.stops,
@@ -1146,6 +1286,28 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const selectedRouteRows = rows.routeRows.filter(
     (route) => routeFilter.size === 0 || routeFilter.has(route.routeId),
   );
+  const routeShapeCurrency = evaluateMaxAgeSnapshotCurrency({
+    fetchedAt: routeShapeSnapshot.metadata.fetchedAt,
+    evaluatedAt: generatedAt,
+  });
+  const stopCurrency = evaluateMaxAgeSnapshotCurrency({
+    fetchedAt: stopSnapshot.metadata.fetchedAt,
+    evaluatedAt: generatedAt,
+  });
+  const speedCurrency = evaluateAnalysisPeriodCurrency({
+    baselineMonth: isoMonthStr,
+    releaseMonth: isoMonthStr,
+    coveragePassed:
+      selectedRouteRows.length > 0 &&
+      selectedRouteRows.every((route) =>
+        route.speedRows.some((row) => row.busTripCount > 0 && row.averageRoadSpeedMph >= 0),
+      ),
+  });
+  const routeFactsCurrency = evaluateAnalysisPeriodCurrency({
+    baselineMonth: routeFacts?.baselineMonth ?? isoMonthStr,
+    releaseMonth: isoMonthStr,
+    coveragePassed: routeFacts !== null,
+  });
   if (args.releaseProfile === "full") {
     const factRouteIds = new Set<string>(
       routeFacts?.routes.map((fact) => fact.route.routeId as string) ?? [],
@@ -1228,17 +1390,38 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       featureCount: stops.features.length,
     }),
   );
-  artifacts.push(
-    await writeJsonArtifact({
-      path: mapArtifactPath(artifactRoot, "bus-lanes", "local-streets.min.geojson"),
-      artifactKey: mapArtifactKey("bus-lanes", "local-streets.min.geojson"),
-      artifactKind: "map_bus_lanes_geojson",
-      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
-      routeId: null,
-      payload: busLanes,
-      featureCount: busLanes.features.length,
-    }),
+  const busLaneArtifact = buildMapJsonArtifact({
+    artifactKey: mapArtifactKey("bus-lanes", "local-streets.min.geojson"),
+    artifactKind: "map_bus_lanes_geojson",
+    contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+    routeId: null,
+    payload: busLanes,
+    featureCount: busLanes.features.length,
+  });
+  const busLaneCurrency = evaluateMaxAgeSnapshotCurrency({
+    fetchedAt: busLaneSnapshot.metadata.fetchedAt,
+    evaluatedAt: generatedAt,
+  });
+  const busLaneBudgetIssues = mapBudgetIssues({
+    kind: "busLanes",
+    rawBytes: busLaneArtifact.entry.byteLength,
+    gzipBytes: busLaneArtifact.entry.gzipByteLength,
+    features: busLaneArtifact.entry.featureCount,
+  });
+  const busLaneContractValid = Result.isSuccess(
+    decodeSchemaEitherStrict(MapBusLaneFeatureCollectionSchema, busLanes),
   );
+  if (
+    busLaneSnapshot.metadata.status === "available" &&
+    busLaneCurrency.status === "current" &&
+    busLaneBudgetIssues.length === 0 &&
+    busLaneContractValid
+  ) {
+    const busLanePath = mapArtifactPath(artifactRoot, "bus-lanes", "local-streets.min.geojson");
+    await mkdir(dirname(busLanePath), { recursive: true });
+    await Bun.write(busLanePath, busLaneArtifact.bytes);
+    artifacts.push(busLaneArtifact.entry);
+  }
 
   const routeArtifactResults = await runBoundedPromises(
     selectedRouteRows,
@@ -1339,12 +1522,258 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const routeSegmentFeatureCount = artifacts
     .filter((row) => row.artifactKind === "map_route_segments_geojson")
     .reduce((sum, row) => sum + row.featureCount, 0);
+  const artifactFor = (kind: MapArtifactEntry["artifactKind"]): MapArtifactEntry | null =>
+    artifacts.find((artifact) => artifact.artifactKind === kind) ?? null;
+  const routeSegmentArtifacts = artifacts.filter(
+    (artifact) => artifact.artifactKind === "map_route_segments_geojson",
+  );
+  const busLaneEntry = artifactFor("map_bus_lanes_geojson");
+  const sources = [
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "current_bus_routes",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: "available",
+      currencyStatus: routeShapeCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: routeShapeSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: routeShapeCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      reason: routeShapeCurrency.reason,
+    }),
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "current_bus_stops",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: "available",
+      currencyStatus: stopCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: stopSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: stopCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      reason: stopCurrency.reason,
+    }),
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "mta_bus_segment_speeds",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: speedCurrency.status === "period_aligned" ? "available" : "partial",
+      currencyStatus: speedCurrency.status,
+      currency: {
+        policy: "analysis_period",
+        baselineMonth: isoMonthStr,
+        coveragePassed: speedCurrency.status === "period_aligned",
+      },
+      reason: speedCurrency.reason,
+    }),
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "nyc_borough_boundaries",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: context === null ? "missing" : "available",
+      currencyStatus: contextCurrency.status,
+      currency: {
+        policy: "revision_pinned",
+        sourceId: "nyc_borough_boundaries",
+        embeddedSha256: context?.sourceRevision.sha256 ?? null,
+        sourceSha256: contextSourceSha256,
+      },
+      reason: contextCurrency.reason,
+    }),
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "studio_map_route_facts",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: routeFacts === null ? "missing" : "available",
+      currencyStatus: routeFactsCurrency.status,
+      currency: {
+        policy: "analysis_period",
+        baselineMonth: routeFacts?.baselineMonth ?? isoMonthStr,
+        coveragePassed: routeFacts !== null,
+      },
+      reason: routeFactsCurrency.reason,
+    }),
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "nyc_dot_bus_lanes_local_streets",
+      priority: "p1",
+      requiredForFull: false,
+      readiness: busLaneEntry === null ? "missing" : "available",
+      currencyStatus: busLaneCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: busLaneSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: busLaneCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      reason:
+        busLaneEntry === null
+          ? `Optional bus-lane artifact excluded: ${busLaneCurrency.reason}${busLaneBudgetIssues.length === 0 ? "" : ` ${busLaneBudgetIssues.join("; ")}`}${busLaneContractValid ? "" : " Contract validation failed."}`
+          : busLaneCurrency.reason,
+    }),
+  ];
+  const layer = (value: unknown) => decodeSchemaStrict(MapLayerStatusSchema, value);
+  const layers = [
+    layer({
+      layerId: "route_shapes",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: "available",
+      currencyStatus: routeShapeCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: routeShapeSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: routeShapeCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      sourceIds: ["current_bus_routes"],
+      artifactKey: artifactFor("map_route_shapes_geojson")?.artifactKey ?? null,
+      featureCount: routeShapes.features.length,
+      routeCount: new Set(routeShapes.features.map((feature) => feature.properties.routeId)).size,
+      reason: routeShapeCurrency.reason,
+    }),
+    layer({
+      layerId: "timepoint_stops",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: "available",
+      currencyStatus: stopCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: stopSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: stopCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      sourceIds: ["current_bus_stops"],
+      artifactKey: artifactFor("map_timepoint_stops_geojson")?.artifactKey ?? null,
+      featureCount: stops.features.length,
+      routeCount: new Set(stops.features.map((feature) => feature.properties.routeId)).size,
+      reason: stopCurrency.reason,
+    }),
+    layer({
+      layerId: "network_simplified",
+      priority: "p0",
+      requiredForFull: true,
+      readiness:
+        networkPayload.features.length === selectedRouteRows.length ? "available" : "partial",
+      currencyStatus: speedCurrency.status,
+      currency: {
+        policy: "analysis_period",
+        baselineMonth: isoMonthStr,
+        coveragePassed: speedCurrency.status === "period_aligned",
+      },
+      sourceIds: ["mta_bus_segment_speeds", "current_bus_routes", "current_bus_stops"],
+      artifactKey: artifactFor("map_network_simplified_geojson")?.artifactKey ?? null,
+      featureCount: networkPayload.features.length,
+      routeCount: networkPayload.features.length,
+      reason: speedCurrency.reason,
+    }),
+    layer({
+      layerId: "route_segments",
+      priority: "p0",
+      requiredForFull: true,
+      readiness:
+        routeSegmentArtifacts.length === selectedRouteRows.length ? "available" : "partial",
+      currencyStatus: speedCurrency.status,
+      currency: {
+        policy: "analysis_period",
+        baselineMonth: isoMonthStr,
+        coveragePassed: speedCurrency.status === "period_aligned",
+      },
+      sourceIds: ["mta_bus_segment_speeds", "current_bus_routes"],
+      artifactKey: null,
+      featureCount: routeSegmentFeatureCount,
+      routeCount: routeSegmentArtifacts.length,
+      reason: speedCurrency.reason,
+    }),
+    layer({
+      layerId: "borough_context",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: context === null ? "missing" : "available",
+      currencyStatus: contextCurrency.status,
+      currency: {
+        policy: "revision_pinned",
+        sourceId: "nyc_borough_boundaries",
+        embeddedSha256: context?.sourceRevision.sha256 ?? null,
+        sourceSha256: contextSourceSha256,
+      },
+      sourceIds: ["nyc_borough_boundaries"],
+      artifactKey: artifactFor("map_borough_context_geojson")?.artifactKey ?? null,
+      featureCount: context?.features.length ?? 0,
+      routeCount: 0,
+      reason: contextCurrency.reason,
+    }),
+    layer({
+      layerId: "route_facts",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: routeFacts === null ? "missing" : "available",
+      currencyStatus: routeFactsCurrency.status,
+      currency: {
+        policy: "analysis_period",
+        baselineMonth: routeFacts?.baselineMonth ?? isoMonthStr,
+        coveragePassed: routeFacts !== null,
+      },
+      sourceIds: ["studio_map_route_facts"],
+      artifactKey:
+        routeFactsReference.status === "available" ? routeFactsReference.artifactKey : null,
+      featureCount: 0,
+      routeCount: routeFacts?.routes.length ?? 0,
+      reason: routeFactsCurrency.reason,
+    }),
+    layer({
+      layerId: "bus_lanes",
+      priority: "p1",
+      requiredForFull: false,
+      readiness: busLaneEntry === null ? "missing" : "available",
+      currencyStatus: busLaneCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: busLaneSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: busLaneCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      sourceIds: ["nyc_dot_bus_lanes_local_streets"],
+      artifactKey: busLaneEntry?.artifactKey ?? null,
+      featureCount: busLaneEntry?.featureCount ?? 0,
+      routeCount: 0,
+      reason: sources.at(-1)?.reason ?? busLaneCurrency.reason,
+    }),
+  ];
+  const routeUniverse = decodeSchemaStrict(MapRouteUniverseSchema, {
+    includedRouteTypes: ["Local", "Limited", "SBS"],
+    excludedRouteTypes: ["Express", "School"],
+    expectedRouteIds: selectedRouteRows.map((route) => route.routeId).toSorted(),
+    geometryRouteIds: networkPayload.features
+      .map((feature) => feature.properties.routeId)
+      .toSorted(),
+    routeSegmentRouteIds: routeSegmentArtifacts
+      .flatMap((artifact) => (artifact.routeId === null ? [] : [artifact.routeId]))
+      .toSorted(),
+    routeFactRouteIds: (routeFacts?.routes ?? [])
+      .map((fact) => fact.route.routeId)
+      .filter((routeId) => selectedRouteRows.some((route) => route.routeId === routeId))
+      .toSorted(),
+  });
   const manifest = buildMapArtifactManifest({
     month: options.isoMonth,
     generatedAt,
     artifacts,
     releaseProfile: args.releaseProfile,
     routeFacts: routeFactsReference,
+    sources,
+    layers,
+    routeUniverse,
   });
   const manifestPath = mapArtifactManifestPath(artifactRoot, options.isoMonth);
   await mkdir(dirname(manifestPath), { recursive: true });
@@ -1415,6 +1844,9 @@ export default defineCommand({
         context: Schema.optionalKey(Schema.String).annotate({
           description: "Override generated borough-context artifact path",
         }),
+        contextSource: Schema.optionalKey(Schema.String).annotate({
+          description: "Exact raw borough-boundary source used to build context",
+        }),
         routeFacts: Schema.optionalKey(Schema.String).annotate({
           description: "Override compact same-month map-route-facts projection path",
         }),
@@ -1457,6 +1889,10 @@ export default defineCommand({
         : fromCliPath(input.options.busLaneSnapshot);
     const contextPath =
       input.options.context === undefined ? undefined : fromCliPath(input.options.context);
+    const contextSourcePath =
+      input.options.contextSource === undefined
+        ? undefined
+        : fromCliPath(input.options.contextSource);
     const routeFactsPath =
       input.options.routeFacts === undefined ? undefined : fromCliPath(input.options.routeFacts);
     return runLocalDbCommandBoundary({
@@ -1479,6 +1915,7 @@ export default defineCommand({
           stopSnapshotPath,
           busLaneSnapshotPath,
           contextPath,
+          contextSourcePath,
           routeFactsPath,
           routeIds: input.options.routes?.split(",").map((routeId) => routeId.trim()),
         }),

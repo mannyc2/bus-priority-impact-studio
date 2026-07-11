@@ -3,6 +3,7 @@ import { decodeEitherStrict, decodeStrict } from "@bp/domain/decode";
 import {
   MapBusLaneFeatureCollectionSchema,
   MapContextFeatureCollectionSchema,
+  MapLayerStatusSchema,
   MapNetworkFeatureCollectionSchema,
   MapRouteFactsResponseSchema,
   MapRouteSegmentFeatureCollectionSchema,
@@ -241,6 +242,30 @@ describe("truthful network map schemas", () => {
               },
             },
           ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test("rejects attempts to downgrade a fixed P0 map layer", () => {
+    expect(
+      Result.isFailure(
+        decodeEitherStrict(MapLayerStatusSchema)({
+          layerId: "network_simplified",
+          priority: "p1",
+          requiredForFull: false,
+          readiness: "available",
+          currencyStatus: "period_aligned",
+          currency: {
+            policy: "analysis_period",
+            baselineMonth: "2026-03",
+            coveragePassed: true,
+          },
+          sourceIds: ["mta_bus_segment_speeds"],
+          artifactKey: "map/2026-03/network-simplified.geojson",
+          featureCount: 1,
+          routeCount: 1,
+          reason: "Invalid downgrade fixture.",
         }),
       ),
     ).toBe(true);
