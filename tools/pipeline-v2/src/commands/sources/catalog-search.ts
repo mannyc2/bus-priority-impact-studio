@@ -1,4 +1,4 @@
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   RichSocrataCatalogSearchClient,
   type SocrataFetch,
@@ -85,35 +85,41 @@ export default defineCommand({
   path: ["sources", "catalog-search"],
   summary: "Search a Socrata catalog (default data.ny.gov) for datasets.",
   input: {
-    options: z.object({
-      query: z.string().min(1).describe("Search query (required)"),
-      domain: z.string().optional().describe("Socrata domain (default data.ny.gov)"),
-      category: z.string().optional(),
-      agency: z.string().optional(),
-      tags: z.string().optional(),
-      limit: z.coerce.number().int().positive().optional(),
-      offset: z.coerce.number().int().nonnegative().optional(),
-      order: z.string().optional(),
+    options: Schema.Struct({
+      query: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Search query (required)",
+      }),
+      domain: Schema.optionalKey(Schema.String).annotate({
+        description: "Socrata domain (default data.ny.gov)",
+      }),
+      category: Schema.optionalKey(Schema.String),
+      agency: Schema.optionalKey(Schema.String),
+      tags: Schema.optionalKey(Schema.String),
+      limit: Schema.optionalKey(arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0))),
+      offset: Schema.optionalKey(
+        arg.number().check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
+      order: Schema.optionalKey(Schema.String),
     }),
   },
-  output: z.object({
-    command: z.literal("sources:catalog-search"),
-    checkedAt: z.string(),
-    domain: z.string(),
-    query: z.string(),
-    filters: z.object({
-      category: z.string().nullable(),
-      agency: z.string().nullable(),
-      tags: z.string().nullable(),
-      limit: z.number(),
-      offset: z.number(),
-      order: z.string(),
+  output: Schema.Struct({
+    command: Schema.Literal("sources:catalog-search"),
+    checkedAt: Schema.String,
+    domain: Schema.String,
+    query: Schema.String,
+    filters: Schema.Struct({
+      category: Schema.NullOr(Schema.String),
+      agency: Schema.NullOr(Schema.String),
+      tags: Schema.NullOr(Schema.String),
+      limit: Schema.Number,
+      offset: Schema.Number,
+      order: Schema.String,
     }),
-    catalogUrl: z.string().nullable(),
-    resultSetSize: z.number(),
-    returned: z.number(),
-    warnings: z.array(z.unknown()),
-    results: z.array(z.unknown()),
+    catalogUrl: Schema.NullOr(Schema.String),
+    resultSetSize: Schema.Number,
+    returned: Schema.Number,
+    warnings: Schema.Array(Schema.Unknown),
+    results: Schema.Array(Schema.Unknown),
   }),
   async run({ input }) {
     return searchSourceCatalog({
