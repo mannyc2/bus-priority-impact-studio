@@ -2900,6 +2900,70 @@ describe("Studio API facade", () => {
     expect(snapshot.quality.caveats).not.toContain(
       "Snapshot 2.0 manifest failed contract validation and is temporarily omitted.",
     );
+    // Snapshot degrade policy: model projection failures are tolerated and disclosed.
+    expect(snapshot.quality.caveats).toContain(
+      "Detector model projection is temporarily unavailable and is omitted from Snapshot 2.0.",
+    );
+  });
+
+  it("applies the declared snapshot degrade policy to methods and docs projections", async () => {
+    const cases = [
+      {
+        key: "studio/v1/methods.json",
+        countKey: "methods" as const,
+        caveat: "Methods projection is temporarily unavailable; dataset counts are omitted.",
+      },
+      {
+        key: "studio/v1/docs.json",
+        countKey: "docsSections" as const,
+        caveat: "Docs projection is temporarily unavailable; documentation sections are omitted.",
+      },
+    ];
+
+    for (const testCase of cases) {
+      const env = createStudioProjectionEnv({
+        extraArtifacts: {
+          [testCase.key]: new FakeR2Object("{not-json", "application/json"),
+        },
+      });
+
+      const response = await fetchApi("/api/v1/studio/snapshot", env);
+
+      expect(response.status).toBe(200);
+      const snapshot = StudioSnapshotResponseSchema.parse(await response.json());
+      // Snapshot degrade policy: tolerated projections compose as legal empty contributions.
+      expect(snapshot.counts[testCase.countKey]).toBe(0);
+      if (testCase.countKey === "docsSections") {
+        expect(snapshot.counts.docsEndpoints).toBe(0);
+      }
+      expect(snapshot.quality.caveats).toContain(testCase.caveat);
+    }
+  });
+
+  it("keeps routes required while tolerating a poisoned route evidence index", async () => {
+    const routesRequiredEnv = createStudioProjectionEnv({
+      extraArtifacts: {
+        "studio/v1/routes.json": new FakeR2Object("{not-json", "application/json"),
+      },
+    });
+    const requiredResponse = await fetchApi("/api/v1/studio/snapshot", routesRequiredEnv);
+    expect(requiredResponse.status).toBe(502);
+
+    const evidenceToleratedEnv = {
+      ...createStudioProjectionEnv({
+        extraArtifacts: {
+          [STUDIO_ROUTE_EVIDENCE_INDEX_KEY]: new FakeR2Object("{not-json", "application/json"),
+        },
+      }),
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+    };
+    const toleratedResponse = await fetchApi("/api/v1/studio/snapshot", evidenceToleratedEnv);
+    expect(toleratedResponse.status).toBe(200);
+    const snapshot = StudioSnapshotResponseSchema.parse(await toleratedResponse.json());
+    // Snapshot degrade policy: evidence-index failure omits evidence without failing routes.
+    expect(snapshot.quality.caveats).toContain(
+      "Route evidence index is temporarily unavailable and is omitted from Snapshot 2.0.",
+    );
   });
 
   it("serves D1-backed Studio route month history", async () => {

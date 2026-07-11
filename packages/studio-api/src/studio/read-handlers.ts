@@ -45,6 +45,7 @@ import {
 import {
   type StudioDocsResponse,
   StudioDocsResponseSchema,
+  type StudioMethodsResponse,
   StudioMethodsResponseSchema,
 } from "@bp/domain/studio/docs";
 import {
@@ -79,7 +80,7 @@ import {
   type StudioSnapshot2,
   type StudioSnapshot2ProjectionRef,
   type StudioSnapshotProjection,
-  StudioSnapshotResponseSchema,
+  type StudioSnapshotResponse,
   type StudioSourceMonthState,
 } from "@bp/domain/studio/snapshots";
 import { studioOpenApiDocument } from "../contracts/openapi.js";
@@ -103,9 +104,30 @@ import {
 export type StudioReadEnv = Pick<StudioApiEnv, "ARTIFACTS" | "DB" | "STUDIO_RELEASE_KEY">;
 
 const OPENAPI_DOC_METHODS = ["get", "post", "put", "patch", "delete"] as const;
-const SNAPSHOT_CONTRACT_VALIDATION_MESSAGE = "Studio snapshot failed contract validation.";
 const SNAPSHOT_2_OMITTED_CAVEAT =
   "Snapshot 2.0 manifest failed contract validation and is temporarily omitted.";
+
+const SNAPSHOT_DEGRADE_POLICY = {
+  routes: { required: true, caveat: null },
+  methods: {
+    required: false,
+    caveat: "Methods projection is temporarily unavailable; dataset counts are omitted.",
+  },
+  docs: {
+    required: false,
+    caveat: "Docs projection is temporarily unavailable; documentation sections are omitted.",
+  },
+  routeEvidenceIndex: {
+    required: false,
+    caveat: "Route evidence index is temporarily unavailable and is omitted from Snapshot 2.0.",
+  },
+  modelProjection: {
+    required: false,
+    caveat:
+      "Detector model projection is temporarily unavailable and is omitted from Snapshot 2.0.",
+  },
+  snapshot2: { required: false, caveat: SNAPSHOT_2_OMITTED_CAVEAT },
+} as const;
 
 function dependencyNotConfiguredResponse(dependency: string, context: string): Response {
   console.error("Service dependency is not configured.", { context, dependency });
@@ -117,11 +139,6 @@ function artifactNotAvailableResponse(status: number, context: string, key: stri
   return errorResponse(status, ARTIFACT_NOT_AVAILABLE_MESSAGE);
 }
 
-function snapshotContractFailureResponse(details: unknown): Response {
-  console.error(SNAPSHOT_CONTRACT_VALIDATION_MESSAGE, details);
-  return errorResponse(502, SNAPSHOT_CONTRACT_VALIDATION_MESSAGE);
-}
-
 function snapshotQualityWithCaveat(
   quality: StudioRoutesResponse["quality"],
   caveat: string,
@@ -131,6 +148,13 @@ function snapshotQualityWithCaveat(
     confidence: "low",
     caveats: [...quality.caveats, caveat],
   };
+}
+
+function snapshotQualityWithCaveats(
+  quality: StudioRoutesResponse["quality"],
+  caveats: readonly string[],
+): StudioRoutesResponse["quality"] {
+  return caveats.reduce(snapshotQualityWithCaveat, quality);
 }
 
 function studioDocsEndpointsFromOpenApi(): StudioDocsResponse["endpoints"] {
@@ -2762,25 +2786,69 @@ function buildSnapshot2(input: {
   };
 }
 
-async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise<Response> {
-  const [routesResult, methods, docs, routeEvidenceIndex, modelProjection] = await Promise.all([
-    buildStudioRoutesResponse(env),
-    loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
-    loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
-    loadStudioRouteEvidenceIndex(env),
-    loadModelArtifactServingProjection(env),
-  ]);
+async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
+  const [routesResult, methodsResult, docsResult, routeEvidenceIndex, modelProjection] =
+    await Promise.all([
+      buildStudioRoutesResponse(env),
+      loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
+      loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
+      loadStudioRouteEvidenceIndex(env),
+      loadModelArtifactServingProjection(env),
+    ]);
   if (!routesResult.ok) return routesResult.response;
-  if (methods instanceof Response) return methods;
-  if (docs instanceof Response) return docs;
-  const docsProjection = withGeneratedDocsEndpoints(docs);
 
   const generatedAt = new Date().toISOString();
+  const toleratedCaveats: string[] = [];
+  const methodsUnavailable = methodsResult instanceof Response;
+  if (methodsUnavailable) {
+    toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.methods.caveat);
+    console.error("Studio snapshot tolerated methods projection failure.", {
+      policy: SNAPSHOT_DEGRADE_POLICY.methods,
+    });
+  }
+  const methods: StudioMethodsResponse = methodsUnavailable
+    ? {
+        schemaVersion: 1,
+        generatedAt,
+        datasets: [],
+        quality: snapshotQualityWithCaveat(
+          routesResult.quality,
+          SNAPSHOT_DEGRADE_POLICY.methods.caveat,
+        ),
+      }
+    : methodsResult;
+
+  const docsUnavailable = docsResult instanceof Response;
+  if (docsUnavailable) {
+    toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.docs.caveat);
+    console.error("Studio snapshot tolerated docs projection failure.", {
+      policy: SNAPSHOT_DEGRADE_POLICY.docs,
+    });
+  }
+  const docsProjection: StudioDocsResponse = docsUnavailable
+    ? {
+        schemaVersion: 1,
+        generatedAt,
+        sections: [],
+        endpoints: [],
+        quality: snapshotQualityWithCaveat(
+          routesResult.quality,
+          SNAPSHOT_DEGRADE_POLICY.docs.caveat,
+        ),
+      }
+    : withGeneratedDocsEndpoints(docsResult);
+
+  if (routeEvidenceIndex === null) {
+    toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.routeEvidenceIndex.caveat);
+  }
+  if (modelProjection === null) {
+    toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.modelProjection.caveat);
+  }
+
   const resolvedMonths = await resolveServingMonths(env);
   const routesAreD1Backed = env.DB !== undefined && resolvedMonths !== null;
   const routeIndex2Result = routesAreD1Backed ? await buildStudioRouteIndex2Response(env) : null;
   let snapshot2: StudioSnapshot2 | undefined;
-  let snapshot2BuildFailure: unknown = null;
   if (routeIndex2Result?.ok === true && env.DB !== undefined) {
     try {
       const publicSourceMonthCoverage = await listPublicSnapshotSourceMonthCoverage(
@@ -2795,8 +2863,11 @@ async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise
         modelProjection,
       });
     } catch (error) {
-      snapshot2BuildFailure = error;
-      console.error("Studio Snapshot 2.0 assembly failed; serving v1 snapshot only.", { error });
+      toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.snapshot2.caveat);
+      console.error("Studio Snapshot 2.0 assembly failed; serving v1 snapshot only.", {
+        error,
+        policy: SNAPSHOT_DEGRADE_POLICY.snapshot2,
+      });
     }
   }
   const projections: StudioSnapshotProjection[] = [
@@ -2820,7 +2891,7 @@ async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise
     },
   ];
   const prefix = studioProjectionPrefix(env);
-  const baseSnapshot = {
+  const baseSnapshot: Omit<StudioSnapshotResponse, "v2"> = {
     schemaVersion: 1,
     generatedAt,
     releaseId: releaseIdForPrefix(prefix),
@@ -2835,44 +2906,12 @@ async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise
       docsEndpoints: docsProjection.endpoints.length,
     },
     projections,
-    quality:
-      snapshot2BuildFailure === null
-        ? routesResult.quality
-        : snapshotQualityWithCaveat(routesResult.quality, SNAPSHOT_2_OMITTED_CAVEAT),
+    quality: snapshotQualityWithCaveats(routesResult.quality, toleratedCaveats),
   };
 
-  const parsedSnapshot = StudioSnapshotResponseSchema.safeParse(
-    snapshot2 === undefined ? baseSnapshot : { ...baseSnapshot, v2: snapshot2 },
-  );
-
-  if (!parsedSnapshot.success) {
-    if (snapshot2 !== undefined) {
-      console.error("Studio Snapshot 2.0 contract validation failed; serving v1 snapshot only.", {
-        issues: parsedSnapshot.error.issues,
-      });
-      const fallbackSnapshot = StudioSnapshotResponseSchema.safeParse({
-        ...baseSnapshot,
-        quality: snapshotQualityWithCaveat(routesResult.quality, SNAPSHOT_2_OMITTED_CAVEAT),
-      });
-      if (fallbackSnapshot.success) {
-        return studioJsonResponse(fallbackSnapshot.data, env);
-      }
-    }
-
-    return snapshotContractFailureResponse({
-      issues: parsedSnapshot.error.issues,
-    });
-  }
-
-  return studioJsonResponse(parsedSnapshot.data, env);
-}
-
-async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
-  try {
-    return await buildStudioSnapshotResponseUnchecked(env);
-  } catch (error) {
-    return snapshotContractFailureResponse({ error });
-  }
+  const snapshot: StudioSnapshotResponse =
+    snapshot2 === undefined ? baseSnapshot : { ...baseSnapshot, v2: snapshot2 };
+  return studioJsonResponse(snapshot, env);
 }
 
 export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
@@ -2888,15 +2927,13 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
 
     const result = await buildStudioRoutesResponse(env);
     if (!result.ok) return result.response;
-    return studioJsonResponse(
-      StudioRoutesResponseSchema.parse({
-        schemaVersion: 1,
-        generatedAt: result.generatedAt,
-        routes: result.routes,
-        quality: result.quality,
-      }),
-      env,
-    );
+    const response: StudioRoutesResponse = {
+      schemaVersion: 1,
+      generatedAt: result.generatedAt,
+      routes: result.routes,
+      quality: result.quality,
+    };
+    return studioJsonResponse(response, env);
   }
 
   if (url.pathname === "/api/v1/studio/snapshot") {
