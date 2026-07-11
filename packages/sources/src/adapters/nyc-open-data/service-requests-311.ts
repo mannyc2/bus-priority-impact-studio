@@ -1,18 +1,19 @@
-import * as z from "@bp/domain/schema-compat";
+import { decodePreserve } from "@bp/domain/decode";
+import { Effect, Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
-export const ServiceRequestEraSchema = z.enum(["current", "historical"]);
-export type ServiceRequestEra = z.output<typeof ServiceRequestEraSchema>;
+export const ServiceRequestEraSchema = Schema.Literals(["current", "historical"]);
+export type ServiceRequestEra = typeof ServiceRequestEraSchema.Type;
 
-export const CurbFriction311CategorySchema = z.enum([
+export const CurbFriction311CategorySchema = Schema.Literals([
   "double_parking",
   "blocked_lane",
   "blocked_driveway",
   "blocked_hydrant",
   "blocked_bus_stop",
 ]);
-export type CurbFriction311Category = z.output<typeof CurbFriction311CategorySchema>;
+export type CurbFriction311Category = typeof CurbFriction311CategorySchema.Type;
 
 export type CurbFriction311Classification = {
   category: CurbFriction311Category;
@@ -101,66 +102,75 @@ export function classify311CurbFriction(input: {
   return null;
 }
 
-export const Normalized311ServiceRequestSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    uniqueKey: z.string().min(1),
-    era: ServiceRequestEraSchema,
-    createdDate: z.string().min(1),
-    closedDate: z.string().nullable(),
-    agency: z.string().nullable(),
-    agencyName: z.string().nullable(),
-    complaintType: z.string().nullable(),
-    descriptor: z.string().nullable(),
-    locationType: z.string().nullable(),
-    incidentZip: z.string().nullable(),
-    incidentAddress: z.string().nullable(),
-    streetName: z.string().nullable(),
-    crossStreet1: z.string().nullable(),
-    crossStreet2: z.string().nullable(),
-    city: z.string().nullable(),
-    status: z.string().nullable(),
-    resolutionDescription: z.string().nullable(),
-    communityBoard: z.string().nullable(),
-    latitude: z.number().nullable(),
-    longitude: z.number().nullable(),
-    curbFrictionCategory: CurbFriction311CategorySchema.nullable(),
-    curbFrictionRule: z.string().nullable(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const NullableString = Schema.NullOr(Schema.String);
+const OptionalNullableString = NullableString.pipe(
+  Schema.withDecodingDefaultTypeKey(Effect.succeed(null)),
+);
+const CoercedString = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.String, {
+    decode: SchemaGetter.transform((value) => String(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
+const NullableNumber = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.NullOr(Schema.Number), {
+    decode: SchemaGetter.transform((value) =>
+      value === null || value === undefined ? null : Number(value),
+    ),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
 
-export type Normalized311ServiceRequest = z.output<typeof Normalized311ServiceRequestSchema>;
+export const Normalized311ServiceRequestSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  uniqueKey: NonEmptyString,
+  era: ServiceRequestEraSchema,
+  createdDate: NonEmptyString,
+  closedDate: NullableString,
+  agency: NullableString,
+  agencyName: NullableString,
+  complaintType: NullableString,
+  descriptor: NullableString,
+  locationType: NullableString,
+  incidentZip: NullableString,
+  incidentAddress: NullableString,
+  streetName: NullableString,
+  crossStreet1: NullableString,
+  crossStreet2: NullableString,
+  city: NullableString,
+  status: NullableString,
+  resolutionDescription: NullableString,
+  communityBoard: NullableString,
+  latitude: Schema.NullOr(Schema.Number),
+  longitude: Schema.NullOr(Schema.Number),
+  curbFrictionCategory: Schema.NullOr(CurbFriction311CategorySchema),
+  curbFrictionRule: NullableString,
+});
 
-const strN = z
-  .union([z.null(), z.undefined(), z.string()])
-  .transform((v) => (v === undefined ? null : v));
-const numN = z
-  .union([z.null(), z.undefined(), z.coerce.number()])
-  .transform((v) => (v === undefined ? null : v));
+export type Normalized311ServiceRequest = typeof Normalized311ServiceRequestSchema.Type;
 
-const Raw311RowSchema = z
-  .object({
-    unique_key: z.coerce.string(),
-    created_date: z.string().min(1),
-    closed_date: strN,
-    agency: strN,
-    agency_name: strN,
-    complaint_type: strN,
-    descriptor: strN,
-    location_type: strN,
-    incident_zip: strN,
-    incident_address: strN,
-    street_name: strN,
-    cross_street_1: strN,
-    cross_street_2: strN,
-    city: strN,
-    status: strN,
-    resolution_description: strN,
-    community_board: strN,
-    latitude: numN,
-    longitude: numN,
-  })
-  .passthrough();
+const Raw311RowSchema = Schema.Struct({
+  unique_key: CoercedString,
+  created_date: NonEmptyString,
+  closed_date: Schema.optionalKey(NullableString),
+  agency: Schema.optionalKey(NullableString),
+  agency_name: Schema.optionalKey(NullableString),
+  complaint_type: OptionalNullableString,
+  descriptor: OptionalNullableString,
+  location_type: Schema.optionalKey(NullableString),
+  incident_zip: Schema.optionalKey(NullableString),
+  incident_address: Schema.optionalKey(NullableString),
+  street_name: Schema.optionalKey(NullableString),
+  cross_street_1: Schema.optionalKey(NullableString),
+  cross_street_2: Schema.optionalKey(NullableString),
+  city: Schema.optionalKey(NullableString),
+  status: Schema.optionalKey(NullableString),
+  resolution_description: Schema.optionalKey(NullableString),
+  community_board: Schema.optionalKey(NullableString),
+  latitude: Schema.optionalKey(NullableNumber),
+  longitude: Schema.optionalKey(NullableNumber),
+});
 
 export function normalize311ServiceRequestRows(
   rows: SocrataRow[],
@@ -168,7 +178,7 @@ export function normalize311ServiceRequestRows(
 ): Normalized311ServiceRequest[] {
   return rows
     .map((row) => {
-      const p = Raw311RowSchema.parse(row);
+      const p = decodePreserve(Raw311RowSchema)(row);
       const curbFriction = classify311CurbFriction({
         complaintType: p.complaint_type,
         descriptor: p.descriptor,

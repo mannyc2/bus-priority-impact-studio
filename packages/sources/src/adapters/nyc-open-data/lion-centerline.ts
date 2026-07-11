@@ -1,78 +1,86 @@
-import * as z from "@bp/domain/schema-compat";
+import { decodePreserve } from "@bp/domain/decode";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
 // NYC Centerline / LION (inkn-q76z) — stable street-segment ID + geometry +
 // metadata used by other context sources for street joins.
 
-export const NormalizedLionSegmentSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    physicalId: z.string().min(1),
-    streetCodeMaster: z.string().nullable(),
-    streetName: z.string().nullable(),
-    borough: z.string().nullable(),
-    boroughCode: z.string().nullable(),
-    leftLowHouseNumber: z.string().nullable(),
-    leftHighHouseNumber: z.string().nullable(),
-    rightLowHouseNumber: z.string().nullable(),
-    rightHighHouseNumber: z.string().nullable(),
-    l_zip: z.string().nullable(),
-    r_zip: z.string().nullable(),
-    rwTypeCode: z.string().nullable(),
-    rwTypeDesc: z.string().nullable(),
-    trafficDir: z.string().nullable(),
-    shapeLength: z.number().nullable(),
-    wktGeom: z.string().nullable(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const NullableString = Schema.NullOr(Schema.String);
+const CoercedString = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.String, {
+    decode: SchemaGetter.transform((value) => String(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
+const NullableNumber = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.NullOr(Schema.Number), {
+    decode: SchemaGetter.transform((value) =>
+      value === null || value === undefined ? null : Number(value),
+    ),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
+const SerializedGeometry = Schema.Union([
+  Schema.String,
+  Schema.Record(Schema.String, Schema.Unknown),
+  Schema.Null,
+]).pipe(
+  Schema.decodeTo(NullableString, {
+    decode: SchemaGetter.transform((value) => {
+      if (value === null || typeof value === "string") return value;
+      return JSON.stringify(value);
+    }),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
 
-export type NormalizedLionSegment = z.output<typeof NormalizedLionSegmentSchema>;
+export const NormalizedLionSegmentSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  physicalId: NonEmptyString,
+  streetCodeMaster: NullableString,
+  streetName: NullableString,
+  borough: NullableString,
+  boroughCode: NullableString,
+  leftLowHouseNumber: NullableString,
+  leftHighHouseNumber: NullableString,
+  rightLowHouseNumber: NullableString,
+  rightHighHouseNumber: NullableString,
+  l_zip: NullableString,
+  r_zip: NullableString,
+  rwTypeCode: NullableString,
+  rwTypeDesc: NullableString,
+  trafficDir: NullableString,
+  shapeLength: Schema.NullOr(Schema.Number),
+  wktGeom: NullableString,
+});
 
-const strN = z
-  .union([z.null(), z.string()])
-  .optional()
-  .transform((v) => (v === undefined ? null : v));
-const numN = z
-  .union([z.null(), z.coerce.number()])
-  .optional()
-  .transform((v) => (v === undefined ? null : v));
+export type NormalizedLionSegment = typeof NormalizedLionSegmentSchema.Type;
 
-const RawCenterlineRowSchema = z
-  .object({
-    physicalid: z.coerce.string(),
-    b5sc: strN,
-    full_street_name: strN,
-    street_name: strN,
-    borough_indicator: strN,
-    boroughcode: strN,
-    l_low_hn: strN,
-    l_high_hn: strN,
-    r_low_hn: strN,
-    r_high_hn: strN,
-    l_zip: strN,
-    r_zip: strN,
-    rw_type: strN.optional(),
-    trafdir: strN,
-    segmentlength: numN,
-    the_geom: z
-      .union([z.string(), z.record(z.string(), z.unknown()), z.null()])
-      .optional()
-      .transform((value) => {
-        if (value === undefined || value === null) return null;
-        if (typeof value === "string") return value;
-        // MultiLineString GeoJSON — store the JSON representation as the
-        // canonical "wkt"-style serialized geometry. Worker-side detector
-        // jobs can re-parse if needed.
-        return JSON.stringify(value);
-      }),
-  })
-  .passthrough();
+const RawCenterlineRowSchema = Schema.Struct({
+  physicalid: CoercedString,
+  b5sc: Schema.optionalKey(NullableString),
+  full_street_name: Schema.optionalKey(NullableString),
+  street_name: Schema.optionalKey(NullableString),
+  borough_indicator: Schema.optionalKey(NullableString),
+  boroughcode: Schema.optionalKey(NullableString),
+  l_low_hn: Schema.optionalKey(NullableString),
+  l_high_hn: Schema.optionalKey(NullableString),
+  r_low_hn: Schema.optionalKey(NullableString),
+  r_high_hn: Schema.optionalKey(NullableString),
+  l_zip: Schema.optionalKey(NullableString),
+  r_zip: Schema.optionalKey(NullableString),
+  rw_type: Schema.optionalKey(NullableString),
+  trafdir: Schema.optionalKey(NullableString),
+  segmentlength: Schema.optionalKey(NullableNumber),
+  the_geom: Schema.optionalKey(SerializedGeometry),
+});
 
 export function normalizeLionSegmentRows(rows: SocrataRow[]): NormalizedLionSegment[] {
   return rows
     .map((row) => {
-      const p = RawCenterlineRowSchema.parse(row);
+      const p = decodePreserve(RawCenterlineRowSchema)(row);
       const streetName = p.full_street_name ?? p.street_name ?? null;
       const borough = p.borough_indicator ?? p.boroughcode ?? null;
       return {
