@@ -10,7 +10,7 @@ import {
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/d1";
-import * as z from "@bp/domain/schema-compat";
+import { Result, Schema } from "effect";
 import {
   buildRouteInsightsFromDetectorReadiness,
   type DetectorReadinessServingManifestForInsights,
@@ -82,6 +82,12 @@ import {
   ARTIFACT_NOT_AVAILABLE_MESSAGE,
   SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE,
 } from "../http/messages.js";
+import {
+  decodeSchemaEitherPreserve,
+  decodeSchemaEitherStrict,
+  decodeSchemaStrict,
+  schemaErrorIssues,
+} from "../schema-decode.js";
 import {
   loadStudioProjection,
   maybeLoadStudioRouteDetailProjection,
@@ -187,7 +193,7 @@ function studioDocsEndpointsFromOpenApi(): StudioDocsResponse["endpoints"] {
 }
 
 function withGeneratedDocsEndpoints(docs: StudioDocsResponse): StudioDocsResponse {
-  return StudioDocsResponseSchema.parse({
+  return decodeSchemaStrict(StudioDocsResponseSchema, {
     ...docs,
     endpoints: studioDocsEndpointsFromOpenApi(),
   });
@@ -235,84 +241,74 @@ type BuildStudioRouteSectionsResponseResult =
   | { ok: true; routeSections: StudioRouteSectionsResponse }
   | { ok: false; response: Response };
 
-const IsoMonthStringSchema = z.string().regex(/^\d{4}-\d{2}$/);
+const IsoMonthStringSchema = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/));
 
-const ModelArtifactServingProjectionSchema = z
-  .object({
-    artifactKind: z.literal("model_artifact_serving_projection"),
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    releaseMonth: z.string(),
-    historyWindow: z
-      .object({
-        startMonth: IsoMonthStringSchema,
-        endMonth: IsoMonthStringSchema,
-      })
-      .strict(),
-    summary: z
-      .object({
-        modelCount: z.number().int().nonnegative(),
-        availableModelCount: z.number().int().nonnegative(),
-        missingModelCount: z.number().int().nonnegative(),
-        detectorConsumerCount: z.number().int().nonnegative(),
-      })
-      .strict(),
-    models: z.array(
-      z
-        .object({
-          modelId: z.string().min(1),
-          status: z.enum(["available", "missing"]),
-          panelId: z.string().nullable(),
-          releaseMonth: z.string().nullable(),
-          modeledReleaseRowCount: z.number().int().nonnegative(),
-          routeCount: z.number().int().nonnegative(),
-          segmentCount: z.number().int().nonnegative(),
-          detectorConsumers: z.array(z.string()),
-          limitations: z.array(z.string()),
-        })
-        .strict(),
+const ModelArtifactServingProjectionSchema = Schema.Struct({
+  artifactKind: Schema.Literal("model_artifact_serving_projection"),
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  releaseMonth: Schema.String,
+  historyWindow: Schema.Struct({
+    startMonth: IsoMonthStringSchema,
+    endMonth: IsoMonthStringSchema,
+  }),
+  summary: Schema.Struct({
+    modelCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    availableModelCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
     ),
-  })
-  .passthrough();
-
-type ModelArtifactServingProjection = z.output<typeof ModelArtifactServingProjectionSchema>;
-
-const RouteSpeedSpineArtifactForSegmentsSchema = z
-  .object({
-    artifactKind: z.string(),
-    routeId: z.string(),
-    routeSlug: z.string(),
-    segments: z.array(
-      z
-        .object({
-          segmentId: z.string(),
-          direction: z.string(),
-          displayOrder: z.number(),
-          label: z.string(),
-          averageRoadDistanceMiles: z.number().nullable().optional(),
-          averageSpeedMph: z.number().nullable().optional(),
-          raw: z
-            .object({
-              sourceStopPairs: z.array(
-                z
-                  .object({
-                    fromStopId: z.string(),
-                    fromStopName: z.string(),
-                    toStopId: z.string(),
-                    toStopName: z.string(),
-                    stopOrders: z.array(z.number()),
-                  })
-                  .passthrough(),
-              ),
-            })
-            .passthrough(),
-        })
-        .passthrough(),
+    missingModelCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    detectorConsumerCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
     ),
-  })
-  .passthrough();
+  }),
+  models: Schema.Array(
+    Schema.Struct({
+      modelId: Schema.String.check(Schema.isMinLength(1)),
+      status: Schema.Literals(["available", "missing"]),
+      panelId: Schema.NullOr(Schema.String),
+      releaseMonth: Schema.NullOr(Schema.String),
+      modeledReleaseRowCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      segmentCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      detectorConsumers: Schema.Array(Schema.String),
+      limitations: Schema.Array(Schema.String),
+    }),
+  ),
+});
 
-type RouteSpeedSpineArtifactForSegments = z.output<typeof RouteSpeedSpineArtifactForSegmentsSchema>;
+type ModelArtifactServingProjection = typeof ModelArtifactServingProjectionSchema.Type;
+
+const RouteSpeedSpineArtifactForSegmentsSchema = Schema.Struct({
+  artifactKind: Schema.String,
+  routeId: Schema.String,
+  routeSlug: Schema.String,
+  segments: Schema.Array(
+    Schema.Struct({
+      segmentId: Schema.String,
+      direction: Schema.String,
+      displayOrder: Schema.Number,
+      label: Schema.String,
+      averageRoadDistanceMiles: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+      averageSpeedMph: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+      raw: Schema.Struct({
+        sourceStopPairs: Schema.Array(
+          Schema.Struct({
+            fromStopId: Schema.String,
+            fromStopName: Schema.String,
+            toStopId: Schema.String,
+            toStopName: Schema.String,
+            stopOrders: Schema.Array(Schema.Number),
+          }),
+        ),
+      }),
+    }),
+  ),
+});
+
+type RouteSpeedSpineArtifactForSegments = typeof RouteSpeedSpineArtifactForSegmentsSchema.Type;
 
 type RouteSpeedSpineSegmentForSegments = RouteSpeedSpineArtifactForSegments["segments"][number];
 
@@ -400,7 +396,7 @@ async function buildStudioRouteIndex2Response(
 
   return {
     ok: true,
-    routeIndex: StudioRouteIndex2ResponseSchema.parse({
+    routeIndex: decodeSchemaStrict(StudioRouteIndex2ResponseSchema, {
       schemaVersion: 2,
       generatedAt,
       releaseId,
@@ -447,8 +443,8 @@ async function loadStudioRouteEvidenceIndex(
     return null;
   }
 
-  const parsed = StudioRouteEvidenceIndexSchema.safeParse(payload);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceIndexSchema, payload);
+  return Result.isSuccess(parsed) ? parsed.success : null;
 }
 
 async function loadModelArtifactServingProjection(
@@ -468,15 +464,15 @@ async function loadModelArtifactServingProjection(
     return null;
   }
 
-  const parsed = ModelArtifactServingProjectionSchema.safeParse(payload);
-  if (!parsed.success) {
+  const parsed = decodeSchemaEitherPreserve(ModelArtifactServingProjectionSchema, payload);
+  if (Result.isFailure(parsed)) {
     console.error("Model artifact serving projection failed contract validation.", {
       key: STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
-      issues: parsed.error.issues,
+      issues: schemaErrorIssues(parsed.failure),
     });
     return null;
   }
-  return parsed.data;
+  return parsed.success;
 }
 
 async function loadDetectorReadinessServingManifest(
@@ -493,8 +489,11 @@ async function loadDetectorReadinessServingManifest(
     return null;
   }
 
-  const parsed = DetectorReadinessServingManifestForInsightsSchema.safeParse(payload);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherPreserve(
+    DetectorReadinessServingManifestForInsightsSchema,
+    payload,
+  );
+  return Result.isSuccess(parsed) ? parsed.success : null;
 }
 
 async function loadRouteCapabilityManifest(
@@ -511,8 +510,8 @@ async function loadRouteCapabilityManifest(
     return null;
   }
 
-  const parsed = RouteCapabilityManifestForIndexSchema.safeParse(payload);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherPreserve(RouteCapabilityManifestForIndexSchema, payload);
+  return Result.isSuccess(parsed) ? parsed.success : null;
 }
 
 function routeCapabilityByRouteId(
@@ -547,8 +546,8 @@ async function loadRouteDossierSummaryForDetail(input: {
       continue;
     }
 
-    const parsed = RouteDossierSummaryForDetailSchema.safeParse(payload);
-    if (parsed.success) return parsed.data;
+    const parsed = decodeSchemaEitherPreserve(RouteDossierSummaryForDetailSchema, payload);
+    if (Result.isSuccess(parsed)) return parsed.success;
   }
   return null;
 }
@@ -579,12 +578,12 @@ async function loadRouteHourlyProfileForDetail(input: {
       continue;
     }
 
-    const parsed = StudioRouteHourlyProfileResponseSchema.safeParse(payload);
-    if (!parsed.success) continue;
+    const parsed = decodeSchemaEitherStrict(StudioRouteHourlyProfileResponseSchema, payload);
+    if (Result.isFailure(parsed)) continue;
     return {
-      peakWindows: parsed.data.peakWindows,
-      slowestWindows: parsed.data.slowestWindows,
-      reliabilitySamples: parsed.data.reliabilitySamples,
+      peakWindows: parsed.success.peakWindows,
+      slowestWindows: parsed.success.slowestWindows,
+      reliabilitySamples: parsed.success.reliabilitySamples,
     };
   }
   return null;
@@ -610,7 +609,7 @@ function routeDetailWithCapabilityAndDossier(input: {
   ) {
     return input.routeDetail;
   }
-  return StudioRouteDetailResponseSchema.parse({
+  return decodeSchemaStrict(StudioRouteDetailResponseSchema, {
     ...input.routeDetail,
     ...(input.hourlyProfile ?? {}),
     capability: input.capability,
@@ -649,8 +648,8 @@ async function loadRouteSpeedSpineForSegments(
     return null;
   }
 
-  const parsed = RouteSpeedSpineArtifactForSegmentsSchema.safeParse(payload);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherPreserve(RouteSpeedSpineArtifactForSegmentsSchema, payload);
+  return Result.isSuccess(parsed) ? parsed.success : null;
 }
 
 async function loadRouteSpeedSpineCandidatesForSegments(input: {
@@ -674,7 +673,7 @@ function routeDetailWithInsights(input: {
   if (input.manifest === null) {
     return { ...input.routeDetail, insights: input.routeDetail.insights ?? [] };
   }
-  return StudioRouteDetailResponseSchema.parse({
+  return decodeSchemaStrict(StudioRouteDetailResponseSchema, {
     ...input.routeDetail,
     insights: buildRouteInsightsFromDetectorReadiness({
       manifest: input.manifest,
@@ -827,7 +826,7 @@ function routeDetailWithInsightTargetSegments(input: {
 }): StudioRouteDetailResponse {
   const targetSegments = insightTargetSegmentRows(input);
   if (targetSegments.length === 0) return input.routeDetail;
-  return StudioRouteDetailResponseSchema.parse({
+  return decodeSchemaStrict(StudioRouteDetailResponseSchema, {
     ...input.routeDetail,
     segments: [...input.routeDetail.segments, ...targetSegments],
     quality: {
@@ -857,7 +856,7 @@ function aliasedRouteDetailForD1Row(input: {
   observed: D1RouteObservedReliabilitySummary | undefined;
   richDetail: StudioRouteDetailResponse;
 }): StudioRouteDetailResponse {
-  return StudioRouteDetailResponseSchema.parse({
+  return decodeSchemaStrict(StudioRouteDetailResponseSchema, {
     ...input.richDetail,
     route: buildStudioRouteCardFromIndexRow(input.row, input.observed, null),
     segments: input.richDetail.segments,
@@ -1006,7 +1005,7 @@ export async function buildStudioRouteSectionsResponse(
 
   return {
     ok: true,
-    routeSections: StudioRouteSectionsResponseSchema.parse({
+    routeSections: decodeSchemaStrict(StudioRouteSectionsResponseSchema, {
       schemaVersion: 1,
       generatedAt,
       releaseId,
@@ -1185,7 +1184,7 @@ async function buildStudioRouteDetailResponseFromD1(
 
   const partialRouteDetail = routeDetailWithInsights({
     manifest,
-    routeDetail: StudioRouteDetailResponseSchema.parse({
+    routeDetail: decodeSchemaStrict(StudioRouteDetailResponseSchema, {
       schemaVersion: 2,
       generatedAt: new Date().toISOString(),
       route: buildStudioRouteCardFromIndexRow(row, observed, null),
@@ -1304,7 +1303,7 @@ export async function buildStudioRouteHistoryResponse(
 
   return {
     ok: true,
-    history: StudioRouteHistoryResponseSchema.parse({
+    history: decodeSchemaStrict(StudioRouteHistoryResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       route,
@@ -1363,8 +1362,8 @@ export async function buildStudioRouteHourlyProfileResponse(
     };
   }
 
-  const parsed = StudioRouteHourlyProfileResponseSchema.safeParse(payload);
-  if (!parsed.success) {
+  const parsed = decodeSchemaEitherStrict(StudioRouteHourlyProfileResponseSchema, payload);
+  if (Result.isFailure(parsed)) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
@@ -1374,7 +1373,7 @@ export async function buildStudioRouteHourlyProfileResponse(
       ),
     };
   }
-  if (parsed.data.routeSlug !== slug) {
+  if (parsed.success.routeSlug !== slug) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
@@ -1385,7 +1384,7 @@ export async function buildStudioRouteHourlyProfileResponse(
     };
   }
 
-  return { ok: true, hourlyProfile: parsed.data };
+  return { ok: true, hourlyProfile: parsed.success };
 }
 
 export async function buildStudioRouteSpeedHistoryResponse(
@@ -1422,8 +1421,8 @@ export async function buildStudioRouteSpeedHistoryResponse(
     };
   }
 
-  const parsed = StudioRouteSpeedHistoryResponseSchema.safeParse(payload);
-  if (!parsed.success) {
+  const parsed = decodeSchemaEitherStrict(StudioRouteSpeedHistoryResponseSchema, payload);
+  if (Result.isFailure(parsed)) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
@@ -1433,14 +1432,14 @@ export async function buildStudioRouteSpeedHistoryResponse(
       ),
     };
   }
-  if (parsed.data.routeSlug !== slug) {
+  if (parsed.success.routeSlug !== slug) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(502, "Studio route speed history slug mismatch.", key),
     };
   }
 
-  return { ok: true, speedHistory: parsed.data };
+  return { ok: true, speedHistory: parsed.success };
 }
 
 export async function buildStudioRouteTimelineResponse(
@@ -1499,18 +1498,18 @@ export async function buildStudioRouteTimelineResponse(
     };
   }
 
-  const parsed = StudioRouteEvidenceBundleSchema.safeParse(payload);
-  if (!parsed.success) {
+  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceBundleSchema, payload);
+  if (Result.isFailure(parsed)) {
     console.error("Studio route evidence bundle failed contract validation.", {
       key,
-      issues: parsed.error.issues,
+      issues: schemaErrorIssues(parsed.failure),
     });
     return {
       ok: false,
       response: errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE),
     };
   }
-  if (parsed.data.routeId !== row.routeId || parsed.data.routeSlug !== slug) {
+  if (parsed.success.routeId !== row.routeId || parsed.success.routeSlug !== slug) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
@@ -1521,13 +1520,13 @@ export async function buildStudioRouteTimelineResponse(
     };
   }
 
-  return { ok: true, timeline: parsed.data };
+  return { ok: true, timeline: parsed.success };
 }
 
 function compactInterventionsCitation(
   citation: StudioRouteEvidenceBundle["citations"][number],
 ): StudioInterventionsEvidenceCitation {
-  return StudioInterventionsEvidenceCitationSchema.parse({
+  return decodeSchemaStrict(StudioInterventionsEvidenceCitationSchema, {
     key: citation.key,
     sourceId: citation.sourceId,
     ...(citation.pageNumber === undefined ? {} : { pageNumber: citation.pageNumber }),
@@ -1556,7 +1555,7 @@ function compactInterventionsEvidenceBundle(
     .filter((citation) => citationKeys.has(citation.key))
     .map((citation) => compactInterventionsCitation(citation));
 
-  return StudioInterventionsEvidenceBundleSchema.parse({
+  return decodeSchemaStrict(StudioInterventionsEvidenceBundleSchema, {
     routeId: bundle.routeId,
     routeSlug: bundle.routeSlug,
     coverage: {
@@ -1596,20 +1595,20 @@ async function loadCompactInterventionsEvidenceBundle(
     return { ok: true, bundle: null };
   }
 
-  const parsed = StudioRouteEvidenceBundleSchema.safeParse(payload);
-  if (!parsed.success) {
+  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceBundleSchema, payload);
+  if (Result.isFailure(parsed)) {
     console.error("Studio interventions evidence bundle failed contract validation.", {
       key,
-      issues: parsed.error.issues,
+      issues: schemaErrorIssues(parsed.failure),
     });
     return { ok: true, bundle: null };
   }
-  if (parsed.data.routeId !== route.routeId || parsed.data.routeSlug !== route.slug) {
+  if (parsed.success.routeId !== route.routeId || parsed.success.routeSlug !== route.slug) {
     console.error("Studio interventions evidence bundle failed contract validation.", { key });
     return { ok: true, bundle: null };
   }
 
-  return { ok: true, bundle: compactInterventionsEvidenceBundle(parsed.data) };
+  return { ok: true, bundle: compactInterventionsEvidenceBundle(parsed.success) };
 }
 
 async function buildStudioInterventionsEvidenceResponse(
@@ -1640,7 +1639,7 @@ async function buildStudioInterventionsEvidenceResponse(
 
   return {
     ok: true,
-    evidence: StudioInterventionsEvidenceResponseSchema.parse({
+    evidence: decodeSchemaStrict(StudioInterventionsEvidenceResponseSchema, {
       schemaVersion: 1,
       generatedAt: routeIndexResult.routeIndex.generatedAt,
       routeCount: bundles.length,

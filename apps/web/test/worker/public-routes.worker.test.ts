@@ -12,6 +12,7 @@ import { StudioRouteIndex2ResponseSchema } from "@bp/domain/studio/snapshots";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Env } from "../../src/worker/index.js";
 import worker from "../../src/worker/index.js";
+import { decodeSchemaStrict } from "../schema-decode.js";
 
 type RowValue = string | number | null;
 type Row = Record<string, RowValue>;
@@ -321,12 +322,15 @@ describe("Worker public route API smoke", () => {
   });
 
   it("serves route status, list, profile, and scorecard from real D1 tables", async () => {
-    const status = ReleaseStatusResponseSchema.parse(await getJson("/api/v1/status"));
+    const status = decodeSchemaStrict(ReleaseStatusResponseSchema, await getJson("/api/v1/status"));
     expect(status.baselineMonth).toBe("2026-03");
     expect(status.canonicalMonthlyRelease.routeCount).toBe(2);
     expect(status.observedRealtimeEvidence.observedRouteCount).toBe(1);
 
-    const routes = RouteListResponseSchema.parse(await getJson("/api/v1/routes?limit=2"));
+    const routes = decodeSchemaStrict(
+      RouteListResponseSchema,
+      await getJson("/api/v1/routes?limit=2"),
+    );
     expect(routes.routes.map((route) => route.routeId)).toEqual(["M57", "M15-SBS"]);
     expect(routes.routes[0]).toEqual(
       expect.objectContaining({
@@ -336,7 +340,10 @@ describe("Worker public route API smoke", () => {
       }),
     );
 
-    const profile = RouteProfileResponseSchema.parse(await getJson("/api/v1/routes/m57/profile"));
+    const profile = decodeSchemaStrict(
+      RouteProfileResponseSchema,
+      await getJson("/api/v1/routes/m57/profile"),
+    );
     expect(profile.route.routeId).toBe("M57");
     expect(profile.peakRidership?.hourOfDay).toBe(17);
     expect(profile.observedReliability?.observedBunchingShare).toBe(0.12);
@@ -347,7 +354,8 @@ describe("Worker public route API smoke", () => {
       }),
     ]);
 
-    const scorecard = RouteScorecardSchema.parse(
+    const scorecard = decodeSchemaStrict(
+      RouteScorecardSchema,
       await getJson("/api/routes/m57/scorecard?month=2026-03"),
     );
     expect(scorecard.routeId).toBe("M57");
@@ -361,7 +369,7 @@ describe("Worker public route API smoke", () => {
           headers: cookie === null ? {} : { Cookie: cookie },
         }),
       );
-      const routes = RouteListResponseSchema.parse(await routeListResponse.json());
+      const routes = decodeSchemaStrict(RouteListResponseSchema, await routeListResponse.json());
 
       expect(routeListResponse.status).toBe(200);
       expect(routes.routes).toHaveLength(1);
@@ -371,7 +379,10 @@ describe("Worker public route API smoke", () => {
           headers: cookie === null ? {} : { Cookie: cookie },
         }),
       );
-      const studioRoutes = StudioRouteIndex2ResponseSchema.parse(await studioRoutesResponse.json());
+      const studioRoutes = decodeSchemaStrict(
+        StudioRouteIndex2ResponseSchema,
+        await studioRoutesResponse.json(),
+      );
 
       expect(studioRoutesResponse.status).toBe(200);
       expect(studioRoutes.schemaVersion).toBe(2);
@@ -379,7 +390,10 @@ describe("Worker public route API smoke", () => {
   });
 
   it("serves R2 map manifests and artifacts through the Worker", async () => {
-    const manifest = MapManifestResponseSchema.parse(await getJson("/api/v1/map/manifest"));
+    const manifest = decodeSchemaStrict(
+      MapManifestResponseSchema,
+      await getJson("/api/v1/map/manifest"),
+    );
     expect(manifest.artifacts[0]).toEqual(
       expect.objectContaining({
         routeId: "M57",

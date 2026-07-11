@@ -2,6 +2,7 @@ import { HealthResponseSchema } from "@bp/domain/routes";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../../src/worker/index.js";
 import worker from "../../src/worker/index.js";
+import { decodeSchemaStrict } from "../schema-decode.js";
 
 function htmlAsset(paths?: string[]): Fetcher {
   return {
@@ -61,7 +62,7 @@ describe("Worker adapter and SPA shell", () => {
     const response = await worker.fetch(new Request("https://example.test/api/health"));
 
     expect(response.status).toBe(200);
-    expect(HealthResponseSchema.parse(await response.json())).toEqual(
+    expect(decodeSchemaStrict(HealthResponseSchema, await response.json())).toEqual(
       expect.objectContaining({
         ok: true,
         service: "bus-priority-impact-studio",

@@ -1,10 +1,12 @@
 import { HealthResponseSchema } from "@bp/domain/routes";
 import { RumReportSchema } from "@bp/domain/studio/rum";
+import { Result } from "effect";
 import { errorResponse as errorJson } from "./http/errors.js";
 import { jsonResponse as json } from "./http/json.js";
+import { decodeSchemaEitherStrict, decodeSchemaStrict } from "./schema-decode.js";
 
 export function buildHealthResponse(now = new Date()): Response {
-  const body = HealthResponseSchema.parse({
+  const body = decodeSchemaStrict(HealthResponseSchema, {
     ok: true,
     service: "bus-priority-impact-studio",
     checkedAt: now.toISOString(),
@@ -17,12 +19,12 @@ export function buildHealthResponse(now = new Date()): Response {
 // read back through Workers Logs/Observability — no binding or storage needed.
 // The RumReportSchema contract lives in @bp/domain and is shared with the browser reporter.
 async function handleRumReport(request: Request): Promise<Response> {
-  const parsed = RumReportSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
+  const parsed = decodeSchemaEitherStrict(RumReportSchema, await request.json().catch(() => null));
+  if (Result.isFailure(parsed)) {
     return errorJson(400, "Invalid web-vitals report.");
   }
 
-  const report = parsed.data;
+  const report = parsed.success;
   // Ignore path-only reports so empty beacons do not pollute the logs.
   if (
     report.ttfb === undefined &&

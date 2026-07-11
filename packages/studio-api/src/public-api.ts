@@ -18,10 +18,12 @@ import {
   RouteProfileResponseSchema,
   RouteScorecardSchema,
 } from "@bp/domain/routes";
+import { Result } from "effect";
 import type { StudioApiEnv } from "./env.js";
 import { errorResponse as errorJson } from "./http/errors.js";
 import { jsonResponse as json } from "./http/json.js";
 import { SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE } from "./http/messages.js";
+import { decodeSchemaEitherStrict, decodeSchemaStrict } from "./schema-decode.js";
 
 function dependencyNotConfigured(dependency: string, context: string): Response {
   console.error("Service dependency is not configured.", { context, dependency });
@@ -41,24 +43,24 @@ async function buildRouteScorecardResponse(url: URL, env: StudioApiEnv): Promise
     return errorJson(404, "Route scorecard endpoint not found.");
   }
 
-  const month = IsoMonthSchema.safeParse(rawMonth);
-  if (!month.success) {
+  const month = decodeSchemaEitherStrict(IsoMonthSchema, rawMonth);
+  if (Result.isFailure(month)) {
     return errorJson(400, "Query parameter month must use YYYY-MM format.");
   }
 
   let routeId: RouteId;
   try {
-    routeId = RouteIdCodec.parse(decodeURIComponent(rawRouteId));
+    routeId = decodeSchemaStrict(RouteIdCodec, decodeURIComponent(rawRouteId));
   } catch {
     return errorJson(400, "Route ID is invalid.");
   }
 
-  const scorecard = await getRouteScorecard(createD1ServingDb(env.DB), routeId, month.data);
+  const scorecard = await getRouteScorecard(createD1ServingDb(env.DB), routeId, month.success);
   if (scorecard === null) {
     return errorJson(404, "Route scorecard was not found.");
   }
 
-  return json(RouteScorecardSchema.parse(scorecard));
+  return json(decodeSchemaStrict(RouteScorecardSchema, scorecard));
 }
 
 function parseLimit(url: URL, fallback: number, maximum: number): number | null {
@@ -81,8 +83,8 @@ function releaseStatusMonth(url: URL, env: StudioApiEnv): string | null {
     return null;
   }
 
-  const parsed = IsoMonthSchema.safeParse(month);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherStrict(IsoMonthSchema, month);
+  return Result.isSuccess(parsed) ? parsed.success : null;
 }
 
 function artifactApiPath(key: string): string {
@@ -264,7 +266,7 @@ async function buildReleaseStatusResponse(url: URL, env: StudioApiEnv): Promise<
     : null;
 
   return json(
-    ReleaseStatusResponseSchema.parse({
+    decodeSchemaStrict(ReleaseStatusResponseSchema, {
       schemaVersion: 1,
       generatedAt: batchStatus.generatedAt,
       baselineMonth: month,
@@ -383,7 +385,7 @@ async function buildRouteListResponse(url: URL, env: StudioApiEnv): Promise<Resp
   });
 
   return json(
-    RouteListResponseSchema.parse({
+    decodeSchemaStrict(RouteListResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       baselineMonth: month,
@@ -424,7 +426,7 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
 
   let routeId: RouteId;
   try {
-    routeId = RouteIdCodec.parse(decodeURIComponent(rawRouteId));
+    routeId = decodeSchemaStrict(RouteIdCodec, decodeURIComponent(rawRouteId));
   } catch {
     return errorJson(400, "Route ID is invalid.");
   }
@@ -462,7 +464,7 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
   };
 
   return json(
-    RouteProfileResponseSchema.parse({
+    decodeSchemaStrict(RouteProfileResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       baselineMonth: month,
@@ -565,7 +567,7 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
   };
 
   return json(
-    MapManifestResponseSchema.parse({
+    decodeSchemaStrict(MapManifestResponseSchema, {
       schemaVersion: 1,
       generatedAt: manifest.generatedAt,
       baselineMonth: month,
@@ -678,7 +680,7 @@ async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Re
     .map((hotspot, index) => ({ ...hotspot, rank: index + 1 }));
 
   return json(
-    HotspotListResponseSchema.parse({
+    decodeSchemaStrict(HotspotListResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       baselineMonth: month,

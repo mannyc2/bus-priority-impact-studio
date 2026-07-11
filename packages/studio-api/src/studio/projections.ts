@@ -6,20 +6,16 @@ import {
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
 } from "@bp/domain/studio/routes";
+import { Result, Schema } from "effect";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 import {
   ARTIFACT_NOT_AVAILABLE_MESSAGE,
   SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE,
 } from "../http/messages.js";
+import { decodeSchemaEitherStrip, schemaErrorIssues } from "../schema-decode.js";
 
-type StudioProjectionSchema<T> = {
-  safeParse(
-    input: unknown,
-  ): { success: true; data: T } | { success: false; error: { issues: unknown } };
-};
-
-type SchemaOutput<TSchema> = TSchema extends StudioProjectionSchema<infer T> ? T : never;
+type SchemaOutput<TSchema extends Schema.Constraint> = TSchema["Type"];
 
 const defaultStudioReleaseArtifactKey = "studio/v1/release.json";
 export function studioReleaseKey(env: Pick<StudioApiEnv, "STUDIO_RELEASE_KEY">): string {
@@ -69,7 +65,7 @@ export function studioJsonResponse(
   });
 }
 
-export async function loadStudioProjection<TSchema extends StudioProjectionSchema<unknown>>(
+export async function loadStudioProjection<TSchema extends Schema.Constraint>(
   env: Pick<StudioApiEnv, "ARTIFACTS" | "STUDIO_RELEASE_KEY">,
   path: string,
   schema: TSchema,
@@ -97,16 +93,16 @@ export async function loadStudioProjection<TSchema extends StudioProjectionSchem
     return errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE);
   }
 
-  const projection = schema.safeParse(payload);
-  if (!projection.success) {
+  const projection = decodeSchemaEitherStrip(schema, payload);
+  if (Result.isFailure(projection)) {
     console.error("Studio API projection artifact failed contract validation.", {
       key,
-      issues: projection.error.issues,
+      issues: schemaErrorIssues(projection.failure),
     });
     return errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE);
   }
 
-  return projection.data as SchemaOutput<TSchema>;
+  return projection.success;
 }
 
 export async function loadStudioRouteProjection(
