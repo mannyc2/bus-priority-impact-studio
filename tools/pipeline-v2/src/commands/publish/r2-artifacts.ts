@@ -177,6 +177,7 @@ async function assertPublishableMapManifest(options: PublishR2Options): Promise<
       artifactRoot: options.artifactRoot,
       month: options.month,
       expectedRouteIds,
+      expectedProfile: "full",
     });
     if (verification.status !== "pass") {
       failures.push(

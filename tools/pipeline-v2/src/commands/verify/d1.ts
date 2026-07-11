@@ -22,6 +22,7 @@ export type D1VerifyResult = {
   analysisPeriod: string;
   generatedAt: string;
   summaryPath: string;
+  schemaPath: string;
   seedPath: string;
   status: "pass" | "fail";
   issueCount: number;
@@ -74,6 +75,7 @@ export type VerifyD1Inputs = {
   year: number;
   month: number;
   exportRoot?: string | undefined;
+  artifactRoot?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
   routeEvidenceIndexPath?: string | undefined;
 };
@@ -127,6 +129,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     year: inputs.year,
     month: inputs.month,
     exportRoot: inputs.exportRoot,
+    artifactRoot: inputs.artifactRoot,
     routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
     routeEvidenceIndexPath: inputs.routeEvidenceIndexPath,
   });
@@ -162,6 +165,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     analysisPeriod: month,
     generatedAt: new Date().toISOString(),
     summaryPath: join(dirname(exportResult.seedPath), "verify-summary.json"),
+    schemaPath: exportResult.schemaPath,
     seedPath: exportResult.seedPath,
     status: "pass",
     issueCount: 0,
@@ -191,6 +195,9 @@ export default defineCommand({
         exportRoot: Schema.optionalKey(Schema.String).annotate({
           description: "Override export root directory",
         }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root for D1 derivative inputs and outputs",
+        }),
         routeTimelineProjectionPath: Schema.optionalKey(Schema.String).annotate({
           description:
             "Optional route timeline serving projection JSON to fold into D1 verification",
@@ -207,6 +214,7 @@ export default defineCommand({
     analysisPeriod: Schema.String,
     generatedAt: Schema.String,
     summaryPath: Schema.String,
+    schemaPath: Schema.String,
     seedPath: Schema.String,
     status: Schema.Literals(["pass", "fail"]),
     issueCount: Schema.Number,
@@ -233,6 +241,10 @@ export default defineCommand({
             input.options.exportRoot === undefined
               ? undefined
               : fromCliPath(input.options.exportRoot),
+          artifactRoot:
+            input.options.artifactRoot === undefined
+              ? undefined
+              : fromCliPath(input.options.artifactRoot),
           routeTimelineProjectionPath:
             input.options.routeTimelineProjectionPath === undefined
               ? undefined

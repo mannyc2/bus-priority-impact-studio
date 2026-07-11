@@ -124,6 +124,7 @@ if (mapManifest === null) {
       artifactRoot,
       month,
       expectedRouteIds,
+      expectedProfile: "full",
     });
     if (verification.status !== "pass") {
       conflicts.push(

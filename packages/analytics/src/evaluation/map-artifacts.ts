@@ -498,6 +498,7 @@ export function verifyMapArtifactManifestContents(input: {
   manifestPath: string;
   month: string;
   manifest: MapArtifactManifest | null;
+  expectedProfile?: "demo" | "full";
   expectedRouteIds?: readonly string[];
   artifactIssues?: readonly MapArtifactIssue[];
 }): MapArtifactVerification {
@@ -521,6 +522,12 @@ export function verifyMapArtifactManifestContents(input: {
 
   const manifest = input.manifest;
   const issues: MapArtifactIssue[] = [];
+  if (input.expectedProfile !== undefined && manifest.releaseProfile !== input.expectedProfile) {
+    issues.push({
+      code: "map_artifact_manifest_profile_mismatch",
+      message: `Map artifact manifest profile is ${manifest.releaseProfile}, expected ${input.expectedProfile}.`,
+    });
+  }
   if (manifest.analysisPeriod !== input.month) {
     issues.push({
       code: "map_artifact_manifest_month_mismatch",

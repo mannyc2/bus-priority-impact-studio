@@ -20,6 +20,9 @@ export default defineCommand({
       artifactRoot: Schema.optionalKey(Schema.String).annotate({
         description: "Override artifact root directory",
       }),
+      profile: Schema.Literals(["demo", "full"])
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("demo")))
+        .annotate({ description: "Required manifest release profile" }),
     }),
   },
   output: Schema.Struct({
@@ -37,6 +40,10 @@ export default defineCommand({
       input.options.artifactRoot === undefined
         ? defaultArtifactRootPath()
         : fromCliPath(input.options.artifactRoot);
-    return verifyMapArtifactManifest({ artifactRoot, month });
+    return verifyMapArtifactManifest({
+      artifactRoot,
+      month,
+      expectedProfile: input.options.profile,
+    });
   },
 });

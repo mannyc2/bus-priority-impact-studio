@@ -479,6 +479,7 @@ export async function verifyMapArtifactManifest(input: {
   artifactRoot: string;
   month: string;
   expectedRouteIds?: readonly string[];
+  expectedProfile?: "demo" | "full";
 }): Promise<MapArtifactVerification> {
   const manifestPath = mapArtifactManifestPath(input.artifactRoot, input.month);
   const manifest = await readMapArtifactManifest(input);
@@ -511,6 +512,7 @@ export async function verifyMapArtifactManifest(input: {
     manifest,
     artifactIssues,
     ...(input.expectedRouteIds === undefined ? {} : { expectedRouteIds: input.expectedRouteIds }),
+    ...(input.expectedProfile === undefined ? {} : { expectedProfile: input.expectedProfile }),
   });
 }
 
