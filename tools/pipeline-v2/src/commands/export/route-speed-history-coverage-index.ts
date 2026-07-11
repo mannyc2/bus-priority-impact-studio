@@ -1,8 +1,10 @@
+import { Effect } from "effect";
 import { existsSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 import { routeSpeedHistoryManifestPath } from "@bp/analytics/artifacts";
 import { ROUTE_SPEED_SPINE_DEFAULT_START_MONTH } from "@bp/analytics/feature-history";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { decodeStrip } from "@bp/domain/decode";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   materializeRouteSpeedHistoryCoverageIndex,
   type RouteSpeedHistoryCoverageIndexRoute,
@@ -14,33 +16,37 @@ import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.
 
 const ISO_MONTH_RE = /^\d{4}-\d{2}$/;
 
-const RouteSpeedHistoryManifestSchema = z
-  .object({
-    artifactKind: z.literal("studio_route_speed_history_manifest"),
-    schemaVersion: z.literal(1),
-    source: z
-      .object({
-        startMonth: z.string().regex(ISO_MONTH_RE),
-        endMonth: z.string().regex(ISO_MONTH_RE).nullable(),
-      })
-      .passthrough(),
-    routes: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          routeSlug: z.string().min(1),
-          status: z.enum(["written", "skipped_existing", "blocked", "failed"]),
-          artifactPath: z.string().min(1),
-          monthCount: z.number().int().nonnegative().nullable(),
-          segmentCount: z.number().int().nonnegative().nullable(),
-          cellCount: z.number().int().nonnegative().nullable(),
-          availableCellCount: z.number().int().nonnegative().nullable(),
-          missingCellCount: z.number().int().nonnegative().nullable(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
+const RouteSpeedHistoryManifestSchema = Schema.Struct({
+  artifactKind: Schema.Literal("studio_route_speed_history_manifest"),
+  schemaVersion: Schema.Literal(1),
+  source: Schema.Struct({
+    startMonth: Schema.String.check(Schema.isPattern(ISO_MONTH_RE)),
+    endMonth: Schema.NullOr(Schema.String.check(Schema.isPattern(ISO_MONTH_RE))),
+  }),
+  routes: Schema.Array(
+    Schema.Struct({
+      routeId: Schema.String.check(Schema.isMinLength(1)),
+      routeSlug: Schema.String.check(Schema.isMinLength(1)),
+      status: Schema.Literals(["written", "skipped_existing", "blocked", "failed"]),
+      artifactPath: Schema.String.check(Schema.isMinLength(1)),
+      monthCount: Schema.NullOr(
+        Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
+      segmentCount: Schema.NullOr(
+        Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
+      cellCount: Schema.NullOr(
+        Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
+      availableCellCount: Schema.NullOr(
+        Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
+      missingCellCount: Schema.NullOr(
+        Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
+    }),
+  ),
+});
 
 function repoDisplayPath(path: string): string {
   if (!isAbsolute(path)) return path;
@@ -77,7 +83,9 @@ export async function runRouteSpeedHistoryCoverageIndex(input: {
       startMonth: input.startMonth,
       endMonth: input.endMonth,
     });
-  const manifest = RouteSpeedHistoryManifestSchema.parse(await Bun.file(manifestPath).json());
+  const manifest = decodeStrip(RouteSpeedHistoryManifestSchema)(
+    await Bun.file(manifestPath).json(),
+  );
   const historyEndMonth = manifest.source.endMonth ?? input.endMonth ?? input.releaseMonth;
   const availableRoutes: RouteSpeedHistoryCoverageIndexRoute[] = manifest.routes.flatMap(
     (route) => {
@@ -121,30 +129,45 @@ export default defineCommand({
   path: ["export", "route-speed-history-coverage-index"],
   summary: "Materialize local route speed-history coverage rows from the Studio history manifest.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Release calendar year"),
-      month: arg.positiveInt().default(3).describe("Release calendar month, 1-12"),
-      startMonth: z
-        .string()
-        .regex(ISO_MONTH_RE)
-        .default(ROUTE_SPEED_SPINE_DEFAULT_START_MONTH)
-        .describe("First source month in the route speed-history manifest"),
-      endMonth: z
-        .string()
-        .regex(ISO_MONTH_RE)
-        .optional()
-        .describe("Last source month in the route speed-history manifest"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      manifest: z.string().optional().describe("Override route speed-history manifest path"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Release calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Release calendar month, 1-12" }),
+        startMonth: Schema.String.check(Schema.isPattern(ISO_MONTH_RE))
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(ROUTE_SPEED_SPINE_DEFAULT_START_MONTH),
+            ),
+          )
+          .annotate({ description: "First source month in the route speed-history manifest" }),
+        endMonth: Schema.optionalKey(Schema.String.check(Schema.isPattern(ISO_MONTH_RE))).annotate({
+          description: "Last source month in the route speed-history manifest",
+        }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        manifest: Schema.optionalKey(Schema.String).annotate({
+          description: "Override route speed-history manifest path",
+        }),
+      },
     }),
   },
-  output: z.object({
-    releaseMonth: z.string(),
-    manifestPath: z.string(),
-    expectedRouteCount: z.number().int().nonnegative(),
-    availableRouteCount: z.number().int().nonnegative(),
-    missingRouteCount: z.number().int().nonnegative(),
-    tableRowCount: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    releaseMonth: Schema.String,
+    manifestPath: Schema.String,
+    expectedRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    availableRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    missingRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    tableRowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   }),
   async run({ input }) {
     const artifactRoot =

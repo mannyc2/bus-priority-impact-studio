@@ -6,7 +6,8 @@ import {
   type RouteDossierInputRow,
   type RouteDossierWorstSegmentMonth,
 } from "@bp/analytics/evaluation";
-import * as z from "@bp/domain/schema-compat";
+import { decodePreserve } from "@bp/domain/decode";
+import { Schema } from "effect";
 import { type RouteDossierEvent, routeDossierSummaryKey } from "@bp/domain/studio";
 import { routeIdToSlug } from "../studio/_release-routes.ts";
 import type { D1CanonicalInputs } from "./d1-inputs.ts";
@@ -21,39 +22,31 @@ import type { D1CanonicalInputs } from "./d1-inputs.ts";
 
 // Minimal read-schema for the per-route speed-history artifact: only the fields the
 // worst-segment derivation needs.
-const SpeedHistoryForWorstSegmentSchema = z
-  .object({
-    dimensions: z
-      .object({
-        segments: z.array(
-          z
-            .object({
-              segmentId: z.string(),
-              direction: z.string(),
-              label: z.string(),
-            })
-            .passthrough(),
-        ),
-      })
-      .passthrough(),
-    cells: z.array(
-      z
-        .object({
-          segmentId: z.string(),
-          month: z.string(),
-          averageSpeedMph: z.number().nullable(),
-        })
-        .passthrough(),
+const SpeedHistoryForWorstSegmentSchema = Schema.Struct({
+  dimensions: Schema.Struct({
+    segments: Schema.Array(
+      Schema.Struct({
+        segmentId: Schema.String,
+        direction: Schema.String,
+        label: Schema.String,
+      }),
     ),
-  })
-  .passthrough();
+  }),
+  cells: Schema.Array(
+    Schema.Struct({
+      segmentId: Schema.String,
+      month: Schema.String,
+      averageSpeedMph: Schema.NullOr(Schema.Number),
+    }),
+  ),
+});
 
 /**
  * Per month, the route's slowest segment by mean observed speed across dayparts.
  * Months where no segment has an observed speed are skipped.
  */
 export function worstSegmentMonthsFromSpeedHistory(
-  artifact: z.output<typeof SpeedHistoryForWorstSegmentSchema>,
+  artifact: typeof SpeedHistoryForWorstSegmentSchema.Type,
 ): RouteDossierWorstSegmentMonth[] {
   const segmentMeta = new Map(
     artifact.dimensions.segments.map((segment) => [segment.segmentId, segment]),
@@ -158,7 +151,7 @@ export async function toRouteDossierInputRows(
     });
     const historyFile = Bun.file(historyPath);
     if (await historyFile.exists()) {
-      const artifact = SpeedHistoryForWorstSegmentSchema.parse(
+      const artifact = decodePreserve(SpeedHistoryForWorstSegmentSchema)(
         JSON.parse(await historyFile.text()),
       );
       worstSegmentByMonth = worstSegmentMonthsFromSpeedHistory(artifact);

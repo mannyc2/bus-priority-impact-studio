@@ -6,7 +6,8 @@ import {
   type RouteCapabilityInputRow,
   type RouteCapabilitySourceStatus,
 } from "@bp/analytics/evaluation";
-import * as z from "@bp/domain/schema-compat";
+import { decodePreserve } from "@bp/domain/decode";
+import { Effect, Schema } from "effect";
 import { STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY } from "@bp/domain/studio";
 import type { D1CanonicalInputs } from "./d1-inputs";
 
@@ -20,31 +21,39 @@ import type { D1CanonicalInputs } from "./d1-inputs";
 // Reliability-family detectors — their readiness drives the `reliability` surface.
 const RELIABILITY_DETECTOR_IDS = new Set(["observed_reliability", "headway_reliability_ewt"]);
 
-const DetectorCountsSchema = z
-  .object({
-    public_finding_candidate: z.number().int().nonnegative().default(0),
-    route_context: z.number().int().nonnegative().default(0),
-    review_queue: z.number().int().nonnegative().default(0),
-    suppressed: z.number().int().nonnegative().default(0),
-  })
-  .passthrough();
+const DetectorCountsSchema = Schema.Struct({
+  public_finding_candidate: Schema.Number.check(Schema.isInt())
+    .check(Schema.isGreaterThanOrEqualTo(0))
+    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0))),
+  route_context: Schema.Number.check(Schema.isInt())
+    .check(Schema.isGreaterThanOrEqualTo(0))
+    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0))),
+  review_queue: Schema.Number.check(Schema.isInt())
+    .check(Schema.isGreaterThanOrEqualTo(0))
+    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0))),
+  suppressed: Schema.Number.check(Schema.isInt())
+    .check(Schema.isGreaterThanOrEqualTo(0))
+    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0))),
+});
 
-const DetectorReadinessRouteSummariesSchema = z
-  .object({
-    releaseMonth: z.string().min(1),
-    routes: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          counts: DetectorCountsSchema,
-          byDetector: z.record(z.string(), DetectorCountsSchema).default({}),
-          sourceMonths: z.array(z.object({ month: z.string() }).passthrough()).default([]),
-          caveats: z.array(z.string()).default([]),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
+const DetectorReadinessRouteSummariesSchema = Schema.Struct({
+  releaseMonth: Schema.String.check(Schema.isMinLength(1)),
+  routes: Schema.Array(
+    Schema.Struct({
+      routeId: Schema.String.check(Schema.isMinLength(1)),
+      counts: DetectorCountsSchema,
+      byDetector: Schema.Record(Schema.String, DetectorCountsSchema).pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed({})),
+      ),
+      sourceMonths: Schema.Array(Schema.Struct({ month: Schema.String })).pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed([])),
+      ),
+      caveats: Schema.Array(Schema.String).pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed([])),
+      ),
+    }),
+  ),
+});
 
 export type DetectorReadinessRouteSummary = RouteCapabilityInputRow["detector"];
 
@@ -57,7 +66,9 @@ export async function readDetectorReadinessRouteSummaries(input: {
   const file = Bun.file(input.manifestPath);
   if (!(await file.exists())) return summaries;
 
-  const manifest = DetectorReadinessRouteSummariesSchema.parse(JSON.parse(await file.text()));
+  const manifest = decodePreserve(DetectorReadinessRouteSummariesSchema)(
+    JSON.parse(await file.text()),
+  );
   if (manifest.releaseMonth !== input.month) {
     throw new Error(
       `Detector readiness manifest month ${manifest.releaseMonth} does not match export month ${input.month}.`,

@@ -4,6 +4,7 @@ import type { Dirent } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { D1RouteTimelineIndexInput } from "@bp/db/d1/seed";
+import { decodeEitherPreserve, decodePreserve } from "@bp/domain/decode";
 import {
   getRouteBatchStatus,
   type LocalPipelineDb,
@@ -34,121 +35,132 @@ import {
   listRouteReliabilityGapWindows,
   listRouteScorecards,
 } from "@bp/db/local";
-import * as z from "@bp/domain/schema-compat";
+import { Result, Schema } from "effect";
 import {
   STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
   StudioRouteEvidenceIndexSchema,
 } from "@bp/domain/studio/route-evidence";
 import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
+import { readJsonArtifact } from "../../lib/json.ts";
 import { defaultArtifactRootPath } from "../../lib/paths.ts";
 
 const DEFAULT_HISTORY_START_MONTH = "2023-04";
 
-const SourceMonthCoverageMatrixSchema = z
-  .object({
-    generatedAt: z.string(),
-    artifactPath: z.string().nullable().optional(),
-    sources: z.array(
-      z
-        .object({
-          sourceId: z.string(),
-          label: z.string(),
-          kind: z.string(),
-          grain: z.string(),
-          months: z.array(
-            z
-              .object({
-                month: z.string(),
-                status: z.string(),
-                rowCount: z.number().int().nonnegative(),
-                routeCount: z.number().int().nonnegative().nullable(),
-                note: z.string().nullable(),
-              })
-              .passthrough(),
+const SourceMonthCoverageMatrixSchema = Schema.Struct({
+  generatedAt: Schema.String,
+  artifactPath: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  sources: Schema.Array(
+    Schema.Struct({
+      sourceId: Schema.String,
+      label: Schema.String,
+      kind: Schema.String,
+      grain: Schema.String,
+      months: Schema.Array(
+        Schema.Struct({
+          month: Schema.String,
+          status: Schema.String,
+          rowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+          routeCount: Schema.NullOr(
+            Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
           ),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
+          note: Schema.NullOr(Schema.String),
+        }),
+      ),
+    }),
+  ),
+});
 
-const RouteTimelineSupportLevelSchema = z.enum([
+const RouteTimelineSupportLevelSchema = Schema.Literals([
   "timeline_ready",
   "timeline_sparse",
   "timeline_review_only",
   "invalid",
 ]);
 
-const RouteTimelineServingProjectionSchema = z
-  .object({
-    releaseMonth: z.string(),
-    generatedAt: z.string().min(1).optional(),
-    routeTimelineIndexRows: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          month: z.string().min(1),
-          supportLevel: RouteTimelineSupportLevelSchema,
-          qualityFlags: z.array(z.string()),
-          defaultEventCount: z.number().int().nonnegative(),
-          secondaryEventCount: z.number().int().nonnegative(),
-          reviewOnlyEventCount: z.number().int().nonnegative(),
-          eventCount: z.number().int().nonnegative(),
-          sourceBackedEventCount: z.number().int().nonnegative(),
-          dateAssertionBackedEventCount: z.number().int().nonnegative(),
-          unresolvedDateEventCount: z.number().int().nonnegative(),
-          lowConfidenceEventCount: z.number().int().nonnegative(),
-          unaccountedCandidateCount: z.number().int().nonnegative(),
-          validationErrorCount: z.number().int().nonnegative(),
-          validationWarningCount: z.number().int().nonnegative(),
-          totalTokens: z.number().int().nonnegative().nullable(),
-          defaultEvents: z.array(z.unknown()),
-          bundleArtifactKey: z.string().min(1),
-          bundleArtifactSha256: z.string().length(64),
-          bundleArtifactByteLength: z.number().int().nonnegative(),
-          sourceBundlePath: z.string().min(1),
-          generatedAt: z.string().min(1),
-        })
-        .strict(),
-    ),
-    routeArtifactRows: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          month: z.string().min(1),
-          artifactName: z.string().min(1),
-          artifactKey: z.string().min(1),
-          contentType: z.string().min(1),
-          byteLength: z.number().int().nonnegative(),
-          sha256: z.string().length(64),
-        })
-        .strict(),
-    ),
-  })
-  .passthrough();
+const RouteTimelineServingProjectionSchema = Schema.Struct({
+  releaseMonth: Schema.String,
+  generatedAt: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+  routeTimelineIndexRows: Schema.Array(
+    Schema.Struct({
+      routeId: Schema.String.check(Schema.isMinLength(1)),
+      month: Schema.String.check(Schema.isMinLength(1)),
+      supportLevel: RouteTimelineSupportLevelSchema,
+      qualityFlags: Schema.Array(Schema.String),
+      defaultEventCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      secondaryEventCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      reviewOnlyEventCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      eventCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      sourceBackedEventCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      dateAssertionBackedEventCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      unresolvedDateEventCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      lowConfidenceEventCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      unaccountedCandidateCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      validationErrorCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      validationWarningCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      totalTokens: Schema.NullOr(
+        Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      ),
+      defaultEvents: Schema.Array(Schema.Unknown),
+      bundleArtifactKey: Schema.String.check(Schema.isMinLength(1)),
+      bundleArtifactSha256: Schema.String.check(Schema.isLengthBetween(64, 64)),
+      bundleArtifactByteLength: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      sourceBundlePath: Schema.String.check(Schema.isMinLength(1)),
+      generatedAt: Schema.String.check(Schema.isMinLength(1)),
+    }),
+  ),
+  routeArtifactRows: Schema.Array(
+    Schema.Struct({
+      routeId: Schema.String.check(Schema.isMinLength(1)),
+      month: Schema.String.check(Schema.isMinLength(1)),
+      artifactName: Schema.String.check(Schema.isMinLength(1)),
+      artifactKey: Schema.String.check(Schema.isMinLength(1)),
+      contentType: Schema.String.check(Schema.isMinLength(1)),
+      byteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      sha256: Schema.String.check(Schema.isLengthBetween(64, 64)),
+    }),
+  ),
+});
 
-const DetectorReadinessServingManifestSchema = z
-  .object({
-    artifactKind: z.literal("detector_readiness_serving_manifest"),
-    schemaVersion: z.literal(1),
-    releaseMonth: z.string().min(1),
-    routes: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          counts: z
-            .object({
-              public_finding_candidate: z.number().int().nonnegative(),
-              route_context: z.number().int().nonnegative(),
-              review_queue: z.number().int().nonnegative(),
-              suppressed: z.number().int().nonnegative(),
-            })
-            .passthrough(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
+const DetectorReadinessServingManifestSchema = Schema.Struct({
+  artifactKind: Schema.Literal("detector_readiness_serving_manifest"),
+  schemaVersion: Schema.Literal(1),
+  releaseMonth: Schema.String.check(Schema.isMinLength(1)),
+  routes: Schema.Array(
+    Schema.Struct({
+      routeId: Schema.String.check(Schema.isMinLength(1)),
+      counts: Schema.Struct({
+        public_finding_candidate: Schema.Number.check(Schema.isInt()).check(
+          Schema.isGreaterThanOrEqualTo(0),
+        ),
+        route_context: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+        review_queue: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+        suppressed: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      }),
+    }),
+  ),
+});
 
 export type D1CanonicalInputs = Awaited<ReturnType<typeof readLocalD1Inputs>>;
 export type D1AppendixInputs = Awaited<ReturnType<typeof readLocalD1AppendixInputs>>;
@@ -240,7 +252,7 @@ async function readSourceMonthCoverageRows(input: {
   );
   const file = Bun.file(matrixPath);
   if (!(await file.exists())) return [];
-  const matrix = SourceMonthCoverageMatrixSchema.parse(await file.json());
+  const matrix = decodePreserve(SourceMonthCoverageMatrixSchema)(await file.json());
   return matrix.sources.flatMap((source) =>
     source.months.map((cell) => ({
       sourceId: source.sourceId,
@@ -382,7 +394,7 @@ async function readRouteTimelineProjectionRows(input: {
   if (!(await file.exists())) {
     throw new Error(`Route timeline serving projection not found: ${projectionPath}`);
   }
-  const projection = RouteTimelineServingProjectionSchema.parse(await file.json());
+  const projection = decodePreserve(RouteTimelineServingProjectionSchema)(await file.json());
   if (projection.releaseMonth !== input.month) {
     throw new Error(
       `Route timeline serving projection month ${projection.releaseMonth} does not match export month ${input.month}.`,
@@ -403,8 +415,12 @@ async function readRouteTimelineProjectionRows(input: {
     );
   }
   return {
-    routeTimelineIndex: projection.routeTimelineIndexRows,
-    routeArtifacts: projection.routeArtifactRows,
+    routeTimelineIndex: projection.routeTimelineIndexRows.map((row) => ({
+      ...row,
+      qualityFlags: [...row.qualityFlags],
+      defaultEvents: [...row.defaultEvents],
+    })),
+    routeArtifacts: [...projection.routeArtifactRows],
   };
 }
 
@@ -441,11 +457,13 @@ async function findDefaultRouteTimelineProjectionPath(input: {
   );
   const matching: Array<{ path: string; generatedAt: string }> = [];
   for (const path of candidates) {
-    const projection = RouteTimelineServingProjectionSchema.safeParse(await Bun.file(path).json());
-    if (!projection.success || projection.data.releaseMonth !== input.month) continue;
+    const projection = decodeEitherPreserve(RouteTimelineServingProjectionSchema)(
+      await Bun.file(path).json(),
+    );
+    if (Result.isFailure(projection) || projection.success.releaseMonth !== input.month) continue;
     matching.push({
       path,
-      generatedAt: projection.data.generatedAt ?? "",
+      generatedAt: projection.success.generatedAt ?? "",
     });
   }
   return matching.sort(
@@ -468,7 +486,7 @@ async function readDetectorReadinessManifestRouteArtifacts(input: {
   }
 
   const body = await file.text();
-  const manifest = DetectorReadinessServingManifestSchema.parse(JSON.parse(body));
+  const manifest = decodePreserve(DetectorReadinessServingManifestSchema)(JSON.parse(body));
   if (manifest.releaseMonth !== input.month) {
     throw new Error(
       `Detector readiness serving manifest month ${manifest.releaseMonth} does not match export month ${input.month}.`,
@@ -512,7 +530,7 @@ async function readRouteEvidenceIndexRouteArtifacts(input: {
     return { routeArtifacts: [], indexAvailable: false };
   }
 
-  const index = StudioRouteEvidenceIndexSchema.parse(await file.json());
+  const index = await readJsonArtifact(indexPath, StudioRouteEvidenceIndexSchema);
   return {
     routeArtifacts: index.routes.map(
       (route): RouteArtifactLike => ({
