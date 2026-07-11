@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
 import { runPipelineFileSystemBoundary } from "../../effect/file-system.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
@@ -144,22 +144,32 @@ export default defineCommand({
   path: ["audit", "raw-snapshot-coverage"],
   summary: "Audit whether raw JSON snapshots are covered by local SQLite tables.",
   input: {
-    options: dbOptions.extend({
-      rawRoot: z.string().optional().describe("Override data/raw root"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      generatedAt: z
-        .string()
-        .optional()
-        .describe("Override generated timestamp for deterministic tests"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        rawRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override data/raw root",
+        }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        generatedAt: Schema.optionalKey(Schema.String).annotate({
+          description: "Override generated timestamp for deterministic tests",
+        }),
+      },
     }),
   },
-  output: z.object({
-    generatedAt: z.string(),
-    reportPath: z.string(),
-    deletionManifestPath: z.string(),
-    familyCount: z.number().int().nonnegative(),
-    deletionManifestFamilyCount: z.number().int().nonnegative(),
-    deletionManifestBytes: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    generatedAt: Schema.String,
+    reportPath: Schema.String,
+    deletionManifestPath: Schema.String,
+    familyCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    deletionManifestFamilyCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    deletionManifestBytes: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
   }),
   async run({ input }) {
     return runRawSnapshotCoverageAudit({

@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
@@ -26,7 +27,7 @@ import {
   parseDataProductManifestText,
   sourceMonthCoverageMatrixPath,
 } from "@bp/analytics/data-products";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   buildDataProductRouteUniverses,
   buildSourceMonthCoverageMatrix,
@@ -432,12 +433,20 @@ export async function buildDataProductCompletenessAudit(
   };
 }
 
-const productSummarySchema = z.object({
-  productId: z.string(),
-  label: z.string(),
-  kind: z.string(),
-  status: z.enum(["complete", "partial", "missing", "stale", "waived", "blocked", "fetching"]),
-  gapClass: z.enum([
+const productSummarySchema = Schema.Struct({
+  productId: Schema.String,
+  label: Schema.String,
+  kind: Schema.String,
+  status: Schema.Literals([
+    "complete",
+    "partial",
+    "missing",
+    "stale",
+    "waived",
+    "blocked",
+    "fetching",
+  ]),
+  gapClass: Schema.Literals([
     "none",
     "upstream_blocked",
     "downstream_blocked",
@@ -452,8 +461,8 @@ const productSummarySchema = z.object({
     "stale",
     "unknown",
   ]),
-  gapClasses: z.array(
-    z.enum([
+  gapClasses: Schema.Array(
+    Schema.Literals([
       "none",
       "upstream_blocked",
       "downstream_blocked",
@@ -469,13 +478,21 @@ const productSummarySchema = z.object({
       "unknown",
     ]),
   ),
-  downstreamConsumers: z.array(z.string()),
-  rootCauses: z.array(
-    z.object({
-      productId: z.string(),
-      label: z.string(),
-      status: z.enum(["complete", "partial", "missing", "stale", "waived", "blocked", "fetching"]),
-      gapClass: z.enum([
+  downstreamConsumers: Schema.Array(Schema.String),
+  rootCauses: Schema.Array(
+    Schema.Struct({
+      productId: Schema.String,
+      label: Schema.String,
+      status: Schema.Literals([
+        "complete",
+        "partial",
+        "missing",
+        "stale",
+        "waived",
+        "blocked",
+        "fetching",
+      ]),
+      gapClass: Schema.Literals([
         "none",
         "upstream_blocked",
         "downstream_blocked",
@@ -490,66 +507,106 @@ const productSummarySchema = z.object({
         "stale",
         "unknown",
       ]),
-      reasons: z.array(z.string()),
+      reasons: Schema.Array(Schema.String),
     }),
   ),
-  reasons: z.array(z.string()),
+  reasons: Schema.Array(Schema.String),
 });
 
-const coverageBucketSchema = z.object({
-  count: z.number().int().nonnegative(),
-  products: z.array(productSummarySchema),
+const coverageBucketSchema = Schema.Struct({
+  count: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  products: Schema.Array(productSummarySchema),
 });
 
 export default defineCommand({
   path: ["audit", "data-product-completeness"],
   summary: "Audit derived data-product completeness from the pipeline-v2 registry.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Release calendar year"),
-      month: arg.positiveInt().default(3).describe("Release calendar month, 1-12"),
-      historyStartMonth: z
-        .string()
-        .default("2023-04")
-        .describe("Start month for historical data-product coverage"),
-      runId: z.string().optional().describe("Observed GTFS-RT/import run id"),
-      gtfsRunId: z.string().optional().describe("GTFS static staging run id"),
-      manifest: z.string().optional().describe("Optional JSON/YAML data-product manifest path"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      output: z.string().optional().describe("Override output path for completeness JSON"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Release calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Release calendar month, 1-12" }),
+        historyStartMonth: Schema.String.pipe(
+          Schema.withDecodingDefaultTypeKey(Effect.succeed("2023-04")),
+        ).annotate({ description: "Start month for historical data-product coverage" }),
+        runId: Schema.optionalKey(Schema.String).annotate({
+          description: "Observed GTFS-RT/import run id",
+        }),
+        gtfsRunId: Schema.optionalKey(Schema.String).annotate({
+          description: "GTFS static staging run id",
+        }),
+        manifest: Schema.optionalKey(Schema.String).annotate({
+          description: "Optional JSON/YAML data-product manifest path",
+        }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Override output path for completeness JSON",
+        }),
+      },
     }),
   },
-  output: z.object({
-    releaseMonth: z.string(),
-    historyStartMonth: z.string(),
-    runId: z.string(),
-    gtfsRunId: z.string().nullable(),
-    outputPath: z.string(),
-    productCount: z.number().int().nonnegative(),
-    completeProductCount: z.number().int().nonnegative(),
-    partialProductCount: z.number().int().nonnegative(),
-    missingProductCount: z.number().int().nonnegative(),
-    staleProductCount: z.number().int().nonnegative(),
-    waivedProductCount: z.number().int().nonnegative(),
-    blockedProductCount: z.number().int().nonnegative(),
-    fetchingProductCount: z.number().int().nonnegative(),
-    downstreamBlockedProductCount: z.number().int().nonnegative(),
-    gapClassCounts: z.object({
-      none: z.number().int().nonnegative(),
-      upstream_blocked: z.number().int().nonnegative(),
-      downstream_blocked: z.number().int().nonnegative(),
-      available_not_fetched: z.number().int().nonnegative(),
-      source_absent: z.number().int().nonnegative(),
-      derived_not_built: z.number().int().nonnegative(),
-      derived_from_available_not_fetched: z.number().int().nonnegative(),
-      derived_from_upstream_blocked: z.number().int().nonnegative(),
-      planned_blocked: z.number().int().nonnegative(),
-      fetching: z.number().int().nonnegative(),
-      waived: z.number().int().nonnegative(),
-      stale: z.number().int().nonnegative(),
-      unknown: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    releaseMonth: Schema.String,
+    historyStartMonth: Schema.String,
+    runId: Schema.String,
+    gtfsRunId: Schema.NullOr(Schema.String),
+    outputPath: Schema.String,
+    productCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    completeProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    partialProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    missingProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    staleProductCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    waivedProductCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    blockedProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    fetchingProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    downstreamBlockedProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    gapClassCounts: Schema.Struct({
+      none: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      upstream_blocked: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      downstream_blocked: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      available_not_fetched: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      source_absent: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      derived_not_built: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      derived_from_available_not_fetched: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      derived_from_upstream_blocked: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      planned_blocked: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      fetching: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      waived: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      stale: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      unknown: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
     }),
-    coverage: z.object({
+    coverage: Schema.Struct({
       complete: coverageBucketSchema,
       needsFetch: coverageBucketSchema,
       needsBuild: coverageBucketSchema,
@@ -562,7 +619,7 @@ export default defineCommand({
       unknown: coverageBucketSchema,
       sourceAbsent: coverageBucketSchema,
     }),
-    products: z.array(productSummarySchema),
+    products: Schema.Array(productSummarySchema),
   }),
   async run({ input }) {
     const releaseMonth = isoMonth(input.options.year, input.options.month);
