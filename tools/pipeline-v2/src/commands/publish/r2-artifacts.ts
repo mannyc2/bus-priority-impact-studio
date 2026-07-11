@@ -7,7 +7,7 @@ import { type CloudflareCostSummary, estimateR2StandardCost } from "../../lib/cl
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { collectD1ArtifactKeys, collectManifestArtifactKeys } from "./publish-artifact-keys.ts";
 
-const DEFAULT_PREFIXES = ["map", "studio", "source-availability", "pipeline-v1"] as const;
+const DEFAULT_PREFIXES = ["map", "studio", "source-availability"] as const;
 const DEFAULT_MANIFEST_DIRS = ["map"] as const;
 const DEFAULT_CONCURRENCY = 16;
 const DEFAULT_MAX_ATTEMPTS = 3;

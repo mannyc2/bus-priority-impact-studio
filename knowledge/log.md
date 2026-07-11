@@ -8192,3 +8192,12 @@ Aligned the root README with ADR-0020's Effect Schema-only contract, removed the
 `/methods` page from the public SEO path list and sitemap while preserving the serving snapshot's
 `methods.json` dependency for plan 063, and prepended a dated status block to the umbrella product
 plan so deleted applied-research and authoring surfaces are read as history.
+
+## [2026-07-11] engineering | Plan 062 deletes retired pipeline-v1 QA commands
+
+Deleted roughly 2,550 lines of retired `audit pipeline-v1`, `check pipeline-v1`, and
+`pipeline finalize` command code after re-verifying that no live script, publish flow, or command
+imports it.
+ADR-0017 retired that QA-gate doctrine; `scripts/publish-serving-release.sh` and the `studio release`
+command family remain the live publish path. The CLI registry now exposes 96 descriptors and no
+empty `pipeline` command group.

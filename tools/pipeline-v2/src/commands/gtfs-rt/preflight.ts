@@ -224,7 +224,7 @@ function recommendationsFor(issues: readonly GtfsRtPreflightIssue[]): string[] {
     observed_headway_sample_month_mismatch:
       "Re-run route-observed-reliability after filtering observed headways to the requested analysis month.",
     route_observed_reliability_missing:
-      "Run route-observed-reliability or finalize:pipeline-v1 for the selected month and run ID.",
+      "Run route-observed-reliability for the selected month and run ID.",
     route_observed_reliability_no_observed_routes:
       "Increase GTFS-RT collection coverage or lower the explicit sample threshold only for a documented fixture run.",
     observed_reliability_source_status_incomplete:

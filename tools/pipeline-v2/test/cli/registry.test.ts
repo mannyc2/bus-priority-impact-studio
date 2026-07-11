@@ -9,7 +9,6 @@ const expectedRegistry = {
   audit: [
     "data-product-completeness",
     "map-artifacts",
-    "pipeline-v1",
     "raw-snapshot-coverage",
     "route-schedule-progress",
     "route-source-reconciliation",
@@ -36,7 +35,6 @@ const expectedRegistry = {
   check: [
     "bus-observatory-gtfs-rt",
     "bus-observatory-gtfs-rt-range",
-    "pipeline-v1",
     "route-speed-availability",
     "spatialite",
   ],
@@ -89,7 +87,6 @@ const expectedRegistry = {
     "socrata-partitioned-csv-snapshot",
   ],
   map: ["artifacts", "context"],
-  pipeline: ["finalize"],
   plan: ["source-refresh"],
   publish: ["r2-artifacts"],
   pull: ["gtfs-rt-r2-run"],
@@ -118,7 +115,7 @@ const expectedRegistry = {
 describe("Effect CLI registry", () => {
   test("loads every pipeline command descriptor loudly", async () => {
     const commands = await discoverCommandDescriptors();
-    expect(commands).toHaveLength(99);
+    expect(commands).toHaveLength(96);
     expect(buildCommandRegistrySnapshot(commands)).toEqual(expectedRegistry);
   });
 
