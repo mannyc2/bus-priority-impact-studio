@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions } from "../../lib/local-db.ts";
@@ -48,18 +48,23 @@ export default defineCommand({
   summary:
     "Project route-month speed aggregates from local_route_segment_speed_cell and byte-compare them against local_route_month_trend.",
   input: {
-    options: dbOptions.extend({
-      output: z.string().optional().describe("Artifact output path (JSON)"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Artifact output path (JSON)",
+        }),
+      },
     }),
   },
-  output: z.object({
-    comparedRowCount: z.number().int().nonnegative(),
-    matchCount: z.number().int().nonnegative(),
-    mismatchCount: z.number().int().nonnegative(),
-    trendOnlyRowCount: z.number().int().nonnegative(),
-    cellOnlyRowCount: z.number().int().nonnegative(),
-    byteIdentical: z.boolean(),
-    outputPath: z.string(),
+  output: Schema.Struct({
+    comparedRowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    matchCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    mismatchCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    trendOnlyRowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    cellOnlyRowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    byteIdentical: Schema.Boolean,
+    outputPath: Schema.String,
   }),
   async run({ input }) {
     const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);

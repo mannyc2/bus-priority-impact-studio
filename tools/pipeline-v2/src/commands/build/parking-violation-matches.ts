@@ -1,7 +1,8 @@
+import { Effect } from "effect";
 import { mkdir, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { parkingViolationMatchAuditPath } from "@bp/analytics/artifacts";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   buildParkingViolationMatchAuditArtifact,
   countParkingViolationLocationGroups,
@@ -183,39 +184,54 @@ export default defineCommand({
   path: ["build", "parking-violation-matches"],
   summary: "Resolve parking-violation location groups to route candidates via LION + Geoclient.",
   input: {
-    options: dbOptions.extend({
-      artifactRoot: z.string().optional().describe("Artifact root (defaults to data/artifacts/)"),
-      output: z.string().optional().describe("Override path for the audit JSON"),
-      rawLion: z.string().optional().describe("Raw lion-centerline snapshot path"),
-      hydrateRawFields: arg
-        .boolean()
-        .default(false)
-        .describe("Re-hydrate LION raw fields from snapshots and refresh parking match keys"),
-      skipGeoclient: arg
-        .boolean()
-        .default(false)
-        .describe("Disable Geoclient (rely on cache + LION snap only)"),
-      maxCameraGroups: arg.positiveInt().optional().describe("Cap camera groups scanned"),
-      maxAddressGroups: arg.positiveInt().optional().describe("Cap address groups scanned"),
-      auditOnly: arg
-        .boolean()
-        .default(false)
-        .describe("Skip rebuild; just recount the current match table"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Artifact root (defaults to data/artifacts/)",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Override path for the audit JSON",
+        }),
+        rawLion: Schema.optionalKey(Schema.String).annotate({
+          description: "Raw lion-centerline snapshot path",
+        }),
+        hydrateRawFields: arg
+          .boolean()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+          .annotate({
+            description: "Re-hydrate LION raw fields from snapshots and refresh parking match keys",
+          }),
+        skipGeoclient: arg
+          .boolean()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+          .annotate({ description: "Disable Geoclient (rely on cache + LION snap only)" }),
+        maxCameraGroups: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Cap camera groups scanned",
+        }),
+        maxAddressGroups: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Cap address groups scanned",
+        }),
+        auditOnly: arg
+          .boolean()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+          .annotate({ description: "Skip rebuild; just recount the current match table" }),
+      },
     }),
   },
-  output: z.object({
-    computedAt: z.string(),
-    auditArtifactPath: z.string(),
-    hydratedParkingRows: z.number(),
-    hydratedLionRows: z.number(),
-    refreshedLocationKeyRows: z.number(),
-    cameraGroupsScanned: z.number(),
-    addressGroupsScanned: z.number(),
-    matchRows: z.number(),
-    matchedLocationGroups: z.number(),
-    representedEvents: z.number(),
-    routeCount: z.number(),
-    byMatchKind: z.array(z.unknown()),
+  output: Schema.Struct({
+    computedAt: Schema.String,
+    auditArtifactPath: Schema.String,
+    hydratedParkingRows: Schema.Number,
+    hydratedLionRows: Schema.Number,
+    refreshedLocationKeyRows: Schema.Number,
+    cameraGroupsScanned: Schema.Number,
+    addressGroupsScanned: Schema.Number,
+    matchRows: Schema.Number,
+    matchedLocationGroups: Schema.Number,
+    representedEvents: Schema.Number,
+    routeCount: Schema.Number,
+    byMatchKind: Schema.Array(Schema.Unknown),
   }),
   async run({ input }) {
     return runLocalDbCommandBoundary({

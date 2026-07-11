@@ -1,7 +1,8 @@
+import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { contextEventRouteTouchAuditPath } from "@bp/analytics/artifacts";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type SourceEventKindAudit as AppliedSourceEventKindAudit,
   auditContextEventRouteTouches,
@@ -80,23 +81,32 @@ export default defineCommand({
   path: ["build", "context-event-route-touches"],
   summary: "Materialize event→route touches via direct, LION-buffer, and parking-match paths.",
   input: {
-    options: dbOptions.extend({
-      artifactRoot: z.string().optional().describe("Artifact root (defaults to data/artifacts/)"),
-      output: z.string().optional().describe("Override path for the audit JSON"),
-      auditOnly: arg
-        .boolean()
-        .default(false)
-        .describe("Skip materializing the touches table; just rebuild the audit"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Artifact root (defaults to data/artifacts/)",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Override path for the audit JSON",
+        }),
+        auditOnly: arg
+          .boolean()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+          .annotate({
+            description: "Skip materializing the touches table; just rebuild the audit",
+          }),
+      },
     }),
   },
-  output: z.object({
-    directTouches: z.number(),
-    routeLionTouches: z.number(),
-    parkingLocationTouches: z.number(),
-    total: z.number(),
-    computedAt: z.string(),
-    auditArtifactPath: z.string(),
-    sourceEventKinds: z.array(z.unknown()),
+  output: Schema.Struct({
+    directTouches: Schema.Number,
+    routeLionTouches: Schema.Number,
+    parkingLocationTouches: Schema.Number,
+    total: Schema.Number,
+    computedAt: Schema.String,
+    auditArtifactPath: Schema.String,
+    sourceEventKinds: Schema.Array(Schema.Unknown),
   }),
   async run({ input }) {
     return runLocalDbCommandBoundary({

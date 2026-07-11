@@ -1,4 +1,4 @@
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { runBuildLionGeometryIndex } from "@bp/pipeline-v2/local-db-aggregates";
 import {
   makeBuildLocalDbCommandLayer,
@@ -17,14 +17,19 @@ export default defineCommand({
   path: ["build", "lion-geometry-index"],
   summary: "Materialize LION centerline geometries into a spatialite-indexed table.",
   input: {
-    options: dbOptions.extend({
-      limit: arg.positiveInt().optional().describe("Cap rows scanned per run"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        limit: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Cap rows scanned per run",
+        }),
+      },
     }),
   },
-  output: z.object({
-    inserted: z.number(),
-    skipped: z.number(),
-    total: z.number(),
+  output: Schema.Struct({
+    inserted: Schema.Number,
+    skipped: Schema.Number,
+    total: Schema.Number,
   }),
   async run({ input }) {
     return runPipelineEffect(

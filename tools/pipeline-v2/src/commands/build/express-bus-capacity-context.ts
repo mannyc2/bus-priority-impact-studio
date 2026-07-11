@@ -6,7 +6,7 @@ import {
   summarizeExpressBusCapacityRows,
 } from "@bp/analytics/feature-history";
 import { decodePreserve } from "@bp/domain/decode";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { defineCommand } from "@bp/pipeline-v2/cli/compat";
 import { NormalizedExpressBusCapacitySchema } from "@bp/sources/adapters/mta/express-bus-capacity";
 import { Schema } from "effect";
 import { writeJson } from "../../lib/json.ts";
@@ -62,16 +62,20 @@ export default defineCommand({
   path: ["build", "express-bus-capacity-context"],
   summary: "Aggregate the normalized Express Bus Capacity rows into a route/hour summary artifact.",
   input: {
-    options: z.object({
-      input: z.string().optional().describe("Path to normalized rows artifact"),
-      output: z.string().optional().describe("Output path for the summary artifact"),
+    options: Schema.Struct({
+      input: Schema.optionalKey(Schema.String).annotate({
+        description: "Path to normalized rows artifact",
+      }),
+      output: Schema.optionalKey(Schema.String).annotate({
+        description: "Output path for the summary artifact",
+      }),
     }),
   },
-  output: z.object({
-    outputPath: z.string(),
-    rowCount: z.number(),
-    summaryCount: z.number(),
-    routeCount: z.number(),
+  output: Schema.Struct({
+    outputPath: Schema.String,
+    rowCount: Schema.Number,
+    summaryCount: Schema.Number,
+    routeCount: Schema.Number,
   }),
   async run({ input }) {
     return buildExpressBusCapacityContext({
