@@ -64,6 +64,10 @@ function segmentPayload(): MapRouteSegmentFeatureCollection {
         geometry: { type: "LineString", coordinates },
         properties: {
           segmentId: "N:1:100:200",
+          sourceSegmentId: "N:1:100:200",
+          studioSegmentId: "M15+:2026-03:N:1:100:200",
+          spineSegmentId: null,
+          spineJoinStatus: "not_built",
           routeId: "M15+",
           directionId: "0",
           month: "2026-03",

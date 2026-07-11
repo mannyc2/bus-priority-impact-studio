@@ -65,6 +65,10 @@ function routeSegmentFeatureCollection(month: string, routeId: string) {
         },
         properties: {
           segmentId: `${routeId}:0:1`,
+          sourceSegmentId: "N:1:100:200",
+          studioSegmentId: `${routeId}:${month}:N:1:100:200`,
+          spineSegmentId: null,
+          spineJoinStatus: "not_built",
           routeId,
           directionId: "0",
           month,
