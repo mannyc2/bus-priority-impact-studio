@@ -258,8 +258,9 @@ export const StudioRouteEquityContextSchema = Schema.Struct({
 });
 
 export const StudioRoutesResponseSchema = Schema.Struct({
-  schemaVersion: Schema.Literal(1),
+  schemaVersion: Schema.Literal(2),
   generatedAt: Schema.String,
+  baselineMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
   routes: Schema.Array(StudioRouteSchema),
   quality: StudioQualitySchema,
 });
@@ -377,8 +378,9 @@ export const StudioRouteHourlyProfileResponseSchema = Schema.Struct({
  * artifacts — the UI renders the honest building/insufficient states from that.
  */
 export const StudioRouteDetailResponseSchema = Schema.Struct({
-  schemaVersion: Schema.Literal(2),
+  schemaVersion: Schema.Literal(3),
   generatedAt: Schema.String,
+  baselineMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
   route: StudioRouteSchema,
   peerRoute: Schema.optional(StudioRouteSchema),
   segments: Schema.Array(StudioSegmentSchema),

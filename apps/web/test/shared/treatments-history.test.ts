@@ -203,8 +203,9 @@ const largeTimeline: StudioRouteEvidenceTimelineEvent[] = [
 ];
 
 const routeDetail = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   generatedAt: "2026-07-01T00:00:00.000Z",
+  baselineMonth: "2026-03",
   route: {
     slug: "m15-sbs",
     routeId: "M15+",

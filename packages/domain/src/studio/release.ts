@@ -1,4 +1,6 @@
 import { Effect, Schema } from "effect";
+import { MapRouteFactMetadataSchema } from "../maps/index.js";
+import { IsoMonthSchema } from "../primitives/index.js";
 import {
   StudioDocsEndpointSchema,
   StudioDocsSectionSchema,
@@ -55,10 +57,12 @@ export const StudioCompareResponseSchema = Schema.Struct({
 });
 
 export const StudioReleasePayloadSchema = Schema.Struct({
-  schemaVersion: Schema.Literal(1),
+  schemaVersion: Schema.Literal(2),
   generatedAt: Schema.String,
+  baselineMonth: IsoMonthSchema,
   quality: StudioQualitySchema,
   routes: Schema.Array(StudioRouteSchema),
+  routeFactMetadata: Schema.Array(MapRouteFactMetadataSchema),
   segments: Schema.Array(StudioSegmentSchema),
   routeArtifacts: Schema.Array(StudioRouteArtifactRefSchema),
   methods: Schema.Array(StudioMethodDatasetSchema),

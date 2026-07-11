@@ -451,8 +451,9 @@ describe("domain schemas", () => {
 
   test("projects route artifact refs into Studio route detail contracts", () => {
     const release = decodeStrict(StudioReleasePayloadSchema)({
-      schemaVersion: 1,
+      schemaVersion: 2,
       generatedAt: "2026-05-18T00:00:00.000Z",
+      baselineMonth: "2026-03",
       quality: {
         releaseLayer: "baseline_release",
         completenessStatus: "complete",
@@ -489,6 +490,48 @@ describe("domain schemas", () => {
           flags: ["ACE active"],
           peerSlug: null,
           interventions: [],
+        },
+      ],
+      routeFactMetadata: [
+        {
+          routeId: "M15+",
+          delayExposure: {
+            valueRiderHours: null,
+            status: "unavailable",
+            analysisPeriod: null,
+            grain: null,
+            source: null,
+            segmentCount: 0,
+            ridershipDenominator: null,
+            serviceDayRidershipCoverage: "not_available",
+            hourlyPassengerDelayCoverage: "not_available",
+            unavailableReason: "Fixture has no hourly exposure evidence.",
+          },
+          provenance: {
+            lane: {
+              status: "unavailable",
+              valuePct: null,
+              method: null,
+              sourceId: null,
+              unavailableReason: "Fixture has no lane source.",
+            },
+            ace: {
+              status: "unknown",
+              grain: "route_month",
+              sourceId: null,
+              sourceAsOf: null,
+              sourceStatus: "unavailable",
+              unavailableReason: "Fixture has no ACE source.",
+            },
+            tsp: {
+              status: "unknown",
+              grain: "route_or_corridor",
+              sourceId: null,
+              sourceDate: null,
+              corridor: null,
+              matchMethod: "unavailable",
+            },
+          },
         },
       ],
       segments: [],

@@ -204,6 +204,7 @@ type BuildStudioRoutesResponseResult =
       ok: true;
       routes: StudioRoute[];
       generatedAt: string;
+      baselineMonth: StudioRoutesResponse["baselineMonth"];
       quality: StudioRoutesResponse["quality"];
       releaseLayer: string;
     }
@@ -1111,7 +1112,13 @@ async function buildStudioRouteDetailResponseFromD1(
           loadRouteHourlyProfileForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
         ]);
       const routeDetail = routeDetailWithCapabilityAndDossier({
-        routeDetail: routeDetailWithInsights({ routeDetail: richDetail, manifest }),
+        routeDetail: routeDetailWithInsights({
+          routeDetail: decodeSchemaStrict(StudioRouteDetailResponseSchema, {
+            ...richDetail,
+            baselineMonth: servingMonth,
+          }),
+          manifest,
+        }),
         capability: routeCapabilityForRouteId(capabilityManifest, row.routeId),
         dossier,
         equityContext: studioRouteEquityContextFromD1(equityContext),
@@ -1187,8 +1194,9 @@ async function buildStudioRouteDetailResponseFromD1(
   const partialRouteDetail = routeDetailWithInsights({
     manifest,
     routeDetail: decodeSchemaStrict(StudioRouteDetailResponseSchema, {
-      schemaVersion: 2,
+      schemaVersion: 3,
       generatedAt: new Date().toISOString(),
+      baselineMonth: servingMonth,
       route: buildStudioRouteCardFromIndexRow(row, observed, null),
       segments: [],
       artifactRefs: [],
@@ -1228,6 +1236,7 @@ export async function buildStudioRoutesResponse(
         ok: true,
         routes,
         generatedAt: new Date().toISOString(),
+        baselineMonth,
         quality: {
           releaseLayer: "baseline_release",
           completenessStatus: "partial_public_monthly_only",
@@ -1250,6 +1259,7 @@ export async function buildStudioRoutesResponse(
     ok: true,
     routes: [...fallback.routes],
     generatedAt: fallback.generatedAt,
+    baselineMonth: fallback.baselineMonth,
     quality: fallback.quality,
     releaseLayer: fallback.quality.releaseLayer,
   };
@@ -2117,8 +2127,9 @@ const studioReadHandlers = {
     const result = await buildStudioRoutesResponse(env);
     if (!result.ok) return result.response;
     const response: StudioRoutesResponse = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       generatedAt: result.generatedAt,
+      baselineMonth: result.baselineMonth,
       routes: result.routes,
       quality: result.quality,
     };

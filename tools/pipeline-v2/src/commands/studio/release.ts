@@ -12,6 +12,7 @@ import {
 } from "@bp/db";
 import type { StudioIntervention } from "@bp/domain/studio/interventions";
 import {
+  buildMapRouteFactsProjection,
   buildStudioDocsProjection,
   buildStudioMethodsProjection,
   buildStudioRouteProjection,
@@ -519,8 +520,9 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
   ];
 
   return decodeSchemaStrict(StudioReleasePayloadSchema, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: releaseGeneratedAt,
+    baselineMonth: options.month,
     quality: {
       releaseLayer: "baseline_release",
       completenessStatus: "partial_public_monthly_only",
@@ -528,6 +530,83 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       caveats: qualityCaveats(options.month),
     },
     routes,
+    routeFactMetadata: routes.map((route) => {
+      const input = routeInputs.get(route.routeId) ?? null;
+      const universe = input?.segmentUniverse;
+      const delayAvailable =
+        route.riderHoursLost !== null &&
+        input?.analysisPeriod === options.month &&
+        universe?.grain === "all_observed_timepoint_segments" &&
+        (universe.segmentCount ?? 0) > 0 &&
+        universe.source === "mta_bus_segment_speeds" &&
+        universe.ridershipDenominator === "average_service_day_route_hourly_ridership" &&
+        universe.serviceDayRidershipCoverage === "available" &&
+        universe.hourlyRiderDelayCoverage === "available";
+      const laneAvailable = route.laneCoverageSource === "dot_bus_lanes_geometry";
+      const tspAvailable = route.tspStatus !== "unknown";
+      return {
+        routeId: route.routeId,
+        delayExposure: delayAvailable
+          ? {
+              valueRiderHours: route.riderHoursLost,
+              status: "available",
+              analysisPeriod: options.month,
+              grain: "all_observed_timepoint_segments",
+              source: "mta_bus_segment_speeds",
+              segmentCount: universe?.segmentCount ?? 0,
+              ridershipDenominator: "average_service_day_route_hourly_ridership",
+              serviceDayRidershipCoverage: "available",
+              hourlyPassengerDelayCoverage: "available",
+              unavailableReason: null,
+            }
+          : {
+              valueRiderHours: null,
+              status: "unavailable",
+              analysisPeriod: null,
+              grain: null,
+              source: null,
+              segmentCount: universe?.segmentCount ?? 0,
+              ridershipDenominator: null,
+              serviceDayRidershipCoverage: "not_available",
+              hourlyPassengerDelayCoverage: "not_available",
+              unavailableReason:
+                "Complete same-month route-slice passenger-delay evidence is unavailable.",
+            },
+        provenance: {
+          lane: laneAvailable
+            ? {
+                status: "available",
+                valuePct: route.laneCoverage,
+                method: "route_shape_proximity_overlap",
+                sourceId: "nyc_dot_bus_lanes_local_streets",
+                unavailableReason: null,
+              }
+            : {
+                status: "unavailable",
+                valuePct: null,
+                method: null,
+                sourceId: null,
+                unavailableReason: "Route-shape lane-overlap evidence is unavailable.",
+              },
+          ace: {
+            status: route.aceStatus,
+            grain: "route_month",
+            sourceId: "ace_routes",
+            sourceAsOf: null,
+            sourceStatus: "available",
+            unavailableReason: null,
+          },
+          tsp: {
+            status: route.tspStatus,
+            grain: "route_or_corridor",
+            sourceId: tspAvailable ? "nyc_dot_tsp_status_2017" : null,
+            sourceDate: route.tspSourceDate,
+            corridor: route.tspCorridor,
+            matchMethod: route.tspMatchMethod,
+          },
+        },
+      };
+    }),
     segments,
     routeArtifacts,
     methods: methodDatasetsFromDocsSources(docsSources),
@@ -570,6 +649,10 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
   await writeJson(outputPath, release);
   await writeJson(analystNotesOutputPath(outputDir), buildSegmentAnalystNotesArtifact(release));
   await writeJson(resolve(outputDir, "routes.json"), buildStudioRoutesProjection(release));
+  await writeJson(
+    resolve(outputDir, "map-route-facts.json"),
+    buildMapRouteFactsProjection(release),
+  );
   await writeJson(resolve(outputDir, "segments.json"), buildStudioSegmentsProjection(release));
   // methods.json is still loaded by the serving snapshot; its deletion is owned by plan 063.
   await writeJson(resolve(outputDir, "methods.json"), buildStudioMethodsProjection(release));
@@ -606,6 +689,7 @@ export type RunStudioReleaseInputs = {
 
 export type RunStudioReleaseResult = {
   outputPath: string;
+  mapRouteFactsPath: string;
   routeCount: number;
   segmentCount: number;
   source: {
@@ -665,6 +749,7 @@ export async function runStudioRelease(
 
   return {
     outputPath,
+    mapRouteFactsPath: resolve(dirname(outputPath), "map-route-facts.json"),
     routeCount: release.routes.length,
     segmentCount: release.segments.length,
     source: {

@@ -615,8 +615,9 @@ function createStudioProjectionEnv(
       ),
       "studio/v1/routes.json": new FakeR2Object(
         JSON.stringify({
-          schemaVersion: 1,
+          schemaVersion: 2,
           generatedAt: "2026-06-05T00:00:00.000Z",
+          baselineMonth: "2026-03",
           routes: [route],
           quality,
         }),
@@ -624,8 +625,9 @@ function createStudioProjectionEnv(
       ),
       "studio/v1/routes/m15-sbs/index.json": new FakeR2Object(
         JSON.stringify({
-          schemaVersion: 2,
+          schemaVersion: 3,
           generatedAt: "2026-06-05T00:00:00.000Z",
+          baselineMonth: "2026-03",
           route,
           segments: [],
           artifactRefs: [],
@@ -1500,7 +1502,8 @@ describe("Studio API facade", () => {
     // C2: the detail response embeds the pipeline-built capability row + dossier summary.
     expect((await detailResponse.json()) as unknown).toEqual(
       expect.objectContaining({
-        schemaVersion: 2,
+        schemaVersion: 3,
+        baselineMonth: "2026-03",
         route: expect.objectContaining({ slug: "m15-sbs" }),
         capability: expect.objectContaining({ overallState: "ready" }),
         dossier: expect.objectContaining({
@@ -1715,8 +1718,9 @@ describe("Studio API facade", () => {
       ARTIFACTS: new FakeR2Bucket({
         "studio/v1/routes/m15-sbs/index.json": new FakeR2Object(
           JSON.stringify({
-            schemaVersion: 2,
+            schemaVersion: 3,
             generatedAt: "2026-06-05T00:00:00.000Z",
+            baselineMonth: "2026-03",
             route,
             segments: [],
             artifactRefs: [
@@ -1830,8 +1834,9 @@ describe("Studio API facade", () => {
       ARTIFACTS: new FakeR2Bucket({
         "studio/v1/routes/bx12-sbs/index.json": new FakeR2Object(
           JSON.stringify({
-            schemaVersion: 2,
+            schemaVersion: 3,
             generatedAt: "2026-06-05T00:00:00.000Z",
+            baselineMonth: "2026-03",
             route: bx12Route,
             segments: [
               {

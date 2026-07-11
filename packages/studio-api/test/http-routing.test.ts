@@ -162,8 +162,9 @@ describe("Studio API HTTP helpers", () => {
       {
         ARTIFACTS: r2Bucket({
           "studio/v1/routes.json": {
-            schemaVersion: 1,
+            schemaVersion: 2,
             generatedAt: "2026-06-05T00:00:00.000Z",
+            baselineMonth: "2026-03",
             routes: [route],
             quality,
           },

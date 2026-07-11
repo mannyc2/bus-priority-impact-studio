@@ -319,8 +319,9 @@ describe("route insight projection", () => {
 
   test("route detail contract defaults insights for older artifacts", () => {
     const detail = decodeStrict(StudioRouteDetailResponseSchema)({
-      schemaVersion: 2,
+      schemaVersion: 3,
       generatedAt: "2026-06-08T00:00:00.000Z",
+      baselineMonth: "2026-03",
       route: {
         slug: "b47",
         routeId: "B47",

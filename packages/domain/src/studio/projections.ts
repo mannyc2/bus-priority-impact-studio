@@ -1,4 +1,5 @@
 import { decodeStrict } from "../decode.js";
+import { type MapRouteFactsResponse, MapRouteFactsResponseSchema } from "../maps/index.js";
 import {
   type StudioDocsResponse,
   StudioDocsResponseSchema,
@@ -37,8 +38,9 @@ function routeArtifactRefs(release: StudioReleasePayload, routeId: string) {
 
 export function buildStudioRoutesProjection(release: StudioReleasePayload): StudioRoutesResponse {
   return decodeStrict(StudioRoutesResponseSchema)({
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: release.generatedAt,
+    baselineMonth: release.baselineMonth,
     routes: release.routes,
     quality: release.quality,
   });
@@ -62,13 +64,47 @@ export function buildStudioRouteProjection(
   // capability + dossier default to null here; the Worker joins the pipeline-built
   // capability row and dossier summary at read time (hard-cutover C2).
   return decodeStrict(StudioRouteDetailResponseSchema)({
-    schemaVersion: 2,
+    schemaVersion: 3,
     generatedAt: release.generatedAt,
+    baselineMonth: release.baselineMonth,
     route,
     ...(route.peerSlug ? { peerRoute: getStudioRoute(release, route.peerSlug) } : {}),
     segments: routeSegments(release, route.slug),
     artifactRefs: routeArtifactRefs(release, route.routeId),
     quality: release.quality,
+  });
+}
+
+export function buildMapRouteFactsProjection(release: StudioReleasePayload): MapRouteFactsResponse {
+  const metadataByRouteId = new Map<string, StudioReleasePayload["routeFactMetadata"][number]>(
+    release.routeFactMetadata.map((metadata) => [metadata.routeId, metadata] as const),
+  );
+  return decodeStrict(MapRouteFactsResponseSchema)({
+    schemaVersion: 1,
+    baselineMonth: release.baselineMonth,
+    generatedAt: release.generatedAt,
+    routes: release.routes.map((route) => {
+      const metadata = metadataByRouteId.get(route.routeId);
+      if (metadata === undefined) {
+        throw new Error(`Missing map route-fact metadata for ${route.routeId}.`);
+      }
+      return {
+        route: {
+          routeId: route.routeId,
+          slug: route.slug,
+          label: route.label,
+          corridor: route.corridor,
+          borough: route.borough,
+          sbs: route.sbs,
+          speedMph: route.speedMph,
+          dailyRiders: route.dailyRiders,
+          reliability: route.reliability,
+          movement6mPct: route.movement6mPct,
+        },
+        delayExposure: metadata.delayExposure,
+        provenance: metadata.provenance,
+      };
+    }),
   });
 }
 

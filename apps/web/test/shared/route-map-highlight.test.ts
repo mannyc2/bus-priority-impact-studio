@@ -119,8 +119,9 @@ function detail({
   segments: StudioSegment[];
 }): StudioRouteDetailResponse {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     generatedAt: "2026-06-12T00:00:00.000Z",
+    baselineMonth: "2026-03",
     route,
     segments,
     artifactRefs: [],
