@@ -8303,3 +8303,19 @@ Final verification passed: web typecheck, 9 focused tests, all 161 web tests, st
 105.6 KB gzip entry / 313.7 KB gzip total bundle. Chrome for Testing 149.0.7827.55 verified
 `/map`, B48, and M15-SBS at desktop and 390px, including NYC clamping, page scroll over the
 embedded map, reduced motion, and forced vendor-failure recovery.
+
+## [2026-07-11] engineering | Plan 078 establishes canonical map segment identity
+
+Added exact route/month/source segment keys and ambiguity-rejecting aliases from current map and
+detail records to stable geographic speed-spine segments. Map and Studio producers now publish
+explicit current and stable IDs, enforce per-route uniqueness, retain unmatched status, and carry
+spine readiness through history artifacts, local coverage, D1, the Studio API, and the web.
+MapLibre no longer borrows detail data by array position; segment history joins only through the
+stable spine ID and reports unavailable or partial readiness explicitly.
+
+The bounded B41 proof rebuilt 36 months and passed with 16/16 exact map/detail joins, 16/16 stable
+detail/history joins, zero ambiguous or duplicate IDs, zero unmapped raw keys, and zero positional
+fallbacks. Final verification passed: all package typechecks, 567 unit tests, 164 web tests, 22
+Worker tests, 22 architecture tests, focused identity/loader/coverage/API tests, `git diff --check`,
+and style. The proof also removed two retired strict-release fields and fixed absolute temporary
+output/spine-root resolution discovered by the executable checker.
