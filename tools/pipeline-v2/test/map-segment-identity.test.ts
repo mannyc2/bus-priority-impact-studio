@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import {
   buildRouteSpeedSpineCrosswalk,
   type RouteSegmentSourceKey,
@@ -113,8 +114,8 @@ describe("map segment identity fixture", () => {
 
   test("map and route-detail producers use the canonical serializers", async () => {
     const [mapSource, detailSource] = await Promise.all([
-      Bun.file("tools/pipeline-v2/src/commands/map/artifacts.ts").text(),
-      Bun.file("tools/pipeline-v2/src/lib/route-briefs/model.ts").text(),
+      Bun.file(join(import.meta.dir, "../src/commands/map/artifacts.ts")).text(),
+      Bun.file(join(import.meta.dir, "../src/lib/route-briefs/model.ts")).text(),
     ]);
 
     expect(mapSource).toContain("serializeSourceSegmentId(classified.key)");

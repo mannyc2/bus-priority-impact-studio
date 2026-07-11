@@ -97,6 +97,8 @@ const dossier = {
 
 const segment = {
   id: "seg-1",
+  spineSegmentId: "m15-s-seg-1",
+  spineJoinStatus: "matched",
   routeSlug: "m15-sbs",
   direction: "SB",
   from: "86 St",

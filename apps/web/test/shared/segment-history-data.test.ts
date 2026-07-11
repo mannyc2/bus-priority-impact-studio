@@ -65,8 +65,7 @@ describe("segment history identity", () => {
   });
 
   test("keeps an all-null joined series distinct from an unmatched segment", () => {
-    const input = history("series_ready");
-    input.cells = [];
+    const input = { ...history("series_ready"), cells: [] };
     const result = segmentHistorySeries(input, [segment("current", "b41-s-node-010-node-011")]);
 
     expect(result.readiness).toBe("ready");

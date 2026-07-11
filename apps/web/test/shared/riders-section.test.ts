@@ -58,6 +58,8 @@ const routeDetail = {
   segments: [
     {
       id: "M15+:2026-03:N:1:stop-a:stop-b",
+      spineSegmentId: "m15-n-stop-a-stop-b",
+      spineJoinStatus: "matched",
       routeSlug: "m15-sbs",
       direction: "NB",
       from: "14 St",

@@ -14,7 +14,7 @@ import {
 import type { StudioRoute, StudioSegment } from "../../src/studio/api-contract";
 
 function segment(input: Partial<StudioSegment> & Pick<StudioSegment, "id">): StudioSegment {
-  const { id, ...rest } = input;
+  const { id, spineJoinStatus = "not_built", spineSegmentId = null, ...rest } = input;
   return {
     id,
     routeSlug: "b48",
@@ -29,6 +29,8 @@ function segment(input: Partial<StudioSegment> & Pick<StudioSegment, "id">): Stu
     tsp: false,
     hours: [],
     ...rest,
+    spineSegmentId,
+    spineJoinStatus,
   };
 }
 

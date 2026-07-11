@@ -104,16 +104,18 @@ describe("route speed spine source crosswalk", () => {
       }),
     ]);
     const crosswalk = buildRouteSpeedSpineCrosswalk(spine);
+    const spineSegmentId = spine.segments[0]?.segmentId;
+    if (spineSegmentId === undefined) throw new Error("Fixture spine has no segment.");
 
     expect(matchRouteSpeedSpineSegment(crosswalk, february)).toEqual({
       status: "matched",
       studioSegmentId: serializeStudioSegmentId(february),
-      spineSegmentId: spine.segments[0]?.segmentId,
+      spineSegmentId,
     });
     expect(matchRouteSpeedSpineSegment(crosswalk, march)).toEqual({
       status: "matched",
       studioSegmentId: serializeStudioSegmentId(march),
-      spineSegmentId: spine.segments[0]?.segmentId,
+      spineSegmentId,
     });
   });
 

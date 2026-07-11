@@ -18,6 +18,8 @@ import type {
 function segment(input: Partial<StudioSegment> & Pick<StudioSegment, "id">): StudioSegment {
   const fixture: StudioSegment = {
     id: input.id,
+    spineSegmentId: null,
+    spineJoinStatus: "not_built",
     routeSlug: "m14a-sbs",
     direction: "NB",
     from: "A",
@@ -34,6 +36,8 @@ function segment(input: Partial<StudioSegment> & Pick<StudioSegment, "id">): Stu
     ...fixture,
     ...input,
     id: input.id,
+    spineSegmentId: input.spineSegmentId ?? fixture.spineSegmentId,
+    spineJoinStatus: input.spineJoinStatus ?? fixture.spineJoinStatus,
     routeSlug: input.routeSlug ?? fixture.routeSlug,
   };
 }
