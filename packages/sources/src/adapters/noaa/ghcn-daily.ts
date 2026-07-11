@@ -1,4 +1,4 @@
-import * as z from "@bp/domain/schema-compat";
+import { Schema } from "effect";
 
 /**
  * NOAA GHCN-Daily — Global Historical Climatology Network, daily summaries.
@@ -27,32 +27,33 @@ export const NOAA_NYC_STATIONS = [
 
 export type WeatherStationId = (typeof NOAA_NYC_STATIONS)[number]["id"];
 
-export const NormalizedWeatherObservationSchema = z
-  .object({
-    stationId: z.string().min(1),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    stationName: z.string().nullable(),
-    latitude: z.number().nullable(),
-    longitude: z.number().nullable(),
-    elevationM: z.number().nullable(),
-    prcpMm: z.number().nullable(),
-    snowMm: z.number().nullable(),
-    snwdMm: z.number().nullable(),
-    tmaxC: z.number().nullable(),
-    tminC: z.number().nullable(),
-    tavgC: z.number().nullable(),
-    awndMs: z.number().nullable(),
-    hasFog: z.boolean().nullable(),
-    hasThunder: z.boolean().nullable(),
-    hasSleet: z.boolean().nullable(),
-    hasHail: z.boolean().nullable(),
-    hasHighWind: z.boolean().nullable(),
-    hasRain: z.boolean().nullable(),
-    hasSnow: z.boolean().nullable(),
-  })
-  .strict();
+const NullableNumber = Schema.NullOr(Schema.Number);
+const NullableBoolean = Schema.NullOr(Schema.Boolean);
 
-export type NormalizedWeatherObservation = z.output<typeof NormalizedWeatherObservationSchema>;
+export const NormalizedWeatherObservationSchema = Schema.Struct({
+  stationId: Schema.String.check(Schema.isMinLength(1)),
+  date: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/)),
+  stationName: Schema.NullOr(Schema.String),
+  latitude: NullableNumber,
+  longitude: NullableNumber,
+  elevationM: NullableNumber,
+  prcpMm: NullableNumber,
+  snowMm: NullableNumber,
+  snwdMm: NullableNumber,
+  tmaxC: NullableNumber,
+  tminC: NullableNumber,
+  tavgC: NullableNumber,
+  awndMs: NullableNumber,
+  hasFog: NullableBoolean,
+  hasThunder: NullableBoolean,
+  hasSleet: NullableBoolean,
+  hasHail: NullableBoolean,
+  hasHighWind: NullableBoolean,
+  hasRain: NullableBoolean,
+  hasSnow: NullableBoolean,
+});
+
+export type NormalizedWeatherObservation = typeof NormalizedWeatherObservationSchema.Type;
 
 function tenthsToReal(raw: string | undefined): number | null {
   if (raw == null) return null;

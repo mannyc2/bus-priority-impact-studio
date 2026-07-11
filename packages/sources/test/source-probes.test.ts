@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
 import { SocrataDatasetIdSchema } from "@bp/sources/core";
 import { probeSource } from "@bp/sources/probes";
 import { parseCurlHeadOutput } from "@bp/sources/probes/transports/bun-curl";
@@ -45,13 +46,31 @@ describe("source probes", () => {
     ).toThrow();
   });
 
+  test("reports the tagged manifest member that failed", () => {
+    expect(() =>
+      parseSourceManifestObject({
+        verified_at: "2026-06-05",
+        sources: [
+          {
+            id: "wrong-member-body",
+            type: "socrata_dataset",
+            priority: "core",
+            purpose: "Carries a URL-source body under the Socrata tag.",
+            status: "invalid_fixture",
+            url: "https://example.com/source",
+          },
+        ],
+      }),
+    ).toThrow(/\["sources"\]\[0\]\["domain"\]/);
+  });
+
   test("probes Socrata metadata and row counts", async () => {
     const source: SocrataManifestSource = {
       id: "bus_segment_speeds_2025",
       type: "socrata_dataset",
       priority: "core",
       domain: "data.ny.gov",
-      dataset_id: SocrataDatasetIdSchema.parse("kufs-yh3x"),
+      dataset_id: decodeStrict(SocrataDatasetIdSchema)("kufs-yh3x"),
       url: "https://data.ny.gov/Transportation/example/kufs-yh3x",
       api: "soda3",
       default_access: { kind: "query", format: "json" },

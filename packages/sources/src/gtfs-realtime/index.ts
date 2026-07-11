@@ -1,5 +1,6 @@
+import { decodeStrict } from "@bp/domain/decode";
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "@bp/domain/schema-compat";
+import { Schema } from "effect";
 import { schemaVersion } from "../core/index.js";
 import {
   createDefaultGtfsRealtimeDecoder,
@@ -10,118 +11,116 @@ import {
 export type { GtfsRealtimeDecoder } from "./decoder.js";
 export { createDefaultGtfsRealtimeDecoder } from "./decoder.js";
 
-export const GtfsRtFeedTypeSchema = z.enum(["vehicle_positions", "trip_updates", "alerts"]);
-export type GtfsRtFeedType = z.output<typeof GtfsRtFeedTypeSchema>;
+export const GtfsRtFeedTypeSchema = Schema.Literals([
+  "vehicle_positions",
+  "trip_updates",
+  "alerts",
+]);
+export type GtfsRtFeedType = typeof GtfsRtFeedTypeSchema.Type;
 
-export const NormalizedGtfsRtVehiclePositionSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    entityId: z.string().min(1),
-    entityDeleted: z.boolean(),
-    gtfsRealtimeVersion: z.string().nullable(),
-    feedTimestamp: z.number().int().nullable(),
-    sourceRouteId: z.string().nullable(),
-    routeId: z.string().nullable(),
-    tripId: z.string().nullable(),
-    startDate: z.string().nullable(),
-    startTime: z.string().nullable(),
-    directionId: z.number().int().nullable(),
-    scheduleRelationship: z.string().nullable(),
-    vehicleId: z.string().nullable(),
-    vehicleLabel: z.string().nullable(),
-    vehicleLicensePlate: z.string().nullable(),
-    latitude: z.number().nullable(),
-    longitude: z.number().nullable(),
-    bearing: z.number().nullable(),
-    odometer: z.number().nullable(),
-    speed: z.number().nullable(),
-    currentStopSequence: z.number().int().nullable(),
-    stopId: z.string().nullable(),
-    currentStatus: z.string().nullable(),
-    timestamp: z.number().int().nullable(),
-    congestionLevel: z.string().nullable(),
-    occupancyStatus: z.string().nullable(),
-    occupancyPercentage: z.number().nullable(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const Integer = Schema.Number.check(Schema.isInt());
+const NullableString = Schema.NullOr(Schema.String);
+const NullableInteger = Schema.NullOr(Integer);
+const NullableNumber = Schema.NullOr(Schema.Number);
 
-export const NormalizedGtfsRtTripUpdateSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    entityId: z.string().min(1),
-    entityDeleted: z.boolean(),
-    gtfsRealtimeVersion: z.string().nullable(),
-    feedTimestamp: z.number().int().nullable(),
-    sourceRouteId: z.string().nullable(),
-    routeId: z.string().nullable(),
-    tripId: z.string().nullable(),
-    startDate: z.string().nullable(),
-    startTime: z.string().nullable(),
-    directionId: z.number().int().nullable(),
-    scheduleRelationship: z.string().nullable(),
-    vehicleId: z.string().nullable(),
-    vehicleLabel: z.string().nullable(),
-    vehicleLicensePlate: z.string().nullable(),
-    timestamp: z.number().int().nullable(),
-    delay: z.number().int().nullable(),
-  })
-  .strict();
+export const NormalizedGtfsRtVehiclePositionSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  entityId: NonEmptyString,
+  entityDeleted: Schema.Boolean,
+  gtfsRealtimeVersion: NullableString,
+  feedTimestamp: NullableInteger,
+  sourceRouteId: NullableString,
+  routeId: NullableString,
+  tripId: NullableString,
+  startDate: NullableString,
+  startTime: NullableString,
+  directionId: NullableInteger,
+  scheduleRelationship: NullableString,
+  vehicleId: NullableString,
+  vehicleLabel: NullableString,
+  vehicleLicensePlate: NullableString,
+  latitude: NullableNumber,
+  longitude: NullableNumber,
+  bearing: NullableNumber,
+  odometer: NullableNumber,
+  speed: NullableNumber,
+  currentStopSequence: NullableInteger,
+  stopId: NullableString,
+  currentStatus: NullableString,
+  timestamp: NullableInteger,
+  congestionLevel: NullableString,
+  occupancyStatus: NullableString,
+  occupancyPercentage: NullableNumber,
+});
 
-export const NormalizedGtfsRtStopTimeUpdateSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    entityId: z.string().min(1),
-    updateRank: z.number().int().positive(),
-    stopSequence: z.number().int().nullable(),
-    stopId: z.string().nullable(),
-    arrivalDelay: z.number().int().nullable(),
-    arrivalTime: z.number().int().nullable(),
-    arrivalUncertainty: z.number().int().nullable(),
-    departureDelay: z.number().int().nullable(),
-    departureTime: z.number().int().nullable(),
-    departureUncertainty: z.number().int().nullable(),
-    scheduleRelationship: z.string().nullable(),
-    assignedStopId: z.string().nullable(),
-  })
-  .strict();
+export const NormalizedGtfsRtTripUpdateSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  entityId: NonEmptyString,
+  entityDeleted: Schema.Boolean,
+  gtfsRealtimeVersion: NullableString,
+  feedTimestamp: NullableInteger,
+  sourceRouteId: NullableString,
+  routeId: NullableString,
+  tripId: NullableString,
+  startDate: NullableString,
+  startTime: NullableString,
+  directionId: NullableInteger,
+  scheduleRelationship: NullableString,
+  vehicleId: NullableString,
+  vehicleLabel: NullableString,
+  vehicleLicensePlate: NullableString,
+  timestamp: NullableInteger,
+  delay: NullableInteger,
+});
 
-export const NormalizedGtfsRtAlertSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    entityId: z.string().min(1),
-    entityDeleted: z.boolean(),
-    gtfsRealtimeVersion: z.string().nullable(),
-    feedTimestamp: z.number().int().nullable(),
-    cause: z.string().nullable(),
-    effect: z.string().nullable(),
-    activePeriodJson: z.string().nullable(),
-    informedEntityJson: z.string().nullable(),
-    urlJson: z.string().nullable(),
-    headerTextJson: z.string().nullable(),
-    descriptionTextJson: z.string().nullable(),
-  })
-  .strict();
+export const NormalizedGtfsRtStopTimeUpdateSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  entityId: NonEmptyString,
+  updateRank: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)),
+  stopSequence: NullableInteger,
+  stopId: NullableString,
+  arrivalDelay: NullableInteger,
+  arrivalTime: NullableInteger,
+  arrivalUncertainty: NullableInteger,
+  departureDelay: NullableInteger,
+  departureTime: NullableInteger,
+  departureUncertainty: NullableInteger,
+  scheduleRelationship: NullableString,
+  assignedStopId: NullableString,
+});
 
-export const NormalizedGtfsRtFeedSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    gtfsRealtimeVersion: z.string().nullable(),
-    feedTimestamp: z.number().int().nullable(),
-    entityCount: z.number().int().nonnegative(),
-    vehiclePositions: z.array(NormalizedGtfsRtVehiclePositionSchema),
-    tripUpdates: z.array(NormalizedGtfsRtTripUpdateSchema),
-    stopTimeUpdates: z.array(NormalizedGtfsRtStopTimeUpdateSchema),
-    alerts: z.array(NormalizedGtfsRtAlertSchema),
-  })
-  .strict();
+export const NormalizedGtfsRtAlertSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  entityId: NonEmptyString,
+  entityDeleted: Schema.Boolean,
+  gtfsRealtimeVersion: NullableString,
+  feedTimestamp: NullableInteger,
+  cause: NullableString,
+  effect: NullableString,
+  activePeriodJson: NullableString,
+  informedEntityJson: NullableString,
+  urlJson: NullableString,
+  headerTextJson: NullableString,
+  descriptionTextJson: NullableString,
+});
 
-export type NormalizedGtfsRtVehiclePosition = z.output<
-  typeof NormalizedGtfsRtVehiclePositionSchema
->;
-export type NormalizedGtfsRtTripUpdate = z.output<typeof NormalizedGtfsRtTripUpdateSchema>;
-export type NormalizedGtfsRtStopTimeUpdate = z.output<typeof NormalizedGtfsRtStopTimeUpdateSchema>;
-export type NormalizedGtfsRtAlert = z.output<typeof NormalizedGtfsRtAlertSchema>;
-export type NormalizedGtfsRtFeed = z.output<typeof NormalizedGtfsRtFeedSchema>;
+export const NormalizedGtfsRtFeedSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  gtfsRealtimeVersion: NullableString,
+  feedTimestamp: NullableInteger,
+  entityCount: Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
+  vehiclePositions: Schema.Array(NormalizedGtfsRtVehiclePositionSchema),
+  tripUpdates: Schema.Array(NormalizedGtfsRtTripUpdateSchema),
+  stopTimeUpdates: Schema.Array(NormalizedGtfsRtStopTimeUpdateSchema),
+  alerts: Schema.Array(NormalizedGtfsRtAlertSchema),
+});
+
+export type NormalizedGtfsRtVehiclePosition = typeof NormalizedGtfsRtVehiclePositionSchema.Type;
+export type NormalizedGtfsRtTripUpdate = typeof NormalizedGtfsRtTripUpdateSchema.Type;
+export type NormalizedGtfsRtStopTimeUpdate = typeof NormalizedGtfsRtStopTimeUpdateSchema.Type;
+export type NormalizedGtfsRtAlert = typeof NormalizedGtfsRtAlertSchema.Type;
+export type NormalizedGtfsRtFeed = typeof NormalizedGtfsRtFeedSchema.Type;
 
 type PlainFeedMessage = {
   header?: {
@@ -305,7 +304,7 @@ export function parseGtfsRealtimeFeed(
     if (entity.vehicle !== undefined && entity.vehicle !== null) {
       const vehicle = entity.vehicle;
       vehiclePositions.push(
-        NormalizedGtfsRtVehiclePositionSchema.parse({
+        decodeStrict(NormalizedGtfsRtVehiclePositionSchema)({
           schemaVersion,
           entityId,
           entityDeleted,
@@ -332,7 +331,7 @@ export function parseGtfsRealtimeFeed(
     if (entity.tripUpdate !== undefined && entity.tripUpdate !== null) {
       const tripUpdate = entity.tripUpdate;
       tripUpdates.push(
-        NormalizedGtfsRtTripUpdateSchema.parse({
+        decodeStrict(NormalizedGtfsRtTripUpdateSchema)({
           schemaVersion,
           entityId,
           entityDeleted,
@@ -347,7 +346,7 @@ export function parseGtfsRealtimeFeed(
 
       for (const [updateIndex, update] of (tripUpdate.stopTimeUpdate ?? []).entries()) {
         stopTimeUpdates.push(
-          NormalizedGtfsRtStopTimeUpdateSchema.parse({
+          decodeStrict(NormalizedGtfsRtStopTimeUpdateSchema)({
             schemaVersion,
             entityId,
             updateRank: updateIndex + 1,
@@ -369,7 +368,7 @@ export function parseGtfsRealtimeFeed(
     if (entity.alert !== undefined && entity.alert !== null) {
       const alert = entity.alert;
       alerts.push(
-        NormalizedGtfsRtAlertSchema.parse({
+        decodeStrict(NormalizedGtfsRtAlertSchema)({
           schemaVersion,
           entityId,
           entityDeleted,
@@ -387,7 +386,7 @@ export function parseGtfsRealtimeFeed(
     }
   }
 
-  return NormalizedGtfsRtFeedSchema.parse({
+  return decodeStrict(NormalizedGtfsRtFeedSchema)({
     schemaVersion,
     gtfsRealtimeVersion,
     feedTimestamp,

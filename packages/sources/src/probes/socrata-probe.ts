@@ -1,6 +1,6 @@
-import * as z from "@bp/domain/schema-compat";
+import { decodePreserve } from "@bp/domain/decode";
 import { type FetchImplementation, queryRows, soda3Layer } from "@nyc-transit-kit/soda3/client";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import {
   buildSocrataColumnsUrl,
   buildSocrataMetadataUrl,
@@ -19,7 +19,7 @@ import {
 } from "./contracts.js";
 import { fetchJson } from "./transports/fetch.js";
 
-const SocrataColumnsSchema = z.array(SocrataColumnSchema);
+const SocrataColumnsSchema = Schema.Array(SocrataColumnSchema);
 
 function rowsUpdatedAtIso(rowsUpdatedAt: number | undefined): string | undefined {
   if (rowsUpdatedAt === undefined) {
@@ -106,7 +106,7 @@ export async function probeSocrataSource(
 
   try {
     const metadata = parseSocrataMetadata(await fetchJson(metadataUrl, fetcher));
-    const columns = SocrataColumnsSchema.parse(await fetchJson(columnsUrl, fetcher));
+    const columns = decodePreserve(SocrataColumnsSchema)(await fetchJson(columnsUrl, fetcher));
     const rowsUpdatedAt = metadata.rowsUpdatedAt;
     const updatedIso = rowsUpdatedAtIso(rowsUpdatedAt);
 

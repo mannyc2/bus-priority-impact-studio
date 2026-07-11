@@ -1,4 +1,5 @@
-import * as z from "@bp/domain/schema-compat";
+import { decodePreserve } from "@bp/domain/decode";
+import { Schema } from "effect";
 
 const schemaVersion = 1;
 
@@ -18,40 +19,40 @@ export const censusAcsProfileVariables = {
   nonHispanicAsianShare: "DP05_0099PE",
 } as const;
 
-const CensusTableSchema = z.array(z.array(z.string()));
+const CensusTableSchema = Schema.Array(Schema.Array(Schema.String));
+const Integer = Schema.Number.check(Schema.isInt());
+const NonNegativeInteger = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
+const NonNegativeNumber = Schema.Number.check(Schema.isGreaterThanOrEqualTo(0));
+const NullableNonNegativeInteger = Schema.NullOr(NonNegativeInteger);
+const NullableNonNegativeNumber = Schema.NullOr(NonNegativeNumber);
 
-export const NormalizedCensusTractEquityContextSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    acsYear: z.number().int(),
-    geoid: z.string().regex(/^\d{11}$/),
-    stateFips: z.string().regex(/^\d{2}$/),
-    countyFips: z.string().regex(/^\d{3}$/),
-    tractCode: z.string().regex(/^\d{6}$/),
-    countyName: z.string().min(1),
-    tractName: z.string().min(1),
-    totalPopulation: z.number().int().nonnegative().nullable(),
-    occupiedHousingUnits: z.number().int().nonnegative().nullable(),
-    noVehicleHouseholds: z.number().int().nonnegative().nullable(),
-    noVehicleHouseholdShare: z.number().nonnegative().nullable(),
-    medianHouseholdIncome: z.number().int().nonnegative().nullable(),
-    povertyRate: z.number().nonnegative().nullable(),
-    publicTransitCommuters: z.number().int().nonnegative().nullable(),
-    publicTransitCommuterShare: z.number().nonnegative().nullable(),
-    raceEthnicityShare: z
-      .object({
-        hispanic: z.number().nonnegative().nullable(),
-        nonHispanicWhite: z.number().nonnegative().nullable(),
-        nonHispanicBlack: z.number().nonnegative().nullable(),
-        nonHispanicAsian: z.number().nonnegative().nullable(),
-      })
-      .strict(),
-  })
-  .strict();
+export const NormalizedCensusTractEquityContextSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  acsYear: Integer,
+  geoid: Schema.String.check(Schema.isPattern(/^\d{11}$/)),
+  stateFips: Schema.String.check(Schema.isPattern(/^\d{2}$/)),
+  countyFips: Schema.String.check(Schema.isPattern(/^\d{3}$/)),
+  tractCode: Schema.String.check(Schema.isPattern(/^\d{6}$/)),
+  countyName: Schema.String.check(Schema.isMinLength(1)),
+  tractName: Schema.String.check(Schema.isMinLength(1)),
+  totalPopulation: NullableNonNegativeInteger,
+  occupiedHousingUnits: NullableNonNegativeInteger,
+  noVehicleHouseholds: NullableNonNegativeInteger,
+  noVehicleHouseholdShare: NullableNonNegativeNumber,
+  medianHouseholdIncome: NullableNonNegativeInteger,
+  povertyRate: NullableNonNegativeNumber,
+  publicTransitCommuters: NullableNonNegativeInteger,
+  publicTransitCommuterShare: NullableNonNegativeNumber,
+  raceEthnicityShare: Schema.Struct({
+    hispanic: NullableNonNegativeNumber,
+    nonHispanicWhite: NullableNonNegativeNumber,
+    nonHispanicBlack: NullableNonNegativeNumber,
+    nonHispanicAsian: NullableNonNegativeNumber,
+  }),
+});
 
-export type NormalizedCensusTractEquityContext = z.output<
-  typeof NormalizedCensusTractEquityContextSchema
->;
+export type NormalizedCensusTractEquityContext =
+  typeof NormalizedCensusTractEquityContextSchema.Type;
 
 type CensusProfileVariable =
   (typeof censusAcsProfileVariables)[keyof typeof censusAcsProfileVariables];
@@ -86,7 +87,7 @@ function parseName(name: string): { countyName: string; tractName: string } {
 }
 
 function tableRows(table: unknown): CensusRow[] {
-  const parsed = CensusTableSchema.parse(table);
+  const parsed = decodePreserve(CensusTableSchema)(table);
   const [headers, ...rows] = parsed;
   if (headers === undefined) {
     return [];
