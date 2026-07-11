@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import {
   listGtfsRtCollectionRuns,
   listGtfsRtFeedSnapshots,
@@ -7,7 +8,7 @@ import {
   listRouteMonthSourceStatuses,
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -585,42 +586,48 @@ export default defineCommand({
   path: ["gtfs-rt", "preflight"],
   summary: "Validate GTFS-RT collection state for a monthly observed reliability build.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      runId: z.string().optional().describe("Specific run ID (default: latest)"),
-      minObservedHeadwaySamples: arg
-        .positiveInt()
-        .optional()
-        .describe("Required observed headway sample count"),
-      minGtfsRtCollectionHours: z.coerce
-        .number()
-        .positive()
-        .optional()
-        .describe("Required collection window in hours"),
-      maxGtfsRtSampleSeconds: arg
-        .positiveInt()
-        .optional()
-        .describe("Maximum allowed sample period in seconds"),
-      minGtfsRtVehiclePositionSnapshotShare: z.coerce
-        .number()
-        .optional()
-        .describe("Minimum share of vehicle-position snapshots within the planned window"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        runId: Schema.optionalKey(Schema.String).annotate({
+          description: "Specific run ID (default: latest)",
+        }),
+        minObservedHeadwaySamples: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Required observed headway sample count",
+        }),
+        minGtfsRtCollectionHours: Schema.optionalKey(
+          arg.number().check(Schema.isGreaterThan(0)),
+        ).annotate({ description: "Required collection window in hours" }),
+        maxGtfsRtSampleSeconds: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Maximum allowed sample period in seconds",
+        }),
+        minGtfsRtVehiclePositionSnapshotShare: Schema.optionalKey(arg.number()).annotate({
+          description: "Minimum share of vehicle-position snapshots within the planned window",
+        }),
+      },
     }),
   },
-  output: z.object({
-    isoMonth: z.string(),
-    status: z.enum(["pass", "fail"]),
-    selectedRunId: z.string().nullable(),
-    apiKey: z.object({ envName: z.string(), present: z.boolean() }),
-    thresholds: z.unknown(),
-    readiness: z.unknown(),
-    routeCoverage: z.unknown(),
-    counts: z.unknown(),
-    issueCount: z.number(),
-    issues: z.array(z.object({ code: z.string(), message: z.string() })),
-    warnings: z.array(z.object({ code: z.string(), message: z.string() })),
-    recommendations: z.array(z.string()),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    status: Schema.Literals(["pass", "fail"]),
+    selectedRunId: Schema.NullOr(Schema.String),
+    apiKey: Schema.Struct({ envName: Schema.String, present: Schema.Boolean }),
+    thresholds: Schema.Unknown,
+    readiness: Schema.Unknown,
+    routeCoverage: Schema.Unknown,
+    counts: Schema.Unknown,
+    issueCount: Schema.Number,
+    issues: Schema.Array(Schema.Struct({ code: Schema.String, message: Schema.String })),
+    warnings: Schema.Array(Schema.Struct({ code: Schema.String, message: Schema.String })),
+    recommendations: Schema.Array(Schema.String),
   }),
   async run({ input }) {
     const result = await runLocalDbCommandBoundary({
