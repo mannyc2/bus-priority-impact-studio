@@ -1,10 +1,10 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join } from "node:path";
+import { verifyMapArtifactManifest } from "../commands/map/artifacts.ts";
 import {
   collectD1ArtifactKeys,
   collectManifestArtifactKeys,
 } from "../commands/publish/publish-artifact-keys.ts";
-import { verifyMapArtifactManifest } from "../commands/map/artifacts.ts";
 
 const repoRoot = new URL("../../../../", import.meta.url).pathname.replace(/\/$/, "");
 const defaultArtifactRoot = join(repoRoot, "data", "artifacts");

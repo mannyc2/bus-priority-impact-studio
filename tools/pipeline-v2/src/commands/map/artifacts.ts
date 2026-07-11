@@ -17,13 +17,13 @@ import {
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,
   MAP_ARTIFACT_SCHEMA_VERSION,
-  mapBudgetIssues,
   type MapArtifactEntry,
   type MapArtifactIssue,
   type MapArtifactManifest,
   type MapArtifactVerification,
   mapArtifactPayloadIssues,
   mapArtifactSha256,
+  mapBudgetIssues,
   verifyMapArtifactManifestContents,
 } from "@bp/analytics/evaluation";
 import {
@@ -52,9 +52,9 @@ import {
   type MapNetworkFeatureCollection,
   MapNetworkFeatureCollectionSchema,
   MapRouteFactsResponseSchema,
-  MapRouteUniverseSchema,
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
+  MapRouteUniverseSchema,
   MapSourceStatusSchema,
 } from "@bp/domain/maps";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";

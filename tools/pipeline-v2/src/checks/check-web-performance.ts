@@ -16,6 +16,8 @@ const budgets = {
   // a single shared lazy chunk loaded only on chart routes, never at first
   // paint. The initial-JS budget above still guards first paint.
   maxSingleLazyChunkGzipBytes: 104 * 1024,
+  mapLibreVendorRawBytes: 1_100_000,
+  mapLibreVendorGzipBytes: 290_000,
 } as const;
 
 const lighthouseThresholds = {
@@ -65,6 +67,7 @@ if (!(await indexFile.exists())) {
   const largestLazyChunk = jsAssets
     .filter((asset) => !asset.initial)
     .toSorted((left, right) => right.gzipBytes - left.gzipBytes)[0];
+  const mapLibreVendor = await summarizeFile(`${distRoot}/vendor/maplibre-gl.js`, false);
   const lighthouse = await maybeRunLighthouse();
 
   if (mainAppChunk === undefined) {
@@ -95,6 +98,21 @@ if (!(await indexFile.exists())) {
       `${largestLazyChunk.path}: gzip ${largestLazyChunk.gzipBytes} exceeds lazy chunk budget ${budgets.maxSingleLazyChunkGzipBytes}`,
     );
   }
+  if (mapLibreVendor === null) {
+    failures.push("MapLibre vendor asset was not found at vendor/maplibre-gl.js");
+  } else {
+    if (mapLibreVendor.bytes > budgets.mapLibreVendorRawBytes) {
+      failures.push(
+        `${mapLibreVendor.path}: raw ${mapLibreVendor.bytes} exceeds MapLibre budget ${budgets.mapLibreVendorRawBytes}`,
+      );
+    }
+    if (mapLibreVendor.gzipBytes > budgets.mapLibreVendorGzipBytes) {
+      failures.push(
+        `${mapLibreVendor.path}: gzip ${mapLibreVendor.gzipBytes} exceeds MapLibre budget ${budgets.mapLibreVendorGzipBytes}`,
+      );
+    }
+    console.log(`MapLibre vendor: raw=${mapLibreVendor.bytes} gzip=${mapLibreVendor.gzipBytes}`);
+  }
 
   mkdirSync(auditDir, { recursive: true });
   await Bun.write(
@@ -109,6 +127,7 @@ if (!(await indexFile.exists())) {
         initialCssGzipBytes,
         mainAppChunk,
         largestLazyChunk,
+        mapLibreVendor,
         assets,
         lighthouse,
         passed: failures.length === 0,
@@ -159,6 +178,18 @@ async function summarizeAssets(initialAssetPaths: Set<string>): Promise<AssetSum
   }
 
   return summaries.toSorted((left, right) => left.path.localeCompare(right.path));
+}
+
+async function summarizeFile(path: string, initial: boolean): Promise<AssetSummary | null> {
+  const file = Bun.file(path);
+  if (!(await file.exists())) return null;
+  const bytes = await file.arrayBuffer();
+  return {
+    path: path.slice(distRoot.length),
+    bytes: bytes.byteLength,
+    gzipBytes: gzipSync(Buffer.from(bytes)).byteLength,
+    initial,
+  };
 }
 
 async function maybeRunLighthouse(): Promise<{

@@ -27,10 +27,14 @@ export function NetworkMapPage({
   routes,
   network,
   context,
+  mapMessage,
+  lanesAvailable,
 }: {
   routes: readonly StudioRoute[];
   network: NetworkMapFeatureCollection | null;
   context: RouteGeoContext | null;
+  mapMessage: string | null;
+  lanesAvailable: boolean;
 }) {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<MapPeriod>("all");
@@ -74,6 +78,11 @@ export function NetworkMapPage({
           {network.features.length} routes, colored by {lensLabel(lens)}.
         </span>
       </div>
+      {mapMessage === null ? null : (
+        <p className="m-0 px-7 pb-2 text-[12px] text-[var(--bp-color-ink-55)]" role="status">
+          {mapMessage}
+        </p>
+      )}
       <div className="relative min-h-0 flex-1">
         <NetworkMapLibre
           collection={network}
@@ -98,7 +107,12 @@ export function NetworkMapPage({
             options={[
               { label: "Speed", value: "speed" },
               { label: "Riders", value: "riders" },
-              { label: "Lanes", value: "lanes" },
+              {
+                label: "Lanes",
+                value: "lanes",
+                disabled: !lanesAvailable,
+                disabledReason: "Current bus-lane geometry is unavailable for this release.",
+              },
             ]}
           />
           {lens === "speed" ? (
@@ -142,7 +156,12 @@ function MapToggle<TValue extends string>({
   label: string;
   value: TValue;
   setValue: (value: TValue) => void;
-  options: ReadonlyArray<{ label: string; value: TValue }>;
+  options: ReadonlyArray<{
+    label: string;
+    value: TValue;
+    disabled?: boolean;
+    disabledReason?: string;
+  }>;
 }) {
   return (
     <fieldset
@@ -161,6 +180,8 @@ function MapToggle<TValue extends string>({
                 : "rounded-[3px] border-0 bg-transparent px-3 py-1.5 text-[12px] font-semibold text-[var(--bp-color-ink-55)] hover:bg-[var(--bp-color-paper-deep)] hover:text-[var(--bp-color-ink)]"
             }
             aria-pressed={active}
+            disabled={option.disabled}
+            title={option.disabled ? option.disabledReason : undefined}
             onClick={() => setValue(option.value)}
           >
             {option.label}
@@ -200,10 +221,13 @@ function NetworkLegend({ lens, period }: { lens: NetworkMapLens; period: MapPeri
     );
   }
   return (
-    <div className="rounded-[3px] bg-[var(--bp-color-card)]/95 p-3 shadow-[0_1px_6px_rgba(0,0,0,0.15)] text-[10.5px] text-[var(--bp-color-ink-55)]">
-      {lens === "riders"
-        ? "darker blue lines carry more daily riders"
-        : "darker green lines have more bus-lane coverage"}
+    <div className="rounded-[3px] bg-[var(--bp-color-card)]/95 p-3 text-[10.5px] text-[var(--bp-color-ink-55)] shadow-[0_1px_6px_rgba(0,0,0,0.15)]">
+      <div>
+        {lens === "riders"
+          ? "Darker blue lines carry more daily riders"
+          : "Darker green lines have more bus-lane coverage"}
+      </div>
+      <div className="mt-1">Gray means unavailable</div>
     </div>
   );
 }
@@ -410,13 +434,14 @@ export function rankSubline(
   lens: NetworkMapLens,
 ): string {
   if (lens === "speed") {
-    return `${feature.properties.borough} / ${compactNumber(feature.properties.dailyRiders)} riders`;
+    return `${feature.properties.borough ?? "Unverified geography"} / ${compactNumber(feature.properties.dailyRiders)} riders`;
   }
   const speed = periodSpeed(feature, period).value;
-  return `${feature.properties.borough} / ${speed === null ? "No speed data" : `${speed.toFixed(1)} mph`}`;
+  return `${feature.properties.borough ?? "Unverified geography"} / ${speed === null ? "No speed data" : `${speed.toFixed(1)} mph`}`;
 }
 
-function compactNumber(value: number): string {
+function compactNumber(value: number | null): string {
+  if (value === null) return "No data";
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (Math.abs(value) >= 1_000) return `${Math.round(value / 1_000)}k`;
   return String(value);

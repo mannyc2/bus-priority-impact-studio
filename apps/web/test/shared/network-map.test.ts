@@ -30,6 +30,7 @@ function feature(overrides: {
       hourlySpeedMph: overrides.hourlySpeedMph ?? new Array<number | null>(24).fill(null),
       hourlyTraversalCount: overrides.hourlyTraversalCount ?? new Array<number>(24).fill(0),
       servedBoroughs: ["Brooklyn"],
+      factsStatus: "ready",
     },
   };
 }

@@ -226,8 +226,13 @@ function landCollection(context: RouteGeoContext | null): FeatureCollection<Mult
     features:
       context?.features.map((feature) => ({
         type: "Feature" as const,
-        geometry: feature.geometry,
-        properties: {},
+        geometry: {
+          type: "MultiPolygon" as const,
+          coordinates: feature.geometry.coordinates.map((polygon) =>
+            polygon.map((ring) => ring.map(([lon, lat]) => [lon, lat])),
+          ),
+        },
+        properties: feature.properties ?? {},
       })) ?? [],
   };
 }

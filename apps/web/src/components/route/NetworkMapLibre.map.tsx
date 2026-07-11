@@ -94,13 +94,13 @@ function networkFeatureCollection(input: {
         properties: {
           routeId: feature.properties.routeId,
           label: feature.properties.label,
-          borough: feature.properties.borough,
+          borough: feature.properties.borough ?? "Unavailable",
           speedMph: speedMph ?? 0,
           color: networkLensColor(feature, input.lens, speedMph),
           opacity: hasFocus && !active ? 0.2 : 0.92,
           lineWidth: active ? 5.8 : feature.properties.sbs ? 3.6 : 2.4,
-          sbs: feature.properties.sbs,
-          dailyRiders: feature.properties.dailyRiders,
+          sbs: feature.properties.sbs ?? false,
+          dailyRiders: feature.properties.dailyRiders ?? 0,
         },
       };
     }),
@@ -113,8 +113,13 @@ function landCollection(context: RouteGeoContext | null): FeatureCollection<Mult
     features:
       context?.features.map((feature) => ({
         type: "Feature" as const,
-        geometry: feature.geometry,
-        properties: {},
+        geometry: {
+          type: "MultiPolygon" as const,
+          coordinates: feature.geometry.coordinates.map((polygon) =>
+            polygon.map((ring) => ring.map(([lon, lat]) => [lon, lat])),
+          ),
+        },
+        properties: feature.properties ?? {},
       })) ?? [],
   };
 }
@@ -360,5 +365,7 @@ function networkLensColor(
       ? MAP_COLORS.ink20
       : scaledMapColor(feature.properties.laneCoverage, 0, 100, "lanes");
   }
-  return scaledMapColor(feature.properties.dailyRiders, 0, 45_000, "riders");
+  return feature.properties.dailyRiders === null
+    ? MAP_COLORS.ink20
+    : scaledMapColor(feature.properties.dailyRiders, 0, 45_000, "riders");
 }

@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { OpenLocalPipelineDb } from "../../../src/lib/local-db.ts";
 import { type MapReleaseDependencies, runMapRelease } from "../../../src/commands/map/release.ts";
+import type { OpenLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
 describe("runMapRelease", () => {
   test("uses one custom root and orders D1 before Studio before map", async () => {

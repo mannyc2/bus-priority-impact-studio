@@ -214,5 +214,7 @@ function networkLensColor(
       ? MAP_COLORS.ink20
       : scaledMapColor(feature.properties.laneCoverage, 0, 100, "lanes");
   }
-  return scaledMapColor(feature.properties.dailyRiders, 0, 45_000, "riders");
+  return feature.properties.dailyRiders === null
+    ? MAP_COLORS.ink20
+    : scaledMapColor(feature.properties.dailyRiders, 0, 45_000, "riders");
 }

@@ -7,8 +7,8 @@ import {
   type MapCurrencyEvidence,
   type MapLayerStatus,
   MapNetworkFeatureCollectionSchema,
-  type MapRouteUniverse,
   MapRouteSegmentFeatureCollectionSchema,
+  type MapRouteUniverse,
   type MapSourceStatus,
 } from "@bp/domain/maps";
 import { Result } from "effect";
