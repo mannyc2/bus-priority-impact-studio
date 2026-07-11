@@ -1,4 +1,5 @@
 import { type FindingCoverageAudit, FindingCoverageAuditSchema } from "@bp/domain/findings";
+import { decodeSchemaStrict } from "../schema-decode.js";
 
 export type CoveragePayload = string | Record<string, unknown> | null;
 
@@ -23,7 +24,7 @@ function serializePayload(payload: CoveragePayload): string | null {
 }
 
 export function buildCoverageAudit(input: BuildCoverageAuditInput): FindingCoverageAudit {
-  return FindingCoverageAuditSchema.parse({
+  return decodeSchemaStrict(FindingCoverageAuditSchema, {
     auditId: input.auditId,
     detectorRunId: input.detectorRunId,
     detectorId: input.detectorId,

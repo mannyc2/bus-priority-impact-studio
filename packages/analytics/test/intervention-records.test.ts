@@ -515,6 +515,31 @@ describe("repairInterventionRecordsAliases (Fix 6)", () => {
       expect(record.metrics).toHaveLength(2);
     }
   });
+
+  test("reports the native schema path for an invalid nested value", () => {
+    const result = processInterventionRecordsToolArgs({
+      sourceId: "test_source",
+      bucket: {
+        bucketId: "test_source:single_call",
+        bucketKind: "single_call",
+        candidates: [],
+      },
+      candidateExtractionRootName: "ocr-page-markdown",
+      candidateRootName: "ocr-markdown-candidates",
+      synthesisRootName: "intervention-records",
+      toolArgs: {
+        sourceId: "test_source",
+        interventionRecords: [{ routes: [42] }],
+        unattachedCandidateIds: [],
+      },
+    });
+
+    expect(result.status).toBe("failed");
+    if (result.status !== "failed") throw new Error("Expected schema validation failure");
+    expect(
+      result.issues.some((issue) => issue.path === "interventionRecords.0.routes.0"),
+    ).toBeTrue();
+  });
 });
 
 describe("sanitizeStatusHistoryForProposedOnly (Fix 2)", () => {

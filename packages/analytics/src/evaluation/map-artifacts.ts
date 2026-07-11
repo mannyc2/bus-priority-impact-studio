@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { MapRouteSegmentFeatureCollectionSchema } from "@bp/domain/maps";
+import { Result } from "effect";
+import { decodeSchemaEitherStrict } from "../schema-decode.js";
 
 export const MAP_ARTIFACT_SCHEMA_VERSION = 1;
 export const MAP_ARTIFACT_JSON_CONTENT_TYPE = "application/json" as const;
@@ -180,15 +182,15 @@ export function mapArtifactPayloadIssues(input: {
     });
   }
   if (input.artifact.artifactKind === "map_route_segments_geojson") {
-    const result = MapRouteSegmentFeatureCollectionSchema.safeParse(input.payload);
-    if (!result.success) {
+    const result = decodeSchemaEitherStrict(MapRouteSegmentFeatureCollectionSchema, input.payload);
+    if (Result.isFailure(result)) {
       issues.push({
         code: "map_route_segment_payload_invalid",
         artifactKey: input.artifact.artifactKey,
         message: `Map route-segment artifact ${input.artifact.artifactKey} failed the domain GeoJSON contract.`,
       });
     } else {
-      const monthMismatches = result.data.features.filter(
+      const monthMismatches = result.success.features.filter(
         (feature) => feature.properties.month !== input.month,
       );
       if (monthMismatches.length > 0) {
@@ -201,7 +203,7 @@ export function mapArtifactPayloadIssues(input: {
       const routeMismatches =
         input.artifact.routeId === null
           ? []
-          : result.data.features.filter(
+          : result.success.features.filter(
               (feature) => feature.properties.routeId !== input.artifact.routeId,
             );
       if (routeMismatches.length > 0) {

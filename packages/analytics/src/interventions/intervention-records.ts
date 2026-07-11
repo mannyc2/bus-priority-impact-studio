@@ -25,6 +25,8 @@ import {
   type Tier2InterventionRecordQualityIssueCode,
   type Tier2InterventionRecordQualityRepairCode,
 } from "@bp/domain/documents/intervention-records";
+import { Result, SchemaIssue } from "effect";
+import { decodeSchemaEitherStrict } from "../schema-decode.js";
 
 // The persisted record shape is the canonical domain type; this alias preserves
 // the original local name used throughout the moved policy below.
@@ -1693,15 +1695,25 @@ export function processInterventionRecordsToolArgs(input: {
   );
   const { patched: repairedToolArgs, recordIndicesWithStrippedEnums } = repairInvalidEnumValues(
     aliasRepairedArgs,
-    (value) => DocumentInterventionRecordsToolResponseSchema.safeParse(value),
+    (value) => {
+      const result = decodeSchemaEitherStrict(DocumentInterventionRecordsToolResponseSchema, value);
+      return Result.isSuccess(result)
+        ? { success: true }
+        : { success: false, error: { issues: [] } };
+    },
   );
-  const parsed = DocumentInterventionRecordsToolResponseSchema.safeParse(repairedToolArgs);
-  if (!parsed.success) {
-    const issues = parsed.error.issues.slice(0, 8).map((issue) => ({
-      path: issue.path.join("."),
-      code: issue.code ?? "validation_error",
-      message: issue.message,
-    }));
+  const parsed = decodeSchemaEitherStrict(
+    DocumentInterventionRecordsToolResponseSchema,
+    repairedToolArgs,
+  );
+  if (Result.isFailure(parsed)) {
+    const issues = SchemaIssue.makeFormatterStandardSchemaV1()(parsed.failure.issue)
+      .issues.slice(0, 8)
+      .map((issue) => ({
+        path: issue.path?.map(String).join(".") ?? "",
+        code: "validation_error",
+        message: issue.message,
+      }));
     return {
       status: "failed",
       records: [],
@@ -1713,7 +1725,7 @@ export function processInterventionRecordsToolArgs(input: {
   }
 
   const sourceId = input.sourceId;
-  const response: DocumentInterventionRecordsToolResponse = parsed.data;
+  const response: DocumentInterventionRecordsToolResponse = parsed.success;
   const validCandidateIds = new Set(
     input.bucket.candidates.map((candidate) => candidate.candidateId),
   );

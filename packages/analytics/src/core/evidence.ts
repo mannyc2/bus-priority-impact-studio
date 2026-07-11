@@ -1,4 +1,5 @@
 import { type FindingEvidenceLink, FindingEvidenceLinkSchema } from "@bp/domain/findings";
+import { decodeSchemaStrict } from "../schema-decode.js";
 
 export type EvidenceRefPayload = string | Record<string, unknown>;
 
@@ -17,7 +18,7 @@ function serializeEvidenceRef(ref: EvidenceRefPayload): string {
 }
 
 export function buildEvidenceLink(input: BuildEvidenceLinkInput): FindingEvidenceLink {
-  return FindingEvidenceLinkSchema.parse({
+  return decodeSchemaStrict(FindingEvidenceLinkSchema, {
     linkId: input.linkId,
     candidateId: input.candidateId,
     evidenceKind: input.evidenceKind,
