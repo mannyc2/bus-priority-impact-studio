@@ -6,10 +6,12 @@ import {
   type MapLibreGeoJSONSource,
   type MapLibreMap,
   type MapLibreMapLayerMouseEvent,
+  resetMapLibreLoader,
 } from "@/components/route/load-maplibre";
+import { type MapRuntimeMap, startMapLibreRuntime } from "@/components/route/maplibre-runtime";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { StudioRoute, StudioSegment } from "@/studio/api-contract";
-import { boundsOf, MAP_COLORS, mapBaseStyle, speedToColor } from "./maplibre-style";
+import { boundsOf, MAP_COLORS, mapBaseStyle, NYC_MAP_BOUNDS, speedToColor } from "./maplibre-style";
 
 type Position = [number, number];
 type LineString = { type: "LineString"; coordinates: Position[] };
@@ -42,6 +44,7 @@ export type RouteMapLibreMapProps = {
   layers: RouteMapLayerState;
   highlightId?: string | undefined;
   fallback: ReactNode;
+  onInteractiveAvailabilityChange?: ((available: boolean) => void) | undefined;
 };
 
 type SegmentMapProperties = {
@@ -296,11 +299,13 @@ export function RouteMapLibreMap({
   layers,
   highlightId,
   fallback,
+  onInteractiveAvailabilityChange,
 }: RouteMapLibreMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failure, setFailure] = useState<"runtime" | "unsupported" | null>(null);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const segmentData = useMemo(
     () => routeSegmentCollection({ collection, route, segments, hoveredSegmentId, highlightId }),
     [collection, route, segments, hoveredSegmentId, highlightId],
@@ -311,182 +316,179 @@ export function RouteMapLibreMap({
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!supportsWebGl()) {
-      setFailed(true);
+      setFailure("unsupported");
+      onInteractiveAvailabilityChange?.(false);
       return;
     }
-    let cancelled = false;
-    let cleanupMap: (() => void) | null = null;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const onMouseMove = (event: MapLibreMapLayerMouseEvent) => {
+      const map = mapRef.current;
+      const feature = event.features?.[0];
+      const properties = feature?.properties as { studioSegmentId?: unknown } | undefined;
+      const segmentId = properties?.studioSegmentId;
+      if (map !== null && typeof segmentId === "string") {
+        map.getCanvas().style.cursor = "pointer";
+        setHoveredSegmentId(segmentId);
+      }
+    };
+    const onMouseLeave = () => {
+      const map = mapRef.current;
+      if (map !== null) map.getCanvas().style.cursor = "";
+      setHoveredSegmentId(null);
+    };
 
-    loadMapLibre()
-      .then((maplibregl) => {
-        if (cancelled) return;
+    const controller = startMapLibreRuntime({
+      loadVendor: loadMapLibre,
+      resetVendor: resetMapLibreLoader,
+      createMap: (maplibregl) => {
         const container = containerRef.current;
-        if (container === null) return;
-
-        let map: MapLibreMap;
-        try {
-          map = new maplibregl.Map({
-            container,
-            style: mapBaseStyle(),
-            attributionControl: false,
-            dragRotate: false,
-            pitchWithRotate: false,
-          });
-        } catch {
-          setFailed(true);
-          return;
-        }
+        if (container === null) throw new Error("Route map container is unavailable.");
+        const map = new maplibregl.Map({
+          container,
+          style: mapBaseStyle(),
+          attributionControl: false,
+          cooperativeGestures: true,
+          dragRotate: false,
+          pitchWithRotate: false,
+          maxBounds: [[...NYC_MAP_BOUNDS[0]], [...NYC_MAP_BOUNDS[1]]],
+        });
         mapRef.current = map;
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+        return map as MapLibreMap & MapRuntimeMap;
+      },
+      onReady: (map) => {
+        map.addSource(LAND_SOURCE, { type: "geojson", data: landData });
+        map.addLayer({
+          id: "bp-route-land",
+          type: "fill",
+          source: LAND_SOURCE,
+          paint: { "fill-color": MAP_COLORS.card, "fill-outline-color": MAP_COLORS.ink20 },
+        });
+        map.addSource(SEGMENT_SOURCE, {
+          type: "geojson",
+          data: segmentData,
+          promoteId: "studioSegmentId",
+        });
+        map.addLayer({
+          id: CASING_LAYER,
+          type: "line",
+          source: SEGMENT_SOURCE,
+          paint: {
+            "line-color": MAP_COLORS.paper,
+            "line-width": 13,
+            "line-opacity": ["get", "opacity"],
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: "bp-route-worst-glow",
+          type: "line",
+          source: SEGMENT_SOURCE,
+          filter: ["==", ["get", "isWorst"], true],
+          paint: { "line-color": MAP_COLORS.bad, "line-width": 20, "line-opacity": 0.16 },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: "bp-route-bus-lane-full",
+          type: "line",
+          source: SEGMENT_SOURCE,
+          filter: ["all", ["==", ["get", "lane"], "yes"]],
+          paint: {
+            "line-color": MAP_COLORS.good,
+            "line-width": layers.lane ? 3 : 0,
+            "line-offset": 9,
+            "line-opacity": 0.9,
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: "bp-route-bus-lane-partial",
+          type: "line",
+          source: SEGMENT_SOURCE,
+          filter: ["all", ["in", ["get", "lane"], ["literal", ["partial", "minimal"]]]],
+          paint: {
+            "line-color": MAP_COLORS.warn,
+            "line-width": layers.lane ? 3 : 0,
+            "line-offset": 9,
+            "line-opacity": 0.9,
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: "bp-route-lines",
+          type: "line",
+          source: SEGMENT_SOURCE,
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": ["get", "lineWidth"],
+            "line-opacity": ["get", "opacity"],
+            "line-color-transition": { duration: prefersReducedMotion ? 0 : 500 },
+            "line-width-transition": { duration: prefersReducedMotion ? 0 : 180 },
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addSource(MARKER_SOURCE, { type: "geojson", data: markerData });
+        map.addLayer({
+          id: "bp-route-stops",
+          type: "circle",
+          source: MARKER_SOURCE,
+          filter: ["==", ["get", "kind"], "stop"],
+          paint: {
+            "circle-radius": 3.2,
+            "circle-color": MAP_COLORS.card,
+            "circle-stroke-color": MAP_COLORS.ink70,
+            "circle-stroke-width": 1.6,
+          },
+        });
+        map.addLayer({
+          id: "bp-route-markers",
+          type: "circle",
+          source: MARKER_SOURCE,
+          filter: ["in", ["get", "kind"], ["literal", ["ace", "tsp"]]],
+          paint: {
+            "circle-radius": ["case", ["==", ["get", "kind"], "ace"], 5.5, 4.8],
+            "circle-color": ["get", "color"],
+            "circle-stroke-color": "#fff",
+            "circle-stroke-width": 1.5,
+          },
+        });
+        map.addLayer({
+          id: HIT_LAYER,
+          type: "line",
+          source: SEGMENT_SOURCE,
+          paint: { "line-color": "#000", "line-opacity": 0, "line-width": 22 },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
 
-        const onMouseMove = (event: MapLibreMapLayerMouseEvent) => {
-          const feature = event.features?.[0];
-          const properties = feature?.properties as { studioSegmentId?: unknown } | undefined;
-          const segmentId = properties?.studioSegmentId;
-          if (typeof segmentId === "string") {
-            map.getCanvas().style.cursor = "pointer";
-            setHoveredSegmentId(segmentId);
-          }
-        };
-        const onMouseLeave = () => {
-          map.getCanvas().style.cursor = "";
-          setHoveredSegmentId(null);
-        };
-        const onError = () => setFailed(true);
-        const onLoad = () => {
-          map.addSource(LAND_SOURCE, { type: "geojson", data: landData });
-          map.addLayer({
-            id: "bp-route-land",
-            type: "fill",
-            source: LAND_SOURCE,
-            paint: { "fill-color": MAP_COLORS.card, "fill-outline-color": MAP_COLORS.ink20 },
-          });
-          map.addSource(SEGMENT_SOURCE, {
-            type: "geojson",
-            data: segmentData,
-            promoteId: "studioSegmentId",
-          });
-          map.addLayer({
-            id: CASING_LAYER,
-            type: "line",
-            source: SEGMENT_SOURCE,
-            paint: {
-              "line-color": MAP_COLORS.paper,
-              "line-width": 13,
-              "line-opacity": ["get", "opacity"],
-            },
-            layout: { "line-cap": "round", "line-join": "round" },
-          });
-          map.addLayer({
-            id: "bp-route-worst-glow",
-            type: "line",
-            source: SEGMENT_SOURCE,
-            filter: ["==", ["get", "isWorst"], true],
-            paint: { "line-color": MAP_COLORS.bad, "line-width": 20, "line-opacity": 0.16 },
-            layout: { "line-cap": "round", "line-join": "round" },
-          });
-          map.addLayer({
-            id: "bp-route-bus-lane-full",
-            type: "line",
-            source: SEGMENT_SOURCE,
-            filter: ["all", ["==", ["get", "lane"], "yes"]],
-            paint: {
-              "line-color": MAP_COLORS.good,
-              "line-width": layers.lane ? 3 : 0,
-              "line-offset": 9,
-              "line-opacity": 0.9,
-            },
-            layout: { "line-cap": "round", "line-join": "round" },
-          });
-          map.addLayer({
-            id: "bp-route-bus-lane-partial",
-            type: "line",
-            source: SEGMENT_SOURCE,
-            filter: ["all", ["in", ["get", "lane"], ["literal", ["partial", "minimal"]]]],
-            paint: {
-              "line-color": MAP_COLORS.warn,
-              "line-width": layers.lane ? 3 : 0,
-              "line-offset": 9,
-              "line-opacity": 0.9,
-            },
-            layout: { "line-cap": "round", "line-join": "round" },
-          });
-          map.addLayer({
-            id: "bp-route-lines",
-            type: "line",
-            source: SEGMENT_SOURCE,
-            paint: {
-              "line-color": ["get", "color"],
-              "line-width": ["get", "lineWidth"],
-              "line-opacity": ["get", "opacity"],
-              "line-color-transition": { duration: 500 },
-              "line-width-transition": { duration: 180 },
-            },
-            layout: { "line-cap": "round", "line-join": "round" },
-          });
-          map.addSource(MARKER_SOURCE, { type: "geojson", data: markerData });
-          map.addLayer({
-            id: "bp-route-stops",
-            type: "circle",
-            source: MARKER_SOURCE,
-            filter: ["==", ["get", "kind"], "stop"],
-            paint: {
-              "circle-radius": 3.2,
-              "circle-color": MAP_COLORS.card,
-              "circle-stroke-color": MAP_COLORS.ink70,
-              "circle-stroke-width": 1.6,
-            },
-          });
-          map.addLayer({
-            id: "bp-route-markers",
-            type: "circle",
-            source: MARKER_SOURCE,
-            filter: ["in", ["get", "kind"], ["literal", ["ace", "tsp"]]],
-            paint: {
-              "circle-radius": ["case", ["==", ["get", "kind"], "ace"], 5.5, 4.8],
-              "circle-color": ["get", "color"],
-              "circle-stroke-color": "#fff",
-              "circle-stroke-width": 1.5,
-            },
-          });
-          map.addLayer({
-            id: HIT_LAYER,
-            type: "line",
-            source: SEGMENT_SOURCE,
-            paint: { "line-color": "#000", "line-opacity": 0, "line-width": 22 },
-            layout: { "line-cap": "round", "line-join": "round" },
-          });
-
-          const bounds = boundsOf(collection);
-          if (bounds !== null) {
-            map.fitBounds(bounds, { padding: 42, duration: 0 });
-          }
-          map.on("mousemove", HIT_LAYER, onMouseMove);
-          map.on("mouseleave", HIT_LAYER, onMouseLeave);
-          setReady(true);
-        };
-
-        map.on("load", onLoad);
-        map.on("error", onError);
-        cleanupMap = () => {
-          map.off("load", onLoad);
-          map.off("mousemove", HIT_LAYER, onMouseMove);
-          map.off("mouseleave", HIT_LAYER, onMouseLeave);
-          map.off("error", onError);
-          map.remove();
-          mapRef.current = null;
-          setReady(false);
-        };
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
+        const bounds = boundsOf(collection);
+        if (bounds !== null) map.fitBounds(bounds, { padding: 42, duration: 0 });
+        map.on("mousemove", HIT_LAYER, onMouseMove);
+        map.on("mouseleave", HIT_LAYER, onMouseLeave);
+        setReady(true);
+        onInteractiveAvailabilityChange?.(true);
+      },
+      onFatal: (error) => {
+        mapRef.current = null;
+        setReady(false);
+        setFailure("runtime");
+        onInteractiveAvailabilityChange?.(false);
+        if (import.meta.env.DEV) console.warn("Route MapLibre initialization failed.", error);
+      },
+      onRecoverableError: (error) => {
+        if (import.meta.env.DEV) console.warn("Route MapLibre runtime warning.", error);
+      },
+      onCleanup: (map) => {
+        map.off("mousemove", HIT_LAYER, onMouseMove);
+        map.off("mouseleave", HIT_LAYER, onMouseLeave);
+        mapRef.current = null;
+        setReady(false);
+      },
+    });
 
     return () => {
-      cancelled = true;
-      cleanupMap?.();
+      controller.cleanup();
     };
-  }, []);
+  }, [retryAttempt]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -505,12 +507,40 @@ export function RouteMapLibreMap({
     }
   }, [layers, markerData, ready, segmentData]);
 
-  if (failed) return fallback;
+  if (failure !== null) {
+    const overlayUnavailable =
+      onInteractiveAvailabilityChange === undefined && (layers.lane || layers.ace || layers.tsp);
+    const showFallbackActions = overlayUnavailable || failure === "runtime";
+    return (
+      <div className="relative min-h-[560px]">
+        {fallback}
+        {showFallbackActions ? (
+          <div className="absolute bottom-3 left-3 flex items-center gap-3 rounded-[3px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-card)] px-3 py-2 text-[12px] text-[var(--bp-color-ink)] shadow-sm">
+            {overlayUnavailable ? <span>Interactive layers unavailable.</span> : null}
+            {failure === "runtime" ? (
+              <button
+                type="button"
+                className="font-semibold underline decoration-[var(--bp-color-rule)] underline-offset-2"
+                onClick={() => {
+                  resetMapLibreLoader();
+                  setFailure(null);
+                  setRetryAttempt((attempt) => attempt + 1);
+                }}
+              >
+                Retry interactive map
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div
       ref={containerRef}
       className="bp-bus-map min-h-[560px] overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]"
+      style={{ minHeight: 560 }}
       aria-label={`${route.label} street map`}
       role="img"
     />

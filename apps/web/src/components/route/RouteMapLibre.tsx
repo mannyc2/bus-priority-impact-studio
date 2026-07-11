@@ -30,6 +30,7 @@ export type RouteMapLibreProps = {
   setHoveredSegmentId: (segmentId: string | null) => void;
   layers: RouteMapLayerState;
   highlightId?: string | undefined;
+  onInteractiveAvailabilityChange?: ((available: boolean) => void) | undefined;
 };
 
 export function RouteMapLibre(props: RouteMapLibreProps) {

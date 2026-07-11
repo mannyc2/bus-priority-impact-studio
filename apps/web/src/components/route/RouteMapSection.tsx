@@ -113,6 +113,7 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
     ace: false,
     tsp: false,
   });
+  const [interactiveMapAvailable, setInteractiveMapAvailable] = useState(true);
   const orderedSegments = useMemo(
     () => orderCorridorSegments(route.slug, segments),
     [route.slug, segments],
@@ -163,6 +164,7 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
               setHoveredSegmentId={setHoveredSegmentId}
               layers={layers}
               highlightId={highlightId}
+              onInteractiveAvailabilityChange={setInteractiveMapAvailable}
             />
           ) : geo.status === "loading" ? (
             <div
@@ -176,7 +178,13 @@ export function RouteMapSection({ data }: { data: StudioRouteDetailResponse }) {
         </div>
         <aside className="min-w-0 rounded-[3px] bg-[var(--bp-color-paper-deep)] p-4 shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
           <StaticMapReadout route={route} segment={displaySegment} />
-          <LayerControls layers={layers} setLayers={setLayers} />
+          {interactiveMapAvailable ? (
+            <LayerControls layers={layers} setLayers={setLayers} />
+          ) : (
+            <p className="m-0 mt-5 border-t border-[var(--bp-color-rule)] pt-4 text-[12px] text-[var(--bp-color-ink-55)]">
+              Interactive layers unavailable.
+            </p>
+          )}
         </aside>
       </div>
       {geo.status === "unavailable" ? (

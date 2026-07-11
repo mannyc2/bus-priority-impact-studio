@@ -5,10 +5,13 @@ import {
   type MapLibreGeoJSONSource,
   type MapLibreMap,
   type MapLibreMapLayerMouseEvent,
+  resetMapLibreLoader,
 } from "@/components/route/load-maplibre";
+import { type MapRuntimeMap, startMapLibreRuntime } from "@/components/route/maplibre-runtime";
 import {
   MAP_COLORS,
   mapBaseStyle,
+  NYC_MAP_BOUNDS,
   scaledMapColor,
   speedToColor,
 } from "@/components/route/maplibre-style";
@@ -177,7 +180,8 @@ export function NetworkMapLibreMap({
   const onSelectRouteRef = useRef(onSelectRoute);
   onSelectRouteRef.current = onSelectRoute;
   const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failure, setFailure] = useState<"runtime" | "unsupported" | null>(null);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const networkData = useMemo(
     () => networkFeatureCollection({ collection, period, lens, hoveredRouteId, selectedRouteId }),
     [collection, period, lens, hoveredRouteId, selectedRouteId],
@@ -187,130 +191,120 @@ export function NetworkMapLibreMap({
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!supportsWebGl()) {
-      setFailed(true);
+      setFailure("unsupported");
       return;
     }
-    let cancelled = false;
-    let cleanupMap: (() => void) | null = null;
+    const onMouseMove = (event: MapLibreMapLayerMouseEvent) => {
+      const map = mapRef.current;
+      const feature = event.features?.[0];
+      const properties = feature?.properties as { routeId?: unknown } | undefined;
+      const routeId = properties?.routeId;
+      if (map !== null && typeof routeId === "string") {
+        map.getCanvas().style.cursor = "pointer";
+        setHoveredRouteId(routeId);
+      }
+    };
+    const onMouseLeave = () => {
+      const map = mapRef.current;
+      if (map !== null) map.getCanvas().style.cursor = "";
+      setHoveredRouteId(null);
+    };
+    const onClick = (event: MapLibreMapLayerMouseEvent) => {
+      const feature = event.features?.[0];
+      const properties = feature?.properties as { routeId?: unknown } | undefined;
+      const routeId = properties?.routeId;
+      if (typeof routeId === "string") onSelectRouteRef.current?.(routeId);
+    };
 
-    loadMapLibre()
-      .then((maplibregl) => {
-        if (cancelled) return;
+    const controller = startMapLibreRuntime({
+      loadVendor: loadMapLibre,
+      resetVendor: resetMapLibreLoader,
+      createMap: (maplibregl) => {
         const container = containerRef.current;
-        if (container === null) return;
-
-        let map: MapLibreMap;
-        try {
-          map = new maplibregl.Map({
-            container,
-            style: mapBaseStyle(),
-            attributionControl: false,
-            dragRotate: false,
-            pitchWithRotate: false,
-          });
-        } catch {
-          setFailed(true);
-          return;
-        }
+        if (container === null) throw new Error("Network map container is unavailable.");
+        const map = new maplibregl.Map({
+          container,
+          style: mapBaseStyle(),
+          attributionControl: false,
+          dragRotate: false,
+          pitchWithRotate: false,
+          maxBounds: [[...NYC_MAP_BOUNDS[0]], [...NYC_MAP_BOUNDS[1]]],
+        });
         mapRef.current = map;
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-
-        const onMouseMove = (event: MapLibreMapLayerMouseEvent) => {
-          const feature = event.features?.[0];
-          const properties = feature?.properties as { routeId?: unknown } | undefined;
-          const routeId = properties?.routeId;
-          if (typeof routeId === "string") {
-            map.getCanvas().style.cursor = "pointer";
-            setHoveredRouteId(routeId);
-          }
-        };
-        const onMouseLeave = () => {
-          map.getCanvas().style.cursor = "";
-          setHoveredRouteId(null);
-        };
-        const onClick = (event: MapLibreMapLayerMouseEvent) => {
-          const feature = event.features?.[0];
-          const properties = feature?.properties as { routeId?: unknown } | undefined;
-          const routeId = properties?.routeId;
-          if (typeof routeId === "string") {
-            onSelectRouteRef.current?.(routeId);
-          }
-        };
-        const onError = () => setFailed(true);
-        const onLoad = () => {
-          map.addSource(LAND_SOURCE, { type: "geojson", data: landData });
-          map.addLayer({
-            id: "bp-network-land",
-            type: "fill",
-            source: LAND_SOURCE,
-            paint: { "fill-color": MAP_COLORS.card, "fill-outline-color": MAP_COLORS.ink20 },
-          });
-          map.addSource(NETWORK_SOURCE, {
-            type: "geojson",
-            data: networkData,
-            promoteId: "routeId",
-          });
-          map.addLayer({
-            id: CASING_LAYER,
-            type: "line",
-            source: NETWORK_SOURCE,
-            paint: {
-              "line-color": MAP_COLORS.paper,
-              "line-width": ["+", ["get", "lineWidth"], 3.5],
-              "line-opacity": ["get", "opacity"],
-            },
-            layout: { "line-cap": "round", "line-join": "round" },
-          });
-          map.addLayer({
-            id: LINE_LAYER,
-            type: "line",
-            source: NETWORK_SOURCE,
-            paint: {
-              "line-color": ["get", "color"],
-              "line-width": ["get", "lineWidth"],
-              "line-opacity": ["get", "opacity"],
-            },
-            layout: { "line-cap": "round", "line-join": "round" },
-          });
-          map.addLayer({
-            id: HIT_LAYER,
-            type: "line",
-            source: NETWORK_SOURCE,
-            paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
-            layout: { "line-cap": "round", "line-join": "round" },
-          });
-          const bounds = boundsOfNetwork(collection);
-          if (bounds !== null) {
-            map.fitBounds(bounds, { padding: 28, duration: 0 });
-          }
-          map.on("mousemove", HIT_LAYER, onMouseMove);
-          map.on("mouseleave", HIT_LAYER, onMouseLeave);
-          map.on("click", HIT_LAYER, onClick);
-          setReady(true);
-        };
-
-        map.on("load", onLoad);
-        map.on("error", onError);
-        cleanupMap = () => {
-          map.off("load", onLoad);
-          map.off("error", onError);
-          map.off("mousemove", HIT_LAYER, onMouseMove);
-          map.off("mouseleave", HIT_LAYER, onMouseLeave);
-          map.off("click", HIT_LAYER, onClick);
-          map.remove();
-          mapRef.current = null;
-          setReady(false);
-        };
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
+        return map as MapLibreMap & MapRuntimeMap;
+      },
+      onReady: (map) => {
+        map.addSource(LAND_SOURCE, { type: "geojson", data: landData });
+        map.addLayer({
+          id: "bp-network-land",
+          type: "fill",
+          source: LAND_SOURCE,
+          paint: { "fill-color": MAP_COLORS.card, "fill-outline-color": MAP_COLORS.ink20 },
+        });
+        map.addSource(NETWORK_SOURCE, {
+          type: "geojson",
+          data: networkData,
+          promoteId: "routeId",
+        });
+        map.addLayer({
+          id: CASING_LAYER,
+          type: "line",
+          source: NETWORK_SOURCE,
+          paint: {
+            "line-color": MAP_COLORS.paper,
+            "line-width": ["+", ["get", "lineWidth"], 3.5],
+            "line-opacity": ["get", "opacity"],
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: LINE_LAYER,
+          type: "line",
+          source: NETWORK_SOURCE,
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": ["get", "lineWidth"],
+            "line-opacity": ["get", "opacity"],
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: HIT_LAYER,
+          type: "line",
+          source: NETWORK_SOURCE,
+          paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        const bounds = boundsOfNetwork(collection);
+        if (bounds !== null) map.fitBounds(bounds, { padding: 28, duration: 0 });
+        map.on("mousemove", HIT_LAYER, onMouseMove);
+        map.on("mouseleave", HIT_LAYER, onMouseLeave);
+        map.on("click", HIT_LAYER, onClick);
+        setReady(true);
+      },
+      onFatal: (error) => {
+        mapRef.current = null;
+        setReady(false);
+        setFailure("runtime");
+        if (import.meta.env.DEV) console.warn("Network MapLibre initialization failed.", error);
+      },
+      onRecoverableError: (error) => {
+        if (import.meta.env.DEV) console.warn("Network MapLibre runtime warning.", error);
+      },
+      onCleanup: (map) => {
+        map.off("mousemove", HIT_LAYER, onMouseMove);
+        map.off("mouseleave", HIT_LAYER, onMouseLeave);
+        map.off("click", HIT_LAYER, onClick);
+        mapRef.current = null;
+        setReady(false);
+      },
+    });
 
     return () => {
-      cancelled = true;
-      cleanupMap?.();
+      controller.cleanup();
     };
-  }, []);
+  }, [retryAttempt]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -324,7 +318,26 @@ export function NetworkMapLibreMap({
     source(map, NETWORK_SOURCE)?.setData(networkData);
   }, [networkData, ready]);
 
-  if (failed) return fallback;
+  if (failure !== null) {
+    return (
+      <div className="relative h-full min-h-[320px]">
+        {fallback}
+        {failure === "runtime" ? (
+          <button
+            type="button"
+            className="absolute right-3 top-3 z-20 rounded-[3px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-card)] px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-ink)] shadow-sm"
+            onClick={() => {
+              resetMapLibreLoader();
+              setFailure(null);
+              setRetryAttempt((attempt) => attempt + 1);
+            }}
+          >
+            Retry interactive map
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div
