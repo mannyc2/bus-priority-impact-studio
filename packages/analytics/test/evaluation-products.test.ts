@@ -219,6 +219,8 @@ describe("evaluation data products", () => {
       month,
       generatedAt: "2026-06-06T00:00:00.000Z",
       artifacts: artifacts.map((artifact) => artifact.entry),
+      releaseProfile: "demo",
+      routeFacts: { status: "unavailable", reason: "Fixture omits route facts." },
     });
     const artifactIssues = artifacts.flatMap((artifact, index) =>
       mapArtifactPayloadIssues({

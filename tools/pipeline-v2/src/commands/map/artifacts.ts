@@ -44,6 +44,7 @@ import {
   MapContextFeatureCollectionSchema,
   type MapNetworkFeatureCollection,
   MapNetworkFeatureCollectionSchema,
+  MapRouteFactsResponseSchema,
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
@@ -1078,12 +1079,14 @@ export type MapArtifactsInputs = {
   local: OpenLocalPipelineDb;
   year: number;
   month: number;
+  releaseProfile: "demo" | "full";
   artifactRoot?: string | undefined;
   speedSpineRoot?: string | undefined;
   routeShapeSnapshotPath?: string | undefined;
   stopSnapshotPath?: string | undefined;
   busLaneSnapshotPath?: string | undefined;
   contextPath?: string | undefined;
+  routeFactsPath?: string | undefined;
   routeIds?: readonly string[] | undefined;
 };
 
@@ -1092,6 +1095,31 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
   const speedSpineRoot = args.speedSpineRoot ?? artifactRoot;
   const generatedAt = new Date().toISOString();
+  const routeFactsPath =
+    args.routeFactsPath ?? join(artifactRoot, "studio", "v1", "map-route-facts.json");
+  const routeFactsFile = Bun.file(routeFactsPath);
+  const routeFacts = (await routeFactsFile.exists())
+    ? decodeSchemaStrict(MapRouteFactsResponseSchema, await routeFactsFile.json())
+    : null;
+  if (routeFacts !== null && routeFacts.baselineMonth !== isoMonthStr) {
+    throw new Error(
+      `Map route facts are for ${routeFacts.baselineMonth}, expected ${isoMonthStr}.`,
+    );
+  }
+  if (args.releaseProfile === "full" && routeFacts === null) {
+    throw new Error(`Full map release requires route facts at ${routeFactsPath}.`);
+  }
+  const routeFactsReference: MapArtifactManifest["routeFacts"] =
+    routeFacts === null
+      ? { status: "unavailable", reason: "Same-month map route facts are unavailable." }
+      : {
+          status: "available",
+          artifactKey: "studio/v1/map-route-facts.json",
+          sha256: mapArtifactSha256(new Uint8Array(await routeFactsFile.arrayBuffer())),
+          schemaVersion: 1,
+          baselineMonth: routeFacts.baselineMonth,
+          routeCount: routeFacts.routes.length,
+        };
   const routeShapeSnapshot = await readRouteShapeSnapshot(
     args.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath(),
   );
@@ -1276,6 +1304,8 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     month: options.isoMonth,
     generatedAt,
     artifacts,
+    releaseProfile: args.releaseProfile,
+    routeFacts: routeFactsReference,
   });
   const manifestPath = mapArtifactManifestPath(artifactRoot, options.isoMonth);
   await mkdir(dirname(manifestPath), { recursive: true });
@@ -1329,6 +1359,12 @@ export default defineCommand({
         context: Schema.optionalKey(Schema.String).annotate({
           description: "Override generated borough-context artifact path",
         }),
+        routeFacts: Schema.optionalKey(Schema.String).annotate({
+          description: "Override compact same-month map-route-facts projection path",
+        }),
+        profile: Schema.Literals(["demo", "full"])
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("demo")))
+          .annotate({ description: "Map release profile" }),
       },
     }),
   },
@@ -1365,6 +1401,8 @@ export default defineCommand({
         : fromCliPath(input.options.busLaneSnapshot);
     const contextPath =
       input.options.context === undefined ? undefined : fromCliPath(input.options.context);
+    const routeFactsPath =
+      input.options.routeFacts === undefined ? undefined : fromCliPath(input.options.routeFacts);
     return runLocalDbCommandBoundary({
       dbPath: input.options.db,
       command: "map.artifacts",
@@ -1378,12 +1416,14 @@ export default defineCommand({
           local,
           year: input.options.year,
           month: input.options.month,
+          releaseProfile: input.options.profile,
           artifactRoot,
           speedSpineRoot,
           routeShapeSnapshotPath,
           stopSnapshotPath,
           busLaneSnapshotPath,
           contextPath,
+          routeFactsPath,
           routeIds: input.options.routes?.split(",").map((routeId) => routeId.trim()),
         }),
     });

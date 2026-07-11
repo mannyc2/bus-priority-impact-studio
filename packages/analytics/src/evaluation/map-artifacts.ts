@@ -30,6 +30,19 @@ export type MapArtifactManifest = {
   artifactKind: "map_artifact_manifest";
   analysisPeriod: string;
   generatedAt: string;
+  releaseProfile: "demo" | "full";
+  buildStatus: "pass" | "fail";
+  verificationStatus: "not_run" | "pass" | "fail";
+  routeFacts:
+    | {
+        status: "available";
+        artifactKey: string;
+        sha256: string;
+        schemaVersion: 1;
+        baselineMonth: string;
+        routeCount: number;
+      }
+    | { status: "unavailable"; reason: string };
   status: "pass";
   artifactCount: number;
   routeSegmentArtifactCount: number;
@@ -66,6 +79,10 @@ type ManifestCandidate = {
   artifactKind?: unknown;
   analysisPeriod?: unknown;
   generatedAt?: unknown;
+  releaseProfile?: unknown;
+  buildStatus?: unknown;
+  verificationStatus?: unknown;
+  routeFacts?: unknown;
   status?: unknown;
   artifactCount?: unknown;
   routeSegmentArtifactCount?: unknown;
@@ -106,6 +123,8 @@ export function buildMapArtifactManifest(input: {
   month: string;
   generatedAt: string;
   artifacts: readonly MapArtifactEntry[];
+  releaseProfile: "demo" | "full";
+  routeFacts: MapArtifactManifest["routeFacts"];
 }): MapArtifactManifest {
   const artifacts = [...input.artifacts];
   const routeSegmentArtifactCount = artifacts.filter(
@@ -116,6 +135,10 @@ export function buildMapArtifactManifest(input: {
     artifactKind: "map_artifact_manifest",
     analysisPeriod: input.month,
     generatedAt: input.generatedAt,
+    releaseProfile: input.releaseProfile,
+    buildStatus: "pass",
+    verificationStatus: "not_run",
+    routeFacts: input.routeFacts,
     status: "pass",
     artifactCount: artifacts.length,
     routeSegmentArtifactCount,
@@ -137,6 +160,12 @@ export function isMapArtifactManifest(value: unknown): value is MapArtifactManif
     candidate.artifactKind === "map_artifact_manifest" &&
     typeof candidate.analysisPeriod === "string" &&
     typeof candidate.generatedAt === "string" &&
+    (candidate.releaseProfile === "demo" || candidate.releaseProfile === "full") &&
+    candidate.buildStatus === "pass" &&
+    (candidate.verificationStatus === "not_run" ||
+      candidate.verificationStatus === "pass" ||
+      candidate.verificationStatus === "fail") &&
+    isJsonObject(candidate.routeFacts) &&
     candidate.status === "pass" &&
     typeof candidate.artifactCount === "number" &&
     typeof candidate.routeSegmentArtifactCount === "number" &&

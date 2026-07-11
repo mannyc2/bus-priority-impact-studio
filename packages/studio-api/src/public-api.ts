@@ -549,6 +549,10 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
   const manifest = (await object.json()) as {
     schemaVersion?: unknown;
     generatedAt?: unknown;
+    releaseProfile?: unknown;
+    buildStatus?: unknown;
+    verificationStatus?: unknown;
+    routeFacts?: unknown;
     status?: unknown;
     artifactCount?: unknown;
     routeSegmentArtifactCount?: unknown;
@@ -571,6 +575,13 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
       schemaVersion: 1,
       generatedAt: manifest.generatedAt,
       baselineMonth: month,
+      releaseProfile: manifest.releaseProfile ?? "demo",
+      buildStatus: manifest.buildStatus ?? "pass",
+      verificationStatus: manifest.verificationStatus ?? "not_run",
+      routeFacts: manifest.routeFacts ?? {
+        status: "unavailable",
+        reason: "Legacy map manifest does not declare a route-facts projection.",
+      },
       status: manifest.status,
       artifactCount: manifest.artifactCount,
       routeSegmentArtifactCount: manifest.routeSegmentArtifactCount,

@@ -444,6 +444,22 @@ export const MapArtifactEntrySchema = registerProjectSchema(
 
 export type MapArtifactEntry = typeof MapArtifactEntrySchema.Type;
 
+export const MapRouteFactsReferenceSchema = Schema.Union([
+  Schema.Struct({
+    status: Schema.Literal("available"),
+    artifactKey: NonEmptyStringSchema,
+    sha256: Sha256Schema,
+    schemaVersion: Schema.Literal(1),
+    baselineMonth: IsoMonthSchema,
+    routeCount: NonNegativeIntSchema,
+  }),
+  Schema.Struct({
+    status: Schema.Literal("unavailable"),
+    reason: NonEmptyStringSchema,
+  }),
+]);
+export type MapRouteFactsReference = typeof MapRouteFactsReferenceSchema.Type;
+
 export const MapManifestResponseSchema = registerProjectSchema(
   Schema.Struct({
     schemaVersion: Schema.Literal(schemaVersion),
@@ -451,6 +467,10 @@ export const MapManifestResponseSchema = registerProjectSchema(
       Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
     ),
     baselineMonth: IsoMonthSchema,
+    releaseProfile: Schema.Literals(["demo", "full"]),
+    buildStatus: Schema.Literals(["pass", "fail"]),
+    verificationStatus: Schema.Literals(["not_run", "pass", "fail"]),
+    routeFacts: MapRouteFactsReferenceSchema,
     status: Schema.Literals(["pass", "fail"]),
     artifactCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
     routeSegmentArtifactCount: Schema.Number.check(Schema.isInt()).check(
