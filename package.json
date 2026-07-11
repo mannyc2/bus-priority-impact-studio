@@ -61,7 +61,7 @@
     "seed:local-capability-r2": "sh scripts/seed-local-studio-r2.sh bus-priority-artifacts apps/web/wrangler.jsonc data/artifacts/studio/v2/routes/route-capability-manifest.json",
     "hooks:install": "sh scripts/install-git-hooks.sh",
     "check": "bun run check:types && bun run check:style && bun run check:architecture && bun run test",
-    "check:types": "tsc -p tsconfig.typecheck.json --noEmit --pretty false",
+    "check:types": "NODE_OPTIONS=--max-old-space-size=8192 tsc -p tsconfig.typecheck.json --noEmit --pretty false",
     "check:style": "biome check .",
     "check:style:write": "biome check --write .",
     "check:knowledge": "bun run tools/pipeline-v2/src/checks/check-knowledge.ts",

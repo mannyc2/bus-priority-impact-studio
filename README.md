@@ -82,6 +82,8 @@ bun run check
 bun run hooks:install
 ```
 
+The repo-wide typecheck needs about 8 GB of heap; `bun run check:types` sets `NODE_OPTIONS` itself.
+
 Bun runs local scripts, workspace filters, package tests, and pipeline commands. Cloudflare Workers still deploy to Cloudflare's `workerd` runtime, and Wrangler remains the Cloudflare CLI.
 
 ## Environment

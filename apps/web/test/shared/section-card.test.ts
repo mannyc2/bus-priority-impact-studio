@@ -6,7 +6,7 @@ import { SectionCard } from "../../src/components/SectionCard";
 describe("SectionCard", () => {
   test("renders the title inside the card section", () => {
     const html = renderToStaticMarkup(
-      createElement(SectionCard, { title: "Slow segments" }, "body-content"),
+      createElement(SectionCard, { title: "Slow segments", children: "body-content" }),
     );
     expect(html).toContain("<section");
     expect(html).toContain(">Slow segments</h2>");
@@ -15,14 +15,14 @@ describe("SectionCard", () => {
 
   test("renders the sub line when provided", () => {
     const html = renderToStaticMarkup(
-      createElement(SectionCard, { title: "T", sub: "36 months of data" }, "x"),
+      createElement(SectionCard, { title: "T", sub: "36 months of data", children: "x" }),
     );
     expect(html).toContain("36 months of data");
   });
 
   test("renders the right slot when provided", () => {
     const html = renderToStaticMarkup(
-      createElement(SectionCard, { title: "T", right: "RIGHT-SLOT" }, "x"),
+      createElement(SectionCard, { title: "T", right: "RIGHT-SLOT", children: "x" }),
     );
     expect(html).toContain("RIGHT-SLOT");
   });

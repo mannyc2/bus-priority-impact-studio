@@ -225,6 +225,7 @@ const routeDetail = {
     aceSince: "2024",
     tspCoverage: "none",
     reliability: "High attention route",
+    observedReliability: null,
     diagnosis: "M15 SBS has slow segments and active treatment evidence.",
     spark: [7.2, 7.4, 7.1],
     termini: { north: "East Harlem", south: "South Ferry" },
