@@ -1,9 +1,10 @@
-import * as z from "@bp/domain/schema-compat";
+import { decodePreserve } from "@bp/domain/decode";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
-export const PermitKindSchema = z.enum(["construction", "opening"]);
-export type PermitKind = z.output<typeof PermitKindSchema>;
+export const PermitKindSchema = Schema.Literals(["construction", "opening"]);
+export type PermitKind = typeof PermitKindSchema.Type;
 
 /**
  * The NYC Socrata datasets `tqtj-sjs8` ("Street Construction") and `9jic-byiu`
@@ -23,74 +24,75 @@ export function classifyPermitKind(permitTypeDesc: string | null | undefined): P
   return "construction";
 }
 
-export const NormalizedDotStreetPermitSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    permitNumber: z.string().min(1),
-    permitKind: PermitKindSchema,
-    applicationTrackingId: z.string().nullable(),
-    permitTypeId: z.string().nullable(),
-    permitTypeDesc: z.string().nullable(),
-    permitStatusId: z.string().nullable(),
-    permitStatusDesc: z.string().nullable(),
-    permitSeriesId: z.string().nullable(),
-    permitSeriesDesc: z.string().nullable(),
-    applicationTypeShortDesc: z.string().nullable(),
-    equipmentTypeDesc: z.string().nullable(),
-    numberOfZones: z.number().int().nullable(),
-    linearFeet: z.number().nullable(),
-    totalSqFeet: z.number().nullable(),
-    estimatedNumberOfCuts: z.number().int().nullable(),
-    permitIssueDate: z.string().nullable(),
-    emergencyIssueDate: z.string().nullable(),
-    issuedWorkStartDate: z.string().nullable(),
-    issuedWorkEndDate: z.string().nullable(),
-    boroughName: z.string().nullable(),
-    houseNumber: z.string().nullable(),
-    onStreetName: z.string().nullable(),
-    fromStreetName: z.string().nullable(),
-    toStreetName: z.string().nullable(),
-    purposeComments: z.string().nullable(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const Integer = Schema.Number.check(Schema.isInt());
+const NullableString = Schema.NullOr(Schema.String);
+const numericNullable = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.NullOr(Schema.Number), {
+    decode: SchemaGetter.transform((value) =>
+      value === null || value === undefined ? null : Number(value),
+    ),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
 
-export type NormalizedDotStreetPermit = z.output<typeof NormalizedDotStreetPermitSchema>;
+export const NormalizedDotStreetPermitSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  permitNumber: NonEmptyString,
+  permitKind: PermitKindSchema,
+  applicationTrackingId: NullableString,
+  permitTypeId: NullableString,
+  permitTypeDesc: NullableString,
+  permitStatusId: NullableString,
+  permitStatusDesc: NullableString,
+  permitSeriesId: NullableString,
+  permitSeriesDesc: NullableString,
+  applicationTypeShortDesc: NullableString,
+  equipmentTypeDesc: NullableString,
+  numberOfZones: Schema.NullOr(Integer),
+  linearFeet: Schema.NullOr(Schema.Number),
+  totalSqFeet: Schema.NullOr(Schema.Number),
+  estimatedNumberOfCuts: Schema.NullOr(Integer),
+  permitIssueDate: NullableString,
+  emergencyIssueDate: NullableString,
+  issuedWorkStartDate: NullableString,
+  issuedWorkEndDate: NullableString,
+  boroughName: NullableString,
+  houseNumber: NullableString,
+  onStreetName: NullableString,
+  fromStreetName: NullableString,
+  toStreetName: NullableString,
+  purposeComments: NullableString,
+});
 
-const numericNullable = z
-  .union([z.null(), z.undefined(), z.coerce.number()])
-  .transform((value) => (value === undefined ? null : value));
-const stringNullable = z
-  .union([z.null(), z.undefined(), z.string()])
-  .transform((value) => (value === undefined ? null : value));
+export type NormalizedDotStreetPermit = typeof NormalizedDotStreetPermitSchema.Type;
 
-const RawPermitRowSchema = z
-  .object({
-    permitnumber: z.string().min(1),
-    applicationtrackingid: stringNullable,
-    permittypeid: stringNullable,
-    permittypedesc: stringNullable,
-    permitstatusid: stringNullable,
-    permitstatusshortdesc: stringNullable,
-    permitseriesid: stringNullable,
-    permitseriesshortdesc: stringNullable,
-    applicationtypeshortdesc: stringNullable,
-    equipmenttypedesc: stringNullable,
-    permitnumberofzones: numericNullable,
-    permitlinearfeet: numericNullable,
-    permittotalsqfeet: numericNullable,
-    permitestimatednumberofcuts: numericNullable,
-    permitissuedate: stringNullable,
-    emergencyissuedate: stringNullable,
-    issuedworkstartdate: stringNullable,
-    issuedworkenddate: stringNullable,
-    boroughname: stringNullable,
-    permithousenumber: stringNullable,
-    onstreetname: stringNullable,
-    fromstreetname: stringNullable,
-    tostreetname: stringNullable,
-    permitpurposecomments: stringNullable,
-  })
-  .passthrough();
+const RawPermitRowSchema = Schema.Struct({
+  permitnumber: NonEmptyString,
+  applicationtrackingid: Schema.optionalKey(NullableString),
+  permittypeid: Schema.optionalKey(NullableString),
+  permittypedesc: Schema.optionalKey(NullableString),
+  permitstatusid: Schema.optionalKey(NullableString),
+  permitstatusshortdesc: Schema.optionalKey(NullableString),
+  permitseriesid: Schema.optionalKey(NullableString),
+  permitseriesshortdesc: Schema.optionalKey(NullableString),
+  applicationtypeshortdesc: Schema.optionalKey(NullableString),
+  equipmenttypedesc: Schema.optionalKey(NullableString),
+  permitnumberofzones: Schema.optionalKey(numericNullable),
+  permitlinearfeet: Schema.optionalKey(numericNullable),
+  permittotalsqfeet: Schema.optionalKey(numericNullable),
+  permitestimatednumberofcuts: Schema.optionalKey(numericNullable),
+  permitissuedate: Schema.optionalKey(NullableString),
+  emergencyissuedate: Schema.optionalKey(NullableString),
+  issuedworkstartdate: Schema.optionalKey(NullableString),
+  issuedworkenddate: Schema.optionalKey(NullableString),
+  boroughname: Schema.optionalKey(NullableString),
+  permithousenumber: Schema.optionalKey(NullableString),
+  onstreetname: Schema.optionalKey(NullableString),
+  fromstreetname: Schema.optionalKey(NullableString),
+  tostreetname: Schema.optionalKey(NullableString),
+  permitpurposecomments: Schema.optionalKey(NullableString),
+});
 
 export function normalizeDotStreetPermitRows(
   rows: SocrataRow[],
@@ -101,7 +103,7 @@ export function normalizeDotStreetPermitRows(
 ): NormalizedDotStreetPermit[] {
   return rows
     .map((row) => {
-      const parsed = RawPermitRowSchema.parse(row);
+      const parsed = decodePreserve(RawPermitRowSchema)(row);
       return {
         schemaVersion,
         permitNumber: parsed.permitnumber,
