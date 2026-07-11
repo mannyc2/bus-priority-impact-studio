@@ -1,4 +1,4 @@
-import * as z from "../../schema-compat.js";
+import { Schema } from "effect";
 
 /**
  * Operational-date assertions for Tier 2 document-derived events.
@@ -18,16 +18,16 @@ import * as z from "../../schema-compat.js";
  * vocabulary (1k+ distinct values); those are preserved for review only.
  */
 
-export const SourceStatedStatusSchema = z.enum([
+export const SourceStatedStatusSchema = Schema.Literals([
   "done", // source says it happened / is in service / complete
   "committed_future", // source states a planned or scheduled launch date
   "proposed", // proposed / conceptual / under study / approved-only — not a committed launch
   "existing", // pre-existing baseline condition, not a new treatment
   "unknown", // status absent or ambiguous (e.g. "ongoing"/"in_progress")
 ]);
-export type SourceStatedStatus = z.output<typeof SourceStatedStatusSchema>;
+export type SourceStatedStatus = typeof SourceStatedStatusSchema.Type;
 
-export const OperationalDateValidationStateSchema = z.enum([
+export const OperationalDateValidationStateSchema = Schema.Literals([
   // Source directly states the intervention is operational/complete on this date.
   // Trust the date; historical GTFS is only an optional route/service exposure check.
   "source_stated_operational_date",
@@ -41,14 +41,14 @@ export const OperationalDateValidationStateSchema = z.enum([
   // Operational-looking intervention with ambiguous status — needs human review.
   "needs_review",
 ]);
-export type OperationalDateValidationState = z.output<typeof OperationalDateValidationStateSchema>;
+export type OperationalDateValidationState = typeof OperationalDateValidationStateSchema.Type;
 
-export const OperationalDateBasisSchema = z.enum([
+export const OperationalDateBasisSchema = Schema.Literals([
   "source_stated_complete",
   "source_stated_plan",
   "not_operational",
 ]);
-export type OperationalDateBasis = z.output<typeof OperationalDateBasisSchema>;
+export type OperationalDateBasis = typeof OperationalDateBasisSchema.Type;
 
 /**
  * Event kinds (from the resolution classifier) that represent an actual
@@ -726,66 +726,66 @@ export function classifyOperationalDate(input: {
   };
 }
 
-export const OperationalDateEvidenceRefSchema = z.object({
-  sourceId: z.string().optional(),
-  blockId: z.string().optional(),
-  pageNumber: z.number().optional(),
-  lineStart: z.number().optional(),
-  lineEnd: z.number().optional(),
-  blockHash: z.string().optional(),
-  roleRaw: z.string().optional(),
+export const OperationalDateEvidenceRefSchema = Schema.Struct({
+  sourceId: Schema.optional(Schema.String),
+  blockId: Schema.optional(Schema.String),
+  pageNumber: Schema.optional(Schema.Number),
+  lineStart: Schema.optional(Schema.Number),
+  lineEnd: Schema.optional(Schema.Number),
+  blockHash: Schema.optional(Schema.String),
+  roleRaw: Schema.optional(Schema.String),
 });
 
-export const OperationalDateAssertionSchema = z.object({
-  surfaceId: z.string(),
-  sourceId: z.string(),
-  sourceTitle: z.string().nullable(),
-  sourceGroup: z.string().nullable(),
-  displayLabel: z.string().nullable(),
-  eventName: z.string().nullable(),
-  treatmentText: z.string().nullable(),
-  locationText: z.string().nullable(),
+export const OperationalDateAssertionSchema = Schema.Struct({
+  surfaceId: Schema.String,
+  sourceId: Schema.String,
+  sourceTitle: Schema.NullOr(Schema.String),
+  sourceGroup: Schema.NullOr(Schema.String),
+  displayLabel: Schema.NullOr(Schema.String),
+  eventName: Schema.NullOr(Schema.String),
+  treatmentText: Schema.NullOr(Schema.String),
+  locationText: Schema.NullOr(Schema.String),
   /** The operational date exactly as stated by the source (verbatim text). */
-  operationalDate: z.string().nullable(),
-  datePrecision: z.string().nullable(),
+  operationalDate: Schema.NullOr(Schema.String),
+  datePrecision: Schema.NullOr(Schema.String),
   /** Faithful source signals, preserved for review. */
-  statusRaw: z.string().nullable(),
-  familyRaw: z.string().nullable(),
-  subtypeRaw: z.string().nullable(),
+  statusRaw: Schema.NullOr(Schema.String),
+  familyRaw: Schema.NullOr(Schema.String),
+  subtypeRaw: Schema.NullOr(Schema.String),
   /** Intervention-vs-process axis (from the resolution event classifier). */
-  eventKind: z.string(),
-  interventionFamily: z.string(),
+  eventKind: Schema.String,
+  interventionFamily: Schema.String,
   /** Derived operational-date classification. */
   sourceStatedStatus: SourceStatedStatusSchema,
   dateBasis: OperationalDateBasisSchema,
   validationState: OperationalDateValidationStateSchema,
-  trustedOperationalDate: z.boolean(),
-  classificationReasons: z.array(z.string()),
-  evidenceRefs: z.array(OperationalDateEvidenceRefSchema),
+  trustedOperationalDate: Schema.Boolean,
+  classificationReasons: Schema.Array(Schema.String),
+  evidenceRefs: Schema.Array(OperationalDateEvidenceRefSchema),
   // --- anchor adapter fields (normalized date, route join, dedup, eligibility) ---
   /** Normalized ISO start/end parsed from the verbatim operationalDate. */
-  effectiveDateStart: z.string().nullable(),
-  effectiveDateEnd: z.string().nullable(),
+  effectiveDateStart: Schema.NullOr(Schema.String),
+  effectiveDateEnd: Schema.NullOr(Schema.String),
   /** YYYY-MM, present only for month-or-finer precision (what the event-study resolver wants). */
-  implementationMonth: z.string().nullable(),
+  implementationMonth: Schema.NullOr(Schema.String),
   /** Precision derived from the parse (more reliable than the upstream datePrecision). */
-  normalizedPrecision: z.enum(["day", "month", "year", "range", "season", "unknown"]),
+  normalizedPrecision: Schema.Literals(["day", "month", "year", "range", "season", "unknown"]),
   /** True when the source states a realized onset (not a plan). */
-  isRealizedOnset: z.boolean(),
+  isRealizedOnset: Schema.Boolean,
   /** Route scope joined from the event-route-resolution artifact (by surfaceId). */
-  routeIds: z.array(z.string()),
-  routeIdentityValidationState: z.string().nullable(),
-  routeResolutionTier: z.string().nullable(),
+  routeIds: Schema.Array(Schema.String),
+  routeIdentityValidationState: Schema.NullOr(Schema.String),
+  routeResolutionTier: Schema.NullOr(Schema.String),
   /** Cross-source dedup: one canonical id per (family + month/year + route/location). */
-  interventionId: z.string(),
-  evidenceSourceIds: z.array(z.string()),
-  sourceCount: z.number(),
+  interventionId: Schema.String,
+  evidenceSourceIds: Schema.Array(Schema.String),
+  sourceCount: Schema.Number,
   /** Deterministic confidence in [0,1] for the operational-date assertion. */
-  confidence: z.number(),
+  confidence: Schema.Number,
   /** Realized AND month-or-finer AND route-linked: usable as a causal treatment anchor. */
-  causalAnchorEligible: z.boolean(),
+  causalAnchorEligible: Schema.Boolean,
 });
-export type OperationalDateAssertion = z.output<typeof OperationalDateAssertionSchema>;
+export type OperationalDateAssertion = typeof OperationalDateAssertionSchema.Type;
 
 /** Realized onset + month-or-finer date + a resolved route scope = causal-anchor usable. */
 export function computeCausalAnchorEligibility(input: {

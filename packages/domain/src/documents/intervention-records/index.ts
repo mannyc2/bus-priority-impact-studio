@@ -1,4 +1,4 @@
-import * as z from "../../schema-compat.js";
+import { Effect, Schema } from "effect";
 import { registerProjectSchema } from "../../schema-registry.js";
 import { DocumentMetricNameSchema, DocumentTreatmentTypeSchema } from "../candidates/index.js";
 
@@ -17,7 +17,7 @@ import { DocumentMetricNameSchema, DocumentTreatmentTypeSchema } from "../candid
 //     and attaches extraction provenance.
 // ---------------------------------------------------------------------------
 
-export const DocumentInterventionStatusSchema = z.enum([
+const documentInterventionStatuses = [
   "proposed",
   "planning",
   "implementing",
@@ -25,30 +25,38 @@ export const DocumentInterventionStatusSchema = z.enum([
   "complete",
   "canceled",
   "superseded",
-]);
-export type DocumentInterventionStatus = z.output<typeof DocumentInterventionStatusSchema>;
+] as const;
+export const DocumentInterventionStatusSchema = Object.assign(
+  Schema.Literals(documentInterventionStatuses),
+  { options: documentInterventionStatuses },
+);
+export type DocumentInterventionStatus = typeof DocumentInterventionStatusSchema.Type;
 
-export const DocumentInterventionServiceModeSchema = z.enum(["sbs", "local", "limited", "express"]);
-export type DocumentInterventionServiceMode = z.output<
-  typeof DocumentInterventionServiceModeSchema
->;
+const documentInterventionServiceModes = ["sbs", "local", "limited", "express"] as const;
+export const DocumentInterventionServiceModeSchema = Object.assign(
+  Schema.Literals(documentInterventionServiceModes),
+  { options: documentInterventionServiceModes },
+);
+export type DocumentInterventionServiceMode = typeof DocumentInterventionServiceModeSchema.Type;
 
-export const DocumentInterventionDatePrecisionSchema = z.enum(["day", "month", "year"]);
-export type DocumentInterventionDatePrecision = z.output<
-  typeof DocumentInterventionDatePrecisionSchema
->;
+const documentInterventionDatePrecisions = ["day", "month", "year"] as const;
+export const DocumentInterventionDatePrecisionSchema = Object.assign(
+  Schema.Literals(documentInterventionDatePrecisions),
+  { options: documentInterventionDatePrecisions },
+);
+export type DocumentInterventionDatePrecision = typeof DocumentInterventionDatePrecisionSchema.Type;
 
 // Pipeline-computed discriminator. `proposed` means every supporting candidate
 // is flagged proposed-only; `implemented` means at least one candidate reports
 // the intervention as in service or complete; `in_progress` is the middle
 // ground (planning, designing, monitoring). The model does not assign this
 // directly — Phase 3 post-processing derives it from candidate fields.
-export const DocumentInterventionRecordKindSchema = z.enum([
+export const DocumentInterventionRecordKindSchema = Schema.Literals([
   "implemented",
   "in_progress",
   "proposed",
 ]);
-export type DocumentInterventionRecordKind = z.output<typeof DocumentInterventionRecordKindSchema>;
+export type DocumentInterventionRecordKind = typeof DocumentInterventionRecordKindSchema.Type;
 
 // ---------------------------------------------------------------------------
 // Intervention-record quality vocabulary
@@ -103,249 +111,225 @@ export function isInterventionRecordQualityRepairCode(
   return (INTERVENTION_RECORD_QUALITY_REPAIR_CODES as readonly string[]).includes(value);
 }
 
-const evidenceRefList = z
-  .array(z.string().min(1))
-  .describe(
+const evidenceRefList = Schema.Array(Schema.String.check(Schema.isMinLength(1))).annotate({
+  description:
     "Candidate IDs that back this entry. Every ID must be one of the candidateIds supplied in the request; do not invent IDs.",
-  );
+});
 
-const StatusObservationDraftSchema = z
-  .object({
-    status: DocumentInterventionStatusSchema.describe(
-      "Lifecycle stage observed in a particular candidate or candidate cluster.",
-    ),
-    asOfDate: z
-      .string()
-      .optional()
-      .describe(
-        "When the source observed this status. ISO date or YYYY-MM. Omit if no date is given.",
-      ),
-    evidenceRefs: evidenceRefList,
-  })
-  .strict();
+const StatusObservationDraftSchema = Schema.Struct({
+  status: DocumentInterventionStatusSchema.annotate({
+    description: "Lifecycle stage observed in a particular candidate or candidate cluster.",
+  }),
+  asOfDate: Schema.optional(Schema.String).annotate({
+    description:
+      "When the source observed this status. ISO date or YYYY-MM. Omit if no date is given.",
+  }),
+  evidenceRefs: evidenceRefList,
+});
 
-const TreatmentComponentDraftSchema = z
-  .object({
-    treatmentType: DocumentTreatmentTypeSchema.optional().describe(
+const TreatmentComponentDraftSchema = Schema.Struct({
+  treatmentType: Schema.optional(DocumentTreatmentTypeSchema).annotate({
+    description:
       "Canonical treatment family for this component. Pick one of the enum values when it fits; otherwise leave unset and use customTreatmentType.",
-    ),
-    customTreatmentType: z
-      .string()
-      .optional()
-      .describe("Free-text treatment label when no enum value fits."),
-    description: z
-      .string()
-      .min(1)
-      .describe(
-        "One short sentence describing this treatment component as the source presents it. Stay close to the source's wording.",
-      ),
-    evidenceRefs: evidenceRefList,
-  })
-  .strict()
-  .describe(
+  }),
+  customTreatmentType: Schema.optional(Schema.String).annotate({
+    description: "Free-text treatment label when no enum value fits.",
+  }),
+  description: Schema.String.check(Schema.isMinLength(1)).annotate({
+    description:
+      "One short sentence describing this treatment component as the source presents it. Stay close to the source's wording.",
+  }),
+  evidenceRefs: evidenceRefList,
+}).annotate({
+  description:
     "A single treatment component. Emit one entry per distinct treatment, even when multiple are bundled in one source sentence.",
-  );
+});
 
-const PeriodDraftSchema = z
-  .object({
-    start: z
-      .string()
-      .optional()
-      .describe("ISO date or YYYY-MM. Omit if the source gives no start."),
-    end: z.string().optional().describe("ISO date or YYYY-MM. Omit if the source gives no end."),
-  })
-  .strict();
+const PeriodDraftSchema = Schema.Struct({
+  start: Schema.optional(Schema.String).annotate({
+    description: "ISO date or YYYY-MM. Omit if the source gives no start.",
+  }),
+  end: Schema.optional(Schema.String).annotate({
+    description: "ISO date or YYYY-MM. Omit if the source gives no end.",
+  }),
+});
 
-const MetricDraftSchema = z
-  .object({
-    metricName: DocumentMetricNameSchema.optional().describe(
+const MetricDraftSchema = Schema.Struct({
+  metricName: Schema.optional(DocumentMetricNameSchema).annotate({
+    description:
       "Canonical metric name. Pick from the enum when it fits; otherwise leave unset and use customMetricName.",
-    ),
-    customMetricName: z
-      .string()
-      .optional()
-      .describe("Free-text metric name when no enum value fits."),
-    valueNumeric: z
-      .number()
-      .optional()
-      .describe("Primary numeric value. Omit if the source gives only a qualitative claim."),
-    valueQualifier: z
-      .string()
-      .optional()
-      .describe(
-        'Range or qualifier such as "15-31%" or "up to 10 minutes". Use when valueNumeric alone loses meaning.',
-      ),
-    unit: z.string().optional().describe('Unit such as "percent", "minutes", "mph".'),
-    baselinePeriod: PeriodDraftSchema.optional().describe(
+  }),
+  customMetricName: Schema.optional(Schema.String).annotate({
+    description: "Free-text metric name when no enum value fits.",
+  }),
+  valueNumeric: Schema.optional(Schema.Number).annotate({
+    description: "Primary numeric value. Omit if the source gives only a qualitative claim.",
+  }),
+  valueQualifier: Schema.optional(Schema.String).annotate({
+    description:
+      'Range or qualifier such as "15-31%" or "up to 10 minutes". Use when valueNumeric alone loses meaning.',
+  }),
+  unit: Schema.optional(Schema.String).annotate({
+    description: 'Unit such as "percent", "minutes", "mph".',
+  }),
+  baselinePeriod: Schema.optional(PeriodDraftSchema).annotate({
+    description:
       "Pre-intervention period for the comparison. Omit the whole object if the source gives no baseline period.",
-    ),
-    comparisonPeriod: PeriodDraftSchema.optional().describe(
-      "Post-intervention period for the comparison. Omit if not given.",
-    ),
-    geographyScope: z
-      .string()
-      .optional()
-      .describe('Scope of the metric, e.g. "B44 corridor" or "Brooklyn-wide".'),
-    methodology: z
-      .string()
-      .optional()
-      .describe("Brief description of how the metric was computed, when the source explains it."),
-    evidenceRefs: evidenceRefList,
-  })
-  .strict();
+  }),
+  comparisonPeriod: Schema.optional(PeriodDraftSchema).annotate({
+    description: "Post-intervention period for the comparison. Omit if not given.",
+  }),
+  geographyScope: Schema.optional(Schema.String).annotate({
+    description: 'Scope of the metric, e.g. "B44 corridor" or "Brooklyn-wide".',
+  }),
+  methodology: Schema.optional(Schema.String).annotate({
+    description: "Brief description of how the metric was computed, when the source explains it.",
+  }),
+  evidenceRefs: evidenceRefList,
+});
 
-const CaveatDraftSchema = z
-  .object({
-    description: z.string().min(1).describe("One short sentence stating the caveat or limitation."),
-    evidenceRefs: evidenceRefList,
-  })
-  .strict();
+const CaveatDraftSchema = Schema.Struct({
+  description: Schema.String.check(Schema.isMinLength(1)).annotate({
+    description: "One short sentence stating the caveat or limitation.",
+  }),
+  evidenceRefs: evidenceRefList,
+});
 
-const CorridorDraftSchema = z
-  .object({
-    streets: z
-      .array(z.string().min(1))
-      .describe("Street or avenue names the intervention runs along."),
-    extentEndpoints: z
-      .object({
-        start: z.string().min(1).describe("Named start of the extent."),
-        end: z.string().min(1).describe("Named end of the extent."),
-      })
-      .strict()
-      .optional()
-      .describe(
-        'Named start/end of the corridor when the source gives one. E.g. start "Avenue U", end "Williamsburg Bridge Plaza".',
-      ),
-    intersections: z
-      .array(z.string().min(1))
-      .optional()
-      .describe("Specific intersections called out in the source."),
-  })
-  .strict();
+const CorridorDraftSchema = Schema.Struct({
+  streets: Schema.Array(Schema.String.check(Schema.isMinLength(1))).annotate({
+    description: "Street or avenue names the intervention runs along.",
+  }),
+  extentEndpoints: Schema.optional(
+    Schema.Struct({
+      start: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Named start of the extent.",
+      }),
+      end: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Named end of the extent.",
+      }),
+    }),
+  ).annotate({
+    description:
+      'Named start/end of the corridor when the source gives one. E.g. start "Avenue U", end "Williamsburg Bridge Plaza".',
+  }),
+  intersections: Schema.optional(Schema.Array(Schema.String.check(Schema.isMinLength(1)))).annotate(
+    {
+      description: "Specific intersections called out in the source.",
+    },
+  ),
+});
 
-export const DocumentInterventionRecordDraftSchema = z
-  .object({
-    routes: z
-      .array(z.string().min(1))
-      .describe(
-        'Bare MTA route IDs this intervention touches, e.g. ["B44"] or ["M15", "M14A"]. Do not append SBS, Limited, or Local.',
-      ),
-    serviceMode: DocumentInterventionServiceModeSchema.optional().describe(
-      "Bus service mode this intervention applies to, when the source distinguishes.",
-    ),
-    primaryTreatments: z
-      .array(DocumentTreatmentTypeSchema)
-      .describe(
-        'The headline treatments that define this intervention. Typically 1-3 entries; this is the coarse "what kind of intervention is this" tag.',
-      ),
-    customTreatments: z
-      .array(z.string().min(1))
-      .optional()
-      .describe("Free-text headline treatments for anything not in the enum. Use sparingly."),
-    corridor: CorridorDraftSchema.optional().describe(
+export const DocumentInterventionRecordDraftSchema = Schema.Struct({
+  routes: Schema.Array(Schema.String.check(Schema.isMinLength(1))).annotate({
+    description:
+      'Bare MTA route IDs this intervention touches, e.g. ["B44"] or ["M15", "M14A"]. Do not append SBS, Limited, or Local.',
+  }),
+  serviceMode: Schema.optional(DocumentInterventionServiceModeSchema).annotate({
+    description: "Bus service mode this intervention applies to, when the source distinguishes.",
+  }),
+  primaryTreatments: Schema.Array(DocumentTreatmentTypeSchema).annotate({
+    description:
+      'The headline treatments that define this intervention. Typically 1-3 entries; this is the coarse "what kind of intervention is this" tag.',
+  }),
+  customTreatments: Schema.optional(
+    Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  ).annotate({
+    description: "Free-text headline treatments for anything not in the enum. Use sparingly.",
+  }),
+  corridor: Schema.optional(CorridorDraftSchema).annotate({
+    description:
       "Where the intervention is. Omit if the source genuinely has no geographic scope (rare).",
-    ),
-    effectiveDate: z
-      .string()
-      .optional()
-      .describe(
-        "When the intervention took effect. ISO date or YYYY-MM. Omit if the source does not give one.",
-      ),
-    datePrecision: DocumentInterventionDatePrecisionSchema.optional().describe(
-      "Precision of effectiveDate. Omit when effectiveDate is omitted.",
-    ),
-    statusHistory: z
-      .array(StatusObservationDraftSchema)
-      .default([])
-      .describe(
+  }),
+  effectiveDate: Schema.optional(Schema.String).annotate({
+    description:
+      "When the intervention took effect. ISO date or YYYY-MM. Omit if the source does not give one.",
+  }),
+  datePrecision: Schema.optional(DocumentInterventionDatePrecisionSchema).annotate({
+    description: "Precision of effectiveDate. Omit when effectiveDate is omitted.",
+  }),
+  statusHistory: Schema.mutable(Schema.Array(StatusObservationDraftSchema))
+    .pipe(Schema.withDecodingDefaultType(Effect.succeed([])))
+    .annotate({
+      description:
         "Status observations across the source's narrative. Each entry pairs a status with the date the source observed it and the supporting candidate(s). Order earliest-to-latest when datable.",
-      ),
-    treatmentComponents: z
-      .array(TreatmentComponentDraftSchema)
-      .default([])
-      .describe(
+    }),
+  treatmentComponents: Schema.Array(TreatmentComponentDraftSchema)
+    .pipe(Schema.withDecodingDefaultType(Effect.succeed([])))
+    .annotate({
+      description:
         "Finer-grained treatment components beyond the primaryTreatments tag. One entry per distinct treatment described in the source.",
-      ),
-    metrics: z
-      .array(MetricDraftSchema)
-      .default([])
-      .describe(
+    }),
+  metrics: Schema.Array(MetricDraftSchema)
+    .pipe(Schema.withDecodingDefaultType(Effect.succeed([])))
+    .annotate({
+      description:
         "Quantitative impacts reported for this intervention. One entry per discrete metric claim.",
-      ),
-    caveats: z
-      .array(CaveatDraftSchema)
-      .default([])
-      .describe(
+    }),
+  caveats: Schema.Array(CaveatDraftSchema)
+    .pipe(Schema.withDecodingDefaultType(Effect.succeed([])))
+    .annotate({
+      description:
         "Source-stated limitations, confounds, or scoping notes that qualify the intervention or its metrics.",
-      ),
-    notes: z
-      .string()
-      .optional()
-      .describe(
-        "Optional aggregator notes about ambiguities or contradictions across candidates. Empty if nothing to flag.",
-      ),
-  })
-  .strict()
-  .describe(
+    }),
+  notes: Schema.optional(Schema.String).annotate({
+    description:
+      "Optional aggregator notes about ambiguities or contradictions across candidates. Empty if nothing to flag.",
+  }),
+}).annotate({
+  description:
     "A single discrete intervention as one source describes it. One source can produce multiple records when it covers separate changes (e.g. an SBS launch and a later RTPI install).",
-  );
+});
 
-export type DocumentInterventionRecordDraft = z.output<
-  typeof DocumentInterventionRecordDraftSchema
->;
+export type DocumentInterventionRecordDraft = typeof DocumentInterventionRecordDraftSchema.Type;
 
-export const DocumentInterventionRecordsToolResponseSchema = z
-  .object({
-    sourceId: z
-      .string()
-      .min(1)
-      .describe(
-        "Echo back the sourceId supplied in the request. Used to verify the model is operating on the intended source.",
-      ),
-    interventionRecords: z
-      .array(DocumentInterventionRecordDraftSchema)
-      .max(20)
-      .describe(
+export const DocumentInterventionRecordsToolResponseSchema = Schema.Struct({
+  sourceId: Schema.String.check(Schema.isMinLength(1)).annotate({
+    description:
+      "Echo back the sourceId supplied in the request. Used to verify the model is operating on the intended source.",
+  }),
+  interventionRecords: Schema.Array(DocumentInterventionRecordDraftSchema)
+    .check(Schema.isMaxLength(20))
+    .annotate({
+      description:
         "One record per discrete intervention the source describes. Most sources produce 1-3 records; a long planning document might produce more. Return an empty array if the source describes no actionable interventions.",
-      ),
-    unattachedCandidateIds: z
-      .array(z.string().min(1))
-      .default([])
-      .describe(
+    }),
+  unattachedCandidateIds: Schema.mutable(Schema.Array(Schema.String.check(Schema.isMinLength(1))))
+    .pipe(Schema.withDecodingDefaultType(Effect.succeed([])))
+    .annotate({
+      description:
         "Candidate IDs that did not belong to any record. Tables, figures, methodology, source_gap, and review_question candidates that no record references go here. This is for transparency; we use it to spot under-extraction.",
-      ),
-  })
-  .strict();
+    }),
+});
 
-export type DocumentInterventionRecordsToolResponse = z.output<
-  typeof DocumentInterventionRecordsToolResponseSchema
->;
+export type DocumentInterventionRecordsToolResponse =
+  typeof DocumentInterventionRecordsToolResponseSchema.Type;
 
 // Persisted shape: adds recordId, recordKind, extraction provenance, and
 // any deterministic back-fill of statusHistory or routes that the pipeline
 // applied after the model returned.
-const DocumentInterventionRecordObjectSchema = DocumentInterventionRecordDraftSchema.extend({
-  recordId: z.string().min(1),
-  sourceId: z.string().min(1),
-  recordKind: DocumentInterventionRecordKindSchema,
-  evidenceCandidateIds: z
-    .array(z.string().min(1))
-    .describe("Every candidateId referenced anywhere in this record."),
-  extraction: z
-    .object({
-      candidateExtractionRootName: z.string().min(1),
-      candidateRootName: z.string().min(1),
-      synthesisRootName: z.string().min(1),
-      qualityIssues: z.array(z.string().min(1)).optional(),
-      qualityRepairs: z.array(z.string().min(1)).optional(),
-      bucketId: z.string().min(1).optional(),
-      bucketKind: z.string().min(1).optional(),
-    })
-    .strict(),
-}).strict();
+const DocumentInterventionRecordObjectSchema = Schema.Struct({
+  ...DocumentInterventionRecordDraftSchema.fields,
+  ...{
+    recordId: Schema.String.check(Schema.isMinLength(1)),
+    sourceId: Schema.String.check(Schema.isMinLength(1)),
+    recordKind: DocumentInterventionRecordKindSchema,
+    evidenceCandidateIds: Schema.Array(Schema.String.check(Schema.isMinLength(1))).annotate({
+      description: "Every candidateId referenced anywhere in this record.",
+    }),
+    extraction: Schema.Struct({
+      candidateExtractionRootName: Schema.String.check(Schema.isMinLength(1)),
+      candidateRootName: Schema.String.check(Schema.isMinLength(1)),
+      synthesisRootName: Schema.String.check(Schema.isMinLength(1)),
+      qualityIssues: Schema.optional(Schema.Array(Schema.String.check(Schema.isMinLength(1)))),
+      qualityRepairs: Schema.optional(Schema.Array(Schema.String.check(Schema.isMinLength(1)))),
+      bucketId: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+      bucketKind: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+    }),
+  },
+});
 
 export const DocumentInterventionRecordSchema = registerProjectSchema(
-  DocumentInterventionRecordObjectSchema.readonly(),
+  DocumentInterventionRecordObjectSchema,
   {
     id: "bp.document_intervention_record.v1",
     title: "Document Intervention Record",
@@ -355,4 +339,4 @@ export const DocumentInterventionRecordSchema = registerProjectSchema(
   },
 );
 
-export type DocumentInterventionRecord = z.output<typeof DocumentInterventionRecordSchema>;
+export type DocumentInterventionRecord = typeof DocumentInterventionRecordSchema.Type;
