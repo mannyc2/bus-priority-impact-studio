@@ -8285,3 +8285,21 @@ Every served JSON Schema artifact is byte-identical to its pre-migration capture
 verification passed: repository typechecking, 553 unit tests, 155 web tests, 22 Worker tests,
 architecture gates, `git diff --check`, and style. The production entry remains 105.5 KB gzip and
 the full web bundle remains 312.5 KB gzip.
+
+## [2026-07-11] engineering | Plan 077 restores validated MapLibre rendering
+
+Replaced every MapLibre-facing OKLCH value with a parser-tested sRGB ramp, centralized the base
+style and network scales, and added the installed MapLibre style-spec validator as an executable
+gate. Both maps now use the documented NYC bounds; the embedded route map uses cooperative
+gestures and zero-duration paint transitions under reduced motion.
+
+The loader now removes failed scripts and resets rejected loads, while a shared lifecycle seam
+distinguishes fatal pre-load failures from recoverable post-load warnings and removes maps
+idempotently. Static fallbacks expose a working retry; degraded route overlays replace dead
+checkboxes with an availability note. Chromium acceptance also found and fixed a covered mobile
+retry button and a zero-height route map caused by the single-column grid.
+
+Final verification passed: web typecheck, 9 focused tests, all 161 web tests, style, and a
+105.6 KB gzip entry / 313.7 KB gzip total bundle. Chrome for Testing 149.0.7827.55 verified
+`/map`, B48, and M15-SBS at desktop and 390px, including NYC clamping, page scroll over the
+embedded map, reduced motion, and forced vendor-failure recovery.
