@@ -66,6 +66,7 @@ type SegmentMapProperties = {
   ace: boolean;
   tsp: boolean;
   speedLabel: string;
+  detailJoinStatus: "available" | "unavailable";
 };
 
 type MarkerProperties = {
@@ -80,45 +81,6 @@ const SEGMENT_SOURCE = "bp-route-segments";
 const MARKER_SOURCE = "bp-route-markers";
 const CASING_LAYER = "bp-route-casing";
 const HIT_LAYER = "bp-route-hit";
-
-function directionBucket(feature: MapRouteSegmentFeature): string {
-  return feature.properties.directionId;
-}
-
-function featureOrder(features: readonly MapRouteSegmentFeature[]): Map<string, number> {
-  const byDirection = new Map<string, MapRouteSegmentFeature[]>();
-  for (const feature of features) {
-    const key = directionBucket(feature);
-    byDirection.set(key, [...(byDirection.get(key) ?? []), feature]);
-  }
-  const output = new Map<string, number>();
-  for (const group of byDirection.values()) {
-    group.forEach((feature, index) => {
-      output.set(String(feature.id), index);
-    });
-  }
-  return output;
-}
-
-function studioSegmentForFeature(input: {
-  feature: MapRouteSegmentFeature;
-  featureIndex: number;
-  orderedFeatureIndex: number;
-  segments: readonly StudioSegment[];
-}): StudioSegment | null {
-  const direct = input.segments.find(
-    (segment) =>
-      segment.id === input.feature.properties.segmentId || segment.id === String(input.feature.id),
-  );
-  if (direct !== undefined) return direct;
-
-  const sameDirection = input.segments.filter((segment) =>
-    input.feature.properties.directionId === "0"
-      ? segment.direction === "NB" || segment.direction === "EB"
-      : segment.direction === "SB" || segment.direction === "WB",
-  );
-  return sameDirection[input.orderedFeatureIndex] ?? input.segments[input.featureIndex] ?? null;
-}
 
 function lineStringGeometry(geometry: MapRouteSegmentFeature["geometry"]): LineString {
   return {
@@ -140,22 +102,16 @@ function routeSegmentCollection(input: {
   hoveredSegmentId: string | null;
   highlightId?: string | undefined;
 }): FeatureCollection<LineString, SegmentMapProperties> {
-  const order = featureOrder(input.collection.features);
+  const segmentsById = new Map(input.segments.map((segment) => [segment.id, segment]));
   const totalRiderHours = input.segments.reduce((sum, segment) => sum + segment.riderHours, 0);
   const worstId =
     input.highlightId ?? input.segments.find((segment) => segment.flagged)?.id ?? null;
 
   return {
     type: "FeatureCollection",
-    features: input.collection.features.map((feature, featureIndex) => {
-      const orderedFeatureIndex = order.get(String(feature.id)) ?? featureIndex;
-      const segment = studioSegmentForFeature({
-        feature,
-        featureIndex,
-        orderedFeatureIndex,
-        segments: input.segments,
-      });
-      const studioSegmentId = segment?.id ?? feature.properties.segmentId;
+    features: input.collection.features.map((feature) => {
+      const studioSegmentId = feature.properties.studioSegmentId;
+      const segment = segmentsById.get(studioSegmentId) ?? null;
       const speedMph =
         segment === null
           ? (feature.properties.averageSpeedMph ?? input.route.weightedAvgSpeed)
@@ -182,7 +138,7 @@ function routeSegmentCollection(input: {
           from,
           to,
           speedMph,
-          scheduledMph: segment?.scheduledMph ?? input.route.scheduledMph,
+          scheduledMph: segment?.scheduledMph ?? null,
           riderHours,
           color: speedToColor(speedMph),
           opacity: hasHover && !hovered ? 0.5 : 1,
@@ -193,6 +149,7 @@ function routeSegmentCollection(input: {
           ace: segment?.ace ?? false,
           tsp: segment?.tsp ?? false,
           speedLabel: `${speedMph.toFixed(1)}${share}`,
+          detailJoinStatus: segment === null ? "unavailable" : "available",
         },
       };
     }),
@@ -312,6 +269,13 @@ export function RouteMapLibreMap({
   );
   const markerData = useMemo(() => markerCollection(segmentData, layers), [segmentData, layers]);
   const landData = useMemo(() => landCollection(context), [context]);
+  const unavailableDetailCount = useMemo(
+    () =>
+      segmentData.features.filter(
+        (feature) => feature.properties.detailJoinStatus === "unavailable",
+      ).length,
+    [segmentData],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -537,12 +501,20 @@ export function RouteMapLibreMap({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="bp-bus-map min-h-[560px] overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]"
-      style={{ minHeight: 560 }}
-      aria-label={`${route.label} street map`}
-      role="img"
-    />
+    <div className="relative min-h-[560px]">
+      <div
+        ref={containerRef}
+        className="bp-bus-map min-h-[560px] overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]"
+        style={{ minHeight: 560 }}
+        aria-label={`${route.label} street map`}
+        role="img"
+      />
+      {unavailableDetailCount > 0 ? (
+        <div className="absolute bottom-3 left-3 rounded-[3px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-card)] px-3 py-2 text-[11.5px] text-[var(--bp-color-ink-70)] shadow-sm">
+          Detail unavailable for {unavailableDetailCount} map
+          {unavailableDetailCount === 1 ? " segment" : " segments"}.
+        </div>
+      ) : null}
+    </div>
   );
 }

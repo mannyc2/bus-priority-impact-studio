@@ -159,7 +159,7 @@ export function SlowSegmentsSection({
                     <SegmentDetail
                       badge={badge}
                       note={note}
-                      series={historySeries.get(segment.id) ?? null}
+                      series={historySeries.series.get(segment.id) ?? null}
                       historyStatus={speedHistory.status}
                     />
                   ) : null}
