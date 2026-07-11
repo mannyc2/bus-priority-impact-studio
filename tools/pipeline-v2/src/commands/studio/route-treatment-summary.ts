@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
 import {
@@ -15,7 +16,7 @@ import {
   routeTreatmentSummaryMarkdown,
   segmentTreatmentRowsFromLaneOverlaps,
 } from "@bp/analytics/interventions";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   loadRouteTreatmentSummaryLocalDbRows,
   type RouteTreatmentSegmentUniverseRow,
@@ -230,41 +231,62 @@ export default defineCommand({
   path: ["studio", "route-treatment-summary"],
   summary: "Build the deterministic route treatment-state summary artifact.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      output: z.string().optional().describe("Override JSON output path"),
-      summaryOutput: z.string().optional().describe("Override Markdown summary output path"),
-      publishableInterventions: z
-        .string()
-        .optional()
-        .describe("Reviewed publishable intervention artifact path"),
-      routeShapeSnapshot: z
-        .string()
-        .default(defaultRouteShapeSnapshotPath)
-        .describe("Current bus route shape snapshot used for segment bus-lane overlap checks"),
-      stopSnapshot: z
-        .string()
-        .default(defaultStopSnapshotPath)
-        .describe("Current bus stop snapshot used for segment bus-lane overlap checks"),
-      skipPublishableInterventions: z
-        .boolean()
-        .default(false)
-        .describe("Skip optional publishable intervention artifact input"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Override JSON output path",
+        }),
+        summaryOutput: Schema.optionalKey(Schema.String).annotate({
+          description: "Override Markdown summary output path",
+        }),
+        publishableInterventions: Schema.optionalKey(Schema.String).annotate({
+          description: "Reviewed publishable intervention artifact path",
+        }),
+        routeShapeSnapshot: Schema.String.pipe(
+          Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultRouteShapeSnapshotPath)),
+        ).annotate({
+          description: "Current bus route shape snapshot used for segment bus-lane overlap checks",
+        }),
+        stopSnapshot: Schema.String.pipe(
+          Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultStopSnapshotPath)),
+        ).annotate({
+          description: "Current bus stop snapshot used for segment bus-lane overlap checks",
+        }),
+        skipPublishableInterventions: Schema.Boolean.pipe(
+          Schema.withDecodingDefaultTypeKey(Effect.succeed(false)),
+        ).annotate({ description: "Skip optional publishable intervention artifact input" }),
+      },
     }),
   },
-  output: z.object({
-    month: z.string(),
-    outputPath: z.string(),
-    summaryPath: z.string(),
-    validationStatus: z.enum(["pass", "warn", "fail"]),
-    issueCount: z.number().int().nonnegative(),
-    routeCount: z.number().int().nonnegative(),
-    routeTreatmentRowCount: z.number().int().nonnegative(),
-    sourceGapRowCount: z.number().int().nonnegative(),
-    segmentTreatmentRowCount: z.number().int().nonnegative(),
-    routeWithPositiveEvidenceCount: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    month: Schema.String,
+    outputPath: Schema.String,
+    summaryPath: Schema.String,
+    validationStatus: Schema.Literals(["pass", "warn", "fail"]),
+    issueCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    routeTreatmentRowCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    sourceGapRowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    segmentTreatmentRowCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    routeWithPositiveEvidenceCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
   }),
   async run({ input }) {
     const month = isoMonth(input.options.year, input.options.month);

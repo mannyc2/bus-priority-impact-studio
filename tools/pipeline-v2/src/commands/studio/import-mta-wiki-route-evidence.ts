@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -19,7 +20,7 @@ import {
   studioRouteEvidenceBundleKey,
 } from "@bp/domain/studio/route-evidence";
 import { type StudioRoute, StudioRoutesResponseSchema } from "@bp/domain/studio/routes";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { readJsonArtifact, writeJson } from "../../lib/json.ts";
 import {
   busRouteKeysFromText,
@@ -821,38 +822,48 @@ export async function runStudioImportMtaWikiRouteEvidence(
   return artifact;
 }
 
-const optionsSchema = z.object({
-  mtaWikiRoot: z.string().optional().describe("Path to the mta-wiki repo root."),
-  wikiRelease: z
-    .string()
-    .optional()
-    .describe("MTA-wiki release id under data/exports/releases/<id>."),
-  routesPath: z.string().optional().describe("Studio routes.json path."),
-  output: z.string().optional().describe("Output route evidence JSON artifact path."),
-  servingOutputDir: z
-    .string()
-    .optional()
-    .describe("Directory for per-route route evidence artifacts and index.json."),
-  writeServingArtifacts: z.coerce
+const optionsSchema = Schema.Struct({
+  mtaWikiRoot: Schema.optionalKey(Schema.String).annotate({
+    description: "Path to the mta-wiki repo root.",
+  }),
+  wikiRelease: Schema.optionalKey(Schema.String).annotate({
+    description: "MTA-wiki release id under data/exports/releases/<id>.",
+  }),
+  routesPath: Schema.optionalKey(Schema.String).annotate({
+    description: "Studio routes.json path.",
+  }),
+  output: Schema.optionalKey(Schema.String).annotate({
+    description: "Output route evidence JSON artifact path.",
+  }),
+  servingOutputDir: Schema.optionalKey(Schema.String).annotate({
+    description: "Directory for per-route route evidence artifacts and index.json.",
+  }),
+  writeServingArtifacts: arg
     .boolean()
-    .default(true)
-    .describe("Write per-route serving artifacts and the wiki evidence index."),
-  generatedAt: z.string().optional(),
+    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+    .annotate({ description: "Write per-route serving artifacts and the wiki evidence index." }),
+  generatedAt: Schema.optionalKey(Schema.String),
   minMatchedRoutes: arg
     .positiveInt()
-    .default(1)
-    .describe("Fail if fewer than this many Bus routes match MTA-wiki route records."),
+    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+    .annotate({
+      description: "Fail if fewer than this many Bus routes match MTA-wiki route records.",
+    }),
 });
 
-const commandOutputSchema = z.object({
-  outputPath: z.string(),
-  routeCount: z.number().int().nonnegative(),
-  matchedBusRouteCount: z.number().int().nonnegative(),
-  unmatchedWikiRouteCount: z.number().int().nonnegative(),
-  citationCount: z.number().int().nonnegative(),
-  omittedAmbiguousRecordCount: z.number().int().nonnegative(),
-  servingRouteCount: z.number().int().nonnegative(),
-  servingIndexPath: z.string(),
+const commandOutputSchema = Schema.Struct({
+  outputPath: Schema.String,
+  routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  matchedBusRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  unmatchedWikiRouteCount: Schema.Number.check(Schema.isInt()).check(
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
+  citationCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  omittedAmbiguousRecordCount: Schema.Number.check(Schema.isInt()).check(
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
+  servingRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  servingIndexPath: Schema.String,
 });
 
 export default defineCommand({

@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
 import {
@@ -14,7 +15,7 @@ import {
   type RouteSpeedHistoryBatchRoute,
   type RouteSpeedSpineReadiness,
 } from "@bp/analytics/feature-history";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { loadCompleteRouteSpeedScheduleMonths } from "@bp/pipeline-v2/local-db-aggregates";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { readJsonArtifact, readJsonIfExists, writeJson } from "../../lib/json.ts";
@@ -24,36 +25,30 @@ import { runRouteSpeedHistory } from "./route-speed-history.ts";
 
 const ISO_MONTH_RE = /^\d{4}-\d{2}$/;
 
-const RouteSpeedSpineManifestSchema = z
-  .object({
-    artifactKind: z.literal("studio_route_speed_spine_manifest"),
-    schemaVersion: z.literal(1),
-    source: z
-      .object({
-        startMonth: z.string().regex(ISO_MONTH_RE),
-        endMonth: z.string().regex(ISO_MONTH_RE).nullable(),
-      })
-      .passthrough(),
-    routes: z.array(
-      z
-        .object({
-          routeId: z.string().min(1),
-          routeSlug: z.string().min(1),
-          readiness: z.enum([
-            "series_ready",
-            "series_ready_with_gaps",
-            "needs_pattern_review",
-            "failed",
-          ]),
-          artifactPath: z.string().min(1),
-          artifactWritten: z.boolean(),
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
+const RouteSpeedSpineManifestSchema = Schema.Struct({
+  artifactKind: Schema.Literal("studio_route_speed_spine_manifest"),
+  schemaVersion: Schema.Literal(1),
+  source: Schema.Struct({
+    startMonth: Schema.String.check(Schema.isPattern(ISO_MONTH_RE)),
+    endMonth: Schema.NullOr(Schema.String.check(Schema.isPattern(ISO_MONTH_RE))),
+  }),
+  routes: Schema.Array(
+    Schema.Struct({
+      routeId: Schema.String.check(Schema.isMinLength(1)),
+      routeSlug: Schema.String.check(Schema.isMinLength(1)),
+      readiness: Schema.Literals([
+        "series_ready",
+        "series_ready_with_gaps",
+        "needs_pattern_review",
+        "failed",
+      ]),
+      artifactPath: Schema.String.check(Schema.isMinLength(1)),
+      artifactWritten: Schema.Boolean,
+    }),
+  ),
+});
 
-type RouteSpeedSpineManifest = z.output<typeof RouteSpeedSpineManifestSchema>;
+type RouteSpeedSpineManifest = typeof RouteSpeedSpineManifestSchema.Type;
 
 function repoDisplayPath(path: string): string {
   if (!isAbsolute(path)) return path;
@@ -274,50 +269,68 @@ export default defineCommand({
   summary:
     "Build route speed-history artifacts for every eligible route in a speed-spine manifest.",
   input: {
-    options: dbOptions.extend({
-      startMonth: z
-        .string()
-        .regex(ISO_MONTH_RE)
-        .default(ROUTE_SPEED_SPINE_DEFAULT_START_MONTH)
-        .describe("First source month used by the spine manifest, YYYY-MM"),
-      endMonth: z
-        .string()
-        .regex(ISO_MONTH_RE)
-        .optional()
-        .describe("Last source month used by the spine manifest, YYYY-MM"),
-      routes: z.string().optional().describe("Comma-separated route IDs to include"),
-      readiness: z
-        .string()
-        .optional()
-        .describe("Comma-separated spine readiness states to materialize"),
-      limit: z.coerce
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("Maximum route count to process"),
-      offset: z.coerce.number().int().nonnegative().default(0).describe("Selected route offset"),
-      force: z.coerce
-        .boolean()
-        .default(false)
-        .describe("Rebuild valid existing speed-history artifacts"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      spineManifest: z.string().optional().describe("Override speed-spines manifest path"),
-      output: z.string().optional().describe("Override speed-histories manifest output path"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        startMonth: Schema.String.check(Schema.isPattern(ISO_MONTH_RE))
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(ROUTE_SPEED_SPINE_DEFAULT_START_MONTH),
+            ),
+          )
+          .annotate({ description: "First source month used by the spine manifest, YYYY-MM" }),
+        endMonth: Schema.optionalKey(Schema.String.check(Schema.isPattern(ISO_MONTH_RE))).annotate({
+          description: "Last source month used by the spine manifest, YYYY-MM",
+        }),
+        routes: Schema.optionalKey(Schema.String).annotate({
+          description: "Comma-separated route IDs to include",
+        }),
+        readiness: Schema.optionalKey(Schema.String).annotate({
+          description: "Comma-separated spine readiness states to materialize",
+        }),
+        limit: Schema.optionalKey(
+          arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+        ).annotate({ description: "Maximum route count to process" }),
+        offset: arg
+          .number()
+          .check(Schema.isInt())
+          .check(Schema.isGreaterThanOrEqualTo(0))
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0)))
+          .annotate({ description: "Selected route offset" }),
+        force: arg
+          .boolean()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+          .annotate({ description: "Rebuild valid existing speed-history artifacts" }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        spineManifest: Schema.optionalKey(Schema.String).annotate({
+          description: "Override speed-spines manifest path",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Override speed-histories manifest output path",
+        }),
+      },
     }),
   },
-  output: z.object({
-    manifestPath: z.string(),
-    routeCount: z.number().int().nonnegative(),
-    writtenRouteCount: z.number().int().nonnegative(),
-    skippedExistingRouteCount: z.number().int().nonnegative(),
-    blockedRouteCount: z.number().int().nonnegative(),
-    failedRouteCount: z.number().int().nonnegative(),
-    artifactReadyRouteCount: z.number().int().nonnegative(),
-    totalCellCount: z.number().int().nonnegative(),
-    availableCellCount: z.number().int().nonnegative(),
-    missingCellCount: z.number().int().nonnegative(),
-    unmappedRawKeyCount: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    manifestPath: Schema.String,
+    routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    writtenRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    skippedExistingRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    blockedRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    failedRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    artifactReadyRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    totalCellCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    availableCellCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    missingCellCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    unmappedRawKeyCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
   }),
   async run({ input }) {
     const routeIds = parseRouteList(input.options.routes);

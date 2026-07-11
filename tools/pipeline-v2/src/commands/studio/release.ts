@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import {
@@ -19,7 +20,7 @@ import {
   buildStudioSegmentsProjection,
 } from "@bp/domain/studio/projections";
 import { type StudioReleasePayload, StudioReleasePayloadSchema } from "@bp/domain/studio/release";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
 import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
 import { normalizeScheduleTimepointRows } from "@bp/sources/adapters/mta/schedules";
@@ -657,49 +658,65 @@ export default defineCommand({
   path: ["studio", "release"],
   summary: "Build the Bus Priority Impact Studio release projection set.",
   input: {
-    options: z.object({
-      month: z.string().default(defaultMonth).describe("Public release iso month"),
-      output: z.string().optional().describe("Override path for the release.json output"),
-      schema: z.string().optional().describe("Override the D1 schema.sql path"),
-      seed: z.string().optional().describe("Override the D1 seed.sql path"),
-      limit: z.coerce
+    options: Schema.Struct({
+      month: Schema.String.pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultMonth)),
+      ).annotate({ description: "Public release iso month" }),
+      output: Schema.optionalKey(Schema.String).annotate({
+        description: "Override path for the release.json output",
+      }),
+      schema: Schema.optionalKey(Schema.String).annotate({
+        description: "Override the D1 schema.sql path",
+      }),
+      seed: Schema.optionalKey(Schema.String).annotate({
+        description: "Override the D1 seed.sql path",
+      }),
+      limit: arg
         .number()
-        .int()
-        .positive()
-        .default(defaultRouteLimit)
-        .describe("Route limit for demo profile"),
-      routeSliceArtifacts: z.string().optional(),
-      routeSliceRaw: z.string().optional(),
-      routeShapeSnapshot: z.string().optional(),
-      stopSnapshot: z.string().optional(),
-      tspSource: z.string().optional(),
-      documentChunks: z.string().optional(),
-      manualInterventions: z.string().optional(),
-      publishableInterventionsByRoute: z.string().optional(),
-      localDb: z.string().optional(),
-      profile: z.enum(["demo", "full"]).default("full"),
-      segmentNoteLlm: z.coerce.boolean().default(false),
-      segmentNoteModel: z.string().optional(),
-      segmentNoteLlmLimit: z.string().optional(),
-      segmentNoteMaxTokens: z.coerce.number().int().positive().optional(),
-      segmentNoteTimeoutMs: z.coerce.number().int().positive().optional(),
-      segmentNoteAttempts: z.coerce.number().int().positive().optional(),
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThan(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultRouteLimit)))
+        .annotate({ description: "Route limit for demo profile" }),
+      routeSliceArtifacts: Schema.optionalKey(Schema.String),
+      routeSliceRaw: Schema.optionalKey(Schema.String),
+      routeShapeSnapshot: Schema.optionalKey(Schema.String),
+      stopSnapshot: Schema.optionalKey(Schema.String),
+      tspSource: Schema.optionalKey(Schema.String),
+      documentChunks: Schema.optionalKey(Schema.String),
+      manualInterventions: Schema.optionalKey(Schema.String),
+      publishableInterventionsByRoute: Schema.optionalKey(Schema.String),
+      localDb: Schema.optionalKey(Schema.String),
+      profile: Schema.Literals(["demo", "full"]).pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed("full")),
+      ),
+      segmentNoteLlm: arg.boolean().pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false))),
+      segmentNoteModel: Schema.optionalKey(Schema.String),
+      segmentNoteLlmLimit: Schema.optionalKey(Schema.String),
+      segmentNoteMaxTokens: Schema.optionalKey(
+        arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+      ),
+      segmentNoteTimeoutMs: Schema.optionalKey(
+        arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+      ),
+      segmentNoteAttempts: Schema.optionalKey(
+        arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+      ),
     }),
   },
-  output: z.object({
-    outputPath: z.string(),
-    routeCount: z.number(),
-    segmentCount: z.number(),
-    source: z.object({
-      schemaPath: z.string(),
-      seedPath: z.string(),
-      month: z.string(),
+  output: Schema.Struct({
+    outputPath: Schema.String,
+    routeCount: Schema.Number,
+    segmentCount: Schema.Number,
+    source: Schema.Struct({
+      schemaPath: Schema.String,
+      seedPath: Schema.String,
+      month: Schema.String,
     }),
-    segmentNoteLlm: z.object({
-      enabled: z.boolean(),
-      model: z.string().nullable(),
-      requestedCount: z.number(),
-      generatedCount: z.number(),
+    segmentNoteLlm: Schema.Struct({
+      enabled: Schema.Boolean,
+      model: Schema.NullOr(Schema.String),
+      requestedCount: Schema.Number,
+      generatedCount: Schema.Number,
     }),
   }),
   async run({ input }) {

@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
 import {
@@ -12,7 +13,7 @@ import {
   routeSpeedHistoryMonthsFromSpine,
   routeSpeedSpineRouteSlug,
 } from "@bp/analytics/feature-history";
-import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   loadCompleteRouteSpeedScheduleMonths,
   loadRouteSpeedHistoryLocalDbRows,
@@ -36,7 +37,8 @@ function normalizeRouteId(routeId: string): string {
 async function readSpineArtifact(path: string): Promise<RouteSpeedSpineArtifact> {
   const artifact = await readJsonArtifact(
     path,
-    z.object({ artifactKind: z.literal("studio_route_speed_spine") }).passthrough(),
+    Schema.Struct({ artifactKind: Schema.Literal("studio_route_speed_spine") }),
+    "preserve",
   );
   return artifact as RouteSpeedSpineArtifact;
 }
@@ -133,23 +135,36 @@ export default defineCommand({
   summary:
     "Build a route's month-spanning segment/daypart speed-history artifact from its stable spine.",
   input: {
-    options: dbOptions.extend({
-      routeId: z.string().min(1).default("B41").describe("Route ID to materialize"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      spine: z.string().optional().describe("Override speed-spine artifact path"),
-      output: z.string().optional().describe("Override speed-history artifact path"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        routeId: Schema.String.check(Schema.isMinLength(1))
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("B41")))
+          .annotate({ description: "Route ID to materialize" }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        spine: Schema.optionalKey(Schema.String).annotate({
+          description: "Override speed-spine artifact path",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Override speed-history artifact path",
+        }),
+      },
     }),
   },
-  output: z.object({
-    routeId: z.string(),
-    routeSlug: z.string(),
-    outputPath: z.string(),
-    monthCount: z.number().int().nonnegative(),
-    segmentCount: z.number().int().nonnegative(),
-    cellCount: z.number().int().nonnegative(),
-    availableCellCount: z.number().int().nonnegative(),
-    missingCellCount: z.number().int().nonnegative(),
-    unmappedRawKeyCount: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    routeId: Schema.String,
+    routeSlug: Schema.String,
+    outputPath: Schema.String,
+    monthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    segmentCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    cellCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    availableCellCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    missingCellCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    unmappedRawKeyCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
   }),
   async run({ input }) {
     return runLocalDbCommandBoundary({
