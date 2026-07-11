@@ -8319,3 +8319,19 @@ fallbacks. Final verification passed: all package typechecks, 567 unit tests, 16
 Worker tests, 22 architecture tests, focused identity/loader/coverage/API tests, `git diff --check`,
 and style. The proof also removed two retired strict-release fields and fixed absolute temporary
 output/spine-root resolution discovered by the executable checker.
+
+## [2026-07-11] engineering | Plan 073 serves the reviewed intervention corpus
+
+Published a strict, source-linked projection of all 310 reviewed intervention records through the
+existing artifact endpoint and merged it into `/interventions` with exact registry-ID deduplication,
+route and treatment badges, documented-history treatment, nullable loading, and source citations.
+The report-only reconciliation preserves the reviewed corpus and admits only route-addressable,
+month-ready implemented or in-progress records to study inputs.
+
+The corrected study-readiness gate found 29 of 62 implemented/in-progress records month-ready. The
+live registry reconciliation found 11 matched corpus records (26 event IDs), 543 registry-only
+events, three pre-window corpus-only records, and no corpus-only event currently eligible for a
+study; therefore the Plan 074 operator-review list is empty. Final verification passed: 219
+pipeline tests, 72 domain tests, 165 web tests, root typechecking, 22 architecture boundaries plus
+five doctrine checks, style, a 105.7 KB gzip entry / 314.6 KB gzip total build, local R2 serving,
+and a headless-Chromium `/interventions` render with corpus rows and citations.
