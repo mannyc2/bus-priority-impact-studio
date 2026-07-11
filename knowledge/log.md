@@ -8258,3 +8258,16 @@ The sources tree has zero `schema-compat` imports. Final verification passed: do
 sources typecheck and 35 tests, pipeline-v2 typecheck, 542 repo unit tests, shim-free and normalized
 decode-policy audits, `git diff --check`, and style (exit 0; pre-existing informational diagnostics
 remain).
+
+## [2026-07-11] engineering | Plan 066 migrates the remaining schema leaves to native Effect
+
+Replaced the pipeline CLI compatibility-schema surface with native Effect Schema descriptors and
+an AST-backed flag introspector, then migrated pipeline library boundaries, analytics contracts,
+Studio API reads, and Worker contract tests off `schema-compat`. Strict, strip, and preserve decode
+policies remain explicit at each boundary; CLI output schemas remain typing/documentation-only.
+Native error formatting now reports real nested paths for MTA-wiki route anchors and intervention
+records. Root and `ingest ace-routes` help output are byte-identical to their pre-migration captures.
+
+The leaf gate is empty across pipeline, analytics, Studio API, and web. Final verification passed:
+211 pipeline tests, 102 analytics tests, 54 Studio API tests, 22 Worker tests in 6.30 seconds, 155
+web tests, 550 repo unit tests, web architecture, CLI help diffs, `git diff --check`, and style.

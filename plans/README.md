@@ -76,7 +76,7 @@ Verified headline facts the plans are built on:
 | 063 | Serving read path: decode once, compose totally, registry dispatch | P1 | L | — (052 interaction recorded in-plan) | TODO |
 | 064 | One ingest workflow: extend the existing factory, collapse 22 copies | P1 | M-L | 062 rec.; before 066 | TODO |
 | 065 | packages/sources on native Effect Schema (+ `@bp/domain/decode`) | P2 | M-L | — ; before 066/067 | TODO |
-| 066 | Pipeline/analytics/studio-api native (CLI AST introspection port) | P1 | L | 061, 063, 064, 065 (hard) | TODO |
+| 066 | Pipeline/analytics/studio-api native (CLI AST introspection port) | P1 | L | 061, 063, 064, 065 (hard) | DONE |
 | 067 | Domain native: real brands/unions, DELETE schema-compat, close gate | P1 | L | 065, 066 (hard) | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
