@@ -8244,3 +8244,17 @@ models moved into focused modules, reducing `read-handlers.ts` from 2,966 baseli
 Final verification passed: Studio API typecheck and 54 tests, DB typecheck and 52 tests, 22 Worker
 tests, 155 web tests, 21 architecture tests, and style. Worker wall time improved from the 5.90s
 baseline to 4.47s after the registry dispatch change.
+
+## [2026-07-11] engineering | Plan 065 migrates sources to native Effect Schema
+
+Added the small `@bp/domain/decode` policy surface with strict, strip, preserve, and Result-returning
+native Effect decoders; nested parse failures retain their field paths. Migrated every source
+adapter, Socrata contract, probe, GTFS-Realtime contract, and manifest member away from the
+zod-shaped compatibility shim. Raw upstream rows decode permissively, normalized outputs decode
+strictly, and the manifest union now applies one strict policy to every literal-tagged member. A
+member-mismatch fixture verifies that errors identify the selected member's missing field.
+
+The sources tree has zero `schema-compat` imports. Final verification passed: domain typecheck,
+sources typecheck and 35 tests, pipeline-v2 typecheck, 542 repo unit tests, shim-free and normalized
+decode-policy audits, `git diff --check`, and style (exit 0; pre-existing informational diagnostics
+remain).
