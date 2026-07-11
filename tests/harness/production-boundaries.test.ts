@@ -25,7 +25,10 @@ async function readFiles(root: string): Promise<Array<{ path: string; text: stri
   const files: Array<{ path: string; text: string }> = [];
 
   for await (const path of glob.scan({ cwd: root, onlyFiles: true })) {
-    files.push({ path: `${root}/${path}`, text: await Bun.file(`${root}/${path}`).text() });
+    files.push({
+      path: `${root}/${path}`,
+      text: await Bun.file(`${root}/${path}`).text(),
+    });
   }
 
   return files;
@@ -102,7 +105,10 @@ async function findSrcTestFiles(): Promise<string[]> {
   const testFiles: string[] = [];
 
   for (const root of roots) {
-    for await (const path of testFileGlob.scan({ cwd: root, onlyFiles: true })) {
+    for await (const path of testFileGlob.scan({
+      cwd: root,
+      onlyFiles: true,
+    })) {
       if (path.includes("/src/")) {
         testFiles.push(`${root}/${path}`);
       }
@@ -482,6 +488,28 @@ describe("production boundary harness", () => {
       );
 
       expect(zodSpecifier, `${file.path} imports ${zodSpecifier ?? "zod"}`).toBeUndefined();
+    }
+  });
+
+  test("repo code does not import the removed schema compatibility facade", async () => {
+    const files = [
+      ...(await readFiles("apps")),
+      ...(await readFiles("packages")),
+      ...(await readFiles("scripts")),
+      ...(await readFiles("tools")),
+      ...(await readFiles("tests")),
+    ];
+
+    const removedCompatibilitySpecifier = `schema-${"compat"}`;
+    for (const file of files) {
+      const compatibilitySpecifier = extractModuleSpecifiers(file.text).find((specifier) =>
+        specifier.includes(removedCompatibilitySpecifier),
+      );
+
+      expect(
+        compatibilitySpecifier,
+        `${file.path} imports ${compatibilitySpecifier ?? removedCompatibilitySpecifier}`,
+      ).toBeUndefined();
     }
   });
 

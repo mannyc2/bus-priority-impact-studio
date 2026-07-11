@@ -54,11 +54,6 @@
       "bun": "./src/routes/index.ts",
       "import": "./src/routes/index.ts"
     },
-    "./schema-compat": {
-      "types": "./src/schema-compat.ts",
-      "bun": "./src/schema-compat.ts",
-      "import": "./src/schema-compat.ts"
-    },
     "./studio": {
       "types": "./src/studio/index.ts",
       "bun": "./src/studio/index.ts",

@@ -44,6 +44,8 @@ The browser app remains runtime-schema-free by design. It consumes typed API cli
 - Third-party packages that ship unused Zod metadata or optional subpaths should not be imported through those Zod surfaces. Temporary metadata-clean package pins may exist only to keep the lockfile free of unused Zod installs until upstream packages drop those edges.
 - Historical ADRs and wiki pages can mention Zod as history, but current doctrine should not tell new code to use it.
 
+As of 2026-07-11, the domain compatibility facade has been removed. Domain contracts are native Effect Schema values, and boundary code chooses an explicit excess-property policy through `@bp/domain/decode`: normalized contracts decode strictly, while raw or forward-compatible reads deliberately choose strip or preserve behavior.
+
 ## Alternatives considered
 
 - Keep Zod for source and domain contracts while using Effect for command runtime. Rejected because it preserves a two-schema-library seam after the browser and DB had already moved away from runtime Zod.
