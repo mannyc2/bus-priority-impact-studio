@@ -143,6 +143,36 @@ describe("runPublishR2Artifacts", () => {
     }
   });
 
+  it("rejects a demo map manifest before remote HEAD or PUT calls", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-demo-manifest-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await seedArtifacts(artifactRoot, MONTH);
+      await writeFile(
+        join(artifactRoot, "map", MONTH, "manifest.json"),
+        JSON.stringify({
+          releaseProfile: "demo",
+          buildStatus: "pass",
+          verificationStatus: "not_run",
+          analysisPeriod: MONTH,
+          routeFacts: { status: "unavailable", reason: "fixture" },
+          artifacts: [],
+        }),
+      );
+      const { driver, calls } = recordingDriver(new Map());
+      await expect(
+        runPublishR2Artifacts({
+          ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+          manifestDirs: ["map"],
+        }),
+      ).rejects.toThrow("Map manifest is not publishable");
+      expect(calls).toEqual([]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("rejects a content-addressed filename whose token does not match the body", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "publish-r2-hash-mismatch-"));
     try {

@@ -6,6 +6,7 @@ import { runPipelineFileSystemBoundary } from "../../effect/file-system.ts";
 
 type ManifestFile = {
   artifacts?: Array<{ artifactKey?: unknown }>;
+  routeFacts?: { status?: unknown; artifactKey?: unknown };
 };
 
 function isManifestArtifactEntry(entry: unknown): entry is { artifactKey?: unknown } {
@@ -17,7 +18,14 @@ function manifestFileFromJson(raw: unknown): ManifestFile {
     return {};
   }
   const artifacts = raw.artifacts;
-  return Array.isArray(artifacts) ? { artifacts: artifacts.filter(isManifestArtifactEntry) } : {};
+  const routeFacts =
+    "routeFacts" in raw && isManifestArtifactEntry(raw.routeFacts) ? raw.routeFacts : undefined;
+  return Array.isArray(artifacts)
+    ? {
+        artifacts: artifacts.filter(isManifestArtifactEntry),
+        ...(routeFacts === undefined ? {} : { routeFacts }),
+      }
+    : {};
 }
 
 export type ManifestArtifactKeyResult = {
@@ -57,6 +65,13 @@ export async function collectManifestArtifactKeys(input: {
             if (typeof entry.artifactKey === "string" && entry.artifactKey.length > 0) {
               keys.add(entry.artifactKey);
             }
+          }
+          if (
+            manifest.routeFacts?.status === "available" &&
+            typeof manifest.routeFacts.artifactKey === "string" &&
+            manifest.routeFacts.artifactKey.length > 0
+          ) {
+            keys.add(manifest.routeFacts.artifactKey);
           }
         }
         return { keys: [...keys].sort(), manifestCount };

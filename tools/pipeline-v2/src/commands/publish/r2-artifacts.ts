@@ -143,6 +143,32 @@ async function collectCandidates(options: PublishR2Options): Promise<UploadItem[
   return [...merged].sort().map((key) => ({ key, localPath: join(options.artifactRoot, key) }));
 }
 
+async function assertPublishableMapManifest(options: PublishR2Options): Promise<void> {
+  if (!options.manifestDirs.includes("map")) return;
+  const path = join(options.artifactRoot, "map", options.month, "manifest.json");
+  const file = Bun.file(path);
+  if (!(await file.exists())) return;
+  let manifest: Record<string, unknown>;
+  try {
+    const value = await file.json();
+    if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error();
+    manifest = value as Record<string, unknown>;
+  } catch {
+    throw new Error(`Map manifest ${path} is invalid JSON.`);
+  }
+  const failures: string[] = [];
+  if (manifest["releaseProfile"] !== "full") failures.push("releaseProfile must be full");
+  if (manifest["buildStatus"] !== "pass") failures.push("buildStatus must be pass");
+  if (manifest["verificationStatus"] !== "pass") failures.push("verificationStatus must be pass");
+  if (manifest["analysisPeriod"] !== options.month)
+    failures.push(`analysisPeriod must equal ${options.month}`);
+  const routeFacts = manifest["routeFacts"] as Record<string, unknown> | undefined;
+  if (routeFacts?.["status"] !== "available") failures.push("routeFacts must be available");
+  if (failures.length > 0) {
+    throw new Error(`Map manifest is not publishable: ${failures.join("; ")}.`);
+  }
+}
+
 function makeBunDriver(options: PublishR2Options): S3Driver {
   const bunRuntime = (globalThis as unknown as { Bun?: { S3Client: new (cfg: object) => unknown } })
     .Bun;
@@ -282,6 +308,7 @@ async function uploadOne(
 }
 
 export async function runPublishR2Artifacts(options: PublishR2Options): Promise<PublishR2Report> {
+  await assertPublishableMapManifest(options);
   const driver =
     options.driver ??
     (options.dryRun && (options.accessKeyId.length === 0 || options.secretAccessKey.length === 0)

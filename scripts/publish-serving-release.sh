@@ -162,6 +162,14 @@ run() {
   done
 }
 
+# Fail closed before the first remote D1, R2, or Worker mutation. The gate
+# verifies the full map profile, same-month serving inputs, and every declared
+# local artifact body.
+if ! bun run tools/pipeline-v2/src/checks/check-publish-completeness.ts --month "$month" >/dev/null; then
+  printf 'Publish completeness check failed for %s; aborting before remote mutation.\n' "$month" >&2
+  exit 1
+fi
+
 if [ "$skip_schema" -eq 0 ]; then
   run bunx --bun wrangler d1 execute "$d1_database" --remote --file "$schema_sql"
 fi
@@ -169,14 +177,6 @@ run bunx --bun wrangler d1 execute "$d1_database" --remote --file "$seed_sql"
 
 if [ -n "$appendix_month" ]; then
   run bunx --bun wrangler d1 execute "$d1_database" --remote --file "$appendix_seed_sql"
-fi
-
-# Pre-flight: every R2 key declared by the brief/evaluation manifests must
-# exist locally. Fails closed: if a manifest entry has no local body we stop
-# before publishing rows that would point at missing R2 objects.
-if ! bun run tools/pipeline-v2/src/checks/check-publish-completeness.ts --month "$month" >/dev/null; then
-  printf 'Publish completeness check failed for %s; aborting.\n' "$month" >&2
-  exit 1
 fi
 
 # R2 uploads via the S3-compatible API: idempotent (HEAD-then-PUT, skips when
