@@ -1,5 +1,7 @@
+import { decodeEitherStrict } from "@bp/domain/decode";
 import * as z from "@bp/domain/schema-compat";
-import { SocrataDatasetIdSchema, type SocrataFetch } from "@bp/sources/core";
+import { type SocrataDatasetId, SocrataDatasetIdSchema, type SocrataFetch } from "@bp/sources/core";
+import { Result } from "effect";
 
 export type { SocrataFetch } from "@bp/sources/core";
 
@@ -93,7 +95,7 @@ const RawSocrataCatalogResponseSchema = z
 type RawSocrataCatalogResult = z.output<typeof SocrataCatalogResultSchema>;
 
 export type SocrataCatalogSearchResult = {
-  datasetId: z.output<typeof SocrataDatasetIdSchema> | null;
+  datasetId: SocrataDatasetId | null;
   name: string;
   resourceType: string | null;
   domain: string;
@@ -190,7 +192,9 @@ function domainMetadataValue(result: RawSocrataCatalogResult, key: string): stri
 function normalizeSocrataCatalogResult(
   result: RawSocrataCatalogResult,
 ): SocrataCatalogSearchResult {
-  const parsedDatasetId = SocrataDatasetIdSchema.safeParse(result.resource.id);
+  const datasetId = Result.getOrNull(
+    decodeEitherStrict(SocrataDatasetIdSchema)(result.resource.id),
+  );
   const category =
     nullableString(result.classification?.domain_category) ??
     nullableString(result.classification?.categories[0]);
@@ -200,7 +204,7 @@ function normalizeSocrataCatalogResult(
   ].filter((tag, index, allTags) => tag.trim().length > 0 && allTags.indexOf(tag) === index);
 
   return {
-    datasetId: parsedDatasetId.success ? parsedDatasetId.data : null,
+    datasetId,
     name: result.resource.name,
     resourceType: nullableString(result.resource.type),
     domain: result.metadata?.domain ?? defaultCatalogDomain,

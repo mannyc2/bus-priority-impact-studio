@@ -5,8 +5,10 @@ import {
   buildExpressBusCapacityContextArtifact,
   summarizeExpressBusCapacityRows,
 } from "@bp/analytics/feature-history";
+import { decodePreserve } from "@bp/domain/decode";
 import { defineCommand, z } from "@bp/pipeline-v2/cli/compat";
 import { NormalizedExpressBusCapacitySchema } from "@bp/sources/adapters/mta/express-bus-capacity";
+import { Schema } from "effect";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { defaultExpressBusCapacityNormalizedPath } from "../ingest/express-bus-capacity.ts";
@@ -24,11 +26,9 @@ export type BuildExpressBusCapacityContextResult = {
   routeCount: number;
 };
 
-const NormalizedRowsArtifactSchema = z
-  .object({
-    rows: z.array(NormalizedExpressBusCapacitySchema),
-  })
-  .passthrough();
+const NormalizedRowsArtifactSchema = Schema.Struct({
+  rows: Schema.Array(NormalizedExpressBusCapacitySchema),
+});
 
 const defaultOutputPath = () =>
   fromRepoRoot(expressBusCapacityContextPath({ artifactRoot: "data/artifacts" }));
@@ -41,7 +41,7 @@ export async function buildExpressBusCapacityContext(
   const inputPath = args.inputPath ?? defaultExpressBusCapacityNormalizedPath();
   const outputPath = args.outputPath ?? defaultOutputPath();
   const generatedAt = args.generatedAt ?? new Date();
-  const input = NormalizedRowsArtifactSchema.parse(await Bun.file(inputPath).json());
+  const input = decodePreserve(NormalizedRowsArtifactSchema)(await Bun.file(inputPath).json());
   const artifact = buildExpressBusCapacityContextArtifact({
     rows: input.rows,
     generatedAt: generatedAt.toISOString(),

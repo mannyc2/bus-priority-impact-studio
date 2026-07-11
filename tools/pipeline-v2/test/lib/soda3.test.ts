@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
 import { SocrataDatasetIdSchema } from "@bp/sources/core";
 import type { SocrataManifestSource } from "@bp/sources/registry";
 import { createSoda3SourceClient } from "../../src/lib/soda3.ts";
@@ -8,7 +9,7 @@ const source: SocrataManifestSource = {
   type: "socrata_dataset",
   priority: "core",
   domain: "data.ny.gov",
-  dataset_id: SocrataDatasetIdSchema.parse("abcd-1234"),
+  dataset_id: decodeStrict(SocrataDatasetIdSchema)("abcd-1234"),
   url: "https://data.ny.gov/Transportation/example/abcd-1234",
   api: "soda3",
   default_access: { kind: "query", format: "json" },
