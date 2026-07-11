@@ -784,6 +784,18 @@ describe("route serving repository", () => {
     sqlite.close();
   });
 
+  test("rejects unsupported route equity assignment geography values", async () => {
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_equity_context", [
+      { ...equityContextRow, assignment_geography: "invented_geography" },
+    ]);
+
+    await expect(listRouteEquityContexts(db, "2026-03")).rejects.toThrow(
+      "Unsupported route equity assignment geography: invented_geography",
+    );
+    sqlite.close();
+  });
+
   test("lists selected route build candidates only", async () => {
     const { db, sqlite } = await createDrizzleTestDb();
     insertRows(sqlite, "route_build_plan", [buildPlanRow]);

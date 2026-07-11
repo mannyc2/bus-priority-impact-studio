@@ -8,6 +8,10 @@ import {
 } from "@bp/domain/studio/routes";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
+import {
+  ARTIFACT_NOT_AVAILABLE_MESSAGE,
+  SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE,
+} from "../http/messages.js";
 
 type StudioProjectionSchema<T> = {
   safeParse(
@@ -18,9 +22,6 @@ type StudioProjectionSchema<T> = {
 type SchemaOutput<TSchema> = TSchema extends StudioProjectionSchema<infer T> ? T : never;
 
 const defaultStudioReleaseArtifactKey = "studio/v1/release.json";
-const ARTIFACT_NOT_AVAILABLE_MESSAGE = "Artifact is not available.";
-const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
-
 export function studioReleaseKey(env: Pick<StudioApiEnv, "STUDIO_RELEASE_KEY">): string {
   const configuredKey = env.STUDIO_RELEASE_KEY?.trim();
   return configuredKey && configuredKey.length > 0

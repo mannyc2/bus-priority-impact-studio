@@ -32,6 +32,11 @@ function key(routeId: string, month: string): string {
   return `${routeId}::${month}`;
 }
 
+function assignmentGeography(value: string): RouteEquityContext["assignmentGeography"] {
+  if (value === "county_proxy") return value;
+  throw new Error(`Unsupported route equity assignment geography: ${value}`);
+}
+
 const routeEquityContextColumns = {
   route_id: routeEquityContext.routeId,
   month: routeEquityContext.month,
@@ -62,7 +67,7 @@ function toRouteEquityContext(
     routeId: row.route_id,
     month: row.month,
     acsYear: row.acs_year,
-    assignmentGeography: row.assignment_geography as RouteEquityContext["assignmentGeography"],
+    assignmentGeography: assignmentGeography(row.assignment_geography),
     assignedCountyFips: row.assigned_county_fips,
     assignedCountyName: row.assigned_county_name,
     assignmentMethod: row.assignment_method,
@@ -122,8 +127,8 @@ export async function findRouteEquityContext(
   month: string,
 ): Promise<RouteEquityContext | null> {
   const rows = await selectRouteEquityContextRow(db, routeId, month);
-  const row = rows[0];
-  if (row === undefined) return null;
+  const row = rows[0] ?? null;
+  if (row === null) return null;
 
   const sourceStatuses = groupSourceStatuses(
     await listRouteMonthSourceStatuses(db, month, "equity_context"),

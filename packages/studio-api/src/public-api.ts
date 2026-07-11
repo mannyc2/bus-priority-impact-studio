@@ -21,8 +21,7 @@ import {
 import type { StudioApiEnv } from "./env.js";
 import { errorResponse as errorJson } from "./http/errors.js";
 import { jsonResponse as json } from "./http/json.js";
-
-const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
+import { SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE } from "./http/messages.js";
 
 function dependencyNotConfigured(dependency: string, context: string): Response {
   console.error("Service dependency is not configured.", { context, dependency });

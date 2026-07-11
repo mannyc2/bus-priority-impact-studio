@@ -86,6 +86,10 @@ import { studioOpenApiDocument } from "../contracts/openapi.js";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 import {
+  ARTIFACT_NOT_AVAILABLE_MESSAGE,
+  SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE,
+} from "../http/messages.js";
+import {
   loadStudioProjection,
   maybeLoadStudioRouteDetailProjection,
   studioJsonResponse,
@@ -99,8 +103,6 @@ import {
 export type StudioReadEnv = Pick<StudioApiEnv, "ARTIFACTS" | "DB" | "STUDIO_RELEASE_KEY">;
 
 const OPENAPI_DOC_METHODS = ["get", "post", "put", "patch", "delete"] as const;
-const ARTIFACT_NOT_AVAILABLE_MESSAGE = "Artifact is not available.";
-const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
 const SNAPSHOT_CONTRACT_VALIDATION_MESSAGE = "Studio snapshot failed contract validation.";
 const SNAPSHOT_2_OMITTED_CAVEAT =
   "Snapshot 2.0 manifest failed contract validation and is temporarily omitted.";
