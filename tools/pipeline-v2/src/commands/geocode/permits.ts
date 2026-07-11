@@ -1,5 +1,6 @@
+import { Effect } from "effect";
 import { updateDotStreetPermitGeocode } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import {
   createGeoclientFromEnv,
@@ -125,16 +126,24 @@ export default defineCommand({
   path: ["geocode", "permits"],
   summary: "Geocode local_dot_street_permit rows via Geoclient.",
   input: {
-    options: dbOptions.extend({
-      batchSize: arg.positiveInt().default(500).describe("Rows per batch"),
-      maxRows: arg.positiveInt().optional().describe("Cap total rows scanned"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        batchSize: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(500)))
+          .annotate({ description: "Rows per batch" }),
+        maxRows: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Cap total rows scanned",
+        }),
+      },
     }),
   },
-  output: z.object({
-    scanned: z.number(),
-    hits: z.number(),
-    misses: z.number(),
-    cached: z.number(),
+  output: Schema.Struct({
+    scanned: Schema.Number,
+    hits: Schema.Number,
+    misses: Schema.Number,
+    cached: Schema.Number,
   }),
   async run({ input }) {
     return runLocalDbCommandBoundary({
