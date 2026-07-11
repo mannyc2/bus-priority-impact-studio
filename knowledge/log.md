@@ -8208,3 +8208,24 @@ Deleted the unreachable detector, registry, calibration, corpus, and lattice sub
 `packages/analytics`: about 13,600 source lines and 4,400 coupled test lines. Preserved the live,
 pure gold-set evaluator by moving it under `evaluation/` with focused coverage; all remaining
 analytics consumers now use explicit live subpath exports.
+
+## [2026-07-11] engineering | Plan 064 consolidates compatible ingest workflows
+
+Classified all 22 live ingest runners by reading their bodies. The compatible full-replace
+Socrata set was `ace-routes`, `bus-lanes`, and `dot-traffic-speeds`; the compatible monthly set
+was `bus-wait-assessment`, `ace-violations`, `nypd-collisions`, `dot-traffic-volumes`, and
+`311-service-requests`. These now use shared replace/monthly factories while preserving runner
+names, signatures, result shapes, queries, and snapshot metadata. A command-definition helper
+centralizes the Effect local-DB boundary; compatible bespoke descriptors adopt it without changing
+their runners. Bounded promise concurrency now runs through the managed pipeline Effect runtime.
+
+The remaining runners are intentionally bespoke: Census joins (`equity-context`), dynamic fiscal
+or snapshot modes (`parking-violations`, `dot-street-permits`), CSV/cache formats (`noaa-weather`),
+multi-source/catalog joins (`route-catalog`, `route-coverage`), multi-month or route-chunked jobs
+(`route-hourly-ridership`, `route-segment-speeds`, `route-trends`,
+`bus-customer-journey-metrics`), and GTFS/file/protobuf workflows (`gtfs-static`,
+`route-schedules`, `route-schedules-bulk`, `gtfs-rt-snapshots`, `lion-centerline`). The plan's
+600-line target assumed several of these were ordinary monthly Socrata replacements; live-body
+classification disproved that premise. Safe consolidation removed 1,130 and added 666 lines under
+`commands/ingest` (net -464), plus the shared helpers and tests. Verification: pipeline typecheck
+and all 205 pipeline tests pass; four source-structure tests were updated to recognize the helper.
