@@ -370,7 +370,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     speedSpinesByRoute.set(
       summary.routeId,
       await loadRouteSpeedSpineCrosswalk({
-        artifactRoot: fromRepoRoot(options.speedSpineRoot),
+        artifactRoot: fromCliPath(options.speedSpineRoot),
         routeId: summary.routeId,
         requireSpine: options.profile === "full",
       }),
@@ -657,7 +657,7 @@ export async function runStudioRelease(
     },
   };
 
-  const outputPath = fromRepoRoot(options.outputPath);
+  const outputPath = fromCliPath(options.outputPath);
   const release = await buildRelease(options);
   const publicNoteCount = release.segments.filter((segment) => segment.aiNote !== undefined).length;
 
