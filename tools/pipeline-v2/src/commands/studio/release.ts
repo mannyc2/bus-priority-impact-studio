@@ -66,7 +66,6 @@ import {
   speedPercentilesForSummaries,
 } from "./_release-routes.ts";
 import {
-  buildRouteSegmentEvidence,
   buildSegmentAnalystNote,
   buildSegments,
   enhanceSegmentAiNotesWithLlm,
@@ -354,7 +353,6 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     .filter((row) => selectedRouteIds.has(row.route_id))
     .map(buildRouteArtifactRef);
   const routeInputs = new Map<string, RouteBriefInputArtifact | null>();
-  const routeInputsByRoute = new Map<string, RouteBriefInputArtifact[]>();
   const speedSpinesByRoute = new Map<string, LoadedRouteSpeedSpineCrosswalk>();
 
   for (const summary of selectedSummaries) {
@@ -368,7 +366,6 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       inputs.find((input) => (input.analysisPeriod ?? options.month) === options.month) ??
       inputs[0] ??
       null;
-    routeInputsByRoute.set(summary.routeId, inputs);
     routeInputs.set(summary.routeId, currentInput);
     speedSpinesByRoute.set(
       summary.routeId,
@@ -477,19 +474,6 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
   }
   const publicNoteSegments = withSparsePublicSegmentNotes(deterministicSegments, options.month);
   const segments = await enhanceSegmentAiNotesWithLlm(publicNoteSegments, options.segmentNoteLlm);
-  const routeSegmentEvidence = routes.flatMap((route) =>
-    (routeInputsByRoute.get(route.routeId) ?? [routeInputs.get(route.routeId) ?? null]).flatMap(
-      (input) =>
-        buildRouteSegmentEvidence(
-          route.slug,
-          route.routeId,
-          input?.analysisPeriod ?? options.month,
-          input,
-          segmentLaneOverlaps.get(route.routeId),
-          tspEvidenceByRoute.get(route.routeId) ?? unknownTspEvidence(),
-        ),
-    ),
-  );
   const releaseGeneratedAt = new Date().toISOString();
   const tspSourceDate =
     [...tspEvidenceByRoute.values()].find((evidence) => evidence.tspSourceDate !== null)
@@ -545,7 +529,6 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     },
     routes,
     segments,
-    routeSegmentEvidence,
     routeArtifacts,
     methods: methodDatasetsFromDocsSources(docsSources),
     docsSections: docsSections(options.month),
