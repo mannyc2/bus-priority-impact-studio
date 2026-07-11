@@ -73,8 +73,8 @@ export type DataProductCompletenessProductAuditBase = {
   grain: string;
   producerCommand: string;
   expectedUniverse: DataProduct["expectedUniverse"];
-  requiredInputs: string[];
-  downstreamConsumers: string[];
+  requiredInputs: readonly string[];
+  downstreamConsumers: readonly string[];
   freshnessPolicy: DataProduct["freshnessPolicy"];
   lifecycle: DataProduct["lifecycle"];
   status: DataProductCompletenessStatus;
@@ -90,7 +90,7 @@ export type DataProductDownstreamBlocker = {
   status: DataProductCompletenessStatus;
   gapClass: DataProductGapClass;
   gapClasses: DataProductGapClass[];
-  downstreamConsumers: string[];
+  downstreamConsumers: readonly string[];
   rootCauses: DataProductRootCause[];
   reasons: string[];
 };
@@ -104,7 +104,7 @@ export type DataProductCoverageProductSummary = {
   gapClasses: DataProductGapClass[];
   reasons: string[];
   rootCauses: DataProductRootCause[];
-  downstreamConsumers: string[];
+  downstreamConsumers: readonly string[];
 };
 
 export type DataProductCoverageBucket = {
