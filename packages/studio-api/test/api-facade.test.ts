@@ -1442,6 +1442,10 @@ describe("Studio API facade", () => {
         '{"type":"FeatureCollection","features":[]}',
         "application/geo+json",
       ),
+      [`map/route-segments/b46-sbs/2026-03/all-day.${"b".repeat(64)}.geojson`]: new FakeR2Object(
+        '{"type":"FeatureCollection","features":[]}',
+        "application/geo+json",
+      ),
     });
     const env = { ARTIFACTS: bucket as unknown as R2Bucket };
 
@@ -1452,6 +1456,10 @@ describe("Studio API facade", () => {
     );
     const invalidArtifactResponse = await fetchApi(
       "/api/v1/artifacts/map/%252e%252e/private.json",
+      env,
+    );
+    const immutableArtifactResponse = await fetchApi(
+      `/api/v1/artifacts/map/route-segments/b46-sbs/2026-03/all-day.${"b".repeat(64)}.geojson`,
       env,
     );
 
@@ -1472,6 +1480,10 @@ describe("Studio API facade", () => {
     );
     expect(artifactResponse.headers.get("Content-Type")).toBe("application/geo+json");
     expect(artifactResponse.headers.get("Cache-Control")).toBe(
+      "public, max-age=300, stale-while-revalidate=3600",
+    );
+    expect(artifactResponse.headers.get("etag")).not.toBeNull();
+    expect(immutableArtifactResponse.headers.get("Cache-Control")).toBe(
       "public, max-age=31536000, immutable",
     );
     expect(await artifactResponse.text()).toBe('{"type":"FeatureCollection","features":[]}');

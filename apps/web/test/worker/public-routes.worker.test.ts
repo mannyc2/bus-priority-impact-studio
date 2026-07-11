@@ -406,7 +406,9 @@ describe("Worker public route API smoke", () => {
     );
     expect(artifact.status).toBe(200);
     expect(artifact.headers.get("Content-Type")).toContain("application/geo+json");
-    expect(artifact.headers.get("Cache-Control")).toContain("immutable");
+    expect(artifact.headers.get("Cache-Control")).toBe(
+      "public, max-age=300, stale-while-revalidate=3600",
+    );
     expect(await artifact.json()).toEqual({ type: "FeatureCollection", features: [] });
   });
 

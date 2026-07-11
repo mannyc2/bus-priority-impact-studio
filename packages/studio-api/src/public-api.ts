@@ -621,12 +621,22 @@ async function buildArtifactResponse(url: URL, env: StudioApiEnv): Promise<Respo
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   headers.set("etag", object.httpEtag);
-  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  headers.set(
+    "Cache-Control",
+    isContentAddressedArtifactKey(key)
+      ? "public, max-age=31536000, immutable"
+      : "public, max-age=300, stale-while-revalidate=3600",
+  );
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/octet-stream");
   }
 
   return new Response(object.body, { headers });
+}
+
+export function isContentAddressedArtifactKey(key: string): boolean {
+  const filename = key.split("/").at(-1) ?? "";
+  return /^.+\.[a-f0-9]{64}\.[^.]+$/.test(filename);
 }
 
 async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Response> {
