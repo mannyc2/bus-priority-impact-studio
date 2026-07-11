@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import { MapRouteSegmentFeatureCollectionSchema } from "@bp/domain/maps";
+import {
+  MapBusLaneFeatureCollectionSchema,
+  MapContextFeatureCollectionSchema,
+  MapNetworkFeatureCollectionSchema,
+  MapRouteSegmentFeatureCollectionSchema,
+} from "@bp/domain/maps";
 import { Result } from "effect";
 import { decodeSchemaEitherStrict } from "../schema-decode.js";
 
@@ -125,6 +130,7 @@ export type MapArtifactKind =
   | "map_source_snapshot"
   | "map_route_shapes_geojson"
   | "map_timepoint_stops_geojson"
+  | "map_borough_context_geojson"
   | "map_bus_lanes_geojson"
   | "map_network_simplified_geojson"
   | "map_route_segments_geojson";
@@ -157,12 +163,12 @@ export type MapArtifactManifest = {
         routeCount: number;
       }
     | { status: "unavailable"; reason: string };
-  status: "pass";
+  status: "pass" | "fail";
   artifactCount: number;
   routeSegmentArtifactCount: number;
   totalFeatureCount: number;
   totalByteLength: number;
-  issueCount: 0;
+  issueCount: number;
   artifacts: MapArtifactEntry[];
 };
 
@@ -275,17 +281,17 @@ export function isMapArtifactManifest(value: unknown): value is MapArtifactManif
     typeof candidate.analysisPeriod === "string" &&
     typeof candidate.generatedAt === "string" &&
     (candidate.releaseProfile === "demo" || candidate.releaseProfile === "full") &&
-    candidate.buildStatus === "pass" &&
+    (candidate.buildStatus === "pass" || candidate.buildStatus === "fail") &&
     (candidate.verificationStatus === "not_run" ||
       candidate.verificationStatus === "pass" ||
       candidate.verificationStatus === "fail") &&
     isJsonObject(candidate.routeFacts) &&
-    candidate.status === "pass" &&
+    (candidate.status === "pass" || candidate.status === "fail") &&
     typeof candidate.artifactCount === "number" &&
     typeof candidate.routeSegmentArtifactCount === "number" &&
     typeof candidate.totalFeatureCount === "number" &&
     typeof candidate.totalByteLength === "number" &&
-    candidate.issueCount === 0 &&
+    typeof candidate.issueCount === "number" &&
     Array.isArray(candidate.artifacts)
   );
 }
@@ -359,6 +365,45 @@ export function mapArtifactPayloadIssues(input: {
     }
   }
 
+  if (input.artifact.artifactKind === "map_network_simplified_geojson") {
+    const result = decodeSchemaEitherStrict(MapNetworkFeatureCollectionSchema, input.payload);
+    if (Result.isFailure(result)) {
+      issues.push({
+        code: "map_network_payload_invalid",
+        artifactKey: input.artifact.artifactKey,
+        message: `Map artifact ${input.artifact.artifactKey} failed its domain GeoJSON contract.`,
+      });
+    } else {
+      const monthMismatches = result.success.features.filter(
+        (feature) => feature.properties.month !== input.month,
+      );
+      if (monthMismatches.length > 0) {
+        issues.push({
+          code: "map_network_payload_month_mismatch",
+          artifactKey: input.artifact.artifactKey,
+          message: `Map network artifact ${input.artifact.artifactKey} has ${monthMismatches.length} feature(s) outside ${input.month}.`,
+        });
+      }
+    }
+  }
+  for (const [kind, schema, code] of [
+    [
+      "map_borough_context_geojson",
+      MapContextFeatureCollectionSchema,
+      "map_borough_context_payload_invalid",
+    ],
+    ["map_bus_lanes_geojson", MapBusLaneFeatureCollectionSchema, "map_bus_lane_payload_invalid"],
+  ] as const) {
+    if (input.artifact.artifactKind !== kind) continue;
+    if (Result.isFailure(decodeSchemaEitherStrict(schema, input.payload))) {
+      issues.push({
+        code,
+        artifactKey: input.artifact.artifactKey,
+        message: `Map artifact ${input.artifact.artifactKey} failed its domain GeoJSON contract.`,
+      });
+    }
+  }
+
   return issues;
 }
 
@@ -400,7 +445,8 @@ export function verifyMapArtifactManifestContents(input: {
     "map_source_snapshot",
     "map_route_shapes_geojson",
     "map_timepoint_stops_geojson",
-    "map_bus_lanes_geojson",
+    "map_network_simplified_geojson",
+    "map_borough_context_geojson",
   ];
   for (const kind of requiredKinds) {
     if (!manifest.artifacts.some((row) => row.artifactKind === kind)) {
@@ -431,6 +477,28 @@ export function verifyMapArtifactManifestContents(input: {
       issues.push({
         code: "map_route_segment_artifact_routes_missing",
         message: `${missingRoutes.length} public route(s) lack map route-segment artifacts: ${missingRoutes.slice(0, 5).join(", ")}.`,
+      });
+    }
+    const expected = new Set(input.expectedRouteIds);
+    const extraRoutes = [...actualRouteIds].filter((routeId) => !expected.has(routeId));
+    if (extraRoutes.length > 0) {
+      issues.push({
+        code: "map_route_segment_artifact_routes_extra",
+        message: `${extraRoutes.length} map route-segment artifact route(s) are outside the expected universe: ${extraRoutes.slice(0, 5).join(", ")}.`,
+      });
+    }
+  }
+
+  if (manifest.releaseProfile === "full") {
+    if (manifest.routeFacts.status !== "available") {
+      issues.push({
+        code: "map_route_facts_unavailable",
+        message: "Full map release lacks the manifest-referenced route-facts projection.",
+      });
+    } else if (manifest.routeFacts.baselineMonth !== input.month) {
+      issues.push({
+        code: "map_route_facts_month_mismatch",
+        message: `Map route facts are for ${manifest.routeFacts.baselineMonth}, expected ${input.month}.`,
       });
     }
   }

@@ -123,8 +123,50 @@ function artifactDefinitions(month: string) {
       featureCount: 0,
     },
     {
+      artifactKey: "maps/context/nyc-boroughs.min.geojson",
+      artifactKind: "map_borough_context_geojson" as const,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+      routeId: null,
+      payload: {
+        type: "FeatureCollection",
+        sourceRevision: {
+          sourceId: "nyc_borough_boundaries",
+          sha256: "a".repeat(64),
+          currencyPolicy: "revision_pinned",
+        },
+        features: [
+          {
+            type: "Feature",
+            properties: { boroName: "Manhattan", labelPoint: [-73.98, 40.76] },
+            geometry: {
+              type: "MultiPolygon",
+              coordinates: [
+                [
+                  [
+                    [-74, 40.7],
+                    [-73.9, 40.7],
+                    [-73.9, 40.8],
+                    [-74, 40.7],
+                  ],
+                ],
+              ],
+            },
+          },
+        ],
+      },
+      featureCount: 1,
+    },
+    {
       artifactKey: "maps/bus-lanes/local-streets.min.geojson",
       artifactKind: "map_bus_lanes_geojson" as const,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+      routeId: null,
+      payload: emptyFeatureCollection,
+      featureCount: 0,
+    },
+    {
+      artifactKey: `maps/${month}/network-simplified.geojson`,
+      artifactKind: "map_network_simplified_geojson" as const,
       contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
       payload: emptyFeatureCollection,
@@ -288,7 +330,7 @@ describe("evaluation data products", () => {
         expectedRouteIds: ["M1"],
         artifactIssues,
       }),
-    ).toMatchObject({ status: "pass", artifactCount: 5, issueCount: 0 });
+    ).toMatchObject({ status: "pass", artifactCount: 7, issueCount: 0 });
 
     const missingRoute = verifyMapArtifactManifestContents({
       manifestPath: "data/artifacts/maps/2026-03/manifest.json",

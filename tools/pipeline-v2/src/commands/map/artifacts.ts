@@ -1124,8 +1124,13 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     args.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath(),
   );
   const stopSnapshot = await readStopSnapshot(args.stopSnapshotPath ?? defaultStopSnapshotPath());
+  const contextPath = args.contextPath ?? defaultContextPath(artifactRoot);
+  const contextFile = Bun.file(contextPath);
+  const context = (await contextFile.exists())
+    ? decodeSchemaStrict(MapContextFeatureCollectionSchema, await contextFile.json())
+    : null;
   const boroughsByRoute = await servedBoroughsByRoute({
-    contextPath: args.contextPath ?? defaultContextPath(artifactRoot),
+    contextPath,
     stops: stopSnapshot.stops,
   });
   const busLaneSnapshot = await readSnapshotMetadata({
@@ -1141,6 +1146,27 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const selectedRouteRows = rows.routeRows.filter(
     (route) => routeFilter.size === 0 || routeFilter.has(route.routeId),
   );
+  if (args.releaseProfile === "full") {
+    const factRouteIds = new Set<string>(
+      routeFacts?.routes.map((fact) => fact.route.routeId as string) ?? [],
+    );
+    const missingFacts = selectedRouteRows
+      .map((route) => route.routeId)
+      .filter((routeId) => !factRouteIds.has(routeId));
+    if (missingFacts.length > 0) {
+      throw new Error(
+        `Full map release lacks route facts for ${missingFacts.length} mapped route(s): ${missingFacts.slice(0, 5).join(", ")}.`,
+      );
+    }
+    const missingBoroughs = selectedRouteRows
+      .map((route) => route.routeId)
+      .filter((routeId) => (boroughsByRoute?.get(routeId)?.length ?? 0) === 0);
+    if (missingBoroughs.length > 0) {
+      throw new Error(
+        `Full map release lacks verified served-borough membership for ${missingBoroughs.length} route(s): ${missingBoroughs.slice(0, 5).join(", ")}.`,
+      );
+    }
+  }
   const shapesByDirection = shapesByRouteDirection(routeShapeSnapshot.shapes);
   const directionIdByDirection = directionIdsByRouteDirection(routeShapeSnapshot.shapes);
   const sourcePayload = {
@@ -1167,6 +1193,19 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       featureCount: sourcePayload.sources.length,
     }),
   );
+  if (context !== null) {
+    artifacts.push(
+      await writeJsonArtifact({
+        path: defaultContextPath(artifactRoot),
+        artifactKey: mapArtifactKey("context", "nyc-boroughs.min.geojson"),
+        artifactKind: "map_borough_context_geojson",
+        contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+        routeId: null,
+        payload: context,
+        featureCount: context.features.length,
+      }),
+    );
+  }
   artifacts.push(
     await writeJsonArtifact({
       path: mapArtifactPath(artifactRoot, "routes", "current-local-limited-sbs.min.geojson"),
@@ -1310,15 +1349,32 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const manifestPath = mapArtifactManifestPath(artifactRoot, options.isoMonth);
   await mkdir(dirname(manifestPath), { recursive: true });
   await Bun.write(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  const verification = await verifyMapArtifactManifest({
+    artifactRoot,
+    month: options.isoMonth,
+    expectedRouteIds: selectedRouteRows.map((route) => route.routeId),
+  });
+  const verifiedManifest: MapArtifactManifest = {
+    ...manifest,
+    verificationStatus: verification.status,
+    status: verification.status,
+    issueCount: verification.issueCount,
+  };
+  await Bun.write(manifestPath, `${JSON.stringify(verifiedManifest, null, 2)}\n`);
+  if (args.releaseProfile === "full" && verification.status === "fail") {
+    throw new Error(
+      `Full map release verification failed with ${verification.issueCount} issue(s); see ${manifestPath}.`,
+    );
+  }
 
   return {
     isoMonth: options.isoMonth,
     manifestPath,
-    artifactCount: manifest.artifactCount,
-    routeSegmentArtifactCount: manifest.routeSegmentArtifactCount,
+    artifactCount: verifiedManifest.artifactCount,
+    routeSegmentArtifactCount: verifiedManifest.routeSegmentArtifactCount,
     routeSegmentFeatureCount,
-    totalFeatureCount: manifest.totalFeatureCount,
-    totalByteLength: manifest.totalByteLength,
+    totalFeatureCount: verifiedManifest.totalFeatureCount,
+    totalByteLength: verifiedManifest.totalByteLength,
     publicRouteCount: selectedRouteRows.length,
   };
 }
