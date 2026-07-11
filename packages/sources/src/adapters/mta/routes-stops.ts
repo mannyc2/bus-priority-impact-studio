@@ -93,7 +93,7 @@ export function normalizeRouteShapeRows(rows: SocrataRow[]): NormalizedRouteShap
     const parsed = decodePreserve(RawRouteShapeRowSchema)(row);
     return {
       schemaVersion,
-      routeId: RouteIdCodec.parse(parsed.route_id),
+      routeId: decodePreserve(RouteIdCodec)(parsed.route_id),
       routeShortName: parsed.route_short_name ?? parsed.route_id,
       inEffect: parseBoolean(parsed.in_effect),
       directionId: parsed.direction_id,
@@ -114,7 +114,7 @@ export function normalizeStopRows(rows: SocrataRow[]): NormalizedStop[] {
     const parsed = decodePreserve(RawStopRowSchema)(row);
     return {
       schemaVersion,
-      routeId: RouteIdCodec.parse(parsed.route_id),
+      routeId: decodePreserve(RouteIdCodec)(parsed.route_id),
       routeShortName: parsed.route_short_name ?? parsed.route_id,
       stopId: parsed.stop_id,
       stopName: parsed.stop_name,

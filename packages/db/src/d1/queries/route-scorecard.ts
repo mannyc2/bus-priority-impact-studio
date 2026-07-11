@@ -1,4 +1,5 @@
-import type { RouteScorecard } from "@bp/domain/routes";
+import { decodeStrict } from "@bp/domain/decode";
+import { type RouteScorecard, RouteScorecardSchema } from "@bp/domain/routes";
 import { and, asc, eq } from "drizzle-orm";
 import type { D1ServingDb } from "../client.js";
 import { routeScorecard, routeScorecardCitation } from "../schema.js";
@@ -74,12 +75,12 @@ export function deserializeRouteScorecard(
     throw new Error(`Route scorecard ${row.route_id}/${row.month} has no citations`);
   }
 
-  return {
+  return decodeStrict(RouteScorecardSchema)({
     schemaVersion: 1,
     routeId: row.route_id,
     month: row.month,
     routeScore: row.route_score,
-    coverageStatus: row.coverage_status as RouteScorecard["coverageStatus"],
+    coverageStatus: row.coverage_status,
     averageSpeedMph: row.average_speed_mph,
     hotspotCount: row.hotspot_count,
     citations: citations
@@ -90,7 +91,7 @@ export function deserializeRouteScorecard(
         url: citation.url,
         verifiedAt: citation.verified_at,
       })),
-  } as RouteScorecard;
+  });
 }
 
 export async function getRouteScorecard(

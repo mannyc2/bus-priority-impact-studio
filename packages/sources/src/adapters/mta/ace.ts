@@ -54,7 +54,7 @@ export function normalizeAceRouteRows(rows: SocrataRow[]): NormalizedAceRoute[] 
 
       return {
         schemaVersion,
-        routeId: RouteIdCodec.parse(parsed.route),
+        routeId: decodePreserve(RouteIdCodec)(parsed.route),
         program: parsed.program,
         implementationDate: isoCalendarDateTime(parsed.implementation_date),
       } satisfies NormalizedAceRoute;
@@ -78,7 +78,7 @@ export function normalizeAceViolationSummaryRows(
 
       return {
         schemaVersion,
-        routeId: RouteIdCodec.parse(parsed.bus_route_id),
+        routeId: decodePreserve(RouteIdCodec)(parsed.bus_route_id),
         violationType: parsed.violation_type,
         violationStatus: parsed.violation_status,
         violationCount: parsed.violation_count,

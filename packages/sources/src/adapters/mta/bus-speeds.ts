@@ -171,7 +171,7 @@ export function normalizeSegmentSpeedCellRows(rows: SocrataRow[]): NormalizedSeg
 
     return {
       schemaVersion,
-      routeId: RouteIdCodec.parse(parsed.route_id),
+      routeId: decodePreserve(RouteIdCodec)(parsed.route_id),
       isoMonth: isoMonth(parsed.year, parsed.month),
       timestamp: parsed.timestamp,
       dayOfWeek: parsed.day_of_week,
@@ -202,7 +202,7 @@ export function normalizeSegmentSpeedRows(rows: SocrataRow[]): NormalizedSegment
 
     return {
       schemaVersion,
-      routeId: RouteIdCodec.parse(parsed.route_id),
+      routeId: decodePreserve(RouteIdCodec)(parsed.route_id),
       isoMonth: isoMonth(parsed.year, parsed.month),
       timestamp: parsed.timestamp,
       dayOfWeek: parsed.day_of_week,

@@ -58,7 +58,7 @@ export function normalizeScheduleTimepointRows(rows: SocrataRow[]): NormalizedSc
     const parsed = decodePreserve(RawScheduleTimepointRowSchema)(row);
     return {
       schemaVersion,
-      routeId: RouteIdCodec.parse(parsed.route_id),
+      routeId: decodePreserve(RouteIdCodec)(parsed.route_id),
       scheduleDate: isoCalendarDateTime(parsed.schedule_date),
       dayType: parsed.day_type,
       direction: parsed.direction,

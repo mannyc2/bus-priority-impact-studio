@@ -68,7 +68,7 @@ export function normalizeBusCustomerJourneyMetricRows(
         {
           schemaVersion,
           month: toIsoMonth(parsed.month),
-          routeId: RouteIdCodec.parse(parsed.route_id),
+          routeId: decodePreserve(RouteIdCodec)(parsed.route_id),
           borough: parsed.borough,
           tripType: parsed.trip_type,
           period: parsed.period,

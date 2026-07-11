@@ -69,7 +69,7 @@ export function normalizeBusWaitAssessmentRows(rows: SocrataRow[]): NormalizedBu
       return {
         schemaVersion,
         month: toIsoMonth(parsed.month),
-        routeId: RouteIdCodec.parse(parsed.route_id),
+        routeId: decodePreserve(RouteIdCodec)(parsed.route_id),
         borough: parsed.borough,
         dayType: parsed.day_type,
         tripType: parsed.trip_type,

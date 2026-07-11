@@ -245,7 +245,7 @@ export function normalizeGtfsRealtimeRouteId(value: unknown): string | null {
     return null;
   }
 
-  return RouteIdCodec.parse(routeId);
+  return decodeStrict(RouteIdCodec)(routeId);
 }
 
 function commonTripFields(trip: PlainTripDescriptor | undefined) {

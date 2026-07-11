@@ -57,7 +57,7 @@ export function normalizeHourlyRidershipRows(
 
     return {
       schemaVersion,
-      routeId: RouteIdCodec.parse(args.routeId),
+      routeId: decodePreserve(RouteIdCodec)(args.routeId),
       isoMonth: isoMonth(args.year, args.month),
       dayOfWeek,
       hourOfDay: parsed.hour_of_day,

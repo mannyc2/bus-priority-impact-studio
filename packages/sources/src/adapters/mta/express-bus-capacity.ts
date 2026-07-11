@@ -71,7 +71,7 @@ export function normalizeExpressBusCapacityRows(
       weekStartDate: weekStartDate(parsed.week),
       dayType: parsed.day_type,
       borough: parsed.borough,
-      routeId: RouteIdCodec.parse(parsed.route),
+      routeId: decodePreserve(RouteIdCodec)(parsed.route),
       direction: parsed.direction,
       hourOfDay: parsed.hour,
       loadPercentage: parsed.load_percentage,
