@@ -532,7 +532,6 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     routeArtifacts,
     methods: methodDatasetsFromDocsSources(docsSources),
     docsSections: docsSections(options.month),
-    docsSources,
     docsEndpoints: [],
   });
 }
