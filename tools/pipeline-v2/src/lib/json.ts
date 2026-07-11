@@ -1,26 +1,33 @@
+import { decodeEitherPreserve, decodeEitherStrict, decodeEitherStrip } from "@bp/domain/decode";
+import { Result, Schema } from "effect";
 import { runPipelineFileSystemBoundary } from "../effect/file-system.ts";
 
 const COMMAND = "pipeline.json";
+type DecodePolicy = "preserve" | "strict" | "strip";
 
-type JsonArtifactSchema<T> = {
-  safeParse(input: unknown):
-    | { success: true; data: T }
-    | {
-        success: false;
-        error: { issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }> };
-      };
-};
+function serviceFreeSchema<S extends Schema.Constraint>(
+  schema: S,
+): Schema.Codec<S["Type"], S["Encoded"], never, unknown> {
+  return Schema.make<Schema.Codec<S["Type"], S["Encoded"], never, unknown>>(schema.ast);
+}
 
-function parseJsonArtifact<T>(path: string, raw: unknown, schema: JsonArtifactSchema<T>): T {
-  const parsed = schema.safeParse(raw);
-  if (!parsed.success) {
-    const detail = parsed.error.issues
-      .slice(0, 5)
-      .map((i) => `${i.path.map(String).join(".") || "<root>"}: ${i.message}`)
-      .join("; ");
-    throw new Error(`Failed to parse artifact at ${path}: ${detail}`);
+function parseJsonArtifact<S extends Schema.Constraint>(
+  path: string,
+  raw: unknown,
+  schema: S,
+  policy: DecodePolicy,
+): S["Type"] {
+  const decoder =
+    policy === "preserve"
+      ? decodeEitherPreserve
+      : policy === "strict"
+        ? decodeEitherStrict
+        : decodeEitherStrip;
+  const parsed = decoder(serviceFreeSchema(schema))(raw);
+  if (Result.isFailure(parsed)) {
+    throw new Error(`Failed to parse artifact at ${path}: ${String(parsed.failure)}`);
   }
-  return parsed.data;
+  return parsed.success;
 }
 
 export async function writeJson(path: string, data: unknown): Promise<void> {
@@ -51,20 +58,25 @@ export async function readJsonIfExists(path: string): Promise<unknown | null> {
   });
 }
 
-export async function readJsonArtifact<T>(path: string, schema: JsonArtifactSchema<T>): Promise<T> {
+export async function readJsonArtifact<S extends Schema.Constraint>(
+  path: string,
+  schema: S,
+  policy: DecodePolicy = "strip",
+): Promise<S["Type"]> {
   const raw = await readJsonIfExists<unknown>(path);
   if (raw === null) {
     throw new Error(`Artifact not found at ${path}`);
   }
-  return parseJsonArtifact(path, raw, schema);
+  return parseJsonArtifact(path, raw, schema, policy);
 }
 
-export async function readOptionalJsonArtifact<T>(
+export async function readOptionalJsonArtifact<S extends Schema.Constraint>(
   path: string | null,
-  schema: JsonArtifactSchema<T>,
-): Promise<T | null> {
+  schema: S,
+  policy: DecodePolicy = "strip",
+): Promise<S["Type"] | null> {
   if (!path) return null;
   const raw = await readJsonIfExists<unknown>(path);
   if (raw === null) return null;
-  return parseJsonArtifact(path, raw, schema);
+  return parseJsonArtifact(path, raw, schema, policy);
 }

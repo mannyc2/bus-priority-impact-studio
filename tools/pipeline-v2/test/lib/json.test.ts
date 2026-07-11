@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import * as z from "@bp/domain/schema-compat";
+import { Schema } from "effect";
 
 import {
   readJsonArtifact,
@@ -30,7 +30,7 @@ describe("pipeline JSON helper", () => {
     try {
       const path = join(root, "artifact.json");
       const missingPath = join(root, "missing.json");
-      const schema = z.object({ routeId: z.string() });
+      const schema = Schema.Struct({ routeId: Schema.String });
 
       await writeJson(path, { routeId: "M15" });
 
