@@ -1,7 +1,8 @@
 import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { type LocalContextEvent, type LocalPipelineDb, upsertContextEvents } from "@bp/db/local";
-import * as z from "@bp/domain/schema-compat";
+import { decodeStrict } from "@bp/domain/decode";
+import { Schema } from "effect";
 
 export type BuildContextEventsResult = {
   inserted311: number;
@@ -27,121 +28,109 @@ type AceViolationSummaryRow = {
   violation_count: number;
 };
 
-const nullableString = z.string().nullable();
-const nullableNumber = z.number().nullable();
+const nullableString = Schema.NullOr(Schema.String);
+const nullableNumber = Schema.NullOr(Schema.Number);
 
 export const ContextEventPayloadSchemaByKind = {
-  "311_complaint": z
-    .object({
-      complaintType: nullableString,
-      descriptor: nullableString,
-      status: nullableString,
-      incidentAddress: nullableString,
-      streetName: nullableString,
-      curbFrictionCategory: nullableString,
-      curbFrictionRule: nullableString,
-    })
-    .strict(),
-  collision: z
-    .object({
-      borough: nullableString,
-      onStreetName: nullableString,
-      crossStreetName: nullableString,
-      personsInjured: nullableNumber,
-      personsKilled: nullableNumber,
-      pedestriansInjured: nullableNumber,
-      pedestriansKilled: nullableNumber,
-      cyclistInjured: nullableNumber,
-      cyclistKilled: nullableNumber,
-    })
-    .strict(),
-  parking_violation: z
-    .object({
-      violationCode: z.number().int(),
-      violationDescription: nullableString,
-      violationCounty: nullableString,
-      houseNumber: nullableString,
-      streetName: nullableString,
-      intersectingStreet: nullableString,
-      streetCode1: nullableString,
-      streetCode2: nullableString,
-      streetCode3: nullableString,
-    })
-    .strict(),
-  permit: z
-    .object({
-      permitKind: z.string().min(1),
-      permitTypeDesc: nullableString,
-      permitStatusDesc: nullableString,
-      permitSeriesDesc: nullableString,
-      applicationTypeShortDesc: nullableString,
-      equipmentTypeDesc: nullableString,
-      borough: nullableString,
-      houseNumber: nullableString,
-      onStreetName: nullableString,
-      fromStreetName: nullableString,
-      toStreetName: nullableString,
-      purposeComments: nullableString,
-    })
-    .strict(),
-  traffic_volume: z
-    .object({
-      requestId: z.number().int(),
-      segmentId: z.number().int(),
-      borough: nullableString,
-      street: nullableString,
-      fromStreet: nullableString,
-      toStreet: nullableString,
-      direction: nullableString,
-      volume: z.number(),
-    })
-    .strict(),
-  traffic_speed: z
-    .object({
-      linkId: z.string().min(1),
-      linkName: nullableString,
-      borough: nullableString,
-      speed: nullableNumber,
-      travelTime: nullableNumber,
-      statusCode: z.string().min(1),
-    })
-    .strict(),
-  ace_violation_aggregate: z
-    .object({
-      month: z.string().regex(/^\d{4}-\d{2}$/),
-      totalViolations: z.number().int().nonnegative(),
-      breakdown: z.array(
-        z
-          .object({
-            type: z.string().min(1),
-            status: z.string().min(1),
-            count: z.number().int().nonnegative(),
-          })
-          .strict(),
-      ),
-    })
-    .strict(),
+  "311_complaint": Schema.Struct({
+    complaintType: nullableString,
+    descriptor: nullableString,
+    status: nullableString,
+    incidentAddress: nullableString,
+    streetName: nullableString,
+    curbFrictionCategory: nullableString,
+    curbFrictionRule: nullableString,
+  }),
+  collision: Schema.Struct({
+    borough: nullableString,
+    onStreetName: nullableString,
+    crossStreetName: nullableString,
+    personsInjured: nullableNumber,
+    personsKilled: nullableNumber,
+    pedestriansInjured: nullableNumber,
+    pedestriansKilled: nullableNumber,
+    cyclistInjured: nullableNumber,
+    cyclistKilled: nullableNumber,
+  }),
+  parking_violation: Schema.Struct({
+    violationCode: Schema.Number.check(Schema.isInt()),
+    violationDescription: nullableString,
+    violationCounty: nullableString,
+    houseNumber: nullableString,
+    streetName: nullableString,
+    intersectingStreet: nullableString,
+    streetCode1: nullableString,
+    streetCode2: nullableString,
+    streetCode3: nullableString,
+  }),
+  permit: Schema.Struct({
+    permitKind: Schema.String.check(Schema.isMinLength(1)),
+    permitTypeDesc: nullableString,
+    permitStatusDesc: nullableString,
+    permitSeriesDesc: nullableString,
+    applicationTypeShortDesc: nullableString,
+    equipmentTypeDesc: nullableString,
+    borough: nullableString,
+    houseNumber: nullableString,
+    onStreetName: nullableString,
+    fromStreetName: nullableString,
+    toStreetName: nullableString,
+    purposeComments: nullableString,
+  }),
+  traffic_volume: Schema.Struct({
+    requestId: Schema.Number.check(Schema.isInt()),
+    segmentId: Schema.Number.check(Schema.isInt()),
+    borough: nullableString,
+    street: nullableString,
+    fromStreet: nullableString,
+    toStreet: nullableString,
+    direction: nullableString,
+    volume: Schema.Number,
+  }),
+  traffic_speed: Schema.Struct({
+    linkId: Schema.String.check(Schema.isMinLength(1)),
+    linkName: nullableString,
+    borough: nullableString,
+    speed: nullableNumber,
+    travelTime: nullableNumber,
+    statusCode: Schema.String.check(Schema.isMinLength(1)),
+  }),
+  ace_violation_aggregate: Schema.Struct({
+    month: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+    totalViolations: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    breakdown: Schema.Array(
+      Schema.Struct({
+        type: Schema.String.check(Schema.isMinLength(1)),
+        status: Schema.String.check(Schema.isMinLength(1)),
+        count: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      }),
+    ),
+  }),
 } as const;
 
 export type ContextEventPayloadKind = keyof typeof ContextEventPayloadSchemaByKind;
+
+function isContextEventPayloadKind(value: string): value is ContextEventPayloadKind {
+  return Object.hasOwn(ContextEventPayloadSchemaByKind, value);
+}
 
 export function parseContextEventPayloadJson(input: {
   eventKind: string;
   payloadJson: string;
 }): unknown {
-  const schema =
-    ContextEventPayloadSchemaByKind[input.eventKind as ContextEventPayloadKind] ?? null;
-  if (schema === null) {
+  if (!isContextEventPayloadKind(input.eventKind)) {
     throw new Error(`No context-event payload schema for event kind ${input.eventKind}`);
   }
-  return schema.parse(JSON.parse(input.payloadJson));
+  return decodeStrict(ContextEventPayloadSchemaByKind[input.eventKind])(
+    JSON.parse(input.payloadJson),
+  );
 }
 
 function contextEventPayloadJson<K extends ContextEventPayloadKind>(
   eventKind: K,
-  payload: z.input<(typeof ContextEventPayloadSchemaByKind)[K]>,
+  payload: Schema.Codec.Encoded<(typeof ContextEventPayloadSchemaByKind)[K]>,
 ): string {
-  return JSON.stringify(ContextEventPayloadSchemaByKind[eventKind].parse(payload));
+  return JSON.stringify(decodeStrict(ContextEventPayloadSchemaByKind[eventKind])(payload));
 }
 
 export function contextEventId(sourceId: string, sourceRowId: string): string {

@@ -1,5 +1,7 @@
 import type { Database } from "bun:sqlite";
-import * as z from "@bp/domain/schema-compat";
+import { decodeStrict } from "@bp/domain/decode";
+import { Schema } from "effect";
+import { SqlNullableNumberSchema, SqlNumberSchema } from "./sqlite-schema.ts";
 
 export type InterventionComparisonRow = {
   route_id: string;
@@ -28,54 +30,31 @@ export type InterventionPanelLocalDbQuery = {
   readonly endMonth: string;
 };
 
-const SqlNumberSchema = z.union([
-  z.number(),
-  z.bigint().transform(Number),
-  z.preprocess((value) => (typeof value === "string" ? value : Number.NaN), z.coerce.number()),
-]);
-
-const SqlNullableNumberSchema = z.preprocess(
-  (value) => (value === null || value === undefined || value === "" ? null : value),
-  SqlNumberSchema.nullable(),
-);
-
-export const InterventionComparisonRowSchema = z.strictObject({
-  route_id: z.string().min(1),
-  month: z.string().regex(/^\d{4}-\d{2}$/),
-  event_id: z.string().min(1),
-  intervention_type: z.string().min(1),
-  source_id: z.string().min(1),
-  evaluation_level: z.string().min(1),
-  comparison_status: z.string().min(1),
-  pre_start_month: z
-    .string()
-    .regex(/^\d{4}-\d{2}$/)
-    .nullable(),
-  pre_end_month: z
-    .string()
-    .regex(/^\d{4}-\d{2}$/)
-    .nullable(),
-  post_start_month: z
-    .string()
-    .regex(/^\d{4}-\d{2}$/)
-    .nullable(),
-  post_end_month: z
-    .string()
-    .regex(/^\d{4}-\d{2}$/)
-    .nullable(),
+export const InterventionComparisonRowSchema = Schema.Struct({
+  route_id: Schema.String.check(Schema.isMinLength(1)),
+  month: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  event_id: Schema.String.check(Schema.isMinLength(1)),
+  intervention_type: Schema.String.check(Schema.isMinLength(1)),
+  source_id: Schema.String.check(Schema.isMinLength(1)),
+  evaluation_level: Schema.String.check(Schema.isMinLength(1)),
+  comparison_status: Schema.String.check(Schema.isMinLength(1)),
+  pre_start_month: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
+  pre_end_month: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
+  post_start_month: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
+  post_end_month: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
   comparison_route_count: SqlNumberSchema,
-  comparison_route_ids: z.string().nullable(),
+  comparison_route_ids: Schema.NullOr(Schema.String),
   speed_delta_mph: SqlNullableNumberSchema,
   adjusted_speed_delta_mph: SqlNullableNumberSchema,
   ridership_delta: SqlNullableNumberSchema,
   adjusted_ridership_delta: SqlNullableNumberSchema,
-  caveat: z.string(),
+  caveat: Schema.String,
 });
 
 export function parseInterventionComparisonRows(
   rows: readonly unknown[],
 ): readonly InterventionComparisonRow[] {
-  return z.array(InterventionComparisonRowSchema).parse(rows) as InterventionComparisonRow[];
+  return decodeStrict(Schema.Array(InterventionComparisonRowSchema))(rows);
 }
 
 export const INTERVENTION_PANEL_SQL = `

@@ -3,11 +3,13 @@ import {
   type SegmentDaypartPanelSpec,
   segmentDaypartPanelSpecV1,
 } from "@bp/analytics/feature-history";
-import * as z from "@bp/domain/schema-compat";
+import { decodeStrict } from "@bp/domain/decode";
+import { Schema } from "effect";
 import {
   buildLocalDbPanelResolutionManifest,
   type LocalDbPanelResolution,
 } from "./panel-resolution";
+import { SqlNullableNumberSchema, SqlNumberSchema } from "./sqlite-schema.ts";
 
 export type SegmentDaypartHistoryRow = {
   route_id: string;
@@ -35,23 +37,12 @@ export type SegmentDaypartPanelLocalDbResolutionQuery = {
   readonly dbPath?: string;
 };
 
-const SqlNumberSchema = z.union([
-  z.number(),
-  z.bigint().transform(Number),
-  z.preprocess((value) => (typeof value === "string" ? value : Number.NaN), z.coerce.number()),
-]);
-
-const SqlNullableNumberSchema = z.preprocess(
-  (value) => (value === null || value === undefined || value === "" ? null : value),
-  SqlNumberSchema.nullable(),
-);
-
-export const SegmentDaypartHistoryRowSchema = z.strictObject({
-  route_id: z.string().min(1),
-  month: z.string().regex(/^\d{4}-\d{2}$/),
-  segment_id: z.string().min(1),
-  direction: z.string().min(1),
-  daypart: z.string().min(1),
+export const SegmentDaypartHistoryRowSchema = Schema.Struct({
+  route_id: Schema.String.check(Schema.isMinLength(1)),
+  month: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  segment_id: Schema.String.check(Schema.isMinLength(1)),
+  direction: Schema.String.check(Schema.isMinLength(1)),
+  daypart: Schema.String.check(Schema.isMinLength(1)),
   observation_count: SqlNumberSchema,
   traversal_count: SqlNumberSchema,
   average_speed_mph: SqlNullableNumberSchema,
@@ -62,7 +53,7 @@ export const SegmentDaypartHistoryRowSchema = z.strictObject({
 export function parseSegmentDaypartHistoryRows(
   rows: readonly unknown[],
 ): readonly SegmentDaypartHistoryRow[] {
-  return z.array(SegmentDaypartHistoryRowSchema).parse(rows) as SegmentDaypartHistoryRow[];
+  return decodeStrict(Schema.Array(SegmentDaypartHistoryRowSchema))(rows);
 }
 
 export const SEGMENT_DAYPART_HISTORY_SQL = `
