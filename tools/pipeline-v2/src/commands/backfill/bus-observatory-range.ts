@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 /**
  * Backfill Bus Observatory recovered GTFS-RT for a range of months.
  *
@@ -12,7 +13,7 @@
 import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { defaultArtifactRootPath, fromRepoRoot } from "../../lib/paths.ts";
 import { readBusObservatoryAvailabilityArtifact } from "../check/bus-observatory-gtfs-rt.ts";
 
@@ -397,31 +398,38 @@ export default defineCommand({
   summary:
     "Backfill Bus Observatory recovered GTFS-RT (extract, import, reliability) across a month range.",
   input: {
-    options: z.object({
-      since: z
-        .string()
-        .regex(/^\d{4}-\d{1,2}$/)
-        .describe("Start month, YYYY-MM"),
-      until: z
-        .string()
-        .regex(/^\d{4}-\d{1,2}$/)
-        .describe("End month, YYYY-MM"),
-      concurrency: arg.positiveInt().default(DEFAULT_CONCURRENCY).describe("Per-month concurrency"),
-      skipExtract: z.coerce.boolean().default(false).describe("Skip DuckDB extract step"),
-      skipImport: z.coerce.boolean().default(false).describe("Skip CSV import step"),
-      skipReliability: z.coerce
+    options: Schema.Struct({
+      since: Schema.String.check(Schema.isPattern(/^\d{4}-\d{1,2}$/)).annotate({
+        description: "Start month, YYYY-MM",
+      }),
+      until: Schema.String.check(Schema.isPattern(/^\d{4}-\d{1,2}$/)).annotate({
+        description: "End month, YYYY-MM",
+      }),
+      concurrency: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_CONCURRENCY)))
+        .annotate({ description: "Per-month concurrency" }),
+      skipExtract: arg
         .boolean()
-        .default(false)
-        .describe("Skip route-observed-reliability build"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Skip DuckDB extract step" }),
+      skipImport: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Skip CSV import step" }),
+      skipReliability: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Skip route-observed-reliability build" }),
     }),
   },
-  output: z.object({
-    monthCount: z.number(),
-    results: z.array(
-      z.object({
-        label: z.string(),
-        status: z.enum(["ok", "skipped", "error"]),
-        note: z.string().optional(),
+  output: Schema.Struct({
+    monthCount: Schema.Number,
+    results: Schema.Array(
+      Schema.Struct({
+        label: Schema.String,
+        status: Schema.Literals(["ok", "skipped", "error"]),
+        note: Schema.optionalKey(Schema.String),
       }),
     ),
   }),

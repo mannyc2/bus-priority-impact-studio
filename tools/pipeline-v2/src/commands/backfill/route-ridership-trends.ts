@@ -1,5 +1,7 @@
+import { Effect } from "effect";
 import { listRouteMonthTrends, replaceRouteMonthTrends } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { decodeStrip } from "@bp/domain/decode";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
@@ -17,13 +19,11 @@ import {
 type TrendRow = Awaited<ReturnType<typeof listRouteMonthTrends>>[number];
 type RidershipSourceId = "bus_hourly_ridership_2020_2024" | "bus_hourly_ridership_2025";
 
-const RawRidershipAggregateSchema = z
-  .object({
-    bus_route: z.string().min(1).optional(),
-    ridership: z.coerce.number().nonnegative().optional(),
-    transfers: z.coerce.number().nonnegative().optional(),
-  })
-  .passthrough();
+const RawRidershipAggregateSchema = Schema.Struct({
+  bus_route: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+  ridership: Schema.optionalKey(arg.number().check(Schema.isGreaterThanOrEqualTo(0))),
+  transfers: Schema.optionalKey(arg.number().check(Schema.isGreaterThanOrEqualTo(0))),
+});
 
 export type BackfillRouteRidershipTrendsInputs = {
   local: OpenLocalPipelineDb;
@@ -100,7 +100,7 @@ async function fetchRidershipAggregates(input: {
   const rows = await fetchSoda3RowsForSource(source, query, { fetcher: input.fetcher });
   const output = new Map<string, { ridership: number; transfers: number }>();
   for (const row of rows) {
-    const parsed = RawRidershipAggregateSchema.parse(row);
+    const parsed = decodeStrip(RawRidershipAggregateSchema)(row);
     if (parsed.bus_route === undefined) continue;
     output.set(parsed.bus_route, {
       ridership: Math.round((parsed.ridership ?? 0) * 10_000) / 10_000,
@@ -227,24 +227,48 @@ export default defineCommand({
   path: ["backfill", "route-ridership-trends"],
   summary: "Backfill missing ridership values on route_month_trends across a month range.",
   input: {
-    options: dbOptions.extend({
-      startYear: arg.positiveInt().default(2023).describe("Start year"),
-      startMonth: arg.positiveInt().default(1).describe("Start month, 1-12"),
-      endYear: arg.positiveInt().default(2026).describe("End year"),
-      endMonth: arg.positiveInt().default(3).describe("End month, 1-12"),
-      routes: z.array(z.string()).default([]).describe("Specific route IDs (default: all)"),
-      routesFile: z.string().optional().describe("JSON file containing route IDs"),
-      limit: arg.positiveInt().optional().describe("Cap on candidate rows"),
-      concurrency: arg.positiveInt().default(4).describe("Concurrent Socrata fetches"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        startYear: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2023)))
+          .annotate({ description: "Start year" }),
+        startMonth: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+          .annotate({ description: "Start month, 1-12" }),
+        endYear: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "End year" }),
+        endMonth: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "End month, 1-12" }),
+        routes: Schema.Array(Schema.String)
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+          .annotate({ description: "Specific route IDs (default: all)" }),
+        routesFile: Schema.optionalKey(Schema.String).annotate({
+          description: "JSON file containing route IDs",
+        }),
+        limit: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Cap on candidate rows",
+        }),
+        concurrency: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(4)))
+          .annotate({ description: "Concurrent Socrata fetches" }),
+      },
     }),
   },
-  output: z.object({
-    startMonth: z.string(),
-    endMonth: z.string(),
-    attemptedChunkCount: z.number(),
-    updatedRowCount: z.number(),
-    failedRowCount: z.number(),
-    remainingRidershipMissingCount: z.number(),
+  output: Schema.Struct({
+    startMonth: Schema.String,
+    endMonth: Schema.String,
+    attemptedChunkCount: Schema.Number,
+    updatedRowCount: Schema.Number,
+    failedRowCount: Schema.Number,
+    remainingRidershipMissingCount: Schema.Number,
   }),
   async run({ input }) {
     const routes = await mergeRoutesWithFile(input.options.routes, input.options.routesFile);
