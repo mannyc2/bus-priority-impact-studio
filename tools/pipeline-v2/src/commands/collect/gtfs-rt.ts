@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -7,7 +8,7 @@ import {
   insertGtfsRtCollectionRun,
   insertGtfsRtFeedSnapshot,
 } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import type { ManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
@@ -328,32 +329,41 @@ export default defineCommand({
   path: ["collect", "gtfs-rt"],
   summary: "Collect GTFS-RT snapshots from the MTA Bus Time feed into the local pipeline DB.",
   input: {
-    options: dbOptions.extend({
-      durationSeconds: arg.positiveInt().optional().describe("Collection duration in seconds"),
-      durationHours: z.coerce
-        .number()
-        .positive()
-        .optional()
-        .describe("Collection duration in hours"),
-      sampleSeconds: arg.positiveInt().default(30).describe("Sample period in seconds"),
-      sampleCount: arg.positiveInt().optional().describe("Override sample count"),
-      feedTypes: z
-        .array(z.string())
-        .default([])
-        .describe("Feed types (vehicle_positions, trip_updates, alerts)"),
-      runId: z.string().optional().describe("Stable run identifier"),
-      rawDir: z.string().optional().describe("Directory for raw protobuf snapshots"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        durationSeconds: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Collection duration in seconds",
+        }),
+        durationHours: Schema.optionalKey(arg.number().check(Schema.isGreaterThan(0))).annotate({
+          description: "Collection duration in hours",
+        }),
+        sampleSeconds: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(30)))
+          .annotate({ description: "Sample period in seconds" }),
+        sampleCount: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Override sample count",
+        }),
+        feedTypes: Schema.Array(Schema.String)
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+          .annotate({ description: "Feed types (vehicle_positions, trip_updates, alerts)" }),
+        runId: Schema.optionalKey(Schema.String).annotate({ description: "Stable run identifier" }),
+        rawDir: Schema.optionalKey(Schema.String).annotate({
+          description: "Directory for raw protobuf snapshots",
+        }),
+      },
     }),
   },
-  output: z.object({
-    runId: z.string(),
-    status: z.string(),
-    requestedFeedTypes: z.array(z.string()),
-    sampleCount: z.number(),
-    snapshotCount: z.number(),
-    successCount: z.number(),
-    failureCount: z.number(),
-    rawDirectory: z.string(),
+  output: Schema.Struct({
+    runId: Schema.String,
+    status: Schema.String,
+    requestedFeedTypes: Schema.Array(Schema.String),
+    sampleCount: Schema.Number,
+    snapshotCount: Schema.Number,
+    successCount: Schema.Number,
+    failureCount: Schema.Number,
+    rawDirectory: Schema.String,
   }),
   async run({ input }) {
     const feedTypes =
