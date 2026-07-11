@@ -242,10 +242,15 @@ export async function runRouteCatalogIngest(
   const rawDir = inputs.rawDir ?? fromRepoRoot(join("data/raw/network"));
   const routeQuery = { where: "in_effect='true'", order: "route_id,direction_id,shape_id" };
   const stopQuery = { where: "in_effect='true'", order: "route_id,direction_id,stop_id" };
-  const [routeRows, stopRows] = await Promise.all([
-    fetchSoda3RowsForSource(routeSource, routeQuery, { fetcher: inputs.fetcher }),
-    fetchSoda3RowsForSource(stopSource, stopQuery, { fetcher: inputs.fetcher }),
-  ]);
+  // The data.ny.gov SODA3 query service rejects overlapping paginated reads for
+  // these two large datasets. Keep the infrequent catalog refresh serial so a
+  // successful route response cannot race the multi-page stop response.
+  const routeRows = await fetchSoda3RowsForSource(routeSource, routeQuery, {
+    fetcher: inputs.fetcher,
+  });
+  const stopRows = await fetchSoda3RowsForSource(stopSource, stopQuery, {
+    fetcher: inputs.fetcher,
+  });
   const routeShapes = normalizeRouteShapeRows([...routeRows]);
   const stops = normalizeStopRows([...stopRows]);
   const catalog = buildCatalog(routeShapes, stops);

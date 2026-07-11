@@ -29,7 +29,7 @@ import { localTransformConcurrency, runBoundedPromises } from "../../effect/conc
 import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
-import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { fromCliPath } from "../../lib/paths.ts";
 import { buildRouteBriefSegmentUniverse } from "../../lib/route-briefs/index.ts";
 import {
   type LoadedRouteSpeedSpineCrosswalk,
@@ -121,8 +121,8 @@ async function writeJson(path: string, value: unknown): Promise<void> {
 
 async function loadStudioReleaseD1Context(options: CliOptions) {
   const [schemaSql, seedSql] = await Promise.all([
-    Bun.file(fromRepoRoot(options.schemaPath)).text(),
-    Bun.file(fromRepoRoot(options.seedPath)).text(),
+    Bun.file(fromCliPath(options.schemaPath)).text(),
+    Bun.file(fromCliPath(options.seedPath)).text(),
   ]);
 
   return runD1ReplayBoundary({
@@ -209,7 +209,7 @@ async function rawRouteSliceRows(
   routeSliceRawRoot: string,
 ): Promise<SocrataRow[] | null> {
   const slug = routeId.toLowerCase();
-  const path = fromRepoRoot(join(routeSliceRawRoot, `${slug}-${month}`, filename));
+  const path = fromCliPath(join(routeSliceRawRoot, `${slug}-${month}`, filename));
   const snapshot = await readJsonIfExists<RawSourceSnapshot>(path);
   return Array.isArray(snapshot?.rows) ? snapshot.rows : null;
 }
@@ -280,7 +280,7 @@ async function routeBriefInput(
   routeSliceRawRoot: string,
 ): Promise<RouteBriefInputArtifact | null> {
   const slug = routeId.toLowerCase();
-  const path = fromRepoRoot(
+  const path = fromCliPath(
     join(routeSliceArtifactsRoot, `${slug}-${month}`, "route-brief-input.json"),
   );
   const artifact = await readJsonIfExists<RouteBriefInputArtifact>(path);
@@ -294,7 +294,7 @@ async function routeBriefInputs(
   routeSliceRawRoot: string,
 ): Promise<RouteBriefInputArtifact[]> {
   const slug = routeId.toLowerCase();
-  const root = fromRepoRoot(routeSliceArtifactsRoot);
+  const root = fromCliPath(routeSliceArtifactsRoot);
   const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
   const matchedMonths = entries
     .filter((entry) => entry.isDirectory())
@@ -384,9 +384,9 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     stopSnapshotPath: options.stopSnapshotPath,
     routeInputs,
   });
-  const documentChunks = await documentChunkIndex(options.documentChunksPath, fromRepoRoot);
+  const documentChunks = await documentChunkIndex(options.documentChunksPath, fromCliPath);
   const manualInterventionsArtifact = await readJsonIfExists<ManualInterventionCandidatesArtifact>(
-    fromRepoRoot(options.manualInterventionsPath),
+    fromCliPath(options.manualInterventionsPath),
   );
   const manualInterventionsByRoute = manualInterventionIndex(
     manualInterventionsArtifact,
@@ -396,7 +396,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
   if (options.publishableInterventionsByRoutePath !== null) {
     const publishableByRouteArtifact = await readJsonIfExists<{
       interventionsByRoute?: Record<string, StudioIntervention[]>;
-    }>(fromRepoRoot(options.publishableInterventionsByRoutePath));
+    }>(fromCliPath(options.publishableInterventionsByRoutePath));
     if (publishableByRouteArtifact?.interventionsByRoute !== undefined) {
       for (const [routeKeyRaw, entries] of Object.entries(
         publishableByRouteArtifact.interventionsByRoute,

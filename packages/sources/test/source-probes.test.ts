@@ -9,6 +9,30 @@ import { parseSourceManifestObject } from "@bp/sources/registry";
 const now = () => new Date("2026-04-27T00:00:00.000Z");
 
 describe("source probes", () => {
+  test("accepts the typed NOAA station download entry", () => {
+    const manifest = parseSourceManifestObject({
+      verified_at: "2026-06-05",
+      sources: [
+        {
+          id: "noaa_ghcn_daily_nyc",
+          type: "file_download",
+          priority: "secondary",
+          domain: "ncei.noaa.gov",
+          url: "https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/",
+          purpose: "NYC daily weather observations.",
+          stations: [{ id: "USW00094728", name: "NY CITY CENTRAL PARK" }],
+          status: "active",
+        },
+      ],
+    });
+
+    expect(manifest.sources[0]).toMatchObject({
+      id: "noaa_ghcn_daily_nyc",
+      domain: "ncei.noaa.gov",
+      stations: [{ id: "USW00094728" }],
+    });
+  });
+
   test("allows manifest notes without reopening old Socrata endpoint fields", () => {
     const manifest = parseSourceManifestObject({
       verified_at: "2026-06-05",

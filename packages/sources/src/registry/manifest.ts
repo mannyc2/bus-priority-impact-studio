@@ -64,9 +64,24 @@ const FileDownloadManifestSourceSchema = Schema.Struct({
   url: NonEmptyString,
 });
 
+const NoaaGhcnStationSchema = Schema.Struct({
+  id: NonEmptyString,
+  name: NonEmptyString,
+});
+
+const NoaaGhcnManifestSourceSchema = Schema.Struct({
+  ...BaseManifestSourceFields,
+  id: Schema.Literal("noaa_ghcn_daily_nyc"),
+  type: Schema.Literal("file_download"),
+  domain: NonEmptyString,
+  url: NonEmptyString,
+  stations: Schema.Array(NoaaGhcnStationSchema).check(Schema.isMinLength(1)),
+});
+
 export const ManifestSourceSchema = Schema.Union([
   SocrataManifestSourceSchema,
   UrlManifestSourceSchema,
+  NoaaGhcnManifestSourceSchema,
   FileDownloadManifestSourceSchema,
 ]);
 
