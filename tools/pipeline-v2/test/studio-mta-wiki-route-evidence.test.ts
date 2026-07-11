@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { cp, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -13,7 +13,11 @@ import {
   buildStudioRouteEvidenceArtifact,
   runStudioImportMtaWikiRouteEvidence,
 } from "../src/commands/studio/import-mta-wiki-route-evidence.ts";
-import { loadMtaWikiCanonicalCorpus, normalizeBusRouteKey } from "../src/lib/mta-wiki-canonical.ts";
+import {
+  loadMtaWikiCanonicalCorpus,
+  normalizeBusRouteKey,
+  readMtaWikiRouteAnchors,
+} from "../src/lib/mta-wiki-canonical.ts";
 
 const fixtureRoot = join(import.meta.dir, "fixtures", "mta-wiki-route-evidence");
 const fixtureMtaWikiRoot = join(fixtureRoot, "mta-wiki");
@@ -145,6 +149,29 @@ describe("studio import-mta-wiki-route-evidence", () => {
         gtfs_route_id: "M15+",
         canonical_route_record_id: "route_m15-sbs",
       });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("reports the failing route-anchor field path", async () => {
+    const root = await mkdtemp(join(tmpdir(), "route-anchor-invalid-"));
+    try {
+      const path = join(root, "route_anchors.jsonl");
+      await writeFile(
+        path,
+        `${JSON.stringify({
+          gtfs_route_id: "M15",
+          canonical_route_record_id: null,
+          variant_record_ids: [],
+          aliases: [123],
+          disposition: "canonical",
+          anchor_reason: null,
+        })}\n`,
+      );
+
+      await expect(readMtaWikiRouteAnchors(path)).rejects.toThrow(/aliases/);
+      await expect(readMtaWikiRouteAnchors(path)).rejects.not.toThrow(/<root>/);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
