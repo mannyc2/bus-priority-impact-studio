@@ -1,3 +1,4 @@
+import { Schema } from "effect";
 import {
   DirectionIdSchema,
   IsoMonthSchema,
@@ -5,30 +6,40 @@ import {
   RouteIdSchema,
 } from "../primitives/index.js";
 import { ApiDataQualitySchema } from "../routes/index.js";
-import * as z from "../schema-compat.js";
 import { registerProjectSchema } from "../schema-registry.js";
 
-export type { LongitudeLatitudeCoordinate, MapLayerMetric } from "../primitives/index.js";
-export { LongitudeLatitudeCoordinateSchema, MapLayerMetricSchema } from "../primitives/index.js";
+export type {
+  LongitudeLatitudeCoordinate,
+  MapLayerMetric,
+} from "../primitives/index.js";
+export {
+  LongitudeLatitudeCoordinateSchema,
+  MapLayerMetricSchema,
+} from "../primitives/index.js";
 
 const schemaVersion = 1;
 
 export const MapRouteSegmentPropertiesSchema = registerProjectSchema(
-  z
-    .object({
-      segmentId: z.string().min(1),
-      routeId: RouteIdSchema,
-      directionId: DirectionIdSchema,
-      month: IsoMonthSchema,
-      hourOfDay: z.number().int().min(0).max(23).nullable(),
-      averageSpeedMph: z.number().nonnegative().nullable(),
-      hotspotScore: z.number().min(0).max(100),
-      rankOnRoute: z.number().int().nonnegative().nullable(),
-      startStopName: z.string().min(1).nullable(),
-      endStopName: z.string().min(1).nullable(),
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    segmentId: Schema.String.check(Schema.isMinLength(1)),
+    routeId: RouteIdSchema,
+    directionId: DirectionIdSchema,
+    month: IsoMonthSchema,
+    hourOfDay: Schema.NullOr(
+      Schema.Number.check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .check(Schema.isLessThanOrEqualTo(23)),
+    ),
+    averageSpeedMph: Schema.NullOr(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))),
+    hotspotScore: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(
+      Schema.isLessThanOrEqualTo(100),
+    ),
+    rankOnRoute: Schema.NullOr(
+      Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    ),
+    startStopName: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+    endStopName: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+  }),
   {
     id: "bp.map_route_segment_properties.v1",
     title: "Map Route Segment Properties",
@@ -37,16 +48,13 @@ export const MapRouteSegmentPropertiesSchema = registerProjectSchema(
   },
 );
 
-export type MapRouteSegmentProperties = z.output<typeof MapRouteSegmentPropertiesSchema>;
+export type MapRouteSegmentProperties = typeof MapRouteSegmentPropertiesSchema.Type;
 
 export const MapLineStringGeometrySchema = registerProjectSchema(
-  z
-    .object({
-      type: z.literal("LineString"),
-      coordinates: z.array(LongitudeLatitudeCoordinateSchema).min(2),
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    type: Schema.Literal("LineString"),
+    coordinates: Schema.Array(LongitudeLatitudeCoordinateSchema).check(Schema.isMinLength(2)),
+  }),
   {
     id: "bp.map_linestring_geometry.v1",
     title: "Map LineString Geometry",
@@ -55,18 +63,15 @@ export const MapLineStringGeometrySchema = registerProjectSchema(
   },
 );
 
-export type MapLineStringGeometry = z.output<typeof MapLineStringGeometrySchema>;
+export type MapLineStringGeometry = typeof MapLineStringGeometrySchema.Type;
 
 export const MapRouteSegmentFeatureSchema = registerProjectSchema(
-  z
-    .object({
-      type: z.literal("Feature"),
-      id: z.string().min(1),
-      geometry: MapLineStringGeometrySchema,
-      properties: MapRouteSegmentPropertiesSchema,
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    type: Schema.Literal("Feature"),
+    id: Schema.String.check(Schema.isMinLength(1)),
+    geometry: MapLineStringGeometrySchema,
+    properties: MapRouteSegmentPropertiesSchema,
+  }),
   {
     id: "bp.map_route_segment_feature.v1",
     title: "Map Route Segment Feature",
@@ -75,16 +80,13 @@ export const MapRouteSegmentFeatureSchema = registerProjectSchema(
   },
 );
 
-export type MapRouteSegmentFeature = z.output<typeof MapRouteSegmentFeatureSchema>;
+export type MapRouteSegmentFeature = typeof MapRouteSegmentFeatureSchema.Type;
 
 export const MapRouteSegmentFeatureCollectionSchema = registerProjectSchema(
-  z
-    .object({
-      type: z.literal("FeatureCollection"),
-      features: z.array(MapRouteSegmentFeatureSchema),
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    type: Schema.Literal("FeatureCollection"),
+    features: Schema.Array(MapRouteSegmentFeatureSchema),
+  }),
   {
     id: "bp.map_route_segment_feature_collection.v1",
     title: "Map Route Segment Feature Collection",
@@ -93,24 +95,19 @@ export const MapRouteSegmentFeatureCollectionSchema = registerProjectSchema(
   },
 );
 
-export type MapRouteSegmentFeatureCollection = z.output<
-  typeof MapRouteSegmentFeatureCollectionSchema
->;
+export type MapRouteSegmentFeatureCollection = typeof MapRouteSegmentFeatureCollectionSchema.Type;
 
 export const MapArtifactEntrySchema = registerProjectSchema(
-  z
-    .object({
-      artifactKind: z.string().min(1),
-      artifactKey: z.string().min(1),
-      contentType: z.string().min(1),
-      byteLength: z.number().int().nonnegative(),
-      sha256: z.string().length(64),
-      featureCount: z.number().int().nonnegative(),
-      routeId: RouteIdSchema.nullable(),
-      apiPath: z.string().min(1),
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    artifactKind: Schema.String.check(Schema.isMinLength(1)),
+    artifactKey: Schema.String.check(Schema.isMinLength(1)),
+    contentType: Schema.String.check(Schema.isMinLength(1)),
+    byteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    sha256: Schema.String.check(Schema.isLengthBetween(64, 64)),
+    featureCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    routeId: Schema.NullOr(RouteIdSchema),
+    apiPath: Schema.String.check(Schema.isMinLength(1)),
+  }),
   {
     id: "bp.map_artifact_entry.v1",
     title: "Map Artifact Entry",
@@ -119,25 +116,26 @@ export const MapArtifactEntrySchema = registerProjectSchema(
   },
 );
 
-export type MapArtifactEntry = z.output<typeof MapArtifactEntrySchema>;
+export type MapArtifactEntry = typeof MapArtifactEntrySchema.Type;
 
 export const MapManifestResponseSchema = registerProjectSchema(
-  z
-    .object({
-      schemaVersion: z.literal(schemaVersion),
-      generatedAt: z.iso.datetime(),
-      baselineMonth: IsoMonthSchema,
-      status: z.enum(["pass", "fail"]),
-      artifactCount: z.number().int().nonnegative(),
-      routeSegmentArtifactCount: z.number().int().nonnegative(),
-      totalFeatureCount: z.number().int().nonnegative(),
-      totalByteLength: z.number().int().nonnegative(),
-      issueCount: z.number().int().nonnegative(),
-      artifacts: z.array(MapArtifactEntrySchema),
-      quality: ApiDataQualitySchema,
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    schemaVersion: Schema.Literal(schemaVersion),
+    generatedAt: Schema.String.check(
+      Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+    ),
+    baselineMonth: IsoMonthSchema,
+    status: Schema.Literals(["pass", "fail"]),
+    artifactCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    routeSegmentArtifactCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    totalFeatureCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    totalByteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    issueCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    artifacts: Schema.Array(MapArtifactEntrySchema),
+    quality: ApiDataQualitySchema,
+  }),
   {
     id: "bp.map_manifest_response.v1",
     title: "Map Manifest Response",
@@ -146,4 +144,4 @@ export const MapManifestResponseSchema = registerProjectSchema(
   },
 );
 
-export type MapManifestResponse = z.output<typeof MapManifestResponseSchema>;
+export type MapManifestResponse = typeof MapManifestResponseSchema.Type;

@@ -1,13 +1,12 @@
-import * as z from "../schema-compat.js";
+import { Schema, SchemaGetter } from "effect";
 import { registerProjectSchema } from "../schema-registry.js";
 
 export const RouteIdSchema = registerProjectSchema(
-  z
-    .string()
-    .min(1)
-    .max(12)
-    .regex(/^[A-Z][A-Z0-9+-]*$/)
-    .brand<"RouteId">(),
+  Schema.String.check(
+    Schema.isMinLength(1),
+    Schema.isMaxLength(12),
+    Schema.isPattern(/^[A-Z][A-Z0-9+-]*$/),
+  ).pipe(Schema.brand("RouteId")),
   {
     id: "bp.route_id",
     title: "Route ID",
@@ -16,27 +15,29 @@ export const RouteIdSchema = registerProjectSchema(
   },
 );
 
-export type RouteId = z.output<typeof RouteIdSchema>;
+export type RouteId = typeof RouteIdSchema.Type;
 
-export const RouteIdCodec = z.codec(z.string(), RouteIdSchema, {
-  decode: (value) => RouteIdSchema.parse(value.trim().toUpperCase()),
-  encode: (value) => value,
-});
+export const RouteIdCodec = Schema.String.pipe(
+  Schema.decodeTo(RouteIdSchema, {
+    decode: SchemaGetter.transform((value) => value.trim().toUpperCase()),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
 
-export const DirectionIdSchema = registerProjectSchema(z.enum(["0", "1"]).brand<"DirectionId">(), {
-  id: "bp.direction_id",
-  title: "Direction ID",
-  description: "GTFS-style bus direction identifier. This MVP only accepts 0 or 1.",
-  stability: "draft",
-});
+export const DirectionIdSchema = registerProjectSchema(
+  Schema.Literals(["0", "1"]).pipe(Schema.brand("DirectionId")),
+  {
+    id: "bp.direction_id",
+    title: "Direction ID",
+    description: "GTFS-style bus direction identifier. This MVP only accepts 0 or 1.",
+    stability: "draft",
+  },
+);
 
-export type DirectionId = z.output<typeof DirectionIdSchema>;
+export type DirectionId = typeof DirectionIdSchema.Type;
 
 export const IsoMonthSchema = registerProjectSchema(
-  z
-    .string()
-    .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
-    .brand<"IsoMonth">(),
+  Schema.String.check(Schema.isPattern(/^\d{4}-(0[1-9]|1[0-2])$/)).pipe(Schema.brand("IsoMonth")),
   {
     id: "bp.iso_month",
     title: "ISO Month",
@@ -45,17 +46,17 @@ export const IsoMonthSchema = registerProjectSchema(
   },
 );
 
-export type IsoMonth = z.output<typeof IsoMonthSchema>;
+export type IsoMonth = typeof IsoMonthSchema.Type;
 
 export const SourceCitationSchema = registerProjectSchema(
-  z
-    .object({
-      sourceId: z.string().min(1),
-      title: z.string().min(1),
-      url: z.url(),
-      verifiedAt: z.iso.datetime(),
-    })
-    .strict(),
+  Schema.Struct({
+    sourceId: Schema.String.check(Schema.isMinLength(1)),
+    title: Schema.String.check(Schema.isMinLength(1)),
+    url: Schema.String.check(Schema.isPattern(/^https?:\/\/\S+$/)),
+    verifiedAt: Schema.String.check(
+      Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+    ),
+  }),
   {
     id: "bp.source_citation",
     title: "Source Citation",
@@ -64,10 +65,10 @@ export const SourceCitationSchema = registerProjectSchema(
   },
 );
 
-export type SourceCitation = z.output<typeof SourceCitationSchema>;
+export type SourceCitation = typeof SourceCitationSchema.Type;
 
 export const MetricNameSchema = registerProjectSchema(
-  z.enum(["average_speed_mph", "travel_time_seconds", "hotspot_score", "route_score"]),
+  Schema.Literals(["average_speed_mph", "travel_time_seconds", "hotspot_score", "route_score"]),
   {
     id: "bp.metric_name",
     title: "Metric Name",
@@ -76,10 +77,10 @@ export const MetricNameSchema = registerProjectSchema(
   },
 );
 
-export type MetricName = z.output<typeof MetricNameSchema>;
+export type MetricName = typeof MetricNameSchema.Type;
 
 export const MapLayerMetricSchema = registerProjectSchema(
-  z.enum(["average_speed_mph", "hotspot_score", "ace_status", "bus_lane_presence"]),
+  Schema.Literals(["average_speed_mph", "hotspot_score", "ace_status", "bus_lane_presence"]),
   {
     id: "bp.map_layer_metric",
     title: "Map Layer Metric",
@@ -88,20 +89,23 @@ export const MapLayerMetricSchema = registerProjectSchema(
   },
 );
 
-export type MapLayerMetric = z.output<typeof MapLayerMetricSchema>;
+export type MapLayerMetric = typeof MapLayerMetricSchema.Type;
 
-export const CodeExecutionLanguageSchema = registerProjectSchema(z.enum(["typescript", "bash"]), {
-  id: "bp.code_execution_language",
-  title: "Code Execution Language",
-  description:
-    "Languages accepted by agent-authored code_execution evidence refs. TypeScript/Bun is the primary path; bash is limited to deterministic shell slicing.",
-  stability: "draft",
-});
+export const CodeExecutionLanguageSchema = registerProjectSchema(
+  Schema.Literals(["typescript", "bash"]),
+  {
+    id: "bp.code_execution_language",
+    title: "Code Execution Language",
+    description:
+      "Languages accepted by agent-authored code_execution evidence refs. TypeScript/Bun is the primary path; bash is limited to deterministic shell slicing.",
+    stability: "draft",
+  },
+);
 
-export type CodeExecutionLanguage = z.output<typeof CodeExecutionLanguageSchema>;
+export type CodeExecutionLanguage = typeof CodeExecutionLanguageSchema.Type;
 
 export const NycBoroughSchema = registerProjectSchema(
-  z.enum(["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"]),
+  Schema.Literals(["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"]),
   {
     id: "bp.nyc_borough",
     title: "NYC Borough",
@@ -110,10 +114,13 @@ export const NycBoroughSchema = registerProjectSchema(
   },
 );
 
-export type NycBorough = z.output<typeof NycBoroughSchema>;
+export type NycBorough = typeof NycBoroughSchema.Type;
 
 export const LongitudeLatitudeCoordinateSchema = registerProjectSchema(
-  z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]).readonly(),
+  Schema.Tuple([
+    Schema.Number.check(Schema.isGreaterThanOrEqualTo(-180), Schema.isLessThanOrEqualTo(180)),
+    Schema.Number.check(Schema.isGreaterThanOrEqualTo(-90), Schema.isLessThanOrEqualTo(90)),
+  ]),
   {
     id: "bp.longitude_latitude_coordinate",
     title: "Longitude/Latitude Coordinate",
@@ -122,4 +129,4 @@ export const LongitudeLatitudeCoordinateSchema = registerProjectSchema(
   },
 );
 
-export type LongitudeLatitudeCoordinate = z.output<typeof LongitudeLatitudeCoordinateSchema>;
+export type LongitudeLatitudeCoordinate = typeof LongitudeLatitudeCoordinateSchema.Type;
