@@ -21,6 +21,10 @@ import {
   mapArtifactSha256,
   verifyMapArtifactManifestContents,
 } from "@bp/analytics/evaluation";
+import {
+  classifyRouteSegmentSourceKey,
+  serializeSourceSegmentId,
+} from "@bp/analytics/feature-history";
 import type {
   LocalBusLane,
   LocalRouteBriefSummary,
@@ -205,12 +209,25 @@ function isJsonObject(value: unknown): value is Record<string, unknown> {
 }
 
 function routeSegmentIdFor(
-  row: Pick<
-    LocalRouteSegmentSpeed,
-    "direction" | "stopOrder" | "timepointStopId" | "nextTimepointStopId"
-  >,
+  input: Pick<RouteSegmentGroup, "routeId" | "month"> & {
+    row: Pick<
+      LocalRouteSegmentSpeed,
+      "direction" | "stopOrder" | "timepointStopId" | "nextTimepointStopId"
+    >;
+  },
 ): string {
-  return [row.direction, row.stopOrder, row.timepointStopId, row.nextTimepointStopId].join(":");
+  const classified = classifyRouteSegmentSourceKey({
+    routeId: input.routeId,
+    month: input.month,
+    direction: input.row.direction,
+    stopOrder: input.row.stopOrder,
+    fromStopId: input.row.timepointStopId,
+    toStopId: input.row.nextTimepointStopId,
+  });
+  if (classified.status !== "keyed") {
+    throw new Error(`Published map segment ${input.routeId} ${input.month} has no stop pair.`);
+  }
+  return serializeSourceSegmentId(classified.key);
 }
 
 function routeShapeId(row: RouteShapePath, index: number): string {
@@ -585,7 +602,7 @@ function segmentGroups(input: {
 }): RouteSegmentGroup[] {
   const groups = new Map<string, LocalRouteSegmentSpeed[]>();
   for (const row of input.rows) {
-    const segmentId = routeSegmentIdFor(row);
+    const segmentId = routeSegmentIdFor({ routeId: input.routeId, month: input.month, row });
     const group = groups.get(segmentId) ?? [];
     group.push(row);
     groups.set(segmentId, group);

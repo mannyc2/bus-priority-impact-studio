@@ -1,3 +1,7 @@
+import {
+  classifyRouteSegmentSourceKey,
+  serializeStudioSegmentId,
+} from "@bp/analytics/feature-history";
 import type { SegmentHotspot, SegmentSpeedObservation } from "@bp/analytics/hotspots";
 import { detectSegmentHotspots } from "@bp/analytics/hotspots";
 import type { PublicRouteVisibilityReason } from "@bp/analytics/public-route-visibility";
@@ -170,14 +174,18 @@ function ridershipKey(dayOfWeek: string, hourOfDay: number): string {
 }
 
 function segmentIdFromSpeedRow(row: LocalRouteSegmentSpeed): string {
-  return [
-    row.routeId,
-    row.isoMonth,
-    row.direction,
-    row.stopOrder,
-    row.timepointStopId,
-    row.nextTimepointStopId,
-  ].join(":");
+  const classified = classifyRouteSegmentSourceKey({
+    routeId: row.routeId,
+    month: row.isoMonth,
+    direction: row.direction,
+    stopOrder: row.stopOrder,
+    fromStopId: row.timepointStopId,
+    toStopId: row.nextTimepointStopId,
+  });
+  if (classified.status !== "keyed") {
+    throw new Error(`Studio segment ${row.routeId} ${row.isoMonth} has no stop pair.`);
+  }
+  return serializeStudioSegmentId(classified.key);
 }
 
 function segmentOrder(left: SegmentHotspot, right: SegmentHotspot): number {
