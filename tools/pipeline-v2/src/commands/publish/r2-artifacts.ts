@@ -99,6 +99,12 @@ function normalizeEtag(etag: string): string {
   return etag.replace(/^"|"$/g, "").toLowerCase();
 }
 
+function contentAddressedSha256(key: string): string | null {
+  const filename = key.split("/").at(-1) ?? "";
+  const match = /^.+\.([a-f0-9]{64})\.[^.]+$/.exec(filename);
+  return match?.[1] ?? null;
+}
+
 async function collectPrefixKeys(
   artifactRoot: string,
   prefixes: readonly string[],
@@ -202,6 +208,19 @@ async function uploadOne(
       byteLength: 0,
       headOperations: 0,
     };
+  }
+
+  const filenameSha256 = contentAddressedSha256(item.key);
+  if (filenameSha256 !== null) {
+    const actualSha256 = createHash("sha256").update(body).digest("hex");
+    if (actualSha256 !== filenameSha256) {
+      return {
+        outcome: "failed",
+        error: `content-addressed filename hash mismatch: expected ${filenameSha256}, got ${actualSha256}`,
+        byteLength: body.byteLength,
+        headOperations: 0,
+      };
+    }
   }
 
   const statHeadOperations = !options.force && driver.tracksRemoteCosts !== false ? 1 : 0;

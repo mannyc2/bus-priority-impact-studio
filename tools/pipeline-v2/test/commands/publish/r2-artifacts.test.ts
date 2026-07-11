@@ -143,6 +143,28 @@ describe("runPublishR2Artifacts", () => {
     }
   });
 
+  it("rejects a content-addressed filename whose token does not match the body", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-hash-mismatch-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      const directory = join(artifactRoot, "map", MONTH);
+      await mkdir(directory, { recursive: true });
+      const key = `map/${MONTH}/network.${"a".repeat(64)}.geojson`;
+      await writeFile(join(artifactRoot, key), '{"type":"FeatureCollection","features":[]}');
+      const { driver, calls } = recordingDriver(new Map());
+      const report = await runPublishR2Artifacts(
+        baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+      );
+
+      expect(report.status).toBe("fail");
+      expect(report.failed[0]?.error).toContain("content-addressed filename hash mismatch");
+      expect(calls).toEqual([]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("includes nested Studio v2 route speed-history artifacts under the default studio prefix", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "publish-r2-studio-v2-"));
     try {
