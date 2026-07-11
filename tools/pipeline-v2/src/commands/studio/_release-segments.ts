@@ -6,6 +6,7 @@ import {
   type StudioRouteSegmentEvidence,
 } from "@bp/domain/studio/segment-evidence";
 import { completeOpenRouterChat } from "../../lib/llm.ts";
+import { decodeSchemaStrip } from "../../lib/schema-decode.ts";
 import {
   tspMatchMethodForSegment,
   tspStatusForSegment,
@@ -346,7 +347,7 @@ export function buildSegmentAnalystNote(input: StudioSegment): StudioAiAnalystNo
     primaryEvidence.push("ace_route_program");
   }
 
-  return StudioAiAnalystNoteSchema.parse({
+  return decodeSchemaStrip(StudioAiAnalystNoteSchema, {
     generationMode: "deterministic_evidence_summary",
     headline:
       speedGap > 0
@@ -594,9 +595,8 @@ export function applyStudioLlmSegmentNoteOutput(
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error(`LLM segment note for ${segment.id} was not a JSON object.`);
   }
-  const shape = parsed as Record<string, unknown>;
-  const note = StudioAiPublicNoteSchema.parse({
-    ...shape,
+  const note = decodeSchemaStrip(StudioAiPublicNoteSchema, {
+    ...parsed,
     generationMode: "llm_assisted_evidence_summary",
   });
   validateUsefulLlmSegmentNote(segment, note);

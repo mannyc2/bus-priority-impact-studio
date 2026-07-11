@@ -4,7 +4,6 @@ import { expressRouteAnalysisAuditPath, expressRouteAnalysisPath } from "@bp/ana
 import {
   buildExpressRouteAnalysisArtifact,
   buildExpressRouteAnalysisAuditArtifact,
-  type ExpressRouteAnalysisArtifact,
   ExpressRouteAnalysisArtifactSchema,
   summarizeExpressRouteCapacityRows,
 } from "@bp/analytics/feature-history";
@@ -16,6 +15,7 @@ import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { Schema } from "effect";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import {
   fetchSoda3RowsForSource,
   type SocrataFetch,
@@ -161,9 +161,12 @@ export async function auditExpressRouteAnalysis(args: AuditExpressRouteAnalysisA
   const inputPath = args.inputPath ?? defaultOutputPath();
   const outputPath = args.outputPath ?? defaultAuditOutputPath();
   const generatedAt = args.generatedAt ?? new Date();
-  const artifact = ExpressRouteAnalysisArtifactSchema.parse(await Bun.file(inputPath).json());
+  const artifact = decodeSchemaStrict(
+    ExpressRouteAnalysisArtifactSchema,
+    await Bun.file(inputPath).json(),
+  );
   const result = buildExpressRouteAnalysisAuditArtifact({
-    artifact: artifact as ExpressRouteAnalysisArtifact,
+    artifact,
     inputPath,
     generatedAt: generatedAt.toISOString(),
   });

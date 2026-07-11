@@ -39,6 +39,7 @@ import {
   MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import {
   type NormalizedRouteShape,
   type NormalizedStop,
@@ -676,7 +677,7 @@ function routeSegmentsFeatureCollection(input: {
     });
   }
 
-  return MapRouteSegmentFeatureCollectionSchema.parse({
+  return decodeSchemaStrict(MapRouteSegmentFeatureCollectionSchema, {
     type: "FeatureCollection",
     features,
   });

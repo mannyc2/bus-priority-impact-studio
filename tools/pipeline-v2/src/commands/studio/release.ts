@@ -29,6 +29,7 @@ import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import { buildRouteBriefSegmentUniverse } from "../../lib/route-briefs/index.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
 import { buildSourceCoverageLedger } from "../audit/source-coverage.ts";
@@ -486,7 +487,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     }),
   ];
 
-  return StudioReleasePayloadSchema.parse({
+  return decodeSchemaStrict(StudioReleasePayloadSchema, {
     schemaVersion: 1,
     generatedAt: releaseGeneratedAt,
     quality: {

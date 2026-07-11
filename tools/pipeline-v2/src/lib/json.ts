@@ -1,15 +1,13 @@
-import { decodeEitherPreserve, decodeEitherStrict, decodeEitherStrip } from "@bp/domain/decode";
-import { Result, Schema } from "effect";
+import { Result, type Schema } from "effect";
 import { runPipelineFileSystemBoundary } from "../effect/file-system.ts";
+import {
+  decodeSchemaEitherPreserve,
+  decodeSchemaEitherStrict,
+  decodeSchemaEitherStrip,
+} from "./schema-decode.ts";
 
 const COMMAND = "pipeline.json";
 type DecodePolicy = "preserve" | "strict" | "strip";
-
-function serviceFreeSchema<S extends Schema.Constraint>(
-  schema: S,
-): Schema.Codec<S["Type"], S["Encoded"], never, unknown> {
-  return Schema.make<Schema.Codec<S["Type"], S["Encoded"], never, unknown>>(schema.ast);
-}
 
 function parseJsonArtifact<S extends Schema.Constraint>(
   path: string,
@@ -19,11 +17,11 @@ function parseJsonArtifact<S extends Schema.Constraint>(
 ): S["Type"] {
   const decoder =
     policy === "preserve"
-      ? decodeEitherPreserve
+      ? decodeSchemaEitherPreserve
       : policy === "strict"
-        ? decodeEitherStrict
-        : decodeEitherStrip;
-  const parsed = decoder(serviceFreeSchema(schema))(raw);
+        ? decodeSchemaEitherStrict
+        : decodeSchemaEitherStrip;
+  const parsed = decoder(schema, raw);
   if (Result.isFailure(parsed)) {
     throw new Error(`Failed to parse artifact at ${path}: ${String(parsed.failure)}`);
   }

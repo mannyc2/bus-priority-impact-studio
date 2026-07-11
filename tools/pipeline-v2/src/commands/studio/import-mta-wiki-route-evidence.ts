@@ -22,6 +22,7 @@ import {
 import { type StudioRoute, StudioRoutesResponseSchema } from "@bp/domain/studio/routes";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { readJsonArtifact, writeJson } from "../../lib/json.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import {
   busRouteKeysFromText,
   busRouteKeysFromValue,
@@ -345,7 +346,7 @@ function addCitationForRef(input: {
   const pageNumber = typeof pageNumberValue === "number" ? pageNumberValue : undefined;
   const sourcePath = textValue(input.ref.source_path) ?? `raw/sources/${sourceId}/blocks.jsonl`;
   const sourcePayload = source?.payload;
-  const citation = StudioRouteEvidenceCitationSchema.parse({
+  const citation = decodeSchemaStrict(StudioRouteEvidenceCitationSchema, {
     key,
     sourceId,
     blockId,
@@ -643,7 +644,7 @@ export async function writeStudioRouteEvidenceServingArtifacts(input: {
     });
   }
 
-  const index = StudioRouteEvidenceIndexSchema.parse({
+  const index = decodeSchemaStrict(StudioRouteEvidenceIndexSchema, {
     artifactKind: "bp.studio.route_evidence_index.v1",
     schemaVersion: 1,
     generatedAt: input.artifact.generatedAt,
@@ -757,7 +758,7 @@ export function buildStudioRouteEvidenceArtifact(input: {
 
   const routes = works.map((work) => materializeBundle({ work, sources: sourceIndex, relations }));
   const citationCount = routes.reduce((sum, route) => sum + route.citations.length, 0);
-  return StudioRouteEvidenceArtifactSchema.parse({
+  return decodeSchemaStrict(StudioRouteEvidenceArtifactSchema, {
     artifactKind: "bp.studio.route_evidence.v1",
     schemaVersion: 1,
     generatedAt: input.generatedAt,
