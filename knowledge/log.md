@@ -8229,3 +8229,18 @@ multi-source/catalog joins (`route-catalog`, `route-coverage`), multi-month or r
 classification disproved that premise. Safe consolidation removed 1,130 and added 666 lines under
 `commands/ingest` (net -464), plus the shared helpers and tests. Verification: pipeline typecheck
 and all 205 pipeline tests pass; four source-structure tests were updated to recognize the helper.
+
+## [2026-07-11] engineering | Plan 063 decodes Studio inputs once and dispatches from registry
+
+Studio snapshot composition now follows an explicit degrade policy: routes are required, while
+methods, docs, route evidence, model status, and Snapshot 2.0 assembly produce legal empty or
+omitted contributions with public caveats. The Worker no longer reparses its own `/routes` and
+`/snapshot` responses. Route-index display defaults and source-month status decoding happen once
+at the D1 edge, and invalid equity assignment geography fails descriptively instead of being cast.
+
+Studio read dispatch now resolves the canonical registry matcher, including route parameters, and
+a completeness test enforces the registry/handler bijection. Route-index and route-section read
+models moved into focused modules, reducing `read-handlers.ts` from 2,966 baseline lines to 2,217.
+Final verification passed: Studio API typecheck and 54 tests, DB typecheck and 52 tests, 22 Worker
+tests, 155 web tests, 21 architecture tests, and style. Worker wall time improved from the 5.90s
+baseline to 4.47s after the registry dispatch change.
