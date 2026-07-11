@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import {
   type LocalCorridorInterventionContext,
   type LocalCorridorRouteMember,
@@ -14,7 +15,7 @@ import {
   listRouteStops,
   replaceCorridorRows,
 } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -471,24 +472,33 @@ export default defineCommand({
   path: ["corridor", "model"],
   summary: "Derive corridor groupings from route hotspots and stop streets.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      hotspotLimit: arg
-        .positiveInt()
-        .default(defaultHotspotLimit)
-        .describe("Max hotspots per corridor"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        hotspotLimit: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultHotspotLimit)))
+          .annotate({ description: "Max hotspots per corridor" }),
+      },
     }),
   },
-  output: z.object({
-    isoMonth: z.string(),
-    publicRouteCount: z.number(),
-    corridorCount: z.number(),
-    assignedRouteCount: z.number(),
-    ambiguousRouteCount: z.number(),
-    unassignedRouteCount: z.number(),
-    corridorHotspotCount: z.number(),
-    corridorInterventionContextCount: z.number(),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    publicRouteCount: Schema.Number,
+    corridorCount: Schema.Number,
+    assignedRouteCount: Schema.Number,
+    ambiguousRouteCount: Schema.Number,
+    unassignedRouteCount: Schema.Number,
+    corridorHotspotCount: Schema.Number,
+    corridorInterventionContextCount: Schema.Number,
   }),
   async run({ input }) {
     return runLocalDbCommandBoundary({
