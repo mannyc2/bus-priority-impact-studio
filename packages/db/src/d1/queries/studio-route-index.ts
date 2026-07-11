@@ -91,6 +91,15 @@ export type StudioRouteIndexSourceRow = {
     endMonth: string;
     artifactPath: string;
     artifactStatus: string;
+    spineReadiness:
+      | "series_ready"
+      | "series_ready_with_gaps"
+      | "needs_pattern_review"
+      | "failed"
+      | null;
+    spineReasons: string[];
+    matchedCurrentSegmentCount: number | null;
+    unmatchedCurrentSegmentCount: number | null;
     monthCount: number;
     segmentCount: number;
     cellCount: number;
@@ -235,6 +244,17 @@ function movementPct(latest: number, prior: number | undefined): number | null {
   return ((latest - prior) / prior) * 100;
 }
 
+function normalizeSpineReadiness(
+  value: unknown,
+): NonNullable<StudioRouteIndexSourceRow["speedHistoryCoverage"]>["spineReadiness"] {
+  return value === "series_ready" ||
+    value === "series_ready_with_gaps" ||
+    value === "needs_pattern_review" ||
+    value === "failed"
+    ? value
+    : null;
+}
+
 function groupSpeedHistoryCoverage(rows: readonly RouteSpeedHistoryCoverageIndexRow[]) {
   return new Map(
     rows.map((row) => [
@@ -245,6 +265,19 @@ function groupSpeedHistoryCoverage(rows: readonly RouteSpeedHistoryCoverageIndex
         endMonth: row.history_end_month,
         artifactPath: row.artifact_path,
         artifactStatus: row.artifact_status,
+        spineReadiness: normalizeSpineReadiness(row.spine_readiness),
+        spineReasons: (() => {
+          try {
+            const value: unknown = JSON.parse(row.spine_reason_json ?? "[]");
+            return Array.isArray(value) && value.every((item) => typeof item === "string")
+              ? value
+              : [];
+          } catch {
+            return [];
+          }
+        })(),
+        matchedCurrentSegmentCount: row.matched_current_segment_count ?? null,
+        unmatchedCurrentSegmentCount: row.unmatched_current_segment_count ?? null,
         monthCount: row.month_count,
         segmentCount: row.segment_count,
         cellCount: row.cell_count,
@@ -493,6 +526,10 @@ async function listOptionalRouteSpeedHistoryCoverageRows(db: D1ServingDb, month:
         history_end_month: routeSpeedHistoryCoverage.historyEndMonth,
         artifact_path: routeSpeedHistoryCoverage.artifactPath,
         artifact_status: routeSpeedHistoryCoverage.artifactStatus,
+        spine_readiness: routeSpeedHistoryCoverage.spineReadiness,
+        spine_reason_json: routeSpeedHistoryCoverage.spineReasonJson,
+        matched_current_segment_count: routeSpeedHistoryCoverage.matchedCurrentSegmentCount,
+        unmatched_current_segment_count: routeSpeedHistoryCoverage.unmatchedCurrentSegmentCount,
         month_count: routeSpeedHistoryCoverage.monthCount,
         segment_count: routeSpeedHistoryCoverage.segmentCount,
         cell_count: routeSpeedHistoryCoverage.cellCount,

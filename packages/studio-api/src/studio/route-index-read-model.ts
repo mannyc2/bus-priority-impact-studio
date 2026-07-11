@@ -222,10 +222,23 @@ export function routeProjectionRefs(input: {
     );
   }
   if (row.speedHistoryCoverage !== null) {
+    const speedHistoryStatus = (() => {
+      switch (row.speedHistoryCoverage.spineReadiness) {
+        case "series_ready":
+          return row.speedHistoryCoverage.missingCellCount > 0 ? "partial" : "available";
+        case "series_ready_with_gaps":
+        case "needs_pattern_review":
+          return "partial";
+        case "failed":
+          return "downstream_blocked";
+        case null:
+          return "partial";
+      }
+    })();
     refs.push(
       routeProjectionRef({
         id: "route_speed_history",
-        status: row.speedHistoryCoverage.missingCellCount > 0 ? "partial" : "available",
+        status: speedHistoryStatus,
         schemaVersion: 1,
         grain: "route_segment_month_daypart",
         storage: "r2",

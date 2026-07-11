@@ -28,6 +28,13 @@ const RouteSpeedHistoryManifestSchema = Schema.Struct({
       routeId: Schema.String.check(Schema.isMinLength(1)),
       routeSlug: Schema.String.check(Schema.isMinLength(1)),
       status: Schema.Literals(["written", "skipped_existing", "blocked", "failed"]),
+      readiness: Schema.Literals([
+        "series_ready",
+        "series_ready_with_gaps",
+        "needs_pattern_review",
+        "failed",
+      ]),
+      reasons: Schema.Array(Schema.String),
       artifactPath: Schema.String.check(Schema.isMinLength(1)),
       monthCount: Schema.NullOr(
         Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
@@ -100,6 +107,8 @@ export async function runRouteSpeedHistoryCoverageIndex(input: {
           routeSlug: route.routeSlug,
           artifactPath: repoDisplayPath(artifactPath),
           artifactStatus: route.status,
+          spineReadiness: route.readiness,
+          spineReasons: route.reasons,
           monthCount: route.monthCount,
           segmentCount: route.segmentCount,
           cellCount: route.cellCount,

@@ -39,6 +39,10 @@ export type RouteSpeedHistoryCoverage = {
   historyEndMonth: string;
   artifactPath: string;
   artifactStatus: string;
+  spineReadiness: "series_ready" | "series_ready_with_gaps" | "needs_pattern_review" | "failed";
+  spineReasons: string[];
+  matchedCurrentSegmentCount: number | null;
+  unmatchedCurrentSegmentCount: number | null;
   monthCount: number;
   segmentCount: number;
   cellCount: number;
@@ -91,6 +95,7 @@ export type PublicSnapshotSourceMonthCoverage = {
 };
 
 function toRouteSpeedHistoryCoverage(row: RouteSpeedHistoryCoverageRow): RouteSpeedHistoryCoverage {
+  const spineReadiness = routeSpeedSpineReadiness(row.spine_readiness);
   return {
     routeId: row.route_id,
     month: row.month,
@@ -99,6 +104,10 @@ function toRouteSpeedHistoryCoverage(row: RouteSpeedHistoryCoverageRow): RouteSp
     historyEndMonth: row.history_end_month,
     artifactPath: row.artifact_path,
     artifactStatus: row.artifact_status,
+    spineReadiness,
+    spineReasons: stringArrayJson(row.spine_reason_json),
+    matchedCurrentSegmentCount: row.matched_current_segment_count,
+    unmatchedCurrentSegmentCount: row.unmatched_current_segment_count,
     monthCount: row.month_count,
     segmentCount: row.segment_count,
     cellCount: row.cell_count,
@@ -106,6 +115,26 @@ function toRouteSpeedHistoryCoverage(row: RouteSpeedHistoryCoverageRow): RouteSp
     missingCellCount: row.missing_cell_count,
     generatedAt: row.generated_at,
   };
+}
+
+function routeSpeedSpineReadiness(value: string): RouteSpeedHistoryCoverage["spineReadiness"] {
+  if (
+    value === "series_ready" ||
+    value === "series_ready_with_gaps" ||
+    value === "needs_pattern_review" ||
+    value === "failed"
+  ) {
+    return value;
+  }
+  throw new Error(`Invalid route speed spine readiness: ${value}`);
+}
+
+function stringArrayJson(value: string): string[] {
+  const parsed: unknown = JSON.parse(value);
+  if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) {
+    throw new Error("Invalid route speed spine reasons JSON.");
+  }
+  return parsed;
 }
 
 function toSourceMonthCoverage(row: SourceMonthCoverageRow): SourceMonthCoverage {
@@ -167,6 +196,10 @@ async function selectRouteSpeedHistoryCoverageRows(db: D1ServingDb, month: strin
       history_end_month: routeSpeedHistoryCoverage.historyEndMonth,
       artifact_path: routeSpeedHistoryCoverage.artifactPath,
       artifact_status: routeSpeedHistoryCoverage.artifactStatus,
+      spine_readiness: routeSpeedHistoryCoverage.spineReadiness,
+      spine_reason_json: routeSpeedHistoryCoverage.spineReasonJson,
+      matched_current_segment_count: routeSpeedHistoryCoverage.matchedCurrentSegmentCount,
+      unmatched_current_segment_count: routeSpeedHistoryCoverage.unmatchedCurrentSegmentCount,
       month_count: routeSpeedHistoryCoverage.monthCount,
       segment_count: routeSpeedHistoryCoverage.segmentCount,
       cell_count: routeSpeedHistoryCoverage.cellCount,

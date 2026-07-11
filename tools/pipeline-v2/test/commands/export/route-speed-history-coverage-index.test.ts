@@ -42,6 +42,24 @@ describe("route speed-history coverage index export", () => {
       );
       const b41Path = join(artifactRoot, "studio/v2/routes/b41/speed-history.json");
       await writeFixture(b41Path, { artifactKind: "studio_route_speed_history" });
+      sqlite.exec(`
+        CREATE TABLE local_route_speed_history_coverage (
+          route_id TEXT NOT NULL,
+          month TEXT NOT NULL,
+          route_slug TEXT NOT NULL,
+          history_start_month TEXT NOT NULL,
+          history_end_month TEXT NOT NULL,
+          artifact_path TEXT NOT NULL,
+          artifact_status TEXT NOT NULL,
+          month_count INTEGER NOT NULL,
+          segment_count INTEGER NOT NULL,
+          cell_count INTEGER NOT NULL,
+          available_cell_count INTEGER NOT NULL,
+          missing_cell_count INTEGER NOT NULL,
+          generated_at TEXT NOT NULL,
+          PRIMARY KEY (route_id, month)
+        )
+      `);
       await writeFixture(manifestPath, {
         artifactKind: "studio_route_speed_history_manifest",
         schemaVersion: 1,
@@ -54,6 +72,8 @@ describe("route speed-history coverage index export", () => {
             routeId: "B41",
             routeSlug: "b41",
             status: "written",
+            readiness: "series_ready_with_gaps",
+            reasons: ["partial_month_coverage"],
             artifactPath: b41Path,
             monthCount: 3,
             segmentCount: 2,
@@ -65,6 +85,8 @@ describe("route speed-history coverage index export", () => {
             routeId: "M1",
             routeSlug: "m1",
             status: "failed",
+            readiness: "failed",
+            reasons: ["spine_validation_failed"],
             artifactPath: join(artifactRoot, "studio/v2/routes/m1/speed-history.json"),
             monthCount: null,
             segmentCount: null,
@@ -102,7 +124,8 @@ describe("route speed-history coverage index export", () => {
             `
               SELECT route_id, month, route_slug, history_start_month, history_end_month,
                 artifact_status, month_count, segment_count, cell_count,
-                available_cell_count, missing_cell_count
+                available_cell_count, missing_cell_count, spine_readiness, spine_reason_json,
+                matched_current_segment_count, unmatched_current_segment_count
               FROM local_route_speed_history_coverage
               ORDER BY route_id
             `,
@@ -121,6 +144,10 @@ describe("route speed-history coverage index export", () => {
           cell_count: 24,
           available_cell_count: 20,
           missing_cell_count: 4,
+          spine_readiness: "series_ready_with_gaps",
+          spine_reason_json: '["partial_month_coverage"]',
+          matched_current_segment_count: null,
+          unmatched_current_segment_count: null,
         },
       ]);
     } finally {

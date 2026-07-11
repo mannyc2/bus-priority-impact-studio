@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { Dirent } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
+import type { RouteSpeedSpineReadiness } from "@bp/analytics/feature-history";
 import type { D1RouteTimelineIndexInput } from "@bp/db/d1/seed";
 import {
   getRouteBatchStatus,
@@ -182,6 +183,10 @@ type RawRouteSpeedHistoryCoverageRow = {
   history_end_month?: unknown;
   artifact_path?: unknown;
   artifact_status?: unknown;
+  spine_readiness?: unknown;
+  spine_reason_json?: unknown;
+  matched_current_segment_count?: unknown;
+  unmatched_current_segment_count?: unknown;
   month_count?: unknown;
   segment_count?: unknown;
   cell_count?: unknown;
@@ -196,6 +201,38 @@ function stringValue(value: unknown): string {
 
 function numberValue(value: unknown): number {
   return typeof value === "number" ? value : Number(value ?? 0);
+}
+
+function nullableNumberValue(value: unknown): number | null {
+  return value === null || value === undefined ? null : numberValue(value);
+}
+
+function spineReadinessValue(value: unknown): RouteSpeedSpineReadiness {
+  if (
+    value === "series_ready" ||
+    value === "series_ready_with_gaps" ||
+    value === "needs_pattern_review" ||
+    value === "failed"
+  ) {
+    return value;
+  }
+  throw new Error(
+    "Route speed-history coverage has no valid spine readiness; rerun the coverage materializer for this month before exporting D1 inputs.",
+  );
+}
+
+function spineReasonsJsonValue(value: unknown): string {
+  const text = stringValue(value);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("Route speed-history spine_reason_json is not valid JSON.");
+  }
+  if (!Array.isArray(parsed) || parsed.some((reason) => typeof reason !== "string")) {
+    throw new Error("Route speed-history spine_reason_json must be an array of strings.");
+  }
+  return JSON.stringify(parsed);
 }
 
 function tableExists(sqlite: Database | undefined, tableName: string): boolean {
@@ -215,7 +252,8 @@ function listRouteSpeedHistoryCoverageRows(sqlite: Database | undefined, month: 
       `
         SELECT route_id, month, route_slug, history_start_month, history_end_month,
           artifact_path, artifact_status, month_count, segment_count, cell_count,
-          available_cell_count, missing_cell_count, generated_at
+          available_cell_count, missing_cell_count, spine_readiness, spine_reason_json,
+          matched_current_segment_count, unmatched_current_segment_count, generated_at
         FROM local_route_speed_history_coverage
         WHERE month = ?
         ORDER BY route_id
@@ -230,6 +268,10 @@ function listRouteSpeedHistoryCoverageRows(sqlite: Database | undefined, month: 
     historyEndMonth: stringValue(row.history_end_month),
     artifactPath: stringValue(row.artifact_path),
     artifactStatus: stringValue(row.artifact_status),
+    spineReadiness: spineReadinessValue(row.spine_readiness),
+    spineReasonJson: spineReasonsJsonValue(row.spine_reason_json),
+    matchedCurrentSegmentCount: nullableNumberValue(row.matched_current_segment_count),
+    unmatchedCurrentSegmentCount: nullableNumberValue(row.unmatched_current_segment_count),
     monthCount: numberValue(row.month_count),
     segmentCount: numberValue(row.segment_count),
     cellCount: numberValue(row.cell_count),

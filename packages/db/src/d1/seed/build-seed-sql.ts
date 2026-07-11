@@ -104,7 +104,11 @@ const RouteReadinessInsertSchema = uncheckedSeedValidator;
 const RouteReadinessMissingInputInsertSchema = uncheckedSeedValidator;
 const RouteReliabilityBaselineInsertSchema = uncheckedSeedValidator;
 const RouteReliabilityGapWindowInsertSchema = uncheckedSeedValidator;
-const RouteSpeedHistoryCoverageInsertSchema = uncheckedSeedValidator;
+const RouteSpeedHistoryCoverageInsertSchema = seedRowValidator({
+  enumFields: {
+    spineReadiness: ["series_ready", "series_ready_with_gaps", "needs_pattern_review", "failed"],
+  },
+});
 const RouteTimelineIndexInsertSchema = uncheckedSeedValidator;
 const SourceMonthCoverageInsertSchema = uncheckedSeedValidator;
 const RouteScorecardInsertSchema = seedRowValidator({
@@ -132,6 +136,10 @@ export type D1RouteSpeedHistoryCoverageInput = {
   historyEndMonth: string;
   artifactPath: string;
   artifactStatus: string;
+  spineReadiness: "series_ready" | "series_ready_with_gaps" | "needs_pattern_review" | "failed";
+  spineReasonJson: string;
+  matchedCurrentSegmentCount: number | null;
+  unmatchedCurrentSegmentCount: number | null;
   monthCount: number;
   segmentCount: number;
   cellCount: number;
@@ -586,6 +594,19 @@ function validateD1SeedRows(input: D1SeedInput): void {
 
   for (const row of input.routeSpeedHistoryCoverage) {
     validateSeedRow(RouteSpeedHistoryCoverageInsertSchema, "route_speed_history_coverage", row);
+    let reasons: unknown;
+    try {
+      reasons = JSON.parse(row.spineReasonJson);
+    } catch {
+      throw new Error(
+        "D1 seed row failed validation for route_speed_history_coverage: spineReasonJson: Invalid JSON",
+      );
+    }
+    if (!Array.isArray(reasons) || reasons.some((reason) => typeof reason !== "string")) {
+      throw new Error(
+        "D1 seed row failed validation for route_speed_history_coverage: spineReasonJson: Expected string array",
+      );
+    }
   }
 
   for (const row of input.sourceMonthCoverage) {
@@ -1243,6 +1264,10 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
           historyEndMonth: row.historyEndMonth,
           artifactPath: row.artifactPath,
           artifactStatus: row.artifactStatus,
+          spineReadiness: row.spineReadiness,
+          spineReasonJson: row.spineReasonJson,
+          matchedCurrentSegmentCount: row.matchedCurrentSegmentCount,
+          unmatchedCurrentSegmentCount: row.unmatchedCurrentSegmentCount,
           monthCount: row.monthCount,
           segmentCount: row.segmentCount,
           cellCount: row.cellCount,
