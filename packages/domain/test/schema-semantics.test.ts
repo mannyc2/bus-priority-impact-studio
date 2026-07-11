@@ -82,6 +82,8 @@ describe("schema semantic compatibility", () => {
 
     expect(parsed.tsp).toBe(true);
     expect(parsed.aiNote).toBe("Legacy note body.");
+    expect(parsed.spineSegmentId).toBeNull();
+    expect(parsed.spineJoinStatus).toBe("not_built");
     expect(parsed).not.toHaveProperty("extra");
   });
 });

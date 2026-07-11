@@ -1,4 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import {
+  buildRouteSpeedSpineCrosswalk,
+  type RouteSegmentSourceKey,
+  type RouteSpeedSpineArtifact,
+  serializeStudioSegmentId,
+} from "@bp/analytics/feature-history";
 
 type FixtureSourceKey = {
   routeId: string;
@@ -72,6 +78,37 @@ describe("map segment identity fixture", () => {
     expect(spineSegments.flatMap((segment) => segment.aliases)).not.toContain(
       sourceKeys.geometryless,
     );
+  });
+
+  test("joins reordered map, detail, and history records only by canonical identity", () => {
+    const detailById = new Map(
+      detailSegments.map((detail) => [serializeStudioSegmentId(detail.sourceKey), detail]),
+    );
+    const exactMapMatches = mapFeatures.map((feature) =>
+      detailById.get(serializeStudioSegmentId(feature.sourceKey)),
+    );
+    expect(exactMapMatches.map((detail) => detail?.label)).toEqual(["South", "North"]);
+    expect(exactMapMatches).not.toContain(undefined);
+
+    const crosswalk = buildRouteSpeedSpineCrosswalk({
+      routeId: "B41",
+      segments: spineSegments.map((segment) => ({
+        segmentId: segment.spineSegmentId,
+        raw: {
+          sourceKeys: segment.aliases.map((key) => ({
+            status: "keyed" as const,
+            key: key satisfies RouteSegmentSourceKey,
+          })),
+        },
+      })),
+    } as unknown as Pick<RouteSpeedSpineArtifact, "routeId" | "segments">);
+    expect(crosswalk.get(serializeStudioSegmentId(sourceKeys.north))).toBe(
+      "b41-s-node-010-node-011",
+    );
+    expect(crosswalk.get(serializeStudioSegmentId(sourceKeys.south))).toBe(
+      "b41-s-node-011-node-012",
+    );
+    expect(crosswalk.get(serializeStudioSegmentId(sourceKeys.geometryless))).toBeUndefined();
   });
 
   test("map and route-detail producers use the canonical serializers", async () => {

@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import {
   DirectionIdSchema,
   IsoMonthSchema,
@@ -22,6 +22,14 @@ const schemaVersion = 1;
 export const MapRouteSegmentPropertiesSchema = registerProjectSchema(
   Schema.Struct({
     segmentId: Schema.String.check(Schema.isMinLength(1)),
+    sourceSegmentId: Schema.String.check(Schema.isMinLength(1)),
+    studioSegmentId: Schema.String.check(Schema.isMinLength(1)),
+    spineSegmentId: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))).pipe(
+      Schema.withDecodingDefaultType(Effect.succeed(null)),
+    ),
+    spineJoinStatus: Schema.Literals(["matched", "unmatched", "ambiguous", "not_built"]).pipe(
+      Schema.withDecodingDefaultType(Effect.succeed("not_built")),
+    ),
     routeId: RouteIdSchema,
     directionId: DirectionIdSchema,
     month: IsoMonthSchema,
@@ -41,7 +49,7 @@ export const MapRouteSegmentPropertiesSchema = registerProjectSchema(
     endStopName: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
   }),
   {
-    id: "bp.map_route_segment_properties.v1",
+    id: "bp.map_route_segment_properties.v2",
     title: "Map Route Segment Properties",
     description: "Public properties attached to a derived timepoint-to-timepoint bus segment.",
     stability: "draft",
@@ -73,7 +81,7 @@ export const MapRouteSegmentFeatureSchema = registerProjectSchema(
     properties: MapRouteSegmentPropertiesSchema,
   }),
   {
-    id: "bp.map_route_segment_feature.v1",
+    id: "bp.map_route_segment_feature.v2",
     title: "Map Route Segment Feature",
     description: "GeoJSON feature for one precomputed route segment served to the public map.",
     stability: "draft",
@@ -88,7 +96,7 @@ export const MapRouteSegmentFeatureCollectionSchema = registerProjectSchema(
     features: Schema.Array(MapRouteSegmentFeatureSchema),
   }),
   {
-    id: "bp.map_route_segment_feature_collection.v1",
+    id: "bp.map_route_segment_feature_collection.v2",
     title: "Map Route Segment Feature Collection",
     description: "GeoJSON FeatureCollection for precomputed route segment map artifacts.",
     stability: "draft",

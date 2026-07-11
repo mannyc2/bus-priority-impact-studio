@@ -23,7 +23,9 @@ import {
 } from "@bp/analytics/evaluation";
 import {
   classifyRouteSegmentSourceKey,
+  matchRouteSpeedSpineSegment,
   serializeSourceSegmentId,
+  serializeStudioSegmentId,
 } from "@bp/analytics/feature-history";
 import type {
   LocalBusLane,
@@ -54,6 +56,10 @@ import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import {
+  type LoadedRouteSpeedSpineCrosswalk,
+  loadRouteSpeedSpineCrosswalk,
+} from "../../lib/route-speed-spine-crosswalk.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
 
@@ -661,6 +667,7 @@ function routeSegmentsFeatureCollection(input: {
   segments: readonly RouteSegmentGroup[];
   hotspots: readonly LocalRouteHotspot[];
   shapesByDirection: Map<string, RouteShapePath[]>;
+  spine: LoadedRouteSpeedSpineCrosswalk;
 }): MapRouteSegmentFeatureCollection {
   const hotspotRows = hotspotBySegmentId(input.hotspots);
   const features: unknown[] = [];
@@ -672,15 +679,43 @@ function routeSegmentsFeatureCollection(input: {
     }
 
     const hotspot = hotspotRows.get(segment.segmentId);
+    const classified = classifyRouteSegmentSourceKey({
+      routeId: segment.routeId,
+      month: segment.month,
+      direction: segment.direction,
+      stopOrder: segment.stopOrder,
+      fromStopId: segment.timepointStopId,
+      toStopId: segment.nextTimepointStopId,
+    });
+    if (classified.status !== "keyed") {
+      throw new Error(
+        `Published map segment ${segment.routeId} ${segment.month} has no stop pair.`,
+      );
+    }
+    const sourceSegmentId = serializeSourceSegmentId(classified.key);
+    const studioSegmentId = serializeStudioSegmentId(classified.key);
+    const spineMatch =
+      input.spine.status === "ready"
+        ? matchRouteSpeedSpineSegment(input.spine.crosswalk, classified.key)
+        : null;
     features.push({
       type: "Feature",
-      id: ["route-segment", segment.routeId, segment.month, segment.segmentId].join(":"),
+      id: ["route-segment", studioSegmentId].join(":"),
       geometry: {
         type: "LineString",
         coordinates: geometry.coordinates.map(roundedCoordinate),
       },
       properties: {
         segmentId: segment.segmentId,
+        sourceSegmentId,
+        studioSegmentId,
+        spineSegmentId: spineMatch?.status === "matched" ? spineMatch.spineSegmentId : null,
+        spineJoinStatus:
+          input.spine.status === "not_built"
+            ? "not_built"
+            : spineMatch?.status === "matched"
+              ? "matched"
+              : "unmatched",
         routeId: segment.routeId,
         directionId: segment.directionId,
         month: segment.month,
@@ -1071,14 +1106,17 @@ export type MapArtifactsInputs = {
   year: number;
   month: number;
   artifactRoot?: string | undefined;
+  speedSpineRoot?: string | undefined;
   routeShapeSnapshotPath?: string | undefined;
   stopSnapshotPath?: string | undefined;
   busLaneSnapshotPath?: string | undefined;
+  routeIds?: readonly string[] | undefined;
 };
 
 export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArtifactsResult> {
   const isoMonthStr = isoMonth(args.year, args.month);
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
+  const speedSpineRoot = args.speedSpineRoot ?? artifactRoot;
   const generatedAt = new Date().toISOString();
   const routeShapeSnapshot = await readRouteShapeSnapshot(
     args.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath(),
@@ -1093,6 +1131,10 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     local: args.local,
     month: options.isoMonth,
   });
+  const routeFilter = new Set((args.routeIds ?? []).map((routeId) => routeId.trim().toUpperCase()));
+  const selectedRouteRows = rows.routeRows.filter(
+    (route) => routeFilter.size === 0 || routeFilter.has(route.routeId),
+  );
   const shapesByDirection = shapesByRouteDirection(routeShapeSnapshot.shapes);
   const directionIdByDirection = directionIdsByRouteDirection(routeShapeSnapshot.shapes);
   const sourcePayload = {
@@ -1154,7 +1196,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   );
 
   const routeArtifactResults = await runBoundedPromises(
-    rows.routeRows,
+    selectedRouteRows,
     localTransformConcurrency,
     async (route) => {
       const routeDirectionIds = new Map<string, "0" | "1">();
@@ -1175,13 +1217,40 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
         rows: route.speedRows,
         directionIdByDirection: routeDirectionIds,
       });
+      const spine = await loadRouteSpeedSpineCrosswalk({
+        artifactRoot: speedSpineRoot,
+        routeId: route.routeId,
+      });
       const payload = routeSegmentsFeatureCollection({
         routeId: route.routeId,
         month: options.isoMonth,
         segments,
         hotspots: route.hotspots,
         shapesByDirection: routeShapes,
+        spine,
       });
+      const matchedSpineIds = new Set<string>();
+      let unmatchedSegmentCount = 0;
+      for (const feature of payload.features) {
+        const { spineJoinStatus, spineSegmentId } = feature.properties;
+        if (spineJoinStatus === "unmatched") unmatchedSegmentCount += 1;
+        if (spineSegmentId === null) continue;
+        if (matchedSpineIds.has(spineSegmentId)) {
+          throw new Error(
+            `Map route ${route.routeId} ${options.isoMonth} maps more than one current segment to ${spineSegmentId}.`,
+          );
+        }
+        matchedSpineIds.add(spineSegmentId);
+      }
+      if (
+        spine.status === "ready" &&
+        spine.audit.readiness === "series_ready" &&
+        unmatchedSegmentCount > 0
+      ) {
+        throw new Error(
+          `Map route ${route.routeId} is series_ready but has ${unmatchedSegmentCount} unmatched current segments.`,
+        );
+      }
       const artifactKey = routeSegmentMapArtifactKey(route.routeId, options.isoMonth);
       return {
         networkRoute: {
@@ -1239,7 +1308,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     routeSegmentFeatureCount,
     totalFeatureCount: manifest.totalFeatureCount,
     totalByteLength: manifest.totalByteLength,
-    publicRouteCount: rows.publicRouteIds.length,
+    publicRouteCount: selectedRouteRows.length,
   };
 }
 
@@ -1260,6 +1329,12 @@ export default defineCommand({
           .annotate({ description: "Calendar month, 1-12" }),
         artifactRoot: Schema.optionalKey(Schema.String).annotate({
           description: "Override artifact root directory",
+        }),
+        speedSpineRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override route speed-spine artifact root",
+        }),
+        routes: Schema.optionalKey(Schema.String).annotate({
+          description: "Comma-separated route IDs to include",
         }),
         routeShapeSnapshot: Schema.optionalKey(Schema.String).annotate({
           description: "Override route-shape snapshot path",
@@ -1288,6 +1363,10 @@ export default defineCommand({
       input.options.artifactRoot === undefined
         ? undefined
         : fromCliPath(input.options.artifactRoot);
+    const speedSpineRoot =
+      input.options.speedSpineRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.speedSpineRoot);
     const routeShapeSnapshotPath =
       input.options.routeShapeSnapshot === undefined
         ? undefined
@@ -1314,9 +1393,11 @@ export default defineCommand({
           year: input.options.year,
           month: input.options.month,
           artifactRoot,
+          speedSpineRoot,
           routeShapeSnapshotPath,
           stopSnapshotPath,
           busLaneSnapshotPath,
+          routeIds: input.options.routes?.split(",").map((routeId) => routeId.trim()),
         }),
     });
   },

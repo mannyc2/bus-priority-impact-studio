@@ -30,6 +30,10 @@ import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { buildRouteBriefSegmentUniverse } from "../../lib/route-briefs/index.ts";
+import {
+  type LoadedRouteSpeedSpineCrosswalk,
+  loadRouteSpeedSpineCrosswalk,
+} from "../../lib/route-speed-spine-crosswalk.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
 import { buildSourceCoverageLedger } from "../audit/source-coverage.ts";
@@ -86,6 +90,7 @@ const defaultSchemaPath = "data/exports/d1/2026-03/schema.sql";
 const defaultSeedPath = "data/exports/d1/2026-03/seed.sql";
 const defaultRouteSliceArtifactsRoot = "data/artifacts/route-slices";
 const defaultRouteSliceRawRoot = "data/raw/route-slices";
+const defaultSpeedSpineRoot = "data/artifacts";
 const defaultRouteShapeSnapshotPath = "data/raw/network/current_bus_routes.json";
 const defaultStopSnapshotPath = "data/raw/network/current_bus_stops.json";
 const defaultTspSourcePath = "data/artifacts/studio/v2/wiki/sources/nyc_dot_tsp_status_2017";
@@ -161,10 +166,14 @@ async function loadStudioReleaseD1Context(options: CliOptions) {
           (summary) => !requiredSummaries.some((required) => required.routeId === summary.routeId),
         ),
       ];
-      const selectedSummaries =
+      const profileSelectedSummaries =
         options.profile === "full"
           ? orderedSummaries
           : orderedSummaries.slice(0, Math.max(options.routeLimit, requiredSummaries.length));
+      const routeFilter = new Set(options.routeIds.map((routeId) => routeId.trim().toUpperCase()));
+      const selectedSummaries = profileSelectedSummaries.filter(
+        (summary) => routeFilter.size === 0 || routeFilter.has(summary.routeId),
+      );
       const speedPercentiles = speedPercentilesForSummaries(orderedSummaries, readinessByRoute);
       const descriptivePeerSlugs = descriptivePeerSlugsForSummaries(
         selectedSummaries,
@@ -346,6 +355,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     .map(buildRouteArtifactRef);
   const routeInputs = new Map<string, RouteBriefInputArtifact | null>();
   const routeInputsByRoute = new Map<string, RouteBriefInputArtifact[]>();
+  const speedSpinesByRoute = new Map<string, LoadedRouteSpeedSpineCrosswalk>();
 
   for (const summary of selectedSummaries) {
     const inputs = await routeBriefInputs(
@@ -360,6 +370,14 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       null;
     routeInputsByRoute.set(summary.routeId, inputs);
     routeInputs.set(summary.routeId, currentInput);
+    speedSpinesByRoute.set(
+      summary.routeId,
+      await loadRouteSpeedSpineCrosswalk({
+        artifactRoot: fromRepoRoot(options.speedSpineRoot),
+        routeId: summary.routeId,
+        requireSpine: options.profile === "full",
+      }),
+    );
   }
   const segmentLaneOverlaps = await segmentLaneOverlapIndex({
     localDbPath: options.localDbPath,
@@ -419,15 +437,44 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     ];
   });
 
-  const deterministicSegments = routes.flatMap((route) =>
-    buildSegments(
+  const deterministicSegments = routes.flatMap((route) => {
+    const speedSpine = speedSpinesByRoute.get(route.routeId);
+    return buildSegments(
       route.slug,
       route.routeId,
       routeInputs.get(route.routeId) ?? null,
       segmentLaneOverlaps.get(route.routeId),
       tspEvidenceByRoute.get(route.routeId) ?? unknownTspEvidence(),
-    ),
-  );
+      speedSpine?.status === "ready" ? speedSpine.crosswalk : null,
+    );
+  });
+  for (const route of routes) {
+    const routeSegments = deterministicSegments.filter(
+      (segment) => segment.routeSlug === route.slug,
+    );
+    const seenSpineIds = new Set<string>();
+    let unmatchedCount = 0;
+    for (const segment of routeSegments) {
+      if (segment.spineJoinStatus === "unmatched") unmatchedCount += 1;
+      if (segment.spineSegmentId === null) continue;
+      if (seenSpineIds.has(segment.spineSegmentId)) {
+        throw new Error(
+          `Studio release route ${route.routeId} ${options.month} maps more than one current segment to ${segment.spineSegmentId}.`,
+        );
+      }
+      seenSpineIds.add(segment.spineSegmentId);
+    }
+    const spine = speedSpinesByRoute.get(route.routeId);
+    if (
+      spine?.status === "ready" &&
+      spine.audit.readiness === "series_ready" &&
+      unmatchedCount > 0
+    ) {
+      throw new Error(
+        `Studio release route ${route.routeId} is series_ready but has ${unmatchedCount} unmatched current segments.`,
+      );
+    }
+  }
   const publicNoteSegments = withSparsePublicSegmentNotes(deterministicSegments, options.month);
   const segments = await enhanceSegmentAiNotesWithLlm(publicNoteSegments, options.segmentNoteLlm);
   const routeSegmentEvidence = routes.flatMap((route) =>
@@ -562,6 +609,7 @@ export type RunStudioReleaseInputs = {
   routeLimit?: number | undefined;
   routeSliceArtifactsRoot?: string | undefined;
   routeSliceRawRoot?: string | undefined;
+  speedSpineRoot?: string | undefined;
   routeShapeSnapshotPath?: string | undefined;
   stopSnapshotPath?: string | undefined;
   tspSourcePath?: string | undefined;
@@ -570,6 +618,7 @@ export type RunStudioReleaseInputs = {
   publishableInterventionsByRoutePath?: string | undefined;
   localDbPath?: string | undefined;
   profile?: ReleaseProfile | undefined;
+  routeIds?: readonly string[] | undefined;
   segmentNoteLlm?: Partial<SegmentNoteLlmOptions> | undefined;
 };
 
@@ -604,6 +653,7 @@ export async function runStudioRelease(
     routeLimit: inputs.routeLimit ?? defaultRouteLimit,
     routeSliceArtifactsRoot: inputs.routeSliceArtifactsRoot ?? defaultRouteSliceArtifactsRoot,
     routeSliceRawRoot: inputs.routeSliceRawRoot ?? defaultRouteSliceRawRoot,
+    speedSpineRoot: inputs.speedSpineRoot ?? defaultSpeedSpineRoot,
     routeShapeSnapshotPath: inputs.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath,
     stopSnapshotPath: inputs.stopSnapshotPath ?? defaultStopSnapshotPath,
     tspSourcePath: inputs.tspSourcePath ?? defaultTspSourcePath,
@@ -612,6 +662,7 @@ export async function runStudioRelease(
     publishableInterventionsByRoutePath: inputs.publishableInterventionsByRoutePath ?? null,
     localDbPath: inputs.localDbPath ?? defaultLocalPipelineDbPath(),
     profile: inputs.profile ?? "full",
+    routeIds: (inputs.routeIds ?? []).map((routeId) => routeId.trim().toUpperCase()),
     segmentNoteLlm: {
       enabled: llmInput.enabled ?? false,
       model: llmInput.model ?? defaultSegmentNoteModel,
@@ -680,6 +731,7 @@ export default defineCommand({
         .annotate({ description: "Route limit for demo profile" }),
       routeSliceArtifacts: Schema.optionalKey(Schema.String),
       routeSliceRaw: Schema.optionalKey(Schema.String),
+      speedSpineRoot: Schema.optionalKey(Schema.String),
       routeShapeSnapshot: Schema.optionalKey(Schema.String),
       stopSnapshot: Schema.optionalKey(Schema.String),
       tspSource: Schema.optionalKey(Schema.String),
@@ -690,6 +742,9 @@ export default defineCommand({
       profile: Schema.Literals(["demo", "full"]).pipe(
         Schema.withDecodingDefaultTypeKey(Effect.succeed("full")),
       ),
+      routes: Schema.optionalKey(Schema.String).annotate({
+        description: "Comma-separated route IDs to include",
+      }),
       segmentNoteLlm: arg.boolean().pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false))),
       segmentNoteModel: Schema.optionalKey(Schema.String),
       segmentNoteLlmLimit: Schema.optionalKey(Schema.String),
@@ -746,6 +801,7 @@ export default defineCommand({
       routeLimit: input.options.limit,
       routeSliceArtifactsRoot: input.options.routeSliceArtifacts,
       routeSliceRawRoot: input.options.routeSliceRaw,
+      speedSpineRoot: input.options.speedSpineRoot,
       routeShapeSnapshotPath: input.options.routeShapeSnapshot,
       stopSnapshotPath: input.options.stopSnapshot,
       tspSourcePath: input.options.tspSource,
@@ -755,6 +811,7 @@ export default defineCommand({
       localDbPath:
         input.options.localDb === undefined ? undefined : fromCliPath(input.options.localDb),
       profile: input.options.profile,
+      routeIds: input.options.routes?.split(",").map((routeId) => routeId.trim()),
       segmentNoteLlm: {
         enabled: input.options.segmentNoteLlm,
         model,

@@ -23,6 +23,10 @@ describe("map route segment schemas", () => {
           },
           properties: {
             segmentId: "M1-0-2026-01-01",
+            sourceSegmentId: "N:10:401001:401002",
+            studioSegmentId: "M1:2026-01:N:10:401001:401002",
+            spineSegmentId: "m1-n-node-001-node-002",
+            spineJoinStatus: "matched",
             routeId: "M1",
             directionId: "0",
             month: "2026-01",
@@ -38,6 +42,12 @@ describe("map route segment schemas", () => {
     });
 
     expect(parsed.features).toHaveLength(1);
+    expect(parsed.features[0]?.properties).toMatchObject({
+      sourceSegmentId: "N:10:401001:401002",
+      studioSegmentId: "M1:2026-01:N:10:401001:401002",
+      spineSegmentId: "m1-n-node-001-node-002",
+      spineJoinStatus: "matched",
+    });
   });
 
   test("rejects out-of-range coordinates", () => {
@@ -53,6 +63,8 @@ describe("map route segment schemas", () => {
       },
       properties: {
         segmentId: "bad-coordinate",
+        sourceSegmentId: "N:10:401001:401002",
+        studioSegmentId: "M1:2026-01:N:10:401001:401002",
         routeId: "M1",
         directionId: "0",
         month: "2026-01",

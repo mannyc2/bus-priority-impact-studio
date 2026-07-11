@@ -138,6 +138,12 @@ export const StudioRouteSchema = Schema.Unknown.pipe(
 
 const StudioSegmentShapeSchema = Schema.Struct({
   id: Schema.String,
+  spineSegmentId: Schema.NullOr(Schema.String).pipe(
+    Schema.withDecodingDefaultType(Effect.succeed(null)),
+  ),
+  spineJoinStatus: Schema.Literals(["matched", "unmatched", "ambiguous", "not_built"]).pipe(
+    Schema.withDecodingDefaultType(Effect.succeed("not_built")),
+  ),
   routeSlug: Schema.String,
   direction: Schema.Literals(["NB", "SB", "EB", "WB"]),
   from: Schema.String,
@@ -439,6 +445,13 @@ export const StudioRouteSpeedHistoryDaypartSchema = Schema.Literals([
   "off_peak",
 ]);
 
+export const StudioRouteSpeedSpineReadinessSchema = Schema.Literals([
+  "series_ready",
+  "series_ready_with_gaps",
+  "needs_pattern_review",
+  "failed",
+]);
+
 export const StudioRouteSpeedHistoryCellSchema = Schema.Struct({
   segmentId: Schema.String,
   month: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
@@ -460,6 +473,9 @@ export const StudioRouteSpeedHistoryResponseSchema = Schema.Struct({
   generatedAt: Schema.String,
   routeId: Schema.String,
   routeSlug: Schema.String,
+  spineReadiness: Schema.NullOr(StudioRouteSpeedSpineReadinessSchema).pipe(
+    Schema.withDecodingDefaultType(Effect.succeed(null)),
+  ),
   source: Schema.Struct({
     table: Schema.Literal("local_route_segment_speed"),
     dbPath: Schema.String,
@@ -636,6 +652,7 @@ export type StudioRouteHourlyProfileMonthlyProfile =
   typeof StudioRouteHourlyProfileMonthlyProfileSchema.Type;
 export type StudioRouteHourlyProfileResponse = typeof StudioRouteHourlyProfileResponseSchema.Type;
 export type StudioRouteSpeedHistoryDaypart = typeof StudioRouteSpeedHistoryDaypartSchema.Type;
+export type StudioRouteSpeedSpineReadiness = typeof StudioRouteSpeedSpineReadinessSchema.Type;
 export type StudioRouteSpeedHistoryCell = typeof StudioRouteSpeedHistoryCellSchema.Type;
 export type StudioRouteSpeedHistoryResponse = typeof StudioRouteSpeedHistoryResponseSchema.Type;
 export type StudioRouteSectionId = typeof StudioRouteSectionIdSchema.Type;

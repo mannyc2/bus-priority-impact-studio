@@ -1,4 +1,5 @@
 import {
+  classifyRouteSpeedSpineArtifact,
   type RouteSpeedSpineArtifact,
   type RouteSpeedSpineReadiness,
   routeSpeedSpineRouteSlug,
@@ -44,6 +45,7 @@ export type RouteSpeedHistoryArtifact = {
   generatedAt: string;
   routeId: string;
   routeSlug: string;
+  spineReadiness: RouteSpeedSpineReadiness;
   source: {
     table: "local_route_segment_speed";
     dbPath: string;
@@ -744,6 +746,7 @@ export function buildRouteSpeedHistoryArtifact(input: {
     generatedAt: input.generatedAt,
     routeId,
     routeSlug,
+    spineReadiness: classifyRouteSpeedSpineArtifact(input.spine).readiness,
     source: {
       table: "local_route_segment_speed",
       dbPath: input.dbPath,

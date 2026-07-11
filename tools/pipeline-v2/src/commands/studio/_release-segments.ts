@@ -1,3 +1,4 @@
+import type { RouteSpeedSpineCrosswalk } from "@bp/analytics/feature-history";
 import {
   type StudioAiAnalystNote,
   StudioAiAnalystNoteSchema,
@@ -170,6 +171,7 @@ export function buildSegments(
   artifact: RouteBriefInputArtifact | null,
   laneOverlaps: ReadonlyMap<string, SegmentLaneOverlap> = new Map(),
   tspEvidence: TspEvidence = unknownTspEvidence(),
+  spineCrosswalk: RouteSpeedSpineCrosswalk | null = null,
 ): StudioSegment[] {
   const comparisons = comparisonBySegmentId(artifact);
   return segmentsForRoute(routeId, artifact).map((segment, index) => {
@@ -187,8 +189,12 @@ export function buildSegments(
       routeId.includes("+") &&
       (artifact?.interventionStatus?.aceActiveDuringAnalysisPeriod ?? false);
     const flagged = (segment.slowWindowPercent ?? 0) >= 60;
+    const spineSegmentId = spineCrosswalk?.get(segment.segmentId) ?? null;
     return {
       id: segment.segmentId,
+      spineSegmentId,
+      spineJoinStatus:
+        spineCrosswalk === null ? "not_built" : spineSegmentId === null ? "unmatched" : "matched",
       routeSlug,
       direction: routeDirection(segment.direction),
       from,

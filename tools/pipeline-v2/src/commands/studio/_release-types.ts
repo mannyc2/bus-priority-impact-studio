@@ -114,6 +114,7 @@ export type CliOptions = {
   routeLimit: number;
   routeSliceArtifactsRoot: string;
   routeSliceRawRoot: string;
+  speedSpineRoot: string;
   routeShapeSnapshotPath: string;
   stopSnapshotPath: string;
   tspSourcePath: string;
@@ -122,6 +123,7 @@ export type CliOptions = {
   publishableInterventionsByRoutePath: string | null;
   localDbPath: string;
   profile: ReleaseProfile;
+  routeIds: string[];
   segmentNoteLlm: SegmentNoteLlmOptions;
 };
 

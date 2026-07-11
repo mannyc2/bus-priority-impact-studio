@@ -763,6 +763,8 @@ function segmentFromSpeedSpineTarget(input: {
       : Number(input.segment.averageSpeedMph.toFixed(1));
   return {
     id: input.targetId,
+    spineSegmentId: input.segment.segmentId,
+    spineJoinStatus: "matched",
     routeSlug: input.routeSlug,
     direction: studioDirectionFromRaw(input.target.direction),
     from,
