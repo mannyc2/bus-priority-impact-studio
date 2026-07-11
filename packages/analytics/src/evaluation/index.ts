@@ -16,10 +16,15 @@ export { evaluateGoldSet } from "./gold-set.js";
 export {
   buildMapArtifactManifest,
   buildMapJsonArtifact,
+  evaluateAnalysisPeriodCurrency,
+  evaluateMaxAgeSnapshotCurrency,
+  evaluateRevisionPinnedCurrency,
   isMapArtifactManifest,
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,
   MAP_ARTIFACT_SCHEMA_VERSION,
+  MAP_ARTIFACT_BUDGETS,
+  MAP_LAYER_REGISTRY,
   type MapArtifactEntry,
   type MapArtifactIssue,
   type MapArtifactKind,
@@ -28,6 +33,10 @@ export {
   type MapJsonArtifact,
   mapArtifactPayloadIssues,
   mapArtifactSha256,
+  mapBudgetIssues,
+  type MapCurrencyResult,
+  type MapCurrencyStatus,
+  type MapLayerId,
   verifyMapArtifactManifestContents,
 } from "./map-artifacts.js";
 export {

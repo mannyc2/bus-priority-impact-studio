@@ -7,6 +7,120 @@ export const MAP_ARTIFACT_SCHEMA_VERSION = 1;
 export const MAP_ARTIFACT_JSON_CONTENT_TYPE = "application/json" as const;
 export const MAP_ARTIFACT_GEOJSON_CONTENT_TYPE = "application/geo+json" as const;
 
+export const MAP_LAYER_REGISTRY = {
+  route_shapes: { priority: "p0", requiredForFull: true },
+  timepoint_stops: { priority: "p0", requiredForFull: true },
+  network_simplified: { priority: "p0", requiredForFull: true },
+  route_segments: { priority: "p0", requiredForFull: true },
+  borough_context: { priority: "p0", requiredForFull: true },
+  route_facts: { priority: "p0", requiredForFull: true },
+  bus_lanes: { priority: "p1", requiredForFull: false },
+} as const;
+
+export type MapLayerId = keyof typeof MAP_LAYER_REGISTRY;
+export type MapCurrencyStatus =
+  | "current"
+  | "stale"
+  | "period_aligned"
+  | "revision_pinned"
+  | "unknown";
+
+export type MapCurrencyResult = { status: MapCurrencyStatus; reason: string };
+
+export function evaluateMaxAgeSnapshotCurrency(input: {
+  fetchedAt: string | null;
+  evaluatedAt: string;
+  maxAgeDays?: 45 | undefined;
+}): MapCurrencyResult & { ageDays: number | null; maxAgeDays: 45 } {
+  const maxAgeDays = input.maxAgeDays ?? 45;
+  const evaluatedAt = Date.parse(input.evaluatedAt);
+  const fetchedAt = input.fetchedAt === null ? Number.NaN : Date.parse(input.fetchedAt);
+  if (!Number.isFinite(evaluatedAt) || !Number.isFinite(fetchedAt)) {
+    return {
+      status: "unknown",
+      reason: "Snapshot timestamp evidence is missing or invalid.",
+      ageDays: null,
+      maxAgeDays,
+    };
+  }
+  const ageMs = evaluatedAt - fetchedAt;
+  const ageDays = ageMs / (24 * 60 * 60 * 1000);
+  if (ageMs < 0) {
+    return {
+      status: "unknown",
+      reason: "Snapshot timestamp is later than its currency evaluation.",
+      ageDays,
+      maxAgeDays,
+    };
+  }
+  const current = ageMs <= maxAgeDays * 24 * 60 * 60 * 1000;
+  return {
+    status: current ? "current" : "stale",
+    reason: current
+      ? `Snapshot age ${ageDays.toFixed(3)} days is within the ${maxAgeDays}-day limit.`
+      : `Snapshot age ${ageDays.toFixed(3)} days exceeds the ${maxAgeDays}-day limit.`,
+    ageDays,
+    maxAgeDays,
+  };
+}
+
+export function evaluateAnalysisPeriodCurrency(input: {
+  baselineMonth: string;
+  releaseMonth: string;
+  coveragePassed: boolean;
+}): MapCurrencyResult {
+  if (input.baselineMonth !== input.releaseMonth) {
+    return {
+      status: "stale",
+      reason: `Analysis period ${input.baselineMonth} does not match release month ${input.releaseMonth}.`,
+    };
+  }
+  return input.coveragePassed
+    ? { status: "period_aligned", reason: `Analysis evidence covers ${input.releaseMonth}.` }
+    : { status: "unknown", reason: `Analysis coverage for ${input.releaseMonth} did not pass.` };
+}
+
+export function evaluateRevisionPinnedCurrency(input: {
+  embeddedSha256: string | null;
+  sourceSha256: string | null;
+}): MapCurrencyResult {
+  if (input.embeddedSha256 === null || input.sourceSha256 === null) {
+    return { status: "unknown", reason: "Source revision hash evidence is unavailable." };
+  }
+  return input.embeddedSha256 === input.sourceSha256
+    ? { status: "revision_pinned", reason: "Derived context matches the captured source revision." }
+    : { status: "stale", reason: "Derived context does not match the captured source revision." };
+}
+
+export const MAP_ARTIFACT_BUDGETS = {
+  network: { rawBytes: 4_610_607, gzipBytes: 400_000, features: 400, coordinates: 60_000 },
+  routeFacts: { rawBytes: 600_000, gzipBytes: 100_000, routes: 400 },
+  busLanes: { rawBytes: 1_700_000, gzipBytes: 85_000, features: 3_200 },
+} as const;
+
+export function mapBudgetIssues(input: {
+  kind: "network" | "routeFacts" | "busLanes";
+  rawBytes: number;
+  gzipBytes: number;
+  features?: number | undefined;
+  coordinates?: number | undefined;
+  routes?: number | undefined;
+}): string[] {
+  const budget = MAP_ARTIFACT_BUDGETS[input.kind];
+  const issues: string[] = [];
+  if (input.rawBytes > budget.rawBytes)
+    issues.push(`raw bytes ${input.rawBytes} > ${budget.rawBytes}`);
+  if (input.gzipBytes > budget.gzipBytes)
+    issues.push(`gzip bytes ${input.gzipBytes} > ${budget.gzipBytes}`);
+  if ("features" in budget && (input.features ?? 0) > budget.features)
+    issues.push(`features ${input.features ?? 0} > ${budget.features}`);
+  if ("coordinates" in budget && (input.coordinates ?? 0) > budget.coordinates)
+    issues.push(`coordinates ${input.coordinates ?? 0} > ${budget.coordinates}`);
+  if ("routes" in budget && (input.routes ?? 0) > budget.routes)
+    issues.push(`routes ${input.routes ?? 0} > ${budget.routes}`);
+  return issues;
+}
+
 export type MapArtifactKind =
   | "map_source_snapshot"
   | "map_route_shapes_geojson"

@@ -6,10 +6,15 @@ import {
   buildMapJsonArtifact,
   buildRouteCapabilityManifest,
   buildRouteSpeedAvailabilityResult,
+  evaluateAnalysisPeriodCurrency,
+  evaluateMaxAgeSnapshotCurrency,
+  evaluateRevisionPinnedCurrency,
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,
+  MAP_LAYER_REGISTRY,
   type MapArtifactEntry,
   mapArtifactPayloadIssues,
+  mapBudgetIssues,
   type RouteCapabilityInputRow,
   requestedRouteSpeedAvailability,
   routeSpeedAvailabilityReleaseDecision,
@@ -137,6 +142,51 @@ function artifactDefinitions(month: string) {
 }
 
 describe("evaluation data products", () => {
+  test("evaluates fixed map-layer currency and budgets without weakening priorities", () => {
+    expect(MAP_LAYER_REGISTRY.bus_lanes).toEqual({ priority: "p1", requiredForFull: false });
+    expect(MAP_LAYER_REGISTRY.network_simplified).toEqual({
+      priority: "p0",
+      requiredForFull: true,
+    });
+    const boundary = evaluateMaxAgeSnapshotCurrency({
+      fetchedAt: "2026-01-01T00:00:00.000Z",
+      evaluatedAt: "2026-02-15T00:00:00.000Z",
+    });
+    expect(boundary.status).toBe("current");
+    expect(
+      evaluateMaxAgeSnapshotCurrency({
+        fetchedAt: "2026-01-01T00:00:00.000Z",
+        evaluatedAt: "2026-02-15T00:00:00.001Z",
+      }).status,
+    ).toBe("stale");
+    expect(
+      evaluateMaxAgeSnapshotCurrency({
+        fetchedAt: null,
+        evaluatedAt: "2026-02-15T00:00:00.000Z",
+      }).status,
+    ).toBe("unknown");
+    expect(
+      evaluateAnalysisPeriodCurrency({
+        baselineMonth: "2026-02",
+        releaseMonth: "2026-03",
+        coveragePassed: true,
+      }).status,
+    ).toBe("stale");
+    expect(evaluateRevisionPinnedCurrency({ embeddedSha256: "a", sourceSha256: "b" }).status).toBe(
+      "stale",
+    );
+    expect(
+      mapBudgetIssues({ kind: "network", rawBytes: 1, gzipBytes: 1, features: 1, coordinates: 1 }),
+    ).toEqual([]);
+    expect(
+      mapBudgetIssues({
+        kind: "busLanes",
+        rawBytes: 1_700_001,
+        gzipBytes: 1,
+        features: 1,
+      }),
+    ).toEqual(["raw bytes 1700001 > 1700000"]);
+  });
   test("summarizes route-speed availability and release decisions", () => {
     const months = summarizeRouteSpeedAvailabilityMonths({
       minSpeedRoutes: 2,
