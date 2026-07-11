@@ -40,6 +40,8 @@ import {
   listRouteSegmentSpeeds,
 } from "@bp/db/local";
 import {
+  type MapBorough,
+  MapContextFeatureCollectionSchema,
   type MapNetworkFeatureCollection,
   MapNetworkFeatureCollectionSchema,
   type MapRouteSegmentFeatureCollection,
@@ -64,6 +66,7 @@ import {
 } from "../../lib/route-speed-spine-crosswalk.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
+import { pointInPolygon } from "./context.ts";
 
 const displayRouteTypes = new Set(["Local", "Limited", "SBS"]);
 
@@ -138,6 +141,7 @@ export type NetworkRouteBuildInput = {
   summary: LocalRouteBriefSummary;
   speedRows: readonly LocalRouteSegmentSpeed[];
   segmentPayload: MapRouteSegmentFeatureCollection;
+  servedBoroughs?: readonly MapBorough[] | undefined;
 };
 
 export type { MapArtifactManifest, MapArtifactVerification };
@@ -185,6 +189,36 @@ function defaultStopSnapshotPath(): string {
 
 function defaultBusLaneSnapshotPath(): string {
   return fromRepoRoot("data/raw/interventions/bus-lanes-local-streets.json");
+}
+
+function defaultContextPath(artifactRoot: string): string {
+  return join(artifactRoot, "map", "context", "nyc-boroughs.min.geojson");
+}
+
+export async function servedBoroughsByRoute(input: {
+  contextPath: string;
+  stops: readonly NormalizedStop[];
+}): Promise<Map<string, MapBorough[]> | null> {
+  const contextFile = Bun.file(input.contextPath);
+  if (!(await contextFile.exists())) return null;
+  const context = decodeSchemaStrict(MapContextFeatureCollectionSchema, await contextFile.json());
+  const result = new Map<string, Set<MapBorough>>();
+  for (const stop of input.stops) {
+    if (!stop.inEffect) continue;
+    const point = [stop.longitude, stop.latitude] as const;
+    for (const borough of context.features) {
+      const contains = borough.geometry.coordinates.some((polygon) =>
+        pointInPolygon(point, polygon),
+      );
+      if (!contains) continue;
+      const matches = result.get(stop.routeId) ?? new Set<MapBorough>();
+      matches.add(borough.properties.boroName);
+      result.set(stop.routeId, matches);
+    }
+  }
+  return new Map(
+    [...result].map(([routeId, boroughs]) => [routeId, [...boroughs].toSorted()] as const),
+  );
 }
 
 function isJsonObject(value: unknown): value is Record<string, unknown> {
@@ -888,8 +922,8 @@ export function buildNetworkMapFeatureCollection(input: {
             routeId: route.routeId,
             month: route.summary.month,
             ...hourly,
-            servedBoroughs: [],
-            servedBoroughsStatus: "unavailable",
+            servedBoroughs: route.servedBoroughs ?? [],
+            servedBoroughsStatus: route.servedBoroughs === undefined ? "unavailable" : "verified",
           },
         },
       ];
@@ -1049,6 +1083,7 @@ export type MapArtifactsInputs = {
   routeShapeSnapshotPath?: string | undefined;
   stopSnapshotPath?: string | undefined;
   busLaneSnapshotPath?: string | undefined;
+  contextPath?: string | undefined;
   routeIds?: readonly string[] | undefined;
 };
 
@@ -1061,6 +1096,10 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     args.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath(),
   );
   const stopSnapshot = await readStopSnapshot(args.stopSnapshotPath ?? defaultStopSnapshotPath());
+  const boroughsByRoute = await servedBoroughsByRoute({
+    contextPath: args.contextPath ?? defaultContextPath(artifactRoot),
+    stops: stopSnapshot.stops,
+  });
   const busLaneSnapshot = await readSnapshotMetadata({
     sourceId: "nyc_dot_bus_lanes_local_streets",
     snapshotPath: args.busLaneSnapshotPath ?? defaultBusLaneSnapshotPath(),
@@ -1197,6 +1236,9 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
           summary: route.summary,
           speedRows: route.speedRows,
           segmentPayload: payload,
+          ...(boroughsByRoute?.get(route.routeId) === undefined
+            ? {}
+            : { servedBoroughs: boroughsByRoute.get(route.routeId) }),
         },
         artifact: await writeJsonArtifact({
           path: join(artifactRoot, artifactKey),
@@ -1284,6 +1326,9 @@ export default defineCommand({
         busLaneSnapshot: Schema.optionalKey(Schema.String).annotate({
           description: "Override bus-lane snapshot path",
         }),
+        context: Schema.optionalKey(Schema.String).annotate({
+          description: "Override generated borough-context artifact path",
+        }),
       },
     }),
   },
@@ -1318,6 +1363,8 @@ export default defineCommand({
       input.options.busLaneSnapshot === undefined
         ? undefined
         : fromCliPath(input.options.busLaneSnapshot);
+    const contextPath =
+      input.options.context === undefined ? undefined : fromCliPath(input.options.context);
     return runLocalDbCommandBoundary({
       dbPath: input.options.db,
       command: "map.artifacts",
@@ -1336,6 +1383,7 @@ export default defineCommand({
           routeShapeSnapshotPath,
           stopSnapshotPath,
           busLaneSnapshotPath,
+          contextPath,
           routeIds: input.options.routes?.split(",").map((routeId) => routeId.trim()),
         }),
     });
