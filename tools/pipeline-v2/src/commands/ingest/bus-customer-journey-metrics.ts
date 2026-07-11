@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { isAbsolute, join, relative } from "node:path";
 import { replaceBusCustomerJourneyMetricRows } from "@bp/db/local";
@@ -6,6 +5,7 @@ import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeBusCustomerJourneyMetricRows } from "@bp/sources/adapters/mta/bus-customer-journey-metrics";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { Effect } from "effect";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot, repoRoot } from "../../lib/paths.ts";

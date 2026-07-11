@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { upsert311ServiceRequests } from "@bp/db/local";
 import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
@@ -6,6 +5,7 @@ import {
   normalize311ServiceRequestRows,
   type ServiceRequestEra,
 } from "@bp/sources/adapters/nyc-open-data/service-requests-311";
+import { Effect } from "effect";
 import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defineSocrataMonthlyIngest } from "../../lib/socrata-monthly-ingest.ts";

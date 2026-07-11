@@ -1,8 +1,8 @@
-import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import type { SocrataManifestSource } from "@bp/sources/registry";
+import { Effect } from "effect";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";

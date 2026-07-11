@@ -1,7 +1,7 @@
-import { Effect } from "effect";
 import { insertDotTrafficSpeedSnapshot } from "@bp/db/local";
 import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeDotTrafficSpeedRows } from "@bp/sources/adapters/nyc-dot/traffic-speeds";
+import { Effect } from "effect";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defineSocrataReplaceIngest } from "../../lib/socrata-replace-ingest.ts";
 import type { SocrataFetch, SocrataRow } from "../../lib/soda3.ts";

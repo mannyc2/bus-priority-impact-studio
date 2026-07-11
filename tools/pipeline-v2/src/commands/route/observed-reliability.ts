@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   buildSummary,
@@ -8,6 +7,7 @@ import {
   type RouteReliabilitySummary,
   runRouteObservedReliability,
 } from "@bp/pipeline-v2/local-db-aggregates";
+import { Effect } from "effect";
 import {
   makeRouteLocalDbCommandLayer,
   runRouteObservedReliabilityCommand,

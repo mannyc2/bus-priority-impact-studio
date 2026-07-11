@@ -10,7 +10,6 @@ import {
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/d1";
-import { Result, Schema } from "effect";
 import {
   buildRouteInsightsFromDetectorReadiness,
   type DetectorReadinessServingManifestForInsights,
@@ -73,6 +72,7 @@ import {
   type StudioSnapshotResponse,
   type StudioSourceMonthState,
 } from "@bp/domain/studio/snapshots";
+import { Result, Schema } from "effect";
 import { studioOpenApiDocument } from "../contracts/openapi.js";
 import type { StudioApiRouteId } from "../contracts/registry.js";
 import { matchRouteSpec } from "../contracts/routing.js";

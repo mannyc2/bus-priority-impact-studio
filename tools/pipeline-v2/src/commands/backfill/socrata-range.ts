@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 /**
  * Backfill Socrata-backed corpus sources across a month range.
  *
@@ -8,6 +7,7 @@ import { Effect } from "effect";
  */
 import { spawn } from "node:child_process";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { fromRepoRoot } from "../../lib/paths.ts";
 
 type Task = { source: string; year: number; month: number; label: string };

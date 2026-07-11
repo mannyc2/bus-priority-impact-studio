@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   buildDocumentAnchorEventsForRouteEvaluation,
@@ -8,6 +7,7 @@ import {
   documentOperationalDateSourceId,
   parseBusLaneOpenDates,
 } from "@bp/pipeline-v2/local-db-aggregates";
+import { Effect } from "effect";
 import {
   defaultDocumentOperationalDateAssertionsPath,
   makeRouteLocalDbCommandLayer,

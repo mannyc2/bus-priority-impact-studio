@@ -1,6 +1,6 @@
-import { Effect } from "effect";
 import { updateDotStreetPermitGeocode } from "@bp/db/local";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import {
   createGeoclientFromEnv,

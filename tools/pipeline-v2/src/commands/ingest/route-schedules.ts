@@ -1,8 +1,8 @@
-import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { Effect } from "effect";
 import { runBoundedPromises, runBoundedSettledPromises } from "../../effect/concurrency.ts";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";

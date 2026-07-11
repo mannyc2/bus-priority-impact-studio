@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { mkdir, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { parkingViolationMatchAuditPath } from "@bp/analytics/artifacts";
@@ -13,6 +12,7 @@ import {
   summarizeParkingViolationMatches,
 } from "@bp/pipeline-v2/local-db-aggregates";
 import type { Geoclient } from "@bp/sources/clients/geoclient";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { createGeoclientFromEnv, Geocoder } from "../../lib/geocoder.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -56,7 +56,7 @@ export async function runBuildParkingViolationMatches(
   const computedAt = (inputs.computedAt ?? new Date()).toISOString();
   const { local } = inputs;
 
-  let hydratedParkingRows = 0;
+  const hydratedParkingRows = 0;
   let hydratedLionRows = 0;
   let refreshedLocationKeyRows = 0;
   let cameraGroupsScanned = 0;

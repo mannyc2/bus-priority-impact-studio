@@ -7,8 +7,8 @@ import {
   type RouteCapabilitySourceStatus,
 } from "@bp/analytics/evaluation";
 import { decodePreserve } from "@bp/domain/decode";
-import { Effect, Schema } from "effect";
 import { STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY } from "@bp/domain/studio";
+import { Effect, Schema } from "effect";
 import type { D1CanonicalInputs } from "./d1-inputs";
 
 /**

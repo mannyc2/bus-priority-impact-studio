@@ -1,6 +1,6 @@
-import { CoercedNumberSchema, decodeSchemaPreserve, decodeSchemaStrip } from "../schema-decode.js";
-import { Effect, Schema } from "effect";
 import { RouteIdCodec } from "@bp/domain/primitives";
+import { Effect, Schema } from "effect";
+import { CoercedNumberSchema, decodeSchemaPreserve, decodeSchemaStrip } from "../schema-decode.js";
 
 export const ROUTE_SPEED_AVAILABILITY_SOURCE_ID = "bus_segment_speeds_2025" as const;
 export type RouteSpeedAvailabilitySourceId = typeof ROUTE_SPEED_AVAILABILITY_SOURCE_ID;

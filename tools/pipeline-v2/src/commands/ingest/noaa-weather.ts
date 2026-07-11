@@ -1,8 +1,8 @@
-import { Effect } from "effect";
 import { join } from "node:path";
 import { upsertWeatherObservations } from "@bp/db/local";
 import { Schema } from "@bp/pipeline-v2/cli/compat";
 import { NOAA_NYC_STATIONS, parseGhcnDailyCsv } from "@bp/sources/adapters/noaa/ghcn-daily";
+import { Effect } from "effect";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { defineIngestCommand } from "./_define-ingest-command.ts";

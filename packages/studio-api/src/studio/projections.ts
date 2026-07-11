@@ -6,7 +6,7 @@ import {
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
 } from "@bp/domain/studio/routes";
-import { Result, Schema } from "effect";
+import { Result, type Schema } from "effect";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 import {

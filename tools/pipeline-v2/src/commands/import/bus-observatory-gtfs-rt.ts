@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import {
   type GtfsRtFeedType,
   replaceGtfsRtCollectionRun,
@@ -7,6 +6,7 @@ import {
 } from "@bp/db/local";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeGtfsRealtimeRouteId } from "@bp/sources/gtfs-realtime";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";

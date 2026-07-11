@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import {
   type LocalRouteSegmentSpeed,
   type LocalRouteSegmentSpeedCell,
@@ -13,6 +12,7 @@ import {
 } from "@bp/sources/adapters/mta/bus-speeds";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { Effect } from "effect";
 import { runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";

@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -21,8 +20,8 @@ import {
 } from "@bp/domain/studio/route-evidence";
 import { type StudioRoute, StudioRoutesResponseSchema } from "@bp/domain/studio/routes";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { readJsonArtifact, writeJson } from "../../lib/json.ts";
-import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import {
   busRouteKeysFromText,
   busRouteKeysFromValue,
@@ -36,6 +35,7 @@ import {
   normalizeBusRouteKey,
 } from "../../lib/mta-wiki-canonical.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 
 const defaultRoutesPath = fromRepoRoot("data/artifacts/studio/v1/routes.json");
 const defaultOutputPath = fromRepoRoot("data/artifacts/studio/v2/wiki/route-evidence.json");

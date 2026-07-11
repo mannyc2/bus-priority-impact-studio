@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { existsSync, statSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
@@ -7,6 +6,7 @@ import { createLocalPipelineDb, listRouteCatalogIds } from "@bp/db/local";
 import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { Effect } from "effect";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";

@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { upsertParkingViolations } from "@bp/db/local";
 import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
@@ -7,6 +6,7 @@ import {
 } from "@bp/sources/adapters/nyc-open-data/parking-violations";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { Effect } from "effect";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { parkingLocationKey } from "../../lib/parking-location.ts";

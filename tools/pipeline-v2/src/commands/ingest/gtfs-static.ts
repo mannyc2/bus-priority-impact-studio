@@ -1,8 +1,8 @@
-import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
 import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 import { defineIngestCommand } from "./_define-ingest-command.ts";

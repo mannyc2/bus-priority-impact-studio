@@ -1,7 +1,7 @@
-import { Effect } from "effect";
 import { upsertNypdCollisions } from "@bp/db/local";
 import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeNypdCollisionRows } from "@bp/sources/adapters/nyc-open-data/nypd-collisions";
+import { Effect } from "effect";
 import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions } from "../../lib/local-db.ts";
 import {

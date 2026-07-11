@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -7,6 +6,7 @@ import {
   replaceGtfsRtFeedSnapshots,
 } from "@bp/db/local";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";

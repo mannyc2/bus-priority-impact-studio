@@ -1,5 +1,5 @@
-import { Effect } from "effect";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import {
   buildRouteBriefModel,
   buildRouteBriefSegmentUniverse,

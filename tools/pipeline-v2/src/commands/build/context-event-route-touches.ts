@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { contextEventRouteTouchAuditPath } from "@bp/analytics/artifacts";
@@ -8,6 +7,7 @@ import {
   auditContextEventRouteTouches,
   materializeContextEventRouteTouches,
 } from "@bp/pipeline-v2/local-db-aggregates";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";

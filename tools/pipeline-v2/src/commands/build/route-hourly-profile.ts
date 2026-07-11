@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
 import {
@@ -16,6 +15,7 @@ import {
   loadRouteHourlyProfileReliabilitySampleRows,
   loadRouteHourlyProfileSlowestWindowRows,
 } from "@bp/pipeline-v2/local-db-aggregates";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";

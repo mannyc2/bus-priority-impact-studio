@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceCensusTractEquityContext } from "@bp/db/local";
@@ -8,6 +7,7 @@ import {
   type NormalizedCensusTractEquityContext,
 } from "@bp/sources/adapters/census/acs-equity";
 import { type CensusAcsFetch, fetchCensusTractEquityContext } from "@bp/sources/clients/census";
+import { Effect } from "effect";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";

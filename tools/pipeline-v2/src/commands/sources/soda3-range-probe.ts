@@ -1,8 +1,8 @@
-import { Effect } from "effect";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { exportResponse } from "@nyc-transit-kit/soda3/client";
+import { Effect } from "effect";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import {
   runPipelineSoda3Effect,

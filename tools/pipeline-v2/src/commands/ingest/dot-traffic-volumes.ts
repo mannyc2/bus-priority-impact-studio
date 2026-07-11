@@ -1,7 +1,7 @@
-import { Effect } from "effect";
 import { insertDotTrafficVolumeCounts } from "@bp/db/local";
 import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeDotTrafficVolumeRows } from "@bp/sources/adapters/nyc-dot/traffic-volume";
+import { Effect } from "effect";
 import { dbOptions } from "../../lib/local-db.ts";
 import {
   defineSocrataMonthlyIngest,

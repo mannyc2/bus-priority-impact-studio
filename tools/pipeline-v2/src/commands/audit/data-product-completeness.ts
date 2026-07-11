@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
@@ -42,6 +41,7 @@ import {
   evaluateDataProductTableRowCountCheck,
   latestDataProductGtfsRunId,
 } from "@bp/pipeline-v2/local-db-aggregates";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, monthRange } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";

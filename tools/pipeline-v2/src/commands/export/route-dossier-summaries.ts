@@ -7,8 +7,8 @@ import {
   type RouteDossierWorstSegmentMonth,
 } from "@bp/analytics/evaluation";
 import { decodePreserve } from "@bp/domain/decode";
-import { Schema } from "effect";
 import { type RouteDossierEvent, routeDossierSummaryKey } from "@bp/domain/studio";
+import { Schema } from "effect";
 import { routeIdToSlug } from "../studio/_release-routes.ts";
 import type { D1CanonicalInputs } from "./d1-inputs.ts";
 

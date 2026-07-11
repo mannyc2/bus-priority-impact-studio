@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { routeSpeedAvailabilityArtifactPath } from "@bp/analytics/artifacts";
@@ -11,6 +10,7 @@ import {
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { Effect } from "effect";
 import { writeJson } from "../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import {

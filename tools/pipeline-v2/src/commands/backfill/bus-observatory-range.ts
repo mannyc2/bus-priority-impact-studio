@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 /**
  * Backfill Bus Observatory recovered GTFS-RT for a range of months.
  *
@@ -14,6 +13,7 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { defaultArtifactRootPath, fromRepoRoot } from "../../lib/paths.ts";
 import { readBusObservatoryAvailabilityArtifact } from "../check/bus-observatory-gtfs-rt.ts";
 

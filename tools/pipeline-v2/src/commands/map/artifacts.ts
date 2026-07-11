@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
@@ -39,18 +38,19 @@ import {
   MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
-import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import {
   type NormalizedRouteShape,
   type NormalizedStop,
   normalizeRouteShapeRows,
   normalizeStopRows,
 } from "@bp/sources/adapters/mta/routes-stops";
+import { Effect } from "effect";
 import { localTransformConcurrency, runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
 
 const displayRouteTypes = new Set(["Local", "Limited", "SBS"]);

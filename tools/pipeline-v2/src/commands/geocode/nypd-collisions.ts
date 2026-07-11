@@ -1,7 +1,7 @@
-import { Effect } from "effect";
 import { updateNypdCollisionGeocode } from "@bp/db/local";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { parseHouseAddress } from "@bp/sources/clients/geoclient";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import {
   createGeoclientFromEnv,

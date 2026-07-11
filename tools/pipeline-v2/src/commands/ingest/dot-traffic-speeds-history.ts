@@ -1,9 +1,9 @@
-import { Effect } from "effect";
 import type { Database } from "bun:sqlite";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Glob } from "bun";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions } from "../../lib/local-db.ts";

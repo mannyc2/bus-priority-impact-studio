@@ -1,5 +1,5 @@
-import { decodeSchemaStrict } from "../schema-decode.js";
 import { Effect, Schema } from "effect";
+import { decodeSchemaStrict } from "../schema-decode.js";
 
 const DataProductIdSchema = Schema.String.check(Schema.isMinLength(1)).check(
   Schema.isPattern(/^[a-z0-9_.-]+$/),

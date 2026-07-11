@@ -1,9 +1,9 @@
-import { Effect } from "effect";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   defaultRouteLionLinkBufferMeters,
   runBuildRouteLionLink,
 } from "@bp/pipeline-v2/local-db-aggregates";
+import { Effect } from "effect";
 import {
   makeBuildLocalDbCommandLayer,
   runBuildRouteLionLinkCommand,

@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { existsSync } from "node:fs";
 import { isAbsolute, join, relative } from "node:path";
 import { routeSpeedHistoryManifestPath } from "@bp/analytics/artifacts";
@@ -9,6 +8,7 @@ import {
   materializeRouteSpeedHistoryCoverageIndex,
   type RouteSpeedHistoryCoverageIndexRoute,
 } from "@bp/pipeline-v2/local-db-aggregates";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";

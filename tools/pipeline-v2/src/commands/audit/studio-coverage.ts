@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
@@ -7,6 +6,7 @@ import {
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/local";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";

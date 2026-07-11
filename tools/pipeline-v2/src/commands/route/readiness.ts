@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   buildReadinessRows,
@@ -8,6 +7,7 @@ import {
   runRouteReadiness,
   scoreReadiness,
 } from "@bp/pipeline-v2/local-db-aggregates";
+import { Effect } from "effect";
 import {
   makeRouteLocalDbCommandLayer,
   runRouteReadinessCommand,

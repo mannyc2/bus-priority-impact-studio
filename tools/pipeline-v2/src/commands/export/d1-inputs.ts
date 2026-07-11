@@ -4,7 +4,6 @@ import type { Dirent } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { D1RouteTimelineIndexInput } from "@bp/db/d1/seed";
-import { decodeEitherPreserve, decodePreserve } from "@bp/domain/decode";
 import {
   getRouteBatchStatus,
   type LocalPipelineDb,
@@ -35,12 +34,13 @@ import {
   listRouteReliabilityGapWindows,
   listRouteScorecards,
 } from "@bp/db/local";
-import { Result, Schema } from "effect";
+import { decodeEitherPreserve, decodePreserve } from "@bp/domain/decode";
 import {
   STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
   StudioRouteEvidenceIndexSchema,
 } from "@bp/domain/studio/route-evidence";
 import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
+import { Result, Schema } from "effect";
 import { readJsonArtifact } from "../../lib/json.ts";
 import { defaultArtifactRootPath } from "../../lib/paths.ts";
 

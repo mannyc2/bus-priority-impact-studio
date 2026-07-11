@@ -1,9 +1,9 @@
-import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
+import { Effect } from "effect";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { fetchWithSocrataAppToken } from "../../lib/socrata-token.ts";

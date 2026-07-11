@@ -1,5 +1,5 @@
-import { CoercedNumberSchema, decodeSchemaPreserve, decodeSchemaStrict } from "../schema-decode.js";
 import { Schema } from "effect";
+import { CoercedNumberSchema, decodeSchemaPreserve, decodeSchemaStrict } from "../schema-decode.js";
 
 export const EXPRESS_ROUTE_ANALYSIS_SCHEMA_VERSION = 1;
 export const EXPRESS_ROUTE_ANALYSIS_STATIC_PERIOD = "2023-04-2023-09";

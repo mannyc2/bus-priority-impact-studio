@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
 import { routeSpeedSpineArtifactPath } from "@bp/analytics/artifacts";
@@ -10,6 +9,7 @@ import {
 } from "@bp/analytics/feature-history";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { loadRouteSpeedSpineLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
