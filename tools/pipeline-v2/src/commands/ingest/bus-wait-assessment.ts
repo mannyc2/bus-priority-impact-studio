@@ -1,11 +1,11 @@
 import { replaceBusWaitAssessmentRows } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, z } from "@bp/pipeline-v2/cli/compat";
 import { normalizeBusWaitAssessmentRows } from "@bp/sources/adapters/mta/bus-wait-assessment";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defineSocrataMonthlyIngest } from "../../lib/socrata-monthly-ingest.ts";
 import type { SocrataFetch } from "../../lib/soda3.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const sourceId = "bus_wait_assessment";
 
@@ -57,36 +57,20 @@ export async function runBusWaitAssessmentIngest(
   return runBusWaitAssessmentMonthlyIngest(inputs);
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "bus-wait-assessment"],
   summary: "Fetch monthly bus wait assessment rows from Socrata.",
-  input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-    }),
-  },
+  options: dbOptions.extend({
+    year: arg.positiveInt().default(2026).describe("Calendar year"),
+    month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
+  }),
   output: z.object({
     rawPath: z.string(),
     isoMonth: z.string(),
     rowCount: z.number(),
     routeCount: z.number(),
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.bus-wait-assessment",
-      operation: "runBusWaitAssessmentIngest",
-      spanAttributes: {
-        year: input.options.year,
-        month: input.options.month,
-      },
-      run: (local) =>
-        runBusWaitAssessmentIngest({
-          local,
-          year: input.options.year,
-          month: input.options.month,
-        }),
-    });
-  },
+  operation: "runBusWaitAssessmentIngest",
+  spanAttributes: ({ year, month }) => ({ year, month }),
+  runner: (local, { year, month }) => runBusWaitAssessmentIngest({ local, year, month }),
 });

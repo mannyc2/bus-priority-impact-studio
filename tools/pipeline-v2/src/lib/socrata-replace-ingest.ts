@@ -28,14 +28,21 @@ export type SocrataReplaceIngestConfig<Row, Extra extends Record<string, unknown
   readonly rawDir: string;
   readonly rawFileName: string;
   readonly query: Soda3SoqlQuery;
+  readonly snapshotQuery?: unknown;
   normalize(rawRows: readonly SocrataRow[]): readonly Row[];
   replaceRows(input: {
     readonly local: OpenLocalPipelineDb;
     readonly rows: readonly Row[];
   }): Promise<void> | void;
+  snapshotExtra?(input: {
+    readonly rows: readonly Row[];
+    readonly rawRows: readonly SocrataRow[];
+    readonly fetchedAt: string;
+  }): Record<string, unknown>;
   summarize(input: {
     readonly rows: readonly Row[];
     readonly rawRows: readonly SocrataRow[];
+    readonly fetchedAt: string;
   }): Extra;
 };
 
@@ -55,17 +62,19 @@ export function defineSocrataReplaceIngest<Row, Extra extends Record<string, unk
     const rows = [...config.normalize(rawRows)];
 
     await config.replaceRows({ local: inputs.local, rows });
+    const extra = config.snapshotExtra?.({ rows, rawRows, fetchedAt });
     await writeRawSourceSnapshot({
       path: rawPath,
       sourceId: config.sourceId,
+      ...(extra === undefined ? {} : { extra }),
       fetchedAt,
-      query: config.query,
+      query: config.snapshotQuery ?? config.query,
       rows: rawRows,
     });
 
     return {
       rawPath,
-      ...config.summarize({ rows, rawRows }),
+      ...config.summarize({ rows, rawRows, fetchedAt }),
     };
   };
 }

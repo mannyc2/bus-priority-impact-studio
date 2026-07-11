@@ -1,24 +1,15 @@
-import { join } from "node:path";
 import { upsert311ServiceRequests } from "@bp/db/local";
-import { arg, defineCommand, z } from "@bp/pipeline-v2/cli/compat";
+import { arg, z } from "@bp/pipeline-v2/cli/compat";
 import {
   CURB_FRICTION_311_COMPLAINT_TYPES,
   normalize311ServiceRequestRows,
   type ServiceRequestEra,
 } from "@bp/sources/adapters/nyc-open-data/service-requests-311";
-import { getSocrataSource } from "@bp/sources/registry";
-import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
-import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
+import { isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
-import { fromRepoRoot } from "../../lib/paths.ts";
-import {
-  fetchSoda3RowsForSource,
-  type SocrataFetch,
-  type SocrataRow,
-  type Soda3SoqlQuery,
-} from "../../lib/soda3.ts";
-import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
+import { defineSocrataMonthlyIngest } from "../../lib/socrata-monthly-ingest.ts";
+import type { SocrataFetch } from "../../lib/soda3.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const sourceIdForEra: Record<ServiceRequestEra, string> = {
   current: "nyc_311_service_requests_current",
@@ -45,101 +36,75 @@ export type Nyc311IngestResult = {
 };
 
 function complaintTypesClause(types: readonly string[]): string {
-  const list = types.map((t) => `'${t.replace(/'/g, "''")}'`).join(",");
-  return `complaint_type IN (${list})`;
+  return `complaint_type IN (${types.map((type) => `'${type.replace(/'/g, "''")}'`).join(",")})`;
 }
 
 export async function runNyc311Ingest(inputs: Nyc311IngestRunInputs): Promise<Nyc311IngestResult> {
-  const era: ServiceRequestEra = inputs.era ?? "current";
+  const era = inputs.era ?? "current";
   const complaintTypes =
     inputs.complaintTypes && inputs.complaintTypes.length > 0
       ? inputs.complaintTypes
       : CURB_FRICTION_311_COMPLAINT_TYPES;
-  const sourceId = sourceIdForEra[era];
-  const monthKey = isoMonth(inputs.year, inputs.month);
-  const manifestText =
-    inputs.manifestText ??
-    (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
-  const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
-  const rawPath =
-    inputs.snapshotPath ?? fromRepoRoot(join("data/raw/311", `311-${era}-${monthKey}.json`));
-
-  const query: Soda3SoqlQuery = {
-    where: [
-      `created_date >= '${isoMonthStart(inputs.year, inputs.month)}'`,
-      `created_date < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
-      complaintTypesClause(complaintTypes),
-    ].join(" AND "),
-    order: "unique_key",
-  };
-  const rawRows: SocrataRow[] = [
-    ...(await fetchSoda3RowsForSource(source, query, {
-      fetcher: inputs.fetcher,
-      pageSize: 50_000,
-    })),
-  ];
-  const rows = normalize311ServiceRequestRows(rawRows, era).map((r) => ({
-    ...r,
-    // Geocode columns set by geocode job; preserved on re-ingest.
-    physicalId: null,
-    geocodeConfidence: null,
-  }));
-
-  await upsert311ServiceRequests(inputs.local.db, rows);
-
-  await writeRawSourceSnapshot({
-    path: rawPath,
-    sourceId,
-    extra: { isoMonth: monthKey, era, complaintTypes: [...complaintTypes] },
-    fetchedAt,
-    query: { grain: "unique_key", month: monthKey, complaintFilter: complaintTypes.length },
-    rows: rawRows,
+  const run = defineSocrataMonthlyIngest({
+    sourceId: sourceIdForEra[era],
+    rawDir: "data/raw/311",
+    rawFilePrefix: `311-${era}`,
+    queryGrain: "unique_key",
+    pageSize: 50_000,
+    snapshotExtra: () => ({ era, complaintTypes: [...complaintTypes] }),
+    snapshotQuery: ({ isoMonth }) => ({
+      grain: "unique_key",
+      month: isoMonth,
+      complaintFilter: complaintTypes.length,
+    }),
+    query: ({ year, month }) => ({
+      where: [
+        `created_date >= '${isoMonthStart(year, month)}'`,
+        `created_date < '${nextIsoMonthStart(year, month)}'`,
+        complaintTypesClause(complaintTypes),
+      ].join(" AND "),
+      order: "unique_key",
+    }),
+    normalize: ({ rawRows }) =>
+      normalize311ServiceRequestRows([...rawRows], era).map((row) => ({
+        ...row,
+        physicalId: null,
+        geocodeConfidence: null,
+      })),
+    replaceRows: ({ local, rows }) => upsert311ServiceRequests(local.db, [...rows]),
+    summarize: () => ({ era }),
   });
-
-  return { rawPath, isoMonth: monthKey, rowCount: rows.length, era };
+  return run(inputs);
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "311-service-requests"],
   summary: "Fetch monthly curb-friction 311 service requests.",
-  input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      era: z.enum(["current", "historical"]).default("current").describe("311 dataset era"),
-      complaintTypes: z
-        .array(z.string())
-        .default([])
-        .describe("Override complaint type filter (default: CURB_FRICTION_311_COMPLAINT_TYPES)"),
-    }),
-  },
+  options: dbOptions.extend({
+    year: arg.positiveInt().default(2026).describe("Calendar year"),
+    month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
+    era: z.enum(["current", "historical"]).default("current").describe("311 dataset era"),
+    complaintTypes: z.array(z.string()).default([]).describe("Override complaint type filter"),
+  }),
   output: z.object({
     rawPath: z.string(),
     isoMonth: z.string(),
     rowCount: z.number(),
     era: z.enum(["current", "historical"]),
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.311-service-requests",
-      operation: "runNyc311Ingest",
-      spanAttributes: {
-        year: input.options.year,
-        month: input.options.month,
-        era: input.options.era,
-        complaintTypeCount: input.options.complaintTypes.length,
-      },
-      run: (local) =>
-        runNyc311Ingest({
-          local,
-          year: input.options.year,
-          month: input.options.month,
-          era: input.options.era,
-          complaintTypes:
-            input.options.complaintTypes.length > 0 ? input.options.complaintTypes : undefined,
-        }),
-    });
-  },
+  operation: "runNyc311Ingest",
+  spanAttributes: ({ year, month, era, complaintTypes }) => ({
+    year,
+    month,
+    era,
+    complaintTypeCount: complaintTypes.length,
+  }),
+  runner: (local, { year, month, era, complaintTypes }) =>
+    runNyc311Ingest({
+      local,
+      year,
+      month,
+      era,
+      complaintTypes: complaintTypes.length > 0 ? complaintTypes : undefined,
+    }),
 });
