@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { routeInsightPlacements } from "@/components/route/route-insight-placement";
+import { DescriptiveStudyCard, StudyCard } from "@/components/study/StudyCard";
+import { studiesByEventId } from "@/components/study/study-display";
 import { SectionCard } from "@/components/SectionCard";
 import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { TreatmentInventory } from "@/components/TreatmentBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import type {
+  RouteStudiesArtifact,
   StudioIntervention,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
@@ -14,6 +17,7 @@ import type {
   StudioRouteEvidenceProject,
   StudioRouteEvidenceTimelineEvent,
   StudioRouteInsight,
+  StudyArtifact,
 } from "@/studio/api-contract";
 import { countTreatmentStates, routeTreatments } from "@/studio/treatment-model";
 
@@ -29,6 +33,8 @@ export type TreatmentComparisonCard = {
   comparisonLabel: string;
   windowLabel: string;
   caveat: string;
+  /** Matched-segment study for this event, when one exists (eventKey join). */
+  study?: StudyArtifact;
 };
 
 export type TreatmentSourceRow = {
@@ -63,14 +69,18 @@ export function treatmentHistoryInsightRows(
 export function TreatmentsHistorySection({
   data,
   evidence,
+  studies = null,
+  studyKey,
 }: {
   data: StudioRouteDetailResponse;
   evidence: StudioRouteEvidenceBundle | null;
+  studies?: RouteStudiesArtifact | null;
+  studyKey?: string | undefined;
 }) {
   const { route, segments } = data;
   const treatments = routeTreatments(route, segments);
   const counts = countTreatmentStates(treatments);
-  const comparisonCards = interventionComparisonCards(route.interventions);
+  const comparisonCards = interventionComparisonCards(route.interventions, studies);
   const sourceRows = treatmentSourceRows(route.interventions);
   const timelineRows = mergedTreatmentTimelineRows(route.interventions, evidence);
   const treatmentInsights = treatmentHistoryInsightRows(data.insights);
@@ -97,13 +107,9 @@ export function TreatmentsHistorySection({
 
       <SectionCard
         title="Before & after evaluations"
-        sub={
-          comparisonCards.length > 0
-            ? `${comparisonCards.length} promoted comparison windows.`
-            : "Comparison windows promoted by the pipeline."
-        }
+        sub={comparisonCardsSubLine(comparisonCards)}
       >
-        <ComparisonCards cards={comparisonCards} />
+        <ComparisonCards cards={comparisonCards} studyKey={studyKey} />
       </SectionCard>
     </div>
   );
@@ -428,10 +434,13 @@ function wikiProjectDescription(project: StudioRouteEvidenceProject): string {
 
 export function interventionComparisonCards(
   events: readonly StudioIntervention[],
+  studies: RouteStudiesArtifact | null = null,
 ): TreatmentComparisonCard[] {
+  const studyByEventId = studiesByEventId(studies);
   return events.flatMap((event) => {
     const cohort = event.comparisonCohort;
     if (cohort === undefined) return [];
+    const study = event.eventId === undefined ? undefined : studyByEventId.get(event.eventId);
     return [
       {
         title: event.title,
@@ -442,9 +451,18 @@ export function interventionComparisonCards(
         comparisonLabel: cohort.routeCount === 1 ? "1 route" : `${cohort.routeCount} routes`,
         windowLabel: windowLabel(cohort.preWindow, cohort.postWindow),
         caveat: cohort.caveat,
+        ...(study === undefined ? {} : { study }),
       },
     ];
   });
+}
+
+export function comparisonCardsSubLine(cards: readonly TreatmentComparisonCard[]): string {
+  if (cards.length === 0) return "Comparison windows promoted by the pipeline.";
+  const studied = cards.filter((card) => card.study !== undefined).length;
+  const evaluations = cards.length === 1 ? "1 evaluation" : `${cards.length} evaluations`;
+  if (studied === 0) return `${cards.length} promoted comparison windows.`;
+  return `${evaluations}, ${studied} with matched-segment ${studied === 1 ? "study" : "studies"}.`;
 }
 
 export function treatmentSourceRows(events: readonly StudioIntervention[]): TreatmentSourceRow[] {
@@ -459,7 +477,15 @@ export function treatmentSourceRows(events: readonly StudioIntervention[]): Trea
   return [...rows.values()];
 }
 
-function ComparisonCards({ cards }: { cards: readonly TreatmentComparisonCard[] }) {
+function ComparisonCards({
+  cards,
+  studyKey,
+}: {
+  cards: readonly TreatmentComparisonCard[];
+  studyKey?: string | undefined;
+}) {
+  const studiedCount = cards.filter((card) => card.study !== undefined).length;
+  let studiedIndex = -1;
   if (cards.length === 0) {
     return (
       <Alert variant="info">
@@ -470,30 +496,92 @@ function ComparisonCards({ cards }: { cards: readonly TreatmentComparisonCard[] 
   }
   return (
     <div className="flex flex-col gap-3">
-      {cards.map((card) => (
-        <div
-          key={`${card.year}-${card.title}`}
-          className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-[13px] font-semibold leading-tight">{card.title}</div>
-              <div className="mt-0.5 font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">
-                {card.year} / {card.windowLabel}
-              </div>
+      {cards.map((card) => {
+        const study = card.study;
+        // No-study cards render exactly as before the studies integration.
+        if (study === undefined) {
+          return (
+            <div
+              key={`${card.year}-${card.title}`}
+              className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]"
+            >
+              <LegacyComparisonCardBody card={card} />
             </div>
-            <Badge variant={card.tone}>{card.comparisonLabel}</Badge>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <DeltaMetric label="route" value={card.routeDeltaLabel} tone={card.tone} />
-            <DeltaMetric label="adjusted" value={card.adjustedDeltaLabel} tone={card.tone} />
-          </div>
-          <div className="mt-3 text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-            {card.caveat}
+          );
+        }
+        studiedIndex += 1;
+        return (
+          <ComparisonCardShell key={`${card.year}-${card.title}`} highlighted={study.eventKey === studyKey}>
+            {study.claimTier === "descriptive" ? (
+              <DescriptiveStudyCard title={card.title} study={study} />
+            ) : (
+              <StudyCard
+                title={card.title}
+                study={study}
+                // Bounded presentation: past four studied cards, only the two
+                // most recent render their chart eagerly.
+                defaultChartVisible={studiedCount <= 4 || studiedIndex < 2}
+              />
+            )}
+          </ComparisonCardShell>
+        );
+      })}
+    </div>
+  );
+}
+
+/** `?study=` deep-link target: scrolls into view and shows a temporary
+ * accent ring using the existing focus-ring vocabulary. */
+function ComparisonCardShell({
+  highlighted,
+  children,
+}: {
+  highlighted: boolean;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [ringVisible, setRingVisible] = useState(false);
+  useEffect(() => {
+    if (!highlighted || ref.current === null) return;
+    ref.current.scrollIntoView({ block: "center", behavior: "smooth" });
+    setRingVisible(true);
+    const timer = setTimeout(() => setRingVisible(false), 2600);
+    return () => clearTimeout(timer);
+  }, [highlighted]);
+  return (
+    <div
+      ref={ref}
+      className={`rounded-[3px] bg-[var(--bp-color-card)] p-4 transition-shadow duration-700 ${
+        ringVisible
+          ? "shadow-[0_0_0_1px_var(--bp-color-rule),0_0_0_3px_var(--bp-color-accent-bg),0_0_0_4px_var(--bp-color-accent)]"
+          : "shadow-[0_0_0_1px_var(--bp-color-rule)]"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function LegacyComparisonCardBody({ card }: { card: TreatmentComparisonCard }) {
+  return (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[13px] font-semibold leading-tight">{card.title}</div>
+          <div className="mt-0.5 font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">
+            {card.year} / {card.windowLabel}
           </div>
         </div>
-      ))}
-    </div>
+        <Badge variant={card.tone}>{card.comparisonLabel}</Badge>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <DeltaMetric label="route" value={card.routeDeltaLabel} tone={card.tone} />
+        <DeltaMetric label="adjusted" value={card.adjustedDeltaLabel} tone={card.tone} />
+      </div>
+      <div className="mt-3 text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
+        {card.caveat}
+      </div>
+    </>
   );
 }
 

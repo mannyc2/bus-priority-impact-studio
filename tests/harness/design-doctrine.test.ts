@@ -20,6 +20,9 @@ const BANNED_PHRASES = [
   /how we know this/i,
   /how to use this site/i,
   /in focus this month/i,
+  // Approved study-card copy (075 comp D16): display copy is "No clear change";
+  // the artifact enum stays no_detectable_change and does not match this prose form.
+  /no detectable change/i,
 ];
 
 // Ratchet allowlist (paths relative to apps/web/src). Filled by the Step 2
@@ -116,5 +119,7 @@ describe("design doctrine", () => {
     expect(matches("route feed generated")).toBe(true);
     expect(matches("Data as of Jun 2026")).toBe(true);
     expect(matches("generatedAt")).toBe(false);
+    expect(matches("No detectable change vs controls")).toBe(true);
+    expect(matches("no_detectable_change")).toBe(false);
   });
 });
