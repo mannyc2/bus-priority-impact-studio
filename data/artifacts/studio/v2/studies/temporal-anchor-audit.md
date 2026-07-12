@@ -150,6 +150,23 @@ approve at most one date from each same-month conflict. Any candidate,
 provenance, conflict, or pinned Wiki-release change invalidates that approval
 identity.
 
+## Study-engine prerequisite audit
+
+The complete 2023-04 through 2026-03 speed-spine rebuild produced 385 route
+artifacts: 93 `series_ready`, 25 `series_ready_with_gaps`, 267
+`needs_pattern_review`, and zero failed. Across the 403 approval candidates,
+107 have an eligible spine and 43 have both an eligible spine and at least four
+observable months on each side of the intervention window. This exceeds the
+Plan 074 real-run floor of ten studies without admitting a route that needs
+pattern review.
+
+The exact current-segment lane-overlap audit covered all 323 lane candidates.
+Among the 86 lane routes with an eligible spine, 82 (95.3%) have at least one
+positive geometry overlap that maps through the exact current-to-spine
+crosswalk. Four eligible routes remain unmapped and will retain an empty
+treated set rather than receive a fuzzy or positional join. The documented
+greater-than-50% fallback condition is not met among estimable lane routes.
+
 Durable operator receipts belong in
 `data/study-event-approvals/receipts/`. No receipt exists for this candidate
 set, and the intentionally invalid example in the parent directory is not an
