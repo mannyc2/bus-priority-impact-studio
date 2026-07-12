@@ -19,7 +19,11 @@ import {
 import { TreatmentsHistorySection } from "@/components/route/TreatmentsHistorySection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { pushRecentRoute } from "@/lib/recent-routes";
-import type { StudioRouteDetailResponse, StudioRouteEvidenceBundle } from "../api-contract.js";
+import type {
+  RouteStudiesArtifact,
+  StudioRouteDetailResponse,
+  StudioRouteEvidenceBundle,
+} from "../api-contract.js";
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
 
@@ -33,11 +37,15 @@ function TrackRecentRoute({ slug }: { slug: string }) {
 export function RouteDetailPage({
   data,
   evidence,
+  studies = null,
   tab,
+  studyKey,
 }: {
   data: StudioRouteDetailResponse | null;
   evidence: StudioRouteEvidenceBundle | null;
+  studies?: RouteStudiesArtifact | null;
   tab?: RouteDetailTabValue | undefined;
+  studyKey?: string | undefined;
 }) {
   const navigate = useNavigate();
 
@@ -124,7 +132,12 @@ export function RouteDetailPage({
       break;
     case "history":
       panel = section("treatments", () => (
-        <TreatmentsHistorySection data={data} evidence={evidence} />
+        <TreatmentsHistorySection
+          data={data}
+          evidence={evidence}
+          studies={studies}
+          studyKey={studyKey}
+        />
       ));
       break;
   }

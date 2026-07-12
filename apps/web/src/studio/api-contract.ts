@@ -8,6 +8,13 @@ export type {
 } from "@bp/domain/studio";
 export type { StudioIntervention } from "@bp/domain/studio/interventions";
 export type {
+  RouteStudiesArtifact,
+  StudyArtifact,
+  StudyIndexArtifact,
+  StudyIndexRow,
+  StudySensitivityEstimate,
+} from "@bp/domain/studio/study";
+export type {
   StudioInterventionsEvidenceBundle,
   StudioInterventionsEvidenceCitation,
   StudioInterventionsEvidenceCoverage,

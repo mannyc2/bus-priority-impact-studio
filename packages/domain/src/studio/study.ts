@@ -105,17 +105,7 @@ const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
   Schema.isGreaterThanOrEqualTo(0),
 );
 
-export function studyArtifactKey(eventKey: string): string {
-  return `studio/v2/studies/${eventKey}.json`;
-}
-
-export function studyIndexKey(): string {
-  return "studio/v2/studies/index.json";
-}
-
-export function routeStudiesKey(routeSlug: string): string {
-  return `studio/v2/routes/${routeSlug}/studies.json`;
-}
+export { routeStudiesKey, studyArtifactKey, studyIndexKey } from "./study-key.js";
 
 export const StudyGateSchema = Schema.Struct({
   status: Schema.Literals(["pass", "fail", "not_applicable"]),

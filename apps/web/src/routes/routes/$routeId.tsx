@@ -4,6 +4,7 @@ import { routeHead } from "../../lib/head.js";
 import {
   fetchStudioRoute,
   fetchStudioRouteEvidence,
+  fetchStudioRouteStudies,
   staticStudioLoaderStaleTimeMs,
 } from "../../studio/api-client.js";
 
@@ -31,13 +32,29 @@ export const Route = createFileRoute("/routes/$routeId")({
     Promise.all([
       fetchStudioRoute(params.routeId, { signal: abortController.signal }),
       fetchStudioRouteEvidence(params.routeId, { signal: abortController.signal }),
-    ]).then(([detail, evidence]) => ({
+      // Studies rollup is small and nullable; a failure never blocks the page.
+      fetchStudioRouteStudies(params.routeId, { signal: abortController.signal }).catch(
+        (error: unknown) => {
+          if (error instanceof Error && error.name === "AbortError") throw error;
+          console.warn("Route studies request failed; rendering without studies.", { error });
+          return null;
+        },
+      ),
+    ]).then(([detail, evidence, studies]) => ({
       detail,
       evidence,
+      studies,
     })),
-  validateSearch: (search: Record<string, unknown>): { tab?: RouteDetailTabSearch } => {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: RouteDetailTabSearch; study?: string } => {
     const tab = search["tab"];
-    return isTabSearch(tab) ? { tab } : {};
+    if (!isTabSearch(tab)) return {};
+    // `study` deep-links to a card on the History tab only; dropped elsewhere.
+    const study = search["study"];
+    return tab === "history" && typeof study === "string" && study.length > 0
+      ? { tab, study }
+      : { tab };
   },
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: RouteDetailRouteFallback,
@@ -50,7 +67,13 @@ function RouteDetailRoute() {
   const search = Route.useSearch();
   return (
     <Suspense fallback={<RouteDetailRouteFallback />}>
-      <RouteDetailPage data={data.detail} evidence={data.evidence} tab={search.tab} />
+      <RouteDetailPage
+        data={data.detail}
+        evidence={data.evidence}
+        studies={data.studies}
+        tab={search.tab}
+        studyKey={search.study}
+      />
     </Suspense>
   );
 }

@@ -7,12 +7,14 @@ import type {
   MapRouteSegmentFeatureCollection,
 } from "@bp/domain/maps";
 import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key";
+import { routeStudiesKey, studyIndexKey } from "@bp/domain/studio/study-key";
 import {
   createStudioApiClient,
   type PathBuildInput,
   type StudioApiRouteId,
 } from "@bp/studio-api/client";
 import type {
+  RouteStudiesArtifact,
   StudioInterventionCorpus,
   StudioInterventionsEvidenceResponse,
   StudioRouteDetailResponse,
@@ -21,6 +23,7 @@ import type {
   StudioRouteIndex2Response,
   StudioRouteSpeedHistoryResponse,
   StudioRoutesResponse,
+  StudyIndexArtifact,
 } from "./api-contract.js";
 
 type StudioApiErrorBody = {
@@ -156,6 +159,17 @@ export function fetchStudioInterventionCorpus(options?: StudioQueryOptions) {
     publicArtifactPath(interventionCorpusKey()),
     options,
   );
+}
+
+export function fetchStudioRouteStudies(routeSlug: string, options?: StudioQueryOptions) {
+  return loadNullableStudioJson<RouteStudiesArtifact>(
+    publicArtifactPath(routeStudiesKey(routeSlug)),
+    options,
+  );
+}
+
+export function fetchStudioStudiesIndex(options?: StudioQueryOptions) {
+  return loadNullableStudioJson<StudyIndexArtifact>(publicArtifactPath(studyIndexKey()), options);
 }
 
 export function timelineEvidenceRouteSlugs(routeIndex: StudioRouteIndex2Response): string[] {
