@@ -3,7 +3,8 @@ import {
   listRouteCatalog,
   replaceRouteObservedReliabilityRows,
 } from "@bp/db/local";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -263,28 +264,41 @@ export default defineCommand({
   summary:
     "Import a Bus Observatory recovered reliability summary CSV into route_observed_reliability.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      runId: z.string().min(1).describe("Collection run identifier"),
-      summaryCsv: z.string().min(1).describe("Path to per-route summary CSV"),
-      fillCatalog: z.coerce
-        .boolean()
-        .default(true)
-        .describe("Fill missing catalog routes with insufficient placeholders"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        runId: Schema.String.check(Schema.isMinLength(1)).annotate({
+          description: "Collection run identifier",
+        }),
+        summaryCsv: Schema.String.check(Schema.isMinLength(1)).annotate({
+          description: "Path to per-route summary CSV",
+        }),
+        fillCatalog: arg
+          .boolean()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+          .annotate({ description: "Fill missing catalog routes with insufficient placeholders" }),
+      },
     }),
   },
-  output: z.object({
-    month: z.string(),
-    runId: z.string(),
-    provenance: z.string(),
-    sourceId: z.string(),
-    summaryCsv: z.string(),
-    routeCount: z.number(),
-    observedRouteCount: z.number(),
-    insufficientRouteCount: z.number(),
-    sampleCount: z.number(),
-    skippedNonCatalogRouteCount: z.number(),
+  output: Schema.Struct({
+    month: Schema.String,
+    runId: Schema.String,
+    provenance: Schema.String,
+    sourceId: Schema.String,
+    summaryCsv: Schema.String,
+    routeCount: Schema.Number,
+    observedRouteCount: Schema.Number,
+    insufficientRouteCount: Schema.Number,
+    sampleCount: Schema.Number,
+    skippedNonCatalogRouteCount: Schema.Number,
   }),
   async run({ input }) {
     const summaryCsv = fromCliPath(input.options.summaryCsv);

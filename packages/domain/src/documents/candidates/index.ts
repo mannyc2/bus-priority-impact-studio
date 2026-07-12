@@ -1,18 +1,16 @@
-import * as z from "zod";
+import { Effect, Schema } from "effect";
 import { registerProjectSchema } from "../../schema-registry.js";
 
-export const DocumentCandidateValidationStateSchema = z.enum([
+export const DocumentCandidateValidationStateSchema = Schema.Literals([
   "unvalidated",
   "validated",
   "needs_review",
   "rejected",
 ]);
 
-export type DocumentCandidateValidationState = z.output<
-  typeof DocumentCandidateValidationStateSchema
->;
+export type DocumentCandidateValidationState = typeof DocumentCandidateValidationStateSchema.Type;
 
-export const DocumentFactClassificationSchema = z.enum([
+export const DocumentFactClassificationSchema = Schema.Literals([
   "official_fact",
   "official_claim",
   "third_party_evaluation",
@@ -22,9 +20,9 @@ export const DocumentFactClassificationSchema = z.enum([
   "source_gap",
 ]);
 
-export type DocumentFactClassification = z.output<typeof DocumentFactClassificationSchema>;
+export type DocumentFactClassification = typeof DocumentFactClassificationSchema.Type;
 
-export const DocumentNegativeEvidenceFlagSchema = z.enum([
+export const DocumentNegativeEvidenceFlagSchema = Schema.Literals([
   "proposed_only",
   "outreach_not_implementation",
   "ocr_cannot_read_map",
@@ -37,9 +35,9 @@ export const DocumentNegativeEvidenceFlagSchema = z.enum([
   "none",
 ]);
 
-export type DocumentNegativeEvidenceFlag = z.output<typeof DocumentNegativeEvidenceFlagSchema>;
+export type DocumentNegativeEvidenceFlag = typeof DocumentNegativeEvidenceFlagSchema.Type;
 
-export const DocumentEvidenceCandidateTypeSchema = z.enum([
+export const DocumentEvidenceCandidateTypeSchema = Schema.Literals([
   "document_claim_candidate",
   "document_metric_claim_candidate",
   "document_table_candidate",
@@ -57,28 +55,34 @@ export const DocumentEvidenceCandidateTypeSchema = z.enum([
   "review_question_candidate",
 ]);
 
-export type DocumentEvidenceCandidateType = z.output<typeof DocumentEvidenceCandidateTypeSchema>;
+export type DocumentEvidenceCandidateType = typeof DocumentEvidenceCandidateTypeSchema.Type;
 
-export const DocumentCandidatePayloadSchema = z.record(z.string(), z.unknown());
+export const DocumentCandidatePayloadSchema = Schema.Record(Schema.String, Schema.Unknown);
 
-export type DocumentCandidatePayload = z.output<typeof DocumentCandidatePayloadSchema>;
+export type DocumentCandidatePayload = typeof DocumentCandidatePayloadSchema.Type;
 
-const DocumentEvidenceCandidateDraftObjectSchema = z
-  .object({
-    candidateType: DocumentEvidenceCandidateTypeSchema,
-    factClassification: DocumentFactClassificationSchema,
-    negativeEvidenceFlag: DocumentNegativeEvidenceFlagSchema.default("none"),
-    routeMentions: z.array(z.string().min(1)).default([]),
-    corridorMentions: z.array(z.string().min(1)).default([]),
-    evidencePageRefs: z.array(z.number().int().positive()).default([]),
-    evidenceQuote: z.string().min(1),
-    summary: z.string().min(1),
-    fields: DocumentCandidatePayloadSchema.default({}),
-  })
-  .strict();
+const DocumentEvidenceCandidateDraftObjectSchema = Schema.Struct({
+  candidateType: DocumentEvidenceCandidateTypeSchema,
+  factClassification: DocumentFactClassificationSchema,
+  negativeEvidenceFlag: DocumentNegativeEvidenceFlagSchema.pipe(
+    Schema.withDecodingDefaultType(Effect.succeed("none")),
+  ),
+  routeMentions: Schema.Array(Schema.String.check(Schema.isMinLength(1))).pipe(
+    Schema.withDecodingDefaultType(Effect.succeed([])),
+  ),
+  corridorMentions: Schema.Array(Schema.String.check(Schema.isMinLength(1))).pipe(
+    Schema.withDecodingDefaultType(Effect.succeed([])),
+  ),
+  evidencePageRefs: Schema.Array(
+    Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  ).pipe(Schema.withDecodingDefaultType(Effect.succeed([]))),
+  evidenceQuote: Schema.String.check(Schema.isMinLength(1)),
+  summary: Schema.String.check(Schema.isMinLength(1)),
+  fields: DocumentCandidatePayloadSchema.pipe(Schema.withDecodingDefaultType(Effect.succeed({}))),
+});
 
 export const DocumentEvidenceCandidateDraftSchema = registerProjectSchema(
-  DocumentEvidenceCandidateDraftObjectSchema.readonly(),
+  DocumentEvidenceCandidateDraftObjectSchema,
   {
     id: "bp.document_evidence_candidate_draft.v1",
     title: "Document Evidence Candidate Draft",
@@ -88,17 +92,18 @@ export const DocumentEvidenceCandidateDraftSchema = registerProjectSchema(
   },
 );
 
-export type DocumentEvidenceCandidateDraft = z.output<typeof DocumentEvidenceCandidateDraftSchema>;
+export type DocumentEvidenceCandidateDraft = typeof DocumentEvidenceCandidateDraftSchema.Type;
 
 export const DocumentEvidenceCandidateSchema = registerProjectSchema(
-  DocumentEvidenceCandidateDraftObjectSchema.extend({
-    candidateId: z.string().min(1),
-    sourceId: z.string().min(1),
-    validationState: DocumentCandidateValidationStateSchema,
-    reviewReason: z.string().min(1),
-  })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    ...DocumentEvidenceCandidateDraftObjectSchema.fields,
+    ...{
+      candidateId: Schema.String.check(Schema.isMinLength(1)),
+      sourceId: Schema.String.check(Schema.isMinLength(1)),
+      validationState: DocumentCandidateValidationStateSchema,
+      reviewReason: Schema.String.check(Schema.isMinLength(1)),
+    },
+  }),
   {
     id: "bp.document_evidence_candidate.v1",
     title: "Document Evidence Candidate",
@@ -108,7 +113,7 @@ export const DocumentEvidenceCandidateSchema = registerProjectSchema(
   },
 );
 
-export type DocumentEvidenceCandidate = z.output<typeof DocumentEvidenceCandidateSchema>;
+export type DocumentEvidenceCandidate = typeof DocumentEvidenceCandidateSchema.Type;
 
 // ---------------------------------------------------------------------------
 // Tier 2 OCR-markdown evidence-candidate extraction shape
@@ -121,7 +126,7 @@ export type DocumentEvidenceCandidate = z.output<typeof DocumentEvidenceCandidat
 // block. Promoted out of the pipeline `_shared.ts` monolith so the policy can
 // live in a package without depending on the tool.
 //
-// FOLLOW-UP: formalize as a registered zod schema and reconcile with
+// FOLLOW-UP: formalize as a registered schema and reconcile with
 // `DocumentEvidenceCandidate` once the upstream candidate-extraction steps are
 // themselves cut over.
 // ---------------------------------------------------------------------------
@@ -205,38 +210,40 @@ export type Tier2DocumentEvidenceCandidate = {
 // ---------------------------------------------------------------------------
 
 const sharedDraftFields = {
-  factClassification: DocumentFactClassificationSchema.describe(
-    "How this fact relates to its source: official_fact and official_claim come from the publishing agency; third_party_evaluation is an outside assessment; context and caveat narrate; methodology describes how a metric was computed; source_gap is an explicit absence.",
-  ),
-  negativeEvidenceFlag: DocumentNegativeEvidenceFlagSchema.default("none").describe(
-    'Reason this candidate is negative or weak evidence, when applicable. Use "none" otherwise.',
-  ),
-  routeMentions: z
-    .array(z.string().min(1))
-    .default([])
-    .describe(
-      'Bare MTA route IDs as they appear in the route catalog, e.g. ["B44", "M15"]. Do not append service-mode suffixes like SBS, Limited, or Local; those go on per-type fields when relevant. Use the empty array when no route is named.',
-    ),
-  corridorMentions: z
-    .array(z.string().min(1))
-    .default([])
-    .describe(
-      'Street or avenue names mentioned in the supporting quote, e.g. ["Nostrand Avenue", "14th Street"]. Use the empty array when no corridor is named.',
-    ),
-  evidencePageRefs: z
-    .array(z.number().int().positive())
-    .default([])
-    .describe("PDF page numbers (1-indexed) that contain the supporting quote."),
-  evidenceQuote: z
-    .string()
-    .min(1)
-    .describe(
+  factClassification: DocumentFactClassificationSchema.annotate({
+    description:
+      "How this fact relates to its source: official_fact and official_claim come from the publishing agency; third_party_evaluation is an outside assessment; context and caveat narrate; methodology describes how a metric was computed; source_gap is an explicit absence.",
+  }),
+  negativeEvidenceFlag: DocumentNegativeEvidenceFlagSchema.pipe(
+    Schema.withDecodingDefaultType(Effect.succeed("none")),
+  ).annotate({
+    description:
+      'Reason this candidate is negative or weak evidence, when applicable. Use "none" otherwise.',
+  }),
+  routeMentions: Schema.Array(Schema.String.check(Schema.isMinLength(1)))
+    .pipe(Schema.withDecodingDefaultType(Effect.succeed([])))
+    .annotate({
+      description:
+        'Bare MTA route IDs as they appear in the route catalog, e.g. ["B44", "M15"]. Do not append service-mode suffixes like SBS, Limited, or Local; those go on per-type fields when relevant. Use the empty array when no route is named.',
+    }),
+  corridorMentions: Schema.Array(Schema.String.check(Schema.isMinLength(1)))
+    .pipe(Schema.withDecodingDefaultType(Effect.succeed([])))
+    .annotate({
+      description:
+        'Street or avenue names mentioned in the supporting quote, e.g. ["Nostrand Avenue", "14th Street"]. Use the empty array when no corridor is named.',
+    }),
+  evidencePageRefs: Schema.Array(Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)))
+    .pipe(Schema.withDecodingDefaultType(Effect.succeed([])))
+    .annotate({
+      description: "PDF page numbers (1-indexed) that contain the supporting quote.",
+    }),
+  evidenceQuote: Schema.String.check(Schema.isMinLength(1)).annotate({
+    description:
       "A short verbatim excerpt from the provided OCR Markdown that supports this candidate.",
-    ),
-  summary: z
-    .string()
-    .min(1)
-    .describe("One- or two-sentence summary of the candidate, in your own words."),
+  }),
+  summary: Schema.String.check(Schema.isMinLength(1)).annotate({
+    description: "One- or two-sentence summary of the candidate, in your own words.",
+  }),
 } as const;
 
 const OPTIONAL_PERIOD_DESCRIPTION =
@@ -245,7 +252,7 @@ const OPTIONAL_PERIOD_DESCRIPTION =
 // Canonical metric names common in NYC bus-priority documents. Extracted from
 // reading the prompt's prior free-text vocabulary; not exhaustive. Use the
 // `customMetricName` escape hatch for anything not in the list.
-export const DocumentMetricNameSchema = z.enum([
+const documentMetricNames = [
   "bus_travel_time",
   "bus_running_time",
   "bus_average_speed",
@@ -264,12 +271,15 @@ export const DocumentMetricNameSchema = z.enum([
   "traffic_injuries",
   "fare_collection_time",
   "boarding_time",
-]);
-export type DocumentMetricName = z.output<typeof DocumentMetricNameSchema>;
+] as const;
+export const DocumentMetricNameSchema = Object.assign(Schema.Literals(documentMetricNames), {
+  options: documentMetricNames,
+});
+export type DocumentMetricName = typeof DocumentMetricNameSchema.Type;
 
 // Canonical treatment families. The same caveat applies: prefer one of these,
 // fall back to `customTreatmentType` for anything else.
-export const DocumentTreatmentTypeSchema = z.enum([
+const documentTreatmentTypes = [
   "bus_lane",
   "busway",
   "transit_signal_priority",
@@ -286,10 +296,13 @@ export const DocumentTreatmentTypeSchema = z.enum([
   "reroute",
   "pedestrian_improvement",
   "signal_retiming",
-]);
-export type DocumentTreatmentType = z.output<typeof DocumentTreatmentTypeSchema>;
+] as const;
+export const DocumentTreatmentTypeSchema = Object.assign(Schema.Literals(documentTreatmentTypes), {
+  options: documentTreatmentTypes,
+});
+export type DocumentTreatmentType = typeof DocumentTreatmentTypeSchema.Type;
 
-export const DocumentServiceChangeKindSchema = z.enum([
+export const DocumentServiceChangeKindSchema = Schema.Literals([
   "route_added",
   "route_discontinued",
   "route_modified",
@@ -301,210 +314,181 @@ export const DocumentServiceChangeKindSchema = z.enum([
   "branch_added",
   "branch_discontinued",
 ]);
-export type DocumentServiceChangeKind = z.output<typeof DocumentServiceChangeKindSchema>;
+export type DocumentServiceChangeKind = typeof DocumentServiceChangeKindSchema.Type;
 
-function draftVariant<TType extends DocumentEvidenceCandidateType>(
-  candidateType: TType,
-  description: string,
-  fields: z.ZodObject,
-) {
-  return z
-    .object({
-      candidateType: z.literal(candidateType),
-      ...sharedDraftFields,
-      fields,
-    })
-    .strict()
-    .describe(description);
+function draftVariant<
+  TType extends DocumentEvidenceCandidateType,
+  TFields extends Schema.ConstraintDecoder<unknown, never>,
+>(candidateType: TType, description: string, fields: TFields) {
+  return Schema.Struct({
+    candidateType: Schema.Literal(candidateType),
+    ...sharedDraftFields,
+    fields,
+  }).annotate({ description: description });
 }
 
-const claimFields = z
-  .object({
-    claimSubject: z.string().optional().describe("The subject or entity the claim is about."),
-  })
-  .passthrough();
+const claimFields = Schema.Struct({
+  claimSubject: Schema.optional(Schema.String).annotate({
+    description: "The subject or entity the claim is about.",
+  }),
+});
 
-const metricClaimFields = z
-  .object({
-    metricName: DocumentMetricNameSchema.optional().describe(
+const metricClaimFields = Schema.Struct({
+  metricName: Schema.optional(DocumentMetricNameSchema).annotate({
+    description:
       "Canonical metric name. Pick one of the enum values when it fits; otherwise leave this unset and use customMetricName.",
-    ),
-    customMetricName: z
-      .string()
-      .optional()
-      .describe(
-        "Free-text metric name when no enum value fits. Use only when metricName is unset.",
-      ),
-    valueNumeric: z.number().optional().describe("Primary numeric value of the metric."),
-    valueQualifier: z
-      .string()
-      .optional()
-      .describe(
-        'Qualifier such as "approximately", "up to", or a range like "15-31%" when the source gives a range rather than a single number.',
-      ),
-    unit: z.string().optional().describe('Unit such as "percent", "minutes", "mph", "riders/day".'),
-    baselinePeriodStart: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
-    baselinePeriodEnd: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
-    comparisonPeriodStart: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
-    comparisonPeriodEnd: z.string().optional().describe(OPTIONAL_PERIOD_DESCRIPTION),
-    geographyScope: z
-      .string()
-      .optional()
-      .describe('Scope of the metric, e.g. "B44 corridor", "Brooklyn", "system-wide".'),
-    methodology: z
-      .string()
-      .optional()
-      .describe("Brief description of how the metric was computed if the source explains it."),
-  })
-  .passthrough();
+  }),
+  customMetricName: Schema.optional(Schema.String).annotate({
+    description:
+      "Free-text metric name when no enum value fits. Use only when metricName is unset.",
+  }),
+  valueNumeric: Schema.optional(Schema.Number).annotate({
+    description: "Primary numeric value of the metric.",
+  }),
+  valueQualifier: Schema.optional(Schema.String).annotate({
+    description:
+      'Qualifier such as "approximately", "up to", or a range like "15-31%" when the source gives a range rather than a single number.',
+  }),
+  unit: Schema.optional(Schema.String).annotate({
+    description: 'Unit such as "percent", "minutes", "mph", "riders/day".',
+  }),
+  baselinePeriodStart: Schema.optional(Schema.String).annotate({
+    description: OPTIONAL_PERIOD_DESCRIPTION,
+  }),
+  baselinePeriodEnd: Schema.optional(Schema.String).annotate({
+    description: OPTIONAL_PERIOD_DESCRIPTION,
+  }),
+  comparisonPeriodStart: Schema.optional(Schema.String).annotate({
+    description: OPTIONAL_PERIOD_DESCRIPTION,
+  }),
+  comparisonPeriodEnd: Schema.optional(Schema.String).annotate({
+    description: OPTIONAL_PERIOD_DESCRIPTION,
+  }),
+  geographyScope: Schema.optional(Schema.String).annotate({
+    description: 'Scope of the metric, e.g. "B44 corridor", "Brooklyn", "system-wide".',
+  }),
+  methodology: Schema.optional(Schema.String).annotate({
+    description: "Brief description of how the metric was computed if the source explains it.",
+  }),
+});
 
-const tableFields = z
-  .object({
-    tableCaption: z.string().optional(),
-    headers: z.array(z.string()).optional(),
-    rows: z.array(z.array(z.string())).optional(),
-  })
-  .passthrough();
+const tableFields = Schema.Struct({
+  tableCaption: Schema.optional(Schema.String),
+  headers: Schema.optional(Schema.Array(Schema.String)),
+  rows: Schema.optional(Schema.Array(Schema.Array(Schema.String))),
+});
 
-const figureFields = z
-  .object({
-    figureCaption: z.string().optional(),
-    figureType: z.string().optional().describe("E.g. bar_chart, map, photo, diagram."),
-  })
-  .passthrough();
+const figureFields = Schema.Struct({
+  figureCaption: Schema.optional(Schema.String),
+  figureType: Schema.optional(Schema.String).annotate({
+    description: "E.g. bar_chart, map, photo, diagram.",
+  }),
+});
 
-const mapExtentFields = z
-  .object({
-    extentIntersections: z
-      .array(z.string())
-      .optional()
-      .describe("Named intersections or limits bounding the treatment extent."),
-  })
-  .passthrough();
+const mapExtentFields = Schema.Struct({
+  extentIntersections: Schema.optional(Schema.Array(Schema.String)).annotate({
+    description: "Named intersections or limits bounding the treatment extent.",
+  }),
+});
 
-const methodologyFields = z
-  .object({
-    methodology: z.string().optional(),
-  })
-  .passthrough();
+const methodologyFields = Schema.Struct({
+  methodology: Schema.optional(Schema.String),
+});
 
-const caveatFields = z.object({}).passthrough();
+const caveatFields = Schema.Struct({});
 
-const projectStatusFields = z
-  .object({
-    status: z
-      .enum([
-        "proposed",
-        "planning",
-        "implementing",
-        "monitoring",
-        "complete",
-        "canceled",
-        "superseded",
-      ])
-      .optional()
-      .describe("Lifecycle stage of the project as described in the source."),
-    statusAsOfDate: z
-      .string()
-      .optional()
-      .describe("Date the status was reported. ISO date or YYYY-MM. Omit when no date is given."),
-    phase: z
-      .string()
-      .optional()
-      .describe("Free-text phase label when the source uses a project-specific phase name."),
-  })
-  .passthrough();
+const projectStatusFields = Schema.Struct({
+  status: Schema.optional(
+    Schema.Literals([
+      "proposed",
+      "planning",
+      "implementing",
+      "monitoring",
+      "complete",
+      "canceled",
+      "superseded",
+    ]),
+  ).annotate({
+    description: "Lifecycle stage of the project as described in the source.",
+  }),
+  statusAsOfDate: Schema.optional(Schema.String).annotate({
+    description: "Date the status was reported. ISO date or YYYY-MM. Omit when no date is given.",
+  }),
+  phase: Schema.optional(Schema.String).annotate({
+    description: "Free-text phase label when the source uses a project-specific phase name.",
+  }),
+});
 
-const treatmentComponentFields = z
-  .object({
-    treatmentTypes: z
-      .array(DocumentTreatmentTypeSchema)
-      .optional()
-      .describe(
-        "Treatment families this candidate describes. Use one or more of the enum values; emit one candidate per discrete claim, but list multiple types when the source bundles them together. Use customTreatmentType for anything not in the enum.",
-      ),
-    customTreatmentType: z
-      .string()
-      .optional()
-      .describe("Free-text treatment label when no enum value applies."),
-    implementationStatus: z
-      .enum(["proposed", "planned", "implemented", "removed"])
-      .optional()
-      .describe("Lifecycle stage of the treatment as described in the source."),
-    serviceMode: z
-      .enum(["sbs", "local", "limited", "express", "lcl"])
-      .optional()
-      .describe(
-        "Bus service mode the treatment applies to, when the source distinguishes. SBS = Select Bus Service.",
-      ),
-  })
-  .passthrough();
+const treatmentComponentFields = Schema.Struct({
+  treatmentTypes: Schema.optional(Schema.Array(DocumentTreatmentTypeSchema)).annotate({
+    description:
+      "Treatment families this candidate describes. Use one or more of the enum values; emit one candidate per discrete claim, but list multiple types when the source bundles them together. Use customTreatmentType for anything not in the enum.",
+  }),
+  customTreatmentType: Schema.optional(Schema.String).annotate({
+    description: "Free-text treatment label when no enum value applies.",
+  }),
+  implementationStatus: Schema.optional(
+    Schema.Literals(["proposed", "planned", "implemented", "removed"]),
+  ).annotate({
+    description: "Lifecycle stage of the treatment as described in the source.",
+  }),
+  serviceMode: Schema.optional(
+    Schema.Literals(["sbs", "local", "limited", "express", "lcl"]),
+  ).annotate({
+    description:
+      "Bus service mode the treatment applies to, when the source distinguishes. SBS = Select Bus Service.",
+  }),
+});
 
-const serviceChangeFields = z
-  .object({
-    changeTypes: z
-      .array(DocumentServiceChangeKindSchema)
-      .optional()
-      .describe(
-        "Kinds of service change described. List all that apply, but emit one candidate per discrete change span.",
-      ),
-    effectiveDate: z
-      .string()
-      .optional()
-      .describe(
-        "Date the change took effect. ISO date or YYYY-MM. Omit this key entirely when no date is given.",
-      ),
-  })
-  .passthrough();
+const serviceChangeFields = Schema.Struct({
+  changeTypes: Schema.optional(Schema.Array(DocumentServiceChangeKindSchema)).annotate({
+    description:
+      "Kinds of service change described. List all that apply, but emit one candidate per discrete change span.",
+  }),
+  effectiveDate: Schema.optional(Schema.String).annotate({
+    description:
+      "Date the change took effect. ISO date or YYYY-MM. Omit this key entirely when no date is given.",
+  }),
+});
 
-const stopOrIntersectionFields = z
-  .object({
-    stopIdIfKnown: z.string().optional(),
-    intersectionName: z.string().optional(),
-  })
-  .passthrough();
+const stopOrIntersectionFields = Schema.Struct({
+  stopIdIfKnown: Schema.optional(Schema.String),
+  intersectionName: Schema.optional(Schema.String),
+});
 
-const supersessionFields = z
-  .object({
-    supersedes: z.string().optional().describe("Identifier or title of the source being replaced."),
-    supersededBy: z.string().optional().describe("Identifier or title of the replacing source."),
-    supersessionType: z
-      .string()
-      .optional()
-      .describe("replaces, amends, cancels, or status_update."),
-  })
-  .passthrough();
+const supersessionFields = Schema.Struct({
+  supersedes: Schema.optional(Schema.String).annotate({
+    description: "Identifier or title of the source being replaced.",
+  }),
+  supersededBy: Schema.optional(Schema.String).annotate({
+    description: "Identifier or title of the replacing source.",
+  }),
+  supersessionType: Schema.optional(Schema.String).annotate({
+    description: "replaces, amends, cancels, or status_update.",
+  }),
+});
 
-const sourceGapFields = z
-  .object({
-    sourceGapSubject: z
-      .string()
-      .optional()
-      .describe('What is missing, e.g. "no stop-level table" or "no TSP inventory".'),
-  })
-  .passthrough();
+const sourceGapFields = Schema.Struct({
+  sourceGapSubject: Schema.optional(Schema.String).annotate({
+    description: 'What is missing, e.g. "no stop-level table" or "no TSP inventory".',
+  }),
+});
 
-const evidenceLinkFields = z
-  .object({
-    linkedDatasetId: z
-      .string()
-      .optional()
-      .describe("Identifier of the underlying dataset or table."),
-  })
-  .passthrough();
+const evidenceLinkFields = Schema.Struct({
+  linkedDatasetId: Schema.optional(Schema.String).annotate({
+    description: "Identifier of the underlying dataset or table.",
+  }),
+});
 
-const reviewQuestionFields = z
-  .object({
-    reviewQuestion: z.string().optional(),
-    proposedAnswer: z.string().optional(),
-    requiredSource: z
-      .string()
-      .optional()
-      .describe("What kind of follow-up source would resolve the question."),
-  })
-  .passthrough();
+const reviewQuestionFields = Schema.Struct({
+  reviewQuestion: Schema.optional(Schema.String),
+  proposedAnswer: Schema.optional(Schema.String),
+  requiredSource: Schema.optional(Schema.String).annotate({
+    description: "What kind of follow-up source would resolve the question.",
+  }),
+});
 
-export const DocumentEvidenceCandidateDraftToolSchema = z.discriminatedUnion("candidateType", [
+export const DocumentEvidenceCandidateDraftToolSchema = Schema.Union([
   draftVariant("document_claim_candidate", "A single source-backed non-metric claim.", claimFields),
   draftVariant(
     "document_metric_claim_candidate",
@@ -578,6 +562,5 @@ export const DocumentEvidenceCandidateDraftToolSchema = z.discriminatedUnion("ca
   ),
 ]);
 
-export type DocumentEvidenceCandidateDraftTool = z.output<
-  typeof DocumentEvidenceCandidateDraftToolSchema
->;
+export type DocumentEvidenceCandidateDraftTool =
+  typeof DocumentEvidenceCandidateDraftToolSchema.Type;

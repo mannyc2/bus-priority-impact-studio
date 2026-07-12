@@ -1,0 +1,71 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background)}
+  .figure{max-width:680px}
+  figcaption{font:italic 400 14px/1.5 var(--font-serif);color:var(--muted-foreground);margin-top:12px;max-width:560px}
+  .t{font:400 14px var(--font-sans);fill:var(--foreground)}
+  .ts{font:400 12px var(--font-sans);fill:var(--muted-foreground)}
+  .th{font:500 14px var(--font-sans);fill:var(--foreground)}
+  .label{font:italic 400 13px var(--font-serif);fill:var(--muted-foreground)}
+</style></head><body>
+<figure class="figure" style="margin:0">
+<svg width="100%" viewBox="0 0 680 360" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Backlinks as gravity — how a single entry pulls cross-references inward.</title>
+  <desc>An illustrative diagram. A central node represents one entry. Smaller nodes orbit at varying distances; lines connect each orbiting node back to the centre. Distance encodes "semantic closeness" and line opacity encodes citation count. A faint radial fade in violet suggests a field of attention around the central entry.</desc>
+
+  <defs>
+    <radialGradient id="field" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#EEEAFA" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#EEEAFA" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="340" cy="180" r="170" fill="url(#field)"/>
+  <text class="label" x="340" y="22" text-anchor="middle">field of attention</text>
+
+  <circle cx="340" cy="180" r="36" fill="var(--ramp-violet-100)" stroke="var(--ramp-violet-500)" stroke-width="1.5"/>
+  <text class="th" x="340" y="178" text-anchor="middle" dominant-baseline="central">Bauhaus</text>
+  <text class="ts" x="340" y="195" text-anchor="middle" dominant-baseline="central">pedagogy</text>
+
+  <line x1="340" y1="180" x2="178" y2="120" stroke="var(--ramp-violet-500)" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="178" cy="120" r="22" fill="var(--background)" stroke="var(--ramp-violet-500)" stroke-width="1"/>
+  <text class="t" x="178" y="124" text-anchor="middle" dominant-baseline="central">Itten</text>
+
+  <line x1="340" y1="180" x2="510" y2="118" stroke="var(--ramp-violet-500)" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="510" cy="118" r="22" fill="var(--background)" stroke="var(--ramp-violet-500)" stroke-width="1"/>
+  <text class="t" x="510" y="122" text-anchor="middle" dominant-baseline="central">Moholy</text>
+
+  <line x1="340" y1="180" x2="138" y2="248" stroke="var(--ramp-violet-500)" stroke-width="1" stroke-linecap="round" stroke-opacity="0.6"/>
+  <circle cx="138" cy="248" r="18" fill="var(--background)" stroke="var(--ramp-violet-200)" stroke-width="1"/>
+  <text class="ts" x="138" y="252" text-anchor="middle" dominant-baseline="central">Klee</text>
+
+  <line x1="340" y1="180" x2="568" y2="240" stroke="var(--ramp-violet-500)" stroke-width="1" stroke-linecap="round" stroke-opacity="0.6"/>
+  <circle cx="568" cy="240" r="18" fill="var(--background)" stroke="var(--ramp-violet-200)" stroke-width="1"/>
+  <text class="ts" x="568" y="244" text-anchor="middle" dominant-baseline="central">Albers</text>
+
+  <line x1="340" y1="180" x2="240" y2="306" stroke="var(--ramp-violet-500)" stroke-width="1" stroke-linecap="round" stroke-opacity="0.45"/>
+  <circle cx="240" cy="306" r="16" fill="var(--background)" stroke="var(--ramp-violet-200)" stroke-width="1"/>
+  <text class="ts" x="240" y="310" text-anchor="middle" dominant-baseline="central">Ulm</text>
+
+  <line x1="340" y1="180" x2="440" y2="316" stroke="var(--ramp-violet-500)" stroke-width="1" stroke-linecap="round" stroke-opacity="0.45"/>
+  <circle cx="440" cy="316" r="16" fill="var(--background)" stroke="var(--ramp-violet-200)" stroke-width="1"/>
+  <text class="ts" x="440" y="320" text-anchor="middle" dominant-baseline="central">BMC</text>
+
+  <line x1="340" y1="180" x2="78" y2="64" stroke="var(--ramp-violet-200)" stroke-width="1" stroke-linecap="round" stroke-dasharray="2 3"/>
+  <circle cx="78" cy="64" r="14" fill="var(--background)" stroke="var(--ramp-violet-200)" stroke-width="1"/>
+  <text class="ts" x="78" y="68" text-anchor="middle" dominant-baseline="central">Ruskin</text>
+
+  <line x1="340" y1="180" x2="610" y2="60" stroke="var(--ramp-violet-200)" stroke-width="1" stroke-linecap="round" stroke-dasharray="2 3"/>
+  <circle cx="610" cy="60" r="14" fill="var(--background)" stroke="var(--ramp-violet-200)" stroke-width="1"/>
+  <text class="ts" x="610" y="64" text-anchor="middle" dominant-baseline="central">Mies</text>
+
+  <line x1="178" y1="98" x2="178" y2="64" stroke="var(--muted-foreground)" stroke-width="0.5" stroke-dasharray="2 3"/>
+  <text class="label" x="178" y="56" text-anchor="middle">strong link</text>
+
+  <line x1="138" y1="266" x2="60" y2="312" stroke="var(--muted-foreground)" stroke-width="0.5" stroke-dasharray="2 3"/>
+  <text class="label" x="56" y="328" text-anchor="start">faint, distant</text>
+</svg>
+<figcaption>Backlinks as gravity. Distance from the centre encodes editorial closeness; line opacity encodes citation count. The violet field is the one permitted gradient — a continuous physical metaphor.</figcaption>
+</figure>
+</body></html>

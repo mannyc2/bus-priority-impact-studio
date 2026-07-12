@@ -1,30 +1,46 @@
+import { decodePreserve } from "@bp/domain/decode";
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { IsoMonthStringSchema, isoMonth, schemaVersion } from "../../core/index.js";
 
-export const NormalizedHourlyRidershipSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    routeId: z.string().min(1),
-    isoMonth: IsoMonthStringSchema,
-    dayOfWeek: z.string().min(1),
-    hourOfDay: z.number().int().min(0).max(23),
-    ridership: z.number().nonnegative(),
-    transfers: z.number().nonnegative(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const numberFromUnknown = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.Number, {
+    decode: SchemaGetter.transform((value) => Number(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
+const integerInRange = (minimum: number, maximum: number) =>
+  numberFromUnknown.check(
+    Schema.isInt(),
+    Schema.isGreaterThanOrEqualTo(minimum),
+    Schema.isLessThanOrEqualTo(maximum),
+  );
+const nonNegativeNumber = numberFromUnknown.check(Schema.isGreaterThanOrEqualTo(0));
 
-export type NormalizedHourlyRidership = z.output<typeof NormalizedHourlyRidershipSchema>;
+export const NormalizedHourlyRidershipSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  routeId: NonEmptyString,
+  isoMonth: IsoMonthStringSchema,
+  dayOfWeek: NonEmptyString,
+  hourOfDay: Schema.Number.check(
+    Schema.isInt(),
+    Schema.isGreaterThanOrEqualTo(0),
+    Schema.isLessThanOrEqualTo(23),
+  ),
+  ridership: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+  transfers: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+});
 
-const RawHourlyRidershipRowSchema = z
-  .object({
-    day_of_week_index: z.coerce.number().int().min(0).max(6),
-    hour_of_day: z.coerce.number().int().min(0).max(23),
-    ridership: z.coerce.number().nonnegative(),
-    transfers: z.coerce.number().nonnegative(),
-  })
-  .passthrough();
+export type NormalizedHourlyRidership = typeof NormalizedHourlyRidershipSchema.Type;
+
+const RawHourlyRidershipRowSchema = Schema.Struct({
+  day_of_week_index: integerInRange(0, 6),
+  hour_of_day: integerInRange(0, 23),
+  ridership: nonNegativeNumber,
+  transfers: nonNegativeNumber,
+});
 
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -33,7 +49,7 @@ export function normalizeHourlyRidershipRows(
   args: { routeId: string; year: number; month: number },
 ): NormalizedHourlyRidership[] {
   return rows.map((row) => {
-    const parsed = RawHourlyRidershipRowSchema.parse(row);
+    const parsed = decodePreserve(RawHourlyRidershipRowSchema)(row);
     const dayOfWeek = dayNames[parsed.day_of_week_index];
     if (dayOfWeek === undefined) {
       throw new Error(`Unsupported day-of-week index: ${parsed.day_of_week_index}`);
@@ -41,7 +57,7 @@ export function normalizeHourlyRidershipRows(
 
     return {
       schemaVersion,
-      routeId: z.decode(RouteIdCodec, args.routeId),
+      routeId: decodePreserve(RouteIdCodec)(args.routeId),
       isoMonth: isoMonth(args.year, args.month),
       dayOfWeek,
       hourOfDay: parsed.hour_of_day,

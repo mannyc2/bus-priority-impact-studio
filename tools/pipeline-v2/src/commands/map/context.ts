@@ -1,7 +1,11 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
+import { type MapBorough, MapContextFeatureCollectionSchema } from "@bp/domain/maps";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 
 /**
  * Build the map context artifact: simplified NYC borough shoreline polygons
@@ -91,6 +95,146 @@ function ringArea(points: readonly Point[]): number {
   return Math.abs(sum) / 2;
 }
 
+export function pointInRing(point: Point, ring: readonly Point[]): boolean {
+  let inside = false;
+  for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index++) {
+    const [xi, yi] = ring[index] as Point;
+    const [xj, yj] = ring[previous] as Point;
+    const crosses =
+      yi > point[1] !== yj > point[1] && point[0] < ((xj - xi) * (point[1] - yi)) / (yj - yi) + xi;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
+export function pointInPolygon(point: Point, rings: readonly (readonly Point[])[]): boolean {
+  const outer = rings[0];
+  if (outer === undefined || !pointInRing(point, outer)) return false;
+  return rings.slice(1).every((hole) => !pointInRing(point, hole));
+}
+
+function polygonLabelPoint(rings: readonly (readonly Point[])[]): Point {
+  const outer = rings[0];
+  if (outer === undefined || outer.length < 4) {
+    throw new Error("Cannot find a label point for an empty polygon.");
+  }
+  const longitude = outer.reduce((sum, point) => sum + point[0], 0) / outer.length;
+  const latitude = outer.reduce((sum, point) => sum + point[1], 0) / outer.length;
+  const centroid: Point = [longitude, latitude];
+  if (pointInPolygon(centroid, rings)) return centroid;
+
+  const longitudes = outer.map((point) => point[0]);
+  const latitudes = outer.map((point) => point[1]);
+  const minLongitude = Math.min(...longitudes);
+  const maxLongitude = Math.max(...longitudes);
+  const minLatitude = Math.min(...latitudes);
+  const maxLatitude = Math.max(...latitudes);
+  for (const divisions of [32, 64, 128, 256]) {
+    for (let row = 0; row < divisions; row += 1) {
+      for (let column = 0; column < divisions; column += 1) {
+        const candidate: Point = [
+          minLongitude + ((column + 0.5) / divisions) * (maxLongitude - minLongitude),
+          minLatitude + ((row + 0.5) / divisions) * (maxLatitude - minLatitude),
+        ];
+        if (pointInPolygon(candidate, rings)) return candidate;
+      }
+    }
+  }
+  throw new Error("Could not find a point on the polygon surface.");
+}
+
+export type RunMapContextInputs = {
+  sourcePath: string;
+  artifactRoot: string;
+  toleranceDegrees?: number | undefined;
+  minRingArea?: number | undefined;
+};
+
+export type RunMapContextResult = {
+  artifactPath: string;
+  sourcePath: string;
+  sourceSha256: string;
+  boroughCount: number;
+  ringCount: number;
+  pointCount: number;
+  byteLength: number;
+};
+
+export async function runMapContext(inputs: RunMapContextInputs): Promise<RunMapContextResult> {
+  const toleranceDegrees = inputs.toleranceDegrees ?? 0.0004;
+  const minRingArea = inputs.minRingArea ?? 0.00001;
+  const sourceBytes = new Uint8Array(await readFile(inputs.sourcePath));
+  const sourceSha256 = createHash("sha256").update(sourceBytes).digest("hex");
+  const records = parseCsv(new TextDecoder().decode(sourceBytes));
+  let ringCount = 0;
+  let pointCount = 0;
+  const features = records.flatMap((record) => {
+    const geometryWkt = record["the_geom"];
+    const boroName = record["BoroName"] as MapBorough | undefined;
+    if (geometryWkt === undefined || geometryWkt === "" || boroName === undefined) return [];
+    const polygons = parseMultiPolygonWkt(geometryWkt)
+      .map((rings) =>
+        rings
+          .filter((ring) => ringArea(ring) >= minRingArea)
+          .map((ring) =>
+            douglasPeucker(ring, toleranceDegrees).map(
+              ([lon, lat]) =>
+                [Number(lon.toFixed(5)), Number(lat.toFixed(5))] as readonly [number, number],
+            ),
+          )
+          .filter((ring) => ring.length >= 4),
+      )
+      .filter((rings) => rings.length > 0);
+    if (polygons.length === 0) return [];
+    const largest = polygons.toSorted(
+      (left, right) => ringArea(right[0] ?? []) - ringArea(left[0] ?? []),
+    )[0];
+    if (largest === undefined) return [];
+    const labelPoint = polygonLabelPoint(largest);
+    if (!pointInPolygon(labelPoint, largest)) {
+      throw new Error(`Generated label point for ${boroName} is outside its polygon.`);
+    }
+    ringCount += polygons.reduce((sum, rings) => sum + rings.length, 0);
+    pointCount += polygons.reduce(
+      (sum, rings) => sum + rings.reduce((ringSum, ring) => ringSum + ring.length, 0),
+      0,
+    );
+    return [
+      {
+        type: "Feature" as const,
+        properties: {
+          boroName,
+          labelPoint: [Number(labelPoint[0].toFixed(5)), Number(labelPoint[1].toFixed(5))],
+        },
+        geometry: { type: "MultiPolygon" as const, coordinates: polygons },
+      },
+    ];
+  });
+
+  const collection = decodeSchemaStrict(MapContextFeatureCollectionSchema, {
+    type: "FeatureCollection",
+    sourceRevision: {
+      sourceId: "nyc_borough_boundaries",
+      sha256: sourceSha256,
+      currencyPolicy: "revision_pinned",
+    },
+    features,
+  });
+  const artifactPath = join(inputs.artifactRoot, ARTIFACT_KEY);
+  await mkdir(dirname(artifactPath), { recursive: true });
+  const payload = JSON.stringify(collection);
+  await writeFile(artifactPath, payload);
+  return {
+    artifactPath,
+    sourcePath: inputs.sourcePath,
+    sourceSha256,
+    boroughCount: features.length,
+    ringCount,
+    pointCount,
+    byteLength: Buffer.byteLength(payload),
+  };
+}
+
 function perpendicularDistance(point: Point, lineStart: Point, lineEnd: Point): number {
   const [px, py] = point;
   const [ax, ay] = lineStart;
@@ -136,25 +280,35 @@ export default defineCommand({
   path: ["map", "context"],
   summary: "Build the simplified NYC borough shoreline GeoJSON map-context artifact.",
   input: {
-    options: z.object({
-      source: z.string().optional().describe("Override borough-boundary CSV path"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
+    options: Schema.Struct({
+      source: Schema.optionalKey(Schema.String).annotate({
+        description: "Override borough-boundary CSV path",
+      }),
+      artifactRoot: Schema.optionalKey(Schema.String).annotate({
+        description: "Override artifact root directory",
+      }),
       toleranceDegrees: arg
         .number()
-        .default(0.0004)
-        .describe("Douglas-Peucker simplification tolerance in degrees (~40m default)"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0.0004)))
+        .annotate({
+          description: "Douglas-Peucker simplification tolerance in degrees (~40m default)",
+        }),
       minRingArea: arg
         .number()
-        .default(0.00001)
-        .describe("Drop rings smaller than this area in square degrees (tiny islands)"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0.00001)))
+        .annotate({
+          description: "Drop rings smaller than this area in square degrees (tiny islands)",
+        }),
     }),
   },
-  output: z.object({
-    artifactPath: z.string(),
-    boroughCount: z.number(),
-    ringCount: z.number(),
-    pointCount: z.number(),
-    byteLength: z.number(),
+  output: Schema.Struct({
+    artifactPath: Schema.String,
+    sourcePath: Schema.String,
+    sourceSha256: Schema.String,
+    boroughCount: Schema.Number,
+    ringCount: Schema.Number,
+    pointCount: Schema.Number,
+    byteLength: Schema.Number,
   }),
   async run({ input }) {
     const sourcePath =
@@ -165,54 +319,11 @@ export default defineCommand({
       input.options.artifactRoot === undefined
         ? defaultArtifactRootPath()
         : fromCliPath(input.options.artifactRoot);
-    const { toleranceDegrees, minRingArea } = input.options;
-
-    const records = parseCsv(await readFile(sourcePath, "utf8"));
-    let ringCount = 0;
-    let pointCount = 0;
-    const features = records.flatMap((record) => {
-      const geometryWkt = record["the_geom"];
-      const boroName = record["BoroName"];
-      if (geometryWkt === undefined || geometryWkt === "" || boroName === undefined) return [];
-      const polygons = parseMultiPolygonWkt(geometryWkt)
-        .map((rings) =>
-          rings
-            .filter((ring) => ringArea(ring) >= minRingArea)
-            .map((ring) =>
-              douglasPeucker(ring, toleranceDegrees).map(
-                ([lon, lat]) =>
-                  [Number(lon.toFixed(5)), Number(lat.toFixed(5))] as readonly [number, number],
-              ),
-            )
-            .filter((ring) => ring.length >= 4),
-        )
-        .filter((rings) => rings.length > 0);
-      if (polygons.length === 0) return [];
-      ringCount += polygons.reduce((sum, rings) => sum + rings.length, 0);
-      pointCount += polygons.reduce(
-        (sum, rings) => sum + rings.reduce((ringSum, ring) => ringSum + ring.length, 0),
-        0,
-      );
-      return [
-        {
-          type: "Feature" as const,
-          properties: { boroName },
-          geometry: { type: "MultiPolygon" as const, coordinates: polygons },
-        },
-      ];
+    return runMapContext({
+      sourcePath,
+      artifactRoot,
+      toleranceDegrees: input.options.toleranceDegrees,
+      minRingArea: input.options.minRingArea,
     });
-
-    const artifactPath = join(artifactRoot, ARTIFACT_KEY);
-    await mkdir(dirname(artifactPath), { recursive: true });
-    const payload = JSON.stringify({ type: "FeatureCollection", features });
-    await writeFile(artifactPath, payload);
-
-    return {
-      artifactPath,
-      boroughCount: features.length,
-      ringCount,
-      pointCount,
-      byteLength: Buffer.byteLength(payload),
-    };
   },
 });

@@ -1,4 +1,4 @@
-import type { GoldSetEvaluation } from "../calibration/gold-set.js";
+import type { GoldSetEvaluation } from "./gold-set.js";
 
 export type DetectorEvaluationComponentId =
   | "precision"

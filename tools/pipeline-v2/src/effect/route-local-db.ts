@@ -15,9 +15,10 @@ import {
   runRouteReadiness,
   runRouteReliabilityBaseline,
 } from "@bp/pipeline-v2/local-db-aggregates";
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Result } from "effect";
 import { readJsonIfExists } from "../lib/json.ts";
 import { fromRepoRoot } from "../lib/paths.ts";
+import { decodeSchemaEitherStrip } from "../lib/schema-decode.ts";
 import { type LocalDbOpenError, RouteLocalDbCommandError } from "./errors.ts";
 import { LocalDbConnection, makeLocalDbLayer } from "./local-db.ts";
 
@@ -82,8 +83,8 @@ export async function loadDocumentOperationalDateAssertions(
     if (!isCausalAnchorEligibleRow(row) || row.causalAnchorEligible !== true) {
       continue;
     }
-    const parsed = OperationalDateAssertionSchema.safeParse(row);
-    if (parsed.success) assertions.push(parsed.data);
+    const parsed = decodeSchemaEitherStrip(OperationalDateAssertionSchema, row);
+    if (Result.isSuccess(parsed)) assertions.push(parsed.success);
   }
   return assertions;
 }

@@ -1,9 +1,9 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeExpressBusCapacityRows } from "@bp/sources/adapters/mta/express-bus-capacity";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { fetchSoda3RowsForSource, type SocrataFetch, type SocrataRow } from "../../lib/soda3.ts";
@@ -95,17 +95,21 @@ export default defineCommand({
   summary:
     "Fetch the static MTA Express Bus Capacity dataset and write raw + normalized snapshots.",
   input: {
-    options: z.object({
-      rawOutput: z.string().optional().describe("Raw snapshot output path"),
-      normalizedOutput: z.string().optional().describe("Normalized output path"),
+    options: Schema.Struct({
+      rawOutput: Schema.optionalKey(Schema.String).annotate({
+        description: "Raw snapshot output path",
+      }),
+      normalizedOutput: Schema.optionalKey(Schema.String).annotate({
+        description: "Normalized output path",
+      }),
     }),
   },
-  output: z.object({
-    rawPath: z.string(),
-    normalizedPath: z.string(),
-    rawRowCount: z.number(),
-    normalizedRowCount: z.number(),
-    routeCount: z.number(),
+  output: Schema.Struct({
+    rawPath: Schema.String,
+    normalizedPath: Schema.String,
+    rawRowCount: Schema.Number,
+    normalizedRowCount: Schema.Number,
+    routeCount: Schema.Number,
   }),
   async run({ input }) {
     return ingestExpressBusCapacity({

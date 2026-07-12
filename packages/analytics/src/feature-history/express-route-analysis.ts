@@ -1,4 +1,5 @@
-import { z } from "zod";
+import { Schema } from "effect";
+import { CoercedNumberSchema, decodeSchemaPreserve, decodeSchemaStrict } from "../schema-decode.js";
 
 export const EXPRESS_ROUTE_ANALYSIS_SCHEMA_VERSION = 1;
 export const EXPRESS_ROUTE_ANALYSIS_STATIC_PERIOD = "2023-04-2023-09";
@@ -106,7 +107,7 @@ export type ExpressRouteSummary = {
   topCandidate: ExpressRouteJoinedWindow | null;
 };
 
-export type ExpressRouteAnalysisArtifact = z.output<typeof ExpressRouteAnalysisArtifactSchema>;
+export type ExpressRouteAnalysisArtifact = typeof ExpressRouteAnalysisArtifactSchema.Type;
 
 export type ExpressRouteAnalysisAuditIssue = {
   severity: "error" | "warning";
@@ -129,98 +130,102 @@ export type ExpressRouteAnalysisAuditArtifact = {
   issues: ExpressRouteAnalysisAuditIssue[];
 };
 
-const ExpressCapacityDirectionSchema = z.enum(["NB", "SB", "EB", "WB"]);
-const ExpressDayTypeSchema = z.enum(["Weekday", "Weekend"]);
-const ExpressLoadBandSchema = z.enum(["lower", "moderate", "high", "very_high"]);
-const ExpressSpeedBandSchema = z.enum(["slow", "moderate", "faster"]);
+const ExpressCapacityDirectionSchema = Schema.Literals(["NB", "SB", "EB", "WB"]);
+const ExpressDayTypeSchema = Schema.Literals(["Weekday", "Weekend"]);
+const ExpressLoadBandSchema = Schema.Literals(["lower", "moderate", "high", "very_high"]);
+const ExpressSpeedBandSchema = Schema.Literals(["slow", "moderate", "faster"]);
 
-const ExpressRouteAnalysisCapacitySchema = z
-  .object({
-    weekCount: z.number().int().nonnegative(),
-    totalTripsWithApc: z.number().int().nonnegative(),
-    weightedLoadPercentage: z.number().min(0).max(1).nullable(),
-    peakLoadPercentage: z.number().min(0).max(1),
-    lowSample: z.boolean(),
-  })
-  .strict();
+const ExpressRouteAnalysisCapacitySchema = Schema.Struct({
+  weekCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  totalTripsWithApc: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  weightedLoadPercentage: Schema.NullOr(
+    Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1)),
+  ),
+  peakLoadPercentage: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(
+    Schema.isLessThanOrEqualTo(1),
+  ),
+  lowSample: Schema.Boolean,
+});
 
-const ExpressRouteAnalysisSpeedSchema = z
-  .object({
-    observationCount: z.number().int().nonnegative(),
-    busTripCount: z.number().int().nonnegative(),
-    averageSpeedMph: z.number().nonnegative().nullable(),
-  })
-  .strict();
+const ExpressRouteAnalysisSpeedSchema = Schema.Struct({
+  observationCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  busTripCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  averageSpeedMph: Schema.NullOr(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))),
+});
 
-const ExpressRouteAnalysisScreeningSchema = z
-  .object({
-    loadBand: ExpressLoadBandSchema,
-    speedBand: ExpressSpeedBandSchema.nullable(),
-    highLoadSlowSpeedCandidate: z.boolean(),
-  })
-  .strict();
+const ExpressRouteAnalysisScreeningSchema = Schema.Struct({
+  loadBand: ExpressLoadBandSchema,
+  speedBand: Schema.NullOr(ExpressSpeedBandSchema),
+  highLoadSlowSpeedCandidate: Schema.Boolean,
+});
 
-export const ExpressRouteAnalysisWindowSchema = z
-  .object({
-    routeId: z.string().min(1),
-    isoMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    direction: ExpressCapacityDirectionSchema,
-    dayType: ExpressDayTypeSchema,
-    hourOfDay: z.number().int().min(0).max(23),
-    capacity: ExpressRouteAnalysisCapacitySchema,
-    speed: ExpressRouteAnalysisSpeedSchema.nullable(),
-    screening: ExpressRouteAnalysisScreeningSchema,
-  })
-  .strict();
+export const ExpressRouteAnalysisWindowSchema = Schema.Struct({
+  routeId: Schema.String.check(Schema.isMinLength(1)),
+  isoMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  direction: ExpressCapacityDirectionSchema,
+  dayType: ExpressDayTypeSchema,
+  hourOfDay: Schema.Number.check(Schema.isInt())
+    .check(Schema.isGreaterThanOrEqualTo(0))
+    .check(Schema.isLessThanOrEqualTo(23)),
+  capacity: ExpressRouteAnalysisCapacitySchema,
+  speed: Schema.NullOr(ExpressRouteAnalysisSpeedSchema),
+  screening: ExpressRouteAnalysisScreeningSchema,
+});
 
-export const ExpressRouteAnalysisRouteSummarySchema = z
-  .object({
-    routeId: z.string().min(1),
-    windowCount: z.number().int().nonnegative(),
-    matchedSpeedWindowCount: z.number().int().nonnegative(),
-    highLoadWindowCount: z.number().int().nonnegative(),
-    highLoadSlowSpeedCandidateCount: z.number().int().nonnegative(),
-    maxWeightedLoadPercentage: z.number().min(0).max(1).nullable(),
-    minAverageSpeedMph: z.number().nonnegative().nullable(),
-    topCandidate: ExpressRouteAnalysisWindowSchema.nullable(),
-  })
-  .strict();
+export const ExpressRouteAnalysisRouteSummarySchema = Schema.Struct({
+  routeId: Schema.String.check(Schema.isMinLength(1)),
+  windowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  matchedSpeedWindowCount: Schema.Number.check(Schema.isInt()).check(
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
+  highLoadWindowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  highLoadSlowSpeedCandidateCount: Schema.Number.check(Schema.isInt()).check(
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
+  maxWeightedLoadPercentage: Schema.NullOr(
+    Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1)),
+  ),
+  minAverageSpeedMph: Schema.NullOr(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))),
+  topCandidate: Schema.NullOr(ExpressRouteAnalysisWindowSchema),
+});
 
-export const ExpressRouteAnalysisArtifactSchema = z
-  .object({
-    schemaVersion: z.literal(EXPRESS_ROUTE_ANALYSIS_SCHEMA_VERSION),
-    generatedAt: z.string().min(1),
-    sourceIds: z.tuple([
-      z.literal("mta_express_bus_capacity_2023"),
-      z.literal("bus_segment_speeds_2023_2024"),
-    ]),
-    period: z.literal(EXPRESS_ROUTE_ANALYSIS_STATIC_PERIOD),
-    thresholds: z
-      .object({
-        highLoadThreshold: z.number().min(0).max(1),
-        slowSpeedMphThreshold: z.number().positive(),
-        lowSampleTripThreshold: z.number().int().positive(),
-      })
-      .strict(),
-    caveats: z.array(z.string().min(1)).min(1),
-    routeSummaries: z.array(ExpressRouteAnalysisRouteSummarySchema),
-    rows: z.array(ExpressRouteAnalysisWindowSchema),
-  })
-  .strict();
+export const ExpressRouteAnalysisArtifactSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(EXPRESS_ROUTE_ANALYSIS_SCHEMA_VERSION),
+  generatedAt: Schema.String.check(Schema.isMinLength(1)),
+  sourceIds: Schema.Tuple([
+    Schema.Literal("mta_express_bus_capacity_2023"),
+    Schema.Literal("bus_segment_speeds_2023_2024"),
+  ]),
+  period: Schema.Literal(EXPRESS_ROUTE_ANALYSIS_STATIC_PERIOD),
+  thresholds: Schema.Struct({
+    highLoadThreshold: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(
+      Schema.isLessThanOrEqualTo(1),
+    ),
+    slowSpeedMphThreshold: Schema.Number.check(Schema.isGreaterThan(0)),
+    lowSampleTripThreshold: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  }),
+  caveats: Schema.Array(Schema.String.check(Schema.isMinLength(1))).check(Schema.isMinLength(1)),
+  routeSummaries: Schema.Array(ExpressRouteAnalysisRouteSummarySchema),
+  rows: Schema.Array(ExpressRouteAnalysisWindowSchema),
+});
 
-const RawSpeedWindowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    year: z.coerce.number().int(),
-    month: z.coerce.number().int().min(1).max(12),
-    direction: z.enum(["N", "S", "E", "W"]),
-    day_of_week: z.string().min(1),
-    hour_of_day: z.coerce.number().int().min(0).max(23),
-    observation_count: z.coerce.number().int().nonnegative(),
-    bus_trip_count: z.coerce.number().int().nonnegative(),
-    average_speed_mph: z.coerce.number().nonnegative(),
-  })
-  .passthrough();
+const RawSpeedWindowSchema = Schema.Struct({
+  route_id: Schema.String.check(Schema.isMinLength(1)),
+  year: CoercedNumberSchema.check(Schema.isInt()),
+  month: CoercedNumberSchema.check(Schema.isInt())
+    .check(Schema.isGreaterThanOrEqualTo(1))
+    .check(Schema.isLessThanOrEqualTo(12)),
+  direction: Schema.Literals(["N", "S", "E", "W"]),
+  day_of_week: Schema.String.check(Schema.isMinLength(1)),
+  hour_of_day: CoercedNumberSchema.check(Schema.isInt())
+    .check(Schema.isGreaterThanOrEqualTo(0))
+    .check(Schema.isLessThanOrEqualTo(23)),
+  observation_count: CoercedNumberSchema.check(Schema.isInt()).check(
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
+  bus_trip_count: CoercedNumberSchema.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  average_speed_mph: CoercedNumberSchema.check(Schema.isGreaterThanOrEqualTo(0)),
+});
 
 function groupKey(row: {
   routeId: string;
@@ -429,7 +434,7 @@ export function summarizeExpressRouteSpeedRows(
   >();
 
   for (const row of rows) {
-    const parsed = RawSpeedWindowSchema.parse(row);
+    const parsed = decodeSchemaPreserve(RawSpeedWindowSchema, row);
     const dayType = dayOfWeekToDayType(parsed.day_of_week);
     if (dayType === null) continue;
 
@@ -590,7 +595,7 @@ export function buildExpressRouteAnalysisArtifact(input: {
   const rows = joinExpressRouteWindows({ capacityRows: capacityWindows, speedRows: speedWindows });
   const routeSummaries = summarizeExpressRouteAnalysisRows(rows);
 
-  return ExpressRouteAnalysisArtifactSchema.parse({
+  return decodeSchemaStrict(ExpressRouteAnalysisArtifactSchema, {
     schemaVersion: EXPRESS_ROUTE_ANALYSIS_SCHEMA_VERSION,
     generatedAt: input.generatedAt,
     sourceIds: ["mta_express_bus_capacity_2023", "bus_segment_speeds_2023_2024"],

@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { cp, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { decodeStrict } from "@bp/domain/decode";
 import {
   StudioRouteEvidenceArtifactSchema,
   StudioRouteEvidenceBundleSchema,
@@ -13,7 +14,11 @@ import {
   buildStudioRouteEvidenceArtifact,
   runStudioImportMtaWikiRouteEvidence,
 } from "../src/commands/studio/import-mta-wiki-route-evidence.ts";
-import { loadMtaWikiCanonicalCorpus, normalizeBusRouteKey } from "../src/lib/mta-wiki-canonical.ts";
+import {
+  loadMtaWikiCanonicalCorpus,
+  normalizeBusRouteKey,
+  readMtaWikiRouteAnchors,
+} from "../src/lib/mta-wiki-canonical.ts";
 
 const fixtureRoot = join(import.meta.dir, "fixtures", "mta-wiki-route-evidence");
 const fixtureMtaWikiRoot = join(fixtureRoot, "mta-wiki");
@@ -40,7 +45,7 @@ describe("studio import-mta-wiki-route-evidence", () => {
       });
 
       expect(await Bun.file(output).exists()).toBe(true);
-      const parsed = StudioRouteEvidenceArtifactSchema.parse(await Bun.file(output).json());
+      const parsed = decodeStrict(StudioRouteEvidenceArtifactSchema)(await Bun.file(output).json());
       expect(parsed).toEqual(artifact);
       expect(parsed.artifactKind).toBe("bp.studio.route_evidence.v1");
       expect(parsed.summary).toMatchObject({
@@ -77,10 +82,12 @@ describe("studio import-mta-wiki-route-evidence", () => {
 
       const routeBundlePath = join(root, "routes", "m15-sbs.json");
       const routeBundleBody = await readFile(routeBundlePath, "utf8");
-      const routeBundle = StudioRouteEvidenceBundleSchema.parse(JSON.parse(routeBundleBody));
+      const routeBundle = decodeStrict(StudioRouteEvidenceBundleSchema)(
+        JSON.parse(routeBundleBody),
+      );
       expect(routeBundle).toEqual(route);
 
-      const index = StudioRouteEvidenceIndexSchema.parse(
+      const index = decodeStrict(StudioRouteEvidenceIndexSchema)(
         await Bun.file(join(root, "index.json")).json(),
       );
       expect(index.routes).toEqual([
@@ -145,6 +152,29 @@ describe("studio import-mta-wiki-route-evidence", () => {
         gtfs_route_id: "M15+",
         canonical_route_record_id: "route_m15-sbs",
       });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("reports the failing route-anchor field path", async () => {
+    const root = await mkdtemp(join(tmpdir(), "route-anchor-invalid-"));
+    try {
+      const path = join(root, "route_anchors.jsonl");
+      await writeFile(
+        path,
+        `${JSON.stringify({
+          gtfs_route_id: "M15",
+          canonical_route_record_id: null,
+          variant_record_ids: [],
+          aliases: [123],
+          disposition: "canonical",
+          anchor_reason: null,
+        })}\n`,
+      );
+
+      await expect(readMtaWikiRouteAnchors(path)).rejects.toThrow(/aliases/);
+      await expect(readMtaWikiRouteAnchors(path)).rejects.not.toThrow(/<root>/);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

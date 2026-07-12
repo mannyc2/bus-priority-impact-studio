@@ -18,7 +18,7 @@ import {
 
 export type SpeedTrendProps = {
   data: readonly number[];
-  scheduled: number;
+  scheduled?: number | undefined;
   height?: number;
   /** Series label shown in the tooltip + config. */
   seriesLabel?: string;
@@ -39,14 +39,17 @@ export function SpeedTrendChart({
   legend = false,
 }: SpeedTrendProps) {
   const rows = data.map((value, index) => ({ period: index + 1, value }));
-  const lo = Math.floor(Math.min(...data, scheduled) - 0.5);
-  const hi = Math.ceil(Math.max(...data, scheduled) + 0.5);
+  const domainValues = scheduled === undefined ? data : [...data, scheduled];
+  const lo = Math.floor(Math.min(...domainValues) - 0.5);
+  const hi = Math.ceil(Math.max(...domainValues) + 0.5);
   const last = rows.at(-1);
   const config = { value: { label: seriesLabel, color: tone } } satisfies ChartConfig;
 
   const legendItems: ChartLegendItem[] = [
     { label: seriesLabel, shape: "line", color: tone },
-    { label: scheduledLabel, shape: "dashed", color: "var(--bp-color-ink-40)" },
+    ...(scheduled === undefined
+      ? []
+      : [{ label: scheduledLabel, shape: "dashed" as const, color: "var(--bp-color-ink-40)" }]),
   ];
 
   const chart = (
@@ -72,19 +75,21 @@ export function SpeedTrendChart({
           cursor={{ stroke: "var(--bp-color-ink-20)" }}
           content={<ChartTooltipContent hideLabel />}
         />
-        <ReferenceLine
-          y={scheduled}
-          stroke="var(--bp-color-ink-40)"
-          strokeDasharray="4 3"
-          strokeWidth={1.25}
-          label={{
-            value: `${scheduledLabel} ${scheduled.toFixed(1)}`,
-            position: "insideTopRight",
-            fill: "var(--bp-color-ink-55)",
-            fontSize: 10,
-            fontWeight: 600,
-          }}
-        />
+        {scheduled === undefined ? null : (
+          <ReferenceLine
+            y={scheduled}
+            stroke="var(--bp-color-ink-40)"
+            strokeDasharray="4 3"
+            strokeWidth={1.25}
+            label={{
+              value: `${scheduledLabel} ${scheduled.toFixed(1)}`,
+              position: "insideTopRight",
+              fill: "var(--bp-color-ink-55)",
+              fontSize: 10,
+              fontWeight: 600,
+            }}
+          />
+        )}
         <Area
           dataKey="value"
           stroke={tone}

@@ -3,10 +3,10 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { createLocalPipelineDb, listRouteCatalogIds } from "@bp/db/local";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { Effect } from "effect";
 import { downloadHttpFile } from "../../lib/http-file-download.ts";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
@@ -14,6 +14,7 @@ import { fetchWithSocrataAppToken } from "../../lib/socrata-token.ts";
 import type { SocrataFetch } from "../../lib/soda3.ts";
 import { soda3ExportUrl } from "../../lib/soda3.ts";
 import { readCsvRecords } from "../../lib/streaming-csv.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 import {
   deleteRouteRows,
   ensureRouteScheduleStopTable,
@@ -886,138 +887,134 @@ export async function runRouteSchedulesBulkIngest(
   }
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "route-schedules-bulk"],
   summary:
     "Download or reuse Socrata schedule CSV snapshots and stream-import route schedule stop rows.",
-  input: {
-    options: dbOptions.extend({
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
       sourceYear: arg
         .positiveInt()
-        .default(2026)
-        .describe("MTA Bus Schedules source year to bulk ingest"),
-      route: z.string().optional().describe("Single route ID convenience filter"),
-      routes: z
-        .array(z.string())
-        .default([])
-        .describe("Specific route IDs (default: all routes in source year)"),
-      csvPath: z.string().optional().describe("Existing or target full rows.csv path"),
-      partitionManifestPath: z
-        .string()
-        .optional()
-        .describe("Existing SODA3 partition-manifest.json to import instead of one full CSV"),
-      cacheDir: z.string().optional().describe("Directory for the downloaded rows.csv cache"),
-      spoolDir: z.string().optional().describe("Scratch directory for per-route spool files"),
-      forceDownload: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+        .annotate({ description: "MTA Bus Schedules source year to bulk ingest" }),
+      route: Schema.optionalKey(Schema.String).annotate({
+        description: "Single route ID convenience filter",
+      }),
+      routes: Schema.Array(Schema.String)
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+        .annotate({ description: "Specific route IDs (default: all routes in source year)" }),
+      csvPath: Schema.optionalKey(Schema.String).annotate({
+        description: "Existing or target full rows.csv path",
+      }),
+      partitionManifestPath: Schema.optionalKey(Schema.String).annotate({
+        description: "Existing SODA3 partition-manifest.json to import instead of one full CSV",
+      }),
+      cacheDir: Schema.optionalKey(Schema.String).annotate({
+        description: "Directory for the downloaded rows.csv cache",
+      }),
+      spoolDir: Schema.optionalKey(Schema.String).annotate({
+        description: "Scratch directory for per-route spool files",
+      }),
+      forceDownload: arg
         .boolean()
-        .default(false)
-        .describe("Redownload the full CSV even if csvPath already exists"),
-      skipDownload: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Redownload the full CSV even if csvPath already exists" }),
+      skipDownload: arg
         .boolean()
-        .default(false)
-        .describe("Require csvPath to already exist; do not fetch Socrata"),
-      downloadRetryCount: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Require csvPath to already exist; do not fetch Socrata" }),
+      downloadRetryCount: arg
         .number()
-        .int()
-        .min(0)
-        .default(2)
-        .describe("Number of retry attempts after a failed CSV download attempt"),
-      downloadRetryDelayMs: z.coerce
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2)))
+        .annotate({ description: "Number of retry attempts after a failed CSV download attempt" }),
+      downloadRetryDelayMs: arg
         .number()
-        .int()
-        .min(0)
-        .default(5_000)
-        .describe("Delay between CSV download retry attempts"),
-      downloadOnly: z.coerce
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(5_000)))
+        .annotate({ description: "Delay between CSV download retry attempts" }),
+      downloadOnly: arg
         .boolean()
-        .default(false)
-        .describe("Download or verify the CSV cache without importing route rows"),
-      skipExisting: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Download or verify the CSV cache without importing route rows" }),
+      skipExisting: arg
         .boolean()
-        .default(true)
-        .describe("Skip routes already marked complete for the source year"),
-      onlyMissingCurrentRoutes: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+        .annotate({ description: "Skip routes already marked complete for the source year" }),
+      onlyMissingCurrentRoutes: arg
         .boolean()
-        .default(false)
-        .describe(
-          "Restrict import to current-catalog routes that are not already complete for the source year",
-        ),
-      keepSpool: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({
+          description:
+            "Restrict import to current-catalog routes that are not already complete for the source year",
+        }),
+      keepSpool: arg
         .boolean()
-        .default(false)
-        .describe("Keep per-route scratch NDJSON files after import"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Keep per-route scratch NDJSON files after import" }),
       batchSize: arg
         .positiveInt()
-        .default(defaultBatchSize)
-        .describe("SQLite insert batch size per route"),
-      logProgress: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultBatchSize)))
+        .annotate({ description: "SQLite insert batch size per route" }),
+      logProgress: arg
         .boolean()
-        .default(true)
-        .describe("Write bulk ingest progress events to stderr"),
-    }),
-  },
-  output: z.object({
-    sourceYear: z.number(),
-    sourceId: z.enum([
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+        .annotate({ description: "Write bulk ingest progress events to stderr" }),
+    },
+  }),
+  output: Schema.Struct({
+    sourceYear: Schema.Number,
+    sourceId: Schema.Literals([
       "bus_schedules_2023",
       "bus_schedules_2024",
       "bus_schedules_2025",
       "bus_schedules_2026",
     ]),
-    csvPath: z.string(),
-    csvPathCount: z.number(),
-    routeCount: z.number(),
-    skippedRouteCount: z.number(),
-    spooledRowCount: z.number(),
-    writtenRowCount: z.number(),
-    emptyRouteCount: z.number(),
-    downloaded: z.boolean(),
-    downloadOnly: z.boolean(),
+    csvPath: Schema.String,
+    csvPathCount: Schema.Number,
+    routeCount: Schema.Number,
+    skippedRouteCount: Schema.Number,
+    spooledRowCount: Schema.Number,
+    writtenRowCount: Schema.Number,
+    emptyRouteCount: Schema.Number,
+    downloaded: Schema.Boolean,
+    downloadOnly: Schema.Boolean,
   }),
-  async run({ input }) {
-    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
-    return runLocalDbCommandBoundary({
-      dbPath,
-      command: "ingest.route-schedules-bulk",
-      operation: "runRouteSchedulesBulkIngest",
-      run: async (local) =>
-        runRouteSchedulesBulkIngest({
-          sqlite: local.sqlite,
-          sourceYear: input.options.sourceYear,
-          routes:
-            input.options.route === undefined
-              ? input.options.routes
-              : [...input.options.routes, input.options.route],
-          csvPath:
-            input.options.csvPath === undefined ? undefined : fromCliPath(input.options.csvPath),
-          partitionManifestPath:
-            input.options.partitionManifestPath === undefined
-              ? undefined
-              : fromCliPath(input.options.partitionManifestPath),
-          cacheDir:
-            input.options.cacheDir === undefined ? undefined : fromCliPath(input.options.cacheDir),
-          spoolDir:
-            input.options.spoolDir === undefined ? undefined : fromCliPath(input.options.spoolDir),
-          forceDownload: input.options.forceDownload,
-          skipDownload: input.options.skipDownload,
-          downloadRetryCount: input.options.downloadRetryCount,
-          downloadRetryDelayMs: input.options.downloadRetryDelayMs,
-          downloadOnly: input.options.downloadOnly,
-          skipExisting: input.options.skipExisting,
-          onlyMissingCurrentRoutes: input.options.onlyMissingCurrentRoutes,
-          keepSpool: input.options.keepSpool,
-          batchSize: input.options.batchSize,
-          progress: input.options.logProgress
-            ? (event) => {
-                console.error(
-                  JSON.stringify({
-                    event: "route_schedules_bulk_ingest_progress",
-                    ...event,
-                  }),
-                );
-              }
-            : undefined,
-        }),
-    });
-  },
+  operation: "runRouteSchedulesBulkIngest",
+  dbPath: ({ db }) => (db === undefined ? undefined : fromCliPath(db)),
+  runner: async (local, options) =>
+    runRouteSchedulesBulkIngest({
+      sqlite: local.sqlite,
+      sourceYear: options.sourceYear,
+      routes: options.route === undefined ? options.routes : [...options.routes, options.route],
+      csvPath: options.csvPath === undefined ? undefined : fromCliPath(options.csvPath),
+      partitionManifestPath:
+        options.partitionManifestPath === undefined
+          ? undefined
+          : fromCliPath(options.partitionManifestPath),
+      cacheDir: options.cacheDir === undefined ? undefined : fromCliPath(options.cacheDir),
+      spoolDir: options.spoolDir === undefined ? undefined : fromCliPath(options.spoolDir),
+      forceDownload: options.forceDownload,
+      skipDownload: options.skipDownload,
+      downloadRetryCount: options.downloadRetryCount,
+      downloadRetryDelayMs: options.downloadRetryDelayMs,
+      downloadOnly: options.downloadOnly,
+      skipExisting: options.skipExisting,
+      onlyMissingCurrentRoutes: options.onlyMissingCurrentRoutes,
+      keepSpool: options.keepSpool,
+      batchSize: options.batchSize,
+      progress: options.logProgress
+        ? (event) => {
+            console.error(
+              JSON.stringify({
+                event: "route_schedules_bulk_ingest_progress",
+                ...event,
+              }),
+            );
+          }
+        : undefined,
+    }),
 });

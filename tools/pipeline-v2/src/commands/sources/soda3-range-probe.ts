@@ -1,13 +1,14 @@
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
-import { exportSoda3Response } from "@nyc-transit-kit/compat/soda3";
+import { exportResponse } from "@nyc-transit-kit/soda3/client";
+import { Effect } from "effect";
 import { fromRepoRoot } from "../../lib/paths.ts";
-import { fetchWithSocrataAppToken, socrataAppTokenFromEnv } from "../../lib/socrata-token.ts";
 import {
-  adaptSocrataFetch,
+  runPipelineSoda3Effect,
   type SocrataFetch,
   type Soda3ExportFormat,
+  socrataAppTokenFromEnv,
   soda3ExportUrl,
   soda3RangeHeader,
 } from "../../lib/soda3.ts";
@@ -113,8 +114,10 @@ export async function runSoda3RangeProbe(
     throw new Error("SOCRATA_APP_TOKEN is required for sources:soda3-range-probe --execute.");
   }
 
-  const response = await exportSoda3Response(
-    {
+  const response = await runPipelineSoda3Effect(
+    source,
+    url,
+    exportResponse({
       domain: source.domain,
       datasetId: source.dataset_id,
       format,
@@ -123,9 +126,10 @@ export async function runSoda3RangeProbe(
         start: range.start,
         end: range.endInclusive ?? range.start,
       },
-    },
+    }),
     {
-      fetch: adaptSocrataFetch(fetchWithSocrataAppToken(inputs.fetcher, appToken)),
+      fetcher: inputs.fetcher,
+      appToken,
     },
   );
   const bytes = await response.arrayBuffer();
@@ -158,38 +162,52 @@ export default defineCommand({
   path: ["sources", "soda3-range-probe"],
   summary: "Dry-run or execute an opt-in SODA3 export byte-range probe.",
   input: {
-    options: z.object({
-      source: z
-        .string()
-        .min(1)
-        .describe("Socrata source id from knowledge/raw/source_manifest.yaml"),
-      format: z.enum(["csv", "json", "geojson"]).default(defaultFormat),
-      query: z.string().optional().describe("Optional SoQL query body for the export request"),
-      rangeStart: z.coerce.number().int().nonnegative().default(defaultRangeStart),
-      rangeEnd: z.coerce.number().int().nonnegative().default(defaultRangeEndInclusive),
-      execute: z.coerce.boolean().default(false).describe("Send the live SODA3 request"),
+    options: Schema.Struct({
+      source: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Socrata source id from knowledge/raw/source_manifest.yaml",
+      }),
+      format: Schema.Literals(["csv", "json", "geojson"]).pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultFormat)),
+      ),
+      query: Schema.optionalKey(Schema.String).annotate({
+        description: "Optional SoQL query body for the export request",
+      }),
+      rangeStart: arg
+        .number()
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultRangeStart))),
+      rangeEnd: arg
+        .number()
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThanOrEqualTo(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultRangeEndInclusive))),
+      execute: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Send the live SODA3 request" }),
     }),
   },
-  output: z.object({
-    command: z.literal("sources:soda3-range-probe"),
-    checkedAt: z.string(),
-    sourceId: z.string(),
-    domain: z.string(),
-    datasetId: z.string(),
-    exportUrl: z.string(),
-    format: z.enum(["csv", "json", "geojson"]),
-    query: z.string(),
-    rangeHeader: z.string(),
-    dryRun: z.boolean(),
-    tokenConfigured: z.boolean(),
-    httpStatus: z.number().nullable(),
-    ok: z.boolean().nullable(),
-    rangeSatisfied: z.boolean().nullable(),
-    contentRange: z.string().nullable(),
-    acceptRanges: z.string().nullable(),
-    contentLengthBytes: z.number().nullable(),
-    contentType: z.string().nullable(),
-    byteLength: z.number().nullable(),
+  output: Schema.Struct({
+    command: Schema.Literal("sources:soda3-range-probe"),
+    checkedAt: Schema.String,
+    sourceId: Schema.String,
+    domain: Schema.String,
+    datasetId: Schema.String,
+    exportUrl: Schema.String,
+    format: Schema.Literals(["csv", "json", "geojson"]),
+    query: Schema.String,
+    rangeHeader: Schema.String,
+    dryRun: Schema.Boolean,
+    tokenConfigured: Schema.Boolean,
+    httpStatus: Schema.NullOr(Schema.Number),
+    ok: Schema.NullOr(Schema.Boolean),
+    rangeSatisfied: Schema.NullOr(Schema.Boolean),
+    contentRange: Schema.NullOr(Schema.String),
+    acceptRanges: Schema.NullOr(Schema.String),
+    contentLengthBytes: Schema.NullOr(Schema.Number),
+    contentType: Schema.NullOr(Schema.String),
+    byteLength: Schema.NullOr(Schema.Number),
   }),
   async run({ input }) {
     return runSoda3RangeProbe({

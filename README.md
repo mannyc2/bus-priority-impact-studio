@@ -82,6 +82,8 @@ bun run check
 bun run hooks:install
 ```
 
+The repo-wide typecheck needs about 8 GB of heap; `bun run check:types` sets `NODE_OPTIONS` itself.
+
 Bun runs local scripts, workspace filters, package tests, and pipeline commands. Cloudflare Workers still deploy to Cloudflare's `workerd` runtime, and Wrangler remains the Cloudflare CLI.
 
 ## Environment
@@ -106,7 +108,7 @@ scripts/with-repo-env.sh -- bun --filter @bp/pipeline-v2 cli -- <command>
 
 The current scaffold includes:
 
-- Zod v4 domain contracts with branded route IDs, codecs, registries, metadata, and JSON Schema export.
+- Effect Schema domain contracts (ADR-0020) with branded route IDs, registries, metadata, and JSON Schema export.
 - Strict repo-wide TypeScript config in `tsconfig.base.json` and `tsconfig.typecheck.json`.
 - Biome formatting/linting in `biome.jsonc`.
 - Bun unit tests for domain/source/analytics/DB/frontend basics.

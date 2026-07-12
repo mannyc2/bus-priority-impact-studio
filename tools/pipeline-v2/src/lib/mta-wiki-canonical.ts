@@ -1,5 +1,6 @@
 import { dirname, isAbsolute, join } from "node:path";
-import { z } from "zod";
+import { decodeEitherStrip } from "@bp/domain/decode";
+import { Result, Schema } from "effect";
 import { runPipelineFileSystemBoundary } from "../effect/file-system.ts";
 import { fromCliPath, repoRoot } from "./paths.ts";
 
@@ -32,18 +33,16 @@ export type MtaWikiCanonicalRecord = {
   evidence_refs?: MtaWikiEvidenceRef[] | undefined;
 };
 
-const MtaWikiRouteAnchorSchema = z
-  .object({
-    gtfs_route_id: z.string().min(1).nullable(),
-    canonical_route_record_id: z.string().min(1).nullable(),
-    variant_record_ids: z.array(z.string().min(1)),
-    aliases: z.array(z.string().min(1)),
-    disposition: z.string().min(1),
-    anchor_reason: z.string().min(1).nullable(),
-  })
-  .strict();
+const MtaWikiRouteAnchorSchema = Schema.Struct({
+  gtfs_route_id: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+  canonical_route_record_id: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+  variant_record_ids: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  aliases: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  disposition: Schema.String.check(Schema.isMinLength(1)),
+  anchor_reason: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+});
 
-export type MtaWikiRouteAnchor = z.output<typeof MtaWikiRouteAnchorSchema>;
+export type MtaWikiRouteAnchor = typeof MtaWikiRouteAnchorSchema.Type;
 
 export type MtaWikiCanonicalCorpus = {
   root: string;
@@ -176,15 +175,11 @@ export async function readMtaWikiJsonlRecords(path: string): Promise<MtaWikiCano
 }
 
 function routeAnchorValue(value: unknown, path: string, lineNumber: number): MtaWikiRouteAnchor {
-  const parsed = MtaWikiRouteAnchorSchema.safeParse(value);
-  if (!parsed.success) {
-    const detail = parsed.error.issues
-      .slice(0, 5)
-      .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
-      .join("; ");
-    throw new Error(`Failed to parse ${path}:${lineNumber}: ${detail}`);
+  const parsed = decodeEitherStrip(MtaWikiRouteAnchorSchema)(value);
+  if (Result.isFailure(parsed)) {
+    throw new Error(`Failed to parse ${path}:${lineNumber}: ${String(parsed.failure)}`);
   }
-  return parsed.data;
+  return parsed.success;
 }
 
 export async function readMtaWikiRouteAnchors(path: string): Promise<MtaWikiRouteAnchor[]> {

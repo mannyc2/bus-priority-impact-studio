@@ -1,62 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
-import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { routeBriefPeakWindow, routeBriefSlowestWindow, routeBriefSummary } from "../schema.js";
-import { IsoMonthSchema } from "./shared.js";
-
-const RouteBriefSummaryRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    month: IsoMonthSchema,
-    route_score: z.number().int().min(0).max(100),
-    public_visible: z.union([z.literal(0), z.literal(1), z.boolean()]),
-    public_visibility_reason: z.string().min(1),
-    average_speed_mph: z.number().nonnegative(),
-    hotspot_count: z.number().int().nonnegative(),
-    total_ridership: z.number().nonnegative(),
-    total_transfers: z.number().nonnegative(),
-    ace_active: z.union([z.literal(0), z.literal(1), z.boolean()]),
-    ace_violation_count: z.number().int().nonnegative(),
-    bus_lane_matched_lane_count: z.number().int().nonnegative(),
-    schedule_match_rate: z.number().nonnegative(),
-  })
-  .strict();
-
-const RouteBriefPeakWindowRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    month: IsoMonthSchema,
-    window_rank: z.number().int().positive(),
-    day_of_week: z.string().min(1),
-    hour_of_day: z.number().int().min(0).max(23),
-    ridership: z.number().nonnegative().nullable(),
-    transfers: z.number().nonnegative().nullable(),
-    matched_observation_count: z.number().int().nonnegative().nullable(),
-    bus_trip_count: z.number().int().nonnegative().nullable(),
-    weighted_average_speed_mph: z.number().nonnegative().nullable(),
-    slow_observation_share: z.number().nonnegative().nullable(),
-  })
-  .strict();
-
-const RouteBriefSlowestWindowRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    month: IsoMonthSchema,
-    window_rank: z.number().int().positive(),
-    day_of_week: z.string().min(1),
-    hour_of_day: z.number().int().min(0).max(23),
-    observation_count: z.number().int().nonnegative().nullable(),
-    bus_trip_count: z.number().int().nonnegative().nullable(),
-    segment_count: z.number().int().nonnegative().nullable(),
-    weighted_average_speed_mph: z.number().nonnegative().nullable(),
-    weighted_average_travel_time_minutes: z.number().nonnegative().nullable(),
-    slow_observation_share: z.number().nonnegative().nullable(),
-  })
-  .strict();
-
-export type RouteBriefSummaryRow = z.output<typeof RouteBriefSummaryRowSchema>;
-export type RouteBriefPeakWindowRow = z.output<typeof RouteBriefPeakWindowRowSchema>;
-export type RouteBriefSlowestWindowRow = z.output<typeof RouteBriefSlowestWindowRowSchema>;
+import { sqliteBool } from "./shared.js";
 
 export type RouteBriefPeakWindow = {
   dayOfWeek: string;
@@ -169,7 +114,7 @@ function toRouteBriefSummary(
     hotspotCount: row.hotspot_count,
     totalRidership: row.total_ridership,
     totalTransfers: row.total_transfers,
-    aceActive: row.ace_active === true || row.ace_active === 1,
+    aceActive: sqliteBool(row.ace_active),
     aceViolationCount: row.ace_violation_count,
     busLaneMatchedLaneCount: row.bus_lane_matched_lane_count,
     scheduleMatchRate: row.schedule_match_rate,
@@ -178,16 +123,12 @@ function toRouteBriefSummary(
   };
 }
 
-async function listPeakWindowRows(
-  db: D1ServingDb,
-  month: string,
-  routeId?: string,
-): Promise<RouteBriefPeakWindowRow[]> {
+async function listPeakWindowRows(db: D1ServingDb, month: string, routeId?: string) {
   const whereClause =
     routeId === undefined
       ? eq(routeBriefPeakWindow.month, month)
       : and(eq(routeBriefPeakWindow.month, month), eq(routeBriefPeakWindow.routeId, routeId));
-  const rows = await db
+  return db
     .select({
       route_id: routeBriefPeakWindow.routeId,
       month: routeBriefPeakWindow.month,
@@ -204,20 +145,14 @@ async function listPeakWindowRows(
     .from(routeBriefPeakWindow)
     .where(whereClause)
     .orderBy(asc(routeBriefPeakWindow.routeId), asc(routeBriefPeakWindow.windowRank));
-
-  return rows.map((row) => RouteBriefPeakWindowRowSchema.parse(row));
 }
 
-async function listSlowestWindowRows(
-  db: D1ServingDb,
-  month: string,
-  routeId?: string,
-): Promise<RouteBriefSlowestWindowRow[]> {
+async function listSlowestWindowRows(db: D1ServingDb, month: string, routeId?: string) {
   const whereClause =
     routeId === undefined
       ? eq(routeBriefSlowestWindow.month, month)
       : and(eq(routeBriefSlowestWindow.month, month), eq(routeBriefSlowestWindow.routeId, routeId));
-  const rows = await db
+  return db
     .select({
       route_id: routeBriefSlowestWindow.routeId,
       month: routeBriefSlowestWindow.month,
@@ -235,15 +170,10 @@ async function listSlowestWindowRows(
     .from(routeBriefSlowestWindow)
     .where(whereClause)
     .orderBy(asc(routeBriefSlowestWindow.routeId), asc(routeBriefSlowestWindow.windowRank));
-
-  return rows.map((row) => RouteBriefSlowestWindowRowSchema.parse(row));
 }
 
-export async function listRouteBriefSummaries(
-  db: D1ServingDb,
-  month: string,
-): Promise<RouteBriefSummary[]> {
-  const rows = await db
+async function selectRouteBriefSummaryRows(db: D1ServingDb, month: string) {
+  return db
     .select({
       route_id: routeBriefSummary.routeId,
       month: routeBriefSummary.month,
@@ -266,24 +196,10 @@ export async function listRouteBriefSummaries(
       asc(routeBriefSummary.averageSpeedMph),
       asc(routeBriefSummary.routeId),
     );
-
-  const parsedRows = rows.map((row) => RouteBriefSummaryRowSchema.parse(row));
-  const [peakRows, slowestRows] = await Promise.all([
-    listPeakWindowRows(db, month),
-    listSlowestWindowRows(db, month),
-  ]);
-
-  return parsedRows.map((row) =>
-    toRouteBriefSummary(row, groupPeakWindows(peakRows), groupSlowestWindows(slowestRows)),
-  );
 }
 
-export async function getRouteBriefSummary(
-  db: D1ServingDb,
-  routeId: string,
-  month: string,
-): Promise<RouteBriefSummary | null> {
-  const rows = await db
+async function selectRouteBriefSummaryRow(db: D1ServingDb, routeId: string, month: string) {
+  return db
     .select({
       route_id: routeBriefSummary.routeId,
       month: routeBriefSummary.month,
@@ -302,6 +218,33 @@ export async function getRouteBriefSummary(
     .from(routeBriefSummary)
     .where(and(eq(routeBriefSummary.routeId, routeId), eq(routeBriefSummary.month, month)))
     .limit(1);
+}
+
+export type RouteBriefSummaryRow = Awaited<ReturnType<typeof selectRouteBriefSummaryRows>>[number];
+export type RouteBriefPeakWindowRow = Awaited<ReturnType<typeof listPeakWindowRows>>[number];
+export type RouteBriefSlowestWindowRow = Awaited<ReturnType<typeof listSlowestWindowRows>>[number];
+
+export async function listRouteBriefSummaries(
+  db: D1ServingDb,
+  month: string,
+): Promise<RouteBriefSummary[]> {
+  const rows = await selectRouteBriefSummaryRows(db, month);
+  const [peakRows, slowestRows] = await Promise.all([
+    listPeakWindowRows(db, month),
+    listSlowestWindowRows(db, month),
+  ]);
+
+  return rows.map((row) =>
+    toRouteBriefSummary(row, groupPeakWindows(peakRows), groupSlowestWindows(slowestRows)),
+  );
+}
+
+export async function getRouteBriefSummary(
+  db: D1ServingDb,
+  routeId: string,
+  month: string,
+): Promise<RouteBriefSummary | null> {
+  const rows = await selectRouteBriefSummaryRow(db, routeId, month);
   const row = rows[0] ?? null;
 
   if (row === null) {
@@ -313,9 +256,5 @@ export async function getRouteBriefSummary(
     listSlowestWindowRows(db, month, routeId),
   ]);
 
-  return toRouteBriefSummary(
-    RouteBriefSummaryRowSchema.parse(row),
-    groupPeakWindows(peakRows),
-    groupSlowestWindows(slowestRows),
-  );
+  return toRouteBriefSummary(row, groupPeakWindows(peakRows), groupSlowestWindows(slowestRows));
 }

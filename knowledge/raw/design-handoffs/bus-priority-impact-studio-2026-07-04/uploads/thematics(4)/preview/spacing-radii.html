@@ -1,0 +1,21 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background)}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .box{width:64px;height:64px;background:var(--surface-2);border:1px solid var(--border)}
+  .label{font:500 12px var(--font-sans);color:var(--muted-foreground)}
+  .px{font:500 11px var(--font-mono);color:var(--foreground)}
+  .ov{font:500 12px var(--font-sans);color:var(--muted-foreground);margin-bottom:8px}
+</style></head><body>
+<div class="ov">Radii</div>
+<div class="grid">
+  <div class="cell"><div class="box" style="border-radius:4px"></div><div class="label">sm</div><div class="px">4</div></div>
+  <div class="cell"><div class="box" style="border-radius:6px"></div><div class="label">md</div><div class="px">6</div></div>
+  <div class="cell"><div class="box" style="border-radius:8px"></div><div class="label">base</div><div class="px">8</div></div>
+  <div class="cell"><div class="box" style="border-radius:12px"></div><div class="label">xl · card</div><div class="px">12</div></div>
+  <div class="cell"><div class="box" style="border-radius:16px"></div><div class="label">2xl · sheet</div><div class="px">16</div></div>
+  <div class="cell"><div class="box" style="border-radius:999px"></div><div class="label">pill · chip</div><div class="px">999</div></div>
+</div>
+</body></html>

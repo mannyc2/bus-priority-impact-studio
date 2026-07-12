@@ -2,7 +2,7 @@
 title: Data Model
 type: engineering
 status: active
-last_updated: 2026-04-28
+last_updated: 2026-07-05
 owner: codex
 source_count: 19
 tags: [data-model, d1, sqlite, drizzle, postgres, hyperdrive, serving-model, artifacts, json-cleanup]
@@ -508,7 +508,7 @@ Facts:
 Inference:
 
 - A single shared Drizzle table layer would either water down Postgres into SQLite-shaped tables or accidentally treat D1 as a warehouse. The shared layer should be **domain contracts and constants**, not database table objects.
-- Use `packages/domain` for route IDs, month IDs, public API contracts, score semantics, and Zod schemas. Use `packages/db/src/shared/` only for enum/value constants that both dialect schemas reference.
+- Use `packages/domain` for route IDs, month IDs, public API contracts, score semantics, and Effect Schema contracts. Use `packages/db/src/shared/` only for enum/value constants that both dialect schemas reference.
 
 ### D1 10 GB concern
 

@@ -1,5 +1,6 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "baselineMonth": "2026-05",
   "generatedAt": "2026-06-30T00:00:00.000Z",
   "routes": [
     {

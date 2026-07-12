@@ -43,7 +43,7 @@ export function RouteBadge({
   // flag, sometimes baked into the name ("Q44 SBS" / "Q44-SBS"). Normalize to the
   // bare route number, then render the MTA-style "Q44-SBS" as a single roundel -
   // no separate SBS pill, and never doubled.
-  const base = route.replace(/[\s-]?SBS$/i, "").trim();
+  const base = route.replace(/[\s+-]*SBS\s*$/i, "").trim();
   const isSbs = sbs || base !== route;
   const display = isSbs ? `${base}-SBS` : base;
   const background = routeColor(base, express);

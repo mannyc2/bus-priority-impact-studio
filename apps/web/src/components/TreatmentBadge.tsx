@@ -63,7 +63,7 @@ export function TreatmentBadge({
 
   return (
     <span
-      title={`${meta.label} · ${state.label}${treatment.note ? ` · ${treatment.note}` : ""}`}
+      title={`${meta.label}, ${state.label}${treatment.note ? `, ${treatment.note}` : ""}`}
       className="inline-flex shrink-0 items-center justify-center font-mono font-bold leading-none tracking-[0.04em] tabular-nums"
       style={style}
     >

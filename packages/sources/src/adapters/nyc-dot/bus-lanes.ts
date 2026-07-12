@@ -1,91 +1,73 @@
-import * as z from "zod";
+import { decodePreserve } from "@bp/domain/decode";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 
 const schemaVersion = 1;
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const NonNegativeNumber = Schema.Number.check(Schema.isGreaterThanOrEqualTo(0));
+const CoercedNonNegativeNumber = Schema.Unknown.pipe(
+  Schema.decodeTo(NonNegativeNumber, {
+    decode: SchemaGetter.transform((value) => Number(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
 
-export const NormalizedBusLaneSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    segmentId: z.string().min(1),
-    street: z.string().min(1),
-    borough: z.string().min(1),
-    facility: z.string().min(1),
-    direction: z.string().min(1).optional(),
-    trafficDirection: z.string().min(1).optional(),
-    hours: z.string().min(1).optional(),
-    days: z.string().min(1).optional(),
-    laneType: z.string().min(1).optional(),
-    laneSubtype: z.string().min(1).optional(),
-    laneWidth: z.string().min(1).optional(),
-    openDate: z.string().min(1).optional(),
-    shapeLength: z.number().nonnegative().optional(),
-    geometry: z.unknown().optional(),
-  })
-  .strict();
+export const NormalizedBusLaneSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  segmentId: NonEmptyString,
+  street: NonEmptyString,
+  borough: NonEmptyString,
+  facility: NonEmptyString,
+  direction: Schema.optional(NonEmptyString),
+  trafficDirection: Schema.optional(NonEmptyString),
+  hours: Schema.optional(NonEmptyString),
+  days: Schema.optional(NonEmptyString),
+  laneType: Schema.optional(NonEmptyString),
+  laneSubtype: Schema.optional(NonEmptyString),
+  laneWidth: Schema.optional(NonEmptyString),
+  openDate: Schema.optional(NonEmptyString),
+  shapeLength: Schema.optional(NonNegativeNumber),
+  geometry: Schema.optional(Schema.Unknown),
+});
 
-export type NormalizedBusLane = z.output<typeof NormalizedBusLaneSchema>;
+export type NormalizedBusLane = typeof NormalizedBusLaneSchema.Type;
 
-const RawBusLaneRowSchema = z
-  .object({
-    the_geom: z.unknown().optional(),
-    street: z.string().min(1),
-    bltrafdir: z.string().min(1).optional(),
-    segmentid: z.string().min(1),
-    boro: z.string().min(1),
-    facility: z.string().min(1),
-    direction: z.string().min(1).optional(),
-    hours: z.string().min(1).optional(),
-    days: z.string().min(1).optional(),
-    lane_width: z.string().min(1).optional(),
-    lane_type1: z.string().min(1).optional(),
-    lane_type: z.string().min(1).optional(),
-    open_dates: z.string().min(1).optional(),
-    shape_leng: z.coerce.number().nonnegative().optional(),
-  })
-  .passthrough();
+const RawBusLaneRowSchema = Schema.Struct({
+  the_geom: Schema.optionalKey(Schema.Unknown),
+  street: NonEmptyString,
+  bltrafdir: Schema.optionalKey(NonEmptyString),
+  segmentid: NonEmptyString,
+  boro: NonEmptyString,
+  facility: NonEmptyString,
+  direction: Schema.optionalKey(NonEmptyString),
+  hours: Schema.optionalKey(NonEmptyString),
+  days: Schema.optionalKey(NonEmptyString),
+  lane_width: Schema.optionalKey(NonEmptyString),
+  lane_type1: Schema.optionalKey(NonEmptyString),
+  lane_type: Schema.optionalKey(NonEmptyString),
+  open_dates: Schema.optionalKey(NonEmptyString),
+  shape_leng: Schema.optionalKey(CoercedNonNegativeNumber),
+});
 
 export function normalizeBusLaneRows(rows: SocrataRow[]): NormalizedBusLane[] {
   return rows.map((row) => {
-    const parsed = RawBusLaneRowSchema.parse(row);
-    const output: NormalizedBusLane = {
+    const parsed = decodePreserve(RawBusLaneRowSchema)(row);
+    return {
       schemaVersion,
       segmentId: parsed.segmentid,
       street: parsed.street,
       borough: parsed.boro,
       facility: parsed.facility,
-    };
-
-    if (parsed.direction !== undefined) {
-      output.direction = parsed.direction;
-    }
-    if (parsed.bltrafdir !== undefined) {
-      output.trafficDirection = parsed.bltrafdir;
-    }
-    if (parsed.hours !== undefined) {
-      output.hours = parsed.hours;
-    }
-    if (parsed.days !== undefined) {
-      output.days = parsed.days;
-    }
-    if (parsed.lane_type !== undefined) {
-      output.laneType = parsed.lane_type;
-    }
-    if (parsed.lane_type1 !== undefined) {
-      output.laneSubtype = parsed.lane_type1;
-    }
-    if (parsed.lane_width !== undefined) {
-      output.laneWidth = parsed.lane_width;
-    }
-    if (parsed.open_dates !== undefined) {
-      output.openDate = parsed.open_dates;
-    }
-    if (parsed.shape_leng !== undefined) {
-      output.shapeLength = parsed.shape_leng;
-    }
-    if (parsed.the_geom !== undefined) {
-      output.geometry = parsed.the_geom;
-    }
-
-    return output;
+      ...(parsed.direction === undefined ? {} : { direction: parsed.direction }),
+      ...(parsed.bltrafdir === undefined ? {} : { trafficDirection: parsed.bltrafdir }),
+      ...(parsed.hours === undefined ? {} : { hours: parsed.hours }),
+      ...(parsed.days === undefined ? {} : { days: parsed.days }),
+      ...(parsed.lane_type === undefined ? {} : { laneType: parsed.lane_type }),
+      ...(parsed.lane_type1 === undefined ? {} : { laneSubtype: parsed.lane_type1 }),
+      ...(parsed.lane_width === undefined ? {} : { laneWidth: parsed.lane_width }),
+      ...(parsed.open_dates === undefined ? {} : { openDate: parsed.open_dates }),
+      ...(parsed.shape_leng === undefined ? {} : { shapeLength: parsed.shape_leng }),
+      ...(parsed.the_geom === undefined ? {} : { geometry: parsed.the_geom }),
+    } satisfies NormalizedBusLane;
   });
 }

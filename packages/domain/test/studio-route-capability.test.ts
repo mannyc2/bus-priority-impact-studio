@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { decodePreserve, decodeStrict } from "@bp/domain/decode";
 import {
   freshnessForDataAsOf,
   RouteCapabilityManifestForIndexSchema,
@@ -67,7 +68,7 @@ describe("route capability manifest contract", () => {
   });
 
   test("authoritative schema accepts a three-route manifest", () => {
-    const parsed = RouteCapabilityManifestSchema.parse(manifest);
+    const parsed = decodeStrict(RouteCapabilityManifestSchema)(manifest);
     expect(parsed.routes.map((r) => r.overallState)).toEqual([
       "partial",
       "checked_clean",
@@ -76,7 +77,7 @@ describe("route capability manifest contract", () => {
   });
 
   test("authoritative schema is strict at the top level", () => {
-    expect(() => RouteCapabilityManifestSchema.parse({ ...manifest, extra: 1 })).toThrow();
+    expect(() => decodeStrict(RouteCapabilityManifestSchema)({ ...manifest, extra: 1 })).toThrow();
   });
 
   test("light read-schema tolerates forward-compatible additions", () => {
@@ -93,7 +94,7 @@ describe("route capability manifest contract", () => {
         },
       ],
     };
-    const parsed = RouteCapabilityManifestForIndexSchema.parse(forward);
+    const parsed = decodePreserve(RouteCapabilityManifestForIndexSchema)(forward);
     expect(parsed.routes[0]?.surfaces["materializationCoverage"]?.state).toBe("building");
   });
 });

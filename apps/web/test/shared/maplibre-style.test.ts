@@ -1,17 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import type { MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
+import { Color, validateStyleMin } from "@maplibre/maplibre-gl-style-spec";
 import {
   boundsOf,
-  formatMapHour,
-  hourTag,
+  MAP_COLORS,
+  mapBaseStyle,
+  NYC_MAP_BOUNDS,
   routeAverageSpeedAtHour,
+  scaledMapColor,
   segmentSpeedAtHour,
   speedToColor,
 } from "../../src/components/route/maplibre-style";
 import type { StudioRoute, StudioSegment } from "../../src/studio/api-contract";
 
 function segment(input: Partial<StudioSegment> & Pick<StudioSegment, "id">): StudioSegment {
-  const { id, ...rest } = input;
+  const { id, spineJoinStatus = "not_built", spineSegmentId = null, ...rest } = input;
   return {
     id,
     routeSlug: "b48",
@@ -26,6 +29,8 @@ function segment(input: Partial<StudioSegment> & Pick<StudioSegment, "id">): Stu
     tsp: false,
     hours: [],
     ...rest,
+    spineSegmentId,
+    spineJoinStatus,
   };
 }
 
@@ -69,20 +74,34 @@ const route = {
 } satisfies StudioRoute;
 
 describe("maplibre route style helpers", () => {
-  test("maps segment speed through the six-anchor oklch ramp", () => {
-    expect(speedToColor(3.3)).toBe("oklch(0.500 0.165 27.0)");
-    expect(speedToColor(5.1)).toBe("oklch(0.585 0.143 48.0)");
-    expect(speedToColor(9.5)).toBe("oklch(0.600 0.105 162.0)");
-    expect(speedToColor(null)).toBe("rgba(22, 20, 15, 0.2)");
+  test("maps segment speed through the six-anchor sRGB ramp", () => {
+    expect(speedToColor(3.3)).toBe("#ae2e2a");
+    expect(speedToColor(5.1)).toBe("#bd5c24");
+    expect(speedToColor(9.5)).toBe("#3a946d");
+    expect(speedToColor(null)).toBe("rgba(16, 20, 24, 0.2)");
   });
 
-  test("formats map hours and commute periods", () => {
-    expect(formatMapHour(5)).toBe("5:00 AM");
-    expect(formatMapHour(12)).toBe("12:00 PM");
-    expect(formatMapHour(17)).toBe("5:00 PM");
-    expect(hourTag(8)).toBe("AM peak");
-    expect(hourTag(14)).toBe("Midday");
-    expect(hourTag(17)).toBe("PM peak");
+  test("uses MapLibre-valid colors and a valid shared base style", () => {
+    const generatedColors = [
+      ...[3.3, 4.6, 5.6, 6.6, 7.8, 9.5].map(speedToColor),
+      ...(["lanes", "riders"] as const).flatMap((scale) =>
+        [0, 50, 100].map((value) => scaledMapColor(value, 0, 100, scale)),
+      ),
+    ];
+
+    for (const color of [...Object.values(MAP_COLORS), ...generatedColors]) {
+      expect(Color.parse(color)).toBeDefined();
+    }
+    expect(validateStyleMin(mapBaseStyle())).toEqual([]);
+    expect(scaledMapColor(50, 0, 100, "lanes")).toBe("#4c9f71");
+    expect(scaledMapColor(50, 0, 100, "riders")).toBe("#5790c8");
+  });
+
+  test("exports the documented buffered NYC map bounds", () => {
+    expect(NYC_MAP_BOUNDS).toEqual([
+      [-74.35, 40.45],
+      [-73.65, 40.98],
+    ]);
   });
 
   test("derives hourly speeds and weighted route averages from segment severity", () => {
@@ -97,6 +116,10 @@ describe("maplibre route style helpers", () => {
     expect(segmentSpeedAtHour(slow, 17)).toBeCloseTo(6.85);
     expect(segmentSpeedAtHour(steady, 17)).toBeCloseTo(6.95);
     expect(routeAverageSpeedAtHour(route, [slow, steady], 17)).toBeCloseTo(6.875);
+    expect(segmentSpeedAtHour({ ...slow, scheduledMph: null }, 17)).toBeNull();
+    expect(
+      routeAverageSpeedAtHour({ ...route, scheduledMph: null }, [slow, steady], 17),
+    ).toBeNull();
   });
 
   test("computes lon-lat bounds across route segment features", () => {

@@ -3,13 +3,13 @@
 Date: 2026-05-30
 Revised: 2026-05-31
 
-> **Superseded (2026-07-03).** The agent-authored-detector workflow is historical after the
-> generation-3 hard cutover. The accepted detector boundary that still matters is the deterministic
+> **Retired 2026-07-04.** Agent-corpus research experiments ended and their tooling was
+> deleted (plan 037). The accepted detector boundary that still matters is the deterministic
 > `@bp/analytics` registry plus ADR 0018 readiness gates.
 
 ## Status
 
-**Proposed, revised after the 2026-05-30 analytics refactor.**
+Retired 2026-07-04 — agent-corpus research experiments ended; tooling deleted (plan 037).
 
 This ADR replaces the earlier "agent-authored detectors" plan. The original plan
 assumed a pre-refactor detector layer: 8 hand-authored detectors, scattered

@@ -4,16 +4,18 @@ import { expressRouteAnalysisAuditPath, expressRouteAnalysisPath } from "@bp/ana
 import {
   buildExpressRouteAnalysisArtifact,
   buildExpressRouteAnalysisAuditArtifact,
-  type ExpressRouteAnalysisArtifact,
   ExpressRouteAnalysisArtifactSchema,
   summarizeExpressRouteCapacityRows,
 } from "@bp/analytics/feature-history";
+import { decodePreserve } from "@bp/domain/decode";
+import { defineCommand } from "@bp/pipeline-v2/cli/compat";
 import { NormalizedExpressBusCapacitySchema } from "@bp/sources/adapters/mta/express-bus-capacity";
 import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
+import { Schema } from "effect";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import {
   fetchSoda3RowsForSource,
   type SocrataFetch,
@@ -46,11 +48,9 @@ export type AuditExpressRouteAnalysisArgs = {
   generatedAt?: Date;
 };
 
-const NormalizedRowsArtifactSchema = z
-  .object({
-    rows: z.array(NormalizedExpressBusCapacitySchema),
-  })
-  .passthrough();
+const NormalizedRowsArtifactSchema = Schema.Struct({
+  rows: Schema.Array(NormalizedExpressBusCapacitySchema),
+});
 
 const defaultOutputPath = () =>
   fromRepoRoot(expressRouteAnalysisPath({ artifactRoot: "data/artifacts" }));
@@ -121,7 +121,7 @@ export async function buildExpressRouteAnalysis(
   const outputPath = args.outputPath ?? defaultOutputPath();
   const generatedAt = args.generatedAt ?? new Date();
   const routeFilter = args.routes === undefined ? null : new Set(args.routes);
-  const input = NormalizedRowsArtifactSchema.parse(await Bun.file(inputPath).json());
+  const input = decodePreserve(NormalizedRowsArtifactSchema)(await Bun.file(inputPath).json());
   const capacityInputRows =
     routeFilter === null ? input.rows : input.rows.filter((row) => routeFilter.has(row.routeId));
   const capacityRows = summarizeExpressRouteCapacityRows(capacityInputRows);
@@ -161,9 +161,12 @@ export async function auditExpressRouteAnalysis(args: AuditExpressRouteAnalysisA
   const inputPath = args.inputPath ?? defaultOutputPath();
   const outputPath = args.outputPath ?? defaultAuditOutputPath();
   const generatedAt = args.generatedAt ?? new Date();
-  const artifact = ExpressRouteAnalysisArtifactSchema.parse(await Bun.file(inputPath).json());
+  const artifact = decodeSchemaStrict(
+    ExpressRouteAnalysisArtifactSchema,
+    await Bun.file(inputPath).json(),
+  );
   const result = buildExpressRouteAnalysisAuditArtifact({
-    artifact: artifact as ExpressRouteAnalysisArtifact,
+    artifact,
     inputPath,
     generatedAt: generatedAt.toISOString(),
   });
@@ -183,18 +186,24 @@ export default defineCommand({
   summary:
     "Join express capacity and segment speed rows into a screening-grade load/speed context artifact.",
   input: {
-    options: z.object({
-      input: z.string().optional().describe("Path to normalized rows artifact"),
-      output: z.string().optional().describe("Output path for the artifact"),
-      routes: z.string().optional().describe("Comma-separated route ids to include"),
+    options: Schema.Struct({
+      input: Schema.optionalKey(Schema.String).annotate({
+        description: "Path to normalized rows artifact",
+      }),
+      output: Schema.optionalKey(Schema.String).annotate({
+        description: "Output path for the artifact",
+      }),
+      routes: Schema.optionalKey(Schema.String).annotate({
+        description: "Comma-separated route ids to include",
+      }),
     }),
   },
-  output: z.object({
-    outputPath: z.string(),
-    routeCount: z.number(),
-    windowCount: z.number(),
-    matchedSpeedWindowCount: z.number(),
-    candidateWindowCount: z.number(),
+  output: Schema.Struct({
+    outputPath: Schema.String,
+    routeCount: Schema.Number,
+    windowCount: Schema.Number,
+    matchedSpeedWindowCount: Schema.Number,
+    candidateWindowCount: Schema.Number,
   }),
   async run({ input }) {
     const routes =

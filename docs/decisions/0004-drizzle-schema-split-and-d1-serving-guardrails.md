@@ -5,12 +5,13 @@ Date: 2026-04-27
 ## Status
 
 Accepted as a documentation/architecture plan. No Drizzle migration is implemented by this ADR.
+Runtime schema-library guidance in this ADR is superseded by ADR 0020.
 
 ## Context
 
 This branch is Bun-first TypeScript. The public app runs on Cloudflare Workers Static Assets plus a Worker API. `packages/db` currently owns hand-written D1 SQL table strings, D1-like prepared-statement interfaces, serializers, and repositories.
 
-ADR 0002 already decides that Postgres through Cloudflare Hyperdrive is the planned canonical operational/analytics database once needed, while D1 remains a compact public serving projection. This ADR sharpens that decision for Drizzle, Zod v4, D1 limits, JSON cleanup, and package responsibilities.
+ADR 0002 already decides that Postgres through Cloudflare Hyperdrive is the planned canonical operational/analytics database once needed, while D1 remains a compact public serving projection. This ADR sharpens that decision for Drizzle, runtime contracts, D1 limits, JSON cleanup, and package responsibilities.
 
 The main concern is D1's size and workload profile. Cloudflare documents D1 as designed for horizontal scale-out across many smaller databases and documents a paid per-database limit of 10 GB that cannot be increased. That does not fit a single canonical MTA analytics warehouse. It can fit a compact, replaceable edge serving projection.
 
@@ -37,7 +38,7 @@ R2/static assets remain the storage location for large generated artifacts and s
 - D1 stays small, cheap, and replaceable.
 - Postgres can use a richer canonical schema when actually needed.
 - Drizzle gives typed SQL/schema/migration scaffolding without turning domain code into database code.
-- Zod v4 remains the public/domain contract layer while Drizzle-generated schemas validate database rows.
+- Public/domain contracts stay outside Drizzle; ADR 0020 now assigns first-party runtime contracts to Effect Schema.
 - The repo avoids Python, FastAPI, VPS, and PostGIS until a concrete documented requirement appears.
 
 ### Negative / tradeoffs
@@ -90,13 +91,13 @@ Product-queryable JSON should become relational columns or child tables. Current
 
 JSON/JSONB remains appropriate for raw source captures, provenance, schema-probe payloads, debug snapshots, audit metadata, selected-row attachments, and opaque source payloads where product-queryable fields are also extracted.
 
-## Drizzle/Zod pattern
+## Drizzle/contract pattern
 
-- Use Zod v4 schemas in `packages/domain` for domain/public API contracts.
-- Use Drizzle-generated select/insert/update schemas in the relevant DB surface, such as `packages/db/src/d1/validation.ts`.
-- Do not replace domain schemas with Drizzle schemas.
-- Follow the stable package path first: stable `drizzle-orm`, `drizzle-kit`, and stable Drizzle/Zod helper package if needed.
-- Do not adopt a Drizzle 1.0 beta solely to use first-class `drizzle-orm/zod`; document that separately if chosen.
+- Use Effect Schema-backed contracts in `packages/domain` for domain/public API contracts.
+- Derive DB row types from Drizzle tables/projections in the relevant DB surface.
+- Do not replace domain contracts with Drizzle table schemas.
+- Follow the stable package path first: stable `drizzle-orm`, `drizzle-kit`, and focused repository/writer validators where needed.
+- Do not adopt a Drizzle beta or auxiliary validation package solely for generated validator convenience; document that separately if chosen.
 
 ## Migration workflow
 

@@ -47,7 +47,6 @@ describe("buildSitemapXml", () => {
     expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/</loc>`);
     expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/map</loc>`);
     expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/interventions</loc>`);
-    expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/methods</loc>`);
     expect(xml).toContain(`<loc>${SITEMAP_ORIGIN}/routes/m15-sbs</loc>`);
   });
 
@@ -57,6 +56,7 @@ describe("buildSitemapXml", () => {
     expect(xml).not.toContain("/findings");
     expect(xml).not.toContain("/briefs");
     expect(xml).not.toContain("/docs");
+    expect(xml).not.toContain("/methods");
   });
 
   it("is well-formed sitemap XML", () => {

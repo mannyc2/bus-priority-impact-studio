@@ -1,6 +1,7 @@
 import { update311ServiceRequestGeocode } from "@bp/db/local";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { parseHouseAddress } from "@bp/sources/clients/geoclient";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import {
   createGeoclientFromEnv,
@@ -162,18 +163,30 @@ export default defineCommand({
   path: ["geocode", "311"],
   summary: "Geocode local_311_service_request rows via Geoclient + LION snap.",
   input: {
-    options: dbOptions.extend({
-      batchSize: arg.positiveInt().default(500).describe("Rows per batch"),
-      maxRows: arg.positiveInt().optional().describe("Cap total rows scanned"),
-      since: z.string().optional().describe("Inclusive lower bound on created_date"),
-      until: z.string().optional().describe("Exclusive upper bound on created_date"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        batchSize: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(500)))
+          .annotate({ description: "Rows per batch" }),
+        maxRows: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Cap total rows scanned",
+        }),
+        since: Schema.optionalKey(Schema.String).annotate({
+          description: "Inclusive lower bound on created_date",
+        }),
+        until: Schema.optionalKey(Schema.String).annotate({
+          description: "Exclusive upper bound on created_date",
+        }),
+      },
     }),
   },
-  output: z.object({
-    scanned: z.number(),
-    hits: z.number(),
-    misses: z.number(),
-    cached: z.number(),
+  output: Schema.Struct({
+    scanned: Schema.Number,
+    hits: Schema.Number,
+    misses: Schema.Number,
+    cached: Schema.Number,
   }),
   async run({ input }) {
     return runLocalDbCommandBoundary({

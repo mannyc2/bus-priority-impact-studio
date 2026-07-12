@@ -14,7 +14,7 @@ const RouteMapLibreMap = lazy(() =>
 function RouteMapSkeleton() {
   return (
     <div
-      className="animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"
+      className="animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none"
       style={{ height: 560 }}
       aria-hidden
     />
@@ -26,11 +26,11 @@ export type RouteMapLibreProps = {
   context: RouteGeoContext | null;
   route: StudioRoute;
   segments: readonly StudioSegment[];
-  hour: number;
   hoveredSegmentId: string | null;
   setHoveredSegmentId: (segmentId: string | null) => void;
   layers: RouteMapLayerState;
   highlightId?: string | undefined;
+  onInteractiveAvailabilityChange?: ((available: boolean) => void) | undefined;
 };
 
 export function RouteMapLibre(props: RouteMapLibreProps) {

@@ -1,79 +1,102 @@
-import * as z from "zod";
+import { decodeStrict } from "@bp/domain/decode";
+import { Schema } from "effect";
 import { SocrataDatasetIdSchema } from "../core/index.js";
 
-const SourceIdSchema = z
-  .string()
-  .min(1)
-  .regex(/^[a-z0-9_.-]+$/);
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const SourceIdSchema = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isPattern(/^[a-z0-9_.-]+$/),
+);
 
-const SourcePrioritySchema = z.enum(["core", "secondary", "optional"]);
-const ManifestStatusSchema = z.string().min(1);
+const SourcePrioritySchema = Schema.Literals(["core", "secondary", "optional"]);
+const ManifestStatusSchema = NonEmptyString;
 
-const BaseManifestSourceSchema = z.object({
+const BaseManifestSourceFields = {
   id: SourceIdSchema,
   priority: SourcePrioritySchema,
-  purpose: z.string().min(1),
+  purpose: NonEmptyString,
   status: ManifestStatusSchema,
-  notes: z.string().min(1).optional(),
+  notes: Schema.optionalKey(NonEmptyString),
+};
+
+const SocrataDefaultAccessSchema = Schema.Struct({
+  kind: Schema.Literals(["query", "export"]),
+  format: Schema.optionalKey(Schema.Literals(["json", "csv", "geojson"])),
 });
 
-const SocrataDefaultAccessSchema = z
-  .object({
-    kind: z.enum(["query", "export"]),
-    format: z.enum(["json", "csv", "geojson"]).optional(),
-  })
-  .strict();
+const SocrataBackfillSchema = Schema.Struct({
+  kind: Schema.Literal("soda3_export"),
+  format: Schema.Literals(["csv", "json", "geojson"]),
+  supportsByteRange: Schema.Boolean,
+  recommendedChunkBytes: Schema.optionalKey(
+    Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)),
+  ),
+  defaultQuery: Schema.optionalKey(NonEmptyString),
+  orderingSpecifier: Schema.optionalKey(Schema.Literals(["total", "discard"])),
+});
 
-const SocrataBackfillSchema = z
-  .object({
-    kind: z.literal("soda3_export"),
-    format: z.enum(["csv", "json", "geojson"]),
-    supportsByteRange: z.boolean(),
-    recommendedChunkBytes: z.number().int().positive().optional(),
-    defaultQuery: z.string().min(1).optional(),
-    orderingSpecifier: z.enum(["total", "discard"]).optional(),
-  })
-  .strict();
-
-const SocrataManifestSourceSchema = BaseManifestSourceSchema.extend({
-  type: z.literal("socrata_dataset"),
-  domain: z.string().min(1),
+const SocrataManifestSourceSchema = Schema.Struct({
+  ...BaseManifestSourceFields,
+  type: Schema.Literal("socrata_dataset"),
+  domain: NonEmptyString,
   dataset_id: SocrataDatasetIdSchema,
-  url: z.string().min(1),
-  api: z.literal("soda3"),
+  url: NonEmptyString,
+  api: Schema.Literal("soda3"),
   default_access: SocrataDefaultAccessSchema,
-  backfill: SocrataBackfillSchema.optional(),
-}).strict();
+  backfill: Schema.optionalKey(SocrataBackfillSchema),
+});
 
-const UrlManifestSourceSchema = BaseManifestSourceSchema.extend({
-  type: z.enum(["web_page", "gtfs_static_zip", "gtfs_realtime_api", "pdf_or_doc", "standard_doc"]),
-  url: z.string().min(1),
-}).strict();
+const UrlManifestSourceSchema = Schema.Struct({
+  ...BaseManifestSourceFields,
+  type: Schema.Literals([
+    "web_page",
+    "gtfs_static_zip",
+    "gtfs_realtime_api",
+    "pdf_or_doc",
+    "standard_doc",
+  ]),
+  url: NonEmptyString,
+});
 
-const FileDownloadManifestSourceSchema = BaseManifestSourceSchema.extend({
-  type: z.literal("file_download"),
-  url: z.string().min(1),
-}).passthrough();
+const FileDownloadManifestSourceSchema = Schema.Struct({
+  ...BaseManifestSourceFields,
+  type: Schema.Literal("file_download"),
+  url: NonEmptyString,
+});
 
-export const ManifestSourceSchema = z.discriminatedUnion("type", [
+const NoaaGhcnStationSchema = Schema.Struct({
+  id: NonEmptyString,
+  name: NonEmptyString,
+});
+
+const NoaaGhcnManifestSourceSchema = Schema.Struct({
+  ...BaseManifestSourceFields,
+  id: Schema.Literal("noaa_ghcn_daily_nyc"),
+  type: Schema.Literal("file_download"),
+  domain: NonEmptyString,
+  url: NonEmptyString,
+  stations: Schema.Array(NoaaGhcnStationSchema).check(Schema.isMinLength(1)),
+});
+
+export const ManifestSourceSchema = Schema.Union([
   SocrataManifestSourceSchema,
   UrlManifestSourceSchema,
+  NoaaGhcnManifestSourceSchema,
   FileDownloadManifestSourceSchema,
 ]);
 
-export const SourceManifestSchema = z
-  .object({
-    verified_at: z.string().min(1),
-    sources: z.array(ManifestSourceSchema).min(1),
-  })
-  .strict();
+export const SourceManifestSchema = Schema.Struct({
+  verified_at: NonEmptyString,
+  sources: Schema.Array(ManifestSourceSchema).check(Schema.isMinLength(1)),
+});
 
-export type SourceManifest = z.output<typeof SourceManifestSchema>;
-export type ManifestSource = z.output<typeof ManifestSourceSchema>;
-export type SocrataManifestSource = z.output<typeof SocrataManifestSourceSchema>;
+export type SourceManifest = typeof SourceManifestSchema.Type;
+export type ManifestSource = typeof ManifestSourceSchema.Type;
+export type SocrataManifestSource = typeof SocrataManifestSourceSchema.Type;
 
 export function parseSourceManifestObject(input: unknown): SourceManifest {
-  return SourceManifestSchema.parse(input);
+  // All union members use one strict policy; the former file-download passthrough was accidental.
+  return decodeStrict(SourceManifestSchema)(input);
 }
 
 export function isSocrataManifestSource(source: ManifestSource): source is SocrataManifestSource {

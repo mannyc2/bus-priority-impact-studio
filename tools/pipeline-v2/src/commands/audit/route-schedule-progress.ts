@@ -1,5 +1,5 @@
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { auditRouteScheduleProgress } from "@bp/pipeline-v2/local-db-aggregates";
-import { defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
@@ -13,30 +13,30 @@ export default defineCommand({
   input: {
     options: dbOptions,
   },
-  output: z.object({
-    routeCatalogCount: z.number(),
-    socrataRouteSchedules: z.array(
-      z.object({
-        sourceYear: z.number(),
-        rowCount: z.number(),
-        routeCount: z.number(),
-        stopCount: z.number(),
-        timepointRowCount: z.number(),
-        stagedRouteShare: z.number().nullable(),
-        timepointRowShare: z.number().nullable(),
-        likelyTimepointGrain: z.boolean(),
+  output: Schema.Struct({
+    routeCatalogCount: Schema.Number,
+    socrataRouteSchedules: Schema.Array(
+      Schema.Struct({
+        sourceYear: Schema.Number,
+        rowCount: Schema.Number,
+        routeCount: Schema.Number,
+        stopCount: Schema.Number,
+        timepointRowCount: Schema.Number,
+        stagedRouteShare: Schema.NullOr(Schema.Number),
+        timepointRowShare: Schema.NullOr(Schema.Number),
+        likelyTimepointGrain: Schema.Boolean,
       }),
     ),
-    gtfsStaticRuns: z.array(
-      z.object({
-        runId: z.string(),
-        bundleCount: z.number(),
-        routeCount: z.number(),
-        stopCount: z.number(),
-        tripCount: z.number(),
-        stopTimeCount: z.number(),
-        serviceCount: z.number(),
-        sourceIds: z.array(z.string()),
+    gtfsStaticRuns: Schema.Array(
+      Schema.Struct({
+        runId: Schema.String,
+        bundleCount: Schema.Number,
+        routeCount: Schema.Number,
+        stopCount: Schema.Number,
+        tripCount: Schema.Number,
+        stopTimeCount: Schema.Number,
+        serviceCount: Schema.Number,
+        sourceIds: Schema.Array(Schema.String),
       }),
     ),
   }),

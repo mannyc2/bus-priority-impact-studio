@@ -6,14 +6,18 @@ import {
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
 } from "@bp/domain/studio/routes";
-import type * as z from "zod";
+import { Result, type Schema } from "effect";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
+import {
+  ARTIFACT_NOT_AVAILABLE_MESSAGE,
+  SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE,
+} from "../http/messages.js";
+import { decodeSchemaEitherStrip, schemaErrorIssues } from "../schema-decode.js";
+
+type SchemaOutput<TSchema extends Schema.Constraint> = TSchema["Type"];
 
 const defaultStudioReleaseArtifactKey = "studio/v1/release.json";
-const ARTIFACT_NOT_AVAILABLE_MESSAGE = "Artifact is not available.";
-const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
-
 export function studioReleaseKey(env: Pick<StudioApiEnv, "STUDIO_RELEASE_KEY">): string {
   const configuredKey = env.STUDIO_RELEASE_KEY?.trim();
   return configuredKey && configuredKey.length > 0
@@ -61,11 +65,11 @@ export function studioJsonResponse(
   });
 }
 
-export async function loadStudioProjection<TSchema extends z.ZodType>(
+export async function loadStudioProjection<TSchema extends Schema.Constraint>(
   env: Pick<StudioApiEnv, "ARTIFACTS" | "STUDIO_RELEASE_KEY">,
   path: string,
   schema: TSchema,
-): Promise<Response | z.output<TSchema>> {
+): Promise<Response | SchemaOutput<TSchema>> {
   if (env.ARTIFACTS === undefined) {
     console.error("Service dependency is not configured.", {
       context: "Studio API projection load",
@@ -89,13 +93,16 @@ export async function loadStudioProjection<TSchema extends z.ZodType>(
     return errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE);
   }
 
-  const projection = schema.safeParse(payload);
-  if (!projection.success) {
-    console.error("Studio API projection artifact failed contract validation.", { key });
+  const projection = decodeSchemaEitherStrip(schema, payload);
+  if (Result.isFailure(projection)) {
+    console.error("Studio API projection artifact failed contract validation.", {
+      key,
+      issues: schemaErrorIssues(projection.failure),
+    });
     return errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE);
   }
 
-  return projection.data;
+  return projection.success;
 }
 
 export async function loadStudioRouteProjection(

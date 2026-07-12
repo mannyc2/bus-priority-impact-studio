@@ -4,6 +4,11 @@
   "type": "module",
   "description": "Pure domain schemas, branded types, and metric contracts.",
   "exports": {
+    "./decode": {
+      "types": "./src/decode.ts",
+      "bun": "./src/decode.ts",
+      "import": "./src/decode.ts"
+    },
     "./documents": {
       "types": "./src/documents/index.ts",
       "bun": "./src/documents/index.ts",
@@ -14,16 +19,6 @@
       "bun": "./src/documents/candidates/index.ts",
       "import": "./src/documents/candidates/index.ts"
     },
-    "./documents/derived-surfaces": {
-      "types": "./src/documents/derived-surfaces/index.ts",
-      "bun": "./src/documents/derived-surfaces/index.ts",
-      "import": "./src/documents/derived-surfaces/index.ts"
-    },
-    "./documents/discovery": {
-      "types": "./src/documents/discovery/index.ts",
-      "bun": "./src/documents/discovery/index.ts",
-      "import": "./src/documents/discovery/index.ts"
-    },
     "./documents/intervention-records": {
       "types": "./src/documents/intervention-records/index.ts",
       "bun": "./src/documents/intervention-records/index.ts",
@@ -33,16 +28,6 @@
       "types": "./src/documents/operational-date/index.ts",
       "bun": "./src/documents/operational-date/index.ts",
       "import": "./src/documents/operational-date/index.ts"
-    },
-    "./documents/research-surfaces": {
-      "types": "./src/documents/research-surfaces/index.ts",
-      "bun": "./src/documents/research-surfaces/index.ts",
-      "import": "./src/documents/research-surfaces/index.ts"
-    },
-    "./documents/structured-extraction": {
-      "types": "./src/documents/structured-extraction/index.ts",
-      "bun": "./src/documents/structured-extraction/index.ts",
-      "import": "./src/documents/structured-extraction/index.ts"
     },
     "./findings": {
       "types": "./src/findings/index.ts",
@@ -69,11 +54,6 @@
       "bun": "./src/routes/index.ts",
       "import": "./src/routes/index.ts"
     },
-    "./schema-registry": {
-      "types": "./src/schema-registry/index.ts",
-      "bun": "./src/schema-registry/index.ts",
-      "import": "./src/schema-registry/index.ts"
-    },
     "./studio": {
       "types": "./src/studio/index.ts",
       "bun": "./src/studio/index.ts",
@@ -98,6 +78,11 @@
       "types": "./src/studio/interventions.ts",
       "bun": "./src/studio/interventions.ts",
       "import": "./src/studio/interventions.ts"
+    },
+    "./studio/intervention-corpus-key": {
+      "types": "./src/studio/intervention-corpus-key.ts",
+      "bun": "./src/studio/intervention-corpus-key.ts",
+      "import": "./src/studio/intervention-corpus-key.ts"
     },
     "./studio/route-evidence": {
       "types": "./src/studio/route-evidence.ts",
@@ -138,6 +123,16 @@
       "types": "./src/studio/snapshots.ts",
       "bun": "./src/studio/snapshots.ts",
       "import": "./src/studio/snapshots.ts"
+    },
+    "./studio/study-key": {
+      "types": "./src/studio/study-key.ts",
+      "bun": "./src/studio/study-key.ts",
+      "import": "./src/studio/study-key.ts"
+    },
+    "./studio/study": {
+      "types": "./src/studio/study.ts",
+      "bun": "./src/studio/study.ts",
+      "import": "./src/studio/study.ts"
     }
   },
   "scripts": {
@@ -147,7 +142,7 @@
     "test": "bun test ./test --timeout 5000"
   },
   "dependencies": {
-    "zod": "catalog:"
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

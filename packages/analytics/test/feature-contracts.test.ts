@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { SOURCE_GAP_DETECTOR_ID } from "@bp/analytics/detectors";
 import {
   CUSTOMER_JOURNEY_FEATURE_GRAIN,
   type CustomerJourneyFeature,
@@ -35,7 +34,6 @@ import {
   segmentDaypartFeatureKey,
   stopDirectionHourFeatureKey,
 } from "@bp/analytics/features";
-import { getAnalyticsDetector } from "@bp/analytics/registry";
 
 const QUALITY: FeatureQuality = {
   coverageStatus: "complete",
@@ -230,22 +228,6 @@ describe("R1 reliability feature contracts", () => {
       expect(row.quality.freshnessStatus).toBeDefined();
       expect(row.quality.sampleStatus).toBeDefined();
     }
-  });
-
-  test("declares feed health as part of the source-gap coverage authority", () => {
-    const sourceGap = getAnalyticsDetector(SOURCE_GAP_DETECTOR_ID);
-
-    expect(sourceGap?.featureGrains).toContain(FEED_HEALTH_FEATURE_GRAIN);
-    expect(sourceGap?.featureGrains).toContain(ROUTE_TREATMENT_SOURCE_GAP_FEATURE_GRAIN);
-    expect(sourceGap?.missingDataStates).toEqual(
-      expect.arrayContaining([
-        "low_coverage",
-        "feed_stale",
-        "validator_errors",
-        "tsp_current_inventory_missing",
-        "treatment_source_gap",
-      ]),
-    );
   });
 
   test("declares treatment-state feature contracts for detector consumers", () => {

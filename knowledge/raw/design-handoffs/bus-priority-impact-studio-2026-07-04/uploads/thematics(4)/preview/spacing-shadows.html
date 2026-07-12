@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:28px;background:var(--background)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .cell{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+  .card{width:100%;height:90px;border-radius:var(--radius-xl);background:var(--background);border:1px solid var(--border)}
+  .label{font:500 12px var(--font-sans);color:var(--muted-foreground)}
+  .desc{font:400 12px var(--font-sans);color:var(--muted-foreground)}
+</style></head><body>
+<div class="grid">
+  <div class="cell">
+    <div class="card" style="box-shadow:var(--shadow-1)"></div>
+    <div><div class="label">Shadow · 1</div><div class="desc">Hover-elevated interactive cards.</div></div>
+  </div>
+  <div class="cell">
+    <div class="card" style="box-shadow:var(--shadow-2)"></div>
+    <div><div class="label">Shadow · 2</div><div class="desc">Popovers, crossref previews.</div></div>
+  </div>
+  <div class="cell">
+    <div class="card" style="box-shadow:var(--shadow-3)"></div>
+    <div><div class="label">Shadow · 3</div><div class="desc">Modals, sheets.</div></div>
+  </div>
+</div>
+</body></html>

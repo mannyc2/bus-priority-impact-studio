@@ -2,10 +2,10 @@
 title: Domain Contract Package Refactor Plan
 type: engineering
 status: implemented
-last_updated: 2026-06-06
+last_updated: 2026-07-05
 owner: codex
 source_count: 0
-tags: [domain, contracts, package-boundaries, zod, schema-registry, subpath-exports]
+tags: [domain, contracts, package-boundaries, effect-schema, schema-registry, subpath-exports]
 ---
 
 # Domain Contract Package Refactor Plan
@@ -59,7 +59,7 @@ The plan needs repo-specific corrections:
 - Do not keep broad compatibility barrels indefinitely. A short migration overlap is acceptable,
   but completion requires old monolith files and broad root imports to be gone or deliberately
   reduced to a tiny explicit root surface.
-- Move generated JSON Schema and OpenAPI ownership deliberately. Domain should own Zod contracts and
+- Move generated JSON Schema and OpenAPI ownership deliberately. Domain should own Effect Schema contracts and
   generic JSON Schema conversion; Studio route/path/OpenAPI ownership belongs with the Studio API
   contract layer.
 
@@ -86,7 +86,7 @@ local packages or infrastructure. The refactor should preserve that.
 - Make `@bp/domain` a pure contract package with small, explicit source subpaths.
 - Reduce root import cost and accidental public API exposure.
 - Make consumer intent visible in import paths.
-- Separate runtime Zod schemas from generated JSON Schema/OpenAPI artifacts.
+- Separate runtime Effect Schema contracts from generated JSON Schema/OpenAPI artifacts.
 - Split large historical files into owned contract areas without changing behavior.
 - Add package-shape tests before high-blast-radius moves.
 - Preserve the TypeScript-only, Bun-first architecture.
@@ -345,7 +345,7 @@ imports are stable or if this private package becomes a distributed package.
 
 ## Schema Registry Direction
 
-Keep Zod schemas as production contracts. Improve the registry in place:
+Keep Effect Schema contracts as production contracts. Improve the registry in place:
 
 - Rename `registerProjectSchema` to `defineProjectSchema` only if the migration is worth the churn.
 - Add explicit metadata fields such as `audience`, `owner`, and `version` when they are consumed by
@@ -360,8 +360,8 @@ generated schema manifests do not depend on module import order.
 
 ## JSON Schema And OpenAPI Direction
 
-Core schema modules should export Zod schemas and `z.output`/`z.input` types. They should not also
-compute many JSON Schema constants at import time.
+Core schema modules should export Effect Schema contracts and decoded/encoded types. They should
+not also compute many JSON Schema constants at import time.
 
 Move JSON Schema generation to `src/json-schema/*`:
 

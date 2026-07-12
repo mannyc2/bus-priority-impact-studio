@@ -1,15 +1,18 @@
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
 import { StudioSnapshotResponseSchema } from "@bp/domain/studio/snapshots";
 import {
   findRouteSpec,
   isApiPath,
   isStudioApiPath,
+  matchRouteSpec,
+  studioApiRoutes,
   studioRouteTemplate,
 } from "@bp/studio-api/contracts";
 import { studioOpenApiDocument } from "@bp/studio-api/contracts/openapi";
 import { handleStudioApiRequest } from "@bp/studio-api/server";
 import { studioProjectionKey, studioProjectionPrefix } from "../src/studio/projections.js";
-import { handleStudioReadRequest } from "../src/studio/read-handlers.js";
+import { studioReadHandlerRouteIds } from "../src/studio/read-handlers.js";
 
 const quality = {
   releaseLayer: "baseline_release",
@@ -107,6 +110,21 @@ describe("Studio API HTTP helpers", () => {
     expect(findRouteSpec("POST", "/api/v1/rum")?.id).toBe("observability.rum");
     expect(findRouteSpec("POST", "/api/v1/studio/routes")).toBeNull();
     expect(findRouteSpec("GET", "/api/v1/studio/unknown")).toBeNull();
+    expect(matchRouteSpec("GET", "/api/v1/studio/routes/m15-sbs/history")).toEqual(
+      expect.objectContaining({
+        spec: expect.objectContaining({ id: "studio.routeHistory" }),
+        params: { routeId: "m15-sbs" },
+      }),
+    );
+  });
+
+  test("keeps Studio registry routes and read handlers complete", () => {
+    const registryRouteIds = studioApiRoutes
+      .filter((route) => route.tags.some((tag) => tag === "Studio"))
+      .map((route) => route.id)
+      .toSorted();
+
+    expect(studioReadHandlerRouteIds).toEqual(registryRouteIds);
   });
 
   test("builds projection keys from the configured release artifact", () => {
@@ -118,34 +136,6 @@ describe("Studio API HTTP helpers", () => {
     expect(studioProjectionKey(env, "routes/m15-sbs.json")).toBe(
       "studio/v2/releases/2026-06-05/routes/m15-sbs.json",
     );
-  });
-
-  test("serves projection-backed read responses with Studio release headers", async () => {
-    const url = new URL("https://example.test/api/v1/studio/methods");
-    const response = await handleStudioReadRequest(new Request(url), url, {
-      ARTIFACTS: r2Bucket({
-        "studio/v1/methods.json": {
-          schemaVersion: 1,
-          generatedAt: "2026-06-05T00:00:00.000Z",
-          datasets: [
-            {
-              name: "MTA Bus Speeds",
-              publisher: "MTA",
-              grain: "route-month",
-              cadence: "monthly",
-            },
-          ],
-          quality,
-        },
-      }),
-    });
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("X-Studio-Release")).toBe("studio/v1");
-    expect(response.headers.get("Cache-Control")).toContain("stale-while-revalidate=86400");
-
-    const body = (await response.json()) as { datasets: Array<{ name: string }> };
-    expect(body.datasets[0]?.name).toBe("MTA Bus Speeds");
   });
 
   test("routes OpenAPI through the package API facade", async () => {
@@ -172,8 +162,9 @@ describe("Studio API HTTP helpers", () => {
       {
         ARTIFACTS: r2Bucket({
           "studio/v1/routes.json": {
-            schemaVersion: 1,
+            schemaVersion: 2,
             generatedAt: "2026-06-05T00:00:00.000Z",
+            baselineMonth: "2026-03",
             routes: [route],
             quality,
           },
@@ -182,10 +173,18 @@ describe("Studio API HTTP helpers", () => {
             generatedAt: "2026-06-05T00:00:00.000Z",
             datasets: [
               {
+                sourceId: "route_month_trends",
                 name: "MTA Bus Speeds",
                 publisher: "MTA",
                 grain: "route-month",
                 cadence: "monthly",
+                description: "Route/month speed and ridership summary rows.",
+                rowCount: 120,
+                rowLabel: "route-month rows",
+                period: "2026-03",
+                schemaKeys: ["route_id", "month", "average_speed_mph"],
+                method: "route-month-trends",
+                sourceRefCount: 1,
               },
             ],
             quality,
@@ -200,7 +199,7 @@ describe("Studio API HTTP helpers", () => {
         }),
       },
     );
-    const body = StudioSnapshotResponseSchema.parse(await response?.json());
+    const body = decodeStrict(StudioSnapshotResponseSchema)(await response?.json());
 
     expect(response?.status).toBe(200);
     expect(response?.headers.get("ETag")).toMatch(/^"studio-[a-f0-9]{8}"$/);

@@ -1,0 +1,53 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background)}
+  .figure{max-width:680px}
+  figcaption{font:italic 400 14px/1.5 var(--font-serif);color:var(--muted-foreground);margin-top:12px;max-width:560px}
+  .t       { font: 400 14px var(--font-sans); fill: var(--foreground); }
+  .ts      { font: 400 12px var(--font-sans); fill: var(--muted-foreground); }
+  .th      { font: 500 14px var(--font-sans); fill: var(--foreground); }
+  .title   { font: 500 16px var(--font-sans); fill: var(--foreground); }
+  .descr   { font: italic 400 14px var(--font-serif); fill: var(--muted-foreground); }
+  .entry   { font: 400 14px var(--font-sans); fill: var(--foreground); }
+  .col-lbl { font: 500 13px var(--font-sans); }
+</style></head><body>
+<figure class="figure" style="margin:0">
+<svg width="100%" viewBox="0 0 680 280" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>How the Architecture history theme is organised — three sub-themes, seven entries.</title>
+  <desc>A nested diagram with one outer container labelled Architecture history. Inside, three columns separated by hairline dividers: Pedagogy (violet), Schools (emerald), Movements (amber). Each column lists its entries as plain text lines.</desc>
+
+  <rect x="40" y="40" width="600" height="220" rx="16" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+
+  <text class="title" x="60" y="68">Architecture history</text>
+  <text class="descr" x="60" y="90">Seven entries, three editorial passes.</text>
+
+  <line x1="40"  y1="108" x2="640" y2="108" stroke="var(--border)"  stroke-width="1"/>
+  <line x1="240" y1="108" x2="240" y2="260" stroke="var(--divider)" stroke-width="1"/>
+  <line x1="440" y1="108" x2="440" y2="260" stroke="var(--divider)" stroke-width="1"/>
+
+  <circle cx="64" cy="132" r="4" fill="var(--ramp-violet-800)"/>
+  <text class="col-lbl" x="76" y="136" fill="var(--ramp-violet-800)">Pedagogy</text>
+  <text class="entry" x="60" y="168">The Bauhaus pedagogy</text>
+  <text class="entry" x="60" y="194">Itten's Vorkurs</text>
+  <text class="entry" x="60" y="220">Vorkurs as method</text>
+
+  <circle cx="264" cy="132" r="4" fill="var(--ramp-emerald-800)"/>
+  <text class="col-lbl" x="276" y="136" fill="var(--ramp-emerald-800)">Schools</text>
+  <text class="entry" x="260" y="168">Black Mountain College</text>
+  <text class="entry" x="260" y="200">
+    <tspan x="260">Hochschule für Gestaltung</tspan>
+    <tspan x="260" dy="18">Ulm</tspan>
+  </text>
+
+  <circle cx="464" cy="132" r="4" fill="var(--ramp-amber-800)"/>
+  <text class="col-lbl" x="476" y="136" fill="var(--ramp-amber-800)">Movements</text>
+  <text class="entry" x="460" y="168">
+    <tspan x="460">Team 10 and the</tspan>
+    <tspan x="460" dy="18">CIAM rupture</tspan>
+  </text>
+  <text class="entry" x="460" y="220">De Stijl, briefly</text>
+</svg>
+<figcaption>The <em>Architecture history</em> theme, opened. Three sub-themes share a single frame, divided by hairlines rather than nested boxes — colour-coded only on the labels, the way a printed table of contents would mark its sections.</figcaption>
+</figure>
+</body></html>

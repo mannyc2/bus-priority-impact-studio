@@ -10,7 +10,7 @@ const SEO_MANIFEST_PATH = "apps/web/src/studio/seo-manifest.gen.ts";
 const SITEMAP_PATH = "apps/web/public/sitemap.xml";
 
 // Static public pages that always exist regardless of the release contents.
-const STATIC_PUBLIC_PATHS = ["/", "/map", "/interventions", "/methods"] as const;
+const STATIC_PUBLIC_PATHS = ["/", "/map", "/interventions"] as const; // /methods removed: page deleted by plan 052
 
 export type SeoTitleManifest = {
   generatedAt: string;

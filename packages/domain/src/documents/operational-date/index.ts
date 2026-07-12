@@ -1,4 +1,4 @@
-import * as z from "zod";
+import { Schema } from "effect";
 
 /**
  * Operational-date assertions for Tier 2 document-derived events.
@@ -18,16 +18,16 @@ import * as z from "zod";
  * vocabulary (1k+ distinct values); those are preserved for review only.
  */
 
-export const SourceStatedStatusSchema = z.enum([
+export const SourceStatedStatusSchema = Schema.Literals([
   "done", // source says it happened / is in service / complete
   "committed_future", // source states a planned or scheduled launch date
   "proposed", // proposed / conceptual / under study / approved-only — not a committed launch
   "existing", // pre-existing baseline condition, not a new treatment
   "unknown", // status absent or ambiguous (e.g. "ongoing"/"in_progress")
 ]);
-export type SourceStatedStatus = z.output<typeof SourceStatedStatusSchema>;
+export type SourceStatedStatus = typeof SourceStatedStatusSchema.Type;
 
-export const OperationalDateValidationStateSchema = z.enum([
+export const OperationalDateValidationStateSchema = Schema.Literals([
   // Source directly states the intervention is operational/complete on this date.
   // Trust the date; historical GTFS is only an optional route/service exposure check.
   "source_stated_operational_date",
@@ -41,14 +41,14 @@ export const OperationalDateValidationStateSchema = z.enum([
   // Operational-looking intervention with ambiguous status — needs human review.
   "needs_review",
 ]);
-export type OperationalDateValidationState = z.output<typeof OperationalDateValidationStateSchema>;
+export type OperationalDateValidationState = typeof OperationalDateValidationStateSchema.Type;
 
-export const OperationalDateBasisSchema = z.enum([
+export const OperationalDateBasisSchema = Schema.Literals([
   "source_stated_complete",
   "source_stated_plan",
   "not_operational",
 ]);
-export type OperationalDateBasis = z.output<typeof OperationalDateBasisSchema>;
+export type OperationalDateBasis = typeof OperationalDateBasisSchema.Type;
 
 /**
  * Event kinds (from the resolution classifier) that represent an actual
@@ -726,79 +726,277 @@ export function classifyOperationalDate(input: {
   };
 }
 
-export const OperationalDateEvidenceRefSchema = z.object({
-  sourceId: z.string().optional(),
-  blockId: z.string().optional(),
-  pageNumber: z.number().optional(),
-  lineStart: z.number().optional(),
-  lineEnd: z.number().optional(),
-  blockHash: z.string().optional(),
-  roleRaw: z.string().optional(),
+export const OperationalDateEvidenceRefSchema = Schema.Struct({
+  recordId: Schema.optional(Schema.String),
+  sourceId: Schema.optional(Schema.String),
+  evidenceId: Schema.optional(Schema.String),
+  blockId: Schema.optional(Schema.String),
+  pageNumber: Schema.optional(Schema.Number),
+  lineStart: Schema.optional(Schema.Number),
+  lineEnd: Schema.optional(Schema.Number),
+  blockHash: Schema.optional(Schema.String),
+  roleRaw: Schema.optional(Schema.String),
 });
 
-export const OperationalDateAssertionSchema = z.object({
-  surfaceId: z.string(),
-  sourceId: z.string(),
-  sourceTitle: z.string().nullable(),
-  sourceGroup: z.string().nullable(),
-  displayLabel: z.string().nullable(),
-  eventName: z.string().nullable(),
-  treatmentText: z.string().nullable(),
-  locationText: z.string().nullable(),
+export const OperationalDateRoleSchema = Schema.Literals([
+  "status_as_of",
+  "planned_operational",
+  "realized_operational",
+]);
+export type OperationalDateRole = typeof OperationalDateRoleSchema.Type;
+
+export const OperationalAnchorScopeResolutionSchema = Schema.Literals([
+  "direct",
+  "reviewed_inherited",
+  "unreviewed_inherited",
+  "ambiguous",
+  "missing",
+]);
+export type OperationalAnchorScopeResolution = typeof OperationalAnchorScopeResolutionSchema.Type;
+
+export const OperationalAnchorConflictStateSchema = Schema.Literals([
+  "date_conflict",
+  "route_identity_conflict",
+  "status_conflict",
+  "temporal_order_conflict",
+]);
+export type OperationalAnchorConflictState = typeof OperationalAnchorConflictStateSchema.Type;
+
+export const OperationalAnchorExclusionReasonSchema = Schema.Literals([
+  "ambiguous_lifecycle_phase",
+  "ambiguous_route_scope",
+  "ambiguous_treatment_scope",
+  "conflicting_date_evidence",
+  "conflicting_route_identity",
+  "conflicting_status_evidence",
+  "future_delivered_status",
+  "imprecise_operational_date",
+  "missing_event_evidence",
+  "missing_operational_date",
+  "missing_route_scope",
+  "missing_route_scope_evidence",
+  "missing_timeline_evidence",
+  "missing_treatment_scope",
+  "missing_treatment_scope_evidence",
+  "missing_treatment_family",
+  "non_realized_operational_date",
+  "non_source_stated_evidence",
+  "partially_unmatched_gtfs_route",
+  "quarantined_record",
+  "status_as_of_only",
+  "unconfirmed_inherited_scope",
+  "unmatched_gtfs_route",
+  "unreviewed_inherited_scope",
+  "untrusted_source_authority",
+  "unsupported_subject_scope",
+]);
+export type OperationalAnchorExclusionReason = typeof OperationalAnchorExclusionReasonSchema.Type;
+
+export const OperationalAnchorEvidenceCoverageSchema = Schema.Struct({
+  event: Schema.Boolean,
+  timeline: Schema.Boolean,
+  routeScope: Schema.Boolean,
+  treatmentScope: Schema.Boolean,
+});
+export type OperationalAnchorEvidenceCoverage = typeof OperationalAnchorEvidenceCoverageSchema.Type;
+
+export const OperationalAnchorSourceAuthoritySchema = Schema.Literals([
+  "mixed",
+  "non_official",
+  "official_public_agency",
+  "unknown",
+]);
+export type OperationalAnchorSourceAuthority = typeof OperationalAnchorSourceAuthoritySchema.Type;
+
+export const OperationalDateAssertionSchema = Schema.Struct({
+  surfaceId: Schema.String,
+  sourceId: Schema.String,
+  sourceTitle: Schema.NullOr(Schema.String),
+  sourceGroup: Schema.NullOr(Schema.String),
+  displayLabel: Schema.NullOr(Schema.String),
+  eventName: Schema.NullOr(Schema.String),
+  treatmentText: Schema.NullOr(Schema.String),
+  locationText: Schema.NullOr(Schema.String),
   /** The operational date exactly as stated by the source (verbatim text). */
-  operationalDate: z.string().nullable(),
-  datePrecision: z.string().nullable(),
+  operationalDate: Schema.NullOr(Schema.String),
+  datePrecision: Schema.NullOr(Schema.String),
   /** Faithful source signals, preserved for review. */
-  statusRaw: z.string().nullable(),
-  familyRaw: z.string().nullable(),
-  subtypeRaw: z.string().nullable(),
+  statusRaw: Schema.NullOr(Schema.String),
+  familyRaw: Schema.NullOr(Schema.String),
+  subtypeRaw: Schema.NullOr(Schema.String),
   /** Intervention-vs-process axis (from the resolution event classifier). */
-  eventKind: z.string(),
-  interventionFamily: z.string(),
+  eventKind: Schema.String,
+  interventionFamily: Schema.String,
   /** Derived operational-date classification. */
   sourceStatedStatus: SourceStatedStatusSchema,
   dateBasis: OperationalDateBasisSchema,
   validationState: OperationalDateValidationStateSchema,
-  trustedOperationalDate: z.boolean(),
-  classificationReasons: z.array(z.string()),
-  evidenceRefs: z.array(OperationalDateEvidenceRefSchema),
+  trustedOperationalDate: Schema.Boolean,
+  classificationReasons: Schema.Array(Schema.String),
+  evidenceRefs: Schema.Array(OperationalDateEvidenceRefSchema),
   // --- anchor adapter fields (normalized date, route join, dedup, eligibility) ---
   /** Normalized ISO start/end parsed from the verbatim operationalDate. */
-  effectiveDateStart: z.string().nullable(),
-  effectiveDateEnd: z.string().nullable(),
+  effectiveDateStart: Schema.NullOr(Schema.String),
+  effectiveDateEnd: Schema.NullOr(Schema.String),
   /** YYYY-MM, present only for month-or-finer precision (what the event-study resolver wants). */
-  implementationMonth: z.string().nullable(),
+  implementationMonth: Schema.NullOr(Schema.String),
   /** Precision derived from the parse (more reliable than the upstream datePrecision). */
-  normalizedPrecision: z.enum(["day", "month", "year", "range", "season", "unknown"]),
+  normalizedPrecision: Schema.Literals(["day", "month", "year", "range", "season", "unknown"]),
   /** True when the source states a realized onset (not a plan). */
-  isRealizedOnset: z.boolean(),
+  isRealizedOnset: Schema.Boolean,
   /** Route scope joined from the event-route-resolution artifact (by surfaceId). */
-  routeIds: z.array(z.string()),
-  routeIdentityValidationState: z.string().nullable(),
-  routeResolutionTier: z.string().nullable(),
+  routeIds: Schema.Array(Schema.String),
+  routeIdentityValidationState: Schema.NullOr(Schema.String),
+  routeResolutionTier: Schema.NullOr(Schema.String),
   /** Cross-source dedup: one canonical id per (family + month/year + route/location). */
-  interventionId: z.string(),
-  evidenceSourceIds: z.array(z.string()),
-  sourceCount: z.number(),
+  interventionId: Schema.String,
+  evidenceSourceIds: Schema.Array(Schema.String),
+  sourceCount: Schema.Number,
   /** Deterministic confidence in [0,1] for the operational-date assertion. */
-  confidence: z.number(),
+  confidence: Schema.Number,
   /** Realized AND month-or-finer AND route-linked: usable as a causal treatment anchor. */
-  causalAnchorEligible: z.boolean(),
+  causalAnchorEligible: Schema.Boolean,
+  // --- versioned mta-wiki operational-anchor provenance (optional on retired Tier 2 rows) ---
+  producer: Schema.optional(Schema.Literal("mta-wiki")),
+  producerSchemaVersion: Schema.optional(Schema.Literal(1)),
+  producerStudyEligible: Schema.optional(Schema.Boolean),
+  operationalChangeId: Schema.optional(Schema.String),
+  dateRole: Schema.optional(OperationalDateRoleSchema),
+  lifecyclePhase: Schema.optional(Schema.NullOr(Schema.String)),
+  routeScopeResolution: Schema.optional(OperationalAnchorScopeResolutionSchema),
+  treatmentScopeResolution: Schema.optional(OperationalAnchorScopeResolutionSchema),
+  scopeResolution: Schema.optional(OperationalAnchorScopeResolutionSchema),
+  treatmentRecordIds: Schema.optional(Schema.Array(Schema.String)),
+  treatmentFamilies: Schema.optional(Schema.Array(Schema.String)),
+  conflictStates: Schema.optional(Schema.Array(OperationalAnchorConflictStateSchema)),
+  exclusionReasons: Schema.optional(Schema.Array(OperationalAnchorExclusionReasonSchema)),
+  evidenceCoverage: Schema.optional(OperationalAnchorEvidenceCoverageSchema),
+  candidateOperationalDatesNormalized: Schema.optional(Schema.Array(Schema.String)),
+  statusAsOfDates: Schema.optional(Schema.Array(Schema.String)),
+  assertionStatuses: Schema.optional(Schema.Array(Schema.String)),
+  truthStatus: Schema.optional(Schema.String),
+  truthStatuses: Schema.optional(Schema.Array(Schema.String)),
+  reviewState: Schema.optional(Schema.String),
+  sourceAuthority: Schema.optional(OperationalAnchorSourceAuthoritySchema),
+  sourcePublishers: Schema.optional(Schema.Array(Schema.String)),
+  wikiReleaseId: Schema.optional(Schema.String),
+  wikiGeneratorCommit: Schema.optional(Schema.String),
+  wikiManifestSha256: Schema.optional(Schema.String),
+  wikiAnchorArtifactPath: Schema.optional(Schema.String),
+  wikiAnchorArtifactSha256: Schema.optional(Schema.String),
+  wikiAnchorId: Schema.optional(Schema.String),
+  wikiAnchorIds: Schema.optional(Schema.Array(Schema.String)),
+  wikiEventRecordId: Schema.optional(Schema.String),
+  wikiTimelineRelationRecordIds: Schema.optional(Schema.Array(Schema.String)),
+  wikiProjectRecordIds: Schema.optional(Schema.Array(Schema.String)),
+  wikiSubjectRecordIds: Schema.optional(Schema.Array(Schema.String)),
+  wikiRouteRecordIds: Schema.optional(Schema.Array(Schema.String)),
+  wikiUnmatchedRouteRecordIds: Schema.optional(Schema.Array(Schema.String)),
+  wikiSourceIds: Schema.optional(Schema.Array(Schema.String)),
 });
-export type OperationalDateAssertion = z.output<typeof OperationalDateAssertionSchema>;
+export type OperationalDateAssertion = typeof OperationalDateAssertionSchema.Type;
 
-/** Realized onset + month-or-finer date + a resolved route scope = causal-anchor usable. */
+/** Strict normalized assertion emitted only by the pinned mta-wiki release importer. */
+export const WikiOperationalDateAssertionSchema = Schema.Struct({
+  ...OperationalDateAssertionSchema.fields,
+  producer: Schema.Literal("mta-wiki"),
+  producerSchemaVersion: Schema.Literal(1),
+  producerStudyEligible: Schema.Boolean,
+  operationalChangeId: Schema.String,
+  dateRole: OperationalDateRoleSchema,
+  lifecyclePhase: Schema.NullOr(Schema.String),
+  routeScopeResolution: OperationalAnchorScopeResolutionSchema,
+  treatmentScopeResolution: OperationalAnchorScopeResolutionSchema,
+  scopeResolution: OperationalAnchorScopeResolutionSchema,
+  treatmentRecordIds: Schema.Array(Schema.String),
+  treatmentFamilies: Schema.Array(Schema.String),
+  conflictStates: Schema.Array(OperationalAnchorConflictStateSchema),
+  exclusionReasons: Schema.Array(OperationalAnchorExclusionReasonSchema),
+  evidenceCoverage: OperationalAnchorEvidenceCoverageSchema,
+  candidateOperationalDatesNormalized: Schema.Array(Schema.String),
+  statusAsOfDates: Schema.Array(Schema.String),
+  assertionStatuses: Schema.Array(Schema.String),
+  truthStatus: Schema.String,
+  truthStatuses: Schema.Array(Schema.String),
+  reviewState: Schema.String,
+  sourceAuthority: OperationalAnchorSourceAuthoritySchema,
+  sourcePublishers: Schema.Array(Schema.String),
+  wikiReleaseId: Schema.String,
+  wikiGeneratorCommit: Schema.String,
+  wikiManifestSha256: Schema.String,
+  wikiAnchorArtifactPath: Schema.String,
+  wikiAnchorArtifactSha256: Schema.String,
+  wikiAnchorId: Schema.String,
+  wikiAnchorIds: Schema.Array(Schema.String),
+  wikiEventRecordId: Schema.String,
+  wikiTimelineRelationRecordIds: Schema.Array(Schema.String),
+  wikiProjectRecordIds: Schema.Array(Schema.String),
+  wikiSubjectRecordIds: Schema.Array(Schema.String),
+  wikiRouteRecordIds: Schema.Array(Schema.String),
+  wikiUnmatchedRouteRecordIds: Schema.Array(Schema.String),
+  wikiSourceIds: Schema.Array(Schema.String),
+});
+export type WikiOperationalDateAssertion = typeof WikiOperationalDateAssertionSchema.Type;
+
+const realizedOperationalLifecyclePhases = new Set([
+  "completed",
+  "expanded",
+  "installed",
+  "launched",
+  "modified",
+  "piloted",
+  "resumed",
+]);
+
+export function isRealizedOperationalLifecyclePhase(value: string | null): boolean {
+  return value !== null && realizedOperationalLifecyclePhases.has(value);
+}
+
+/** Fully evidenced realized onset + phase + month-or-finer date + atomic scope. */
 export function computeCausalAnchorEligibility(input: {
+  producerStudyEligible: boolean;
   trustedOperationalDate: boolean;
   isRealizedOnset: boolean;
+  eventFamily: string | null;
+  dateRole: OperationalDateRole;
+  lifecyclePhase: string | null;
   normalizedPrecision: NormalizedDatePrecision;
   routeCount: number;
+  treatmentCount: number;
+  treatmentFamilyCount: number;
+  routeScopeResolution: OperationalAnchorScopeResolution;
+  treatmentScopeResolution: OperationalAnchorScopeResolution;
+  scopeResolution: OperationalAnchorScopeResolution;
+  evidenceComplete: boolean;
+  conflictCount: number;
+  exclusionCount: number;
+  reviewState: string;
+  truthStatuses: readonly string[];
+  sourceAuthority: OperationalAnchorSourceAuthority;
 }): boolean {
+  const resolved = (value: OperationalAnchorScopeResolution): boolean =>
+    value === "direct" || value === "reviewed_inherited";
   return (
+    input.producerStudyEligible &&
     input.trustedOperationalDate &&
     input.isRealizedOnset &&
+    (input.eventFamily === "implementation" || input.eventFamily === "launch") &&
+    input.dateRole === "realized_operational" &&
+    isRealizedOperationalLifecyclePhase(input.lifecyclePhase) &&
     (input.normalizedPrecision === "day" || input.normalizedPrecision === "month") &&
-    input.routeCount > 0
+    input.routeCount === 1 &&
+    input.treatmentCount === 1 &&
+    input.treatmentFamilyCount === 1 &&
+    resolved(input.routeScopeResolution) &&
+    resolved(input.treatmentScopeResolution) &&
+    resolved(input.scopeResolution) &&
+    input.evidenceComplete &&
+    input.conflictCount === 0 &&
+    input.exclusionCount === 0 &&
+    input.reviewState !== "quarantined" &&
+    input.truthStatuses.length > 0 &&
+    input.truthStatuses.every((status) => status === "source_stated") &&
+    input.sourceAuthority === "official_public_agency"
   );
 }
 

@@ -1,24 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
-import { ChartFrame } from "@/components/ChartFrame";
-import { CorridorProfile } from "@/components/CorridorProfile";
+import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 import { FilterChips } from "@/components/FilterChips";
 import { HourBars } from "@/components/HourBars";
-import { RPubSlowCard } from "@/components/route/RoutePublicAtoms";
 import { averageHourlySpeed } from "@/components/route/route-derived";
 import {
   insightTargetsSegment,
   routeInsightPlacements,
   safeInsightCaveats,
 } from "@/components/route/route-insight-placement";
-import { SegmentCarpet } from "@/components/route/SegmentCarpet";
-import { routeSectionTitle } from "@/components/route/section-registry";
-import { buildSegmentCarpetModel } from "@/components/route/segment-carpet-data";
 import {
-  type WhereWhenSummary,
-  whereWhenSegmentBadge,
-  whereWhenSummary,
-} from "@/components/route/where-when-summary";
-import { SectionHeader } from "@/components/SectionHeader";
+  formatMonthLabel,
+  type SegmentHistorySeries,
+  segmentHistorySeries,
+} from "@/components/route/segment-history-data";
+import { whereWhenSegmentBadge } from "@/components/route/where-when-summary";
+import { SectionCard } from "@/components/SectionCard";
+import { SegmentRow, SegmentRowHeader } from "@/components/SegmentRow";
+import { SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
+import { Spark } from "@/components/Spark";
 import { Badge } from "@/components/ui/badge";
 import { fetchStudioRouteHourlyProfile, fetchStudioRouteSpeedHistory } from "@/studio/api-client";
 import type {
@@ -32,9 +30,7 @@ import type {
   StudioSegment,
 } from "@/studio/api-contract";
 
-type SegmentIdentity = {
-  id: string;
-};
+type DirectionFilter = "all" | "NB" | "SB" | "EB" | "WB";
 
 type RouteSpeedHistoryState =
   | { status: "loading"; data: null }
@@ -46,22 +42,21 @@ type RouteHourlyProfileState =
   | { status: "ready"; data: StudioRouteHourlyProfileResponse }
   | { status: "unavailable"; data: null };
 
-export function prioritizeWhereWhenSegments<T extends SegmentIdentity>(
-  insightSegments: readonly T[],
-  fallbackSegments: readonly T[],
+/** Ranked slow-segment ordering: rider-hours lost per weekday, desc, within the
+ * active direction filter. Exported so the ordering is unit-tested directly. */
+export function rankSlowSegments<T extends { id: string; direction: string; riderHours: number }>(
+  segments: readonly T[],
+  direction: DirectionFilter,
 ): T[] {
-  return [
-    ...new Map(
-      [...insightSegments, ...fallbackSegments].map((segment) => [segment.id, segment] as const),
-    ).values(),
-  ];
+  const filtered =
+    direction === "all" ? segments : segments.filter((segment) => segment.direction === direction);
+  return [...filtered].sort((left, right) => right.riderHours - left.riderHours);
 }
 
 export function SlowSegmentsSection({
   route,
   segments,
   insights,
-  flaggedId,
   dossier,
   peakWindows,
   slowestWindows,
@@ -74,132 +69,239 @@ export function SlowSegmentsSection({
   peakWindows?: readonly StudioRouteHourlyProfilePeakWindow[];
   slowestWindows?: readonly StudioRouteHourlyProfileSlowestWindow[];
 }) {
-  const [direction, setDirection] = useState<"all" | "NB" | "SB" | "EB" | "WB">("all");
+  const [direction, setDirection] = useState<DirectionFilter>("all");
+  const [showAll, setShowAll] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+
   const segmentHourProfile = averageHourlySpeed(route, segments);
-  const summary = whereWhenSummary({ route, segments, dossier: dossier ?? null });
   const hourlyProfile = useRouteHourlyProfile(route.slug);
   const speedHistory = useRouteSpeedHistory(route.slug);
   const hourProfile = useMemo(
     () => chartHoursFromHourlyProfile(hourlyProfile.data, segmentHourProfile),
     [hourlyProfile.data, segmentHourProfile],
   );
-  const carpetModel = useMemo(
-    () => buildSegmentCarpetModel(speedHistory.data, segments),
+  const historySeries = useMemo(
+    () => segmentHistorySeries(speedHistory.data, segments),
     [speedHistory.data, segments],
-  );
-  const carpetSource = carpetSourceLabel(
-    speedHistory,
-    carpetModel.months.length,
-    carpetModel.rows.length,
   );
 
   const mapInsights = routeInsightPlacements(insights).mapSegment;
   const segmentInsight = (segment: StudioSegment) =>
     mapInsights.find((insight) => insightTargetsSegment(insight, segment.id)) ?? null;
-  const directionSegments =
-    direction === "all" ? segments : segments.filter((segment) => segment.direction === direction);
-  const topVisible = directionSegments.slice(0, 5);
-  const matchedInsightSegments = directionSegments.filter((segment) => segmentInsight(segment));
-  const visible = prioritizeWhereWhenSegments(
-    [
-      ...directionSegments.filter((segment) => segment.id === dossier?.worstSegment?.segmentId),
-      ...matchedInsightSegments,
-    ],
-    topVisible,
-  );
-  const featured = visible.slice(0, 3);
-  const routeMedianMph = medianSegmentSpeed(directionSegments);
+
+  const ranked = rankSlowSegments(segments, direction);
+  const topId = ranked[0]?.id ?? null;
+  const visible = showAll ? ranked : ranked.slice(0, 8);
+  const aboutEntries = slowSegmentsAboutEntries(segments.length, speedHistory, hourlyProfile);
 
   return (
-    <section className="flex flex-col gap-5">
-      <SectionHeader
-        title={routeSectionTitle("where-when")}
-        sub={summary.sectionSubtitle}
+    <div className="flex flex-col gap-5">
+      <SectionCard
+        title="Where the route loses time"
+        sub="Timepoint segments ranked by rider-hours lost per weekday."
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <FilterChips
               ariaLabel="Direction"
               value={direction}
-              onChange={setDirection}
+              onChange={(next) => {
+                setDirection(next);
+                setShowAll(false);
+                setOpenId(null);
+              }}
               options={[
                 { id: "all" as const, label: "All" },
                 { id: "NB" as const, label: "NB" },
                 { id: "SB" as const, label: "SB" },
               ]}
             />
+            <SourceNote label="About this data" entries={aboutEntries} />
           </div>
         }
-      />
-      {featured.length > 0 ? (
-        <div className="grid grid-cols-3 gap-4 max-xl:grid-cols-1">
-          {featured.map((segment, index) => (
-            <RPubSlowCard
-              key={segment.id}
-              segment={segment}
-              routeMedianMph={routeMedianMph}
-              badge={whereWhenSegmentBadge({ segment, dossier: dossier ?? null })}
-              rank={index + 1}
-              note={
-                segmentInsight(segment) ? (
-                  <SegmentInsightNote insight={segmentInsight(segment) as StudioRouteInsight} />
-                ) : segment.aiNote ? (
-                  <p className="m-0 text-[12px] leading-[1.55] text-[var(--bp-color-ink-70)]">
-                    {segment.aiNote}
-                  </p>
-                ) : null
-              }
-            />
-          ))}
-        </div>
-      ) : null}
-      <WhereWhenSummaryCards summary={summary} />
-      <WhereWhenWindowChips
-        hourlyProfile={hourlyProfile.data}
-        peakWindows={peakWindows ?? []}
-        slowestWindows={slowestWindows ?? []}
-      />
-      <div className="grid grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)] gap-5 max-xl:grid-cols-1">
-        <div className="rounded-[3px] bg-[var(--bp-color-card)] px-5 py-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-          <SectionHeader title="Profile" />
-          <CorridorProfile route={route} segments={segments} highlightId={flaggedId} />
-        </div>
-        <ChartFrame title="By hour" height={164} source={hourProfileSource(hourlyProfile)}>
-          <HourBars
-            data={hourProfile}
-            sched={route.scheduledMph}
-            height={164}
-            min={Math.max(0, Math.floor(Math.min(...hourProfile) - 1))}
-            max={Math.ceil(Math.max(route.scheduledMph, ...hourProfile) + 1)}
-            legend
-          />
-        </ChartFrame>
-      </div>
-      <ChartFrame
-        title="Segment history"
-        height={320}
-        {...(carpetSource ? { source: carpetSource } : {})}
-        right={
-          <Badge variant={speedHistory.status === "ready" ? "neutral" : "warn"}>
-            {speedHistory.status === "ready"
-              ? (carpetModel.latestMonth ?? "ready")
-              : speedHistory.status}
-          </Badge>
-        }
       >
-        {speedHistory.status === "loading" ? (
-          <div
-            className="h-[300px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"
-            aria-hidden
-          />
+        {ranked.length === 0 ? (
+          <p className="m-0 py-6 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
+            No timepoint segments match this direction.
+          </p>
         ) : (
-          <SegmentCarpet model={carpetModel} />
+          <>
+            <SegmentRowHeader />
+            {visible.map((segment) => {
+              const insight = segmentInsight(segment);
+              const badge = whereWhenSegmentBadge({ segment, dossier: dossier ?? null });
+              const note = insight ? (
+                <SegmentInsightNote insight={insight} />
+              ) : segment.aiNote ? (
+                <p className="m-0 text-[12px] leading-[1.55] text-[var(--bp-color-ink-70)]">
+                  {segment.aiNote}
+                </p>
+              ) : null;
+              const open = openId === segment.id;
+              return (
+                <Fragment key={segment.id}>
+                  <SegmentRow
+                    dir={segment.direction}
+                    from={segment.from}
+                    to={segment.to}
+                    mph={segment.speedMph}
+                    {...(segment.scheduledMph === null ? {} : { sched: segment.scheduledMph })}
+                    riderHours={Math.round(segment.riderHours)}
+                    hours={segment.hours}
+                    lane={segment.lane}
+                    ace={segment.ace}
+                    tsp={segment.tsp}
+                    {...(segment.id === topId ? { flag: "top" as const } : {})}
+                    hasNote={note !== null || badge !== null}
+                    noteOpen={open}
+                    onClick={() => setOpenId(open ? null : segment.id)}
+                  />
+                  {open ? (
+                    <SegmentDetail
+                      badge={badge}
+                      note={note}
+                      series={historySeries.series.get(segment.id) ?? null}
+                      historyStatus={speedHistory.status}
+                    />
+                  ) : null}
+                </Fragment>
+              );
+            })}
+            {ranked.length > 8 ? (
+              <button
+                type="button"
+                onClick={() => setShowAll((value) => !value)}
+                className="mt-1 w-full rounded-[3px] px-3 py-2.5 text-[12px] font-semibold text-[var(--bp-color-ink-55)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)] transition-colors hover:text-[var(--bp-color-ink)]"
+              >
+                {showAll ? "Show fewer segments" : `Show all ${ranked.length} segments`}
+              </button>
+            ) : null}
+          </>
         )}
-      </ChartFrame>
-      <div className="mt-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
-        {featured.length} of {segments.length} segments highlighted.
-      </div>
-    </section>
+      </SectionCard>
+
+      <SectionCard title="Speed by hour" sub={hourProfileSource(hourlyProfile)}>
+        <div className="flex flex-col gap-3">
+          <WhereWhenWindowChips
+            hourlyProfile={hourlyProfile.data}
+            peakWindows={peakWindows ?? []}
+            slowestWindows={slowestWindows ?? []}
+          />
+          {hourProfile === null ? (
+            <div className="flex h-[164px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
+              Route hourly profile is not attached yet.
+            </div>
+          ) : (
+            <HourBars
+              data={hourProfile}
+              {...(route.scheduledMph === null ? {} : { sched: route.scheduledMph })}
+              height={164}
+              min={Math.max(0, Math.floor(Math.min(...hourProfile) - 1))}
+              max={Math.ceil(
+                Math.max(
+                  ...(route.scheduledMph === null ? [] : [route.scheduledMph]),
+                  ...hourProfile,
+                ) + 1,
+              )}
+              legend
+            />
+          )}
+        </div>
+      </SectionCard>
+    </div>
   );
+}
+
+function SegmentDetail({
+  badge,
+  note,
+  series,
+  historyStatus,
+}: {
+  badge: string | null;
+  note: ReactNode;
+  series: SegmentHistorySeries | null;
+  historyStatus: RouteSpeedHistoryState["status"];
+}) {
+  return (
+    <div className="bg-[var(--bp-color-accent-bg)] px-3 pb-4 pt-2 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+      <div className="flex flex-col gap-3 md:ml-7">
+        {badge ? (
+          <div>
+            <Badge variant="bad">{badge}</Badge>
+          </div>
+        ) : null}
+        {note}
+        <SegmentSparkline series={series} historyStatus={historyStatus} />
+      </div>
+    </div>
+  );
+}
+
+function SegmentSparkline({
+  series,
+  historyStatus,
+}: {
+  series: SegmentHistorySeries | null;
+  historyStatus: RouteSpeedHistoryState["status"];
+}) {
+  if (historyStatus === "loading") {
+    return (
+      <div
+        className="h-[36px] w-[220px] animate-pulse rounded-[2px] bg-[var(--bp-color-ink-06)]"
+        aria-hidden
+      />
+    );
+  }
+  const points = series?.speeds.filter((speed): speed is number => speed !== null) ?? [];
+  if (series === null || points.length < 2) {
+    return (
+      <p className="m-0 text-[11.5px] text-[var(--bp-color-ink-55)]">
+        No month history for this segment.
+      </p>
+    );
+  }
+  const first = series.months[0];
+  const last = series.months.at(-1);
+  const label =
+    first !== undefined && last !== undefined
+      ? `${formatMonthLabel(first)} – ${formatMonthLabel(last)}`
+      : null;
+  return (
+    <div className="flex items-center gap-3">
+      <Spark data={points} width={220} height={36} fill />
+      {label ? (
+        <span className="font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">{label}</span>
+      ) : null}
+    </div>
+  );
+}
+
+function slowSegmentsAboutEntries(
+  segmentCount: number,
+  speedHistory: RouteSpeedHistoryState,
+  hourlyProfile: RouteHourlyProfileState,
+): SourceNoteEntry[] {
+  const entries: SourceNoteEntry[] = [
+    { label: `${segmentCount} timepoint ${segmentCount === 1 ? "segment" : "segments"}` },
+  ];
+  if (speedHistory.status === "ready") {
+    const months = speedHistory.data.dimensions.months;
+    const first = months[0];
+    const last = months.at(-1);
+    const window =
+      first !== undefined && last !== undefined
+        ? ` (${formatMonthLabel(first)}–${formatMonthLabel(last)})`
+        : "";
+    entries.push({
+      label: `${months.length} ${months.length === 1 ? "month" : "months"} of segment speed history${window}`,
+    });
+  }
+  if (hourlyProfile.status === "ready" && hourlyProfile.data.summary.latestMonth !== null) {
+    entries.push({
+      label: `${formatMonthLabel(hourlyProfile.data.summary.latestMonth)} hourly profile`,
+    });
+  }
+  return entries;
 }
 
 function useRouteHourlyProfile(routeSlug: string): RouteHourlyProfileState {
@@ -248,26 +350,16 @@ function useRouteSpeedHistory(routeSlug: string): RouteSpeedHistoryState {
 
 function chartHoursFromHourlyProfile(
   profile: StudioRouteHourlyProfileResponse | null,
-  fallback: readonly number[],
-): number[] {
-  if (profile === null) return [...fallback];
-  return profile.hours.map((hour, index) => hour.averageSpeedMph ?? fallback[index] ?? 0);
+  fallback: readonly number[] | null,
+): number[] | null {
+  if (profile === null) return fallback === null ? null : [...fallback];
+  return profile.hours.map((hour, index) => hour.averageSpeedMph ?? fallback?.[index] ?? 0);
 }
 
 function hourProfileSource(state: RouteHourlyProfileState): string {
   if (state.status === "loading") return "Loading route hourly profile.";
-  if (state.status === "unavailable") return "Segment-derived hourly fallback.";
+  if (state.status === "unavailable") return "Route hourly profile unavailable.";
   return `${state.data.summary.latestMonth ?? "latest"} route-hour profile`;
-}
-
-function carpetSourceLabel(
-  state: RouteSpeedHistoryState,
-  monthCount: number,
-  segmentCount: number,
-): string | undefined {
-  if (state.status === "loading") return "Loading speed history.";
-  if (state.status === "unavailable") return "Speed history unavailable.";
-  return `${monthCount} months / ${segmentCount} segments`;
 }
 
 function latestWindows<T extends { month: string }>(rows: readonly T[], limit = 3): T[] {
@@ -345,59 +437,6 @@ function compactWindowNumber(value: number): string {
   return String(Math.round(value));
 }
 
-function WhereWhenSummaryCards({ summary }: { summary: WhereWhenSummary }) {
-  return (
-    <div className="grid grid-cols-4 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-xl:grid-cols-2 max-sm:grid-cols-1">
-      <WhereWhenStat label="Speed" value={summary.currentSpeedLabel} sub={summary.peerLabel} />
-      <WhereWhenStat
-        label="Trend"
-        value={summary.movementLabel}
-        sub={summary.movementDetail}
-        tone={summary.movementTone}
-      />
-      <WhereWhenStat label="Window" value={summary.windowLabel} sub={summary.coverageLabel} />
-      <WhereWhenStat
-        label="Worst"
-        value={summary.worstSegmentLabel}
-        sub={summary.worstSegmentDetail}
-      />
-    </div>
-  );
-}
-
-function WhereWhenStat({
-  label,
-  value,
-  sub,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  tone?: WhereWhenSummary["movementTone"];
-}) {
-  const color =
-    tone === "bad"
-      ? "var(--bp-color-bad)"
-      : tone === "good"
-        ? "var(--bp-color-good)"
-        : "var(--bp-color-ink)";
-  return (
-    <div className="min-w-0 p-4 shadow-[inset_-1px_0_0_var(--bp-color-rule)] last:shadow-none max-xl:nth-2:shadow-none max-sm:shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
-      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-        {label}
-      </div>
-      <div
-        className="mt-1 truncate font-mono text-[20px] font-semibold leading-tight"
-        style={{ color }}
-      >
-        {value}
-      </div>
-      <div className="mt-1 text-[11.5px] leading-[1.4] text-[var(--bp-color-ink-55)]">{sub}</div>
-    </div>
-  );
-}
-
 function SegmentInsightNote({ insight }: { insight: StudioRouteInsight }) {
   const caveats = safeInsightCaveats(insight, 2);
   return (
@@ -413,17 +452,4 @@ function SegmentInsightNote({ insight }: { insight: StudioRouteInsight }) {
       </span>
     </div>
   );
-}
-
-function medianSegmentSpeed(segments: readonly StudioSegment[]): number | null {
-  const speeds = segments
-    .map((segment) => segment.speedMph)
-    .filter((speed) => Number.isFinite(speed) && speed > 0)
-    .toSorted((left, right) => left - right);
-  if (speeds.length === 0) return null;
-  const mid = Math.floor(speeds.length / 2);
-  if (speeds.length % 2 === 1) return speeds[mid] ?? null;
-  const left = speeds[mid - 1];
-  const right = speeds[mid];
-  return left === undefined || right === undefined ? null : (left + right) / 2;
 }

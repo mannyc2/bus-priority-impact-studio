@@ -1,7 +1,8 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import type { SocrataManifestSource } from "@bp/sources/registry";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
@@ -176,41 +177,57 @@ export default defineCommand({
   path: ["plan", "source-refresh"],
   summary: "Write the production source-refresh plan for GTFS-RT and monthly speed data.",
   input: {
-    options: z.object({
-      startYear: arg.positiveInt().optional().describe("Start of year range for the speed watcher"),
-      endYear: arg.positiveInt().optional().describe("End of year range for the speed watcher"),
-      year: arg.positiveInt().optional().describe("Requested calendar year (with --month)"),
-      month: arg.positiveInt().optional().describe("Requested calendar month, 1-12 (with --year)"),
-      lastBuiltYear: arg.positiveInt().optional().describe("Last built calendar year"),
-      lastBuiltMonth: arg.positiveInt().optional().describe("Last built calendar month"),
+    options: Schema.Struct({
+      startYear: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Start of year range for the speed watcher",
+      }),
+      endYear: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "End of year range for the speed watcher",
+      }),
+      year: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Requested calendar year (with --month)",
+      }),
+      month: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Requested calendar month, 1-12 (with --year)",
+      }),
+      lastBuiltYear: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Last built calendar year",
+      }),
+      lastBuiltMonth: Schema.optionalKey(arg.positiveInt()).annotate({
+        description: "Last built calendar month",
+      }),
       minSpeedRoutes: arg
         .positiveInt()
-        .default(1)
-        .describe("Minimum routes for a 'complete' month"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+        .annotate({ description: "Minimum routes for a 'complete' month" }),
       gtfsRtSampleSeconds: arg
         .positiveInt()
-        .default(30)
-        .describe("GTFS-RT collector sample period"),
-      output: z.string().optional().describe("Override path for the plan JSON"),
-      artifactRoot: z.string().optional().describe("Artifact root directory"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(30)))
+        .annotate({ description: "GTFS-RT collector sample period" }),
+      output: Schema.optionalKey(Schema.String).annotate({
+        description: "Override path for the plan JSON",
+      }),
+      artifactRoot: Schema.optionalKey(Schema.String).annotate({
+        description: "Artifact root directory",
+      }),
     }),
   },
-  output: z.object({
-    checkedAt: z.string(),
-    requestedMonth: z.string().nullable(),
-    lastBuiltMonth: z.string().nullable(),
-    routeSpeedAvailability: z.unknown(),
-    jobs: z.array(
-      z.object({
-        id: z.string(),
-        requiredForV1: z.boolean(),
-        cadence: z.string(),
-        status: z.string(),
-        evidence: z.string(),
-        nextActions: z.array(z.string()),
+  output: Schema.Struct({
+    checkedAt: Schema.String,
+    requestedMonth: Schema.NullOr(Schema.String),
+    lastBuiltMonth: Schema.NullOr(Schema.String),
+    routeSpeedAvailability: Schema.Unknown,
+    jobs: Schema.Array(
+      Schema.Struct({
+        id: Schema.String,
+        requiredForV1: Schema.Boolean,
+        cadence: Schema.String,
+        status: Schema.String,
+        evidence: Schema.String,
+        nextActions: Schema.Array(Schema.String),
       }),
     ),
-    artifactPath: z.string(),
+    artifactPath: Schema.String,
   }),
   async run({ input }) {
     return runSourceRefreshPlan({

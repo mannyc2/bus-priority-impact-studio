@@ -6,7 +6,7 @@ import {
   listGtfsRtFeedSnapshots,
   listGtfsRtParsedSnapshots,
 } from "@bp/db/local";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -315,20 +315,29 @@ export default defineCommand({
   path: ["gtfs-rt", "run-status"],
   summary: "Report the readiness of a GTFS-RT collection run for downstream builds.",
   input: {
-    options: dbOptions.extend({
-      runId: z.string().optional().describe("Specific run ID (default: latest)"),
-      artifactRoot: z.string().optional().describe("Artifact root directory"),
-      output: z.string().optional().describe("Override artifact JSON path"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        runId: Schema.optionalKey(Schema.String).annotate({
+          description: "Specific run ID (default: latest)",
+        }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Artifact root directory",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact JSON path",
+        }),
+      },
     }),
   },
-  output: z.object({
-    status: z.enum(["found", "missing"]),
-    runId: z.string().nullable(),
-    collection: z.unknown(),
-    parsed: z.unknown(),
-    readiness: z.unknown(),
-    nextCommands: z.array(z.string()),
-    artifactPath: z.string().optional(),
+  output: Schema.Struct({
+    status: Schema.Literals(["found", "missing"]),
+    runId: Schema.NullOr(Schema.String),
+    collection: Schema.Unknown,
+    parsed: Schema.Unknown,
+    readiness: Schema.Unknown,
+    nextCommands: Schema.Array(Schema.String),
+    artifactPath: Schema.optionalKey(Schema.String),
   }),
   async run({ input }) {
     const artifactRoot =

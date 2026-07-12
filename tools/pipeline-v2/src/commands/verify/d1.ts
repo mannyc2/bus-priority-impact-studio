@@ -1,5 +1,5 @@
 import { dirname, join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
 import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
 import { runPipelineFileSystemBoundary } from "../../effect/file-system.ts";
@@ -22,6 +22,7 @@ export type D1VerifyResult = {
   analysisPeriod: string;
   generatedAt: string;
   summaryPath: string;
+  schemaPath: string;
   seedPath: string;
   status: "pass" | "fail";
   issueCount: number;
@@ -74,6 +75,7 @@ export type VerifyD1Inputs = {
   year: number;
   month: number;
   exportRoot?: string | undefined;
+  artifactRoot?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
   routeEvidenceIndexPath?: string | undefined;
 };
@@ -127,6 +129,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     year: inputs.year,
     month: inputs.month,
     exportRoot: inputs.exportRoot,
+    artifactRoot: inputs.artifactRoot,
     routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
     routeEvidenceIndexPath: inputs.routeEvidenceIndexPath,
   });
@@ -162,6 +165,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     analysisPeriod: month,
     generatedAt: new Date().toISOString(),
     summaryPath: join(dirname(exportResult.seedPath), "verify-summary.json"),
+    schemaPath: exportResult.schemaPath,
     seedPath: exportResult.seedPath,
     status: "pass",
     issueCount: 0,
@@ -177,32 +181,46 @@ export default defineCommand({
   path: ["verify", "d1"],
   summary: "Verify a generated D1 schema and seed against an in-memory replay.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      exportRoot: z.string().optional().describe("Override export root directory"),
-      routeTimelineProjectionPath: z
-        .string()
-        .optional()
-        .describe("Optional route timeline serving projection JSON to fold into D1 verification"),
-      routeEvidenceIndexPath: z
-        .string()
-        .optional()
-        .describe("Optional MTA-wiki route evidence index JSON to fold into D1 verification"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        exportRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override export root directory",
+        }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root for D1 derivative inputs and outputs",
+        }),
+        routeTimelineProjectionPath: Schema.optionalKey(Schema.String).annotate({
+          description:
+            "Optional route timeline serving projection JSON to fold into D1 verification",
+        }),
+        routeEvidenceIndexPath: Schema.optionalKey(Schema.String).annotate({
+          description: "Optional MTA-wiki route evidence index JSON to fold into D1 verification",
+        }),
+      },
     }),
   },
-  output: z.object({
-    schemaVersion: z.number(),
-    isoMonth: z.string(),
-    analysisPeriod: z.string(),
-    generatedAt: z.string(),
-    summaryPath: z.string(),
-    seedPath: z.string(),
-    status: z.enum(["pass", "fail"]),
-    issueCount: z.number(),
-    tableCounts: z.record(z.string(), z.number()),
-    expectedCounts: z.record(z.string(), z.number()),
-    repositoryChecks: z.unknown(),
+  output: Schema.Struct({
+    schemaVersion: Schema.Number,
+    isoMonth: Schema.String,
+    analysisPeriod: Schema.String,
+    generatedAt: Schema.String,
+    summaryPath: Schema.String,
+    schemaPath: Schema.String,
+    seedPath: Schema.String,
+    status: Schema.Literals(["pass", "fail"]),
+    issueCount: Schema.Number,
+    tableCounts: Schema.Record(Schema.String, Schema.Number),
+    expectedCounts: Schema.Record(Schema.String, Schema.Number),
+    repositoryChecks: Schema.Unknown,
   }),
   async run({ input }) {
     const month = isoMonth(input.options.year, input.options.month);
@@ -223,6 +241,10 @@ export default defineCommand({
             input.options.exportRoot === undefined
               ? undefined
               : fromCliPath(input.options.exportRoot),
+          artifactRoot:
+            input.options.artifactRoot === undefined
+              ? undefined
+              : fromCliPath(input.options.artifactRoot),
           routeTimelineProjectionPath:
             input.options.routeTimelineProjectionPath === undefined
               ? undefined

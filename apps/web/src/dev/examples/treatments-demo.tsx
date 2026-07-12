@@ -1,4 +1,3 @@
-import { MapThumb } from "@/components/MapThumb";
 import { SectionHeader } from "@/components/SectionHeader";
 import { TreatmentRow } from "@/components/TreatmentRow";
 
@@ -9,7 +8,6 @@ export function TreatmentsDemo() {
       <div className="flex flex-col gap-4">
         <TreatmentRow lane="yes" ace tsp />
         <TreatmentRow lane="partial" ace={false} tsp={false} align="flex-start" />
-        <MapThumb width={180} height={104} label="Madison Av segment" />
       </div>
     </div>
   );

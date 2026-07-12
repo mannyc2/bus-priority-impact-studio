@@ -1,4 +1,4 @@
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { fromCliPath } from "../../lib/paths.ts";
 import {
   type BusObservatoryAvailabilityResult,
@@ -99,25 +99,25 @@ export default defineCommand({
   path: ["check", "bus-observatory-gtfs-rt-range"],
   summary: "Check Bus Observatory recovered GTFS-RT availability across a month range.",
   input: {
-    options: z.object({
-      since: z
-        .string()
-        .regex(/^\d{4}-\d{1,2}$/)
-        .describe("Start month, YYYY-MM"),
-      until: z
-        .string()
-        .regex(/^\d{4}-\d{1,2}$/)
-        .describe("End month, YYYY-MM"),
-      artifactRoot: z.string().optional().describe("Artifact root directory"),
+    options: Schema.Struct({
+      since: Schema.String.check(Schema.isPattern(/^\d{4}-\d{1,2}$/)).annotate({
+        description: "Start month, YYYY-MM",
+      }),
+      until: Schema.String.check(Schema.isPattern(/^\d{4}-\d{1,2}$/)).annotate({
+        description: "End month, YYYY-MM",
+      }),
+      artifactRoot: Schema.optionalKey(Schema.String).annotate({
+        description: "Artifact root directory",
+      }),
     }),
   },
-  output: z.object({
-    sinceMonth: z.string(),
-    untilMonth: z.string(),
-    monthCount: z.number(),
-    totalFileCount: z.number(),
-    totalSizeBytes: z.number(),
-    months: z.array(z.unknown()),
+  output: Schema.Struct({
+    sinceMonth: Schema.String,
+    untilMonth: Schema.String,
+    monthCount: Schema.Number,
+    totalFileCount: Schema.Number,
+    totalSizeBytes: Schema.Number,
+    months: Schema.Array(Schema.Unknown),
   }),
   async run({ input }) {
     const since = parseMonthArg(input.options.since, "since");

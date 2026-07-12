@@ -1,0 +1,64 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background);font-family:var(--font-sans)}
+  .figure{max-width:680px}
+  .panel{display:flex;flex-direction:column;gap:14px;padding:20px 24px;border:1px solid var(--border);border-radius:var(--radius-xl);background:var(--background)}
+  .heading{font:400 14px/1.5 var(--font-serif);font-style:italic;color:var(--muted-foreground);margin:0}
+  .row{display:flex;align-items:center;gap:14px}
+  .row label{font:400 14px var(--font-sans);color:var(--muted-foreground);min-width:96px}
+  .row input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:999px;background:linear-gradient(to right, var(--primary) 0%, var(--primary) var(--p), var(--surface-3) var(--p), var(--surface-3) 100%);outline:none}
+  .row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--background);border:1.5px solid var(--primary);cursor:pointer;box-shadow:var(--shadow-1)}
+  .row input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--background);border:1.5px solid var(--primary);cursor:pointer}
+  .readout{font:500 16px var(--font-serif);color:var(--foreground);min-width:64px;text-align:right}
+  .summary{font:400 17px/1.55 var(--font-serif);color:var(--foreground);margin:0;padding:8px 0 0}
+  .summary em{font-style:italic;color:var(--muted-foreground)}
+  .scrub{font:400 13px/1.4 var(--font-sans);color:var(--muted-foreground);display:flex;justify-content:space-between;margin-top:-2px}
+  figcaption{font:italic 400 14px/1.5 var(--font-serif);color:var(--muted-foreground);margin-top:14px;max-width:560px}
+</style></head><body>
+<figure class="figure" style="margin:0">
+  <div class="panel">
+    <p class="heading">Drag the year — the description updates with what the Bauhaus looked like then.</p>
+    <div class="row">
+      <label for="y">Year</label>
+      <input id="y" type="range" min="1919" max="1933" step="1" value="1923" style="--p:29%">
+      <span class="readout" id="yr">1923</span>
+    </div>
+    <div class="scrub" aria-hidden="true"><span>1919</span><span>Weimar → Dessau → Berlin</span><span>1933</span></div>
+    <p class="summary" id="sum"><em>1923.</em> Itten departs; Moholy-Nagy reforms the preliminary course toward industrial form. Enrolment: about 140.</p>
+  </div>
+  <figcaption>An interactive timeline embedded in the entry on the Bauhaus pedagogy. The slider drives a one-sentence summary in serif, not a stat chain.</figcaption>
+</figure>
+<script>
+  const data = {
+    1919: ['1919', 'Walter Gropius founds the school in Weimar. The first manifesto sets craft and art on equal footing. Enrolment: about 35.'],
+    1920: ['1920', 'Itten arrives. Workshops in colour, materials, and observation form the new preliminary course. Enrolment: about 90.'],
+    1921: ['1921', 'Klee joins the faculty; the Bauhaus magazine begins. Enrolment: about 100.'],
+    1922: ['1922', 'Kandinsky arrives; tension between Itten\u2019s mysticism and Gropius\u2019s industrialism sharpens. Enrolment: about 120.'],
+    1923: ['1923', 'Itten departs; Moholy-Nagy reforms the preliminary course toward industrial form. Enrolment: about 140.'],
+    1924: ['1924', 'Funding cut by the Thuringian state. Plans for relocation begin. Enrolment: about 130.'],
+    1925: ['1925', 'School relocates to Dessau. New purpose-built campus by Gropius. Enrolment: about 170.'],
+    1926: ['1926', 'Bauhaus Dessau opens. The school is renamed Hochschule für Gestaltung. Enrolment: about 180.'],
+    1927: ['1927', 'Hannes Meyer joins as architecture director. Enrolment: about 190.'],
+    1928: ['1928', 'Gropius resigns; Hannes Meyer becomes director. Curriculum turns explicitly socialist. Enrolment: about 200.'],
+    1929: ['1929', 'Travelling exhibition tours Europe. Conflict between Meyer and the local government deepens. Enrolment: about 195.'],
+    1930: ['1930', 'Meyer dismissed; Mies van der Rohe takes the directorship and depoliticises the curriculum. Enrolment: about 180.'],
+    1931: ['1931', 'Mies tightens discipline; politics suppressed inside the school. Enrolment: about 160.'],
+    1932: ['1932', 'Dessau council, now Nazi-controlled, closes the school. Mies reopens it privately in Berlin. Enrolment: about 90.'],
+    1933: ['1933', 'Gestapo raids the Berlin Bauhaus; staff vote to dissolve. Many emigrate. Enrolment: 0.'],
+  };
+  const slider = document.getElementById('y');
+  const readout = document.getElementById('yr');
+  const sum = document.getElementById('sum');
+  function update() {
+    const y = parseInt(slider.value, 10);
+    readout.textContent = y;
+    const [year, text] = data[y];
+    sum.innerHTML = '<em>' + year + '.</em> ' + text;
+    const p = Math.round(((y - 1919) / (1933 - 1919)) * 100) + '%';
+    slider.style.setProperty('--p', p);
+  }
+  slider.addEventListener('input', update);
+  update();
+</script>
+</body></html>

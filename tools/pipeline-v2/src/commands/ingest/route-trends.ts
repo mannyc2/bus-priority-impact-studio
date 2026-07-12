@@ -1,7 +1,9 @@
 import { listRouteBuildPlan, replaceRouteMonthTrends } from "@bp/db/local";
+import { decodeStrip } from "@bp/domain/decode";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, monthRange, nextIsoMonthStart } from "../../lib/dates.ts";
@@ -64,15 +66,17 @@ type LocalSpeedTrendRow = {
   average_speed_mph: number | null;
 };
 
-const RawRidershipTrendRowSchema = z
-  .object({
-    bus_route: z.string().min(1),
-    year: z.coerce.number().int(),
-    month: z.coerce.number().int().min(1).max(12),
-    ridership: z.coerce.number().nonnegative(),
-    transfers: z.coerce.number().nonnegative(),
-  })
-  .passthrough();
+const RawRidershipTrendRowSchema = Schema.Struct({
+  bus_route: Schema.String.check(Schema.isMinLength(1)),
+  year: arg.number().check(Schema.isInt()),
+  month: arg
+    .number()
+    .check(Schema.isInt())
+    .check(Schema.isGreaterThanOrEqualTo(1))
+    .check(Schema.isLessThanOrEqualTo(12)),
+  ridership: arg.number().check(Schema.isGreaterThanOrEqualTo(0)),
+  transfers: arg.number().check(Schema.isGreaterThanOrEqualTo(0)),
+});
 
 function trendKey(routeId: string, month: string): string {
   return `${routeId}::${month}`;
@@ -186,7 +190,7 @@ function addRidershipRows(
   routeIdSet: ReadonlySet<string>,
 ): void {
   for (const row of rows) {
-    const parsed = RawRidershipTrendRowSchema.parse(row);
+    const parsed = decodeStrip(RawRidershipTrendRowSchema)(row);
     const routeId = parsed.bus_route;
     if (!routeIdSet.has(routeId)) continue;
     const month = isoMonth(parsed.year, parsed.month);
@@ -333,29 +337,48 @@ export default defineCommand({
   path: ["ingest", "route-trends"],
   summary: "Fetch monthly speed and ridership trends for build-plan routes across a month range.",
   input: {
-    options: dbOptions.extend({
-      startYear: arg.positiveInt().default(2023).describe("Start of year range"),
-      startMonth: arg.positiveInt().default(1).describe("Start month, 1-12"),
-      endYear: arg.positiveInt().default(2026).describe("End of year range"),
-      endMonth: arg.positiveInt().default(3).describe("End month, 1-12"),
-      routes: z
-        .array(z.string())
-        .default([])
-        .describe("Specific route IDs (default: read from build plan)"),
-      routesFile: z.string().optional().describe("JSON file containing route IDs"),
-      skipRidership: z.coerce.boolean().default(false).describe("Skip the ridership trend fetch"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        startYear: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2023)))
+          .annotate({ description: "Start of year range" }),
+        startMonth: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+          .annotate({ description: "Start month, 1-12" }),
+        endYear: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "End of year range" }),
+        endMonth: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "End month, 1-12" }),
+        routes: Schema.Array(Schema.String)
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+          .annotate({ description: "Specific route IDs (default: read from build plan)" }),
+        routesFile: Schema.optionalKey(Schema.String).annotate({
+          description: "JSON file containing route IDs",
+        }),
+        skipRidership: arg
+          .boolean()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+          .annotate({ description: "Skip the ridership trend fetch" }),
+      },
     }),
   },
-  output: z.object({
-    startMonth: z.string(),
-    endMonth: z.string(),
-    routeCount: z.number(),
-    monthCount: z.number(),
-    rowCount: z.number(),
-    speedRowCount: z.number(),
-    ridershipRowCount: z.number(),
-    completeTrendRowCount: z.number(),
-    monthsWithoutCellSpeedCoverage: z.array(z.string()),
+  output: Schema.Struct({
+    startMonth: Schema.String,
+    endMonth: Schema.String,
+    routeCount: Schema.Number,
+    monthCount: Schema.Number,
+    rowCount: Schema.Number,
+    speedRowCount: Schema.Number,
+    ridershipRowCount: Schema.Number,
+    completeTrendRowCount: Schema.Number,
+    monthsWithoutCellSpeedCoverage: Schema.Array(Schema.String),
   }),
   async run({ input }) {
     const routes = await mergeRoutesWithFile(input.options.routes, input.options.routesFile);

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { ChartsDemo } from "@/dev/examples/charts-demo";
 import { CorridorDemo } from "@/dev/examples/corridor-demo";
-import { CorridorProfileDemo } from "@/dev/examples/corridor-profile-demo";
 import { FoundationsDemo } from "@/dev/examples/foundations-demo";
 import { MetricsDemo } from "@/dev/examples/metrics-demo";
 import { SegmentRowDemo } from "@/dev/examples/segment-row-demo";
@@ -97,7 +96,6 @@ export function SystemGallery() {
           sub="Two views of one corridor: the spatial speed profile (route Overview) reads geography left→right, and the temporal trend reads before/after a treatment. Both feed from Tier 2 evidence."
         >
           <div className="flex flex-col gap-6">
-            <CorridorProfileDemo />
             <CorridorDemo />
           </div>
         </GallerySection>

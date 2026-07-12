@@ -1,0 +1,59 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background);display:flex;flex-direction:column;gap:18px}
+  .ov{font:500 12px var(--font-sans);color:var(--muted-foreground);margin-bottom:8px}
+  .input{display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--background);font:400 14px var(--font-sans);color:var(--foreground)}
+  .input.focus{border-color:var(--primary);box-shadow:var(--shadow-focus)}
+  .input.search{background:var(--surface)}
+  .input input{flex:1;border:0;outline:none;background:transparent;font:inherit;color:inherit}
+  .input input::placeholder{color:var(--subtle-foreground)}
+  .kbd{font:500 11px var(--font-mono);color:var(--muted-foreground);background:var(--background);border:1px solid var(--border);padding:1px 6px;border-radius:4px}
+  svg{width:16px;height:16px;color:var(--muted-foreground);flex:0 0 16px}
+  .results{border:1px solid var(--border);border-radius:var(--radius-xl);background:var(--background);box-shadow:var(--shadow-2);overflow:hidden;max-width:560px}
+  .group{padding:6px 0;border-bottom:1px solid var(--divider)}
+  .group:last-child{border-bottom:0}
+  .group-label{padding:10px 14px 4px;font:500 12px var(--font-sans);color:var(--muted-foreground)}
+  .item{display:flex;align-items:center;gap:10px;padding:8px 14px;font:400 14px var(--font-sans);color:var(--foreground);cursor:pointer}
+  .item:hover, .item.active{background:var(--surface)}
+  .item .sub{font:400 12px var(--font-mono);color:var(--muted-foreground)}
+  .item.active{background:var(--primary-soft)}
+  .chip{display:inline-flex;align-items:center;gap:5px;height:18px;padding:0 7px;border-radius:var(--radius-pill);font:500 10px var(--font-sans)}
+  .dot{width:5px;height:5px;border-radius:50%}
+</style></head><body>
+
+<div>
+  <div class="ov">Search · default</div>
+  <div class="input search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input placeholder="Search entries, themes, references…">
+    <span class="kbd">⌘ K</span>
+  </div>
+</div>
+
+<div>
+  <div class="ov">Open · focus + results</div>
+  <div class="input focus search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input value="bauhaus" autofocus>
+  </div>
+  <div class="results" style="margin-top:8px">
+    <div class="group">
+      <div class="group-label">Entries · 3</div>
+      <div class="item active">
+        <span class="chip" style="background:var(--tag-amber-soft);color:var(--tag-amber-ink)"><span class="dot" style="background:var(--tag-amber-ink)"></span>Typo</span>
+        The <strong>Bauhaus</strong> pedagogy <span class="sub" style="margin-left:auto">/architecture-history</span>
+      </div>
+      <div class="item">
+        <span class="chip" style="background:var(--tag-violet-soft);color:var(--tag-violet-ink)"><span class="dot" style="background:var(--tag-violet-ink)"></span>Phil</span>
+        Moholy-Nagy and the New <strong>Bauhaus</strong> <span class="sub" style="margin-left:auto">/people</span>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-label">Themes · 1</div>
+      <div class="item">⁂ Architecture history <span class="sub" style="margin-left:auto">12 entries</span></div>
+    </div>
+  </div>
+</div>
+
+</body></html>

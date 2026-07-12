@@ -17,7 +17,6 @@ describe("build parking-violation-matches command boundary", () => {
     expect(source).toContain('from "@bp/pipeline-v2/local-db-aggregates"');
     expect(source).toContain("parkingViolationMatchAuditPath");
     expect(source).toContain("countParkingViolationLocationGroups");
-    expect(source).toContain("hydrateParkingViolationRawFields");
     expect(source).toContain("hydrateParkingViolationLionRawFields");
     expect(source).toContain("refreshParkingViolationLocationKeys");
     expect(source).toContain("runBuildParkingViolationMatchesLocalDb");
@@ -28,6 +27,9 @@ describe("build parking-violation-matches command boundary", () => {
     expect(source).not.toContain("withLocalDb");
     expect(source).not.toContain("localDbFromCtx");
     expect(source).not.toContain("parkingLocationKey");
+    expect(source).not.toContain("hydrateParkingViolationRawFields");
+    expect(source).not.toContain("data/raw/parking-violations");
+    expect(source).not.toContain("rawParkingDir");
     expect(source).not.toContain("UPDATE local_parking_violation");
     expect(source).not.toContain("UPDATE local_lion_segment");
     expect(source).not.toContain("street_code_master = ?");

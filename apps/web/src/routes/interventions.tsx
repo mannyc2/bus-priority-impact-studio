@@ -1,11 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import { routeHead } from "../lib/head.js";
 import {
+  fetchStudioInterventionCorpus,
   fetchStudioInterventionsEvidence,
   fetchStudioRoutes,
+  fetchStudioStudiesIndex,
   staticStudioLoaderStaleTimeMs,
 } from "../studio/api-client.js";
-import { InterventionsLoadingPage, InterventionsPage } from "../studio/pages/interventions.js";
+
+// Lazy so the page module (SourceNote popover stack) stays out of the entry bundle.
+const InterventionsPage = lazy(() =>
+  import("../studio/pages/interventions.js").then((module) => ({
+    default: module.InterventionsPage,
+  })),
+);
 
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
@@ -13,12 +22,22 @@ function isAbortError(error: unknown): boolean {
 
 export const Route = createFileRoute("/interventions")({
   loader: async ({ abortController }) => {
-    const [routes, evidenceResult] = await Promise.all([
+    const [routes, evidenceResult, corpusResult, studiesIndex] = await Promise.all([
       fetchStudioRoutes({ signal: abortController.signal }),
       fetchStudioInterventionsEvidence({ signal: abortController.signal }).then(
         (evidence) => ({ ok: true, evidence }) as const,
         (error: unknown) => ({ ok: false, error }) as const,
       ),
+      fetchStudioInterventionCorpus({ signal: abortController.signal }).then(
+        (corpus) => ({ ok: true, corpus }) as const,
+        (error: unknown) => ({ ok: false, error }) as const,
+      ),
+      // Studies index is nullable; a failure never blocks the page.
+      fetchStudioStudiesIndex({ signal: abortController.signal }).catch((error: unknown) => {
+        if (isAbortError(error)) throw error;
+        console.warn("Studies index request failed; rendering rows without studies.", { error });
+        return null;
+      }),
     ]);
 
     if (!evidenceResult.ok) {
@@ -26,13 +45,31 @@ export const Route = createFileRoute("/interventions")({
       console.warn("Interventions evidence request failed; rendering route records only.", {
         error: evidenceResult.error,
       });
-      return { routes, evidence: [] };
+      if (!corpusResult.ok && isAbortError(corpusResult.error)) throw corpusResult.error;
+      return {
+        routes,
+        evidence: [],
+        corpus: corpusResult.ok ? corpusResult.corpus : null,
+        studiesIndex,
+      };
     }
 
-    return { routes, evidence: evidenceResult.evidence.bundles };
+    if (!corpusResult.ok) {
+      if (isAbortError(corpusResult.error)) throw corpusResult.error;
+      console.warn("Intervention corpus request failed; rendering registry records only.", {
+        error: corpusResult.error,
+      });
+    }
+
+    return {
+      routes,
+      evidence: evidenceResult.evidence.bundles,
+      corpus: corpusResult.ok ? corpusResult.corpus : null,
+      studiesIndex,
+    };
   },
   staleTime: staticStudioLoaderStaleTimeMs,
-  pendingComponent: InterventionsLoadingPage,
+  pendingComponent: InterventionsRouteFallback,
   head: () =>
     routeHead(
       "Interventions",
@@ -43,5 +80,24 @@ export const Route = createFileRoute("/interventions")({
 
 function InterventionsRoute() {
   const data = Route.useLoaderData();
-  return <InterventionsPage routes={data.routes.routes} evidence={data.evidence} />;
+  return (
+    <Suspense fallback={<InterventionsRouteFallback />}>
+      <InterventionsPage
+        routes={data.routes.routes}
+        evidence={data.evidence}
+        corpus={data.corpus}
+        studiesIndex={data.studiesIndex}
+      />
+    </Suspense>
+  );
+}
+
+function InterventionsRouteFallback() {
+  return (
+    <main className="min-h-full p-7 max-sm:p-4">
+      <div className="mb-6 h-[84px] max-w-[640px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]" />
+      <div className="mb-5 h-[74px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]" />
+      <div className="h-[420px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]" />
+    </main>
+  );
 }

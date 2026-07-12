@@ -1,13 +1,12 @@
-import { join } from "node:path";
 import { upsertParkingViolations } from "@bp/db/local";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   BUS_RELEVANT_PARKING_CODES,
   normalizeParkingViolationRows,
 } from "@bp/sources/adapters/nyc-open-data/parking-violations";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { Effect } from "effect";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { parkingLocationKey } from "../../lib/parking-location.ts";
@@ -18,7 +17,7 @@ import {
   type SocrataRow,
   type Soda3SoqlQuery,
 } from "../../lib/soda3.ts";
-import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const parkingFiscalYearSources = [
   { start: "2022-07", end: "2023-06", sourceId: "nyc_parking_violations_fy2023" },
@@ -32,14 +31,11 @@ export type ParkingViolationsRunInputs = {
   year: number;
   month: number;
   codes?: readonly number[] | undefined;
-  fetchedAt?: Date | undefined;
   fetcher?: SocrataFetch | undefined;
   manifestText?: string | undefined;
-  snapshotPath?: string | undefined;
 };
 
 export type ParkingViolationsIngestResult = {
-  rawPath: string;
   isoMonth: string;
   sourceId: string;
   rowCount: number;
@@ -67,10 +63,6 @@ export async function runParkingViolationsIngest(
     (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
   const sourceId = parkingSourceIdForMonth(inputs.year, inputs.month);
   const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
-  const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
-  const rawPath =
-    inputs.snapshotPath ??
-    fromRepoRoot(join("data/raw/parking-violations", `parking-violations-${monthKey}.json`));
 
   const codeList = codes.join(",");
   const query: Soda3SoqlQuery = {
@@ -103,59 +95,47 @@ export async function runParkingViolationsIngest(
 
   await upsertParkingViolations(inputs.local.db, rows);
 
-  await writeRawSourceSnapshot({
-    path: rawPath,
-    sourceId,
-    extra: { isoMonth: monthKey, codes: [...codes] },
-    fetchedAt,
-    query: { grain: "summons_number", month: monthKey, codeFilter: codes.length },
-    rows: rawRows,
-  });
-
   const codeBreakdown = [...codes].map((code) => ({
     code,
     count: rows.filter((r) => r.violationCode === code).length,
   }));
-  return { rawPath, isoMonth: monthKey, sourceId, rowCount: rows.length, codeBreakdown };
+  return { isoMonth: monthKey, sourceId, rowCount: rows.length, codeBreakdown };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "parking-violations"],
   summary: "Fetch monthly bus-relevant parking violations across fiscal-year datasets.",
-  input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      codes: z
-        .array(arg.int())
-        .default([])
-        .describe("Override violation codes (default: BUS_RELEVANT_PARKING_CODES)"),
-    }),
-  },
-  output: z.object({
-    rawPath: z.string(),
-    isoMonth: z.string(),
-    sourceId: z.string(),
-    rowCount: z.number(),
-    codeBreakdown: z.array(z.object({ code: z.number(), count: z.number() })),
-  }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.parking-violations",
-      operation: "runParkingViolationsIngest",
-      spanAttributes: {
-        year: input.options.year,
-        month: input.options.month,
-        codeCount: input.options.codes.length,
-      },
-      run: (local) =>
-        runParkingViolationsIngest({
-          local,
-          year: input.options.year,
-          month: input.options.month,
-          codes: input.options.codes.length > 0 ? input.options.codes : undefined,
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      year: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+        .annotate({ description: "Calendar year" }),
+      month: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+        .annotate({ description: "Calendar month, 1-12" }),
+      codes: Schema.Array(arg.int())
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+        .annotate({
+          description: "Override violation codes (default: BUS_RELEVANT_PARKING_CODES)",
         }),
-    });
-  },
+    },
+  }),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    sourceId: Schema.String,
+    rowCount: Schema.Number,
+    codeBreakdown: Schema.Array(Schema.Struct({ code: Schema.Number, count: Schema.Number })),
+  }),
+  operation: "runParkingViolationsIngest",
+  spanAttributes: ({ year, month, codes }) => ({ year, month, codeCount: codes.length }),
+  runner: (local, { year, month, codes }) =>
+    runParkingViolationsIngest({
+      local,
+      year,
+      month,
+      codes: codes.length > 0 ? codes : undefined,
+    }),
 });

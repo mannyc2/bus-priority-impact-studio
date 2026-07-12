@@ -1,96 +1,90 @@
-import * as z from "zod";
+import { Schema } from "effect";
 import { StudioQualitySchema } from "../shared.js";
 
-export const StudioMethodDatasetSchema = z
-  .object({
-    name: z.string(),
-    publisher: z.string(),
-    grain: z.string(),
-    cadence: z.string(),
-  })
-  .strip();
+export const StudioMethodDatasetSchema = Schema.Struct({
+  sourceId: Schema.String.check(Schema.isMinLength(1)),
+  name: Schema.String,
+  publisher: Schema.String,
+  grain: Schema.String,
+  cadence: Schema.String,
+  description: Schema.String,
+  rowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  rowLabel: Schema.String,
+  period: Schema.String,
+  schemaKeys: Schema.Array(Schema.String),
+  method: Schema.String,
+  sourceRefCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+});
 
-export const StudioMethodsResponseSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    datasets: z.array(StudioMethodDatasetSchema),
-    quality: StudioQualitySchema,
-  })
-  .strict();
+export const StudioMethodsResponseSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  datasets: Schema.Array(StudioMethodDatasetSchema),
+  quality: StudioQualitySchema,
+});
 
-export const StudioDocsEndpointSchema = z
-  .object({
-    method: z.string(),
-    path: z.string(),
-    body: z.string(),
-  })
-  .strip();
+export const StudioDocsEndpointSchema = Schema.Struct({
+  method: Schema.String,
+  path: Schema.String,
+  body: Schema.String,
+});
 
-export const StudioDocsSourceLinkSchema = z
-  .object({
-    label: z.string(),
-    url: z.string(),
-  })
-  .strict();
+export const StudioDocsSourceLinkSchema = Schema.Struct({
+  label: Schema.String,
+  url: Schema.String,
+});
 
-export const StudioDocsSourceSchema = z
-  .object({
-    sourceId: z.string(),
-    name: z.string(),
-    publisher: z.string(),
-    role: z.string(),
-    decision: z.string(),
-    detectorEligibility: z.string(),
-    rowCount: z.number().int().nonnegative(),
-    rowLabel: z.string(),
-    period: z.string(),
-    monthCount: z.number().int().nonnegative().nullable(),
-    geocodeRate: z.number().nullable(),
-    joinRate: z.number().nullable(),
-    primaryEvidenceAllowed: z.boolean(),
-    automaticPromotionAllowed: z.boolean(),
-    readinessStatus: z.string(),
-    readinessReasons: z.array(z.string()),
-    sourceLinks: z.array(StudioDocsSourceLinkSchema),
-    use: z.string(),
-  })
-  .strict();
+export const StudioDocsSourceSchema = Schema.Struct({
+  sourceId: Schema.String,
+  name: Schema.String,
+  publisher: Schema.String,
+  role: Schema.String,
+  decision: Schema.String,
+  detectorEligibility: Schema.String,
+  rowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  rowLabel: Schema.String,
+  period: Schema.String,
+  monthCount: Schema.NullOr(
+    Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
+  geocodeRate: Schema.NullOr(Schema.Number),
+  joinRate: Schema.NullOr(Schema.Number),
+  primaryEvidenceAllowed: Schema.Boolean,
+  automaticPromotionAllowed: Schema.Boolean,
+  readinessStatus: Schema.String,
+  readinessReasons: Schema.Array(Schema.String),
+  sourceLinks: Schema.Array(StudioDocsSourceLinkSchema),
+  use: Schema.String,
+});
 
-export const StudioDocsSectionSchema = z
-  .object({
-    title: z.string(),
-    body: z.array(z.string()),
-    code: z.string().optional(),
-  })
-  .strict();
+export const StudioDocsSectionSchema = Schema.Struct({
+  title: Schema.String,
+  body: Schema.Array(Schema.String),
+  code: Schema.optional(Schema.String),
+});
 
-export const StudioSpeedPercentileContextSchema = z
-  .object({
-    metric: z.string(),
-    peerUniverse: z.string(),
-    peerUniverseLabel: z.string(),
-    rank: z.number().int().positive(),
-    routeCount: z.number().int().positive(),
-    direction: z.string(),
-  })
-  .strict();
+export const StudioSpeedPercentileContextSchema = Schema.Struct({
+  metric: Schema.String,
+  peerUniverse: Schema.String,
+  peerUniverseLabel: Schema.String,
+  rank: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  direction: Schema.String,
+});
 
-export const StudioDocsResponseSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    sections: z.array(StudioDocsSectionSchema),
-    endpoints: z.array(StudioDocsEndpointSchema),
-    quality: StudioQualitySchema,
-  })
-  .strip();
+export const StudioDocsResponseSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  sections: Schema.Array(StudioDocsSectionSchema),
+  endpoints: Schema.Array(StudioDocsEndpointSchema),
+  quality: StudioQualitySchema,
+});
 
-export type StudioMethodDataset = z.output<typeof StudioMethodDatasetSchema>;
-export type StudioMethodsResponse = z.output<typeof StudioMethodsResponseSchema>;
-export type StudioDocsEndpoint = z.output<typeof StudioDocsEndpointSchema>;
-export type StudioDocsSourceLink = z.output<typeof StudioDocsSourceLinkSchema>;
-export type StudioDocsSource = z.output<typeof StudioDocsSourceSchema>;
-export type StudioDocsSection = z.output<typeof StudioDocsSectionSchema>;
-export type StudioSpeedPercentileContext = z.output<typeof StudioSpeedPercentileContextSchema>;
-export type StudioDocsResponse = z.output<typeof StudioDocsResponseSchema>;
+export type StudioMethodDataset = typeof StudioMethodDatasetSchema.Type;
+export type StudioMethodsResponse = typeof StudioMethodsResponseSchema.Type;
+export type StudioDocsEndpoint = typeof StudioDocsEndpointSchema.Type;
+export type StudioDocsSourceLink = typeof StudioDocsSourceLinkSchema.Type;
+export type StudioDocsSource = typeof StudioDocsSourceSchema.Type;
+export type StudioDocsSection = typeof StudioDocsSectionSchema.Type;
+export type StudioSpeedPercentileContext = typeof StudioSpeedPercentileContextSchema.Type;
+export type StudioDocsResponse = typeof StudioDocsResponseSchema.Type;

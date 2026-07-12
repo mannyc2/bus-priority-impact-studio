@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { replaceRouteCatalog } from "@bp/db/local";
+import { Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type NormalizedRouteShape,
   type NormalizedStop,
@@ -8,12 +9,11 @@ import {
 } from "@bp/sources/adapters/mta/routes-stops";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 import { fetchSoda3RowsForSource, type SocrataFetch } from "../../lib/soda3.ts";
 import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const schemaVersion = 1;
 
@@ -242,10 +242,15 @@ export async function runRouteCatalogIngest(
   const rawDir = inputs.rawDir ?? fromRepoRoot(join("data/raw/network"));
   const routeQuery = { where: "in_effect='true'", order: "route_id,direction_id,shape_id" };
   const stopQuery = { where: "in_effect='true'", order: "route_id,direction_id,stop_id" };
-  const [routeRows, stopRows] = await Promise.all([
-    fetchSoda3RowsForSource(routeSource, routeQuery, { fetcher: inputs.fetcher }),
-    fetchSoda3RowsForSource(stopSource, stopQuery, { fetcher: inputs.fetcher }),
-  ]);
+  // The data.ny.gov SODA3 query service rejects overlapping paginated reads for
+  // these two large datasets. Keep the infrequent catalog refresh serial so a
+  // successful route response cannot race the multi-page stop response.
+  const routeRows = await fetchSoda3RowsForSource(routeSource, routeQuery, {
+    fetcher: inputs.fetcher,
+  });
+  const stopRows = await fetchSoda3RowsForSource(stopSource, stopQuery, {
+    fetcher: inputs.fetcher,
+  });
   const routeShapes = normalizeRouteShapeRows([...routeRows]);
   const stops = normalizeStopRows([...stopRows]);
   const catalog = buildCatalog(routeShapes, stops);
@@ -280,25 +285,19 @@ export async function runRouteCatalogIngest(
   };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "route-catalog"],
   summary:
     "Build the route catalog from Socrata routes + stops, with terminus and length summaries.",
-  input: { options: dbOptions },
-  output: z.object({
-    rawDir: z.string(),
-    routeCount: z.number(),
-    shapeCount: z.number(),
-    stopCount: z.number(),
-    timepointStopCount: z.number(),
-    dbPath: z.string(),
+  options: dbOptions,
+  output: Schema.Struct({
+    rawDir: Schema.String,
+    routeCount: Schema.Number,
+    shapeCount: Schema.Number,
+    stopCount: Schema.Number,
+    timepointStopCount: Schema.Number,
+    dbPath: Schema.String,
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.route-catalog",
-      operation: "runRouteCatalogIngest",
-      run: (local) => runRouteCatalogIngest({ local }),
-    });
-  },
+  operation: "runRouteCatalogIngest",
+  runner: (local) => runRouteCatalogIngest({ local }),
 });

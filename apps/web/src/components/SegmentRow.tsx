@@ -9,7 +9,7 @@ import type { TreatmentItem } from "@/studio/treatment-model";
 
 export function SegmentRowHeader({ showSched = true }: { showSched?: boolean }) {
   return (
-    <div className="grid grid-cols-[1fr_84px_92px_168px_132px] gap-[18px] px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)] shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+    <div className="grid grid-cols-[1fr_84px_92px_168px_132px] gap-[18px] px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)] shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:hidden">
       <span>Segment</span>
       <span className="text-right" title="Average speed vs scheduled speed (mph)">
         MPH
@@ -64,7 +64,7 @@ export function SegmentRow({
   const severityColor =
     mph < 5 ? "var(--bp-color-bad)" : mph < 6 ? "var(--bp-color-warn)" : "var(--bp-color-ink)";
   const className =
-    "grid w-full grid-cols-[1fr_84px_92px_168px_132px] items-center gap-[18px] px-3 py-3.5 text-left transition-colors";
+    "grid w-full grid-cols-[1fr_84px_92px_168px_132px] items-center gap-[18px] px-3 py-3.5 text-left transition-colors max-md:grid-cols-[minmax(0,1fr)_auto] max-md:gap-x-3 max-md:gap-y-2";
   const style: CSSProperties = {
     background: flag === "top" || noteOpen ? "var(--bp-color-accent-bg)" : "transparent",
     boxShadow: noteOpen ? "none" : "inset 0 -1px 0 var(--bp-color-rule)",
@@ -107,11 +107,18 @@ export function SegmentRow({
           </div>
         ) : null}
       </div>
-      <div className="text-right font-mono text-[13px] font-medium">
+      <div className="text-right font-mono text-[13px] font-medium max-md:text-left max-md:text-[11px] max-md:text-[var(--bp-color-ink-55)]">
+        <span className="hidden font-sans text-[10px] font-semibold uppercase tracking-[0.06em] max-md:inline">
+          Rider-hrs{" "}
+        </span>
         {riderHours.toLocaleString()}
       </div>
-      <HourStrip hours={hours} />
-      <TreatmentRow lane={lane} ace={ace} tsp={tsp} treatments={treatments} />
+      <div className="max-md:col-span-2">
+        <HourStrip hours={hours} />
+      </div>
+      <div className="max-md:col-span-2">
+        <TreatmentRow lane={lane} ace={ace} tsp={tsp} treatments={treatments} />
+      </div>
     </>
   );
 
@@ -132,15 +139,15 @@ export function SegmentRow({
 
 export function SegmentRowSkeleton() {
   return (
-    <div className="grid grid-cols-[1fr_84px_92px_168px_132px] items-center gap-[18px] px-3 py-3.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
+    <div className="grid grid-cols-[1fr_84px_92px_168px_132px] items-center gap-[18px] px-3 py-3.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:grid-cols-[minmax(0,1fr)_auto] max-md:gap-x-3 max-md:gap-y-2">
       <div className="flex items-center gap-2.5">
         <Skeleton className="h-[12px] w-[28px]" />
         <Skeleton className="h-[14px] w-[260px]" />
       </div>
       <Skeleton className="ml-auto h-[18px] w-[48px]" />
-      <Skeleton className="ml-auto h-[14px] w-[64px]" />
-      <Skeleton className="h-[14px] w-[168px]" />
-      <div className="flex justify-end gap-3">
+      <Skeleton className="ml-auto h-[14px] w-[64px] max-md:ml-0" />
+      <Skeleton className="h-[14px] w-[168px] max-md:col-span-2 max-md:w-full" />
+      <div className="flex justify-end gap-3 max-md:col-span-2 max-md:justify-start">
         <Skeleton className="h-[10px] w-[20px]" />
         <Skeleton className="h-[10px] w-[20px]" />
         <Skeleton className="h-[10px] w-[20px]" />

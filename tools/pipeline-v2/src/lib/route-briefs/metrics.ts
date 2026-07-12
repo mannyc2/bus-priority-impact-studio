@@ -262,7 +262,7 @@ function schedulePairKey(direction: string, fromStopId: string, toStopId: string
 }
 
 function scheduleGroupKey(row: LocalRouteScheduleTimepoint): string {
-  return [row.scheduleDate, row.dayType, row.direction, row.blockId].join(":");
+  return [row.scheduleDate, row.dayType, row.direction, row.shapeId, row.blockId].join(":");
 }
 
 function median(values: number[]): number {

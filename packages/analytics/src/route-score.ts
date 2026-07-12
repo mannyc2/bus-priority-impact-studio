@@ -4,6 +4,7 @@ import {
   type RouteScorecard,
   RouteScorecardSchema,
 } from "@bp/domain/routes";
+import { decodeSchemaStrict } from "./schema-decode.js";
 
 export type RouteScoreInput = {
   routeId: RouteId;
@@ -23,7 +24,7 @@ export function calculateRouteScore(input: RouteScoreInput): RouteScorecard {
   const hotspotPenalty = clamp(input.hotspotCount * 5, 0, 40);
   const routeScore = Math.round(clamp(speedScore - hotspotPenalty, 0, 100));
 
-  return RouteScorecardSchema.parse({
+  return decodeSchemaStrict(RouteScorecardSchema, {
     schemaVersion: 1,
     routeId: input.routeId,
     month: input.month,

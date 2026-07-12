@@ -1,10 +1,11 @@
 import type { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
-import { arg, defineCommand, z } from "@liche/core";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const defaultGtfsRoot = "data/raw/gtfs-static/current/20260531T010822Z";
 
@@ -538,61 +539,58 @@ function resolveBundles(gtfsRoot: string, sources: readonly string[]): GtfsBundl
     }));
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "gtfs-static"],
   summary: "Parse downloaded bus GTFS static ZIPs into local all-stop schedule tables.",
-  input: {
-    options: dbOptions.extend({
-      runId: z
-        .string()
-        .default("20260531T010822Z")
-        .describe("GTFS static snapshot/run ID to stamp on staged rows"),
-      gtfsRoot: z
-        .string()
-        .default(defaultGtfsRoot)
-        .describe("Directory containing downloaded bus_gtfs_*.zip files"),
-      source: z.string().optional().describe("Single GTFS source id convenience filter"),
-      sources: z
-        .array(z.string())
-        .default([])
-        .describe("GTFS source ids to ingest (default: all six bus bundles)"),
-      routeLimitNote: arg
-        .positiveInt()
-        .optional()
-        .describe(
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      runId: Schema.String.pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed("20260531T010822Z")),
+      ).annotate({ description: "GTFS static snapshot/run ID to stamp on staged rows" }),
+      gtfsRoot: Schema.String.pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultGtfsRoot)),
+      ).annotate({ description: "Directory containing downloaded bus_gtfs_*.zip files" }),
+      source: Schema.optionalKey(Schema.String).annotate({
+        description: "Single GTFS source id convenience filter",
+      }),
+      sources: Schema.Array(Schema.String)
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+        .annotate({ description: "GTFS source ids to ingest (default: all six bus bundles)" }),
+      routeLimitNote: Schema.optionalKey(arg.positiveInt()).annotate({
+        description:
           "No-op guardrail placeholder; route-level filtering is not supported for GTFS ZIP parsing",
-        ),
-    }),
-  },
-  output: z.object({
-    runId: z.string(),
-    bundleCount: z.number(),
-    routeCount: z.number(),
-    tripCount: z.number(),
-    stopCount: z.number(),
-    stopTimeCount: z.number(),
-    calendarCount: z.number(),
-    calendarDateCount: z.number(),
-    bundles: z.array(
-      z.object({
-        sourceId: z.string(),
-        zipPath: z.string(),
-        routeCount: z.number(),
-        tripCount: z.number(),
-        stopCount: z.number(),
-        stopTimeCount: z.number(),
-        calendarCount: z.number(),
-        calendarDateCount: z.number(),
+      }),
+    },
+  }),
+  output: Schema.Struct({
+    runId: Schema.String,
+    bundleCount: Schema.Number,
+    routeCount: Schema.Number,
+    tripCount: Schema.Number,
+    stopCount: Schema.Number,
+    stopTimeCount: Schema.Number,
+    calendarCount: Schema.Number,
+    calendarDateCount: Schema.Number,
+    bundles: Schema.Array(
+      Schema.Struct({
+        sourceId: Schema.String,
+        zipPath: Schema.String,
+        routeCount: Schema.Number,
+        tripCount: Schema.Number,
+        stopCount: Schema.Number,
+        stopTimeCount: Schema.Number,
+        calendarCount: Schema.Number,
+        calendarDateCount: Schema.Number,
       }),
     ),
   }),
-  async run({ input }) {
-    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
-    const gtfsRoot = fromCliPath(input.options.gtfsRoot);
+  operation: "runGtfsStaticIngest",
+  dbPath: ({ db }) => (db === undefined ? undefined : fromCliPath(db)),
+  async runner(local, options) {
+    const gtfsRoot = fromCliPath(options.gtfsRoot);
     const sourceIds =
-      input.options.source === undefined
-        ? input.options.sources
-        : [...input.options.sources, input.options.source];
+      options.source === undefined ? options.sources : [...options.sources, options.source];
     const bundles = resolveBundles(gtfsRoot, sourceIds);
     if (bundles.length === 0) {
       throw new Error(
@@ -600,25 +598,18 @@ export default defineCommand({
       );
     }
 
-    return runLocalDbCommandBoundary({
-      dbPath,
-      command: "ingest.gtfs-static",
-      operation: "runGtfsStaticIngest",
-      run: async (local) => {
-        const result = await runGtfsStaticIngest({
-          sqlite: local.sqlite,
-          runId: input.options.runId,
-          bundles,
-          ingestedAt: new Date().toISOString(),
-        });
-        return {
-          ...result,
-          bundles: result.bundles.map((bundle) => ({
-            ...bundle,
-            zipPath: basename(bundle.zipPath),
-          })),
-        };
-      },
+    const result = await runGtfsStaticIngest({
+      sqlite: local.sqlite,
+      runId: options.runId,
+      bundles,
+      ingestedAt: new Date().toISOString(),
     });
+    return {
+      ...result,
+      bundles: result.bundles.map((bundle) => ({
+        ...bundle,
+        zipPath: basename(bundle.zipPath),
+      })),
+    };
   },
 });

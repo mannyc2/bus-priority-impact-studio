@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
 import {
   buildSocrataMetadataUrl,
   parseSocrataMetadata,
@@ -23,7 +24,7 @@ describe("Socrata source contracts", () => {
   });
 
   test("builds metadata URLs without string concatenation in callers", () => {
-    const datasetId = SocrataDatasetIdSchema.parse("kufs-yh3x");
+    const datasetId = decodeStrict(SocrataDatasetIdSchema)("kufs-yh3x");
 
     expect(buildSocrataMetadataUrl("data.ny.gov", datasetId).toString()).toBe(
       "https://data.ny.gov/api/views/kufs-yh3x",
@@ -31,6 +32,6 @@ describe("Socrata source contracts", () => {
   });
 
   test("rejects invalid dataset IDs before network calls", () => {
-    expect(() => SocrataDatasetIdSchema.parse("not-a-real-id")).toThrow();
+    expect(() => decodeStrict(SocrataDatasetIdSchema)("not-a-real-id")).toThrow();
   });
 });

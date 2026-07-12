@@ -4,6 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { routeSpeedHistoryArtifactPath } from "@bp/analytics/artifacts";
+import { decodeStrict } from "@bp/domain/decode";
 import { RouteDossierSummarySchema, routeDossierSummaryKey } from "@bp/domain/studio";
 import {
   buildAndWriteRouteDossierSummaries,
@@ -121,7 +122,7 @@ describe("toRouteDossierInputRows + buildAndWriteRouteDossierSummaries", () => {
     expect(routeCount).toBe(2);
 
     const written = JSON.parse(await Bun.file(join(tmp, routeDossierSummaryKey("m15-sbs"))).text());
-    const dossier = RouteDossierSummarySchema.parse(written);
+    const dossier = decodeStrict(RouteDossierSummarySchema)(written);
     expect(dossier.routeId).toBe("M15+");
     expect(dossier.speed.current).toBe(7);
     expect(dossier.worstSegment?.segmentId).toBe("seg-1");

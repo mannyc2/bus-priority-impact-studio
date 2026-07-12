@@ -1,3 +1,5 @@
+import { decodeStrict } from "../decode.js";
+import { type MapRouteFactsResponse, MapRouteFactsResponseSchema } from "../maps/index.js";
 import {
   type StudioDocsResponse,
   StudioDocsResponseSchema,
@@ -35,9 +37,10 @@ function routeArtifactRefs(release: StudioReleasePayload, routeId: string) {
 }
 
 export function buildStudioRoutesProjection(release: StudioReleasePayload): StudioRoutesResponse {
-  return StudioRoutesResponseSchema.parse({
-    schemaVersion: 1,
+  return decodeStrict(StudioRoutesResponseSchema)({
+    schemaVersion: 2,
     generatedAt: release.generatedAt,
+    baselineMonth: release.baselineMonth,
     routes: release.routes,
     quality: release.quality,
   });
@@ -46,7 +49,7 @@ export function buildStudioRoutesProjection(release: StudioReleasePayload): Stud
 export function buildStudioSegmentsProjection(
   release: StudioReleasePayload,
 ): StudioSegmentsResponse {
-  return StudioSegmentsResponseSchema.parse({
+  return decodeStrict(StudioSegmentsResponseSchema)({
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     segments: release.segments,
@@ -60,9 +63,10 @@ export function buildStudioRouteProjection(
 ): StudioRouteDetailResponse {
   // capability + dossier default to null here; the Worker joins the pipeline-built
   // capability row and dossier summary at read time (hard-cutover C2).
-  return StudioRouteDetailResponseSchema.parse({
-    schemaVersion: 2,
+  return decodeStrict(StudioRouteDetailResponseSchema)({
+    schemaVersion: 3,
     generatedAt: release.generatedAt,
+    baselineMonth: release.baselineMonth,
     route,
     ...(route.peerSlug ? { peerRoute: getStudioRoute(release, route.peerSlug) } : {}),
     segments: routeSegments(release, route.slug),
@@ -71,18 +75,54 @@ export function buildStudioRouteProjection(
   });
 }
 
+export function buildMapRouteFactsProjection(release: StudioReleasePayload): MapRouteFactsResponse {
+  const metadataByRouteId = new Map<string, StudioReleasePayload["routeFactMetadata"][number]>(
+    release.routeFactMetadata.map((metadata) => [metadata.routeId, metadata] as const),
+  );
+  return decodeStrict(MapRouteFactsResponseSchema)({
+    schemaVersion: 1,
+    baselineMonth: release.baselineMonth,
+    generatedAt: release.generatedAt,
+    routes: release.routes.map((route) => {
+      const metadata = metadataByRouteId.get(route.routeId);
+      if (metadata === undefined) {
+        throw new Error(`Missing map route-fact metadata for ${route.routeId}.`);
+      }
+      return {
+        route: {
+          routeId: route.routeId,
+          slug: route.slug,
+          label: route.label,
+          corridor: route.corridor,
+          borough: route.borough,
+          sbs: route.sbs,
+          speedMph: route.speedMph,
+          dailyRiders: route.dailyRiders,
+          reliability: route.reliability,
+          movement6mPct: route.movement6mPct,
+        },
+        delayExposure: metadata.delayExposure,
+        provenance: metadata.provenance,
+      };
+    }),
+  });
+}
+
 export function buildStudioCompareProjection(
   release: StudioReleasePayload,
   routeA: StudioRoute,
   routeB: StudioRoute,
 ): StudioCompareResponse {
-  return StudioCompareResponseSchema.parse({
+  return decodeStrict(StudioCompareResponseSchema)({
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     routes: [routeA, routeB],
     deltas: {
       speedMph: routeB.speedMph - routeA.speedMph,
-      riderHoursLost: routeA.riderHoursLost - routeB.riderHoursLost,
+      riderHoursLost:
+        routeA.riderHoursLost === null || routeB.riderHoursLost === null
+          ? null
+          : routeA.riderHoursLost - routeB.riderHoursLost,
       laneCoverage: routeB.laneCoverage - routeA.laneCoverage,
     },
     quality: release.quality,
@@ -90,7 +130,7 @@ export function buildStudioCompareProjection(
 }
 
 export function buildStudioMethodsProjection(release: StudioReleasePayload): StudioMethodsResponse {
-  return StudioMethodsResponseSchema.parse({
+  return decodeStrict(StudioMethodsResponseSchema)({
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     datasets: release.methods,
@@ -99,7 +139,7 @@ export function buildStudioMethodsProjection(release: StudioReleasePayload): Stu
 }
 
 export function buildStudioDocsProjection(release: StudioReleasePayload): StudioDocsResponse {
-  return StudioDocsResponseSchema.parse({
+  return decodeStrict(StudioDocsResponseSchema)({
     schemaVersion: 1,
     generatedAt: release.generatedAt,
     sections: release.docsSections,

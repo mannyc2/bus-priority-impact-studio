@@ -1,4 +1,4 @@
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 
@@ -20,10 +20,10 @@ export default defineCommand({
   path: ["check", "spatialite"],
   summary: "Verify mod_spatialite loads against the local pipeline DB.",
   input: { options: dbOptions },
-  output: z.object({
-    ok: z.boolean(),
-    path: z.string().nullable(),
-    version: z.string().nullable(),
+  output: Schema.Struct({
+    ok: Schema.Boolean,
+    path: Schema.NullOr(Schema.String),
+    version: Schema.NullOr(Schema.String),
   }),
   async run({ input }) {
     return runLocalDbCommandBoundary({

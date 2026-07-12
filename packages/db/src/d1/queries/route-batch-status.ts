@@ -1,48 +1,6 @@
 import { asc, eq } from "drizzle-orm";
-import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { routeBatchBuiltRoute, routeBatchIssue, routeBatchStatus } from "../schema.js";
-import { IsoMonthSchema } from "./shared.js";
-
-const RouteBatchStatusRowSchema = z
-  .object({
-    month: IsoMonthSchema,
-    generated_at: z.string().min(1),
-    status: z.enum(["pass", "fail"]),
-    route_count: z.number().int().nonnegative(),
-    artifact_count: z.number().int().nonnegative(),
-    missing_artifact_count: z.number().int().nonnegative(),
-    hash_mismatch_count: z.number().int().nonnegative(),
-    byte_length_mismatch_count: z.number().int().nonnegative(),
-    total_byte_length: z.number().int().nonnegative(),
-    issue_count: z.number().int().nonnegative(),
-  })
-  .strict();
-
-const RouteBatchBuiltRouteRowSchema = z
-  .object({
-    month: IsoMonthSchema,
-    route_rank: z.number().int().positive(),
-    route_id: z.string().min(1),
-    artifact_count: z.number().int().nonnegative().nullable(),
-    status: z.string().min(1),
-  })
-  .strict();
-
-const RouteBatchIssueRowSchema = z
-  .object({
-    month: IsoMonthSchema,
-    issue_rank: z.number().int().positive(),
-    route_id: z.string().nullable(),
-    severity: z.enum(["error", "warning"]),
-    issue_code: z.string().min(1),
-    message: z.string().min(1),
-  })
-  .strict();
-
-export type RouteBatchStatusRow = z.output<typeof RouteBatchStatusRowSchema>;
-export type RouteBatchBuiltRouteRow = z.output<typeof RouteBatchBuiltRouteRowSchema>;
-export type RouteBatchIssueRow = z.output<typeof RouteBatchIssueRowSchema>;
 
 export type RouteBatchStatus = {
   month: string;
@@ -80,8 +38,8 @@ function toRouteBatchStatus(
   };
 }
 
-async function listBuiltRoutes(db: D1ServingDb, month: string): Promise<RouteBatchBuiltRouteRow[]> {
-  const rows = await db
+async function listBuiltRoutes(db: D1ServingDb, month: string) {
+  return db
     .select({
       month: routeBatchBuiltRoute.month,
       route_rank: routeBatchBuiltRoute.routeRank,
@@ -92,12 +50,10 @@ async function listBuiltRoutes(db: D1ServingDb, month: string): Promise<RouteBat
     .from(routeBatchBuiltRoute)
     .where(eq(routeBatchBuiltRoute.month, month))
     .orderBy(asc(routeBatchBuiltRoute.routeRank));
-
-  return rows.map((row) => RouteBatchBuiltRouteRowSchema.parse(row));
 }
 
-async function listIssues(db: D1ServingDb, month: string): Promise<RouteBatchIssueRow[]> {
-  const rows = await db
+async function listIssues(db: D1ServingDb, month: string) {
+  return db
     .select({
       month: routeBatchIssue.month,
       issue_rank: routeBatchIssue.issueRank,
@@ -109,15 +65,10 @@ async function listIssues(db: D1ServingDb, month: string): Promise<RouteBatchIss
     .from(routeBatchIssue)
     .where(eq(routeBatchIssue.month, month))
     .orderBy(asc(routeBatchIssue.issueRank));
-
-  return rows.map((row) => RouteBatchIssueRowSchema.parse(row));
 }
 
-export async function getRouteBatchStatus(
-  db: D1ServingDb,
-  month: string,
-): Promise<RouteBatchStatus | null> {
-  const rows = await db
+async function selectRouteBatchStatusRows(db: D1ServingDb, month: string) {
+  return db
     .select({
       month: routeBatchStatus.month,
       generated_at: routeBatchStatus.generatedAt,
@@ -133,6 +84,17 @@ export async function getRouteBatchStatus(
     .from(routeBatchStatus)
     .where(eq(routeBatchStatus.month, month))
     .limit(1);
+}
+
+export type RouteBatchStatusRow = Awaited<ReturnType<typeof selectRouteBatchStatusRows>>[number];
+export type RouteBatchBuiltRouteRow = Awaited<ReturnType<typeof listBuiltRoutes>>[number];
+export type RouteBatchIssueRow = Awaited<ReturnType<typeof listIssues>>[number];
+
+export async function getRouteBatchStatus(
+  db: D1ServingDb,
+  month: string,
+): Promise<RouteBatchStatus | null> {
+  const rows = await selectRouteBatchStatusRows(db, month);
   const row = rows[0] ?? null;
 
   if (row === null) {
@@ -144,5 +106,5 @@ export async function getRouteBatchStatus(
     listIssues(db, month),
   ]);
 
-  return toRouteBatchStatus(RouteBatchStatusRowSchema.parse(row), builtRoutes, issues);
+  return toRouteBatchStatus(row, builtRoutes, issues);
 }

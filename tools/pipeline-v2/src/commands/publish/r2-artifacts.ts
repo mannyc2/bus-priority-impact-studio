@@ -1,13 +1,15 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
-import { defineCommand, z } from "@liche/core";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Glob } from "bun";
+import { Effect } from "effect";
 import { type CloudflareCostSummary, estimateR2StandardCost } from "../../lib/cloudflare-costs.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { verifyMapArtifactManifest } from "../map/artifacts.ts";
 import { collectD1ArtifactKeys, collectManifestArtifactKeys } from "./publish-artifact-keys.ts";
 
-const DEFAULT_PREFIXES = ["map", "studio", "source-availability", "pipeline-v1"] as const;
+const DEFAULT_PREFIXES = ["map", "studio", "source-availability"] as const;
 const DEFAULT_MANIFEST_DIRS = ["map"] as const;
 const DEFAULT_CONCURRENCY = 16;
 const DEFAULT_MAX_ATTEMPTS = 3;
@@ -98,6 +100,12 @@ function normalizeEtag(etag: string): string {
   return etag.replace(/^"|"$/g, "").toLowerCase();
 }
 
+function contentAddressedSha256(key: string): string | null {
+  const filename = key.split("/").at(-1) ?? "";
+  const match = /^.+\.([a-f0-9]{64})\.[^.]+$/.exec(filename);
+  return match?.[1] ?? null;
+}
+
 async function collectPrefixKeys(
   artifactRoot: string,
   prefixes: readonly string[],
@@ -134,6 +142,55 @@ async function collectCandidates(options: PublishR2Options): Promise<UploadItem[
   ]);
   const merged = new Set<string>([...manifestKeys.keys, ...d1Keys.keys, ...prefixKeys]);
   return [...merged].sort().map((key) => ({ key, localPath: join(options.artifactRoot, key) }));
+}
+
+async function assertPublishableMapManifest(options: PublishR2Options): Promise<void> {
+  if (!options.manifestDirs.includes("map")) return;
+  const path = join(options.artifactRoot, "map", options.month, "manifest.json");
+  const file = Bun.file(path);
+  if (!(await file.exists())) return;
+  let manifest: Record<string, unknown>;
+  try {
+    const value = await file.json();
+    if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error();
+    manifest = value as Record<string, unknown>;
+  } catch {
+    throw new Error(`Map manifest ${path} is invalid JSON.`);
+  }
+  const failures: string[] = [];
+  if (manifest["releaseProfile"] !== "full") failures.push("releaseProfile must be full");
+  if (manifest["buildStatus"] !== "pass") failures.push("buildStatus must be pass");
+  if (manifest["verificationStatus"] !== "pass") failures.push("verificationStatus must be pass");
+  if (manifest["analysisPeriod"] !== options.month)
+    failures.push(`analysisPeriod must equal ${options.month}`);
+  const routeFacts = manifest["routeFacts"] as Record<string, unknown> | undefined;
+  if (routeFacts?.["status"] !== "available") failures.push("routeFacts must be available");
+  const routeUniverse = manifest["routeUniverse"] as Record<string, unknown> | undefined;
+  const expectedRouteIds = Array.isArray(routeUniverse?.["expectedRouteIds"])
+    ? routeUniverse["expectedRouteIds"].filter(
+        (routeId): routeId is string => typeof routeId === "string",
+      )
+    : null;
+  if (expectedRouteIds === null) failures.push("routeUniverse.expectedRouteIds must be declared");
+  else {
+    const verification = await verifyMapArtifactManifest({
+      artifactRoot: options.artifactRoot,
+      month: options.month,
+      expectedRouteIds,
+      expectedProfile: "full",
+    });
+    if (verification.status !== "pass") {
+      failures.push(
+        `local map verification failed: ${verification.issues
+          .slice(0, 3)
+          .map((issue) => issue.code)
+          .join(", ")}`,
+      );
+    }
+  }
+  if (failures.length > 0) {
+    throw new Error(`Map manifest is not publishable: ${failures.join("; ")}.`);
+  }
 }
 
 function makeBunDriver(options: PublishR2Options): S3Driver {
@@ -203,6 +260,19 @@ async function uploadOne(
     };
   }
 
+  const filenameSha256 = contentAddressedSha256(item.key);
+  if (filenameSha256 !== null) {
+    const actualSha256 = createHash("sha256").update(body).digest("hex");
+    if (actualSha256 !== filenameSha256) {
+      return {
+        outcome: "failed",
+        error: `content-addressed filename hash mismatch: expected ${filenameSha256}, got ${actualSha256}`,
+        byteLength: body.byteLength,
+        headOperations: 0,
+      };
+    }
+  }
+
   const statHeadOperations = !options.force && driver.tracksRemoteCosts !== false ? 1 : 0;
   if (!options.force) {
     let remote: Awaited<ReturnType<S3Driver["stat"]>>;
@@ -262,6 +332,7 @@ async function uploadOne(
 }
 
 export async function runPublishR2Artifacts(options: PublishR2Options): Promise<PublishR2Report> {
+  await assertPublishableMapManifest(options);
   const driver =
     options.driver ??
     (options.dryRun && (options.accessKeyId.length === 0 || options.secretAccessKey.length === 0)
@@ -399,51 +470,65 @@ export default defineCommand({
   summary:
     "Idempotently upload release artifacts to R2 via the S3-compatible API (HEAD-then-PUT, parallel, resumable).",
   input: {
-    options: z.object({
-      month: z.string().regex(monthPattern, "must be YYYY-MM").describe("Release month, YYYY-MM"),
-      bucket: z.string().min(1).describe("R2 bucket name"),
-      endpoint: z.string().optional().describe("R2 S3 endpoint (overrides R2_ENDPOINT)"),
-      concurrency: z.coerce
+    options: Schema.Struct({
+      month: Schema.String.check(
+        Schema.isPattern(monthPattern, { message: "must be YYYY-MM" }),
+      ).annotate({
+        description: "Release month, YYYY-MM",
+      }),
+      bucket: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "R2 bucket name",
+      }),
+      endpoint: Schema.optionalKey(Schema.String).annotate({
+        description: "R2 S3 endpoint (overrides R2_ENDPOINT)",
+      }),
+      concurrency: arg
         .number()
-        .int()
-        .positive()
-        .default(DEFAULT_CONCURRENCY)
-        .describe("Parallel uploads"),
-      maxAttempts: z.coerce
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThan(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_CONCURRENCY)))
+        .annotate({ description: "Parallel uploads" }),
+      maxAttempts: arg
         .number()
-        .int()
-        .positive()
-        .default(DEFAULT_MAX_ATTEMPTS)
-        .describe("Retry attempts per object"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      exportRoot: z
-        .string()
-        .optional()
-        .describe("Override D1 export root directory (defaults to data/exports/d1)"),
-      schema: z.string().optional().describe("Override D1 schema.sql path"),
-      seed: z.string().optional().describe("Override D1 seed.sql path"),
-      output: z.string().optional().describe("Override report path"),
-      dryRun: z.coerce.boolean().default(false).describe("Skip PUTs, report would-uploads"),
-      force: z.coerce
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThan(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_MAX_ATTEMPTS)))
+        .annotate({ description: "Retry attempts per object" }),
+      artifactRoot: Schema.optionalKey(Schema.String).annotate({
+        description: "Override artifact root directory",
+      }),
+      exportRoot: Schema.optionalKey(Schema.String).annotate({
+        description: "Override D1 export root directory (defaults to data/exports/d1)",
+      }),
+      schema: Schema.optionalKey(Schema.String).annotate({
+        description: "Override D1 schema.sql path",
+      }),
+      seed: Schema.optionalKey(Schema.String).annotate({
+        description: "Override D1 seed.sql path",
+      }),
+      output: Schema.optionalKey(Schema.String).annotate({ description: "Override report path" }),
+      dryRun: arg
         .boolean()
-        .default(false)
-        .describe("Skip HEAD probe and re-upload every candidate"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Skip PUTs, report would-uploads" }),
+      force: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({ description: "Skip HEAD probe and re-upload every candidate" }),
     }),
   },
-  output: z
-    .object({
-      schemaVersion: z.literal(1),
-      month: z.string(),
-      bucket: z.string(),
-      status: z.enum(["pass", "fail"]),
-      candidateCount: z.number(),
-      uploadedCount: z.number(),
-      skippedCount: z.number(),
-      failedCount: z.number(),
-      dryRunCount: z.number(),
-      outputPath: z.string(),
-    })
-    .passthrough(),
+  output: Schema.Struct({
+    schemaVersion: Schema.Literal(1),
+    month: Schema.String,
+    bucket: Schema.String,
+    status: Schema.Literals(["pass", "fail"]),
+    candidateCount: Schema.Number,
+    uploadedCount: Schema.Number,
+    skippedCount: Schema.Number,
+    failedCount: Schema.Number,
+    dryRunCount: Schema.Number,
+    outputPath: Schema.String,
+  }),
   async run({ input }) {
     const {
       R2_ACCESS_KEY_ID: accessKeyId = "",

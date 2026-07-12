@@ -1,0 +1,16 @@
+pipeline route readiness - Compute build readiness scores per route for a given month.
+
+Usage: pipeline route readiness
+
+Options:
+  --db <db>               Local pipeline SQLite path
+  --year <year>           Calendar year (default: 2026)
+  --month <month>         Calendar month, 1-12 (default: 3)
+
+Global Options:
+  --help, -h
+  --version
+  --format <json|yaml|md|jsonl|csv>
+  --json
+  --full-output
+  --schema

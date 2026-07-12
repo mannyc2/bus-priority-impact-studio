@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import type { RouteSpeedSpineReadiness } from "@bp/analytics/feature-history";
 
 export type RouteSpeedHistoryCoverageIndexLocalDb = {
   readonly sqlite: Database;
@@ -9,6 +10,10 @@ export type RouteSpeedHistoryCoverageIndexRoute = {
   routeSlug: string;
   artifactPath: string;
   artifactStatus: string;
+  spineReadiness: RouteSpeedSpineReadiness;
+  spineReasons: readonly string[];
+  matchedCurrentSegmentCount?: number | null | undefined;
+  unmatchedCurrentSegmentCount?: number | null | undefined;
   monthCount: number | null;
   segmentCount: number | null;
   cellCount: number | null;
@@ -38,6 +43,10 @@ export function ensureRouteSpeedHistoryCoverageTable(sqlite: Database): void {
       history_end_month TEXT NOT NULL,
       artifact_path TEXT NOT NULL,
       artifact_status TEXT NOT NULL,
+      spine_readiness TEXT,
+      spine_reason_json TEXT NOT NULL DEFAULT '[]',
+      matched_current_segment_count INTEGER,
+      unmatched_current_segment_count INTEGER,
       month_count INTEGER NOT NULL,
       segment_count INTEGER NOT NULL,
       cell_count INTEGER NOT NULL,
@@ -47,6 +56,27 @@ export function ensureRouteSpeedHistoryCoverageTable(sqlite: Database): void {
       PRIMARY KEY (route_id, month)
     )
   `);
+
+  const columns = new Set(
+    (
+      sqlite.query("PRAGMA table_info(local_route_speed_history_coverage)").all() as Array<{
+        name: string;
+      }>
+    ).map((row) => row.name),
+  );
+  const additions = [
+    ["spine_readiness", "TEXT"],
+    ["spine_reason_json", "TEXT NOT NULL DEFAULT '[]'"],
+    ["matched_current_segment_count", "INTEGER"],
+    ["unmatched_current_segment_count", "INTEGER"],
+  ] as const;
+  for (const [name, definition] of additions) {
+    if (!columns.has(name)) {
+      sqlite.exec(
+        `ALTER TABLE local_route_speed_history_coverage ADD COLUMN ${name} ${definition}`,
+      );
+    }
+  }
 }
 
 export function materializeRouteSpeedHistoryCoverageIndex(input: {
@@ -74,13 +104,17 @@ export function materializeRouteSpeedHistoryCoverageIndex(input: {
         history_end_month,
         artifact_path,
         artifact_status,
+        spine_readiness,
+        spine_reason_json,
+        matched_current_segment_count,
+        unmatched_current_segment_count,
         month_count,
         segment_count,
         cell_count,
         available_cell_count,
         missing_cell_count,
         generated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     for (const route of input.routes) {
       insert.run(
@@ -91,6 +125,10 @@ export function materializeRouteSpeedHistoryCoverageIndex(input: {
         input.historyEndMonth,
         route.artifactPath,
         route.artifactStatus,
+        route.spineReadiness,
+        JSON.stringify(route.spineReasons),
+        route.matchedCurrentSegmentCount ?? null,
+        route.unmatchedCurrentSegmentCount ?? null,
         route.monthCount ?? 0,
         route.segmentCount ?? 0,
         route.cellCount ?? 0,

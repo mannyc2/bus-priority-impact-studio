@@ -1,28 +1,28 @@
-import { ChartFrame } from "@/components/ChartFrame";
-import { RPubInterventionCard } from "@/components/route/RoutePublicAtoms";
-import {
-  dossierMetricMonthCount,
-  dossierMetricWindow,
-  dossierSpeedSeries,
-} from "@/components/route/route-derived";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+
 import { routeInsightPlacements } from "@/components/route/route-insight-placement";
-import { routeSectionTitle } from "@/components/route/section-registry";
-import { SectionHeader } from "@/components/SectionHeader";
-import { SpeedTrend } from "@/components/SpeedTrend";
+import { DescriptiveStudyCard, StudyCard } from "@/components/study/StudyCard";
+import { studiesByEventId } from "@/components/study/study-display";
+import { SectionCard } from "@/components/SectionCard";
+import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { TreatmentInventory } from "@/components/TreatmentBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { fetchStudioInterventionCorpus } from "@/studio/api-client";
 import type {
+  RouteStudiesArtifact,
   StudioIntervention,
+  StudioInterventionCorpus,
+  StudioInterventionCorpusRecord,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceIntervention,
   StudioRouteEvidenceProject,
   StudioRouteEvidenceTimelineEvent,
   StudioRouteInsight,
+  StudyArtifact,
 } from "@/studio/api-contract";
-import { countTreatmentStates, groupTreatments, routeTreatments } from "@/studio/treatment-model";
-import { CitationChips } from "./WikiEvidence";
+import { countTreatmentStates, routeTreatments } from "@/studio/treatment-model";
 
 type Tone = NonNullable<StudioIntervention["tone"]>;
 type ComparisonCohort = NonNullable<StudioIntervention["comparisonCohort"]>;
@@ -36,6 +36,8 @@ export type TreatmentComparisonCard = {
   comparisonLabel: string;
   windowLabel: string;
   caveat: string;
+  /** Matched-segment study for this event, when one exists (eventKey join). */
+  study?: StudyArtifact;
 };
 
 export type TreatmentSourceRow = {
@@ -52,11 +54,16 @@ export type TreatmentTimelineRow = {
   kind: string;
   title: string;
   detail: string;
-  source: "serving" | "wiki";
+  source: "serving" | "wiki" | "corpus";
   citationKeys: string[];
   sourceLabel: string | null;
   tone: Tone;
+  /** Extra cited sources (corpus records merged into this row). */
+  sourceEntries?: SourceNoteEntry[];
 };
+
+const TIMELINE_LIMIT = 10;
+const DOCUMENTED_LIMIT = 8;
 
 export function treatmentHistoryInsightRows(
   insights: readonly StudioRouteInsight[],
@@ -67,108 +74,53 @@ export function treatmentHistoryInsightRows(
 export function TreatmentsHistorySection({
   data,
   evidence,
+  studies = null,
+  studyKey,
 }: {
   data: StudioRouteDetailResponse;
   evidence: StudioRouteEvidenceBundle | null;
+  studies?: RouteStudiesArtifact | null;
+  studyKey?: string | undefined;
 }) {
   const { route, segments } = data;
   const treatments = routeTreatments(route, segments);
   const counts = countTreatmentStates(treatments);
-  const familyCount = [...groupTreatments(treatments).values()].filter(
-    (items) => items.length > 0,
-  ).length;
-  const comparisonCards = interventionComparisonCards(route.interventions);
+  const comparisonCards = interventionComparisonCards(route.interventions, studies);
   const sourceRows = treatmentSourceRows(route.interventions);
-  const timelineRows = mergedTreatmentTimelineRows(route.interventions, evidence);
+  const corpus = useInterventionCorpus();
+  const timelineRows = mergedTreatmentTimelineRows(
+    route.interventions,
+    evidence,
+    routeCorpusRecords(corpus, route.routeId),
+  );
   const treatmentInsights = treatmentHistoryInsightRows(data.insights);
-  const historySpeeds = dossierSpeedSeries(data.dossier);
-  const hasSpeedHistory = historySpeeds.length > 0;
-  const speedTrendData = hasSpeedHistory ? historySpeeds : route.spark;
-  const speedWindow = dossierMetricWindow(data.dossier?.speed);
-  const currentSpeedMph = data.dossier?.speed.current ?? route.weightedAvgSpeed;
+  const recordEntries: SourceNoteEntry[] = [
+    { label: `${timelineRows.length} dated records (${sourceRows.length} with named sources)` },
+    ...sourceRows.map((row) => ({ label: row.label, detail: `${row.detail} (${row.year})` })),
+  ];
 
   return (
     <div className="flex flex-col gap-7">
-      <section>
-        <SectionHeader
-          title={routeSectionTitle("treatments")}
-          sub="What is in place, proposed, and comparable."
-          right={
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={comparisonCards.length > 0 ? "accent" : "neutral"}>
-                {comparisonCards.length} evaluated
-              </Badge>
-              {treatmentInsights.length > 0 ? (
-                <Badge variant="warn">{treatmentInsights.length} signals</Badge>
-              ) : null}
-            </div>
-          }
-        />
-        <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
-          <PostureStat
-            label="Families"
-            value={familyCount}
-            sub={`${treatments.length} treatments`}
-          />
-          <PostureStat label="In place" value={counts.inPlace} sub="active or implemented" good />
-          <PostureStat label="Planned" value={counts.planned} sub="planned/proposed" />
-          <PostureStat
-            label="Records"
-            value={timelineRows.length}
-            sub={`${sourceRows.length} with source labels`}
-          />
-        </div>
-      </section>
+      <SectionCard
+        title="What's on this route"
+        sub={`${counts.inPlace} treatments in place, ${counts.planned} planned or proposed.`}
+        right={<SourceNote label="About these records" entries={recordEntries} />}
+      >
+        <TreatmentInventory treatments={treatments} />
+      </SectionCard>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-6 max-xl:grid-cols-1">
-        <section>
-          <SectionHeader
-            title="In the record"
-            sub={`Treatments on ${route.label}${route.sbs ? " SBS" : ""}, grouped by family/state.`}
-          />
-          <TreatmentInventory treatments={treatments} />
-        </section>
+      <SectionCard title="Timeline" sub="Documented changes on this route, newest first.">
+        <TimelineList rows={timelineRows} evidence={evidence} insights={treatmentInsights} />
+      </SectionCard>
 
-        <section>
-          <SectionHeader title="Document refs" sub="Labels on dated records." />
-          <TreatmentSourceList rows={sourceRows} />
-        </section>
-      </div>
-      <section>
-        <SectionHeader
-          title="Dated history"
-          sub={`${timelineRows.length} cited and serving records on ${route.label}${route.sbs ? " SBS" : ""}. Use before reading speed.`}
-        />
-        <MergedTimelineList rows={timelineRows} evidence={evidence} />
-      </section>
+      <DocumentedTreatments evidence={evidence} />
 
-      <WikiTreatmentEvidence evidence={evidence} />
-
-      <div className="grid grid-cols-[minmax(0,1fr)_420px] items-start gap-6 max-xl:grid-cols-1">
-        <ChartFrame
-          title={hasSpeedHistory ? "Speed history" : "Speed near changes"}
-          source={
-            hasSpeedHistory
-              ? `Avg speed${speedWindow ? `, ${speedWindow}` : ""}.`
-              : "Trend estimate."
-          }
-          height={196}
-          right={
-            <Badge variant={hasSpeedHistory ? "accent" : "warn"}>
-              {hasSpeedHistory
-                ? `${dossierMetricMonthCount(data.dossier?.speed) || speedTrendData.length} months`
-                : `${currentSpeedMph.toFixed(1)} mph now`}
-            </Badge>
-          }
-        >
-          <SpeedTrend data={speedTrendData} scheduled={route.scheduledMph} height={196} />
-        </ChartFrame>
-
-        <section>
-          <SectionHeader title="Evaluation cards" sub="Promoted comparison windows." />
-          <ComparisonCards cards={comparisonCards} />
-        </section>
-      </div>
+      <SectionCard
+        title="Before & after evaluations"
+        sub={comparisonCardsSubLine(comparisonCards)}
+      >
+        <ComparisonCards cards={comparisonCards} studyKey={studyKey} />
+      </SectionCard>
     </div>
   );
 }
@@ -176,6 +128,7 @@ export function TreatmentsHistorySection({
 export function mergedTreatmentTimelineRows(
   interventions: readonly StudioIntervention[],
   evidence: StudioRouteEvidenceBundle | null,
+  corpusRecords: readonly StudioInterventionCorpusRecord[] = [],
 ): TreatmentTimelineRow[] {
   const rows = new Map<string, TreatmentTimelineRow>();
   for (const [index, event] of interventions.entries()) {
@@ -200,7 +153,111 @@ export function mergedTreatmentTimelineRows(
     rows.set(timelineIdentity(row), row);
   }
 
+  // Corpus records dedupe against existing rows by (year + treatment family):
+  // the existing row wins and gains the corpus citation.
+  const byYearFamily = new Map<string, TreatmentTimelineRow>();
+  for (const row of rows.values()) {
+    const family = treatmentFamilyOfText(`${row.kind} ${row.title}`);
+    if (family === null) continue;
+    const yearKey = `${timelineYearLabel(row.dateLabel)}:${family}`;
+    if (!byYearFamily.has(yearKey)) byYearFamily.set(yearKey, row);
+  }
+  for (const record of corpusRecords) {
+    if (record.effectiveDate === null) continue; // undated corpus records live on /interventions
+    const row = corpusTimelineRow(record);
+    const family =
+      record.primaryTreatments[0] ?? treatmentFamilyOfText(`${row.kind} ${row.title}`);
+    const existing =
+      family === null ? undefined : byYearFamily.get(`${timelineYearLabel(row.dateLabel)}:${family}`);
+    if (existing !== undefined) {
+      existing.sourceEntries = [...(existing.sourceEntries ?? []), ...(row.sourceEntries ?? [])];
+      continue;
+    }
+    rows.set(timelineIdentity(row), row);
+  }
+
   return [...rows.values()].sort(treatmentTimelineSort);
+}
+
+/** Corpus record → timeline row (dateLabel honors datePrecision). */
+export function corpusTimelineRow(record: StudioInterventionCorpusRecord): TreatmentTimelineRow {
+  const date = record.effectiveDate ?? "undated";
+  const dateLabel = record.datePrecision === "day" ? date : date.slice(0, 7);
+  const corridor = record.corridorStreets.join(", ");
+  const status = record.statusLatest ?? record.recordKind.replaceAll("_", " ");
+  return {
+    key: `corpus:${record.recordId}`,
+    dateLabel,
+    sortKey: record.effectiveDate ?? "9999",
+    kind: record.primaryTreatments[0] ?? record.customTreatments[0] ?? "intervention",
+    title: record.title,
+    detail: `${status}${corridor.length > 0 ? ` — ${corridor}` : ""}`,
+    source: "corpus",
+    citationKeys: [],
+    // The cited source renders via sourceEntries (label + link + record id).
+    sourceLabel: null,
+    tone: "accent",
+    sourceEntries: [
+      {
+        label: record.sourceLabel,
+        ...(record.sourceUrl === null ? {} : { href: record.sourceUrl }),
+        detail: `${record.sourceId}; ${record.recordId}`,
+      },
+    ],
+  };
+}
+
+/** Loose treatment-family read of a row's kind + title, for the corpus
+ * dedupe heuristic only — never used for study or evidence joins. */
+export function treatmentFamilyOfText(text: string): string | null {
+  const haystack = text.toLowerCase();
+  if (/\bbusway\b/.test(haystack)) return "busway";
+  if (/\b(ace|able|camera|enforcement)\b/.test(haystack)) return "automated_bus_lane_enforcement";
+  if (/\b(sbs|select bus)\b/.test(haystack)) return "select_bus_service";
+  if (/\bsignal\b/.test(haystack)) return "transit_signal_priority";
+  if (/\bredesign\b/.test(haystack)) return "route_redesign";
+  if (/\bqueue jump\b/.test(haystack)) return "queue_jump";
+  if (/\b(all[- ]door|boarding)\b/.test(haystack)) return "all_door_boarding";
+  if (/\bfare\b/.test(haystack)) return "off_board_fare_collection";
+  if (/\bstop\b/.test(haystack)) return "stop_change";
+  if (/\bbus lane|lane\b/.test(haystack)) return "bus_lane";
+  return null;
+}
+
+/** Corpus records mentioning this route (same normalization as /interventions). */
+export function routeCorpusRecords(
+  corpus: StudioInterventionCorpus | null,
+  routeId: string,
+): StudioInterventionCorpusRecord[] {
+  const normalize = (value: string) =>
+    value.trim().toUpperCase().replace(/-SBS$/, "").replace(/\+$/, "");
+  const target = normalize(routeId);
+  return (corpus?.records ?? []).filter((record) =>
+    record.routes.some((candidate) => normalize(candidate) === target),
+  );
+}
+
+/** In-component lazy fetch: the corpus is citywide and must not ride the
+ * route loader (matches the SlowSegments artifact-fetch idiom). */
+function useInterventionCorpus(): StudioInterventionCorpus | null {
+  const [corpus, setCorpus] = useState<StudioInterventionCorpus | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchStudioInterventionCorpus({ signal: controller.signal })
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setCorpus(data);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setCorpus(null);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  return corpus;
 }
 
 function timelineIdentity(row: TreatmentTimelineRow): string {
@@ -256,13 +313,36 @@ function wikiEventTone(event: StudioRouteEvidenceTimelineEvent): Tone {
   return "accent";
 }
 
-function MergedTimelineList({
+export function timelineYearLabel(dateLabel: string): string {
+  const year = dateLabel.match(/\b\d{4}\b/)?.[0];
+  if (year) return year;
+  return "Undated";
+}
+
+/** Display order for the timeline. The data-layer sort keeps a "9999"
+ * sentinel for null-date wiki events, which sorts FIRST under the descending
+ * order; render-side the Undated group always goes last. */
+export function timelineDisplayRows(rows: readonly TreatmentTimelineRow[]): TreatmentTimelineRow[] {
+  const dated = rows.filter((row) => timelineYearLabel(row.dateLabel) !== "Undated");
+  const undated = rows.filter((row) => timelineYearLabel(row.dateLabel) === "Undated");
+  return [...dated, ...undated];
+}
+
+function timelineKindLabel(kind: string): string {
+  return kind === "serving_intervention" ? "program record" : kind.replaceAll("_", " ");
+}
+
+function TimelineList({
   rows,
   evidence,
+  insights,
 }: {
   rows: readonly TreatmentTimelineRow[];
   evidence: StudioRouteEvidenceBundle | null;
+  insights: readonly StudioRouteInsight[];
 }) {
+  const [showAll, setShowAll] = useState(false);
+
   if (rows.length === 0) {
     return (
       <div className="rounded-[3px] bg-[var(--bp-color-paper-deep)] p-4 text-[12.5px] text-[var(--bp-color-ink-55)]">
@@ -271,110 +351,190 @@ function MergedTimelineList({
     );
   }
 
+  const ordered = timelineDisplayRows(rows);
+  const visible = showAll ? ordered : ordered.slice(0, TIMELINE_LIMIT);
+  const groups: { year: string; rows: TreatmentTimelineRow[] }[] = [];
+  for (const row of visible) {
+    const year = timelineYearLabel(row.dateLabel);
+    const last = groups.at(-1);
+    if (last && last.year === year) last.rows.push(row);
+    else groups.push({ year, rows: [row] });
+  }
+
   return (
-    <div className="grid grid-cols-2 gap-4 max-xl:grid-cols-1">
-      {rows.map((row) => (
-        <RPubInterventionCard
-          key={row.key}
-          dateLabel={row.dateLabel}
-          yearLabel={timelineYearLabel(row.dateLabel)}
-          kind={row.source === "wiki" ? row.kind : "serving"}
-          title={row.title}
-          detail={row.detail}
-          tone={row.tone}
-          sourceLabel={row.sourceLabel}
-          citationKeys={row.citationKeys}
-          evidence={evidence}
-        />
+    <div className="flex flex-col gap-4">
+      {insights.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          {insights.slice(0, 3).map((insight, index) => (
+            <TimelineSignalRow
+              key={`${insight.detectorId}:${insight.scopeId ?? insight.title}:${index}`}
+              insight={insight}
+            />
+          ))}
+        </div>
+      ) : null}
+      {groups.map((group) => (
+        <div key={group.year}>
+          <div className="border-b border-[var(--bp-color-rule)] pb-1 text-[13px] font-semibold">
+            {group.year}
+          </div>
+          {group.rows.map((row) => (
+            <TimelineRow key={row.key} row={row} evidence={evidence} />
+          ))}
+        </div>
       ))}
+      {rows.length > TIMELINE_LIMIT ? (
+        <button
+          type="button"
+          onClick={() => setShowAll((value) => !value)}
+          className="w-full rounded-[3px] px-3 py-2.5 text-[12px] font-semibold text-[var(--bp-color-ink-55)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)] transition-colors hover:text-[var(--bp-color-ink)]"
+        >
+          {showAll ? "Show fewer records" : `Show all ${rows.length} records`}
+        </button>
+      ) : null}
     </div>
   );
 }
 
-function timelineYearLabel(dateLabel: string): string {
-  const year = dateLabel.match(/\b\d{4}\b/)?.[0];
-  return year ?? dateLabel.slice(0, 4);
-}
-
-function WikiTreatmentEvidence({ evidence }: { evidence: StudioRouteEvidenceBundle | null }) {
-  const interventions = evidence?.interventions ?? [];
-  const projects = evidence?.projects ?? [];
-  if (interventions.length === 0 && projects.length === 0) return null;
-
+function TimelineSignalRow({ insight }: { insight: StudioRouteInsight }) {
   return (
-    <section>
-      <SectionHeader
-        title="Wiki treatments"
-        sub="Interventions and projects extracted from cited source documents."
-        right={<Badge variant="accent">{interventions.length + projects.length} cited</Badge>}
-      />
-      <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
-        {interventions.map((intervention) => (
-          <WikiTreatmentCard
-            key={intervention.recordId}
-            intervention={intervention}
-            evidence={evidence}
-          />
-        ))}
-        {projects.map((project) => (
-          <WikiProjectCard key={project.recordId} project={project} evidence={evidence} />
-        ))}
-      </div>
-    </section>
+    <div className="flex items-center gap-2 rounded-[3px] bg-[var(--bp-color-paper-deep)] px-3 py-2">
+      <Badge variant={insight.severity === "high" ? "bad" : "warn"}>{insight.severity}</Badge>
+      <span className="min-w-0 truncate text-[12.5px] font-semibold">{insight.title}</span>
+    </div>
   );
 }
 
-function WikiTreatmentCard({
-  intervention,
+function TimelineRow({
+  row,
   evidence,
 }: {
-  intervention: StudioRouteEvidenceIntervention;
+  row: TreatmentTimelineRow;
   evidence: StudioRouteEvidenceBundle | null;
 }) {
+  const undated = timelineYearLabel(row.dateLabel) === "Undated";
+  const baseEntries =
+    row.citationKeys.length > 0
+      ? citationEntries(evidence, row.citationKeys)
+      : row.sourceLabel !== null
+        ? [{ label: row.sourceLabel }]
+        : [];
+  const entries = [...baseEntries, ...(row.sourceEntries ?? [])];
+
   return (
-    <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <div className="mb-2 flex flex-wrap gap-2">
-        <Badge variant="accent">{intervention.treatmentKind ?? "treatment"}</Badge>
-        {intervention.treatmentFamily ? (
-          <Badge variant="neutral">{intervention.treatmentFamily}</Badge>
+    <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-3 py-2.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none">
+      <div
+        className={`pt-0.5 font-mono text-[11px] ${undated ? "text-[var(--bp-color-ink-40)]" : "text-[var(--bp-color-ink-70)]"}`}
+      >
+        {undated ? "Undated" : row.dateLabel}
+      </div>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="neutral">{timelineKindLabel(row.kind)}</Badge>
+          <span className="text-[13px] font-semibold leading-tight">{row.title}</span>
+        </div>
+        <div className="mt-1 line-clamp-2 text-[12px] leading-[1.45] text-[var(--bp-color-ink-55)]">
+          {row.detail}
+        </div>
+        {entries.length > 0 ? (
+          <div className="mt-1">
+            <SourceNote entries={entries} />
+          </div>
         ) : null}
       </div>
-      <div className="text-[13px] font-semibold leading-tight">
-        {intervention.title ?? "Documented treatment"}
-      </div>
-      <div className="mt-1 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-70)]">
-        {wikiTreatmentDescription(intervention)}
-      </div>
-      <div className="mt-3">
-        <CitationChips evidence={evidence} citationKeys={intervention.citationKeys} />
-      </div>
     </div>
   );
 }
 
-function WikiProjectCard({
-  project,
-  evidence,
-}: {
-  project: StudioRouteEvidenceProject;
-  evidence: StudioRouteEvidenceBundle | null;
-}) {
+type DocumentedRow = {
+  key: string;
+  chips: { label: string; variant: "accent" | "neutral" }[];
+  title: string;
+  detail: string;
+  citationKeys: readonly string[];
+};
+
+function documentedTreatmentRows(evidence: StudioRouteEvidenceBundle | null): DocumentedRow[] {
+  const interventions = evidence?.interventions ?? [];
+  const projects = evidence?.projects ?? [];
+  return [
+    ...interventions.map((intervention): DocumentedRow => {
+      const chips: DocumentedRow["chips"] = [
+        { label: intervention.treatmentKind ?? "treatment", variant: "accent" },
+      ];
+      if (intervention.treatmentFamily) {
+        chips.push({ label: intervention.treatmentFamily, variant: "neutral" });
+      }
+      return {
+        key: intervention.recordId,
+        chips,
+        title: intervention.title ?? "Documented treatment",
+        detail: wikiTreatmentDescription(intervention),
+        citationKeys: intervention.citationKeys,
+      };
+    }),
+    ...projects.map((project): DocumentedRow => {
+      const chips: DocumentedRow["chips"] = [
+        { label: project.projectType ?? "project", variant: "neutral" },
+      ];
+      if (project.status) chips.push({ label: project.status, variant: "accent" });
+      return {
+        key: project.recordId,
+        chips,
+        title: project.projectName ?? "Documented project",
+        detail: wikiProjectDescription(project),
+        citationKeys: project.citationKeys,
+      };
+    }),
+  ];
+}
+
+function DocumentedTreatments({ evidence }: { evidence: StudioRouteEvidenceBundle | null }) {
+  const [showAll, setShowAll] = useState(false);
+  const rows = documentedTreatmentRows(evidence);
+  if (rows.length === 0) return null;
+  const visible = showAll ? rows : rows.slice(0, DOCUMENTED_LIMIT);
+
   return (
-    <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <div className="mb-2 flex flex-wrap gap-2">
-        <Badge variant="neutral">{project.projectType ?? "project"}</Badge>
-        {project.status ? <Badge variant="accent">{project.status}</Badge> : null}
+    <SectionCard
+      title="Documented treatments"
+      sub="Treatments and projects extracted from cited source documents."
+    >
+      <div className="flex flex-col gap-4">
+        <div>
+          {visible.map((row) => (
+            <div
+              key={row.key}
+              className="py-2.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                {row.chips.map((chip) => (
+                  <Badge key={chip.label} variant={chip.variant}>
+                    {chip.label}
+                  </Badge>
+                ))}
+                <span className="text-[13px] font-semibold leading-tight">{row.title}</span>
+              </div>
+              <div className="mt-1 line-clamp-2 text-[12px] leading-[1.45] text-[var(--bp-color-ink-55)]">
+                {row.detail}
+              </div>
+              <div className="mt-1">
+                <SourceNote entries={citationEntries(evidence, row.citationKeys)} />
+              </div>
+            </div>
+          ))}
+        </div>
+        {rows.length > DOCUMENTED_LIMIT ? (
+          <button
+            type="button"
+            onClick={() => setShowAll((value) => !value)}
+            className="w-full rounded-[3px] px-3 py-2.5 text-[12px] font-semibold text-[var(--bp-color-ink-55)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)] transition-colors hover:text-[var(--bp-color-ink)]"
+          >
+            {showAll ? "Show fewer records" : `Show all ${rows.length} records`}
+          </button>
+        ) : null}
       </div>
-      <div className="text-[13px] font-semibold leading-tight">
-        {project.projectName ?? "Documented project"}
-      </div>
-      <div className="mt-1 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-70)]">
-        {wikiProjectDescription(project)}
-      </div>
-      <div className="mt-3">
-        <CitationChips evidence={evidence} citationKeys={project.citationKeys} />
-      </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -390,10 +550,13 @@ function wikiProjectDescription(project: StudioRouteEvidenceProject): string {
 
 export function interventionComparisonCards(
   events: readonly StudioIntervention[],
+  studies: RouteStudiesArtifact | null = null,
 ): TreatmentComparisonCard[] {
+  const studyByEventId = studiesByEventId(studies);
   return events.flatMap((event) => {
     const cohort = event.comparisonCohort;
     if (cohort === undefined) return [];
+    const study = event.eventId === undefined ? undefined : studyByEventId.get(event.eventId);
     return [
       {
         title: event.title,
@@ -404,9 +567,18 @@ export function interventionComparisonCards(
         comparisonLabel: cohort.routeCount === 1 ? "1 route" : `${cohort.routeCount} routes`,
         windowLabel: windowLabel(cohort.preWindow, cohort.postWindow),
         caveat: cohort.caveat,
+        ...(study === undefined ? {} : { study }),
       },
     ];
   });
+}
+
+export function comparisonCardsSubLine(cards: readonly TreatmentComparisonCard[]): string {
+  if (cards.length === 0) return "Comparison windows promoted by the pipeline.";
+  const studied = cards.filter((card) => card.study !== undefined).length;
+  const evaluations = cards.length === 1 ? "1 evaluation" : `${cards.length} evaluations`;
+  if (studied === 0) return `${cards.length} promoted comparison windows.`;
+  return `${evaluations}, ${studied} with matched-segment ${studied === 1 ? "study" : "studies"}.`;
 }
 
 export function treatmentSourceRows(events: readonly StudioIntervention[]): TreatmentSourceRow[] {
@@ -421,64 +593,15 @@ export function treatmentSourceRows(events: readonly StudioIntervention[]): Trea
   return [...rows.values()];
 }
 
-function PostureStat({
-  label,
-  value,
-  sub,
-  good = false,
+function ComparisonCards({
+  cards,
+  studyKey,
 }: {
-  label: string;
-  value: number;
-  sub: string;
-  good?: boolean;
+  cards: readonly TreatmentComparisonCard[];
+  studyKey?: string | undefined;
 }) {
-  return (
-    <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-        {label}
-      </div>
-      <div
-        className="mt-1 font-mono text-[24px] font-semibold leading-none"
-        style={{ color: good ? "var(--bp-color-good)" : "var(--bp-color-ink)" }}
-      >
-        {value}
-      </div>
-      <div className="mt-1 text-[11.5px] text-[var(--bp-color-ink-55)]">{sub}</div>
-    </div>
-  );
-}
-
-function TreatmentSourceList({ rows }: { rows: readonly TreatmentSourceRow[] }) {
-  if (rows.length === 0) {
-    return (
-      <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 text-[12.5px] text-[var(--bp-color-ink-55)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-        No source-labeled records yet.
-      </div>
-    );
-  }
-  return (
-    <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      {rows.map((row) => (
-        <div
-          key={row.key}
-          className="grid grid-cols-[76px_minmax(0,1fr)] gap-3 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none"
-        >
-          <div className="font-mono text-[10.5px] font-semibold text-[var(--bp-color-accent)]">
-            {row.year}
-          </div>
-          <div className="min-w-0">
-            <div className="truncate text-[12.5px] font-semibold">{row.label}</div>
-            <div className="mt-0.5 text-[11px] leading-[1.4] text-[var(--bp-color-ink-55)]">
-              {row.detail}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ComparisonCards({ cards }: { cards: readonly TreatmentComparisonCard[] }) {
+  const studiedCount = cards.filter((card) => card.study !== undefined).length;
+  let studiedIndex = -1;
   if (cards.length === 0) {
     return (
       <Alert variant="info">
@@ -489,30 +612,92 @@ function ComparisonCards({ cards }: { cards: readonly TreatmentComparisonCard[] 
   }
   return (
     <div className="flex flex-col gap-3">
-      {cards.map((card) => (
-        <div
-          key={`${card.year}-${card.title}`}
-          className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-[13px] font-semibold leading-tight">{card.title}</div>
-              <div className="mt-0.5 font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">
-                {card.year} / {card.windowLabel}
-              </div>
+      {cards.map((card) => {
+        const study = card.study;
+        // No-study cards render exactly as before the studies integration.
+        if (study === undefined) {
+          return (
+            <div
+              key={`${card.year}-${card.title}`}
+              className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]"
+            >
+              <LegacyComparisonCardBody card={card} />
             </div>
-            <Badge variant={card.tone}>{card.comparisonLabel}</Badge>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <DeltaMetric label="route" value={card.routeDeltaLabel} tone={card.tone} />
-            <DeltaMetric label="adjusted" value={card.adjustedDeltaLabel} tone={card.tone} />
-          </div>
-          <div className="mt-3 text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-            {card.caveat}
+          );
+        }
+        studiedIndex += 1;
+        return (
+          <ComparisonCardShell key={`${card.year}-${card.title}`} highlighted={study.eventKey === studyKey}>
+            {study.claimTier === "descriptive" ? (
+              <DescriptiveStudyCard title={card.title} study={study} />
+            ) : (
+              <StudyCard
+                title={card.title}
+                study={study}
+                // Bounded presentation: past four studied cards, only the two
+                // most recent render their chart eagerly.
+                defaultChartVisible={studiedCount <= 4 || studiedIndex < 2}
+              />
+            )}
+          </ComparisonCardShell>
+        );
+      })}
+    </div>
+  );
+}
+
+/** `?study=` deep-link target: scrolls into view and shows a temporary
+ * accent ring using the existing focus-ring vocabulary. */
+function ComparisonCardShell({
+  highlighted,
+  children,
+}: {
+  highlighted: boolean;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [ringVisible, setRingVisible] = useState(false);
+  useEffect(() => {
+    if (!highlighted || ref.current === null) return;
+    ref.current.scrollIntoView({ block: "center", behavior: "smooth" });
+    setRingVisible(true);
+    const timer = setTimeout(() => setRingVisible(false), 2600);
+    return () => clearTimeout(timer);
+  }, [highlighted]);
+  return (
+    <div
+      ref={ref}
+      className={`rounded-[3px] bg-[var(--bp-color-card)] p-4 transition-shadow duration-700 ${
+        ringVisible
+          ? "shadow-[0_0_0_1px_var(--bp-color-rule),0_0_0_3px_var(--bp-color-accent-bg),0_0_0_4px_var(--bp-color-accent)]"
+          : "shadow-[0_0_0_1px_var(--bp-color-rule)]"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function LegacyComparisonCardBody({ card }: { card: TreatmentComparisonCard }) {
+  return (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[13px] font-semibold leading-tight">{card.title}</div>
+          <div className="mt-0.5 font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">
+            {card.year} / {card.windowLabel}
           </div>
         </div>
-      ))}
-    </div>
+        <Badge variant={card.tone}>{card.comparisonLabel}</Badge>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <DeltaMetric label="route" value={card.routeDeltaLabel} tone={card.tone} />
+        <DeltaMetric label="adjusted" value={card.adjustedDeltaLabel} tone={card.tone} />
+      </div>
+      <div className="mt-3 text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)]">
+        {card.caveat}
+      </div>
+    </>
   );
 }
 
@@ -554,5 +739,5 @@ function windowLabel(
 ): string {
   const pre = preWindow === null ? "pre missing" : `${preWindow.from} to ${preWindow.to}`;
   const post = postWindow === null ? "post missing" : `${postWindow.from} to ${postWindow.to}`;
-  return `${pre} -> ${post}`;
+  return `${pre} → ${post}`;
 }

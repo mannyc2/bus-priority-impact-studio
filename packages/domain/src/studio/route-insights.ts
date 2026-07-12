@@ -1,43 +1,41 @@
-import * as z from "zod";
+import { Effect, Schema } from "effect";
+import { decodeStrict } from "../decode.js";
 import { type StudioRouteInsight, StudioRouteInsightSchema } from "./routes/index.js";
 
-const DetectorReadinessServingRefSchema = z
-  .object({
-    detectorId: z.string(),
-    routeId: z.string(),
-    scopeId: z.string(),
-    month: z.string(),
-    asOfMonth: z.string().nullable(),
-    bucket: z.enum(["public_finding_candidate", "route_context"]),
-    reviewedFrontendUse: z.string().nullable().optional(),
-    evidenceRefPath: z.string().optional(),
-    sourceProjectionPath: z.string().optional(),
-    readinessReason: z.string().optional(),
-    caveats: z.array(z.string()).default([]),
-  })
-  .passthrough();
+const DetectorReadinessServingRefSchema = Schema.Struct({
+  detectorId: Schema.String,
+  routeId: Schema.String,
+  scopeId: Schema.String,
+  month: Schema.String,
+  asOfMonth: Schema.NullOr(Schema.String),
+  bucket: Schema.Literals(["public_finding_candidate", "route_context"]),
+  reviewedFrontendUse: Schema.optional(Schema.NullOr(Schema.String)),
+  evidenceRefPath: Schema.optional(Schema.String),
+  sourceProjectionPath: Schema.optional(Schema.String),
+  readinessReason: Schema.optional(Schema.String),
+  caveats: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultType(Effect.succeed([]))),
+});
 
-const RouteDetectorReadinessSummarySchema = z
-  .object({
-    routeId: z.string(),
-    publicFindingCandidateRefs: z.array(DetectorReadinessServingRefSchema).default([]),
-    routeContextRefs: z.array(DetectorReadinessServingRefSchema).default([]),
-  })
-  .passthrough();
+const RouteDetectorReadinessSummarySchema = Schema.Struct({
+  routeId: Schema.String,
+  publicFindingCandidateRefs: Schema.Array(DetectorReadinessServingRefSchema).pipe(
+    Schema.withDecodingDefaultType(Effect.succeed([])),
+  ),
+  routeContextRefs: Schema.Array(DetectorReadinessServingRefSchema).pipe(
+    Schema.withDecodingDefaultType(Effect.succeed([])),
+  ),
+});
 
-export const DetectorReadinessServingManifestForInsightsSchema = z
-  .object({
-    artifactKind: z.literal("detector_readiness_serving_manifest"),
-    schemaVersion: z.literal(1),
-    routes: z.array(RouteDetectorReadinessSummarySchema),
-  })
-  .passthrough();
+export const DetectorReadinessServingManifestForInsightsSchema = Schema.Struct({
+  artifactKind: Schema.Literal("detector_readiness_serving_manifest"),
+  schemaVersion: Schema.Literal(1),
+  routes: Schema.Array(RouteDetectorReadinessSummarySchema),
+});
 
-export type DetectorReadinessServingManifestForInsights = z.output<
-  typeof DetectorReadinessServingManifestForInsightsSchema
->;
+export type DetectorReadinessServingManifestForInsights =
+  typeof DetectorReadinessServingManifestForInsightsSchema.Type;
 
-type DetectorReadinessServingRef = z.output<typeof DetectorReadinessServingRefSchema>;
+type DetectorReadinessServingRef = typeof DetectorReadinessServingRefSchema.Type;
 
 export const STUDIO_ROUTE_INSIGHT_DETECTOR_IDS = [
   "source_gap",
@@ -206,7 +204,7 @@ function buildCustomerJourneyInsight(input: {
   const shortText = input.contextOnly
     ? `Customer journey evidence adds context for ${period}, ${component}.`
     : `Customer journey shortfall appears in ${period}, ${component}.`;
-  return StudioRouteInsightSchema.parse({
+  return decodeStrict(StudioRouteInsightSchema)({
     routeId: input.routeId,
     kind: "customer_journey",
     placement: input.contextOnly ? "chart_annotation" : "overview",
@@ -494,7 +492,7 @@ function buildTreatmentInsight(input: {
   ) {
     return null;
   }
-  return StudioRouteInsightSchema.parse({
+  return decodeStrict(StudioRouteInsightSchema)({
     routeId: input.ref.routeId,
     kind: "treatment_scope",
     placement: input.contextOnly ? "chart_annotation" : "map_segment",
@@ -521,7 +519,7 @@ function buildGenericDetectorInsight(input: {
   const first = input.refs[0];
   if (copy === undefined || first === undefined) return null;
 
-  return StudioRouteInsightSchema.parse({
+  return decodeStrict(StudioRouteInsightSchema)({
     routeId: input.routeId,
     kind: copy.kind,
     placement: input.contextOnly ? (copy.contextPlacement ?? copy.placement) : copy.placement,
@@ -581,7 +579,12 @@ function buildGenericDetectorInsights(input: {
 
 function sortInsights(insights: readonly StudioRouteInsight[]): StudioRouteInsight[] {
   const severityRank = { high: 0, medium: 1, low: 2 };
-  const placementRank = { overview: 0, map_segment: 1, chart_annotation: 2, timeline: 3 };
+  const placementRank = {
+    overview: 0,
+    map_segment: 1,
+    chart_annotation: 2,
+    timeline: 3,
+  };
   return [...insights].sort(
     (left, right) =>
       severityRank[left.severity] - severityRank[right.severity] ||

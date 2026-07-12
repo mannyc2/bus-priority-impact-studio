@@ -1,5 +1,5 @@
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { runBuildContextEvents } from "@bp/pipeline-v2/local-db-aggregates";
-import { defineCommand, z } from "@liche/core";
 import {
   makeBuildLocalDbCommandLayer,
   runBuildContextEventsCommand,
@@ -14,15 +14,15 @@ export default defineCommand({
   path: ["build", "context-events"],
   summary: "Upsert per-source rows into local_context_event.",
   input: { options: dbOptions },
-  output: z.object({
-    inserted311: z.number(),
-    insertedCollisions: z.number(),
-    insertedParking: z.number(),
-    insertedPermits: z.number(),
-    insertedTrafficVolumes: z.number(),
-    insertedTrafficSpeeds: z.number(),
-    insertedAceViolations: z.number(),
-    total: z.number(),
+  output: Schema.Struct({
+    inserted311: Schema.Number,
+    insertedCollisions: Schema.Number,
+    insertedParking: Schema.Number,
+    insertedPermits: Schema.Number,
+    insertedTrafficVolumes: Schema.Number,
+    insertedTrafficSpeeds: Schema.Number,
+    insertedAceViolations: Schema.Number,
+    total: Schema.Number,
   }),
   async run({ input }) {
     return runPipelineEffect(

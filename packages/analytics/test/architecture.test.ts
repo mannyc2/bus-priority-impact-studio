@@ -12,13 +12,12 @@ import {
   buildCoverageAudit,
   buildEvidenceLink,
   clamp,
-  mergeThresholds,
   round,
   severityFromScore,
   stableId,
 } from "@bp/analytics/core";
-import { DEFAULT_DELAY_CONCENTRATION_THRESHOLDS } from "@bp/analytics/detectors";
 import { routeMonthFeatureKey } from "@bp/analytics/features";
+import { decodeStrict } from "@bp/domain/decode";
 import { IsoMonthSchema, RouteIdSchema } from "@bp/domain/primitives";
 
 describe("analytics architecture primitives", () => {
@@ -35,11 +34,6 @@ describe("analytics architecture primitives", () => {
     expect(severityFromScore(95)).toBe("high");
     expect(severityFromScore(70)).toBe("medium");
     expect(severityFromScore(60)).toBe("low");
-    expect(
-      mergeThresholds(DEFAULT_DELAY_CONCENTRATION_THRESHOLDS, {
-        minFleetForBenchmark: 12,
-      }).minFleetForBenchmark,
-    ).toBe(12);
   });
 
   test("builds schema-validated evidence and coverage rows", () => {
@@ -67,8 +61,13 @@ describe("analytics architecture primitives", () => {
       createdAt: "2026-05-20T00:00:00.000Z",
     });
 
-    expect(JSON.parse(evidence.evidenceRef)).toEqual({ routeId: "M15", score: 95 });
-    expect(JSON.parse(coverage.inputsSeenJson ?? "{}")).toEqual({ routeId: "M15" });
+    expect(JSON.parse(evidence.evidenceRef)).toEqual({
+      routeId: "M15",
+      score: 95,
+    });
+    expect(JSON.parse(coverage.inputsSeenJson ?? "{}")).toEqual({
+      routeId: "M15",
+    });
   });
 
   test("exposes pure baseline helpers for detector designs", () => {
@@ -110,8 +109,8 @@ describe("analytics architecture primitives", () => {
   test("defines feature grain keys without depending on app or pipeline code", () => {
     expect(
       routeMonthFeatureKey({
-        routeId: RouteIdSchema.parse("M15"),
-        month: IsoMonthSchema.parse("2026-03"),
+        routeId: decodeStrict(RouteIdSchema)("M15"),
+        month: decodeStrict(IsoMonthSchema)("2026-03"),
         window: "all_day",
         direction: null,
       }),

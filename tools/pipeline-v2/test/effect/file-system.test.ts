@@ -50,6 +50,42 @@ describe("pipeline file-system Effect boundary", () => {
     expect(result).toBeNull();
   });
 
+  test("lists directory entries with file sizes through the service", async () => {
+    const root = await mkdtemp(join(tmpdir(), "bp-file-system-"));
+    try {
+      const path = join(root, "nested", "artifact.txt");
+      await runPipelineFileSystemBoundary({
+        command: "fixture.files",
+        operation: "writeForList",
+        run: (files) =>
+          files.writeText({
+            command: "fixture.files",
+            operation: "writeForList",
+            path,
+            contents: "hello",
+          }),
+      });
+
+      const entries = await runPipelineFileSystemBoundary({
+        command: "fixture.files",
+        operation: "list",
+        run: (files) =>
+          files.listDirectory({
+            command: "fixture.files",
+            operation: "list",
+            path: root,
+            recursive: true,
+          }),
+      });
+
+      expect(entries).toEqual(
+        expect.arrayContaining([expect.objectContaining({ path, type: "File", size: 5 })]),
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   test("wraps JSON parse failures in typed file-system errors", async () => {
     const root = await mkdtemp(join(tmpdir(), "bp-file-system-"));
     try {

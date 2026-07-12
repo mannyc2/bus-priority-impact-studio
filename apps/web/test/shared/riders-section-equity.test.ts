@@ -5,8 +5,9 @@ import { RidersSection, routeEquityContextItems } from "../../src/components/rou
 import type { StudioRouteDetailResponse } from "../../src/studio/api-contract";
 
 const routeDetail = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   generatedAt: "2026-07-01T00:00:00.000Z",
+  baselineMonth: "2026-03",
   route: {
     slug: "m15-sbs",
     routeId: "M15+",
@@ -42,6 +43,8 @@ const routeDetail = {
   segments: [
     {
       id: "M15+:2026-03:N:1:stop-a:stop-b",
+      spineSegmentId: "m15-n-stop-a-stop-b",
+      spineJoinStatus: "matched",
       routeSlug: "m15-sbs",
       direction: "NB",
       from: "14 St",
@@ -97,8 +100,9 @@ describe("RidersSection equity context", () => {
     expect(markup).toContain("No-vehicle households");
     expect(markup).toContain("77%");
     expect(markup).toContain("$98.0K");
-    expect(markup).toContain("ACS 2024 five-year estimates");
-    expect(markup).toContain("New York County");
+    // The ACS provenance line moved into the SourceNote popover (plan 056),
+    // so it no longer appears in the statically rendered markup.
+    expect(markup).not.toContain("ACS 2024 five-year estimates");
   });
 
   test("omits the ACS strip when the payload is too sparse", () => {

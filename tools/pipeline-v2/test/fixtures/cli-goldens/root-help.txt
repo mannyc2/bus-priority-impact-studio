@@ -1,0 +1,34 @@
+pipeline
+
+Usage: pipeline <command>
+
+Commands:
+  route
+  build
+  publish
+  geocode
+  pull
+  ingest
+  check
+  map
+  plan
+  gtfs-rt
+  import
+  sources
+  verify
+  studio
+  corridor
+  cloudflare
+  audit
+  backfill
+  collect
+  export
+  pipeline
+
+Global Options:
+  --help, -h
+  --version
+  --format <json|yaml|md|jsonl|csv>
+  --json
+  --full-output
+  --schema

@@ -2,7 +2,7 @@
 title: Public-Facing Data Catalog
 type: data
 status: active
-last_updated: 2026-05-26
+last_updated: 2026-07-05
 owner: codex
 source_count: 8
 tags: [public-data, api, frontend, studio, data-catalog, design-handoff]
@@ -40,7 +40,7 @@ Endpoint docs describe the current contract. This catalog describes the product 
 
 - Public clients depend on Studio resources, not storage keys. Do not expose private R2 keys such as
   `studio/v1/routes/...` as product URLs.
-- Public response shapes live in `packages/domain` Zod schemas and generated OpenAPI.
+- Public response shapes live in `packages/domain` Effect Schema contracts and generated OpenAPI.
 - The Worker is a read/write BFF over D1 and R2; it must not run heavy analytics, source probes, or
   local pipeline code in request handlers.
 - Missing evidence should be represented as a typed unavailable state with `quality`, caveats, null

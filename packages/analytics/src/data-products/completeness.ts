@@ -1,4 +1,5 @@
-import { z } from "zod";
+import { Schema } from "effect";
+import { decodeSchemaStrict } from "../schema-decode.js";
 import type {
   DataProduct,
   DataProductCheck,
@@ -72,8 +73,8 @@ export type DataProductCompletenessProductAuditBase = {
   grain: string;
   producerCommand: string;
   expectedUniverse: DataProduct["expectedUniverse"];
-  requiredInputs: string[];
-  downstreamConsumers: string[];
+  requiredInputs: readonly string[];
+  downstreamConsumers: readonly string[];
   freshnessPolicy: DataProduct["freshnessPolicy"];
   lifecycle: DataProduct["lifecycle"];
   status: DataProductCompletenessStatus;
@@ -89,7 +90,7 @@ export type DataProductDownstreamBlocker = {
   status: DataProductCompletenessStatus;
   gapClass: DataProductGapClass;
   gapClasses: DataProductGapClass[];
-  downstreamConsumers: string[];
+  downstreamConsumers: readonly string[];
   rootCauses: DataProductRootCause[];
   reasons: string[];
 };
@@ -103,7 +104,7 @@ export type DataProductCoverageProductSummary = {
   gapClasses: DataProductGapClass[];
   reasons: string[];
   rootCauses: DataProductRootCause[];
-  downstreamConsumers: string[];
+  downstreamConsumers: readonly string[];
 };
 
 export type DataProductCoverageBucket = {
@@ -163,7 +164,7 @@ export const DATA_PRODUCT_GAP_CLASS_ORDER: readonly DataProductGapClass[] = [
   "unknown",
 ];
 
-export const DataProductGapClassSchema = z.enum([
+export const DataProductGapClassSchema = Schema.Literals([
   "none",
   "upstream_blocked",
   "downstream_blocked",
@@ -179,7 +180,7 @@ export const DataProductGapClassSchema = z.enum([
   "unknown",
 ]);
 
-const DataProductCheckAuditTypeSchema = z.enum([
+const DataProductCheckAuditTypeSchema = Schema.Literals([
   "month_table_coverage",
   "table_route_coverage",
   "table_row_count",
@@ -190,162 +191,155 @@ const DataProductCheckAuditTypeSchema = z.enum([
   "artifact_glob",
 ]);
 
-export const DataProductCheckAuditSchema = z
-  .object({
-    checkId: z.string().min(1),
-    label: z.string().min(1),
-    type: DataProductCheckAuditTypeSchema,
-    status: DataProductCompletenessStatusSchema,
-    tableName: z.string().min(1).nullable(),
-    path: z.string().min(1).nullable(),
-    expectedCount: z.number().int().nonnegative(),
-    observedCount: z.number().int().nonnegative(),
-    missingCount: z.number().int().nonnegative(),
-    observedShare: z.number().min(0).max(1).nullable(),
-    sampleObserved: z.array(z.string()),
-    sampleMissing: z.array(z.string()),
-    samplePartial: z.array(z.string()),
-    reasons: z.array(z.string()),
-  })
-  .strict();
+export const DataProductCheckAuditSchema = Schema.Struct({
+  checkId: Schema.String.check(Schema.isMinLength(1)),
+  label: Schema.String.check(Schema.isMinLength(1)),
+  type: DataProductCheckAuditTypeSchema,
+  status: DataProductCompletenessStatusSchema,
+  tableName: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+  path: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+  expectedCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  observedCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  missingCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  observedShare: Schema.NullOr(
+    Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1)),
+  ),
+  sampleObserved: Schema.Array(Schema.String),
+  sampleMissing: Schema.Array(Schema.String),
+  samplePartial: Schema.Array(Schema.String),
+  reasons: Schema.Array(Schema.String),
+});
 
-export const DataProductRootCauseSchema = z
-  .object({
-    productId: z.string().min(1),
-    label: z.string().min(1),
-    status: DataProductCompletenessStatusSchema,
-    gapClass: DataProductGapClassSchema,
-    reasons: z.array(z.string()),
-  })
-  .strict();
+export const DataProductRootCauseSchema = Schema.Struct({
+  productId: Schema.String.check(Schema.isMinLength(1)),
+  label: Schema.String.check(Schema.isMinLength(1)),
+  status: DataProductCompletenessStatusSchema,
+  gapClass: DataProductGapClassSchema,
+  reasons: Schema.Array(Schema.String),
+});
 
-export const DataProductCompletenessProductAuditSchema = z
-  .object({
-    productId: z.string().min(1),
-    label: z.string().min(1),
-    kind: DataProductKindSchema,
-    owner: z.string().min(1),
-    grain: z.string().min(1),
-    producerCommand: z.string().min(1),
-    expectedUniverse: DataProductExpectedUniverseSchema,
-    requiredInputs: z.array(z.string().min(1)),
-    downstreamConsumers: z.array(z.string().min(1)),
-    freshnessPolicy: DataProductFreshnessPolicySchema,
-    lifecycle: DataProductLifecycleSchema,
-    status: DataProductCompletenessStatusSchema,
-    checks: z.array(DataProductCheckAuditSchema),
-    reasons: z.array(z.string()),
-    gapClass: DataProductGapClassSchema,
-    gapClasses: z.array(DataProductGapClassSchema),
-    rootCauses: z.array(DataProductRootCauseSchema),
-  })
-  .strict();
+export const DataProductCompletenessProductAuditSchema = Schema.Struct({
+  productId: Schema.String.check(Schema.isMinLength(1)),
+  label: Schema.String.check(Schema.isMinLength(1)),
+  kind: DataProductKindSchema,
+  owner: Schema.String.check(Schema.isMinLength(1)),
+  grain: Schema.String.check(Schema.isMinLength(1)),
+  producerCommand: Schema.String.check(Schema.isMinLength(1)),
+  expectedUniverse: DataProductExpectedUniverseSchema,
+  requiredInputs: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  downstreamConsumers: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  freshnessPolicy: DataProductFreshnessPolicySchema,
+  lifecycle: DataProductLifecycleSchema,
+  status: DataProductCompletenessStatusSchema,
+  checks: Schema.Array(DataProductCheckAuditSchema),
+  reasons: Schema.Array(Schema.String),
+  gapClass: DataProductGapClassSchema,
+  gapClasses: Schema.Array(DataProductGapClassSchema),
+  rootCauses: Schema.Array(DataProductRootCauseSchema),
+});
 
-export const DataProductCoverageProductSummarySchema = z
-  .object({
-    productId: z.string().min(1),
-    label: z.string().min(1),
-    kind: DataProductKindSchema,
-    status: DataProductCompletenessStatusSchema,
-    gapClass: DataProductGapClassSchema,
-    gapClasses: z.array(DataProductGapClassSchema),
-    reasons: z.array(z.string()),
-    rootCauses: z.array(DataProductRootCauseSchema),
-    downstreamConsumers: z.array(z.string().min(1)),
-  })
-  .strict();
+export const DataProductCoverageProductSummarySchema = Schema.Struct({
+  productId: Schema.String.check(Schema.isMinLength(1)),
+  label: Schema.String.check(Schema.isMinLength(1)),
+  kind: DataProductKindSchema,
+  status: DataProductCompletenessStatusSchema,
+  gapClass: DataProductGapClassSchema,
+  gapClasses: Schema.Array(DataProductGapClassSchema),
+  reasons: Schema.Array(Schema.String),
+  rootCauses: Schema.Array(DataProductRootCauseSchema),
+  downstreamConsumers: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+});
 
-export const DataProductCoverageBucketSchema = z
-  .object({
-    count: z.number().int().nonnegative(),
-    products: z.array(DataProductCoverageProductSummarySchema),
-  })
-  .strict();
+export const DataProductCoverageBucketSchema = Schema.Struct({
+  count: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  products: Schema.Array(DataProductCoverageProductSummarySchema),
+});
 
-export const DataProductCoverageSummarySchema = z
-  .object({
-    complete: DataProductCoverageBucketSchema,
-    needsFetch: DataProductCoverageBucketSchema,
-    needsBuild: DataProductCoverageBucketSchema,
-    upstreamBlocked: DataProductCoverageBucketSchema,
-    downstreamBlocked: DataProductCoverageBucketSchema,
-    plannedBlocked: DataProductCoverageBucketSchema,
-    fetching: DataProductCoverageBucketSchema,
-    stale: DataProductCoverageBucketSchema,
-    waived: DataProductCoverageBucketSchema,
-    unknown: DataProductCoverageBucketSchema,
-    sourceAbsent: DataProductCoverageBucketSchema,
-  })
-  .strict();
+export const DataProductCoverageSummarySchema = Schema.Struct({
+  complete: DataProductCoverageBucketSchema,
+  needsFetch: DataProductCoverageBucketSchema,
+  needsBuild: DataProductCoverageBucketSchema,
+  upstreamBlocked: DataProductCoverageBucketSchema,
+  downstreamBlocked: DataProductCoverageBucketSchema,
+  plannedBlocked: DataProductCoverageBucketSchema,
+  fetching: DataProductCoverageBucketSchema,
+  stale: DataProductCoverageBucketSchema,
+  waived: DataProductCoverageBucketSchema,
+  unknown: DataProductCoverageBucketSchema,
+  sourceAbsent: DataProductCoverageBucketSchema,
+});
 
-export const DataProductCompletenessArtifactSchema = z
-  .object({
-    artifactKind: z.literal("data_product_completeness"),
-    generatedAt: z.string().min(1),
-    dbPath: z.string().min(1).nullable(),
-    artifactPath: z.string().min(1),
-    manifestVersion: z.number().int().positive(),
-    releaseMonth: z.string().regex(/^\d{4}-\d{2}$/),
-    runId: z.string().min(1),
-    gtfsRunId: z.string().min(1).nullable(),
-    historyWindow: z
-      .object({
-        startMonth: z.string().regex(/^\d{4}-\d{2}$/),
-        endMonth: z.string().regex(/^\d{4}-\d{2}$/),
-        monthCount: z.number().int().positive(),
-      })
-      .strict(),
-    routeUniverses: z.record(
-      z.string(),
-      z
-        .object({
-          routeCount: z.number().int().nonnegative(),
-          sampleRoutes: z.array(z.string()),
-        })
-        .strict(),
+export const DataProductCompletenessArtifactSchema = Schema.Struct({
+  artifactKind: Schema.Literal("data_product_completeness"),
+  generatedAt: Schema.String.check(Schema.isMinLength(1)),
+  dbPath: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+  artifactPath: Schema.String.check(Schema.isMinLength(1)),
+  manifestVersion: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  releaseMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  runId: Schema.String.check(Schema.isMinLength(1)),
+  gtfsRunId: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+  historyWindow: Schema.Struct({
+    startMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+    endMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+    monthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  }),
+  routeUniverses: Schema.Record(
+    Schema.String,
+    Schema.Struct({
+      routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      sampleRoutes: Schema.Array(Schema.String),
+    }),
+  ),
+  summary: Schema.Struct({
+    productCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    checkCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    completeProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
     ),
-    summary: z
-      .object({
-        productCount: z.number().int().nonnegative(),
-        checkCount: z.number().int().nonnegative(),
-        completeProductCount: z.number().int().nonnegative(),
-        partialProductCount: z.number().int().nonnegative(),
-        missingProductCount: z.number().int().nonnegative(),
-        staleProductCount: z.number().int().nonnegative(),
-        waivedProductCount: z.number().int().nonnegative(),
-        blockedProductCount: z.number().int().nonnegative(),
-        fetchingProductCount: z.number().int().nonnegative(),
-        downstreamBlockedProductCount: z.number().int().nonnegative(),
-        gapClassCounts: z.record(DataProductGapClassSchema, z.number().int().nonnegative()),
-      })
-      .strict(),
-    coverage: DataProductCoverageSummarySchema,
-    products: z.array(DataProductCompletenessProductAuditSchema),
-    downstreamBlockers: z.array(
-      z
-        .object({
-          productId: z.string().min(1),
-          status: DataProductCompletenessStatusSchema,
-          gapClass: DataProductGapClassSchema,
-          gapClasses: z.array(DataProductGapClassSchema),
-          downstreamConsumers: z.array(z.string().min(1)),
-          rootCauses: z.array(DataProductRootCauseSchema),
-          reasons: z.array(z.string()),
-        })
-        .strict(),
+    partialProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
     ),
-    nextActions: z.array(z.string().min(1)),
-  })
-  .strict();
+    missingProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    staleProductCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    waivedProductCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    blockedProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    fetchingProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    downstreamBlockedProductCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    gapClassCounts: Schema.Record(
+      DataProductGapClassSchema,
+      Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    ),
+  }),
+  coverage: DataProductCoverageSummarySchema,
+  products: Schema.Array(DataProductCompletenessProductAuditSchema),
+  downstreamBlockers: Schema.Array(
+    Schema.Struct({
+      productId: Schema.String.check(Schema.isMinLength(1)),
+      status: DataProductCompletenessStatusSchema,
+      gapClass: DataProductGapClassSchema,
+      gapClasses: Schema.Array(DataProductGapClassSchema),
+      downstreamConsumers: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+      rootCauses: Schema.Array(DataProductRootCauseSchema),
+      reasons: Schema.Array(Schema.String),
+    }),
+  ),
+  nextActions: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+});
 
-export type DataProductCompletenessArtifact = z.output<
-  typeof DataProductCompletenessArtifactSchema
->;
+export type DataProductCompletenessArtifact = typeof DataProductCompletenessArtifactSchema.Type;
 
 export function parseDataProductCompletenessArtifact(
   input: unknown,
 ): DataProductCompletenessArtifact {
-  return DataProductCompletenessArtifactSchema.parse(input);
+  return decodeSchemaStrict(DataProductCompletenessArtifactSchema, input);
 }
 
 const GAP_CLASS_PRIORITY: readonly DataProductGapClass[] = [

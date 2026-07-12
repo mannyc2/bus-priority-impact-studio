@@ -26,6 +26,16 @@ import type {
   DocumentInterventionRecord,
   DocumentInterventionRecordDraft,
 } from "@bp/domain/documents/intervention-records";
+import { DocumentInterventionRecordsToolResponseSchema } from "@bp/domain/documents/intervention-records";
+import { Result } from "effect";
+import { decodeSchemaEitherStrict } from "../src/schema-decode.js";
+
+function parseToolResponseForRepair(value: unknown) {
+  const result = decodeSchemaEitherStrict(DocumentInterventionRecordsToolResponseSchema, value);
+  return Result.isSuccess(result)
+    ? { success: true as const }
+    : { success: false as const, error: { issues: [] } };
+}
 
 type Tier2DocumentInterventionRecord = DocumentInterventionRecord;
 
@@ -179,14 +189,18 @@ describe("repairInterventionRecordsAliases (Fix 6)", () => {
       ],
       unattachedCandidateIds: [],
     };
-    const { patched, recordIndicesWithStrippedEnums } = repairInvalidEnumValues(toolArgs, (value) =>
-      DocumentInterventionRecordsToolResponseSchema.safeParse(value),
+    const { patched, recordIndicesWithStrippedEnums } = repairInvalidEnumValues(
+      toolArgs,
+      parseToolResponseForRepair,
     );
     expect(recordIndicesWithStrippedEnums.has(0)).toBe(true);
-    const reparse = DocumentInterventionRecordsToolResponseSchema.safeParse(patched);
-    expect(reparse.success).toBe(true);
-    if (reparse.success) {
-      const record = must(reparse.data.interventionRecords[0]);
+    const reparse = decodeSchemaEitherStrict(
+      DocumentInterventionRecordsToolResponseSchema,
+      patched,
+    );
+    expect(Result.isSuccess(reparse)).toBe(true);
+    if (Result.isSuccess(reparse)) {
+      const record = must(reparse.success.interventionRecords[0]);
       // Invalid primaryTreatments[] element moved into customTreatments[].
       expect(record.primaryTreatments).toEqual(["bus_lane"]);
       expect(record.customTreatments).toContain("frequency_increase");
@@ -234,13 +248,14 @@ describe("repairInterventionRecordsAliases (Fix 6)", () => {
       ],
       unattachedCandidateIds: [],
     };
-    const { patched } = repairInvalidEnumValues(toolArgs, (value) =>
-      DocumentInterventionRecordsToolResponseSchema.safeParse(value),
+    const { patched } = repairInvalidEnumValues(toolArgs, parseToolResponseForRepair);
+    const reparse = decodeSchemaEitherStrict(
+      DocumentInterventionRecordsToolResponseSchema,
+      patched,
     );
-    const reparse = DocumentInterventionRecordsToolResponseSchema.safeParse(patched);
-    expect(reparse.success).toBe(true);
-    if (reparse.success) {
-      const record = must(reparse.data.interventionRecords[0]);
+    expect(Result.isSuccess(reparse)).toBe(true);
+    if (Result.isSuccess(reparse)) {
+      const record = must(reparse.success.interventionRecords[0]);
       expect(record.treatmentComponents).toHaveLength(1);
       expect(record.treatmentComponents[0]?.description).toBe("Keep me");
     }
@@ -343,14 +358,18 @@ describe("repairInterventionRecordsAliases (Fix 6)", () => {
       ],
       unattachedCandidateIds: [],
     };
-    const { patched, recordIndicesWithStrippedEnums } = repairInvalidEnumValues(toolArgs, (value) =>
-      DocumentInterventionRecordsToolResponseSchema.safeParse(value),
+    const { patched, recordIndicesWithStrippedEnums } = repairInvalidEnumValues(
+      toolArgs,
+      parseToolResponseForRepair,
     );
     expect(recordIndicesWithStrippedEnums.has(0)).toBe(true);
-    const reparse = DocumentInterventionRecordsToolResponseSchema.safeParse(patched);
-    expect(reparse.success).toBe(true);
-    if (reparse.success) {
-      const metric = must(must(reparse.data.interventionRecords[0]).metrics[0]);
+    const reparse = decodeSchemaEitherStrict(
+      DocumentInterventionRecordsToolResponseSchema,
+      patched,
+    );
+    expect(Result.isSuccess(reparse)).toBe(true);
+    if (Result.isSuccess(reparse)) {
+      const metric = must(must(reparse.success.interventionRecords[0]).metrics[0]);
       expect("notes" in metric).toBe(false);
       expect(metric.metricName).toBe("bus_travel_time");
     }
@@ -379,13 +398,14 @@ describe("repairInterventionRecordsAliases (Fix 6)", () => {
       ],
       unattachedCandidateIds: [],
     };
-    const { patched } = repairInvalidEnumValues(toolArgs, (value) =>
-      DocumentInterventionRecordsToolResponseSchema.safeParse(value),
+    const { patched } = repairInvalidEnumValues(toolArgs, parseToolResponseForRepair);
+    const reparse = decodeSchemaEitherStrict(
+      DocumentInterventionRecordsToolResponseSchema,
+      patched,
     );
-    const reparse = DocumentInterventionRecordsToolResponseSchema.safeParse(patched);
-    expect(reparse.success).toBe(true);
-    if (reparse.success) {
-      const statuses = must(reparse.data.interventionRecords[0]).statusHistory.map(
+    expect(Result.isSuccess(reparse)).toBe(true);
+    if (Result.isSuccess(reparse)) {
+      const statuses = must(reparse.success.interventionRecords[0]).statusHistory.map(
         (entry) => entry.status,
       );
       expect(statuses).toEqual(["proposed", "complete"]);
@@ -515,6 +535,31 @@ describe("repairInterventionRecordsAliases (Fix 6)", () => {
       expect(record.metrics).toHaveLength(2);
     }
   });
+
+  test("reports the native schema path for an invalid nested value", () => {
+    const result = processInterventionRecordsToolArgs({
+      sourceId: "test_source",
+      bucket: {
+        bucketId: "test_source:single_call",
+        bucketKind: "single_call",
+        candidates: [],
+      },
+      candidateExtractionRootName: "ocr-page-markdown",
+      candidateRootName: "ocr-markdown-candidates",
+      synthesisRootName: "intervention-records",
+      toolArgs: {
+        sourceId: "test_source",
+        interventionRecords: [{ routes: [42] }],
+        unattachedCandidateIds: [],
+      },
+    });
+
+    expect(result.status).toBe("failed");
+    if (result.status !== "failed") throw new Error("Expected schema validation failure");
+    expect(
+      result.issues.some((issue) => issue.path === "interventionRecords.0.routes.0"),
+    ).toBeTrue();
+  });
 });
 
 describe("sanitizeStatusHistoryForProposedOnly (Fix 2)", () => {
@@ -543,8 +588,14 @@ describe("sanitizeStatusHistoryForProposedOnly (Fix 2)", () => {
   });
 
   test("leaves status alone when at least one ref is non-proposed", () => {
-    const c1 = buildCandidate({ candidateId: "c1", negativeEvidenceFlag: "proposed_only" });
-    const c2 = buildCandidate({ candidateId: "c2", negativeEvidenceFlag: "none" });
+    const c1 = buildCandidate({
+      candidateId: "c1",
+      negativeEvidenceFlag: "proposed_only",
+    });
+    const c2 = buildCandidate({
+      candidateId: "c2",
+      negativeEvidenceFlag: "none",
+    });
     const candidateById = new Map([
       ["c1", c1],
       ["c2", c2],
@@ -582,7 +633,9 @@ describe("backfillStatusHistory (Fix P1.1)", () => {
       fields: { implementationStatus: "implemented" },
     });
     const result = backfillStatusHistory({
-      draft: { statusHistory: [] } as unknown as DocumentInterventionRecordDraft,
+      draft: {
+        statusHistory: [],
+      } as unknown as DocumentInterventionRecordDraft,
       recordCandidates: [c1],
     });
     expect(result.coercedFromProposedOnly).toBe(false);
@@ -592,7 +645,10 @@ describe("backfillStatusHistory (Fix P1.1)", () => {
 
 describe("inferRecordKind", () => {
   test("returns 'proposed' when every candidate is proposed_only despite leaked 'complete' in history", () => {
-    const c1 = buildCandidate({ candidateId: "c1", negativeEvidenceFlag: "proposed_only" });
+    const c1 = buildCandidate({
+      candidateId: "c1",
+      negativeEvidenceFlag: "proposed_only",
+    });
     const kind = inferRecordKind({
       statusHistory: [{ status: "complete", evidenceRefs: ["c1"] }],
       recordCandidates: [c1],
@@ -601,7 +657,10 @@ describe("inferRecordKind", () => {
   });
 
   test("returns 'implemented' when at least one candidate is not proposed-only and history has complete", () => {
-    const c1 = buildCandidate({ candidateId: "c1", negativeEvidenceFlag: "none" });
+    const c1 = buildCandidate({
+      candidateId: "c1",
+      negativeEvidenceFlag: "none",
+    });
     const kind = inferRecordKind({
       statusHistory: [{ status: "complete", evidenceRefs: ["c1"] }],
       recordCandidates: [c1],
@@ -1068,6 +1127,6 @@ describe("mergeRecordCluster (Fix P2.6 — evidence refs union per component)", 
       synthesisRootName: "intervention-records",
     });
     expect(merged.treatmentComponents).toHaveLength(1);
-    expect(merged.treatmentComponents[0]?.evidenceRefs.sort()).toEqual(["c1", "c2"]);
+    expect(merged.treatmentComponents[0]?.evidenceRefs.toSorted()).toEqual(["c1", "c2"]);
   });
 });

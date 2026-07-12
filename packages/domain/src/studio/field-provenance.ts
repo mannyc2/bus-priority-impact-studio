@@ -175,6 +175,16 @@ export const studioSegmentFieldProvenance = {
     source: "route-brief segment artifact",
     note: "Stable segment identifier from route/timepoint slice.",
   },
+  spineSegmentId: {
+    kind: "derived",
+    source: "route speed spine crosswalk",
+    note: "Stable geographic spine identity when the exact current segment has a verified match.",
+  },
+  spineJoinStatus: {
+    kind: "derived",
+    source: "route speed spine crosswalk",
+    note: "Explicit readiness of the current segment's stable geographic join.",
+  },
   routeSlug: {
     kind: "derived",
     source: "route catalog",

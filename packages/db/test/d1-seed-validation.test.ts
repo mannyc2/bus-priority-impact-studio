@@ -111,4 +111,35 @@ describe("D1 seed validation", () => {
       }),
     ).toThrow(/D1 seed row failed validation for route_observed_reliability_summary/);
   });
+
+  test("rejects invalid route speed-history spine readiness and reason JSON", () => {
+    const input = emptySeedInput();
+    input.routeSpeedHistoryCoverage = [
+      {
+        routeId: "B41",
+        month: "2026-03",
+        routeSlug: "b41",
+        historyStartMonth: "2023-04",
+        historyEndMonth: "2026-03",
+        artifactPath: "studio/v2/routes/b41/speed-history.json",
+        artifactStatus: "written",
+        spineReadiness: "not_ready",
+        spineReasonJson: "{}",
+        matchedCurrentSegmentCount: null,
+        unmatchedCurrentSegmentCount: null,
+        monthCount: 36,
+        segmentCount: 16,
+        cellCount: 2304,
+        availableCellCount: 2200,
+        missingCellCount: 104,
+        generatedAt: "2026-07-11T00:00:00.000Z",
+      } as unknown as D1SeedInput["routeSpeedHistoryCoverage"][number],
+    ];
+
+    expect(() => buildD1SeedSql(input)).toThrow(/spineReadiness: Invalid enum value/);
+    const coverage = input.routeSpeedHistoryCoverage[0];
+    if (coverage === undefined) throw new Error("Missing coverage fixture.");
+    coverage.spineReadiness = "series_ready";
+    expect(() => buildD1SeedSql(input)).toThrow(/spineReasonJson: Expected string array/);
+  });
 });

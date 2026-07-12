@@ -1,3 +1,7 @@
+import {
+  classifyRouteSegmentSourceKey,
+  serializeStudioSegmentId,
+} from "@bp/analytics/feature-history";
 import type { SegmentHotspot, SegmentSpeedObservation } from "@bp/analytics/hotspots";
 import { detectSegmentHotspots } from "@bp/analytics/hotspots";
 import type { PublicRouteVisibilityReason } from "@bp/analytics/public-route-visibility";
@@ -170,14 +174,49 @@ function ridershipKey(dayOfWeek: string, hourOfDay: number): string {
 }
 
 function segmentIdFromSpeedRow(row: LocalRouteSegmentSpeed): string {
-  return [
-    row.routeId,
-    row.isoMonth,
-    row.direction,
-    row.stopOrder,
-    row.timepointStopId,
-    row.nextTimepointStopId,
-  ].join(":");
+  const classified = classifyRouteSegmentSourceKey({
+    routeId: row.routeId,
+    month: row.isoMonth,
+    direction: row.direction,
+    stopOrder: row.stopOrder,
+    fromStopId: row.timepointStopId,
+    toStopId: row.nextTimepointStopId,
+  });
+  if (classified.status !== "keyed") {
+    throw new Error(`Studio segment ${row.routeId} ${row.isoMonth} has no stop pair.`);
+  }
+  return serializeStudioSegmentId(classified.key);
+}
+
+function canonicalizePhysicalSegmentStopOrders(
+  rows: readonly LocalRouteSegmentSpeed[],
+): LocalRouteSegmentSpeed[] {
+  const minimumStopOrderByPair = new Map<string, number>();
+  for (const row of rows) {
+    const key = [
+      row.routeId,
+      row.isoMonth,
+      row.direction,
+      row.timepointStopId,
+      row.nextTimepointStopId,
+    ].join(":");
+    minimumStopOrderByPair.set(
+      key,
+      Math.min(minimumStopOrderByPair.get(key) ?? row.stopOrder, row.stopOrder),
+    );
+  }
+
+  return rows.map((row) => {
+    const key = [
+      row.routeId,
+      row.isoMonth,
+      row.direction,
+      row.timepointStopId,
+      row.nextTimepointStopId,
+    ].join(":");
+    const stopOrder = minimumStopOrderByPair.get(key) ?? row.stopOrder;
+    return stopOrder === row.stopOrder ? row : { ...row, stopOrder };
+  });
 }
 
 function segmentOrder(left: SegmentHotspot, right: SegmentHotspot): number {
@@ -399,7 +438,8 @@ export function buildRouteBriefSegmentUniverse(input: {
   year: number;
   month: number;
 }): RouteBriefSegmentUniverse {
-  const observations = addRidershipToSpeedRows(input.speedRows, input.ridershipRows);
+  const speedRows = canonicalizePhysicalSegmentStopOrders(input.speedRows);
+  const observations = addRidershipToSpeedRows(speedRows, input.ridershipRows);
   if (observations.length === 0) {
     return {
       segmentUniverse: {
@@ -423,13 +463,15 @@ export function buildRouteBriefSegmentUniverse(input: {
     };
   }
 
-  const detected = detectSegmentHotspots(observations, { limit: Number.MAX_SAFE_INTEGER });
+  const detected = detectSegmentHotspots(observations, {
+    limit: Number.MAX_SAFE_INTEGER,
+  });
   const segments = [...detected.hotspots].sort(segmentOrder);
   const comparisons = scheduleComparisons(input.schedules, segments);
   const comparisonsBySegment = new Map(
     comparisons.hotspotComparisons.map((comparison) => [comparison.segmentId, comparison]),
   );
-  const speedStats = segmentHourStats(input.speedRows);
+  const speedStats = segmentHourStats(speedRows);
   const ridershipByWindow = new Map(
     input.ridershipRows.map((row) => [ridershipKey(row.dayOfWeek, row.hourOfDay), row]),
   );
@@ -766,7 +808,10 @@ export function routeBriefVisibilityReason(input: {
   reason: PublicRouteVisibilityReason;
   coverageStatus: "full" | "no_observed_speed";
   totalRidership: number;
-}): { publicVisible: boolean; publicVisibilityReason: PublicRouteVisibilityReason } {
+}): {
+  publicVisible: boolean;
+  publicVisibilityReason: PublicRouteVisibilityReason;
+} {
   if (routeHasMissingRidershipExposure(input)) {
     return {
       publicVisible: false,

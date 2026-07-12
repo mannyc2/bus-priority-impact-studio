@@ -2,7 +2,7 @@
 title: Local Database Usage Audit
 type: engineering
 status: current
-last_updated: 2026-06-07
+last_updated: 2026-07-05
 owner: claude
 source_count: 0
 tags: [drizzle, drizzle-zod, sqlite, local-db, pipeline, usage-audit, validation]
@@ -44,17 +44,21 @@ Raw Prepare Audit]]. Numbers below are from a 2026-06-07 grep inventory and are 
 
 ### Acquisition & lifecycle (one dominant pattern)
 
-Almost all pipeline access goes through the `@liche` command middleware:
+Most pipeline command access now goes through thin command descriptors running under the
+`effect/unstable/cli` adapter. The old `@liche` middleware was removed in Plan 040; commands either
+open the local database through explicit Effect command layers (`make*CommandLayer` +
+`runPipelineEffect`) or call `openLocalPipelineDb()` directly for non-shared command paths.
 
-- `withLocalDb()` middleware — ~66 command call sites; `localDbFromCtx()` — ~67 sites.
-- ~13 direct `openLocalPipelineDb()` calls (tests, non-command flows); ~6 raw `new Database(...)`
-  opens inside `tools/pipeline-v2/src` (readonly readers + one repair command).
+- Shared local-DB command layers cover the high-traffic route/build/read-only paths.
+- Direct `openLocalPipelineDb()` calls remain in tests, non-command flows, and command bodies that
+  have not yet been rewritten to native Effect handlers.
 
 `openLocalPipelineDb` (`tools/pipeline-v2/src/lib/local-db.ts`) is the funnel: it **migrates on every
 open** (`migrations-drizzle/local`), applies pragmas via `applyLocalPragmas` (WAL,
 `busy_timeout`, `foreign_keys=ON`, `synchronous=NORMAL`), optionally loads SpatiaLite, hands back
-`{ db, sqlite, path, spatialite }`, and the middleware closes `sqlite` in a `finally`. So commands
-get **both** a typed Drizzle handle (`db`) and the raw handle (`sqlite`) from the same connection.
+`{ db, sqlite, path, spatialite }`, and command layers/direct callers close `sqlite` in finalizers or
+`finally` blocks. So commands get **both** a typed Drizzle handle (`db`) and the raw handle
+(`sqlite`) from the same connection.
 
 ### Read-dominated workload
 
@@ -248,7 +252,7 @@ Ordered by **risk reduction first, implementation effort as tiebreaker**. *Class
 | 4 | **Two helpers for the only real duplication** — `listRouteCatalogIds()` and a shared LION-fanout helper (see views section). | cleanup | catalog ids → `@bp/db/local`; fanout → `@bp/applied-research/local-db` | `bun --filter @bp/db typecheck` + grep | **Partial done 2026-06-07:** `listRouteCatalogIds()` exists in `@bp/db/local` with a live-migration-backed test, shared LION fanout SQL exists in `@bp/applied-research/local-db`, and `route-schedules-bulk --only-missing-current-routes` now uses the package-owned route catalog helper. Remaining route-catalog raw reads are mostly applied-research corpus adapters where raw SQL is expected. |
 | 5 | **Document the 3 repo-less tables as intentionally raw/spatial** — `localParkingViolationMatch`, `localLionSegmentGeom`, `localRouteShapeGeom` (the two `*_geom` are spatialite-runtime; the match table is read raw by applied-research). | cleanup | `@bp/db` | n/a (doc) | **Done 2026-06-07:** schema comments and `packages/db/README.md` mark these as deliberate raw-only tables |
 | 6 | **Schema for `payload_json`** — the one `*_json` column whose contents reach public findings/briefs (`localContextEvent`). Parse it with an explicit Zod schema at the findings read boundary. (The other 9 JSON columns are GTFS-RT/geocode/diagnostic — leave.) | product-risk (low) | `@bp/applied-research` / `@bp/domain` | findings unit test | **Done 2026-06-07:** context-event payload construction now validates every supported event kind before upsert, and the parser rejects malformed evidence payloads |
-| 7 | **Skip migrate-on-every-open for read-only commands** — read-only audits/exports already have a `readonly` open mode that skips the migrator; route them through it. | cleanup (perf) — *deferred* | `tools/pipeline-v2` | spot-run a read-only audit | **Partial done 2026-06-07:** Studio release/geometry read helpers, `check pipeline-v1`, and treatment-review artifact generation now use `readonly: true`; remaining command-by-command audit can continue incrementally |
+| 7 | **Skip migrate-on-every-open for read-only commands** — read-only audits/exports already have a `readonly` open mode that skips the migrator; route them through it. | cleanup (perf) — *deferred* | `tools/pipeline-v2` | spot-run a read-only audit | **Partial done 2026-06-07:** Studio release/geometry read helpers and treatment-review artifact generation now use `readonly: true`; remaining command-by-command audit can continue incrementally |
 | 8 | **Migrate the few non-spatial raw hot paths** (e.g. `route-lion-link` delete+upsert) behind repo helpers; leave genuinely spatial SQL raw. | cleanup — *deferred* | `tools/pipeline-v2` + `@bp/db/local` | raw-prepare audit re-run | those sites call repo helpers; spatial SQL untouched |
 | 9 | **Adopt `relations()` for nested reads** (brief summary → windows, catalog → types/dirs, batch → built/issues) — replaces multi-query + `Promise.all` assembly. | cleanup (readability) — *deferred* | `@bp/db/local` | `bun --filter @bp/db test` | the nested reads use `db.query.x.findMany({ with })` |
 | — | **Do not add a SQL view layer** — *measured, recorded decision*, not an action (see the duplication check below). | n/a | — | — | — |

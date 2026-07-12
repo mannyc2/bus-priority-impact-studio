@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { normalizeRouteHourlyRidershipRows } from "../../../src/commands/ingest/route-hourly-ridership.ts";
+import {
+  canonicalHourlyRidershipRouteId,
+  hourlyRidershipSourceRouteId,
+  normalizeRouteHourlyRidershipRows,
+} from "../../../src/commands/ingest/route-hourly-ridership.ts";
 import { normalizeRouteSegmentSpeedRows } from "../../../src/commands/ingest/route-segment-speeds.ts";
 
 describe("release-only route backfill normalizers", () => {
@@ -108,5 +112,41 @@ describe("release-only route backfill normalizers", () => {
         transfers: 321,
       },
     ]);
+  });
+
+  it("bridges the authoritative Q06-Q09 identifiers to current catalog route IDs", () => {
+    expect(["Q6", "Q7", "Q8", "Q9"].map(hourlyRidershipSourceRouteId)).toEqual([
+      "Q06",
+      "Q07",
+      "Q08",
+      "Q09",
+    ]);
+    expect(["Q06", "Q07", "Q08", "Q09"].map(canonicalHourlyRidershipRouteId)).toEqual([
+      "Q6",
+      "Q7",
+      "Q8",
+      "Q9",
+    ]);
+
+    const rows = normalizeRouteHourlyRidershipRows(
+      [
+        {
+          bus_route: "Q06",
+          day_of_week_index: "1",
+          hour_of_day: "8",
+          ridership: "100",
+          transfers: "10",
+        },
+      ],
+      { year: 2026, month: 3 },
+    );
+
+    expect(rows[0]).toMatchObject({
+      routeId: "Q6",
+      ridership: 100,
+      transfers: 10,
+    });
+    expect(hourlyRidershipSourceRouteId("M1")).toBe("M1");
+    expect(canonicalHourlyRidershipRouteId("M1")).toBe("M1");
   });
 });

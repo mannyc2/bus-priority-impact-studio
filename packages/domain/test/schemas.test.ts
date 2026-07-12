@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
+import { DocumentEvidenceCandidateDraftToolSchema } from "@bp/domain/documents/candidates";
 import {
   AgentFindingProposalEvidenceRefSchema,
   FindingEvidenceLinkSchema,
@@ -10,21 +12,21 @@ import {
 import { healthResponseJsonSchema, studioReleasePayloadJsonSchema } from "@bp/domain/json-schema";
 import { RouteIdCodec } from "@bp/domain/primitives";
 import { HealthResponseSchema, RouteScorecardSchema } from "@bp/domain/routes";
+import { StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
 import { buildStudioRouteProjection } from "@bp/domain/studio/projections";
 import { StudioReleasePayloadSchema } from "@bp/domain/studio/release";
 import { StudioRouteDetailResponseSchema } from "@bp/domain/studio/routes";
-import * as z from "zod";
 
 describe("domain schemas", () => {
-  test("normalizes route IDs at the boundary with a Zod codec", () => {
-    const normalizedRouteId: string = z.decode(RouteIdCodec, " m1 ");
+  test("normalizes route IDs at the boundary with the domain codec", () => {
+    const normalizedRouteId: string = decodeStrict(RouteIdCodec)(" m1 ");
 
     expect(normalizedRouteId).toBe("M1");
   });
 
   test("rejects scorecards without citations", () => {
     expect(() =>
-      RouteScorecardSchema.parse({
+      decodeStrict(RouteScorecardSchema)({
         schemaVersion: 1,
         routeId: "M1",
         month: "2026-01",
@@ -35,6 +37,18 @@ describe("domain schemas", () => {
         citations: [],
       }),
     ).toThrow();
+  });
+
+  test("reports the selected document-union member for a wrong-tag payload", () => {
+    expect(() =>
+      decodeStrict(DocumentEvidenceCandidateDraftToolSchema)({
+        candidateType: "document_claim_candidate",
+        factClassification: "official_claim",
+        evidenceQuote: "A source-backed claim.",
+        summary: "Claim summary",
+        fields: { metricName: "bus_travel_time" },
+      }),
+    ).toThrow(/fields.*metricName/s);
   });
 
   test("exports JSON Schema for generated docs and contracts", () => {
@@ -52,7 +66,7 @@ describe("domain schemas", () => {
 
   test("keeps Studio release payloads strict", () => {
     expect(() =>
-      StudioReleasePayloadSchema.parse({
+      decodeStrict(StudioReleasePayloadSchema)({
         schemaVersion: 1,
         generatedAt: "2026-05-18T00:00:00.000Z",
         quality: {
@@ -69,6 +83,38 @@ describe("domain schemas", () => {
         extra: "not allowed",
       }),
     ).toThrow();
+  });
+
+  test("parses generated Studio method projection dataset metadata", () => {
+    const methods = decodeStrict(StudioMethodsResponseSchema)({
+      schemaVersion: 1,
+      generatedAt: "2026-05-25T20:11:06.387Z",
+      datasets: [
+        {
+          sourceId: "route_month_trends",
+          name: "MTA route speed and ridership summaries",
+          publisher: "MTA",
+          grain: "Route/month",
+          cadence: "Monthly",
+          description:
+            "Route/month speed, ridership, and transfer trend rows generated from MTA public source data.",
+          rowCount: 12_075,
+          rowLabel: "route-month rows",
+          period: "2023-04 through 2026-03",
+          schemaKeys: ["route_id", "month", "average_speed_mph", "ridership", "has_speed_trend"],
+          method: "route-month-trends",
+          sourceRefCount: 4,
+        },
+      ],
+      quality: {
+        releaseLayer: "baseline_release",
+        completenessStatus: "complete",
+        confidence: "medium",
+        caveats: [],
+      },
+    });
+
+    expect(methods.datasets[0]?.sourceId).toBe("route_month_trends");
   });
 
   test("parses review packets with explicit counter-evidence", () => {
@@ -94,7 +140,7 @@ describe("domain schemas", () => {
       windowEnd: null,
       createdAt: "2026-05-23T00:00:00.000Z",
     };
-    const primary = FindingEvidenceLinkSchema.parse({
+    const primary = decodeStrict(FindingEvidenceLinkSchema)({
       linkId: "primary-1",
       candidateId: "candidate-1",
       evidenceKind: "metric",
@@ -103,7 +149,7 @@ describe("domain schemas", () => {
       evidenceWeight: 1,
       note: null,
     });
-    const counter = FindingEvidenceLinkSchema.parse({
+    const counter = decodeStrict(FindingEvidenceLinkSchema)({
       linkId: "counter-1",
       candidateId: "candidate-1",
       evidenceKind: "metric",
@@ -113,7 +159,7 @@ describe("domain schemas", () => {
       note: "Segment scope caveat.",
     });
 
-    const artifact = FindingReviewPacketsArtifactSchema.parse({
+    const artifact = decodeStrict(FindingReviewPacketsArtifactSchema)({
       artifactKind: "finding_review_packets",
       schemaVersion: 1,
       month: "2026-03",
@@ -143,7 +189,11 @@ describe("domain schemas", () => {
             promotionChecklist: ["Keep segment-scoped."],
             knownFailureModes: ["Route-wide overclaim."],
           },
-          priority: { score: 98, band: "high", signals: ["persistent_speed_hotspot"] },
+          priority: {
+            score: 98,
+            band: "high",
+            signals: ["persistent_speed_hotspot"],
+          },
           evidence: {
             primary: [primary],
             context: [],
@@ -197,7 +247,7 @@ describe("domain schemas", () => {
   });
 
   test("parses reviewer promotion queues with explicit decisions", () => {
-    const artifact = FindingPromotionQueueArtifactSchema.parse({
+    const artifact = decodeStrict(FindingPromotionQueueArtifactSchema)({
       artifactKind: "finding_promotion_queue",
       schemaVersion: 1,
       month: "2026-03",
@@ -206,7 +256,11 @@ describe("domain schemas", () => {
       candidateCount: 1,
       summary: {
         candidateCount: 1,
-        readinessCounts: { ready_for_review: 1, needs_enrichment: 0, blocked: 0 },
+        readinessCounts: {
+          ready_for_review: 1,
+          needs_enrichment: 0,
+          blocked: 0,
+        },
         recommendedNextActionCounts: {
           review_for_promotion: 1,
           revise_claim_before_promotion: 0,
@@ -311,7 +365,7 @@ describe("domain schemas", () => {
     const candidateSnapshotHash = "b".repeat(64);
     const promotedFindingHash = "c".repeat(64);
 
-    const decisions = FindingReviewDecisionsArtifactSchema.parse({
+    const decisions = decodeStrict(FindingReviewDecisionsArtifactSchema)({
       artifactKind: "finding_review_decisions",
       schemaVersion: 1,
       month: "2026-03",
@@ -349,7 +403,7 @@ describe("domain schemas", () => {
         },
       ],
     });
-    const promoted = PromotedFindingsArtifactSchema.parse({
+    const promoted = decodeStrict(PromotedFindingsArtifactSchema)({
       artifactKind: "promoted_findings",
       schemaVersion: 1,
       month: "2026-03",
@@ -396,9 +450,10 @@ describe("domain schemas", () => {
   });
 
   test("projects route artifact refs into Studio route detail contracts", () => {
-    const release = StudioReleasePayloadSchema.parse({
-      schemaVersion: 1,
+    const release = decodeStrict(StudioReleasePayloadSchema)({
+      schemaVersion: 2,
       generatedAt: "2026-05-18T00:00:00.000Z",
+      baselineMonth: "2026-03",
       quality: {
         releaseLayer: "baseline_release",
         completenessStatus: "complete",
@@ -437,6 +492,48 @@ describe("domain schemas", () => {
           interventions: [],
         },
       ],
+      routeFactMetadata: [
+        {
+          routeId: "M15+",
+          delayExposure: {
+            valueRiderHours: null,
+            status: "unavailable",
+            analysisPeriod: null,
+            grain: null,
+            source: null,
+            segmentCount: 0,
+            ridershipDenominator: null,
+            serviceDayRidershipCoverage: "not_available",
+            hourlyPassengerDelayCoverage: "not_available",
+            unavailableReason: "Fixture has no hourly exposure evidence.",
+          },
+          provenance: {
+            lane: {
+              status: "unavailable",
+              valuePct: null,
+              method: null,
+              sourceId: null,
+              unavailableReason: "Fixture has no lane source.",
+            },
+            ace: {
+              status: "unknown",
+              grain: "route_month",
+              sourceId: null,
+              sourceAsOf: null,
+              sourceStatus: "unavailable",
+              unavailableReason: "Fixture has no ACE source.",
+            },
+            tsp: {
+              status: "unknown",
+              grain: "route_or_corridor",
+              sourceId: null,
+              sourceDate: null,
+              corridor: null,
+              matchMethod: "unavailable",
+            },
+          },
+        },
+      ],
       segments: [],
       routeArtifacts: [
         {
@@ -460,7 +557,7 @@ describe("domain schemas", () => {
       throw new Error("expected route fixture");
     }
 
-    const detail = StudioRouteDetailResponseSchema.parse(
+    const detail = decodeStrict(StudioRouteDetailResponseSchema)(
       buildStudioRouteProjection(release, route),
     );
 
@@ -474,7 +571,7 @@ describe("domain schemas", () => {
 
   test("keeps health responses strict", () => {
     expect(() =>
-      HealthResponseSchema.parse({
+      decodeStrict(HealthResponseSchema)({
         ok: true,
         service: "bus-priority-impact-studio",
         checkedAt: "2026-04-27T12:00:00Z",
@@ -484,7 +581,7 @@ describe("domain schemas", () => {
   });
 
   test("AgentFindingProposalEvidenceRefSchema accepts a code_execution ref", () => {
-    const parsed = AgentFindingProposalEvidenceRefSchema.parse({
+    const parsed = decodeStrict(AgentFindingProposalEvidenceRefSchema)({
       kind: "code_execution",
       language: "typescript",
       code: "import { listAnalyticsDetectors } from '@bp/analytics/registry';\nconsole.log(listAnalyticsDetectors().length)",
@@ -499,7 +596,7 @@ describe("domain schemas", () => {
 
   test("AgentFindingProposalEvidenceRefSchema rejects code_execution refs with bad stdoutHash", () => {
     expect(() =>
-      AgentFindingProposalEvidenceRefSchema.parse({
+      decodeStrict(AgentFindingProposalEvidenceRefSchema)({
         kind: "code_execution",
         language: "typescript",
         code: "console.log(1)",
@@ -509,7 +606,7 @@ describe("domain schemas", () => {
   });
 
   test("AgentFindingProposalEvidenceRefSchema still accepts existing review_packet_link kind", () => {
-    const parsed = AgentFindingProposalEvidenceRefSchema.parse({
+    const parsed = decodeStrict(AgentFindingProposalEvidenceRefSchema)({
       kind: "review_packet_link",
       packetId: "pkt-1",
       linkId: "link-1",

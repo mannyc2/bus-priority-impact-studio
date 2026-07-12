@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { StudioAiPublicNoteSchema } from "@bp/domain/studio/segment-evidence";
+import { Result } from "effect";
+import { decodeSchemaEitherStrip } from "./schema-decode.ts";
 
 export type RouteBriefInputHourlyBins = {
   routeInputCount: number;
@@ -531,7 +533,7 @@ function routePublicAiNoteLimit(segmentCount: number): number {
 }
 
 function hasValidPublicAiNote(value: unknown): boolean {
-  return StudioAiPublicNoteSchema.safeParse(value).success;
+  return Result.isSuccess(decodeSchemaEitherStrip(StudioAiPublicNoteSchema, value));
 }
 
 const requiredBoardingUnavailableCoverageReasons = [

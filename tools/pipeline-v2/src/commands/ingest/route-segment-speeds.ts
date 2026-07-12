@@ -4,13 +4,15 @@ import {
   replaceRouteSegmentSpeedCells,
   replaceRouteSegmentSpeeds,
 } from "@bp/db/local";
+import { decodeStrip } from "@bp/domain/decode";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   normalizeSegmentSpeedCellRows,
   normalizeSegmentSpeedRows,
 } from "@bp/sources/adapters/mta/bus-speeds";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
@@ -50,11 +52,9 @@ export type RouteSegmentSpeedsIngestResult = {
   routeCount: number;
 };
 
-const RawRouteIdRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-  })
-  .passthrough();
+const RawRouteIdRowSchema = Schema.Struct({
+  route_id: Schema.String.check(Schema.isMinLength(1)),
+});
 
 function sourceIdForMonth(month: string): SegmentSpeedSourceId {
   return month < "2025-01" ? "bus_segment_speeds_2023_2024" : "bus_segment_speeds_2025";
@@ -120,7 +120,7 @@ async function listSourceRoutes(input: {
     group: "route_id",
     order: "route_id",
   });
-  return rows.map((row) => RawRouteIdRowSchema.parse(row).route_id);
+  return rows.map((row) => decodeStrip(RawRouteIdRowSchema)(row).route_id);
 }
 
 async function fetchRouteSegmentSpeedRows(input: {
@@ -215,28 +215,42 @@ export default defineCommand({
   path: ["ingest", "route-segment-speeds"],
   summary: "Fetch route segment speed rows for a month and replace local route/month slices.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Year to ingest"),
-      month: arg.positiveInt().default(3).describe("Month to ingest, 1-12"),
-      route: z.string().optional().describe("Single route ID convenience filter"),
-      routes: z
-        .array(z.string())
-        .default([])
-        .describe("Specific route IDs (default: all routes in source month)"),
-      routesFile: z.string().optional().describe("JSON file containing route IDs"),
-      routeConcurrency: arg
-        .positiveInt()
-        .default(DEFAULT_ROUTE_CONCURRENCY)
-        .describe("Number of route-level Socrata segment-speed queries to run concurrently"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Year to ingest" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Month to ingest, 1-12" }),
+        route: Schema.optionalKey(Schema.String).annotate({
+          description: "Single route ID convenience filter",
+        }),
+        routes: Schema.Array(Schema.String)
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+          .annotate({ description: "Specific route IDs (default: all routes in source month)" }),
+        routesFile: Schema.optionalKey(Schema.String).annotate({
+          description: "JSON file containing route IDs",
+        }),
+        routeConcurrency: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_ROUTE_CONCURRENCY)))
+          .annotate({
+            description: "Number of route-level Socrata segment-speed queries to run concurrently",
+          }),
+      },
     }),
   },
-  output: z.object({
-    month: z.string(),
-    sourceId: z.enum(["bus_segment_speeds_2023_2024", "bus_segment_speeds_2025"]),
-    fetchedRowCount: z.number(),
-    normalizedRowCount: z.number(),
-    cellRowCount: z.number(),
-    routeCount: z.number(),
+  output: Schema.Struct({
+    month: Schema.String,
+    sourceId: Schema.Literals(["bus_segment_speeds_2023_2024", "bus_segment_speeds_2025"]),
+    fetchedRowCount: Schema.Number,
+    normalizedRowCount: Schema.Number,
+    cellRowCount: Schema.Number,
+    routeCount: Schema.Number,
   }),
   async run({ input }) {
     const routes = await mergeRoutesWithFile(

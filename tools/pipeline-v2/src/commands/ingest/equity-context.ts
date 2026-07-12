@@ -1,16 +1,17 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { replaceCensusTractEquityContext } from "@bp/db/local";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   censusAcsProfileVariables,
   type NormalizedCensusTractEquityContext,
 } from "@bp/sources/adapters/census/acs-equity";
 import { type CensusAcsFetch, fetchCensusTractEquityContext } from "@bp/sources/clients/census";
-import { arg, defineCommand, z } from "@liche/core";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { Effect } from "effect";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const schemaVersion = 1;
 
@@ -79,34 +80,26 @@ export async function runEquityContextIngest(
   };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "equity-context"],
   summary: "Fetch Census ACS-5 tract-level equity context for NYC.",
-  input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2024).describe("ACS-5 vintage year"),
-    }),
-  },
-  output: z.object({
-    acsYear: z.number(),
-    rawPath: z.string(),
-    tractCount: z.number(),
-    totalPopulation: z.number(),
-    noVehicleHouseholds: z.number(),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      year: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2024)))
+        .annotate({ description: "ACS-5 vintage year" }),
+    },
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.equity-context",
-      operation: "runEquityContextIngest",
-      spanAttributes: {
-        year: input.options.year,
-      },
-      run: (local) =>
-        runEquityContextIngest({
-          local,
-          year: input.options.year,
-        }),
-    });
-  },
+  output: Schema.Struct({
+    acsYear: Schema.Number,
+    rawPath: Schema.String,
+    tractCount: Schema.Number,
+    totalPopulation: Schema.Number,
+    noVehicleHouseholds: Schema.Number,
+  }),
+  operation: "runEquityContextIngest",
+  spanAttributes: ({ year }) => ({ year }),
+  runner: (local, { year }) => runEquityContextIngest({ local, year }),
 });

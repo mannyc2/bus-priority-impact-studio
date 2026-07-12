@@ -2,10 +2,10 @@
 title: Repo Package Structure
 type: engineering
 status: active
-last_updated: 2026-06-06
+last_updated: 2026-07-05
 owner: codex
 source_count: 28
-tags: [repo-structure, typescript, bun, zod, drizzle, cloudflare, clean-architecture, d1, postgres, hyperdrive, r2]
+tags: [repo-structure, typescript, bun, effect-schema, drizzle, cloudflare, clean-architecture, d1, postgres, hyperdrive, r2]
 ---
 
 # Repo Package Structure
@@ -319,12 +319,13 @@ camera/address match-group selectors, match-table clear/insert persistence with 
 LION/route candidate selectors for physical-id and street-corridor matching. Audit artifact shaping
 and deterministic street-code-house match resolution are package-owned, while the parking violation
 match audit path convention lives in `@bp/applied-research/artifacts`. The pipeline command still
-owns Geoclient/env setup, raw snapshot file discovery/JSON loading, and audit writes for that
-command. Raw parking and LION hydration transforms are package-owned. Camera intersection/corridor
-match policy is package-owned; the command only builds the package-requested Geocoder call and
-passes back a plain geocode outcome. The local DB rebuild loop is also package-owned, including
-clearing stale matches, scanning camera/address groups, invoking the injected camera geocoder
-callback, resolving matches, inserting rows, and returning scanned counts.
+owns Geoclient/env setup, LION raw snapshot discovery/JSON loading, and audit writes for that
+command. Parking match keys now refresh from `local_parking_violation`; SQLite-verified parking raw
+JSON snapshots no longer feed this build path after plans 038/039. Camera intersection/corridor match
+policy is package-owned; the command only builds the package-requested Geocoder call and passes back a
+plain geocode outcome. The local DB rebuild loop is also package-owned, including clearing stale
+matches, scanning camera/address groups, invoking the injected camera geocoder callback, resolving
+matches, inserting rows, and returning scanned counts.
 `build route-lion-link` now delegates route allowlist query construction, buffer conversion,
 SpatialIndex-backed route/LION intersection queries, per-route replacement writes, and run counts to
 `@bp/applied-research/local-db`.
@@ -489,19 +490,19 @@ Type locations follow package boundaries:
 
 | Type kind | Location | Rule |
 |---|---|---|
-| Domain types and Zod schemas | `packages/domain` | Route IDs, months, scorecards, citations, metric names, and public contracts should be Zod schemas with exported `z.output` types. |
-| DB row types | `packages/db` | Serialize/deserialize through domain schemas. |
-| Source DTO schemas | `packages/sources` | Raw external data parsed before reaching analytics or UI. |
+| Domain types and Effect Schema contracts | `packages/domain` | Route IDs, months, scorecards, citations, metric names, and public contracts should be Effect Schema-backed contracts with exported decoded/output types. |
+| DB row types | `packages/db` | Derive row types from Drizzle tables/projections, then map to domain/public shapes at repository boundaries. |
+| Source DTO schemas | `packages/sources` | Decode raw external data with Effect Schema before it reaches analytics or UI-facing contracts. |
 | Component props | component file | Unexported local `Props` type only. If reused across components, move to `@bp/domain`. |
-| Fixtures | `apps/web/src/fixtures/` | Import domain schemas and parse through them. Do not duplicate domain shapes. |
+| Fixtures | `apps/web/src/fixtures/` | Import domain contracts and decode/construct through them. Do not duplicate domain shapes. |
 
 Rules:
 
 - Prefer `type` over `interface` unless declaration merging is intentionally needed.
-- No `any`. Use `unknown` at boundaries, then parse with Zod.
-- Use `.strict()` for Zod object contracts crossing boundaries.
-- Use `.readonly()` for immutable public read models.
-- Use branded schemas for stable identifiers and codecs for boundary normalization (e.g. route ID casing/spacing).
+- No `any`. Use `unknown` at boundaries, then decode with Effect Schema.
+- Use strict/closed object contracts for data crossing boundaries.
+- Use readonly output types for immutable public read models.
+- Use branded schemas for stable identifiers and transformations/codecs for boundary normalization (e.g. route ID casing/spacing).
 
 ## Barrel export rule
 
@@ -585,7 +586,8 @@ Root should contain only project operational entrypoints and agent instructions.
 | `scripts/*.py` | removed from MVP blueprint | Replaced by TypeScript pipeline commands |
 | `requirements-suggested.txt` | removed from MVP blueprint | No Python dependency for MVP |
 
-Actual downloaded datasets should not live in `knowledge/raw/`. They should live in gitignored `data/raw/`, with small committed fixtures under `data/fixtures/`.
+Actual downloaded datasets should not live in `knowledge/raw/`. Non-refetchable captures and raw
+handoffs live in gitignored `data/raw/`, with small committed fixtures under `data/fixtures/`.
 
 ## Local data directory contract
 
@@ -594,11 +596,11 @@ coverage, derived-product coverage, and operational run state do not blur togeth
 
 | Path | Purpose | Examples | Notes |
 |---|---|---|---|
-| `data/raw/` | Durable source snapshots and mirrored external artifacts | Socrata CSV partitions, GTFS static/RT captures, source PDFs, third-party handoff archives | This is the standard gitignored home for raw artifacts we may need to re-import or audit later. |
+| `data/raw/` | Durable home only for non-refetchable captures and raw handoffs | GTFS-RT protobuf capture runs, third-party handoff archives, bulk archives pending classification | As of plans 038/039 on 2026-07-05, SQLite-verified monthly Socrata rows live canonically in `data/local/pipeline.sqlite`; recovery is to re-pull via the ingest command rather than preserve duplicate raw JSON. |
 | `data/working/` | Resumable intermediate state and scratch materialization | Bulk import spool dirs, OCR run state, temporary SQLite proof DBs | Safe to delete only when the corresponding run can be restarted from `data/raw/` or a documented upstream source. |
 | `data/artifacts/` | Derived products produced by deterministic pipeline steps | Review packets, route briefs, map GeoJSON, OCR markdown, coverage/readiness reports | These are outputs, not source truth; regenerate them from raw snapshots plus code whenever possible. |
 | `data/exports/` | Publishable bundles and release handoffs | D1 seed SQL, static/R2 release manifests | These are the boundary to deployment/publishing, not the working corpus. |
-| `data/local/` | Local databases and stores | `pipeline.sqlite`, clean rebuild proof DBs | Never treat this as the only copy of a raw source. |
+| `data/local/` | Local databases and stores | `pipeline.sqlite`, clean rebuild proof DBs | Canonical local store for normalized, refetchable source rows once the raw coverage gate proves coverage. |
 | `data/ops/` | Operational run control and observability | Backfill run scripts, logs, PIDs, retry traces, progress ledgers | Keep this small. Do not store durable raw downloads or canonical derived artifacts here. |
 
 `data/ops/` is intentionally for "what happened while the process ran", not "the
@@ -704,8 +706,8 @@ A VPS is still not required for the MVP. Concrete triggers:
 - Bun workspaces docs — https://bun.sh/docs/pm/workspaces — verified_at: 2026-04-27
 - Bun test runner docs — https://bun.sh/docs/test — verified_at: 2026-04-27
 - Bun bunfig docs — https://bun.sh/docs/runtime/bunfig — verified_at: 2026-04-27
-- Zod 4 metadata and registries docs — https://zod.dev/metadata — verified_at: 2026-04-27
-- Zod 4 JSON Schema docs — https://zod.dev/json-schema — verified_at: 2026-04-27
+- Effect Schema source mirror — `.agent-sources/effect/packages/effect/src/Schema.ts` — verified_at: 2026-07-05
+- Effect JSON Schema source mirror — `.agent-sources/effect/packages/effect/src/JsonSchema.ts` — verified_at: 2026-07-05
 - Cloudflare Workers Vitest integration docs — https://developers.cloudflare.com/workers/testing/vitest-integration/ — verified_at: 2026-04-27
 - DuckDB Node Neo Client blog/docs — https://duckdb.org/2024/12/18/duckdb-node-neo-client — verified_at: 2026-04-26
 - DuckDB Spatial Extension docs — https://duckdb.org/docs/current/core_extensions/spatial/overview — verified_at: 2026-04-26
@@ -718,9 +720,14 @@ A VPS is still not required for the MVP. Concrete triggers:
 `packages/db` already owns the right conceptual responsibilities. It now has Drizzle infrastructure plus explicit repository helpers:
 
 - `src/d1/schema.ts` declares the D1 Drizzle table mirror.
-- `migrations/d1/` contains generated Drizzle SQL for the current D1 serving schema.
-- `src/d1/validation.ts` exposes Drizzle-Zod row schemas for DB boundary validation.
-- `wrangler.d1.jsonc` points Wrangler D1 migrations at `migrations/d1`.
+- `migrations/d1/` contains the live Wrangler-applied SQL for the current D1 serving schema.
+- `migrations-drizzle/d1/` is a Drizzle snapshot cache used to keep
+  `db:generate:d1` honest; snapshot-only catch-up entries may carry no-op SQL
+  when live D1 SQL already applied the schema change.
+- D1 query modules derive row types from Drizzle projections; the old Drizzle-Zod
+  `src/d1/validation.ts` layer has been removed.
+- `wrangler.d1.jsonc` points Wrangler D1 migrations at `migrations/d1`; remote
+  D1 applies remain operator-run.
 - the local D1 export path reads the Drizzle migration journal instead of duplicating table SQL strings.
 - `@bp/db/d1`, `@bp/db/local`, and `@bp/db/shared` are explicit subpath surfaces. (A
   speculative `@bp/db/pg` surface was removed; Postgres remains deferred per the MVP rule and
@@ -747,7 +754,6 @@ packages/db/
     d1/
       client.ts
       schema.ts
-      validation.ts
       queries/
         route-scorecard.ts
         route-brief-summaries.ts
@@ -769,8 +775,8 @@ packages/db/
 
 | Package | After Drizzle adoption |
 |---|---|
-| `packages/domain` | Business/domain Zod schemas, branded IDs, metric semantics, public API contracts. No Drizzle imports. |
-| `packages/db` | Drizzle schemas, migrations, row validation helpers, repository SQL construction, local/D1/PG clients, D1 seed/import helpers. |
+| `packages/domain` | Business/domain Effect Schema contracts, branded IDs, metric semantics, public API contracts. No Drizzle imports. |
+| `packages/db` | Drizzle schemas, migrations, derived-row repository SQL construction, local/D1 clients, and D1 seed/import helpers with small writer-boundary validators. |
 | `packages/sources` | Public source clients and source DTO validation. No Drizzle imports. |
 | `packages/analytics` | Pure deterministic transforms over source/domain inputs. No Drizzle table imports. |
 | `tools/pipeline` | Orchestrates source fetches, analytics, artifact builds, D1 exports, and future Postgres backfills through `@bp/db` repository/export APIs. |
@@ -778,7 +784,7 @@ packages/db/
 
 ### Dependency boundary rules
 
-- `@bp/db` may import `@bp/domain`, `drizzle-orm`, Drizzle drivers, Drizzle validation helpers, and `zod`.
+- `@bp/db` may import `@bp/domain`, `drizzle-orm`, and Drizzle drivers. It does not depend on `zod`.
 - `@bp/domain` must not import `@bp/db`, Drizzle, Cloudflare types, or source clients.
 - `@bp/analytics` should not import Drizzle tables; it produces typed domain/read-model outputs.
 - `tools/pipeline` may call `@bp/db/d1/seed` helpers while seed generation still writes SQL files; it should not own schema DDL or Worker read queries.
@@ -812,7 +818,7 @@ projection work:
 
 1. Keep Drizzle dependencies only in `packages/db`, not every package.
 2. Keep D1 seed/export DML separate from DDL; DDL comes from generated Drizzle migrations.
-3. Keep Drizzle-generated select/insert schemas beside DB schema code.
+3. Keep Drizzle-derived select/insert row types and focused writer validators beside DB schema code.
 4. Keep the existing repository function names and external types to avoid app churn.
 5. Keep serving query implementation under `src/d1/queries`; add `src/pg/queries` only when Postgres is actually introduced.
 6. Keep product-queryable arrays/objects in child tables, not JSON text columns.
@@ -836,7 +842,8 @@ Do not add these until dependencies are added, but use these names to keep the r
 - Export table-derived row types from `packages/db`, not from arbitrary repository/component files.
 - Keep component-local `Props` types unexported.
 - Export domain/public contracts from `packages/domain`.
-- Use Drizzle-generated row schemas for database boundary validation, then convert to domain/public shapes through mappers.
+- Derive DB row types from Drizzle table/projection types, then convert to domain/public shapes
+  through mappers. Runtime validation belongs at writer/source boundaries, not every trusted D1 read.
 
 ## Sources added in this update
 

@@ -1,15 +1,25 @@
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
+import {
+  MapLayerStatusSchema,
+  MapRouteUniverseSchema,
+  MapSourceStatusSchema,
+} from "@bp/domain/maps";
 import { RouteCapabilityManifestSchema } from "@bp/domain/studio";
 import {
   buildMapArtifactManifest,
   buildMapJsonArtifact,
   buildRouteCapabilityManifest,
   buildRouteSpeedAvailabilityResult,
-  classifyTier2StructuredArtifact,
+  evaluateAnalysisPeriodCurrency,
+  evaluateMaxAgeSnapshotCurrency,
+  evaluateRevisionPinnedCurrency,
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,
+  MAP_LAYER_REGISTRY,
   type MapArtifactEntry,
   mapArtifactPayloadIssues,
+  mapBudgetIssues,
   type RouteCapabilityInputRow,
   requestedRouteSpeedAvailability,
   routeSpeedAvailabilityReleaseDecision,
@@ -24,7 +34,12 @@ function capabilityRow(overrides: Partial<RouteCapabilityInputRow> = {}): RouteC
     publicVisible: true,
     baselineMonth: "2026-03",
     hasArtifact: true,
-    history: { endMonth: "2026-03", pointCount: 12, speedMonthCount: 12, ridershipMonthCount: 12 },
+    history: {
+      endMonth: "2026-03",
+      pointCount: 12,
+      speedMonthCount: 12,
+      ridershipMonthCount: 12,
+    },
     speedHistory: { endMonth: "2026-03", monthCount: 12, missingCellCount: 0 },
     scheduleTimepointCount: 20,
     treatment: { aceActive: true, busLaneMatchedLaneCount: 3 },
@@ -60,6 +75,10 @@ function routeSegmentFeatureCollection(month: string, routeId: string) {
         },
         properties: {
           segmentId: `${routeId}:0:1`,
+          sourceSegmentId: "N:1:100:200",
+          studioSegmentId: `${routeId}:${month}:N:1:100:200`,
+          spineSegmentId: null,
+          spineJoinStatus: "not_built",
           routeId,
           directionId: "0",
           month,
@@ -109,12 +128,78 @@ function artifactDefinitions(month: string) {
       featureCount: 0,
     },
     {
+      artifactKey: "maps/context/nyc-boroughs.min.geojson",
+      artifactKind: "map_borough_context_geojson" as const,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+      routeId: null,
+      payload: {
+        type: "FeatureCollection",
+        sourceRevision: {
+          sourceId: "nyc_borough_boundaries",
+          sha256: "a".repeat(64),
+          currencyPolicy: "revision_pinned",
+        },
+        features: [
+          {
+            type: "Feature",
+            properties: { boroName: "Manhattan", labelPoint: [-73.98, 40.76] },
+            geometry: {
+              type: "MultiPolygon",
+              coordinates: [
+                [
+                  [
+                    [-74, 40.7],
+                    [-73.9, 40.7],
+                    [-73.9, 40.8],
+                    [-74, 40.7],
+                  ],
+                ],
+              ],
+            },
+          },
+        ],
+      },
+      featureCount: 1,
+    },
+    {
       artifactKey: "maps/bus-lanes/local-streets.min.geojson",
       artifactKind: "map_bus_lanes_geojson" as const,
       contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
       payload: emptyFeatureCollection,
       featureCount: 0,
+    },
+    {
+      artifactKey: `maps/${month}/network-simplified.geojson`,
+      artifactKind: "map_network_simplified_geojson" as const,
+      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+      routeId: null,
+      payload: {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "MultiLineString",
+              coordinates: [
+                [
+                  [-73.99, 40.75],
+                  [-73.98, 40.76],
+                ],
+              ],
+            },
+            properties: {
+              routeId: "M1",
+              month,
+              hourlySpeedMph: Array.from({ length: 24 }, () => null),
+              hourlyTraversalCount: Array.from({ length: 24 }, () => 0),
+              servedBoroughs: [],
+              servedBoroughsStatus: "unavailable",
+            },
+          },
+        ],
+      },
+      featureCount: 1,
     },
     {
       artifactKey: `maps/routes/M1/${month}/segments.min.geojson`,
@@ -128,14 +213,83 @@ function artifactDefinitions(month: string) {
 }
 
 describe("evaluation data products", () => {
+  test("evaluates fixed map-layer currency and budgets without weakening priorities", () => {
+    expect(MAP_LAYER_REGISTRY.bus_lanes).toEqual({ priority: "p1", requiredForFull: false });
+    expect(MAP_LAYER_REGISTRY.network_simplified).toEqual({
+      priority: "p0",
+      requiredForFull: true,
+    });
+    const boundary = evaluateMaxAgeSnapshotCurrency({
+      fetchedAt: "2026-01-01T00:00:00.000Z",
+      evaluatedAt: "2026-02-15T00:00:00.000Z",
+    });
+    expect(boundary.status).toBe("current");
+    expect(
+      evaluateMaxAgeSnapshotCurrency({
+        fetchedAt: "2026-01-01T00:00:00.000Z",
+        evaluatedAt: "2026-02-15T00:00:00.001Z",
+      }).status,
+    ).toBe("stale");
+    expect(
+      evaluateMaxAgeSnapshotCurrency({
+        fetchedAt: null,
+        evaluatedAt: "2026-02-15T00:00:00.000Z",
+      }).status,
+    ).toBe("unknown");
+    expect(
+      evaluateAnalysisPeriodCurrency({
+        baselineMonth: "2026-02",
+        releaseMonth: "2026-03",
+        coveragePassed: true,
+      }).status,
+    ).toBe("stale");
+    expect(evaluateRevisionPinnedCurrency({ embeddedSha256: "a", sourceSha256: "b" }).status).toBe(
+      "stale",
+    );
+    expect(
+      mapBudgetIssues({ kind: "network", rawBytes: 1, gzipBytes: 1, features: 1, coordinates: 1 }),
+    ).toEqual([]);
+    expect(
+      mapBudgetIssues({
+        kind: "busLanes",
+        rawBytes: 1_700_001,
+        gzipBytes: 1,
+        features: 1,
+      }),
+    ).toEqual(["raw bytes 1700001 > 1700000"]);
+  });
   test("summarizes route-speed availability and release decisions", () => {
     const months = summarizeRouteSpeedAvailabilityMonths({
       minSpeedRoutes: 2,
       rows: [
-        { year: 2026, month: 3, route_id: " b41 ", row_count: 100, bus_trip_count: 10 },
-        { year: 2026, month: 3, route_id: "B41", row_count: 20, bus_trip_count: 2 },
-        { year: 2026, month: 3, route_id: "M14A", row_count: 80, bus_trip_count: 8 },
-        { year: 2026, month: 2, route_id: "B41", row_count: 90, bus_trip_count: 9 },
+        {
+          year: 2026,
+          month: 3,
+          route_id: " b41 ",
+          row_count: 100,
+          bus_trip_count: 10,
+        },
+        {
+          year: 2026,
+          month: 3,
+          route_id: "B41",
+          row_count: 20,
+          bus_trip_count: 2,
+        },
+        {
+          year: 2026,
+          month: 3,
+          route_id: "M14A",
+          row_count: 80,
+          bus_trip_count: 8,
+        },
+        {
+          year: 2026,
+          month: 2,
+          route_id: "B41",
+          row_count: 90,
+          bus_trip_count: 9,
+        },
       ],
     });
 
@@ -172,7 +326,7 @@ describe("evaluation data products", () => {
       rows: [capabilityRow()],
     });
 
-    expect(() => RouteCapabilityManifestSchema.parse(manifest)).not.toThrow();
+    expect(() => decodeStrict(RouteCapabilityManifestSchema)(manifest)).not.toThrow();
     expect(manifest.routes[0]?.overallState).toBe("ready");
     expect(manifest.routes[0]?.surfaces["speedHistory"]?.state).toBe("ready");
     expect(manifest.routes[0]?.surfaces["reliability"]?.state).toBe("ready");
@@ -186,6 +340,62 @@ describe("evaluation data products", () => {
       month,
       generatedAt: "2026-06-06T00:00:00.000Z",
       artifacts: artifacts.map((artifact) => artifact.entry),
+      releaseProfile: "demo",
+      routeFacts: { status: "unavailable", reason: "Fixture omits route facts." },
+      sources: [
+        decodeStrict(MapSourceStatusSchema)({
+          sourceId: "fixture",
+          priority: "p0",
+          requiredForFull: true,
+          readiness: "available",
+          currencyStatus: "current",
+          currency: {
+            policy: "max_age_snapshot",
+            fetchedAt: "2026-06-06T00:00:00.000Z",
+            evaluatedAt: "2026-06-06T00:00:00.000Z",
+            ageDays: 0,
+            maxAgeDays: 45,
+          },
+          reason: "Fixture source posture.",
+        }),
+      ],
+      layers: [
+        ["route_shapes", "p0", true, "maps/routes/current-local-limited-sbs.min.geojson"],
+        ["timepoint_stops", "p0", true, "maps/stops/current-timepoints.min.geojson"],
+        ["network_simplified", "p0", true, `maps/${month}/network-simplified.geojson`],
+        ["route_segments", "p0", true, null],
+        ["borough_context", "p0", true, "maps/context/nyc-boroughs.min.geojson"],
+        ["route_facts", "p0", true, null],
+        ["bus_lanes", "p1", false, "maps/bus-lanes/local-streets.min.geojson"],
+      ].map(([layerId, priority, requiredForFull, artifactKey]) =>
+        decodeStrict(MapLayerStatusSchema)({
+          layerId,
+          priority,
+          requiredForFull,
+          readiness: layerId === "route_facts" ? "missing" : "available",
+          currencyStatus: "current",
+          currency: {
+            policy: "max_age_snapshot",
+            fetchedAt: "2026-06-06T00:00:00.000Z",
+            evaluatedAt: "2026-06-06T00:00:00.000Z",
+            ageDays: 0,
+            maxAgeDays: 45,
+          },
+          sourceIds: ["fixture"],
+          artifactKey,
+          featureCount: 0,
+          routeCount: layerId === "network_simplified" || layerId === "route_segments" ? 1 : 0,
+          reason: "Fixture posture.",
+        }),
+      ),
+      routeUniverse: decodeStrict(MapRouteUniverseSchema)({
+        includedRouteTypes: ["Local", "Limited", "SBS"],
+        excludedRouteTypes: ["Express", "School"],
+        expectedRouteIds: ["M1"],
+        geometryRouteIds: ["M1"],
+        routeSegmentRouteIds: ["M1"],
+        routeFactRouteIds: [],
+      }),
     });
     const artifactIssues = artifacts.flatMap((artifact, index) =>
       mapArtifactPayloadIssues({
@@ -203,7 +413,7 @@ describe("evaluation data products", () => {
         expectedRouteIds: ["M1"],
         artifactIssues,
       }),
-    ).toMatchObject({ status: "pass", artifactCount: 5, issueCount: 0 });
+    ).toMatchObject({ status: "pass", artifactCount: 7, issueCount: 0 });
 
     const missingRoute = verifyMapArtifactManifestContents({
       manifestPath: "data/artifacts/maps/2026-03/manifest.json",
@@ -220,20 +430,5 @@ describe("evaluation data products", () => {
     expect(missingRoute.issues.map((issue) => issue.code)).toContain(
       "map_route_segment_artifact_routes_missing",
     );
-  });
-
-  test("classifies current Tier 2 research and serving artifacts", () => {
-    expect(
-      classifyTier2StructuredArtifact({
-        fileName: "intervention-records-corpus-v3-reviewed.json",
-        value: { documentInterventionRecords: [{ recordId: "record-1" }] },
-      }).layer,
-    ).toBe("reviewed_intervention_records");
-    expect(
-      classifyTier2StructuredArtifact({
-        fileName: "intervention-publishable-v1.json",
-        value: { publishableInterventions: [{ recordId: "record-1", routes: ["B44"] }] },
-      }).trustTier,
-    ).toBe("serving_projection");
   });
 });

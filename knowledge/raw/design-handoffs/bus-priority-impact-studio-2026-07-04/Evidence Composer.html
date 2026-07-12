@@ -1,0 +1,628 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Evidence Composer · Explorations</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="system.jsx"></script>
+<script type="text/babel">
+
+const CW = 1320, CH = 880;
+
+// ── Shared data ───────────────────────────────────────────────────────────────
+
+const ATTACHED = [
+  { kind: 'metric', glyph: '#', name: '43% — Madison share of route delay',   src: 'computed · 18,420 / 42,890 RH per day · M1 pilot' },
+  { kind: 'chart',  glyph: '▤', name: 'Rider-hours by segment, Mar 2026',      src: 'MTA Bus Speeds · weekday median, n = 2,003' },
+  { kind: 'metric', glyph: '#', name: '18,420 rider-hours / day · Madison NB', src: 'M1 pilot · 168 ridership windows' },
+  { kind: 'source', glyph: '¶', name: 'M15 SBS Wiki — Madison corridor',       src: 'Project wiki · Apr 28, 2026' },
+];
+
+const SUGGESTED = [
+  { kind: 'metric', glyph: '#', name: '207,870 rider-trips/month · Madison',   src: 'MTA Ridership 2026' },
+  { kind: 'metric', glyph: '#', name: '4.2 mph weekday avg · Madison Av NB',   src: 'MTA Bus Speeds · Mar 2026' },
+];
+
+const CATALOG = [
+  { kind: 'metric', glyph: '#', val: '43%',     desc: 'Madison share of route delay',     src: 'M1 pilot · computed',        selected: true  },
+  { kind: 'metric', glyph: '#', val: '18,420',  desc: 'Rider-hours / day · Madison NB',   src: 'M1 pilot · 168 windows',     selected: true  },
+  { kind: 'metric', glyph: '#', val: '4.2 mph', desc: 'Weekday avg speed · Madison NB',   src: 'Bus Speeds · Mar 2026',      selected: false },
+  { kind: 'chart',  glyph: '▤', val: '▤',       desc: 'Rider-hours by segment, Mar 2026', src: 'Bus Speeds · n = 2,003',     selected: true  },
+  { kind: 'metric', glyph: '#', val: '207K',    desc: 'Rider-trips/month · Madison',      src: 'Ridership 2026 · MTA',       selected: false },
+  { kind: 'metric', glyph: '#', val: '−68%',    desc: 'ACE violations Y/Y',               src: 'ACE program · Mar 2026',     selected: false },
+  { kind: 'source', glyph: '¶', val: '¶',       desc: 'M15 SBS Wiki — Madison corridor',  src: 'Project wiki · Apr 28',      selected: true  },
+  { kind: 'metric', glyph: '#', val: '7.1 mph', desc: 'Scheduled pace · Madison NB',      src: 'GTFS Mar 2026',              selected: false },
+];
+
+const OUTLINE_CLAIMS = [
+  { n: 1, title: 'M15 SBS is the slowest SBS route in Manhattan',        strength: 5, evidence: 3, caveats: 1 },
+  { n: 2, title: 'A single corridor accounts for 43% of measured delay', strength: 4, evidence: 4, caveats: 2, editing: true },
+  { n: 3, title: 'ACE rollout coincides with +0.7 mph PM-peak gain',     strength: 3, evidence: 3, caveats: 2 },
+  { n: 4, title: 'Treatment gap on Madison Av',                          strength: 2, evidence: 1, caveats: 0, weak: true },
+];
+
+// ── Shared chrome ─────────────────────────────────────────────────────────────
+
+function BriefBar({ right }) {
+  return (
+    <div style={{
+      padding: '11px 28px', background: BPI.card,
+      boxShadow: `inset 0 -1px 0 ${BPI.rule}`,
+      display: 'flex', alignItems: 'center', gap: 14,
+    }}>
+      <RouteBadge route="M15" sbs size="md" />
+      <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em' }}>The Madison corridor problem</div>
+      <span className="chip accent">DRAFT v0.4</span>
+      <span style={{ fontSize: 11, color: BPI.ink40, fontFamily: BPIMono }}>saved 12s ago</span>
+      <div style={{ flex: 1 }} />
+      {right ?? <Button variant="primary" size="sm">Send for review →</Button>}
+    </div>
+  );
+}
+
+function SlimOutline() {
+  return (
+    <div style={{
+      background: BPI.paper, boxShadow: `inset -1px 0 0 ${BPI.rule}`,
+      display: 'flex', flexDirection: 'column', overflow: 'hidden',
+    }}>
+      <div style={{ padding: '16px 16px 10px', boxShadow: `inset 0 -1px 0 ${BPI.rule}` }}>
+        <div className="eyebrow">Outline</div>
+      </div>
+      <div style={{ flex: 1, overflow: 'auto', padding: '10px 10px' }}>
+        <ClaimList claims={OUTLINE_CLAIMS} density="compact" />
+      </div>
+    </div>
+  );
+}
+
+function EvidenceChip({ kind }) {
+  return (
+    <span className="chip" style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
+      {kind}
+    </span>
+  );
+}
+
+function EvidenceGlyph({ glyph }) {
+  return (
+    <div style={{
+      width: 24, height: 24, borderRadius: 3, flexShrink: 0,
+      background: BPI.card, color: BPI.ink70,
+      fontFamily: BPIMono, fontSize: 12, fontWeight: 700,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: `inset 0 0 0 1px ${BPI.rule}`,
+    }}>{glyph}</div>
+  );
+}
+
+// ── V1 · Inline evidence ──────────────────────────────────────────────────────
+// The claim editor expands to fill the space. Evidence lives inline —
+// same column as the statement. Search opens a popover at the point of need,
+// not a permanently-open side panel.
+
+function V1() {
+  return (
+    <div className="bpi" style={{ width: CW, height: CH, display: 'flex', flexDirection: 'column' }}>
+      <StudioBar active="Briefs" breadcrumb="Briefs / Madison corridor / draft v0.4" />
+      <BriefBar />
+      <div style={{ flex: 1, overflow: 'hidden', display: 'grid', gridTemplateColumns: '210px 1fr' }}>
+        <SlimOutline />
+
+        {/* Expanded editor — no right rail */}
+        <div style={{ overflow: 'auto', padding: '36px 72px', background: BPI.card }}>
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+
+            {/* Claim header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+              <span className="eyebrow" style={{ color: BPI.accent }}>Claim 02 of 5</span>
+              <span style={{ fontSize: 11, color: BPI.ink55, fontFamily: BPIMono }}>· seeded from Madison Av selection</span>
+              <div style={{ flex: 1 }} />
+              <StrengthBars strength={4} size="md" />
+              <span style={{ fontSize: 12, fontWeight: 600, color: BPI.good }}>4 / 5 defensible</span>
+            </div>
+
+            {/* Statement — wider, more room to breathe */}
+            <div style={{ marginBottom: 32 }}>
+              <div className="eyebrow" style={{ marginBottom: 10 }}>Statement</div>
+              <div style={{
+                padding: '20px 24px', background: BPI.paper, borderRadius: 4,
+                fontSize: 19, fontWeight: 500, lineHeight: 1.6, letterSpacing: '-0.005em',
+                boxShadow: `inset 0 0 0 1.5px ${BPI.ink}`,
+                textWrap: 'pretty',
+              }}>
+                A 1.5-mile stretch of Madison Avenue (E&nbsp;28&nbsp;St → E&nbsp;58&nbsp;St, NB) accounts for{' '}
+                <span style={{ background: BPI.accentBg, color: BPI.accent, padding: '1px 5px', borderRadius: 2, fontWeight: 600 }}>
+                  43%<Cite n={1} />
+                </span>{' '}
+                of the M15 SBS's total measured rider-hour delay<Cite n={2} />.
+              </div>
+              <div style={{ display: 'flex', gap: 14, fontSize: 11, color: BPI.ink55, marginTop: 8 }}>
+                <span>42 words</span><span style={{ color: BPI.ink20 }}>·</span>
+                <span>2 inline citations</span><span style={{ color: BPI.ink20 }}>·</span>
+                <span style={{ color: BPI.good }}>✓ no normative language</span>
+              </div>
+            </div>
+
+            {/* Evidence — inline */}
+            <div style={{ marginBottom: 28 }}>
+              <div className="eyebrow" style={{ marginBottom: 12 }}>Evidence ({ATTACHED.length})</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {ATTACHED.map((e, i) => (
+                  <div key={i} style={{
+                    padding: '11px 14px', background: BPI.paper, borderRadius: 3,
+                    boxShadow: `inset 0 0 0 1px ${BPI.rule}`,
+                    display: 'flex', alignItems: 'center', gap: 12,
+                  }}>
+                    <span style={{ cursor: 'grab', color: BPI.ink20, fontSize: 12, letterSpacing: '-0.1em', userSelect: 'none' }}>⋮⋮</span>
+                    <EvidenceGlyph glyph={e.glyph} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>{e.name}</div>
+                      <div style={{ fontSize: 10.5, color: BPI.ink55, fontFamily: BPIMono, marginTop: 2 }}>{e.src}</div>
+                    </div>
+                    <EvidenceChip kind={e.kind} />
+                    <button className="bpi" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: BPI.ink30, fontSize: 15, padding: '2px 4px', lineHeight: 1 }}>×</button>
+                  </div>
+                ))}
+
+                {/* Inline search — shown open, pre-seeded */}
+                <div style={{ borderRadius: 3, boxShadow: `inset 0 0 0 1.5px ${BPI.accent}`, background: BPI.paper, overflow: 'hidden' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 14px', boxShadow: `inset 0 -1px 0 ${BPI.rule}`,
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 18 18" fill="none" stroke={BPI.accent} strokeWidth="1.8">
+                      <circle cx="8" cy="8" r="5.5" /><path d="M12.5 12.5L16 16" strokeLinecap="round" />
+                    </svg>
+                    <span style={{ fontSize: 13, color: BPI.accent, fontWeight: 500, flex: 1 }}>madison avenue rider-hours delay</span>
+                    <span style={{ fontSize: 10, color: BPI.ink40, fontFamily: BPIMono }}>esc to close</span>
+                  </div>
+                  {/* AI-suggested */}
+                  <div style={{ padding: '8px 12px 4px' }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: BPI.ink55, fontFamily: BPIMono, letterSpacing: '0.08em', marginBottom: 6 }}>◆ SUGGESTED FOR THIS CLAIM</div>
+                    {SUGGESTED.map((r, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '7px 6px', borderRadius: 3, cursor: 'pointer',
+                        background: i === 0 ? BPI.accentBg : 'transparent',
+                      }}>
+                        <EvidenceGlyph glyph={r.glyph} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 500 }}>{r.name}</div>
+                          <div style={{ fontSize: 10, color: BPI.ink55, fontFamily: BPIMono }}>{r.src}</div>
+                        </div>
+                        <span style={{ fontSize: 11, color: BPI.accent, fontWeight: 600, flexShrink: 0 }}>+ attach</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Other results */}
+                  <div style={{ padding: '2px 12px 10px' }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: BPI.ink40, fontFamily: BPIMono, letterSpacing: '0.08em', marginBottom: 6, paddingTop: 8, borderTop: `1px solid ${BPI.rule}` }}>OTHER RESULTS</div>
+                    {[{ glyph: '▤', name: 'Speed × hour · Madison 8 weeks', src: 'Bus Speeds · heatmap', kind: 'chart' },
+                      { glyph: '¶', name: 'DOT bus lane classification', src: 'NYC DOT GIS', kind: 'source' }].map((r, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 6px', cursor: 'pointer', borderRadius: 3 }}>
+                        <EvidenceGlyph glyph={r.glyph} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 400 }}>{r.name}</div>
+                          <div style={{ fontSize: 10, color: BPI.ink55, fontFamily: BPIMono }}>{r.src}</div>
+                        </div>
+                        <span style={{ fontSize: 11, color: BPI.ink55, fontWeight: 500, flexShrink: 0 }}>+ attach</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Caveats */}
+            <div style={{ marginBottom: 24 }}>
+              <div className="eyebrow" style={{ marginBottom: 10 }}>Caveats (2)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Caveat tone="warn" title='"Speed" includes rider experience'>MTA segment speeds reflect dwell time, traffic, signals, and stops.</Caveat>
+                <Caveat tone="warn" title="Single-month window">Numbers are from the March 2026 pilot only. Multi-month baseline planned for v0.5.</Caveat>
+              </div>
+            </div>
+
+            {/* Strength */}
+            <div style={{
+              padding: '14px 18px', background: BPI.goodBg, borderRadius: 3,
+              display: 'flex', alignItems: 'center', gap: 14,
+              boxShadow: `inset 0 0 0 1px oklch(0.85 0.05 155)`,
+            }}>
+              <StrengthBars strength={4} size="lg" />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: BPI.good, marginBottom: 2 }}>Strength · 4 of 5 — defensible</div>
+                <div style={{ fontSize: 11.5, color: BPI.ink70 }}>Add a multi-month baseline to reach 5/5.</div>
+              </div>
+              <Button variant="ghost" size="sm">How is this scored?</Button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── V2 · Evidence-first ───────────────────────────────────────────────────────
+// Invert the workflow: browse and select evidence first, write the statement
+// last. The claim statement is disabled until items are chosen. AI offers a
+// draft only after the analyst has assembled the evidence themselves.
+
+function V2() {
+  const selected = CATALOG.filter(c => c.selected);
+
+  return (
+    <div className="bpi" style={{ width: CW, height: CH, display: 'flex', flexDirection: 'column' }}>
+      <StudioBar active="Briefs" breadcrumb="Briefs / Madison corridor / claim 02" />
+      <BriefBar right={
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: BPI.ink55 }}>Claim 2 of 5</span>
+          <Button variant="secondary" size="sm">← Prev</Button>
+          <Button variant="secondary" size="sm">Next →</Button>
+          <Button variant="primary" size="sm">Send for review →</Button>
+        </div>
+      } />
+
+      <div style={{ flex: 1, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1fr 420px' }}>
+
+        {/* Left — evidence catalog */}
+        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: BPI.paper, boxShadow: `inset -1px 0 0 ${BPI.rule}` }}>
+          <div style={{ padding: '18px 24px 14px', boxShadow: `inset 0 -1px 0 ${BPI.rule}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div className="eyebrow">Evidence catalog</div>
+              <span style={{ fontSize: 11, color: BPI.ink55, fontFamily: BPIMono }}>· M15 SBS · Madison Av segment</span>
+              <div style={{ flex: 1 }} />
+              <span style={{ fontSize: 11, color: BPI.accent, fontWeight: 600, fontFamily: BPIMono }}>
+                {selected.length} selected
+              </span>
+            </div>
+            {/* Search */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: BPI.card, border: `1px solid ${BPI.rule}`,
+              padding: '9px 12px', borderRadius: 3,
+            }}>
+              <svg width="13" height="13" viewBox="0 0 18 18" fill="none" stroke={BPI.ink55} strokeWidth="1.8">
+                <circle cx="8" cy="8" r="5.5" /><path d="M12.5 12.5L16 16" strokeLinecap="round" />
+              </svg>
+              <span style={{ fontSize: 12.5, color: BPI.ink55, flex: 1 }}>madison avenue rider-hours</span>
+              <span style={{ fontSize: 10, color: BPI.ink40, fontFamily: BPIMono }}>⌘K</span>
+            </div>
+            {/* Type filters */}
+            <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+              {['All', 'Metrics', 'Charts', 'Sources'].map((t, i) => (
+                <span key={t} className="chip" style={i === 0 ? { background: BPI.ink, color: BPI.paper } : { cursor: 'pointer' }}>{t}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Catalog grid */}
+          <div style={{ flex: 1, overflow: 'auto', padding: '16px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, alignContent: 'start' }}>
+            {CATALOG.map((item, i) => (
+              <div key={i} style={{
+                padding: '14px 16px', borderRadius: 3, cursor: 'pointer',
+                background: item.selected ? BPI.accentBg : BPI.card,
+                boxShadow: item.selected ? `inset 0 0 0 1.5px ${BPI.accent}` : `inset 0 0 0 1px ${BPI.rule}`,
+                display: 'flex', flexDirection: 'column', gap: 6,
+                position: 'relative',
+              }}>
+                {item.selected && (
+                  <div style={{
+                    position: 'absolute', top: 10, right: 10,
+                    width: 16, height: 16, borderRadius: 8,
+                    background: BPI.accent, color: '#fff',
+                    fontSize: 10, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>✓</div>
+                )}
+                {/* Value or chart thumb */}
+                {item.kind === 'chart' ? (
+                  <MapThumb width={60} height={32} emphasis={item.selected ? BPI.accent : BPI.ink40} label="" />
+                ) : (
+                  <div className="num" style={{
+                    fontSize: item.kind === 'source' ? 22 : 28, fontWeight: 700,
+                    color: item.selected ? BPI.accent : BPI.ink,
+                    letterSpacing: '-0.02em', lineHeight: 1,
+                  }}>{item.kind === 'source' ? '¶' : item.val}</div>
+                )}
+                <div style={{ fontSize: 11.5, fontWeight: 500, color: BPI.ink, lineHeight: 1.3 }}>{item.desc}</div>
+                <div style={{ fontSize: 10, color: BPI.ink55, fontFamily: BPIMono }}>{item.src}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right — claim assembly */}
+        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', background: BPI.card }}>
+          <div style={{ padding: '18px 22px 14px', boxShadow: `inset 0 -1px 0 ${BPI.rule}` }}>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>Claim 02</div>
+            <div style={{ fontSize: 13, color: BPI.ink55 }}>Select evidence on the left, then write the statement it supports.</div>
+          </div>
+
+          {/* Selected items */}
+          <div style={{ padding: '14px 22px', flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 5, boxShadow: `inset 0 -1px 0 ${BPI.rule}` }}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>Selected ({selected.length})</div>
+            {selected.map((item, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '8px 12px', background: BPI.paper, borderRadius: 3,
+                boxShadow: `inset 0 0 0 1px ${BPI.rule}`,
+              }}>
+                <div className="num" style={{ fontSize: 14, fontWeight: 700, color: BPI.accent, width: 44, flexShrink: 0, letterSpacing: '-0.01em' }}>
+                  {item.kind === 'chart' ? '▤' : item.kind === 'source' ? '¶' : item.val}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.3 }}>{item.desc}</div>
+                  <div style={{ fontSize: 10, color: BPI.ink55, fontFamily: BPIMono }}>{item.src}</div>
+                </div>
+                <button className="bpi" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: BPI.ink40, fontSize: 14, padding: '2px 4px' }}>×</button>
+              </div>
+            ))}
+          </div>
+
+          {/* Statement — written after evidence is assembled */}
+          <div style={{ flex: 1, padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="eyebrow">Statement</div>
+            <div style={{
+              flex: 1, padding: '16px 18px', background: BPI.paper, borderRadius: 3,
+              fontSize: 15, fontWeight: 500, lineHeight: 1.6, letterSpacing: '-0.005em',
+              boxShadow: `inset 0 0 0 1.5px ${BPI.ink}`,
+              color: BPI.ink, textWrap: 'pretty',
+            }}>
+              A 1.5-mile stretch of Madison Avenue (E&nbsp;28&nbsp;St → E&nbsp;58&nbsp;St, NB) accounts for{' '}
+              <span style={{ background: BPI.accentBg, color: BPI.accent, padding: '1px 5px', borderRadius: 2, fontWeight: 600 }}>43%<Cite n={1} /></span>{' '}
+              of the M15 SBS's total measured rider-hour delay<Cite n={2} />.
+            </div>
+
+            {/* AI draft offer — only after evidence is assembled */}
+            <div style={{
+              padding: '10px 14px', background: BPI.ink06, borderRadius: 3,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: BPI.ink55, fontFamily: BPIMono }}>◆</span>
+              <span style={{ fontSize: 12, color: BPI.ink70, flex: 1 }}>Draft a statement from selected evidence</span>
+              <Button variant="secondary" size="sm">Draft →</Button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <StrengthBars strength={4} size="md" />
+              <span style={{ fontSize: 12, fontWeight: 600, color: BPI.good }}>4 / 5 defensible</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── V3 · Single-claim focus ───────────────────────────────────────────────────
+// One claim fills the canvas. More room for each evidence item, full source
+// context visible, and related findings surfaced alongside. Trade breadth
+// for depth — every open question about this claim is answerable without
+// leaving the screen.
+
+function V3() {
+  const steps = [
+    { step: '01', label: 'Observed', text: 'M15 SBS PM-peak speed: 6.2 mph (Mar 2026). 14-month trend: −0.6 mph.', src: 'MTA Bus Speeds · segment-level · Mar 2026', tone: 'ink' },
+    { step: '04', label: 'Gap',      text: 'Madison Av segment shows no correlated violation reduction despite adjacent ACE coverage.', src: 'MTA ACE violations · NYC DOT lane classification', tone: 'warn' },
+    { step: '05', label: 'Conclusion', text: 'Structural lane-blockage on Madison Av is the most consistent explanation (4/8 comparable anomalies).', src: 'Pattern match · anomaly library · May 2026', tone: 'accent' },
+  ];
+
+  return (
+    <div className="bpi" style={{ width: CW, height: CH, display: 'flex', flexDirection: 'column' }}>
+      <StudioBar active="Briefs" breadcrumb="Briefs / Madison corridor / claim 02 of 5" />
+      <BriefBar right={
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Button variant="secondary" size="sm">← Claim 01</Button>
+          <span style={{ fontSize: 11, color: BPI.ink55, fontFamily: BPIMono }}>2 / 5</span>
+          <Button variant="secondary" size="sm">Claim 03 →</Button>
+          <Button variant="primary" size="sm">Send for review →</Button>
+        </div>
+      } />
+
+      <div style={{ flex: 1, overflow: 'hidden', display: 'grid', gridTemplateColumns: '200px 1fr 300px' }}>
+
+        {/* Left — slim claim nav */}
+        <div style={{ background: BPI.paper, boxShadow: `inset -1px 0 0 ${BPI.rule}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ padding: '16px 14px 10px', boxShadow: `inset 0 -1px 0 ${BPI.rule}` }}>
+            <div className="eyebrow">Claims</div>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: '10px 10px' }}>
+            <ClaimList claims={OUTLINE_CLAIMS} density="compact" />
+          </div>
+        </div>
+
+        {/* Center — full claim detail */}
+        <div style={{ overflow: 'auto', padding: '32px 48px', background: BPI.card, display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+          {/* Statement */}
+          <div>
+            <div className="eyebrow" style={{ color: BPI.accent, marginBottom: 10 }}>Claim 02 · Statement</div>
+            <div style={{
+              padding: '22px 26px', background: BPI.paper, borderRadius: 4,
+              fontSize: 20, fontWeight: 500, lineHeight: 1.6, letterSpacing: '-0.01em',
+              boxShadow: `inset 0 0 0 1.5px ${BPI.ink}`, textWrap: 'pretty',
+            }}>
+              A 1.5-mile stretch of Madison Avenue (E&nbsp;28&nbsp;St → E&nbsp;58&nbsp;St, NB) accounts for{' '}
+              <span style={{ background: BPI.accentBg, color: BPI.accent, padding: '1px 5px', borderRadius: 2, fontWeight: 600 }}>
+                43%<Cite n={1} />
+              </span>{' '}
+              of the M15 SBS's total measured rider-hour delay<Cite n={2} />.
+            </div>
+          </div>
+
+          {/* Evidence — generous cards with full source context */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div className="eyebrow">Evidence ({ATTACHED.length})</div>
+              <button className="bpi" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: BPI.accent, fontWeight: 600, fontFamily: 'inherit' }}>
+                + Search evidence
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {ATTACHED.map((e, i) => (
+                <div key={i} style={{
+                  padding: '16px 18px', background: BPI.paper, borderRadius: 4,
+                  boxShadow: `inset 0 0 0 1px ${BPI.rule}`,
+                  display: 'flex', flexDirection: 'column', gap: 8,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <EvidenceGlyph glyph={e.glyph} />
+                    <EvidenceChip kind={e.kind} />
+                    <div style={{ flex: 1 }} />
+                    <button className="bpi" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: BPI.ink40, fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: BPI.ink, lineHeight: 1.3 }}>{e.name}</div>
+                  <div style={{
+                    fontSize: 11, color: BPI.ink55, fontFamily: BPIMono,
+                    padding: '5px 8px', background: BPI.ink06, borderRadius: 3,
+                    display: 'inline-block',
+                  }}>{e.src}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Caveats */}
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 12 }}>Caveats (2)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Caveat tone="warn" title='"Speed" includes rider experience'>MTA segment speeds reflect dwell time, traffic, signals, and stops. The brief uses "observed bus travel speed" wherever this metric appears.</Caveat>
+              <Caveat tone="warn" title="Single-month window">Numbers are drawn from the March 2026 pilot. A multi-month baseline is planned for v0.5.</Caveat>
+            </div>
+          </div>
+
+          {/* Strength */}
+          <div style={{
+            padding: '14px 18px', background: BPI.goodBg, borderRadius: 3,
+            display: 'flex', alignItems: 'center', gap: 14,
+            boxShadow: `inset 0 0 0 1px oklch(0.85 0.05 155)`,
+          }}>
+            <StrengthBars strength={4} size="lg" />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: BPI.good, marginBottom: 2 }}>Strength · 4 of 5 — defensible</div>
+              <div style={{ fontSize: 11.5, color: BPI.ink70 }}>Add a multi-month baseline to reach 5/5.</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right — claim context panel */}
+        <div style={{
+          background: BPI.paper, boxShadow: `inset 1px 0 0 ${BPI.rule}`,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}>
+          {/* Key metric */}
+          <div style={{ padding: '22px 22px 18px', background: BPI.card, boxShadow: `inset 0 -1px 0 ${BPI.rule}` }}>
+            <div className="num" style={{ fontSize: 44, fontWeight: 700, color: BPI.accent, letterSpacing: '-0.03em', lineHeight: 1 }}>
+              43%
+            </div>
+            <div style={{ fontSize: 12, color: BPI.ink55, marginTop: 6 }}>Madison share of total route delay</div>
+            <div style={{ fontSize: 10.5, color: BPI.ink40, fontFamily: BPIMono, marginTop: 3 }}>18,420 / 42,890 RH per day</div>
+          </div>
+
+          <div style={{ flex: 1, overflow: 'auto', padding: '18px 18px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Related finding */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, fontFamily: BPIMono, color: BPI.ink55 }}>◆</span>
+                <div className="eyebrow">Related finding</div>
+              </div>
+              <div style={{
+                padding: '12px 14px', background: BPI.card, borderRadius: 3,
+                boxShadow: `inset 0 0 0 1px ${BPI.rule}`,
+                borderLeft: `3px solid ${BPI.warn}`,
+              }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6, lineHeight: 1.3 }}>Full treatment stack, still declining</div>
+                <div style={{ fontSize: 11.5, color: BPI.ink70, lineHeight: 1.5, marginBottom: 10 }}>
+                  The Madison Av segment shows no correlated violation reduction — unusual for ACE corridors.
+                </div>
+                {steps.map((s, i) => {
+                  const dot = s.tone === 'warn' ? BPI.warn : s.tone === 'accent' ? BPI.accent : BPI.ink40;
+                  return (
+                    <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'flex-start' }}>
+                      <div style={{ width: 6, height: 6, borderRadius: 3, background: dot, marginTop: 5, flexShrink: 0 }} />
+                      <div style={{ fontSize: 11, color: BPI.ink70, lineHeight: 1.45 }}>
+                        <span style={{ fontWeight: 600, color: BPI.ink55, fontFamily: BPIMono, fontSize: 9.5, marginRight: 4 }}>{s.step}</span>
+                        {s.text}
+                      </div>
+                    </div>
+                  );
+                })}
+                <button className="bpi" style={{ marginTop: 6, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, color: BPI.accent, fontWeight: 600, fontFamily: 'inherit', padding: 0 }}>
+                  View full finding →
+                </button>
+              </div>
+            </div>
+
+            <div className="rule" />
+
+            {/* Comparable routes */}
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 10 }}>Comparable routes</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[
+                  { route: 'M14A', sbs: true, delta: '+0.8 mph', tone: 'good', note: 'ACE activated May 2023' },
+                  { route: 'Bx41', sbs: true, delta: '±0.1 mph', tone: 'warn', note: '18 months post-ACE' },
+                  { route: 'B46',  sbs: true, delta: '+0.3 mph', tone: 'good', note: 'ACE + TSP together' },
+                ].map((r, i) => (
+                  <div key={i} style={{
+                    padding: '9px 12px', background: BPI.card, borderRadius: 3,
+                    boxShadow: `inset 0 0 0 1px ${BPI.rule}`,
+                    display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 10, alignItems: 'center',
+                  }}>
+                    <RouteBadge route={r.route} sbs={r.sbs} size="sm" />
+                    <div style={{ fontSize: 11, color: BPI.ink55 }}>{r.note}</div>
+                    <div className="num" style={{
+                      fontSize: 12, fontWeight: 700,
+                      color: r.tone === 'good' ? BPI.good : BPI.warn,
+                    }}>{r.delta}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="evidence-ux" title="Evidence composer · explorations"
+        subtitle="Three layouts for how claim writing and evidence finding relate. Each explores a different answer to the same question: should evidence be beside the claim, before the claim, or beneath it?">
+
+        <DCArtboard id="v1" label="V1 · Inline evidence — search lives in the editor, no right rail" width={CW} height={CH}>
+          <V1 />
+        </DCArtboard>
+
+        <DCArtboard id="v2" label="V2 · Evidence-first — assemble evidence, then write the statement" width={CW} height={CH}>
+          <V2 />
+        </DCArtboard>
+
+        <DCArtboard id="v3" label="V3 · Single-claim focus — full context, one claim at a time" width={CW} height={CH}>
+          <V3 />
+        </DCArtboard>
+
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -25,7 +25,14 @@ export type RouteGeoLabelPoint = {
 /** Land polygons from the borough-boundary context artifact (lon/lat rings). */
 export type RouteGeoContext = {
   features: ReadonlyArray<{
-    geometry: { type: "MultiPolygon"; coordinates: number[][][][] };
+    properties?: {
+      boroName: string;
+      labelPoint: readonly [number, number];
+    };
+    geometry: {
+      type: "MultiPolygon";
+      coordinates: ReadonlyArray<ReadonlyArray<ReadonlyArray<readonly [number, number]>>>;
+    };
   }>;
 };
 
@@ -128,10 +135,10 @@ export function routeGeoMapModel(
     for (const feature of context.features) {
       for (const polygon of feature.geometry.coordinates) {
         for (const ring of polygon) {
-          if (!ring.some((coordinate) => visible(coordinate as [number, number]))) continue;
+          if (!ring.some((coordinate) => visible(coordinate))) continue;
           const d = ring
             .map((coordinate, index) => {
-              const [x, y] = project(coordinate as [number, number]);
+              const [x, y] = project(coordinate);
               return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
             })
             .join(" ");

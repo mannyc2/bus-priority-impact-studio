@@ -1,9 +1,9 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { probeSource, type SourceProbeOutput } from "@bp/sources/probes";
 import { fetchCurlHeadMetadata } from "@bp/sources/probes/transports/bun-curl";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
 import { writeJson } from "../../lib/json.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
 
@@ -42,12 +42,12 @@ export async function writeProbeOutput(
 export default defineCommand({
   path: ["sources", "probe"],
   summary: "Probe all manifest sources and write metadata snapshots.",
-  input: { options: z.object({}) },
-  output: z.object({
-    sourceCount: z.number().int().nonnegative(),
-    blockedCount: z.number().int().nonnegative(),
-    skippedCount: z.number().int().nonnegative(),
-    metadataDir: z.string(),
+  input: { options: Schema.Struct({}) },
+  output: Schema.Struct({
+    sourceCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    blockedCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    skippedCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    metadataDir: Schema.String,
   }),
   async run() {
     const metadataDir = fromRepoRoot("knowledge/raw/metadata");

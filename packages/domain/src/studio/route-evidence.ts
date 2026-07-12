@@ -1,4 +1,5 @@
-import * as z from "zod";
+import { Schema } from "effect";
+import { decodeStrict } from "../decode.js";
 
 export const STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME = "route_evidence";
 export const STUDIO_ROUTE_EVIDENCE_INDEX_KEY = "studio/v2/wiki/index.json";
@@ -8,213 +9,208 @@ export function studioRouteEvidenceBundleKey(routeSlug: string): string {
   return `studio/v2/wiki/routes/${routeSlug}.json`;
 }
 
-export const StudioRouteEvidenceCitationSchema = z
-  .object({
-    key: z.string().min(1),
-    sourceId: z.string().min(1),
-    blockId: z.string().min(1),
-    evidenceId: z.string().min(1),
-    sourcePath: z.string().min(1),
-    pageNumber: z.number().int().positive().optional(),
-    textSha256: z.string().min(1).optional(),
-    sourceTitle: z.string().min(1).optional(),
-    publisher: z.string().min(1).optional(),
-    sourceUrl: z.string().min(1).optional(),
-    publishedDate: z.string().min(1).optional(),
-  })
-  .strict();
+export const StudioRouteEvidenceCitationSchema = Schema.Struct({
+  key: Schema.String.check(Schema.isMinLength(1)),
+  sourceId: Schema.String.check(Schema.isMinLength(1)),
+  blockId: Schema.String.check(Schema.isMinLength(1)),
+  evidenceId: Schema.String.check(Schema.isMinLength(1)),
+  sourcePath: Schema.String.check(Schema.isMinLength(1)),
+  pageNumber: Schema.optional(Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0))),
+  textSha256: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+  sourceTitle: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+  publisher: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+  sourceUrl: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+  publishedDate: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+});
 
-const CitationKeysSchema = z.array(z.string().min(1));
+const CitationKeysSchema = Schema.mutable(Schema.Array(Schema.String.check(Schema.isMinLength(1))));
 
-const RouteEvidenceRecordBaseSchema = z
-  .object({
-    recordId: z.string().min(1),
-    recordKind: z.string().min(1),
-    citationKeys: CitationKeysSchema,
-  })
-  .strict();
+const RouteEvidenceRecordBaseSchema = Schema.Struct({
+  recordId: Schema.String.check(Schema.isMinLength(1)),
+  recordKind: Schema.String.check(Schema.isMinLength(1)),
+  citationKeys: CitationKeysSchema,
+});
 
-export const StudioRouteEvidenceTimelineEventSchema = RouteEvidenceRecordBaseSchema.extend({
-  eventKind: z.string().nullable(),
-  eventFamily: z.string().nullable(),
-  lifecyclePhase: z.string().nullable(),
-  title: z.string().nullable(),
-  description: z.string().nullable(),
-  dateText: z.string().nullable(),
-  dateNormalized: z.string().nullable(),
-  datePrecision: z.string().nullable(),
-}).strict();
+export const StudioRouteEvidenceTimelineEventSchema = Schema.Struct({
+  ...RouteEvidenceRecordBaseSchema.fields,
+  ...{
+    eventKind: Schema.NullOr(Schema.String),
+    eventFamily: Schema.NullOr(Schema.String),
+    lifecyclePhase: Schema.NullOr(Schema.String),
+    title: Schema.NullOr(Schema.String),
+    description: Schema.NullOr(Schema.String),
+    dateText: Schema.NullOr(Schema.String),
+    dateNormalized: Schema.NullOr(Schema.String),
+    datePrecision: Schema.NullOr(Schema.String),
+  },
+});
 
-export const StudioRouteEvidenceInterventionSchema = RouteEvidenceRecordBaseSchema.extend({
-  treatmentKind: z.string().nullable(),
-  treatmentFamily: z.string().nullable(),
-  title: z.string().nullable(),
-  description: z.string().nullable(),
-  locations: z.array(z.string()),
-  projectRecordIds: z.array(z.string().min(1)),
-}).strict();
+export const StudioRouteEvidenceInterventionSchema = Schema.Struct({
+  ...RouteEvidenceRecordBaseSchema.fields,
+  ...{
+    treatmentKind: Schema.NullOr(Schema.String),
+    treatmentFamily: Schema.NullOr(Schema.String),
+    title: Schema.NullOr(Schema.String),
+    description: Schema.NullOr(Schema.String),
+    locations: Schema.Array(Schema.String),
+    projectRecordIds: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  },
+});
 
-export const StudioRouteEvidenceMetricClaimSchema = RouteEvidenceRecordBaseSchema.extend({
-  metricName: z.string().nullable(),
-  rawValue: z.union([z.string(), z.number(), z.boolean()]).nullable(),
-  value: z.union([z.string(), z.number(), z.boolean()]).nullable(),
-  unit: z.string().nullable(),
-  period: z.string().nullable(),
-  scope: z.string().nullable(),
-  description: z.string().nullable(),
-}).strict();
+export const StudioRouteEvidenceMetricClaimSchema = Schema.Struct({
+  ...RouteEvidenceRecordBaseSchema.fields,
+  ...{
+    metricName: Schema.NullOr(Schema.String),
+    rawValue: Schema.NullOr(Schema.Union([Schema.String, Schema.Number, Schema.Boolean])),
+    value: Schema.NullOr(Schema.Union([Schema.String, Schema.Number, Schema.Boolean])),
+    unit: Schema.NullOr(Schema.String),
+    period: Schema.NullOr(Schema.String),
+    scope: Schema.NullOr(Schema.String),
+    description: Schema.NullOr(Schema.String),
+  },
+});
 
-export const StudioRouteEvidenceProjectSchema = RouteEvidenceRecordBaseSchema.extend({
-  projectName: z.string().nullable(),
-  projectFamily: z.string().nullable(),
-  projectType: z.string().nullable(),
-  status: z.string().nullable(),
-  description: z.string().nullable(),
-  location: z.string().nullable(),
-  routesServed: z.array(z.string()),
-}).strict();
+export const StudioRouteEvidenceProjectSchema = Schema.Struct({
+  ...RouteEvidenceRecordBaseSchema.fields,
+  ...{
+    projectName: Schema.NullOr(Schema.String),
+    projectFamily: Schema.NullOr(Schema.String),
+    projectType: Schema.NullOr(Schema.String),
+    status: Schema.NullOr(Schema.String),
+    description: Schema.NullOr(Schema.String),
+    location: Schema.NullOr(Schema.String),
+    routesServed: Schema.Array(Schema.String),
+  },
+});
 
-export const StudioRouteEvidenceSourceGapSchema = RouteEvidenceRecordBaseSchema.extend({
-  gapKind: z.string().nullable(),
-  gapText: z.string().nullable(),
-  missingInformation: z.string().nullable(),
-  description: z.string().nullable(),
-}).strict();
+export const StudioRouteEvidenceSourceGapSchema = Schema.Struct({
+  ...RouteEvidenceRecordBaseSchema.fields,
+  ...{
+    gapKind: Schema.NullOr(Schema.String),
+    gapText: Schema.NullOr(Schema.String),
+    missingInformation: Schema.NullOr(Schema.String),
+    description: Schema.NullOr(Schema.String),
+  },
+});
 
-export const StudioRouteEvidenceCoverageSchema = z
-  .object({
-    timelineCount: z.number().int().nonnegative(),
-    interventionCount: z.number().int().nonnegative(),
-    metricClaimCount: z.number().int().nonnegative(),
-    projectCount: z.number().int().nonnegative(),
-    sourceGapCount: z.number().int().nonnegative(),
-    citationCount: z.number().int().nonnegative(),
-  })
-  .strict();
+export const StudioRouteEvidenceCoverageSchema = Schema.Struct({
+  timelineCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  interventionCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  metricClaimCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  projectCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  sourceGapCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  citationCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+});
 
-export const StudioRouteEvidenceBundleSchema = z
-  .object({
-    routeId: z.string().min(1),
-    routeSlug: z.string().min(1),
-    wikiRouteRecordId: z.string().min(1).nullable(),
-    wikiRouteIds: z.array(z.string().min(1)),
-    wikiAliases: z.array(z.string().min(1)),
-    coverage: StudioRouteEvidenceCoverageSchema,
-    timeline: z.array(StudioRouteEvidenceTimelineEventSchema),
-    interventions: z.array(StudioRouteEvidenceInterventionSchema),
-    metricClaims: z.array(StudioRouteEvidenceMetricClaimSchema),
-    projects: z.array(StudioRouteEvidenceProjectSchema),
-    sourceGaps: z.array(StudioRouteEvidenceSourceGapSchema),
-    citations: z.array(StudioRouteEvidenceCitationSchema),
-  })
-  .strict();
+export const StudioRouteEvidenceBundleSchema = Schema.Struct({
+  routeId: Schema.String.check(Schema.isMinLength(1)),
+  routeSlug: Schema.String.check(Schema.isMinLength(1)),
+  wikiRouteRecordId: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+  wikiRouteIds: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  wikiAliases: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  coverage: StudioRouteEvidenceCoverageSchema,
+  timeline: Schema.Array(StudioRouteEvidenceTimelineEventSchema),
+  interventions: Schema.Array(StudioRouteEvidenceInterventionSchema),
+  metricClaims: Schema.Array(StudioRouteEvidenceMetricClaimSchema),
+  projects: Schema.Array(StudioRouteEvidenceProjectSchema),
+  sourceGaps: Schema.Array(StudioRouteEvidenceSourceGapSchema),
+  citations: Schema.Array(StudioRouteEvidenceCitationSchema),
+});
 
-export const StudioInterventionsEvidenceCitationSchema = z
-  .object({
-    key: z.string().min(1),
-    sourceId: z.string().min(1),
-    pageNumber: z.number().int().positive().optional(),
-    sourceTitle: z.string().min(1).optional(),
-    publisher: z.string().min(1).optional(),
-    sourceUrl: z.string().min(1).optional(),
-    publishedDate: z.string().min(1).optional(),
-  })
-  .strict();
+export const StudioInterventionsEvidenceCitationSchema = Schema.Struct({
+  key: Schema.String.check(Schema.isMinLength(1)),
+  sourceId: Schema.String.check(Schema.isMinLength(1)),
+  pageNumber: Schema.optional(Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0))),
+  sourceTitle: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+  publisher: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+  sourceUrl: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+  publishedDate: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+});
 
-export const StudioInterventionsEvidenceCoverageSchema = z
-  .object({
-    timelineCount: z.number().int().nonnegative(),
-    interventionCount: z.number().int().nonnegative(),
-    projectCount: z.number().int().nonnegative(),
-    sourceGapCount: z.number().int().nonnegative(),
-    citationCount: z.number().int().nonnegative(),
-  })
-  .strict();
+export const StudioInterventionsEvidenceCoverageSchema = Schema.Struct({
+  timelineCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  interventionCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  projectCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  sourceGapCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  citationCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+});
 
-export const StudioInterventionsEvidenceBundleSchema = z
-  .object({
-    routeId: z.string().min(1),
-    routeSlug: z.string().min(1),
-    coverage: StudioInterventionsEvidenceCoverageSchema,
-    timeline: z.array(StudioRouteEvidenceTimelineEventSchema),
-    interventions: z.array(StudioRouteEvidenceInterventionSchema),
-    projects: z.array(StudioRouteEvidenceProjectSchema),
-    sourceGaps: z.array(StudioRouteEvidenceSourceGapSchema),
-    citations: z.array(StudioInterventionsEvidenceCitationSchema),
-  })
-  .strict();
+export const StudioInterventionsEvidenceBundleSchema = Schema.Struct({
+  routeId: Schema.String.check(Schema.isMinLength(1)),
+  routeSlug: Schema.String.check(Schema.isMinLength(1)),
+  coverage: StudioInterventionsEvidenceCoverageSchema,
+  timeline: Schema.Array(StudioRouteEvidenceTimelineEventSchema),
+  interventions: Schema.Array(StudioRouteEvidenceInterventionSchema),
+  projects: Schema.Array(StudioRouteEvidenceProjectSchema),
+  sourceGaps: Schema.Array(StudioRouteEvidenceSourceGapSchema),
+  citations: Schema.Array(StudioInterventionsEvidenceCitationSchema),
+});
 
-export const StudioInterventionsEvidenceResponseSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    routeCount: z.number().int().nonnegative(),
-    bundles: z.array(StudioInterventionsEvidenceBundleSchema),
-  })
-  .strict();
+export const StudioInterventionsEvidenceResponseSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  bundles: Schema.Array(StudioInterventionsEvidenceBundleSchema),
+});
 
-export const StudioRouteEvidenceArtifactSchema = z
-  .object({
-    artifactKind: z.literal("bp.studio.route_evidence.v1"),
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    source: z
-      .object({
-        kind: z.literal("mta-wiki-canonical-jsonl"),
-        mtaWikiRoot: z.string().min(1),
-        canonicalRoot: z.string().min(1),
-      })
-      .strict(),
-    summary: z
-      .object({
-        routeCount: z.number().int().nonnegative(),
-        matchedBusRouteCount: z.number().int().nonnegative(),
-        unmatchedWikiRouteCount: z.number().int().nonnegative(),
-        citationCount: z.number().int().nonnegative(),
-        omittedAmbiguousRecordCount: z.number().int().nonnegative(),
-      })
-      .strict(),
-    routes: z.array(StudioRouteEvidenceBundleSchema),
-  })
-  .strict();
+export const StudioRouteEvidenceArtifactSchema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.route_evidence.v1"),
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  source: Schema.Struct({
+    kind: Schema.Literal("mta-wiki-canonical-jsonl"),
+    mtaWikiRoot: Schema.String.check(Schema.isMinLength(1)),
+    canonicalRoot: Schema.String.check(Schema.isMinLength(1)),
+  }),
+  summary: Schema.Struct({
+    routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    matchedBusRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    unmatchedWikiRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    citationCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    omittedAmbiguousRecordCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+  }),
+  routes: Schema.Array(StudioRouteEvidenceBundleSchema),
+});
 
-export const StudioRouteEvidenceIndexRouteSchema = z
-  .object({
-    routeId: z.string().min(1),
-    routeSlug: z.string().min(1),
-    wikiRouteRecordId: z.string().min(1).nullable(),
-    artifactName: z.literal(STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME),
-    artifactKey: z.string().min(1),
-    contentType: z.literal(STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE),
-    byteLength: z.number().int().nonnegative(),
-    sha256: z.string().length(64),
-    coverage: StudioRouteEvidenceCoverageSchema,
-  })
-  .strict();
+export const StudioRouteEvidenceIndexRouteSchema = Schema.Struct({
+  routeId: Schema.String.check(Schema.isMinLength(1)),
+  routeSlug: Schema.String.check(Schema.isMinLength(1)),
+  wikiRouteRecordId: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+  artifactName: Schema.Literal(STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME),
+  artifactKey: Schema.String.check(Schema.isMinLength(1)),
+  contentType: Schema.Literal(STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE),
+  byteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  sha256: Schema.String.check(Schema.isLengthBetween(64, 64)),
+  coverage: StudioRouteEvidenceCoverageSchema,
+});
 
-export const StudioRouteEvidenceIndexSchema = z
-  .object({
-    artifactKind: z.literal("bp.studio.route_evidence_index.v1"),
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    sourceArtifactKey: z.string().min(1),
-    summary: z
-      .object({
-        routeCount: z.number().int().nonnegative(),
-        matchedBusRouteCount: z.number().int().nonnegative(),
-        citationCount: z.number().int().nonnegative(),
-        totalByteLength: z.number().int().nonnegative(),
-      })
-      .strict(),
-    routes: z.array(StudioRouteEvidenceIndexRouteSchema),
-  })
-  .strict();
+export const StudioRouteEvidenceIndexSchema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.route_evidence_index.v1"),
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  sourceArtifactKey: Schema.String.check(Schema.isMinLength(1)),
+  summary: Schema.Struct({
+    routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    matchedBusRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    citationCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    totalByteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  }),
+  routes: Schema.Array(StudioRouteEvidenceIndexRouteSchema),
+});
 
 export function emptyStudioRouteEvidenceBundle(input: {
   routeId: string;
   routeSlug: string;
 }): StudioRouteEvidenceBundle {
-  return StudioRouteEvidenceBundleSchema.parse({
+  return decodeStrict(StudioRouteEvidenceBundleSchema)({
     routeId: input.routeId,
     routeSlug: input.routeSlug,
     wikiRouteRecordId: null,
@@ -237,30 +233,21 @@ export function emptyStudioRouteEvidenceBundle(input: {
   });
 }
 
-export type StudioRouteEvidenceCitation = z.output<typeof StudioRouteEvidenceCitationSchema>;
-export type StudioRouteEvidenceTimelineEvent = z.output<
-  typeof StudioRouteEvidenceTimelineEventSchema
->;
-export type StudioRouteEvidenceIntervention = z.output<
-  typeof StudioRouteEvidenceInterventionSchema
->;
-export type StudioRouteEvidenceMetricClaim = z.output<typeof StudioRouteEvidenceMetricClaimSchema>;
-export type StudioRouteEvidenceProject = z.output<typeof StudioRouteEvidenceProjectSchema>;
-export type StudioRouteEvidenceSourceGap = z.output<typeof StudioRouteEvidenceSourceGapSchema>;
-export type StudioRouteEvidenceCoverage = z.output<typeof StudioRouteEvidenceCoverageSchema>;
-export type StudioRouteEvidenceBundle = z.output<typeof StudioRouteEvidenceBundleSchema>;
-export type StudioInterventionsEvidenceCitation = z.output<
-  typeof StudioInterventionsEvidenceCitationSchema
->;
-export type StudioInterventionsEvidenceCoverage = z.output<
-  typeof StudioInterventionsEvidenceCoverageSchema
->;
-export type StudioInterventionsEvidenceBundle = z.output<
-  typeof StudioInterventionsEvidenceBundleSchema
->;
-export type StudioInterventionsEvidenceResponse = z.output<
-  typeof StudioInterventionsEvidenceResponseSchema
->;
-export type StudioRouteEvidenceArtifact = z.output<typeof StudioRouteEvidenceArtifactSchema>;
-export type StudioRouteEvidenceIndexRoute = z.output<typeof StudioRouteEvidenceIndexRouteSchema>;
-export type StudioRouteEvidenceIndex = z.output<typeof StudioRouteEvidenceIndexSchema>;
+export type StudioRouteEvidenceCitation = typeof StudioRouteEvidenceCitationSchema.Type;
+export type StudioRouteEvidenceTimelineEvent = typeof StudioRouteEvidenceTimelineEventSchema.Type;
+export type StudioRouteEvidenceIntervention = typeof StudioRouteEvidenceInterventionSchema.Type;
+export type StudioRouteEvidenceMetricClaim = typeof StudioRouteEvidenceMetricClaimSchema.Type;
+export type StudioRouteEvidenceProject = typeof StudioRouteEvidenceProjectSchema.Type;
+export type StudioRouteEvidenceSourceGap = typeof StudioRouteEvidenceSourceGapSchema.Type;
+export type StudioRouteEvidenceCoverage = typeof StudioRouteEvidenceCoverageSchema.Type;
+export type StudioRouteEvidenceBundle = typeof StudioRouteEvidenceBundleSchema.Type;
+export type StudioInterventionsEvidenceCitation =
+  typeof StudioInterventionsEvidenceCitationSchema.Type;
+export type StudioInterventionsEvidenceCoverage =
+  typeof StudioInterventionsEvidenceCoverageSchema.Type;
+export type StudioInterventionsEvidenceBundle = typeof StudioInterventionsEvidenceBundleSchema.Type;
+export type StudioInterventionsEvidenceResponse =
+  typeof StudioInterventionsEvidenceResponseSchema.Type;
+export type StudioRouteEvidenceArtifact = typeof StudioRouteEvidenceArtifactSchema.Type;
+export type StudioRouteEvidenceIndexRoute = typeof StudioRouteEvidenceIndexRouteSchema.Type;
+export type StudioRouteEvidenceIndex = typeof StudioRouteEvidenceIndexSchema.Type;

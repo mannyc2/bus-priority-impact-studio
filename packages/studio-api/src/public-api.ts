@@ -10,7 +10,7 @@ import {
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/d1";
 import { MapManifestResponseSchema } from "@bp/domain/maps";
-import { IsoMonthSchema, RouteIdCodec } from "@bp/domain/primitives";
+import { IsoMonthSchema, type RouteId, RouteIdCodec } from "@bp/domain/primitives";
 import {
   HotspotListResponseSchema,
   ReleaseStatusResponseSchema,
@@ -18,12 +18,12 @@ import {
   RouteProfileResponseSchema,
   RouteScorecardSchema,
 } from "@bp/domain/routes";
-import * as z from "zod";
+import { Result } from "effect";
 import type { StudioApiEnv } from "./env.js";
 import { errorResponse as errorJson } from "./http/errors.js";
 import { jsonResponse as json } from "./http/json.js";
-
-const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
+import { SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE } from "./http/messages.js";
+import { decodeSchemaEitherStrict, decodeSchemaStrict } from "./schema-decode.js";
 
 function dependencyNotConfigured(dependency: string, context: string): Response {
   console.error("Service dependency is not configured.", { context, dependency });
@@ -43,24 +43,24 @@ async function buildRouteScorecardResponse(url: URL, env: StudioApiEnv): Promise
     return errorJson(404, "Route scorecard endpoint not found.");
   }
 
-  const month = IsoMonthSchema.safeParse(rawMonth);
-  if (!month.success) {
+  const month = decodeSchemaEitherStrict(IsoMonthSchema, rawMonth);
+  if (Result.isFailure(month)) {
     return errorJson(400, "Query parameter month must use YYYY-MM format.");
   }
 
-  let routeId: z.output<typeof RouteIdCodec>;
+  let routeId: RouteId;
   try {
-    routeId = z.decode(RouteIdCodec, decodeURIComponent(rawRouteId));
+    routeId = decodeSchemaStrict(RouteIdCodec, decodeURIComponent(rawRouteId));
   } catch {
     return errorJson(400, "Route ID is invalid.");
   }
 
-  const scorecard = await getRouteScorecard(createD1ServingDb(env.DB), routeId, month.data);
+  const scorecard = await getRouteScorecard(createD1ServingDb(env.DB), routeId, month.success);
   if (scorecard === null) {
     return errorJson(404, "Route scorecard was not found.");
   }
 
-  return json(RouteScorecardSchema.parse(scorecard));
+  return json(decodeSchemaStrict(RouteScorecardSchema, scorecard));
 }
 
 function parseLimit(url: URL, fallback: number, maximum: number): number | null {
@@ -83,8 +83,8 @@ function releaseStatusMonth(url: URL, env: StudioApiEnv): string | null {
     return null;
   }
 
-  const parsed = IsoMonthSchema.safeParse(month);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherStrict(IsoMonthSchema, month);
+  return Result.isSuccess(parsed) ? parsed.success : null;
 }
 
 function artifactApiPath(key: string): string {
@@ -266,7 +266,7 @@ async function buildReleaseStatusResponse(url: URL, env: StudioApiEnv): Promise<
     : null;
 
   return json(
-    ReleaseStatusResponseSchema.parse({
+    decodeSchemaStrict(ReleaseStatusResponseSchema, {
       schemaVersion: 1,
       generatedAt: batchStatus.generatedAt,
       baselineMonth: month,
@@ -385,7 +385,7 @@ async function buildRouteListResponse(url: URL, env: StudioApiEnv): Promise<Resp
   });
 
   return json(
-    RouteListResponseSchema.parse({
+    decodeSchemaStrict(RouteListResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       baselineMonth: month,
@@ -424,9 +424,9 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
     return errorJson(400, "Query parameter month or BASELINE_MONTH must use YYYY-MM format.");
   }
 
-  let routeId: z.output<typeof RouteIdCodec>;
+  let routeId: RouteId;
   try {
-    routeId = z.decode(RouteIdCodec, decodeURIComponent(rawRouteId));
+    routeId = decodeSchemaStrict(RouteIdCodec, decodeURIComponent(rawRouteId));
   } catch {
     return errorJson(400, "Route ID is invalid.");
   }
@@ -464,7 +464,7 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
   };
 
   return json(
-    RouteProfileResponseSchema.parse({
+    decodeSchemaStrict(RouteProfileResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       baselineMonth: month,
@@ -549,6 +549,13 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
   const manifest = (await object.json()) as {
     schemaVersion?: unknown;
     generatedAt?: unknown;
+    releaseProfile?: unknown;
+    buildStatus?: unknown;
+    verificationStatus?: unknown;
+    routeFacts?: unknown;
+    sources?: unknown;
+    layers?: unknown;
+    routeUniverse?: unknown;
     status?: unknown;
     artifactCount?: unknown;
     routeSegmentArtifactCount?: unknown;
@@ -560,17 +567,41 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
       artifactKey?: unknown;
       contentType?: unknown;
       byteLength?: unknown;
+      gzipByteLength?: unknown;
       sha256?: unknown;
       featureCount?: unknown;
+      coordinateCount?: unknown;
       routeId?: unknown;
     }>;
   };
 
   return json(
-    MapManifestResponseSchema.parse({
+    decodeSchemaStrict(MapManifestResponseSchema, {
       schemaVersion: 1,
       generatedAt: manifest.generatedAt,
       baselineMonth: month,
+      releaseProfile: manifest.releaseProfile ?? "demo",
+      buildStatus: manifest.buildStatus ?? "pass",
+      verificationStatus: manifest.verificationStatus ?? "not_run",
+      routeFacts: manifest.routeFacts ?? {
+        status: "unavailable",
+        reason: "Legacy map manifest does not declare a route-facts projection.",
+      },
+      sources: Array.isArray(manifest.sources) ? manifest.sources : [],
+      layers: Array.isArray(manifest.layers) ? manifest.layers : [],
+      routeUniverse:
+        typeof manifest.routeUniverse === "object" && manifest.routeUniverse !== null
+          ? manifest.routeUniverse
+          : {
+              includedRouteTypes: ["Local", "Limited", "SBS"],
+              excludedRouteTypes: ["Express", "School"],
+              expectedRouteIds: [],
+              geometryRouteIds: [],
+              routeSegmentRouteIds: (manifest.artifacts ?? []).flatMap((artifact) =>
+                typeof artifact.routeId === "string" ? [artifact.routeId] : [],
+              ),
+              routeFactRouteIds: [],
+            },
       status: manifest.status,
       artifactCount: manifest.artifactCount,
       routeSegmentArtifactCount: manifest.routeSegmentArtifactCount,
@@ -582,16 +613,28 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
         artifactKey: artifact.artifactKey,
         contentType: artifact.contentType,
         byteLength: artifact.byteLength,
+        gzipByteLength: artifact.gzipByteLength,
         sha256: artifact.sha256,
         featureCount: artifact.featureCount,
+        coordinateCount: artifact.coordinateCount,
         routeId: artifact.routeId,
         apiPath:
           typeof artifact.artifactKey === "string" ? artifactApiPath(artifact.artifactKey) : "",
       })),
       quality: {
         releaseLayer: "baseline_release",
-        completenessStatus: manifest.status === "pass" ? "complete" : "partial_public_monthly_only",
-        confidence: "high",
+        completenessStatus:
+          manifest.verificationStatus === "pass" &&
+          Array.isArray(manifest.layers) &&
+          manifest.layers.length > 0
+            ? "complete"
+            : "partial_public_monthly_only",
+        confidence:
+          manifest.verificationStatus === "pass" &&
+          Array.isArray(manifest.layers) &&
+          manifest.layers.length > 0
+            ? "high"
+            : "low",
         caveats: [
           "Map payloads are generated artifacts served from R2; the manifest only carries metadata and fetch paths.",
         ],
@@ -621,12 +664,22 @@ async function buildArtifactResponse(url: URL, env: StudioApiEnv): Promise<Respo
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   headers.set("etag", object.httpEtag);
-  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  headers.set(
+    "Cache-Control",
+    isContentAddressedArtifactKey(key)
+      ? "public, max-age=31536000, immutable"
+      : "public, max-age=300, stale-while-revalidate=3600",
+  );
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/octet-stream");
   }
 
   return new Response(object.body, { headers });
+}
+
+export function isContentAddressedArtifactKey(key: string): boolean {
+  const filename = key.split("/").at(-1) ?? "";
+  return /^.+\.[a-f0-9]{64}\.[^.]+$/.test(filename);
 }
 
 async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Response> {
@@ -680,7 +733,7 @@ async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Re
     .map((hotspot, index) => ({ ...hotspot, rank: index + 1 }));
 
   return json(
-    HotspotListResponseSchema.parse({
+    decodeSchemaStrict(HotspotListResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       baselineMonth: month,

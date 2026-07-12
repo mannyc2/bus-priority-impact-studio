@@ -8,6 +8,11 @@ type CompiledRoute = {
   spec: RouteSpec;
 };
 
+export type RouteMatch = {
+  spec: RouteSpec;
+  params: Readonly<Record<string, string>>;
+};
+
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -75,10 +80,30 @@ export function allowedApiMethodsForPath(pathname: string): readonly string[] {
 }
 
 export function findRouteSpec(method: string, pathname: string): RouteSpec | null {
+  return matchRouteSpec(method, pathname)?.spec ?? null;
+}
+
+function routeParams(path: string, pathname: string): Readonly<Record<string, string>> {
+  const pathParts = path.split("/");
+  const pathnameParts = pathname.split("/");
+  const params: Record<string, string> = {};
+  for (let index = 0; index < pathParts.length; index += 1) {
+    const part = pathParts[index];
+    if (part === undefined || !part.startsWith(":")) continue;
+    const wildcard = part.endsWith("*");
+    const name = part.slice(1, wildcard ? -1 : undefined);
+    params[name] = wildcard ? pathnameParts.slice(index).join("/") : (pathnameParts[index] ?? "");
+  }
+  return params;
+}
+
+export function matchRouteSpec(method: string, pathname: string): RouteMatch | null {
   const normalizedMethod = method.toUpperCase();
   const match = apiRoutes.find(
     (route) => route.method === normalizedMethod && route.regex.test(pathname),
   );
 
-  return match?.spec ?? null;
+  return match === undefined
+    ? null
+    : { spec: match.spec, params: routeParams(match.path, pathname) };
 }

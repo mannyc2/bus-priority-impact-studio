@@ -1,8 +1,9 @@
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   defaultRouteLionLinkBufferMeters,
   runBuildRouteLionLink,
 } from "@bp/pipeline-v2/local-db-aggregates";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import {
   makeBuildLocalDbCommandLayer,
   runBuildRouteLionLinkCommand,
@@ -20,21 +21,23 @@ export default defineCommand({
   path: ["build", "route-lion-link"],
   summary: "Compute the route shape ⇄ LION corridor lookup via buffered intersection.",
   input: {
-    options: dbOptions.extend({
-      bufferM: arg
-        .positiveInt()
-        .default(defaultRouteLionLinkBufferMeters)
-        .describe("Buffer width in meters"),
-      route: z
-        .string()
-        .optional()
-        .describe("Comma-separated route_id allowlist (defaults to all routes)"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        bufferM: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultRouteLionLinkBufferMeters)))
+          .annotate({ description: "Buffer width in meters" }),
+        route: Schema.optionalKey(Schema.String).annotate({
+          description: "Comma-separated route_id allowlist (defaults to all routes)",
+        }),
+      },
     }),
   },
-  output: z.object({
-    routesProcessed: z.number(),
-    totalLinks: z.number(),
-    bufferMeters: z.number(),
+  output: Schema.Struct({
+    routesProcessed: Schema.Number,
+    totalLinks: Schema.Number,
+    bufferMeters: Schema.Number,
   }),
   async run({ input }) {
     const routeIds = input.options.route

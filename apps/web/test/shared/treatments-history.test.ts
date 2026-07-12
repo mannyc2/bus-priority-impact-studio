@@ -1,13 +1,25 @@
 import { describe, expect, test } from "bun:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
+  comparisonCardsSubLine,
   interventionComparisonCards,
   mergedTreatmentTimelineRows,
+  treatmentFamilyOfText,
+  TreatmentsHistorySection,
+  timelineDisplayRows,
+  timelineYearLabel,
   treatmentHistoryInsightRows,
   treatmentSourceRows,
 } from "../../src/components/route/TreatmentsHistorySection";
+import { citationEntries } from "../../src/components/SourceNote";
+import { studyFixture } from "./study-fixture";
 import type {
   StudioIntervention,
+  StudioInterventionCorpusRecord,
+  StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
+  StudioRouteEvidenceTimelineEvent,
   StudioRouteInsight,
 } from "../../src/studio/api-contract";
 
@@ -25,30 +37,231 @@ function insight(input: Partial<StudioRouteInsight> = {}): StudioRouteInsight {
   return { ...fixture, ...input, routeId: input.routeId ?? fixture.routeId };
 }
 
+const servingInterventions = [
+  {
+    year: "2025-01",
+    title: "ACE enforcement begins",
+    detail: "Peer-adjusted speed change +0.41 mph using 12 comparison routes.",
+    sourceLabel: "ACE",
+    sourceDetail: "Structured intervention source",
+    comparisonCohort: {
+      method: "peer_adjusted_before_after",
+      causalInterpretation: "comparison_adjusted_not_causal_proof",
+      methodLimitations: ["not_randomized_or_quasi_experimental"],
+      routeIds: ["M14A", "M14D"],
+      routeCount: 12,
+      preWindow: { from: "2024-07", to: "2024-12", sampleMonths: 6 },
+      postWindow: { from: "2025-02", to: "2025-07", sampleMonths: 6 },
+      routeSpeedDeltaMph: 0.55,
+      comparisonSpeedDeltaMph: 0.14,
+      adjustedSpeedDeltaMph: 0.41,
+      caveat: "Comparison-adjusted, not causal proof.",
+    },
+  },
+  {
+    year: "2024-06",
+    title: "Bus lane repainted",
+    detail: "Curbside lane refreshed.",
+    sourceLabel: "NYC DOT",
+  },
+  {
+    year: "2023-05",
+    title: "TSP pilot",
+    detail: "Signal priority pilot began.",
+  },
+] satisfies StudioIntervention[];
+
+function wikiEvent(
+  input: Partial<StudioRouteEvidenceTimelineEvent> & { recordId: string },
+): StudioRouteEvidenceTimelineEvent {
+  return {
+    recordKind: "event",
+    citationKeys: ["c2"],
+    eventKind: "bus_lane_change",
+    eventFamily: "treatment",
+    lifecyclePhase: "implemented",
+    title: `Event ${input.recordId}`,
+    description: "Wiki-derived route evidence.",
+    dateText: null,
+    dateNormalized: null,
+    datePrecision: null,
+    ...input,
+  };
+}
+
+function evidenceBundle(timeline: StudioRouteEvidenceTimelineEvent[]): StudioRouteEvidenceBundle {
+  return {
+    routeId: "M15+",
+    routeSlug: "m15-sbs",
+    wikiRouteRecordId: "route_m15",
+    wikiRouteIds: ["M15+"],
+    wikiAliases: ["M15 SBS"],
+    coverage: {
+      timelineCount: timeline.length,
+      interventionCount: 3,
+      metricClaimCount: 0,
+      projectCount: 2,
+      sourceGapCount: 0,
+      citationCount: 2,
+    },
+    timeline,
+    interventions: [
+      {
+        recordId: "int_1",
+        recordKind: "intervention",
+        citationKeys: ["c1", "c1"],
+        treatmentKind: "bus_lane",
+        treatmentFamily: "lanes",
+        title: "Offset bus lane",
+        description: "Offset lane on First Avenue.",
+        locations: [],
+        projectRecordIds: [],
+      },
+      {
+        recordId: "int_2",
+        recordKind: "intervention",
+        citationKeys: ["c2"],
+        treatmentKind: "camera_enforcement",
+        treatmentFamily: null,
+        title: "ABLE cameras",
+        description: null,
+        locations: ["First Ave"],
+        projectRecordIds: [],
+      },
+      {
+        recordId: "int_3",
+        recordKind: "intervention",
+        citationKeys: [],
+        treatmentKind: null,
+        treatmentFamily: null,
+        title: null,
+        description: null,
+        locations: [],
+        projectRecordIds: [],
+      },
+    ],
+    metricClaims: [],
+    projects: [
+      {
+        recordId: "proj_1",
+        recordKind: "project",
+        citationKeys: ["c1"],
+        projectName: "First Avenue busway",
+        projectFamily: null,
+        projectType: "busway",
+        status: "planned",
+        description: "Busway study.",
+        location: null,
+        routesServed: ["M15+"],
+      },
+      {
+        recordId: "proj_2",
+        recordKind: "project",
+        citationKeys: ["c2"],
+        projectName: null,
+        projectFamily: null,
+        projectType: null,
+        status: null,
+        description: null,
+        location: "Second Avenue",
+        routesServed: [],
+      },
+    ],
+    sourceGaps: [],
+    citations: [
+      {
+        key: "c1",
+        sourceId: "mta-board",
+        blockId: "b1",
+        evidenceId: "mta-board#b1",
+        sourcePath: "raw/mta-board.jsonl",
+        sourceTitle: "MTA Board Report",
+        publisher: "MTA",
+        publishedDate: "2024",
+        sourceUrl: "https://example.com/board",
+      },
+      {
+        key: "c2",
+        sourceId: "dot-release",
+        blockId: "b2",
+        evidenceId: "dot-release#b2",
+        sourcePath: "raw/dot-release.jsonl",
+        sourceTitle: "DOT Press Release",
+      },
+    ],
+  };
+}
+
+const largeTimeline: StudioRouteEvidenceTimelineEvent[] = [
+  wikiEvent({
+    recordId: "ev_2024",
+    dateNormalized: "2024-03",
+    dateText: "2024-03",
+    citationKeys: ["c1", "c1"],
+  }),
+  ...["2022", "2021", "2020", "2019", "2018", "2017", "2016"].map((year) =>
+    wikiEvent({ recordId: `ev_${year}`, dateNormalized: `${year}-01`, dateText: `${year}-01` }),
+  ),
+  wikiEvent({ recordId: "ev_nodate_a" }),
+  wikiEvent({ recordId: "ev_nodate_b" }),
+];
+
+const routeDetail = {
+  schemaVersion: 3,
+  generatedAt: "2026-07-01T00:00:00.000Z",
+  baselineMonth: "2026-03",
+  route: {
+    slug: "m15-sbs",
+    routeId: "M15+",
+    label: "M15 SBS",
+    corridor: "First / Second",
+    corridorFull: "First Avenue / Second Avenue",
+    borough: "Manhattan",
+    sbs: true,
+    speedMph: 7.2,
+    scheduledMph: 8.4,
+    weightedAvgSpeed: 7.2,
+    speedPercentile: 12,
+    dailyRiders: 30000,
+    ridersYoyPct: 2.1,
+    riderHoursLost: 6200,
+    laneCoverage: 65,
+    aceStatus: "active",
+    aceSince: "2024",
+    tspCoverage: "none",
+    reliability: "High attention route",
+    observedReliability: null,
+    diagnosis: "M15 SBS has slow segments and active treatment evidence.",
+    spark: [7.2, 7.4, 7.1],
+    termini: { north: "East Harlem", south: "South Ferry" },
+    miles: 8.1,
+    stops: 42,
+    flags: ["ACE active"],
+    peerSlug: null,
+    interventions: servingInterventions,
+    movement6mPct: null,
+    context12mPct: null,
+  },
+  segments: [],
+  artifactRefs: [],
+  insights: [],
+  peakWindows: [],
+  slowestWindows: [],
+  reliabilitySamples: [],
+  capability: null,
+  dossier: null,
+  equityContext: null,
+  quality: {
+    releaseLayer: "baseline_release",
+    completenessStatus: "partial_public_monthly_only",
+    confidence: "medium",
+    caveats: [],
+  },
+} satisfies StudioRouteDetailResponse;
+
 describe("treatments history helpers", () => {
   test("turns promoted intervention comparisons into public cards", () => {
-    const cards = interventionComparisonCards([
-      {
-        year: "2025-01",
-        title: "ACE enforcement begins",
-        detail: "Peer-adjusted speed change +0.41 mph using 12 comparison routes.",
-        sourceLabel: "ACE",
-        sourceDetail: "Structured intervention source",
-        comparisonCohort: {
-          method: "peer_adjusted_before_after",
-          causalInterpretation: "comparison_adjusted_not_causal_proof",
-          methodLimitations: ["not_randomized_or_quasi_experimental"],
-          routeIds: ["M14A", "M14D"],
-          routeCount: 12,
-          preWindow: { from: "2024-07", to: "2024-12", sampleMonths: 6 },
-          postWindow: { from: "2025-02", to: "2025-07", sampleMonths: 6 },
-          routeSpeedDeltaMph: 0.55,
-          comparisonSpeedDeltaMph: 0.14,
-          adjustedSpeedDeltaMph: 0.41,
-          caveat: "Comparison-adjusted, not causal proof.",
-        },
-      },
-    ] satisfies StudioIntervention[]);
+    const cards = interventionComparisonCards(servingInterventions);
 
     expect(cards).toEqual([
       {
@@ -58,7 +271,7 @@ describe("treatments history helpers", () => {
         routeDeltaLabel: "+0.55 mph",
         adjustedDeltaLabel: "+0.41 mph",
         comparisonLabel: "12 routes",
-        windowLabel: "2024-07 to 2024-12 -> 2025-02 to 2025-07",
+        windowLabel: "2024-07 to 2024-12 → 2025-02 to 2025-07",
         caveat: "Comparison-adjusted, not causal proof.",
       },
     ]);
@@ -134,58 +347,179 @@ describe("treatments history helpers", () => {
           sourceLabel: "Serving",
         },
       ],
-      {
-        routeId: "M14A",
-        routeSlug: "m14a-sbs",
-        wikiRouteRecordId: "route_m14a",
-        wikiRouteIds: ["M14A"],
-        wikiAliases: ["M14A SBS"],
-        coverage: {
-          timelineCount: 1,
-          interventionCount: 0,
-          metricClaimCount: 0,
-          projectCount: 0,
-          sourceGapCount: 0,
-          citationCount: 1,
-        },
-        timeline: [
-          {
-            recordId: "event_bus_lane_begins",
-            recordKind: "event",
-            citationKeys: ["source#block"],
-            eventKind: "serving_intervention",
-            eventFamily: "treatment",
-            lifecyclePhase: "implemented",
-            title: "Bus lane begins",
-            description: "Wiki detail.",
-            dateText: "2025-01",
-            dateNormalized: "2025-01",
-            datePrecision: "month",
-          },
-        ],
-        interventions: [],
-        metricClaims: [],
-        projects: [],
-        sourceGaps: [],
-        citations: [
-          {
-            key: "source#block",
-            sourceId: "source",
-            blockId: "block",
-            evidenceId: "source#block",
-            sourcePath: "raw/source.jsonl",
-          },
-        ],
-      } satisfies StudioRouteEvidenceBundle,
+      evidenceBundle([
+        wikiEvent({
+          recordId: "event_bus_lane_begins",
+          eventKind: "serving_intervention",
+          title: "Bus lane begins",
+          description: "Wiki detail.",
+          dateText: "2025-01",
+          dateNormalized: "2025-01",
+          datePrecision: "month",
+          citationKeys: ["c2"],
+        }),
+      ]),
     );
 
-    expect(rows).toHaveLength(1);
     expect(rows[0]).toEqual(
       expect.objectContaining({
         source: "wiki",
         detail: "Wiki detail.",
-        citationKeys: ["source#block"],
+        citationKeys: ["c2"],
       }),
     );
+  });
+
+  test("timelineYearLabel never leaks a truncated year", () => {
+    expect(timelineYearLabel("2024-03-01")).toBe("2024");
+    expect(timelineYearLabel("undated")).toBe("Undated");
+    expect(timelineYearLabel("circa 2019")).toBe("2019");
+  });
+
+  test("duplicate citation keys resolve to a single deduped source entry", () => {
+    const bundle = evidenceBundle(largeTimeline);
+    const entries = citationEntries(bundle, ["c1", "c1"]);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.label).toContain("MTA Board Report");
+  });
+});
+
+describe("TreatmentsHistorySection render", () => {
+  const bundle = evidenceBundle(largeTimeline);
+  const markup = renderToStaticMarkup(
+    createElement(TreatmentsHistorySection, { data: routeDetail, evidence: bundle }),
+  );
+
+  test("bounds the timeline to 10 rows with a show-all toggle", () => {
+    const rows = timelineDisplayRows(mergedTreatmentTimelineRows(servingInterventions, bundle));
+    expect(rows.length).toBeGreaterThanOrEqual(12);
+    const eleventh = rows[10];
+    expect(eleventh).toBeDefined();
+    if (eleventh) expect(markup).not.toContain(eleventh.title);
+    expect(markup).toContain(`Show all ${rows.length} records`);
+  });
+
+  test("groups the timeline by year with dated groups first", () => {
+    expect(markup).toContain("2024");
+    expect(markup).toContain("2018");
+  });
+
+  test("renders undated rows as Undated, never unda, when visible", () => {
+    const short = renderToStaticMarkup(
+      createElement(TreatmentsHistorySection, {
+        data: routeDetail,
+        evidence: evidenceBundle([
+          wikiEvent({ recordId: "ev_2024", dateNormalized: "2024-03", dateText: "2024-03" }),
+          wikiEvent({ recordId: "ev_nodate_a" }),
+        ]),
+      }),
+    );
+    expect(short).toContain("Undated");
+    expect(short).not.toContain("unda");
+    expect(short.indexOf("Undated")).toBeGreaterThan(short.indexOf("2024"));
+  });
+
+  test("meta-metrics and old headers are gone", () => {
+    for (const phrase of [
+      "unda",
+      "Families",
+      "with source labels",
+      "Document refs",
+      "Dated history",
+      "Use before reading speed",
+      "Wiki treatments",
+      "In the record",
+      "·",
+    ]) {
+      expect(markup).not.toContain(phrase);
+    }
+  });
+
+  test("evaluations keep real deltas and use an arrow window label", () => {
+    expect(markup).toContain("+0.41 mph");
+    expect(markup).toContain("+0.55 mph");
+    expect(markup).toContain("→");
+    expect(markup).not.toContain("-&gt;");
+  });
+
+  test("documented treatments render as rows with source notes", () => {
+    expect(markup).toContain("Documented treatments");
+    expect(markup).toContain("Offset bus lane");
+    expect(markup).toContain("First Avenue busway");
+    expect(markup).toContain("Sources (");
+  });
+});
+
+describe("study integration", () => {
+  const studiedEvent: StudioIntervention = {
+    ...servingInterventions[0]!,
+    eventId: "ace:B41:ACE:2024-09-16",
+  };
+  const rollup = {
+    artifactKind: "bp.studio.route_studies.v1",
+    schemaVersion: 1,
+    analysisMonth: "2026-03",
+    routeId: "B41",
+    routeSlug: "b41",
+    studies: [studyFixture()],
+  } as const;
+
+  test("comparison cards join studies by registry event id, never by title", () => {
+    const cards = interventionComparisonCards([studiedEvent, ...servingInterventions], rollup);
+    expect(cards[0]?.study?.eventKey).toBe("study-event-abc");
+    // The same title without an eventId stays unstudied.
+    expect(cards[1]?.study).toBeUndefined();
+    expect(comparisonCardsSubLine(cards)).toBe("2 evaluations, 1 with matched-segment study.");
+    expect(comparisonCardsSubLine(interventionComparisonCards(servingInterventions))).toBe(
+      "1 promoted comparison windows.",
+    );
+    expect(comparisonCardsSubLine([])).toBe("Comparison windows promoted by the pipeline.");
+  });
+
+  const corpusRecord = (over: Partial<StudioInterventionCorpusRecord>) =>
+    ({
+      recordId: "corpus-1",
+      routes: ["M15"],
+      primaryTreatments: ["bus_lane"],
+      customTreatments: [],
+      title: "First Avenue — Bus Lane",
+      effectiveDate: "2024-06-11",
+      datePrecision: "day",
+      recordKind: "implemented",
+      statusLatest: "complete",
+      corridorStreets: ["First Avenue"],
+      evaluableInWindow: true,
+      sourceId: "source-1",
+      sourceLabel: "DOT press release",
+      sourceUrl: "https://example.test/lane",
+      caveatCount: 0,
+      matchedRegistryEventIds: [],
+      ...over,
+    }) as StudioInterventionCorpusRecord;
+
+  test("corpus rows dedupe against existing rows by year + treatment family", () => {
+    // servingInterventions[1] is "Bus lane repainted" in 2024-06.
+    const merged = mergedTreatmentTimelineRows(servingInterventions, null, [
+      corpusRecord({}),
+      corpusRecord({ recordId: "corpus-2", title: "Broadway — Busway", primaryTreatments: ["busway"], effectiveDate: "2021-10", datePrecision: "month" }),
+      corpusRecord({ recordId: "corpus-3", effectiveDate: null }),
+    ]);
+    const baseline = mergedTreatmentTimelineRows(servingInterventions, null);
+    // The bus-lane record merged into the existing 2024 serving row.
+    expect(merged.length).toBe(baseline.length + 1);
+    const lane = merged.find((row) => row.title === "Bus lane repainted");
+    expect(lane?.sourceEntries?.[0]?.label).toBe("DOT press release");
+    // The busway record is new, with month-precision date label.
+    const busway = merged.find((row) => row.key === "corpus:corpus-2");
+    expect(busway?.dateLabel).toBe("2021-10");
+    expect(busway?.kind).toBe("busway");
+    // Undated corpus records stay off the timeline.
+    expect(merged.find((row) => row.key === "corpus:corpus-3")).toBeUndefined();
+  });
+
+  test("treatment family inference is keyword-based and null when unknown", () => {
+    expect(treatmentFamilyOfText("serving_intervention Bus lane repainted")).toBe("bus_lane");
+    expect(treatmentFamilyOfText("ACE enforcement begins")).toBe("automated_bus_lane_enforcement");
+    expect(treatmentFamilyOfText("Ridership dashboard")).toBeNull();
   });
 });

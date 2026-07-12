@@ -6,7 +6,8 @@
  * tasks in flight at once.
  */
 import { spawn } from "node:child_process";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { fromRepoRoot } from "../../lib/paths.ts";
 
 type Task = { source: string; year: number; month: number; label: string };
@@ -163,27 +164,27 @@ export default defineCommand({
   path: ["backfill", "socrata-range"],
   summary: "Backfill Socrata corpus sources across (source × month) pairs in parallel.",
   input: {
-    options: z.object({
-      since: z
-        .string()
-        .regex(/^\d{4}-\d{1,2}$/)
-        .describe("Start month, YYYY-MM"),
-      until: z
-        .string()
-        .regex(/^\d{4}-\d{1,2}$/)
-        .describe("End month, YYYY-MM"),
-      sources: z
-        .array(z.string())
-        .default([])
-        .describe("Source names (default: nypd-collisions, ace-violations)"),
-      concurrency: arg.positiveInt().default(3).describe("Concurrent ingest workers"),
+    options: Schema.Struct({
+      since: Schema.String.check(Schema.isPattern(/^\d{4}-\d{1,2}$/)).annotate({
+        description: "Start month, YYYY-MM",
+      }),
+      until: Schema.String.check(Schema.isPattern(/^\d{4}-\d{1,2}$/)).annotate({
+        description: "End month, YYYY-MM",
+      }),
+      sources: Schema.Array(Schema.String)
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+        .annotate({ description: "Source names (default: nypd-collisions, ace-violations)" }),
+      concurrency: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+        .annotate({ description: "Concurrent ingest workers" }),
     }),
   },
-  output: z.object({
-    taskCount: z.number(),
-    okCount: z.number(),
-    errorCount: z.number(),
-    results: z.array(z.unknown()),
+  output: Schema.Struct({
+    taskCount: Schema.Number,
+    okCount: Schema.Number,
+    errorCount: Schema.Number,
+    results: Schema.Array(Schema.Unknown),
   }),
   async run({ input }) {
     const since = parseMonthArg(input.options.since, "since");
@@ -193,7 +194,7 @@ export default defineCommand({
       sinceMonth: since.month,
       untilYear: until.year,
       untilMonth: until.month,
-      sources: input.options.sources.length === 0 ? undefined : input.options.sources,
+      sources: input.options.sources.length === 0 ? undefined : [...input.options.sources],
       concurrency: input.options.concurrency,
     });
   },

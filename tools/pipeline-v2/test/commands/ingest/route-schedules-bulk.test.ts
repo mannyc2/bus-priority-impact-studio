@@ -51,7 +51,7 @@ describe("runRouteSchedulesBulkIngest", () => {
       new URL("../../../src/commands/ingest/route-schedules-bulk.ts", import.meta.url),
     ).text();
 
-    expect(source).toContain("runLocalDbCommandBoundary({");
+    expect(source).toContain("defineIngestCommand({");
     expect(source).toContain("runRouteSchedulesBulkIngest({");
     expect(source).toContain('import type { Database } from "bun:sqlite"');
     expect(source).not.toContain("Database as BunDatabase");

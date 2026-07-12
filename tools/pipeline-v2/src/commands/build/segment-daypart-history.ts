@@ -2,8 +2,9 @@ import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
 import { segmentDaypartHistoryArtifactPath } from "@bp/analytics/artifacts";
 import { buildSegmentDaypartHistoryArtifact } from "@bp/analytics/feature-history";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { loadSegmentDaypartHistoryLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -22,22 +23,25 @@ export default defineCommand({
   path: ["build", "segment-daypart-history"],
   summary: "Build compact segment/daypart speed-history feature artifact.",
   input: {
-    options: dbOptions.extend({
-      startYear: arg.positiveInt().default(2023),
-      startMonth: arg.positiveInt().default(4),
-      endYear: arg.positiveInt().default(2026),
-      endMonth: arg.positiveInt().default(3),
-      artifactRoot: z.string().optional(),
-      output: z.string().optional(),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        startYear: arg.positiveInt().pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2023))),
+        startMonth: arg.positiveInt().pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(4))),
+        endYear: arg.positiveInt().pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026))),
+        endMonth: arg.positiveInt().pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3))),
+        artifactRoot: Schema.optionalKey(Schema.String),
+        output: Schema.optionalKey(Schema.String),
+      },
     }),
   },
-  output: z.object({
-    startMonth: z.string(),
-    endMonth: z.string(),
-    outputPath: z.string(),
-    featureCount: z.number().int().nonnegative(),
-    routeCount: z.number().int().nonnegative(),
-    monthCount: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    startMonth: Schema.String,
+    endMonth: Schema.String,
+    outputPath: Schema.String,
+    featureCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    monthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   }),
   async run({ input }) {
     const startMonth = isoMonth(input.options.startYear, input.options.startMonth);

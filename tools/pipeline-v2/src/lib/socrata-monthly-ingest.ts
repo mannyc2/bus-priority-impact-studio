@@ -33,6 +33,17 @@ export type SocrataMonthlyIngestConfig<Row, Extra extends Record<string, unknown
   readonly rawDir: string;
   readonly rawFilePrefix: string;
   readonly queryGrain: string;
+  readonly pageSize?: number | undefined;
+  snapshotExtra?(input: {
+    readonly year: number;
+    readonly month: number;
+    readonly isoMonth: string;
+  }): Record<string, unknown>;
+  snapshotQuery?(input: {
+    readonly year: number;
+    readonly month: number;
+    readonly isoMonth: string;
+  }): unknown;
   query(input: {
     readonly year: number;
     readonly month: number;
@@ -81,6 +92,7 @@ export function defineSocrataMonthlyIngest<Row, Extra extends Record<string, unk
     const rawRows = [
       ...(await fetchSoda3RowsForSource(source, query, {
         fetcher: inputs.fetcher,
+        pageSize: config.pageSize,
       })),
     ];
     const rows = [
@@ -100,9 +112,20 @@ export function defineSocrataMonthlyIngest<Row, Extra extends Record<string, unk
     await writeRawSourceSnapshot({
       path: rawPath,
       sourceId,
-      extra: { isoMonth: monthKey },
+      extra: {
+        isoMonth: monthKey,
+        ...(config.snapshotExtra?.({
+          year: inputs.year,
+          month: inputs.month,
+          isoMonth: monthKey,
+        }) ?? {}),
+      },
       fetchedAt,
-      query: { grain: config.queryGrain, month: monthKey },
+      query: config.snapshotQuery?.({
+        year: inputs.year,
+        month: inputs.month,
+        isoMonth: monthKey,
+      }) ?? { grain: config.queryGrain, month: monthKey },
       rows: rawRows,
     });
 

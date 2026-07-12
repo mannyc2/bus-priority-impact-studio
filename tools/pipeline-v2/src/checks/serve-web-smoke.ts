@@ -3,6 +3,7 @@ import type { StudioRoutesResponse } from "@bp/domain/studio/routes";
 
 const distRoot = "apps/web/dist/client";
 const artifactRoot = "data/artifacts/studio/v1";
+const publicArtifactRoot = "data/artifacts";
 const port = Number.parseInt(envVar("BP_WEB_SMOKE_PORT") ?? "4173", 10);
 const hostname = envVar("BP_WEB_SMOKE_HOST") ?? "127.0.0.1";
 
@@ -16,6 +17,10 @@ const server = Bun.serve({
 
     if (url.pathname.startsWith("/api/v1/studio/")) {
       return studioApiResponse(url);
+    }
+
+    if (url.pathname.startsWith("/api/v1/artifacts/")) {
+      return publicArtifactResponse(url);
     }
 
     return staticResponse(url);
@@ -40,6 +45,33 @@ async function studioApiResponse(url: URL): Promise<Response> {
       "Cache-Control": "public, max-age=60, stale-while-revalidate=86400",
       "Content-Type": "application/json; charset=utf-8",
       "X-Studio-Release": "studio/v1",
+    },
+  });
+}
+
+async function publicArtifactResponse(url: URL): Promise<Response> {
+  const encodedKey = url.pathname.slice("/api/v1/artifacts/".length);
+  let parts: string[];
+  try {
+    parts = encodedKey.split("/").map((part) => decodeURIComponent(part));
+  } catch {
+    return json({ error: { message: "Artifact key was malformed." } }, 400);
+  }
+  if (
+    parts.length === 0 ||
+    parts.some((part) => part.length === 0 || part === "." || part === ".." || part.includes("\\"))
+  ) {
+    return json({ error: { message: "Artifact key was invalid." } }, 400);
+  }
+
+  const file = Bun.file(join(publicArtifactRoot, ...parts));
+  if (!(await file.exists())) {
+    return json({ error: { message: "Public artifact was not found." } }, 404);
+  }
+  return new Response(file, {
+    headers: {
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=86400",
+      "Content-Type": contentType(parts.at(-1) ?? ""),
     },
   });
 }

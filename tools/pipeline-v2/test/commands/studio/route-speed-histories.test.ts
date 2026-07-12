@@ -183,6 +183,7 @@ describe("studio route speed histories manifest", () => {
       });
       const historyPath = routeSpeedHistoryArtifactPath({ artifactRoot, routeSlug: "b41" });
       const history = (await Bun.file(historyPath).json()) as RouteSpeedHistoryArtifact;
+      expect(history.spineReadiness).toBe("series_ready");
       expect(history.summary).toMatchObject({
         cellCount: 4,
         expectedCellCount: 4,

@@ -1,9 +1,9 @@
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type BuildRouteShapeGeometryIndexResult,
   runBuildRouteShapeGeometryIndexFromShapes,
 } from "@bp/pipeline-v2/local-db-aggregates";
 import { normalizeRouteShapeRows } from "@bp/sources/adapters/mta/routes-stops";
-import { defineCommand, z } from "@liche/core";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
@@ -37,17 +37,19 @@ export default defineCommand({
   path: ["build", "route-shape-geometry-index"],
   summary: "Build local_route_shape_geom from the current_bus_routes snapshot.",
   input: {
-    options: dbOptions.extend({
-      snapshot: z
-        .string()
-        .optional()
-        .describe(`Snapshot path (defaults to data/raw/network/current_bus_routes.json)`),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        snapshot: Schema.optionalKey(Schema.String).annotate({
+          description: `Snapshot path (defaults to data/raw/network/current_bus_routes.json)`,
+        }),
+      },
     }),
   },
-  output: z.object({
-    shapesRead: z.number(),
-    inserted: z.number(),
-    skipped: z.number(),
+  output: Schema.Struct({
+    shapesRead: Schema.Number,
+    inserted: Schema.Number,
+    skipped: Schema.Number,
   }),
   async run({ input }) {
     const snapshot = input.options.snapshot;

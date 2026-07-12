@@ -19,10 +19,10 @@ export type PublicStudioRoute = {
 
 export const PUBLIC_STUDIO_ROUTES: readonly PublicStudioRoute[] = [
   { path: "/", label: "Routes", expectedTitleText: "Bus Priority Impact Studio" },
+  { path: "/routes", label: "All routes", expectedTitleText: "Routes" },
   { path: "/routes/m15-sbs", label: "Route detail", expectedTitleText: "M15" },
   { path: "/map", label: "Map", expectedTitleText: "Network Map" },
   { path: "/interventions", label: "Interventions", expectedTitleText: "Interventions" },
-  { path: "/methods", label: "Methods", expectedTitleText: "Methods" },
 ] as const;
 
 export function getStudioSeoMetadata(input: URL | string): StudioSeoMetadata | null {
@@ -56,10 +56,10 @@ export function getStudioSeoMetadata(input: URL | string): StudioSeoMetadata | n
     );
   }
 
-  if (pathname === "/methods") {
+  if (pathname === "/routes") {
     return metadata(
-      "Methods",
-      "Read how Bus Priority Impact Studio assembles route speeds, treatment records, coverage caveats, and serving projections.",
+      "Routes",
+      "Browse every NYC bus route in the index — grouped by borough, sorted by daily riders, filterable by route, corridor, or borough.",
       pathname,
     );
   }

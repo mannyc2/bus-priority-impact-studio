@@ -3,7 +3,8 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { buildD1AppendixSeedSql, buildD1SeedSql } from "@bp/db/d1/seed";
 import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { type CloudflareCostSummary, estimateD1PaidCost } from "../../lib/cloudflare-costs.ts";
 import { isoMonth } from "../../lib/dates.ts";
@@ -391,36 +392,44 @@ export default defineCommand({
   path: ["export", "d1"],
   summary: "Export D1 schema and seed SQL for a given month.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      mode: z
-        .enum(["canonical", "appendix"])
-        .default("canonical")
-        .describe("Canonical full export or observed-reliability appendix"),
-      exportRoot: z.string().optional().describe("Override export root directory"),
-      artifactRoot: z.string().optional().describe("Override generated artifact root directory"),
-      routeTimelineProjectionPath: z
-        .string()
-        .optional()
-        .describe("Optional route timeline serving projection JSON to fold into D1 seed output"),
-      detectorReadinessManifestPath: z
-        .string()
-        .optional()
-        .describe(
-          "Optional detector readiness serving manifest JSON to fold into D1 route artifact refs",
-        ),
-      routeEvidenceIndexPath: z
-        .string()
-        .optional()
-        .describe(
-          "Optional MTA-wiki route evidence index JSON to fold into D1 route artifact refs",
-        ),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        mode: Schema.Literals(["canonical", "appendix"])
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("canonical")))
+          .annotate({ description: "Canonical full export or observed-reliability appendix" }),
+        exportRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override export root directory",
+        }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override generated artifact root directory",
+        }),
+        routeTimelineProjectionPath: Schema.optionalKey(Schema.String).annotate({
+          description:
+            "Optional route timeline serving projection JSON to fold into D1 seed output",
+        }),
+        detectorReadinessManifestPath: Schema.optionalKey(Schema.String).annotate({
+          description:
+            "Optional detector readiness serving manifest JSON to fold into D1 route artifact refs",
+        }),
+        routeEvidenceIndexPath: Schema.optionalKey(Schema.String).annotate({
+          description:
+            "Optional MTA-wiki route evidence index JSON to fold into D1 route artifact refs",
+        }),
+      },
     }),
   },
-  output: z.union([
-    z.object({ mode: z.literal("appendix") }).passthrough(),
-    z.object({ schemaPath: z.string() }).passthrough(),
+  output: Schema.Union([
+    Schema.Struct({ mode: Schema.Literal("appendix") }),
+    Schema.Struct({ schemaPath: Schema.String }),
   ]),
   async run({ input }) {
     const exportRoot =

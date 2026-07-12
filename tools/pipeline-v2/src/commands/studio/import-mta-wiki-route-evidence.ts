@@ -19,7 +19,8 @@ import {
   studioRouteEvidenceBundleKey,
 } from "@bp/domain/studio/route-evidence";
 import { type StudioRoute, StudioRoutesResponseSchema } from "@bp/domain/studio/routes";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { readJsonArtifact, writeJson } from "../../lib/json.ts";
 import {
   busRouteKeysFromText,
@@ -34,6 +35,7 @@ import {
   normalizeBusRouteKey,
 } from "../../lib/mta-wiki-canonical.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 
 const defaultRoutesPath = fromRepoRoot("data/artifacts/studio/v1/routes.json");
 const defaultOutputPath = fromRepoRoot("data/artifacts/studio/v2/wiki/route-evidence.json");
@@ -344,7 +346,7 @@ function addCitationForRef(input: {
   const pageNumber = typeof pageNumberValue === "number" ? pageNumberValue : undefined;
   const sourcePath = textValue(input.ref.source_path) ?? `raw/sources/${sourceId}/blocks.jsonl`;
   const sourcePayload = source?.payload;
-  const citation = StudioRouteEvidenceCitationSchema.parse({
+  const citation = decodeSchemaStrict(StudioRouteEvidenceCitationSchema, {
     key,
     sourceId,
     blockId,
@@ -642,7 +644,7 @@ export async function writeStudioRouteEvidenceServingArtifacts(input: {
     });
   }
 
-  const index = StudioRouteEvidenceIndexSchema.parse({
+  const index = decodeSchemaStrict(StudioRouteEvidenceIndexSchema, {
     artifactKind: "bp.studio.route_evidence_index.v1",
     schemaVersion: 1,
     generatedAt: input.artifact.generatedAt,
@@ -756,7 +758,7 @@ export function buildStudioRouteEvidenceArtifact(input: {
 
   const routes = works.map((work) => materializeBundle({ work, sources: sourceIndex, relations }));
   const citationCount = routes.reduce((sum, route) => sum + route.citations.length, 0);
-  return StudioRouteEvidenceArtifactSchema.parse({
+  return decodeSchemaStrict(StudioRouteEvidenceArtifactSchema, {
     artifactKind: "bp.studio.route_evidence.v1",
     schemaVersion: 1,
     generatedAt: input.generatedAt,
@@ -821,38 +823,48 @@ export async function runStudioImportMtaWikiRouteEvidence(
   return artifact;
 }
 
-const optionsSchema = z.object({
-  mtaWikiRoot: z.string().optional().describe("Path to the mta-wiki repo root."),
-  wikiRelease: z
-    .string()
-    .optional()
-    .describe("MTA-wiki release id under data/exports/releases/<id>."),
-  routesPath: z.string().optional().describe("Studio routes.json path."),
-  output: z.string().optional().describe("Output route evidence JSON artifact path."),
-  servingOutputDir: z
-    .string()
-    .optional()
-    .describe("Directory for per-route route evidence artifacts and index.json."),
-  writeServingArtifacts: z.coerce
+const optionsSchema = Schema.Struct({
+  mtaWikiRoot: Schema.optionalKey(Schema.String).annotate({
+    description: "Path to the mta-wiki repo root.",
+  }),
+  wikiRelease: Schema.optionalKey(Schema.String).annotate({
+    description: "MTA-wiki release id under data/exports/releases/<id>.",
+  }),
+  routesPath: Schema.optionalKey(Schema.String).annotate({
+    description: "Studio routes.json path.",
+  }),
+  output: Schema.optionalKey(Schema.String).annotate({
+    description: "Output route evidence JSON artifact path.",
+  }),
+  servingOutputDir: Schema.optionalKey(Schema.String).annotate({
+    description: "Directory for per-route route evidence artifacts and index.json.",
+  }),
+  writeServingArtifacts: arg
     .boolean()
-    .default(true)
-    .describe("Write per-route serving artifacts and the wiki evidence index."),
-  generatedAt: z.string().optional(),
+    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+    .annotate({ description: "Write per-route serving artifacts and the wiki evidence index." }),
+  generatedAt: Schema.optionalKey(Schema.String),
   minMatchedRoutes: arg
     .positiveInt()
-    .default(1)
-    .describe("Fail if fewer than this many Bus routes match MTA-wiki route records."),
+    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(1)))
+    .annotate({
+      description: "Fail if fewer than this many Bus routes match MTA-wiki route records.",
+    }),
 });
 
-const commandOutputSchema = z.object({
-  outputPath: z.string(),
-  routeCount: z.number().int().nonnegative(),
-  matchedBusRouteCount: z.number().int().nonnegative(),
-  unmatchedWikiRouteCount: z.number().int().nonnegative(),
-  citationCount: z.number().int().nonnegative(),
-  omittedAmbiguousRecordCount: z.number().int().nonnegative(),
-  servingRouteCount: z.number().int().nonnegative(),
-  servingIndexPath: z.string(),
+const commandOutputSchema = Schema.Struct({
+  outputPath: Schema.String,
+  routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  matchedBusRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  unmatchedWikiRouteCount: Schema.Number.check(Schema.isInt()).check(
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
+  citationCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  omittedAmbiguousRecordCount: Schema.Number.check(Schema.isInt()).check(
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
+  servingRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  servingIndexPath: Schema.String,
 });
 
 export default defineCommand({

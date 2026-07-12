@@ -1,43 +1,54 @@
-import * as z from "zod";
+import { decodePreserve } from "@bp/domain/decode";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
-export const NormalizedDotTrafficVolumeSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    requestId: z.number().int(),
-    segmentId: z.number().int(),
-    sampledAt: z.iso.datetime(),
-    borough: z.string().nullable(),
-    street: z.string().nullable(),
-    fromStreet: z.string().nullable(),
-    toStreet: z.string().nullable(),
-    direction: z.string().nullable(),
-    volume: z.number().int().nonnegative(),
-    wktGeom: z.string().nullable(),
-  })
-  .strict();
+const Integer = Schema.Number.check(Schema.isInt());
+const NonNegativeInteger = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
+const NullableString = Schema.NullOr(Schema.String);
+const IsoDateTime = Schema.String.check(
+  Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+);
+const coerceNumberTo = <S extends Schema.Top>(schema: S) =>
+  Schema.Unknown.pipe(
+    Schema.decodeTo(schema, {
+      decode: SchemaGetter.transform((value) => Number(value)),
+      encode: SchemaGetter.passthrough(),
+    }),
+  );
 
-export type NormalizedDotTrafficVolume = z.output<typeof NormalizedDotTrafficVolumeSchema>;
+export const NormalizedDotTrafficVolumeSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  requestId: Integer,
+  segmentId: Integer,
+  sampledAt: IsoDateTime,
+  borough: NullableString,
+  street: NullableString,
+  fromStreet: NullableString,
+  toStreet: NullableString,
+  direction: NullableString,
+  volume: NonNegativeInteger,
+  wktGeom: NullableString,
+});
 
-const RawVolumeRowSchema = z
-  .object({
-    requestid: z.coerce.number().int(),
-    boro: z.string().optional(),
-    yr: z.coerce.number().int(),
-    m: z.coerce.number().int(),
-    d: z.coerce.number().int(),
-    hh: z.coerce.number().int(),
-    mm: z.coerce.number().int(),
-    vol: z.coerce.number().int().nonnegative(),
-    segmentid: z.coerce.number().int(),
-    wktgeom: z.string().optional(),
-    street: z.string().optional(),
-    fromst: z.string().optional(),
-    tost: z.string().optional(),
-    direction: z.string().optional(),
-  })
-  .passthrough();
+export type NormalizedDotTrafficVolume = typeof NormalizedDotTrafficVolumeSchema.Type;
+
+const RawVolumeRowSchema = Schema.Struct({
+  requestid: coerceNumberTo(Integer),
+  boro: Schema.optionalKey(Schema.String),
+  yr: coerceNumberTo(Integer),
+  m: coerceNumberTo(Integer),
+  d: coerceNumberTo(Integer),
+  hh: coerceNumberTo(Integer),
+  mm: coerceNumberTo(Integer),
+  vol: coerceNumberTo(NonNegativeInteger),
+  segmentid: coerceNumberTo(Integer),
+  wktgeom: Schema.optionalKey(Schema.String),
+  street: Schema.optionalKey(Schema.String),
+  fromst: Schema.optionalKey(Schema.String),
+  tost: Schema.optionalKey(Schema.String),
+  direction: Schema.optionalKey(Schema.String),
+});
 
 function pad(n: number, width = 2): string {
   return n.toString().padStart(width, "0");
@@ -46,7 +57,7 @@ function pad(n: number, width = 2): string {
 export function normalizeDotTrafficVolumeRows(rows: SocrataRow[]): NormalizedDotTrafficVolume[] {
   return rows
     .map((row) => {
-      const parsed = RawVolumeRowSchema.parse(row);
+      const parsed = decodePreserve(RawVolumeRowSchema)(row);
       const sampledAt = `${parsed.yr}-${pad(parsed.m)}-${pad(parsed.d)}T${pad(parsed.hh)}:${pad(parsed.mm)}:00Z`;
       return {
         schemaVersion,

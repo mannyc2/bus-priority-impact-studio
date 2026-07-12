@@ -88,6 +88,18 @@ export {
   type RouteSpeedSpineSourceRow,
   routeSpeedSpineRouteSlug,
 } from "./route-speed-spine.js";
+export {
+  buildRouteSpeedSpineCrosswalk,
+  type ClassifiedRouteSegmentSourceKey,
+  classifyRouteSegmentSourceKey,
+  matchRouteSpeedSpineSegment,
+  type ObservedRouteSegmentSourceKey,
+  type RouteSegmentSourceKey,
+  type RouteSpeedSpineCrosswalk,
+  type RouteSpeedSpineCrosswalkMatch,
+  serializeSourceSegmentId,
+  serializeStudioSegmentId,
+} from "./route-speed-spine-crosswalk.js";
 export type { RouteMonthHourlyProfileRow, SegmentDaypartHistoryRow } from "./rows.js";
 export {
   buildSegmentDaypartHistoryArtifact,

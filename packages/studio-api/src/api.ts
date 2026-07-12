@@ -52,6 +52,12 @@ function applyRouteCachePolicy(route: RouteSpec | null, response: Response): Res
   return next;
 }
 
+function withRequestId(response: Response, requestId: string): Response {
+  const next = new Response(response.body, response);
+  next.headers.set("X-Request-ID", requestId);
+  return next;
+}
+
 export async function handleStudioApiRequest(
   request: Request,
   env: StudioApiEnv,
@@ -62,48 +68,60 @@ export async function handleStudioApiRequest(
     return null;
   }
 
-  const allowedMethods = allowedApiMethodsForPath(url.pathname);
-  if (isStudioApiPath(url.pathname) && allowedMethods.length === 0) {
-    return errorResponse(404, "API route was not found.", "NOT_FOUND");
-  }
+  const requestId = crypto.randomUUID();
 
-  if (allowedMethods.length > 0 && !allowedMethods.includes(request.method)) {
-    const response = errorResponse(
-      405,
-      "Method is not allowed for this API route.",
-      "METHOD_NOT_ALLOWED",
-    );
-    response.headers.set("Allow", allowedMethods.join(", "));
-    return response;
-  }
+  try {
+    const allowedMethods = allowedApiMethodsForPath(url.pathname);
+    if (isStudioApiPath(url.pathname) && allowedMethods.length === 0) {
+      return withRequestId(errorResponse(404, "API route was not found.", "NOT_FOUND"), requestId);
+    }
 
-  const routeSpec = findRouteSpec(request.method, url.pathname);
-  const preflightResponse = preflightRouteRequest(request, routeSpec);
-  if (preflightResponse !== null) {
-    return preflightResponse;
-  }
+    if (allowedMethods.length > 0 && !allowedMethods.includes(request.method)) {
+      const response = errorResponse(
+        405,
+        "Method is not allowed for this API route.",
+        "METHOD_NOT_ALLOWED",
+      );
+      response.headers.set("Allow", allowedMethods.join(", "));
+      return withRequestId(response, requestId);
+    }
 
-  const observabilityResponse = await handleObservabilityRoutes(request, url);
-  if (observabilityResponse !== null) {
-    return applyRouteCachePolicy(routeSpec, observabilityResponse);
-  }
+    const routeSpec = findRouteSpec(request.method, url.pathname);
+    const preflightResponse = preflightRouteRequest(request, routeSpec);
+    if (preflightResponse !== null) {
+      return withRequestId(preflightResponse, requestId);
+    }
 
-  const schemaResponse = handleSchemaRoutes(url);
-  if (schemaResponse !== null) {
-    return applyRouteCachePolicy(routeSpec, schemaResponse);
-  }
+    const observabilityResponse = await handleObservabilityRoutes(request, url);
+    if (observabilityResponse !== null) {
+      return withRequestId(applyRouteCachePolicy(routeSpec, observabilityResponse), requestId);
+    }
 
-  if (isStudioApiPath(url.pathname)) {
-    const response = await withServerTiming("studio", () =>
-      handleStudioReadRequest(request, url, env),
-    );
-    return applyRouteCachePolicy(routeSpec, response);
-  }
+    const schemaResponse = handleSchemaRoutes(url);
+    if (schemaResponse !== null) {
+      return withRequestId(applyRouteCachePolicy(routeSpec, schemaResponse), requestId);
+    }
 
-  const publicApiResponse = await handlePublicApiRoutes(url, env);
-  if (publicApiResponse !== null) {
-    return applyRouteCachePolicy(routeSpec, publicApiResponse);
-  }
+    if (isStudioApiPath(url.pathname)) {
+      const response = await withServerTiming("studio", () =>
+        handleStudioReadRequest(request, url, env),
+      );
+      return withRequestId(applyRouteCachePolicy(routeSpec, response), requestId);
+    }
 
-  return errorResponse(404, "API route was not found.", "NOT_FOUND");
+    const publicApiResponse = await handlePublicApiRoutes(url, env);
+    if (publicApiResponse !== null) {
+      return withRequestId(applyRouteCachePolicy(routeSpec, publicApiResponse), requestId);
+    }
+
+    return withRequestId(errorResponse(404, "API route was not found.", "NOT_FOUND"), requestId);
+  } catch (error) {
+    console.error("Unhandled Studio API error.", {
+      requestId,
+      method: request.method,
+      path: url.pathname,
+      error: error instanceof Error ? { name: error.name, message: error.message } : error,
+    });
+    return withRequestId(errorResponse(500, "Internal error.", "INTERNAL"), requestId);
+  }
 }

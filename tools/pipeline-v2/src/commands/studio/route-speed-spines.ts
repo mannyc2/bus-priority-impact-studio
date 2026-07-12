@@ -11,12 +11,13 @@ import {
   type RouteSpeedSpineReadinessAudit,
   routeSpeedSpineRouteSlug,
 } from "@bp/analytics/feature-history";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   loadCurrentRouteSpeedSpineCatalogRouteIds,
   loadRouteSpeedSpineCandidateLocalDbRows,
   loadRouteSpeedSpineLocalDbRows,
 } from "@bp/pipeline-v2/local-db-aggregates";
-import { defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -272,50 +273,85 @@ export default defineCommand({
   path: ["studio", "route-speed-spines"],
   summary: "Build stable route-speed spine artifacts and an all-route readiness manifest.",
   input: {
-    options: dbOptions.extend({
-      startMonth: z
-        .string()
-        .regex(ISO_MONTH_RE)
-        .default(ROUTE_SPEED_SPINE_DEFAULT_START_MONTH)
-        .describe("First source month, YYYY-MM"),
-      endMonth: z
-        .string()
-        .regex(ISO_MONTH_RE)
-        .optional()
-        .describe("Last source month, YYYY-MM; defaults to all available months"),
-      routes: z.string().optional().describe("Comma-separated route IDs to include"),
-      limit: z.coerce
-        .number()
-        .int()
-        .positive()
-        .optional()
-        .describe("Maximum route count to process"),
-      offset: z.coerce.number().int().nonnegative().default(0).describe("Candidate route offset"),
-      toleranceMeters: z.coerce
-        .number()
-        .positive()
-        .default(ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS)
-        .describe("Maximum distance for snapping source timepoints into one spine node"),
-      writeRouteArtifacts: z.coerce
-        .boolean()
-        .default(true)
-        .describe("Write per-route speed-spine artifacts as well as the manifest"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      output: z.string().optional().describe("Override manifest output path"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        startMonth: Schema.String.check(Schema.isPattern(ISO_MONTH_RE))
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(ROUTE_SPEED_SPINE_DEFAULT_START_MONTH),
+            ),
+          )
+          .annotate({ description: "First source month, YYYY-MM" }),
+        endMonth: Schema.optionalKey(Schema.String.check(Schema.isPattern(ISO_MONTH_RE))).annotate({
+          description: "Last source month, YYYY-MM; defaults to all available months",
+        }),
+        routes: Schema.optionalKey(Schema.String).annotate({
+          description: "Comma-separated route IDs to include",
+        }),
+        limit: Schema.optionalKey(
+          arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+        ).annotate({ description: "Maximum route count to process" }),
+        offset: arg
+          .number()
+          .check(Schema.isInt())
+          .check(Schema.isGreaterThanOrEqualTo(0))
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0)))
+          .annotate({ description: "Candidate route offset" }),
+        toleranceMeters: arg
+          .number()
+          .check(Schema.isGreaterThan(0))
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS),
+            ),
+          )
+          .annotate({
+            description: "Maximum distance for snapping source timepoints into one spine node",
+          }),
+        writeRouteArtifacts: arg
+          .boolean()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+          .annotate({
+            description: "Write per-route speed-spine artifacts as well as the manifest",
+          }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Override manifest output path",
+        }),
+      },
     }),
   },
-  output: z.object({
-    manifestPath: z.string(),
-    candidateRouteCount: z.number().int().nonnegative(),
-    routeCount: z.number().int().nonnegative(),
-    currentCatalogRouteCount: z.number().int().nonnegative(),
-    speedRouteNotInCurrentCatalogCount: z.number().int().nonnegative(),
-    currentCatalogRouteMissingSpeedCount: z.number().int().nonnegative(),
-    artifactWrittenRouteCount: z.number().int().nonnegative(),
-    seriesReadyRouteCount: z.number().int().nonnegative(),
-    seriesReadyWithGapsRouteCount: z.number().int().nonnegative(),
-    needsPatternReviewRouteCount: z.number().int().nonnegative(),
-    failedRouteCount: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    manifestPath: Schema.String,
+    candidateRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    currentCatalogRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    speedRouteNotInCurrentCatalogCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    currentCatalogRouteMissingSpeedCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    artifactWrittenRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    seriesReadyRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    seriesReadyWithGapsRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    needsPatternReviewRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    failedRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   }),
   async run({ input }) {
     const routeIds = parseRouteList(input.options.routes);

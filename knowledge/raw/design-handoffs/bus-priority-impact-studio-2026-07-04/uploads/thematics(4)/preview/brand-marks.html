@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background);display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:12px}
+  .card{border:1px solid var(--border);border-radius:var(--radius-xl);padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:180px}
+  .light{background:var(--background);color:var(--foreground)}
+  .dark{background:#0A0A0B;color:#fff}
+  .ov{font:500 12px var(--font-sans);color:var(--muted-foreground)}
+  .dark .ov{color:rgba(255,255,255,.6)}
+  .name{font:500 12px var(--font-sans);color:var(--muted-foreground)}
+  .dark .name{color:rgba(255,255,255,.6)}
+  .lockup{display:flex;align-items:center;gap:14px}
+  .word{font:600 32px var(--font-serif);letter-spacing:-0.018em}
+  .mark{display:inline-block;width:32px;height:32px}
+</style></head><body>
+
+<div class="card light">
+  <div class="ov">Wordmark · light</div>
+  <div class="lockup">
+    <svg class="mark" viewBox="0 0 64 64"><g fill="currentColor"><circle cx="20" cy="22" r="6"/><circle cx="44" cy="22" r="6"/><circle cx="32" cy="44" r="6"/></g></svg>
+    <span class="word">thematics</span>
+  </div>
+  <div class="name">Source Serif 4 · 600 · −18tr · asterism mark</div>
+</div>
+
+<div class="card light" style="align-items:center;justify-content:center">
+  <svg style="width:80px;height:80px;color:var(--foreground)" viewBox="0 0 64 64"><g fill="currentColor"><circle cx="20" cy="22" r="6"/><circle cx="44" cy="22" r="6"/><circle cx="32" cy="44" r="6"/></g></svg>
+  <div class="ov" style="margin-top:14px">Mark · light</div>
+</div>
+
+<div class="card dark" style="align-items:center;justify-content:center">
+  <svg style="width:80px;height:80px;color:#fff" viewBox="0 0 64 64"><g fill="currentColor"><circle cx="20" cy="22" r="6"/><circle cx="44" cy="22" r="6"/><circle cx="32" cy="44" r="6"/></g></svg>
+  <div class="ov" style="margin-top:14px">Mark · dark</div>
+</div>
+
+</body></html>

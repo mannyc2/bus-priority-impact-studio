@@ -1,5 +1,6 @@
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { canonicalBoroughCode, normalizeStreetName } from "@bp/sources/clients/geoclient";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { createGeoclientFromEnv, type GeocodeOutcome, Geocoder } from "../../lib/geocoder.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -176,22 +177,34 @@ export default defineCommand({
   path: ["geocode", "parking-violations"],
   summary: "Geocode local_parking_violation address groups via Geoclient.",
   input: {
-    options: dbOptions.extend({
-      batchSize: arg.positiveInt().default(500).describe("Address groups per batch"),
-      maxRows: arg.positiveInt().optional().describe("Cap total rows scanned"),
-      since: z.string().optional().describe("Inclusive lower bound on issue_date"),
-      until: z.string().optional().describe("Exclusive upper bound on issue_date"),
-      streetOnly: arg
-        .boolean()
-        .default(false)
-        .describe("Use LION street-only fallback; skip Geoclient"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        batchSize: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(500)))
+          .annotate({ description: "Address groups per batch" }),
+        maxRows: Schema.optionalKey(arg.positiveInt()).annotate({
+          description: "Cap total rows scanned",
+        }),
+        since: Schema.optionalKey(Schema.String).annotate({
+          description: "Inclusive lower bound on issue_date",
+        }),
+        until: Schema.optionalKey(Schema.String).annotate({
+          description: "Exclusive upper bound on issue_date",
+        }),
+        streetOnly: arg
+          .boolean()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+          .annotate({ description: "Use LION street-only fallback; skip Geoclient" }),
+      },
     }),
   },
-  output: z.object({
-    scanned: z.number(),
-    hits: z.number(),
-    misses: z.number(),
-    cached: z.number(),
+  output: Schema.Struct({
+    scanned: Schema.Number,
+    hits: Schema.Number,
+    misses: Schema.Number,
+    cached: Schema.Number,
   }),
   async run({ input }) {
     return runLocalDbCommandBoundary({

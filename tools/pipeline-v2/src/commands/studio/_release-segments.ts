@@ -1,3 +1,4 @@
+import type { RouteSpeedSpineCrosswalk } from "@bp/analytics/feature-history";
 import {
   type StudioAiAnalystNote,
   StudioAiAnalystNoteSchema,
@@ -5,8 +6,8 @@ import {
   StudioAiPublicNoteSchema,
   type StudioRouteSegmentEvidence,
 } from "@bp/domain/studio/segment-evidence";
-import { complete } from "@earendil-works/pi-ai";
-import { openRouterModel } from "../../lib/llm.ts";
+import { completeOpenRouterChat } from "../../lib/llm.ts";
+import { decodeSchemaStrip } from "../../lib/schema-decode.ts";
 import {
   tspMatchMethodForSegment,
   tspStatusForSegment,
@@ -170,6 +171,7 @@ export function buildSegments(
   artifact: RouteBriefInputArtifact | null,
   laneOverlaps: ReadonlyMap<string, SegmentLaneOverlap> = new Map(),
   tspEvidence: TspEvidence = unknownTspEvidence(),
+  spineCrosswalk: RouteSpeedSpineCrosswalk | null = null,
 ): StudioSegment[] {
   const comparisons = comparisonBySegmentId(artifact);
   return segmentsForRoute(routeId, artifact).map((segment, index) => {
@@ -187,8 +189,12 @@ export function buildSegments(
       routeId.includes("+") &&
       (artifact?.interventionStatus?.aceActiveDuringAnalysisPeriod ?? false);
     const flagged = (segment.slowWindowPercent ?? 0) >= 60;
+    const spineSegmentId = spineCrosswalk?.get(segment.segmentId) ?? null;
     return {
       id: segment.segmentId,
+      spineSegmentId,
+      spineJoinStatus:
+        spineCrosswalk === null ? "not_built" : spineSegmentId === null ? "unmatched" : "matched",
       routeSlug,
       direction: routeDirection(segment.direction),
       from,
@@ -300,15 +306,17 @@ export function buildRouteSegmentEvidence(
 // ---- deterministic + LLM segment notes ----
 
 export function buildSegmentAnalystNote(input: StudioSegment): StudioAiAnalystNote {
-  const speedGap = Number(Math.max(0, input.scheduledMph - input.speedMph).toFixed(1));
+  const speedGap = segmentSpeedGap(input);
   const laneText = segmentNoteLaneText(input);
   const tspText = segmentNoteTspText(input);
   const peakText = segmentNotePeakText(input.hours);
   const exposureText = `${input.riderHours.toLocaleString()} hours of route-slice delay exposure`;
   const gapText =
-    speedGap > 0
-      ? `${speedGap.toFixed(1)} mph below schedule`
-      : "at or above the schedule-implied speed";
+    input.scheduledMph === null
+      ? `observed at ${input.speedMph.toFixed(1)} mph, with no schedule-implied speed available`
+      : speedGap > 0
+        ? `${speedGap.toFixed(1)} mph below schedule`
+        : "at or above the schedule-implied speed";
   const caveats = [
     "This is a route-slice hotspot segment, not a complete stop-to-stop universe.",
     "Delay exposure uses monthly route/hour ridership exposure, not service-day or stop-level boardings.",
@@ -345,7 +353,7 @@ export function buildSegmentAnalystNote(input: StudioSegment): StudioAiAnalystNo
     primaryEvidence.push("ace_route_program");
   }
 
-  return StudioAiAnalystNoteSchema.parse({
+  return decodeSchemaStrip(StudioAiAnalystNoteSchema, {
     generationMode: "deterministic_evidence_summary",
     headline:
       speedGap > 0
@@ -435,6 +443,7 @@ function wordCount(value: string): number {
 }
 
 function segmentSpeedGap(segment: StudioSegment): number {
+  if (segment.scheduledMph === null) return 0;
   return Number(Math.max(0, segment.scheduledMph - segment.speedMph).toFixed(1));
 }
 
@@ -592,9 +601,8 @@ export function applyStudioLlmSegmentNoteOutput(
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error(`LLM segment note for ${segment.id} was not a JSON object.`);
   }
-  const shape = parsed as Record<string, unknown>;
-  const note = StudioAiPublicNoteSchema.parse({
-    ...shape,
+  const note = decodeSchemaStrip(StudioAiPublicNoteSchema, {
+    ...parsed,
     generationMode: "llm_assisted_evidence_summary",
   });
   validateUsefulLlmSegmentNote(segment, note);
@@ -671,40 +679,32 @@ async function callOpenRouterSegmentNote(input: {
     throw new Error("OPENROUTER_API_KEY is required for --segment-note-llm.");
   }
 
-  const model = openRouterModel(input.options.model);
   let previousError: string | undefined;
   let lastError: unknown;
   for (let attempt = 1; attempt <= input.options.maxAttempts; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), input.options.timeoutMs);
     try {
-      const result = await complete(
-        model,
-        {
-          systemPrompt:
-            "You write evidence-bounded public transit analysis notes. You improve analyst usefulness without inventing facts or causal claims.",
-          messages: [
-            {
-              role: "user",
-              content: buildSegmentNoteLlmPrompt(input.segment, previousError),
-              timestamp: Date.now(),
-            },
-          ],
-        },
-        {
-          apiKey: input.options.apiKey,
-          signal: controller.signal,
-          maxOutputTokens: input.options.maxTokens,
-          providerOptions: { response_format: { type: "json_object" }, temperature: 0.2 },
-        },
-      );
-      const text = result.content
-        .filter((block): block is { type: "text"; text: string } => block.type === "text")
-        .map((block) => block.text)
-        .join("");
-      if (text.trim().length === 0) {
-        throw new Error(`LLM segment note for ${input.segment.id} returned no text content.`);
-      }
+      const text = await completeOpenRouterChat({
+        apiKey: input.options.apiKey,
+        fetcher: input.options.fetcher,
+        maxOutputTokens: input.options.maxTokens,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You write evidence-bounded public transit analysis notes. You improve analyst usefulness without inventing facts or causal claims.",
+          },
+          {
+            role: "user",
+            content: buildSegmentNoteLlmPrompt(input.segment, previousError),
+          },
+        ],
+        model: input.options.model,
+        responseFormat: "json_object",
+        signal: controller.signal,
+        temperature: 0.2,
+      });
       return applyStudioLlmSegmentNoteOutput(input.segment, text);
     } catch (error) {
       const resolvedError = controller.signal.aborted

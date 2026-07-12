@@ -2,6 +2,96 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-07-06] design | MTA visual language cutover
+
+Gen-6 plan 048 retires the warm "tarbell" surface ladder for the MTA signage
+palette: cool near-white surfaces, true-white cards, ink `#101418`, MTA Blue
+`#0039a6` accent, and a black signage nav bar. Touches `global.css` tokens,
+`MAP_COLORS`, and the shell header. The operator's 2026-07-06 critique is the
+new design authority, superseding the July-4 warm/editorial tokens.
+
+## [2026-07-05] engineering | Plan 045 Order 1 and Plan 047 native kit migration land
+
+Completed the bus-repo half of Plan 045 Order 1 by bumping
+`@nyc-transit-kit/{compat,contracts,mta,nyc-dot,nyc-open-data,soda3}` catalog pins to `0.2.0`,
+rerunning `bun install`, and moving the Studio API `isSoda3ClientError` import to
+`@nyc-transit-kit/compat/errors` while leaving its Promise-shaped SODA3 query helper on
+`@nyc-transit-kit/compat/soda3`.
+
+Completed Plan 047 by switching Effect-zone SODA3 query/export code in `tools/pipeline-v2/src` and
+`packages/sources/src` to native `@nyc-transit-kit/soda3` Effects/layers. Pipeline retry, timeout,
+app-token, and typed error metadata now wrap the native toolkit HTTP layer with toolkit retries
+disabled at that boundary. The local CSV/download helpers remain bus-repo owned until Plan 045
+Orders 2-4 publish the follow-up kit features.
+
+Added ADR 0021 and a production-boundary harness gate: `tools/pipeline-v2` and `packages/sources`
+source/manifests may not import or depend on `@nyc-transit-kit/compat`; compat remains sanctioned
+only at Promise edges such as `packages/studio-api` while the Plan 026 Worker Effect regression is
+blocked.
+
+Verification passed: `bun install`; `bun run check:web-architecture` (21 pass);
+`bun --filter @bp/pipeline-v2 test` (203 pass); `bun --filter @bp/studio-api test` (52 pass);
+`bun run test:unit` (667 pass); `bun --filter @bp/pipeline-v2 typecheck`;
+`bun --filter @bp/sources typecheck`; and `bun --filter @bp/studio-api typecheck`. The compat scan
+now finds only the root catalog and `packages/studio-api`.
+
+## [2026-07-05] engineering | Plan 044 closes zod eviction with ADR-0020
+
+Completed the Plan 044 closeout after the source, analytics, studio-api, and pipeline schema leaves
+were migrated off direct Zod imports. First-party app/package/tool/script/test code now has a
+permanent boundary guard in `tests/harness/production-boundaries.test.ts` rejecting module
+specifiers equal to `zod` or starting with `zod/`.
+
+Added ADR 0020, making Effect Schema the only first-party runtime schema layer and explicitly
+superseding the Zod runtime-contract clause of ADR 0001. Updated the live package-structure and
+testing standards pages to direct boundary contracts through Effect Schema, keep the browser
+schema-free at runtime, and keep `@bp/db` schema-library-free with Drizzle-derived row types plus
+focused boundary validation.
+
+Verification passed: `bun run check:types`, `bun run check:web-architecture` (20 pass), `bun run
+check:knowledge`, `bun run test:unit` (663 pass), `bun run test:web` (114 pass), and `bun run
+test:worker` (19 pass). The zod hygiene gates are empty/zero (`rg` import scan, package-manifest
+scan, `grep -c '"zod@' bun.lock`), `bun pm why zod` reports no matching lockfile packages, and `git
+diff --check` is clean. A temporary `tests/harness/zod-guard-probe.ts` with `import "zod";` made
+`check:web-architecture` fail with the expected file-specific guard message, then the probe was
+deleted and the architecture check passed again.
+
+## [2026-07-04] engineering | Generation 4 hardening and public route repairs land
+
+Completed plans 030-035. Backend hardening restored Snapshot 2.0 to
+parse-loose/compose-strict behavior, added per-request API request IDs and JSON error envelopes,
+logged projection/evidence validation issues without exposing them to clients, and degraded malformed
+route evidence/model projections instead of taking Worker 1101-style crashes. The serving route-card
+contract is now honest-or-absent: fabricated scheduled speeds, synthetic sparks, invented miles,
+placeholder interventions, and fake rider burden/trends were removed from sparse route cards, with
+route-list percentiles derived only from served route rows.
+
+Frontend repair completed the July design slice without reviving deleted gen-3 surfaces: route pages
+now use one scroller with slim sticky section nav, a compact public header, verdict lede, ranked
+insight list, Slow segments before Route map, honest null-state charts/maps/KPIs, and mobile-readable
+segment rows. The home page now uses "Read the full story" featured CTAs, hero free-text search that
+lands in the directory filter, a header-rail directory filter, mobile directory summary rows,
+accessible borough filter chips, and no dead `RouteHeader`/`RouteIdentity`/`DotGlyph` component
+family.
+
+Verification passed: `bun --filter @bp/domain typecheck`; `bun --filter @bp/domain test`;
+`bun --filter @bp/studio-api typecheck`; `bun --filter @bp/studio-api test`;
+`bun --filter @bp/web typecheck`; `bun run test:web`; `bun run test:worker`;
+`bun --filter @bp/web build`; `bun run check:style`. Dev-server smoke on
+`http://127.0.0.1:5173/` and `/routes/m15-sbs` returned 200. Browser screenshots were not captured
+because this workspace has no Playwright or headless browser binary installed. Operator-only follow-up
+from plan 030 remains production log/R2/D1 probes and any artifact re-publish/deploy decision.
+
+## [2026-07-04] ui | July design export becomes current frontend audit source
+
+Imported the July 4 design export into
+`knowledge/raw/design-handoffs/bus-priority-impact-studio-2026-07-04/` and updated
+`knowledge/wiki/engineering/studio_design_pass_status.md` so future frontend work no longer treats
+the May tarbell pass as current acceptance. The repo-local source capture is now recorded as the
+current design source for audit/planning, with priorities ordered around shell/header, route detail,
+routes home/search, secondary public surfaces, and authoring/review. Added the status page to
+`knowledge/index.md` so agents find the design-source pointer before writing frontend cleanup plans.
+
 ## [2026-07-03] engineering | nyc-transit-kit 0.1.3 cutover lands in bus repo
 
 Completed Plan 029 in branch `codex/029-adopt-nyc-transit-kit`. `npm view` reported
@@ -7959,3 +8049,289 @@ Verification passed:
 - `bun run check:web-architecture`
 - `bun --filter @bp/web build`
 - `bun run check:style`
+
+## [2026-07-04] engineering | Plan 037 deletes agent-research tooling
+
+Deleted the agent-research tooling (`tools/agent-codemode`, `tools/agent-corpus-lib`,
+`tools/sandbox`, and the pipeline codemode/sandbox harness) and retired ADRs 0010-0013/0016.
+The Studio release AI-notes path (`@earendil-works/pi-ai` plus `openRouterModel`) is unaffected.
+
+## [2026-07-05] engineering | Plan 039 deprecates verified raw JSON writes
+
+Extended the raw snapshot coverage gate beyond top-level families: `socrata-partitioned/<sourceId>`
+directories are now audited independently, and date-column proof is allowed only when the date column
+is the leading column of a SQLite index. The refreshed coverage artifact
+`data/artifacts/raw-deprecation/raw-coverage-2026-07-05.json` proves three reclaimable entries in
+`data/artifacts/raw-deprecation/deletion-manifest-2026-07-05.json`: partitioned 2025 hourly
+ridership, parking violations, and the small partitioned smoke copy.
+
+Plan 039 removed the duplicate raw JSON write for `ingest parking-violations` and retired the
+parking raw-snapshot reader from `build parking-violation-matches`; parking match keys refresh from
+`local_parking_violation` instead. `scripts/reclaim-raw-json.sh` was generated as an operator-only
+runbook with a canonical SQLite size tripwire and four reviewed reclaim lines: the three manifest
+entries plus the orphaned `data/artifacts/docs` directory. The script was syntax-checked but not run.
+
+## [2026-07-05] engineering | Plan 040 moves pipeline CLI off @liche/core
+
+Replaced the `@bp/pipeline-v2` CLI runtime with `effect/unstable/cli` while preserving the existing
+command descriptor shell through `tools/pipeline-v2/src/cli/compat.ts`. The new registry imports
+command modules without the previous silent skip behavior and has an exact completeness test for the
+current 99 live descriptors. `@liche/core` was removed from `tools/pipeline-v2/package.json` and
+`bun.lock`; `grep -c liche bun.lock` now returns `0`.
+
+Captured pre-migration help/JSON goldens under `tools/pipeline-v2/test/fixtures/cli-goldens/`.
+`--json` remains a universal leaf-command flag and preserves the old command-result JSON shape; the
+available-not-fetched backfill script only logs that output and parses downstream artifact files.
+`runPipelineEffect` remains intentionally because the compatibility migration did not rewrite 99
+handler bodies into native Effect command handlers.
+
+## [2026-07-05] engineering | Plan 041 de-zods packages/db core reads
+
+Removed `zod` from `@bp/db`: the package manifest and lockfile no longer declare it, generated
+`src/d1/validation.ts` was deleted, and D1 trusted-read query modules now derive row aliases from
+Drizzle select helpers instead of hand-written zod row schemas. SQLite boolean coercion moved to
+`queries/shared.ts`; JSON-text readers now use small local narrowers that skip malformed public rows
+instead of throwing through zod. D1 seed SQL generation keeps writer-boundary checks with local
+validators for the existing seed validation cases.
+
+Deleted the dead `studio-brief-agents` query/test surface and removed the matching `studioBrief*`
+tables from the D1 schema. Added live D1 migration
+`packages/db/migrations/d1/0030_drop_studio_brief_remnants.sql`; `bun run db:d1:migrate:local`
+applied `0029` and `0030` locally.
+
+Plan 041 is not fully closed: migration-tree consolidation hit the formal stop condition. The
+current `migrations-drizzle/d1` snapshot is stale versus live `migrations/d1`; a trial
+`db:d1:generate` attempted to create already-live `route_speed_history_coverage`,
+`route_timeline_index`, and `source_month_coverage` tables while also dropping studio brief tables.
+That trial migration was removed. Follow-up should rebuild or retire the stale D1 Drizzle lineage
+before trying to enforce one migration tree.
+
+Verification passed: `@bp/db` typecheck/test (50 pass), `@bp/studio-api` typecheck/test (52 pass),
+`@bp/pipeline-v2` typecheck, `@bp/web` typecheck, `test:worker` (19 pass, 5.18s), `test:unit`
+(672 pass), `check:web-architecture`, `db:local:generate`, `db:local:migrate`,
+`db:d1:migrate:local`, and `git diff --check -- packages/db bun.lock`.
+
+Added Plan 046 as the next DB-safety follow-up. Its scope is to reconcile or explicitly document the
+D1 Drizzle snapshot lineage so future `db:d1:generate` runs no longer propose creating already-live
+D1 tables from stale migration snapshots.
+
+## [2026-07-05] engineering | Plan 046 reconciles D1 Drizzle snapshot lineage
+
+Resolved the Plan 041 migration-generation blocker by adding
+`packages/db/migrations-drizzle/d1/20260705171735_plan046_d1_snapshot/` as a snapshot-only catch-up.
+Wrangler continues to apply live D1 SQL from `packages/db/migrations/d1`; `migrations-drizzle/d1`
+is now documented as Drizzle Kit's D1 snapshot cache rather than an applied migration tree. The
+catch-up snapshot records the already-live coverage/timeline/source tables and the removal of dead
+`studio_brief_*` tables, while its `migration.sql` is deliberately no-op because live migrations
+`0027` through `0030` already own the SQL.
+
+`bun --filter @bp/db db:generate:d1` now reports no schema changes instead of proposing
+already-live table creates. Verification passed:
+`bun --filter @bp/db db:migrate:d1:local`, `bun --filter @bp/db db:generate:local`,
+`bun --filter @bp/db db:migrate:local`, `bun --filter @bp/db test` (50 pass),
+`bun run test:worker` (19 pass, 5.10s), `bun run check:web-architecture` (19 pass),
+`bun run check:knowledge`, and `git diff --check`.
+
+## [2026-07-05] engineering | Plan 042 drops browser-side zod response parsing
+
+Removed production zod response parsing from the web client. `apps/web/src/studio/api-client.ts`
+now returns typed JSON after HTTP success, `StudioApiContractError` is gone, and
+`apps/web/src/studio/api-contract.ts` re-exports types only. The route-scorecard fixture no longer
+imports domain schema values from production `src`; Worker tests still validate server responses
+with domain schemas.
+
+Removed `zod` from `apps/web/package.json` and refreshed `bun.lock`. Bundle measurement improved
+from entry `124.2 KB` gzip / total JS `314.3 KB` gzip to entry `124.1 KB` gzip / total JS
+`288.4 KB` gzip. Verification passed: `bun --filter @bp/web typecheck`,
+`bun --filter @bp/web build`, `bun run test:web` (114 pass), `bun run test:worker` (19 pass,
+4.97s), `bun run check:web-architecture` (19 pass), and Biome on the touched Plan 042 files.
+
+## [2026-07-05] engineering | Plan 043 migrates packages/domain to Effect Schema
+
+Pruned the dead `packages/domain/src/documents/{derived-surfaces,discovery,research-surfaces,structured-extraction}`
+subtrees, their tests, export-map entries, and the dead `@bp/domain/schema-registry` re-export
+subpath. The live domain schemas now import `packages/domain/src/schema-compat.ts`, an Effect
+Schema-backed compatibility facade that preserves the domain's existing parse/safeParse/default
+strip/strict/passthrough/codec/json-schema surface. `packages/domain` now depends on `effect` and
+no longer declares or imports `zod`.
+
+Re-pointed downstream domain parse sites to the migrated schema surface: studio-api public route-id
+parsing and projection loading, analytics route-speed availability and intervention repair typing,
+MTA/GTFS-RT source adapter `RouteIdCodec` normalization, and the pipeline JSON artifact reader.
+The web app remains type-only with respect to domain schema values; no `effect` imports exist under
+`apps/web/src`.
+
+Verification passed after final formatting: `bun run check:types`, `bun run test:unit` (662 pass),
+`bun run test:web` (114 pass), `bun run test:worker` (19 pass, 6.09s), `bun run
+check:web-architecture`, `bun run check:knowledge`, and `git diff --check`. Package-level
+verification also passed for domain, analytics, sources, studio-api, pipeline-v2, and web
+typecheck. Full `check:style` still fails on the vendored `.agent-sources/effect` checkout; targeted
+Biome on Plan 043 touched files exits 0 after safe fixes, with only info-level literal-key
+suggestions in the pre-existing analytics repair module.
+
+Plan 044 inherits the remaining zod leaves: sources adapters/probes/core schemas, pipeline CLI/local
+aggregate/export helper schemas, analytics feature-history/data-product schemas, and studio-api
+route-spec/read-handler local schemas.
+
+## [2026-07-06] design | gen-6 UI cutover complete (plans 048-060)
+
+Plan 060 swept the orphaned component layer left by earlier design passes:
+deleted TimelineSection, InterventionTimeline, BeforeAfter, the overlay chart
+cluster (Corridor/Hour/TrendOverlay + OverlayChart), Heatmap, Timeline, Rail,
+ConfidenceBar, MapThumb, KPI, Cite, the unused hourTag/formatMapHour helpers,
+and the unused routeSectionAnchorId export; dev demos were trimmed rather than
+kept alive. SectionHeader stays live (DataNotesSection). The
+`bun run check:design-doctrine` ratchet is the standing guard against
+interpunct chains, kicker eyebrows, and banned phrases; its allowlist now holds
+only live-file exceptions (CorridorMap, RouteGeoMap, RouteMapLibre.map
+interpuncts; RouteMapSection kicker).
+
+## [2026-07-11] engineering | Plan 071 steering-doc truth sweep
+
+Aligned the root README with ADR-0020's Effect Schema-only contract, removed the deleted
+`/methods` page from the public SEO path list and sitemap while preserving the serving snapshot's
+`methods.json` dependency for plan 063, and prepended a dated status block to the umbrella product
+plan so deleted applied-research and authoring surfaces are read as history.
+
+## [2026-07-11] engineering | Plan 062 deletes retired pipeline-v1 QA commands
+
+Deleted roughly 2,550 lines of retired `audit pipeline-v1`, `check pipeline-v1`, and
+`pipeline finalize` command code after re-verifying that no live script, publish flow, or command
+imports it.
+ADR-0017 retired that QA-gate doctrine; `scripts/publish-serving-release.sh` and the `studio release`
+command family remain the live publish path. The CLI registry now exposes 96 descriptors and no
+empty `pipeline` command group.
+
+## [2026-07-11] engineering | Plan 061 deletes the dead detector subgraph
+
+Deleted the unreachable detector, registry, calibration, corpus, and lattice subgraph from
+`packages/analytics`: about 13,600 source lines and 4,400 coupled test lines. Preserved the live,
+pure gold-set evaluator by moving it under `evaluation/` with focused coverage; all remaining
+analytics consumers now use explicit live subpath exports.
+
+## [2026-07-11] engineering | Plan 064 consolidates compatible ingest workflows
+
+Classified all 22 live ingest runners by reading their bodies. The compatible full-replace
+Socrata set was `ace-routes`, `bus-lanes`, and `dot-traffic-speeds`; the compatible monthly set
+was `bus-wait-assessment`, `ace-violations`, `nypd-collisions`, `dot-traffic-volumes`, and
+`311-service-requests`. These now use shared replace/monthly factories while preserving runner
+names, signatures, result shapes, queries, and snapshot metadata. A command-definition helper
+centralizes the Effect local-DB boundary; compatible bespoke descriptors adopt it without changing
+their runners. Bounded promise concurrency now runs through the managed pipeline Effect runtime.
+
+The remaining runners are intentionally bespoke: Census joins (`equity-context`), dynamic fiscal
+or snapshot modes (`parking-violations`, `dot-street-permits`), CSV/cache formats (`noaa-weather`),
+multi-source/catalog joins (`route-catalog`, `route-coverage`), multi-month or route-chunked jobs
+(`route-hourly-ridership`, `route-segment-speeds`, `route-trends`,
+`bus-customer-journey-metrics`), and GTFS/file/protobuf workflows (`gtfs-static`,
+`route-schedules`, `route-schedules-bulk`, `gtfs-rt-snapshots`, `lion-centerline`). The plan's
+600-line target assumed several of these were ordinary monthly Socrata replacements; live-body
+classification disproved that premise. Safe consolidation removed 1,130 and added 666 lines under
+`commands/ingest` (net -464), plus the shared helpers and tests. Verification: pipeline typecheck
+and all 205 pipeline tests pass; four source-structure tests were updated to recognize the helper.
+
+## [2026-07-11] engineering | Plan 063 decodes Studio inputs once and dispatches from registry
+
+Studio snapshot composition now follows an explicit degrade policy: routes are required, while
+methods, docs, route evidence, model status, and Snapshot 2.0 assembly produce legal empty or
+omitted contributions with public caveats. The Worker no longer reparses its own `/routes` and
+`/snapshot` responses. Route-index display defaults and source-month status decoding happen once
+at the D1 edge, and invalid equity assignment geography fails descriptively instead of being cast.
+
+Studio read dispatch now resolves the canonical registry matcher, including route parameters, and
+a completeness test enforces the registry/handler bijection. Route-index and route-section read
+models moved into focused modules, reducing `read-handlers.ts` from 2,966 baseline lines to 2,217.
+Final verification passed: Studio API typecheck and 54 tests, DB typecheck and 52 tests, 22 Worker
+tests, 155 web tests, 21 architecture tests, and style. Worker wall time improved from the 5.90s
+baseline to 4.47s after the registry dispatch change.
+
+## [2026-07-11] engineering | Plan 065 migrates sources to native Effect Schema
+
+Added the small `@bp/domain/decode` policy surface with strict, strip, preserve, and Result-returning
+native Effect decoders; nested parse failures retain their field paths. Migrated every source
+adapter, Socrata contract, probe, GTFS-Realtime contract, and manifest member away from the
+zod-shaped compatibility shim. Raw upstream rows decode permissively, normalized outputs decode
+strictly, and the manifest union now applies one strict policy to every literal-tagged member. A
+member-mismatch fixture verifies that errors identify the selected member's missing field.
+
+The sources tree has zero `schema-compat` imports. Final verification passed: domain typecheck,
+sources typecheck and 35 tests, pipeline-v2 typecheck, 542 repo unit tests, shim-free and normalized
+decode-policy audits, `git diff --check`, and style (exit 0; pre-existing informational diagnostics
+remain).
+
+## [2026-07-11] engineering | Plan 066 migrates the remaining schema leaves to native Effect
+
+Replaced the pipeline CLI compatibility-schema surface with native Effect Schema descriptors and
+an AST-backed flag introspector, then migrated pipeline library boundaries, analytics contracts,
+Studio API reads, and Worker contract tests off `schema-compat`. Strict, strip, and preserve decode
+policies remain explicit at each boundary; CLI output schemas remain typing/documentation-only.
+Native error formatting now reports real nested paths for MTA-wiki route anchors and intervention
+records. Root and `ingest ace-routes` help output are byte-identical to their pre-migration captures.
+
+The leaf gate is empty across pipeline, analytics, Studio API, and web. Final verification passed:
+211 pipeline tests, 102 analytics tests, 54 Studio API tests, 22 Worker tests in 6.30 seconds, 155
+web tests, 550 repo unit tests, web architecture, CLI help diffs, `git diff --check`, and style.
+
+## [2026-07-11] engineering | Plan 067 removes the domain schema compatibility facade
+
+Migrated the domain registry, primitives, routes, maps, Studio, documents, and findings contracts
+to native Effect Schema with real per-type brands, literal-tagged unions, and explicit boundary
+decode policies. Removed `schema-compat.ts` and its package export, then added and deliberately
+tripped an architecture gate that prevents the compatibility facade or imports from returning.
+Pruning the migrated findings surface removed 1,166 unused migrated-format lines while preserving
+the dependency closure used by production and tests.
+
+Every served JSON Schema artifact is byte-identical to its pre-migration capture. Final
+verification passed: repository typechecking, 553 unit tests, 155 web tests, 22 Worker tests,
+architecture gates, `git diff --check`, and style. The production entry remains 105.5 KB gzip and
+the full web bundle remains 312.5 KB gzip.
+
+## [2026-07-11] engineering | Plan 077 restores validated MapLibre rendering
+
+Replaced every MapLibre-facing OKLCH value with a parser-tested sRGB ramp, centralized the base
+style and network scales, and added the installed MapLibre style-spec validator as an executable
+gate. Both maps now use the documented NYC bounds; the embedded route map uses cooperative
+gestures and zero-duration paint transitions under reduced motion.
+
+The loader now removes failed scripts and resets rejected loads, while a shared lifecycle seam
+distinguishes fatal pre-load failures from recoverable post-load warnings and removes maps
+idempotently. Static fallbacks expose a working retry; degraded route overlays replace dead
+checkboxes with an availability note. Chromium acceptance also found and fixed a covered mobile
+retry button and a zero-height route map caused by the single-column grid.
+
+Final verification passed: web typecheck, 9 focused tests, all 161 web tests, style, and a
+105.6 KB gzip entry / 313.7 KB gzip total bundle. Chrome for Testing 149.0.7827.55 verified
+`/map`, B48, and M15-SBS at desktop and 390px, including NYC clamping, page scroll over the
+embedded map, reduced motion, and forced vendor-failure recovery.
+
+## [2026-07-11] engineering | Plan 078 establishes canonical map segment identity
+
+Added exact route/month/source segment keys and ambiguity-rejecting aliases from current map and
+detail records to stable geographic speed-spine segments. Map and Studio producers now publish
+explicit current and stable IDs, enforce per-route uniqueness, retain unmatched status, and carry
+spine readiness through history artifacts, local coverage, D1, the Studio API, and the web.
+MapLibre no longer borrows detail data by array position; segment history joins only through the
+stable spine ID and reports unavailable or partial readiness explicitly.
+
+The bounded B41 proof rebuilt 36 months and passed with 16/16 exact map/detail joins, 16/16 stable
+detail/history joins, zero ambiguous or duplicate IDs, zero unmapped raw keys, and zero positional
+fallbacks. Final verification passed: all package typechecks, 567 unit tests, 164 web tests, 22
+Worker tests, 22 architecture tests, focused identity/loader/coverage/API tests, `git diff --check`,
+and style. The proof also removed two retired strict-release fields and fixed absolute temporary
+output/spine-root resolution discovered by the executable checker.
+
+## [2026-07-11] engineering | Plan 073 serves the reviewed intervention corpus
+
+Published a strict, source-linked projection of all 310 reviewed intervention records through the
+existing artifact endpoint and merged it into `/interventions` with exact registry-ID deduplication,
+route and treatment badges, documented-history treatment, nullable loading, and source citations.
+The report-only reconciliation preserves the reviewed corpus and admits only route-addressable,
+month-ready implemented or in-progress records to study inputs.
+
+The corrected study-readiness gate found 29 of 62 implemented/in-progress records month-ready. The
+live registry reconciliation found 11 matched corpus records (26 event IDs), 543 registry-only
+events, three pre-window corpus-only records, and no corpus-only event currently eligible for a
+study; therefore the Plan 074 operator-review list is empty. Final verification passed: 219
+pipeline tests, 72 domain tests, 165 web tests, root typechecking, 22 architecture boundaries plus
+five doctrine checks, style, a 105.7 KB gzip entry / 314.6 KB gzip total build, local R2 serving,
+and a headless-Chromium `/interventions` render with corpus rows and citations.

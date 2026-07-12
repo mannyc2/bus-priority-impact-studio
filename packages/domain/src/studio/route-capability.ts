@@ -1,4 +1,4 @@
-import * as z from "zod";
+import { Effect, Schema } from "effect";
 
 /**
  * The route capability manifest (frontend §7.1 / hard-cutover C1).
@@ -17,7 +17,7 @@ import * as z from "zod";
 export const STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY =
   "studio/v2/routes/route-capability-manifest.json";
 
-const MonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
+const MonthSchema = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/));
 
 /**
  * The seven surface states. `building` = the producer exists but hasn't finished
@@ -26,7 +26,7 @@ const MonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
  * `not_applicable` = the surface does not apply to this route; `blocked` = an upstream
  * dependency failed.
  */
-export const RouteSurfaceStateSchema = z.enum([
+export const RouteSurfaceStateSchema = Schema.Literals([
   "ready",
   "partial",
   "building",
@@ -35,11 +35,16 @@ export const RouteSurfaceStateSchema = z.enum([
   "not_applicable",
   "blocked",
 ]);
-export type RouteSurfaceState = z.output<typeof RouteSurfaceStateSchema>;
+export type RouteSurfaceState = typeof RouteSurfaceStateSchema.Type;
 
 /** Freshness of a surface's data relative to the release month it was built against. */
-export const RouteCapabilityFreshnessSchema = z.enum(["current", "recent", "stale", "unknown"]);
-export type RouteCapabilityFreshness = z.output<typeof RouteCapabilityFreshnessSchema>;
+export const RouteCapabilityFreshnessSchema = Schema.Literals([
+  "current",
+  "recent",
+  "stale",
+  "unknown",
+]);
+export type RouteCapabilityFreshness = typeof RouteCapabilityFreshnessSchema.Type;
 
 /** A `dataAsOf` within this many months of the reference month is "recent"; older is "stale". */
 const RECENT_DATA_AS_OF_WINDOW_MONTHS = 3;
@@ -65,79 +70,63 @@ export function freshnessForDataAsOf(
   return referenceIdx - dataIdx <= RECENT_DATA_AS_OF_WINDOW_MONTHS ? "recent" : "stale";
 }
 
-export const RouteSurfaceDepthSchema = z
-  .object({
-    monthsCovered: z.number().int().nonnegative(),
-    grains: z.array(z.string()),
-  })
-  .strict();
-export type RouteSurfaceDepth = z.output<typeof RouteSurfaceDepthSchema>;
+export const RouteSurfaceDepthSchema = Schema.Struct({
+  monthsCovered: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  grains: Schema.Array(Schema.String),
+});
+export type RouteSurfaceDepth = typeof RouteSurfaceDepthSchema.Type;
 
-export const RouteSurfaceCapabilitySchema = z
-  .object({
-    state: RouteSurfaceStateSchema,
-    reason: z.string().nullable(),
-    depth: RouteSurfaceDepthSchema.nullable(),
-    /** Latest input month behind this surface (`YYYY-MM`); each surface has its own clock. */
-    dataAsOf: MonthSchema.nullable(),
-    freshness: RouteCapabilityFreshnessSchema,
-  })
-  .strict();
-export type RouteSurfaceCapability = z.output<typeof RouteSurfaceCapabilitySchema>;
+export const RouteSurfaceCapabilitySchema = Schema.Struct({
+  state: RouteSurfaceStateSchema,
+  reason: Schema.NullOr(Schema.String),
+  depth: Schema.NullOr(RouteSurfaceDepthSchema),
+  /** Latest input month behind this surface (`YYYY-MM`); each surface has its own clock. */
+  dataAsOf: Schema.NullOr(MonthSchema),
+  freshness: RouteCapabilityFreshnessSchema,
+});
+export type RouteSurfaceCapability = typeof RouteSurfaceCapabilitySchema.Type;
 
 /** The per-route capability block carried on the route index row. */
-export const StudioRouteCapabilitySchema = z
-  .object({
-    overallState: RouteSurfaceStateSchema,
-    surfaces: z.record(z.string(), RouteSurfaceCapabilitySchema),
-    caveats: z.array(z.string()),
-  })
-  .strict();
-export type StudioRouteCapability = z.output<typeof StudioRouteCapabilitySchema>;
+export const StudioRouteCapabilitySchema = Schema.Struct({
+  overallState: RouteSurfaceStateSchema,
+  surfaces: Schema.Record(Schema.String, RouteSurfaceCapabilitySchema),
+  caveats: Schema.Array(Schema.String),
+});
+export type StudioRouteCapability = typeof StudioRouteCapabilitySchema.Type;
 
-export const RouteCapabilityManifestRowSchema = z
-  .object({
-    routeId: z.string().min(1),
-    overallState: RouteSurfaceStateSchema,
-    surfaces: z.record(z.string(), RouteSurfaceCapabilitySchema),
-    caveats: z.array(z.string()),
-  })
-  .strict();
-export type RouteCapabilityManifestRow = z.output<typeof RouteCapabilityManifestRowSchema>;
+export const RouteCapabilityManifestRowSchema = Schema.Struct({
+  routeId: Schema.String.check(Schema.isMinLength(1)),
+  overallState: RouteSurfaceStateSchema,
+  surfaces: Schema.Record(Schema.String, RouteSurfaceCapabilitySchema),
+  caveats: Schema.Array(Schema.String),
+});
+export type RouteCapabilityManifestRow = typeof RouteCapabilityManifestRowSchema.Type;
 
 /** The authoritative manifest contract — what the pipeline builder emits and the fixture must satisfy. */
-export const RouteCapabilityManifestSchema = z
-  .object({
-    artifactKind: z.literal("route_capability_manifest"),
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    releaseMonth: MonthSchema,
-    routes: z.array(RouteCapabilityManifestRowSchema),
-  })
-  .strict();
-export type RouteCapabilityManifest = z.output<typeof RouteCapabilityManifestSchema>;
+export const RouteCapabilityManifestSchema = Schema.Struct({
+  artifactKind: Schema.Literal("route_capability_manifest"),
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  releaseMonth: MonthSchema,
+  routes: Schema.Array(RouteCapabilityManifestRowSchema),
+});
+export type RouteCapabilityManifest = typeof RouteCapabilityManifestSchema.Type;
 
 /**
  * The light read-schema for the Worker join path. `.passthrough()` (and a passthrough
  * surface value) so forward-compatible additions — new manifest fields, new surface
  * keys, extra per-surface fields — never break a deployed Worker.
  */
-const RouteCapabilityManifestRowForIndexSchema = z
-  .object({
-    routeId: z.string(),
-    overallState: RouteSurfaceStateSchema,
-    surfaces: z.record(z.string(), RouteSurfaceCapabilitySchema.passthrough()),
-    caveats: z.array(z.string()).default([]),
-  })
-  .passthrough();
+const RouteCapabilityManifestRowForIndexSchema = Schema.Struct({
+  routeId: Schema.String,
+  overallState: RouteSurfaceStateSchema,
+  surfaces: Schema.Record(Schema.String, RouteSurfaceCapabilitySchema),
+  caveats: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultType(Effect.succeed([]))),
+});
 
-export const RouteCapabilityManifestForIndexSchema = z
-  .object({
-    artifactKind: z.literal("route_capability_manifest"),
-    schemaVersion: z.literal(1),
-    routes: z.array(RouteCapabilityManifestRowForIndexSchema),
-  })
-  .passthrough();
-export type RouteCapabilityManifestForIndex = z.output<
-  typeof RouteCapabilityManifestForIndexSchema
->;
+export const RouteCapabilityManifestForIndexSchema = Schema.Struct({
+  artifactKind: Schema.Literal("route_capability_manifest"),
+  schemaVersion: Schema.Literal(1),
+  routes: Schema.Array(RouteCapabilityManifestRowForIndexSchema),
+});
+export type RouteCapabilityManifestForIndex = typeof RouteCapabilityManifestForIndexSchema.Type;

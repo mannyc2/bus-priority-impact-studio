@@ -18,7 +18,7 @@ That profile fits compact read-heavy serving tables, route scorecards, public su
 
 Cloudflare's storage guidance points to Hyperdrive when an application needs a large single Postgres/MySQL database, existing database tools, or larger operational datasets. Hyperdrive also supports existing Postgres drivers and ORM/query-builder libraries from Workers.
 
-Drizzle gives the project the database benefits we want without treating the domain as an object graph: schema as code, typed SQL, safer inserts and updates, migrations, and generated Zod schemas where useful.
+Drizzle gives the project the database benefits we want without treating the domain as an object graph: schema as code, typed SQL, safer inserts and updates, migrations, and generated validation helpers where useful.
 
 ## Consequences
 

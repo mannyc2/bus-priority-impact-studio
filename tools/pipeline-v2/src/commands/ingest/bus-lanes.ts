@@ -1,27 +1,17 @@
-import { join } from "node:path";
 import { geometryCoordinates, replaceBusLanes } from "@bp/db/local";
+import { Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type NormalizedBusLane,
   normalizeBusLaneRows,
 } from "@bp/sources/adapters/nyc-dot/bus-lanes";
-import { getSocrataSource } from "@bp/sources/registry";
-import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { defineCommand, z } from "@liche/core";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
-import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
-import { fromRepoRoot } from "../../lib/paths.ts";
-import { fetchSoda3RowsForSource, type SocrataFetch, type SocrataRow } from "../../lib/soda3.ts";
-import { writeRawSourceSnapshot } from "../../lib/source-snapshots.ts";
+import { dbOptions } from "../../lib/local-db.ts";
+import {
+  defineSocrataReplaceIngest,
+  type SocrataReplaceIngestInputs,
+} from "../../lib/socrata-replace-ingest.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
-const sourceId = "nyc_dot_bus_lanes_local_streets";
-
-export type BusLanesRunInputs = {
-  local: OpenLocalPipelineDb;
-  fetchedAt?: Date | undefined;
-  fetcher?: SocrataFetch | undefined;
-  manifestText?: string | undefined;
-  snapshotPath?: string | undefined;
-};
+export type BusLanesRunInputs = SocrataReplaceIngestInputs;
 
 export type BusLanesIngestResult = {
   rawPath: string;
@@ -29,10 +19,7 @@ export type BusLanesIngestResult = {
   manhattanLaneCount: number;
 };
 
-function mergeOptionalField(
-  left: string | undefined,
-  right: string | undefined,
-): string | undefined {
+function mergeOptionalField(left: string | undefined, right: string | undefined) {
   if (left === undefined) return right;
   if (right === undefined || left === right) return left;
   return undefined;
@@ -66,58 +53,32 @@ function dedupeBusLaneRows(rows: readonly NormalizedBusLane[]): NormalizedBusLan
   return [...bySegmentId.values()];
 }
 
-export async function runBusLanesIngest(inputs: BusLanesRunInputs): Promise<BusLanesIngestResult> {
-  const manifestText =
-    inputs.manifestText ??
-    (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
-  const source = getSocrataSource(loadSourceManifestYaml(manifestText), sourceId);
-  const fetchedAt = (inputs.fetchedAt ?? new Date()).toISOString();
-  const rawPath =
-    inputs.snapshotPath ??
-    fromRepoRoot(join("data/raw/interventions/bus-lanes-local-streets.json"));
+export const runBusLanesIngest = defineSocrataReplaceIngest({
+  sourceId: "nyc_dot_bus_lanes_local_streets",
+  rawDir: "data/raw/interventions",
+  rawFileName: "bus-lanes-local-streets.json",
+  query: { order: "street, segmentid" },
+  normalize: (rows) => dedupeBusLaneRows(normalizeBusLaneRows([...rows])),
+  replaceRows: ({ local, rows }) =>
+    replaceBusLanes(
+      local.db,
+      rows.map((row) => ({ ...row, coordinates: geometryCoordinates(row.geometry) })),
+    ),
+  summarize: ({ rows }) => ({
+    laneCount: rows.length,
+    manhattanLaneCount: rows.filter((row) => row.borough === "MAN").length,
+  }),
+});
 
-  const rawRows: SocrataRow[] = [
-    ...(await fetchSoda3RowsForSource(
-      source,
-      { order: "street, segmentid" },
-      {
-        fetcher: inputs.fetcher,
-      },
-    )),
-  ];
-  const normalizedRows = dedupeBusLaneRows(normalizeBusLaneRows(rawRows));
-  const manhattanLaneCount = normalizedRows.filter((row) => row.borough === "MAN").length;
-
-  await replaceBusLanes(
-    inputs.local.db,
-    normalizedRows.map((row) => ({ ...row, coordinates: geometryCoordinates(row.geometry) })),
-  );
-  await writeRawSourceSnapshot({
-    path: rawPath,
-    sourceId,
-    fetchedAt,
-    query: { order: "street, segmentid" },
-    rows: rawRows,
-  });
-
-  return { rawPath, laneCount: normalizedRows.length, manhattanLaneCount };
-}
-
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "bus-lanes"],
   summary: "Fetch and dedupe the NYC DOT bus lanes local-streets dataset.",
-  input: { options: dbOptions },
-  output: z.object({
-    rawPath: z.string(),
-    laneCount: z.number(),
-    manhattanLaneCount: z.number(),
+  options: dbOptions,
+  output: Schema.Struct({
+    rawPath: Schema.String,
+    laneCount: Schema.Number,
+    manhattanLaneCount: Schema.Number,
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.bus-lanes",
-      operation: "runBusLanesIngest",
-      run: (local) => runBusLanesIngest({ local }),
-    });
-  },
+  operation: "runBusLanesIngest",
+  runner: (local) => runBusLanesIngest({ local }),
 });

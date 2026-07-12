@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { gzipSync } from "node:zlib";
 import {
   mapArtifactKey,
   mapArtifactManifestPath,
@@ -9,6 +10,9 @@ import {
 import {
   buildMapArtifactManifest,
   buildMapJsonArtifact,
+  evaluateAnalysisPeriodCurrency,
+  evaluateMaxAgeSnapshotCurrency,
+  evaluateRevisionPinnedCurrency,
   isMapArtifactManifest,
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,
@@ -19,8 +23,15 @@ import {
   type MapArtifactVerification,
   mapArtifactPayloadIssues,
   mapArtifactSha256,
+  mapBudgetIssues,
   verifyMapArtifactManifestContents,
 } from "@bp/analytics/evaluation";
+import {
+  classifyRouteSegmentSourceKey,
+  matchRouteSpeedSpineSegment,
+  serializeSourceSegmentId,
+  serializeStudioSegmentId,
+} from "@bp/analytics/feature-history";
 import type {
   LocalBusLane,
   LocalRouteBriefSummary,
@@ -34,22 +45,39 @@ import {
   listRouteSegmentSpeeds,
 } from "@bp/db/local";
 import {
+  type MapBorough,
+  type MapBusLaneFeatureCollection,
+  MapBusLaneFeatureCollectionSchema,
+  MapContextFeatureCollectionSchema,
+  MapLayerStatusSchema,
+  type MapNetworkFeatureCollection,
+  MapNetworkFeatureCollectionSchema,
+  MapRouteFactsResponseSchema,
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
+  MapRouteUniverseSchema,
+  MapSourceStatusSchema,
 } from "@bp/domain/maps";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type NormalizedRouteShape,
   type NormalizedStop,
   normalizeRouteShapeRows,
   normalizeStopRows,
 } from "@bp/sources/adapters/mta/routes-stops";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect, Result } from "effect";
 import { localTransformConcurrency, runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import {
+  type LoadedRouteSpeedSpineCrosswalk,
+  loadRouteSpeedSpineCrosswalk,
+} from "../../lib/route-speed-spine-crosswalk.ts";
+import { decodeSchemaEitherStrict, decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
+import { pointInPolygon } from "./context.ts";
 
 const displayRouteTypes = new Set(["Local", "Limited", "SBS"]);
 
@@ -114,41 +142,17 @@ type LineStringGeometry = {
   coordinates: [number, number][];
 };
 
-type MultiLineStringGeometry = {
-  type: "MultiLineString";
-  coordinates: [number, number][][];
-};
-
 type PointGeometry = {
   type: "Point";
   coordinates: [number, number];
 };
-
-export type NetworkMapProperties = {
-  routeId: string;
-  label: string;
-  borough: string;
-  sbs: boolean;
-  scheduledMph: number;
-  currentMph: number;
-  trend6mPct: number | null;
-  dailyRiders: number;
-  riderHoursLost: number | null;
-  laneCoverage: number;
-  ace: boolean;
-  hotspotCount: number;
-  segmentCount: number;
-  hours: number[];
-};
-
-export type NetworkMapFeature = GeoJsonFeature<MultiLineStringGeometry, NetworkMapProperties>;
-export type NetworkMapFeatureCollection = FeatureCollection<NetworkMapFeature>;
 
 export type NetworkRouteBuildInput = {
   routeId: string;
   summary: LocalRouteBriefSummary;
   speedRows: readonly LocalRouteSegmentSpeed[];
   segmentPayload: MapRouteSegmentFeatureCollection;
+  servedBoroughs?: readonly MapBorough[] | undefined;
 };
 
 export type { MapArtifactManifest, MapArtifactVerification };
@@ -198,17 +202,60 @@ function defaultBusLaneSnapshotPath(): string {
   return fromRepoRoot("data/raw/interventions/bus-lanes-local-streets.json");
 }
 
+function defaultContextPath(artifactRoot: string): string {
+  return join(artifactRoot, "map", "context", "nyc-boroughs.min.geojson");
+}
+
+export async function servedBoroughsByRoute(input: {
+  contextPath: string;
+  stops: readonly NormalizedStop[];
+}): Promise<Map<string, MapBorough[]> | null> {
+  const contextFile = Bun.file(input.contextPath);
+  if (!(await contextFile.exists())) return null;
+  const context = decodeSchemaStrict(MapContextFeatureCollectionSchema, await contextFile.json());
+  const result = new Map<string, Set<MapBorough>>();
+  for (const stop of input.stops) {
+    if (!stop.inEffect) continue;
+    const point = [stop.longitude, stop.latitude] as const;
+    for (const borough of context.features) {
+      const contains = borough.geometry.coordinates.some((polygon) =>
+        pointInPolygon(point, polygon),
+      );
+      if (!contains) continue;
+      const matches = result.get(stop.routeId) ?? new Set<MapBorough>();
+      matches.add(borough.properties.boroName);
+      result.set(stop.routeId, matches);
+    }
+  }
+  return new Map(
+    [...result].map(([routeId, boroughs]) => [routeId, [...boroughs].toSorted()] as const),
+  );
+}
+
 function isJsonObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function routeSegmentIdFor(
-  row: Pick<
-    LocalRouteSegmentSpeed,
-    "direction" | "stopOrder" | "timepointStopId" | "nextTimepointStopId"
-  >,
+  input: Pick<RouteSegmentGroup, "routeId" | "month"> & {
+    row: Pick<
+      LocalRouteSegmentSpeed,
+      "direction" | "stopOrder" | "timepointStopId" | "nextTimepointStopId"
+    >;
+  },
 ): string {
-  return [row.direction, row.stopOrder, row.timepointStopId, row.nextTimepointStopId].join(":");
+  const classified = classifyRouteSegmentSourceKey({
+    routeId: input.routeId,
+    month: input.month,
+    direction: input.row.direction,
+    stopOrder: input.row.stopOrder,
+    fromStopId: input.row.timepointStopId,
+    toStopId: input.row.nextTimepointStopId,
+  });
+  if (classified.status !== "keyed") {
+    throw new Error(`Published map segment ${input.routeId} ${input.month} has no stop pair.`);
+  }
+  return serializeSourceSegmentId(classified.key);
 }
 
 function routeShapeId(row: RouteShapePath, index: number): string {
@@ -330,25 +377,135 @@ async function verifyArtifactFile(input: {
   return issues;
 }
 
+async function verifyRouteFactsReference(input: {
+  artifactRoot: string;
+  month: string;
+  manifest: MapArtifactManifest;
+  expectedRouteIds?: readonly string[];
+}): Promise<MapArtifactIssue[]> {
+  if (input.manifest.routeFacts.status === "unavailable") return [];
+  const reference = input.manifest.routeFacts;
+  const file = Bun.file(join(input.artifactRoot, reference.artifactKey));
+  if (!(await file.exists())) {
+    return [
+      {
+        code: "map_route_facts_file_missing",
+        artifactKey: reference.artifactKey,
+        message: `Missing map route-facts file ${reference.artifactKey}.`,
+      },
+    ];
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const gzipByteLength = gzipSync(bytes, { level: 9 }).byteLength;
+  const issues: MapArtifactIssue[] = [];
+  if (bytes.byteLength !== reference.byteLength) {
+    issues.push({
+      code: "map_route_facts_byte_length_mismatch",
+      artifactKey: reference.artifactKey,
+      message: `Map route facts expected ${reference.byteLength} bytes but found ${bytes.byteLength}.`,
+    });
+  }
+  if (gzipByteLength !== reference.gzipByteLength) {
+    issues.push({
+      code: "map_route_facts_gzip_length_mismatch",
+      artifactKey: reference.artifactKey,
+      message: `Map route facts expected ${reference.gzipByteLength} gzip bytes but found ${gzipByteLength}.`,
+    });
+  }
+  if (mapArtifactSha256(bytes) !== reference.sha256) {
+    issues.push({
+      code: "map_route_facts_hash_mismatch",
+      artifactKey: reference.artifactKey,
+      message: `Map route facts ${reference.artifactKey} failed SHA-256 verification.`,
+    });
+  }
+  let facts: typeof MapRouteFactsResponseSchema.Type | null = null;
+  try {
+    facts = decodeSchemaStrict(
+      MapRouteFactsResponseSchema,
+      JSON.parse(new TextDecoder().decode(bytes)),
+    );
+  } catch {
+    issues.push({
+      code: "map_route_facts_payload_invalid",
+      artifactKey: reference.artifactKey,
+      message: `Map route facts ${reference.artifactKey} failed the domain contract.`,
+    });
+  }
+  if (facts !== null) {
+    if (facts.baselineMonth !== input.month) {
+      issues.push({
+        code: "map_route_facts_payload_month_mismatch",
+        artifactKey: reference.artifactKey,
+        message: `Map route facts payload is for ${facts.baselineMonth}, expected ${input.month}.`,
+      });
+    }
+    if (facts.routes.length !== reference.routeCount) {
+      issues.push({
+        code: "map_route_facts_route_count_mismatch",
+        artifactKey: reference.artifactKey,
+        message: `Map route facts declare ${reference.routeCount} routes but contain ${facts.routes.length}.`,
+      });
+    }
+    if (input.expectedRouteIds !== undefined) {
+      const factRouteIds = new Set<string>(
+        facts.routes.map((fact) => fact.route.routeId as string),
+      );
+      const missing = input.expectedRouteIds.filter((routeId) => !factRouteIds.has(routeId));
+      if (missing.length > 0) {
+        issues.push({
+          code: "map_route_facts_routes_missing",
+          artifactKey: reference.artifactKey,
+          message: `${missing.length} expected map route(s) lack route facts: ${missing.slice(0, 5).join(", ")}.`,
+        });
+      }
+    }
+    for (const issue of mapBudgetIssues({
+      kind: "routeFacts",
+      rawBytes: bytes.byteLength,
+      gzipBytes: gzipByteLength,
+      routes: facts.routes.length,
+    })) {
+      issues.push({
+        code: "map_route_facts_budget_exceeded",
+        artifactKey: reference.artifactKey,
+        message: `Map route facts ${reference.artifactKey} exceed their budget: ${issue}.`,
+      });
+    }
+  }
+  return issues;
+}
+
 export async function verifyMapArtifactManifest(input: {
   artifactRoot: string;
   month: string;
   expectedRouteIds?: readonly string[];
+  expectedProfile?: "demo" | "full";
 }): Promise<MapArtifactVerification> {
   const manifestPath = mapArtifactManifestPath(input.artifactRoot, input.month);
   const manifest = await readMapArtifactManifest(input);
   const artifactIssues =
     manifest === null
       ? []
-      : (
-          await runBoundedPromises(manifest.artifacts, localTransformConcurrency, (artifact) =>
-            verifyArtifactFile({
-              artifactRoot: input.artifactRoot,
-              month: input.month,
-              artifact,
-            }),
-          )
-        ).flat();
+      : [
+          ...(
+            await runBoundedPromises(manifest.artifacts, localTransformConcurrency, (artifact) =>
+              verifyArtifactFile({
+                artifactRoot: input.artifactRoot,
+                month: input.month,
+                artifact,
+              }),
+            )
+          ).flat(),
+          ...(await verifyRouteFactsReference({
+            artifactRoot: input.artifactRoot,
+            month: input.month,
+            manifest,
+            ...(input.expectedRouteIds === undefined
+              ? {}
+              : { expectedRouteIds: input.expectedRouteIds }),
+          })),
+        ];
 
   return verifyMapArtifactManifestContents({
     manifestPath,
@@ -356,6 +513,7 @@ export async function verifyMapArtifactManifest(input: {
     manifest,
     artifactIssues,
     ...(input.expectedRouteIds === undefined ? {} : { expectedRouteIds: input.expectedRouteIds }),
+    ...(input.expectedProfile === undefined ? {} : { expectedProfile: input.expectedProfile }),
   });
 }
 
@@ -568,11 +726,7 @@ function weightedAverageSpeed(rows: readonly LocalRouteSegmentSpeed[]): number |
     return rounded(weightedSpeed / totalWeight, 2);
   }
 
-  if (rows.length === 0) {
-    return null;
-  }
-
-  return rounded(rows.reduce((sum, row) => sum + row.averageRoadSpeedMph, 0) / rows.length, 2);
+  return null;
 }
 
 function segmentGroups(input: {
@@ -583,15 +737,17 @@ function segmentGroups(input: {
 }): RouteSegmentGroup[] {
   const groups = new Map<string, LocalRouteSegmentSpeed[]>();
   for (const row of input.rows) {
-    const segmentId = routeSegmentIdFor(row);
-    const group = groups.get(segmentId) ?? [];
+    const physicalSegmentKey = [row.direction, row.timepointStopId, row.nextTimepointStopId].join(
+      ":",
+    );
+    const group = groups.get(physicalSegmentKey) ?? [];
     group.push(row);
-    groups.set(segmentId, group);
+    groups.set(physicalSegmentKey, group);
   }
 
-  return [...groups.entries()]
-    .map(([segmentId, rows]) => {
-      const first = rows[0];
+  return [...groups.values()]
+    .map((rows) => {
+      const first = rows.toSorted((left, right) => left.stopOrder - right.stopOrder)[0];
       if (first === undefined) {
         return null;
       }
@@ -601,7 +757,11 @@ function segmentGroups(input: {
       }
 
       return {
-        segmentId,
+        segmentId: routeSegmentIdFor({
+          routeId: input.routeId,
+          month: input.month,
+          row: first,
+        }),
         routeId: input.routeId,
         month: input.month,
         direction: first.direction,
@@ -642,6 +802,7 @@ function routeSegmentsFeatureCollection(input: {
   segments: readonly RouteSegmentGroup[];
   hotspots: readonly LocalRouteHotspot[];
   shapesByDirection: Map<string, RouteShapePath[]>;
+  spine: LoadedRouteSpeedSpineCrosswalk;
 }): MapRouteSegmentFeatureCollection {
   const hotspotRows = hotspotBySegmentId(input.hotspots);
   const features: unknown[] = [];
@@ -653,15 +814,43 @@ function routeSegmentsFeatureCollection(input: {
     }
 
     const hotspot = hotspotRows.get(segment.segmentId);
+    const classified = classifyRouteSegmentSourceKey({
+      routeId: segment.routeId,
+      month: segment.month,
+      direction: segment.direction,
+      stopOrder: segment.stopOrder,
+      fromStopId: segment.timepointStopId,
+      toStopId: segment.nextTimepointStopId,
+    });
+    if (classified.status !== "keyed") {
+      throw new Error(
+        `Published map segment ${segment.routeId} ${segment.month} has no stop pair.`,
+      );
+    }
+    const sourceSegmentId = serializeSourceSegmentId(classified.key);
+    const studioSegmentId = serializeStudioSegmentId(classified.key);
+    const spineMatch =
+      input.spine.status === "ready"
+        ? matchRouteSpeedSpineSegment(input.spine.crosswalk, classified.key)
+        : null;
     features.push({
       type: "Feature",
-      id: ["route-segment", segment.routeId, segment.month, segment.segmentId].join(":"),
+      id: ["route-segment", studioSegmentId].join(":"),
       geometry: {
         type: "LineString",
         coordinates: geometry.coordinates.map(roundedCoordinate),
       },
       properties: {
         segmentId: segment.segmentId,
+        sourceSegmentId,
+        studioSegmentId,
+        spineSegmentId: spineMatch?.status === "matched" ? spineMatch.spineSegmentId : null,
+        spineJoinStatus:
+          input.spine.status === "not_built"
+            ? "not_built"
+            : spineMatch?.status === "matched"
+              ? "matched"
+              : "unmatched",
         routeId: segment.routeId,
         directionId: segment.directionId,
         month: segment.month,
@@ -675,7 +864,7 @@ function routeSegmentsFeatureCollection(input: {
     });
   }
 
-  return MapRouteSegmentFeatureCollectionSchema.parse({
+  return decodeSchemaStrict(MapRouteSegmentFeatureCollectionSchema, {
     type: "FeatureCollection",
     features,
   });
@@ -742,7 +931,10 @@ function stopsFeatureCollection(stops: readonly NormalizedStop[]): FeatureCollec
         id: ["stop", row.routeId, row.directionId, row.stopId].join(":"),
         geometry: {
           type: "Point" as const,
-          coordinates: roundedCoordinate({ longitude: row.longitude, latitude: row.latitude }),
+          coordinates: roundedCoordinate({
+            longitude: row.longitude,
+            latitude: row.latitude,
+          }),
         },
         properties: {
           routeId: row.routeId,
@@ -757,100 +949,97 @@ function stopsFeatureCollection(stops: readonly NormalizedStop[]): FeatureCollec
   };
 }
 
-function busLaneFeatureCollection(lanes: readonly LocalBusLane[]): FeatureCollection<
-  GeoJsonFeature<
-    LineStringGeometry,
-    {
-      segmentId: string;
-      street: string;
-      borough: string;
-      facility: string;
-      laneType: string | null;
-      openDate: string | null;
-    }
-  >
-> {
+export function normalizeBusLaneBorough(value: string): MapBorough | null {
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "MAN" || normalized === "MN") return "Manhattan";
+  if (normalized === "BK") return "Brooklyn";
+  if (normalized === "BX") return "Bronx";
+  if (normalized === "QNS" || normalized === "QN") return "Queens";
+  if (normalized === "SI") return "Staten Island";
+  return null;
+}
+
+export function normalizeBusLaneOpenDate(value: string | null): string | null {
+  if (value === null) return null;
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(value.trim());
+  if (match === null) return null;
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  const rawYear = Number(match[3]);
+  const year = rawYear < 100 ? (rawYear >= 70 ? 1900 + rawYear : 2000 + rawYear) : rawYear;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+export function busLaneFeatureCollection(
+  lanes: readonly LocalBusLane[],
+): MapBusLaneFeatureCollection {
   return {
     type: "FeatureCollection",
-    features: lanes
-      .filter((row) => row.coordinates.length >= 2)
-      .map((row) => ({
-        type: "Feature" as const,
-        id: ["bus-lane", row.segmentId].join(":"),
-        geometry: {
-          type: "LineString" as const,
-          coordinates: row.coordinates.map((coordinate) => roundedCoordinate(coordinate)),
+    features: lanes.flatMap((row) => {
+      const borough = normalizeBusLaneBorough(row.borough);
+      if (row.coordinates.length < 2 || borough === null) return [];
+      return [
+        {
+          type: "Feature" as const,
+          geometry: {
+            type: "LineString" as const,
+            coordinates: row.coordinates.map((coordinate) => roundedCoordinate(coordinate)),
+          },
+          properties: {
+            segmentId: row.segmentId,
+            street: row.street,
+            borough,
+            facility: row.facility,
+            laneType: row.laneType ?? null,
+            openDate: normalizeBusLaneOpenDate(row.openDate ?? null),
+          },
         },
-        properties: {
-          segmentId: row.segmentId,
-          street: row.street,
-          borough: row.borough,
-          facility: row.facility,
-          laneType: row.laneType ?? null,
-          openDate: row.openDate ?? null,
-        },
-      })),
+      ];
+    }),
   };
 }
 
-function routeLabel(routeId: string): string {
-  return routeId.endsWith("+") ? `${routeId.slice(0, -1)} SBS` : routeId;
-}
-
-function routeIsSbs(routeId: string): boolean {
-  return routeId.endsWith("+");
-}
-
-function routeBorough(speedRows: readonly LocalRouteSegmentSpeed[]): string {
-  const counts = new Map<string, number>();
-  for (const row of speedRows) {
-    counts.set(row.borough, (counts.get(row.borough) ?? 0) + 1);
-  }
-  let best: { borough: string; count: number } | null = null;
-  for (const [borough, count] of counts) {
-    if (best === null || count > best.count) {
-      best = { borough, count };
-    }
-  }
-  return best?.borough ?? "Citywide";
-}
-
-function routeHourSpeeds(
-  speedRows: readonly LocalRouteSegmentSpeed[],
-  fallbackSpeedMph: number,
-): number[] {
-  return Array.from({ length: 24 }, (_, hour) => {
+function routeHourEvidence(speedRows: readonly LocalRouteSegmentSpeed[]): {
+  hourlySpeedMph: Array<number | null>;
+  hourlyTraversalCount: number[];
+} {
+  const hourlySpeedMph: Array<number | null> = [];
+  const hourlyTraversalCount: number[] = [];
+  for (let hour = 0; hour < 24; hour += 1) {
     const rows = speedRows.filter((row) => row.hourOfDay === hour);
-    return weightedAverageSpeed(rows) ?? rounded(fallbackSpeedMph, 2);
-  });
-}
-
-function laneCoverage(summary: LocalRouteBriefSummary, segmentCount: number): number {
-  if (segmentCount <= 0) return 0;
-  return Math.max(
-    0,
-    Math.min(100, Math.round((summary.busLaneMatchedLaneCount / segmentCount) * 100)),
-  );
+    const traversalCount = rows.reduce((sum, row) => sum + Math.max(0, row.busTripCount), 0);
+    hourlyTraversalCount.push(traversalCount);
+    hourlySpeedMph.push(traversalCount > 0 ? weightedAverageSpeed(rows) : null);
+  }
+  return { hourlySpeedMph, hourlyTraversalCount };
 }
 
 function thinCoordinatePairs(
   coordinates: readonly (readonly [number, number])[],
 ): [number, number][] {
   if (coordinates.length <= 8) {
-    return coordinates.map(([lon, lat]) => [rounded(lon), rounded(lat)]);
+    return coordinates.map(([lon, lat]) => [rounded(lon, 5), rounded(lat, 5)]);
   }
   const step = Math.max(1, Math.ceil(coordinates.length / 18));
   const output: [number, number][] = [];
   for (let index = 0; index < coordinates.length; index += step) {
     const coordinate = coordinates[index];
     if (coordinate !== undefined) {
-      output.push([rounded(coordinate[0]), rounded(coordinate[1])]);
+      output.push([rounded(coordinate[0], 5), rounded(coordinate[1], 5)]);
     }
   }
   const last = coordinates.at(-1);
   if (last !== undefined) {
     const previous = output.at(-1);
-    const roundedLast: [number, number] = [rounded(last[0]), rounded(last[1])];
+    const roundedLast: [number, number] = [rounded(last[0], 5), rounded(last[1], 5)];
     if (
       previous === undefined ||
       previous[0] !== roundedLast[0] ||
@@ -864,8 +1053,8 @@ function thinCoordinatePairs(
 
 export function buildNetworkMapFeatureCollection(input: {
   routes: readonly NetworkRouteBuildInput[];
-}): NetworkMapFeatureCollection {
-  return {
+}): MapNetworkFeatureCollection {
+  return decodeSchemaStrict(MapNetworkFeatureCollectionSchema, {
     type: "FeatureCollection",
     features: input.routes.flatMap((route) => {
       const coordinates = route.segmentPayload.features
@@ -874,34 +1063,25 @@ export function buildNetworkMapFeatureCollection(input: {
       if (coordinates.length === 0) {
         return [];
       }
+      const hourly = routeHourEvidence(route.speedRows);
       return [
         {
           type: "Feature" as const,
-          id: ["network-route", route.routeId].join(":"),
           geometry: {
             type: "MultiLineString" as const,
             coordinates,
           },
           properties: {
             routeId: route.routeId,
-            label: routeLabel(route.routeId),
-            borough: routeBorough(route.speedRows),
-            sbs: routeIsSbs(route.routeId),
-            scheduledMph: rounded(route.summary.averageSpeedMph * 1.18, 2),
-            currentMph: rounded(route.summary.averageSpeedMph, 2),
-            trend6mPct: null,
-            dailyRiders: Math.round(route.summary.totalRidership / 30),
-            riderHoursLost: null,
-            laneCoverage: laneCoverage(route.summary, route.segmentPayload.features.length),
-            ace: route.summary.aceActive,
-            hotspotCount: route.summary.hotspotCount,
-            segmentCount: route.segmentPayload.features.length,
-            hours: routeHourSpeeds(route.speedRows, route.summary.averageSpeedMph),
+            month: route.summary.month,
+            ...hourly,
+            servedBoroughs: route.servedBoroughs ?? [],
+            servedBoroughsStatus: route.servedBoroughs === undefined ? "unavailable" : "verified",
           },
         },
       ];
     }),
-  };
+  });
 }
 
 async function readSnapshotMetadata(input: {
@@ -1051,20 +1231,85 @@ export type MapArtifactsInputs = {
   local: OpenLocalPipelineDb;
   year: number;
   month: number;
+  releaseProfile: "demo" | "full";
   artifactRoot?: string | undefined;
+  speedSpineRoot?: string | undefined;
   routeShapeSnapshotPath?: string | undefined;
   stopSnapshotPath?: string | undefined;
   busLaneSnapshotPath?: string | undefined;
+  contextPath?: string | undefined;
+  contextSourcePath?: string | undefined;
+  routeFactsPath?: string | undefined;
+  routeIds?: readonly string[] | undefined;
 };
 
 export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArtifactsResult> {
   const isoMonthStr = isoMonth(args.year, args.month);
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
+  const speedSpineRoot = args.speedSpineRoot ?? artifactRoot;
   const generatedAt = new Date().toISOString();
+  const routeFactsPath =
+    args.routeFactsPath ?? join(artifactRoot, "studio", "v1", "map-route-facts.json");
+  const routeFactsFile = Bun.file(routeFactsPath);
+  const routeFacts = (await routeFactsFile.exists())
+    ? decodeSchemaStrict(MapRouteFactsResponseSchema, await routeFactsFile.json())
+    : null;
+  if (routeFacts !== null && routeFacts.baselineMonth !== isoMonthStr) {
+    throw new Error(
+      `Map route facts are for ${routeFacts.baselineMonth}, expected ${isoMonthStr}.`,
+    );
+  }
+  if (args.releaseProfile === "full" && routeFacts === null) {
+    throw new Error(`Full map release requires route facts at ${routeFactsPath}.`);
+  }
+  const routeFactsBytes =
+    routeFacts === null ? null : new Uint8Array(await routeFactsFile.arrayBuffer());
+  const routeFactsReference: MapArtifactManifest["routeFacts"] =
+    routeFacts === null
+      ? {
+          status: "unavailable",
+          reason: "Same-month map route facts are unavailable.",
+        }
+      : {
+          status: "available",
+          artifactKey: "studio/v1/map-route-facts.json",
+          sha256: mapArtifactSha256(routeFactsBytes as Uint8Array),
+          schemaVersion: 1,
+          baselineMonth: routeFacts.baselineMonth,
+          routeCount: routeFacts.routes.length,
+          byteLength: (routeFactsBytes as Uint8Array).byteLength,
+          gzipByteLength: gzipSync(routeFactsBytes as Uint8Array, { level: 9 }).byteLength,
+        };
   const routeShapeSnapshot = await readRouteShapeSnapshot(
     args.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath(),
   );
   const stopSnapshot = await readStopSnapshot(args.stopSnapshotPath ?? defaultStopSnapshotPath());
+  const contextPath = args.contextPath ?? defaultContextPath(artifactRoot);
+  const contextFile = Bun.file(contextPath);
+  const context = (await contextFile.exists())
+    ? decodeSchemaStrict(MapContextFeatureCollectionSchema, await contextFile.json())
+    : null;
+  const contextSourceFile =
+    args.contextSourcePath === undefined ? null : Bun.file(args.contextSourcePath);
+  const contextSourceBytes =
+    contextSourceFile !== null && (await contextSourceFile.exists())
+      ? new Uint8Array(await contextSourceFile.arrayBuffer())
+      : null;
+  const contextSourceSha256 =
+    contextSourceBytes === null ? null : mapArtifactSha256(contextSourceBytes);
+  const contextCurrency = evaluateRevisionPinnedCurrency({
+    embeddedSha256: context?.sourceRevision.sha256 ?? null,
+    sourceSha256: contextSourceSha256,
+  });
+  if (args.releaseProfile === "full" && contextCurrency.status !== "revision_pinned") {
+    throw new Error(
+      `Full map release requires borough context pinned to its exact source bytes: ${contextCurrency.reason}`,
+    );
+  }
+  const boroughsByRoute = await servedBoroughsByRoute({
+    contextPath,
+    stops: stopSnapshot.stops,
+  });
   const busLaneSnapshot = await readSnapshotMetadata({
     sourceId: "nyc_dot_bus_lanes_local_streets",
     snapshotPath: args.busLaneSnapshotPath ?? defaultBusLaneSnapshotPath(),
@@ -1074,6 +1319,53 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     local: args.local,
     month: options.isoMonth,
   });
+  const routeFilter = new Set((args.routeIds ?? []).map((routeId) => routeId.trim().toUpperCase()));
+  const selectedRouteRows = rows.routeRows.filter(
+    (route) => routeFilter.size === 0 || routeFilter.has(route.routeId),
+  );
+  const routeShapeCurrency = evaluateMaxAgeSnapshotCurrency({
+    fetchedAt: routeShapeSnapshot.metadata.fetchedAt,
+    evaluatedAt: generatedAt,
+  });
+  const stopCurrency = evaluateMaxAgeSnapshotCurrency({
+    fetchedAt: stopSnapshot.metadata.fetchedAt,
+    evaluatedAt: generatedAt,
+  });
+  const speedCurrency = evaluateAnalysisPeriodCurrency({
+    baselineMonth: isoMonthStr,
+    releaseMonth: isoMonthStr,
+    coveragePassed:
+      selectedRouteRows.length > 0 &&
+      selectedRouteRows.every((route) =>
+        route.speedRows.some((row) => row.busTripCount > 0 && row.averageRoadSpeedMph >= 0),
+      ),
+  });
+  const routeFactsCurrency = evaluateAnalysisPeriodCurrency({
+    baselineMonth: routeFacts?.baselineMonth ?? isoMonthStr,
+    releaseMonth: isoMonthStr,
+    coveragePassed: routeFacts !== null,
+  });
+  if (args.releaseProfile === "full") {
+    const factRouteIds = new Set<string>(
+      routeFacts?.routes.map((fact) => fact.route.routeId as string) ?? [],
+    );
+    const missingFacts = selectedRouteRows
+      .map((route) => route.routeId)
+      .filter((routeId) => !factRouteIds.has(routeId));
+    if (missingFacts.length > 0) {
+      throw new Error(
+        `Full map release lacks route facts for ${missingFacts.length} mapped route(s): ${missingFacts.slice(0, 5).join(", ")}.`,
+      );
+    }
+    const missingBoroughs = selectedRouteRows
+      .map((route) => route.routeId)
+      .filter((routeId) => (boroughsByRoute?.get(routeId)?.length ?? 0) === 0);
+    if (missingBoroughs.length > 0) {
+      throw new Error(
+        `Full map release lacks verified served-borough membership for ${missingBoroughs.length} route(s): ${missingBoroughs.slice(0, 5).join(", ")}.`,
+      );
+    }
+  }
   const shapesByDirection = shapesByRouteDirection(routeShapeSnapshot.shapes);
   const directionIdByDirection = directionIdsByRouteDirection(routeShapeSnapshot.shapes);
   const sourcePayload = {
@@ -1100,6 +1392,19 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       featureCount: sourcePayload.sources.length,
     }),
   );
+  if (context !== null) {
+    artifacts.push(
+      await writeJsonArtifact({
+        path: defaultContextPath(artifactRoot),
+        artifactKey: mapArtifactKey("context", "nyc-boroughs.min.geojson"),
+        artifactKind: "map_borough_context_geojson",
+        contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+        routeId: null,
+        payload: context,
+        featureCount: context.features.length,
+      }),
+    );
+  }
   artifacts.push(
     await writeJsonArtifact({
       path: mapArtifactPath(artifactRoot, "routes", "current-local-limited-sbs.min.geojson"),
@@ -1122,20 +1427,41 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       featureCount: stops.features.length,
     }),
   );
-  artifacts.push(
-    await writeJsonArtifact({
-      path: mapArtifactPath(artifactRoot, "bus-lanes", "local-streets.min.geojson"),
-      artifactKey: mapArtifactKey("bus-lanes", "local-streets.min.geojson"),
-      artifactKind: "map_bus_lanes_geojson",
-      contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
-      routeId: null,
-      payload: busLanes,
-      featureCount: busLanes.features.length,
-    }),
+  const busLaneArtifact = buildMapJsonArtifact({
+    artifactKey: mapArtifactKey("bus-lanes", "local-streets.min.geojson"),
+    artifactKind: "map_bus_lanes_geojson",
+    contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
+    routeId: null,
+    payload: busLanes,
+    featureCount: busLanes.features.length,
+  });
+  const busLaneCurrency = evaluateMaxAgeSnapshotCurrency({
+    fetchedAt: busLaneSnapshot.metadata.fetchedAt,
+    evaluatedAt: generatedAt,
+  });
+  const busLaneBudgetIssues = mapBudgetIssues({
+    kind: "busLanes",
+    rawBytes: busLaneArtifact.entry.byteLength,
+    gzipBytes: busLaneArtifact.entry.gzipByteLength,
+    features: busLaneArtifact.entry.featureCount,
+  });
+  const busLaneContractValid = Result.isSuccess(
+    decodeSchemaEitherStrict(MapBusLaneFeatureCollectionSchema, busLanes),
   );
+  if (
+    busLaneSnapshot.metadata.status === "available" &&
+    busLaneCurrency.status === "current" &&
+    busLaneBudgetIssues.length === 0 &&
+    busLaneContractValid
+  ) {
+    const busLanePath = mapArtifactPath(artifactRoot, "bus-lanes", "local-streets.min.geojson");
+    await mkdir(dirname(busLanePath), { recursive: true });
+    await Bun.write(busLanePath, busLaneArtifact.bytes);
+    artifacts.push(busLaneArtifact.entry);
+  }
 
   const routeArtifactResults = await runBoundedPromises(
-    rows.routeRows,
+    selectedRouteRows,
     localTransformConcurrency,
     async (route) => {
       const routeDirectionIds = new Map<string, "0" | "1">();
@@ -1156,13 +1482,40 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
         rows: route.speedRows,
         directionIdByDirection: routeDirectionIds,
       });
+      const spine = await loadRouteSpeedSpineCrosswalk({
+        artifactRoot: speedSpineRoot,
+        routeId: route.routeId,
+      });
       const payload = routeSegmentsFeatureCollection({
         routeId: route.routeId,
         month: options.isoMonth,
         segments,
         hotspots: route.hotspots,
         shapesByDirection: routeShapes,
+        spine,
       });
+      const matchedSpineIds = new Set<string>();
+      let unmatchedSegmentCount = 0;
+      for (const feature of payload.features) {
+        const { spineJoinStatus, spineSegmentId } = feature.properties;
+        if (spineJoinStatus === "unmatched") unmatchedSegmentCount += 1;
+        if (spineSegmentId === null) continue;
+        if (matchedSpineIds.has(spineSegmentId)) {
+          throw new Error(
+            `Map route ${route.routeId} ${options.isoMonth} maps more than one current segment to ${spineSegmentId}.`,
+          );
+        }
+        matchedSpineIds.add(spineSegmentId);
+      }
+      if (
+        spine.status === "ready" &&
+        spine.audit.readiness === "series_ready" &&
+        unmatchedSegmentCount > 0
+      ) {
+        throw new Error(
+          `Map route ${route.routeId} is series_ready but has ${unmatchedSegmentCount} unmatched current segments.`,
+        );
+      }
       const artifactKey = routeSegmentMapArtifactKey(route.routeId, options.isoMonth);
       return {
         networkRoute: {
@@ -1170,6 +1523,9 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
           summary: route.summary,
           speedRows: route.speedRows,
           segmentPayload: payload,
+          ...(boroughsByRoute?.get(route.routeId) === undefined
+            ? {}
+            : { servedBoroughs: boroughsByRoute.get(route.routeId) }),
         },
         artifact: await writeJsonArtifact({
           path: join(artifactRoot, artifactKey),
@@ -1187,7 +1543,9 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     networkRoutes.push(result.networkRoute);
     artifacts.push(result.artifact);
   }
-  const networkPayload = buildNetworkMapFeatureCollection({ routes: networkRoutes });
+  const networkPayload = buildNetworkMapFeatureCollection({
+    routes: networkRoutes,
+  });
   artifacts.push(
     await writeJsonArtifact({
       path: mapArtifactPath(artifactRoot, options.isoMonth, "network-simplified.geojson"),
@@ -1203,24 +1561,289 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const routeSegmentFeatureCount = artifacts
     .filter((row) => row.artifactKind === "map_route_segments_geojson")
     .reduce((sum, row) => sum + row.featureCount, 0);
+  const artifactFor = (kind: MapArtifactEntry["artifactKind"]): MapArtifactEntry | null =>
+    artifacts.find((artifact) => artifact.artifactKind === kind) ?? null;
+  const routeSegmentArtifacts = artifacts.filter(
+    (artifact) => artifact.artifactKind === "map_route_segments_geojson",
+  );
+  const busLaneEntry = artifactFor("map_bus_lanes_geojson");
+  const sources = [
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "current_bus_routes",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: "available",
+      currencyStatus: routeShapeCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: routeShapeSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: routeShapeCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      reason: routeShapeCurrency.reason,
+    }),
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "current_bus_stops",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: "available",
+      currencyStatus: stopCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: stopSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: stopCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      reason: stopCurrency.reason,
+    }),
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "mta_bus_segment_speeds",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: speedCurrency.status === "period_aligned" ? "available" : "partial",
+      currencyStatus: speedCurrency.status,
+      currency: {
+        policy: "analysis_period",
+        baselineMonth: isoMonthStr,
+        coveragePassed: speedCurrency.status === "period_aligned",
+      },
+      reason: speedCurrency.reason,
+    }),
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "nyc_borough_boundaries",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: context === null ? "missing" : "available",
+      currencyStatus: contextCurrency.status,
+      currency: {
+        policy: "revision_pinned",
+        sourceId: "nyc_borough_boundaries",
+        embeddedSha256: context?.sourceRevision.sha256 ?? null,
+        sourceSha256: contextSourceSha256,
+      },
+      reason: contextCurrency.reason,
+    }),
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "studio_map_route_facts",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: routeFacts === null ? "missing" : "available",
+      currencyStatus: routeFactsCurrency.status,
+      currency: {
+        policy: "analysis_period",
+        baselineMonth: routeFacts?.baselineMonth ?? isoMonthStr,
+        coveragePassed: routeFacts !== null,
+      },
+      reason: routeFactsCurrency.reason,
+    }),
+    decodeSchemaStrict(MapSourceStatusSchema, {
+      sourceId: "nyc_dot_bus_lanes_local_streets",
+      priority: "p1",
+      requiredForFull: false,
+      readiness: busLaneEntry === null ? "missing" : "available",
+      currencyStatus: busLaneCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: busLaneSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: busLaneCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      reason:
+        busLaneEntry === null
+          ? `Optional bus-lane artifact excluded: ${busLaneCurrency.reason}${busLaneBudgetIssues.length === 0 ? "" : ` ${busLaneBudgetIssues.join("; ")}`}${busLaneContractValid ? "" : " Contract validation failed."}`
+          : busLaneCurrency.reason,
+    }),
+  ];
+  const layer = (value: unknown) => decodeSchemaStrict(MapLayerStatusSchema, value);
+  const layers = [
+    layer({
+      layerId: "route_shapes",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: "available",
+      currencyStatus: routeShapeCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: routeShapeSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: routeShapeCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      sourceIds: ["current_bus_routes"],
+      artifactKey: artifactFor("map_route_shapes_geojson")?.artifactKey ?? null,
+      featureCount: routeShapes.features.length,
+      routeCount: new Set(routeShapes.features.map((feature) => feature.properties.routeId)).size,
+      reason: routeShapeCurrency.reason,
+    }),
+    layer({
+      layerId: "timepoint_stops",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: "available",
+      currencyStatus: stopCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: stopSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: stopCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      sourceIds: ["current_bus_stops"],
+      artifactKey: artifactFor("map_timepoint_stops_geojson")?.artifactKey ?? null,
+      featureCount: stops.features.length,
+      routeCount: new Set(stops.features.map((feature) => feature.properties.routeId)).size,
+      reason: stopCurrency.reason,
+    }),
+    layer({
+      layerId: "network_simplified",
+      priority: "p0",
+      requiredForFull: true,
+      readiness:
+        networkPayload.features.length === selectedRouteRows.length ? "available" : "partial",
+      currencyStatus: speedCurrency.status,
+      currency: {
+        policy: "analysis_period",
+        baselineMonth: isoMonthStr,
+        coveragePassed: speedCurrency.status === "period_aligned",
+      },
+      sourceIds: ["mta_bus_segment_speeds", "current_bus_routes", "current_bus_stops"],
+      artifactKey: artifactFor("map_network_simplified_geojson")?.artifactKey ?? null,
+      featureCount: networkPayload.features.length,
+      routeCount: networkPayload.features.length,
+      reason: speedCurrency.reason,
+    }),
+    layer({
+      layerId: "route_segments",
+      priority: "p0",
+      requiredForFull: true,
+      readiness:
+        routeSegmentArtifacts.length === selectedRouteRows.length ? "available" : "partial",
+      currencyStatus: speedCurrency.status,
+      currency: {
+        policy: "analysis_period",
+        baselineMonth: isoMonthStr,
+        coveragePassed: speedCurrency.status === "period_aligned",
+      },
+      sourceIds: ["mta_bus_segment_speeds", "current_bus_routes"],
+      artifactKey: null,
+      featureCount: routeSegmentFeatureCount,
+      routeCount: routeSegmentArtifacts.length,
+      reason: speedCurrency.reason,
+    }),
+    layer({
+      layerId: "borough_context",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: context === null ? "missing" : "available",
+      currencyStatus: contextCurrency.status,
+      currency: {
+        policy: "revision_pinned",
+        sourceId: "nyc_borough_boundaries",
+        embeddedSha256: context?.sourceRevision.sha256 ?? null,
+        sourceSha256: contextSourceSha256,
+      },
+      sourceIds: ["nyc_borough_boundaries"],
+      artifactKey: artifactFor("map_borough_context_geojson")?.artifactKey ?? null,
+      featureCount: context?.features.length ?? 0,
+      routeCount: 0,
+      reason: contextCurrency.reason,
+    }),
+    layer({
+      layerId: "route_facts",
+      priority: "p0",
+      requiredForFull: true,
+      readiness: routeFacts === null ? "missing" : "available",
+      currencyStatus: routeFactsCurrency.status,
+      currency: {
+        policy: "analysis_period",
+        baselineMonth: routeFacts?.baselineMonth ?? isoMonthStr,
+        coveragePassed: routeFacts !== null,
+      },
+      sourceIds: ["studio_map_route_facts"],
+      artifactKey:
+        routeFactsReference.status === "available" ? routeFactsReference.artifactKey : null,
+      featureCount: 0,
+      routeCount: routeFacts?.routes.length ?? 0,
+      reason: routeFactsCurrency.reason,
+    }),
+    layer({
+      layerId: "bus_lanes",
+      priority: "p1",
+      requiredForFull: false,
+      readiness: busLaneEntry === null ? "missing" : "available",
+      currencyStatus: busLaneCurrency.status,
+      currency: {
+        policy: "max_age_snapshot",
+        fetchedAt: busLaneSnapshot.metadata.fetchedAt,
+        evaluatedAt: generatedAt,
+        ageDays: busLaneCurrency.ageDays,
+        maxAgeDays: 45,
+      },
+      sourceIds: ["nyc_dot_bus_lanes_local_streets"],
+      artifactKey: busLaneEntry?.artifactKey ?? null,
+      featureCount: busLaneEntry?.featureCount ?? 0,
+      routeCount: 0,
+      reason: sources.at(-1)?.reason ?? busLaneCurrency.reason,
+    }),
+  ];
+  const routeUniverse = decodeSchemaStrict(MapRouteUniverseSchema, {
+    includedRouteTypes: ["Local", "Limited", "SBS"],
+    excludedRouteTypes: ["Express", "School"],
+    expectedRouteIds: selectedRouteRows.map((route) => route.routeId).toSorted(),
+    geometryRouteIds: networkPayload.features
+      .map((feature) => feature.properties.routeId)
+      .toSorted(),
+    routeSegmentRouteIds: routeSegmentArtifacts
+      .flatMap((artifact) => (artifact.routeId === null ? [] : [artifact.routeId]))
+      .toSorted(),
+    routeFactRouteIds: (routeFacts?.routes ?? [])
+      .map((fact) => fact.route.routeId)
+      .filter((routeId) => selectedRouteRows.some((route) => route.routeId === routeId))
+      .toSorted(),
+  });
   const manifest = buildMapArtifactManifest({
     month: options.isoMonth,
     generatedAt,
     artifacts,
+    releaseProfile: args.releaseProfile,
+    routeFacts: routeFactsReference,
+    sources,
+    layers,
+    routeUniverse,
   });
   const manifestPath = mapArtifactManifestPath(artifactRoot, options.isoMonth);
   await mkdir(dirname(manifestPath), { recursive: true });
   await Bun.write(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  const verification = await verifyMapArtifactManifest({
+    artifactRoot,
+    month: options.isoMonth,
+    expectedRouteIds: selectedRouteRows.map((route) => route.routeId),
+  });
+  const verifiedManifest: MapArtifactManifest = {
+    ...manifest,
+    verificationStatus: verification.status,
+    status: verification.status,
+    issueCount: verification.issueCount,
+  };
+  await Bun.write(manifestPath, `${JSON.stringify(verifiedManifest, null, 2)}\n`);
+  if (args.releaseProfile === "full" && verification.status === "fail") {
+    throw new Error(
+      `Full map release verification failed with ${verification.issueCount} issue(s); see ${manifestPath}.`,
+    );
+  }
 
   return {
     isoMonth: options.isoMonth,
     manifestPath,
-    artifactCount: manifest.artifactCount,
-    routeSegmentArtifactCount: manifest.routeSegmentArtifactCount,
+    artifactCount: verifiedManifest.artifactCount,
+    routeSegmentArtifactCount: verifiedManifest.routeSegmentArtifactCount,
     routeSegmentFeatureCount,
-    totalFeatureCount: manifest.totalFeatureCount,
-    totalByteLength: manifest.totalByteLength,
-    publicRouteCount: rows.publicRouteIds.length,
+    totalFeatureCount: verifiedManifest.totalFeatureCount,
+    totalByteLength: verifiedManifest.totalByteLength,
+    publicRouteCount: selectedRouteRows.length,
   };
 }
 
@@ -1228,30 +1851,69 @@ export default defineCommand({
   path: ["map", "artifacts"],
   summary: "Build map GeoJSON artifacts (routes, stops, bus lanes, route segments) and manifest.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      routeShapeSnapshot: z.string().optional().describe("Override route-shape snapshot path"),
-      stopSnapshot: z.string().optional().describe("Override stop snapshot path"),
-      busLaneSnapshot: z.string().optional().describe("Override bus-lane snapshot path"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        speedSpineRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override route speed-spine artifact root",
+        }),
+        routes: Schema.optionalKey(Schema.String).annotate({
+          description: "Comma-separated route IDs to include",
+        }),
+        routeShapeSnapshot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override route-shape snapshot path",
+        }),
+        stopSnapshot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override stop snapshot path",
+        }),
+        busLaneSnapshot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override bus-lane snapshot path",
+        }),
+        context: Schema.optionalKey(Schema.String).annotate({
+          description: "Override generated borough-context artifact path",
+        }),
+        contextSource: Schema.optionalKey(Schema.String).annotate({
+          description: "Exact raw borough-boundary source used to build context",
+        }),
+        routeFacts: Schema.optionalKey(Schema.String).annotate({
+          description: "Override compact same-month map-route-facts projection path",
+        }),
+        profile: Schema.Literals(["demo", "full"])
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("demo")))
+          .annotate({ description: "Map release profile" }),
+      },
     }),
   },
-  output: z.object({
-    isoMonth: z.string(),
-    manifestPath: z.string(),
-    artifactCount: z.number(),
-    routeSegmentArtifactCount: z.number(),
-    routeSegmentFeatureCount: z.number(),
-    totalFeatureCount: z.number(),
-    totalByteLength: z.number(),
-    publicRouteCount: z.number(),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    manifestPath: Schema.String,
+    artifactCount: Schema.Number,
+    routeSegmentArtifactCount: Schema.Number,
+    routeSegmentFeatureCount: Schema.Number,
+    totalFeatureCount: Schema.Number,
+    totalByteLength: Schema.Number,
+    publicRouteCount: Schema.Number,
   }),
   async run({ input }) {
     const artifactRoot =
       input.options.artifactRoot === undefined
         ? undefined
         : fromCliPath(input.options.artifactRoot);
+    const speedSpineRoot =
+      input.options.speedSpineRoot === undefined
+        ? undefined
+        : fromCliPath(input.options.speedSpineRoot);
     const routeShapeSnapshotPath =
       input.options.routeShapeSnapshot === undefined
         ? undefined
@@ -1264,6 +1926,14 @@ export default defineCommand({
       input.options.busLaneSnapshot === undefined
         ? undefined
         : fromCliPath(input.options.busLaneSnapshot);
+    const contextPath =
+      input.options.context === undefined ? undefined : fromCliPath(input.options.context);
+    const contextSourcePath =
+      input.options.contextSource === undefined
+        ? undefined
+        : fromCliPath(input.options.contextSource);
+    const routeFactsPath =
+      input.options.routeFacts === undefined ? undefined : fromCliPath(input.options.routeFacts);
     return runLocalDbCommandBoundary({
       dbPath: input.options.db,
       command: "map.artifacts",
@@ -1277,10 +1947,16 @@ export default defineCommand({
           local,
           year: input.options.year,
           month: input.options.month,
+          releaseProfile: input.options.profile,
           artifactRoot,
+          speedSpineRoot,
           routeShapeSnapshotPath,
           stopSnapshotPath,
           busLaneSnapshotPath,
+          contextPath,
+          contextSourcePath,
+          routeFactsPath,
+          routeIds: input.options.routes?.split(",").map((routeId) => routeId.trim()),
         }),
     });
   },

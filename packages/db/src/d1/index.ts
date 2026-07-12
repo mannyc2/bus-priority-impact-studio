@@ -122,32 +122,6 @@ export {
 } from "./queries/snapshot-coverage.js";
 export type { StudioActorAuth } from "./queries/studio-auth.js";
 export { getStudioActorAuthByTokenHash, markStudioActorTokenUsed } from "./queries/studio-auth.js";
-export type {
-  StudioBriefAgentProposalRow,
-  StudioBriefAgentProposalStatus,
-  StudioBriefAgentRunIntent,
-  StudioBriefAgentRunRow,
-  StudioBriefAgentRunStatus,
-  StudioBriefDraftVersionActorType,
-  StudioBriefDraftVersionReason,
-  StudioBriefDraftVersionRow,
-  StudioBriefDraftVersionSnapshotRow,
-  StudioBriefDraftVersionSnapshotStorage,
-} from "./queries/studio-brief-agents.js";
-export {
-  getStudioBriefAgentProposal,
-  getStudioBriefAgentRun,
-  getStudioBriefDraftVersion,
-  getStudioBriefDraftVersionSnapshot,
-  insertStudioBriefAgentProposal,
-  insertStudioBriefAgentRun,
-  insertStudioBriefDraftVersion,
-  insertStudioBriefDraftVersionSnapshot,
-  listStudioBriefAgentProposals,
-  listStudioBriefDraftVersions,
-  updateStudioBriefAgentProposalStatus,
-  updateStudioBriefAgentRunStatus,
-} from "./queries/studio-brief-agents.js";
 export type { StudioRouteIndexSourceRow } from "./queries/studio-route-index.js";
 export {
   findLatestSpeedTrendMonth,

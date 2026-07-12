@@ -71,9 +71,11 @@ export type StudioSegment = Omit<DomainStudioSegment, "aiNote" | "tsp"> & {
 // the release pipeline is still normalizing them.
 export type StudioIntervention = Omit<
   DomainStudioIntervention,
-  "comparisonCohort" | "sourceDetail" | "sourceLabel" | "tone"
+  "comparisonCohort" | "eventId" | "interventionType" | "sourceDetail" | "sourceLabel" | "tone"
 > & {
   comparisonCohort?: DomainStudioIntervention["comparisonCohort"] | undefined;
+  eventId?: DomainStudioIntervention["eventId"] | undefined;
+  interventionType?: DomainStudioIntervention["interventionType"] | undefined;
   sourceDetail?: DomainStudioIntervention["sourceDetail"] | undefined;
   sourceLabel?: DomainStudioIntervention["sourceLabel"] | undefined;
   tone?: DomainStudioIntervention["tone"] | undefined;
@@ -85,7 +87,6 @@ export type StudioIntervention = Omit<
     | "evaluation";
   qualityTier?: string;
   status?: "implemented" | "planned" | "proposed" | "historical_context" | "defer";
-  interventionType?: string;
   sourceSpanChunkIds?: string[];
   sourceSpanRefs?: DocumentChunkPreview[];
   sourceLinks?: Array<{ label: string; url: string }>;
@@ -114,6 +115,7 @@ export type CliOptions = {
   routeLimit: number;
   routeSliceArtifactsRoot: string;
   routeSliceRawRoot: string;
+  speedSpineRoot: string;
   routeShapeSnapshotPath: string;
   stopSnapshotPath: string;
   tspSourcePath: string;
@@ -122,6 +124,7 @@ export type CliOptions = {
   publishableInterventionsByRoutePath: string | null;
   localDbPath: string;
   profile: ReleaseProfile;
+  routeIds: string[];
   segmentNoteLlm: SegmentNoteLlmOptions;
 };
 

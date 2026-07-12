@@ -3,10 +3,11 @@ import {
   listRouteMonthTrends,
   replaceRouteHourlyRidership,
 } from "@bp/db/local";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runBoundedPromises } from "../../effect/concurrency.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth, isoMonthStart, nextIsoMonthStart } from "../../lib/dates.ts";
@@ -25,6 +26,32 @@ type HourlyRidershipSourceId = "bus_hourly_ridership_2020_2024" | "bus_hourly_ri
 
 const DEFAULT_ROUTE_CHUNK_SIZE = 5;
 const DEFAULT_QUERY_CONCURRENCY = 4;
+
+const QUEENS_RIDERSHIP_ROUTE_ALIASES = {
+  Q6: "Q06",
+  Q7: "Q07",
+  Q8: "Q08",
+  Q9: "Q09",
+} as const;
+
+type QueensRidershipCanonicalRouteId = keyof typeof QUEENS_RIDERSHIP_ROUTE_ALIASES;
+
+const QUEENS_RIDERSHIP_CANONICAL_ROUTE_IDS = Object.fromEntries(
+  Object.entries(QUEENS_RIDERSHIP_ROUTE_ALIASES).map(([canonical, source]) => [source, canonical]),
+) as Readonly<Record<string, QueensRidershipCanonicalRouteId>>;
+
+export function hourlyRidershipSourceRouteId(routeId: string): string {
+  const canonicalRouteId = routeId.toUpperCase();
+  return (
+    QUEENS_RIDERSHIP_ROUTE_ALIASES[canonicalRouteId as QueensRidershipCanonicalRouteId] ??
+    canonicalRouteId
+  );
+}
+
+export function canonicalHourlyRidershipRouteId(routeId: string): string {
+  const sourceRouteId = routeId.toUpperCase();
+  return QUEENS_RIDERSHIP_CANONICAL_ROUTE_IDS[sourceRouteId] ?? sourceRouteId;
+}
 
 export type RouteHourlyRidershipIngestInputs = {
   local: OpenLocalPipelineDb;
@@ -84,7 +111,8 @@ export function normalizeRouteHourlyRidershipRows(
   for (const row of rows) {
     const routeId = row[busRouteField];
     if (typeof routeId !== "string" || routeId.length === 0) continue;
-    rowsByRawRoute.set(routeId, [...(rowsByRawRoute.get(routeId) ?? []), row]);
+    const canonicalRouteId = canonicalHourlyRidershipRouteId(routeId);
+    rowsByRawRoute.set(canonicalRouteId, [...(rowsByRawRoute.get(canonicalRouteId) ?? []), row]);
   }
 
   return [...rowsByRawRoute.entries()]
@@ -142,7 +170,7 @@ export async function runRouteHourlyRidershipIngest(
         where: [
           `transit_timestamp >= '${isoMonthStart(inputs.year, inputs.month)}'`,
           `transit_timestamp < '${nextIsoMonthStart(inputs.year, inputs.month)}'`,
-          soqlIn("bus_route", routeChunk),
+          soqlIn("bus_route", routeChunk.map(hourlyRidershipSourceRouteId)),
         ].join(" AND "),
         group: "bus_route,date_extract_dow(transit_timestamp),date_extract_hh(transit_timestamp)",
         order: "bus_route,day_of_week_index,hour_of_day",
@@ -175,31 +203,49 @@ export default defineCommand({
   path: ["ingest", "route-hourly-ridership"],
   summary: "Fetch route hourly ridership rows for a month and replace local route/month slices.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Year to ingest"),
-      month: arg.positiveInt().default(3).describe("Month to ingest, 1-12"),
-      route: z.string().optional().describe("Single route ID convenience filter"),
-      routes: z
-        .array(z.string())
-        .default([])
-        .describe("Specific route IDs (default: all routes in source month)"),
-      routesFile: z.string().optional().describe("JSON file containing route IDs"),
-      routeChunkSize: arg
-        .positiveInt()
-        .default(DEFAULT_ROUTE_CHUNK_SIZE)
-        .describe("Number of routes per Socrata aggregate query"),
-      queryConcurrency: arg
-        .positiveInt()
-        .default(DEFAULT_QUERY_CONCURRENCY)
-        .describe("Number of Socrata hourly-ridership aggregate queries to run concurrently"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Year to ingest" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Month to ingest, 1-12" }),
+        route: Schema.optionalKey(Schema.String).annotate({
+          description: "Single route ID convenience filter",
+        }),
+        routes: Schema.Array(Schema.String)
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+          .annotate({
+            description: "Specific route IDs (default: all routes in source month)",
+          }),
+        routesFile: Schema.optionalKey(Schema.String).annotate({
+          description: "JSON file containing route IDs",
+        }),
+        routeChunkSize: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_ROUTE_CHUNK_SIZE)))
+          .annotate({
+            description: "Number of routes per Socrata aggregate query",
+          }),
+        queryConcurrency: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_QUERY_CONCURRENCY)))
+          .annotate({
+            description: "Number of Socrata hourly-ridership aggregate queries to run concurrently",
+          }),
+      },
     }),
   },
-  output: z.object({
-    month: z.string(),
-    sourceId: z.enum(["bus_hourly_ridership_2020_2024", "bus_hourly_ridership_2025"]),
-    fetchedRowCount: z.number(),
-    normalizedRowCount: z.number(),
-    routeCount: z.number(),
+  output: Schema.Struct({
+    month: Schema.String,
+    sourceId: Schema.Literals(["bus_hourly_ridership_2020_2024", "bus_hourly_ridership_2025"]),
+    fetchedRowCount: Schema.Number,
+    normalizedRowCount: Schema.Number,
+    routeCount: Schema.Number,
   }),
   async run({ input }) {
     const routes = await mergeRoutesWithFile(

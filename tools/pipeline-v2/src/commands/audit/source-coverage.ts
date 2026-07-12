@@ -1,8 +1,9 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { sourceCoverageLedgerPath } from "@bp/analytics/artifacts";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { buildSourceCoverageLedger } from "@bp/pipeline-v2/local-db-aggregates";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -26,18 +27,33 @@ export default defineCommand({
   path: ["audit", "source-coverage"],
   summary: "Build the source coverage ledger for a release month.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      output: z.string().optional().describe("Override output path for ledger JSON"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({
+          description: "Override output path for ledger JSON",
+        }),
+      },
     }),
   },
-  output: z.object({
-    month: z.string(),
-    outputPath: z.string(),
-    sourceCount: z.number().int().nonnegative(),
-    sourcesNeedingAction: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    month: Schema.String,
+    outputPath: Schema.String,
+    sourceCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    sourcesNeedingAction: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
   }),
   async run({ input }) {
     const month = isoMonth(input.options.year, input.options.month);

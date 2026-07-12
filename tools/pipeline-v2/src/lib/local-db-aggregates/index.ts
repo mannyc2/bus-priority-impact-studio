@@ -278,6 +278,12 @@ export {
   type StopDirectionHourEwtFeatureArtifactFromDbInput,
   type StopDirectionHourEwtFeatureLocalDbQuery,
 } from "./stop-direction-hour-ewt-feature-rows";
+export { loadStudyEventRegistryRows } from "./study-event-rows";
+export {
+  loadStudyPanelRouteIds,
+  loadStudyPanelSourceRows,
+  type StudyPanelSourceRow,
+} from "./study-panel-rows";
 export const LOCAL_PIPELINE_SQLITE_CORPUS = "local-pipeline-sqlite";
 
 export type LocalPipelineSqliteCorpus = typeof LOCAL_PIPELINE_SQLITE_CORPUS;

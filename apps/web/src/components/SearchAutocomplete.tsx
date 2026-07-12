@@ -12,6 +12,28 @@ export type AutocompleteSuggestion = {
   haystack: string;
 };
 
+export type SearchAutocompleteEnterAction =
+  | { kind: "select"; id: string }
+  | { kind: "submit"; query: string }
+  | null;
+
+export function searchAutocompleteEnterAction({
+  activeIndex,
+  filtered,
+  query,
+  canSubmit,
+}: {
+  activeIndex: number;
+  filtered: readonly Pick<AutocompleteSuggestion, "id">[];
+  query: string;
+  canSubmit: boolean;
+}): SearchAutocompleteEnterAction {
+  const hit = activeIndex >= 0 ? filtered[activeIndex] : undefined;
+  if (hit) return { kind: "select", id: hit.id };
+  const trimmed = query.trim();
+  return canSubmit && trimmed ? { kind: "submit", query: trimmed } : null;
+}
+
 export function SearchAutocomplete({
   placeholder,
   shortcut,
@@ -100,10 +122,17 @@ export function SearchAutocomplete({
       setActiveIndex((i) => Math.max(0, i - 1));
     } else if (event.key === "Enter") {
       event.preventDefault();
-      if (activeIndex >= 0 && filtered[activeIndex]) {
-        commit(activeIndex);
-      } else if (onSubmitQuery && query.trim()) {
-        onSubmitQuery(query.trim());
+      const action = searchAutocompleteEnterAction({
+        activeIndex,
+        filtered,
+        query,
+        canSubmit: onSubmitQuery !== undefined,
+      });
+      if (action?.kind === "select") {
+        onSelect(action.id);
+        setOpen(false);
+      } else if (action?.kind === "submit") {
+        onSubmitQuery?.(action.query);
         setOpen(false);
         inputRef.current?.blur();
       }

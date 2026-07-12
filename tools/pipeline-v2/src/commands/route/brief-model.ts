@@ -1,4 +1,5 @@
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import {
   buildRouteBriefModel,
   buildRouteBriefSegmentUniverse,
@@ -23,30 +24,54 @@ export default defineCommand({
   summary:
     "Build route scorecards, brief summary rows, hotspot rows, comparison ranks, and route-slice artifacts.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-      route: z.string().optional().describe("Single route ID convenience filter"),
-      routes: z
-        .array(z.string())
-        .default([])
-        .describe("Specific route IDs (default: all catalog routes)"),
-      routesFile: z.string().optional().describe("JSON file containing route IDs"),
-      topSegmentLimit: arg.positiveInt().default(defaultRouteBriefModelTopSegmentLimit),
-      hotspotLimit: arg.positiveInt().default(defaultRouteBriefModelHotspotLimit),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Calendar month, 1-12" }),
+        route: Schema.optionalKey(Schema.String).annotate({
+          description: "Single route ID convenience filter",
+        }),
+        routes: Schema.Array(Schema.String)
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+          .annotate({ description: "Specific route IDs (default: all catalog routes)" }),
+        routesFile: Schema.optionalKey(Schema.String).annotate({
+          description: "JSON file containing route IDs",
+        }),
+        topSegmentLimit: arg
+          .positiveInt()
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(defaultRouteBriefModelTopSegmentLimit),
+            ),
+          ),
+        hotspotLimit: arg
+          .positiveInt()
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultRouteBriefModelHotspotLimit)),
+          ),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+      },
     }),
   },
-  output: z.object({
-    isoMonth: z.string(),
-    routeCount: z.number(),
-    routesWithObservedSpeedCount: z.number(),
-    scorecardRowCount: z.number(),
-    briefSummaryRowCount: z.number(),
-    comparisonRankRowCount: z.number(),
-    routeSliceArtifactCount: z.number(),
-    issueCount: z.number(),
-    dbPath: z.string(),
+  output: Schema.Struct({
+    isoMonth: Schema.String,
+    routeCount: Schema.Number,
+    routesWithObservedSpeedCount: Schema.Number,
+    scorecardRowCount: Schema.Number,
+    briefSummaryRowCount: Schema.Number,
+    comparisonRankRowCount: Schema.Number,
+    routeSliceArtifactCount: Schema.Number,
+    issueCount: Schema.Number,
+    dbPath: Schema.String,
   }),
   async run({ input }) {
     return runPipelineEffect(

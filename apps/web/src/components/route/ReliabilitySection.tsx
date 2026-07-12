@@ -1,7 +1,8 @@
 import { reliabilityInsightRows, reliabilitySummary } from "@/components/route/reliability-summary";
+import { riderImpactInsightRows } from "@/components/route/rider-impact-summary";
 import { safeInsightCaveats } from "@/components/route/route-insight-placement";
-import { routeSectionTitle } from "@/components/route/section-registry";
-import { SectionHeader } from "@/components/SectionHeader";
+import { SectionCard } from "@/components/SectionCard";
+import { SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
@@ -10,71 +11,82 @@ export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }
   const observed = data.route.observedReliability;
   // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are typed as an index signature.
   const capability = data.capability?.surfaces["reliability"] ?? null;
-  const summary = reliabilitySummary({ observed, capability });
-  const insights = reliabilityInsightRows(data.insights);
 
   if (observed === null) {
     return (
       <Alert variant="info">
-        <AlertTitle variant="info">Reliability pending</AlertTitle>
+        <AlertTitle variant="info">Reliability not yet measured</AlertTitle>
         <AlertDescription>
-          {capability?.reason ?? "Headway evidence has not cleared gate."}
+          {capability?.reason ?? "Observed headway data is not yet available for this route."}
         </AlertDescription>
       </Alert>
     );
   }
 
+  const summary = reliabilitySummary({ observed });
+  const signals = unifiedSignalRows(data.insights);
+
+  const aboutEntries: SourceNoteEntry[] = [
+    { label: summary.statusLabel, detail: summary.statusDetail },
+    {
+      label: `${summary.sampleLabel} observed headway samples`,
+      detail: summary.sampleDetail,
+    },
+    { label: `Bunching: ${summary.bunchingLabel} of observed gaps ran short.` },
+    { label: summary.caveat },
+  ];
+
   return (
     <section className="flex flex-col gap-5">
-      <SectionHeader title={routeSectionTitle("reliability")} sub={summary.sectionSubtitle} />
-      <div className="grid grid-cols-4 rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)] max-xl:grid-cols-2 max-sm:grid-cols-1">
-        <ReliabilityKpi
-          label="Evidence state"
-          value={summary.statusLabel}
-          sub={summary.statusDetail}
-          tone={summary.hasObservedMetrics ? "neutral" : "warn"}
-        />
-        <ReliabilityKpi
-          label="Sample coverage"
-          value={summary.sampleLabel}
-          sub={summary.sampleDetail}
-        />
-        <ReliabilityKpi
-          label="Bunching share"
-          value={summary.bunchingLabel}
-          sub="observed short gaps"
-        />
-        <ReliabilityKpi
-          label="Long-gap share"
-          value={summary.longGapLabel}
-          sub="observed long gaps"
-          tone={summary.kpiTone === "bad" ? "bad" : "neutral"}
-        />
-      </div>
-      <div className="grid grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-5 max-xl:grid-cols-1">
-        <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-          <SectionHeader title="Headways" sub="Route-level observed waits." />
-          <div className="mt-3 grid grid-cols-3 gap-4 max-sm:grid-cols-1">
-            <HeadwayStat label="Median" value={summary.medianHeadwayLabel} />
-            <HeadwayStat label="P90" value={summary.p90HeadwayLabel} />
-            <HeadwayStat label="Excess wait" value={summary.excessWaitLabel} tone="bad" />
-          </div>
-          <ReliabilitySampleSparkline samples={data.reliabilitySamples} />
-        </div>
-        <div className="rounded-[3px] bg-[var(--bp-color-card)] p-5 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-          <SectionHeader
-            title="Signals"
-            sub={insights.length > 0 ? "Reliability context." : "No insight yet."}
+      <SectionCard
+        title="Waiting for the bus"
+        sub="Observed headways and gaps."
+        right={<SourceNote label="About this data" entries={aboutEntries} />}
+      >
+        <div className="grid grid-cols-4 rounded-[3px] shadow-[0_0_0_1px_var(--bp-color-rule)] max-xl:grid-cols-2 max-sm:grid-cols-1">
+          <ReliabilityKpi
+            label="Median wait"
+            value={summary.medianHeadwayLabel}
+            sub="typical time between buses"
           />
-          <ReliabilityInsightList insights={insights} />
+          <ReliabilityKpi
+            label="P90 wait"
+            value={summary.p90HeadwayLabel}
+            sub="the worst 10% of gaps run at least this long"
+          />
+          <ReliabilityKpi
+            label="Excess wait"
+            value={summary.excessWaitLabel}
+            sub="extra wait beyond the schedule"
+            tone={summary.kpiTone === "bad" ? "bad" : "neutral"}
+          />
+          <ReliabilityKpi
+            label="Long gaps"
+            value={summary.longGapLabel}
+            sub="share of observed gaps that ran long"
+            tone={summary.kpiTone === "bad" ? "bad" : "neutral"}
+          />
         </div>
-      </div>
-      <Alert variant="info">
-        <AlertTitle variant="info">Provenance</AlertTitle>
-        <AlertDescription>{summary.caveat}</AlertDescription>
-      </Alert>
+        <ReliabilitySampleSparkline samples={data.reliabilitySamples} />
+      </SectionCard>
+      <SectionCard title="Signals" sub="Detector context for riders and reliability.">
+        <SignalList insights={signals} />
+      </SectionCard>
     </section>
   );
+}
+
+function unifiedSignalRows(
+  insights: StudioRouteDetailResponse["insights"],
+): StudioRouteDetailResponse["insights"] {
+  const rows = [...riderImpactInsightRows(insights), ...reliabilityInsightRows(insights)];
+  const seen = new Set<string>();
+  return rows.filter((insight) => {
+    const key = `${insight.detectorId}:${insight.scopeId ?? insight.title}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function ReliabilitySampleSparkline({
@@ -127,14 +139,8 @@ function ReliabilityKpi({
   label: string;
   value: string;
   sub: string;
-  tone?: "neutral" | "warn" | "bad";
+  tone?: "neutral" | "bad";
 }) {
-  const color =
-    tone === "bad"
-      ? "var(--bp-color-bad)"
-      : tone === "warn"
-        ? "var(--bp-color-warn)"
-        : "var(--bp-color-ink)";
   return (
     <div className="p-5 shadow-[inset_-1px_0_0_var(--bp-color-rule)] last:shadow-none max-xl:shadow-[inset_0_-1px_0_var(--bp-color-rule)]">
       <div className="mb-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink-70)]">
@@ -142,7 +148,7 @@ function ReliabilityKpi({
       </div>
       <div
         className="font-mono text-[28px] font-semibold leading-none tabular-nums"
-        style={{ color }}
+        style={{ color: tone === "bad" ? "var(--bp-color-bad)" : "var(--bp-color-ink)" }}
       >
         {value}
       </div>
@@ -151,41 +157,17 @@ function ReliabilityKpi({
   );
 }
 
-function HeadwayStat({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  tone?: "neutral" | "bad";
-}) {
-  return (
-    <div>
-      <div className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-        {label}
-      </div>
-      <div
-        className="mt-1 font-mono text-[24px] font-semibold leading-none tabular-nums"
-        style={{ color: tone === "bad" ? "var(--bp-color-bad)" : "var(--bp-color-ink)" }}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function ReliabilityInsightList({ insights }: { insights: StudioRouteDetailResponse["insights"] }) {
+function SignalList({ insights }: { insights: StudioRouteDetailResponse["insights"] }) {
   if (insights.length === 0) {
     return (
-      <div className="mt-3 rounded-[3px] bg-[var(--bp-color-paper-deep)] px-3 py-2.5 text-[12px] leading-[1.45] text-[var(--bp-color-ink-55)]">
-        Reliability can be cited; no card cleared the public gate.
+      <div className="rounded-[3px] bg-[var(--bp-color-paper-deep)] px-3 py-2.5 text-[12px] leading-[1.45] text-[var(--bp-color-ink-55)]">
+        No public rider or reliability insight for this route yet.
       </div>
     );
   }
 
   return (
-    <div className="mt-3 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       {insights.map((insight) => {
         const caveats = safeInsightCaveats(insight, 1);
         return (

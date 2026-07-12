@@ -1,6 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import { ErrorState } from "@/components/ErrorState";
-import { StudioApiContractError, StudioApiError } from "../api-client.js";
+import { StudioApiError } from "../api-client.js";
 import { StudioPage, StudioPanel } from "../page.js";
 
 export function StudioRouteErrorPage({ error, reset }: { error: unknown; reset: () => void }) {
@@ -55,14 +55,6 @@ function errorMessage(error: unknown): { title: string; body: string; meta?: str
       title: "Could not load this Studio page",
       body: error.message,
       meta: `${error.status} ${error.code} ${error.path}`,
-    };
-  }
-
-  if (error instanceof StudioApiContractError) {
-    return {
-      title: "Studio API contract mismatch",
-      body: "The API responded, but the payload did not match the page contract.",
-      meta: error.path,
     };
   }
 

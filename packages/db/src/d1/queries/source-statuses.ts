@@ -1,34 +1,15 @@
 import { and, asc, eq } from "drizzle-orm";
-import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { routeMonthSourceStatus } from "../schema.js";
-import { IsoMonthSchema } from "./shared.js";
 
-const RouteMonthSourceStatusRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    month: IsoMonthSchema,
-    source_scope: z.enum(["reliability", "equity_context"]),
-    source_id: z.string().min(1),
-    status: z.string().min(1),
-    row_count: z.number().int().nonnegative().nullable(),
-    snapshot_id: z.string().nullable(),
-    note: z.string().nullable(),
-  })
-  .strict();
+export type RouteMonthSourceStatusScope = "reliability" | "equity_context";
 
-export type RouteMonthSourceStatusScope = z.output<
-  typeof RouteMonthSourceStatusRowSchema
->["source_scope"];
-
-export type RouteMonthSourceStatusRow = z.output<typeof RouteMonthSourceStatusRowSchema>;
-
-export async function listRouteMonthSourceStatuses(
+async function selectRouteMonthSourceStatusRows(
   db: D1ServingDb,
   month: string,
   sourceScope: RouteMonthSourceStatusScope,
-): Promise<RouteMonthSourceStatusRow[]> {
-  const rows = await db
+) {
+  return db
     .select({
       route_id: routeMonthSourceStatus.routeId,
       month: routeMonthSourceStatus.month,
@@ -47,8 +28,18 @@ export async function listRouteMonthSourceStatuses(
       ),
     )
     .orderBy(asc(routeMonthSourceStatus.routeId), asc(routeMonthSourceStatus.sourceId));
+}
 
-  return rows.map((row) => RouteMonthSourceStatusRowSchema.parse(row));
+export type RouteMonthSourceStatusRow = Awaited<
+  ReturnType<typeof selectRouteMonthSourceStatusRows>
+>[number];
+
+export async function listRouteMonthSourceStatuses(
+  db: D1ServingDb,
+  month: string,
+  sourceScope: RouteMonthSourceStatusScope,
+): Promise<RouteMonthSourceStatusRow[]> {
+  return selectRouteMonthSourceStatusRows(db, month, sourceScope);
 }
 
 export function groupSourceStatuses(

@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:32px 28px;background:var(--background)}
+  .row{display:flex;align-items:baseline;gap:16px;padding:12px 0;border-bottom:1px solid var(--divider)}
+  .row:last-child{border-bottom:0}
+  .label{flex:0 0 140px;font:400 13px var(--font-sans);color:var(--muted-foreground)}
+  .sample{flex:1;color:var(--foreground)}
+</style></head><body>
+  <div class="row">
+    <div class="label">Body · 14/1.5</div>
+    <div class="sample" style="font:400 14px/1.5 var(--font-sans)">UI body — buttons, menu items, form labels, table cells.</div>
+  </div>
+  <div class="row">
+    <div class="label">Body · large</div>
+    <div class="sample" style="font:400 16px/1.55 var(--font-sans)">Body large — empty states, modal copy, longer interface prose.</div>
+  </div>
+  <div class="row">
+    <div class="label">Caption</div>
+    <div class="sample" style="font:500 12px/1.4 var(--font-sans);color:var(--muted-foreground)">Caption — secondary metadata, hint text, tooltip body.</div>
+  </div>
+  <div class="row">
+    <div class="label">Lede · serif</div>
+    <div class="sample" style="font:400 20px/1.5 var(--font-serif);font-style:italic;color:color-mix(in oklab,var(--foreground) 88%,transparent)">A short, italic introduction sits between an entry's title and its body.</div>
+  </div>
+  <div class="row">
+    <div class="label">H4 · UI</div>
+    <div class="sample" style="font:600 17px/1.35 var(--font-sans)">Section heading inside chrome</div>
+  </div>
+</body></html>

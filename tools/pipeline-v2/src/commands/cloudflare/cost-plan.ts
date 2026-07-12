@@ -1,6 +1,7 @@
 import { stat } from "node:fs/promises";
 import { relative } from "node:path";
-import { defineCommand, z } from "@liche/core";
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { type CloudflareCostSummary, estimateD1PaidCost } from "../../lib/cloudflare-costs.ts";
 
 export type D1SqlFileEstimate = {
@@ -117,66 +118,69 @@ export async function runCloudflareCostPlan(opts: {
   };
 }
 
-const FileEstimateSchema = z.object({
-  path: z.string(),
-  byteLength: z.number(),
-  statementCount: z.number(),
-  insertStatementCount: z.number(),
-  deleteStatementCount: z.number(),
-  updateStatementCount: z.number(),
-  ddlStatementCount: z.number(),
+const FileEstimateSchema = Schema.Struct({
+  path: Schema.String,
+  byteLength: Schema.Number,
+  statementCount: Schema.Number,
+  insertStatementCount: Schema.Number,
+  deleteStatementCount: Schema.Number,
+  updateStatementCount: Schema.Number,
+  ddlStatementCount: Schema.Number,
 });
 
-const CostLineSchema = z.object({
-  metric: z.string(),
-  quantity: z.number(),
-  includedMonthly: z.number(),
-  unit: z.string(),
-  billableUnitSize: z.number(),
-  pricePerBillableUnitUsd: z.number(),
-  notes: z.array(z.string()).optional(),
-  billableQuantityFromZero: z.number(),
-  estimatedOverageUsdFromZero: z.number(),
-  withinIncludedFromZero: z.boolean(),
+const CostLineSchema = Schema.Struct({
+  metric: Schema.String,
+  quantity: Schema.Number,
+  includedMonthly: Schema.Number,
+  unit: Schema.String,
+  billableUnitSize: Schema.Number,
+  pricePerBillableUnitUsd: Schema.Number,
+  notes: Schema.optionalKey(Schema.Array(Schema.String)),
+  billableQuantityFromZero: Schema.Number,
+  estimatedOverageUsdFromZero: Schema.Number,
+  withinIncludedFromZero: Schema.Boolean,
 });
 
 export default defineCommand({
   path: ["cloudflare", "cost-plan"],
   summary: "Estimate Cloudflare D1 paid-plan overage from a SQL file (no Cloudflare API).",
   input: {
-    options: z.object({
-      operation: z.literal("d1-sql").default("d1-sql"),
-      d1Sql: z.string().min(1).describe("Path to a D1 SQL file (e.g. seed.sql)"),
-      summary: z
-        .string()
-        .optional()
-        .describe("Optional export-summary.json whose *RowCount keys sum to row totals"),
+    options: Schema.Struct({
+      operation: Schema.Literal("d1-sql").pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed("d1-sql")),
+      ),
+      d1Sql: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Path to a D1 SQL file (e.g. seed.sql)",
+      }),
+      summary: Schema.optionalKey(Schema.String).annotate({
+        description: "Optional export-summary.json whose *RowCount keys sum to row totals",
+      }),
     }),
   },
-  output: z.object({
-    schemaVersion: z.literal(1),
-    operation: z.literal("d1-sql"),
-    generatedAt: z.string(),
-    files: z.array(FileEstimateSchema),
-    summaryFiles: z.array(z.string()),
-    usageEstimate: z.object({
-      insertedRowsLowerBound: z.number(),
-      replacementRowsWrittenEstimate: z.number(),
-      deleteStatementCount: z.number(),
-      ddlStatementCount: z.number(),
-      exactRowsWrittenKnownBeforeExecution: z.literal(false),
+  output: Schema.Struct({
+    schemaVersion: Schema.Literal(1),
+    operation: Schema.Literal("d1-sql"),
+    generatedAt: Schema.String,
+    files: Schema.Array(FileEstimateSchema),
+    summaryFiles: Schema.Array(Schema.String),
+    usageEstimate: Schema.Struct({
+      insertedRowsLowerBound: Schema.Number,
+      replacementRowsWrittenEstimate: Schema.Number,
+      deleteStatementCount: Schema.Number,
+      ddlStatementCount: Schema.Number,
+      exactRowsWrittenKnownBeforeExecution: Schema.Literal(false),
     }),
-    cost: z.object({
-      schemaVersion: z.literal(1),
-      pricingAsOf: z.string(),
-      accountPlan: z.string(),
-      incrementalBaseSubscriptionUsd: z.literal(0),
-      estimatedOverageUsdFromZero: z.number(),
-      overageLikelyFromThisOperationAlone: z.boolean(),
-      lines: z.array(CostLineSchema),
-      notes: z.array(z.string()),
+    cost: Schema.Struct({
+      schemaVersion: Schema.Literal(1),
+      pricingAsOf: Schema.String,
+      accountPlan: Schema.String,
+      incrementalBaseSubscriptionUsd: Schema.Literal(0),
+      estimatedOverageUsdFromZero: Schema.Number,
+      overageLikelyFromThisOperationAlone: Schema.Boolean,
+      lines: Schema.Array(CostLineSchema),
+      notes: Schema.Array(Schema.String),
     }),
-    notes: z.array(z.string()),
+    notes: Schema.Array(Schema.String),
   }),
   async run({ ctx, input }) {
     const plan = await runCloudflareCostPlan({

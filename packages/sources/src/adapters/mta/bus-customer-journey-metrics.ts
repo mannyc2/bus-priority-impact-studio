@@ -1,44 +1,53 @@
+import { decodePreserve } from "@bp/domain/decode";
 import { RouteIdCodec } from "@bp/domain/primitives";
-import * as z from "zod";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
-import { schemaVersion } from "../../core/index.js";
+import { IsoMonthStringSchema, schemaVersion } from "../../core/index.js";
 
-export const NormalizedBusCustomerJourneyMetricSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    month: z.string().regex(/^\d{4}-\d{2}$/),
-    routeId: z.string().min(1),
-    borough: z.string().min(1),
-    tripType: z.string().min(1),
-    period: z.string().min(1),
-    customers: z.number().nonnegative(),
-    additionalBusStopTimeMinutes: z.number().nullable(),
-    additionalTravelTimeMinutes: z.number().nullable(),
-    customerJourneyTimeMinutes: z.number().nullable(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const NonNegativeNumber = Schema.Number.check(Schema.isGreaterThanOrEqualTo(0));
+const CoercedNonNegativeNumber = Schema.Unknown.pipe(
+  Schema.decodeTo(NonNegativeNumber, {
+    decode: SchemaGetter.transform((value) => Number(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
+const NullableNumberSchema = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.NullOr(Schema.Number), {
+    decode: SchemaGetter.transform((value) =>
+      value === null || value === undefined || value === "" ? null : Number(value),
+    ),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
 
-export type NormalizedBusCustomerJourneyMetric = z.output<
-  typeof NormalizedBusCustomerJourneyMetricSchema
->;
+export const NormalizedBusCustomerJourneyMetricSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  month: IsoMonthStringSchema,
+  routeId: NonEmptyString,
+  borough: NonEmptyString,
+  tripType: NonEmptyString,
+  period: NonEmptyString,
+  customers: NonNegativeNumber,
+  additionalBusStopTimeMinutes: Schema.NullOr(Schema.Number),
+  additionalTravelTimeMinutes: Schema.NullOr(Schema.Number),
+  customerJourneyTimeMinutes: Schema.NullOr(Schema.Number),
+});
 
-const NullableNumberSchema = z
-  .union([z.null(), z.undefined(), z.literal(""), z.coerce.number()])
-  .transform((value) => (value === null || value === undefined || value === "" ? null : value));
+export type NormalizedBusCustomerJourneyMetric =
+  typeof NormalizedBusCustomerJourneyMetricSchema.Type;
 
-const RawBusCustomerJourneyMetricRowSchema = z
-  .object({
-    month: z.string().min(1),
-    borough: z.string().min(1),
-    trip_type: z.string().min(1),
-    route_id: z.string().min(1),
-    period: z.string().min(1),
-    number_of_customers: z.coerce.number().nonnegative(),
-    additional_bus_stop_time: NullableNumberSchema,
-    additional_travel_time: NullableNumberSchema,
-    customer_journey_time: NullableNumberSchema,
-  })
-  .passthrough();
+const RawBusCustomerJourneyMetricRowSchema = Schema.Struct({
+  month: NonEmptyString,
+  borough: NonEmptyString,
+  trip_type: NonEmptyString,
+  route_id: NonEmptyString,
+  period: NonEmptyString,
+  number_of_customers: CoercedNonNegativeNumber,
+  additional_bus_stop_time: NullableNumberSchema,
+  additional_travel_time: NullableNumberSchema,
+  customer_journey_time: NullableNumberSchema,
+});
 
 function toIsoMonth(value: string): string {
   const match = value.match(/^(\d{4})-(\d{2})/);
@@ -53,13 +62,13 @@ export function normalizeBusCustomerJourneyMetricRows(
 ): NormalizedBusCustomerJourneyMetric[] {
   return rows
     .flatMap((row): NormalizedBusCustomerJourneyMetric[] => {
-      const parsed = RawBusCustomerJourneyMetricRowSchema.parse(row);
+      const parsed = decodePreserve(RawBusCustomerJourneyMetricRowSchema)(row);
       if (parsed.route_id.trim().toUpperCase() === "ALL") return [];
       return [
         {
           schemaVersion,
           month: toIsoMonth(parsed.month),
-          routeId: z.decode(RouteIdCodec, parsed.route_id),
+          routeId: decodePreserve(RouteIdCodec)(parsed.route_id),
           borough: parsed.borough,
           tripType: parsed.trip_type,
           period: parsed.period,

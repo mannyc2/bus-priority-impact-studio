@@ -13,15 +13,20 @@ import {
   type Tier2DocumentEvidenceCandidate,
 } from "@bp/domain/documents/candidates";
 import {
+  DocumentInterventionDatePrecisionSchema,
   type DocumentInterventionRecord,
   type DocumentInterventionRecordDraft,
   type DocumentInterventionRecordKind,
   type DocumentInterventionRecordsToolResponse,
   DocumentInterventionRecordsToolResponseSchema,
+  DocumentInterventionServiceModeSchema,
   type DocumentInterventionStatus,
+  DocumentInterventionStatusSchema,
   type Tier2InterventionRecordQualityIssueCode,
   type Tier2InterventionRecordQualityRepairCode,
 } from "@bp/domain/documents/intervention-records";
+import { Result, SchemaIssue } from "effect";
+import { decodeSchemaEitherStrict } from "../schema-decode.js";
 
 // The persisted record shape is the canonical domain type; this alias preserves
 // the original local name used throughout the moved policy below.
@@ -500,12 +505,135 @@ type EnumRepairParseResult =
       success: false;
       error: {
         issues: ReadonlyArray<{
-          code: string;
+          code?: string;
           path: ReadonlyArray<string | number | symbol>;
           keys?: ReadonlyArray<string>;
         }>;
       };
     };
+
+type RepairPath = ReadonlyArray<string | number>;
+
+const TOOL_RESPONSE_KEYS = new Set(["sourceId", "interventionRecords", "unattachedCandidateIds"]);
+const TOOL_RECORD_KEYS = new Set([
+  "routes",
+  "serviceMode",
+  "primaryTreatments",
+  "customTreatments",
+  "corridor",
+  "effectiveDate",
+  "datePrecision",
+  "statusHistory",
+  "treatmentComponents",
+  "metrics",
+  "caveats",
+  "notes",
+]);
+const STATUS_HISTORY_KEYS = new Set(["status", "asOfDate", "evidenceRefs"]);
+const TREATMENT_COMPONENT_KEYS = new Set([
+  "treatmentType",
+  "customTreatmentType",
+  "description",
+  "evidenceRefs",
+]);
+const METRIC_KEYS = new Set([
+  "metricName",
+  "customMetricName",
+  "valueNumeric",
+  "valueQualifier",
+  "unit",
+  "baselinePeriod",
+  "comparisonPeriod",
+  "geographyScope",
+  "methodology",
+  "evidenceRefs",
+]);
+const PERIOD_KEYS = new Set(["start", "end"]);
+const CAVEAT_KEYS = new Set(["description", "evidenceRefs"]);
+const CORRIDOR_KEYS = new Set(["streets", "extentEndpoints", "intersections"]);
+const EXTENT_ENDPOINT_KEYS = new Set(["start", "end"]);
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function unknownKeys(value: unknown, allowedKeys: ReadonlySet<string>): string[] {
+  if (!isPlainRecord(value)) return [];
+  return Object.keys(value).filter((key) => !allowedKeys.has(key));
+}
+
+function collectUnrecognizedKeyRemovals(
+  root: unknown,
+): Array<{ path: RepairPath; keys: ReadonlyArray<string> }> {
+  const removals: Array<{ path: RepairPath; keys: ReadonlyArray<string> }> = [];
+  const addRemoval = (value: unknown, path: RepairPath, allowedKeys: ReadonlySet<string>): void => {
+    const keys = unknownKeys(value, allowedKeys);
+    if (keys.length > 0) removals.push({ path, keys });
+  };
+
+  addRemoval(root, [], TOOL_RESPONSE_KEYS);
+  if (!isPlainRecord(root)) return removals;
+  const records = root["interventionRecords"];
+  if (!Array.isArray(records)) return removals;
+
+  for (const [recordIndex, rawRecord] of records.entries()) {
+    const recordPath = ["interventionRecords", recordIndex] as const;
+    addRemoval(rawRecord, recordPath, TOOL_RECORD_KEYS);
+    if (!isPlainRecord(rawRecord)) continue;
+
+    const corridor = rawRecord["corridor"];
+    if (corridor !== undefined) {
+      const corridorPath = [...recordPath, "corridor"];
+      addRemoval(corridor, corridorPath, CORRIDOR_KEYS);
+      if (isPlainRecord(corridor)) {
+        addRemoval(
+          corridor["extentEndpoints"],
+          [...corridorPath, "extentEndpoints"],
+          EXTENT_ENDPOINT_KEYS,
+        );
+      }
+    }
+
+    const statusHistory = rawRecord["statusHistory"];
+    if (Array.isArray(statusHistory)) {
+      for (const [statusIndex, statusEntry] of statusHistory.entries()) {
+        addRemoval(statusEntry, [...recordPath, "statusHistory", statusIndex], STATUS_HISTORY_KEYS);
+      }
+    }
+
+    const treatmentComponents = rawRecord["treatmentComponents"];
+    if (Array.isArray(treatmentComponents)) {
+      for (const [componentIndex, component] of treatmentComponents.entries()) {
+        addRemoval(
+          component,
+          [...recordPath, "treatmentComponents", componentIndex],
+          TREATMENT_COMPONENT_KEYS,
+        );
+      }
+    }
+
+    const metrics = rawRecord["metrics"];
+    if (Array.isArray(metrics)) {
+      for (const [metricIndex, metric] of metrics.entries()) {
+        const metricPath = [...recordPath, "metrics", metricIndex];
+        addRemoval(metric, metricPath, METRIC_KEYS);
+        if (isPlainRecord(metric)) {
+          addRemoval(metric["baselinePeriod"], [...metricPath, "baselinePeriod"], PERIOD_KEYS);
+          addRemoval(metric["comparisonPeriod"], [...metricPath, "comparisonPeriod"], PERIOD_KEYS);
+        }
+      }
+    }
+
+    const caveats = rawRecord["caveats"];
+    if (Array.isArray(caveats)) {
+      for (const [caveatIndex, caveat] of caveats.entries()) {
+        addRemoval(caveat, [...recordPath, "caveats", caveatIndex], CAVEAT_KEYS);
+      }
+    }
+  }
+
+  return removals;
+}
 
 function stripUnrecognizedKeys(
   root: unknown,
@@ -538,7 +666,7 @@ export function repairInvalidEnumValues(
     if (parsed.success) {
       return { patched: current, recordIndicesWithStrippedEnums };
     }
-    const invalidPaths = parsed.error.issues
+    const parserInvalidPaths = parsed.error.issues
       .filter((issue) => issue.code === "invalid_value" || issue.code === "invalid_enum_value")
       .map((issue) =>
         issue.path.filter(
@@ -546,10 +674,11 @@ export function repairInvalidEnumValues(
             typeof segment === "string" || typeof segment === "number",
         ),
       );
+    const invalidPaths = [...parserInvalidPaths, ...collectInvalidEnumPaths(current)];
     // Fix P1.7: schema is .strict() so any model-emitted extra key fails
     // wholesale (e.g. metrics[].notes). Each unrecognized_keys issue gives
     // the parent path plus the offending key list; delete those keys.
-    const unrecognizedKeyRemovals = parsed.error.issues
+    const parserUnrecognizedKeyRemovals = parsed.error.issues
       .filter(
         (issue): issue is typeof issue & { keys: ReadonlyArray<string> } =>
           issue.code === "unrecognized_keys" && Array.isArray(issue.keys),
@@ -561,6 +690,10 @@ export function repairInvalidEnumValues(
         ),
         keys: issue.keys,
       }));
+    const unrecognizedKeyRemovals = [
+      ...parserUnrecognizedKeyRemovals,
+      ...collectUnrecognizedKeyRemovals(current),
+    ];
     if (invalidPaths.length === 0 && unrecognizedKeyRemovals.length === 0) {
       return { patched: current, recordIndicesWithStrippedEnums };
     }
@@ -586,6 +719,87 @@ export function repairInvalidEnumValues(
 
 const DOCUMENT_METRIC_NAMES = new Set<string>(DocumentMetricNameSchema.options);
 const DOCUMENT_TREATMENT_TYPES = new Set<string>(DocumentTreatmentTypeSchema.options);
+const DOCUMENT_INTERVENTION_STATUSES = new Set<string>(DocumentInterventionStatusSchema.options);
+const DOCUMENT_SERVICE_MODES = new Set<string>(DocumentInterventionServiceModeSchema.options);
+const DOCUMENT_DATE_PRECISIONS = new Set<string>(DocumentInterventionDatePrecisionSchema.options);
+
+function isKnownStringEnumValue(value: unknown, values: ReadonlySet<string>): boolean {
+  return typeof value === "string" && values.has(value);
+}
+
+function collectInvalidEnumPaths(root: unknown): RepairPath[] {
+  if (!isPlainRecord(root)) return [];
+  const records = root["interventionRecords"];
+  if (!Array.isArray(records)) return [];
+
+  const paths: RepairPath[] = [];
+  for (const [recordIndex, rawRecord] of records.entries()) {
+    if (!isPlainRecord(rawRecord)) continue;
+    const recordPath = ["interventionRecords", recordIndex] as const;
+
+    if (
+      rawRecord["serviceMode"] !== undefined &&
+      !isKnownStringEnumValue(rawRecord["serviceMode"], DOCUMENT_SERVICE_MODES)
+    ) {
+      paths.push([...recordPath, "serviceMode"]);
+    }
+    if (
+      rawRecord["datePrecision"] !== undefined &&
+      !isKnownStringEnumValue(rawRecord["datePrecision"], DOCUMENT_DATE_PRECISIONS)
+    ) {
+      paths.push([...recordPath, "datePrecision"]);
+    }
+
+    const primaryTreatments = rawRecord["primaryTreatments"];
+    if (Array.isArray(primaryTreatments)) {
+      for (const [treatmentIndex, treatment] of primaryTreatments.entries()) {
+        if (!isKnownStringEnumValue(treatment, DOCUMENT_TREATMENT_TYPES)) {
+          paths.push([...recordPath, "primaryTreatments", treatmentIndex]);
+        }
+      }
+    }
+
+    const statusHistory = rawRecord["statusHistory"];
+    if (Array.isArray(statusHistory)) {
+      for (const [statusIndex, statusEntry] of statusHistory.entries()) {
+        if (
+          isPlainRecord(statusEntry) &&
+          statusEntry["status"] !== undefined &&
+          !isKnownStringEnumValue(statusEntry["status"], DOCUMENT_INTERVENTION_STATUSES)
+        ) {
+          paths.push([...recordPath, "statusHistory", statusIndex, "status"]);
+        }
+      }
+    }
+
+    const treatmentComponents = rawRecord["treatmentComponents"];
+    if (Array.isArray(treatmentComponents)) {
+      for (const [componentIndex, component] of treatmentComponents.entries()) {
+        if (
+          isPlainRecord(component) &&
+          component["treatmentType"] !== undefined &&
+          !isKnownStringEnumValue(component["treatmentType"], DOCUMENT_TREATMENT_TYPES)
+        ) {
+          paths.push([...recordPath, "treatmentComponents", componentIndex, "treatmentType"]);
+        }
+      }
+    }
+
+    const metrics = rawRecord["metrics"];
+    if (Array.isArray(metrics)) {
+      for (const [metricIndex, metric] of metrics.entries()) {
+        if (
+          isPlainRecord(metric) &&
+          metric["metricName"] !== undefined &&
+          !isKnownStringEnumValue(metric["metricName"], DOCUMENT_METRIC_NAMES)
+        ) {
+          paths.push([...recordPath, "metrics", metricIndex, "metricName"]);
+        }
+      }
+    }
+  }
+  return paths;
+}
 
 function normalizeCustomLabel(value: string): string {
   return value
@@ -1481,15 +1695,25 @@ export function processInterventionRecordsToolArgs(input: {
   );
   const { patched: repairedToolArgs, recordIndicesWithStrippedEnums } = repairInvalidEnumValues(
     aliasRepairedArgs,
-    (value) => DocumentInterventionRecordsToolResponseSchema.safeParse(value),
+    (value) => {
+      const result = decodeSchemaEitherStrict(DocumentInterventionRecordsToolResponseSchema, value);
+      return Result.isSuccess(result)
+        ? { success: true }
+        : { success: false, error: { issues: [] } };
+    },
   );
-  const parsed = DocumentInterventionRecordsToolResponseSchema.safeParse(repairedToolArgs);
-  if (!parsed.success) {
-    const issues = parsed.error.issues.slice(0, 8).map((issue) => ({
-      path: issue.path.join("."),
-      code: issue.code,
-      message: issue.message,
-    }));
+  const parsed = decodeSchemaEitherStrict(
+    DocumentInterventionRecordsToolResponseSchema,
+    repairedToolArgs,
+  );
+  if (Result.isFailure(parsed)) {
+    const issues = SchemaIssue.makeFormatterStandardSchemaV1()(parsed.failure.issue)
+      .issues.slice(0, 8)
+      .map((issue) => ({
+        path: issue.path?.map(String).join(".") ?? "",
+        code: "validation_error",
+        message: issue.message,
+      }));
     return {
       status: "failed",
       records: [],
@@ -1501,7 +1725,7 @@ export function processInterventionRecordsToolArgs(input: {
   }
 
   const sourceId = input.sourceId;
-  const response: DocumentInterventionRecordsToolResponse = parsed.data;
+  const response: DocumentInterventionRecordsToolResponse = parsed.success;
   const validCandidateIds = new Set(
     input.bucket.candidates.map((candidate) => candidate.candidateId),
   );

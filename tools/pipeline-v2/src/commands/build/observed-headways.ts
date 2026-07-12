@@ -1,3 +1,4 @@
+import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type BuildObservedHeadwaysResult,
   deriveObservedHeadwayRows,
@@ -5,7 +6,6 @@ import {
   type ObservedStopEvent,
   runBuildObservedHeadways,
 } from "@bp/pipeline-v2/local-db-aggregates";
-import { defineCommand, z } from "@liche/core";
 import {
   makeBuildLocalDbCommandLayer,
   runBuildObservedHeadwaysCommand,
@@ -25,15 +25,20 @@ export default defineCommand({
   path: ["build", "observed-headways"],
   summary: "Derive per-stop observed headway samples from GTFS-RT vehicle positions.",
   input: {
-    options: dbOptions.extend({
-      runId: z.string().min(1).describe("GTFS-RT collection run id"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        runId: Schema.String.check(Schema.isMinLength(1)).annotate({
+          description: "GTFS-RT collection run id",
+        }),
+      },
     }),
   },
-  output: z.object({
-    runId: z.string(),
-    vehiclePositionCount: z.number(),
-    stopEventCount: z.number(),
-    headwaySampleCount: z.number(),
+  output: Schema.Struct({
+    runId: Schema.String,
+    vehiclePositionCount: Schema.Number,
+    stopEventCount: Schema.Number,
+    headwaySampleCount: Schema.Number,
   }),
   async run({ input }) {
     return runPipelineEffect(

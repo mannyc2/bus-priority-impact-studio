@@ -165,14 +165,17 @@ function toHotspot(
     hotspotScore: Math.round((0.65 * speedSeverity + 0.35 * slowWindowShare) * 100),
   };
 
+  if (accumulator.ridershipExposure > 0) {
+    output.ridershipExposure = round(accumulator.ridershipExposure);
+    output.transferExposure = round(accumulator.transferExposure);
+  }
+
   if (accumulator.ridershipExposure > 0 && maxRiderDelayIndex > 0) {
     const riderImpactShare = accumulator.riderDelayIndex / maxRiderDelayIndex;
     const riderWeightedSpeedSeverity = accumulator.riderDelayIndex / accumulator.ridershipExposure;
     const riderWeightedSlowWindowShare =
       accumulator.riderWeightedSlowWindowSum / accumulator.ridershipExposure;
 
-    output.ridershipExposure = round(accumulator.ridershipExposure);
-    output.transferExposure = round(accumulator.transferExposure);
     output.riderDelayIndex = round(accumulator.riderDelayIndex);
     output.riderImpactShare = round(riderImpactShare);
     output.riderWeightedSpeedSeverity = round(riderWeightedSpeedSeverity);
@@ -281,7 +284,7 @@ export function detectSegmentHotspots(
     hotspots,
   };
 
-  if (ridershipWeighted) {
+  if (ridershipExposure > 0) {
     output.ridershipMatchedObservationCount = ridershipMatchedObservationCount;
     output.ridershipExposure = round(ridershipExposure);
   }

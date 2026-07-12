@@ -1,8 +1,9 @@
 import { mkdir } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
 import { routeSourceReconciliationPath } from "@bp/analytics/artifacts";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { buildRouteSourceReconciliation } from "@bp/pipeline-v2/local-db-aggregates";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { writeJson } from "../../lib/json.ts";
@@ -28,22 +29,41 @@ export default defineCommand({
   path: ["audit", "route-source-reconciliation"],
   summary: "Reconcile current route catalog IDs against source-backed route universes.",
   input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Release calendar year"),
-      month: arg.positiveInt().default(3).describe("Release calendar month, 1-12"),
-      historyStartMonth: z.string().default("2023-04").describe("Start month for history window"),
-      runId: z.string().optional().describe("Observed GTFS-RT/import run id"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      output: z.string().optional().describe("Override output path"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        year: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+          .annotate({ description: "Release calendar year" }),
+        month: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+          .annotate({ description: "Release calendar month, 1-12" }),
+        historyStartMonth: Schema.String.pipe(
+          Schema.withDecodingDefaultTypeKey(Effect.succeed("2023-04")),
+        ).annotate({ description: "Start month for history window" }),
+        runId: Schema.optionalKey(Schema.String).annotate({
+          description: "Observed GTFS-RT/import run id",
+        }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({ description: "Override output path" }),
+      },
     }),
   },
-  output: z.object({
-    releaseMonth: z.string(),
-    runId: z.string(),
-    outputPath: z.string(),
-    routeCount: z.number().int().nonnegative(),
-    sourceAbsentRouteCount: z.number().int().nonnegative(),
-    aliasCandidateCount: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    releaseMonth: Schema.String,
+    runId: Schema.String,
+    outputPath: Schema.String,
+    routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    sourceAbsentRouteCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    aliasCandidateCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
   }),
   async run({ input }) {
     const releaseMonth = isoMonth(input.options.year, input.options.month);

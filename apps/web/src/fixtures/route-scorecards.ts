@@ -1,7 +1,21 @@
-import { type RouteScorecard, RouteScorecardSchema } from "@bp/domain/routes";
+type RouteScorecardFixture = {
+  schemaVersion: 1;
+  routeId: string;
+  month: string;
+  routeScore: number;
+  coverageStatus: "full" | "no_observed_speed";
+  averageSpeedMph: number;
+  hotspotCount: number;
+  citations: Array<{
+    sourceId: string;
+    title: string;
+    url: string;
+    verifiedAt: string;
+  }>;
+};
 
-export const routeScorecardFixtures: readonly RouteScorecard[] = [
-  RouteScorecardSchema.parse({
+export const routeScorecardFixtures: readonly RouteScorecardFixture[] = [
+  {
     schemaVersion: 1,
     routeId: "B46-SBS",
     month: "2026-03",
@@ -17,8 +31,8 @@ export const routeScorecardFixtures: readonly RouteScorecard[] = [
         verifiedAt: "2026-04-27T00:00:00.000Z",
       },
     ],
-  }),
-  RouteScorecardSchema.parse({
+  },
+  {
     schemaVersion: 1,
     routeId: "M15-SBS",
     month: "2026-03",
@@ -34,5 +48,5 @@ export const routeScorecardFixtures: readonly RouteScorecard[] = [
         verifiedAt: "2026-04-27T00:00:00.000Z",
       },
     ],
-  }),
+  },
 ];

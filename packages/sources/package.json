@@ -116,10 +116,9 @@
   },
   "dependencies": {
     "@bp/domain": "workspace:*",
-    "@nyc-transit-kit/compat": "catalog:",
     "@nyc-transit-kit/mta": "catalog:",
-    "effect": "catalog:",
-    "zod": "catalog:"
+    "@nyc-transit-kit/soda3": "catalog:",
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

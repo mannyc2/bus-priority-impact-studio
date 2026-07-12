@@ -1,0 +1,41 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background);display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .card{background:var(--background);border:1px solid var(--border);border-radius:var(--radius-xl);padding:22px;transition:all 140ms ease;cursor:pointer}
+  .card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-1)}
+  .chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:var(--radius-pill);font:500 12px var(--font-sans);margin-bottom:14px}
+  .dot{width:5px;height:5px;border-radius:50%}
+  .title{font:600 22px/1.25 var(--font-serif);letter-spacing:-0.008em;color:var(--foreground);margin:0 0 6px}
+  .lede{font:400 15px/1.55 var(--font-serif);color:color-mix(in oklab,var(--foreground) 80%,transparent);margin:0 0 18px}
+  .byline{font:400 13px/1.5 var(--font-serif);font-style:italic;color:var(--muted-foreground);margin:0}
+  .theme-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:22px;cursor:pointer;transition:all 140ms ease}
+  .theme-card:hover{background:var(--background);border-color:var(--border-strong);box-shadow:var(--shadow-1)}
+  .theme-count{font:400 13px var(--font-sans);color:var(--muted-foreground);margin-bottom:6px}
+  .theme-title{font:600 24px/1.2 var(--font-serif);letter-spacing:-0.012em;color:var(--foreground);margin:0 0 6px}
+  .theme-sub{font:400 14px/1.5 var(--font-serif);color:var(--muted-foreground);font-style:italic;margin:0 0 18px}
+  .entries{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+  .entry-link{font:400 14px/1.5 var(--font-sans);color:var(--foreground);display:flex;align-items:baseline;gap:10px}
+  .entry-link .num{font:400 13px var(--font-mono);color:var(--subtle-foreground);min-width:22px}
+</style></head><body>
+
+<div class="card">
+  <span class="chip" style="background:var(--tag-amber-soft);color:var(--tag-amber-ink)"><span class="dot" style="background:var(--tag-amber-ink)"></span>Typography</span>
+  <h3 class="title">Die neue Typographie, 1928</h3>
+  <p class="lede">Tschichold's manifesto for asymmetric, sans-serif modernism — and the quieter book that walked it back.</p>
+  <p class="byline">Linked from fourteen entries. Edited last week.</p>
+</div>
+
+<div class="theme-card">
+  <div class="theme-count">A theme of twelve entries</div>
+  <h3 class="theme-title">Architecture history</h3>
+  <p class="theme-sub">From the Bauhaus through Team 10 — pedagogy, drawings, and the schools that shaped a century of building.</p>
+  <div class="entries">
+    <a class="entry-link"><span class="num">01</span>The Bauhaus pedagogy</a>
+    <a class="entry-link"><span class="num">02</span>Black Mountain College</a>
+    <a class="entry-link"><span class="num">03</span>Hochschule für Gestaltung Ulm</a>
+    <a class="entry-link"><span class="num">04</span>Team 10 and the CIAM rupture</a>
+  </div>
+</div>
+
+</body></html>

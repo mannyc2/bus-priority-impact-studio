@@ -1,11 +1,11 @@
-import * as z from "zod";
+import { Schema } from "effect";
 import { IsoMonthSchema, RouteIdSchema, SourceCitationSchema } from "../primitives/index.js";
 import { registerProjectSchema } from "../schema-registry.js";
 
 const schemaVersion = 1;
 
 export const RouteCoverageStatusSchema = registerProjectSchema(
-  z.enum(["full", "no_observed_speed"]),
+  Schema.Literals(["full", "no_observed_speed"]),
   {
     id: "bp.route_coverage_status",
     title: "Route Coverage Status",
@@ -15,22 +15,21 @@ export const RouteCoverageStatusSchema = registerProjectSchema(
   },
 );
 
-export type RouteCoverageStatus = z.output<typeof RouteCoverageStatusSchema>;
+export type RouteCoverageStatus = typeof RouteCoverageStatusSchema.Type;
 
 export const RouteScorecardSchema = registerProjectSchema(
-  z
-    .object({
-      schemaVersion: z.literal(schemaVersion),
-      routeId: RouteIdSchema,
-      month: IsoMonthSchema,
-      routeScore: z.number().min(0).max(100),
-      coverageStatus: RouteCoverageStatusSchema,
-      averageSpeedMph: z.number().nonnegative(),
-      hotspotCount: z.number().int().nonnegative(),
-      citations: z.array(SourceCitationSchema).min(1),
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    schemaVersion: Schema.Literal(schemaVersion),
+    routeId: RouteIdSchema,
+    month: IsoMonthSchema,
+    routeScore: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(
+      Schema.isLessThanOrEqualTo(100),
+    ),
+    coverageStatus: RouteCoverageStatusSchema,
+    averageSpeedMph: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+    hotspotCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    citations: Schema.Array(SourceCitationSchema).check(Schema.isMinLength(1)),
+  }),
   {
     id: "bp.route_scorecard.v1",
     title: "Route Scorecard",
@@ -39,10 +38,15 @@ export const RouteScorecardSchema = registerProjectSchema(
   },
 );
 
-export type RouteScorecard = z.output<typeof RouteScorecardSchema>;
+export type RouteScorecard = typeof RouteScorecardSchema.Type;
 
 export const ReleaseLayerSchema = registerProjectSchema(
-  z.enum(["baseline_release", "current_signal", "pending_publication", "observed_release"]),
+  Schema.Literals([
+    "baseline_release",
+    "current_signal",
+    "pending_publication",
+    "observed_release",
+  ]),
   {
     id: "bp.release_layer",
     title: "Release Layer",
@@ -51,10 +55,10 @@ export const ReleaseLayerSchema = registerProjectSchema(
   },
 );
 
-export type ReleaseLayer = z.output<typeof ReleaseLayerSchema>;
+export type ReleaseLayer = typeof ReleaseLayerSchema.Type;
 
 export const CompletenessStatusSchema = registerProjectSchema(
-  z.enum([
+  Schema.Literals([
     "complete",
     "partial_realtime_only",
     "partial_public_monthly_only",
@@ -71,18 +75,15 @@ export const CompletenessStatusSchema = registerProjectSchema(
   },
 );
 
-export type CompletenessStatus = z.output<typeof CompletenessStatusSchema>;
+export type CompletenessStatus = typeof CompletenessStatusSchema.Type;
 
 export const ApiDataQualitySchema = registerProjectSchema(
-  z
-    .object({
-      releaseLayer: ReleaseLayerSchema,
-      completenessStatus: CompletenessStatusSchema,
-      confidence: z.enum(["high", "medium", "low"]),
-      caveats: z.array(z.string().min(1)),
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    releaseLayer: ReleaseLayerSchema,
+    completenessStatus: CompletenessStatusSchema,
+    confidence: Schema.Literals(["high", "medium", "low"]),
+    caveats: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  }),
   {
     id: "bp.api_data_quality.v1",
     title: "API Data Quality",
@@ -91,52 +92,56 @@ export const ApiDataQualitySchema = registerProjectSchema(
   },
 );
 
-export type ApiDataQuality = z.output<typeof ApiDataQualitySchema>;
+export type ApiDataQuality = typeof ApiDataQualitySchema.Type;
 
 export const ReleaseStatusResponseSchema = registerProjectSchema(
-  z
-    .object({
-      schemaVersion: z.literal(schemaVersion),
-      generatedAt: z.iso.datetime(),
-      baselineMonth: IsoMonthSchema,
-      currentSignalMonth: IsoMonthSchema.nullable(),
-      canonicalMonthlyRelease: z
-        .object({
-          month: IsoMonthSchema,
-          status: z.enum(["pass", "fail", "missing"]),
-          routeCount: z.number().int().nonnegative(),
-          artifactCount: z.number().int().nonnegative(),
-          issueCount: z.number().int().nonnegative(),
-        })
-        .strict(),
-      observedRealtimeEvidence: z
-        .object({
-          runId: z.string().min(1).nullable(),
-          source: z.enum(["official_self_collected", "third_party_recovered", "none"]),
-          observedRouteCount: z.number().int().nonnegative(),
-          insufficientRouteCount: z.number().int().nonnegative(),
-          sampleCount: z.number().int().nonnegative(),
-          routeCoverageShare: z.number().min(0).max(1),
-        })
-        .strict(),
-      currentObservedSignal: z
-        .object({
-          month: IsoMonthSchema,
-          runId: z.string().min(1).nullable(),
-          source: z.enum(["official_self_collected", "third_party_recovered", "none"]),
-          releaseLayer: z.literal("current_signal"),
-          routeCount: z.number().int().nonnegative(),
-          observedRouteCount: z.number().int().nonnegative(),
-          insufficientRouteCount: z.number().int().nonnegative(),
-          sampleCount: z.number().int().nonnegative(),
-          caveats: z.array(z.string().min(1)).readonly(),
-        })
-        .strict()
-        .nullable(),
-      quality: ApiDataQualitySchema,
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    schemaVersion: Schema.Literal(schemaVersion),
+    generatedAt: Schema.String.check(
+      Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+    ),
+    baselineMonth: IsoMonthSchema,
+    currentSignalMonth: Schema.NullOr(IsoMonthSchema),
+    canonicalMonthlyRelease: Schema.Struct({
+      month: IsoMonthSchema,
+      status: Schema.Literals(["pass", "fail", "missing"]),
+      routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      artifactCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      issueCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    }),
+    observedRealtimeEvidence: Schema.Struct({
+      runId: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+      source: Schema.Literals(["official_self_collected", "third_party_recovered", "none"]),
+      observedRouteCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      insufficientRouteCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      sampleCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      routeCoverageShare: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(
+        Schema.isLessThanOrEqualTo(1),
+      ),
+    }),
+    currentObservedSignal: Schema.NullOr(
+      Schema.Struct({
+        month: IsoMonthSchema,
+        runId: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+        source: Schema.Literals(["official_self_collected", "third_party_recovered", "none"]),
+        releaseLayer: Schema.Literal("current_signal"),
+        routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+        observedRouteCount: Schema.Number.check(Schema.isInt()).check(
+          Schema.isGreaterThanOrEqualTo(0),
+        ),
+        insufficientRouteCount: Schema.Number.check(Schema.isInt()).check(
+          Schema.isGreaterThanOrEqualTo(0),
+        ),
+        sampleCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+        caveats: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+      }),
+    ),
+    quality: ApiDataQualitySchema,
+  }),
   {
     id: "bp.release_status_response.v1",
     title: "Release Status Response",
@@ -145,29 +150,34 @@ export const ReleaseStatusResponseSchema = registerProjectSchema(
   },
 );
 
-export type ReleaseStatusResponse = z.output<typeof ReleaseStatusResponseSchema>;
+export type ReleaseStatusResponse = typeof ReleaseStatusResponseSchema.Type;
 
 export const RouteCardSchema = registerProjectSchema(
-  z
-    .object({
-      routeId: RouteIdSchema,
-      shortName: z.string().min(1),
-      month: IsoMonthSchema,
-      rank: z.number().int().positive(),
-      routeScore: z.number().min(0).max(100),
-      averageSpeedMph: z.number().nonnegative(),
-      hotspotCount: z.number().int().nonnegative(),
-      totalRidership: z.number().nonnegative(),
-      aceActive: z.boolean(),
-      busLaneMatchedLaneCount: z.number().int().nonnegative(),
-      observedBunchingShare: z.number().min(0).max(1).nullable(),
-      observedLongGapShare: z.number().min(0).max(1).nullable(),
-      reliabilityStatus: z.enum(["observed", "insufficient_gtfs_rt_samples"]).nullable(),
-      sampleCount: z.number().int().nonnegative(),
-      quality: ApiDataQualitySchema,
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    routeId: RouteIdSchema,
+    shortName: Schema.String.check(Schema.isMinLength(1)),
+    month: IsoMonthSchema,
+    rank: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+    routeScore: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(
+      Schema.isLessThanOrEqualTo(100),
+    ),
+    averageSpeedMph: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+    hotspotCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    totalRidership: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+    aceActive: Schema.Boolean,
+    busLaneMatchedLaneCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    observedBunchingShare: Schema.NullOr(
+      Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1)),
+    ),
+    observedLongGapShare: Schema.NullOr(
+      Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1)),
+    ),
+    reliabilityStatus: Schema.NullOr(Schema.Literals(["observed", "insufficient_gtfs_rt_samples"])),
+    sampleCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    quality: ApiDataQualitySchema,
+  }),
   {
     id: "bp.route_card.v1",
     title: "Route Card",
@@ -176,19 +186,18 @@ export const RouteCardSchema = registerProjectSchema(
   },
 );
 
-export type RouteCard = z.output<typeof RouteCardSchema>;
+export type RouteCard = typeof RouteCardSchema.Type;
 
 export const RouteListResponseSchema = registerProjectSchema(
-  z
-    .object({
-      schemaVersion: z.literal(schemaVersion),
-      generatedAt: z.iso.datetime(),
-      baselineMonth: IsoMonthSchema,
-      routes: z.array(RouteCardSchema),
-      quality: ApiDataQualitySchema,
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    schemaVersion: Schema.Literal(schemaVersion),
+    generatedAt: Schema.String.check(
+      Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+    ),
+    baselineMonth: IsoMonthSchema,
+    routes: Schema.Array(RouteCardSchema),
+    quality: ApiDataQualitySchema,
+  }),
   {
     id: "bp.route_list_response.v1",
     title: "Route List Response",
@@ -197,19 +206,16 @@ export const RouteListResponseSchema = registerProjectSchema(
   },
 );
 
-export type RouteListResponse = z.output<typeof RouteListResponseSchema>;
+export type RouteListResponse = typeof RouteListResponseSchema.Type;
 
 export const RouteArtifactRefSchema = registerProjectSchema(
-  z
-    .object({
-      name: z.string().min(1),
-      key: z.string().min(1),
-      contentType: z.string().min(1),
-      byteLength: z.number().int().nonnegative(),
-      sha256: z.string().length(64),
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    name: Schema.String.check(Schema.isMinLength(1)),
+    key: Schema.String.check(Schema.isMinLength(1)),
+    contentType: Schema.String.check(Schema.isMinLength(1)),
+    byteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    sha256: Schema.String.check(Schema.isLengthBetween(64, 64)),
+  }),
   {
     id: "bp.route_artifact_ref.v1",
     title: "Route Artifact Reference",
@@ -218,54 +224,78 @@ export const RouteArtifactRefSchema = registerProjectSchema(
   },
 );
 
-export type RouteArtifactRef = z.output<typeof RouteArtifactRefSchema>;
+export type RouteArtifactRef = typeof RouteArtifactRefSchema.Type;
 
 export const RouteProfileResponseSchema = registerProjectSchema(
-  z
-    .object({
-      schemaVersion: z.literal(schemaVersion),
-      generatedAt: z.iso.datetime(),
-      baselineMonth: IsoMonthSchema,
-      route: RouteCardSchema,
-      peakRidership: z
-        .object({
-          dayOfWeek: z.string().min(1),
-          hourOfDay: z.number().int().min(0).max(23),
-          ridership: z.number().nonnegative().nullable(),
-          transfers: z.number().nonnegative().nullable(),
-          weightedAverageSpeedMph: z.number().nonnegative().nullable(),
-        })
-        .strict()
-        .nullable(),
-      slowestWindow: z
-        .object({
-          dayOfWeek: z.string().min(1),
-          hourOfDay: z.number().int().min(0).max(23),
-          observationCount: z.number().int().nonnegative().nullable(),
-          busTripCount: z.number().int().nonnegative().nullable(),
-          weightedAverageSpeedMph: z.number().nonnegative().nullable(),
-          slowObservationShare: z.number().min(0).max(1).nullable(),
-        })
-        .strict()
-        .nullable(),
-      observedReliability: z
-        .object({
-          runId: z.string().min(1),
-          reliabilityStatus: z.enum(["observed", "insufficient_gtfs_rt_samples"]),
-          sampleCount: z.number().int().nonnegative(),
-          medianObservedHeadwayMinutes: z.number().nonnegative().nullable(),
-          p90ObservedHeadwayMinutes: z.number().nonnegative().nullable(),
-          observedBunchingShare: z.number().min(0).max(1).nullable(),
-          observedLongGapShare: z.number().min(0).max(1).nullable(),
-          excessWaitMinutes: z.number().nullable(),
-        })
-        .strict()
-        .nullable(),
-      artifacts: z.array(RouteArtifactRefSchema),
-      quality: ApiDataQualitySchema,
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    schemaVersion: Schema.Literal(schemaVersion),
+    generatedAt: Schema.String.check(
+      Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+    ),
+    baselineMonth: IsoMonthSchema,
+    route: RouteCardSchema,
+    peakRidership: Schema.NullOr(
+      Schema.Struct({
+        dayOfWeek: Schema.String.check(Schema.isMinLength(1)),
+        hourOfDay: Schema.Number.check(Schema.isInt())
+          .check(Schema.isGreaterThanOrEqualTo(0))
+          .check(Schema.isLessThanOrEqualTo(23)),
+        ridership: Schema.NullOr(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))),
+        transfers: Schema.NullOr(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))),
+        weightedAverageSpeedMph: Schema.NullOr(
+          Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+        ),
+      }),
+    ),
+    slowestWindow: Schema.NullOr(
+      Schema.Struct({
+        dayOfWeek: Schema.String.check(Schema.isMinLength(1)),
+        hourOfDay: Schema.Number.check(Schema.isInt())
+          .check(Schema.isGreaterThanOrEqualTo(0))
+          .check(Schema.isLessThanOrEqualTo(23)),
+        observationCount: Schema.NullOr(
+          Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+        ),
+        busTripCount: Schema.NullOr(
+          Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+        ),
+        weightedAverageSpeedMph: Schema.NullOr(
+          Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+        ),
+        slowObservationShare: Schema.NullOr(
+          Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(
+            Schema.isLessThanOrEqualTo(1),
+          ),
+        ),
+      }),
+    ),
+    observedReliability: Schema.NullOr(
+      Schema.Struct({
+        runId: Schema.String.check(Schema.isMinLength(1)),
+        reliabilityStatus: Schema.Literals(["observed", "insufficient_gtfs_rt_samples"]),
+        sampleCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+        medianObservedHeadwayMinutes: Schema.NullOr(
+          Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+        ),
+        p90ObservedHeadwayMinutes: Schema.NullOr(
+          Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+        ),
+        observedBunchingShare: Schema.NullOr(
+          Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(
+            Schema.isLessThanOrEqualTo(1),
+          ),
+        ),
+        observedLongGapShare: Schema.NullOr(
+          Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)).check(
+            Schema.isLessThanOrEqualTo(1),
+          ),
+        ),
+        excessWaitMinutes: Schema.NullOr(Schema.Number),
+      }),
+    ),
+    artifacts: Schema.Array(RouteArtifactRefSchema),
+    quality: ApiDataQualitySchema,
+  }),
   {
     id: "bp.route_profile_response.v1",
     title: "Route Profile Response",
@@ -274,26 +304,25 @@ export const RouteProfileResponseSchema = registerProjectSchema(
   },
 );
 
-export type RouteProfileResponse = z.output<typeof RouteProfileResponseSchema>;
+export type RouteProfileResponse = typeof RouteProfileResponseSchema.Type;
 
 export const HotspotCardSchema = registerProjectSchema(
-  z
-    .object({
-      corridorId: z.string().min(1),
-      corridorName: z.string().min(1),
-      routeId: RouteIdSchema,
-      month: IsoMonthSchema,
-      rank: z.number().int().positive(),
-      routeHotspotRank: z.number().int().positive(),
-      fromStopName: z.string().min(1),
-      toStopName: z.string().min(1),
-      averageSpeedMph: z.number().nonnegative(),
-      hotspotScore: z.number().int().nonnegative(),
-      riderImpactScore: z.number().int().nonnegative().nullable(),
-      quality: ApiDataQualitySchema,
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    corridorId: Schema.String.check(Schema.isMinLength(1)),
+    corridorName: Schema.String.check(Schema.isMinLength(1)),
+    routeId: RouteIdSchema,
+    month: IsoMonthSchema,
+    rank: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+    routeHotspotRank: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+    fromStopName: Schema.String.check(Schema.isMinLength(1)),
+    toStopName: Schema.String.check(Schema.isMinLength(1)),
+    averageSpeedMph: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+    hotspotScore: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    riderImpactScore: Schema.NullOr(
+      Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    ),
+    quality: ApiDataQualitySchema,
+  }),
   {
     id: "bp.hotspot_card.v1",
     title: "Hotspot Card",
@@ -302,19 +331,18 @@ export const HotspotCardSchema = registerProjectSchema(
   },
 );
 
-export type HotspotCard = z.output<typeof HotspotCardSchema>;
+export type HotspotCard = typeof HotspotCardSchema.Type;
 
 export const HotspotListResponseSchema = registerProjectSchema(
-  z
-    .object({
-      schemaVersion: z.literal(schemaVersion),
-      generatedAt: z.iso.datetime(),
-      baselineMonth: IsoMonthSchema,
-      hotspots: z.array(HotspotCardSchema),
-      quality: ApiDataQualitySchema,
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    schemaVersion: Schema.Literal(schemaVersion),
+    generatedAt: Schema.String.check(
+      Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+    ),
+    baselineMonth: IsoMonthSchema,
+    hotspots: Schema.Array(HotspotCardSchema),
+    quality: ApiDataQualitySchema,
+  }),
   {
     id: "bp.hotspot_list_response.v1",
     title: "Hotspot List Response",
@@ -323,28 +351,25 @@ export const HotspotListResponseSchema = registerProjectSchema(
   },
 );
 
-export type HotspotListResponse = z.output<typeof HotspotListResponseSchema>;
+export type HotspotListResponse = typeof HotspotListResponseSchema.Type;
 
 export const RouteCompareResponseSchema = registerProjectSchema(
-  z
-    .object({
-      schemaVersion: z.literal(schemaVersion),
-      generatedAt: z.iso.datetime(),
-      baselineMonth: IsoMonthSchema,
-      routes: z.tuple([RouteCardSchema, RouteCardSchema]),
-      deltas: z
-        .object({
-          routeScore: z.number(),
-          averageSpeedMph: z.number(),
-          totalRidership: z.number(),
-          observedBunchingShare: z.number().nullable(),
-          observedLongGapShare: z.number().nullable(),
-        })
-        .strict(),
-      quality: ApiDataQualitySchema,
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    schemaVersion: Schema.Literal(schemaVersion),
+    generatedAt: Schema.String.check(
+      Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+    ),
+    baselineMonth: IsoMonthSchema,
+    routes: Schema.Tuple([RouteCardSchema, RouteCardSchema]),
+    deltas: Schema.Struct({
+      routeScore: Schema.Number,
+      averageSpeedMph: Schema.Number,
+      totalRidership: Schema.Number,
+      observedBunchingShare: Schema.NullOr(Schema.Number),
+      observedLongGapShare: Schema.NullOr(Schema.Number),
+    }),
+    quality: ApiDataQualitySchema,
+  }),
   {
     id: "bp.route_compare_response.v1",
     title: "Route Compare Response",
@@ -353,17 +378,16 @@ export const RouteCompareResponseSchema = registerProjectSchema(
   },
 );
 
-export type RouteCompareResponse = z.output<typeof RouteCompareResponseSchema>;
+export type RouteCompareResponse = typeof RouteCompareResponseSchema.Type;
 
 export const HealthResponseSchema = registerProjectSchema(
-  z
-    .object({
-      ok: z.literal(true),
-      service: z.literal("bus-priority-impact-studio"),
-      checkedAt: z.iso.datetime(),
-    })
-    .strict()
-    .readonly(),
+  Schema.Struct({
+    ok: Schema.Literal(true),
+    service: Schema.Literal("bus-priority-impact-studio"),
+    checkedAt: Schema.String.check(
+      Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+    ),
+  }),
   {
     id: "bp.health_response.v1",
     title: "Health Response",
@@ -372,4 +396,4 @@ export const HealthResponseSchema = registerProjectSchema(
   },
 );
 
-export type HealthResponse = z.output<typeof HealthResponseSchema>;
+export type HealthResponse = typeof HealthResponseSchema.Type;

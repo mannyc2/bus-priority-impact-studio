@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:20px;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;background:var(--background)}
+  .sw{height:160px;border-radius:var(--radius-xl);position:relative;overflow:hidden;border:1px solid var(--border);display:flex;flex-direction:column;justify-content:space-between;padding:16px}
+  .l{font:600 14px var(--font-sans)}
+  .h{font:500 11px var(--font-mono);letter-spacing:.04em;opacity:.85}
+  .d{font:500 12px var(--font-sans);opacity:.7}
+  .demo-link{font:400 15px var(--font-serif);color:var(--foreground);text-decoration:underline;text-decoration-color:color-mix(in oklab,var(--primary) 35%,transparent);text-underline-offset:3px}
+</style></head><body>
+
+<div class="sw" style="background:var(--primary);color:var(--on-primary)">
+  <div class="d">Primary</div>
+  <div>
+    <div class="l">Hyperlink blue</div>
+    <div class="h">#1457E6 · ink for links, primary CTAs, focus rings, selection</div>
+  </div>
+</div>
+
+<div class="sw" style="background:var(--primary-soft);color:var(--primary);border-color:var(--primary-soft-border)">
+  <div class="d">Primary · soft</div>
+  <div>
+    <div class="l">Selection · soft chip</div>
+    <div class="h">#E6EEFD</div>
+  </div>
+</div>
+
+<div class="sw" style="background:var(--background)">
+  <div class="d" style="color:var(--muted-foreground)">In use</div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div class="demo-link">A crossref to another entry</div>
+    <button style="height:32px;padding:0 14px;border-radius:var(--radius);border:0;background:var(--primary);color:#fff;font:500 13px var(--font-sans);cursor:pointer">New entry</button>
+  </div>
+</div>
+
+</body></html>

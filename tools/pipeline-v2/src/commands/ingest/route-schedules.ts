@@ -1,9 +1,9 @@
 import type { Database } from "bun:sqlite";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runBoundedPromises, runBoundedSettledPromises } from "../../effect/concurrency.ts";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import {
@@ -13,6 +13,7 @@ import {
   type Soda3SoqlQuery,
   soqlIn,
 } from "../../lib/soda3.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 export type BusScheduleSourceId =
   | "bus_schedules_2023"
@@ -588,96 +589,93 @@ export async function runRouteSchedulesIngest(
   };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "route-schedules"],
   summary: "Fetch full route-level bus schedule stop rows from Socrata.",
-  input: {
-    options: dbOptions.extend({
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
       sourceYear: arg
         .positiveInt()
-        .default(2026)
-        .describe("MTA Bus Schedules source year to ingest"),
-      route: z.string().optional().describe("Single route ID convenience filter"),
-      routes: z
-        .array(z.string())
-        .default([])
-        .describe("Specific route IDs (default: all routes in source year)"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+        .annotate({ description: "MTA Bus Schedules source year to ingest" }),
+      route: Schema.optionalKey(Schema.String).annotate({
+        description: "Single route ID convenience filter",
+      }),
+      routes: Schema.Array(Schema.String)
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([])))
+        .annotate({ description: "Specific route IDs (default: all routes in source year)" }),
       routeConcurrency: arg
         .positiveInt()
-        .default(DEFAULT_ROUTE_CONCURRENCY)
-        .describe("Number of route-level Socrata schedule queries to run concurrently"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_ROUTE_CONCURRENCY)))
+        .annotate({
+          description: "Number of route-level Socrata schedule queries to run concurrently",
+        }),
       routePageConcurrency: arg
         .positiveInt()
-        .default(DEFAULT_ROUTE_PAGE_CONCURRENCY)
-        .describe("Number of Socrata pages to fetch concurrently within each route"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_ROUTE_PAGE_CONCURRENCY)))
+        .annotate({
+          description: "Number of Socrata pages to fetch concurrently within each route",
+        }),
       pageSize: arg
         .positiveInt()
-        .default(DEFAULT_ROUTE_PAGE_SIZE)
-        .describe("Socrata page size for route schedule stop rows"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_ROUTE_PAGE_SIZE)))
+        .annotate({ description: "Socrata page size for route schedule stop rows" }),
       fetchTimeoutMs: arg
         .positiveInt()
-        .default(DEFAULT_FETCH_TIMEOUT_MS)
-        .describe("Timeout per Socrata request before retrying"),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_FETCH_TIMEOUT_MS)))
+        .annotate({ description: "Timeout per Socrata request before retrying" }),
       fetchRetryCount: arg
         .positiveInt()
-        .default(DEFAULT_FETCH_RETRY_COUNT)
-        .describe("Retry count for route schedule Socrata requests"),
-      logProgress: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_FETCH_RETRY_COUNT)))
+        .annotate({ description: "Retry count for route schedule Socrata requests" }),
+      logProgress: arg
         .boolean()
-        .default(true)
-        .describe("Write per-route ingest progress events to stderr"),
-      skipExisting: z.coerce
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+        .annotate({ description: "Write per-route ingest progress events to stderr" }),
+      skipExisting: arg
         .boolean()
-        .default(true)
-        .describe("Skip routes that already have rows for the source year"),
-    }),
-  },
-  output: z.object({
-    sourceYear: z.number(),
-    sourceId: z.enum([
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(true)))
+        .annotate({ description: "Skip routes that already have rows for the source year" }),
+    },
+  }),
+  output: Schema.Struct({
+    sourceYear: Schema.Number,
+    sourceId: Schema.Literals([
       "bus_schedules_2023",
       "bus_schedules_2024",
       "bus_schedules_2025",
       "bus_schedules_2026",
     ]),
-    routeCount: z.number(),
-    skippedRouteCount: z.number(),
-    fetchedRowCount: z.number(),
-    writtenRowCount: z.number(),
-    failedRouteCount: z.number(),
-    failedRoutes: z.array(z.string()),
+    routeCount: Schema.Number,
+    skippedRouteCount: Schema.Number,
+    fetchedRowCount: Schema.Number,
+    writtenRowCount: Schema.Number,
+    failedRouteCount: Schema.Number,
+    failedRoutes: Schema.Array(Schema.String),
   }),
-  async run({ input }) {
-    const dbPath = input.options.db === undefined ? undefined : fromCliPath(input.options.db);
-    return runLocalDbCommandBoundary({
-      dbPath,
-      command: "ingest.route-schedules",
-      operation: "runRouteSchedulesIngest",
-      run: async (local) =>
-        runRouteSchedulesIngest({
-          sqlite: local.sqlite,
-          sourceYear: input.options.sourceYear,
-          routes:
-            input.options.route === undefined
-              ? input.options.routes
-              : [...input.options.routes, input.options.route],
-          routeConcurrency: input.options.routeConcurrency,
-          routePageConcurrency: input.options.routePageConcurrency,
-          pageSize: input.options.pageSize,
-          fetchTimeoutMs: input.options.fetchTimeoutMs,
-          fetchRetryCount: input.options.fetchRetryCount,
-          progress: input.options.logProgress
-            ? (event) => {
-                console.error(
-                  JSON.stringify({
-                    event: "route_schedules_ingest_progress",
-                    ...event,
-                  }),
-                );
-              }
-            : undefined,
-          skipExisting: input.options.skipExisting,
-        }),
-    });
-  },
+  operation: "runRouteSchedulesIngest",
+  dbPath: ({ db }) => (db === undefined ? undefined : fromCliPath(db)),
+  runner: async (local, options) =>
+    runRouteSchedulesIngest({
+      sqlite: local.sqlite,
+      sourceYear: options.sourceYear,
+      routes: options.route === undefined ? options.routes : [...options.routes, options.route],
+      routeConcurrency: options.routeConcurrency,
+      routePageConcurrency: options.routePageConcurrency,
+      pageSize: options.pageSize,
+      fetchTimeoutMs: options.fetchTimeoutMs,
+      fetchRetryCount: options.fetchRetryCount,
+      progress: options.logProgress
+        ? (event) => {
+            console.error(
+              JSON.stringify({
+                event: "route_schedules_ingest_progress",
+                ...event,
+              }),
+            );
+          }
+        : undefined,
+      skipExisting: options.skipExisting,
+    }),
 });

@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import type { Schema } from "effect";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
 
@@ -31,8 +31,8 @@ export type RouteSpec = {
   auth: RouteAuth;
   cache: RouteCachePolicy;
   idempotency: IdempotencyPolicy;
-  params?: z.ZodTypeAny;
-  query?: z.ZodTypeAny;
-  body?: z.ZodTypeAny;
-  responses?: Readonly<Record<number, z.ZodTypeAny>>;
+  params?: Schema.Constraint;
+  query?: Schema.Constraint;
+  body?: Schema.Constraint;
+  responses?: Readonly<Record<number, Schema.Constraint>>;
 };

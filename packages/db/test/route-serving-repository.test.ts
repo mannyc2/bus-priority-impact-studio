@@ -656,6 +656,23 @@ describe("route serving repository", () => {
     sqlite.close();
   });
 
+  test("skips intervention comparisons with malformed comparison route IDs", async () => {
+    const { db, sqlite } = await createDrizzleTestDb();
+    const originalConsoleError = console.error;
+    console.error = () => {};
+    try {
+      insertRows(sqlite, "intervention_event", [interventionEventRow]);
+      insertRows(sqlite, "route_intervention_comparison", [
+        { ...interventionComparisonRow, comparison_route_ids: JSON.stringify([123]) },
+      ]);
+
+      await expect(listRouteInterventionComparisons(db, "2026-03")).resolves.toEqual([]);
+    } finally {
+      console.error = originalConsoleError;
+      sqlite.close();
+    }
+  });
+
   test("lists corridor summaries with members and hotspots", async () => {
     const { db, sqlite } = await createDrizzleTestDb();
     insertRows(sqlite, "corridor", [corridorRow]);
@@ -767,6 +784,18 @@ describe("route serving repository", () => {
     sqlite.close();
   });
 
+  test("rejects unsupported route equity assignment geography values", async () => {
+    const { db, sqlite } = await createDrizzleTestDb();
+    insertRows(sqlite, "route_equity_context", [
+      { ...equityContextRow, assignment_geography: "invented_geography" },
+    ]);
+
+    await expect(listRouteEquityContexts(db, "2026-03")).rejects.toThrow(
+      "Unsupported route equity assignment geography: invented_geography",
+    );
+    sqlite.close();
+  });
+
   test("lists selected route build candidates only", async () => {
     const { db, sqlite } = await createDrizzleTestDb();
     insertRows(sqlite, "route_build_plan", [buildPlanRow]);
@@ -787,13 +816,15 @@ describe("route serving repository", () => {
     sqlite.close();
   });
 
-  test("rejects invalid child rows in summary reads", async () => {
+  test("maps trusted child rows without per-read validation", async () => {
     const { db, sqlite } = await createDrizzleTestDb();
     insertRows(sqlite, "route_brief_summary", [summaryRow]);
     insertRows(sqlite, "route_brief_peak_window", [{ ...peakWindowRow, hour_of_day: 99 }]);
     insertRows(sqlite, "route_brief_slowest_window", [slowestWindowRow]);
 
-    await expect(listRouteBriefSummaries(db, "2026-03")).rejects.toThrow();
+    const rows = await listRouteBriefSummaries(db, "2026-03");
+
+    expect(rows[0]?.peakRidership?.hourOfDay).toBe(99);
     sqlite.close();
   });
 });

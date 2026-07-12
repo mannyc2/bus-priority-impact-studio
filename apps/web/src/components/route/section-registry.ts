@@ -29,8 +29,8 @@ export const ROUTE_SECTION_TITLES = {
 /** The route sections share one capability/honest-empty contract. */
 export const ROUTE_DETAIL_SECTIONS = [
   { value: "overview", label: ROUTE_SECTION_TITLES.overview },
-  { value: "map", label: ROUTE_SECTION_TITLES.map },
   { value: "where-when", label: ROUTE_SECTION_TITLES["where-when"] },
+  { value: "map", label: ROUTE_SECTION_TITLES.map },
   { value: "reliability", label: ROUTE_SECTION_TITLES.reliability },
   { value: "riders", label: ROUTE_SECTION_TITLES.riders },
   { value: "treatments", label: ROUTE_SECTION_TITLES.treatments },
@@ -39,10 +39,6 @@ export const ROUTE_DETAIL_SECTIONS = [
 
 export function routeSectionTitle(sectionValue: RouteDetailSectionValue): string {
   return ROUTE_SECTION_TITLES[sectionValue];
-}
-
-export function routeSectionAnchorId(sectionValue: RouteDetailSectionValue): string {
-  return `route-section-${sectionValue}`;
 }
 
 /**
@@ -209,4 +205,129 @@ export function routeSectionNavigationTarget(
   if (routeSectionCanNavigate(registry, sectionValue)) return sectionValue;
   if (fallback === null) return null;
   return routeSectionCanNavigate(registry, fallback) ? fallback : null;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tab layer (frontend §4 redesign, plan 053)
+ *
+ * The route-detail page groups the capability-gated sections into four real
+ * `?tab=` tabs. `evidence` belongs to NO tab: it renders unconditionally as the
+ * "About this data" collapsible beneath whichever tab is active.
+ * ------------------------------------------------------------------------- */
+
+export type RouteDetailTabValue = "overview" | "segments" | "riders" | "history";
+
+export const ROUTE_DETAIL_TABS = [
+  { value: "overview", label: "Overview", sections: ["overview"] },
+  { value: "segments", label: "Slow segments", sections: ["where-when", "map"] },
+  { value: "riders", label: "Riders & reliability", sections: ["riders", "reliability"] },
+  { value: "history", label: "Treatments & history", sections: ["treatments"] },
+] as const satisfies readonly {
+  value: RouteDetailTabValue;
+  label: string;
+  sections: readonly RouteDetailSectionValue[];
+}[];
+
+export type RouteDetailTab = (typeof ROUTE_DETAIL_TABS)[number];
+
+/**
+ * A tab's presentation is the BEST of its member sections: any member that
+ * renders makes the tab render; otherwise the first honest-empty member carries
+ * the tab (its state drives the trigger badge only); otherwise the tab is
+ * hidden. Panels still render each member section through its own honest-empty
+ * wrapper, so this collapse only governs the tab's visibility + trigger badge.
+ */
+export type RouteTabPresentation =
+  | { mode: "render" }
+  | { mode: "empty"; state: HonestEmptyState }
+  | { mode: "hidden" };
+
+export type RouteDetailTabView = {
+  value: RouteDetailTabValue;
+  label: string;
+  presentation: RouteTabPresentation;
+  badge?: RouteDetailSection["badge"];
+};
+
+export type RouteTabRegistry = {
+  sectionRegistry: RouteSectionRegistry;
+  visibleTabs: RouteDetailTabView[];
+  presentations: Record<RouteDetailTabValue, RouteTabPresentation>;
+};
+
+export function tabPresentation(
+  registry: Pick<RouteSectionRegistry, "presentations">,
+  tab: RouteDetailTab,
+): RouteTabPresentation {
+  let empty: HonestEmptyState | null = null;
+  for (const section of tab.sections) {
+    const presentation = registry.presentations[section];
+    if (presentation.mode === "render") return { mode: "render" };
+    if (presentation.mode === "empty" && empty === null) empty = presentation.state;
+  }
+  return empty === null ? { mode: "hidden" } : { mode: "empty", state: empty };
+}
+
+const TAB_BADGE_SEVERITY_RANK: Record<"low" | "medium" | "high", number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
+/** A tab's badge is the sum of its member sections' notice counts, at the max
+ * (most severe) severity among them. */
+function tabBadge(
+  tab: RouteDetailTab,
+  sectionBadges: Partial<Record<RouteDetailSectionValue, RouteDetailSection["badge"]>>,
+): RouteDetailSection["badge"] {
+  let count = 0;
+  let severity: "low" | "medium" | "high" | null = null;
+  for (const section of tab.sections) {
+    const badge = sectionBadges[section];
+    if (badge === undefined) continue;
+    count += badge.count;
+    severity =
+      severity === null ||
+      TAB_BADGE_SEVERITY_RANK[badge.severity] < TAB_BADGE_SEVERITY_RANK[severity]
+        ? badge.severity
+        : severity;
+  }
+  return count > 0 && severity !== null ? { count, severity } : undefined;
+}
+
+export function routeTabRegistry(
+  capability: StudioRouteCapability | null,
+  sectionBadges: Partial<Record<RouteDetailSectionValue, RouteDetailSection["badge"]>> = {},
+): RouteTabRegistry {
+  const sectionRegistry = routeSectionRegistry(capability, sectionBadges);
+  const presentations = {} as Record<RouteDetailTabValue, RouteTabPresentation>;
+  const visibleTabs: RouteDetailTabView[] = [];
+
+  for (const tab of ROUTE_DETAIL_TABS) {
+    const presentation = tabPresentation(sectionRegistry, tab);
+    presentations[tab.value] = presentation;
+    // Overview is always visible; every other tab disappears only when hidden.
+    if (presentation.mode === "hidden" && tab.value !== "overview") continue;
+    const badge = tabBadge(tab, sectionBadges);
+    visibleTabs.push({
+      value: tab.value,
+      label: tab.label,
+      presentation,
+      ...(badge === undefined ? {} : { badge }),
+    });
+  }
+
+  return { sectionRegistry, visibleTabs, presentations };
+}
+
+/**
+ * Maps a section to the tab that owns it; `evidence` belongs to no tab (it is
+ * the always-present About-this-data collapsible). Converts the existing
+ * `onNavigate(section)` callbacks into tab switches.
+ */
+export function routeTabForSection(section: RouteDetailSectionValue): RouteDetailTabValue | null {
+  for (const tab of ROUTE_DETAIL_TABS) {
+    if ((tab.sections as readonly RouteDetailSectionValue[]).includes(section)) return tab.value;
+  }
+  return null;
 }

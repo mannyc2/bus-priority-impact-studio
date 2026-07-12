@@ -1,8 +1,9 @@
 import { replaceRouteMonthCoverage } from "@bp/db/local";
+import { decodeStrip } from "@bp/domain/decode";
+import { arg, Schema } from "@bp/pipeline-v2/cli/compat";
 import { getSocrataSource } from "@bp/sources/registry";
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
-import { arg, defineCommand, z } from "@liche/core";
-import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
+import { Effect } from "effect";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromRepoRoot } from "../../lib/paths.ts";
@@ -12,24 +13,21 @@ import {
   type SocrataRow,
   type Soda3SoqlQuery,
 } from "../../lib/soda3.ts";
+import { defineIngestCommand } from "./_define-ingest-command.ts";
 
 const schemaVersion = 1;
 
-const RawSpeedCoverageRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    observation_count: z.coerce.number().int().nonnegative(),
-    bus_trip_count: z.coerce.number().int().nonnegative(),
-    average_speed_mph: z.coerce.number().nonnegative(),
-  })
-  .passthrough();
+const RawSpeedCoverageRowSchema = Schema.Struct({
+  route_id: Schema.String.check(Schema.isMinLength(1)),
+  observation_count: arg.number().check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  bus_trip_count: arg.number().check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  average_speed_mph: arg.number().check(Schema.isGreaterThanOrEqualTo(0)),
+});
 
-const RawScheduleCoverageRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    timepoint_count: z.coerce.number().int().nonnegative(),
-  })
-  .passthrough();
+const RawScheduleCoverageRowSchema = Schema.Struct({
+  route_id: Schema.String.check(Schema.isMinLength(1)),
+  timepoint_count: arg.number().check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+});
 
 type CoverageEntry = {
   schemaVersion: typeof schemaVersion;
@@ -65,7 +63,7 @@ function normalizeSpeedCoverage(
 ): Map<string, CoverageEntry> {
   const entries = new Map<string, CoverageEntry>();
   for (const row of rows) {
-    const parsed = RawSpeedCoverageRowSchema.parse(row);
+    const parsed = decodeStrip(RawSpeedCoverageRowSchema)(row);
     const routeId = parsed.route_id;
     entries.set(routeId, {
       schemaVersion,
@@ -88,7 +86,7 @@ function addScheduleCoverage(
   month: string,
 ): void {
   for (const row of rows) {
-    const parsed = RawScheduleCoverageRowSchema.parse(row);
+    const parsed = decodeStrip(RawScheduleCoverageRowSchema)(row);
     const routeId = parsed.route_id;
     const entry =
       entries.get(routeId) ??
@@ -156,37 +154,30 @@ export async function runRouteCoverageIngest(
   };
 }
 
-export default defineCommand({
+export default defineIngestCommand({
   path: ["ingest", "route-coverage"],
   summary: "Build route/month coverage from speed and schedule sources.",
-  input: {
-    options: dbOptions.extend({
-      year: arg.positiveInt().default(2026).describe("Calendar year"),
-      month: arg.positiveInt().default(3).describe("Calendar month, 1-12"),
-    }),
-  },
-  output: z.object({
-    routeCount: z.number(),
-    speedRouteCount: z.number(),
-    scheduleRouteCount: z.number(),
-    completeCoverageRouteCount: z.number(),
-    dbPath: z.string(),
+  options: Schema.Struct({
+    ...dbOptions.fields,
+    ...{
+      year: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
+        .annotate({ description: "Calendar year" }),
+      month: arg
+        .positiveInt()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
+        .annotate({ description: "Calendar month, 1-12" }),
+    },
   }),
-  async run({ input }) {
-    return runLocalDbCommandBoundary({
-      dbPath: input.options.db,
-      command: "ingest.route-coverage",
-      operation: "runRouteCoverageIngest",
-      spanAttributes: {
-        year: input.options.year,
-        month: input.options.month,
-      },
-      run: (local) =>
-        runRouteCoverageIngest({
-          local,
-          year: input.options.year,
-          month: input.options.month,
-        }),
-    });
-  },
+  output: Schema.Struct({
+    routeCount: Schema.Number,
+    speedRouteCount: Schema.Number,
+    scheduleRouteCount: Schema.Number,
+    completeCoverageRouteCount: Schema.Number,
+    dbPath: Schema.String,
+  }),
+  operation: "runRouteCoverageIngest",
+  spanAttributes: ({ year, month }) => ({ year, month }),
+  runner: (local, { year, month }) => runRouteCoverageIngest({ local, year, month }),
 });

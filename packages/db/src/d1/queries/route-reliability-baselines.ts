@@ -1,44 +1,7 @@
 import { asc, desc, eq } from "drizzle-orm";
-import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { routeReliabilityBaseline, routeReliabilityGapWindow } from "../schema.js";
-import { IsoMonthSchema } from "./shared.js";
 import { groupSourceStatuses, listRouteMonthSourceStatuses } from "./source-statuses.js";
-
-const RouteReliabilityBaselineRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    month: IsoMonthSchema,
-    reliability_status: z.literal("scheduled_baseline_only"),
-    scheduled_timepoint_count: z.number().int().nonnegative(),
-    stop_headway_group_count: z.number().int().nonnegative(),
-    headway_sample_count: z.number().int().nonnegative(),
-    median_scheduled_headway_minutes: z.number().nonnegative().nullable(),
-    p90_scheduled_headway_minutes: z.number().nonnegative().nullable(),
-    max_scheduled_headway_minutes: z.number().nonnegative().nullable(),
-    scheduled_short_headway_share: z.number().nonnegative().nullable(),
-    scheduled_long_gap_share: z.number().nonnegative().nullable(),
-  })
-  .strict();
-
-const RouteReliabilityGapWindowRowSchema = z
-  .object({
-    route_id: z.string().min(1),
-    month: IsoMonthSchema,
-    window_rank: z.number().int().positive(),
-    day_type: z.string().min(1),
-    direction_id: z.string().min(1),
-    stop_id: z.string().min(1),
-    stop_name: z.string().nullable(),
-    sample_count: z.number().int().nonnegative(),
-    median_headway_minutes: z.number().nonnegative(),
-    p90_headway_minutes: z.number().nonnegative(),
-    max_headway_minutes: z.number().nonnegative(),
-  })
-  .strict();
-
-export type RouteReliabilityBaselineRow = z.output<typeof RouteReliabilityBaselineRowSchema>;
-export type RouteReliabilityGapWindowRow = z.output<typeof RouteReliabilityGapWindowRowSchema>;
 
 export type RouteReliabilityGapWindow = {
   routeId: string;
@@ -111,7 +74,7 @@ function toRouteReliabilityBaseline(
   return {
     routeId: row.route_id,
     month: row.month,
-    reliabilityStatus: row.reliability_status,
+    reliabilityStatus: row.reliability_status as RouteReliabilityBaseline["reliabilityStatus"],
     scheduledTimepointCount: row.scheduled_timepoint_count,
     stopHeadwayGroupCount: row.stop_headway_group_count,
     headwaySampleCount: row.headway_sample_count,
@@ -125,11 +88,8 @@ function toRouteReliabilityBaseline(
   };
 }
 
-async function listGapWindowRows(
-  db: D1ServingDb,
-  month: string,
-): Promise<RouteReliabilityGapWindowRow[]> {
-  const rows = await db
+async function listGapWindowRows(db: D1ServingDb, month: string) {
+  return db
     .select({
       route_id: routeReliabilityGapWindow.routeId,
       month: routeReliabilityGapWindow.month,
@@ -146,15 +106,10 @@ async function listGapWindowRows(
     .from(routeReliabilityGapWindow)
     .where(eq(routeReliabilityGapWindow.month, month))
     .orderBy(asc(routeReliabilityGapWindow.routeId), asc(routeReliabilityGapWindow.windowRank));
-
-  return rows.map((row) => RouteReliabilityGapWindowRowSchema.parse(row));
 }
 
-export async function listRouteReliabilityBaselines(
-  db: D1ServingDb,
-  month: string,
-): Promise<RouteReliabilityBaseline[]> {
-  const rows = await db
+async function selectRouteReliabilityBaselineRows(db: D1ServingDb, month: string) {
+  return db
     .select({
       route_id: routeReliabilityBaseline.routeId,
       month: routeReliabilityBaseline.month,
@@ -174,14 +129,24 @@ export async function listRouteReliabilityBaselines(
       desc(routeReliabilityBaseline.p90ScheduledHeadwayMinutes),
       asc(routeReliabilityBaseline.routeId),
     );
+}
 
-  const parsedRows = rows.map((row) => RouteReliabilityBaselineRowSchema.parse(row));
+export type RouteReliabilityBaselineRow = Awaited<
+  ReturnType<typeof selectRouteReliabilityBaselineRows>
+>[number];
+export type RouteReliabilityGapWindowRow = Awaited<ReturnType<typeof listGapWindowRows>>[number];
+
+export async function listRouteReliabilityBaselines(
+  db: D1ServingDb,
+  month: string,
+): Promise<RouteReliabilityBaseline[]> {
+  const rows = await selectRouteReliabilityBaselineRows(db, month);
   const [gapWindows, sourceStatuses] = await Promise.all([
     listGapWindowRows(db, month),
     listRouteMonthSourceStatuses(db, month, "reliability"),
   ]);
 
-  return parsedRows.map((row) =>
+  return rows.map((row) =>
     toRouteReliabilityBaseline(
       row,
       groupGapWindows(gapWindows),

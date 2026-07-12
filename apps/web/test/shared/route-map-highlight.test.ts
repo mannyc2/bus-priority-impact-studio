@@ -6,7 +6,6 @@ import {
   routeMapFocusSummary,
   routeMapHighlight,
 } from "../../src/components/route/RouteMapSection";
-import { routeSectionRegistry } from "../../src/components/route/section-registry";
 import type {
   RouteSurfaceCapability,
   StudioRoute,
@@ -19,6 +18,8 @@ import type {
 function segment(input: Partial<StudioSegment> & Pick<StudioSegment, "id">): StudioSegment {
   const fixture: StudioSegment = {
     id: input.id,
+    spineSegmentId: null,
+    spineJoinStatus: "not_built",
     routeSlug: "m14a-sbs",
     direction: "NB",
     from: "A",
@@ -35,6 +36,8 @@ function segment(input: Partial<StudioSegment> & Pick<StudioSegment, "id">): Stu
     ...fixture,
     ...input,
     id: input.id,
+    spineSegmentId: input.spineSegmentId ?? fixture.spineSegmentId,
+    spineJoinStatus: input.spineJoinStatus ?? fixture.spineJoinStatus,
     routeSlug: input.routeSlug ?? fixture.routeSlug,
   };
 }
@@ -116,8 +119,9 @@ function detail({
   segments: StudioSegment[];
 }): StudioRouteDetailResponse {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     generatedAt: "2026-06-12T00:00:00.000Z",
+    baselineMonth: "2026-03",
     route,
     segments,
     artifactRefs: [],
@@ -208,14 +212,12 @@ describe("routeMapHighlight", () => {
   });
 
   test("renders the Overview route-map card with the geo loading state first", () => {
-    const registry = routeSectionRegistry(capability);
     const markup = renderToStaticMarkup(
       createElement(OverviewSection, {
         data: detail({
           segments: [segment({ id: "flagged", flagged: true }), segment({ id: "target" })],
           insights: [insight({ severity: "high", target: { segmentIds: ["target"] } })],
         }),
-        sectionRegistry: registry,
         onNavigate: () => undefined,
       }),
     );

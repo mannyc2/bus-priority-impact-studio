@@ -1,3 +1,8 @@
+import {
+  type ClassifiedRouteSegmentSourceKey,
+  classifyRouteSegmentSourceKey,
+} from "./route-speed-spine-crosswalk.js";
+
 export const ROUTE_SPEED_SPINE_DEFAULT_START_MONTH = "2023-04";
 export const ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS = 110;
 const EARTH_RADIUS_METERS = 6_371_000;
@@ -67,6 +72,7 @@ export type RouteSpeedSpineSegment = {
       months: string[];
       sourceRowCount: number;
     }>;
+    sourceKeys?: ClassifiedRouteSegmentSourceKey[];
   };
 };
 
@@ -114,6 +120,11 @@ export type RouteSpeedSpineArtifact = {
     mergedNodeCount: number;
     segmentWithRawVariantCount: number;
     issueCount: number;
+    keyedSourceKeyCount?: number;
+    unkeyableSourceKeyCount?: number;
+  };
+  sourceKeys?: {
+    observed: ClassifiedRouteSegmentSourceKey[];
   };
   nodes: RouteSpeedSpineNode[];
   segments: RouteSpeedSpineSegment[];
@@ -180,6 +191,7 @@ type SegmentAccumulator = {
   stopOrders: Map<number, number>;
   rawSegmentKeys: Set<string>;
   rawStopPairs: Map<string, RawStopPairAccumulator>;
+  sourceKeys: Map<string, ClassifiedRouteSegmentSourceKey>;
 };
 
 type RawStopPairAccumulator = {
@@ -235,6 +247,30 @@ function rawStopPairAccumulatorKey(row: RouteSpeedSpineSourceRow): string {
     textKey(row.next_timepoint_stop_id),
     textKey(row.next_timepoint_stop_name),
   ].join("|");
+}
+
+function classifiedSourceKey(row: RouteSpeedSpineSourceRow): ClassifiedRouteSegmentSourceKey {
+  return classifyRouteSegmentSourceKey({
+    routeId: row.route_id,
+    month: row.month,
+    direction: row.direction,
+    stopOrder: row.stop_order,
+    fromStopId: row.timepoint_stop_id,
+    toStopId: row.next_timepoint_stop_id,
+  });
+}
+
+function classifiedSourceKeyIdentity(classified: ClassifiedRouteSegmentSourceKey): string {
+  const value = classified.status === "keyed" ? classified.key : classified.observed;
+  return JSON.stringify([
+    classified.status,
+    value.routeId,
+    value.month,
+    value.direction,
+    value.stopOrder,
+    value.fromStopId,
+    value.toStopId,
+  ]);
 }
 
 function isFiniteCoordinate(latitude: number | null, longitude: number | null): boolean {
@@ -386,6 +422,17 @@ function clusterPoints(points: readonly SourcePoint[], toleranceMeters: number):
       for (const pointIndex of cluster.pointIndexes) {
         const existing = points[pointIndex];
         if (existing === undefined) continue;
+        const concurrentDistinctStop =
+          point.month === existing.month &&
+          point.direction === existing.direction &&
+          point.role === existing.role &&
+          point.stopId !== null &&
+          existing.stopId !== null &&
+          point.stopId !== existing.stopId;
+        if (concurrentDistinctStop) {
+          fits = false;
+          break;
+        }
         const distance = haversineMeters(point, existing);
         maxDistance = Math.max(maxDistance, distance);
         if (distance > toleranceMeters) {
@@ -423,10 +470,16 @@ function buildNodes(input: {
       .map((pointIndex) => input.points[pointIndex])
       .filter((point): point is SourcePoint => point !== undefined);
     const latitude = weightedAverage(
-      clusterPoints.map((point) => ({ value: point.latitude, weight: point.weight })),
+      clusterPoints.map((point) => ({
+        value: point.latitude,
+        weight: point.weight,
+      })),
     );
     const longitude = weightedAverage(
-      clusterPoints.map((point) => ({ value: point.longitude, weight: point.weight })),
+      clusterPoints.map((point) => ({
+        value: point.longitude,
+        weight: point.weight,
+      })),
     );
     const stopIds = new Map<string, number>();
     const stopNames = new Map<string, number>();
@@ -536,6 +589,7 @@ function getOrCreateSegmentAccumulator(
     stopOrders: new Map(),
     rawSegmentKeys: new Set(),
     rawStopPairs: new Map(),
+    sourceKeys: new Map(),
   };
   segments.set(key, created);
   return created;
@@ -582,7 +636,11 @@ function buildSegments(input: {
         severity: "error",
         code: "missing_node_assignment",
         message: "A source row had coordinates but could not be assigned to a spine node.",
-        context: { month: row.month, direction: row.direction, stopOrder: row.stop_order },
+        context: {
+          month: row.month,
+          direction: row.direction,
+          stopOrder: row.stop_order,
+        },
       });
       continue;
     }
@@ -617,6 +675,8 @@ function buildSegments(input: {
       (segment.stopOrders.get(row.stop_order) ?? 0) + rowWeight,
     );
     segment.rawSegmentKeys.add(rawSegmentKey(row));
+    const sourceKey = classifiedSourceKey(row);
+    segment.sourceKeys.set(classifiedSourceKeyIdentity(sourceKey), sourceKey);
     addWeightedSegmentMetric(
       segment,
       "speed",
@@ -708,6 +768,9 @@ function buildSegments(input: {
           rawSegmentKeyCount: segment.rawSegmentKeys.size,
           rawStopPairCount: segment.rawStopPairs.size,
           sourceStopPairs,
+          sourceKeys: [...segment.sourceKeys.values()].toSorted((left, right) =>
+            classifiedSourceKeyIdentity(left).localeCompare(classifiedSourceKeyIdentity(right)),
+          ),
         },
       } satisfies RouteSpeedSpineSegment;
     })
@@ -790,6 +853,11 @@ export function buildRouteSpeedSpineArtifact(input: {
   const toleranceMeters = input.toleranceMeters ?? ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS;
   const issues: RouteSpeedSpineIssue[] = [];
   const rows = input.rows.filter((row) => normalizeRouteId(row.route_id) === routeId);
+  const observedSourceKeys = rows
+    .map(classifiedSourceKey)
+    .toSorted((left, right) =>
+      classifiedSourceKeyIdentity(left).localeCompare(classifiedSourceKeyIdentity(right)),
+    );
   const sourceRowCount = rows.reduce(
     (sum, row) => sum + Math.max(1, Number(row.source_row_count) || 1),
     0,
@@ -804,16 +872,31 @@ export function buildRouteSpeedSpineArtifact(input: {
       severity: "error",
       code: "no_source_rows",
       message: "No local_route_segment_speed rows were found for the requested route/window.",
-      context: { routeId, startMonth: input.startMonth, endMonth: input.endMonth },
+      context: {
+        routeId,
+        startMonth: input.startMonth,
+        endMonth: input.endMonth,
+      },
     });
   }
 
   const { points, rowRefs, issues: coordinateIssues } = createPoints(rows);
   issues.push(...coordinateIssues);
   const clusters = clusterPoints(points, toleranceMeters);
-  const { nodes, nodeIdByPointIndex } = buildNodes({ clusters, points, toleranceMeters, issues });
+  const { nodes, nodeIdByPointIndex } = buildNodes({
+    clusters,
+    points,
+    toleranceMeters,
+    issues,
+  });
   const nodesById = new Map(nodes.map((node) => [node.nodeId, node]));
-  const segments = buildSegments({ rowRefs, nodeIdByPointIndex, nodesById, routeSlug, issues });
+  const segments = buildSegments({
+    rowRefs,
+    nodeIdByPointIndex,
+    nodesById,
+    routeSlug,
+    issues,
+  });
   const monthCoverage = buildMonthCoverage({
     rows,
     rowRefs,
@@ -872,7 +955,12 @@ export function buildRouteSpeedSpineArtifact(input: {
       mergedNodeCount,
       segmentWithRawVariantCount,
       issueCount: issues.length,
+      keyedSourceKeyCount: observedSourceKeys.filter((key) => key.status === "keyed").length,
+      unkeyableSourceKeyCount: observedSourceKeys.filter(
+        (key) => key.status === "unkeyable_missing_stop_pair",
+      ).length,
     },
+    sourceKeys: { observed: observedSourceKeys },
     nodes,
     segments,
     monthCoverage,

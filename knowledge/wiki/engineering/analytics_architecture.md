@@ -2,7 +2,7 @@
 title: Analytics Architecture
 type: engineering
 status: active
-last_updated: 2026-05-30
+last_updated: 2026-07-05
 owner: codex
 source_count: 0
 tags: [analytics, detectors, feature-store, baselines, package-architecture]
@@ -128,7 +128,7 @@ Consumers stay outside the package:
 | `packages/applied-research` | Resolve corpus-backed study inputs, run analytics over detector-native grains, build score vectors, review packets, evaluation artifacts, causal panels, and forecasting backtests |
 | `tools/pipeline-v2` | Load local DB/artifact inputs, call analytics, persist detector outputs, build review packets and Studio artifacts |
 | `packages/db` | Store local detector inputs/outputs and serving projections |
-| `packages/domain` | Own public/internal contracts, branded IDs, and Zod schemas crossing package boundaries |
+| `packages/domain` | Own public/internal Effect Schema contracts and branded IDs crossing package boundaries |
 | `apps/web` | Read D1/R2/Worker projections only; no analytics imports |
 | Future lab or review apps | Read generated artifacts or Worker APIs; do not become analytics runtime owners |
 

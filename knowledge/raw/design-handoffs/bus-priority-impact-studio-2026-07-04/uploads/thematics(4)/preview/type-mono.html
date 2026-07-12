@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:32px 36px;background:var(--background);font-family:var(--font-sans);color:var(--foreground)}
+  .grid{display:grid;grid-template-columns:140px 1fr;gap:18px 28px;align-items:baseline}
+  .label{font:400 13px/1.5 var(--font-sans);color:var(--muted-foreground);padding-top:6px}
+  .sample{color:var(--foreground)}
+  .mono{font:400 14px/1.5 var(--font-mono)}
+  .cite-row{display:flex;align-items:center;gap:14px}
+  .cite-mark{width:28px;height:28px;border-radius:4px;background:#0A0A0B;color:#fff;display:flex;align-items:center;justify-content:center;font:700 13px/1 var(--font-serif);flex:0 0 28px;letter-spacing:-0.02em}
+  .cite-body{font:400 15px/1.5 var(--font-serif)}
+  .cite-body em{font-style:italic}
+  .cite-body .page{color:var(--muted-foreground)}
+  .note{font:400 13px/1.5 var(--font-serif);font-style:italic;color:var(--muted-foreground);margin-top:8px}
+</style></head><body>
+<div class="grid">
+  <div class="label">Slug · path</div>
+  <div class="sample mono">/themes/architecture-history/bauhaus-pedagogy</div>
+
+  <div class="label">DOI</div>
+  <div class="sample mono">10.7551/mitpress/1969.001.0001</div>
+
+  <div class="label">Citation</div>
+  <div class="sample">
+    <div class="cite-row">
+      <div class="cite-mark" aria-hidden="true">M</div>
+      <div class="cite-body">Wingler, <em>The Bauhaus: Weimar, Dessau, Berlin, Chicago</em> &nbsp;·&nbsp; MIT&nbsp;Press, 1969 &nbsp;·&nbsp; <span class="page">p.&nbsp;47</span></div>
+    </div>
+    <div class="note">Cite the source, not a mono-numeric label. Where a publisher mark exists, lead with it.</div>
+  </div>
+</div>
+</body></html>

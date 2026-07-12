@@ -1,0 +1,14 @@
+{
+  "_notice": "EXAMPLE ONLY — intentionally invalid and not an operator approval",
+  "artifactKind": "example-only:not-an-approval",
+  "schemaVersion": 0,
+  "candidateSetId": "REPLACE_WITH_CURRENT_CANDIDATE_SET_ID",
+  "decisions": [
+    {
+      "candidateId": "REPLACE_WITH_EVERY_CANDIDATE_ID",
+      "decision": "REVIEW_REQUIRED",
+      "reviewer": "",
+      "rationale": ""
+    }
+  ]
+}

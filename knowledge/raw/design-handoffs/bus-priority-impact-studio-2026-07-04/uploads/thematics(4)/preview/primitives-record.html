@@ -1,0 +1,38 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;padding:24px;background:var(--background)}
+  .figure{max-width:520px}
+  .card{background:var(--background);border:1px solid var(--border);border-radius:var(--radius-xl);padding:22px 24px}
+  .head{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+  .mono-tile{width:36px;height:36px;background:#0A0A0B;color:#fff;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font:500 18px var(--font-serif);letter-spacing:-0.02em;flex:0 0 36px}
+  .head .name{font:600 18px/1.2 var(--font-serif);letter-spacing:-0.008em;color:var(--foreground);margin:0}
+  .head .role{font:400 14px/1.4 var(--font-serif);font-style:italic;color:var(--muted-foreground);margin:2px 0 0}
+  .rows{border-top:1px solid var(--divider);padding-top:12px;display:flex;flex-direction:column}
+  .row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--divider)}
+  .row:last-child{border-bottom:0}
+  .key{font:400 13px var(--font-sans);color:var(--muted-foreground)}
+  .val{font:400 14px var(--font-sans);color:var(--foreground);text-align:right}
+  .val.mono{font:400 13px var(--font-mono)}
+  figcaption{font:italic 400 14px/1.5 var(--font-serif);color:var(--muted-foreground);margin-top:14px;max-width:560px}
+</style></head><body>
+<figure class="figure" style="margin:0">
+  <div class="card">
+    <div class="head">
+      <div class="mono-tile" aria-hidden="true">M</div>
+      <div>
+        <h3 class="name">László Moholy-Nagy</h3>
+        <p class="role">Painter, photographer, educator.</p>
+      </div>
+    </div>
+    <div class="rows">
+      <div class="row"><span class="key">Born</span><span class="val">Bácsborsód, Hungary, 1895</span></div>
+      <div class="row"><span class="key">Bauhaus tenure</span><span class="val">1923 – 1928</span></div>
+      <div class="row"><span class="key">Successor school</span><span class="val">New Bauhaus, Chicago</span></div>
+      <div class="row"><span class="key">Entry slug</span><span class="val mono">/people/moholy-nagy-laszlo</span></div>
+      <div class="row"><span class="key">Linked from</span><span class="val">twenty-two entries</span></div>
+    </div>
+  </div>
+  <figcaption>Data record for a person. Monogram tile in serif, never circular — circles imply social, not editorial.</figcaption>
+</figure>
+</body></html>

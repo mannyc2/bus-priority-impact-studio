@@ -16,7 +16,7 @@ async function createDrizzleTestDb(): Promise<Database> {
   return sqlite;
 }
 
-function insertSourceMonthCoverageRow(sqlite: Database, month: string): void {
+function insertSourceMonthCoverageRow(sqlite: Database, month: string, status = "available"): void {
   sqlite
     .query(
       `INSERT INTO source_month_coverage (
@@ -39,7 +39,7 @@ function insertSourceMonthCoverageRow(sqlite: Database, month: string): void {
       "Route segment speed rows",
       "source_table",
       "route x month x segment/hour speed observation",
-      "available",
+      status,
       4200,
       350,
       null,
@@ -82,5 +82,14 @@ describe("Snapshot coverage D1 read model", () => {
     } finally {
       console.error = originalConsoleError;
     }
+  });
+
+  test("normalizes unknown source coverage status at the D1 edge", async () => {
+    const sqlite = await createDrizzleTestDb();
+    insertSourceMonthCoverageRow(sqlite, "2026-03", "invented_status");
+
+    const rows = await listPublicSnapshotSourceMonthCoverage(createBunSqliteServingDb(sqlite));
+
+    expect(rows.rows[0]?.status).toBe("source_absent");
   });
 });

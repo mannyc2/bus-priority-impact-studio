@@ -22,7 +22,7 @@
     "@bp/db": "workspace:*",
     "@bp/domain": "workspace:*",
     "@nyc-transit-kit/compat": "catalog:",
-    "zod": "catalog:"
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",

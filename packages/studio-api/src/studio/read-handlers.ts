@@ -9,8 +9,6 @@ import {
   listPublicSnapshotSourceMonthCoverage,
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
-  listStudioRouteIndexSourceRows,
-  type StudioRouteIndexSourceRow,
 } from "@bp/db/d1";
 import {
   buildRouteInsightsFromDetectorReadiness,
@@ -22,10 +20,8 @@ import {
   RouteCapabilityManifestForIndexSchema,
   type RouteDossierSummaryForDetail,
   RouteDossierSummaryForDetailSchema,
-  type RouteSurfaceState,
   routeDossierSummaryKey,
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
-  STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
   STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
   type StudioInterventionsEvidenceBundle,
   StudioInterventionsEvidenceBundleSchema,
@@ -37,17 +33,16 @@ import {
   type StudioRouteEvidenceBundle,
   StudioRouteEvidenceBundleSchema,
   type StudioRouteEvidenceIndex,
-  type StudioRouteEvidenceIndexRoute,
   StudioRouteEvidenceIndexSchema,
   studioRouteEvidenceBundleKey,
 } from "@bp/domain/studio";
 import {
   type StudioDocsResponse,
   StudioDocsResponseSchema,
+  type StudioMethodsResponse,
   StudioMethodsResponseSchema,
 } from "@bp/domain/studio/docs";
 import {
-  type StudioObservedReliability,
   type StudioRoute,
   type StudioRouteDetailResponse,
   StudioRouteDetailResponseSchema,
@@ -57,9 +52,6 @@ import {
   type StudioRouteHourlyProfileResponse,
   StudioRouteHourlyProfileResponseSchema,
   type StudioRouteSection,
-  type StudioRouteSectionId,
-  type StudioRouteSectionMetric,
-  type StudioRouteSectionRow,
   type StudioRouteSectionsResponse,
   StudioRouteSectionsResponseSchema,
   type StudioRouteSpeedHistoryResponse,
@@ -71,20 +63,31 @@ import {
 import {
   STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
   STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY,
-  type StudioRouteFamily,
   type StudioRouteIndex2Response,
   StudioRouteIndex2ResponseSchema,
   type StudioRouteIndex2Row,
   type StudioSnapshot2,
   type StudioSnapshot2ProjectionRef,
   type StudioSnapshotProjection,
-  StudioSnapshotResponseSchema,
+  type StudioSnapshotResponse,
   type StudioSourceMonthState,
 } from "@bp/domain/studio/snapshots";
-import * as z from "zod";
+import { Result, Schema } from "effect";
 import { studioOpenApiDocument } from "../contracts/openapi.js";
+import type { StudioApiRouteId } from "../contracts/registry.js";
+import { matchRouteSpec } from "../contracts/routing.js";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
+import {
+  ARTIFACT_NOT_AVAILABLE_MESSAGE,
+  SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE,
+} from "../http/messages.js";
+import {
+  decodeSchemaEitherPreserve,
+  decodeSchemaEitherStrict,
+  decodeSchemaStrict,
+  schemaErrorIssues,
+} from "../schema-decode.js";
 import {
   loadStudioProjection,
   maybeLoadStudioRouteDetailProjection,
@@ -93,17 +96,57 @@ import {
   studioProjectionPrefix,
   studioReleaseKey,
 } from "./projections.js";
+import {
+  buildStudioRouteCardFromIndexRow,
+  buildStudioRouteIndex2Row,
+  FALLBACK_ROUTE_CAPABILITY,
+  hasRouteTimelineBundle,
+  listNormalizedStudioRouteIndexSourceRows,
+  type NormalizedStudioRouteIndexSourceRow,
+  routeIdToStudioSlug,
+  routeIndexCaveats,
+  SUPPORT_LEVEL_BY_OVERALL_STATE,
+  speedPercentilesForRouteIndexRows,
+} from "./route-index-read-model.js";
+import {
+  buildDataCoverageRows,
+  buildEvidenceReadyRows,
+  buildNeedsAttentionRows,
+  buildTreatmentGapRows,
+  buildWorseningFastRows,
+  routeEvidenceFactCount,
+  section,
+} from "./route-sections-read-model.js";
 
 // BASELINE_MONTH / LAST_BUILT_SPEED_MONTH are intentionally absent (hard-cutover C3):
 // public read responses resolve their months internally from D1, never from env.
 export type StudioReadEnv = Pick<StudioApiEnv, "ARTIFACTS" | "DB" | "STUDIO_RELEASE_KEY">;
 
 const OPENAPI_DOC_METHODS = ["get", "post", "put", "patch", "delete"] as const;
-const ARTIFACT_NOT_AVAILABLE_MESSAGE = "Artifact is not available.";
-const SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE = "Service dependency is not configured.";
-const SNAPSHOT_CONTRACT_VALIDATION_MESSAGE = "Studio snapshot failed contract validation.";
 const SNAPSHOT_2_OMITTED_CAVEAT =
   "Snapshot 2.0 manifest failed contract validation and is temporarily omitted.";
+
+const SNAPSHOT_DEGRADE_POLICY = {
+  routes: { required: true, caveat: null },
+  methods: {
+    required: false,
+    caveat: "Methods projection is temporarily unavailable; dataset counts are omitted.",
+  },
+  docs: {
+    required: false,
+    caveat: "Docs projection is temporarily unavailable; documentation sections are omitted.",
+  },
+  routeEvidenceIndex: {
+    required: false,
+    caveat: "Route evidence index is temporarily unavailable and is omitted from Snapshot 2.0.",
+  },
+  modelProjection: {
+    required: false,
+    caveat:
+      "Detector model projection is temporarily unavailable and is omitted from Snapshot 2.0.",
+  },
+  snapshot2: { required: false, caveat: SNAPSHOT_2_OMITTED_CAVEAT },
+} as const;
 
 function dependencyNotConfiguredResponse(dependency: string, context: string): Response {
   console.error("Service dependency is not configured.", { context, dependency });
@@ -115,11 +158,6 @@ function artifactNotAvailableResponse(status: number, context: string, key: stri
   return errorResponse(status, ARTIFACT_NOT_AVAILABLE_MESSAGE);
 }
 
-function snapshotContractFailureResponse(details: unknown): Response {
-  console.error(SNAPSHOT_CONTRACT_VALIDATION_MESSAGE, details);
-  return errorResponse(502, SNAPSHOT_CONTRACT_VALIDATION_MESSAGE);
-}
-
 function snapshotQualityWithCaveat(
   quality: StudioRoutesResponse["quality"],
   caveat: string,
@@ -129,6 +167,13 @@ function snapshotQualityWithCaveat(
     confidence: "low",
     caveats: [...quality.caveats, caveat],
   };
+}
+
+function snapshotQualityWithCaveats(
+  quality: StudioRoutesResponse["quality"],
+  caveats: readonly string[],
+): StudioRoutesResponse["quality"] {
+  return caveats.reduce(snapshotQualityWithCaveat, quality);
 }
 
 function studioDocsEndpointsFromOpenApi(): StudioDocsResponse["endpoints"] {
@@ -148,7 +193,7 @@ function studioDocsEndpointsFromOpenApi(): StudioDocsResponse["endpoints"] {
 }
 
 function withGeneratedDocsEndpoints(docs: StudioDocsResponse): StudioDocsResponse {
-  return StudioDocsResponseSchema.parse({
+  return decodeSchemaStrict(StudioDocsResponseSchema, {
     ...docs,
     endpoints: studioDocsEndpointsFromOpenApi(),
   });
@@ -159,6 +204,7 @@ type BuildStudioRoutesResponseResult =
       ok: true;
       routes: StudioRoute[];
       generatedAt: string;
+      baselineMonth: StudioRoutesResponse["baselineMonth"];
       quality: StudioRoutesResponse["quality"];
       releaseLayer: string;
     }
@@ -196,487 +242,76 @@ type BuildStudioRouteSectionsResponseResult =
   | { ok: true; routeSections: StudioRouteSectionsResponse }
   | { ok: false; response: Response };
 
-const ModelArtifactServingProjectionSchema = z
-  .object({
-    artifactKind: z.literal("model_artifact_serving_projection"),
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    releaseMonth: z.string(),
-    historyWindow: z
-      .object({
-        startMonth: z.string(),
-        endMonth: z.string(),
-      })
-      .strict(),
-    summary: z
-      .object({
-        modelCount: z.number().int().nonnegative(),
-        availableModelCount: z.number().int().nonnegative(),
-        missingModelCount: z.number().int().nonnegative(),
-        detectorConsumerCount: z.number().int().nonnegative(),
-      })
-      .strict(),
-    models: z.array(
-      z
-        .object({
-          modelId: z.string().min(1),
-          status: z.enum(["available", "missing"]),
-          panelId: z.string().nullable(),
-          releaseMonth: z.string().nullable(),
-          modeledReleaseRowCount: z.number().int().nonnegative(),
-          routeCount: z.number().int().nonnegative(),
-          segmentCount: z.number().int().nonnegative(),
-          detectorConsumers: z.array(z.string()),
-          limitations: z.array(z.string()),
-        })
-        .strict(),
+const IsoMonthStringSchema = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/));
+
+const ModelArtifactServingProjectionSchema = Schema.Struct({
+  artifactKind: Schema.Literal("model_artifact_serving_projection"),
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  releaseMonth: Schema.String,
+  historyWindow: Schema.Struct({
+    startMonth: IsoMonthStringSchema,
+    endMonth: IsoMonthStringSchema,
+  }),
+  summary: Schema.Struct({
+    modelCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    availableModelCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
     ),
-  })
-  .passthrough();
-
-type ModelArtifactServingProjection = z.output<typeof ModelArtifactServingProjectionSchema>;
-
-const RouteSpeedSpineArtifactForSegmentsSchema = z
-  .object({
-    artifactKind: z.string(),
-    routeId: z.string(),
-    routeSlug: z.string(),
-    segments: z.array(
-      z
-        .object({
-          segmentId: z.string(),
-          direction: z.string(),
-          displayOrder: z.number(),
-          label: z.string(),
-          averageRoadDistanceMiles: z.number().nullable().optional(),
-          averageSpeedMph: z.number().nullable().optional(),
-          raw: z
-            .object({
-              sourceStopPairs: z.array(
-                z
-                  .object({
-                    fromStopId: z.string(),
-                    fromStopName: z.string(),
-                    toStopId: z.string(),
-                    toStopName: z.string(),
-                    stopOrders: z.array(z.number()),
-                  })
-                  .passthrough(),
-              ),
-            })
-            .passthrough(),
-        })
-        .passthrough(),
+    missingModelCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    detectorConsumerCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
     ),
-  })
-  .passthrough();
+  }),
+  models: Schema.Array(
+    Schema.Struct({
+      modelId: Schema.String.check(Schema.isMinLength(1)),
+      status: Schema.Literals(["available", "missing"]),
+      panelId: Schema.NullOr(Schema.String),
+      releaseMonth: Schema.NullOr(Schema.String),
+      modeledReleaseRowCount: Schema.Number.check(Schema.isInt()).check(
+        Schema.isGreaterThanOrEqualTo(0),
+      ),
+      routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      segmentCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+      detectorConsumers: Schema.Array(Schema.String),
+      limitations: Schema.Array(Schema.String),
+    }),
+  ),
+});
 
-type RouteSpeedSpineArtifactForSegments = z.output<typeof RouteSpeedSpineArtifactForSegmentsSchema>;
+type ModelArtifactServingProjection = typeof ModelArtifactServingProjectionSchema.Type;
+
+const RouteSpeedSpineArtifactForSegmentsSchema = Schema.Struct({
+  artifactKind: Schema.String,
+  routeId: Schema.String,
+  routeSlug: Schema.String,
+  segments: Schema.Array(
+    Schema.Struct({
+      segmentId: Schema.String,
+      direction: Schema.String,
+      displayOrder: Schema.Number,
+      label: Schema.String,
+      averageRoadDistanceMiles: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+      averageSpeedMph: Schema.optionalKey(Schema.NullOr(Schema.Number)),
+      raw: Schema.Struct({
+        sourceStopPairs: Schema.Array(
+          Schema.Struct({
+            fromStopId: Schema.String,
+            fromStopName: Schema.String,
+            toStopId: Schema.String,
+            toStopName: Schema.String,
+            stopOrders: Schema.Array(Schema.Number),
+          }),
+        ),
+      }),
+    }),
+  ),
+});
+
+type RouteSpeedSpineArtifactForSegments = typeof RouteSpeedSpineArtifactForSegmentsSchema.Type;
 
 type RouteSpeedSpineSegmentForSegments = RouteSpeedSpineArtifactForSegments["segments"][number];
-
-function realtimeSourceForRunId(
-  runId: string | null,
-): "official_self_collected" | "third_party_recovered" | "none" {
-  if (runId === null) {
-    return "none";
-  }
-
-  return runId.startsWith("bus-observatory-") ? "third_party_recovered" : "official_self_collected";
-}
-
-function routeIdToStudioSlug(routeId: string): string {
-  return routeId
-    .toLowerCase()
-    .replace(/\+/g, "-sbs")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function boroughForRouteId(routeId: string): string {
-  const upper = routeId.toUpperCase();
-  if (upper.startsWith("BX")) return "Bronx";
-  if (upper.startsWith("B")) return "Brooklyn";
-  if (upper.startsWith("Q")) return "Queens";
-  if (upper.startsWith("S")) return "Staten Island";
-  return "Manhattan";
-}
-
-function routeFamilyForIndexRow(row: StudioRouteIndexSourceRow): StudioRouteFamily {
-  const text = [row.routeId, row.routeShortName, row.routeLongName, ...row.routeTypes]
-    .join(" ")
-    .toLowerCase();
-  if (text.includes("select bus service") || text.includes("sbs") || row.routeId.includes("+")) {
-    return "select_bus_service";
-  }
-  if (text.includes("express") || row.routeId.toUpperCase().startsWith("SIM")) return "express";
-  if (text.includes("limited") || text.includes("ltd")) return "limited";
-  if (text.includes("shuttle")) return "shuttle";
-  if (row.routeTypes.length > 0 || row.routeShortName.length > 0) return "local";
-  return "unknown";
-}
-
-function routeProjectionRef(ref: StudioSnapshot2ProjectionRef): StudioSnapshot2ProjectionRef {
-  return ref;
-}
-
-function hasRouteTimelineBundle(row: StudioRouteIndexSourceRow): boolean {
-  return row.artifactNames.includes(STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME);
-}
-
-// Capability now arrives pre-built from the pipeline `route_capability_manifest`
-// (frontend §7.1 / C1). When a route is absent from the manifest, fall back to the
-// honest empty state rather than computing surface states in the Worker.
-const FALLBACK_ROUTE_CAPABILITY: StudioRouteCapability = {
-  overallState: "insufficient_data",
-  surfaces: {},
-  caveats: [],
-};
-
-// The legacy four-tier support level survives only as a derived label on the
-// "needs attention" section rows. The mapping is exact: the manifest `overallState`
-// was rolled up from the same summary/artifact/finding signals the old tiers used.
-const SUPPORT_LEVEL_BY_OVERALL_STATE: Record<
-  RouteSurfaceState,
-  "index_only" | "summary_ready" | "artifact_ready" | "evidence_ready"
-> = {
-  insufficient_data: "index_only",
-  blocked: "index_only",
-  building: "summary_ready",
-  partial: "artifact_ready",
-  checked_clean: "artifact_ready",
-  not_applicable: "artifact_ready",
-  ready: "evidence_ready",
-};
-
-function supportLevelLabel(
-  capability: StudioRouteCapability,
-): "index_only" | "summary_ready" | "artifact_ready" | "evidence_ready" {
-  return SUPPORT_LEVEL_BY_OVERALL_STATE[capability.overallState];
-}
-
-// Core surfaces whose gaps drive the data-coverage ranking. A surface is a "gap"
-// when it is neither serving (`ready`) nor honestly empty after looking
-// (`checked_clean` / `not_applicable`).
-const CORE_COVERAGE_SURFACES: readonly { key: string; label: string }[] = [
-  { key: "condition", label: "summary" },
-  { key: "detectorFindings", label: "detector findings" },
-  { key: "speedHistory", label: "speed history" },
-  { key: "ridership", label: "ridership history" },
-  { key: "scheduleBaseline", label: "schedule baseline" },
-];
-
-function isCoverageGap(state: RouteSurfaceState | undefined): boolean {
-  return (
-    state !== undefined &&
-    state !== "ready" &&
-    state !== "checked_clean" &&
-    state !== "not_applicable"
-  );
-}
-
-function coverageGaps(capability: StudioRouteCapability): { label: string; state: string }[] {
-  return CORE_COVERAGE_SURFACES.flatMap(({ key, label }) => {
-    const state = capability.surfaces[key]?.state;
-    return isCoverageGap(state) ? [{ label, state: state as string }] : [];
-  });
-}
-
-function routeIndexCaveats(row: StudioRouteIndexSourceRow): string[] {
-  const caveats: string[] = [];
-  if (row.summary === null) {
-    caveats.push("No rich route summary is available for the baseline month.");
-  } else if (!row.summary.publicVisible) {
-    caveats.push("A baseline summary exists, but the rich public artifact gate is not satisfied.");
-  }
-  if (row.artifactNames.length === 0) {
-    caveats.push("No route artifact bundle is indexed for this route in D1.");
-  }
-  if (row.historyCoverage.speedMonthCount === 0) {
-    caveats.push("No monthly public speed history rows are available for this route.");
-  }
-  if (row.historyCoverage.speedMonthCount > 0 && row.speedHistoryCoverage === null) {
-    caveats.push("Monthly speed rows exist, but no route speed-history R2 artifact is indexed.");
-  }
-  if ((row.speedHistoryCoverage?.missingCellCount ?? 0) > 0) {
-    caveats.push(
-      `Route speed-history artifact has ${row.speedHistoryCoverage?.missingCellCount ?? 0} missing cells.`,
-    );
-  }
-  if (row.readiness === null) {
-    caveats.push("No baseline route-readiness row is available for this route.");
-  }
-  return caveats;
-}
-
-function routeProjectionRefs(input: {
-  row: StudioRouteIndexSourceRow;
-  lastBuiltSpeedMonth: string | undefined;
-}): StudioSnapshot2ProjectionRef[] {
-  const { row } = input;
-  const refs: StudioSnapshot2ProjectionRef[] = [];
-  if (row.historyCoverage.pointCount > 0) {
-    refs.push(
-      routeProjectionRef({
-        id: "route_history_summary",
-        status: "available",
-        schemaVersion: 1,
-        grain: "route_month",
-        storage: "d1",
-        path: `/api/v1/studio/routes/${routeIdToStudioSlug(row.routeId)}/history`,
-        months: {
-          start: row.historyCoverage.startMonth,
-          end: row.historyCoverage.endMonth,
-        },
-      }),
-    );
-  }
-  if (row.speedHistoryCoverage !== null) {
-    refs.push(
-      routeProjectionRef({
-        id: "route_speed_history",
-        status: row.speedHistoryCoverage.missingCellCount > 0 ? "partial" : "available",
-        schemaVersion: 1,
-        grain: "route_segment_month_daypart",
-        storage: "r2",
-        path: `/api/v1/studio/routes/${routeIdToStudioSlug(row.routeId)}/speed-history`,
-        months: {
-          start: row.speedHistoryCoverage.startMonth,
-          end: input.lastBuiltSpeedMonth ?? row.speedHistoryCoverage.endMonth,
-        },
-      }),
-    );
-  }
-  if (row.summary !== null) {
-    refs.push(
-      routeProjectionRef({
-        id: "route_summary",
-        status: row.summary.publicVisible ? "available" : "partial",
-        schemaVersion: 1,
-        grain: "route_month",
-        storage: "d1",
-        path: "d1:route_brief_summary",
-        months: null,
-      }),
-    );
-  }
-  if (row.artifactNames.length > 0) {
-    refs.push(
-      routeProjectionRef({
-        id: "route_artifacts",
-        status: "available",
-        schemaVersion: 1,
-        grain: "route_month_artifact",
-        storage: "d1",
-        path: "d1:route_artifact",
-        months: null,
-      }),
-    );
-  }
-  if (hasRouteTimelineBundle(row)) {
-    refs.push(
-      routeProjectionRef({
-        id: "route_timeline",
-        status: "available",
-        schemaVersion: 1,
-        grain: "route_evidence",
-        storage: "r2",
-        path: `/api/v1/studio/routes/${routeIdToStudioSlug(row.routeId)}/timeline`,
-        months: null,
-      }),
-    );
-  }
-  return refs;
-}
-
-function buildStudioRouteIndex2Row(input: {
-  releaseId: string;
-  baselineMonth: string;
-  generatedAt: string;
-  lastBuiltSpeedMonth: string | undefined;
-  row: StudioRouteIndexSourceRow;
-  capability: StudioRouteCapability;
-}): StudioRouteIndex2Row {
-  const slug = routeIdToStudioSlug(input.row.routeId);
-  return {
-    releaseId: input.releaseId,
-    baselineMonth: input.baselineMonth,
-    routeId: input.row.routeId,
-    slug,
-    label: input.row.routeShortName.replace("-SBS", " SBS"),
-    longName: input.row.routeLongName,
-    borough: boroughForRouteId(input.row.routeId) as StudioRouteIndex2Row["borough"],
-    routeFamily: routeFamilyForIndexRow(input.row),
-    publicUrl: `/routes/${slug}`,
-    capability: input.capability,
-    historyCoverage: input.row.historyCoverage,
-    caveats: routeIndexCaveats(input.row),
-    projectionRefs: routeProjectionRefs({
-      row: input.row,
-      lastBuiltSpeedMonth: input.lastBuiltSpeedMonth,
-    }),
-    updatedAt: input.generatedAt,
-  };
-}
-
-function buildObservedReliabilityFromD1(
-  row: D1RouteObservedReliabilitySummary | undefined,
-): StudioObservedReliability | null {
-  if (row === undefined) return null;
-  const source = realtimeSourceForRunId(row.runId);
-  if (source === "none") return null;
-  const caveats =
-    source === "third_party_recovered"
-      ? [
-          "Observed reliability is recovered from the third-party Bus Observatory archive, not official MTA historical replay.",
-          "Monthly public speed evidence remains official MTA Open Data; realtime evidence has separate provenance.",
-        ]
-      : ["Observed reliability comes from self-collected MTA Bus Time GTFS-RT snapshots."];
-  if (row.reliabilityStatus === "insufficient_gtfs_rt_samples") {
-    caveats.push(
-      `Sample count (${row.sampleCount}) is below the minimum threshold (${row.minSampleThreshold}); headway statistics are not reported.`,
-    );
-  }
-  return {
-    month: row.month,
-    runId: row.runId,
-    source,
-    releaseLayer: "observed_release",
-    reliabilityStatus: row.reliabilityStatus,
-    sampleCount: row.sampleCount,
-    medianObservedHeadwayMinutes: row.medianObservedHeadwayMinutes,
-    p90ObservedHeadwayMinutes: row.p90ObservedHeadwayMinutes,
-    observedBunchingShare: row.observedBunchingShare,
-    observedLongGapShare: row.observedLongGapShare,
-    excessWaitMinutes: row.excessWaitMinutes,
-    caveats,
-  };
-}
-
-function routeTerminiForIndexRow(row: StudioRouteIndexSourceRow): { north: string; south: string } {
-  const longName = row.routeLongName ?? row.routeShortName;
-  const [north, south] = longName.split(" - ");
-  return {
-    north: north?.trim() || row.routeShortName,
-    south: south?.trim() || "Terminal",
-  };
-}
-
-function routeLabelForIndexRow(row: StudioRouteIndexSourceRow): string {
-  return row.routeShortName.replace("-SBS", " SBS");
-}
-
-function routeSpeedMphForIndexRow(row: StudioRouteIndexSourceRow): number {
-  return Number((row.summary?.averageSpeedMph ?? row.readiness?.averageSpeedMph ?? 0).toFixed(1));
-}
-
-function routeLaneCoverageForIndexRow(row: StudioRouteIndexSourceRow): number {
-  const stopCount = row.readiness?.stopCount ?? row.stopCount;
-  if (stopCount === 0) return 0;
-  return Math.min(100, Math.round(((row.summary?.busLaneMatchedLaneCount ?? 0) / stopCount) * 100));
-}
-
-function routeReliabilityLabelForIndexRow(row: StudioRouteIndexSourceRow): string {
-  if (row.summary === null) return "Indexed route";
-  if (row.summary.routeScore >= 70) return "High attention route";
-  if (row.summary.routeScore >= 40) return "Watch list route";
-  return "Lower-risk route";
-}
-
-function routeDiagnosisForIndexRow(
-  row: StudioRouteIndexSourceRow,
-  speedMph: number,
-  coverage: number,
-): string {
-  const month = row.summary === null ? "the baseline month" : "the baseline serving export";
-  if (row.summary !== null) {
-    return `${row.routeShortName} has a route score of ${row.summary.routeScore}, ${row.summary.hotspotCount} slow segment hotspots, ${speedMph} mph observed speed, and ${coverage}% lane coverage in ${month}.`;
-  }
-  if (row.readiness !== null) {
-    return `${row.routeShortName} is indexed from the route catalog with baseline readiness status ${row.readiness.status}, but no rich route summary is available for ${month}.`;
-  }
-  return `${row.routeShortName} is indexed from the route catalog, but no baseline readiness or rich route summary is available yet.`;
-}
-
-function routeFlagsForIndexRow(row: StudioRouteIndexSourceRow): string[] {
-  return [
-    row.summary?.aceActive === true ? "ACE active" : "ACE inactive",
-    row.artifactNames.length > 0 ? "Rich artifact indexed" : "No rich artifact",
-    row.summary === null
-      ? "No baseline summary"
-      : row.summary.publicVisible
-        ? "Public summary"
-        : "Summary gated",
-    row.readiness?.status ?? "No readiness row",
-    row.historyCoverage.pointCount > 0
-      ? `${row.historyCoverage.pointCount} history months`
-      : "No history rows",
-  ];
-}
-
-function buildStudioRouteCardFromIndexRow(
-  row: StudioRouteIndexSourceRow,
-  observed: D1RouteObservedReliabilitySummary | undefined,
-): StudioRoute {
-  const slug = routeIdToStudioSlug(row.routeId);
-  const speedMph = routeSpeedMphForIndexRow(row);
-  const scheduledMph = Number((speedMph * 1.18).toFixed(1));
-  const coverage = routeLaneCoverageForIndexRow(row);
-  const corridor = row.routeLongName ?? row.routeShortName;
-  return {
-    slug,
-    routeId: row.routeId,
-    label: routeLabelForIndexRow(row),
-    corridor,
-    corridorFull: corridor,
-    borough: boroughForRouteId(row.routeId),
-    sbs: row.routeId.includes("+") || row.routeShortName.includes("SBS"),
-    speedMph,
-    scheduledMph,
-    weightedAvgSpeed: speedMph,
-    speedPercentile: Math.max(1, Math.min(99, 101 - (row.summary?.routeScore ?? 100))),
-    dailyRiders: Math.round((row.summary?.totalRidership ?? 0) / 30),
-    ridersYoyPct: 0,
-    riderHoursLost: 0,
-    laneCoverage: coverage,
-    aceStatus: row.summary?.aceActive === true ? "active" : "none",
-    aceSince: row.summary?.aceActive === true ? "Serving export" : null,
-    tspCoverage: "none",
-    reliability: routeReliabilityLabelForIndexRow(row),
-    observedReliability: buildObservedReliabilityFromD1(observed),
-    diagnosis: routeDiagnosisForIndexRow(row, speedMph, coverage),
-    spark: [0.92, 0.96, 1, 0.98, 1.02, 0.99, 1].map((factor) =>
-      Number((speedMph * factor).toFixed(1)),
-    ),
-    termini: routeTerminiForIndexRow(row),
-    miles: Number(Math.max(1, row.shapeCount * 1.2).toFixed(1)),
-    stops: row.readiness?.stopCount ?? row.stopCount,
-    flags: routeFlagsForIndexRow(row),
-    peerSlug: null,
-    movement6mPct: roundPct(row.historyStats.speedMovement6mPct),
-    context12mPct: roundPct(row.historyStats.speedMovement12mPct),
-    interventions:
-      row.summary === null
-        ? []
-        : [
-            {
-              year: "Baseline",
-              title: "Serving export generated",
-              detail: "D1 route score, speed, ridership, and treatment rows are available.",
-            },
-            ...(row.summary.aceActive
-              ? [
-                  {
-                    year: "Baseline",
-                    title: "ACE evidence present",
-                    detail: "Automated camera enforcement evidence is present in serving data.",
-                    tone: "warn" as const,
-                  },
-                ]
-              : []),
-          ],
-  };
-}
 
 async function listStudioRouteCardsFromD1(
   env: Pick<StudioReadEnv, "DB">,
@@ -686,17 +321,24 @@ async function listStudioRouteCardsFromD1(
   if (env.DB === undefined) return [];
   const db = createD1ServingDb(env.DB);
   const [rows, observed] = await Promise.all([
-    listStudioRouteIndexSourceRows(db, month),
+    listNormalizedStudioRouteIndexSourceRows(db, month),
     listRouteObservedReliabilitySummaries(db, month),
   ]);
   const observedByRoute = new Map(observed.map((row) => [row.routeId, row]));
+  const speedPercentileByRoute = speedPercentilesForRouteIndexRows(rows);
   const routes = rows
     .toSorted((left, right) => {
-      const leftScore = left.summary?.routeScore ?? 101;
-      const rightScore = right.summary?.routeScore ?? 101;
-      return leftScore - rightScore || left.routeId.localeCompare(right.routeId);
+      return (
+        left.routeScoreSort - right.routeScoreSort || left.routeId.localeCompare(right.routeId)
+      );
     })
-    .map((row) => buildStudioRouteCardFromIndexRow(row, observedByRoute.get(row.routeId)));
+    .map((row) =>
+      buildStudioRouteCardFromIndexRow(
+        row,
+        observedByRoute.get(row.routeId),
+        row.summary === null ? null : (speedPercentileByRoute.get(row.routeId) ?? null),
+      ),
+    );
   return limit !== undefined ? routes.slice(0, limit) : routes;
 }
 
@@ -738,7 +380,7 @@ async function buildStudioRouteIndex2Response(
   const generatedAt = new Date().toISOString();
   const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
   const [rows, capabilityManifest] = await Promise.all([
-    listStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
+    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
     loadRouteCapabilityManifest(env),
   ]);
   const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
@@ -755,7 +397,7 @@ async function buildStudioRouteIndex2Response(
 
   return {
     ok: true,
-    routeIndex: StudioRouteIndex2ResponseSchema.parse({
+    routeIndex: decodeSchemaStrict(StudioRouteIndex2ResponseSchema, {
       schemaVersion: 2,
       generatedAt,
       releaseId,
@@ -773,39 +415,6 @@ async function buildStudioRouteIndex2Response(
       },
     }),
   };
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-function metric(input: {
-  id: string;
-  label: string;
-  value: number | null;
-  unit?: string | null;
-  displayValue?: string;
-}): StudioRouteSectionMetric {
-  const { value } = input;
-  return {
-    id: input.id,
-    label: input.label,
-    value,
-    unit: input.unit ?? null,
-    displayValue:
-      input.displayValue ??
-      (value === null
-        ? "n/a"
-        : Number.isInteger(value)
-          ? value.toLocaleString("en-US")
-          : value.toFixed(1)),
-  };
-}
-
-function compactNumber(value: number): string {
-  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return Math.round(value).toLocaleString("en-US");
 }
 
 function routeIdAliases(routeId: string): string[] {
@@ -835,8 +444,8 @@ async function loadStudioRouteEvidenceIndex(
     return null;
   }
 
-  const parsed = StudioRouteEvidenceIndexSchema.safeParse(payload);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceIndexSchema, payload);
+  return Result.isSuccess(parsed) ? parsed.success : null;
 }
 
 async function loadModelArtifactServingProjection(
@@ -850,11 +459,21 @@ async function loadModelArtifactServingProjection(
   try {
     payload = await object.json();
   } catch {
+    console.error("Model artifact serving projection is not valid JSON.", {
+      key: STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
+    });
     return null;
   }
 
-  const parsed = ModelArtifactServingProjectionSchema.safeParse(payload);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherPreserve(ModelArtifactServingProjectionSchema, payload);
+  if (Result.isFailure(parsed)) {
+    console.error("Model artifact serving projection failed contract validation.", {
+      key: STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
+      issues: schemaErrorIssues(parsed.failure),
+    });
+    return null;
+  }
+  return parsed.success;
 }
 
 async function loadDetectorReadinessServingManifest(
@@ -871,8 +490,11 @@ async function loadDetectorReadinessServingManifest(
     return null;
   }
 
-  const parsed = DetectorReadinessServingManifestForInsightsSchema.safeParse(payload);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherPreserve(
+    DetectorReadinessServingManifestForInsightsSchema,
+    payload,
+  );
+  return Result.isSuccess(parsed) ? parsed.success : null;
 }
 
 async function loadRouteCapabilityManifest(
@@ -889,8 +511,8 @@ async function loadRouteCapabilityManifest(
     return null;
   }
 
-  const parsed = RouteCapabilityManifestForIndexSchema.safeParse(payload);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherPreserve(RouteCapabilityManifestForIndexSchema, payload);
+  return Result.isSuccess(parsed) ? parsed.success : null;
 }
 
 function routeCapabilityByRouteId(
@@ -925,8 +547,8 @@ async function loadRouteDossierSummaryForDetail(input: {
       continue;
     }
 
-    const parsed = RouteDossierSummaryForDetailSchema.safeParse(payload);
-    if (parsed.success) return parsed.data;
+    const parsed = decodeSchemaEitherPreserve(RouteDossierSummaryForDetailSchema, payload);
+    if (Result.isSuccess(parsed)) return parsed.success;
   }
   return null;
 }
@@ -957,12 +579,12 @@ async function loadRouteHourlyProfileForDetail(input: {
       continue;
     }
 
-    const parsed = StudioRouteHourlyProfileResponseSchema.safeParse(payload);
-    if (!parsed.success) continue;
+    const parsed = decodeSchemaEitherStrict(StudioRouteHourlyProfileResponseSchema, payload);
+    if (Result.isFailure(parsed)) continue;
     return {
-      peakWindows: parsed.data.peakWindows,
-      slowestWindows: parsed.data.slowestWindows,
-      reliabilitySamples: parsed.data.reliabilitySamples,
+      peakWindows: parsed.success.peakWindows,
+      slowestWindows: parsed.success.slowestWindows,
+      reliabilitySamples: parsed.success.reliabilitySamples,
     };
   }
   return null;
@@ -988,7 +610,7 @@ function routeDetailWithCapabilityAndDossier(input: {
   ) {
     return input.routeDetail;
   }
-  return StudioRouteDetailResponseSchema.parse({
+  return decodeSchemaStrict(StudioRouteDetailResponseSchema, {
     ...input.routeDetail,
     ...(input.hourlyProfile ?? {}),
     capability: input.capability,
@@ -1027,8 +649,8 @@ async function loadRouteSpeedSpineForSegments(
     return null;
   }
 
-  const parsed = RouteSpeedSpineArtifactForSegmentsSchema.safeParse(payload);
-  return parsed.success ? parsed.data : null;
+  const parsed = decodeSchemaEitherPreserve(RouteSpeedSpineArtifactForSegmentsSchema, payload);
+  return Result.isSuccess(parsed) ? parsed.success : null;
 }
 
 async function loadRouteSpeedSpineCandidatesForSegments(input: {
@@ -1052,7 +674,7 @@ function routeDetailWithInsights(input: {
   if (input.manifest === null) {
     return { ...input.routeDetail, insights: input.routeDetail.insights ?? [] };
   }
-  return StudioRouteDetailResponseSchema.parse({
+  return decodeSchemaStrict(StudioRouteDetailResponseSchema, {
     ...input.routeDetail,
     insights: buildRouteInsightsFromDetectorReadiness({
       manifest: input.manifest,
@@ -1130,7 +752,7 @@ function segmentLabelParts(
 
 function segmentFromSpeedSpineTarget(input: {
   routeSlug: string;
-  routeScheduledMph: number;
+  routeScheduledMph: number | null;
   targetId: string;
   target: RawTreatmentTarget;
   segment: RouteSpeedSpineSegmentForSegments;
@@ -1142,6 +764,8 @@ function segmentFromSpeedSpineTarget(input: {
       : Number(input.segment.averageSpeedMph.toFixed(1));
   return {
     id: input.targetId,
+    spineSegmentId: input.segment.segmentId,
+    spineJoinStatus: "matched",
     routeSlug: input.routeSlug,
     direction: studioDirectionFromRaw(input.target.direction),
     from,
@@ -1205,7 +829,7 @@ function routeDetailWithInsightTargetSegments(input: {
 }): StudioRouteDetailResponse {
   const targetSegments = insightTargetSegmentRows(input);
   if (targetSegments.length === 0) return input.routeDetail;
-  return StudioRouteDetailResponseSchema.parse({
+  return decodeSchemaStrict(StudioRouteDetailResponseSchema, {
     ...input.routeDetail,
     segments: [...input.routeDetail.segments, ...targetSegments],
     quality: {
@@ -1231,13 +855,13 @@ async function maybeLoadAliasedStudioRouteDetailProjection(input: {
 }
 
 function aliasedRouteDetailForD1Row(input: {
-  row: StudioRouteIndexSourceRow;
+  row: NormalizedStudioRouteIndexSourceRow;
   observed: D1RouteObservedReliabilitySummary | undefined;
   richDetail: StudioRouteDetailResponse;
 }): StudioRouteDetailResponse {
-  return StudioRouteDetailResponseSchema.parse({
+  return decodeSchemaStrict(StudioRouteDetailResponseSchema, {
     ...input.richDetail,
-    route: buildStudioRouteCardFromIndexRow(input.row, input.observed),
+    route: buildStudioRouteCardFromIndexRow(input.row, input.observed, null),
     segments: input.richDetail.segments,
     artifactRefs: input.richDetail.artifactRefs,
     quality: {
@@ -1248,364 +872,6 @@ function aliasedRouteDetailForD1Row(input: {
       ],
     },
   });
-}
-
-function metricRows(input: {
-  rows: readonly StudioRouteIndexSourceRow[];
-  routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
-  score: (row: StudioRouteIndexSourceRow) => number | null;
-  reasons: (row: StudioRouteIndexSourceRow) => string[];
-  metrics: (row: StudioRouteIndexSourceRow) => StudioRouteSectionMetric[];
-  scoreLabel: (score: number) => string;
-  limit?: number;
-}): StudioRouteSectionRow[] {
-  return input.rows
-    .flatMap((row) => {
-      const route = input.routeById.get(row.routeId);
-      if (route === undefined) return [];
-      const score = input.score(row);
-      if (score === null || !Number.isFinite(score) || score <= 0) return [];
-      return [
-        {
-          row,
-          route,
-          score: Number(score.toFixed(3)),
-        },
-      ];
-    })
-    .sort(
-      (left, right) =>
-        right.score - left.score ||
-        (left.row.summary?.routeScore ?? 101) - (right.row.summary?.routeScore ?? 101) ||
-        left.route.routeId.localeCompare(right.route.routeId),
-    )
-    .slice(0, input.limit ?? 12)
-    .map((candidate, index) => ({
-      rank: index + 1,
-      routeId: candidate.route.routeId,
-      slug: candidate.route.slug,
-      label: candidate.route.label,
-      borough: candidate.route.borough,
-      supportLevel: supportLevelLabel(candidate.route.capability),
-      score: candidate.score,
-      scoreLabel: input.scoreLabel(candidate.score),
-      reasons: input.reasons(candidate.row),
-      metrics: input.metrics(candidate.row),
-      movement6mPct: roundPct(candidate.row.historyStats.speedMovement6mPct),
-      context12mPct: roundPct(candidate.row.historyStats.speedMovement12mPct),
-    }));
-}
-
-function roundPct(value: number | null): number | null {
-  return value === null ? null : Number(value.toFixed(1));
-}
-
-function section(input: {
-  sectionId: StudioRouteSectionId;
-  title: string;
-  productQuestion: string;
-  status: StudioRouteSection["status"];
-  rankMeaning: string;
-  minCoverageRule: string;
-  rows?: StudioRouteSectionRow[];
-  caveats?: string[];
-  notBuiltReason?: string | null;
-}): StudioRouteSection {
-  return {
-    sectionId: input.sectionId,
-    title: input.title,
-    productQuestion: input.productQuestion,
-    status: input.status,
-    rankMeaning: input.rankMeaning,
-    minCoverageRule: input.minCoverageRule,
-    rows: input.rows ?? [],
-    caveats: input.caveats ?? [],
-    notBuiltReason: input.notBuiltReason ?? null,
-  };
-}
-
-function buildNeedsAttentionRows(input: {
-  rows: readonly StudioRouteIndexSourceRow[];
-  routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
-}): StudioRouteSectionRow[] {
-  return metricRows({
-    rows: input.rows,
-    routeById: input.routeById,
-    score(row) {
-      if (row.summary === null) return null;
-      const speedPain = clamp((9 - row.summary.averageSpeedMph) * 8, 0, 40);
-      const riderScale = clamp(row.summary.totalRidership / 30_000, 0, 35);
-      const hotspotPain = clamp(row.summary.hotspotCount * 4, 0, 25);
-      return 100 - row.summary.routeScore + speedPain + riderScale + hotspotPain;
-    },
-    reasons(row) {
-      if (row.summary === null) return [];
-      return [
-        `Route score ${row.summary.routeScore}`,
-        `${row.summary.averageSpeedMph.toFixed(1)} mph observed speed`,
-        `${row.summary.hotspotCount} hotspot${row.summary.hotspotCount === 1 ? "" : "s"}`,
-        `${compactNumber(row.summary.totalRidership)} monthly riders`,
-      ];
-    },
-    metrics(row) {
-      const summary = row.summary;
-      return [
-        metric({
-          id: "route_score",
-          label: "Route score",
-          value: summary?.routeScore ?? null,
-          displayValue: summary === null ? "n/a" : String(summary.routeScore),
-        }),
-        metric({
-          id: "average_speed_mph",
-          label: "Observed speed",
-          value: summary?.averageSpeedMph ?? null,
-          unit: "mph",
-        }),
-        metric({
-          id: "monthly_riders",
-          label: "Monthly riders",
-          value: summary?.totalRidership ?? null,
-          displayValue: summary === null ? "n/a" : compactNumber(summary.totalRidership),
-        }),
-      ];
-    },
-    scoreLabel: (score) => `${score.toFixed(0)} attention score`,
-  });
-}
-
-function buildWorseningFastRows(input: {
-  currentSpeedMonth: string;
-  rows: readonly StudioRouteIndexSourceRow[];
-  routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
-}): StudioRouteSectionRow[] {
-  return metricRows({
-    rows: input.rows,
-    routeById: input.routeById,
-    score(row) {
-      const change = row.historyStats.speedChangeMph;
-      if (
-        change === null ||
-        row.historyCoverage.speedMonthCount < 6 ||
-        row.historyStats.latestSpeedMonth !== input.currentSpeedMonth ||
-        change >= 0
-      ) {
-        return null;
-      }
-      return Math.abs(change) * 25 + clamp(row.historyCoverage.speedMonthCount, 0, 36);
-    },
-    reasons(row) {
-      const { historyStats } = row;
-      const change = historyStats.speedChangeMph ?? 0;
-      return [
-        `${change.toFixed(1)} mph from ${historyStats.firstSpeedMonth} to ${historyStats.latestSpeedMonth}`,
-        `${row.historyCoverage.speedMonthCount} speed months`,
-      ];
-    },
-    metrics(row) {
-      return [
-        metric({
-          id: "speed_change_mph",
-          label: "Speed change",
-          value: row.historyStats.speedChangeMph,
-          unit: "mph",
-          displayValue:
-            row.historyStats.speedChangeMph === null
-              ? "n/a"
-              : `${row.historyStats.speedChangeMph.toFixed(1)} mph`,
-        }),
-        metric({
-          id: "latest_speed_mph",
-          label: "Latest speed",
-          value: row.historyStats.latestAverageSpeedMph,
-          unit: "mph",
-        }),
-        metric({
-          id: "speed_months",
-          label: "Speed months",
-          value: row.historyCoverage.speedMonthCount,
-        }),
-      ];
-    },
-    scoreLabel: (score) => `${score.toFixed(0)} worsening score`,
-  });
-}
-
-function buildTreatmentGapRows(input: {
-  rows: readonly StudioRouteIndexSourceRow[];
-  routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
-}): StudioRouteSectionRow[] {
-  return metricRows({
-    rows: input.rows,
-    routeById: input.routeById,
-    score(row) {
-      if (row.summary === null) return null;
-      if (row.summary.totalRidership <= 0 || row.summary.averageSpeedMph <= 0) return null;
-      const riderScale = clamp(row.summary.totalRidership / 45_000, 0, 40);
-      const speedPain = clamp((8.5 - row.summary.averageSpeedMph) * 9, 0, 35);
-      const hotspotPain = clamp(row.summary.hotspotCount * 4, 0, 25);
-      const treatmentCredit =
-        (row.summary.aceActive ? 20 : 0) + clamp(row.summary.busLaneMatchedLaneCount * 4, 0, 30);
-      const score = riderScale + speedPain + hotspotPain - treatmentCredit;
-      return score > 5 ? score : null;
-    },
-    reasons(row) {
-      if (row.summary === null) return [];
-      const treatment =
-        row.summary.aceActive || row.summary.busLaneMatchedLaneCount > 0
-          ? `${row.summary.busLaneMatchedLaneCount} lane matches; ACE ${row.summary.aceActive ? "active" : "inactive"}`
-          : "No ACE or bus-lane match in summary";
-      return [
-        `${row.summary.averageSpeedMph.toFixed(1)} mph observed speed`,
-        `${compactNumber(row.summary.totalRidership)} monthly riders`,
-        treatment,
-      ];
-    },
-    metrics(row) {
-      const summary = row.summary;
-      return [
-        metric({
-          id: "average_speed_mph",
-          label: "Observed speed",
-          value: summary?.averageSpeedMph ?? null,
-          unit: "mph",
-        }),
-        metric({
-          id: "bus_lane_matches",
-          label: "Lane matches",
-          value: summary?.busLaneMatchedLaneCount ?? null,
-        }),
-        metric({
-          id: "ace_active",
-          label: "ACE active",
-          value: summary?.aceActive === true ? 1 : 0,
-          displayValue: summary?.aceActive === true ? "yes" : "no",
-        }),
-      ];
-    },
-    scoreLabel: (score) => `${score.toFixed(0)} gap score`,
-  });
-}
-
-function buildDataCoverageRows(input: {
-  rows: readonly StudioRouteIndexSourceRow[];
-  routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
-}): StudioRouteSectionRow[] {
-  return metricRows({
-    rows: input.rows,
-    routeById: input.routeById,
-    score(row) {
-      const route = input.routeById.get(row.routeId);
-      if (route === undefined) return null;
-      const gaps = coverageGaps(route.capability);
-      // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are typed as an index signature.
-      const noSummary = route.capability.surfaces["condition"]?.state === "insufficient_data";
-      return gaps.length === 0 ? null : gaps.length * 10 + (noSummary ? 15 : 0);
-    },
-    reasons(row) {
-      const route = input.routeById.get(row.routeId);
-      if (route === undefined) return [];
-      return coverageGaps(route.capability).map((gap) => `${gap.label} ${gap.state}`);
-    },
-    metrics(row) {
-      const route = input.routeById.get(row.routeId);
-      const missingCoreCount = route === undefined ? 0 : coverageGaps(route.capability).length;
-      return [
-        metric({
-          id: "core_surface_issues",
-          label: "Core surface issues",
-          value: missingCoreCount,
-        }),
-        metric({
-          id: "history_months",
-          label: "History months",
-          value: row.historyCoverage.pointCount,
-        }),
-        metric({
-          id: "readiness_score",
-          label: "Readiness",
-          value: row.readiness?.score ?? null,
-        }),
-      ];
-    },
-    scoreLabel: (score) => `${score.toFixed(0)} coverage issue score`,
-  });
-}
-
-function routeEvidenceFactCount(route: Pick<StudioRouteEvidenceIndexRoute, "coverage">): number {
-  return (
-    route.coverage.timelineCount +
-    route.coverage.interventionCount +
-    route.coverage.metricClaimCount +
-    route.coverage.projectCount +
-    route.coverage.sourceGapCount
-  );
-}
-
-function buildEvidenceReadyRows(input: {
-  routes: readonly StudioRouteEvidenceIndexRoute[];
-  routeById: ReadonlyMap<string, StudioRouteIndex2Row>;
-}): StudioRouteSectionRow[] {
-  return input.routes
-    .flatMap((evidenceRoute) => {
-      const route = input.routeById.get(evidenceRoute.routeId);
-      if (route === undefined) return [];
-      const factCount = routeEvidenceFactCount(evidenceRoute);
-      const score =
-        evidenceRoute.coverage.citationCount * 3 +
-        evidenceRoute.coverage.timelineCount * 2 +
-        evidenceRoute.coverage.interventionCount * 2 +
-        evidenceRoute.coverage.metricClaimCount +
-        evidenceRoute.coverage.projectCount +
-        evidenceRoute.coverage.sourceGapCount +
-        (evidenceRoute.wikiRouteRecordId === null ? 0 : 5);
-      if (!Number.isFinite(score) || score <= 0) return [];
-      return [{ evidenceRoute, factCount, route, score: Number(score.toFixed(3)) }];
-    })
-    .sort(
-      (left, right) =>
-        right.score - left.score ||
-        right.evidenceRoute.coverage.citationCount - left.evidenceRoute.coverage.citationCount ||
-        left.route.routeId.localeCompare(right.route.routeId),
-    )
-    .slice(0, 12)
-    .map(({ evidenceRoute, factCount, route, score }, index) => ({
-      rank: index + 1,
-      routeId: route.routeId,
-      slug: route.slug,
-      label: route.label,
-      borough: route.borough,
-      supportLevel: "evidence_ready",
-      score,
-      scoreLabel: `${score.toFixed(0)} evidence score`,
-      reasons: [
-        `${evidenceRoute.coverage.citationCount.toLocaleString("en-US")} cited evidence reference${evidenceRoute.coverage.citationCount === 1 ? "" : "s"}`,
-        `${factCount.toLocaleString("en-US")} wiki evidence row${factCount === 1 ? "" : "s"}`,
-        evidenceRoute.wikiRouteRecordId === null
-          ? "No canonical wiki route anchor"
-          : "Canonical wiki route anchor published",
-      ],
-      metrics: [
-        metric({
-          id: "wiki_citations",
-          label: "Citations",
-          value: evidenceRoute.coverage.citationCount,
-        }),
-        metric({
-          id: "wiki_timeline_events",
-          label: "Timeline events",
-          value: evidenceRoute.coverage.timelineCount,
-        }),
-        metric({
-          id: "wiki_interventions",
-          label: "Interventions",
-          value: evidenceRoute.coverage.interventionCount,
-        }),
-      ],
-      // Evidence rows rank source-backed wiki bundles, which carry no route-month trend.
-      movement6mPct: null,
-      context12mPct: null,
-    }));
 }
 
 export async function buildStudioRouteSectionsResponse(
@@ -1625,7 +891,7 @@ export async function buildStudioRouteSectionsResponse(
   const generatedAt = new Date().toISOString();
   const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
   const [rows, routeEvidenceIndex, capabilityManifest] = await Promise.all([
-    listStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
+    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
     loadStudioRouteEvidenceIndex(env),
     loadRouteCapabilityManifest(env),
   ]);
@@ -1742,7 +1008,7 @@ export async function buildStudioRouteSectionsResponse(
 
   return {
     ok: true,
-    routeSections: StudioRouteSectionsResponseSchema.parse({
+    routeSections: decodeSchemaStrict(StudioRouteSectionsResponseSchema, {
       schemaVersion: 1,
       generatedAt,
       releaseId,
@@ -1768,9 +1034,9 @@ async function findStudioRouteIndexSourceRow(input: {
   env: StudioReadEnv;
   slug: string;
   baselineMonth: string;
-}): Promise<StudioRouteIndexSourceRow | null> {
+}): Promise<NormalizedStudioRouteIndexSourceRow | null> {
   if (input.env.DB === undefined) return null;
-  const rows = await listStudioRouteIndexSourceRows(
+  const rows = await listNormalizedStudioRouteIndexSourceRows(
     createD1ServingDb(input.env.DB),
     input.baselineMonth,
   );
@@ -1846,7 +1112,13 @@ async function buildStudioRouteDetailResponseFromD1(
           loadRouteHourlyProfileForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
         ]);
       const routeDetail = routeDetailWithCapabilityAndDossier({
-        routeDetail: routeDetailWithInsights({ routeDetail: richDetail, manifest }),
+        routeDetail: routeDetailWithInsights({
+          routeDetail: decodeSchemaStrict(StudioRouteDetailResponseSchema, {
+            ...richDetail,
+            baselineMonth: servingMonth,
+          }),
+          manifest,
+        }),
         capability: routeCapabilityForRouteId(capabilityManifest, row.routeId),
         dossier,
         equityContext: studioRouteEquityContextFromD1(equityContext),
@@ -1921,10 +1193,11 @@ async function buildStudioRouteDetailResponseFromD1(
 
   const partialRouteDetail = routeDetailWithInsights({
     manifest,
-    routeDetail: StudioRouteDetailResponseSchema.parse({
-      schemaVersion: 2,
+    routeDetail: decodeSchemaStrict(StudioRouteDetailResponseSchema, {
+      schemaVersion: 3,
       generatedAt: new Date().toISOString(),
-      route: buildStudioRouteCardFromIndexRow(row, observed),
+      baselineMonth: servingMonth,
+      route: buildStudioRouteCardFromIndexRow(row, observed, null),
       segments: [],
       artifactRefs: [],
       ...(hourlyProfile ?? {}),
@@ -1963,6 +1236,7 @@ export async function buildStudioRoutesResponse(
         ok: true,
         routes,
         generatedAt: new Date().toISOString(),
+        baselineMonth,
         quality: {
           releaseLayer: "baseline_release",
           completenessStatus: "partial_public_monthly_only",
@@ -1985,6 +1259,7 @@ export async function buildStudioRoutesResponse(
     ok: true,
     routes: [...fallback.routes],
     generatedAt: fallback.generatedAt,
+    baselineMonth: fallback.baselineMonth,
     quality: fallback.quality,
     releaseLayer: fallback.quality.releaseLayer,
   };
@@ -2031,7 +1306,7 @@ export async function buildStudioRouteHistoryResponse(
     listRouteMonthTrends(createD1ServingDb(env.DB), row.routeId),
     findObservedReliabilityRow({ env, baselineMonth: months.servingMonth, routeId: row.routeId }),
   ]);
-  const route = buildStudioRouteCardFromIndexRow(row, observed);
+  const route = buildStudioRouteCardFromIndexRow(row, observed, null);
   const coverage = buildRouteHistoryCoverage(points);
   const speedCaveat =
     months.latestSpeedMonth === null
@@ -2040,7 +1315,7 @@ export async function buildStudioRouteHistoryResponse(
 
   return {
     ok: true,
-    history: StudioRouteHistoryResponseSchema.parse({
+    history: decodeSchemaStrict(StudioRouteHistoryResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
       route,
@@ -2099,8 +1374,8 @@ export async function buildStudioRouteHourlyProfileResponse(
     };
   }
 
-  const parsed = StudioRouteHourlyProfileResponseSchema.safeParse(payload);
-  if (!parsed.success) {
+  const parsed = decodeSchemaEitherStrict(StudioRouteHourlyProfileResponseSchema, payload);
+  if (Result.isFailure(parsed)) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
@@ -2110,7 +1385,7 @@ export async function buildStudioRouteHourlyProfileResponse(
       ),
     };
   }
-  if (parsed.data.routeSlug !== slug) {
+  if (parsed.success.routeSlug !== slug) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
@@ -2121,7 +1396,7 @@ export async function buildStudioRouteHourlyProfileResponse(
     };
   }
 
-  return { ok: true, hourlyProfile: parsed.data };
+  return { ok: true, hourlyProfile: parsed.success };
 }
 
 export async function buildStudioRouteSpeedHistoryResponse(
@@ -2158,8 +1433,8 @@ export async function buildStudioRouteSpeedHistoryResponse(
     };
   }
 
-  const parsed = StudioRouteSpeedHistoryResponseSchema.safeParse(payload);
-  if (!parsed.success) {
+  const parsed = decodeSchemaEitherStrict(StudioRouteSpeedHistoryResponseSchema, payload);
+  if (Result.isFailure(parsed)) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
@@ -2169,14 +1444,14 @@ export async function buildStudioRouteSpeedHistoryResponse(
       ),
     };
   }
-  if (parsed.data.routeSlug !== slug) {
+  if (parsed.success.routeSlug !== slug) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(502, "Studio route speed history slug mismatch.", key),
     };
   }
 
-  return { ok: true, speedHistory: parsed.data };
+  return { ok: true, speedHistory: parsed.success };
 }
 
 export async function buildStudioRouteTimelineResponse(
@@ -2235,8 +1510,18 @@ export async function buildStudioRouteTimelineResponse(
     };
   }
 
-  const parsed = StudioRouteEvidenceBundleSchema.safeParse(payload);
-  if (!parsed.success || parsed.data.routeId !== row.routeId || parsed.data.routeSlug !== slug) {
+  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceBundleSchema, payload);
+  if (Result.isFailure(parsed)) {
+    console.error("Studio route evidence bundle failed contract validation.", {
+      key,
+      issues: schemaErrorIssues(parsed.failure),
+    });
+    return {
+      ok: false,
+      response: errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE),
+    };
+  }
+  if (parsed.success.routeId !== row.routeId || parsed.success.routeSlug !== slug) {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
@@ -2247,13 +1532,13 @@ export async function buildStudioRouteTimelineResponse(
     };
   }
 
-  return { ok: true, timeline: parsed.data };
+  return { ok: true, timeline: parsed.success };
 }
 
 function compactInterventionsCitation(
   citation: StudioRouteEvidenceBundle["citations"][number],
 ): StudioInterventionsEvidenceCitation {
-  return StudioInterventionsEvidenceCitationSchema.parse({
+  return decodeSchemaStrict(StudioInterventionsEvidenceCitationSchema, {
     key: citation.key,
     sourceId: citation.sourceId,
     ...(citation.pageNumber === undefined ? {} : { pageNumber: citation.pageNumber }),
@@ -2282,7 +1567,7 @@ function compactInterventionsEvidenceBundle(
     .filter((citation) => citationKeys.has(citation.key))
     .map((citation) => compactInterventionsCitation(citation));
 
-  return StudioInterventionsEvidenceBundleSchema.parse({
+  return decodeSchemaStrict(StudioInterventionsEvidenceBundleSchema, {
     routeId: bundle.routeId,
     routeSlug: bundle.routeSlug,
     coverage: {
@@ -2309,9 +1594,7 @@ function routeHasTimelineProjection(route: StudioRouteIndex2Row): boolean {
 async function loadCompactInterventionsEvidenceBundle(
   env: StudioReadEnv & { ARTIFACTS: R2Bucket },
   route: StudioRouteIndex2Row,
-): Promise<
-  { ok: true; bundle: StudioInterventionsEvidenceBundle | null } | { ok: false; response: Response }
-> {
+): Promise<{ ok: true; bundle: StudioInterventionsEvidenceBundle | null }> {
   const key = studioRouteEvidenceBundleKey(route.slug);
   const object = await env.ARTIFACTS.get(key);
   if (object === null) return { ok: true, bundle: null };
@@ -2320,33 +1603,24 @@ async function loadCompactInterventionsEvidenceBundle(
   try {
     payload = await object.json();
   } catch {
-    return {
-      ok: false,
-      response: artifactNotAvailableResponse(
-        502,
-        "Studio interventions evidence bundle is not valid JSON.",
-        key,
-      ),
-    };
+    console.error("Studio interventions evidence bundle is not valid JSON.", { key });
+    return { ok: true, bundle: null };
   }
 
-  const parsed = StudioRouteEvidenceBundleSchema.safeParse(payload);
-  if (
-    !parsed.success ||
-    parsed.data.routeId !== route.routeId ||
-    parsed.data.routeSlug !== route.slug
-  ) {
-    return {
-      ok: false,
-      response: artifactNotAvailableResponse(
-        502,
-        "Studio interventions evidence bundle failed contract validation.",
-        key,
-      ),
-    };
+  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceBundleSchema, payload);
+  if (Result.isFailure(parsed)) {
+    console.error("Studio interventions evidence bundle failed contract validation.", {
+      key,
+      issues: schemaErrorIssues(parsed.failure),
+    });
+    return { ok: true, bundle: null };
+  }
+  if (parsed.success.routeId !== route.routeId || parsed.success.routeSlug !== route.slug) {
+    console.error("Studio interventions evidence bundle failed contract validation.", { key });
+    return { ok: true, bundle: null };
   }
 
-  return { ok: true, bundle: compactInterventionsEvidenceBundle(parsed.data) };
+  return { ok: true, bundle: compactInterventionsEvidenceBundle(parsed.success) };
 }
 
 async function buildStudioInterventionsEvidenceResponse(
@@ -2370,16 +1644,14 @@ async function buildStudioInterventionsEvidenceResponse(
         loadCompactInterventionsEvidenceBundle({ ...env, ARTIFACTS: artifacts }, route),
       ),
   );
-  const failed = bundleResults.find((result) => !result.ok);
-  if (failed !== undefined) return failed;
   const bundles = bundleResults.flatMap((result) => {
-    if (!result.ok || result.bundle === null) return [];
+    if (result.bundle === null) return [];
     return [result.bundle];
   });
 
   return {
     ok: true,
-    evidence: StudioInterventionsEvidenceResponseSchema.parse({
+    evidence: decodeSchemaStrict(StudioInterventionsEvidenceResponseSchema, {
       schemaVersion: 1,
       generatedAt: routeIndexResult.routeIndex.generatedAt,
       routeCount: bundles.length,
@@ -2417,21 +1689,6 @@ function artifactReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): numbe
 
 function evidenceReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): number {
   return routes.filter((route) => route.capability.overallState === "ready").length;
-}
-
-function sourceMonthStatus(value: string): StudioSourceMonthState["status"] {
-  if (
-    value === "available" ||
-    value === "partial" ||
-    value === "available_not_fetched" ||
-    value === "upstream_blocked" ||
-    value === "downstream_blocked" ||
-    value === "derived_not_built" ||
-    value === "source_absent"
-  ) {
-    return value;
-  }
-  return "source_absent";
 }
 
 function sourceMonthStates(input: {
@@ -2482,7 +1739,7 @@ function sourceMonthStates(input: {
       sourceId: row.sourceId,
       label: row.label,
       month: row.month,
-      status: sourceMonthStatus(row.status),
+      status: row.status,
       rowCount: row.rowCount,
       routeCount: row.routeCount,
       grain: row.grain,
@@ -2721,25 +1978,69 @@ function buildSnapshot2(input: {
   };
 }
 
-async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise<Response> {
-  const [routesResult, methods, docs, routeEvidenceIndex, modelProjection] = await Promise.all([
-    buildStudioRoutesResponse(env),
-    loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
-    loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
-    loadStudioRouteEvidenceIndex(env),
-    loadModelArtifactServingProjection(env),
-  ]);
+async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
+  const [routesResult, methodsResult, docsResult, routeEvidenceIndex, modelProjection] =
+    await Promise.all([
+      buildStudioRoutesResponse(env),
+      loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
+      loadStudioProjection(env, "docs.json", StudioDocsResponseSchema),
+      loadStudioRouteEvidenceIndex(env),
+      loadModelArtifactServingProjection(env),
+    ]);
   if (!routesResult.ok) return routesResult.response;
-  if (methods instanceof Response) return methods;
-  if (docs instanceof Response) return docs;
-  const docsProjection = withGeneratedDocsEndpoints(docs);
 
   const generatedAt = new Date().toISOString();
+  const toleratedCaveats: string[] = [];
+  const methodsUnavailable = methodsResult instanceof Response;
+  if (methodsUnavailable) {
+    toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.methods.caveat);
+    console.error("Studio snapshot tolerated methods projection failure.", {
+      policy: SNAPSHOT_DEGRADE_POLICY.methods,
+    });
+  }
+  const methods: StudioMethodsResponse = methodsUnavailable
+    ? {
+        schemaVersion: 1,
+        generatedAt,
+        datasets: [],
+        quality: snapshotQualityWithCaveat(
+          routesResult.quality,
+          SNAPSHOT_DEGRADE_POLICY.methods.caveat,
+        ),
+      }
+    : methodsResult;
+
+  const docsUnavailable = docsResult instanceof Response;
+  if (docsUnavailable) {
+    toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.docs.caveat);
+    console.error("Studio snapshot tolerated docs projection failure.", {
+      policy: SNAPSHOT_DEGRADE_POLICY.docs,
+    });
+  }
+  const docsProjection: StudioDocsResponse = docsUnavailable
+    ? {
+        schemaVersion: 1,
+        generatedAt,
+        sections: [],
+        endpoints: [],
+        quality: snapshotQualityWithCaveat(
+          routesResult.quality,
+          SNAPSHOT_DEGRADE_POLICY.docs.caveat,
+        ),
+      }
+    : withGeneratedDocsEndpoints(docsResult);
+
+  if (routeEvidenceIndex === null) {
+    toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.routeEvidenceIndex.caveat);
+  }
+  if (modelProjection === null) {
+    toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.modelProjection.caveat);
+  }
+
   const resolvedMonths = await resolveServingMonths(env);
   const routesAreD1Backed = env.DB !== undefined && resolvedMonths !== null;
   const routeIndex2Result = routesAreD1Backed ? await buildStudioRouteIndex2Response(env) : null;
   let snapshot2: StudioSnapshot2 | undefined;
-  let snapshot2BuildFailure: unknown = null;
   if (routeIndex2Result?.ok === true && env.DB !== undefined) {
     try {
       const publicSourceMonthCoverage = await listPublicSnapshotSourceMonthCoverage(
@@ -2754,8 +2055,11 @@ async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise
         modelProjection,
       });
     } catch (error) {
-      snapshot2BuildFailure = error;
-      console.error("Studio Snapshot 2.0 assembly failed; serving v1 snapshot only.", { error });
+      toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.snapshot2.caveat);
+      console.error("Studio Snapshot 2.0 assembly failed; serving v1 snapshot only.", {
+        error,
+        policy: SNAPSHOT_DEGRADE_POLICY.snapshot2,
+      });
     }
   }
   const projections: StudioSnapshotProjection[] = [
@@ -2779,7 +2083,7 @@ async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise
     },
   ];
   const prefix = studioProjectionPrefix(env);
-  const baseSnapshot = {
+  const baseSnapshot: Omit<StudioSnapshotResponse, "v2"> = {
     schemaVersion: 1,
     generatedAt,
     releaseId: releaseIdForPrefix(prefix),
@@ -2794,52 +2098,27 @@ async function buildStudioSnapshotResponseUnchecked(env: StudioReadEnv): Promise
       docsEndpoints: docsProjection.endpoints.length,
     },
     projections,
-    quality:
-      snapshot2BuildFailure === null
-        ? routesResult.quality
-        : snapshotQualityWithCaveat(routesResult.quality, SNAPSHOT_2_OMITTED_CAVEAT),
+    quality: snapshotQualityWithCaveats(routesResult.quality, toleratedCaveats),
   };
 
-  const parsedSnapshot = StudioSnapshotResponseSchema.safeParse(
-    snapshot2 === undefined ? baseSnapshot : { ...baseSnapshot, v2: snapshot2 },
-  );
-
-  if (!parsedSnapshot.success) {
-    if (snapshot2 !== undefined) {
-      console.error("Studio Snapshot 2.0 contract validation failed; serving v1 snapshot only.", {
-        issues: parsedSnapshot.error.issues,
-      });
-      const fallbackSnapshot = StudioSnapshotResponseSchema.safeParse({
-        ...baseSnapshot,
-        quality: snapshotQualityWithCaveat(routesResult.quality, SNAPSHOT_2_OMITTED_CAVEAT),
-      });
-      if (fallbackSnapshot.success) {
-        return studioJsonResponse(fallbackSnapshot.data, env);
-      }
-    }
-
-    return snapshotContractFailureResponse({
-      issues: parsedSnapshot.error.issues,
-    });
-  }
-
-  return studioJsonResponse(parsedSnapshot.data, env);
+  const snapshot: StudioSnapshotResponse =
+    snapshot2 === undefined ? baseSnapshot : { ...baseSnapshot, v2: snapshot2 };
+  return studioJsonResponse(snapshot, env);
 }
 
-async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
-  try {
-    return await buildStudioSnapshotResponseUnchecked(env);
-  } catch (error) {
-    return snapshotContractFailureResponse({ error });
-  }
+type StudioReadRouteId = Extract<StudioApiRouteId, `studio.${string}`>;
+type StudioReadHandler = (input: {
+  url: URL;
+  env: StudioReadEnv;
+  params: Readonly<Record<string, string>>;
+}) => Promise<Response>;
+
+function routeSlug(params: Readonly<Record<string, string>>): string {
+  return decodeURIComponent(params["routeId"] ?? "");
 }
 
-export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
-  _request: Request,
-  url: URL,
-  env: TEnv,
-): Promise<Response> {
-  if (url.pathname === "/api/v1/studio/routes") {
+const studioReadHandlers = {
+  "studio.routes": async ({ url, env }) => {
     if (url.searchParams.get("schema") === "2") {
       const result = await buildStudioRouteIndex2Response(env);
       return result.ok ? studioJsonResponse(result.routeIndex, env) : result.response;
@@ -2847,34 +2126,26 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
 
     const result = await buildStudioRoutesResponse(env);
     if (!result.ok) return result.response;
-    return studioJsonResponse(
-      StudioRoutesResponseSchema.parse({
-        schemaVersion: 1,
-        generatedAt: result.generatedAt,
-        routes: result.routes,
-        quality: result.quality,
-      }),
-      env,
-    );
-  }
-
-  if (url.pathname === "/api/v1/studio/snapshot") {
-    return buildStudioSnapshotResponse(env);
-  }
-
-  if (url.pathname === "/api/v1/studio/routes/sections") {
+    const response: StudioRoutesResponse = {
+      schemaVersion: 2,
+      generatedAt: result.generatedAt,
+      baselineMonth: result.baselineMonth,
+      routes: result.routes,
+      quality: result.quality,
+    };
+    return studioJsonResponse(response, env);
+  },
+  "studio.snapshot": ({ env }) => buildStudioSnapshotResponse(env),
+  "studio.routeSections": async ({ env }) => {
     const result = await buildStudioRouteSectionsResponse(env);
     return result.ok ? studioJsonResponse(result.routeSections, env) : result.response;
-  }
-
-  if (url.pathname === "/api/v1/studio/interventions/evidence") {
+  },
+  "studio.interventionsEvidence": async ({ env }) => {
     const result = await buildStudioInterventionsEvidenceResponse(env);
     return result.ok ? studioJsonResponse(result.evidence, env) : result.response;
-  }
-
-  const routeMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)$/);
-  if (routeMatch) {
-    const slug = decodeURIComponent(routeMatch[1] ?? "");
+  },
+  "studio.route": async ({ env, params }) => {
+    const slug = routeSlug(params);
     if (env.DB !== undefined) {
       const result = await buildStudioRouteDetailResponseFromD1(env, slug);
       return result.ok ? studioJsonResponse(result.routeDetail, env) : result.response;
@@ -2915,43 +2186,43 @@ export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
       }),
       env,
     );
-  }
-
-  const historyMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)\/history$/);
-  if (historyMatch) {
-    const slug = decodeURIComponent(historyMatch[1] ?? "");
+  },
+  "studio.routeHistory": async ({ env, params }) => {
+    const slug = routeSlug(params);
     const result = await buildStudioRouteHistoryResponse(env, slug);
     return result.ok ? studioJsonResponse(result.history, env) : result.response;
-  }
-
-  const hourlyProfileMatch = url.pathname.match(
-    /^\/api\/v1\/studio\/routes\/([^/]+)\/hourly-profile$/,
-  );
-  if (hourlyProfileMatch) {
-    const slug = decodeURIComponent(hourlyProfileMatch[1] ?? "");
+  },
+  "studio.routeHourlyProfile": async ({ env, params }) => {
+    const slug = routeSlug(params);
     const result = await buildStudioRouteHourlyProfileResponse(env, slug);
     return result.ok ? studioJsonResponse(result.hourlyProfile, env) : result.response;
-  }
-
-  const speedHistoryMatch = url.pathname.match(
-    /^\/api\/v1\/studio\/routes\/([^/]+)\/speed-history$/,
-  );
-  if (speedHistoryMatch) {
-    const slug = decodeURIComponent(speedHistoryMatch[1] ?? "");
+  },
+  "studio.routeSpeedHistory": async ({ env, params }) => {
+    const slug = routeSlug(params);
     const result = await buildStudioRouteSpeedHistoryResponse(env, slug);
     return result.ok ? studioJsonResponse(result.speedHistory, env) : result.response;
-  }
-
-  const timelineMatch = url.pathname.match(/^\/api\/v1\/studio\/routes\/([^/]+)\/timeline$/);
-  if (timelineMatch) {
-    const slug = decodeURIComponent(timelineMatch[1] ?? "");
+  },
+  "studio.routeTimeline": async ({ env, params }) => {
+    const slug = routeSlug(params);
     const result = await buildStudioRouteTimelineResponse(env, slug);
     return result.ok ? studioJsonResponse(result.timeline, env) : result.response;
-  }
+  },
+} satisfies Record<StudioReadRouteId, StudioReadHandler>;
 
-  if (url.pathname === "/api/v1/studio/methods") {
-    const methods = await loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema);
-    return methods instanceof Response ? methods : studioJsonResponse(methods, env);
+export const studioReadHandlerRouteIds = Object.keys(studioReadHandlers).toSorted();
+
+function isStudioReadRouteId(routeId: string): routeId is StudioReadRouteId {
+  return routeId in studioReadHandlers;
+}
+
+export async function handleStudioReadRequest<TEnv extends StudioReadEnv>(
+  request: Request,
+  url: URL,
+  env: TEnv,
+): Promise<Response> {
+  const match = matchRouteSpec(request.method, url.pathname);
+  if (match !== null && isStudioReadRouteId(match.spec.id)) {
+    return studioReadHandlers[match.spec.id]({ url, env, params: match.params });
   }
 
   return errorResponse(404, "Studio API endpoint was not found.");

@@ -1,10 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import {
+  ROUTE_DETAIL_TABS,
   routeSectionCanNavigate,
   routeSectionNavigationTarget,
   routeSectionRegistry,
   routeSectionTitle,
+  routeTabForSection,
+  routeTabRegistry,
   sectionPresentation,
+  tabPresentation,
 } from "../../src/components/route/section-registry";
 import type { RouteSurfaceCapability, StudioRouteCapability } from "../../src/studio/api-contract";
 
@@ -144,8 +148,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ]),
     ).toEqual([
       ["overview", undefined],
-      ["map", undefined],
       ["where-when", undefined],
+      ["map", undefined],
       ["reliability", undefined],
       ["riders", undefined],
       ["treatments", undefined],
@@ -158,8 +162,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ]),
     ).toEqual([
       ["overview", undefined],
-      ["map", undefined],
       ["where-when", "checked_clean"],
+      ["map", undefined],
       ["reliability", "checked_clean"],
       ["riders", undefined],
       ["evidence", undefined],
@@ -171,8 +175,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       ]),
     ).toEqual([
       ["overview", undefined],
-      ["map", undefined],
       ["where-when", "building"],
+      ["map", undefined],
       ["riders", "insufficient_data"],
       ["treatments", "blocked"],
       ["evidence", undefined],
@@ -182,8 +186,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   test("routeSectionRegistry keeps the visible section order for contrast route shapes", () => {
     expect(routeSectionRegistry(rich).visibleSections.map((section) => section.value)).toEqual([
       "overview",
-      "map",
       "where-when",
+      "map",
       "reliability",
       "riders",
       "treatments",
@@ -191,16 +195,16 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     ]);
     expect(routeSectionRegistry(clean).visibleSections.map((section) => section.value)).toEqual([
       "overview",
-      "map",
       "where-when",
+      "map",
       "reliability",
       "riders",
       "evidence",
     ]);
     expect(routeSectionRegistry(sparse).visibleSections.map((section) => section.value)).toEqual([
       "overview",
-      "map",
       "where-when",
+      "map",
       "riders",
       "treatments",
       "evidence",
@@ -250,8 +254,8 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
       registry.visibleSections.map((section) => [section.value, section.badge?.count ?? 0]),
     ).toEqual([
       ["overview", 0],
-      ["map", 0],
       ["where-when", 0],
+      ["map", 0],
       ["riders", 1],
       ["treatments", 0],
       ["evidence", 1],
@@ -306,5 +310,108 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     expect(routeSectionNavigationTarget(routeSectionRegistry(sparse), "reliability")).toBe(
       "evidence",
     );
+  });
+});
+
+describe("route tab layer (plan 053 §4 redesign)", () => {
+  test("maps each section to its owning tab; evidence belongs to no tab", () => {
+    expect(routeTabForSection("overview")).toBe("overview");
+    expect(routeTabForSection("where-when")).toBe("segments");
+    expect(routeTabForSection("map")).toBe("segments");
+    expect(routeTabForSection("riders")).toBe("riders");
+    expect(routeTabForSection("reliability")).toBe("riders");
+    expect(routeTabForSection("treatments")).toBe("history");
+    expect(routeTabForSection("evidence")).toBeNull();
+  });
+
+  test("tabPresentation collapses member sections to the best-of outcome", () => {
+    const richRegistry = routeSectionRegistry(rich);
+    const cleanRegistry = routeSectionRegistry(clean);
+    const sparseRegistry = routeSectionRegistry(sparse);
+    const [, segmentsTab, ridersTab, historyTab] = ROUTE_DETAIL_TABS;
+
+    // Segments = [where-when, map]: the map surface is ready on every fixture,
+    // so render always wins even when speedHistory is empty/building.
+    for (const registry of [richRegistry, cleanRegistry, sparseRegistry]) {
+      expect(tabPresentation(registry, segmentsTab)).toEqual({ mode: "render" });
+    }
+
+    // Riders = [riders, reliability].
+    expect(tabPresentation(richRegistry, ridersTab)).toEqual({ mode: "render" });
+    expect(tabPresentation(cleanRegistry, ridersTab)).toEqual({ mode: "render" });
+    // Sparse: ridership insufficient_data → empty; reliability hidden is skipped,
+    // so the tab carries the empty state rather than disappearing.
+    expect(tabPresentation(sparseRegistry, ridersTab)).toEqual({
+      mode: "empty",
+      state: "insufficient_data",
+    });
+
+    // History = [treatments].
+    expect(tabPresentation(richRegistry, historyTab)).toEqual({ mode: "render" });
+    expect(tabPresentation(cleanRegistry, historyTab)).toEqual({ mode: "hidden" });
+    expect(tabPresentation(sparseRegistry, historyTab)).toEqual({
+      mode: "empty",
+      state: "blocked",
+    });
+  });
+
+  test("rich route shows all four tabs, every one rendering", () => {
+    const registry = routeTabRegistry(rich);
+    expect(registry.visibleTabs.map((tab) => tab.value)).toEqual([
+      "overview",
+      "segments",
+      "riders",
+      "history",
+    ]);
+    expect(registry.presentations).toEqual({
+      overview: { mode: "render" },
+      segments: { mode: "render" },
+      riders: { mode: "render" },
+      history: { mode: "render" },
+    });
+  });
+
+  test("clean route hides the History tab (treatments not applicable)", () => {
+    const registry = routeTabRegistry(clean);
+    expect(registry.visibleTabs.map((tab) => tab.value)).toEqual([
+      "overview",
+      "segments",
+      "riders",
+    ]);
+    expect(registry.presentations.history).toEqual({ mode: "hidden" });
+    // Segments stays visible+render because the map surface is ready even though
+    // speedHistory is only checked_clean.
+    expect(registry.presentations.segments).toEqual({ mode: "render" });
+  });
+
+  test("sparse route keeps all four tabs with honest-empty trigger states", () => {
+    const registry = routeTabRegistry(sparse);
+    expect(registry.visibleTabs.map((tab) => tab.value)).toEqual([
+      "overview",
+      "segments",
+      "riders",
+      "history",
+    ]);
+    expect(registry.presentations).toEqual({
+      overview: { mode: "render" },
+      segments: { mode: "render" },
+      riders: { mode: "empty", state: "insufficient_data" },
+      history: { mode: "empty", state: "blocked" },
+    });
+  });
+
+  test("tab badges sum member-section notice counts at the max severity", () => {
+    const registry = routeTabRegistry(rich, {
+      reliability: { count: 2, severity: "high" },
+      riders: { count: 1, severity: "medium" },
+      treatments: { count: 1, severity: "low" },
+    });
+    const badgeByTab = new Map(registry.visibleTabs.map((tab) => [tab.value, tab.badge]));
+
+    // Riders = riders(1, medium) + reliability(2, high) → 3 at the higher severity.
+    expect(badgeByTab.get("riders")).toEqual({ count: 3, severity: "high" });
+    expect(badgeByTab.get("history")).toEqual({ count: 1, severity: "low" });
+    expect(badgeByTab.get("segments")).toBeUndefined();
+    expect(badgeByTab.get("overview")).toBeUndefined();
   });
 });

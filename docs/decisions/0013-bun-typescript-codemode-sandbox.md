@@ -1,6 +1,6 @@
 # 0013 - Bun/TypeScript codemode sandbox with analytics access
 
-Status: Accepted, supersedes ADR 0010 for new codemode work.
+Status: Retired 2026-07-04 — agent-corpus research experiments ended; tooling deleted (plan 037).
 Date: 2026-05-31.
 
 ## Context

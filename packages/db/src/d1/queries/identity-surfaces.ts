@@ -1,22 +1,9 @@
 import { and, desc, eq, like, or, sql } from "drizzle-orm";
-import * as z from "zod";
 import type { D1ServingDb } from "../client.js";
 import { alert, identity, publicComment, savedSearch, studioActorRole } from "../schema.js";
 
-const AlertKindSchema = z.enum(["route", "segment", "search"]);
-export type AlertKind = z.output<typeof AlertKindSchema>;
-
-const AlertRowSchema = z
-  .object({
-    alert_id: z.string(),
-    identity_id: z.string(),
-    kind: AlertKindSchema,
-    payload_json: z.string(),
-    active: z.number().int(),
-    created_at: z.string(),
-    updated_at: z.string(),
-  })
-  .strict();
+const alertKinds = ["route", "segment", "search"] as const;
+export type AlertKind = (typeof alertKinds)[number];
 
 export type AlertRecord = {
   alertId: string;
@@ -28,7 +15,25 @@ export type AlertRecord = {
   updatedAt: string;
 };
 
-function rowToAlert(row: z.output<typeof AlertRowSchema>): AlertRecord {
+async function selectAlertRows(db: D1ServingDb, identityId: string) {
+  return db
+    .select({
+      alert_id: alert.alertId,
+      identity_id: alert.identityId,
+      kind: alert.kind,
+      payload_json: alert.payloadJson,
+      active: sql<number>`${alert.active}`,
+      created_at: alert.createdAt,
+      updated_at: alert.updatedAt,
+    })
+    .from(alert)
+    .where(and(eq(alert.identityId, identityId), eq(alert.active, true)))
+    .orderBy(desc(alert.createdAt));
+}
+
+type AlertRow = Awaited<ReturnType<typeof selectAlertRows>>[number];
+
+function rowToAlert(row: AlertRow): AlertRecord {
   let payload: unknown = null;
   try {
     payload = JSON.parse(row.payload_json);
@@ -38,7 +43,7 @@ function rowToAlert(row: z.output<typeof AlertRowSchema>): AlertRecord {
   return {
     alertId: row.alert_id,
     identityId: row.identity_id,
-    kind: row.kind,
+    kind: row.kind as AlertKind,
     payload,
     active: row.active === 1,
     createdAt: row.created_at,
@@ -71,20 +76,8 @@ export async function listAlertsForIdentity(
   db: D1ServingDb,
   identityId: string,
 ): Promise<AlertRecord[]> {
-  const rows = await db
-    .select({
-      alert_id: alert.alertId,
-      identity_id: alert.identityId,
-      kind: alert.kind,
-      payload_json: alert.payloadJson,
-      active: sql<number>`${alert.active}`,
-      created_at: alert.createdAt,
-      updated_at: alert.updatedAt,
-    })
-    .from(alert)
-    .where(and(eq(alert.identityId, identityId), eq(alert.active, true)))
-    .orderBy(desc(alert.createdAt));
-  return rows.map((row) => rowToAlert(AlertRowSchema.parse(row)));
+  const rows = await selectAlertRows(db, identityId);
+  return rows.map(rowToAlert);
 }
 
 export async function deactivateAlert(
@@ -105,17 +98,6 @@ export async function deactivateAlert(
   return (meta?.changes ?? 0) > 0;
 }
 
-const SavedSearchRowSchema = z
-  .object({
-    saved_search_id: z.string(),
-    identity_id: z.string(),
-    label: z.string(),
-    query_json: z.string(),
-    created_at: z.string(),
-    updated_at: z.string(),
-  })
-  .strict();
-
 export type SavedSearchRecord = {
   savedSearchId: string;
   identityId: string;
@@ -125,7 +107,24 @@ export type SavedSearchRecord = {
   updatedAt: string;
 };
 
-function rowToSavedSearch(row: z.output<typeof SavedSearchRowSchema>): SavedSearchRecord {
+async function selectSavedSearchRows(db: D1ServingDb, identityId: string) {
+  return db
+    .select({
+      saved_search_id: savedSearch.savedSearchId,
+      identity_id: savedSearch.identityId,
+      label: savedSearch.label,
+      query_json: savedSearch.queryJson,
+      created_at: savedSearch.createdAt,
+      updated_at: savedSearch.updatedAt,
+    })
+    .from(savedSearch)
+    .where(eq(savedSearch.identityId, identityId))
+    .orderBy(desc(savedSearch.createdAt));
+}
+
+type SavedSearchRow = Awaited<ReturnType<typeof selectSavedSearchRows>>[number];
+
+function rowToSavedSearch(row: SavedSearchRow): SavedSearchRecord {
   let query: unknown = null;
   try {
     query = JSON.parse(row.query_json);
@@ -166,19 +165,8 @@ export async function listSavedSearchesForIdentity(
   db: D1ServingDb,
   identityId: string,
 ): Promise<SavedSearchRecord[]> {
-  const rows = await db
-    .select({
-      saved_search_id: savedSearch.savedSearchId,
-      identity_id: savedSearch.identityId,
-      label: savedSearch.label,
-      query_json: savedSearch.queryJson,
-      created_at: savedSearch.createdAt,
-      updated_at: savedSearch.updatedAt,
-    })
-    .from(savedSearch)
-    .where(eq(savedSearch.identityId, identityId))
-    .orderBy(desc(savedSearch.createdAt));
-  return rows.map((row) => rowToSavedSearch(SavedSearchRowSchema.parse(row)));
+  const rows = await selectSavedSearchRows(db, identityId);
+  return rows.map(rowToSavedSearch);
 }
 
 export async function deleteSavedSearch(
@@ -197,18 +185,6 @@ export async function deleteSavedSearch(
   return (meta?.changes ?? 0) > 0;
 }
 
-const PublicCommentRowSchema = z
-  .object({
-    comment_id: z.string(),
-    brief_id: z.string(),
-    identity_id: z.string(),
-    body: z.string(),
-    created_at: z.string(),
-    deleted_at: z.string().nullable(),
-    display_name: z.string().nullable(),
-  })
-  .strict();
-
 export type PublicCommentRecord = {
   commentId: string;
   briefId: string;
@@ -218,6 +194,23 @@ export type PublicCommentRecord = {
   createdAt: string;
   deletedAt: string | null;
 };
+
+async function selectPublicCommentRows(db: D1ServingDb, briefId: string) {
+  return db
+    .select({
+      comment_id: publicComment.commentId,
+      brief_id: publicComment.briefId,
+      identity_id: publicComment.identityId,
+      body: publicComment.body,
+      created_at: publicComment.createdAt,
+      deleted_at: publicComment.deletedAt,
+      display_name: identity.displayName,
+    })
+    .from(publicComment)
+    .leftJoin(identity, eq(identity.identityId, publicComment.identityId))
+    .where(and(eq(publicComment.briefId, briefId), sql`${publicComment.deletedAt} is null`))
+    .orderBy(publicComment.createdAt);
+}
 
 export async function insertPublicComment(
   db: D1ServingDb,
@@ -242,45 +235,19 @@ export async function listPublicCommentsForBrief(
   db: D1ServingDb,
   briefId: string,
 ): Promise<PublicCommentRecord[]> {
-  const rows = await db
-    .select({
-      comment_id: publicComment.commentId,
-      brief_id: publicComment.briefId,
-      identity_id: publicComment.identityId,
-      body: publicComment.body,
-      created_at: publicComment.createdAt,
-      deleted_at: publicComment.deletedAt,
-      display_name: identity.displayName,
-    })
-    .from(publicComment)
-    .leftJoin(identity, eq(identity.identityId, publicComment.identityId))
-    .where(and(eq(publicComment.briefId, briefId), sql`${publicComment.deletedAt} is null`))
-    .orderBy(publicComment.createdAt);
+  const rows = await selectPublicCommentRows(db, briefId);
   return rows.map((row) => {
-    const parsed = PublicCommentRowSchema.parse(row);
     return {
-      commentId: parsed.comment_id,
-      briefId: parsed.brief_id,
-      identityId: parsed.identity_id,
-      displayName: parsed.display_name,
-      body: parsed.body,
-      createdAt: parsed.created_at,
-      deletedAt: parsed.deleted_at,
+      commentId: row.comment_id,
+      briefId: row.brief_id,
+      identityId: row.identity_id,
+      displayName: row.display_name,
+      body: row.body,
+      createdAt: row.created_at,
+      deletedAt: row.deleted_at,
     };
   });
 }
-
-const IdentityWithRoleRowSchema = z
-  .object({
-    identity_id: z.string(),
-    email: z.string(),
-    display_name: z.string().nullable(),
-    role_id: z.string().nullable(),
-    workspace_id: z.string().nullable(),
-    scopes_json: z.string().nullable(),
-    role_active: z.number().int().nullable(),
-  })
-  .strict();
 
 export type IdentityWithRoleRecord = {
   identityId: string;
@@ -289,14 +256,14 @@ export type IdentityWithRoleRecord = {
   operator: { roleId: string; workspaceId: string; scopes: string[] } | null;
 };
 
-export async function listIdentitiesWithRoles(
+async function selectIdentityWithRoleRows(
   db: D1ServingDb,
   input: { query?: string | undefined; limit?: number | undefined },
-): Promise<IdentityWithRoleRecord[]> {
+) {
   const limit = Math.max(1, Math.min(input.limit ?? 50, 200));
   const search = input.query?.trim() ?? "";
   const matchPattern = `%${search.toLowerCase()}%`;
-  const rows = await db
+  return db
     .select({
       identity_id: identity.identityId,
       email: identity.email,
@@ -324,12 +291,18 @@ export async function listIdentitiesWithRoles(
     )
     .orderBy(desc(identity.createdAt))
     .limit(limit);
+}
+
+export async function listIdentitiesWithRoles(
+  db: D1ServingDb,
+  input: { query?: string | undefined; limit?: number | undefined },
+): Promise<IdentityWithRoleRecord[]> {
+  const rows = await selectIdentityWithRoleRows(db, input);
   return rows.map((row) => {
-    const parsed = IdentityWithRoleRowSchema.parse(row);
     let scopes: string[] = [];
-    if (parsed.scopes_json !== null) {
+    if (row.scopes_json !== null) {
       try {
-        const arr: unknown = JSON.parse(parsed.scopes_json);
+        const arr: unknown = JSON.parse(row.scopes_json);
         if (Array.isArray(arr))
           scopes = arr.filter((entry): entry is string => typeof entry === "string");
       } catch {
@@ -337,15 +310,15 @@ export async function listIdentitiesWithRoles(
       }
     }
     return {
-      identityId: parsed.identity_id,
-      email: parsed.email,
-      displayName: parsed.display_name,
+      identityId: row.identity_id,
+      email: row.email,
+      displayName: row.display_name,
       operator:
-        parsed.role_id === null || parsed.workspace_id === null
+        row.role_id === null || row.workspace_id === null
           ? null
           : {
-              roleId: parsed.role_id,
-              workspaceId: parsed.workspace_id,
+              roleId: row.role_id,
+              workspaceId: row.workspace_id,
               scopes,
             },
     };

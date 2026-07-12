@@ -8,7 +8,7 @@ import {
   normalizeStopRows,
 } from "@bp/sources/adapters/mta/routes-stops";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
-import { fromRepoRoot } from "../../lib/paths.ts";
+import { fromCliPath } from "../../lib/paths.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
 import type {
   BBox,
@@ -655,7 +655,7 @@ export function normalizeTspText(value: string): string {
 }
 
 export async function tspEvidenceIndex(sourcePath: string): Promise<Map<string, TspEvidence>> {
-  const sourceDir = fromRepoRoot(sourcePath);
+  const sourceDir = fromCliPath(sourcePath);
   const [metadata, text] = await Promise.all([
     readJsonIfExists<RawTspSourceMetadata>(join(sourceDir, "metadata.json")),
     readTextIfExists(join(sourceDir, "text.txt")),
@@ -738,8 +738,8 @@ export async function routeGeometryIndex(
     run: async (local) => [...(await listBusLanes(local.db))],
   });
   const [shapeSnapshot, stopSnapshot] = await Promise.all([
-    readJsonIfExists<RawSourceSnapshot>(fromRepoRoot(routeShapeSnapshotPath)),
-    readJsonIfExists<RawSourceSnapshot>(fromRepoRoot(stopSnapshotPath)),
+    readJsonIfExists<RawSourceSnapshot>(fromCliPath(routeShapeSnapshotPath)),
+    readJsonIfExists<RawSourceSnapshot>(fromCliPath(stopSnapshotPath)),
   ]);
   const shapeRows = shapeSnapshot?.rows;
   const stopRows = stopSnapshot?.rows;
@@ -818,8 +818,8 @@ export async function segmentLaneOverlapIndex(args: {
     run: async (local) => [...(await listBusLanes(local.db))],
   });
   const [shapeSnapshot, stopSnapshot, routeSegmentEndpoints] = await Promise.all([
-    readJsonIfExists<RawSourceSnapshot>(fromRepoRoot(args.routeShapeSnapshotPath)),
-    readJsonIfExists<RawSourceSnapshot>(fromRepoRoot(args.stopSnapshotPath)),
+    readJsonIfExists<RawSourceSnapshot>(fromCliPath(args.routeShapeSnapshotPath)),
+    readJsonIfExists<RawSourceSnapshot>(fromCliPath(args.stopSnapshotPath)),
     routeSegmentEndpointIndex({
       localDbPath: args.localDbPath,
       isoMonth: args.isoMonth,

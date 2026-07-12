@@ -1,5 +1,6 @@
-import { SocrataDatasetIdSchema, type SocrataFetch } from "@bp/sources/core";
-import * as z from "zod";
+import { decodeEitherStrict, decodeStrip } from "@bp/domain/decode";
+import { type SocrataDatasetId, SocrataDatasetIdSchema, type SocrataFetch } from "@bp/sources/core";
+import { Effect, Result, Schema } from "effect";
 
 export type { SocrataFetch } from "@bp/sources/core";
 
@@ -35,65 +36,68 @@ export type RichSocrataCatalogSearchClientOptions = {
   fetcher?: SocrataFetch | undefined;
 };
 
-const SocrataCatalogDomainMetadataSchema = z
-  .object({
-    key: z.string().min(1),
-    value: z.string().min(1),
-  })
-  .passthrough();
+const SocrataCatalogDomainMetadataSchema = Schema.Struct({
+  key: Schema.String.check(Schema.isMinLength(1)),
+  value: Schema.String.check(Schema.isMinLength(1)),
+});
 
-const SocrataCatalogResourceSchema = z
-  .object({
-    name: z.string().min(1),
-    id: z.string().optional(),
-    description: z.string().nullable().optional(),
-    attribution: z.string().nullable().optional(),
-    type: z.string().nullable().optional(),
-    updatedAt: z.string().nullable().optional(),
-    data_updated_at: z.string().nullable().optional(),
-    publication_date: z.string().nullable().optional(),
-    columns_field_name: z.array(z.string()).optional(),
-    columns_name: z.array(z.string()).optional(),
-  })
-  .passthrough();
+const SocrataCatalogResourceSchema = Schema.Struct({
+  name: Schema.String.check(Schema.isMinLength(1)),
+  id: Schema.optionalKey(Schema.String),
+  description: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  attribution: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  type: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  updatedAt: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  data_updated_at: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  publication_date: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  columns_field_name: Schema.optionalKey(Schema.Array(Schema.String)),
+  columns_name: Schema.optionalKey(Schema.Array(Schema.String)),
+});
 
-const SocrataCatalogClassificationSchema = z
-  .object({
-    categories: z.array(z.string()).default([]),
-    tags: z.array(z.string()).default([]),
-    domain_category: z.string().nullable().optional(),
-    domain_tags: z.array(z.string()).default([]),
-    domain_metadata: z.array(SocrataCatalogDomainMetadataSchema).default([]),
-  })
-  .passthrough();
+const SocrataCatalogClassificationSchema = Schema.Struct({
+  categories: Schema.Array(Schema.String).pipe(
+    Schema.withDecodingDefaultTypeKey(Effect.succeed([])),
+  ),
+  tags: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([]))),
+  domain_category: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  domain_tags: Schema.Array(Schema.String).pipe(
+    Schema.withDecodingDefaultTypeKey(Effect.succeed([])),
+  ),
+  domain_metadata: Schema.Array(SocrataCatalogDomainMetadataSchema).pipe(
+    Schema.withDecodingDefaultTypeKey(Effect.succeed([])),
+  ),
+});
 
-const SocrataCatalogResultSchema = z
-  .object({
-    resource: SocrataCatalogResourceSchema,
-    classification: SocrataCatalogClassificationSchema.optional(),
-    metadata: z
-      .object({
-        domain: z.string().optional(),
-      })
-      .passthrough()
-      .optional(),
-    permalink: z.string().nullable().optional(),
-    link: z.string().nullable().optional(),
-  })
-  .passthrough();
+const SocrataCatalogResultSchema = Schema.Struct({
+  resource: SocrataCatalogResourceSchema,
+  classification: Schema.optionalKey(SocrataCatalogClassificationSchema),
+  metadata: Schema.optionalKey(
+    Schema.Struct({
+      domain: Schema.optionalKey(Schema.String),
+    }),
+  ),
+  permalink: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  link: Schema.optionalKey(Schema.NullOr(Schema.String)),
+});
 
-const RawSocrataCatalogResponseSchema = z
-  .object({
-    results: z.array(SocrataCatalogResultSchema).default([]),
-    resultSetSize: z.coerce.number().int().nonnegative().optional(),
-    warnings: z.array(z.unknown()).default([]),
-  })
-  .passthrough();
+const RawSocrataCatalogResponseSchema = Schema.Struct({
+  results: Schema.Array(SocrataCatalogResultSchema).pipe(
+    Schema.withDecodingDefaultTypeKey(Effect.succeed([])),
+  ),
+  resultSetSize: Schema.optionalKey(
+    Schema.Union([Schema.Number, Schema.FiniteFromString])
+      .check(Schema.isInt())
+      .check(Schema.isGreaterThanOrEqualTo(0)),
+  ),
+  warnings: Schema.Array(Schema.Unknown).pipe(
+    Schema.withDecodingDefaultTypeKey(Effect.succeed([])),
+  ),
+});
 
-type RawSocrataCatalogResult = z.output<typeof SocrataCatalogResultSchema>;
+type RawSocrataCatalogResult = typeof SocrataCatalogResultSchema.Type;
 
 export type SocrataCatalogSearchResult = {
-  datasetId: z.output<typeof SocrataDatasetIdSchema> | null;
+  datasetId: SocrataDatasetId | null;
   name: string;
   resourceType: string | null;
   domain: string;
@@ -190,7 +194,9 @@ function domainMetadataValue(result: RawSocrataCatalogResult, key: string): stri
 function normalizeSocrataCatalogResult(
   result: RawSocrataCatalogResult,
 ): SocrataCatalogSearchResult {
-  const parsedDatasetId = SocrataDatasetIdSchema.safeParse(result.resource.id);
+  const datasetId = Result.getOrNull(
+    decodeEitherStrict(SocrataDatasetIdSchema)(result.resource.id),
+  );
   const category =
     nullableString(result.classification?.domain_category) ??
     nullableString(result.classification?.categories[0]);
@@ -200,7 +206,7 @@ function normalizeSocrataCatalogResult(
   ].filter((tag, index, allTags) => tag.trim().length > 0 && allTags.indexOf(tag) === index);
 
   return {
-    datasetId: parsedDatasetId.success ? parsedDatasetId.data : null,
+    datasetId,
     name: result.resource.name,
     resourceType: nullableString(result.resource.type),
     domain: result.metadata?.domain ?? defaultCatalogDomain,
@@ -219,19 +225,19 @@ function normalizeSocrataCatalogResult(
     coverage: domainMetadataValue(result, "Dataset-Summary_Coverage"),
     timePeriod: domainMetadataValue(result, "Dataset-Summary_Time-Period"),
     postingFrequency: domainMetadataValue(result, "Dataset-Summary_Posting-Frequency"),
-    columnFieldNames: result.resource.columns_field_name ?? [],
-    columnNames: result.resource.columns_name ?? [],
+    columnFieldNames: [...(result.resource.columns_field_name ?? [])],
+    columnNames: [...(result.resource.columns_name ?? [])],
   };
 }
 
 export function parseSocrataCatalogSearchResponse(input: unknown): SocrataCatalogSearchResponse {
-  const parsed = RawSocrataCatalogResponseSchema.parse(input);
+  const parsed = decodeStrip(RawSocrataCatalogResponseSchema)(input);
   const results = parsed.results.map(normalizeSocrataCatalogResult);
 
   return {
     resultSetSize: parsed.resultSetSize ?? results.length,
     returned: results.length,
-    warnings: parsed.warnings,
+    warnings: [...parsed.warnings],
     results,
   };
 }

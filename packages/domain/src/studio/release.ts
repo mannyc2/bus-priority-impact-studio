@@ -1,4 +1,6 @@
-import * as z from "zod";
+import { Effect, Schema } from "effect";
+import { MapRouteFactMetadataSchema } from "../maps/index.js";
+import { IsoMonthSchema } from "../primitives/index.js";
 import {
   StudioDocsEndpointSchema,
   StudioDocsSectionSchema,
@@ -11,79 +13,65 @@ import {
 } from "./routes/index.js";
 import { StudioQualitySchema } from "./shared.js";
 
-export const StudioSearchSegmentCardSchema = z
-  .object({
-    segment: StudioSegmentSchema,
-    route: StudioRouteSchema,
-  })
-  .strict();
+export const StudioSearchSegmentCardSchema = Schema.Struct({
+  segment: StudioSegmentSchema,
+  route: StudioRouteSchema,
+});
 
-export const StudioSearchNoteSchema = z
-  .object({
-    id: z.string(),
-    title: z.string(),
-    where: z.string(),
-    preview: z.string(),
-    href: z.string(),
-  })
-  .strict();
+export const StudioSearchNoteSchema = Schema.Struct({
+  id: Schema.String,
+  title: Schema.String,
+  where: Schema.String,
+  preview: Schema.String,
+  href: Schema.String,
+});
 
-export const StudioSearchResponseSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    /** Latest data month behind this response; null when the projection predates C3. */
-    dataAsOf: z
-      .string()
-      .regex(/^\d{4}-\d{2}$/)
-      .nullable()
-      .default(null),
-    query: z.string(),
-    routes: z.array(StudioRouteSchema),
-    segments: z.array(StudioSearchSegmentCardSchema),
-    notes: z.array(StudioSearchNoteSchema),
-    quality: StudioQualitySchema,
-  })
-  .strict();
+export const StudioSearchResponseSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  /** Latest data month behind this response; null when the projection predates C3. */
+  dataAsOf: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))).pipe(
+    Schema.withDecodingDefaultType(Effect.succeed(null)),
+  ),
+  query: Schema.String,
+  routes: Schema.Array(StudioRouteSchema),
+  segments: Schema.Array(StudioSearchSegmentCardSchema),
+  notes: Schema.Array(StudioSearchNoteSchema),
+  quality: StudioQualitySchema,
+});
 
-export const StudioCompareResponseSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    /** Latest data month behind this response; null when the projection predates C3. */
-    dataAsOf: z
-      .string()
-      .regex(/^\d{4}-\d{2}$/)
-      .nullable()
-      .default(null),
-    routes: z.tuple([StudioRouteSchema, StudioRouteSchema]),
-    deltas: z
-      .object({
-        speedMph: z.number(),
-        riderHoursLost: z.number(),
-        laneCoverage: z.number(),
-      })
-      .strict(),
-    quality: StudioQualitySchema,
-  })
-  .strict();
+export const StudioCompareResponseSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  /** Latest data month behind this response; null when the projection predates C3. */
+  dataAsOf: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))).pipe(
+    Schema.withDecodingDefaultType(Effect.succeed(null)),
+  ),
+  routes: Schema.Tuple([StudioRouteSchema, StudioRouteSchema]),
+  deltas: Schema.Struct({
+    speedMph: Schema.Number,
+    riderHoursLost: Schema.NullOr(Schema.Number),
+    laneCoverage: Schema.Number,
+  }),
+  quality: StudioQualitySchema,
+});
 
-export const StudioReleasePayloadSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    generatedAt: z.string(),
-    quality: StudioQualitySchema,
-    routes: z.array(StudioRouteSchema),
-    segments: z.array(StudioSegmentSchema),
-    routeArtifacts: z.array(StudioRouteArtifactRefSchema),
-    methods: z.array(StudioMethodDatasetSchema),
-    docsSections: z.array(StudioDocsSectionSchema),
-    docsEndpoints: z.array(StudioDocsEndpointSchema),
-  })
-  .strict();
+export const StudioReleasePayloadSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(2),
+  generatedAt: Schema.String,
+  baselineMonth: IsoMonthSchema,
+  quality: StudioQualitySchema,
+  routes: Schema.Array(StudioRouteSchema),
+  routeFactMetadata: Schema.Array(MapRouteFactMetadataSchema),
+  segments: Schema.Array(StudioSegmentSchema),
+  routeArtifacts: Schema.Array(StudioRouteArtifactRefSchema),
+  methods: Schema.Array(StudioMethodDatasetSchema),
+  docsSections: Schema.Array(StudioDocsSectionSchema),
+  docsEndpoints: Schema.Array(StudioDocsEndpointSchema),
+});
 
-export type StudioSearchSegmentCard = z.output<typeof StudioSearchSegmentCardSchema>;
-export type StudioSearchNote = z.output<typeof StudioSearchNoteSchema>;
-export type StudioSearchResponse = z.output<typeof StudioSearchResponseSchema>;
-export type StudioCompareResponse = z.output<typeof StudioCompareResponseSchema>;
-export type StudioReleasePayload = z.output<typeof StudioReleasePayloadSchema>;
+export type StudioSearchSegmentCard = typeof StudioSearchSegmentCardSchema.Type;
+export type StudioSearchNote = typeof StudioSearchNoteSchema.Type;
+export type StudioSearchResponse = typeof StudioSearchResponseSchema.Type;
+export type StudioCompareResponse = typeof StudioCompareResponseSchema.Type;
+export type StudioReleasePayload = typeof StudioReleasePayloadSchema.Type;

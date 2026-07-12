@@ -1,5 +1,6 @@
 import { RouteIdCodec } from "@bp/domain/primitives";
-import { z } from "zod";
+import { Effect, Schema } from "effect";
+import { CoercedNumberSchema, decodeSchemaPreserve, decodeSchemaStrip } from "../schema-decode.js";
 
 export const ROUTE_SPEED_AVAILABILITY_SOURCE_ID = "bus_segment_speeds_2025" as const;
 export type RouteSpeedAvailabilitySourceId = typeof ROUTE_SPEED_AVAILABILITY_SOURCE_ID;
@@ -52,15 +53,17 @@ export type BuildRouteSpeedAvailabilityInput = {
   lastBuiltMonth?: number | undefined;
 };
 
-const RawRouteSpeedAvailabilityRowSchema = z
-  .object({
-    year: z.coerce.number().int(),
-    month: z.coerce.number().int().min(1).max(12),
-    route_id: z.string().min(1),
-    row_count: z.coerce.number().int().nonnegative(),
-    bus_trip_count: z.coerce.number().int().nonnegative().default(0),
-  })
-  .passthrough();
+const RawRouteSpeedAvailabilityRowSchema = Schema.Struct({
+  year: CoercedNumberSchema.check(Schema.isInt()),
+  month: CoercedNumberSchema.check(Schema.isInt())
+    .check(Schema.isGreaterThanOrEqualTo(1))
+    .check(Schema.isLessThanOrEqualTo(12)),
+  route_id: Schema.String.check(Schema.isMinLength(1)),
+  row_count: CoercedNumberSchema.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  bus_trip_count: CoercedNumberSchema.check(Schema.isInt())
+    .check(Schema.isGreaterThanOrEqualTo(0))
+    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0))),
+});
 
 function isoMonth(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`;
@@ -76,7 +79,7 @@ export function summarizeRouteSpeedAvailabilityMonths(input: {
   >();
 
   for (const row of input.rows) {
-    const parsed = RawRouteSpeedAvailabilityRowSchema.parse(row);
+    const parsed = decodeSchemaPreserve(RawRouteSpeedAvailabilityRowSchema, row);
     const monthKey = isoMonth(parsed.year, parsed.month);
     const existing = monthRows.get(monthKey) ?? {
       year: parsed.year,
@@ -86,7 +89,7 @@ export function summarizeRouteSpeedAvailabilityMonths(input: {
       busTripCount: 0,
     };
 
-    existing.routes.add(z.decode(RouteIdCodec, parsed.route_id));
+    existing.routes.add(decodeSchemaStrip(RouteIdCodec, parsed.route_id));
     existing.rowCount += parsed.row_count;
     existing.busTripCount += parsed.bus_trip_count;
     monthRows.set(monthKey, existing);

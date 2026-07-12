@@ -1,4 +1,5 @@
-import { z } from "zod";
+import { Schema } from "effect";
+import { decodeSchemaStrict } from "../schema-decode.js";
 
 export const SEGMENT_DAYPART_PANEL_V1_ID = "segment_daypart_panel_v1" as const;
 
@@ -78,9 +79,9 @@ export type SegmentDaypartPanelSpec = {
   readonly routeId?: string;
 };
 
-const IsoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/);
+const IsoMonthSchema = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/));
 
-export const PanelCoverageStateSchema = z.enum([
+export const PanelCoverageStateSchema = Schema.Literals([
   "available",
   "available_not_fetched",
   "upstream_blocked",
@@ -89,53 +90,54 @@ export const PanelCoverageStateSchema = z.enum([
   "source_absent",
 ]);
 
-export const PanelRequiredProductSchema = z.strictObject({
-  productId: z.string().min(1),
+export const PanelRequiredProductSchema = Schema.Struct({
+  productId: Schema.String.check(Schema.isMinLength(1)),
   state: PanelCoverageStateSchema,
-  role: z.enum(["source", "derived", "artifact"]),
-  reason: z.string().min(1).optional(),
+  role: Schema.Literals(["source", "derived", "artifact"]),
+  reason: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
 });
 
-export const PanelEligibilityRuleSchema = z.strictObject({
-  ruleId: z.string().min(1),
-  description: z.string().min(1),
-  threshold: z.union([z.string().min(1), z.number()]).optional(),
+export const PanelEligibilityRuleSchema = Schema.Struct({
+  ruleId: Schema.String.check(Schema.isMinLength(1)),
+  description: Schema.String.check(Schema.isMinLength(1)),
+  threshold: Schema.optionalKey(
+    Schema.Union([Schema.String.check(Schema.isMinLength(1)), Schema.Number]),
+  ),
 });
 
-export const PanelSpecSchema = z
-  .strictObject({
-    panelId: z.string().min(1),
-    schemaVersion: z.number().int().positive(),
-    grain: z.string().min(1),
-    timeKey: z.string().min(1),
-    entityKeys: z.array(z.string().min(1)).min(1),
-    measures: z.array(z.string().min(1)).min(1),
-    joins: z.array(z.string().min(1)),
-    coverage: z.array(z.string().min(1)).min(1),
-    historyWindow: z.strictObject({
-      startMonth: IsoMonthSchema,
-      endMonth: IsoMonthSchema,
+export const PanelSpecSchema = Schema.Struct({
+  panelId: Schema.String.check(Schema.isMinLength(1)),
+  schemaVersion: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  grain: Schema.String.check(Schema.isMinLength(1)),
+  timeKey: Schema.String.check(Schema.isMinLength(1)),
+  entityKeys: Schema.Array(Schema.String.check(Schema.isMinLength(1))).check(Schema.isMinLength(1)),
+  measures: Schema.Array(Schema.String.check(Schema.isMinLength(1))).check(Schema.isMinLength(1)),
+  joins: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+  coverage: Schema.Array(Schema.String.check(Schema.isMinLength(1))).check(Schema.isMinLength(1)),
+  historyWindow: Schema.Struct({
+    startMonth: IsoMonthSchema,
+    endMonth: IsoMonthSchema,
+  }),
+  releaseFilter: Schema.optionalKey(
+    Schema.Struct({
+      month: IsoMonthSchema,
     }),
-    releaseFilter: z
-      .strictObject({
-        month: IsoMonthSchema,
-      })
-      .optional(),
-    scopeFilter: z
-      .strictObject({
-        routeId: z.string().min(1).optional(),
-      })
-      .optional(),
-    requiredProducts: z.array(PanelRequiredProductSchema).min(1),
-    eligibilityRules: z.array(PanelEligibilityRuleSchema),
-    negativeMeaning: z.string().min(1),
-  })
-  .superRefine((spec, context) => {
+  ),
+  scopeFilter: Schema.optionalKey(
+    Schema.Struct({
+      routeId: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+    }),
+  ),
+  requiredProducts: Schema.Array(PanelRequiredProductSchema).check(Schema.isMinLength(1)),
+  eligibilityRules: Schema.Array(PanelEligibilityRuleSchema),
+  negativeMeaning: Schema.String.check(Schema.isMinLength(1)),
+}).check(
+  Schema.makeFilter((spec) => {
+    const issues: Schema.FilterIssue[] = [];
     if (spec.historyWindow.startMonth > spec.historyWindow.endMonth) {
-      context.addIssue({
-        code: "custom",
+      issues.push({
         path: ["historyWindow"],
-        message: "Panel history window startMonth must be <= endMonth.",
+        issue: "Panel history window startMonth must be <= endMonth.",
       });
     }
     if (
@@ -143,57 +145,58 @@ export const PanelSpecSchema = z
       (spec.releaseFilter.month < spec.historyWindow.startMonth ||
         spec.releaseFilter.month > spec.historyWindow.endMonth)
     ) {
-      context.addIssue({
-        code: "custom",
+      issues.push({
         path: ["releaseFilter", "month"],
-        message: "Panel releaseFilter.month must fall inside the history window.",
+        issue: "Panel releaseFilter.month must fall inside the history window.",
       });
     }
-  });
+    return issues;
+  }),
+);
 
-export const PanelInputRefSchema = z.strictObject({
-  refKind: z.enum(["local_table", "artifact", "query", "fixture"]),
-  refId: z.string().min(1),
-  role: z.string().min(1),
-  path: z.string().min(1).nullable().optional(),
-  hash: z.string().min(1).nullable().optional(),
+export const PanelInputRefSchema = Schema.Struct({
+  refKind: Schema.Literals(["local_table", "artifact", "query", "fixture"]),
+  refId: Schema.String.check(Schema.isMinLength(1)),
+  role: Schema.String.check(Schema.isMinLength(1)),
+  path: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isMinLength(1)))),
+  hash: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isMinLength(1)))),
 });
 
-export const PanelManifestSummarySchema = z.strictObject({
-  sourceRowCount: z.number().int().nonnegative(),
-  supportedRowCount: z.number().int().nonnegative(),
-  panelRowCount: z.number().int().nonnegative(),
-  routeCount: z.number().int().nonnegative(),
-  entityCount: z.number().int().nonnegative(),
-  monthCount: z.number().int().nonnegative(),
+export const PanelManifestSummarySchema = Schema.Struct({
+  sourceRowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  supportedRowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  panelRowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  entityCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  monthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
 });
 
-export const PanelManifestSchema = z
-  .strictObject({
-    panelId: z.string().min(1),
-    schemaVersion: z.number().int().positive(),
-    generatedAt: z.string().min(1).nullable(),
-    spec: PanelSpecSchema,
-    inputRefs: z.array(PanelInputRefSchema).min(1),
-    summary: PanelManifestSummarySchema,
-    limitations: z.array(z.string().min(1)),
-  })
-  .superRefine((manifest, context) => {
+export const PanelManifestSchema = Schema.Struct({
+  panelId: Schema.String.check(Schema.isMinLength(1)),
+  schemaVersion: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  generatedAt: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+  spec: PanelSpecSchema,
+  inputRefs: Schema.Array(PanelInputRefSchema).check(Schema.isMinLength(1)),
+  summary: PanelManifestSummarySchema,
+  limitations: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
+}).check(
+  Schema.makeFilter((manifest) => {
+    const issues: Schema.FilterIssue[] = [];
     if (manifest.panelId !== manifest.spec.panelId) {
-      context.addIssue({
-        code: "custom",
+      issues.push({
         path: ["panelId"],
-        message: "PanelManifest.panelId must match PanelManifest.spec.panelId.",
+        issue: "PanelManifest.panelId must match PanelManifest.spec.panelId.",
       });
     }
     if (manifest.schemaVersion !== manifest.spec.schemaVersion) {
-      context.addIssue({
-        code: "custom",
+      issues.push({
         path: ["schemaVersion"],
-        message: "PanelManifest.schemaVersion must match PanelManifest.spec.schemaVersion.",
+        issue: "PanelManifest.schemaVersion must match PanelManifest.spec.schemaVersion.",
       });
     }
-  });
+    return issues;
+  }),
+);
 
 type PanelInputRef = PanelManifest["inputRefs"][number];
 
@@ -243,7 +246,7 @@ function normalizePanelInputRef(input: {
 }
 
 export function parsePanelSpec(value: unknown): PanelSpec {
-  const parsed = PanelSpecSchema.parse(value);
+  const parsed = decodeSchemaStrict(PanelSpecSchema, value);
   const spec: PanelSpec = {
     panelId: parsed.panelId,
     schemaVersion: parsed.schemaVersion,
@@ -272,7 +275,7 @@ export function parsePanelSpec(value: unknown): PanelSpec {
 }
 
 export function parsePanelManifest(value: unknown): PanelManifest {
-  const parsed = PanelManifestSchema.parse(value);
+  const parsed = decodeSchemaStrict(PanelManifestSchema, value);
   return {
     panelId: parsed.panelId,
     schemaVersion: parsed.schemaVersion,

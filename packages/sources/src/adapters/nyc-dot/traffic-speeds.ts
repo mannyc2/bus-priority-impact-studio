@@ -1,39 +1,48 @@
-import * as z from "zod";
+import { decodePreserve } from "@bp/domain/decode";
+import { Schema, SchemaGetter } from "effect";
 import type { SocrataRow } from "../../core/index.js";
 import { schemaVersion } from "../../core/index.js";
 
-export const NormalizedDotTrafficSpeedSchema = z
-  .object({
-    schemaVersion: z.literal(schemaVersion),
-    linkId: z.string().min(1),
-    sampledAt: z.iso.datetime(),
-    speed: z.number().nullable(),
-    travelTime: z.number().nullable(),
-    statusCode: z.string().min(1),
-    owner: z.string().nullable(),
-    borough: z.string().nullable(),
-    linkName: z.string().nullable(),
-    linkPoints: z.string().nullable(),
-    transcomId: z.string().nullable(),
-  })
-  .strict();
+const NonEmptyString = Schema.String.check(Schema.isMinLength(1));
+const NullableString = Schema.NullOr(Schema.String);
+const CoercedNumber = Schema.Unknown.pipe(
+  Schema.decodeTo(Schema.Number, {
+    decode: SchemaGetter.transform((value) => Number(value)),
+    encode: SchemaGetter.passthrough(),
+  }),
+);
+const IsoDateTime = Schema.String.check(
+  Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
+);
 
-export type NormalizedDotTrafficSpeed = z.output<typeof NormalizedDotTrafficSpeedSchema>;
+export const NormalizedDotTrafficSpeedSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(schemaVersion),
+  linkId: NonEmptyString,
+  sampledAt: IsoDateTime,
+  speed: Schema.NullOr(Schema.Number),
+  travelTime: Schema.NullOr(Schema.Number),
+  statusCode: NonEmptyString,
+  owner: NullableString,
+  borough: NullableString,
+  linkName: NullableString,
+  linkPoints: NullableString,
+  transcomId: NullableString,
+});
 
-const RawDotTrafficSpeedRowSchema = z
-  .object({
-    link_id: z.string().min(1),
-    data_as_of: z.string().min(1),
-    speed: z.coerce.number().optional(),
-    travel_time: z.coerce.number().optional(),
-    status: z.string().optional(),
-    owner: z.string().optional(),
-    borough: z.string().optional(),
-    link_name: z.string().optional(),
-    link_points: z.string().optional(),
-    transcom_id: z.string().optional(),
-  })
-  .passthrough();
+export type NormalizedDotTrafficSpeed = typeof NormalizedDotTrafficSpeedSchema.Type;
+
+const RawDotTrafficSpeedRowSchema = Schema.Struct({
+  link_id: NonEmptyString,
+  data_as_of: NonEmptyString,
+  speed: Schema.optionalKey(CoercedNumber),
+  travel_time: Schema.optionalKey(CoercedNumber),
+  status: Schema.optionalKey(Schema.String),
+  owner: Schema.optionalKey(Schema.String),
+  borough: Schema.optionalKey(Schema.String),
+  link_name: Schema.optionalKey(Schema.String),
+  link_points: Schema.optionalKey(Schema.String),
+  transcom_id: Schema.optionalKey(Schema.String),
+});
 
 function toIsoDatetime(value: string): string {
   // Socrata calendar_date arrives as "2026-05-18T21:29:07.000". Some endpoints
@@ -46,7 +55,7 @@ function toIsoDatetime(value: string): string {
 export function normalizeDotTrafficSpeedRows(rows: SocrataRow[]): NormalizedDotTrafficSpeed[] {
   return rows
     .map((row) => {
-      const parsed = RawDotTrafficSpeedRowSchema.parse(row);
+      const parsed = decodePreserve(RawDotTrafficSpeedRowSchema)(row);
       return {
         schemaVersion,
         linkId: parsed.link_id,

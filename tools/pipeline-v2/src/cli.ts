@@ -1,38 +1,16 @@
-import {
-  type DeclarativeCommand,
-  defineCli,
-  help,
-  outputControls,
-  reflectionControls,
-  run,
-  version,
-} from "@liche/core";
-import { Glob } from "bun";
+import { BunRuntime } from "@effect/platform-bun";
+import type { Effect } from "effect";
+import { Command } from "effect/unstable/cli";
+import { buildRootCommand, discoverCommandDescriptors } from "./cli/registry.ts";
 
-async function discoverCommands(): Promise<DeclarativeCommand[]> {
-  const glob = new Glob("commands/**/*.ts");
-  const commands: DeclarativeCommand[] = [];
-  for await (const path of glob.scan({ cwd: import.meta.dir })) {
-    try {
-      const mod = await import(`./${path}`);
-      if (mod.default) commands.push(mod.default as DeclarativeCommand);
-    } catch (err) {
-      console.error(`pipeline: skipping ${path} (${(err as Error).message.split("\n")[0]})`);
-    }
-  }
-  return commands;
+export const pipelineCommands = await discoverCommandDescriptors();
+export const cli = buildRootCommand(pipelineCommands);
+
+if (import.meta.main) {
+  const program = Command.runWith(cli, { version: "0.0.1" })(Bun.argv.slice(2)) as Effect.Effect<
+    void,
+    unknown,
+    never
+  >;
+  BunRuntime.runMain(program);
 }
-
-export const cli = defineCli({
-  name: "pipeline",
-  version: "0.0.1",
-  extensions: [
-    help(),
-    version(),
-    outputControls({ format: true, fullOutput: true, json: true }),
-    reflectionControls({ schema: true }),
-  ],
-  commands: await discoverCommands(),
-});
-
-if (import.meta.main) await run(cli);

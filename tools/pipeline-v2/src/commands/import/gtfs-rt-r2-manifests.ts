@@ -5,7 +5,8 @@ import {
   replaceGtfsRtCollectionRun,
   replaceGtfsRtFeedSnapshots,
 } from "@bp/db/local";
-import { arg, defineCommand, z } from "@liche/core";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
@@ -159,20 +160,32 @@ export default defineCommand({
   path: ["import", "gtfs-rt-r2-manifests"],
   summary: "Import GTFS-RT collection state from Worker R2 manifest JSON files.",
   input: {
-    options: dbOptions.extend({
-      runId: z.string().min(1).describe("Collection run identifier"),
-      manifestRoot: z.string().min(1).describe("Directory containing Worker manifest JSON"),
-      rawRoot: z.string().min(1).describe("Directory containing mirrored raw protobufs"),
-      sampleSeconds: arg.positiveInt().default(30).describe("Sample period in seconds"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        runId: Schema.String.check(Schema.isMinLength(1)).annotate({
+          description: "Collection run identifier",
+        }),
+        manifestRoot: Schema.String.check(Schema.isMinLength(1)).annotate({
+          description: "Directory containing Worker manifest JSON",
+        }),
+        rawRoot: Schema.String.check(Schema.isMinLength(1)).annotate({
+          description: "Directory containing mirrored raw protobufs",
+        }),
+        sampleSeconds: arg
+          .positiveInt()
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(30)))
+          .annotate({ description: "Sample period in seconds" }),
+      },
     }),
   },
-  output: z.object({
-    runId: z.string(),
-    manifestCount: z.number(),
-    snapshotCount: z.number(),
-    rawDirectory: z.string(),
-    startedAt: z.string(),
-    endedAt: z.string(),
+  output: Schema.Struct({
+    runId: Schema.String,
+    manifestCount: Schema.Number,
+    snapshotCount: Schema.Number,
+    rawDirectory: Schema.String,
+    startedAt: Schema.String,
+    endedAt: Schema.String,
   }),
   async run({ input }) {
     const manifestRoot = fromCliPath(input.options.manifestRoot);

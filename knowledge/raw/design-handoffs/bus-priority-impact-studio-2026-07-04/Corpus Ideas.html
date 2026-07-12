@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Corpus Ideas — Bus Priority Impact Studio</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="system.jsx"></script>
+<script type="text/babel" src="corpus-ideas.jsx"></script>
+<script type="text/babel" src="corpus-ideas-2.jsx"></script>
+<script type="text/babel" src="planning-record.jsx"></script>
+<script type="text/babel" src="planning-record-2.jsx"></script>
+
+<script type="text/babel">
+const AW = 1320;
+
+function App() {
+  return (
+    <DesignCanvas>
+
+      <DCSection id="planning-record" title="Planning record"
+        subtitle="The richest thing the corpus unlocks: the agency's dated, typed, source-cited public record per corridor. Four directions — pick the spine and I'll resolve it.">
+        <DCArtboard id="pr-phased" label="A1 · Phased timeline — the lead direction" width={840} height={1500}><PR_PhasedTimeline /></DCArtboard>
+        <DCArtboard id="pr-spine" label="A2 · Activity spine — compact, header-ready" width={800} height={620}><PR_ActivitySpine /></DCArtboard>
+        <DCArtboard id="pr-track" label="A3 · Promised → built track" width={800} height={620}><PR_PromisedBuiltTrack /></DCArtboard>
+        <DCArtboard id="pr-detail" label="A4 · Event detail — the atom behind one dot" width={800} height={780}><PR_EventDetail /></DCArtboard>
+      </DCSection>
+
+      <DCSection id="planning-record-v1" title="Planning record · first pass"
+        subtitle="The earlier, simpler reads — kept for reference against the directions above.">
+        <DCArtboard id="ci-record" label="v1 · Plain timeline" width={780} height={960}><CI_PlanningRecord /></DCArtboard>
+        <DCArtboard id="ci-ribbon" label="v1 · Lifecycle ribbon" width={780} height={760}><CI_PhaseRibbon /></DCArtboard>
+      </DCSection>
+
+      <DCSection id="cited-evidence" title="Cited evidence"
+        subtitle="The reusable unit behind authoring's “insert from the corpus.” A stat plus the agency's verbatim words, its truth status, and the page it came from.">
+        <DCArtboard id="ci-evidence" label="B1 · Cited-evidence primitive — four postures + inline" width={920} height={1180}><CI_EvidenceSpecimens /></DCArtboard>
+      </DCSection>
+
+      <DCSection id="promised-delivered" title="Promised vs. delivered"
+        subtitle="The analysis the corpus uniquely unlocks — the agency's own promised or reported benefit set beside our independent measurement.">
+        <DCArtboard id="ci-recon" label="C1 · Promised vs. delivered reconciliation" width={820} height={900}><CI_PromisedVsDelivered /></DCArtboard>
+        <DCArtboard id="ci-annot" label="C2 · Event markers on the charts we already have" width={840} height={680}><CI_ChartAnnotation /></DCArtboard>
+      </DCSection>
+
+      <DCSection id="what-we-know" title="What we know · rough"
+        subtitle="Everything the corpus holds for a route, grouped by canonical claim kind. Kept as a wireframe on purpose — payload isn't schema-frozen, so this is for the structure conversation, not pixels.">
+        <DCArtboard id="ci-know" label="D1 · “What we know” panel (wireframe)" width={840} height={880}><CI_WhatWeKnow /></DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

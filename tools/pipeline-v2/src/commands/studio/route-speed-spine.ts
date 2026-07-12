@@ -7,8 +7,9 @@ import {
   ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS,
   routeSpeedSpineRouteSlug,
 } from "@bp/analytics/feature-history";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { loadRouteSpeedSpineLocalDbRows } from "@bp/pipeline-v2/local-db-aggregates";
-import { defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -97,39 +98,56 @@ export default defineCommand({
   path: ["studio", "route-speed-spine"],
   summary: "Build a stable geographic segment spine for route speed-history artifacts.",
   input: {
-    options: dbOptions.extend({
-      routeId: z.string().min(1).default("B41").describe("Route ID to materialize"),
-      startMonth: z
-        .string()
-        .regex(ISO_MONTH_RE)
-        .default(ROUTE_SPEED_SPINE_DEFAULT_START_MONTH)
-        .describe("First source month, YYYY-MM"),
-      endMonth: z
-        .string()
-        .regex(ISO_MONTH_RE)
-        .optional()
-        .describe("Last source month, YYYY-MM; defaults to all available months"),
-      toleranceMeters: z.coerce
-        .number()
-        .positive()
-        .default(ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS)
-        .describe("Maximum distance for snapping source timepoints into one spine node"),
-      artifactRoot: z.string().optional().describe("Override artifact root directory"),
-      output: z.string().optional().describe("Override output path"),
+    options: Schema.Struct({
+      ...dbOptions.fields,
+      ...{
+        routeId: Schema.String.check(Schema.isMinLength(1))
+          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("B41")))
+          .annotate({ description: "Route ID to materialize" }),
+        startMonth: Schema.String.check(Schema.isPattern(ISO_MONTH_RE))
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(ROUTE_SPEED_SPINE_DEFAULT_START_MONTH),
+            ),
+          )
+          .annotate({ description: "First source month, YYYY-MM" }),
+        endMonth: Schema.optionalKey(Schema.String.check(Schema.isPattern(ISO_MONTH_RE))).annotate({
+          description: "Last source month, YYYY-MM; defaults to all available months",
+        }),
+        toleranceMeters: arg
+          .number()
+          .check(Schema.isGreaterThan(0))
+          .pipe(
+            Schema.withDecodingDefaultTypeKey(
+              Effect.succeed(ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS),
+            ),
+          )
+          .annotate({
+            description: "Maximum distance for snapping source timepoints into one spine node",
+          }),
+        artifactRoot: Schema.optionalKey(Schema.String).annotate({
+          description: "Override artifact root directory",
+        }),
+        output: Schema.optionalKey(Schema.String).annotate({ description: "Override output path" }),
+      },
     }),
   },
-  output: z.object({
-    routeId: z.string(),
-    routeSlug: z.string(),
-    outputPath: z.string(),
-    monthCount: z.number().int().nonnegative(),
-    nodeCount: z.number().int().nonnegative(),
-    spineSegmentCount: z.number().int().nonnegative(),
-    rawSegmentKeyCount: z.number().int().nonnegative(),
-    monthsWithRawKeyDriftCount: z.number().int().nonnegative(),
-    monthsWithPartialSpineCoverageCount: z.number().int().nonnegative(),
-    validationStatus: z.enum(["pass", "warn", "fail"]),
-    issueCount: z.number().int().nonnegative(),
+  output: Schema.Struct({
+    routeId: Schema.String,
+    routeSlug: Schema.String,
+    outputPath: Schema.String,
+    monthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    nodeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    spineSegmentCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    rawSegmentKeyCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+    monthsWithRawKeyDriftCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    monthsWithPartialSpineCoverageCount: Schema.Number.check(Schema.isInt()).check(
+      Schema.isGreaterThanOrEqualTo(0),
+    ),
+    validationStatus: Schema.Literals(["pass", "warn", "fail"]),
+    issueCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   }),
   async run({ input }) {
     return runLocalDbCommandBoundary({

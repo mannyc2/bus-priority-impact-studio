@@ -1,4 +1,3 @@
-import { Cite } from "@/components/Cite";
 import { RouteBadge } from "@/components/RouteBadge";
 import { SearchField } from "@/components/SearchField";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -24,8 +23,8 @@ export function FoundationsDemo() {
         <SearchField placeholder="Search routes, segments, evidence..." shortcut="/" />
       </div>
       <p className="mt-4 text-[13px] leading-normal text-[var(--bp-color-ink-70)]">
-        Inline claims carry citation numbers
-        <Cite n={2} /> and keep color reserved for evidence state, not decoration.
+        Inline claims carry citation numbers and keep color reserved for evidence state, not
+        decoration.
       </p>
     </div>
   );

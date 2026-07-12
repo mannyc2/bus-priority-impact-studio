@@ -2,17 +2,12 @@
 
 Date: 2026-05-30
 
-> **Superseded (2026-07-03).** The generation-3 hard cutover retired this research mode as product
-> scope. Treat this ADR as decision history only; current route-evidence work is governed by
-> `plans/README.md`, ADR 0018, ADR 0019, and the mta-wiki evidence backend.
+> **Retired 2026-07-04.** Agent-corpus research experiments ended and their tooling was
+> deleted (plan 037). Treat this ADR as decision history only.
 
 ## Status
 
-**Proposed.** Specifies a "deep mode" for the codemode findings agent that targets
-**novel, research-grade findings** rather than grounded restatements of
-pre-computed signals, orchestrated as a Ralph-style iteration loop. Nothing here is
-built — this ADR is the target to agree on before code. It does not supersede the
-existing grounded-proposal mode (ADR 0010), which stays for coverage.
+Retired 2026-07-04 — agent-corpus research experiments ended; tooling deleted (plan 037).
 
 ## Post-refactor note (2026-05-31)
 

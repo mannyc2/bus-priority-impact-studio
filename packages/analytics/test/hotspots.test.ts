@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { SegmentSpeedObservation } from "../src/index.js";
-import { detectSegmentHotspots } from "../src/index.js";
+import { detectSegmentHotspots, type SegmentSpeedObservation } from "@bp/analytics/hotspots";
 
 const baseObservation = {
   routeId: "M1",
@@ -95,5 +94,29 @@ describe("segment hotspot detection", () => {
         riderImpactScore: 68,
       }),
     );
+  });
+
+  test("preserves exposure when every observed segment is faster than the hotspot target", () => {
+    const result = detectSegmentHotspots(
+      [
+        observation({
+          averageRoadSpeedMph: 12,
+          ridership: 250,
+          transfers: 30,
+        }),
+      ],
+      { targetSpeedMph: 8, slowSpeedThresholdMph: 8 },
+    );
+
+    expect(result).toMatchObject({
+      ridershipWeighted: false,
+      ridershipMatchedObservationCount: 1,
+      ridershipExposure: 250,
+    });
+    expect(result.hotspots[0]).toMatchObject({
+      ridershipExposure: 250,
+      transferExposure: 30,
+    });
+    expect(result.hotspots[0]?.riderImpactScore).toBeUndefined();
   });
 });

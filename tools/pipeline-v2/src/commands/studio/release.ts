@@ -10,8 +10,10 @@ import {
   type RouteBriefSummary,
   type RouteInterventionComparison,
 } from "@bp/db";
+import type { LocalRouteHourlyRidership, LocalRouteScheduleTimepoint } from "@bp/db/local";
 import type { StudioIntervention } from "@bp/domain/studio/interventions";
 import {
+  buildMapRouteFactsProjection,
   buildStudioDocsProjection,
   buildStudioMethodsProjection,
   buildStudioRouteProjection,
@@ -19,16 +21,22 @@ import {
   buildStudioSegmentsProjection,
 } from "@bp/domain/studio/projections";
 import { type StudioReleasePayload, StudioReleasePayloadSchema } from "@bp/domain/studio/release";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
 import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
 import { normalizeScheduleTimepointRows } from "@bp/sources/adapters/mta/schedules";
-import { defineCommand, z } from "@liche/core";
+import { Effect } from "effect";
 import { localTransformConcurrency, runBoundedPromises } from "../../effect/concurrency.ts";
 import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
-import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { fromCliPath } from "../../lib/paths.ts";
 import { buildRouteBriefSegmentUniverse } from "../../lib/route-briefs/index.ts";
+import {
+  type LoadedRouteSpeedSpineCrosswalk,
+  loadRouteSpeedSpineCrosswalk,
+} from "../../lib/route-speed-spine-crosswalk.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
 import { buildSourceCoverageLedger } from "../audit/source-coverage.ts";
 import {
@@ -60,7 +68,6 @@ import {
   speedPercentilesForSummaries,
 } from "./_release-routes.ts";
 import {
-  buildRouteSegmentEvidence,
   buildSegmentAnalystNote,
   buildSegments,
   enhanceSegmentAiNotesWithLlm,
@@ -84,6 +91,7 @@ const defaultSchemaPath = "data/exports/d1/2026-03/schema.sql";
 const defaultSeedPath = "data/exports/d1/2026-03/seed.sql";
 const defaultRouteSliceArtifactsRoot = "data/artifacts/route-slices";
 const defaultRouteSliceRawRoot = "data/raw/route-slices";
+const defaultSpeedSpineRoot = "data/artifacts";
 const defaultRouteShapeSnapshotPath = "data/raw/network/current_bus_routes.json";
 const defaultStopSnapshotPath = "data/raw/network/current_bus_stops.json";
 const defaultTspSourcePath = "data/artifacts/studio/v2/wiki/sources/nyc_dot_tsp_status_2017";
@@ -114,8 +122,8 @@ async function writeJson(path: string, value: unknown): Promise<void> {
 
 async function loadStudioReleaseD1Context(options: CliOptions) {
   const [schemaSql, seedSql] = await Promise.all([
-    Bun.file(fromRepoRoot(options.schemaPath)).text(),
-    Bun.file(fromRepoRoot(options.seedPath)).text(),
+    Bun.file(fromCliPath(options.schemaPath)).text(),
+    Bun.file(fromCliPath(options.seedPath)).text(),
   ]);
 
   return runD1ReplayBoundary({
@@ -159,10 +167,14 @@ async function loadStudioReleaseD1Context(options: CliOptions) {
           (summary) => !requiredSummaries.some((required) => required.routeId === summary.routeId),
         ),
       ];
-      const selectedSummaries =
+      const profileSelectedSummaries =
         options.profile === "full"
           ? orderedSummaries
           : orderedSummaries.slice(0, Math.max(options.routeLimit, requiredSummaries.length));
+      const routeFilter = new Set(options.routeIds.map((routeId) => routeId.trim().toUpperCase()));
+      const selectedSummaries = profileSelectedSummaries.filter(
+        (summary) => routeFilter.size === 0 || routeFilter.has(summary.routeId),
+      );
       const speedPercentiles = speedPercentilesForSummaries(orderedSummaries, readinessByRoute);
       const descriptivePeerSlugs = descriptivePeerSlugsForSummaries(
         selectedSummaries,
@@ -198,7 +210,7 @@ async function rawRouteSliceRows(
   routeSliceRawRoot: string,
 ): Promise<SocrataRow[] | null> {
   const slug = routeId.toLowerCase();
-  const path = fromRepoRoot(join(routeSliceRawRoot, `${slug}-${month}`, filename));
+  const path = fromCliPath(join(routeSliceRawRoot, `${slug}-${month}`, filename));
   const snapshot = await readJsonIfExists<RawSourceSnapshot>(path);
   return Array.isArray(snapshot?.rows) ? snapshot.rows : null;
 }
@@ -208,17 +220,35 @@ async function augmentRouteBriefInputFromRaw(
   month: string,
   artifact: RouteBriefInputArtifact | null,
   routeSliceRawRoot: string,
+  currentScheduleRows: readonly LocalRouteScheduleTimepoint[],
+  currentRidershipRows: readonly LocalRouteHourlyRidership[],
 ): Promise<RouteBriefInputArtifact | null> {
-  if (artifact === null || (artifact.segments?.length ?? 0) > 0) {
+  if (artifact === null) {
     return artifact;
   }
 
-  const [speedRows, ridershipRows, scheduleRows] = await Promise.all([
+  if (
+    (artifact.segments?.length ?? 0) > 0 &&
+    currentScheduleRows.length === 0 &&
+    currentRidershipRows.length === 0
+  ) {
+    return artifact;
+  }
+
+  const [speedRows, snapshotRidershipRows, snapshotScheduleRows] = await Promise.all([
     rawRouteSliceRows(routeId, month, "bus_segment_speeds_2025.json", routeSliceRawRoot),
-    rawRouteSliceRows(routeId, month, "bus_hourly_ridership_2025.json", routeSliceRawRoot),
-    rawRouteSliceRows(routeId, month, "bus_schedules_2026.json", routeSliceRawRoot),
+    currentRidershipRows.length === 0
+      ? rawRouteSliceRows(routeId, month, "bus_hourly_ridership_2025.json", routeSliceRawRoot)
+      : Promise.resolve(null),
+    currentScheduleRows.length === 0
+      ? rawRouteSliceRows(routeId, month, "bus_schedules_2026.json", routeSliceRawRoot)
+      : Promise.resolve(null),
   ]);
-  if (speedRows === null || ridershipRows === null || scheduleRows === null) {
+  if (
+    speedRows === null ||
+    (currentRidershipRows.length === 0 && snapshotRidershipRows === null) ||
+    (currentScheduleRows.length === 0 && snapshotScheduleRows === null)
+  ) {
     return artifact;
   }
 
@@ -231,15 +261,21 @@ async function augmentRouteBriefInputFromRaw(
 
   const universe = buildRouteBriefSegmentUniverse({
     speedRows: normalizeSegmentSpeedRows(speedRows),
-    ridershipRows: normalizeHourlyRidershipRows(ridershipRows, {
-      routeId,
-      year,
-      month: monthNumber,
-    }),
-    schedules: normalizeScheduleTimepointRows(scheduleRows).map((row) => ({
-      ...row,
-      isoMonth: month,
-    })),
+    ridershipRows:
+      currentRidershipRows.length > 0
+        ? currentRidershipRows
+        : normalizeHourlyRidershipRows(snapshotRidershipRows ?? [], {
+            routeId,
+            year,
+            month: monthNumber,
+          }),
+    schedules:
+      currentScheduleRows.length > 0
+        ? currentScheduleRows
+        : normalizeScheduleTimepointRows(snapshotScheduleRows ?? []).map((row) => ({
+            ...row,
+            isoMonth: month,
+          })),
     year,
     month: monthNumber,
   });
@@ -267,13 +303,22 @@ async function routeBriefInput(
   month: string,
   routeSliceArtifactsRoot: string,
   routeSliceRawRoot: string,
+  currentScheduleRows: readonly LocalRouteScheduleTimepoint[],
+  currentRidershipRows: readonly LocalRouteHourlyRidership[],
 ): Promise<RouteBriefInputArtifact | null> {
   const slug = routeId.toLowerCase();
-  const path = fromRepoRoot(
+  const path = fromCliPath(
     join(routeSliceArtifactsRoot, `${slug}-${month}`, "route-brief-input.json"),
   );
   const artifact = await readJsonIfExists<RouteBriefInputArtifact>(path);
-  return augmentRouteBriefInputFromRaw(routeId, month, artifact, routeSliceRawRoot);
+  return augmentRouteBriefInputFromRaw(
+    routeId,
+    month,
+    artifact,
+    routeSliceRawRoot,
+    currentScheduleRows,
+    currentRidershipRows,
+  );
 }
 
 async function routeBriefInputs(
@@ -281,9 +326,11 @@ async function routeBriefInputs(
   month: string,
   routeSliceArtifactsRoot: string,
   routeSliceRawRoot: string,
+  currentScheduleRowsByRoute: ReadonlyMap<string, readonly LocalRouteScheduleTimepoint[]>,
+  currentRidershipRowsByRoute: ReadonlyMap<string, readonly LocalRouteHourlyRidership[]>,
 ): Promise<RouteBriefInputArtifact[]> {
   const slug = routeId.toLowerCase();
-  const root = fromRepoRoot(routeSliceArtifactsRoot);
+  const root = fromCliPath(routeSliceArtifactsRoot);
   const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
   const matchedMonths = entries
     .filter((entry) => entry.isDirectory())
@@ -297,9 +344,164 @@ async function routeBriefInputs(
     .sort();
   const months = matchedMonths.length === 0 ? [month] : matchedMonths;
   const artifacts = await runBoundedPromises(months, localTransformConcurrency, (candidate) =>
-    routeBriefInput(routeId, candidate, routeSliceArtifactsRoot, routeSliceRawRoot),
+    routeBriefInput(
+      routeId,
+      candidate,
+      routeSliceArtifactsRoot,
+      routeSliceRawRoot,
+      candidate === month ? (currentScheduleRowsByRoute.get(routeId) ?? []) : [],
+      candidate === month ? (currentRidershipRowsByRoute.get(routeId) ?? []) : [],
+    ),
   );
   return artifacts.flatMap((artifact) => (artifact === null ? [] : [artifact]));
+}
+
+async function currentMonthRidershipRowsByRoute(
+  localDbPath: string,
+  month: string,
+  routeIds: readonly string[],
+): Promise<Map<string, LocalRouteHourlyRidership[]>> {
+  if (routeIds.length === 0) return new Map();
+
+  return runLocalDbCommandBoundary({
+    dbPath: localDbPath,
+    localDbOptions: { readonly: true },
+    command: "studio.release",
+    operation: "loadCurrentMonthRouteRidership",
+    spanAttributes: { month, routeCount: routeIds.length },
+    run: async (local) => {
+      const table = local.sqlite
+        .query(
+          "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'local_route_hourly_ridership'",
+        )
+        .get();
+      if (table === null) return new Map();
+
+      const placeholders = routeIds.map(() => "?").join(", ");
+      const rows = local.sqlite
+        .query(
+          `
+            SELECT route_id, day_of_week, hour_of_day, ridership, transfers
+            FROM local_route_hourly_ridership
+            WHERE month = ?
+              AND route_id IN (${placeholders})
+            ORDER BY route_id, day_of_week, hour_of_day
+          `,
+        )
+        .all(month, ...routeIds) as Array<{
+        route_id: string;
+        day_of_week: string;
+        hour_of_day: number;
+        ridership: number;
+        transfers: number;
+      }>;
+      const byRoute = new Map<string, LocalRouteHourlyRidership[]>();
+      for (const row of rows) {
+        const routeRows = byRoute.get(row.route_id) ?? [];
+        routeRows.push({
+          routeId: row.route_id,
+          isoMonth: month,
+          dayOfWeek: row.day_of_week,
+          hourOfDay: row.hour_of_day,
+          ridership: row.ridership,
+          transfers: row.transfers,
+        });
+        byRoute.set(row.route_id, routeRows);
+      }
+      return byRoute;
+    },
+  });
+}
+
+async function currentMonthScheduleRowsByRoute(
+  localDbPath: string,
+  month: string,
+  routeIds: readonly string[],
+): Promise<Map<string, LocalRouteScheduleTimepoint[]>> {
+  if (routeIds.length === 0) return new Map();
+  const [yearText, monthText] = month.split("-");
+  const year = Number(yearText);
+  const monthNumber = Number(monthText);
+  if (!Number.isInteger(year) || !Number.isInteger(monthNumber)) return new Map();
+  const nextMonth = new Date(Date.UTC(year, monthNumber, 1)).toISOString().slice(0, 7);
+
+  return runLocalDbCommandBoundary({
+    dbPath: localDbPath,
+    localDbOptions: { readonly: true },
+    command: "studio.release",
+    operation: "loadCurrentMonthRouteSchedules",
+    spanAttributes: { month, routeCount: routeIds.length },
+    run: async (local) => {
+      const table = local.sqlite
+        .query(
+          "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'local_route_schedule_stop'",
+        )
+        .get();
+      if (table === null) return new Map();
+
+      const placeholders = routeIds.map(() => "?").join(", ");
+      const rows = local.sqlite
+        .query(
+          `
+            SELECT route_id, schedule_date, day_type, direction, shape_id, stop_sequence,
+                   stop_id, stop_name, schedule_time, distance_from_start, trip_headsign,
+                   block_id, bundle
+            FROM local_route_schedule_stop
+            WHERE source_year = ?
+              AND schedule_date >= ?
+              AND schedule_date < ?
+              AND route_id IN (${placeholders})
+            ORDER BY route_id, schedule_date, direction, shape_id, block_id,
+                     schedule_time, stop_sequence
+          `,
+        )
+        .all(
+          year,
+          `${month}-01T00:00:00.000`,
+          `${nextMonth}-01T00:00:00.000`,
+          ...routeIds,
+        ) as Array<{
+        route_id: string;
+        schedule_date: string;
+        day_type: string;
+        direction: string;
+        shape_id: string;
+        stop_sequence: number;
+        stop_id: string;
+        stop_name: string | null;
+        schedule_time: string;
+        distance_from_start: number | null;
+        trip_headsign: string | null;
+        block_id: string;
+        bundle: string | null;
+      }>;
+      const byRoute = new Map<string, LocalRouteScheduleTimepoint[]>();
+      for (const row of rows) {
+        const schedule: LocalRouteScheduleTimepoint = {
+          routeId: row.route_id,
+          isoMonth: month,
+          scheduleDate: row.schedule_date,
+          dayType: row.day_type,
+          direction: row.direction,
+          shapeId: row.shape_id,
+          stopSequence: row.stop_sequence,
+          stopId: row.stop_id,
+          scheduleTime: row.schedule_time,
+          blockId: row.block_id,
+          ...(row.stop_name === null ? {} : { stopName: row.stop_name }),
+          ...(row.distance_from_start === null
+            ? {}
+            : { distanceFromStart: row.distance_from_start }),
+          ...(row.trip_headsign === null ? {} : { tripHeadsign: row.trip_headsign }),
+          ...(row.bundle === null ? {} : { bundle: row.bundle }),
+        };
+        const routeRows = byRoute.get(row.route_id) ?? [];
+        routeRows.push(schedule);
+        byRoute.set(row.route_id, routeRows);
+      }
+      return byRoute;
+    },
+  });
 }
 
 async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> {
@@ -333,6 +535,16 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       }).sources.map(docsSourceFromLedgerEntry),
   });
   const selectedRouteIds = new Set(selectedSummaries.map((summary) => summary.routeId));
+  const currentScheduleRowsByRoute = await currentMonthScheduleRowsByRoute(
+    options.localDbPath,
+    options.month,
+    [...selectedRouteIds],
+  );
+  const currentRidershipRowsByRoute = await currentMonthRidershipRowsByRoute(
+    options.localDbPath,
+    options.month,
+    [...selectedRouteIds],
+  );
   assertRouteGeometryCoverage(
     selectedSummaries.flatMap((summary) =>
       readinessByRoute.has(summary.routeId) ? [summary.routeId] : [],
@@ -343,7 +555,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     .filter((row) => selectedRouteIds.has(row.route_id))
     .map(buildRouteArtifactRef);
   const routeInputs = new Map<string, RouteBriefInputArtifact | null>();
-  const routeInputsByRoute = new Map<string, RouteBriefInputArtifact[]>();
+  const speedSpinesByRoute = new Map<string, LoadedRouteSpeedSpineCrosswalk>();
 
   for (const summary of selectedSummaries) {
     const inputs = await routeBriefInputs(
@@ -351,13 +563,22 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       options.month,
       options.routeSliceArtifactsRoot,
       options.routeSliceRawRoot,
+      currentScheduleRowsByRoute,
+      currentRidershipRowsByRoute,
     );
     const currentInput =
       inputs.find((input) => (input.analysisPeriod ?? options.month) === options.month) ??
       inputs[0] ??
       null;
-    routeInputsByRoute.set(summary.routeId, inputs);
     routeInputs.set(summary.routeId, currentInput);
+    speedSpinesByRoute.set(
+      summary.routeId,
+      await loadRouteSpeedSpineCrosswalk({
+        artifactRoot: fromCliPath(options.speedSpineRoot),
+        routeId: summary.routeId,
+        requireSpine: options.profile === "full",
+      }),
+    );
   }
   const segmentLaneOverlaps = await segmentLaneOverlapIndex({
     localDbPath: options.localDbPath,
@@ -366,9 +587,9 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     stopSnapshotPath: options.stopSnapshotPath,
     routeInputs,
   });
-  const documentChunks = await documentChunkIndex(options.documentChunksPath, fromRepoRoot);
+  const documentChunks = await documentChunkIndex(options.documentChunksPath, fromCliPath);
   const manualInterventionsArtifact = await readJsonIfExists<ManualInterventionCandidatesArtifact>(
-    fromRepoRoot(options.manualInterventionsPath),
+    fromCliPath(options.manualInterventionsPath),
   );
   const manualInterventionsByRoute = manualInterventionIndex(
     manualInterventionsArtifact,
@@ -378,7 +599,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
   if (options.publishableInterventionsByRoutePath !== null) {
     const publishableByRouteArtifact = await readJsonIfExists<{
       interventionsByRoute?: Record<string, StudioIntervention[]>;
-    }>(fromRepoRoot(options.publishableInterventionsByRoutePath));
+    }>(fromCliPath(options.publishableInterventionsByRoutePath));
     if (publishableByRouteArtifact?.interventionsByRoute !== undefined) {
       for (const [routeKeyRaw, entries] of Object.entries(
         publishableByRouteArtifact.interventionsByRoute,
@@ -417,30 +638,46 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     ];
   });
 
-  const deterministicSegments = routes.flatMap((route) =>
-    buildSegments(
+  const deterministicSegments = routes.flatMap((route) => {
+    const speedSpine = speedSpinesByRoute.get(route.routeId);
+    return buildSegments(
       route.slug,
       route.routeId,
       routeInputs.get(route.routeId) ?? null,
       segmentLaneOverlaps.get(route.routeId),
       tspEvidenceByRoute.get(route.routeId) ?? unknownTspEvidence(),
-    ),
-  );
+      speedSpine?.status === "ready" ? speedSpine.crosswalk : null,
+    );
+  });
+  for (const route of routes) {
+    const routeSegments = deterministicSegments.filter(
+      (segment) => segment.routeSlug === route.slug,
+    );
+    const seenSpineIds = new Set<string>();
+    let unmatchedCount = 0;
+    for (const segment of routeSegments) {
+      if (segment.spineJoinStatus === "unmatched") unmatchedCount += 1;
+      if (segment.spineSegmentId === null) continue;
+      if (seenSpineIds.has(segment.spineSegmentId)) {
+        throw new Error(
+          `Studio release route ${route.routeId} ${options.month} maps more than one current segment to ${segment.spineSegmentId}.`,
+        );
+      }
+      seenSpineIds.add(segment.spineSegmentId);
+    }
+    const spine = speedSpinesByRoute.get(route.routeId);
+    if (
+      spine?.status === "ready" &&
+      spine.audit.readiness === "series_ready" &&
+      unmatchedCount > 0
+    ) {
+      throw new Error(
+        `Studio release route ${route.routeId} is series_ready but has ${unmatchedCount} unmatched current segments.`,
+      );
+    }
+  }
   const publicNoteSegments = withSparsePublicSegmentNotes(deterministicSegments, options.month);
   const segments = await enhanceSegmentAiNotesWithLlm(publicNoteSegments, options.segmentNoteLlm);
-  const routeSegmentEvidence = routes.flatMap((route) =>
-    (routeInputsByRoute.get(route.routeId) ?? [routeInputs.get(route.routeId) ?? null]).flatMap(
-      (input) =>
-        buildRouteSegmentEvidence(
-          route.slug,
-          route.routeId,
-          input?.analysisPeriod ?? options.month,
-          input,
-          segmentLaneOverlaps.get(route.routeId),
-          tspEvidenceByRoute.get(route.routeId) ?? unknownTspEvidence(),
-        ),
-    ),
-  );
   const releaseGeneratedAt = new Date().toISOString();
   const tspSourceDate =
     [...tspEvidenceByRoute.values()].find((evidence) => evidence.tspSourceDate !== null)
@@ -485,9 +722,10 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     }),
   ];
 
-  return StudioReleasePayloadSchema.parse({
-    schemaVersion: 1,
+  return decodeSchemaStrict(StudioReleasePayloadSchema, {
+    schemaVersion: 2,
     generatedAt: releaseGeneratedAt,
+    baselineMonth: options.month,
     quality: {
       releaseLayer: "baseline_release",
       completenessStatus: "partial_public_monthly_only",
@@ -495,12 +733,87 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
       caveats: qualityCaveats(options.month),
     },
     routes,
+    routeFactMetadata: routes.map((route) => {
+      const input = routeInputs.get(route.routeId) ?? null;
+      const universe = input?.segmentUniverse;
+      const delayAvailable =
+        route.riderHoursLost !== null &&
+        input?.analysisPeriod === options.month &&
+        universe?.grain === "all_observed_timepoint_segments" &&
+        (universe.segmentCount ?? 0) > 0 &&
+        universe.source === "mta_bus_segment_speeds" &&
+        universe.ridershipDenominator === "average_service_day_route_hourly_ridership" &&
+        universe.serviceDayRidershipCoverage === "available" &&
+        universe.hourlyRiderDelayCoverage === "available";
+      const laneAvailable = route.laneCoverageSource === "dot_bus_lanes_geometry";
+      const tspAvailable = route.tspStatus !== "unknown";
+      return {
+        routeId: route.routeId,
+        delayExposure: delayAvailable
+          ? {
+              valueRiderHours: route.riderHoursLost,
+              status: "available",
+              analysisPeriod: options.month,
+              grain: "all_observed_timepoint_segments",
+              source: "mta_bus_segment_speeds",
+              segmentCount: universe?.segmentCount ?? 0,
+              ridershipDenominator: "average_service_day_route_hourly_ridership",
+              serviceDayRidershipCoverage: "available",
+              hourlyPassengerDelayCoverage: "available",
+              unavailableReason: null,
+            }
+          : {
+              valueRiderHours: null,
+              status: "unavailable",
+              analysisPeriod: null,
+              grain: null,
+              source: null,
+              segmentCount: universe?.segmentCount ?? 0,
+              ridershipDenominator: null,
+              serviceDayRidershipCoverage: "not_available",
+              hourlyPassengerDelayCoverage: "not_available",
+              unavailableReason:
+                "Complete same-month route-slice passenger-delay evidence is unavailable.",
+            },
+        provenance: {
+          lane: laneAvailable
+            ? {
+                status: "available",
+                valuePct: route.laneCoverage,
+                method: "route_shape_proximity_overlap",
+                sourceId: "nyc_dot_bus_lanes_local_streets",
+                unavailableReason: null,
+              }
+            : {
+                status: "unavailable",
+                valuePct: null,
+                method: null,
+                sourceId: null,
+                unavailableReason: "Route-shape lane-overlap evidence is unavailable.",
+              },
+          ace: {
+            status: route.aceStatus,
+            grain: "route_month",
+            sourceId: "ace_routes",
+            sourceAsOf: null,
+            sourceStatus: "available",
+            unavailableReason: null,
+          },
+          tsp: {
+            status: route.tspStatus,
+            grain: "route_or_corridor",
+            sourceId: tspAvailable ? "nyc_dot_tsp_status_2017" : null,
+            sourceDate: route.tspSourceDate,
+            corridor: route.tspCorridor,
+            matchMethod: route.tspMatchMethod,
+          },
+        },
+      };
+    }),
     segments,
-    routeSegmentEvidence,
     routeArtifacts,
     methods: methodDatasetsFromDocsSources(docsSources),
     docsSections: docsSections(options.month),
-    docsSources,
     docsEndpoints: [],
   });
 }
@@ -539,7 +852,12 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
   await writeJson(outputPath, release);
   await writeJson(analystNotesOutputPath(outputDir), buildSegmentAnalystNotesArtifact(release));
   await writeJson(resolve(outputDir, "routes.json"), buildStudioRoutesProjection(release));
+  await writeJson(
+    resolve(outputDir, "map-route-facts.json"),
+    buildMapRouteFactsProjection(release),
+  );
   await writeJson(resolve(outputDir, "segments.json"), buildStudioSegmentsProjection(release));
+  // methods.json is still loaded by the serving snapshot; its deletion is owned by plan 063.
   await writeJson(resolve(outputDir, "methods.json"), buildStudioMethodsProjection(release));
   await writeJson(resolve(outputDir, "docs.json"), buildStudioDocsProjection(release));
 
@@ -559,6 +877,7 @@ export type RunStudioReleaseInputs = {
   routeLimit?: number | undefined;
   routeSliceArtifactsRoot?: string | undefined;
   routeSliceRawRoot?: string | undefined;
+  speedSpineRoot?: string | undefined;
   routeShapeSnapshotPath?: string | undefined;
   stopSnapshotPath?: string | undefined;
   tspSourcePath?: string | undefined;
@@ -567,11 +886,13 @@ export type RunStudioReleaseInputs = {
   publishableInterventionsByRoutePath?: string | undefined;
   localDbPath?: string | undefined;
   profile?: ReleaseProfile | undefined;
+  routeIds?: readonly string[] | undefined;
   segmentNoteLlm?: Partial<SegmentNoteLlmOptions> | undefined;
 };
 
 export type RunStudioReleaseResult = {
   outputPath: string;
+  mapRouteFactsPath: string;
   routeCount: number;
   segmentCount: number;
   source: {
@@ -601,6 +922,7 @@ export async function runStudioRelease(
     routeLimit: inputs.routeLimit ?? defaultRouteLimit,
     routeSliceArtifactsRoot: inputs.routeSliceArtifactsRoot ?? defaultRouteSliceArtifactsRoot,
     routeSliceRawRoot: inputs.routeSliceRawRoot ?? defaultRouteSliceRawRoot,
+    speedSpineRoot: inputs.speedSpineRoot ?? defaultSpeedSpineRoot,
     routeShapeSnapshotPath: inputs.routeShapeSnapshotPath ?? defaultRouteShapeSnapshotPath,
     stopSnapshotPath: inputs.stopSnapshotPath ?? defaultStopSnapshotPath,
     tspSourcePath: inputs.tspSourcePath ?? defaultTspSourcePath,
@@ -609,6 +931,7 @@ export async function runStudioRelease(
     publishableInterventionsByRoutePath: inputs.publishableInterventionsByRoutePath ?? null,
     localDbPath: inputs.localDbPath ?? defaultLocalPipelineDbPath(),
     profile: inputs.profile ?? "full",
+    routeIds: (inputs.routeIds ?? []).map((routeId) => routeId.trim().toUpperCase()),
     segmentNoteLlm: {
       enabled: llmInput.enabled ?? false,
       model: llmInput.model ?? defaultSegmentNoteModel,
@@ -621,7 +944,7 @@ export async function runStudioRelease(
     },
   };
 
-  const outputPath = fromRepoRoot(options.outputPath);
+  const outputPath = fromCliPath(options.outputPath);
   const release = await buildRelease(options);
   const publicNoteCount = release.segments.filter((segment) => segment.aiNote !== undefined).length;
 
@@ -629,6 +952,7 @@ export async function runStudioRelease(
 
   return {
     outputPath,
+    mapRouteFactsPath: resolve(dirname(outputPath), "map-route-facts.json"),
     routeCount: release.routes.length,
     segmentCount: release.segments.length,
     source: {
@@ -656,49 +980,69 @@ export default defineCommand({
   path: ["studio", "release"],
   summary: "Build the Bus Priority Impact Studio release projection set.",
   input: {
-    options: z.object({
-      month: z.string().default(defaultMonth).describe("Public release iso month"),
-      output: z.string().optional().describe("Override path for the release.json output"),
-      schema: z.string().optional().describe("Override the D1 schema.sql path"),
-      seed: z.string().optional().describe("Override the D1 seed.sql path"),
-      limit: z.coerce
+    options: Schema.Struct({
+      month: Schema.String.pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultMonth)),
+      ).annotate({ description: "Public release iso month" }),
+      output: Schema.optionalKey(Schema.String).annotate({
+        description: "Override path for the release.json output",
+      }),
+      schema: Schema.optionalKey(Schema.String).annotate({
+        description: "Override the D1 schema.sql path",
+      }),
+      seed: Schema.optionalKey(Schema.String).annotate({
+        description: "Override the D1 seed.sql path",
+      }),
+      limit: arg
         .number()
-        .int()
-        .positive()
-        .default(defaultRouteLimit)
-        .describe("Route limit for demo profile"),
-      routeSliceArtifacts: z.string().optional(),
-      routeSliceRaw: z.string().optional(),
-      routeShapeSnapshot: z.string().optional(),
-      stopSnapshot: z.string().optional(),
-      tspSource: z.string().optional(),
-      documentChunks: z.string().optional(),
-      manualInterventions: z.string().optional(),
-      publishableInterventionsByRoute: z.string().optional(),
-      localDb: z.string().optional(),
-      profile: z.enum(["demo", "full"]).default("full"),
-      segmentNoteLlm: z.coerce.boolean().default(false),
-      segmentNoteModel: z.string().optional(),
-      segmentNoteLlmLimit: z.string().optional(),
-      segmentNoteMaxTokens: z.coerce.number().int().positive().optional(),
-      segmentNoteTimeoutMs: z.coerce.number().int().positive().optional(),
-      segmentNoteAttempts: z.coerce.number().int().positive().optional(),
+        .check(Schema.isInt())
+        .check(Schema.isGreaterThan(0))
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultRouteLimit)))
+        .annotate({ description: "Route limit for demo profile" }),
+      routeSliceArtifacts: Schema.optionalKey(Schema.String),
+      routeSliceRaw: Schema.optionalKey(Schema.String),
+      speedSpineRoot: Schema.optionalKey(Schema.String),
+      routeShapeSnapshot: Schema.optionalKey(Schema.String),
+      stopSnapshot: Schema.optionalKey(Schema.String),
+      tspSource: Schema.optionalKey(Schema.String),
+      documentChunks: Schema.optionalKey(Schema.String),
+      manualInterventions: Schema.optionalKey(Schema.String),
+      publishableInterventionsByRoute: Schema.optionalKey(Schema.String),
+      localDb: Schema.optionalKey(Schema.String),
+      profile: Schema.Literals(["demo", "full"]).pipe(
+        Schema.withDecodingDefaultTypeKey(Effect.succeed("full")),
+      ),
+      routes: Schema.optionalKey(Schema.String).annotate({
+        description: "Comma-separated route IDs to include",
+      }),
+      segmentNoteLlm: arg.boolean().pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false))),
+      segmentNoteModel: Schema.optionalKey(Schema.String),
+      segmentNoteLlmLimit: Schema.optionalKey(Schema.String),
+      segmentNoteMaxTokens: Schema.optionalKey(
+        arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+      ),
+      segmentNoteTimeoutMs: Schema.optionalKey(
+        arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+      ),
+      segmentNoteAttempts: Schema.optionalKey(
+        arg.number().check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+      ),
     }),
   },
-  output: z.object({
-    outputPath: z.string(),
-    routeCount: z.number(),
-    segmentCount: z.number(),
-    source: z.object({
-      schemaPath: z.string(),
-      seedPath: z.string(),
-      month: z.string(),
+  output: Schema.Struct({
+    outputPath: Schema.String,
+    routeCount: Schema.Number,
+    segmentCount: Schema.Number,
+    source: Schema.Struct({
+      schemaPath: Schema.String,
+      seedPath: Schema.String,
+      month: Schema.String,
     }),
-    segmentNoteLlm: z.object({
-      enabled: z.boolean(),
-      model: z.string().nullable(),
-      requestedCount: z.number(),
-      generatedCount: z.number(),
+    segmentNoteLlm: Schema.Struct({
+      enabled: Schema.Boolean,
+      model: Schema.NullOr(Schema.String),
+      requestedCount: Schema.Number,
+      generatedCount: Schema.Number,
     }),
   }),
   async run({ input }) {
@@ -727,6 +1071,7 @@ export default defineCommand({
       routeLimit: input.options.limit,
       routeSliceArtifactsRoot: input.options.routeSliceArtifacts,
       routeSliceRawRoot: input.options.routeSliceRaw,
+      speedSpineRoot: input.options.speedSpineRoot,
       routeShapeSnapshotPath: input.options.routeShapeSnapshot,
       stopSnapshotPath: input.options.stopSnapshot,
       tspSourcePath: input.options.tspSource,
@@ -736,6 +1081,7 @@ export default defineCommand({
       localDbPath:
         input.options.localDb === undefined ? undefined : fromCliPath(input.options.localDb),
       profile: input.options.profile,
+      routeIds: input.options.routes?.split(",").map((routeId) => routeId.trim()),
       segmentNoteLlm: {
         enabled: input.options.segmentNoteLlm,
         model,

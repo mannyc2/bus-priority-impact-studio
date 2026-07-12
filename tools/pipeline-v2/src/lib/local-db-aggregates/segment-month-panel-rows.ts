@@ -1,11 +1,13 @@
 import type { Database } from "bun:sqlite";
 import type { PanelSpec } from "@bp/analytics/feature-history";
-import { z } from "zod";
+import { decodeStrict } from "@bp/domain/decode";
+import { Schema } from "effect";
 import {
   buildLocalDbPanelResolutionManifest,
   type LocalDbPanelResolution,
   uniqueSortedStrings,
 } from "./panel-resolution";
+import { SqlNullableNumberSchema, SqlNumberSchema } from "./sqlite-schema.ts";
 
 export const SEGMENT_MONTH_PANEL_V1_ID = "segment_month_panel_v1" as const;
 
@@ -93,26 +95,15 @@ export type SegmentMonthPanelLocalDbResolutionQuery = {
   readonly dbPath?: string;
 };
 
-const SqlNumberSchema = z.union([
-  z.number(),
-  z.bigint().transform(Number),
-  z.string().pipe(z.coerce.number()),
-]);
-
-const SqlNullableNumberSchema = z.preprocess(
-  (value) => (value === null || value === undefined || value === "" ? null : value),
-  SqlNumberSchema.nullable(),
-);
-
-export const SegmentMonthPanelSourceRowSchema = z.strictObject({
-  route_id: z.string().min(1),
-  month: z.string().regex(/^\d{4}-\d{2}$/),
-  segment_id: z.string().min(1),
-  stable_segment_key: z.string().min(1).optional(),
-  direction: z.string().min(1),
+export const SegmentMonthPanelSourceRowSchema = Schema.Struct({
+  route_id: Schema.String.check(Schema.isMinLength(1)),
+  month: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  segment_id: Schema.String.check(Schema.isMinLength(1)),
+  stable_segment_key: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+  direction: Schema.String.check(Schema.isMinLength(1)),
   stop_order: SqlNumberSchema,
   average_speed_mph: SqlNumberSchema,
-  segment_length_feet: SqlNullableNumberSchema.optional(),
+  segment_length_feet: Schema.optionalKey(SqlNullableNumberSchema),
   observation_count: SqlNumberSchema,
   bus_trip_count: SqlNumberSchema,
 });
@@ -120,7 +111,7 @@ export const SegmentMonthPanelSourceRowSchema = z.strictObject({
 export function parseSegmentMonthPanelSourceRows(
   rows: readonly unknown[],
 ): readonly SegmentMonthPanelSourceRow[] {
-  return z.array(SegmentMonthPanelSourceRowSchema).parse(rows) as SegmentMonthPanelSourceRow[];
+  return decodeStrict(Schema.Array(SegmentMonthPanelSourceRowSchema))(rows);
 }
 
 export function segmentMonthPanelV1Sql(input: { readonly routeFiltered?: boolean } = {}): string {
