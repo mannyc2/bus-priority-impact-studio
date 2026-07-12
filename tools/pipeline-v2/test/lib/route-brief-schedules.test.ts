@@ -5,8 +5,8 @@ import type {
   LocalRouteScheduleTimepoint,
   LocalRouteSegmentSpeed,
 } from "@bp/db/local";
-import { buildRouteBriefSegmentUniverse } from "../../src/lib/route-briefs/model.ts";
 import { scheduleComparisons } from "../../src/lib/route-briefs/metrics.ts";
+import { buildRouteBriefSegmentUniverse } from "../../src/lib/route-briefs/model.ts";
 
 function scheduleRow(input: {
   shapeId: string;

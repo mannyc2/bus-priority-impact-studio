@@ -129,7 +129,8 @@ It never upgrades a producer-ineligible row.
 | Combined candidates | 403 |
 | Source rows/assertions rejected | 957 |
 | Remaining reported conflicts | 3 |
-| Operator-approved events | 0 |
+| Operator-approved events | 5 |
+| Operator-rejected candidates | 398 |
 
 Registry rejections include 168 rows from the retired
 `tier2_document_operational_date_assertions` source and 172 non-implemented
@@ -141,14 +142,12 @@ assertions that were quarantined before candidacy.
 
 ## Approval boundary
 
-State: `awaiting_approval`.
+State: `approved`.
 
-No study event is approved automatically. A valid approval artifact must bind
-to `candidate-set:49af8c8721457fa7532a7345`, contain exactly one reviewed
-decision for every combined candidate, include reviewer and rationale, and may
-approve at most one date from each same-month conflict. Any candidate,
-provenance, conflict, or pinned Wiki-release change invalidates that approval
-identity.
+The receipt binds to `candidate-set:49af8c8721457fa7532a7345`, contains one
+nonblank reviewed decision for every candidate, and approves five exact-route
+ACE onsets. No decision was inferred automatically. Any candidate, provenance,
+conflict, or pinned Wiki-release change invalidates this approval identity.
 
 ## Study-engine prerequisite audit
 
@@ -156,9 +155,10 @@ The complete 2023-04 through 2026-03 speed-spine rebuild produced 385 route
 artifacts: 93 `series_ready`, 25 `series_ready_with_gaps`, 267
 `needs_pattern_review`, and zero failed. Across the 403 approval candidates,
 107 have an eligible spine and 43 have both an eligible spine and at least four
-observable months on each side of the intervention window. This exceeds the
-Plan 074 real-run floor of ten studies without admitting a route that needs
-pattern review.
+observable months on each side of the intervention window. The conservative
+operator review approved five of those candidate event-route pairs and rejected
+the remainder; the real engine therefore produces five studies, not the
+original ten-study floor.
 
 The exact current-segment lane-overlap audit covered all 323 lane candidates.
 Among the 86 lane routes with an eligible spine, 82 (95.3%) have at least one
@@ -167,17 +167,20 @@ crosswalk. Four eligible routes remain unmapped and will retain an empty
 treated set rather than receive a fuzzy or positional join. The documented
 greater-than-50% fallback condition is not met among estimable lane routes.
 
-Durable operator receipts belong in
-`data/study-event-approvals/receipts/`. No receipt exists for this candidate
-set, and the intentionally invalid example in the parent directory is not an
-approval.
+The durable receipt is
+`data/study-event-approvals/receipts/candidate-set-49af8c8721457fa7532a7345.approval.json`.
+Its SHA-256 is
+`6c17f106dd394b70848bd401283ee1fb7d5b1b8123c4cb2ea8dd8c36a959b6a2`.
 
 ## Determinism
 
-Independent reruns produced byte-identical assertion and study-event artifacts:
+Independent reruns produced byte-identical assertion, candidate, and approved
+study artifacts:
 
 - assertion artifact: `e3254889b9a5f0a47c52f336c86167e3ae3fae2eda2269104b5d9303b073ef0f`
-- study-event artifact: `940240da559c17395596c87322be0222f55fe745e6b96c82269e1a5af02ab414`
+- pre-approval candidate artifact: `940240da559c17395596c87322be0222f55fe745e6b96c82269e1a5af02ab414`
+- approved study-event artifact: `63da356a9ace61e2755b41540567b4a79a6d8c4a4b5c045df85f79b7b687bb84`
+- study index: `b1b57de29ab005c22333628a9b4b73c4c79964b2846b76b307d6bab14d242fdb`
 
 Machine-readable sources:
 
