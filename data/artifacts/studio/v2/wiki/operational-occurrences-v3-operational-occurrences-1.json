@@ -1,0 +1,1007 @@
+{
+  "artifactKind": "bp.studio.mta_wiki_operational_occurrences.v3",
+  "schemaVersion": 3,
+  "sourceRelease": {
+    "manifestVersion": 3,
+    "releaseId": "v3-operational-occurrences-1",
+    "generatorCommit": "c5834836c8e9c7aa0f1e96a12b80b2bf7873ed83",
+    "manifestPath": "data/exports/releases/v3-operational-occurrences-1/manifest.json",
+    "manifestSha256": "01cb22b55b9a7f3acee15f7bfbdd92d1028a44d5b999338346172d0412c190a0",
+    "operationalOccurrenceContractVersion": 1,
+    "operationalOccurrenceReviewDecisionContractVersion": 1,
+    "occurrences": {
+      "pointer": "operational_occurrences.jsonl",
+      "path": "data/exports/releases/v3-operational-occurrences-1/operational_occurrences.jsonl",
+      "bytes": 23946,
+      "sha256": "e5212065c32498d758e23c58c908dd56193b42f26f5e4a56616ccbd301b963a4"
+    },
+    "summary": {
+      "pointer": "operational_occurrences_summary.json",
+      "path": "data/exports/releases/v3-operational-occurrences-1/operational_occurrences_summary.json",
+      "bytes": 235,
+      "sha256": "e3e21f5d489969f017deb371014fd7e8d643a04aeab3f7feb862d030436211a5"
+    },
+    "reviewDecisions": {
+      "pointer": "operational_occurrence_review_decisions.json",
+      "path": "data/exports/releases/v3-operational-occurrences-1/operational_occurrence_review_decisions.json",
+      "bytes": 19805,
+      "sha256": "7df8d123b45c16b754529a70031d95e715ae91cb0e9b08ff18a8001232c633c4"
+    },
+    "reviewDecisionCount": 4
+  },
+  "producerSummary": {
+    "schema_version": 1,
+    "occurrence_count": 4,
+    "study_projection_eligible_count": 3,
+    "atomic_count": 2,
+    "bundle_count": 2,
+    "multi_route_count": 1,
+    "candidate_projection_count": 6,
+    "counts_by_exclusion_reason": {
+      "unsupported_bundle_analysis_family": 1
+    }
+  },
+  "summary": {
+    "sourceOccurrenceCount": 4,
+    "eligibleOccurrenceCount": 3,
+    "routeProjectionCount": 6,
+    "rejectedOccurrenceCount": 1,
+    "countsByRejectionReason": {
+      "unsupported_bundle_analysis_family": 1
+    }
+  },
+  "occurrences": [
+    {
+      "schema_version": 1,
+      "occurrence_id": "occurrence:025c872102a446492605b997",
+      "occurrence_aliases": [],
+      "occurrence_review_decision_id": "occurrence-review:occurrence:025c872102a446492605b997",
+      "founding_key": "event:event_m86-sbs-launch",
+      "resolution_cluster_id": null,
+      "observations": [
+        {
+          "event_record_id": "event_m86-sbs-launch",
+          "relation_record_ids": [
+            "relation_rel-m86-sbs-project-serves-route",
+            "relation_rel-project-has-launch-event",
+            "relation_rel-project-has-off-board-fare",
+            "relation_rel-project-has-real-time-info"
+          ],
+          "document_time_statuses": [
+            "delivered"
+          ],
+          "document_time_dates": [
+            {
+              "raw": "2015-07-13",
+              "normalized": "2015-07-13",
+              "precision": "day",
+              "source_field": "date_normalized"
+            },
+            {
+              "raw": "Monday, July 13, 2015",
+              "normalized": "2015-07-13",
+              "precision": "day",
+              "source_field": "date_text"
+            },
+            {
+              "raw": "Monday, July 13, 2015",
+              "normalized": "2015-07-13",
+              "precision": "day",
+              "source_field": "date_text_normalized"
+            }
+          ],
+          "status_as_of_dates": [
+            "2017"
+          ]
+        }
+      ],
+      "resolved_status": "realized",
+      "resolved_onset": {
+        "date": "2015-07-13",
+        "precision": "day",
+        "resolver_ids": [
+          "m86-2015-07-13-off-board-fare",
+          "m86-2015-07-13-real-time-information"
+        ],
+        "publication_dates": [],
+        "retrieval_dates": [],
+        "evidence_bindings": [
+          {
+            "role": "event_date",
+            "record_id": "event_m86-sbs-launch",
+            "source_id": "m86_sbs_progress_report_2017",
+            "evidence_id": "m86_sbs_progress_report_2017#p006_c0005"
+          },
+          {
+            "role": "timeline_relation",
+            "record_id": "relation_rel-project-has-launch-event",
+            "source_id": "m86_sbs_progress_report_2017",
+            "evidence_id": "m86_sbs_progress_report_2017#p006_c0005"
+          }
+        ]
+      },
+      "routes": [
+        {
+          "route_record_id": "route_m86-sbs",
+          "gtfs_route_id": "M86+",
+          "evidence_bindings": [
+            {
+              "role": "route_identity",
+              "record_id": "route_m86-sbs",
+              "source_id": "m86_sbs_progress_report_2017",
+              "evidence_id": "m86_sbs_progress_report_2017#p003_c0007"
+            },
+            {
+              "role": "route_scope",
+              "record_id": "relation_rel-m86-sbs-project-serves-route",
+              "source_id": "m86_sbs_progress_report_2017",
+              "evidence_id": "m86_sbs_progress_report_2017#p006_c0005"
+            }
+          ]
+        }
+      ],
+      "treatment": {
+        "kind": "bundle",
+        "bundle_family": null,
+        "bundle_family_evidence_bindings": [],
+        "members": [
+          {
+            "treatment_record_id": "treatment_off-board-fare-m86",
+            "treatment_family": "fare_collection",
+            "evidence_bindings": [
+              {
+                "role": "treatment_definition",
+                "record_id": "treatment_off-board-fare-m86",
+                "source_id": "m86_sbs_progress_report_2017",
+                "evidence_id": "m86_sbs_progress_report_2017#p005_c0003..p005_c0007"
+              },
+              {
+                "role": "treatment_scope",
+                "record_id": "relation_rel-project-has-off-board-fare",
+                "source_id": "m86_sbs_progress_report_2017",
+                "evidence_id": "m86_sbs_progress_report_2017#p005_c0003"
+              }
+            ]
+          },
+          {
+            "treatment_record_id": "treatment_real-time-info-m86",
+            "treatment_family": "signage_and_markings",
+            "evidence_bindings": [
+              {
+                "role": "treatment_definition",
+                "record_id": "treatment_real-time-info-m86",
+                "source_id": "m86_sbs_progress_report_2017",
+                "evidence_id": "m86_sbs_progress_report_2017#p005_c0008..p005_c0015"
+              },
+              {
+                "role": "treatment_scope",
+                "record_id": "relation_rel-project-has-real-time-info",
+                "source_id": "m86_sbs_progress_report_2017",
+                "evidence_id": "m86_sbs_progress_report_2017#p005_c0008"
+              }
+            ]
+          }
+        ]
+      },
+      "source_ids": [
+        "m86_sbs_progress_report_2017"
+      ],
+      "evidence_bindings": [
+        {
+          "role": "event_date",
+          "record_id": "event_m86-sbs-launch",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p006_c0005"
+        },
+        {
+          "role": "route_identity",
+          "record_id": "route_m86-sbs",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p003_c0007"
+        },
+        {
+          "role": "route_scope",
+          "record_id": "relation_rel-m86-sbs-project-serves-route",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p006_c0005"
+        },
+        {
+          "role": "route_treatment_event_bridge",
+          "record_id": "event_m86-sbs-launch",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p006_c0005"
+        },
+        {
+          "role": "route_treatment_event_bridge",
+          "record_id": "treatment_off-board-fare-m86",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p005_c0003..p005_c0007"
+        },
+        {
+          "role": "route_treatment_event_bridge",
+          "record_id": "treatment_real-time-info-m86",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p005_c0008..p005_c0015"
+        },
+        {
+          "role": "timeline_relation",
+          "record_id": "relation_rel-project-has-launch-event",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p006_c0005"
+        },
+        {
+          "role": "treatment_definition",
+          "record_id": "treatment_off-board-fare-m86",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p005_c0003..p005_c0007"
+        },
+        {
+          "role": "treatment_definition",
+          "record_id": "treatment_real-time-info-m86",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p005_c0008..p005_c0015"
+        },
+        {
+          "role": "treatment_scope",
+          "record_id": "relation_rel-project-has-off-board-fare",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p005_c0003"
+        },
+        {
+          "role": "treatment_scope",
+          "record_id": "relation_rel-project-has-real-time-info",
+          "source_id": "m86_sbs_progress_report_2017",
+          "evidence_id": "m86_sbs_progress_report_2017#p005_c0008"
+        }
+      ],
+      "exclusion_reasons": [
+        "unsupported_bundle_analysis_family"
+      ],
+      "review_state": "approved",
+      "study_projection_eligible": false,
+      "provenance": {
+        "anchor_review_decision_ids": [
+          "m86-2015-07-13-off-board-fare",
+          "m86-2015-07-13-real-time-information"
+        ],
+        "event_record_ids": [
+          "event_m86-sbs-launch"
+        ],
+        "relation_record_ids": [
+          "relation_rel-m86-sbs-project-serves-route",
+          "relation_rel-project-has-launch-event",
+          "relation_rel-project-has-off-board-fare",
+          "relation_rel-project-has-real-time-info"
+        ],
+        "route_record_ids": [
+          "route_m86-sbs"
+        ],
+        "treatment_record_ids": [
+          "treatment_off-board-fare-m86",
+          "treatment_real-time-info-m86"
+        ]
+      }
+    },
+    {
+      "schema_version": 1,
+      "occurrence_id": "occurrence:09a7c0cfcac97e1a2651695b",
+      "occurrence_aliases": [],
+      "occurrence_review_decision_id": "occurrence-review:occurrence:09a7c0cfcac97e1a2651695b",
+      "founding_key": "event:event_meeting-doc-186616-ace-routes-activated-sep15-2025",
+      "resolution_cluster_id": null,
+      "observations": [
+        {
+          "event_record_id": "event_meeting-doc-186616-ace-routes-activated-sep15-2025",
+          "relation_record_ids": [
+            "relation_meeting-doc-186616-ace-affects-bx20",
+            "relation_meeting-doc-186616-ace-affects-bx3",
+            "relation_meeting-doc-186616-ace-affects-bx7",
+            "relation_meeting-doc-186616-ace-affects-q6",
+            "relation_meeting-doc-186616-ace-has-route-activation-treatment",
+            "relation_meeting-doc-186616-ace-has-sep15-activation"
+          ],
+          "document_time_statuses": [
+            "delivered"
+          ],
+          "document_time_dates": [
+            {
+              "raw": "2025-09-15",
+              "normalized": "2025-09-15",
+              "precision": "day",
+              "source_field": "date_normalized"
+            }
+          ],
+          "status_as_of_dates": [
+            "2025-09-29"
+          ]
+        }
+      ],
+      "resolved_status": "realized",
+      "resolved_onset": {
+        "date": "2025-09-15",
+        "precision": "day",
+        "resolver_ids": [
+          "ace-2025-09-15-bx20",
+          "ace-2025-09-15-bx3",
+          "ace-2025-09-15-bx7",
+          "ace-2025-09-15-q6"
+        ],
+        "publication_dates": [
+          "2025-09-29"
+        ],
+        "retrieval_dates": [],
+        "evidence_bindings": [
+          {
+            "role": "event_date",
+            "record_id": "event_meeting-doc-186616-ace-routes-activated-sep15-2025",
+            "source_id": "meeting_doc_186616",
+            "evidence_id": "meeting_doc_186616#p001_c0002"
+          },
+          {
+            "role": "event_date",
+            "record_id": "event_meeting-doc-186616-ace-routes-activated-sep15-2025",
+            "source_id": "meeting_doc_186616",
+            "evidence_id": "meeting_doc_186616#p011_c0010"
+          },
+          {
+            "role": "timeline_relation",
+            "record_id": "relation_meeting-doc-186616-ace-has-sep15-activation",
+            "source_id": "meeting_doc_186616",
+            "evidence_id": "meeting_doc_186616#p011_c0010"
+          }
+        ]
+      },
+      "routes": [
+        {
+          "route_record_id": "route_bx20-ace",
+          "gtfs_route_id": "BX20",
+          "evidence_bindings": [
+            {
+              "role": "route_identity",
+              "record_id": "route_bx20-ace",
+              "source_id": "meeting_doc_186616",
+              "evidence_id": "meeting_doc_186616#p011_c0010"
+            },
+            {
+              "role": "route_scope",
+              "record_id": "relation_meeting-doc-186616-ace-affects-bx20",
+              "source_id": "meeting_doc_186616",
+              "evidence_id": "meeting_doc_186616#p011_c0010"
+            }
+          ]
+        },
+        {
+          "route_record_id": "route_bx3",
+          "gtfs_route_id": "BX3",
+          "evidence_bindings": [
+            {
+              "role": "route_identity",
+              "record_id": "route_bx3",
+              "source_id": "meeting_doc_186616",
+              "evidence_id": "meeting_doc_186616#p011_c0010"
+            },
+            {
+              "role": "route_scope",
+              "record_id": "relation_meeting-doc-186616-ace-affects-bx3",
+              "source_id": "meeting_doc_186616",
+              "evidence_id": "meeting_doc_186616#p011_c0010"
+            }
+          ]
+        },
+        {
+          "route_record_id": "route_bx7-ace",
+          "gtfs_route_id": "BX7",
+          "evidence_bindings": [
+            {
+              "role": "route_identity",
+              "record_id": "route_bx7-ace",
+              "source_id": "meeting_doc_186616",
+              "evidence_id": "meeting_doc_186616#p011_c0010"
+            },
+            {
+              "role": "route_scope",
+              "record_id": "relation_meeting-doc-186616-ace-affects-bx7",
+              "source_id": "meeting_doc_186616",
+              "evidence_id": "meeting_doc_186616#p011_c0010"
+            }
+          ]
+        },
+        {
+          "route_record_id": "route_q6-ace",
+          "gtfs_route_id": "Q06",
+          "evidence_bindings": [
+            {
+              "role": "route_identity",
+              "record_id": "route_q6-ace",
+              "source_id": "meeting_doc_186616",
+              "evidence_id": "meeting_doc_186616#p011_c0010"
+            },
+            {
+              "role": "route_scope",
+              "record_id": "relation_meeting-doc-186616-ace-affects-q6",
+              "source_id": "meeting_doc_186616",
+              "evidence_id": "meeting_doc_186616#p011_c0010"
+            }
+          ]
+        }
+      ],
+      "treatment": {
+        "kind": "atomic",
+        "member": {
+          "treatment_record_id": "treatment_meeting-doc-186616-ace-route-activation",
+          "treatment_family": "automated_bus_lane_enforcement",
+          "evidence_bindings": [
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_meeting-doc-186616-ace-route-activation",
+              "source_id": "meeting_doc_186616",
+              "evidence_id": "meeting_doc_186616#p011_c0010"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_meeting-doc-186616-ace-has-route-activation-treatment",
+              "source_id": "meeting_doc_186616",
+              "evidence_id": "meeting_doc_186616#p011_c0010"
+            }
+          ]
+        }
+      },
+      "source_ids": [
+        "meeting_doc_186616"
+      ],
+      "evidence_bindings": [
+        {
+          "role": "event_date",
+          "record_id": "event_meeting-doc-186616-ace-routes-activated-sep15-2025",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p001_c0002"
+        },
+        {
+          "role": "event_date",
+          "record_id": "event_meeting-doc-186616-ace-routes-activated-sep15-2025",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "route_identity",
+          "record_id": "route_bx20-ace",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "route_identity",
+          "record_id": "route_bx3",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "route_identity",
+          "record_id": "route_bx7-ace",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "route_identity",
+          "record_id": "route_q6-ace",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "route_scope",
+          "record_id": "relation_meeting-doc-186616-ace-affects-bx20",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "route_scope",
+          "record_id": "relation_meeting-doc-186616-ace-affects-bx3",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "route_scope",
+          "record_id": "relation_meeting-doc-186616-ace-affects-bx7",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "route_scope",
+          "record_id": "relation_meeting-doc-186616-ace-affects-q6",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "route_treatment_event_bridge",
+          "record_id": "event_meeting-doc-186616-ace-routes-activated-sep15-2025",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "timeline_relation",
+          "record_id": "relation_meeting-doc-186616-ace-has-sep15-activation",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "treatment_definition",
+          "record_id": "treatment_meeting-doc-186616-ace-route-activation",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        },
+        {
+          "role": "treatment_scope",
+          "record_id": "relation_meeting-doc-186616-ace-has-route-activation-treatment",
+          "source_id": "meeting_doc_186616",
+          "evidence_id": "meeting_doc_186616#p011_c0010"
+        }
+      ],
+      "exclusion_reasons": [],
+      "review_state": "approved",
+      "study_projection_eligible": true,
+      "provenance": {
+        "anchor_review_decision_ids": [
+          "ace-2025-09-15-bx20",
+          "ace-2025-09-15-bx3",
+          "ace-2025-09-15-bx7",
+          "ace-2025-09-15-q6"
+        ],
+        "event_record_ids": [
+          "event_meeting-doc-186616-ace-routes-activated-sep15-2025"
+        ],
+        "relation_record_ids": [
+          "relation_meeting-doc-186616-ace-affects-bx20",
+          "relation_meeting-doc-186616-ace-affects-bx3",
+          "relation_meeting-doc-186616-ace-affects-bx7",
+          "relation_meeting-doc-186616-ace-affects-q6",
+          "relation_meeting-doc-186616-ace-has-route-activation-treatment",
+          "relation_meeting-doc-186616-ace-has-sep15-activation"
+        ],
+        "route_record_ids": [
+          "route_bx20-ace",
+          "route_bx3",
+          "route_bx7-ace",
+          "route_q6-ace"
+        ],
+        "treatment_record_ids": [
+          "treatment_meeting-doc-186616-ace-route-activation"
+        ]
+      }
+    },
+    {
+      "schema_version": 1,
+      "occurrence_id": "occurrence:b45f5df36b98c638d8052c7a",
+      "occurrence_aliases": [],
+      "occurrence_review_decision_id": "occurrence-review:occurrence:b45f5df36b98c638d8052c7a",
+      "founding_key": "event:event_m15-sbs-launch-20101010",
+      "resolution_cluster_id": null,
+      "observations": [
+        {
+          "event_record_id": "event_m15-sbs-launch-20101010",
+          "relation_record_ids": [
+            "relation_project-has-timeline-event-launch_2",
+            "relation_project-has-treatment-off-board-fare_9",
+            "relation_project-serves-route-m15-sbs_2"
+          ],
+          "document_time_statuses": [
+            "delivered"
+          ],
+          "document_time_dates": [
+            {
+              "raw": "2010-10-10",
+              "normalized": "2010-10-10",
+              "precision": "day",
+              "source_field": "date_normalized"
+            },
+            {
+              "raw": "October 10, 2010",
+              "normalized": "2010-10-10",
+              "precision": "day",
+              "source_field": "date_text"
+            },
+            {
+              "raw": "October 10, 2010",
+              "normalized": "2010-10-10",
+              "precision": "day",
+              "source_field": "date_text_normalized"
+            }
+          ],
+          "status_as_of_dates": [
+            "2011"
+          ]
+        }
+      ],
+      "resolved_status": "realized",
+      "resolved_onset": {
+        "date": "2010-10-10",
+        "precision": "day",
+        "resolver_ids": [
+          "m15-2010-10-10-off-board-fare"
+        ],
+        "publication_dates": [],
+        "retrieval_dates": [],
+        "evidence_bindings": [
+          {
+            "role": "event_date",
+            "record_id": "event_m15-sbs-launch-20101010",
+            "source_id": "201111_1st2nd_progress_report",
+            "evidence_id": "201111_1st2nd_progress_report#p003_c0003"
+          },
+          {
+            "role": "timeline_relation",
+            "record_id": "relation_project-has-timeline-event-launch_2",
+            "source_id": "201111_1st2nd_progress_report",
+            "evidence_id": "201111_1st2nd_progress_report#p003_c0003"
+          }
+        ]
+      },
+      "routes": [
+        {
+          "route_record_id": "route_m15-sbs",
+          "gtfs_route_id": "M15+",
+          "evidence_bindings": [
+            {
+              "role": "route_identity",
+              "record_id": "route_m15-sbs",
+              "source_id": "201111_1st2nd_progress_report",
+              "evidence_id": "201111_1st2nd_progress_report#p003_c0003"
+            },
+            {
+              "role": "route_scope",
+              "record_id": "relation_project-serves-route-m15-sbs_2",
+              "source_id": "201111_1st2nd_progress_report",
+              "evidence_id": "201111_1st2nd_progress_report#p003_c0003"
+            }
+          ]
+        }
+      ],
+      "treatment": {
+        "kind": "atomic",
+        "member": {
+          "treatment_record_id": "treatment_off-board-fare-collection-m15-sbs",
+          "treatment_family": "fare_collection",
+          "evidence_bindings": [
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_off-board-fare-collection-m15-sbs",
+              "source_id": "201111_1st2nd_progress_report",
+              "evidence_id": "201111_1st2nd_progress_report#p009_c0004"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_project-has-treatment-off-board-fare_9",
+              "source_id": "201111_1st2nd_progress_report",
+              "evidence_id": "201111_1st2nd_progress_report#p003_c0004"
+            }
+          ]
+        }
+      },
+      "source_ids": [
+        "201111_1st2nd_progress_report"
+      ],
+      "evidence_bindings": [
+        {
+          "role": "event_date",
+          "record_id": "event_m15-sbs-launch-20101010",
+          "source_id": "201111_1st2nd_progress_report",
+          "evidence_id": "201111_1st2nd_progress_report#p003_c0003"
+        },
+        {
+          "role": "route_identity",
+          "record_id": "route_m15-sbs",
+          "source_id": "201111_1st2nd_progress_report",
+          "evidence_id": "201111_1st2nd_progress_report#p003_c0003"
+        },
+        {
+          "role": "route_scope",
+          "record_id": "relation_project-serves-route-m15-sbs_2",
+          "source_id": "201111_1st2nd_progress_report",
+          "evidence_id": "201111_1st2nd_progress_report#p003_c0003"
+        },
+        {
+          "role": "route_treatment_event_bridge",
+          "record_id": "project_m15-sbs-first-second-aves",
+          "source_id": "201111_1st2nd_progress_report",
+          "evidence_id": "201111_1st2nd_progress_report#p003_c0003"
+        },
+        {
+          "role": "route_treatment_event_bridge",
+          "record_id": "project_m15-sbs-first-second-aves",
+          "source_id": "201111_1st2nd_progress_report",
+          "evidence_id": "201111_1st2nd_progress_report#p003_c0004"
+        },
+        {
+          "role": "timeline_relation",
+          "record_id": "relation_project-has-timeline-event-launch_2",
+          "source_id": "201111_1st2nd_progress_report",
+          "evidence_id": "201111_1st2nd_progress_report#p003_c0003"
+        },
+        {
+          "role": "treatment_definition",
+          "record_id": "treatment_off-board-fare-collection-m15-sbs",
+          "source_id": "201111_1st2nd_progress_report",
+          "evidence_id": "201111_1st2nd_progress_report#p009_c0004"
+        },
+        {
+          "role": "treatment_scope",
+          "record_id": "relation_project-has-treatment-off-board-fare_9",
+          "source_id": "201111_1st2nd_progress_report",
+          "evidence_id": "201111_1st2nd_progress_report#p003_c0004"
+        }
+      ],
+      "exclusion_reasons": [],
+      "review_state": "approved",
+      "study_projection_eligible": true,
+      "provenance": {
+        "anchor_review_decision_ids": [
+          "m15-2010-10-10-off-board-fare"
+        ],
+        "event_record_ids": [
+          "event_m15-sbs-launch-20101010"
+        ],
+        "relation_record_ids": [
+          "relation_project-has-timeline-event-launch_2",
+          "relation_project-has-treatment-off-board-fare_9",
+          "relation_project-serves-route-m15-sbs_2"
+        ],
+        "route_record_ids": [
+          "route_m15-sbs"
+        ],
+        "treatment_record_ids": [
+          "treatment_off-board-fare-collection-m15-sbs"
+        ]
+      }
+    },
+    {
+      "schema_version": 1,
+      "occurrence_id": "occurrence:c5e9aba290ca2be1be6fb38e",
+      "occurrence_aliases": [],
+      "occurrence_review_decision_id": "q7-route-redesign-2025-08-31",
+      "founding_key": "event:event_q7-route-redesign-effective-2025-08-31",
+      "resolution_cluster_id": null,
+      "observations": [
+        {
+          "event_record_id": "event_q7-route-redesign-effective-2025-08-31",
+          "relation_record_ids": [
+            "relation_qbnr-2025-affects-q7",
+            "relation_qbnr-2025-has-q7-jfk-shortening",
+            "relation_qbnr-2025-has-q7-sutter-pitkin-discontinuation",
+            "relation_qbnr-2025-has-q7-western-reroute",
+            "relation_qbnr-has-q7-2025-effective-event"
+          ],
+          "document_time_statuses": [
+            "delivered",
+            "modified"
+          ],
+          "document_time_dates": [
+            {
+              "raw": "August 31, 2025",
+              "normalized": "2025-08-31",
+              "precision": "day",
+              "source_field": "date_normalized"
+            }
+          ],
+          "status_as_of_dates": [
+            "2026-06-07"
+          ]
+        }
+      ],
+      "resolved_status": "realized",
+      "resolved_onset": {
+        "date": "2025-08-31",
+        "precision": "day",
+        "resolver_ids": [
+          "q7-route-redesign-2025-08-31"
+        ],
+        "publication_dates": [],
+        "retrieval_dates": [
+          "2026-06-07"
+        ],
+        "evidence_bindings": [
+          {
+            "role": "event_date",
+            "record_id": "event_q7-route-redesign-effective-2025-08-31",
+            "source_id": "mta_queens_bus_network_redesign_service_changes",
+            "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+          },
+          {
+            "role": "timeline_relation",
+            "record_id": "relation_qbnr-has-q7-2025-effective-event",
+            "source_id": "mta_queens_bus_network_redesign_service_changes",
+            "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+          }
+        ]
+      },
+      "routes": [
+        {
+          "route_record_id": "route_q7-queens",
+          "gtfs_route_id": "Q07",
+          "evidence_bindings": [
+            {
+              "role": "route_identity",
+              "record_id": "route_q7-queens",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+            },
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-q7",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+            }
+          ]
+        }
+      ],
+      "treatment": {
+        "kind": "bundle",
+        "bundle_family": "route_redesign",
+        "bundle_family_evidence_bindings": [
+          {
+            "role": "bundle_analysis_family",
+            "record_id": "project_queens-bus-network-redesign",
+            "source_id": "mta_queens_bus_network_redesign_service_changes",
+            "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+          }
+        ],
+        "members": [
+          {
+            "treatment_record_id": "treatment_q7-jfk-shortening-2025",
+            "treatment_family": "service_pattern",
+            "evidence_bindings": [
+              {
+                "role": "treatment_definition",
+                "record_id": "treatment_q7-jfk-shortening-2025",
+                "source_id": "mta_queens_bus_network_redesign_service_changes",
+                "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+              },
+              {
+                "role": "treatment_scope",
+                "record_id": "relation_qbnr-2025-has-q7-jfk-shortening",
+                "source_id": "mta_queens_bus_network_redesign_service_changes",
+                "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+              }
+            ]
+          },
+          {
+            "treatment_record_id": "treatment_q7-sutter-pitkin-discontinuation-2025",
+            "treatment_family": "service_pattern",
+            "evidence_bindings": [
+              {
+                "role": "treatment_definition",
+                "record_id": "treatment_q7-sutter-pitkin-discontinuation-2025",
+                "source_id": "mta_queens_bus_network_redesign_service_changes",
+                "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+              },
+              {
+                "role": "treatment_scope",
+                "record_id": "relation_qbnr-2025-has-q7-sutter-pitkin-discontinuation",
+                "source_id": "mta_queens_bus_network_redesign_service_changes",
+                "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+              }
+            ]
+          },
+          {
+            "treatment_record_id": "treatment_q7-western-reroute-2025",
+            "treatment_family": "service_pattern",
+            "evidence_bindings": [
+              {
+                "role": "treatment_definition",
+                "record_id": "treatment_q7-western-reroute-2025",
+                "source_id": "mta_queens_bus_network_redesign_service_changes",
+                "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+              },
+              {
+                "role": "treatment_scope",
+                "record_id": "relation_qbnr-2025-has-q7-western-reroute",
+                "source_id": "mta_queens_bus_network_redesign_service_changes",
+                "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+              }
+            ]
+          }
+        ]
+      },
+      "source_ids": [
+        "mta_queens_bus_network_redesign_service_changes"
+      ],
+      "evidence_bindings": [
+        {
+          "role": "bundle_analysis_family",
+          "record_id": "project_queens-bus-network-redesign",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+        },
+        {
+          "role": "event_date",
+          "record_id": "event_q7-route-redesign-effective-2025-08-31",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+        },
+        {
+          "role": "route_identity",
+          "record_id": "route_q7-queens",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+        },
+        {
+          "role": "route_scope",
+          "record_id": "relation_qbnr-2025-affects-q7",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+        },
+        {
+          "role": "timeline_relation",
+          "record_id": "relation_qbnr-has-q7-2025-effective-event",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+        },
+        {
+          "role": "treatment_definition",
+          "record_id": "treatment_q7-jfk-shortening-2025",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+        },
+        {
+          "role": "treatment_definition",
+          "record_id": "treatment_q7-sutter-pitkin-discontinuation-2025",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+        },
+        {
+          "role": "treatment_definition",
+          "record_id": "treatment_q7-western-reroute-2025",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+        },
+        {
+          "role": "treatment_scope",
+          "record_id": "relation_qbnr-2025-has-q7-jfk-shortening",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+        },
+        {
+          "role": "treatment_scope",
+          "record_id": "relation_qbnr-2025-has-q7-sutter-pitkin-discontinuation",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+        },
+        {
+          "role": "treatment_scope",
+          "record_id": "relation_qbnr-2025-has-q7-western-reroute",
+          "source_id": "mta_queens_bus_network_redesign_service_changes",
+          "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0009"
+        }
+      ],
+      "exclusion_reasons": [],
+      "review_state": "approved",
+      "study_projection_eligible": true,
+      "provenance": {
+        "anchor_review_decision_ids": [],
+        "event_record_ids": [
+          "event_q7-route-redesign-effective-2025-08-31"
+        ],
+        "relation_record_ids": [
+          "relation_qbnr-2025-affects-q7",
+          "relation_qbnr-2025-has-q7-jfk-shortening",
+          "relation_qbnr-2025-has-q7-sutter-pitkin-discontinuation",
+          "relation_qbnr-2025-has-q7-western-reroute",
+          "relation_qbnr-has-q7-2025-effective-event"
+        ],
+        "route_record_ids": [
+          "route_q7-queens"
+        ],
+        "treatment_record_ids": [
+          "treatment_q7-jfk-shortening-2025",
+          "treatment_q7-sutter-pitkin-discontinuation-2025",
+          "treatment_q7-western-reroute-2025"
+        ]
+      }
+    }
+  ],
+  "projectionRejections": [
+    {
+      "occurrenceId": "occurrence:025c872102a446492605b997",
+      "reasonCodes": [
+        "unsupported_bundle_analysis_family"
+      ]
+    }
+  ]
+}

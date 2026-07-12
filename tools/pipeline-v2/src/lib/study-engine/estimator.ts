@@ -134,6 +134,8 @@ export function estimateStudy(input: {
   readonly peakCells?: readonly StudyPanelCell[] | undefined;
   readonly treatedSegmentIds: ReadonlySet<string>;
   readonly excludedControlRouteIds: ReadonlySet<string>;
+  readonly treatmentFamily?: string | undefined;
+  readonly treatmentConfounderGroupId?: string | null | undefined;
 }): StudyEstimatorResult {
   const windows = studyWindowMonths({
     implementationMonth: input.implementationMonth,
@@ -201,6 +203,8 @@ export function estimateStudy(input: {
     redesignOverlap: queensRedesignOverlapGate({
       routeId: input.routeId,
       windowMonths: windows.allMonths,
+      treatmentFamily: input.treatmentFamily,
+      treatmentConfounderGroupId: input.treatmentConfounderGroupId,
     }),
   };
   const hardGateFailed = [
