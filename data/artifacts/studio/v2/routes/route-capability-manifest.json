@@ -1,7 +1,7 @@
 {
   "artifactKind": "route_capability_manifest",
   "schemaVersion": 1,
-  "generatedAt": "2026-07-03T00:07:56.594Z",
+  "generatedAt": "2026-07-12T13:58:09.699Z",
   "releaseMonth": "2026-03",
   "routes": [
     {
@@ -225,8 +225,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "3 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -392,7 +392,7 @@
         },
         "treatment": {
           "state": "ready",
-          "reason": "51 bus-lane segments",
+          "reason": "7 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -625,8 +625,8 @@
           "freshness": "unknown"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "6 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -5185,8 +5185,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "37 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -5268,8 +5268,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "1 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -5351,8 +5351,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "46 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -5434,8 +5434,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "7 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -9745,8 +9745,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "23 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -10810,7 +10810,7 @@
         },
         "treatment": {
           "state": "ready",
-          "reason": "120 bus-lane segments",
+          "reason": "13 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -10878,7 +10878,7 @@
         },
         "treatment": {
           "state": "ready",
-          "reason": "23 bus-lane segments",
+          "reason": "4 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -11127,7 +11127,7 @@
         },
         "treatment": {
           "state": "ready",
-          "reason": "68 bus-lane segments",
+          "reason": "52 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -14530,7 +14530,7 @@
         },
         "treatment": {
           "state": "ready",
-          "reason": "44 bus-lane segments",
+          "reason": "9 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -15359,8 +15359,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "4 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -15442,8 +15442,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "17 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -16189,8 +16189,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "30 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -20206,8 +20206,8 @@
       "overallState": "building",
       "surfaces": {
         "condition": {
-          "state": "partial",
-          "reason": "summary built but not public",
+          "state": "ready",
+          "reason": null,
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -20953,8 +20953,8 @@
       "overallState": "building",
       "surfaces": {
         "condition": {
-          "state": "partial",
-          "reason": "summary built but not public",
+          "state": "ready",
+          "reason": null,
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -21534,8 +21534,8 @@
       "overallState": "building",
       "surfaces": {
         "condition": {
-          "state": "partial",
-          "reason": "summary built but not public",
+          "state": "ready",
+          "reason": null,
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -22364,8 +22364,8 @@
       "overallState": "building",
       "surfaces": {
         "condition": {
-          "state": "partial",
-          "reason": "summary built but not public",
+          "state": "ready",
+          "reason": null,
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -22580,8 +22580,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "9 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -30079,6 +30079,132 @@
       "caveats": []
     },
     {
+      "routeId": "T102",
+      "overallState": "building",
+      "surfaces": {
+        "condition": {
+          "state": "partial",
+          "reason": "summary built but not public",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "trend": {
+          "state": "insufficient_data",
+          "reason": "no multi-month history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "speedHistory": {
+          "state": "insufficient_data",
+          "reason": "no segment speed history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "reliability": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "ridership": {
+          "state": "insufficient_data",
+          "reason": "no ridership history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "treatment": {
+          "state": "checked_clean",
+          "reason": "no bus lane or ACE treatment on record",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "scheduleBaseline": {
+          "state": "insufficient_data",
+          "reason": "no schedule timepoints",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "detectorFindings": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        }
+      },
+      "caveats": []
+    },
+    {
+      "routeId": "T103",
+      "overallState": "building",
+      "surfaces": {
+        "condition": {
+          "state": "partial",
+          "reason": "summary built but not public",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "trend": {
+          "state": "insufficient_data",
+          "reason": "no multi-month history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "speedHistory": {
+          "state": "insufficient_data",
+          "reason": "no segment speed history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "reliability": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "ridership": {
+          "state": "insufficient_data",
+          "reason": "no ridership history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "treatment": {
+          "state": "checked_clean",
+          "reason": "no bus lane or ACE treatment on record",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "scheduleBaseline": {
+          "state": "insufficient_data",
+          "reason": "no schedule timepoints",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "detectorFindings": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        }
+      },
+      "caveats": []
+    },
+    {
       "routeId": "T113",
       "overallState": "building",
       "surfaces": {
@@ -30133,8 +30259,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "36 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -30201,6 +30327,69 @@
           "freshness": "unknown"
         },
         "treatment": {
+          "state": "ready",
+          "reason": "25 bus-lane segments",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "scheduleBaseline": {
+          "state": "insufficient_data",
+          "reason": "no schedule timepoints",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "detectorFindings": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        }
+      },
+      "caveats": []
+    },
+    {
+      "routeId": "T127",
+      "overallState": "building",
+      "surfaces": {
+        "condition": {
+          "state": "partial",
+          "reason": "summary built but not public",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "trend": {
+          "state": "insufficient_data",
+          "reason": "no multi-month history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "speedHistory": {
+          "state": "insufficient_data",
+          "reason": "no segment speed history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "reliability": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "ridership": {
+          "state": "insufficient_data",
+          "reason": "no ridership history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "treatment": {
           "state": "checked_clean",
           "reason": "no bus lane or ACE treatment on record",
           "depth": null,
@@ -30225,7 +30414,7 @@
       "caveats": []
     },
     {
-      "routeId": "T127",
+      "routeId": "T204",
       "overallState": "building",
       "surfaces": {
         "condition": {
@@ -30414,7 +30603,7 @@
       "caveats": []
     },
     {
-      "routeId": "T320",
+      "routeId": "T300",
       "overallState": "building",
       "surfaces": {
         "condition": {
@@ -30455,6 +30644,69 @@
         "treatment": {
           "state": "checked_clean",
           "reason": "no bus lane or ACE treatment on record",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "scheduleBaseline": {
+          "state": "insufficient_data",
+          "reason": "no schedule timepoints",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "detectorFindings": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        }
+      },
+      "caveats": []
+    },
+    {
+      "routeId": "T320",
+      "overallState": "building",
+      "surfaces": {
+        "condition": {
+          "state": "partial",
+          "reason": "summary built but not public",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "trend": {
+          "state": "insufficient_data",
+          "reason": "no multi-month history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "speedHistory": {
+          "state": "insufficient_data",
+          "reason": "no segment speed history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "reliability": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "ridership": {
+          "state": "insufficient_data",
+          "reason": "no ridership history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "treatment": {
+          "state": "ready",
+          "reason": "5 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -30526,8 +30778,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "12 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -30556,6 +30808,69 @@
     },
     {
       "routeId": "T323",
+      "overallState": "building",
+      "surfaces": {
+        "condition": {
+          "state": "partial",
+          "reason": "summary built but not public",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "trend": {
+          "state": "insufficient_data",
+          "reason": "no multi-month history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "speedHistory": {
+          "state": "insufficient_data",
+          "reason": "no segment speed history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "reliability": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "ridership": {
+          "state": "insufficient_data",
+          "reason": "no ridership history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "treatment": {
+          "state": "ready",
+          "reason": "4 bus-lane segments",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "scheduleBaseline": {
+          "state": "insufficient_data",
+          "reason": "no schedule timepoints",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "detectorFindings": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        }
+      },
+      "caveats": []
+    },
+    {
+      "routeId": "T340",
       "overallState": "building",
       "surfaces": {
         "condition": {
@@ -30657,8 +30972,8 @@
           "freshness": "unknown"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "4 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -30682,6 +30997,69 @@
     },
     {
       "routeId": "T403",
+      "overallState": "building",
+      "surfaces": {
+        "condition": {
+          "state": "partial",
+          "reason": "summary built but not public",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "trend": {
+          "state": "insufficient_data",
+          "reason": "no multi-month history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "speedHistory": {
+          "state": "insufficient_data",
+          "reason": "no segment speed history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "reliability": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "ridership": {
+          "state": "insufficient_data",
+          "reason": "no ridership history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "treatment": {
+          "state": "ready",
+          "reason": "36 bus-lane segments",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "scheduleBaseline": {
+          "state": "insufficient_data",
+          "reason": "no schedule timepoints",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "detectorFindings": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        }
+      },
+      "caveats": []
+    },
+    {
+      "routeId": "T410",
       "overallState": "building",
       "surfaces": {
         "condition": {
@@ -30798,8 +31176,8 @@
           "freshness": "current"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "8 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -30867,7 +31245,133 @@
         },
         "treatment": {
           "state": "ready",
-          "reason": "44 bus-lane segments",
+          "reason": "4 bus-lane segments",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "scheduleBaseline": {
+          "state": "insufficient_data",
+          "reason": "no schedule timepoints",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "detectorFindings": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        }
+      },
+      "caveats": []
+    },
+    {
+      "routeId": "T433",
+      "overallState": "building",
+      "surfaces": {
+        "condition": {
+          "state": "partial",
+          "reason": "summary built but not public",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "trend": {
+          "state": "insufficient_data",
+          "reason": "no multi-month history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "speedHistory": {
+          "state": "insufficient_data",
+          "reason": "no segment speed history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "reliability": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "ridership": {
+          "state": "insufficient_data",
+          "reason": "no ridership history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "treatment": {
+          "state": "checked_clean",
+          "reason": "no bus lane or ACE treatment on record",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "scheduleBaseline": {
+          "state": "insufficient_data",
+          "reason": "no schedule timepoints",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "detectorFindings": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        }
+      },
+      "caveats": []
+    },
+    {
+      "routeId": "T434",
+      "overallState": "building",
+      "surfaces": {
+        "condition": {
+          "state": "partial",
+          "reason": "summary built but not public",
+          "depth": null,
+          "dataAsOf": "2026-03",
+          "freshness": "current"
+        },
+        "trend": {
+          "state": "insufficient_data",
+          "reason": "no multi-month history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "speedHistory": {
+          "state": "insufficient_data",
+          "reason": "no segment speed history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "reliability": {
+          "state": "insufficient_data",
+          "reason": "no detector coverage",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "ridership": {
+          "state": "insufficient_data",
+          "reason": "no ridership history",
+          "depth": null,
+          "dataAsOf": null,
+          "freshness": "unknown"
+        },
+        "treatment": {
+          "state": "checked_clean",
+          "reason": "no bus lane or ACE treatment on record",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -30929,8 +31433,8 @@
           "freshness": "unknown"
         },
         "treatment": {
-          "state": "checked_clean",
-          "reason": "no bus lane or ACE treatment on record",
+          "state": "ready",
+          "reason": "3 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
@@ -31325,7 +31829,7 @@
         },
         "treatment": {
           "state": "ready",
-          "reason": "126 bus-lane segments",
+          "reason": "19 bus-lane segments",
           "depth": null,
           "dataAsOf": "2026-03",
           "freshness": "current"
