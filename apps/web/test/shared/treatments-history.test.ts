@@ -2,8 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
+  comparisonCardsSubLine,
   interventionComparisonCards,
   mergedTreatmentTimelineRows,
+  treatmentFamilyOfText,
   TreatmentsHistorySection,
   timelineDisplayRows,
   timelineYearLabel,
@@ -11,8 +13,10 @@ import {
   treatmentSourceRows,
 } from "../../src/components/route/TreatmentsHistorySection";
 import { citationEntries } from "../../src/components/SourceNote";
+import { studyFixture } from "./study-fixture";
 import type {
   StudioIntervention,
+  StudioInterventionCorpusRecord,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceTimelineEvent,
@@ -443,5 +447,79 @@ describe("TreatmentsHistorySection render", () => {
     expect(markup).toContain("Offset bus lane");
     expect(markup).toContain("First Avenue busway");
     expect(markup).toContain("Sources (");
+  });
+});
+
+describe("study integration", () => {
+  const studiedEvent: StudioIntervention = {
+    ...servingInterventions[0]!,
+    eventId: "ace:B41:ACE:2024-09-16",
+  };
+  const rollup = {
+    artifactKind: "bp.studio.route_studies.v1",
+    schemaVersion: 1,
+    analysisMonth: "2026-03",
+    routeId: "B41",
+    routeSlug: "b41",
+    studies: [studyFixture()],
+  } as const;
+
+  test("comparison cards join studies by registry event id, never by title", () => {
+    const cards = interventionComparisonCards([studiedEvent, ...servingInterventions], rollup);
+    expect(cards[0]?.study?.eventKey).toBe("study-event-abc");
+    // The same title without an eventId stays unstudied.
+    expect(cards[1]?.study).toBeUndefined();
+    expect(comparisonCardsSubLine(cards)).toBe("2 evaluations, 1 with matched-segment study.");
+    expect(comparisonCardsSubLine(interventionComparisonCards(servingInterventions))).toBe(
+      "1 promoted comparison windows.",
+    );
+    expect(comparisonCardsSubLine([])).toBe("Comparison windows promoted by the pipeline.");
+  });
+
+  const corpusRecord = (over: Partial<StudioInterventionCorpusRecord>) =>
+    ({
+      recordId: "corpus-1",
+      routes: ["M15"],
+      primaryTreatments: ["bus_lane"],
+      customTreatments: [],
+      title: "First Avenue — Bus Lane",
+      effectiveDate: "2024-06-11",
+      datePrecision: "day",
+      recordKind: "implemented",
+      statusLatest: "complete",
+      corridorStreets: ["First Avenue"],
+      evaluableInWindow: true,
+      sourceId: "source-1",
+      sourceLabel: "DOT press release",
+      sourceUrl: "https://example.test/lane",
+      caveatCount: 0,
+      matchedRegistryEventIds: [],
+      ...over,
+    }) as StudioInterventionCorpusRecord;
+
+  test("corpus rows dedupe against existing rows by year + treatment family", () => {
+    // servingInterventions[1] is "Bus lane repainted" in 2024-06.
+    const merged = mergedTreatmentTimelineRows(servingInterventions, null, [
+      corpusRecord({}),
+      corpusRecord({ recordId: "corpus-2", title: "Broadway — Busway", primaryTreatments: ["busway"], effectiveDate: "2021-10", datePrecision: "month" }),
+      corpusRecord({ recordId: "corpus-3", effectiveDate: null }),
+    ]);
+    const baseline = mergedTreatmentTimelineRows(servingInterventions, null);
+    // The bus-lane record merged into the existing 2024 serving row.
+    expect(merged.length).toBe(baseline.length + 1);
+    const lane = merged.find((row) => row.title === "Bus lane repainted");
+    expect(lane?.sourceEntries?.[0]?.label).toBe("DOT press release");
+    // The busway record is new, with month-precision date label.
+    const busway = merged.find((row) => row.key === "corpus:corpus-2");
+    expect(busway?.dateLabel).toBe("2021-10");
+    expect(busway?.kind).toBe("busway");
+    // Undated corpus records stay off the timeline.
+    expect(merged.find((row) => row.key === "corpus:corpus-3")).toBeUndefined();
+  });
+
+  test("treatment family inference is keyword-based and null when unknown", () => {
+    expect(treatmentFamilyOfText("serving_intervention Bus lane repainted")).toBe("bus_lane");
+    expect(treatmentFamilyOfText("ACE enforcement begins")).toBe("automated_bus_lane_enforcement");
+    expect(treatmentFamilyOfText("Ridership dashboard")).toBeNull();
   });
 });

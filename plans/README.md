@@ -1,16 +1,530 @@
 # Implementation Plans
 
-**Current generations: 6 (plans 048-060, the MTA-visual-language UI/UX
-overhaul; 048-054 DONE, 055-060 in flight) and 7 (plans 061-067, the
-determinism/LOC-reduction track — both below).** Gen-6 owns
-`apps/web`'s UI; gen-7 owns `packages/*` and `tools/pipeline-v2`; they
-can interleave except where a dependency note says otherwise (052 landed
-mid-gen-7-planning; 063 records the verified interaction). Generations 4
-(030-035) and 5 (036-047) are DONE; generation 3 (019-029) is complete
-except 026 (BLOCKED); generations 1-2 (001-018) are complete or
-superseded; older sections are kept further down as history and rationale.
-Each executor: read your plan fully before starting, honor its STOP
+**Current generations: 7 (plans 061-067, the determinism/LOC-reduction
+track), 8 (plans 068-076, the 2026-07-09 audit fix-pack + the
+business-problem arc), 9 (plans 077-081, the truthful interactive-map
+overhaul), 10 (plans 082-083, the route-detail annotation layer +
+study-coverage spike), and 11 (plans 084-088, the de-month cutover: monthly
+baselines/releases retired for coverage windows, a freshness ledger, and a
+harness gate — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
+overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
+`packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
+business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
+identity, and evidence contracts before redesigning the two existing map
+experiences. Interleaving constraints are in each generation's dependency
+notes. Generations 4 (030-035) and 5 (036-047) are DONE; generation 3
+(019-029) is complete except 026 (BLOCKED); generations 1-2 (001-018) are
+complete or superseded; older sections are kept further down as history and
+rationale. Each executor: read your plan fully before starting, honor its STOP
 conditions, and update your row when done.
+
+---
+
+# Generation 11 — de-month the product: coverage windows + freshness ledger (2026-07-12)
+
+Planned at commit `27755f4` (tree moved to `99fa763` mid-session — study-anchor
+data only) by a read-only advisor session: five parallel scoped audits
+(serving contract, pipeline release identity, web app, domain/analytics
+schemas, docs/wiki doctrine), every table finding re-verified against source
+by the lead session. Operator direction (2026-07-12, binding): the concept of
+"monthly baselines" and month-keyed releases is removed from existence — data
+is multi-year wherever sources allow, the only month-shaped obligation is
+staying updated and seeing how far behind upstream we are, and reintroducing
+month-targeting must be machine-impossible, not merely discouraged. This goes
+beyond ADR-0017, which retired the "monthly release" slogan but deliberately
+KEPT "baseline month" as a first-class anchor; plan 084 writes the
+superseding ADR-0022, and plan 088 enforces it in the harness.
+
+Numbering note: a concurrent same-day session claimed 082/083 for generation
+10, so this generation is 084-088 and plan 088 (the gate) runs SECOND despite
+its number.
+
+## Execution order & status (gen 11)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 084 | Retire the monthly-baseline doctrine: ADR-0022 + steering-doc truth sweep | P1 | S-M | — (run first) | TODO |
+| 088 | Month-doctrine harness gate (ratchet allowlist; runs SECOND) | P1 | S-M | 084 | TODO |
+| 085 | De-month the public serving contract (coverage + publishedAt) | P1 | L | 084, 088; 079 as amended (hard); 080/081 rec. | TODO |
+| 086 | De-month pipeline release identity + publish gates; empty the ratchet | P1 | M-L | 084, 088; 079 as amended + 085 (hard) | TODO |
+| 087 | Freshness ledger: `audit freshness` per-source lag report | P2 | M | 084; 086 (hard) | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+## Dependency notes (gen 11)
+
+- 084 first and immediately — it writes ADR-0022 (the vocabulary table every
+  other plan implements) and is docs-only, safe on the dirty tree. 088 next:
+  it freezes every current month-identity violation in a shrink-only
+  allowlist wired into `check:architecture`, so from that point
+  month-targeting cannot be reintroduced and every later plan is FORCED (by
+  the stale-entry guard) to delete its own entries as it lands.
+- The advisor session applied binding **de-month amendment blocks inside
+  plans 079, 080, and 081** (2026-07-12): 079's map contracts carry
+  `publishedAt` + `coverage {start, end}` instead of month identity, its
+  client mismatch state is `coverage_mismatch`, `--month` flags stay as
+  window selectors, month-keyed artifact roots stay as partitions; 080/081
+  inherit the vocabulary and add no new `baseline*` names. Gen-9 executors
+  must honor those blocks; plans 085/086 grep-gate on the amended field
+  names.
+- Combined order: `084 → 088 → 079 → 080 → 081 → 085 → 086 → 087`.
+- Gen-10 coordination: gen-10's 082 (chart markers + a REAL MONTH AXIS on the
+  Overview trend) is grain, fully compatible with ADR-0022 — a month as a
+  chart coordinate is exactly what survives. Serialize gen-10 082 with
+  gen-11 085 (both touch Overview trend surfaces/tests); gen-10 083 (spine
+  spike) has no file overlap with this generation. Gen-8's 074/075/076 are
+  unaffected (verified: their month usage is grain — monthly series and
+  event windows — not baseline identity).
+- 085 and amended 079 both edit `public-api.ts` / `api-client.ts` — hard
+  sequencing, never parallel worktrees. 086 edits `export/d1.ts` after 085
+  touched its builder-call lines — drift checks compare excerpts.
+- Production note: wrangler pins `BASELINE_MONTH=2026-03` (~4 months old at
+  planning time). The pins die in 085; 087 is what makes such lag visible
+  from then on.
+
+## Verified audit evidence (gen 11)
+
+- `apps/web/wrangler.jsonc:35-36` pins `BASELINE_MONTH` and
+  `LAST_BUILT_SPEED_MONTH` to `"2026-03"`. `public-api.ts:80-88` resolves
+  five v1 endpoints' product month from `?month= ?? env.BASELINE_MONTH`; the
+  status response serves a field literally named `canonicalMonthlyRelease`
+  (`public-api.ts:274`) plus `releaseLayer: "baseline_release"` and
+  `completenessStatus: "partial_public_monthly_only"`.
+- The studio path already floats on D1-latest (`resolveServingMonths`,
+  `read-handlers.ts:345-362`) and already serves a `releaseId` — the
+  replacement identity hook exists; only the contract vocabulary pins months
+  (`baselineMonth` at `read-handlers.ts:390,404,902,1015` and across
+  `packages/domain` response schemas).
+- The capability manifest defines freshness RELATIVE TO THE RELEASE MONTH
+  (`route-capability.ts:40,57-71`, `releaseMonth` at `:110`) — served data
+  can never look staler than the release it shipped with. Plan 085 recomputes
+  freshness against now at read time.
+- Pipeline release identity is a month end-to-end: `studio release` defaults
+  to `"2026-03"` (`release.ts:88-91`), D1 exports live under
+  `data/exports/d1/<month>/` with `analysisPeriod: month`
+  (`export/d1.ts:241,285-286`), the R2 publish gate requires
+  `analysisPeriod === --month` (`r2-artifacts.ts:164-165`), the
+  detector-readiness import throws on month inequality
+  (`route-capability-manifest.ts:72-76`), and the data-product registry
+  classifies by a `"release_month"` literal (`registry.ts:69,73-79`).
+- Freshness machinery today is a single-source binary
+  (`check route-speed-availability` → `shouldRebuild`, surfaced by
+  `plan source-refresh`); nothing reports per-source
+  upstream/ingested/published lag. That gap is plan 087.
+- ~12 living docs teach the retired model as current practice (README:91
+  "canonical monthly releases", runbook "promote a baseline month",
+  endpoint-architecture `baselineMonth` contract and "Monthly baseline"
+  cache row, operationalization status "baselineMonth=2026-03 … pass", the
+  primer's DetectorRunId release-month glossary entry for the deleted
+  detector program).
+
+## Findings considered and rejected (gen 11 — do not re-audit)
+
+- **D1/local tables keyed `(routeId, month)`** — GRAIN: time-series
+  partitions, correct storage; no schema migration; only response metadata
+  changes.
+- **`lib/socrata-monthly-ingest.ts` name + monthly ingest cadence** — GRAIN:
+  upstream publishes month-partitioned data; the name is accurate.
+- **"Monthly ridership" chart title / "Monthly riders (K)" legend /
+  "official monthly speed evidence" caveat / home + SEO "monthly speeds"
+  copy** — rejected as findings: they name the source grain of
+  monthly-grain datasets rendered over multi-year windows, not a baseline
+  anchor. (Two subagent reports flagged them; the lead overrode — the
+  hard-cutover doc's "do not over-rotate" boundary stands.)
+- **RouteDetailHeader month label under the speed metric** — GRAIN (a
+  dataAsOf label on a data point); survived the gen-6 design review; keep.
+- **Study engine (074) / studies surface (075) month usage** — verified
+  grain (event-anchored multi-year windows, monthly series); no amendment.
+- **Month-partitioned artifact/export directory layouts** — kept as
+  partitions; identity moves into manifest fields (`publishedAt`,
+  `coverage`). A releaseId-keyed layout migration was rejected as churn
+  without state-space change.
+- **`cloudflare-costs.ts` "monthly" mentions** — billing-cycle arithmetic,
+  unrelated.
+- **Renaming `source-refresh` job ids** (`route_speed_monthly_watcher`) —
+  artifact contract; 087 de-months its strings, ids stay.
+- **Banning the word "month" outright in the 088 gate** — rejected: the gate
+  bans IDENTITY tokens and pinned literals; month-grain vocabulary
+  (`dataAsOf`, `startMonth`/`endMonth`, series coordinates, `--month` window
+  selectors) is legitimate forever.
+- **Docs-audit subagent misclassifications** — corrected by the lead: plans
+  079-081 are TODO (not "completed; archive"), and `data/artifacts/**` docs
+  are operator-owned point-in-time records, out of every plan's scope.
+
+---
+
+# Generation 10 — route-detail annotation layer + study-coverage spike (2026-07-12)
+
+Planned at commit `99fa763` on a dirty tree (plan 074/079 execution in
+flight) by a read-only advisor session, answering the operator's direction
+question: with only 5 of 403 study candidates approved (all ACE onsets;
+3 gated estimates, 2 descriptive, 4 of 5 `no_detectable_change`), is the
+gated study engine the right investment versus naive intervention-date
+before/after highlighting on route detail? Two fan-out audits (route-detail
+page anatomy; corpus/candidate/spine coverage math) with every load-bearing
+number re-verified by the lead session.
+
+**Direction verdict (recorded so it is not re-litigated):** the engine's
+rigor is not the overcomplication — its gates caught real confounds on the
+exact routes where naive before/after would have shipped a confident wrong
+number (M79+ +0.36 mph raw with congestion-pricing overlap; B82+ descriptive
+worsening with failed pre-trend). What is missing is the cheap broad layer:
+dated intervention MARKERS on the route chart (annotation, never computed
+deltas). Coverage math: 201 of 323 candidate routes have in-window
+implementation months and the route page already loads dated events for its
+History timeline, versus 5 routes with studies. The study-count bottleneck is
+NOT review conservatism: 267 of 385 routes are `needs_pattern_review` on the
+segment spine, and 39 calendar-eligible ACE candidates were rejected solely
+on that status — a data-engineering unlock, not a standards question.
+
+## Execution order & status (gen 10)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 075 rec.; operator comp approval (hard gate in-plan) | TODO |
+| 083 | Spine pattern-grouping spike: measure the honest unlock for the 39 blocked ACE studies | P2 | M | 078 (DONE) | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+## Dependency notes (gen 10)
+
+- **Two operator items precede execution**: (1) the plan 074 anchor review
+  (`data/artifacts/studio/v2/studies/anchors-report.md`, fill
+  `published_claim`) gates plan 075; (2) 074's original "≥10 studies" done
+  criterion needs explicit resolution — recommended resolution, recorded
+  2026-07-12: amend to "every approved event-route pair studied" (satisfied
+  at 5/5); rejected candidates are never silently readmitted, and the path
+  to more studies is plan 083's unlock plus a batch-2 review of newly
+  eligible candidates under a NEW candidate-set id.
+- Execute 075 before 082 (priority order and shared smoke surface). 082
+  imports the exported `mergedTreatmentTimelineRows` from
+  `TreatmentsHistorySection.tsx` but does not edit any plan-075 file.
+- 082 carries the standing comp gate: no app code until an operator-approved
+  comp exists at `plans/mockups/082-overview-trend-markers/comp.html`.
+- 083 is a pure spike: its decision doc commissions any production spine
+  change, spine rebuild, batch-2 review, and re-run as separate follow-ups.
+  Nothing in 083 touches production artifacts, thresholds, or receipts.
+- 076 (opportunity layer) stays deferred beyond its current gating: its
+  effect-transfer input today is 3 gated estimates, all
+  `no_detectable_change`, in a single treatment family — transferring null
+  effects ranks nothing. Revisit only after batch-2 studies produce
+  directional gated estimates.
+
+## Findings considered and rejected (gen 10 — do not re-audit)
+
+- **Computed before/after deltas, percentages, or verdict shading derived
+  from a marker date on route charts** — rejected as a product surface: the
+  repo's own studies prove raw deltas mislead (M79+/B82+ above). Markers
+  carry dates and plain-language labels, never numbers; numbers come only
+  from plan 074/075 study artifacts.
+- **Readmitting rejected candidates or softening gates/spine thresholds to
+  reach the original "≥10 studies" floor** — rejected; re-anchor the
+  criterion instead (operator confirmation pending on 074's row).
+- **A standalone /studies page or new tab** — already rejected by the
+  binding 2026-07-09 operator direction; 075 integrates into existing
+  surfaces.
+- **Markers for year-only or undated events on a month-axis chart** —
+  rejected: a year cannot be honestly placed at a month position; those
+  events stay timeline-only.
+- **Corpus records as chart markers in v1** — rejected for now: all 310
+  served corpus records are pre-window (0 `evaluableInWindow`), so nothing
+  would render; revisit only if a future corpus release carries in-window
+  months.
+- **Fixing the SpeedTrend index axis as its own plan** — folded into 082:
+  the month axis is a prerequisite of marker placement, and a separate plan
+  would double-touch the same chart file.
+
+---
+
+# Generation 9 — truthful interactive maps (2026-07-09)
+
+Planned at commit `cd878f7` on a working tree already dirty in `plans/` only
+(branch `codex/gen6-ui-overhaul`) by a read-only advisor session. Three
+parallel audits covered product/user questions, runtime/accessibility, and
+data/serving contracts; the lead session independently reproduced every
+accepted finding against source and checked the shipped 2026-03/2026-05
+artifacts. The operator explicitly selected the whole set by asking for a plan
+to overhaul all current map visualizations, make them meaningfully interactive,
+and start from what product users need to see.
+
+The governing user questions are:
+
+- **Rider or advocate**: Find my route. Where and when is it slow? Is that a
+  one-off or persistent, and what can I share with others?
+- **Planner or evidence author**: Which routes/segments show the most
+  route-slice passenger-delay exposure? Where do source-backed treatments
+  overlap—or fail to overlap—the problem?
+- **Journalist or policy staff**: What period and route universe am I seeing?
+  Can I reproduce the view, inspect exact values, and cite sources/caveats?
+- **Every user**: What is missing, stale, proxy-level, or under review? A map
+  must make uncertainty visible instead of filling it with a plausible color.
+
+## Execution order & status (gen 9)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 077 | Restore validated MapLibre rendering and clean failure recovery | P0 | M | 068; coordinate with 072 | DONE |
+| 078 | Canonical map/detail/history segment identity and readiness | P0 | L | 068, 077; before 074 | DONE |
+| 079 | Truthful network-map data, layer readiness, freshness, and budgets | P1 | L | 062, 068, 078 | TODO |
+| 080 | Accessible, searchable, shareable network decision explorer | P1 | L | 077, 079 | TODO |
+| 081 | Linked route-segment evidence explorer with exact overlays | P1 | L | 077-080 | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+Plan 077 browser gate: Chrome for Testing 149.0.7827.55; `/map`, B48, and
+M15-SBS passed at desktop and 390px, including reduced motion and forced
+vendor-failure retry.
+
+## Dependency notes (gen 9)
+
+- **Run 068 first**, then 077 → 078 → 079. The map UI plans are not safe to
+  execute first: current MapLibre styles fail official validation, and the
+  route map can attach a metric/history row to the wrong geometry.
+- 077 and gen-8 plan 072 both may touch `bun.lock`; sequence or reconcile the
+  narrow dependency changes rather than overwriting either lockfile result.
+- 078 must land before gen-8 plan 074. The study engine needs the same stable
+  geographic spine; do not let two plans invent incompatible identifiers.
+  Plan 073 may proceed independently after 068, but 074 then depends on both
+  073 and 078 in the combined roadmap.
+- 079 also requires 062's deletion of the retired pipeline-v1 finalizer/check;
+  it adds a focused `map release` builder and must not resurrect that legacy
+  QA doctrine. It consumes 078's exact/stable identities and establishes the manifest,
+  missingness, freshness, caching, and payload-budget contract used by both
+  UIs. Do not let 080/081 create private copies of that contract.
+- Run 080 before 081. Plan 081 upgrades 080's pinned-route drill and explicit
+  `Open route` CTA, in addition to overlapping shared map style/runtime and
+  `api-client.ts`; it cannot complete independently from the 079 baseline.
+- 075 may later add a reviewed intervention to a map only when its served event
+  has audited source geometry, grain, precision, and date. Plan 081 removes the
+  current inferred ACE/TSP points regardless of 075's timing.
+- 076 remains an operator-gated design spike. No opportunity/composite lens
+  enters `/map` or route detail through this generation.
+
+Recommended combined order:
+
+```text
+068 ─→ 077 ─→ 078 ─┐
+062 ───────────────┴─→ 079 ─→ 080 ─→ 081
+068 ─→ 072  (serialize its bun.lock work with 077)
+068 ─→ 073 ─────────┐
+          078 ──────┴─→ 074 ─→ 075 ─→ 076
+```
+
+## Verified audit evidence (gen 9)
+
+- Both MapLibre base styles and lens colors currently emit `oklch(...)`.
+  MapLibre's installed style validator reports `color expected` for those
+  values, and both wrappers currently turn any runtime error into the static
+  fallback. Plan 077 makes style validation a test and fixes lifecycle,
+  bounds, cooperative gestures, and reduced motion.
+- The same segment has three incompatible identifiers across map, Studio
+  detail, and speed history. The route map then falls back to direction/index
+  association. For the B41 artifact, direct map-to-detail matches are 0/16;
+  only 5/7 southbound positions happen to agree, and the last two are reversed.
+  Plan 078 creates one exact source key, one ambiguity-rejecting crosswalk, and
+  one durable geographic spine.
+- The network artifact's `laneCoverage` divides matched lane feature count
+  by route-segment count rather than measuring route-shape overlap. In the
+  checked 2026-03 artifact, 273 of 346 routes report exactly 100%. Rider counts
+  also use a fixed 30-day divisor while the canonical Studio route uses actual
+  month days. Plan 079 removes duplicated/private facts and joins geometry to
+  canonical route metrics.
+- Missing route-hour observations are currently filled with all-day speed,
+  turning “not observed” into a complete-looking 24-hour profile. Plans 079
+  and 081 keep absence null and gate time controls by evidence readiness.
+- `/map` implicitly selects the top-ranked route and dims every other route to
+  20% on first paint. It has no route search or shareable state; its top-ten
+  inspector is hidden below `md`, and map tap navigates immediately. Plan 080
+  separates hover, focus, pin, and navigation and provides a complete
+  structured mobile/keyboard alternative.
+- Network hover deep-copies a 4.61MB GeoJSON collection (52,907 coordinates)
+  and calls `setData`; the MapLibre vendor chunk is about 1.06MB raw/~276KB
+  gzip and omitted from current budgets. Plans 079/080 add visible budgets and
+  feature-state interaction.
+- Route maps are mousemove-only. They synthesize ACE/TSP midpoint markers and
+  route-offset lane lines from route/segment proxy flags, despite provenance
+  saying those fields are not exact geography. Plan 081 links map + segment
+  table + history by stable spine, adds click/touch/keyboard pinning, and maps
+  only verified published source geometry.
+- The shipped release already contains useful first-party context: borough
+  shoreline/name data, 3,048 NYC DOT bus-lane features, and 4,877 timepoint
+  stops. Plans 079-081 use those before proposing an external hosted basemap.
+- The checked local Studio route artifact is a 12-route partial fixture while
+  the network artifact contains 346 routes. Plan 079 requires an explicit
+  production route-universe/coverage gate; unmatched routes render as neutral
+  no-data, never as invented zeroes.
+- A 2026-05 manifest can say `pass` while publishing zero route-segment
+  artifacts and only four base artifacts; the public API currently upgrades
+  base-only output to complete/high. Plan 079 makes per-layer verification the
+  served truth and fixes one-year immutable caching on mutable keys.
+
+## Operator direction (binding on gen 9)
+
+- Keep MapLibre, the offline Bun pipeline, D1 indexes, and R2/static artifacts.
+  A renderer or platform migration requires measured need and a new ADR.
+- Upgrade `/map`, the existing route Segments tab, and the Overview locator in
+  place. No new top-level page, route-detail tab, or nav item.
+- Durable state belongs in validated query parameters. Hover/focus is
+  transient; click/tap pins before navigation.
+- A complete keyboard-operable structured list/readout is part of every map,
+  not a hidden fallback. Mobile must retain selection and evidence controls.
+- Use first-party borough, stop, route, and NYC DOT lane artifacts before any
+  hosted basemap. Do not expand CSP, licensing, or attribution scope here.
+- Show source, period, unit, grain, coverage, freshness, and no-data states.
+  Proxy route/corridor facts stay textual until exact audited geography exists.
+- Geographic borough filters use offline verified served-borough membership,
+  not the route-ID-derived primary borough label.
+- Shared URLs reproduce UI state; until content-addressed navigation exists,
+  copied citations also include artifact key/hash and disclose mutable aliases.
+- No autoplay, realtime vehicles, trip planning, fabricated demo values,
+  browser/Worker spatial analysis, or opaque opportunity score.
+- Chart/metric rules from the approved 075 comp (2026-07-10) bind any chart
+  or numeric readout 080/081 add: shadcn chart-card anatomy in app tokens,
+  one consolidated metric per chart card, method internals behind a "Method &
+  provenance" SourceNote (never on the face), terse labels, "No clear change"
+  for null states. 080 and 081 each get an operator-approved comp round
+  (`plans/mockups/`) before implementation — see the gen-8 design-gate note.
+- **De-month amendment (2026-07-12)**: binding amendment blocks were added
+  inside 079/080/081 — month-keyed release identity is retired (ADR-0022,
+  gen-11). Map contracts carry `publishedAt` + `coverage {start, end}`; the
+  client mismatch state is `coverage_mismatch`; no new `baseline*` names
+  anywhere; the plan-088 harness gate bans the retired tokens. Full mapping
+  in 079's amendment block and the gen-11 section.
+
+## Findings considered and rejected (gen 9 — do not re-audit)
+
+- **Replace MapLibre with Leaflet, deck.gl, or another renderer** — rejected.
+  ADR-0003 already settles MapLibre and the observed defects are invalid style
+  values, lifecycle, interaction, and contracts—not a proven renderer limit.
+- **Restore the hour scrubber/autoplay/carpet animation** — rejected. It was
+  deliberately removed for a calmer evidence UI, and missing hours are not fit
+  for an apparently continuous movie.
+- **Add dedicated map/treatment/opportunity pages or tabs** — rejected by the
+  binding no-new-navigation direction. Improve the existing surfaces.
+- **Use a hosted street basemap immediately** — deferred. CSP, terms,
+  attribution, network reliability, and privacy require a separate decision;
+  the release already has useful first-party geographic context.
+- **Migrate all map artifacts to PMTiles now** — deferred. The checked network
+  artifact is ~396KB gzip; add budgets and measure interaction/device cost
+  before changing delivery architecture.
+- **Ship an opportunity lens now** — rejected for this generation. Plan 076 is
+  an operator-gated spike, and no approved transparent score exists yet.
+- **Perform route/lane or historical joins in the browser/Worker** — rejected.
+  Heavy geospatial work remains in the Bun pipeline; public clients consume
+  precomputed, verified joins.
+- **Treat ACE/TSP midpoints or an offset route line as “close enough”** —
+  rejected. A precise-looking false point/line is worse than an explicit
+  route-level badge and source-gap state.
+- **Defensively render malformed own-pipeline coordinate arrays** — rejected
+  again. Validate owned artifacts at build/release boundaries; do not clutter
+  request/render code for impossible published shapes.
+
+---
+
+# Generation 8 — audit fix-pack + the business-problem arc (2026-07-09)
+
+Planned at commit `cd878f7` on a clean tree (branch `codex/gen6-ui-overhaul`)
+by a read-only advisor session: four parallel category audits (correctness,
+security+deps, perf+debt, tests/DX/docs) with every table finding re-verified
+against source by the lead session, plus a direction review grounded in
+`docs/research/master-plan-product-questions.md` (Tracks C/D/G). The operator
+selected two sets: the hygiene fix-pack (068-072) and the business-problem
+arc (073-076) — turning the intervention corpus + segment-speed data into
+served, gated, uncertainty-honest treatment studies and a prototyped
+decision layer.
+
+## Execution order & status (gen 8)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 068 | Verification baseline: fix check:types OOM, prove pre-push gate, align docs | P1 | S-M | — (run first) | DONE (repo-wide typecheck and full pre-push gate pass; pre-existing web fixture blockers repaired with operator authorization) |
+| 069 | Fix tautological route-universe check in observed reliability | P1 | S | 068 | REJECTED (premise false: the call site already skips any canonicalized ID outside `routeUniverse`, so the required pre-fix behavioral test passes) |
+| 070 | Browser-hardening headers on Worker responses (CSP on HTML) | P2 | S-M | 068 | DONE |
+| 071 | Steering-doc truth sweep (README schema claim, /methods SEO, master-plan status) | P2 | S-M | 068 (rec.) | DONE (Effect Schema README claim, retired `/methods` SEO removal, master-plan status block, and knowledge log verified) |
+| 072 | Dependency hygiene: bun update within semver + audit residue log | P3 | S | 068 | DONE (audit reduced 15→13; all residual advisories documented; full tests/build and `/` + `/map` smoke pass) |
+| 073 | Serve the reviewed intervention corpus + reconciliation report | P1 | M-L | 068 | DONE (310 valid; 29 study-date-ready; 11 exact matches; no study-ready corpus-only candidates) |
+| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 | IN PROGRESS (anchors report written; STOPPED for operator review; 5 approved studies are below the original ≥10 criterion) |
+| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073 for step 5 | DONE (2026-07-12, branch advisor/075-studies-integration; live serving detail/routes artifacts still need regeneration to carry eventId before studied cards appear publicly) |
+| 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+## Dependency notes (gen 8)
+
+- 068 first, always: it makes `check:types` and the pre-push gate actually
+  runnable; every other plan uses them as verification gates.
+- 069-072 are independent of each other and parallel-safe (isolated worktrees).
+- The business arc is ordered 073 + gen-9 identity plan 078 → 074 → 075 → 076,
+  with two human gates baked in: 074 STOPs after writing its anchors report
+  (operator sanity-checks effects against published numbers before anything ships), and
+  074's trusted-registry plus manifest-pinned Wiki candidate set enters studies only
+  through a candidate-set-bound operator approval. Plan 073's corpus remains
+  documentation/source-coverage input and never supplies causal onset dates.
+- Operator direction (2026-07-09, binding on 075/076 and any successor): NO
+  new top-level pages, tabs, or nav items. Studies integrate into the route
+  History tab (upgraded comparison cards) and /interventions (real numbers on
+  evaluated rows); deep-links use `?tab=history&study=<eventKey>` search
+  params, never new routes. New data lands in a tab only if it looks good
+  visually and makes sense for that tab — prefer upgrading existing elements
+  in place over adding sections.
+- Design gate (2026-07-10): the operator approved the 075 study-card comp
+  (`plans/mockups/075-history-tab/study-cards-comp.html`, three review
+  rounds, decisions D1–D17 resolved); plan 075 now carries the approved card
+  anatomy as its binding acceptance target. The same
+  comp-before-implementation gate applies to the remaining UI plans: 080/081
+  get a full comp round (IA variants) before implementation, 076's decision
+  memo includes a comp, 077/079 get a before/after screenshot review. The
+  durable rules extracted from the review live in
+  `knowledge/wiki/engineering/studio_design_pass_status.md`.
+- Gen-7 coordination: 073/075 deliberately serve through the existing public
+  artifact endpoint and do NOT touch `read-handlers.ts` (063 owns it). New
+  domain schemas (073/074) are written in the current `schema-compat` dialect
+  to match siblings; gen-7 066/067 migrates them with everything else. If 066
+  lands first, write them native instead.
+- 070's CSP `connect-src` must be revisited if 075 fetches from any new origin.
+
+## Findings considered and rejected (2026-07-09 audit — do not re-audit)
+
+- **Repo-root `.env` with live keys** — untracked, zero git history, covered
+  by `.gitignore`; standard local-dev convention, not a finding.
+- **Artifact-key path traversal via repeated URL-encoding** — misread of
+  `isValidArtifactKey` (`public-api.ts:108-140`): non-stabilizing keys return
+  `false`, dot components are rejected at every decode pass, and R2 keys have
+  no traversal semantics; the bucket is the intended-public serving bucket.
+- **Magic-link auth endpoints unthrottled** — the endpoints do not exist; the
+  auditor projected ADR-0008's design into code.
+- **"113 CLI commands have zero fixture tests"** — false; 60 fixture-backed
+  command tests exist under `tools/pipeline-v2/test/commands/`.
+- **Route-detail loader lacks 404 handling** — false; both fetches use
+  `loadNullableStudioJson` (404 → null).
+- **Segments-tab fetch waterfall / per-tab code-splitting / eager map GeoJSON
+  / keystroke filtering on /routes** — the lazy-artifact split is a documented
+  in-code decision (`$routeId.tsx:29`), the entry budget is green (~115/145KB),
+  and the rest is micro-optimization on a 380-row list. Not worth doing.
+- **Effect 4 beta pin, drizzle-kit RC, TS caret width** — decided toolchain
+  posture (ADR-0019/0020, dev-only tools); revisit at Effect 4 stable, not
+  before.
+- **Unbounded `object.json()` on R2 artifacts** — artifacts are self-published
+  in the same trust domain; defending against them contradicts the CLAUDE.md
+  no-impossible-scenario rule.
+- **`weightedAverage` NaN hardening + `quantile` negative-index guard**
+  (route-grain evaluation lib) — inputs are internally controlled; folded as
+  assertions into plan 074's new engine instead of patching the old path.
+- **Coordinate `[1]` access in `RouteMapLibre.map.tsx:245`** — own-pipeline
+  GeoJSON positions are always 2-element; impossible-input defense.
+- **Analytics test-ratio (28.4K src / 7K test LOC)** — most of the untested
+  mass is the dead subgraph plan 061 deletes.
+- **Pre-063 characterization tests for read-handlers** (real, MED confidence)
+  — offered to the operator 2026-07-09 and not selected; recorded here so 063's
+  executor knows the degrade behavior is pinned by roughly one regression test
+  (`api-facade.test.ts`, poisoned model months) and should tread accordingly.
+- **Release/export command boilerplate extraction** (~8-10 files sharing
+  manifest/write/validate shape) — real but deferred: 066's schema sweep
+  touches the same files; extract after, not before.
 
 ---
 
@@ -71,11 +585,11 @@ Verified headline facts the plans are built on:
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 061 | Delete the dead detector/calibration subgraph in analytics | P1 | M | — | TODO |
-| 062 | Delete the retired pipeline-v1 QA-gate commands + residue | P1 | S-M | — | TODO |
-| 063 | Serving read path: decode once, compose totally, registry dispatch | P1 | L | — (052 interaction recorded in-plan) | TODO |
-| 064 | One ingest workflow: extend the existing factory, collapse 22 copies | P1 | M-L | 062 rec.; before 066 | TODO |
-| 065 | packages/sources on native Effect Schema (+ `@bp/domain/decode`) | P2 | M-L | — ; before 066/067 | TODO |
+| 061 | Delete the dead detector/calibration subgraph in analytics | P1 | M | — | DONE |
+| 062 | Delete the retired pipeline-v1 QA-gate commands + residue | P1 | S-M | — | DONE |
+| 063 | Serving read path: decode once, compose totally, registry dispatch | P1 | L | — (052 interaction recorded in-plan) | DONE |
+| 064 | One ingest workflow: extend the existing factory, collapse 22 copies | P1 | M-L | 062 rec.; before 066 | DONE |
+| 065 | packages/sources on native Effect Schema (+ `@bp/domain/decode`) | P2 | M-L | — ; before 066/067 | DONE |
 | 066 | Pipeline/analytics/studio-api native (CLI AST introspection port) | P1 | L | 061, 063, 064, 065 (hard) | DONE |
 | 067 | Domain native: real brands/unions, DELETE schema-compat, close gate | P1 | L | 065, 066 (hard) | DONE |
 
