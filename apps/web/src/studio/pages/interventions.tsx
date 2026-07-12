@@ -2,6 +2,14 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { RouteBadge } from "@/components/RouteBadge";
 import { SectionCard } from "@/components/SectionCard";
+import {
+  ciLongLabel,
+  signedMphLabel,
+  studyIndexRowForEventId,
+  studyIndexRowsByJoinKey,
+  studyTone,
+  studyToneColor,
+} from "@/components/study/study-display";
 import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { Badge } from "@/components/ui/badge";
 import type {
@@ -15,6 +23,8 @@ import type {
   StudioRouteEvidenceProject,
   StudioRouteEvidenceSourceGap,
   StudioRouteEvidenceTimelineEvent,
+  StudyIndexArtifact,
+  StudyIndexRow,
 } from "../api-contract.js";
 import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../home-route-index.js";
 import { StudioPage } from "../page.js";
@@ -61,10 +71,12 @@ export function InterventionsPage({
   routes,
   evidence,
   corpus = null,
+  studiesIndex = null,
 }: {
   routes: readonly StudioRoute[];
   evidence: readonly (InterventionEvidenceBundle | null)[];
   corpus?: StudioInterventionCorpus | null;
+  studiesIndex?: StudyIndexArtifact | null;
 }) {
   const [filter, setFilter] = useState<InterventionFilter>("all");
   const [borough, setBorough] = useState<BoroughFilter>(ROUTE_INDEX_ALL_BOROUGHS);
@@ -73,6 +85,7 @@ export function InterventionsPage({
     () => interventionRows(routes, evidence, corpus),
     [routes, evidence, corpus],
   );
+  const studyRowsByJoinKey = useMemo(() => studyIndexRowsByJoinKey(studiesIndex), [studiesIndex]);
   const boroughRows =
     borough === ROUTE_INDEX_ALL_BOROUGHS
       ? rows
@@ -142,7 +155,11 @@ export function InterventionsPage({
                   {group.year}
                 </div>
                 {group.rows.map((row) => (
-                  <ChronicleRow key={row.key} row={row} />
+                  <ChronicleRow
+                    key={row.key}
+                    row={row}
+                    study={studyIndexRowForEventId(row.event.eventId, studyRowsByJoinKey)}
+                  />
                 ))}
               </div>
             ))}
@@ -206,7 +223,7 @@ export function yearGroups(
   return groups;
 }
 
-function ChronicleRow({ row }: { row: InterventionRow }) {
+function ChronicleRow({ row, study }: { row: InterventionRow; study?: StudyIndexRow | undefined }) {
   const cohort = row.event.comparisonCohort;
   const undated = yearLabel(row.event.year) === "Undated";
   const citationSourceEntries: SourceNoteEntry[] =
@@ -271,7 +288,31 @@ function ChronicleRow({ row }: { row: InterventionRow }) {
           </div>
         ) : null}
       </div>
-      {cohort ? (
+      {cohort && study !== undefined && study.effectMph !== null ? (
+        <div className="text-right text-[11.5px] text-[var(--bp-color-ink-55)] max-md:col-span-2 max-md:text-left">
+          <div
+            className="font-mono text-[15px] font-semibold"
+            style={{ color: studyToneColor(studyTone(study.direction)) }}
+          >
+            {signedMphLabel(study.effectMph)}
+          </div>
+          {study.confidenceInterval === null ? null : (
+            <div className="mt-1 font-mono">{ciLongLabel(study.confidenceInterval)}</div>
+          )}
+          <div className="mt-1">matched-segment study</div>
+          <div className="mt-1">
+            <Link
+              to="/routes/$routeId"
+              params={{ routeId: study.routeSlug }}
+              search={{ tab: "history", study: study.eventKey }}
+              viewTransition
+              className="text-[11.5px]"
+            >
+              View study →
+            </Link>
+          </div>
+        </div>
+      ) : cohort ? (
         <div className="text-right text-[11.5px] text-[var(--bp-color-ink-55)] max-md:col-span-2 max-md:text-left">
           <div className="font-mono text-[15px] font-semibold text-[var(--bp-color-ink)]">
             {formatDelta(cohort.adjustedSpeedDeltaMph ?? cohort.routeSpeedDeltaMph)}

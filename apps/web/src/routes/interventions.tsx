@@ -5,6 +5,7 @@ import {
   fetchStudioInterventionCorpus,
   fetchStudioInterventionsEvidence,
   fetchStudioRoutes,
+  fetchStudioStudiesIndex,
   staticStudioLoaderStaleTimeMs,
 } from "../studio/api-client.js";
 
@@ -21,7 +22,7 @@ function isAbortError(error: unknown): boolean {
 
 export const Route = createFileRoute("/interventions")({
   loader: async ({ abortController }) => {
-    const [routes, evidenceResult, corpusResult] = await Promise.all([
+    const [routes, evidenceResult, corpusResult, studiesIndex] = await Promise.all([
       fetchStudioRoutes({ signal: abortController.signal }),
       fetchStudioInterventionsEvidence({ signal: abortController.signal }).then(
         (evidence) => ({ ok: true, evidence }) as const,
@@ -31,6 +32,12 @@ export const Route = createFileRoute("/interventions")({
         (corpus) => ({ ok: true, corpus }) as const,
         (error: unknown) => ({ ok: false, error }) as const,
       ),
+      // Studies index is nullable; a failure never blocks the page.
+      fetchStudioStudiesIndex({ signal: abortController.signal }).catch((error: unknown) => {
+        if (isAbortError(error)) throw error;
+        console.warn("Studies index request failed; rendering rows without studies.", { error });
+        return null;
+      }),
     ]);
 
     if (!evidenceResult.ok) {
@@ -39,7 +46,12 @@ export const Route = createFileRoute("/interventions")({
         error: evidenceResult.error,
       });
       if (!corpusResult.ok && isAbortError(corpusResult.error)) throw corpusResult.error;
-      return { routes, evidence: [], corpus: corpusResult.ok ? corpusResult.corpus : null };
+      return {
+        routes,
+        evidence: [],
+        corpus: corpusResult.ok ? corpusResult.corpus : null,
+        studiesIndex,
+      };
     }
 
     if (!corpusResult.ok) {
@@ -53,6 +65,7 @@ export const Route = createFileRoute("/interventions")({
       routes,
       evidence: evidenceResult.evidence.bundles,
       corpus: corpusResult.ok ? corpusResult.corpus : null,
+      studiesIndex,
     };
   },
   staleTime: staticStudioLoaderStaleTimeMs,
@@ -73,6 +86,7 @@ function InterventionsRoute() {
         routes={data.routes.routes}
         evidence={data.evidence}
         corpus={data.corpus}
+        studiesIndex={data.studiesIndex}
       />
     </Suspense>
   );

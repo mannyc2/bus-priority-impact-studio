@@ -14,16 +14,10 @@ import {
   signedMphLabel,
   studyBadgeLabel,
   studyTone,
+  studyToneColor as toneColor,
   type StudyTone,
 } from "./study-display.js";
 import { StudyEventChart } from "./StudyEventChart.js";
-
-function toneColor(tone: StudyTone): string {
-  if (tone === "good") return "var(--bp-color-good)";
-  if (tone === "warn") return "var(--bp-color-warn)";
-  if (tone === "bad") return "var(--bp-color-bad)";
-  return "var(--bp-color-accent)";
-}
 
 function TrendIcon({ direction, tone }: { direction: StudyArtifact["direction"]; tone: StudyTone }) {
   const stroke = { color: toneColor(tone) };

@@ -2,6 +2,8 @@ import type { SourceNoteEntry } from "@/components/SourceNote";
 import type {
   RouteStudiesArtifact,
   StudyArtifact,
+  StudyIndexArtifact,
+  StudyIndexRow,
   StudySensitivityEstimate,
 } from "@/studio/api-contract";
 
@@ -45,6 +47,36 @@ export function studiesByEventId(
   return map;
 }
 
+// Same normalization as the /interventions route join (routeJoinKey there).
+function studyRouteJoinKey(routeId: string): string {
+  return routeId.trim().toUpperCase().replace(/-SBS$/, "").replace(/\+$/, "");
+}
+
+/** Citywide index rows keyed by route + implementation month — the identity
+ * the registry event id encodes ("ace:{routeId}:{program}:{date}"). Ambiguous
+ * keys (two studies, same route and month) map to null and never match. */
+export function studyIndexRowsByJoinKey(
+  index: StudyIndexArtifact | null,
+): ReadonlyMap<string, StudyIndexRow | null> {
+  const map = new Map<string, StudyIndexRow | null>();
+  for (const row of index?.studies ?? []) {
+    const key = `${studyRouteJoinKey(row.routeId)}:${row.implementationMonth}`;
+    map.set(key, map.has(key) ? null : row);
+  }
+  return map;
+}
+
+/** Resolve a served registry event id to its citywide index row, if any. */
+export function studyIndexRowForEventId(
+  eventId: string | undefined,
+  rowsByJoinKey: ReadonlyMap<string, StudyIndexRow | null>,
+): StudyIndexRow | undefined {
+  if (eventId === undefined) return undefined;
+  const [, routeId, , date] = eventId.split(":");
+  if (routeId === undefined || date === undefined) return undefined;
+  return rowsByJoinKey.get(`${studyRouteJoinKey(routeId)}:${date.slice(0, 7)}`) ?? undefined;
+}
+
 export function signedMphLabel(value: number): string {
   return `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(2)} mph`;
 }
@@ -64,6 +96,13 @@ export function ciCompactLabel(
   ci: { lowerMph: number; upperMph: number },
 ): string {
   return `${signedBound(effectMph)} (${signedBound(ci.lowerMph)} to ${signedBound(ci.upperMph)}) mph`;
+}
+
+export function studyToneColor(tone: StudyTone): string {
+  if (tone === "good") return "var(--bp-color-good)";
+  if (tone === "warn") return "var(--bp-color-warn)";
+  if (tone === "bad") return "var(--bp-color-bad)";
+  return "var(--bp-color-accent)";
 }
 
 export function studyTone(direction: StudyArtifact["direction"]): StudyTone {
