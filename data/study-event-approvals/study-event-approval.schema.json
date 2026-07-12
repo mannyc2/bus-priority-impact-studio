@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bus-priority-impact-studio.local/schemas/study-event-approval.v1.json",
+  "title": "Bus Priority Impact Studio study-event approval receipt v1",
+  "description": "Wire-shape mirror of StudyEventApprovalArtifactSchema. Candidate coverage and conflict constraints are additionally enforced by study merge-events.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["artifactKind", "schemaVersion", "candidateSetId", "decisions"],
+  "properties": {
+    "artifactKind": {
+      "const": "bp.studio.study_event_approvals.v1"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "candidateSetId": {
+      "type": "string",
+      "pattern": "^candidate-set:[a-f0-9]{24}$"
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["candidateId", "decision", "reviewer", "rationale"],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "pattern": "^study-event:[a-f0-9]{24}$"
+          },
+          "decision": {
+            "enum": ["approved", "rejected"]
+          },
+          "reviewer": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "rationale": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        }
+      }
+    }
+  }
+}

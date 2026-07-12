@@ -123,6 +123,11 @@
       "types": "./src/studio/snapshots.ts",
       "bun": "./src/studio/snapshots.ts",
       "import": "./src/studio/snapshots.ts"
+    },
+    "./studio/study": {
+      "types": "./src/studio/study.ts",
+      "bun": "./src/studio/study.ts",
+      "import": "./src/studio/study.ts"
     }
   },
   "scripts": {

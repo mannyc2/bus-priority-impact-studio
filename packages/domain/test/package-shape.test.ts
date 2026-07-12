@@ -73,6 +73,7 @@ describe("domain package shape", () => {
         "./studio/segment-evidence",
         "./studio/shared",
         "./studio/snapshots",
+        "./studio/study",
       ]),
     );
     expect(packageJson.scripts["typecheck:test"]).toContain("tsconfig.test.json");
