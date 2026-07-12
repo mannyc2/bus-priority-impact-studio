@@ -8,9 +8,12 @@ import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/
 import { TreatmentInventory } from "@/components/TreatmentBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { fetchStudioInterventionCorpus } from "@/studio/api-client";
 import type {
   RouteStudiesArtifact,
   StudioIntervention,
+  StudioInterventionCorpus,
+  StudioInterventionCorpusRecord,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceIntervention,
@@ -51,10 +54,12 @@ export type TreatmentTimelineRow = {
   kind: string;
   title: string;
   detail: string;
-  source: "serving" | "wiki";
+  source: "serving" | "wiki" | "corpus";
   citationKeys: string[];
   sourceLabel: string | null;
   tone: Tone;
+  /** Extra cited sources (corpus records merged into this row). */
+  sourceEntries?: SourceNoteEntry[];
 };
 
 const TIMELINE_LIMIT = 10;
@@ -82,7 +87,12 @@ export function TreatmentsHistorySection({
   const counts = countTreatmentStates(treatments);
   const comparisonCards = interventionComparisonCards(route.interventions, studies);
   const sourceRows = treatmentSourceRows(route.interventions);
-  const timelineRows = mergedTreatmentTimelineRows(route.interventions, evidence);
+  const corpus = useInterventionCorpus();
+  const timelineRows = mergedTreatmentTimelineRows(
+    route.interventions,
+    evidence,
+    routeCorpusRecords(corpus, route.routeId),
+  );
   const treatmentInsights = treatmentHistoryInsightRows(data.insights);
   const recordEntries: SourceNoteEntry[] = [
     { label: `${timelineRows.length} dated records (${sourceRows.length} with named sources)` },
@@ -118,6 +128,7 @@ export function TreatmentsHistorySection({
 export function mergedTreatmentTimelineRows(
   interventions: readonly StudioIntervention[],
   evidence: StudioRouteEvidenceBundle | null,
+  corpusRecords: readonly StudioInterventionCorpusRecord[] = [],
 ): TreatmentTimelineRow[] {
   const rows = new Map<string, TreatmentTimelineRow>();
   for (const [index, event] of interventions.entries()) {
@@ -142,7 +153,111 @@ export function mergedTreatmentTimelineRows(
     rows.set(timelineIdentity(row), row);
   }
 
+  // Corpus records dedupe against existing rows by (year + treatment family):
+  // the existing row wins and gains the corpus citation.
+  const byYearFamily = new Map<string, TreatmentTimelineRow>();
+  for (const row of rows.values()) {
+    const family = treatmentFamilyOfText(`${row.kind} ${row.title}`);
+    if (family === null) continue;
+    const yearKey = `${timelineYearLabel(row.dateLabel)}:${family}`;
+    if (!byYearFamily.has(yearKey)) byYearFamily.set(yearKey, row);
+  }
+  for (const record of corpusRecords) {
+    if (record.effectiveDate === null) continue; // undated corpus records live on /interventions
+    const row = corpusTimelineRow(record);
+    const family =
+      record.primaryTreatments[0] ?? treatmentFamilyOfText(`${row.kind} ${row.title}`);
+    const existing =
+      family === null ? undefined : byYearFamily.get(`${timelineYearLabel(row.dateLabel)}:${family}`);
+    if (existing !== undefined) {
+      existing.sourceEntries = [...(existing.sourceEntries ?? []), ...(row.sourceEntries ?? [])];
+      continue;
+    }
+    rows.set(timelineIdentity(row), row);
+  }
+
   return [...rows.values()].sort(treatmentTimelineSort);
+}
+
+/** Corpus record → timeline row (dateLabel honors datePrecision). */
+export function corpusTimelineRow(record: StudioInterventionCorpusRecord): TreatmentTimelineRow {
+  const date = record.effectiveDate ?? "undated";
+  const dateLabel = record.datePrecision === "day" ? date : date.slice(0, 7);
+  const corridor = record.corridorStreets.join(", ");
+  const status = record.statusLatest ?? record.recordKind.replaceAll("_", " ");
+  return {
+    key: `corpus:${record.recordId}`,
+    dateLabel,
+    sortKey: record.effectiveDate ?? "9999",
+    kind: record.primaryTreatments[0] ?? record.customTreatments[0] ?? "intervention",
+    title: record.title,
+    detail: `${status}${corridor.length > 0 ? ` — ${corridor}` : ""}`,
+    source: "corpus",
+    citationKeys: [],
+    // The cited source renders via sourceEntries (label + link + record id).
+    sourceLabel: null,
+    tone: "accent",
+    sourceEntries: [
+      {
+        label: record.sourceLabel,
+        ...(record.sourceUrl === null ? {} : { href: record.sourceUrl }),
+        detail: `${record.sourceId}; ${record.recordId}`,
+      },
+    ],
+  };
+}
+
+/** Loose treatment-family read of a row's kind + title, for the corpus
+ * dedupe heuristic only — never used for study or evidence joins. */
+export function treatmentFamilyOfText(text: string): string | null {
+  const haystack = text.toLowerCase();
+  if (/\bbusway\b/.test(haystack)) return "busway";
+  if (/\b(ace|able|camera|enforcement)\b/.test(haystack)) return "automated_bus_lane_enforcement";
+  if (/\b(sbs|select bus)\b/.test(haystack)) return "select_bus_service";
+  if (/\bsignal\b/.test(haystack)) return "transit_signal_priority";
+  if (/\bredesign\b/.test(haystack)) return "route_redesign";
+  if (/\bqueue jump\b/.test(haystack)) return "queue_jump";
+  if (/\b(all[- ]door|boarding)\b/.test(haystack)) return "all_door_boarding";
+  if (/\bfare\b/.test(haystack)) return "off_board_fare_collection";
+  if (/\bstop\b/.test(haystack)) return "stop_change";
+  if (/\bbus lane|lane\b/.test(haystack)) return "bus_lane";
+  return null;
+}
+
+/** Corpus records mentioning this route (same normalization as /interventions). */
+export function routeCorpusRecords(
+  corpus: StudioInterventionCorpus | null,
+  routeId: string,
+): StudioInterventionCorpusRecord[] {
+  const normalize = (value: string) =>
+    value.trim().toUpperCase().replace(/-SBS$/, "").replace(/\+$/, "");
+  const target = normalize(routeId);
+  return (corpus?.records ?? []).filter((record) =>
+    record.routes.some((candidate) => normalize(candidate) === target),
+  );
+}
+
+/** In-component lazy fetch: the corpus is citywide and must not ride the
+ * route loader (matches the SlowSegments artifact-fetch idiom). */
+function useInterventionCorpus(): StudioInterventionCorpus | null {
+  const [corpus, setCorpus] = useState<StudioInterventionCorpus | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchStudioInterventionCorpus({ signal: controller.signal })
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        setCorpus(data);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setCorpus(null);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  return corpus;
 }
 
 function timelineIdentity(row: TreatmentTimelineRow): string {
@@ -298,12 +413,13 @@ function TimelineRow({
   evidence: StudioRouteEvidenceBundle | null;
 }) {
   const undated = timelineYearLabel(row.dateLabel) === "Undated";
-  const entries =
+  const baseEntries =
     row.citationKeys.length > 0
       ? citationEntries(evidence, row.citationKeys)
       : row.sourceLabel !== null
         ? [{ label: row.sourceLabel }]
         : [];
+  const entries = [...baseEntries, ...(row.sourceEntries ?? [])];
 
   return (
     <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-3 py-2.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none">
