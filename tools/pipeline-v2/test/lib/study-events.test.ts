@@ -198,6 +198,24 @@ describe("study-event candidate merge", () => {
     );
   });
 
+  test("keeps local and SBS route identities distinct for exact spine mapping", () => {
+    const artifact = build({
+      registryEvents: [
+        registryEvent({ event_id: "local", route_id: "M15" }),
+        registryEvent({ event_id: "sbs", route_id: "M15+" }),
+        registryEvent({ event_id: "sbs-alias", route_id: "M15-SBS" }),
+      ],
+    });
+
+    expect(artifact.candidates.map((candidate) => candidate.routeId).toSorted()).toEqual([
+      "M15",
+      "M15+",
+    ]);
+    expect(
+      artifact.candidates.find((candidate) => candidate.routeId === "M15+")?.provenance,
+    ).toHaveLength(2);
+  });
+
   test("requires a pinned Wiki input unless an explicit opt-out is recorded", () => {
     expect(() =>
       buildStudyEventMergeArtifact({

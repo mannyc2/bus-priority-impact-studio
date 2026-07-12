@@ -13,8 +13,8 @@ as a treatment onset.
 - Operational-anchor artifact SHA-256: `7ddeeea6e36a377c14559af67f9ed378bc54d9a233d6e969f875743ab06291cc`
 - Accepted-review snapshot SHA-256: `07ac7fac34534a35977cff04d8d4f4b3bf175c2575d75f5b85b3d871722a9dfd`
 - Imported assertion artifact SHA-256: `e3254889b9a5f0a47c52f336c86167e3ae3fae2eda2269104b5d9303b073ef0f`
-- Combined study-event artifact SHA-256: `d61db4d6ce7868c0b54cdcb8072ab366eb1d69c6cc611aef4322eb45bcec7f87`
-- Candidate-set id: `candidate-set:98247e930dc7b07f93f57f80`
+- Combined study-event artifact SHA-256: `940240da559c17395596c87322be0222f55fe745e6b96c82269e1a5af02ab414`
+- Candidate-set id: `candidate-set:49af8c8721457fa7532a7345`
 
 Release status: the scoped generator changes were committed before this
 immutable cut. A detached clean worktree at the manifest's `generator_commit`
@@ -123,10 +123,10 @@ It never upgrades a producer-ineligible row.
 | Result | Count |
 |---|---:|
 | Local registry rows inspected | 741 |
-| Trusted registry candidates after exact deduplication | 395 |
+| Trusted registry candidates after exact deduplication | 401 |
 | Wiki assertions inspected | 619 |
 | Wiki candidates admitted | 2 |
-| Combined candidates | 397 |
+| Combined candidates | 403 |
 | Source rows/assertions rejected | 957 |
 | Remaining reported conflicts | 3 |
 | Operator-approved events | 0 |
@@ -134,8 +134,8 @@ It never upgrades a producer-ineligible row.
 Registry rejections include 168 rows from the retired
 `tier2_document_operational_date_assertions` source and 172 non-implemented
 NYC DOT source-gap rows. The full rejection ledger is in `study-events.json`.
-The candidate set contains 317 bus-lane events, 78 automated-enforcement
-events, and 2 Wiki-backed off-board-fare events. All 397 candidates currently
+The candidate set contains 323 bus-lane events, 78 automated-enforcement
+events, and 2 Wiki-backed off-board-fare events. All 403 candidates currently
 have `conflictState: none`; the three reported conflicts belong to Wiki
 assertions that were quarantined before candidacy.
 
@@ -144,7 +144,7 @@ assertions that were quarantined before candidacy.
 State: `awaiting_approval`.
 
 No study event is approved automatically. A valid approval artifact must bind
-to `candidate-set:98247e930dc7b07f93f57f80`, contain exactly one reviewed
+to `candidate-set:49af8c8721457fa7532a7345`, contain exactly one reviewed
 decision for every combined candidate, include reviewer and rationale, and may
 approve at most one date from each same-month conflict. Any candidate,
 provenance, conflict, or pinned Wiki-release change invalidates that approval
@@ -160,7 +160,7 @@ approval.
 Independent reruns produced byte-identical assertion and study-event artifacts:
 
 - assertion artifact: `e3254889b9a5f0a47c52f336c86167e3ae3fae2eda2269104b5d9303b073ef0f`
-- study-event artifact: `d61db4d6ce7868c0b54cdcb8072ab366eb1d69c6cc611aef4322eb45bcec7f87`
+- study-event artifact: `940240da559c17395596c87322be0222f55fe745e6b96c82269e1a5af02ab414`
 
 Machine-readable sources:
 

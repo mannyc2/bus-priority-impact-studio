@@ -2,7 +2,7 @@
 
 This is the tracked, append-only handoff location for Plan 074 study-event
 approval receipts. There is currently **no approval receipt** for
-`candidate-set:98247e930dc7b07f93f57f80`; the corresponding merge artifact is
+`candidate-set:49af8c8721457fa7532a7345`; the corresponding merge artifact is
 still `awaiting_approval` with `approvedEvents: []`.
 
 ## Authority and validation

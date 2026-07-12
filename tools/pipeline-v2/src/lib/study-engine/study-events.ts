@@ -54,7 +54,7 @@ function digest(prefix: string, value: unknown): string {
 }
 
 function routeId(value: string): string {
-  return value.trim().toUpperCase().replace(/-SBS$/u, "").replace(/\+$/u, "");
+  return value.trim().toUpperCase().replace(/-SBS$/u, "+");
 }
 
 function studyTreatmentFamily(
