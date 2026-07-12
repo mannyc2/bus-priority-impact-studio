@@ -26,14 +26,27 @@ pipeline command validates the resulting artifact.
 
 1. Use the clean, immutable MTA Wiki release `v2-operational-anchors-1` and the
    rebuilt `data/artifacts/studio/v2/studies/study-events.json`.
-2. Copy the non-approval example to a scratch path outside `receipts/` and
-   replace it with the exact runtime artifact kind/schema version, current
-   candidate-set id, and one human-reviewed decision per candidate.
-3. Run `study merge-events` with `--wiki-import <artifact>`,
+2. Review
+   `reviews/candidate-set-49af8c8721457fa7532a7345.review-worksheet.json`.
+   It contains all 403 candidates and their provenance, with informational
+   analysis-window hints only. Replace every `REVIEW_REQUIRED` value with
+   `approved` or `rejected`, and fill every `reviewer` and `rationale`. The
+   worksheet is deliberately not a valid receipt while any sentinel or blank
+   human field remains.
+3. Project the completed worksheet to the strict receipt wire shape at a
+   scratch path:
+
+   ```sh
+   jq '{artifactKind:"bp.studio.study_event_approvals.v1",schemaVersion:1,candidateSetId,decisions:[.decisions[]|{candidateId,decision,reviewer,rationale}]}' \
+     data/study-event-approvals/reviews/candidate-set-49af8c8721457fa7532a7345.review-worksheet.json \
+     > /tmp/candidate-set-49af8c8721457fa7532a7345.approval.json
+   ```
+
+4. Run `study merge-events` with `--wiki-import <artifact>`,
    `--approval <scratch-receipt>`, and `--output <scratch-output>`. Do not
    proceed unless the command succeeds and the output is bound to the expected
    candidate set with `approvalState: "approved"`.
-4. Store the validated receipt as
+5. Store the validated receipt as
    `receipts/candidate-set-<24-lowercase-hex>.approval.json`. Commit it together
    with the matching immutable input references and audit update.
 
