@@ -1,0 +1,394 @@
+{
+  "reportVersion": 1,
+  "analysisMonth": "2026-03",
+  "inputHashes": {
+    "baselineCandidateSet": "63da356a9ace61e2755b41540567b4a79a6d8c4a4b5c045df85f79b7b687bb84",
+    "candidateSet": "8bf554a8a9c0f6d90d81b910094710e46d3bc779d5373b982f412b1b04348dbb",
+    "occurrenceImportWrapper": "47371908c45642aeec58bec3d7f450290e761bafe572afedf993fc11d065022e",
+    "occurrenceSource": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+    "spineManifest": "aa342bc154340a1da7209225eb0e32e0bb3df0321b84e3ebb432cb2dffe2b7a7",
+    "wikiManifest": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+    "wikiManifestFiles": [
+      {
+        "name": "claims.jsonl",
+        "bytes": 11446418,
+        "sha256": "b2598eac988edac25d833a650fc0cc9062edef0fef1d77b885fd7643718274c2"
+      },
+      {
+        "name": "corridors.jsonl",
+        "bytes": 779645,
+        "sha256": "6cd41689890e066bf169e6306aafd23e61be16c906136543939f7a77ba844050"
+      },
+      {
+        "name": "entities.jsonl",
+        "bytes": 8414808,
+        "sha256": "5dff5ec682c0a83ea145dc2139cef6b07dbbb3825115a07c02c533557f8d98e1"
+      },
+      {
+        "name": "events.jsonl",
+        "bytes": 12342376,
+        "sha256": "43465830978f34fc8a2004ae4188772b3de85c5936057697e1d93f0cbba03351"
+      },
+      {
+        "name": "metric_claims.jsonl",
+        "bytes": 44870792,
+        "sha256": "73a85e7c44ab7dffc821b2fe822fed2a5b5aea55d7522aace4cd3892024ddaf7"
+      },
+      {
+        "name": "operational_anchor_review_decisions.json",
+        "bytes": 23537,
+        "sha256": "582535e1396b3ce82f2daa0138d076e30dc4532655175b2b931f322be582b530"
+      },
+      {
+        "name": "operational_anchors_summary.json",
+        "bytes": 1765,
+        "sha256": "b638a6afd67bbbf41735faaf454260e85f4061ffa1f519a3582a0878f01bdd6b"
+      },
+      {
+        "name": "operational_anchors.jsonl",
+        "bytes": 21701067,
+        "sha256": "3064a511ef8d415b535a0ca2bd91824addcf38c29336c00bcb6866e192b822e0"
+      },
+      {
+        "name": "operational_occurrence_review_decisions.json",
+        "bytes": 711743,
+        "sha256": "8e0c60c0cc581a184bcf74d45240f2ecffc6c5e2f38eb34c6da86cb9f37cb629"
+      },
+      {
+        "name": "operational_occurrences_summary.json",
+        "bytes": 244,
+        "sha256": "519300f1664b332ab6fb63e9f367195797dbeb9ff1ee40588bb6311b53f07be3"
+      },
+      {
+        "name": "operational_occurrences.jsonl",
+        "bytes": 826833,
+        "sha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399"
+      },
+      {
+        "name": "projects.jsonl",
+        "bytes": 5275125,
+        "sha256": "47faf6d07f1b254a84da8f8b0e58b7170d91dd461946deaa932eac040d641e05"
+      },
+      {
+        "name": "relations.jsonl",
+        "bytes": 35033413,
+        "sha256": "be3acd008a4d92a856537bd2ab46546ee21356f6bc6f95b6653f6bd725346930"
+      },
+      {
+        "name": "route_anchors.jsonl",
+        "bytes": 79026,
+        "sha256": "517b8f74a89e70ec4791d0bf327da6224bb9a6b2ea44eaf8162d704721659239"
+      },
+      {
+        "name": "routes.jsonl",
+        "bytes": 1555813,
+        "sha256": "c6609ca22263f5613802b8e50c3035bec7ebca8b57fbc72b30dc743e7a35e893"
+      },
+      {
+        "name": "source_gaps.jsonl",
+        "bytes": 665503,
+        "sha256": "5b2f00d1dd5813292384cce6833f3b1503ab67e5a8b689f5a2fb274e3ab37a5a"
+      },
+      {
+        "name": "sources.jsonl",
+        "bytes": 5023787,
+        "sha256": "418af5ceebc63a1c7339c054d36210cc7c0286b672e0dc1386ce70db3e7f7cd4"
+      },
+      {
+        "name": "tables.jsonl",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "taxonomy.json",
+        "bytes": 20275,
+        "sha256": "968e036246d4eee681f3e78e898d03abc66242d382f5038d9359d049c7a97116"
+      },
+      {
+        "name": "treatment_components.jsonl",
+        "bytes": 4468700,
+        "sha256": "105dbe6f144e3f18c38cb0e092186b36b5805502a214981ad3cfb2285fc2376a"
+      }
+    ]
+  },
+  "release": {
+    "releaseId": "v1-rc19",
+    "manifestVersion": 3,
+    "generatorCommit": "35984e9d75ee00849ee5a580a45064976122e4bb",
+    "occurrenceContractVersion": 1,
+    "occurrenceCount": 135,
+    "eligibleOccurrenceCount": 134,
+    "rejectedOccurrenceCount": 1,
+    "routeProjectionCount": 172
+  },
+  "baseline": {
+    "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+    "wikiInput": {
+      "mode": "pinned_release",
+      "releaseId": "v2-operational-anchors-1",
+      "manifestSha256": "b69bd9458a92a817c329cfaa2741ef93dece4d2bbdb4695ea775b09622f5c56c",
+      "artifactSha256": "7ddeeea6e36a377c14559af67f9ed378bc54d9a233d6e969f875743ab06291cc"
+    },
+    "summary": {
+      "registryInputCount": 741,
+      "wikiInputCount": 619,
+      "candidateCount": 403,
+      "approvedCount": 5,
+      "rejectedByOperatorCount": 398,
+      "sourceRejectionCount": 957,
+      "conflictCount": 3,
+      "exactDeduplicationCount": 0
+    },
+    "candidates": {
+      "count": 403,
+      "routes": 323,
+      "source": {
+        "mta_wiki": 2,
+        "registry": 401
+      },
+      "treatmentFamily": {
+        "automated_bus_lane_enforcement": 78,
+        "bus_lane": 323,
+        "off_board_fare_collection": 2
+      },
+      "datePrecision": {
+        "day": 403
+      },
+      "outcomeWindow": {
+        "full_6_post": 328,
+        "lt4_post": 53,
+        "partial_4_5_post": 22
+      },
+      "spineReadiness": {
+        "needs_pattern_review": 296,
+        "series_ready": 77,
+        "series_ready_with_gaps": 30
+      },
+      "conflictState": {
+        "none": 403
+      },
+      "confounderGroup": {
+        "none": 403
+      }
+    },
+    "rejections": {
+      "sourceRejectionRows": 957,
+      "reasonOccurrences": {
+        "ambiguous_lifecycle_phase": 291,
+        "ambiguous_route_scope": 6,
+        "ambiguous_treatment_scope": 21,
+        "conflicting_date_evidence": 58,
+        "conflicting_status_evidence": 8,
+        "future_delivered_status": 19,
+        "importer_causal_ineligible": 616,
+        "imprecise_operational_date": 206,
+        "invalid_wiki_implementation_date": 333,
+        "local_causal_eligibility_failed": 616,
+        "missing_operational_date": 127,
+        "missing_route_id": 585,
+        "missing_route_scope": 568,
+        "missing_route_scope_evidence": 568,
+        "missing_treatment_scope": 585,
+        "missing_treatment_scope_evidence": 585,
+        "non_realized_operational_date": 302,
+        "partially_unmatched_gtfs_route": 9,
+        "producer_study_ineligible": 616,
+        "registry_event_not_implemented": 172,
+        "status_as_of_only": 175,
+        "unmatched_gtfs_route": 17,
+        "unsupported_or_ambiguous_treatment_family": 615,
+        "unsupported_subject_scope": 37,
+        "unsupported_treatment_family": 13,
+        "untrusted_or_retired_registry_source": 168,
+        "untrusted_source_authority": 88,
+        "wiki_change_date_conflict": 11
+      },
+      "bucketOccurrences": {
+        "contract_incompatibility": 172,
+        "evidence_authority_truth": 3634,
+        "route_scope": 1790,
+        "treatment_scope": 1819
+      }
+    }
+  },
+  "candidate": {
+    "candidateSetId": "candidate-set-v2:1810cf792be7e2346b335fb5",
+    "approvalState": "awaiting_approval",
+    "summary": {
+      "registryInputCount": 741,
+      "wikiInputCount": 135,
+      "candidateCount": 501,
+      "approvedCount": 0,
+      "rejectedByOperatorCount": 0,
+      "sourceRejectionCount": 384,
+      "conflictCount": 12,
+      "exactDeduplicationCount": 0
+    },
+    "candidates": {
+      "count": 501,
+      "routes": 326,
+      "source": {
+        "mta_wiki": 100,
+        "registry": 401
+      },
+      "treatmentFamily": {
+        "automated_bus_lane_enforcement": 91,
+        "bus_lane": 325,
+        "off_board_fare_collection": 1,
+        "route_redesign": 84
+      },
+      "datePrecision": {
+        "day": 499,
+        "month": 2
+      },
+      "outcomeWindow": {
+        "full_6_post": 421,
+        "lt4_post": 56,
+        "month_precision": 2,
+        "partial_4_5_post": 22
+      },
+      "spineReadiness": {
+        "needs_pattern_review": 381,
+        "series_ready": 88,
+        "series_ready_with_gaps": 32
+      },
+      "conflictState": {
+        "none": 477,
+        "same_month_review_required": 24
+      },
+      "confounderGroup": {
+        "none": 417,
+        "queens_bus_network_redesign_2025": 84
+      }
+    },
+    "rejections": {
+      "sourceRejectionRows": 384,
+      "reasonOccurrences": {
+        "producer_study_projection_ineligible": 1,
+        "registry_event_not_implemented": 172,
+        "unsupported_bundle_analysis_family": 1,
+        "unsupported_treatment_family": 56,
+        "untrusted_or_retired_registry_source": 168
+      },
+      "bucketOccurrences": {
+        "contract_incompatibility": 173,
+        "evidence_authority_truth": 169,
+        "treatment_scope": 56
+      }
+    },
+    "conflictGroups": 12
+  },
+  "identityDelta": {
+    "baselineCount": 403,
+    "candidateCount": 501,
+    "grossDelta": 98,
+    "addedCount": 87,
+    "removedCount": 1,
+    "added": {
+      "count": 87,
+      "routes": 86,
+      "source": {
+        "mta_wiki": 87
+      },
+      "treatmentFamily": {
+        "automated_bus_lane_enforcement": 1,
+        "bus_lane": 2,
+        "route_redesign": 84
+      },
+      "datePrecision": {
+        "day": 85,
+        "month": 2
+      },
+      "outcomeWindow": {
+        "full_6_post": 85,
+        "month_precision": 2
+      },
+      "spineReadiness": {
+        "needs_pattern_review": 75,
+        "series_ready": 11,
+        "series_ready_with_gaps": 1
+      },
+      "conflictState": {
+        "none": 87
+      },
+      "confounderGroup": {
+        "none": 3,
+        "queens_bus_network_redesign_2025": 84
+      }
+    },
+    "removed": [
+      {
+        "identity": "M86+|off_board_fare_collection|2015-07-13|day",
+        "source": "mta_wiki"
+      }
+    ]
+  },
+  "operatorReview": {
+    "newlyReviewableIdentityCount": 87,
+    "newlyReviewableStructuralGatePassCount": 11,
+    "newlyReviewableStructuralGateBlockedBySpineCount": 75,
+    "candidateSetRequiresNewApprovalReceipt": true,
+    "priorReceiptReused": false,
+    "autoApprovedCount": 0
+  },
+  "gates": {
+    "sourceRejectionRows": 384,
+    "sourceRejectionBuckets": {
+      "contract_incompatibility": 173,
+      "evidence_authority_truth": 169,
+      "treatment_scope": 56
+    },
+    "gateBuckets": {
+      "routeScope": {
+        "sourceRejectionReasonOccurrences": 0
+      },
+      "treatmentScope": {
+        "sourceRejectionReasonOccurrences": 56
+      },
+      "evidenceAuthorityTruth": {
+        "sourceRejectionReasonOccurrences": 169
+      },
+      "outcomeCoverage": {
+        "candidateRowsNotFullSixPost": 80,
+        "monthPrecisionRows": 2
+      },
+      "segmentSpineReadiness": {
+        "candidateRowsNeedsPatternReview": 381,
+        "addedRowsNeedsPatternReview": 75
+      },
+      "overlapConfounders": {
+        "conflictGroups": 12,
+        "conflictCandidateRows": 24,
+        "confounderCandidateRows": 84
+      },
+      "contractIncompatibility": {
+        "sourceRejectionReasonOccurrences": 173,
+        "acceptedCandidateRowsRejectedForConsumerContract": 0
+      }
+    },
+    "outcomeCoverage": {
+      "fullSixPost": 421,
+      "partialFourToFivePost": 22,
+      "lessThanFourPost": 56,
+      "monthPrecision": 2
+    },
+    "segmentSpineReadiness": {
+      "needs_pattern_review": 381,
+      "series_ready": 88,
+      "series_ready_with_gaps": 32
+    },
+    "overlapConfounders": {
+      "conflictGroups": 12,
+      "conflictCandidateRows": 24,
+      "confounderCandidateRows": 84,
+      "confounderGroups": {
+        "queens_bus_network_redesign_2025": 84
+      }
+    },
+    "contractCompatibility": {
+      "v3OccurrenceImportToV2Merge": "compatible",
+      "acceptedCandidateRowsRejectedForConsumerContract": 0,
+      "sourceRejectedForUnsupportedBundleAnalysisFamily": 1
+    }
+  }
+}
