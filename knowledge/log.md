@@ -5359,3 +5359,20 @@ detector candidates on the same route. The first March run found 350 route-month
 routes, 112 routes with hidden richer-grain candidates, and 1,142 hidden candidate scopes. The
 evaluation harness now reports 18 scorecards, 20,933 derived negatives, 4,185 holdout negatives,
 782 near-miss scopes, 1,300,725 missing-data scopes, and a portfolio gated score of 845.2.
+
+## [2026-07-13] research | MTA Wiki v1-rc19 study-candidate audit
+
+Assessed the pinned MTA Wiki v1-rc19 release against the Tracker operational-occurrence and
+study-candidate pipeline. The manifest and all 20 declared files were independently rehashed;
+the verified manifest SHA-256 is
+c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f. The release produced 135
+occurrences, 134 study-eligible occurrences, 172 route projections, and 1 correctly rejected
+occurrence. The deterministic before/after audit compares the historical 403-row candidate set
+with the new 501-row set: 87 identity additions, 1 removal, 12 conflict groups, 24
+conflict-marked rows, 84 rows in the Queens redesign confounder group, and zero new approvals.
+
+Plan 083 is rebaselined: its historical 39-ACE statement and 5-of-403 coverage premise are not
+current rc19 facts. The new set has 75 spine-blocked additions, while Plan 074's spine,
+evidence, confounder, approval, and publication gates remain unchanged. No consumer compatibility
+fix was necessary; rc19 uses the versioned occurrence importer because the legacy anchor importer
+is v2-only. See docs/research/mta-wiki-rc19-plan-rebaseline.md and the generated audit artifacts.
