@@ -1,0 +1,57 @@
+{
+  "artifactKind": "bp.studio.codex_review_manifest.v1",
+  "candidateSetId": "candidate-set-v2:1810cf792be7e2346b335fb5",
+  "candidateSetSha256": "8bf554a8a9c0f6d90d81b910094710e46d3bc779d5373b982f412b1b04348dbb",
+  "immutableInputs": {
+    "baselineCandidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+    "baselineSha256": "63da356a9ace61e2755b41540567b4a79a6d8c4a4b5c045df85f79b7b687bb84",
+    "historicalReceiptSha256": "6c17f106dd394b70848bd401283ee1fb7d5b1b8123c4cb2ea8dd8c36a959b6a2",
+    "spineManifestSha256": "aa342bc154340a1da7209225eb0e32e0bb3df0321b84e3ebb432cb2dffe2b7a7"
+  },
+  "analysisMonth": "2026-03",
+  "totalCandidateCount": 501,
+  "batches": [
+    {
+      "batchId": "route-redesign",
+      "file": "10-route-redesign.input.json",
+      "candidateCount": 84,
+      "sha256": "87b7fd825d3eeda25cdc64802069e8bbe4af581627b37eeb2d4127c90331d106"
+    },
+    {
+      "batchId": "ace",
+      "file": "20-ace.input.json",
+      "candidateCount": 91,
+      "sha256": "b0d778bfca94a5053044415eb9e9e2136353c543d0a7f2980db6dffdc90124ec"
+    },
+    {
+      "batchId": "bus-lane-000-081",
+      "file": "30-bus-lane-000-081.input.json",
+      "candidateCount": 82,
+      "sha256": "3ac7cb2ee38624abfedbcd916305527fbe288848b54a1e0f52ff02f839c56ef9"
+    },
+    {
+      "batchId": "bus-lane-082-162",
+      "file": "31-bus-lane-082-162.input.json",
+      "candidateCount": 81,
+      "sha256": "6c77fba561017e10ce5c6287d182cdf07900639a8a942045f91e59c1ce3518ff"
+    },
+    {
+      "batchId": "bus-lane-163-243",
+      "file": "32-bus-lane-163-243.input.json",
+      "candidateCount": 81,
+      "sha256": "5c56f8784f8770074396f455fe937c13c55ddb67242a2d2f8c717c050d62ac1a"
+    },
+    {
+      "batchId": "bus-lane-244-324",
+      "file": "33-bus-lane-244-324.input.json",
+      "candidateCount": 81,
+      "sha256": "085a63b6838d671a376de1c678e859f5e1250496beaa91655d9346c69b474c30"
+    },
+    {
+      "batchId": "off-board-fare",
+      "file": "40-off-board-fare.input.json",
+      "candidateCount": 1,
+      "sha256": "f5093df712b8f2c1a86bdb3e5b7ef49e4af264dde1b980ed4e29f608c873ec96"
+    }
+  ]
+}

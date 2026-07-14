@@ -1,0 +1,1815 @@
+{
+  "artifactKind": "bp.studio.codex_review_batch.v1",
+  "candidateSetId": "candidate-set-v2:1810cf792be7e2346b335fb5",
+  "candidateSetSha256": "8bf554a8a9c0f6d90d81b910094710e46d3bc779d5373b982f412b1b04348dbb",
+  "batchId": "bus-lane-244-324",
+  "reviewer": "Codex main agent",
+  "authorization": "non_authorizing_recommendation_only",
+  "assignment": {
+    "treatmentFamily": "bus_lane",
+    "sort": "candidateId_lexicographic",
+    "startIndex": 244,
+    "endIndex": 324,
+    "expectedDecisionCount": 81
+  },
+  "validatedInputHashes": {
+    "candidateSet": "8bf554a8a9c0f6d90d81b910094710e46d3bc779d5373b982f412b1b04348dbb",
+    "reviewWorksheet": "f00d374a9ebe4ddaf68f0ebdf35ebb9fe3b96188da2ae1c0d45476c4e6ab4217",
+    "historicalCandidateSet": "63da356a9ace61e2755b41540567b4a79a6d8c4a4b5c045df85f79b7b687bb84",
+    "historicalReceipt": "6c17f106dd394b70848bd401283ee1fb7d5b1b8123c4cb2ea8dd8c36a959b6a2",
+    "spineManifest": "aa342bc154340a1da7209225eb0e32e0bb3df0321b84e3ebb432cb2dffe2b7a7",
+    "dotBusLanesSnapshot": "12748ed365ec3eaa064fd579c05cfe434c219f1523869668b3e3858d8b7fcef7",
+    "wikiManifest": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+    "wikiOperationalOccurrences": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399"
+  },
+  "decisionCount": 81,
+  "countsByRecommendation": {
+    "recommend_approve": 0,
+    "recommend_reject": 81,
+    "needs_followup": 0
+  },
+  "decisions": [
+    {
+      "candidateId": "study-event-v2:c224f7cd66538358313fa2c2",
+      "identity": "SIM30|bus_lane|2012-12-11|day",
+      "routeId": "SIM30",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2012-12-11",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c295205a5c894d724b9dd6c6",
+      "identity": "M5|bus_lane|2021-06-28|day",
+      "routeId": "M5",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2021-06-28",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c29bb93526214a03f565c542",
+      "identity": "QM25|bus_lane|2021-06-10|day",
+      "routeId": "QM25",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2021-06-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c331a0993ca0b6048a9a1bbb",
+      "identity": "S91|bus_lane|2012-09-02|day",
+      "routeId": "S91",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2012-09-02",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c348a740d31b66a7c53a2839",
+      "identity": "Q80|bus_lane|2023-11-27|day",
+      "routeId": "Q80",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-11-27",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c3998bd7a0da78ccf7e04bf1",
+      "identity": "BX1|bus_lane|2020-08-05|day",
+      "routeId": "BX1",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2020-08-05",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready_with_gaps (partial_months_within_gap_tolerance). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready_with_gaps",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c4664e726e768764d8b9dece",
+      "identity": "B44+|bus_lane|2018-10-05|day",
+      "routeId": "B44+",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2018-10-05",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c4c39b0f3c90371b46c73fa6",
+      "identity": "SIM25|bus_lane|2012-12-11|day",
+      "routeId": "SIM25",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2012-12-11",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c51282db99e9507738989c0d",
+      "identity": "B45|bus_lane|2025-10-02|day",
+      "routeId": "B45",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-10-02",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 6-pre/5-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "pass_6_pre_5_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c5669d0023b64203e23f1af6",
+      "identity": "SIM4|bus_lane|2021-06-10|day",
+      "routeId": "SIM4",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2021-06-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c56fe3d4ffa980a8e4178d19",
+      "identity": "Q63|bus_lane|2025-12-13|day",
+      "routeId": "Q63",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-13",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum. The current candidate set also places same-route route_redesign 2025-06-29 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c6bd93155bbffd9856470732",
+      "identity": "SIM22|bus_lane|2012-12-11|day",
+      "routeId": "SIM22",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2012-12-11",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c71201a0e63f2a91a8aded64",
+      "identity": "QM20|bus_lane|2025-12-16|day",
+      "routeId": "QM20",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum. The current candidate set also places same-route route_redesign 2025-06-30 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c725655aeb19bb344c1ce990",
+      "identity": "BX36|bus_lane|2023-12-01|day",
+      "routeId": "BX36",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-01",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures. The current candidate set also places same-route automated_bus_lane_enforcement 2023-06-12 and 2024-06-20 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_same_route_ace_overlap",
+        "confounder": "fail_overlapping_automated_bus_lane_enforcement"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c86aa8ed486774309d910a38",
+      "identity": "B11|bus_lane|2013-11-17|day",
+      "routeId": "B11",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2013-11-17",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c910351a6970ad67a85ba290",
+      "identity": "SIM35|bus_lane|2021-06-10|day",
+      "routeId": "SIM35",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2021-06-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c973280f3a11b94dc81327e9",
+      "identity": "BX6+|bus_lane|2025-11-12|day",
+      "routeId": "BX6+",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-11-12",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/4-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_4_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c99e29584b799c943a5dda53",
+      "identity": "SIM32|bus_lane|2021-06-10|day",
+      "routeId": "SIM32",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2021-06-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c9d838bf8f0c536de5bcd8ea",
+      "identity": "M7|bus_lane|2024-11-27|day",
+      "routeId": "M7",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2024-11-27",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures. The window straddles the 2025-01 congestion-pricing onset and requires the Plan 074 flag and sensitivity.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "requires_congestion_pricing_flag_and_sensitivity"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:cb519632be7ace85b82960c6",
+      "identity": "BXM9|bus_lane|2025-08-04|day",
+      "routeId": "BXM9",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-08-04",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:cb530b99c404a8bce0b77bdf",
+      "identity": "M34+|bus_lane|2025-12-16|day",
+      "routeId": "M34+",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:cd1d56f2f359235b81a97c32",
+      "identity": "B46|bus_lane|2024-09-09|day",
+      "routeId": "B46",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2024-09-09",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ce56965db57c4149af7375e3",
+      "identity": "QM17|bus_lane|2025-12-16|day",
+      "routeId": "QM17",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ceb2fe429941f8b53634c2bc",
+      "identity": "BX34|bus_lane|2023-10-31|day",
+      "routeId": "BX34",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-10-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:cf137585878f47cdd1ae7b23",
+      "identity": "S74|bus_lane|1963-05-20|day",
+      "routeId": "S74",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "1963-05-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:cf6008c41bd49d57be430ddf",
+      "identity": "M100|bus_lane|2021-06-28|day",
+      "routeId": "M100",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2021-06-28",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:cf96fd9a2b62820f7af0e172",
+      "identity": "M9|bus_lane|2025-07-01|day",
+      "routeId": "M9",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-07-01",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d0807b4257eab3df480479d5",
+      "identity": "QM5|bus_lane|2025-12-16|day",
+      "routeId": "QM5",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d1336c31bf929341a67ca9f8",
+      "identity": "Q61|bus_lane|2021-01-19|day",
+      "routeId": "Q61",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2021-01-19",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d1cc616281e5031091c4b8e9",
+      "identity": "Q1|bus_lane|2025-09-15|day",
+      "routeId": "Q1",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures. The current candidate set also places same-route route_redesign 2025-06-29 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d1f5c6311b7f0551e4e9fcea",
+      "identity": "B42|bus_lane|2018-09-30|day",
+      "routeId": "B42",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2018-09-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d3141a847218ae4631863086",
+      "identity": "BX5|bus_lane|2025-11-12|day",
+      "routeId": "BX5",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-11-12",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 6-pre/4-post calendar window passes, but cannot cure those hard identity and spine failures. The current candidate set also places same-route automated_bus_lane_enforcement 2025-05-27 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_4_post_calendar_months",
+        "conflict": "fail_same_route_ace_overlap",
+        "confounder": "fail_overlapping_automated_bus_lane_enforcement"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d404e369d4b468d835578bbe",
+      "identity": "BM5|bus_lane|2025-12-16|day",
+      "routeId": "BM5",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d45b5610a73354928a389a7c",
+      "identity": "B20|bus_lane|2019-09-13|day",
+      "routeId": "B20",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2019-09-13",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d6924fa45cd3748c1515c1b3",
+      "identity": "B57|bus_lane|2023-11-14|day",
+      "routeId": "B57",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-11-14",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d70a3ee36eb94ae88732065f",
+      "identity": "B67|bus_lane|2025-09|month",
+      "routeId": "B67",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-09",
+      "recommendation": "recommend_reject",
+      "rationale": "Official rc19 bindings tie the bounded Livingston–State Phase 1 center-running lane installation to B67, and the 6-pre/6-post calendar window plus series_ready_with_gaps route spine pass. The independent-estimate gate still fails because no exact lane-overlap spine is supplied; September is only an installation-commencement month within a rollout, and the current set also contains a competing proximity-derived B67 lane candidate dated 2025-10-02.",
+      "gates": {
+        "evidenceScope": "pass_official_exact_route_treatment_and_bounded_phase",
+        "date": "needs_followup_month_precision_installation_commencement_not_operational_completion",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready_with_gaps",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_competing_same_route_bus_lane_candidate_2025_10_02",
+        "confounder": "fail_unresolved_competing_bus_lane_phase"
+      },
+      "historicalContext": {
+        "decision": null,
+        "identityMatched": false,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d7958c3a07e9ba179ab9ac61",
+      "identity": "B54|bus_lane|2020-08-31|day",
+      "routeId": "B54",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2020-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready_with_gaps (partial_months_within_gap_tolerance). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready_with_gaps",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d7af94a1df349a6dbf569603",
+      "identity": "B12|bus_lane|2014-08-25|day",
+      "routeId": "B12",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2014-08-25",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d966b7183cfbccd956cdcf87",
+      "identity": "QM68|bus_lane|2025-09-15|day",
+      "routeId": "QM68",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures. The current candidate set also places same-route route_redesign 2025-06-30 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d987ddc7a83ee1a38e25e7df",
+      "identity": "QM34|bus_lane|2025-12-16|day",
+      "routeId": "QM34",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum. The current candidate set also places same-route route_redesign 2025-09-02 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d9e063cbda6635db4518929f",
+      "identity": "S96|bus_lane|1963-05-20|day",
+      "routeId": "S96",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "1963-05-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:dae83bfa92a5550f4a4fc9cd",
+      "identity": "BX8|bus_lane|2023-12-27|day",
+      "routeId": "BX8",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-27",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:dd32eb656823a11d0a4e89e9",
+      "identity": "Q75|bus_lane|2025-09-15|day",
+      "routeId": "Q75",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures. The current candidate set also places same-route route_redesign 2025-06-30 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:df8bb7f9438c48166f1ff8b9",
+      "identity": "Q52+|bus_lane|2019-09-16|day",
+      "routeId": "Q52+",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2019-09-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:dfcd0b780b17408941e99587",
+      "identity": "QM4|bus_lane|2025-12-16|day",
+      "routeId": "QM4",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum. The current candidate set also places same-route route_redesign 2025-06-29 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e023f47dbce142d3fa3610b9",
+      "identity": "S51|bus_lane|2020-09-12|day",
+      "routeId": "S51",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2020-09-12",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready_with_gaps (partial_months_within_gap_tolerance). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready_with_gaps",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e158c53b6fc10c16c1859173",
+      "identity": "Q114|bus_lane|2025-09-15|day",
+      "routeId": "Q114",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures. The current candidate set also places same-route route_redesign 2025-06-29 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e1d437f15fa4caee51760675",
+      "identity": "B41|bus_lane|2025-10-02|day",
+      "routeId": "B41",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-10-02",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 6-pre/5-post calendar window passes, but cannot cure those hard identity and spine failures. The current candidate set also contains a competing same-route bus_lane candidate dated 2025-09, leaving phase identity unresolved.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_5_post_calendar_months",
+        "conflict": "fail_competing_same_route_bus_lane_candidate_2025_09",
+        "confounder": "fail_unresolved_competing_bus_lane_phase"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e27fc9d8da678556ca28a4f2",
+      "identity": "SIM3|bus_lane|2025-12-16|day",
+      "routeId": "SIM3",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e2ded3e2665d94981c2a6fa4",
+      "identity": "QM1|bus_lane|2025-12-16|day",
+      "routeId": "QM1",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e2f62a46ac9f1b1a54f713bc",
+      "identity": "X27|bus_lane|2021-06-10|day",
+      "routeId": "X27",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2021-06-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e369e8baf57e9d09861c8734",
+      "identity": "B47|bus_lane|2018-07-15|day",
+      "routeId": "B47",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2018-07-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e49661d76cdbce9bf0c162fe",
+      "identity": "B13|bus_lane|2019-09-13|day",
+      "routeId": "B13",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2019-09-13",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e4d350db98332b8e88a69bdd",
+      "identity": "B7|bus_lane|2018-10-05|day",
+      "routeId": "B7",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2018-10-05",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e63af985846f1474b774533c",
+      "identity": "SIM23|bus_lane|2015-05-27|day",
+      "routeId": "SIM23",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2015-05-27",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e6c966a449ac58cf67befb1f",
+      "identity": "B52|bus_lane|2025-10-02|day",
+      "routeId": "B52",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-10-02",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 6-pre/5-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_5_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e75bc81d4ae44a65269e06ca",
+      "identity": "Q88|bus_lane|2025-09-15|day",
+      "routeId": "Q88",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures. The current candidate set also places same-route route_redesign 2025-06-29 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e841df39651444491aa438f7",
+      "identity": "BX40|bus_lane|2023-12-01|day",
+      "routeId": "BX40",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-01",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e8d588e66d8701dc0c6935cc",
+      "identity": "BX9|bus_lane|2023-12-01|day",
+      "routeId": "BX9",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-01",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready_with_gaps (partial_months_within_gap_tolerance). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready_with_gaps",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e974e64d86c1e0eaa62bbf3d",
+      "identity": "M86+|bus_lane|2023-12-08|day",
+      "routeId": "M86+",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-08",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e9f0c4b0ac1a2dc2541241b3",
+      "identity": "BX41|bus_lane|2023-10-31|day",
+      "routeId": "BX41",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-10-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ea0ab416262ceed4e7184116",
+      "identity": "X28|bus_lane|2021-06-10|day",
+      "routeId": "X28",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2021-06-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ead25ed1e21153df4de7b5c1",
+      "identity": "BX41+|bus_lane|2023-10-31|day",
+      "routeId": "BX41+",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-10-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:eb0fc4d6668b9f36a9ff0a33",
+      "identity": "B25|bus_lane|2025-10-02|day",
+      "routeId": "B25",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-10-02",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/5-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_5_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ecae412bd3cd73835de6ccc9",
+      "identity": "S46|bus_lane|1963-05-20|day",
+      "routeId": "S46",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "1963-05-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ed3722c01cf045db33cfde89",
+      "identity": "M34A+|bus_lane|2025-12-16|day",
+      "routeId": "M34A+",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ed6e836b8fdfca92faa57918",
+      "identity": "Q50|bus_lane|2022-12-03|day",
+      "routeId": "Q50",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2022-12-03",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_3_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:efd0585cf55c6717727d0867",
+      "identity": "Q18|bus_lane|2023-08-08|day",
+      "routeId": "Q18",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-08-08",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 4-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_4_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f113d0e26ca8e84dad903f4c",
+      "identity": "M102|bus_lane|2025-12-16|day",
+      "routeId": "M102",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f200e5e22b025087c8fac5f8",
+      "identity": "SIM11|bus_lane|2025-12-16|day",
+      "routeId": "SIM11",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f2ea930e019165d9925dc176",
+      "identity": "M15|bus_lane|2025-07-01|day",
+      "routeId": "M15",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-07-01",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f3aebb63c67836aaa4d55653",
+      "identity": "B39|bus_lane|2024-02-12|day",
+      "routeId": "B39",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2024-02-12",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f5ba325266f6518ff4d6f17e",
+      "identity": "M66|bus_lane|2023-12-08|day",
+      "routeId": "M66",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-08",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f68f3a13402078ee3b873107",
+      "identity": "BXM18|bus_lane|2021-06-10|day",
+      "routeId": "BXM18",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2021-06-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f9f038501bc575b875684ea1",
+      "identity": "B6|bus_lane|2018-09-30|day",
+      "routeId": "B6",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2018-09-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:fab8438109ac52940b8eb062",
+      "identity": "QM42|bus_lane|2025-12-16|day",
+      "routeId": "QM42",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-12-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 6 pre and 3 post months with the implementation month excluded, below Plan 074's four-per-side minimum. The current candidate set also places same-route route_redesign 2025-06-30 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:fb6eccc2318d0fceff2c9e0b",
+      "identity": "B90|bus_lane|2018-10-05|day",
+      "routeId": "B90",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2018-10-05",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (low_monthly_spine_coverage). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:fbb2e9cb8a4961834c0cbcd6",
+      "identity": "Q25|bus_lane|2025-09-15|day",
+      "routeId": "Q25",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures. The current candidate set also places same-route route_redesign 2025-06-29 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "needs_followup_same_route_queens_redesign_overlap",
+        "confounder": "needs_followup_queens_bus_network_redesign_2025"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:fbc625c00e4811450ce3dab9",
+      "identity": "SIM9|bus_lane|2020-09-12|day",
+      "routeId": "SIM9",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2020-09-12",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is needs_pattern_review (partial_months_require_pattern_grouping). The 2023-04–2026-03 calendar window has 0 pre and 0 post months with the implementation month excluded, below Plan 074's four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_needs_pattern_review_and_exact_lane_overlap_spine_missing",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:fd2d7f51ea2c01130d647e5d",
+      "identity": "M96|bus_lane|2025-08-04|day",
+      "routeId": "M96",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-08-04",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures. The current candidate set also places same-route automated_bus_lane_enforcement 2025-10-13 inside the six-month window.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_same_route_ace_overlap",
+        "confounder": "fail_overlapping_automated_bus_lane_enforcement"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:fd7fea28386ad797b3937854",
+      "identity": "BX25|bus_lane|2023-10-31|day",
+      "routeId": "BX25",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-10-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The evidence/scope and lane-spine gates fail: the pinned DOT lane event is assigned through 150 m/400 m proximity or street matching, its candidate provenance has no exact route/treatment binding, and no exact lane-overlap spine is supplied; the route spine is series_ready (full_spine_coverage_all_months). The 6-pre/6-post calendar window passes, but cannot cure those hard identity and spine failures.",
+      "gates": {
+        "evidenceScope": "fail_proximity_only_missing_exact_route_treatment_and_lane_overlap_binding",
+        "date": "pass_exact_day_on_pinned_dot_lane_record",
+        "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_identified"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "identityMatched": true,
+        "reusedAsAuthorization": false
+      }
+    }
+  ]
+}

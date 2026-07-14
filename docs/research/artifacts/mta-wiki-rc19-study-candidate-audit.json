@@ -1,9 +1,107 @@
 {
-  "reportVersion": 1,
+  "reportVersion": 6,
   "analysisMonth": "2026-03",
   "inputHashes": {
     "baselineCandidateSet": "63da356a9ace61e2755b41540567b4a79a6d8c4a4b5c045df85f79b7b687bb84",
-    "candidateSet": "8bf554a8a9c0f6d90d81b910094710e46d3bc779d5373b982f412b1b04348dbb",
+    "baselineWikiImport": "e3254889b9a5f0a47c52f336c86167e3ae3fae2eda2269104b5d9303b073ef0f",
+    "baselineReceipt": "6c17f106dd394b70848bd401283ee1fb7d5b1b8123c4cb2ea8dd8c36a959b6a2",
+    "baselineReviewReport": "91c6975d955ee61b094007ecf7179cfe9d3a503b7c3382b141e4419b31e0c268",
+    "candidateSet": "42d9dc3139b4ba1439b0737b7f2b2175e7fe71fa20286c1ec349addf8f6455ba",
+    "candidateBuildRecord": "9957e8b5af30b76d1157924ddb3829c90694dc70c0faa7be2f1f6c621008283d",
+    "logicalMergeInputs": "17530e0bc5a857463249d32a882ae7027a77ea44041babe00c5d761662363104",
+    "reviewReconciliation": "8b5f77c9391970223aaa1fee8c3833a2d00c90e1755b80267c76ffbfb95c522c",
+    "verifiedReviewFiles": [
+      {
+        "kind": "rubric",
+        "file": "00-review-rubric.md",
+        "sha256": "2f3cd3928176d61eebad65e0a6cb5c2e945bf6b981fef941d8d316c32e6b46c3"
+      },
+      {
+        "kind": "transfer_proof",
+        "file": "review-transfer-summary.json",
+        "sha256": "fdf9eafa9c80dbc0b3f85a5c6e2f9b8f0a05f31684617df8e8ad4243b1f81c13"
+      },
+      {
+        "kind": "corrected_recheck",
+        "file": "20-ace-dedup-recheck.json",
+        "sha256": "3ead9d3217e99f07c6a9bbe3c053101d946a09da6a000b99ea0302ad688f27e6"
+      },
+      {
+        "kind": "manifest",
+        "file": "inputs/manifest.json",
+        "sha256": "daecfa64395062ab7f9f17c5488144c1dae68769092353f2ce3b78d8c03bbb1b"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/10-route-redesign.input.json",
+        "sha256": "ac4b2c35c554cbd88d90eec45273f62294458b7425647262929ac79f201206ac"
+      },
+      {
+        "kind": "batch_output",
+        "file": "10-route-redesign.json",
+        "sha256": "7ab92a0206976759e66e668cb82a405797e021225021f99be083d7576deb99a1"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/20-ace.input.json",
+        "sha256": "3ae8a83977fba514d124d8b22292cfba539b539d586a59b80db5757a43c9db5b"
+      },
+      {
+        "kind": "batch_output",
+        "file": "20-ace.json",
+        "sha256": "9cb0c79974c77e77e1dad0fec275580ca672921c64e84ea61a1adec958adb3f7"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/30-bus-lane-000-081.input.json",
+        "sha256": "a853ae6ec1bd9e264c95c046b86aba33ed32ffe93ddaeb626ebabe99f8fef888"
+      },
+      {
+        "kind": "batch_output",
+        "file": "30-bus-lane-000-081.json",
+        "sha256": "f4d95bf8b8751c4dfa01b2dc2f97408bb4ba7955ed4bd80d982f33f3b34261ae"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/31-bus-lane-082-162.input.json",
+        "sha256": "854a02be136f2d8e6b020e6bb4085e7eb4aab2fb1c00043db76f640d410d4d2e"
+      },
+      {
+        "kind": "batch_output",
+        "file": "31-bus-lane-082-162.json",
+        "sha256": "d90796203d0c06f46212401ea6a1a3cc64df54f5cd15a0187124817d9ac818e9"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/32-bus-lane-163-243.input.json",
+        "sha256": "18d45e64f774358bcc95c5e87833dd2cc48b688cc919baeec72f3c40086dcbbb"
+      },
+      {
+        "kind": "batch_output",
+        "file": "32-bus-lane-163-243.json",
+        "sha256": "a6e69097695d36e278babe04558bd491b26da2d694bf61a76c4be9242a96977f"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/33-bus-lane-244-324.input.json",
+        "sha256": "225db916662e9b84b00e36d20375a1a536f4a03372eabb70806a30e00c374879"
+      },
+      {
+        "kind": "batch_output",
+        "file": "33-bus-lane-244-324.json",
+        "sha256": "809304725c79219b5f7f8b3e9d382017df7878f923fafb527490f0d3e81ae66b"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/40-off-board-fare.input.json",
+        "sha256": "7515dd728ab832766419c6a99ce43216a2f918ed8fbfd648ffd8f568b8522a73"
+      },
+      {
+        "kind": "batch_output",
+        "file": "40-off-board-fare.json",
+        "sha256": "170ab24b90bff2680704a96a7b9dbc9ebb60bd73b26471f49b0d7eced10d1172"
+      }
+    ],
     "occurrenceImportWrapper": "47371908c45642aeec58bec3d7f450290e761bafe572afedf993fc11d065022e",
     "occurrenceSource": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
     "spineManifest": "aa342bc154340a1da7209225eb0e32e0bb3df0321b84e3ebb432cb2dffe2b7a7",
@@ -109,17 +207,100 @@
         "bytes": 4468700,
         "sha256": "105dbe6f144e3f18c38cb0e092186b36b5805502a214981ad3cfb2285fc2376a"
       }
-    ]
+    ],
+    "acquisitionFrontierMarkdown": "0ed153ca57f552e17512f8869ea56a6f86b849f35bc7127374ab95ae42c3bb8b",
+    "acquisitionFrontierJson": "c314ce6c0e467e4c408e5aa5e89e97e8e04fbbf2a4e793942663a7e2c7d2825e",
+    "coverageManifest": "7c8fdb011fde2298c7a36e169e13c88361b7149429700eadec779c96364380c5",
+    "coverageMatrix": "1f689fdd2f13a2be494d9c4db78d38704f929d4cd22733165bf0beedca4eb89a",
+    "priorityQueue": "55181bae99bc9fa22dd07c1ccd99bdc60261b41d6c53c882102f62beb50fadbe",
+    "latestPointerObservedOnly": "d44b4b97597938d1953f7707b8d576a13537aaebafd0af19ad4d0e5365040d72",
+    "planIndex": "4bf721e76d89313d6b3e115177cb7623c35cc8b647381bd7e46a481ec62d4889",
+    "plan074": "9eeee753c89e9a43d8e82e11c1936f8219e3c770c11883464c948785f94793c5",
+    "plan075": "1c6862c68edec94f46e55ac97e210a93c43b6dae8d1a0c110edeb60e0a29e5cd",
+    "plan083": "9c4a67c9fa67f324a21faf2e4258716603607a914f9d69b1f4c85f192d91a186"
   },
   "release": {
     "releaseId": "v1-rc19",
     "manifestVersion": 3,
     "generatorCommit": "35984e9d75ee00849ee5a580a45064976122e4bb",
+    "selectedByExplicitManifestPath": true,
+    "selectedViaLatest": false,
+    "latestReleaseObserved": "v1-rc5",
+    "promotedAtAuditTime": false,
     "occurrenceContractVersion": 1,
     "occurrenceCount": 135,
     "eligibleOccurrenceCount": 134,
     "rejectedOccurrenceCount": 1,
-    "routeProjectionCount": 172
+    "routeProjectionCount": 172,
+    "atomicOccurrenceCount": 50,
+    "bundleOccurrenceCount": 85,
+    "multiRouteOccurrenceCount": 10,
+    "legacyAnchorExport": {
+      "contractVersion": 1,
+      "rowCount": 760,
+      "reviewedRowCount": 9,
+      "studyEligibleRowCount": 9,
+      "nonStudyEligibleRowCount": 751,
+      "consumedByCandidatePipeline": false,
+      "exclusionReasonOccurrences": {
+        "ambiguous_lifecycle_phase": 309,
+        "ambiguous_route_scope": 148,
+        "ambiguous_treatment_scope": 154,
+        "conflicting_status_evidence": 8,
+        "future_delivered_status": 17,
+        "imprecise_operational_date": 203,
+        "missing_operational_date": 126,
+        "missing_route_scope": 556,
+        "missing_treatment_scope": 576,
+        "non_realized_operational_date": 299,
+        "partially_unmatched_gtfs_route": 138,
+        "status_as_of_only": 174,
+        "unmatched_gtfs_route": 17,
+        "unreviewed_inherited_scope": 3,
+        "unsupported_subject_scope": 37,
+        "untrusted_source_authority": 69
+      },
+      "exclusionBucketOccurrences": {
+        "evidence_authority_truth": 1205,
+        "route_scope": 896,
+        "treatment_scope": 730,
+        "unclassified": 3
+      }
+    },
+    "completion": {
+      "acquisitionTargetCount": 47,
+      "operationalDiagnosticRows": 148,
+      "terminalOperationalDiagnosticRows": 148,
+      "priorityQueueRows": 489,
+      "terminalPriorityQueueRows": 489,
+      "openPriorityQueueRows": 0
+    }
+  },
+  "candidateBuild": {
+    "consumerCommit": "6dd3219869ba694483a6dbd5a8b31c79e6f7de04",
+    "logicalMergeInputs": {
+      "sha256": "17530e0bc5a857463249d32a882ae7027a77ea44041babe00c5d761662363104",
+      "summary": {
+        "registryRowCount": 741,
+        "availableAnalysisRouteIdCount": 385
+      }
+    },
+    "occurrenceImportWrapperSha256": "47371908c45642aeec58bec3d7f450290e761bafe572afedf993fc11d065022e",
+    "candidateSetSha256": "42d9dc3139b4ba1439b0737b7f2b2175e7fe71fa20286c1ec349addf8f6455ba",
+    "determinism": {
+      "runCount": 3,
+      "byteIdentical": true,
+      "sha256ByRun": [
+        "42d9dc3139b4ba1439b0737b7f2b2175e7fe71fa20286c1ec349addf8f6455ba",
+        "42d9dc3139b4ba1439b0737b7f2b2175e7fe71fa20286c1ec349addf8f6455ba",
+        "42d9dc3139b4ba1439b0737b7f2b2175e7fe71fa20286c1ec349addf8f6455ba"
+      ]
+    },
+    "registryDatabaseUsedReadOnly": true,
+    "mergeCanReplayLogicalSnapshotDirectly": false,
+    "reproductionPrecondition": "The merge command reads SQLite directly. Rebuild only after a fresh logical snapshot is byte-identical to the frozen snapshot, and keep the database unchanged for both merge runs.",
+    "determinismClaim": "The build record proves byte-identical outputs for repeated runs against the witnessed logical database state; it does not claim direct replay from the snapshot artifact.",
+    "approvalAppliedDuringBuild": false
   },
   "baseline": {
     "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
@@ -155,9 +336,9 @@
         "day": 403
       },
       "outcomeWindow": {
-        "full_6_post": 328,
-        "lt4_post": 53,
-        "partial_4_5_post": 22
+        "calendar_ineligible": 216,
+        "eligible_day_4plus": 31,
+        "eligible_day_6x6": 156
       },
       "spineReadiness": {
         "needs_pattern_review": 296,
@@ -204,60 +385,79 @@
         "wiki_change_date_conflict": 11
       },
       "bucketOccurrences": {
-        "contract_incompatibility": 172,
-        "evidence_authority_truth": 3634,
+        "evidence_authority_truth": 3806,
         "route_scope": 1790,
         "treatment_scope": 1819
       }
+    },
+    "approvalReceipt": {
+      "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+      "decisionCount": 403,
+      "countsByDecision": {
+        "approved": 5,
+        "rejected": 398
+      },
+      "immutableHistoricalInput": true
+    },
+    "operationalEvidenceImport": {
+      "releaseId": "v2-operational-anchors-1",
+      "sourceRowCount": 633,
+      "assertionCount": 619,
+      "acceptedAssertionCount": 3,
+      "rejectedAssertionCount": 616,
+      "rejectedAnchorCount": 630,
+      "exactDuplicateGroupCount": 7,
+      "exactDuplicateRowCount": 14,
+      "crossDateConflictGroupCount": 20
     }
   },
   "candidate": {
-    "candidateSetId": "candidate-set-v2:1810cf792be7e2346b335fb5",
+    "candidateSetId": "candidate-set-v2:24080902f508b55a0033df32",
     "approvalState": "awaiting_approval",
     "summary": {
       "registryInputCount": 741,
       "wikiInputCount": 135,
-      "candidateCount": 501,
+      "candidateCount": 489,
       "approvedCount": 0,
       "rejectedByOperatorCount": 0,
       "sourceRejectionCount": 384,
-      "conflictCount": 12,
-      "exactDeduplicationCount": 0
+      "conflictCount": 0,
+      "exactDeduplicationCount": 12
     },
     "candidates": {
-      "count": 501,
+      "count": 489,
       "routes": 326,
       "source": {
-        "mta_wiki": 100,
-        "registry": 401
+        "mta_wiki": 88,
+        "mta_wiki+registry": 12,
+        "registry": 389
       },
       "treatmentFamily": {
-        "automated_bus_lane_enforcement": 91,
+        "automated_bus_lane_enforcement": 79,
         "bus_lane": 325,
         "off_board_fare_collection": 1,
         "route_redesign": 84
       },
       "datePrecision": {
-        "day": 499,
+        "day": 487,
         "month": 2
       },
       "outcomeWindow": {
-        "full_6_post": 421,
-        "lt4_post": 56,
-        "month_precision": 2,
-        "partial_4_5_post": 22
+        "calendar_ineligible": 215,
+        "eligible_day_4plus": 31,
+        "eligible_day_6x6": 241,
+        "eligible_month_precision": 2
       },
       "spineReadiness": {
-        "needs_pattern_review": 381,
-        "series_ready": 88,
-        "series_ready_with_gaps": 32
+        "needs_pattern_review": 371,
+        "series_ready": 87,
+        "series_ready_with_gaps": 31
       },
       "conflictState": {
-        "none": 477,
-        "same_month_review_required": 24
+        "none": 489
       },
       "confounderGroup": {
-        "none": 417,
+        "none": 405,
         "queens_bus_network_redesign_2025": 84
       }
     },
@@ -271,17 +471,26 @@
         "untrusted_or_retired_registry_source": 168
       },
       "bucketOccurrences": {
-        "contract_incompatibility": 173,
-        "evidence_authority_truth": 169,
-        "treatment_scope": 56
+        "evidence_authority_truth": 341,
+        "treatment_scope": 57
       }
     },
-    "conflictGroups": 12
+    "conflictGroups": 0
+  },
+  "operationalEvidenceComparison": {
+    "unitsDirectlyComparable": false,
+    "explanation": "The baseline consumer imported individual operational-date assertions; rc19 is consumed through reviewed operational occurrences. The rc19 legacy anchor export is reported for completeness but is not the candidate-pipeline input.",
+    "baselineAcceptedAssertions": 3,
+    "baselineRejectedAssertions": 616,
+    "rc19LegacyAnchorAcceptedRows": 9,
+    "rc19LegacyAnchorNonEligibleRows": 751,
+    "rc19ConsumedAcceptedOccurrences": 134,
+    "rc19ConsumedRejectedOccurrences": 1
   },
   "identityDelta": {
     "baselineCount": 403,
-    "candidateCount": 501,
-    "grossDelta": 98,
+    "candidateCount": 489,
+    "grossDelta": 86,
     "addedCount": 87,
     "removedCount": 1,
     "added": {
@@ -300,8 +509,8 @@
         "month": 2
       },
       "outcomeWindow": {
-        "full_6_post": 85,
-        "month_precision": 2
+        "eligible_day_6x6": 85,
+        "eligible_month_precision": 2
       },
       "spineReadiness": {
         "needs_pattern_review": 75,
@@ -321,12 +530,244 @@
         "identity": "M86+|off_board_fare_collection|2015-07-13|day",
         "source": "mta_wiki"
       }
-    ]
+    ],
+    "treatmentFamilyDelta": {
+      "automated_bus_lane_enforcement": {
+        "baseline": 78,
+        "candidate": 79,
+        "delta": 1
+      },
+      "bus_lane": {
+        "baseline": 323,
+        "candidate": 325,
+        "delta": 2
+      },
+      "off_board_fare_collection": {
+        "baseline": 2,
+        "candidate": 1,
+        "delta": -1
+      },
+      "route_redesign": {
+        "baseline": 0,
+        "candidate": 84,
+        "delta": 84
+      }
+    }
+  },
+  "codexReview": {
+    "artifactKind": "bp.studio.codex_review_reconciliation.v1",
+    "authorization": "non_authorizing_recommendation_only",
+    "authorizesStudyRun": false,
+    "authorizesPublication": false,
+    "reconciliationSha256": "8b5f77c9391970223aaa1fee8c3833a2d00c90e1755b80267c76ffbfb95c522c",
+    "candidateSetId": "candidate-set-v2:24080902f508b55a0033df32",
+    "candidateSetSha256": "42d9dc3139b4ba1439b0737b7f2b2175e7fe71fa20286c1ec349addf8f6455ba",
+    "summary": {
+      "candidateCount": 489,
+      "decisionCount": 489,
+      "countsByRecommendation": {
+        "recommend_approve": 16,
+        "recommend_reject": 473,
+        "needs_followup": 0
+      }
+    },
+    "verifiedFileCount": 18,
+    "verifiedFiles": [
+      {
+        "kind": "rubric",
+        "file": "00-review-rubric.md",
+        "sha256": "2f3cd3928176d61eebad65e0a6cb5c2e945bf6b981fef941d8d316c32e6b46c3"
+      },
+      {
+        "kind": "transfer_proof",
+        "file": "review-transfer-summary.json",
+        "sha256": "fdf9eafa9c80dbc0b3f85a5c6e2f9b8f0a05f31684617df8e8ad4243b1f81c13"
+      },
+      {
+        "kind": "corrected_recheck",
+        "file": "20-ace-dedup-recheck.json",
+        "sha256": "3ead9d3217e99f07c6a9bbe3c053101d946a09da6a000b99ea0302ad688f27e6"
+      },
+      {
+        "kind": "manifest",
+        "file": "inputs/manifest.json",
+        "sha256": "daecfa64395062ab7f9f17c5488144c1dae68769092353f2ce3b78d8c03bbb1b"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/10-route-redesign.input.json",
+        "sha256": "ac4b2c35c554cbd88d90eec45273f62294458b7425647262929ac79f201206ac"
+      },
+      {
+        "kind": "batch_output",
+        "file": "10-route-redesign.json",
+        "sha256": "7ab92a0206976759e66e668cb82a405797e021225021f99be083d7576deb99a1"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/20-ace.input.json",
+        "sha256": "3ae8a83977fba514d124d8b22292cfba539b539d586a59b80db5757a43c9db5b"
+      },
+      {
+        "kind": "batch_output",
+        "file": "20-ace.json",
+        "sha256": "9cb0c79974c77e77e1dad0fec275580ca672921c64e84ea61a1adec958adb3f7"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/30-bus-lane-000-081.input.json",
+        "sha256": "a853ae6ec1bd9e264c95c046b86aba33ed32ffe93ddaeb626ebabe99f8fef888"
+      },
+      {
+        "kind": "batch_output",
+        "file": "30-bus-lane-000-081.json",
+        "sha256": "f4d95bf8b8751c4dfa01b2dc2f97408bb4ba7955ed4bd80d982f33f3b34261ae"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/31-bus-lane-082-162.input.json",
+        "sha256": "854a02be136f2d8e6b020e6bb4085e7eb4aab2fb1c00043db76f640d410d4d2e"
+      },
+      {
+        "kind": "batch_output",
+        "file": "31-bus-lane-082-162.json",
+        "sha256": "d90796203d0c06f46212401ea6a1a3cc64df54f5cd15a0187124817d9ac818e9"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/32-bus-lane-163-243.input.json",
+        "sha256": "18d45e64f774358bcc95c5e87833dd2cc48b688cc919baeec72f3c40086dcbbb"
+      },
+      {
+        "kind": "batch_output",
+        "file": "32-bus-lane-163-243.json",
+        "sha256": "a6e69097695d36e278babe04558bd491b26da2d694bf61a76c4be9242a96977f"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/33-bus-lane-244-324.input.json",
+        "sha256": "225db916662e9b84b00e36d20375a1a536f4a03372eabb70806a30e00c374879"
+      },
+      {
+        "kind": "batch_output",
+        "file": "33-bus-lane-244-324.json",
+        "sha256": "809304725c79219b5f7f8b3e9d382017df7878f923fafb527490f0d3e81ae66b"
+      },
+      {
+        "kind": "batch_input",
+        "file": "inputs/40-off-board-fare.input.json",
+        "sha256": "7515dd728ab832766419c6a99ce43216a2f918ed8fbfd648ffd8f568b8522a73"
+      },
+      {
+        "kind": "batch_output",
+        "file": "40-off-board-fare.json",
+        "sha256": "170ab24b90bff2680704a96a7b9dbc9ebb60bd73b26471f49b0d7eced10d1172"
+      }
+    ],
+    "recommendedApproveIdentities": [
+      "B82+|automated_bus_lane_enforcement|2024-09-30|day",
+      "BX28|automated_bus_lane_enforcement|2024-09-16|day",
+      "BX38|automated_bus_lane_enforcement|2024-09-16|day",
+      "BX9|automated_bus_lane_enforcement|2025-11-10|day",
+      "M79+|automated_bus_lane_enforcement|2024-09-30|day",
+      "Q45|route_redesign|2025-06-29|day",
+      "Q61|route_redesign|2025-06-29|day",
+      "Q63|route_redesign|2025-06-29|day",
+      "Q80|route_redesign|2025-08-31|day",
+      "Q86|route_redesign|2025-06-29|day",
+      "Q87|route_redesign|2025-06-30|day",
+      "Q89|route_redesign|2025-06-29|day",
+      "QM34|route_redesign|2025-09-02|day",
+      "QM44|route_redesign|2025-06-30|day",
+      "QM64|route_redesign|2025-06-30|day",
+      "QM68|route_redesign|2025-06-30|day"
+    ],
+    "addedRecommendedApproveCount": 11,
+    "addedRecommendedApproveIdentities": [
+      "Q45|route_redesign|2025-06-29|day",
+      "Q61|route_redesign|2025-06-29|day",
+      "Q63|route_redesign|2025-06-29|day",
+      "Q80|route_redesign|2025-08-31|day",
+      "Q86|route_redesign|2025-06-29|day",
+      "Q87|route_redesign|2025-06-30|day",
+      "Q89|route_redesign|2025-06-29|day",
+      "QM34|route_redesign|2025-09-02|day",
+      "QM44|route_redesign|2025-06-30|day",
+      "QM64|route_redesign|2025-06-30|day",
+      "QM68|route_redesign|2025-06-30|day"
+    ],
+    "unchangedRecommendedApproveCount": 5,
+    "unchangedRecommendedApproveIdentities": [
+      "B82+|automated_bus_lane_enforcement|2024-09-30|day",
+      "BX28|automated_bus_lane_enforcement|2024-09-16|day",
+      "BX38|automated_bus_lane_enforcement|2024-09-16|day",
+      "BX9|automated_bus_lane_enforcement|2025-11-10|day",
+      "M79+|automated_bus_lane_enforcement|2024-09-30|day"
+    ],
+    "unchangedRecommendationsMatchHistoricalApprovals": true,
+    "addedMechanicalPrefilter": {
+      "candidateCount": 12,
+      "recommendApproveCount": 11,
+      "remainingBlockedCount": 1,
+      "remainingBlocked": [
+        {
+          "candidateId": "study-event-v2:d70a3ee36eb94ae88732065f",
+          "identity": "B67|bus_lane|2025-09|month",
+          "recommendation": "recommend_reject",
+          "rationale": "Official rc19 bindings tie the bounded Livingston–State Phase 1 center-running lane installation to B67, and the 6-pre/6-post calendar window plus series_ready_with_gaps route spine pass. The independent-estimate gate still fails because no exact lane-overlap spine is supplied; September is only an installation-commencement month within a rollout, and the current set also contains a competing proximity-derived B67 lane candidate dated 2025-10-02.",
+          "gates": {
+            "evidenceScope": "pass_official_exact_route_treatment_and_bounded_phase",
+            "date": "needs_followup_month_precision_installation_commencement_not_operational_completion",
+            "spine": "fail_exact_lane_overlap_spine_missing_route_spine_series_ready_with_gaps",
+            "outcome": "pass_6_pre_6_post_calendar_months",
+            "conflict": "fail_competing_same_route_bus_lane_candidate_2025_10_02",
+            "confounder": "fail_unresolved_competing_bus_lane_phase"
+          }
+        }
+      ]
+    },
+    "rejectionGateIssueCounts": {
+      "countingUnit": "rejected_candidate_rows",
+      "nonExclusive": true,
+      "rejectedCandidateRows": 473,
+      "rejectedRowsWithoutHardFailure": 0,
+      "routeScopeHardFailure": 323,
+      "routeScopeFollowupOrUnresolved": 1,
+      "treatmentScopeHardFailure": 343,
+      "treatmentScopeFollowupOrUnresolved": 1,
+      "evidenceAuthorityTruthHardFailure": 343,
+      "evidenceAuthorityTruthFollowupOrUnresolved": 7,
+      "outcomeCoverageHardFailure": 215,
+      "outcomeCoverageFollowupOrUnresolved": 0,
+      "segmentSpineReadinessHardFailure": 458,
+      "segmentSpineReadinessFollowupOrUnresolved": 0,
+      "overlapConfoundersHardFailure": 46,
+      "overlapConfoundersFollowupOrUnresolved": 42,
+      "overlapConfoundersIncludingPrespecifiedSensitivityOrFlag": 107,
+      "contractIncompatibilityHardFailure": 0,
+      "method": "Hard-failure counts use only fail-prefixed frozen reviewer gate fields. Follow-up/unresolved counts are reported separately and never labeled hard failures. Route and treatment counts classify only evidenceScope by explicit route/proximity and treatment/phase/onset/lane/scope/ABLE/ACE terms. Contract failures are derived from fail-prefixed rejected rows whose rationale or gate text explicitly names contract, schema, or incompatibility. Counts overlap."
+    },
+    "createsApprovalReceipt": false
   },
   "operatorReview": {
-    "newlyReviewableIdentityCount": 87,
-    "newlyReviewableStructuralGatePassCount": 11,
+    "newlyPresentIdentityCount": 87,
+    "newlyDeepReviewableStructuralGatePassCount": 12,
+    "newlyDeepReviewableExactDayCount": 11,
+    "newlyDeepReviewableMonthPrecisionCount": 1,
     "newlyReviewableStructuralGateBlockedBySpineCount": 75,
+    "fullSetMechanicalHardRejectCount": 434,
+    "fullSetDeepReviewRequiredCount": 55,
+    "structuralDisposition": {
+      "blocked_by_calendar_only_among_mechanical_gates": 63,
+      "blocked_by_spine_and_calendar": 152,
+      "blocked_by_spine_only_among_mechanical_gates": 219,
+      "deep_review_required": 55
+    },
+    "codexRecommendedApproveCount": 16,
+    "codexRecommendedRejectCount": 473,
+    "codexNeedsFollowupCount": 0,
+    "newlyRecommendedApproveCount": 11,
+    "codexRecommendationsAuthorizeNothing": true,
     "candidateSetRequiresNewApprovalReceipt": true,
     "priorReceiptReused": false,
     "autoApprovedCount": 0
@@ -334,61 +775,110 @@
   "gates": {
     "sourceRejectionRows": 384,
     "sourceRejectionBuckets": {
-      "contract_incompatibility": 173,
-      "evidence_authority_truth": 169,
-      "treatment_scope": 56
+      "evidence_authority_truth": 341,
+      "treatment_scope": 57
     },
     "gateBuckets": {
       "routeScope": {
         "sourceRejectionReasonOccurrences": 0
       },
       "treatmentScope": {
-        "sourceRejectionReasonOccurrences": 56
+        "sourceRejectionReasonOccurrences": 57
       },
       "evidenceAuthorityTruth": {
-        "sourceRejectionReasonOccurrences": 169
+        "sourceRejectionReasonOccurrences": 341
       },
       "outcomeCoverage": {
-        "candidateRowsNotFullSixPost": 80,
+        "candidateRowsCalendarIneligible": 215,
         "monthPrecisionRows": 2
       },
       "segmentSpineReadiness": {
-        "candidateRowsNeedsPatternReview": 381,
+        "candidateRowsNeedsPatternReview": 371,
         "addedRowsNeedsPatternReview": 75
       },
       "overlapConfounders": {
-        "conflictGroups": 12,
-        "conflictCandidateRows": 24,
+        "conflictGroups": 0,
+        "conflictCandidateRows": 0,
         "confounderCandidateRows": 84
       },
       "contractIncompatibility": {
-        "sourceRejectionReasonOccurrences": 173,
-        "acceptedCandidateRowsRejectedForConsumerContract": 0
+        "sourceRejectionReasonOccurrences": 0,
+        "reviewRejectedRowsWithExplicitContractHardFailure": 0
       }
     },
     "outcomeCoverage": {
-      "fullSixPost": 421,
-      "partialFourToFivePost": 22,
-      "lessThanFourPost": 56,
-      "monthPrecision": 2
+      "eligibleAtLeastFourEach": 274,
+      "calendarIneligible": 215,
+      "fullSixEach": 243,
+      "exactDayEligible": 272,
+      "monthPrecisionEligible": 2,
+      "status": {
+        "calendar_ineligible": 215,
+        "eligible_day_4plus": 31,
+        "eligible_day_6x6": 241,
+        "eligible_month_precision": 2
+      }
     },
     "segmentSpineReadiness": {
-      "needs_pattern_review": 381,
-      "series_ready": 88,
-      "series_ready_with_gaps": 32
+      "needs_pattern_review": 371,
+      "series_ready": 87,
+      "series_ready_with_gaps": 31
     },
     "overlapConfounders": {
-      "conflictGroups": 12,
-      "conflictCandidateRows": 24,
+      "conflictGroups": 0,
+      "conflictCandidateRows": 0,
       "confounderCandidateRows": 84,
       "confounderGroups": {
         "queens_bus_network_redesign_2025": 84
       }
     },
     "contractCompatibility": {
-      "v3OccurrenceImportToV2Merge": "compatible",
-      "acceptedCandidateRowsRejectedForConsumerContract": 0,
+      "v3OccurrenceImportToV2Merge": "compatible_after_exact_cross_source_dedup_fix",
+      "exactCrossSourceDeduplicationCount": 12,
+      "reviewRejectedRowsWithExplicitContractHardFailure": 0,
       "sourceRejectedForUnsupportedBundleAnalysisFamily": 1
     }
+  },
+  "plan083Rebaseline": {
+    "historicalReceiptBoundCandidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+    "historicalApprovedCount": 5,
+    "historicalCandidateCount": 403,
+    "historicalPrimarySpineBucket": {
+      "candidateIdentityCount": 39,
+      "routeCount": 37,
+      "noAdditionalPhaseOrOverlapDefectNamedCount": 20,
+      "alsoPhaseAmbiguousCount": 14,
+      "alsoSameRouteOverlapCount": 5
+    },
+    "currentCandidateSetId": "candidate-set-v2:24080902f508b55a0033df32",
+    "currentApprovedCount": 0,
+    "currentCandidateCount": 489,
+    "currentAceCalendarPassSpineBlockedIdentityCount": 40,
+    "currentAceCalendarPassSpineBlockedRouteCount": 38,
+    "rc19AddedSpineBlockedIdentityCount": 75,
+    "rc19AddedSpineBlockedRouteCount": 74,
+    "rc19AddedSpineBlockedByTreatmentFamily": {
+      "automated_bus_lane_enforcement": 1,
+      "bus_lane": 1,
+      "route_redesign": 73
+    },
+    "fullCandidateRowsNeedsPatternReview": 371,
+    "spineManifestRouteReadiness": {
+      "needs_pattern_review": 267,
+      "series_ready": 93,
+      "series_ready_with_gaps": 25
+    },
+    "spikeStillIndependentlyNecessary": true,
+    "spikeDoesNotAuthorizeCandidates": true
+  },
+  "planIndexAudit": {
+    "plan084Occupied": true,
+    "plan084Title": "Retire the monthly-baseline doctrine: ADR-0022 + steering-doc truth sweep",
+    "rc19Plan084Created": false,
+    "existingPlansRebaselined": [
+      "074",
+      "075",
+      "083"
+    ]
   }
 }

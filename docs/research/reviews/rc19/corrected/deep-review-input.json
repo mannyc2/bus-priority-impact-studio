@@ -1,0 +1,5443 @@
+{
+  "artifactKind": "bp.studio.codex_deep_review_input.v1",
+  "candidateSetId": "candidate-set-v2:24080902f508b55a0033df32",
+  "candidateSetSha256": "42d9dc3139b4ba1439b0737b7f2b2175e7fe71fa20286c1ec349addf8f6455ba",
+  "candidateCount": 55,
+  "candidates": [
+    {
+      "candidateId": "study-event-v2:0abd7df14c61c6ad82ace8e4",
+      "identity": "M23+|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "M23+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "implementationMonth": "2024-06",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:M23+:ACE:2024-06-20",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "M23+",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 2,
+          "rawKeyDriftMonthShare": 0.0556
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05"
+        ],
+        "postMonths": [
+          "2024-07",
+          "2024-08",
+          "2024-09",
+          "2024-10",
+          "2024-11",
+          "2024-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:0abd7df14c61c6ad82ace8e4",
+        "decision": "rejected",
+        "rationale": "Rejected: M23+ already began ABLE on 2020-08-10; the 2024-06-20 ACE row is the expanded/rebranded enforcement phase, not a clean first onset of the candidate's collapsed automated_bus_lane_enforcement family. Approving both would duplicate overlapping phases under one treatment identity. The spine is series_ready with 4 segment series meeting 6 pre/6 post months, so coverage does not cure the phase-identity defect."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:0cbbed3260f58eceb20275c7",
+      "identity": "BX28|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "BX28",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "implementationMonth": "2024-09",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:BX28:ACE:2024-09-16",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX28",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.8947,
+          "meanCoverageShare": 0.9839,
+          "fullCoverageMonthCount": 30,
+          "partialCoverageMonthCount": 6,
+          "partialCoverageMonthShare": 0.1667,
+          "rawKeyDriftMonthCount": 2,
+          "rawKeyDriftMonthShare": 0.0556
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06",
+          "2024-07",
+          "2024-08"
+        ],
+        "postMonths": [
+          "2024-10",
+          "2024-11",
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:0cbbed3260f58eceb20275c7",
+        "decision": "approved",
+        "rationale": "Approved: the official route-granular MTA registry says ACE took effect on 2024-09-16 for exact BX28 local; the series_ready_with_gaps segment spine and observed speed history provide at least four usable pre and post months, and no same-route candidate onset falls inside the six-month outcome window."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:2362196d21a20c407b45332f",
+      "identity": "B42|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "B42",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "implementationMonth": "2024-09",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:B42:ACE:2024-09-16",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "B42",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06",
+          "2024-07",
+          "2024-08"
+        ],
+        "postMonths": [
+          "2024-10",
+          "2024-11",
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:2362196d21a20c407b45332f",
+        "decision": "rejected",
+        "rationale": "Rejected: B42 already began ABLE on 2022-12-12; the 2024-09-16 ACE row is the expanded/rebranded enforcement phase, not a clean first onset of the candidate's collapsed automated_bus_lane_enforcement family. Approving both would duplicate overlapping phases under one treatment identity. The spine is series_ready with 2 segment series meeting 6 pre/6 post months, so coverage does not cure the phase-identity defect."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:4c9efea0d35e2912037d99c2",
+      "identity": "M79+|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "M79+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "implementationMonth": "2024-09",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:M79+:ACE:2024-09-30",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "M79+",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 1,
+          "rawKeyDriftMonthShare": 0.0278
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06",
+          "2024-07",
+          "2024-08"
+        ],
+        "postMonths": [
+          "2024-10",
+          "2024-11",
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:4c9efea0d35e2912037d99c2",
+        "decision": "approved",
+        "rationale": "Approved: the official route-granular MTA registry says ACE took effect on 2024-09-30 for exact M79+ SBS, not M79 local; the series_ready spine provides six usable pre and six usable post months, and the prior lane date is outside the outcome window. Congestion-pricing exposure remains an explicit Plan 074 estimator gate and sensitivity, not an onset ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:4d0530b77a63ac21ae95229b",
+      "identity": "M96|automated_bus_lane_enforcement|2025-10-13|day",
+      "routeId": "M96",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-10-13",
+      "implementationMonth": "2025-10",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:M96:ACE:2025-10-13",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "M96",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 1,
+          "rawKeyDriftMonthShare": 0.0278
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-04",
+          "2025-05",
+          "2025-06",
+          "2025-07",
+          "2025-08",
+          "2025-09"
+        ],
+        "postMonths": [
+          "2025-11",
+          "2025-12",
+          "2026-01",
+          "2026-02",
+          "2026-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 5,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:4d0530b77a63ac21ae95229b",
+        "decision": "rejected",
+        "rationale": "Rejected: although the official ACE row for exact M96 local and the series_ready spine support 6 pre/5 post months across 9 eligible segment series, the same-route bus_lane onset on 2025-08-04 falls inside that window. The nearby treatment makes the 2025-10-13 ACE onset unsafe to isolate."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:5f0d2e20b6fcecbefe91966a",
+      "identity": "B82+|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "B82+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "implementationMonth": "2024-09",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:B82+:ACE:2024-09-30",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "B82+",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06",
+          "2024-07",
+          "2024-08"
+        ],
+        "postMonths": [
+          "2024-10",
+          "2024-11",
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:5f0d2e20b6fcecbefe91966a",
+        "decision": "approved",
+        "rationale": "Approved: the official route-granular MTA registry says ACE took effect on 2024-09-30 for exact B82+ SBS, not B82 local; the series_ready spine provides six usable pre and six usable post months, and the prior lane date is outside the outcome window. Its small treated-segment count is left to the Plan 074 minimum-sample gate and descriptive tier."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:6afced32d375c2933f5344f9",
+      "identity": "BX38|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "BX38",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "implementationMonth": "2024-09",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:BX38:ACE:2024-09-16",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX38",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.8667,
+          "meanCoverageShare": 0.9889,
+          "fullCoverageMonthCount": 33,
+          "partialCoverageMonthCount": 3,
+          "partialCoverageMonthShare": 0.0833,
+          "rawKeyDriftMonthCount": 4,
+          "rawKeyDriftMonthShare": 0.1111
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06",
+          "2024-07",
+          "2024-08"
+        ],
+        "postMonths": [
+          "2024-10",
+          "2024-11",
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:6afced32d375c2933f5344f9",
+        "decision": "approved",
+        "rationale": "Approved: the official route-granular MTA registry says ACE took effect on 2024-09-16 for exact BX38 local; the series_ready_with_gaps spine has at least four usable pre and post months, and the prior lane date is outside the six-month outcome window."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:87d3f99372e1eb40a6cc66ee",
+      "identity": "BX19|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "BX19",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "implementationMonth": "2024-06",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:BX19:ACE:2024-06-20",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX19",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.9091,
+          "meanCoverageShare": 0.9874,
+          "fullCoverageMonthCount": 31,
+          "partialCoverageMonthCount": 5,
+          "partialCoverageMonthShare": 0.1389,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05"
+        ],
+        "postMonths": [
+          "2024-07",
+          "2024-08",
+          "2024-09",
+          "2024-10",
+          "2024-11",
+          "2024-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:87d3f99372e1eb40a6cc66ee",
+        "decision": "rejected",
+        "rationale": "Rejected: BX19 already began ABLE on 2022-11-28; the 2024-06-20 ACE row is the expanded/rebranded enforcement phase, not a clean first onset of the candidate's collapsed automated_bus_lane_enforcement family. Approving both would duplicate overlapping phases under one treatment identity. The spine is series_ready_with_gaps with 11 segment series meeting 6 pre/6 post months, so coverage does not cure the phase-identity defect."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:926b58154d6383a00bc6f987",
+      "identity": "B46+|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "B46+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "implementationMonth": "2024-06",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:B46+:ACE:2024-06-20",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "B46+",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.8333,
+          "meanCoverageShare": 0.9722,
+          "fullCoverageMonthCount": 30,
+          "partialCoverageMonthCount": 6,
+          "partialCoverageMonthShare": 0.1667,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05"
+        ],
+        "postMonths": [
+          "2024-07",
+          "2024-08",
+          "2024-09",
+          "2024-10",
+          "2024-11",
+          "2024-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:926b58154d6383a00bc6f987",
+        "decision": "rejected",
+        "rationale": "Rejected: B46+ already began ABLE on 2020-02-19; the 2024-06-20 ACE row is the expanded/rebranded enforcement phase, not a clean first onset of the candidate's collapsed automated_bus_lane_enforcement family. Approving both would duplicate overlapping phases under one treatment identity. The spine is series_ready_with_gaps with 6 segment series meeting 6 pre/6 post months, so coverage does not cure the phase-identity defect."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:95ebfdb07b4a1d005ec09cae",
+      "identity": "BX35|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "BX35",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "implementationMonth": "2024-09",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:BX35:ACE:2024-09-16",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX35",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06",
+          "2024-07",
+          "2024-08"
+        ],
+        "postMonths": [
+          "2024-10",
+          "2024-11",
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:95ebfdb07b4a1d005ec09cae",
+        "decision": "rejected",
+        "rationale": "Rejected: BX35 already began ABLE on 2023-05-01; the 2024-09-16 ACE row is the expanded/rebranded enforcement phase, not a clean first onset of the candidate's collapsed automated_bus_lane_enforcement family. Approving both would duplicate overlapping phases under one treatment identity. The spine is series_ready with 14 segment series meeting 6 pre/6 post months, so coverage does not cure the phase-identity defect."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:bff2030b147ab90027f3e748",
+      "identity": "BX9|automated_bus_lane_enforcement|2025-11-10|day",
+      "routeId": "BX9",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-11-10",
+      "implementationMonth": "2025-11",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:BX9:ACE:2025-11-10",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX9",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.9231,
+          "meanCoverageShare": 0.9893,
+          "fullCoverageMonthCount": 31,
+          "partialCoverageMonthCount": 5,
+          "partialCoverageMonthShare": 0.1389,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-05",
+          "2025-06",
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10"
+        ],
+        "postMonths": [
+          "2025-12",
+          "2026-01",
+          "2026-02",
+          "2026-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 4,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:bff2030b147ab90027f3e748",
+        "decision": "approved",
+        "rationale": "Approved: the official route-granular MTA registry says ACE took effect on 2025-11-10 for exact BX9 local; the series_ready_with_gaps spine has six usable pre months and exactly four usable post months through 2026-03, and no same-route onset falls inside that outcome window."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c1d8b7226bb5b83bb406d27c",
+      "identity": "M86+|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "M86+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "implementationMonth": "2024-09",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "mta_ace_routes",
+          "sourceEventId": "ace:M86+:ACE:2024-09-30",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "M86+",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06",
+          "2024-07",
+          "2024-08"
+        ],
+        "postMonths": [
+          "2024-10",
+          "2024-11",
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:c1d8b7226bb5b83bb406d27c",
+        "decision": "rejected",
+        "rationale": "Rejected: M86+ already began ABLE on 2020-08-10; the 2024-09-30 ACE row is the expanded/rebranded enforcement phase, not a clean first onset of the candidate's collapsed automated_bus_lane_enforcement family. Approving both would duplicate overlapping phases under one treatment identity. The spine is series_ready with 4 segment series meeting 6 pre/6 post months, so coverage does not cure the phase-identity defect."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:06559cef3f03e1672b7dd685",
+      "identity": "BX28|bus_lane|2023-10-31|day",
+      "routeId": "BX28",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-10-31",
+      "implementationMonth": "2023-10",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX28:2023-10",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX28",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.8947,
+          "meanCoverageShare": 0.9839,
+          "fullCoverageMonthCount": 30,
+          "partialCoverageMonthCount": 6,
+          "partialCoverageMonthShare": 0.1667,
+          "rawKeyDriftMonthCount": 2,
+          "rawKeyDriftMonthShare": 0.0556
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-04",
+          "2023-05",
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09"
+        ],
+        "postMonths": [
+          "2023-11",
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:06559cef3f03e1672b7dd685",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned Gun Hill Road rows for 2023-10-31 leave sbs_route1-3 blank and do not name BX28; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 3 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready_with_gaps and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:13b8223c9ef18ac540bb3818",
+      "identity": "M79+|bus_lane|2023-12-08|day",
+      "routeId": "M79+",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-08",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:M79+:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "M79+",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 1,
+          "rawKeyDriftMonthShare": 0.0278
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:13b8223c9ef18ac540bb3818",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned 3rd Avenue rows for 2023-12-08 leave sbs_route1-3 blank and do not name M79+; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 5 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:257a4359bc7c98d806eb7982",
+      "identity": "B3|bus_lane|2024-09-09|day",
+      "routeId": "B3",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2024-09-09",
+      "implementationMonth": "2024-09",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:B3:2024-09",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "B3",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 2,
+          "rawKeyDriftMonthShare": 0.0556
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06",
+          "2024-07",
+          "2024-08"
+        ],
+        "postMonths": [
+          "2024-10",
+          "2024-11",
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:257a4359bc7c98d806eb7982",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned Flatbush Avenue/Utica Avenue rows for 2024-09-09 leave sbs_route1-3 blank and do not name B3; the association is only the generator's 150 m/400 m stop-and-street proximity match. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:2954b9c6483f74e7ca7ee209",
+      "identity": "M98|bus_lane|2025-08-04|day",
+      "routeId": "M98",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-08-04",
+      "implementationMonth": "2025-08",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:M98:2025-08",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "M98",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05",
+          "2025-06",
+          "2025-07"
+        ],
+        "postMonths": [
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12",
+          "2026-01",
+          "2026-02"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:2954b9c6483f74e7ca7ee209",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned 3 Avenue rows for 2025-08-04 leave sbs_route1-3 blank and do not name M98; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 7 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:2a6f3a01c4c04d271848eb22",
+      "identity": "BX19|bus_lane|2025-11-12|day",
+      "routeId": "BX19",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-11-12",
+      "implementationMonth": "2025-11",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX19:2025-11",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX19",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.9091,
+          "meanCoverageShare": 0.9874,
+          "fullCoverageMonthCount": 31,
+          "partialCoverageMonthCount": 5,
+          "partialCoverageMonthShare": 0.1389,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-05",
+          "2025-06",
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10"
+        ],
+        "postMonths": [
+          "2025-12",
+          "2026-01",
+          "2026-02",
+          "2026-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 4,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:2a6f3a01c4c04d271848eb22",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned Hunts Point Avenue rows for 2025-11-12 leave sbs_route1-3 blank and do not name BX19; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 5 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready_with_gaps and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:3134629ede9faeff4c6f54b5",
+      "identity": "BX35|bus_lane|2023-12-02|day",
+      "routeId": "BX35",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-02",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX35:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX35",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:3134629ede9faeff4c6f54b5",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned Washington Bridge rows for 2023-12-02 leave sbs_route1-3 blank and do not name BX35; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 6 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:319c777098c8f55d6f179794",
+      "identity": "Q72|bus_lane|2023-08-08|day",
+      "routeId": "Q72",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-08-08",
+      "implementationMonth": "2023-08",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:Q72:2023-08",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "Q72",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 1,
+          "rawKeyDriftMonthShare": 0.0278
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-04",
+          "2023-05",
+          "2023-06",
+          "2023-07"
+        ],
+        "postMonths": [
+          "2023-09",
+          "2023-10",
+          "2023-11",
+          "2023-12",
+          "2024-01",
+          "2024-02"
+        ],
+        "preMonthCount": 4,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:319c777098c8f55d6f179794",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned Northern Boulevard rows for 2023-08-08 leave sbs_route1-3 blank and do not name Q72; the association is only the generator's 150 m/400 m stop-and-street proximity match. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:47ceb9d8f3e10afeb1e04b52",
+      "identity": "BX39|bus_lane|2023-12-27|day",
+      "routeId": "BX39",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-27",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX39:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX39",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.9091,
+          "meanCoverageShare": 0.9849,
+          "fullCoverageMonthCount": 30,
+          "partialCoverageMonthCount": 6,
+          "partialCoverageMonthShare": 0.1667,
+          "rawKeyDriftMonthCount": 7,
+          "rawKeyDriftMonthShare": 0.1944
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:47ceb9d8f3e10afeb1e04b52",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned Pelham Parkway rows for 2023-12-27 leave sbs_route1-3 blank and do not name BX39; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 5 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready_with_gaps and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:56a8541d9b025aa2d1fbecea",
+      "identity": "QM65|bus_lane|2023-11-27|day",
+      "routeId": "QM65",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-11-27",
+      "implementationMonth": "2023-11",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:QM65:2023-11",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "QM65",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-05",
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10"
+        ],
+        "postMonths": [
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:56a8541d9b025aa2d1fbecea",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned Queens Boulevard rows for 2023-11-27 leave sbs_route1-3 blank and do not name QM65; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 7 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:56eb1dc4b09b060f2e138050",
+      "identity": "BX18A|bus_lane|2023-12-01|day",
+      "routeId": "BX18A",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-01",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX18A:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX18A",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:56eb1dc4b09b060f2e138050",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned University Avenue / Washington Bridge rows for 2023-12-01 leave sbs_route1-3 blank and do not name BX18A; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 3 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:668f7befc7dcc1cbb152f137",
+      "identity": "Q45|bus_lane|2023-11-27|day",
+      "routeId": "Q45",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-11-27",
+      "implementationMonth": "2023-11",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:Q45:2023-11",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "Q45",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-05",
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10"
+        ],
+        "postMonths": [
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:668f7befc7dcc1cbb152f137",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned Queens Boulevard rows for 2023-11-27 leave sbs_route1-3 blank and do not name Q45; the association is only the generator's 150 m/400 m stop-and-street proximity match. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:6c4295f8aa70c21d378ad2a3",
+      "identity": "QM64|bus_lane|2024-12-05|day",
+      "routeId": "QM64",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2024-12-05",
+      "implementationMonth": "2024-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:QM64:2024-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "QM64",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-06",
+          "2024-07",
+          "2024-08",
+          "2024-09",
+          "2024-10",
+          "2024-11"
+        ],
+        "postMonths": [
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05",
+          "2025-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:6c4295f8aa70c21d378ad2a3",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned 2nd Avenue rows for 2024-12-05 name SBS route(s) M15, not QM64; this is a different-route stop/street proximity match. The builder selected the latest of 10 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:7174383592202aa47780a0e3",
+      "identity": "B65|bus_lane|2023-11-14|day",
+      "routeId": "B65",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-11-14",
+      "implementationMonth": "2023-11",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:B65:2023-11",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "B65",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 1,
+          "rawKeyDriftMonthShare": 0.0278
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-05",
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10"
+        ],
+        "postMonths": [
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:7174383592202aa47780a0e3",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned Livingston Street rows for 2023-11-14 leave sbs_route1-3 blank and do not name B65; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 6 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:791189994f3ae795d30690d2",
+      "identity": "BX18B|bus_lane|2023-12-01|day",
+      "routeId": "BX18B",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-01",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX18B:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX18B",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:791189994f3ae795d30690d2",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned University Avenue / Washington Bridge rows for 2023-12-01 leave sbs_route1-3 blank and do not name BX18B; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 3 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:80af3c9f2f3aae684182ca37",
+      "identity": "QM44|bus_lane|2023-12-08|day",
+      "routeId": "QM44",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-08",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:QM44:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "QM44",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 2,
+          "rawKeyDriftMonthShare": 0.0556
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:80af3c9f2f3aae684182ca37",
+        "decision": "rejected",
+        "rationale": "Rejected: Pinned 3rd Avenue rows for 2023-12-08 leave sbs_route1-3 blank and do not name QM44; the association is only the generator's 150 m/400 m stop-and-street proximity match. The builder selected the latest of 2 spatially matched opening-month groups, so phase attribution is not route-authoritative. Although the Plan 074 spine is series_ready and the calendar provides four pre/four post months, coverage cannot cure insufficient authoritative evidence for an exact route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:868a1e3dd6dc428b851daf68",
+      "identity": "BX32|bus_lane|2023-12-01|day",
+      "routeId": "BX32",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-01",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX32:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX32",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:868a1e3dd6dc428b851daf68",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for BX32 at 2023-12-01: the pinned spine is series ready with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 1 candidate-date lane piece(s) on University Avenue selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route BX32, so street/proximity alone cannot establish route-specific onset. The matched set spans 3 parsed opening phases from 2008-06 through 2023-12; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:8759b24539a59fc715b1dff3",
+      "identity": "BX38|bus_lane|2023-10-31|day",
+      "routeId": "BX38",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-10-31",
+      "implementationMonth": "2023-10",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX38:2023-10",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX38",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.8667,
+          "meanCoverageShare": 0.9889,
+          "fullCoverageMonthCount": 33,
+          "partialCoverageMonthCount": 3,
+          "partialCoverageMonthShare": 0.0833,
+          "rawKeyDriftMonthCount": 4,
+          "rawKeyDriftMonthShare": 0.1111
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-04",
+          "2023-05",
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09"
+        ],
+        "postMonths": [
+          "2023-11",
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:8759b24539a59fc715b1dff3",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for BX38 at 2023-10-31: the pinned spine is series ready with gaps with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 61 candidate-date lane piece(s) on Gun Hill Road selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route BX38, so street/proximity alone cannot establish route-specific onset. The matched set spans 3 parsed opening phases from 2012-01 through 2023-10; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:8f49e50cc72f03ae98197c22",
+      "identity": "BX26|bus_lane|2023-10-31|day",
+      "routeId": "BX26",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-10-31",
+      "implementationMonth": "2023-10",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX26:2023-10",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX26",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.875,
+          "meanCoverageShare": 0.9792,
+          "fullCoverageMonthCount": 30,
+          "partialCoverageMonthCount": 6,
+          "partialCoverageMonthShare": 0.1667,
+          "rawKeyDriftMonthCount": 7,
+          "rawKeyDriftMonthShare": 0.1944
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-04",
+          "2023-05",
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09"
+        ],
+        "postMonths": [
+          "2023-11",
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:8f49e50cc72f03ae98197c22",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for BX26 at 2023-10-31: the pinned spine is series ready with gaps with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 1 candidate-date lane piece(s) on Gun Hill Road selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route BX26, so street/proximity alone cannot establish route-specific onset. The matched set spans 2 parsed opening phases from 2013-06 through 2023-10; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:9223fc80cc2c813f94b778a8",
+      "identity": "BX31|bus_lane|2023-12-27|day",
+      "routeId": "BX31",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-27",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX31:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX31",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.8182,
+          "meanCoverageShare": 0.9697,
+          "fullCoverageMonthCount": 30,
+          "partialCoverageMonthCount": 6,
+          "partialCoverageMonthShare": 0.1667,
+          "rawKeyDriftMonthCount": 7,
+          "rawKeyDriftMonthShare": 0.1944
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:9223fc80cc2c813f94b778a8",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for BX31 at 2023-12-27: the pinned spine is series ready with gaps with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 3 candidate-date lane piece(s) on Pelham Parkway selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route BX31, so street/proximity alone cannot establish route-specific onset. The matched set spans 3 parsed opening phases from 2013-10 through 2023-12; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:93ee917ce0c38bc1a4d5d67d",
+      "identity": "Q14|bus_lane|2023-08-08|day",
+      "routeId": "Q14",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-08-08",
+      "implementationMonth": "2023-08",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:Q14:2023-08",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "Q14",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-04",
+          "2023-05",
+          "2023-06",
+          "2023-07"
+        ],
+        "postMonths": [
+          "2023-09",
+          "2023-10",
+          "2023-11",
+          "2023-12",
+          "2024-01",
+          "2024-02"
+        ],
+        "preMonthCount": 4,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:93ee917ce0c38bc1a4d5d67d",
+        "decision": "rejected",
+        "rationale": "Rejected. Q14 at 2023-08-08 cannot satisfy Plan 074: only 0 observable pre and 0 observable post months exist in the six-month windows; at least four usable months per side are required with the implementation month excluded. The local event describes 5 candidate-date lane piece(s) on Northern Boulevard selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route Q14, so street/proximity alone cannot establish route-specific onset. The matched set spans 4 parsed opening phases from 2015-09 through 2023-08; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:a32e78ad09fe9cc626a5e8b9",
+      "identity": "BXM11|bus_lane|2023-12-27|day",
+      "routeId": "BXM11",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-27",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BXM11:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BXM11",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:a32e78ad09fe9cc626a5e8b9",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for BXM11 at 2023-12-27: the pinned spine is series ready with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 3 candidate-date lane piece(s) on Pelham Parkway selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route BXM11, so street/proximity alone cannot establish route-specific onset. The matched set spans 12 parsed opening phases from 1982-08 through 2023-12; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:b24b2d4edbfcb84ba59df7c0",
+      "identity": "M14A+|bus_lane|2024-12-05|day",
+      "routeId": "M14A+",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2024-12-05",
+      "implementationMonth": "2024-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:M14A+:2024-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "M14A+",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-06",
+          "2024-07",
+          "2024-08",
+          "2024-09",
+          "2024-10",
+          "2024-11"
+        ],
+        "postMonths": [
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05",
+          "2025-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:b24b2d4edbfcb84ba59df7c0",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for M14A+ at 2024-12-05: the pinned spine is series ready with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 2 candidate-date lane piece(s) on 2nd Avenue selected by the 150 m proximity / same-street 400 m heuristic; the official sbs_route fields name M15, not exact route M14A+. The matched set spans 6 parsed opening phases from 2010-10 through 2024-12; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:b4edfae44a4d2b1507b1bfac",
+      "identity": "BX16|bus_lane|2023-10-31|day",
+      "routeId": "BX16",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-10-31",
+      "implementationMonth": "2023-10",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX16:2023-10",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX16",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.875,
+          "meanCoverageShare": 0.9792,
+          "fullCoverageMonthCount": 30,
+          "partialCoverageMonthCount": 6,
+          "partialCoverageMonthShare": 0.1667,
+          "rawKeyDriftMonthCount": 7,
+          "rawKeyDriftMonthShare": 0.1944
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-04",
+          "2023-05",
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09"
+        ],
+        "postMonths": [
+          "2023-11",
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:b4edfae44a4d2b1507b1bfac",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for BX16 at 2023-10-31: the pinned spine is series ready with gaps with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 2 candidate-date lane piece(s) on Gun Hill Road selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route BX16, so street/proximity alone cannot establish route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:bc870a23ee602a9ea28d9160",
+      "identity": "B67|bus_lane|2025-10-02|day",
+      "routeId": "B67",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-10-02",
+      "implementationMonth": "2025-10",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:B67:2025-10",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "B67",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.9474,
+          "meanCoverageShare": 0.9912,
+          "fullCoverageMonthCount": 30,
+          "partialCoverageMonthCount": 6,
+          "partialCoverageMonthShare": 0.1667,
+          "rawKeyDriftMonthCount": 3,
+          "rawKeyDriftMonthShare": 0.0833
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-04",
+          "2025-05",
+          "2025-06",
+          "2025-07",
+          "2025-08",
+          "2025-09"
+        ],
+        "postMonths": [
+          "2025-11",
+          "2025-12",
+          "2026-01",
+          "2026-02",
+          "2026-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 5,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:bc870a23ee602a9ea28d9160",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for B67 at 2025-10-02: the pinned spine is series ready with gaps with 6 observable pre months and 5 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 5 candidate-date lane piece(s) on Flatbush Avenue selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route B67, so street/proximity alone cannot establish route-specific onset. The matched set spans 7 parsed opening phases from 1984-09 through 2025-10; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c348a740d31b66a7c53a2839",
+      "identity": "Q80|bus_lane|2023-11-27|day",
+      "routeId": "Q80",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-11-27",
+      "implementationMonth": "2023-11",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:Q80:2023-11",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "Q80",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 8,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 8,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-05",
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10"
+        ],
+        "postMonths": [
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:c348a740d31b66a7c53a2839",
+        "decision": "rejected",
+        "rationale": "Rejected. Q80 at 2023-11-27 cannot satisfy Plan 074: only 0 observable pre and 0 observable post months exist in the six-month windows; at least four usable months per side are required with the implementation month excluded. The local event describes 2 candidate-date lane piece(s) on Queens Boulevard selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route Q80, so street/proximity alone cannot establish route-specific onset."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c51282db99e9507738989c0d",
+      "identity": "B45|bus_lane|2025-10-02|day",
+      "routeId": "B45",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-10-02",
+      "implementationMonth": "2025-10",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:B45:2025-10",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "B45",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 3,
+          "rawKeyDriftMonthShare": 0.0833
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-04",
+          "2025-05",
+          "2025-06",
+          "2025-07",
+          "2025-08",
+          "2025-09"
+        ],
+        "postMonths": [
+          "2025-11",
+          "2025-12",
+          "2026-01",
+          "2026-02",
+          "2026-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 5,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:c51282db99e9507738989c0d",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for B45 at 2025-10-02: the pinned spine is series ready with 6 observable pre months and 5 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 5 candidate-date lane piece(s) on Flatbush Avenue selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route B45, so street/proximity alone cannot establish route-specific onset. The matched set spans 8 parsed opening phases from 1984-09 through 2025-10; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d70a3ee36eb94ae88732065f",
+      "identity": "B67|bus_lane|2025-09|month",
+      "routeId": "B67",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-09",
+      "implementationMonth": "2025-09",
+      "datePrecision": "month",
+      "occurrenceId": "occurrence:8c987704152b459014217d44",
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+          "sourceEventId": "occurrence:8c987704152b459014217d44",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:8c987704152b459014217d44",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "flatbush-phase1-center-running-bus-lanes-2025-09",
+          "gtfsRouteId": "B67",
+          "analysisRouteId": "B67",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_flatbush-phase1-serves-b67",
+              "source_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+              "evidence_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026#p012_c0003"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_b67-flatbush-ave-apr2026",
+              "source_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+              "evidence_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026#p012_c0003"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_flatbush-phase1-has-center-running-bus-lanes",
+              "source_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+              "evidence_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026#p004_c0002"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_flatbush-phase1-center-running-bus-lanes-livingston-state",
+              "source_id": "nyc_dot_flatbush_installation_begins_2025",
+              "evidence_id": "nyc_dot_flatbush_installation_begins_2025#p001_b0019"
+            }
+          ]
+        },
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "nyc_dot_flatbush_installation_begins_2025",
+          "sourceEventId": "occurrence:8c987704152b459014217d44",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:8c987704152b459014217d44",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "flatbush-phase1-center-running-bus-lanes-2025-09",
+          "gtfsRouteId": "B67",
+          "analysisRouteId": "B67",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_flatbush-phase1-serves-b67",
+              "source_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+              "evidence_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026#p012_c0003"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_b67-flatbush-ave-apr2026",
+              "source_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+              "evidence_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026#p012_c0003"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_flatbush-phase1-has-center-running-bus-lanes",
+              "source_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+              "evidence_id": "flatbush_ave_bus_priority_mtp_briefing_apr2026#p004_c0002"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_flatbush-phase1-center-running-bus-lanes-livingston-state",
+              "source_id": "nyc_dot_flatbush_installation_begins_2025",
+              "evidence_id": "nyc_dot_flatbush_installation_begins_2025#p001_b0019"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.9474,
+          "meanCoverageShare": 0.9912,
+          "fullCoverageMonthCount": 30,
+          "partialCoverageMonthCount": 6,
+          "partialCoverageMonthShare": 0.1667,
+          "rawKeyDriftMonthCount": 3,
+          "rawKeyDriftMonthShare": 0.0833
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-03",
+          "2025-04",
+          "2025-05",
+          "2025-06",
+          "2025-07",
+          "2025-08"
+        ],
+        "postMonths": [
+          "2025-10",
+          "2025-11",
+          "2025-12",
+          "2026-01",
+          "2026-02",
+          "2026-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d966b7183cfbccd956cdcf87",
+      "identity": "QM68|bus_lane|2025-09-15|day",
+      "routeId": "QM68",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-09-15",
+      "implementationMonth": "2025-09",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:QM68:2025-09",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "QM68",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-03",
+          "2025-04",
+          "2025-05",
+          "2025-06",
+          "2025-07",
+          "2025-08"
+        ],
+        "postMonths": [
+          "2025-10",
+          "2025-11",
+          "2025-12",
+          "2026-01",
+          "2026-02",
+          "2026-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:d966b7183cfbccd956cdcf87",
+        "decision": "rejected",
+        "rationale": "Rejected. QM68 at 2025-09-15 cannot satisfy Plan 074: only 3 observable pre and 6 observable post months exist in the six-month windows; at least four usable months per side are required with the implementation month excluded. The local event describes 53 candidate-date lane piece(s) on Hillside Avenue selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route QM68, so street/proximity alone cannot establish route-specific onset. The matched set spans 12 parsed opening phases from 1969-05 through 2025-09; choosing the newest group leaves onset-versus-extension ambiguity. The stored event reports 53 pieces, while reapplying the documented matcher to the pinned DOT snapshot and 2026-03 stops yields 83, an additional provenance inconsistency."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e8d588e66d8701dc0c6935cc",
+      "identity": "BX9|bus_lane|2023-12-01|day",
+      "routeId": "BX9",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-01",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX9:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX9",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready_with_gaps",
+        "reasons": [
+          "partial_months_within_gap_tolerance"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 0.9231,
+          "meanCoverageShare": 0.9893,
+          "fullCoverageMonthCount": 31,
+          "partialCoverageMonthCount": 5,
+          "partialCoverageMonthShare": 0.1389,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:e8d588e66d8701dc0c6935cc",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for BX9 at 2023-12-01: the pinned spine is series ready with gaps with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 1 candidate-date lane piece(s) on University Avenue selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route BX9, so street/proximity alone cannot establish route-specific onset. The matched set spans 4 parsed opening phases from 2008-06 through 2023-12; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e974e64d86c1e0eaa62bbf3d",
+      "identity": "M86+|bus_lane|2023-12-08|day",
+      "routeId": "M86+",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-12-08",
+      "implementationMonth": "2023-12",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:M86+:2023-12",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "M86+",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09",
+          "2023-10",
+          "2023-11"
+        ],
+        "postMonths": [
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04",
+          "2024-05",
+          "2024-06"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:e974e64d86c1e0eaa62bbf3d",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for M86+ at 2023-12-08: the pinned spine is series ready with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 4 candidate-date lane piece(s) on 3rd Avenue selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route M86+, so street/proximity alone cannot establish route-specific onset. The matched set spans 6 parsed opening phases from 1991-10 through 2023-12; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:fd2d7f51ea2c01130d647e5d",
+      "identity": "M96|bus_lane|2025-08-04|day",
+      "routeId": "M96",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2025-08-04",
+      "implementationMonth": "2025-08",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:M96:2025-08",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "M96",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 1,
+          "rawKeyDriftMonthShare": 0.0278
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05",
+          "2025-06",
+          "2025-07"
+        ],
+        "postMonths": [
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12",
+          "2026-01",
+          "2026-02"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:fd2d7f51ea2c01130d647e5d",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for M96 at 2025-08-04: the pinned spine is series ready with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 4 candidate-date lane piece(s) on 3 Avenue selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route M96, so street/proximity alone cannot establish route-specific onset. The matched set spans 6 parsed opening phases from 2010-10 through 2025-08; choosing the newest group leaves onset-versus-extension ambiguity. The outcome window also contains mta_ace_routes automated_bus_lane_enforcement at 2025-10, so the lane onset is not isolated."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:fd7fea28386ad797b3937854",
+      "identity": "BX25|bus_lane|2023-10-31|day",
+      "routeId": "BX25",
+      "treatmentFamily": "bus_lane",
+      "implementationDate": "2023-10-31",
+      "implementationMonth": "2023-10",
+      "datePrecision": "day",
+      "occurrenceId": null,
+      "treatmentScopeKind": "atomic",
+      "componentTreatmentFamilies": [],
+      "conflictState": "none",
+      "confounderGroupId": null,
+      "provenance": [
+        {
+          "sourceKind": "registry",
+          "sourceId": "nyc_dot_bus_lanes",
+          "sourceEventId": "bus-lane:BX25:2023-10",
+          "releaseId": null,
+          "anchorIds": [],
+          "occurrenceId": null,
+          "occurrenceAliases": [],
+          "manifestSha256": null,
+          "artifactSha256": null,
+          "occurrenceReviewDecisionId": null,
+          "gtfsRouteId": null,
+          "analysisRouteId": "BX25",
+          "routeEvidenceBindings": [],
+          "treatmentEvidenceBindings": []
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2023-04",
+          "2023-05",
+          "2023-06",
+          "2023-07",
+          "2023-08",
+          "2023-09"
+        ],
+        "postMonths": [
+          "2023-11",
+          "2023-12",
+          "2024-01",
+          "2024-02",
+          "2024-03",
+          "2024-04"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": {
+        "candidateSetId": "candidate-set:49af8c8721457fa7532a7345",
+        "candidateId": "study-event:fd7fea28386ad797b3937854",
+        "decision": "rejected",
+        "rationale": "Rejected. Plan 074 coverage is possible for BX25 at 2023-10-31: the pinned spine is series ready with 6 observable pre months and 6 observable post months, implementation month excluded; the evidence gate still fails. The local event describes 1 candidate-date lane piece(s) on Gun Hill Road selected by the 150 m proximity / same-street 400 m heuristic; the official rows contain no sbs_route field naming exact route BX25, so street/proximity alone cannot establish route-specific onset. The matched set spans 2 parsed opening phases from 2013-06 through 2023-10; choosing the newest group leaves onset-versus-extension ambiguity."
+      },
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:01f4caf6d1cc0ae9a91d6080",
+      "identity": "Q61|route_redesign|2025-06-29|day",
+      "routeId": "Q61",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "implementationMonth": "2025-06",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:5d51147fc80a669bfb81da45",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:5d51147fc80a669bfb81da45",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:5d51147fc80a669bfb81da45",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "q61-route-redesign-2025-06-29",
+          "gtfsRouteId": "Q61",
+          "analysisRouteId": "Q61",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-q61",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0065"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_q61-queens",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0065"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q61-beechhurst-flushing-connection",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0065"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q61-q15-beechhurst-replacement",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0065"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q61-q34-linden-hill-replacement",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0065"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q61-beechhurst-flushing-connection-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0065"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q61-q15-beechhurst-replacement-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0065"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q61-q34-linden-hill-replacement-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0065"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05"
+        ],
+        "postMonths": [
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:1f145b332ed18a06332e3ec6",
+      "identity": "Q80|route_redesign|2025-08-31|day",
+      "routeId": "Q80",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "implementationMonth": "2025-08",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:8ceb4179de2ab8a2852347df",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:8ceb4179de2ab8a2852347df",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:8ceb4179de2ab8a2852347df",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "q80-route-redesign-2025-08-31",
+          "gtfsRouteId": "Q80",
+          "analysisRouteId": "Q80",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-q80",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0078"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_q80",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0078"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q80-frequency-overnight-service",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0078"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q80-q10-limited-branch-replacement",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0078"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q80-frequency-overnight-service-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0078"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q80-q10-limited-branch-replacement-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0078"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 8,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 8,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05",
+          "2025-06",
+          "2025-07"
+        ],
+        "postMonths": [
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12",
+          "2026-01",
+          "2026-02"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:23934fe6311a476757966e42",
+      "identity": "Q86|route_redesign|2025-06-29|day",
+      "routeId": "Q86",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "implementationMonth": "2025-06",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:d30e60bf0a04874c1ae7d40b",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "bus_stop_or_boarding",
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:d30e60bf0a04874c1ae7d40b",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:d30e60bf0a04874c1ae7d40b",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "q86-route-redesign-2025-06-29",
+          "gtfsRouteId": "Q86",
+          "analysisRouteId": "Q86",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-q86",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0083"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_q86-qbnr-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0083"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q86-limited-stops",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0083"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q86-q5-q85-branch-combination",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0083"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q86-limited-stops-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0083"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q86-q5-q85-branch-combination-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0083"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05"
+        ],
+        "postMonths": [
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:59d436834bb8f89a9f794def",
+      "identity": "Q45|route_redesign|2025-06-29|day",
+      "routeId": "Q45",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "implementationMonth": "2025-06",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:9256051973f8f7ff0847b5c1",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:9256051973f8f7ff0847b5c1",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:9256051973f8f7ff0847b5c1",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "q45-route-redesign-2025-06-29",
+          "gtfsRouteId": "Q45",
+          "analysisRouteId": "Q45",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-q45",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0050"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_q45-qbnr-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0050"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q45-all-day-frequent-service",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0050"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q45-direct-connection",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0050"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q45-all-day-frequent-service-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0050"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q45-direct-connection-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0050"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05"
+        ],
+        "postMonths": [
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:5a60e52b6e44239418486138",
+      "identity": "QM34|route_redesign|2025-09-02|day",
+      "routeId": "QM34",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-09-02",
+      "implementationMonth": "2025-09",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:934c000394ad0200c1c110a0",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "bus_stop_or_boarding",
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:934c000394ad0200c1c110a0",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:934c000394ad0200c1c110a0",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "qm34-route-redesign-2025-09-02",
+          "gtfsRouteId": "QM34",
+          "analysisRouteId": "QM34",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-qm34",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0123"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_qm34-fresh-pond-rd",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0123"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm34-frequency-decrease",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0123"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm34-stop-removal",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0123"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm34-frequency-decrease-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0123"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm34-stop-removal-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0123"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2025-03",
+          "2025-04",
+          "2025-05",
+          "2025-06",
+          "2025-07",
+          "2025-08"
+        ],
+        "postMonths": [
+          "2025-10",
+          "2025-11",
+          "2025-12",
+          "2026-01",
+          "2026-02",
+          "2026-03"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:69ab89d0af7ed56dede2d21d",
+      "identity": "Q63|route_redesign|2025-06-29|day",
+      "routeId": "Q63",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "implementationMonth": "2025-06",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:a31494bfefdd2128f130b872",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "bus_stop_or_boarding",
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:a31494bfefdd2128f130b872",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:a31494bfefdd2128f130b872",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "q63-route-redesign-2025-06-29",
+          "gtfsRouteId": "Q63",
+          "analysisRouteId": "Q63",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-q63",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0066"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_q63-qbnr-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0066"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q63-limited-stops",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0066"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q63-northern-boulevard-connection",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0066"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q63-limited-stops-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0066"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q63-northern-boulevard-connection-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0066"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05"
+        ],
+        "postMonths": [
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:8428391e7126ecbc34d375e4",
+      "identity": "Q87|route_redesign|2025-06-30|day",
+      "routeId": "Q87",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "implementationMonth": "2025-06",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:a04ec993d0faee78af481311",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "bus_stop_or_boarding",
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:a04ec993d0faee78af481311",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:a04ec993d0faee78af481311",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "q87-route-redesign-2025-06-30",
+          "gtfsRouteId": "Q87",
+          "analysisRouteId": "Q87",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-q87",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0084"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_q87-qbnr-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0084"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q87-limited-stops",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0084"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q87-q5-green-acres-replacement",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0084"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q87-limited-stops-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0084"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q87-q5-green-acres-replacement-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0084"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05"
+        ],
+        "postMonths": [
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:b6e30561a2c60598b1691af9",
+      "identity": "QM44|route_redesign|2025-06-30|day",
+      "routeId": "QM44",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "implementationMonth": "2025-06",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:347bc4f1a346152697520648",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "bus_stop_or_boarding",
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:347bc4f1a346152697520648",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:347bc4f1a346152697520648",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "qm44-route-redesign-2025-06-30",
+          "gtfsRouteId": "QM44",
+          "analysisRouteId": "QM44",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-qm44",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0128"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_qm44-qbnr-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0128"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm44-frequency-decrease",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0128"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm44-stop-removal",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0128"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm44-frequency-decrease-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0128"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm44-stop-removal-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0128"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 36,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 36,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 2,
+          "rawKeyDriftMonthShare": 0.0556
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05"
+        ],
+        "postMonths": [
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:bd0049d10da52243700f9a89",
+      "identity": "Q89|route_redesign|2025-06-29|day",
+      "routeId": "Q89",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "implementationMonth": "2025-06",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:2748598653b74d33fcdce3d1",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "bus_stop_or_boarding",
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:2748598653b74d33fcdce3d1",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:2748598653b74d33fcdce3d1",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "q89-route-redesign-2025-06-29",
+          "gtfsRouteId": "Q89",
+          "analysisRouteId": "Q89",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-q89",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0086"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_q89-proposed-new",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0086"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q89-limited-stops",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0086"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-q89-q85-green-acres-replacement",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0086"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q89-limited-stops-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0086"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_q89-q85-green-acres-replacement-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0086"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05"
+        ],
+        "postMonths": [
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d6dc7a1a0a38795f9ffa2faa",
+      "identity": "QM68|route_redesign|2025-06-30|day",
+      "routeId": "QM68",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "implementationMonth": "2025-06",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:bca0b565b6971c90a6af9e55",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "bus_stop_or_boarding",
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:bca0b565b6971c90a6af9e55",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:bca0b565b6971c90a6af9e55",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "qm68-route-redesign-2025-06-30",
+          "gtfsRouteId": "QM68",
+          "analysisRouteId": "QM68",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-qm68",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0135"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_qm68-qbnr-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0135"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm68-avenue-service-discontinuation",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0135"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm68-midtown-stop-additions",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0135"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm68-route-rename",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0135"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm68-stop-removal",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0135"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm68-avenue-service-discontinuation-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0135"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm68-midtown-stop-additions-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0135"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm68-route-rename-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0135"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm68-stop-removal-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0135"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05"
+        ],
+        "postMonths": [
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f0c0de1423b27a3ba8471ae1",
+      "identity": "QM64|route_redesign|2025-06-30|day",
+      "routeId": "QM64",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "implementationMonth": "2025-06",
+      "datePrecision": "day",
+      "occurrenceId": "occurrence:8e0377c6acfe62e1a61d910b",
+      "treatmentScopeKind": "bundle",
+      "componentTreatmentFamilies": [
+        "bus_stop_or_boarding",
+        "service_pattern"
+      ],
+      "conflictState": "none",
+      "confounderGroupId": "queens_bus_network_redesign_2025",
+      "provenance": [
+        {
+          "sourceKind": "mta_wiki",
+          "sourceId": "mta_queens_bus_network_redesign_service_changes",
+          "sourceEventId": "occurrence:8e0377c6acfe62e1a61d910b",
+          "releaseId": "v1-rc19",
+          "anchorIds": [],
+          "occurrenceId": "occurrence:8e0377c6acfe62e1a61d910b",
+          "occurrenceAliases": [],
+          "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
+          "artifactSha256": "424ee1ceed24bc8c8af77d49e328c0f6bb7859e88a619bbb79a0c13ac7ed5399",
+          "occurrenceReviewDecisionId": "qm64-route-redesign-2025-06-30",
+          "gtfsRouteId": "QM64",
+          "analysisRouteId": "QM64",
+          "routeEvidenceBindings": [
+            {
+              "role": "route_scope",
+              "record_id": "relation_qbnr-2025-affects-qm64",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "route_identity",
+              "record_id": "route_qm64-qbnr-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            }
+          ],
+          "treatmentEvidenceBindings": [
+            {
+              "role": "bundle_analysis_family",
+              "record_id": "project_queens-bus-network-redesign",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0001"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm64-avenue-service-discontinuation",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm64-elmont-extension",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm64-frequency-decrease",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm64-midtown-stop-additions",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm64-route-rename",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_scope",
+              "record_id": "relation_qbnr-2025-has-qm64-stop-removal",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm64-avenue-service-discontinuation-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm64-elmont-extension-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm64-frequency-decrease-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm64-midtown-stop-additions-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm64-route-rename-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            },
+            {
+              "role": "treatment_definition",
+              "record_id": "treatment_qm64-stop-removal-2025",
+              "source_id": "mta_queens_bus_network_redesign_service_changes",
+              "evidence_id": "mta_queens_bus_network_redesign_service_changes#p001_b0132"
+            }
+          ]
+        }
+      ],
+      "spine": {
+        "readiness": "series_ready",
+        "reasons": [
+          "full_spine_coverage_all_months"
+        ],
+        "monthCount": 10,
+        "coverage": {
+          "minCoverageShare": 1,
+          "meanCoverageShare": 1,
+          "fullCoverageMonthCount": 10,
+          "partialCoverageMonthCount": 0,
+          "partialCoverageMonthShare": 0,
+          "rawKeyDriftMonthCount": 0,
+          "rawKeyDriftMonthShare": 0
+        }
+      },
+      "outcomeWindow": {
+        "analysisMonth": "2026-03",
+        "preMonths": [
+          "2024-12",
+          "2025-01",
+          "2025-02",
+          "2025-03",
+          "2025-04",
+          "2025-05"
+        ],
+        "postMonths": [
+          "2025-07",
+          "2025-08",
+          "2025-09",
+          "2025-10",
+          "2025-11",
+          "2025-12"
+        ],
+        "preMonthCount": 6,
+        "postMonthCount": 6,
+        "calendarMinimumFourPerSide": true
+      },
+      "historicalContext": null,
+      "review": {
+        "recommendation": null,
+        "rationale": null,
+        "gates": {
+          "evidenceScope": null,
+          "date": null,
+          "spine": null,
+          "outcome": null,
+          "conflict": null,
+          "confounder": null
+        }
+      }
+    }
+  ]
+}
