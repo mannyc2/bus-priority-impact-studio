@@ -764,9 +764,9 @@ function provenanceV2Key(value: StudyEventCandidateV2["provenance"][number]): st
   return stableJson(value);
 }
 
-function candidateIdentityV2(value: CandidateDraftV2): string {
+function candidateOccurrenceIdentityV2(value: CandidateDraftV2): string | null {
   return value.occurrenceId === null
-    ? candidateExactKey(value)
+    ? null
     : stableJson({
         occurrenceId: value.occurrenceId,
         routeId: value.routeId,
@@ -782,14 +782,50 @@ function mergeExactDraftsV2(drafts: readonly CandidateDraftV2[]): {
   deduplicationCount: number;
 } {
   const groups = new Map<string, CandidateDraftV2[]>();
+  const registryDrafts: CandidateDraftV2[] = [];
   for (const draft of drafts) {
-    const key = candidateIdentityV2(draft);
+    const key = candidateOccurrenceIdentityV2(draft);
+    if (key === null) {
+      registryDrafts.push(draft);
+      continue;
+    }
     const values = groups.get(key) ?? [];
     values.push(draft);
     groups.set(key, values);
   }
+
+  const occurrenceGroupsByExactKey = new Map<string, string[]>();
+  for (const [occurrenceKey, values] of groups) {
+    const exactKeys = sortedUnique(values.map(candidateExactKey));
+    if (exactKeys.length !== 1) {
+      throw new Error(
+        `Occurrence candidate identity spans multiple exact events: ${occurrenceKey}`,
+      );
+    }
+    const exactKey = exactKeys[0];
+    if (exactKey === undefined)
+      throw new Error(`Empty occurrence candidate group: ${occurrenceKey}`);
+    const matches = occurrenceGroupsByExactKey.get(exactKey) ?? [];
+    matches.push(occurrenceKey);
+    occurrenceGroupsByExactKey.set(exactKey, matches);
+  }
+
+  for (const draft of registryDrafts) {
+    const exactKey = candidateExactKey(draft);
+    const occurrenceKeys = occurrenceGroupsByExactKey.get(exactKey) ?? [];
+    if (occurrenceKeys.length > 1) {
+      throw new Error(
+        `Registry event matches multiple occurrence identities for exact event ${exactKey}`,
+      );
+    }
+    const key = occurrenceKeys[0] ?? exactKey;
+    const values = groups.get(key) ?? [];
+    values.push(draft);
+    groups.set(key, values);
+  }
+
   const candidates = [...groups.entries()].map(([key, values]) => {
-    const first = values[0];
+    const first = values.find((value) => value.occurrenceId !== null) ?? values[0];
     if (first === undefined) throw new Error(`Empty v2 study-event candidate group: ${key}`);
     const provenance = [
       ...new Map(

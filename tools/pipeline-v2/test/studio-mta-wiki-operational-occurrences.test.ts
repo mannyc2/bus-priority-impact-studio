@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import type { RouteTreatmentInterventionEventRow } from "@bp/analytics/interventions";
 import { decodeStrict } from "@bp/domain/decode";
 import type {
   OperationalOccurrenceEvidenceBinding,
@@ -61,6 +62,23 @@ type RowOptions = {
   memberFamilies?: string[];
   queensProgram?: boolean;
 };
+
+function registryEvent(
+  overrides: Partial<RouteTreatmentInterventionEventRow> = {},
+): RouteTreatmentInterventionEventRow {
+  return {
+    event_id: "registry-b1-lane",
+    route_id: "B1",
+    intervention_type: "bus_lane",
+    source_id: "nyc_dot_bus_lanes",
+    program: "NYC DOT bus lanes",
+    implementation_date: "2025-06-29",
+    implementation_month: "2025-06",
+    event_status: "implemented",
+    description: "B1 bus lane implementation",
+    ...overrides,
+  };
+}
 
 function occurrenceRow(options: RowOptions = {}): OperationalOccurrenceRow {
   const occurrenceId = options.id ?? "occurrence:atomic";
@@ -420,6 +438,93 @@ describe("manifest-v3 MTA Wiki operational-occurrence import", () => {
         }),
       ]);
     });
+  });
+
+  test("deduplicates an exact registry event into its occurrence while preserving v2 identity", () => {
+    const row = occurrenceRow();
+    const wikiOnly = buildStudyEventMergeArtifactV2({
+      registryEvents: [],
+      wiki: {
+        releaseId: "release-v3",
+        manifestSha256: "a".repeat(64),
+        artifactSha256: "b".repeat(64),
+        occurrences: [row],
+      },
+      withoutWikiAnchors: false,
+      availableAnalysisRouteIds: new Set(["B1"]),
+    });
+    const merged = buildStudyEventMergeArtifactV2({
+      registryEvents: [registryEvent()],
+      wiki: {
+        releaseId: "release-v3",
+        manifestSha256: "a".repeat(64),
+        artifactSha256: "b".repeat(64),
+        occurrences: [row],
+      },
+      withoutWikiAnchors: false,
+      availableAnalysisRouteIds: new Set(["B1"]),
+    });
+
+    expect(merged.candidates).toHaveLength(1);
+    expect(merged.summary.exactDeduplicationCount).toBe(1);
+    expect(merged.summary.conflictCount).toBe(0);
+    expect(merged.candidates[0]).toMatchObject({
+      candidateId: wikiOnly.candidates[0]?.candidateId,
+      occurrenceId: row.occurrence_id,
+      treatmentScopeKind: "atomic",
+    });
+    expect(merged.candidates[0]?.provenance.map((value) => value.sourceKind).toSorted()).toEqual([
+      "mta_wiki",
+      "registry",
+    ]);
+  });
+
+  test("keeps non-identical cross-source days in one month as a review conflict", () => {
+    const row = occurrenceRow();
+    const shifted: OperationalOccurrenceRow = {
+      ...row,
+      resolved_onset: { ...row.resolved_onset, date: "2025-06-30" },
+    };
+    const merged = buildStudyEventMergeArtifactV2({
+      registryEvents: [registryEvent()],
+      wiki: {
+        releaseId: "release-v3",
+        manifestSha256: "a".repeat(64),
+        artifactSha256: "b".repeat(64),
+        occurrences: [shifted],
+      },
+      withoutWikiAnchors: false,
+      availableAnalysisRouteIds: new Set(["B1"]),
+    });
+
+    expect(merged.candidates).toHaveLength(2);
+    expect(merged.summary.exactDeduplicationCount).toBe(0);
+    expect(merged.summary.conflictCount).toBe(1);
+    expect(
+      merged.candidates.every(
+        (candidate) => candidate.conflictState === "same_month_review_required",
+      ),
+    ).toBe(true);
+    expect(merged.conflicts[0]?.dates).toEqual(["2025-06-29", "2025-06-30"]);
+  });
+
+  test("fails closed when one registry event exactly matches multiple occurrence identities", () => {
+    const first = occurrenceRow({ id: "occurrence:first" });
+    const second = occurrenceRow({ id: "occurrence:second" });
+
+    expect(() =>
+      buildStudyEventMergeArtifactV2({
+        registryEvents: [registryEvent()],
+        wiki: {
+          releaseId: "release-v3",
+          manifestSha256: "a".repeat(64),
+          artifactSha256: "b".repeat(64),
+          occurrences: [first, second],
+        },
+        withoutWikiAnchors: false,
+        availableAnalysisRouteIds: new Set(["B1"]),
+      }),
+    ).toThrow("Registry event matches multiple occurrence identities for exact event");
   });
 
   test("projects an explicit bundle once per route, never once per member", () => {
