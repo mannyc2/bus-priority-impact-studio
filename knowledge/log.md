@@ -8395,7 +8395,8 @@ Plan 074 remains IN PROGRESS and Plan 075 has not started: the operator must san
 anchors and explicitly resolve whether the five approved studies satisfy the intended real-data
 scope, because the original done criterion expected at least ten and rejected events cannot be
 silently readmitted.
-## [2026-07-13] research | MTA Wiki v1-rc19 study-candidate audit
+
+## [2026-07-14] research | MTA Wiki v1-rc19 study-candidate audit
 
 Assessed the pinned MTA Wiki v1-rc19 release against the Tracker operational-occurrence and
 study-candidate pipeline. The manifest and all 20 declared files were independently rehashed;
@@ -8403,11 +8404,16 @@ the verified manifest SHA-256 is
 c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f. The release produced 135
 occurrences, 134 study-eligible occurrences, 172 route projections, and 1 correctly rejected
 occurrence. The deterministic before/after audit compares the historical 403-row candidate set
-with the new 501-row set: 87 identity additions, 1 removal, 12 conflict groups, 24
-conflict-marked rows, 84 rows in the Queens redesign confounder group, and zero new approvals.
+with the corrected 489-row set: 87 identity additions, 1 removal, 12 exact cross-source
+deduplications, zero conflict groups, 84 rows in the Queens redesign treatment group, and zero
+approved rows.
 
 Plan 083 is rebaselined: its historical 39-ACE statement and 5-of-403 coverage premise are not
 current rc19 facts. The new set has 75 spine-blocked additions, while Plan 074's spine,
-evidence, confounder, approval, and publication gates remain unchanged. No consumer compatibility
-fix was necessary; rc19 uses the versioned occurrence importer because the legacy anchor importer
-is v2-only. See docs/research/mta-wiki-rc19-plan-rebaseline.md and the generated audit artifacts.
+evidence, confounder, approval, and publication gates remain unchanged. Review exposed and fixed a
+narrow consumer merge defect that prevented exact registry/Wiki event deduplication; the fix
+retains both provenances and fails closed on ambiguous occurrence matches. The final non-authorizing
+Codex/subagent reconciliation records 16 approval recommendations and 473 rejection
+recommendations, but creates no receipt and authorizes no study or publication. rc19 uses the
+versioned occurrence importer because the legacy anchor importer is v2-only. See
+docs/research/mta-wiki-rc19-plan-rebaseline.md and the generated audit artifacts.
