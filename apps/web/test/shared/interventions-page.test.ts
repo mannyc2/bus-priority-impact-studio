@@ -181,6 +181,7 @@ const corpus = {
     version: 3,
     generatedAt: "2026-05-27T00:00:00.000Z",
     recordCount: 3,
+    sha256: "a".repeat(64),
   },
   records: [
     {
@@ -369,6 +370,11 @@ describe("InterventionsPage render", () => {
     // Filter counts in chip labels.
     expect(html).toContain("Evaluated (1)");
     expect(html).toContain("All (4)");
+    // The page is structured as a navigable timeline, not a flat table of records.
+    expect(html).toContain('aria-label="Network intervention timeline"');
+    expect(html).toContain('aria-label="Filter interventions by status"');
+    expect(html).toContain('dateTime="2024-06"');
+    expect(html).toContain("Newest first");
     // Doctrine: no interpunct, no old editorial hero title.
     expect(html).not.toContain("·");
     expect(html).not.toContain("What changed on the street");

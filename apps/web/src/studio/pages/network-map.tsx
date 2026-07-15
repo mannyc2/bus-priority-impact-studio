@@ -1,16 +1,16 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { speedToColor } from "@/components/route/maplibre-style";
 import {
   type MapPeriod,
   type NetworkMapLens,
   NetworkMapLibre,
+  type NetworkMapPopupState,
   periodSpeed,
 } from "@/components/route/NetworkMapLibre";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
-import { Badge } from "@/components/ui/badge";
 import type { NetworkMapFeature, NetworkMapFeatureCollection } from "@/studio/api-client";
-import type { StudioRoute } from "@/studio/api-contract";
+import type { StudioRoute, StudyIndexRow } from "@/studio/api-contract";
 
 export function NetworkMapLoadingPage() {
   return (
@@ -23,41 +23,49 @@ export function NetworkMapLoadingPage() {
   );
 }
 
+type NetworkMapSelection = {
+  routeId: string;
+  anchor: readonly [number, number];
+};
+
 export function NetworkMapPage({
   routes,
   network,
   context,
   mapMessage,
   lanesAvailable,
+  studyIndex,
 }: {
   routes: readonly StudioRoute[];
   network: NetworkMapFeatureCollection | null;
   context: RouteGeoContext | null;
   mapMessage: string | null;
   lanesAvailable: boolean;
+  studyIndex: readonly StudyIndexRow[] | null;
 }) {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<MapPeriod>("all");
   const [lens, setLens] = useState<NetworkMapLens>("speed");
-  const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null);
-  const routeSlugById = useMemo(
-    () => new Map(routes.map((route) => [route.routeId, route.slug])),
-    [routes],
-  );
-  const ranked = useMemo(
-    () =>
-      network === null
-        ? []
-        : [...network.features].sort((left, right) =>
-            compareRankedRoutes(left, right, period, lens),
-          ),
-    [network, period, lens],
-  );
-  const activeRouteId = hoveredRouteId ?? ranked[0]?.properties.routeId ?? null;
-  const activeFeature =
-    activeRouteId === null
-      ? null
-      : (network?.features.find((feature) => feature.properties.routeId === activeRouteId) ?? null);
+  const [selection, setSelection] = useState<NetworkMapSelection | null>(null);
+  const routeById = useMemo(() => new Map(routes.map((route) => [route.routeId, route])), [routes]);
+  const studiesByRouteId = useMemo(() => {
+    const grouped = new Map<string, StudyIndexRow[]>();
+    for (const row of studyIndex ?? []) {
+      const bucket = grouped.get(row.routeId);
+      if (bucket === undefined) grouped.set(row.routeId, [row]);
+      else bucket.push(row);
+    }
+    return grouped;
+  }, [studyIndex]);
+
+  useEffect(() => {
+    if (selection === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelection(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selection]);
 
   if (network === null) {
     return (
@@ -70,12 +78,34 @@ export function NetworkMapPage({
     );
   }
 
+  const selectedFeature =
+    selection === null
+      ? null
+      : (network.features.find((feature) => feature.properties.routeId === selection.routeId) ??
+        null);
+  const popup: NetworkMapPopupState | null =
+    selection === null || selectedFeature === null
+      ? null
+      : {
+          anchor: selection.anchor,
+          content: (
+            <NetworkMapPopup
+              feature={selectedFeature}
+              route={routeById.get(selection.routeId) ?? null}
+              studies={studiesByRouteId.get(selection.routeId) ?? []}
+              period={period}
+              lens={lens}
+              onClose={() => setSelection(null)}
+            />
+          ),
+        };
+
   return (
     <main className="flex h-full min-h-0 flex-col">
       <div className="flex items-baseline gap-3 px-7 py-3 max-md:px-4">
         <h1 className="m-0 text-[18px] font-semibold">Network map</h1>
         <span className="text-[12px] text-[var(--bp-color-ink-55)]">
-          {network.features.length} routes, colored by {lensLabel(lens)}.
+          {network.features.length} routes, colored by {lensLabel(lens)}. Click a route for details.
         </span>
       </div>
       {mapMessage === null ? null : (
@@ -89,15 +119,20 @@ export function NetworkMapPage({
           context={context}
           period={period}
           lens={lens}
-          hoveredRouteId={hoveredRouteId}
-          setHoveredRouteId={setHoveredRouteId}
-          selectedRouteId={activeRouteId}
-          onSelectRoute={(routeId) => {
-            const slug = routeSlugById.get(routeId);
-            if (slug !== undefined) {
-              void navigate({ to: "/routes/$routeId", params: { routeId: slug } });
+          selectedRouteId={selection?.routeId ?? null}
+          onSelectRoute={(routeId, lngLat) => {
+            if (lngLat === null) {
+              // Static fallback: no anchor to pin a popup to, go to the route.
+              const slug = routeById.get(routeId)?.slug;
+              if (slug !== undefined) {
+                void navigate({ to: "/routes/$routeId", params: { routeId: slug } });
+              }
+              return;
             }
+            setSelection({ routeId, anchor: lngLat });
           }}
+          onClearSelection={() => setSelection(null)}
+          popup={popup}
         />
         <div className="absolute left-4 top-4 z-10 flex flex-col gap-2">
           <MapToggle
@@ -131,17 +166,6 @@ export function NetworkMapPage({
         <div className="absolute bottom-6 left-4 z-10">
           <NetworkLegend lens={lens} period={period} />
         </div>
-        <aside className="absolute right-4 top-4 z-10 flex max-h-[calc(100%-2rem)] w-[300px] flex-col overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]/95 p-3 shadow-[0_1px_6px_rgba(0,0,0,0.15)] max-md:hidden">
-          <NetworkReadout feature={activeFeature} period={period} lens={lens} />
-          <NetworkRankList
-            features={ranked.slice(0, 10)}
-            period={period}
-            lens={lens}
-            activeRouteId={activeRouteId}
-            routeSlugById={routeSlugById}
-            setHoveredRouteId={setHoveredRouteId}
-          />
-        </aside>
       </div>
     </main>
   );
@@ -232,55 +256,82 @@ function NetworkLegend({ lens, period }: { lens: NetworkMapLens; period: MapPeri
   );
 }
 
-function NetworkReadout({
+function NetworkMapPopup({
   feature,
+  route,
+  studies,
   period,
   lens,
+  onClose,
 }: {
-  feature: NetworkMapFeature | null;
+  feature: NetworkMapFeature;
+  route: StudioRoute | null;
+  studies: readonly StudyIndexRow[];
   period: MapPeriod;
   lens: NetworkMapLens;
+  onClose: () => void;
 }) {
-  if (feature === null) {
-    return <div className="text-[12.5px] text-[var(--bp-color-ink-55)]">No route is selected.</div>;
-  }
-  const speed = periodSpeed(feature, period).value;
+  const slug = route?.slug ?? null;
+  const place = [feature.properties.borough ?? "Unverified geography", route?.corridor]
+    .filter((part): part is string => typeof part === "string" && part.length > 0)
+    .join(" / ");
+  const study = routeStudySummary(studies);
   return (
-    <div>
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-[10.5px] font-semibold text-[var(--bp-color-ink-55)]">Focus route</div>
-        <Badge variant={lens === "speed" && speed !== null && speed < 5 ? "bad" : "neutral"}>
-          {rankValue(feature, period, lens)}
-        </Badge>
+    <div className="w-[264px] p-3 font-sans text-[var(--bp-color-ink)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-[18px] font-semibold leading-tight">
+            {feature.properties.label}
+          </div>
+          <div className="mt-0.5 truncate text-[11.5px] text-[var(--bp-color-ink-55)]">{place}</div>
+        </div>
+        <button
+          type="button"
+          aria-label="Close route details"
+          onClick={onClose}
+          className="-mr-1.5 -mt-1.5 rounded-[3px] border-0 bg-transparent px-2 py-1 text-[14px] leading-none text-[var(--bp-color-ink-55)] hover:bg-[var(--bp-color-paper-deep)] hover:text-[var(--bp-color-ink)]"
+        >
+          ✕
+        </button>
       </div>
-      <div className="mt-1 flex items-baseline justify-between gap-3">
-        <div className="text-[24px] font-semibold leading-none">{feature.properties.label}</div>
-        <div className="font-mono text-[20px] font-semibold tabular-nums">
-          {speed === null ? "No data" : speed.toFixed(1)}
-          {speed === null ? null : (
-            <span className="ml-1 text-[11px] text-[var(--bp-color-ink-55)]">mph</span>
-          )}
+      <div className="mt-2.5">
+        <span className="font-mono text-[22px] font-semibold leading-none tabular-nums">
+          {lensValue(feature, period, lens)}
+        </span>
+        <div className="mt-1 text-[10.5px] text-[var(--bp-color-ink-55)]">
+          {lens === "speed" ? `average ${periodLabel(period)} speed` : lensLabel(lens)}
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-3 text-[11.5px] text-[var(--bp-color-ink-55)]">
-        <NetworkMiniStat label="Riders" value={compactNumber(feature.properties.dailyRiders)} />
-        <NetworkMiniStat
-          label="Lanes"
-          value={
-            feature.properties.laneCoverage === null
-              ? "No data"
-              : `${feature.properties.laneCoverage}%`
-          }
-        />
-        <NetworkMiniStat
-          label="Delay"
-          value={
-            feature.properties.riderHoursLost === null
-              ? "No data"
-              : `${compactNumber(feature.properties.riderHoursLost)} hr`
-          }
-        />
+      <div className="mt-3 grid grid-cols-3 gap-3">
+        {popupStats(feature, period, lens).map((stat) => (
+          <NetworkMiniStat key={stat.label} label={stat.label} value={stat.value} />
+        ))}
       </div>
+      {slug === null ? null : (
+        <div className="mt-3 flex items-center gap-4 border-t border-[var(--bp-color-rule)] pt-2.5">
+          <Link
+            to="/routes/$routeId"
+            params={{ routeId: slug }}
+            className="text-[12.5px] font-semibold text-[var(--bp-color-accent)] no-underline hover:underline"
+          >
+            Route detail →
+          </Link>
+          {study.count === 0 ? null : (
+            <Link
+              to="/routes/$routeId"
+              params={{ routeId: slug }}
+              search={
+                study.eventKey === null
+                  ? { tab: "history" as const }
+                  : { tab: "history" as const, study: study.eventKey }
+              }
+              className="text-[12.5px] font-semibold text-[var(--bp-color-accent)] no-underline hover:underline"
+            >
+              {study.count === 1 ? "Study →" : `Studies (${study.count}) →`}
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -291,82 +342,6 @@ function NetworkMiniStat({ label, value }: { label: string; value: string }) {
       <div className="text-[10.5px] font-semibold text-[var(--bp-color-ink-55)]">{label}</div>
       <div className="mt-1 truncate font-mono text-[14px] font-semibold text-[var(--bp-color-ink)]">
         {value}
-      </div>
-    </div>
-  );
-}
-
-function NetworkRankList({
-  features,
-  period,
-  lens,
-  activeRouteId,
-  routeSlugById,
-  setHoveredRouteId,
-}: {
-  features: readonly NetworkMapFeature[];
-  period: MapPeriod;
-  lens: NetworkMapLens;
-  activeRouteId: string | null;
-  routeSlugById: ReadonlyMap<string, string>;
-  setHoveredRouteId: (routeId: string | null) => void;
-}) {
-  return (
-    <div className="mt-4 flex min-h-0 flex-col border-t border-[var(--bp-color-rule)] pt-3">
-      <div className="mb-2 text-[10.5px] font-semibold text-[var(--bp-color-ink-55)]">
-        {rankTitle(lens)}
-      </div>
-      <div className="flex min-h-0 flex-col overflow-y-auto">
-        {features.map((feature, index) => {
-          const active = feature.properties.routeId === activeRouteId;
-          const slug = routeSlugById.get(feature.properties.routeId);
-          const className = active
-            ? "grid w-full grid-cols-[28px_1fr_auto] items-center gap-2 border-0 bg-transparent px-2 py-1.5 text-left font-sans no-underline shadow-[inset_3px_0_0_var(--bp-color-ink),inset_0_-1px_0_var(--bp-color-rule)]"
-            : "grid w-full grid-cols-[28px_1fr_auto] items-center gap-2 border-0 bg-transparent px-2 py-1.5 text-left font-sans no-underline shadow-[inset_0_-1px_0_var(--bp-color-rule)] hover:bg-[var(--bp-color-paper-deep)]";
-          const content = (
-            <>
-              <span className="font-mono text-[11px] font-bold text-[var(--bp-color-ink-40)]">
-                {index + 1}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-[13px] font-semibold text-[var(--bp-color-ink)]">
-                  {feature.properties.label}
-                </span>
-                <span className="mt-0.5 block truncate text-[11px] text-[var(--bp-color-ink-55)]">
-                  {rankSubline(feature, period, lens)}
-                </span>
-              </span>
-              <span className="font-mono text-[13px] font-bold text-[var(--bp-color-ink)]">
-                {rankValue(feature, period, lens)}
-              </span>
-            </>
-          );
-          if (slug === undefined) {
-            return (
-              <button
-                key={feature.properties.routeId}
-                type="button"
-                className={className}
-                onMouseEnter={() => setHoveredRouteId(feature.properties.routeId)}
-                onMouseLeave={() => setHoveredRouteId(null)}
-              >
-                {content}
-              </button>
-            );
-          }
-          return (
-            <Link
-              key={feature.properties.routeId}
-              to="/routes/$routeId"
-              params={{ routeId: slug }}
-              className={className}
-              onMouseEnter={() => setHoveredRouteId(feature.properties.routeId)}
-              onMouseLeave={() => setHoveredRouteId(null)}
-            >
-              {content}
-            </Link>
-          );
-        })}
       </div>
     </div>
   );
@@ -384,37 +359,7 @@ export function periodLabel(period: MapPeriod): string {
   return "all-day";
 }
 
-export function compareRankedRoutes(
-  left: NetworkMapFeature,
-  right: NetworkMapFeature,
-  period: MapPeriod,
-  lens: NetworkMapLens,
-): number {
-  const leftValue =
-    lens === "riders"
-      ? left.properties.dailyRiders
-      : lens === "lanes"
-        ? left.properties.laneCoverage
-        : periodSpeed(left, period).value;
-  const rightValue =
-    lens === "riders"
-      ? right.properties.dailyRiders
-      : lens === "lanes"
-        ? right.properties.laneCoverage
-        : periodSpeed(right, period).value;
-  if (leftValue === null) return rightValue === null ? 0 : 1;
-  if (rightValue === null) return -1;
-  const delta = lens === "riders" ? rightValue - leftValue : leftValue - rightValue;
-  return delta === 0 ? left.properties.label.localeCompare(right.properties.label) : delta;
-}
-
-export function rankTitle(lens: NetworkMapLens): string {
-  if (lens === "riders") return "Highest ridership";
-  if (lens === "lanes") return "Lowest lane coverage";
-  return "Slowest routes";
-}
-
-export function rankValue(
+export function lensValue(
   feature: NetworkMapFeature,
   period: MapPeriod,
   lens: NetworkMapLens,
@@ -428,16 +373,40 @@ export function rankValue(
   return speed === null ? "No data" : `${speed.toFixed(1)} mph`;
 }
 
-export function rankSubline(
+// The popup leads with the active lens value, so the stat row carries the
+// remaining three measures.
+export function popupStats(
   feature: NetworkMapFeature,
   period: MapPeriod,
   lens: NetworkMapLens,
-): string {
-  if (lens === "speed") {
-    return `${feature.properties.borough ?? "Unverified geography"} / ${compactNumber(feature.properties.dailyRiders)} riders`;
-  }
-  const speed = periodSpeed(feature, period).value;
-  return `${feature.properties.borough ?? "Unverified geography"} / ${speed === null ? "No speed data" : `${speed.toFixed(1)} mph`}`;
+): Array<{ label: string; value: string }> {
+  const stats = [
+    { key: "speed", label: "Speed", value: lensValue(feature, period, "speed") },
+    { key: "riders", label: "Riders", value: lensValue(feature, period, "riders") },
+    { key: "lanes", label: "Lanes", value: lensValue(feature, period, "lanes") },
+    {
+      key: "delay",
+      label: "Delay",
+      value:
+        feature.properties.riderHoursLost === null
+          ? "No data"
+          : `${compactNumber(feature.properties.riderHoursLost)} hr`,
+    },
+  ];
+  return stats
+    .filter((stat) => stat.key !== lens)
+    .map((stat) => ({ label: stat.label, value: stat.value }));
+}
+
+export function routeStudySummary(rows: readonly StudyIndexRow[]): {
+  count: number;
+  eventKey: string | null;
+} {
+  const first = rows[0];
+  return {
+    count: rows.length,
+    eventKey: rows.length === 1 && first !== undefined ? first.eventKey : null,
+  };
 }
 
 function compactNumber(value: number | null): string {

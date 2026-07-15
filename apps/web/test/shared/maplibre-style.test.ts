@@ -97,11 +97,17 @@ describe("maplibre route style helpers", () => {
     expect(scaledMapColor(50, 0, 100, "riders")).toBe("#5790c8");
   });
 
-  test("exports the documented buffered NYC map bounds", () => {
+  test("exports a pan fence much wider than the route network", () => {
     expect(NYC_MAP_BOUNDS).toEqual([
-      [-74.35, 40.45],
-      [-73.65, 40.98],
+      [-74.8, 40.15],
+      [-73.15, 41.2],
     ]);
+    // MapLibre constrains the whole viewport inside maxBounds, so a fence
+    // close to the network extent (-74.25..-73.70, 40.50..40.93) locks
+    // panning at citywide zooms.
+    const [[west, south], [east, north]] = NYC_MAP_BOUNDS;
+    expect(east - west).toBeGreaterThan(1.5);
+    expect(north - south).toBeGreaterThan(1);
   });
 
   test("derives hourly speeds and weighted route averages from segment severity", () => {

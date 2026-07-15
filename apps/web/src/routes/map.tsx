@@ -3,6 +3,7 @@ import { routeHead } from "../lib/head.js";
 import {
   fetchNetworkMapGeo,
   fetchStudioRoutes,
+  fetchStudioStudiesIndex,
   joinNetworkMapBundle,
   staticStudioLoaderStaleTimeMs,
 } from "../studio/api-client.js";
@@ -11,9 +12,17 @@ import { NetworkMapLoadingPage, NetworkMapPage } from "../studio/pages/network-m
 export const Route = createFileRoute("/map")({
   loader: async ({ abortController }) => {
     const options = { signal: abortController.signal };
-    const [routes, bundle] = await Promise.all([
+    const [routes, bundle, studyIndex] = await Promise.all([
       fetchStudioRoutes(options),
       fetchNetworkMapGeo(options),
+      // The studies index only feeds popup links; a failure never blocks the map.
+      fetchStudioStudiesIndex(options).catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") throw error;
+        console.warn("Studies index request failed; map popups render without study links.", {
+          error,
+        });
+        return null;
+      }),
     ]);
     const joined = joinNetworkMapBundle(bundle);
     const contextMessage =
@@ -23,6 +32,7 @@ export const Route = createFileRoute("/map")({
     return {
       routes: routes.routes,
       network: joined.collection,
+      studyIndex: studyIndex?.studies ?? null,
       context: bundle?.context.status === "ready" ? bundle.context.data : null,
       mapMessage:
         [joined.message, contextMessage].filter((message) => message !== null).join(" ") || null,
@@ -51,6 +61,7 @@ function MapRoute() {
       context={data.context}
       mapMessage={data.mapMessage}
       lanesAvailable={data.lanesAvailable}
+      studyIndex={data.studyIndex}
     />
   );
 }
