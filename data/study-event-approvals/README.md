@@ -1,9 +1,12 @@
 # Study-event operator approval receipts
 
 This is the tracked, append-only handoff location for Plan 074 study-event
-approval receipts. There is currently **no approval receipt** for
-`candidate-set:49af8c8721457fa7532a7345`; the corresponding merge artifact is
-still `awaiting_approval` with `approvedEvents: []`.
+approval receipts. Candidate set `candidate-set:49af8c8721457fa7532a7345`
+has a validated immutable receipt at
+`receipts/candidate-set-49af8c8721457fa7532a7345.approval.json`: all 403
+candidates have explicit decisions, with 5 approved and 398 rejected. The
+strict merge resolves to `approvalState: "approved"` and exposes only those
+five events through `approvedEvents`.
 
 ## Authority and validation
 
@@ -24,11 +27,13 @@ pipeline command validates the resulting artifact.
 
 ## Operator workflow
 
-1. Use the clean, immutable MTA Wiki release `v2-operational-anchors-1` and the
-   rebuilt `data/artifacts/studio/v2/studies/study-events.json`.
-2. Review
-   `reviews/candidate-set-49af8c8721457fa7532a7345.review-worksheet.json`.
-   It contains all 403 candidates and their provenance, with informational
+The workflow below applies to a **new** candidate-set id. Do not reopen or
+overwrite the completed receipt above.
+
+1. Use a clean, immutable MTA Wiki release and rebuild
+   `data/artifacts/studio/v2/studies/study-events.json` without an approval.
+2. Generate and review a new `reviews/candidate-set-NEW_ID.review-worksheet.json`.
+   It must contain every candidate and its provenance, with informational
    analysis-window hints only. Replace every `REVIEW_REQUIRED` value with
    `approved` or `rejected`, and fill every `reviewer` and `rationale`. The
    worksheet is deliberately not a valid receipt while any sentinel or blank
@@ -38,8 +43,8 @@ pipeline command validates the resulting artifact.
 
    ```sh
    jq '{artifactKind:"bp.studio.study_event_approvals.v1",schemaVersion:1,candidateSetId,decisions:[.decisions[]|{candidateId,decision,reviewer,rationale}]}' \
-     data/study-event-approvals/reviews/candidate-set-49af8c8721457fa7532a7345.review-worksheet.json \
-     > /tmp/candidate-set-49af8c8721457fa7532a7345.approval.json
+     data/study-event-approvals/reviews/candidate-set-NEW_ID.review-worksheet.json \
+     > /tmp/candidate-set-NEW_ID.approval.json
    ```
 
 4. Run `study merge-events` with `--wiki-import <artifact>`,

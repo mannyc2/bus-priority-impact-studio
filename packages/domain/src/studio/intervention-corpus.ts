@@ -7,6 +7,7 @@ import {
 } from "../documents/intervention-records/index.js";
 
 const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
+const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
 const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
   Schema.isGreaterThanOrEqualTo(0),
 );
@@ -16,6 +17,7 @@ export const StudioInterventionCorpusSourceSchema = Schema.Struct({
   version: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
   generatedAt: NonEmptyStringSchema,
   recordCount: NonNegativeIntegerSchema,
+  sha256: Sha256Schema,
 });
 export type StudioInterventionCorpusSource = typeof StudioInterventionCorpusSourceSchema.Type;
 
@@ -30,6 +32,7 @@ export const StudioInterventionCorpusRecordSchema = Schema.Struct({
   recordKind: DocumentInterventionRecordKindSchema,
   statusLatest: Schema.NullOr(DocumentInterventionStatusSchema),
   corridorStreets: Schema.Array(NonEmptyStringSchema),
+  /** Outcome-window display hint; never sufficient for causal study admission. */
   evaluableInWindow: Schema.Boolean,
   sourceId: NonEmptyStringSchema,
   sourceLabel: NonEmptyStringSchema,
