@@ -20,6 +20,16 @@
 - **Category**: direction
 - **Planned at**: commit `cd878f7`, 2026-07-09 (rescoped same day per operator direction)
 
+### Binding rc19 candidate amendment — 2026-07-14
+
+This serving work remains complete for already published study artifacts, but
+the rc19 candidate set changes no public study output by itself. Its 489 rows
+are unapproved; the 16 Codex recommendations are not a receipt. Do not render
+them as studies, regenerate serving artifacts, or publish D1/R2 data until a
+new exact-set-bound approval, a separately authorized Plan 074 run, and the
+existing publication checks all succeed. See
+`docs/research/mta-wiki-rc19-plan-rebaseline.md`.
+
 ## Why this matters
 
 Plan 074 produces defensible per-treatment effect estimates with gates and

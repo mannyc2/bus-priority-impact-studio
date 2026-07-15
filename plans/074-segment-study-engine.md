@@ -28,6 +28,23 @@
 - **Category**: direction
 - **Planned at**: commit `cd878f7`, 2026-07-09
 
+### Binding rc19 candidate amendment — 2026-07-14
+
+The five-study run and its receipt remain immutable historical outputs bound
+to `candidate-set:49af8c8721457fa7532a7345`. The corrected rc19 build creates
+the distinct `candidate-set-v2:24080902f508b55a0033df32` with 489 rows,
+approval state `awaiting_approval`, and zero approved rows. It neither reopens
+the 398 historical rejections nor authorizes another study run.
+
+The non-authorizing rc19 review recommends 16 approvals and 473 rejections.
+Before any new study can run, the operator must issue a complete receipt bound
+to that exact candidate-set ID, candidate SHA-256
+`42d9dc3139b4ba1439b0737b7f2b2175e7fe71fa20286c1ec349addf8f6455ba`,
+and recorded input hashes (or provide candidate-level overrides with
+rationale). Estimator, sample/control, pre-trend, placebo, sensitivity,
+claim-tier, run, and publication gates remain independently binding. See
+`docs/research/mta-wiki-rc19-plan-rebaseline.md`.
+
 ## Why this matters
 
 The product is named Bus Priority **Impact** Studio, but impact is currently

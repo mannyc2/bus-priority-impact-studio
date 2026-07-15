@@ -1,4 +1,4 @@
-# Plan 083: Spine pattern-grouping spike — measure whether the 267 `needs_pattern_review` routes (and the 39 blocked ACE studies) can be unlocked without weakening identity
+# Plan 083: Spine pattern-grouping spike — measure honest candidate-coverage gains without weakening identity
 
 > **Executor instructions**: This is an INVESTIGATION/SPIKE plan — it produces
 > measurement tables, pure prototypes, and a decision document, NOT production
@@ -21,30 +21,50 @@
 - **Category**: direction (design/spike)
 - **Planned at**: commit `99fa763`, 2026-07-12
 
+### Binding rc19 rebaseline — 2026-07-14
+
+The original “39 ACE candidates blocked solely by `needs_pattern_review`”
+framing is historical and overstated. Those 39 identities span 37 routes and
+were assigned a mutually exclusive *primary* rejection category, but their
+receipt rationales retain additional defects: 20 name no additional
+phase/overlap defect, 14 also have an earlier ABLE/ACE phase, and 5 also have
+an inseparable same-route lane onset. They remain a useful diagnostic cohort,
+not 39 pre-approved or automatically unlockable studies.
+
+The corrected rc19 set is
+`candidate-set-v2:24080902f508b55a0033df32`: 489 unapproved rows, including
+40 calendar-eligible ACE identities across 38 routes that fail the mechanical
+spine gate. Its 87 new identities include 75 spine-blocked additions across
+74 routes (73 route redesign, one ACE, and one bus-lane identity). The prior
+5-of-403 result remains an immutable historical approval fact, not current
+coverage; rc19 has zero approvals until a new exact-set-bound receipt exists.
+
+The spike remains necessary because the pinned route manifest still reports
+267 `needs_pattern_review`, 93 `series_ready`, and 25
+`series_ready_with_gaps` routes. It must measure route-level readiness flips
+for all 267 routes and candidate-level advancement separately for the
+historical 39 identities, the current 40 ACE identities, and the 75 rc19
+additions. A spine flip means “advance to full review,” never “approved” or
+“study unlocked.” The complete amendment and hash boundary are recorded in
+`docs/research/mta-wiki-rc19-plan-rebaseline.md`.
+
 ## Why this matters
 
 The plan 074 study engine can only study routes whose segment spine is
 `series_ready` or `series_ready_with_gaps`. The current spine manifest
 classifies **267 of 385 routes `needs_pattern_review`** (93 `series_ready`,
-25 `series_ready_with_gaps`, 0 `failed`). The 2026-07-12 operator review of
-403 study candidates approved only 5 — and its single largest recoverable
-rejection bucket is **39 calendar-eligible ACE candidates rejected solely
-because their route remained `needs_pattern_review`** (see
-`data/study-event-approvals/reviews/candidate-set-49af8c8721457fa7532a7345.review-report.md`,
-"Uncertain and high-scrutiny cases" item 2 — the full 39-route list with
-candidate IDs is there). These candidates have authoritative exact-route
-onsets from the trusted `mta_ace_routes` source and valid observation
-windows; the ONLY blocker is spine coverage classification.
+25 `series_ready_with_gaps`, 0 `failed`). The classifier itself names a
+possible fix through `partial_months_require_pattern_grouping`, but the rc19
+rebaseline proves that readiness is only one gate among evidence, treatment
+phase, overlap/confounder, outcome, estimator, approval, and publication
+checks.
 
-The classifier itself names the fix: its reason code is
-`partial_months_require_pattern_grouping`. If pattern grouping can lift even
-half of those 39 routes to eligibility WITHOUT weakening the exact-identity
-guarantees plan 078 established, the honest path from 5 studies to tens of
-studies is: grouping work → spine rebuild → a batch-2 operator review of just
-the newly eligible candidates → `study run`. This spike determines whether
-that is possible and worth it — by measurement, not argument. No standards
-are relaxed: readiness thresholds and review conservatism stay exactly where
-they are (thresholds change only by operator decision — plan 074 rule).
+This spike therefore asks a narrower and defensible question: can exact,
+ambiguity-rejecting pattern grouping improve route readiness, and how many
+candidate identities would advance to full operator review as a result? The
+follow-up path remains grouping work → spine rebuild → a new candidate-set ID
+→ a complete new receipt → a separately authorized study run. No standards
+are relaxed, and no historical rejection is silently readmitted.
 
 ## Current state
 
@@ -93,11 +113,15 @@ if (
   never run find/grep/du across `data/` broadly; touch only this directory,
   the review-report path above, and `data/artifacts/studio/v2/studies/`.**
 
-- **The blocked-candidate list**: the review report's item-2 list (39
-  candidates, each `study-event:<id> (ROUTE, YYYY-MM-DD)`). Six additional
-  ACE candidates were rejected as "later phase after existing ABLE" and one
-  (M96) for same-route overlap — those are NOT unlockable by spine work;
-  exclude them from the target cohort.
+- **Candidate cohorts**: use the exact identities in
+  `docs/research/artifacts/mta-wiki-rc19-study-candidate-audit.json` under
+  `plan083Rebaseline` plus the historical receipt/report. Keep four labels:
+  the 267-route network population; the historical 39 identities/37 routes;
+  the current 40 calendar-eligible ACE identities/38 routes that fail the
+  mechanical spine gate; and the 75 rc19 additions/74 routes that are
+  spine-blocked. Preserve the 20/14/5 historical defect partition and never
+  describe a cohort member as solely blocked unless its complete current
+  rationale proves that claim.
 
 - **Spine build commands**:
   `tools/pipeline-v2/src/commands/studio/route-speed-spine.ts` (single route)
@@ -163,25 +187,27 @@ if (
 
 ### Step 1: Measure the blocked cohort
 
-Extract the 39 blocked ACE routes (review report item 2; parse route IDs from
-the list). From the spine manifest, produce a table in
-`docs/research/spine-pattern-grouping-findings.md`: route, readiness,
+Extract the four rebaselined cohorts above. From the spine manifest, produce
+annotated candidate and route tables in
+`docs/research/spine-pattern-grouping-findings.md`: identity/cohort, route, readiness,
 `minCoverageShare`, `partialCoverageMonthCount`, `partialCoverageMonthShare`,
-`rawKeyDriftMonthShare`, reason codes. Add three distribution summaries: how
-many of the 39 sit within 0.10 of the 0.25 partial-share threshold ("near
-misses"), how many carry `high_raw_key_drift_collapsed_by_spine`, and the
-same two stats for the full 267-route `needs_pattern_review` population
-(the 39 are the priority, but the fix should be judged network-wide).
+`rawKeyDriftMonthShare`, reason codes, and any independently named
+phase/overlap defect. Add distribution summaries for near misses (within
+0.10 of the 0.25 partial-share threshold) and
+`high_raw_key_drift_collapsed_by_spine` for each candidate cohort and for the
+full 267-route population.
 
-**Verify**: the table has exactly 39 rows; its readiness column is
-`needs_pattern_review` for every row (if any route has since reclassified,
-flag it — that candidate may already be reviewable); the two population
-counts match `jq` totals from the manifest (267 / 93 / 25).
+**Verify**: cohort cardinalities are exactly 39 identities/37 routes, 40/38,
+and 75/74; historical defect counts are 20/14/5; every targeted route's
+current readiness is reported; and manifest totals are 267 / 93 / 25. If an
+input has drifted, stop and rebaseline rather than forcing the old counts.
 
 ### Step 2: Taxonomy — WHY are months partial
 
-Pick 5 representative routes from the 39 (include at least one near-miss and
-one deep case). For each, open its per-route spine artifact and classify each
+Pick at least 5 representative routes across the candidate cohorts (include
+one historical no-other-named-defect case, one phase/overlap case, one rc19
+route-redesign addition, one near miss, and one deep case). For each, open its
+per-route spine artifact and classify each
 partial month's missing segments into: (a) raw-key drift (same physical
 segment under a different source key that month — check the artifact's
 `sourceKeys`/drift fields), (b) pattern variance (segments genuinely absent
@@ -220,9 +246,10 @@ genuinely gappy route does NOT flip under either; an ambiguous alias is
 rejected.
 
 Then run both prototypes over the real manifest + per-route artifacts and
-record in the decision doc: per strategy, how many of the 39 flip to
-`series_ready`/`series_ready_with_gaps`, how many of the 267 flip
-network-wide, and 2 worked examples each (before/after coverage numbers).
+record in the decision doc: per strategy, how many routes flip network-wide;
+how many identities in each of the 39-, 40-, and 75-row cohorts advance past
+the mechanical spine gate; how many still retain another named defect; and 2
+worked examples each (before/after coverage numbers).
 
 **Verify**: `bun --filter @bp/analytics test` passes including the new
 tests; `bun run check:types` exits 0; the flip counts print from a
@@ -253,10 +280,10 @@ binding for its set; rejected candidates are never silently readmitted) →
 
 ## Done criteria
 
-- [ ] `docs/research/spine-pattern-grouping-findings.md` exists: 39-row cohort table + near-miss/drift distributions for the 39 and for all 267
+- [ ] `docs/research/spine-pattern-grouping-findings.md` exists with exact 39/37, 40/38, and 75/74 cohort audits plus the full 267-route distribution
 - [ ] Taxonomy for 5 routes with every partial month classified
 - [ ] ≥2 pure prototype strategies with ≥6 known-answer unit tests, all passing
-- [ ] Real-data flip counts recorded for both the 39-route cohort and the 267-route population
+- [ ] Real-data route flips and candidate advancements recorded separately for every rebaselined cohort and for the 267-route population
 - [ ] `docs/research/spine-pattern-grouping-decision.md` exists with recommendation + commissioned follow-up chain
 - [ ] `git status` shows NO changes under `data/`, `apps/web/`, `packages/studio-api/`, `packages/domain/`, or to `route-speed-spine.ts`
 - [ ] `bun --filter @bp/analytics test`, `bun --filter @bp/pipeline-v2 test`, `bun run check:types` all exit 0
@@ -286,10 +313,9 @@ Stop and report back (do not improvise) if:
   downstream consumers (study engine eligibility, review batch-2 candidate
   build) through the new candidate-set-id flow — never mutate the reviewed
   `candidate-set:49af8c8721457fa7532a7345` artifacts.
-- The 6 "later ACE phase after ABLE" rejections and the M96 overlap rejection
-  are ontology/overlap questions, not spine questions — if the operator wants
-  those studied, that is a separate candidate-ontology decision (treatment
-  phase identity), deliberately not part of this spike.
+- Phase/overlap defects remain independent of spine readiness. A prototype
+  may report that such a row passes the mechanical spine gate, but must keep
+  it blocked from approval and carry the defect into the decision table.
 - Watch for interaction with gen-9 plan 079's map release contracts: the
   spine manifest feeds both maps and studies; a readiness reclassification
   changes what maps may claim as ready. The decision doc must name this

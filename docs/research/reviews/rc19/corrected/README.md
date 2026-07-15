@@ -10,7 +10,7 @@ route-redesign identities; the other five are unchanged identities that match th
 receipt's approved identity set. This comparison does not transfer the old receipt to the new set.
 The reconciliation SHA-256 is
 `8b5f77c9391970223aaa1fee8c3833a2d00c90e1755b80267c76ffbfb95c522c`; the deterministic audit
-JSON SHA-256 is `7b0241a4a9e9de27eb3dcf1b71ead532718e9f05be357af91212351120d6fe00`.
+JSON SHA-256 is `075ac2bae5d62847e091f2dca64b0f03b2341f2333ccec88ed7025916dd329a6`.
 
 Of the 12 rc19 additions that pass the mechanical calendar-plus-spine prefilter, 11 receive
 non-authorizing approval recommendations. `B67|bus_lane|2025-09|month` remains rejected because
