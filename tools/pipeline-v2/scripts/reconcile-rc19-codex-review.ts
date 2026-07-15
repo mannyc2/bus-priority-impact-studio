@@ -1,155 +1,148 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { z } from "zod";
+import { decodeStrict } from "@bp/domain/decode";
+import { Schema } from "effect";
 
 const RECOMMENDATIONS = ["recommend_approve", "recommend_reject", "needs_followup"] as const;
 const NON_AUTHORIZING = "non_authorizing_recommendation_only" as const;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
-const sha256Schema = z.string().regex(SHA256_PATTERN);
+const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
+const TrimmedNonEmptyStringSchema = Schema.Trim.check(Schema.isMinLength(1));
+const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
+  Schema.isGreaterThanOrEqualTo(0),
+);
+const Sha256Schema = Schema.String.check(Schema.isPattern(SHA256_PATTERN));
+const PassthroughRecordSchema = Schema.Record(Schema.String, Schema.Unknown);
+const passthroughStruct = <const Fields extends Schema.Struct.Fields>(fields: Fields) =>
+  Schema.StructWithRest(Schema.Struct(fields), [PassthroughRecordSchema]);
 
-const provenanceSchema = z
-  .object({ sourceKind: z.string().min(1), sourceId: z.string().min(1) })
-  .passthrough();
-const sourceCandidateSchema = z
-  .object({
-    candidateId: z.string().min(1),
-    routeId: z.string().min(1),
-    treatmentFamily: z.string().min(1),
-    implementationDate: z.string().min(1),
-    implementationMonth: z.string().min(1),
-    datePrecision: z.enum(["day", "month"]),
-    occurrenceId: z.string().nullable().optional(),
-    treatmentScopeKind: z.string().optional(),
-    componentTreatmentFamilies: z.array(z.string()).optional(),
-    conflictState: z.string().optional(),
-    confounderGroupId: z.string().nullable().optional(),
-    provenance: z.array(provenanceSchema).min(1),
-  })
-  .passthrough();
-const assignedCandidateSchema = sourceCandidateSchema.extend({
-  identity: z.string().min(1),
-  occurrenceId: z.string().nullable(),
-  treatmentScopeKind: z.string(),
-  componentTreatmentFamilies: z.array(z.string()),
-  conflictState: z.string(),
-  confounderGroupId: z.string().nullable(),
+const ProvenanceSchema = passthroughStruct({
+  sourceKind: NonEmptyStringSchema,
+  sourceId: NonEmptyStringSchema,
 });
-const manifestBatchSchema = z
-  .object({
-    batchId: z.string().min(1),
-    file: z.string().min(1),
-    candidateCount: z.number().int().nonnegative(),
-    sha256: sha256Schema.optional(),
-    inputSha256: sha256Schema.optional(),
-    fileSha256: sha256Schema.optional(),
-  })
-  .passthrough();
-const manifestSchema = z
-  .object({
-    artifactKind: z.literal("bp.studio.codex_review_manifest.v1"),
-    candidateSetId: z.string().min(1),
-    candidateSetSha256: sha256Schema,
-    immutableInputs: z
-      .object({
-        baselineCandidateSetId: z.string().min(1),
-        baselineSha256: sha256Schema,
-        historicalReceiptSha256: sha256Schema,
-        spineManifestSha256: sha256Schema,
-      })
-      .passthrough(),
-    totalCandidateCount: z.number().int().nonnegative(),
-    batches: z.array(manifestBatchSchema).min(1),
-    inputHashes: z.record(z.string(), sha256Schema).optional(),
-    candidateSetFile: z.string().min(1).optional(),
-  })
-  .passthrough();
-const candidateSetSchema = z
-  .object({
-    artifactKind: z.literal("bp.studio.study_events.v2"),
-    candidateSetId: z.string().min(1),
-    approvalState: z.string().min(1),
-    approval: z.null(),
-    candidates: z.array(sourceCandidateSchema),
-    invalidated: z.unknown().optional(),
-    invalidation: z.unknown().optional(),
-    invalidatedAt: z.unknown().optional(),
-    status: z.string().optional(),
-    state: z.string().optional(),
-    validityState: z.string().optional(),
-    valid: z.boolean().optional(),
-    isValid: z.boolean().optional(),
-    _notice: z.string().optional(),
-    notice: z.string().optional(),
-    reason: z.string().optional(),
-  })
-  .passthrough();
-const batchInputSchema = z
-  .object({
-    artifactKind: z.literal("bp.studio.codex_review_batch_input.v1"),
-    candidateSetId: z.string().min(1),
-    candidateSetSha256: sha256Schema,
-    batchId: z.string().min(1),
-    decisionCount: z.number().int().nonnegative(),
-    candidates: z.array(assignedCandidateSchema),
-  })
-  .passthrough();
-const countsSchema = z
-  .object({
-    recommend_approve: z.number().int().nonnegative(),
-    recommend_reject: z.number().int().nonnegative(),
-    needs_followup: z.number().int().nonnegative(),
-  })
-  .strict();
-const gatesSchema = z
-  .object({
-    evidenceScope: z.string().trim().min(1),
-    date: z.string().trim().min(1),
-    spine: z.string().trim().min(1),
-    outcome: z.string().trim().min(1),
-    conflict: z.string().trim().min(1),
-    confounder: z.string().trim().min(1),
-  })
-  .strict();
-const decisionSchema = z
-  .object({
-    candidateId: z.string().min(1),
-    identity: z.string().min(1),
-    routeId: z.string().min(1),
-    treatmentFamily: z.string().min(1),
-    implementationDate: z.string().min(1),
-    recommendation: z.enum(RECOMMENDATIONS),
-    rationale: z.string().trim().min(1),
-    gates: gatesSchema,
-  })
-  .passthrough();
-const batchOutputSchema = z
-  .object({
-    artifactKind: z.literal("bp.studio.codex_review_batch.v1"),
-    authorization: z.literal(NON_AUTHORIZING),
-    batchId: z.string().min(1),
-    candidateSetId: z.string().min(1),
-    candidateSetSha256: sha256Schema,
-    decisionCount: z.number().int().nonnegative(),
-    countsByRecommendation: countsSchema,
-    decisions: z.array(decisionSchema),
-    validatedInputHashes: z.record(z.string(), z.unknown()).optional(),
-  })
-  .passthrough();
+const SourceCandidateFields = {
+  candidateId: NonEmptyStringSchema,
+  routeId: NonEmptyStringSchema,
+  treatmentFamily: NonEmptyStringSchema,
+  implementationDate: NonEmptyStringSchema,
+  implementationMonth: NonEmptyStringSchema,
+  datePrecision: Schema.Literals(["day", "month"]),
+  occurrenceId: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  treatmentScopeKind: Schema.optionalKey(Schema.String),
+  componentTreatmentFamilies: Schema.optionalKey(Schema.Array(Schema.String)),
+  conflictState: Schema.optionalKey(Schema.String),
+  confounderGroupId: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  provenance: Schema.Array(ProvenanceSchema).check(Schema.isMinLength(1)),
+} as const;
+const SourceCandidateSchema = passthroughStruct(SourceCandidateFields);
+const AssignedCandidateSchema = passthroughStruct({
+  ...SourceCandidateFields,
+  identity: NonEmptyStringSchema,
+  occurrenceId: Schema.NullOr(Schema.String),
+  treatmentScopeKind: Schema.String,
+  componentTreatmentFamilies: Schema.Array(Schema.String),
+  conflictState: Schema.String,
+  confounderGroupId: Schema.NullOr(Schema.String),
+});
+const ManifestBatchSchema = passthroughStruct({
+  batchId: NonEmptyStringSchema,
+  file: NonEmptyStringSchema,
+  candidateCount: NonNegativeIntegerSchema,
+  sha256: Schema.optionalKey(Sha256Schema),
+  inputSha256: Schema.optionalKey(Sha256Schema),
+  fileSha256: Schema.optionalKey(Sha256Schema),
+});
+const ImmutableInputsSchema = passthroughStruct({
+  baselineCandidateSetId: NonEmptyStringSchema,
+  baselineSha256: Sha256Schema,
+  historicalReceiptSha256: Sha256Schema,
+  spineManifestSha256: Sha256Schema,
+});
+const ManifestSchema = passthroughStruct({
+  artifactKind: Schema.Literal("bp.studio.codex_review_manifest.v1"),
+  candidateSetId: NonEmptyStringSchema,
+  candidateSetSha256: Sha256Schema,
+  immutableInputs: ImmutableInputsSchema,
+  totalCandidateCount: NonNegativeIntegerSchema,
+  batches: Schema.Array(ManifestBatchSchema).check(Schema.isMinLength(1)),
+  inputHashes: Schema.optionalKey(Schema.Record(Schema.String, Sha256Schema)),
+  candidateSetFile: Schema.optionalKey(NonEmptyStringSchema),
+});
+const CandidateSetSchema = passthroughStruct({
+  artifactKind: Schema.Literal("bp.studio.study_events.v2"),
+  candidateSetId: NonEmptyStringSchema,
+  approvalState: NonEmptyStringSchema,
+  approval: Schema.Null,
+  candidates: Schema.Array(SourceCandidateSchema),
+  invalidated: Schema.optionalKey(Schema.Unknown),
+  invalidation: Schema.optionalKey(Schema.Unknown),
+  invalidatedAt: Schema.optionalKey(Schema.Unknown),
+  status: Schema.optionalKey(Schema.String),
+  state: Schema.optionalKey(Schema.String),
+  validityState: Schema.optionalKey(Schema.String),
+  valid: Schema.optionalKey(Schema.Boolean),
+  isValid: Schema.optionalKey(Schema.Boolean),
+  _notice: Schema.optionalKey(Schema.String),
+  notice: Schema.optionalKey(Schema.String),
+  reason: Schema.optionalKey(Schema.String),
+});
+const BatchInputSchema = passthroughStruct({
+  artifactKind: Schema.Literal("bp.studio.codex_review_batch_input.v1"),
+  candidateSetId: NonEmptyStringSchema,
+  candidateSetSha256: Sha256Schema,
+  batchId: NonEmptyStringSchema,
+  decisionCount: NonNegativeIntegerSchema,
+  candidates: Schema.Array(AssignedCandidateSchema),
+});
+const CountsSchema = Schema.Struct({
+  recommend_approve: NonNegativeIntegerSchema,
+  recommend_reject: NonNegativeIntegerSchema,
+  needs_followup: NonNegativeIntegerSchema,
+});
+const GatesSchema = Schema.Struct({
+  evidenceScope: TrimmedNonEmptyStringSchema,
+  date: TrimmedNonEmptyStringSchema,
+  spine: TrimmedNonEmptyStringSchema,
+  outcome: TrimmedNonEmptyStringSchema,
+  conflict: TrimmedNonEmptyStringSchema,
+  confounder: TrimmedNonEmptyStringSchema,
+});
+const DecisionSchema = passthroughStruct({
+  candidateId: NonEmptyStringSchema,
+  identity: NonEmptyStringSchema,
+  routeId: NonEmptyStringSchema,
+  treatmentFamily: NonEmptyStringSchema,
+  implementationDate: NonEmptyStringSchema,
+  recommendation: Schema.Literals(RECOMMENDATIONS),
+  rationale: TrimmedNonEmptyStringSchema,
+  gates: GatesSchema,
+});
+const BatchOutputSchema = passthroughStruct({
+  artifactKind: Schema.Literal("bp.studio.codex_review_batch.v1"),
+  authorization: Schema.Literal(NON_AUTHORIZING),
+  batchId: NonEmptyStringSchema,
+  candidateSetId: NonEmptyStringSchema,
+  candidateSetSha256: Sha256Schema,
+  decisionCount: NonNegativeIntegerSchema,
+  countsByRecommendation: CountsSchema,
+  decisions: Schema.Array(DecisionSchema),
+  validatedInputHashes: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+});
 
-type Manifest = z.infer<typeof manifestSchema>;
-type ManifestBatch = z.infer<typeof manifestBatchSchema>;
-type CandidateSet = z.infer<typeof candidateSetSchema>;
-type SourceCandidate = z.infer<typeof sourceCandidateSchema>;
-type AssignedCandidate = z.infer<typeof assignedCandidateSchema>;
-type BatchOutput = z.infer<typeof batchOutputSchema>;
+type Manifest = typeof ManifestSchema.Type;
+type ManifestBatch = typeof ManifestBatchSchema.Type;
+type CandidateSet = typeof CandidateSetSchema.Type;
+type SourceCandidate = typeof SourceCandidateSchema.Type;
+type AssignedCandidate = typeof AssignedCandidateSchema.Type;
+type BatchOutput = typeof BatchOutputSchema.Type;
 type Recommendation = (typeof RECOMMENDATIONS)[number];
 type Counts = Record<Recommendation, number>;
 type ParsedFile<T> = { data: T; sha256: string };
 type BatchInputRecord = {
   inputFile: string;
   inputSha256: string;
-  candidates: AssignedCandidate[];
+  candidates: readonly AssignedCandidate[];
 };
 type BatchRecord = {
   batchId: string;
@@ -170,7 +163,7 @@ type ReconciledRecommendation = {
   implementationDate: string;
   recommendation: Recommendation;
   rationale: string;
-  gates: z.infer<typeof gatesSchema>;
+  gates: typeof GatesSchema.Type;
 };
 
 const repoRoot = resolve(import.meta.dir, "../../..");
@@ -180,18 +173,13 @@ function digest(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-function zodMessage(error: z.ZodError): string {
-  return error.issues
-    .slice(0, 5)
-    .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
-    .join("; ");
-}
-
-function readParsed<T>(path: string, schema: z.ZodType<T>): ParsedFile<T> {
+function readParsed<S extends Schema.Constraint>(path: string, schema: S): ParsedFile<S["Type"]> {
   const bytes = readFileSync(path);
-  const parsed = schema.safeParse(JSON.parse(bytes.toString("utf8")) as unknown);
-  if (!parsed.success) throw new Error(zodMessage(parsed.error));
-  return { data: parsed.data, sha256: digest(bytes) };
+  const serviceFreeSchema = Schema.make<Schema.Codec<S["Type"], S["Encoded"], never, unknown>>(
+    schema.ast,
+  );
+  const data = decodeStrict(serviceFreeSchema)(JSON.parse(bytes.toString("utf8")) as unknown);
+  return { data, sha256: digest(bytes) };
 }
 
 function sortedUnique(values: readonly string[]): string[] {
@@ -426,7 +414,7 @@ function run(reviewRoot: string, outputPath: string): number {
   const inputRoot = join(reviewRoot, "inputs");
   const manifestPath = join(inputRoot, "manifest.json");
   if (!existsSync(manifestPath)) throw new Error(`Missing review manifest: ${manifestPath}`);
-  const manifestFile = readParsed(manifestPath, manifestSchema);
+  const manifestFile = readParsed(manifestPath, ManifestSchema);
   const manifest = manifestFile.data;
   const errors: string[] = [];
   const stats = {
@@ -456,12 +444,12 @@ function run(reviewRoot: string, outputPath: string): number {
   if (resolve(sourcePath) === resolve(outputPath)) {
     errors.push(`reconciliation output would overwrite the source candidate set: ${sourcePath}`);
   }
-  let sourceCandidates: SourceCandidate[] = [];
+  let sourceCandidates: readonly SourceCandidate[] = [];
   if (!existsSync(sourcePath)) {
     errors.push(`missing source candidate set: ${sourcePath}`);
   } else {
     try {
-      const candidateFile = readParsed(sourcePath, candidateSetSchema);
+      const candidateFile = readParsed(sourcePath, CandidateSetSchema);
       const candidateSet = candidateFile.data;
       sourceCandidates = candidateSet.candidates;
       if (candidateFile.sha256 !== manifest.candidateSetSha256) {
@@ -523,7 +511,7 @@ function run(reviewRoot: string, outputPath: string): number {
       continue;
     }
     try {
-      const inputFile = readParsed(inputPath, batchInputSchema);
+      const inputFile = readParsed(inputPath, BatchInputSchema);
       const input = inputFile.data;
       const expectedHash = expectedInputHash(manifest, batch, errors);
       if (expectedHash !== null && inputFile.sha256 !== expectedHash) {
@@ -624,7 +612,7 @@ function run(reviewRoot: string, outputPath: string): number {
       continue;
     }
     try {
-      const outputFileContents = readParsed(batchOutputPath, batchOutputSchema);
+      const outputFileContents = readParsed(batchOutputPath, BatchOutputSchema);
       const output = outputFileContents.data;
       stats.parsedBatchOutputCount += 1;
       stats.parsedDecisionCount += output.decisions.length;
