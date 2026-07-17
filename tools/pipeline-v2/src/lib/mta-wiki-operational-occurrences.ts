@@ -1,14 +1,24 @@
 import {
   type MtaWikiOperationalOccurrenceImportArtifact,
-  MtaWikiOperationalOccurrenceImportArtifactSchema,
+  MtaWikiOperationalOccurrenceImportArtifactV3Schema,
+  MtaWikiOperationalOccurrenceImportArtifactV4Schema,
   type OperationalOccurrenceEvidenceBinding,
+  type OperationalOccurrenceEvidenceBindingV2,
   type OperationalOccurrenceReviewDecision,
+  type OperationalOccurrenceReviewDecisionV1Rc22Inspection,
   type OperationalOccurrenceReviewSnapshot,
   OperationalOccurrenceReviewSnapshotSchema,
+  type OperationalOccurrenceReviewSnapshotV1Rc22Inspection,
+  OperationalOccurrenceReviewSnapshotV1Rc22InspectionSchema,
   type OperationalOccurrenceRow,
+  type OperationalOccurrenceRowAny,
   OperationalOccurrenceRowSchema,
+  type OperationalOccurrenceRowV2,
+  OperationalOccurrenceRowV2Schema,
   type OperationalOccurrenceSummary,
   OperationalOccurrenceSummarySchema,
+  type OperationalOccurrenceSummaryV2,
+  OperationalOccurrenceSummaryV2Schema,
 } from "@bp/domain/documents/operational-occurrence";
 import { Effect, Schema } from "effect";
 import { PipelineFileSystemLayer, PipelineFileSystemService } from "../effect/file-system.ts";
@@ -28,11 +38,244 @@ import {
 export type { MtaWikiOperationalOccurrenceImportArtifact } from "@bp/domain/documents/operational-occurrence";
 
 const COMMAND = "studio.import-mta-wiki-operational-occurrences";
-const MANIFEST_VERSION = 3;
+const MANIFEST_VERSION_V3 = 3;
+const MANIFEST_VERSION_V4 = 4;
 const OPERATIONAL_ANCHOR_CONTRACT_VERSION = 1;
 const OPERATIONAL_ANCHOR_REVIEW_CONTRACT_VERSION = 1;
-const OPERATIONAL_OCCURRENCE_CONTRACT_VERSION = 1;
+const OPERATIONAL_OCCURRENCE_CONTRACT_VERSION_V1 = 1;
+const OPERATIONAL_OCCURRENCE_CONTRACT_VERSION_V2 = 2;
 const OPERATIONAL_OCCURRENCE_REVIEW_CONTRACT_VERSION = 1;
+const RELATIONSHIP_INTEGRITY_BUNDLE_CONTRACT_VERSION = 1;
+const REQUIRED_RELATIONSHIP_GATE_IDS = [
+  "bus_lane_acquisition_linkage",
+  "determinism_and_consumer_proof",
+  "occurrence_treatment_physicality",
+  "payload_reference_integrity",
+  "referential_type_evidence_integrity",
+  "relationship_completeness",
+  "semantic_remediation",
+] as const;
+const RELATIONSHIP_INVARIANT_ROLE_PATHS = [
+  { role: "canonical_relations", path: "data/canonical/relations.jsonl" },
+  {
+    role: "determinism_consumer_summary",
+    path: "data/quality/relationship-integrity/determinism-consumer/summary.json",
+  },
+  {
+    role: "final_endpoint_matrix",
+    path: "data/contracts/relationships/v1/post-remediation-endpoint-matrix.json",
+  },
+  { role: "reviewed_release_manifest", path: "data/exports/releases/v1-rc21/manifest.json" },
+] as const;
+const RELATIONSHIP_REFRESH_ROLE_PATHS = [
+  { role: "canonical_db", path: "data/canonical.db" },
+  {
+    role: "graph_audit_findings",
+    path: "data/quality/relationship-integrity/graph-audit/findings.jsonl",
+  },
+  {
+    role: "graph_audit_manifest",
+    path: "data/quality/relationship-integrity/graph-audit/manifest.json",
+  },
+  {
+    role: "graph_audit_summary",
+    path: "data/quality/relationship-integrity/graph-audit/summary.json",
+  },
+  {
+    role: "linkage_materialization_summary",
+    path: "data/quality/relationship-integrity/bus-lane-acquisition/linkage-materialization/summary.json",
+  },
+  {
+    role: "sql_integrity_summary",
+    path: "data/quality/relationship-integrity/sql-integrity/summary.json",
+  },
+] as const;
+const RELATIONSHIP_GATE_SOURCE_PATHS: Readonly<
+  Record<(typeof REQUIRED_RELATIONSHIP_GATE_IDS)[number], readonly { role: string; path: string }[]>
+> = {
+  bus_lane_acquisition_linkage: [
+    {
+      role: "acquisition_summary",
+      path: "data/quality/relationship-integrity/bus-lane-acquisition/summary.json",
+    },
+    {
+      role: "linkage_materialization_summary",
+      path: "data/quality/relationship-integrity/bus-lane-acquisition/linkage-materialization/summary.json",
+    },
+    {
+      role: "linkage_reconciliation_summary",
+      path: "data/quality/relationship-integrity/bus-lane-acquisition/linkage-reconciliation/summary.json",
+    },
+  ],
+  determinism_and_consumer_proof: [
+    {
+      role: "determinism_consumer_summary",
+      path: "data/quality/relationship-integrity/determinism-consumer/summary.json",
+    },
+  ],
+  occurrence_treatment_physicality: [
+    {
+      role: "occurrence_treatment_physicality_summary",
+      path: "data/quality/relationship-integrity/occurrence-treatment-physicality/summary.json",
+    },
+    {
+      role: "phase_review_summary",
+      path: "data/quality/relationship-integrity/operational-occurrence-phases/summary.json",
+    },
+  ],
+  payload_reference_integrity: [
+    {
+      role: "payload_reference_summary",
+      path: "data/quality/relationship-integrity/payload-references/summary.json",
+    },
+  ],
+  referential_type_evidence_integrity: [
+    {
+      role: "graph_audit_findings",
+      path: "data/quality/relationship-integrity/graph-audit/findings.jsonl",
+    },
+    {
+      role: "graph_audit_manifest",
+      path: "data/quality/relationship-integrity/graph-audit/manifest.json",
+    },
+    {
+      role: "graph_audit_summary",
+      path: "data/quality/relationship-integrity/graph-audit/summary.json",
+    },
+    {
+      role: "sql_integrity_summary",
+      path: "data/quality/relationship-integrity/sql-integrity/summary.json",
+    },
+  ],
+  relationship_completeness: [
+    {
+      role: "relationship_completeness_summary",
+      path: "data/quality/relationship-integrity/completeness/summary.json",
+    },
+  ],
+  semantic_remediation: [
+    {
+      role: "semantic_remediation_summary",
+      path: "data/quality/relationship-integrity/semantic-remediation/summary.json",
+    },
+  ],
+};
+
+export const RELATIONSHIP_CONTRACT_POLICY_V1 = {
+  identity_policy: {
+    canonical_endpoint_required: true,
+    ambiguous_alias_resolution: "reject",
+    superseded_endpoint_resolution: "rewrite_to_survivor",
+    local_id_scope: "source",
+  },
+  evidence_policy: {
+    minimum_refs_per_relation: 1,
+    block_identity_required: true,
+    hash_required: true,
+    broad_same_page_block_threshold: 5,
+  },
+  finding_codes: {
+    REL_ENDPOINT_DANGLING: { default_severity: "error", enforcement_eligible: true },
+    REL_ENDPOINT_LOCAL_ONLY: { default_severity: "error", enforcement_eligible: true },
+    REL_ENDPOINT_LOCAL_MISMATCH: { default_severity: "warning", enforcement_eligible: true },
+    REL_ENDPOINT_SUPERSEDED: { default_severity: "error", enforcement_eligible: true },
+    REL_ALIAS_AMBIGUOUS: { default_severity: "warning", enforcement_eligible: true },
+    REL_CONTRACT_RULE_MISSING: { default_severity: "error", enforcement_eligible: true },
+    REL_ENDPOINT_TYPE_INVALID: { default_severity: "error", enforcement_eligible: true },
+    REL_FAMILY_TYPE_SUSPECT: { default_severity: "warning", enforcement_eligible: true },
+    REL_FAMILY_TYPE_SUSPECT_REVIEWED: {
+      default_severity: "warning",
+      enforcement_eligible: false,
+    },
+    REL_DERIVATION_DANGLING: { default_severity: "error", enforcement_eligible: true },
+    REL_EVIDENCE_MISSING: { default_severity: "error", enforcement_eligible: true },
+    REL_EVIDENCE_UNRESOLVED: { default_severity: "error", enforcement_eligible: true },
+    REL_EVIDENCE_OVERBROAD: { default_severity: "warning", enforcement_eligible: true },
+    REL_DUPLICATE_IDENTITY: { default_severity: "warning", enforcement_eligible: true },
+    REL_CONFLICTING_EDGE: { default_severity: "warning", enforcement_eligible: true },
+    REL_MERGED_EDGE_CONFLICT: { default_severity: "warning", enforcement_eligible: true },
+    REL_SOURCE_ID_MISSING: { default_severity: "warning", enforcement_eligible: true },
+    REL_SOURCE_ID_AMBIGUOUS: { default_severity: "warning", enforcement_eligible: true },
+    REL_ORPHAN_RECORD: { default_severity: "info", enforcement_eligible: false },
+    REL_REQUIRED_ROUTE_MISSING: { default_severity: "warning", enforcement_eligible: true },
+    REL_REQUIRED_TREATMENT_MISSING: { default_severity: "warning", enforcement_eligible: true },
+    REL_REQUIRED_SEGMENT_MISSING: { default_severity: "warning", enforcement_eligible: true },
+    REL_REQUIRED_ONSET_MISSING: { default_severity: "warning", enforcement_eligible: true },
+    REL_REQUIRED_PHASE_MISSING: { default_severity: "warning", enforcement_eligible: true },
+    REL_REQUIRED_DISPOSITION_MISSING: {
+      default_severity: "warning",
+      enforcement_eligible: true,
+    },
+  },
+  completeness_roles: {
+    study_projectable_operational_occurrence: {
+      required_roles: [
+        "occurrence_identity",
+        "treatment_scope",
+        "route_scope",
+        "operational_onset",
+        "phase_identity",
+        "physical_scope_when_supported",
+      ],
+      disposition_allowed: true,
+    },
+    physical_bus_lane_treatment: {
+      required_roles: [
+        "corridor_or_bounded_segment",
+        "official_extent_when_available",
+        "authoritative_route_scope_only",
+      ],
+      disposition_allowed: true,
+    },
+    non_projectable_route_identity_selector: {
+      required_roles: ["typed_route_identity_disposition", "evidence_binding"],
+      disposition_allowed: true,
+    },
+    non_projectable_operational_event_selector: {
+      required_roles: ["typed_operational_event_disposition", "evidence_binding"],
+      disposition_allowed: true,
+    },
+    non_projectable_bus_lane_treatment_selector: {
+      required_roles: ["typed_bus_lane_treatment_disposition", "evidence_binding"],
+      disposition_allowed: true,
+    },
+  },
+  migration_criteria: {
+    referential_and_evidence: [
+      "endpoint, canonical-identity, exact-matrix type, and evidence violations are zero",
+      "every observed relation kind has a frozen exact endpoint rule",
+      "repository and SQLite finding identities reconcile exactly",
+      "no contract rule was relaxed to reduce a finding count",
+      "every frozen-observed baseline endpoint tuple has an explicit semantic review decision before endpoint-type enforcement is declared complete",
+    ],
+    completeness: [
+      "every in-scope record satisfies every required role or has an immutable evidence-bound reviewed non-projectable disposition",
+      "a disposition always sets study_projection_eligible=false",
+      "required-route, treatment, segment, onset, and phase warning counts reconcile to the disposition ledger",
+    ],
+    candidate_acquisition: [
+      "all 321 pinned registry-only bus-lane candidates have completed acquisition receipts",
+      "every evidence-supported canonical link is materialized",
+      "unsupported registry projections have explicit exclusion artifacts",
+      "unresolved candidates are not labeled permanently nonfixable solely because prior evidence was absent",
+    ],
+    determinism: [
+      "warning and enforcement modes emit the same ordered finding identities",
+      "two clean authoritative materializations and two public-clone SQLite rebuilds reproduce hashes",
+      "all repository, schema, architecture, quality, validation, and export tests pass",
+    ],
+  },
+} as const;
+
+const RC22_MANIFEST_SHA256 = "249ef6be1d927e44d405c11bcff643d18b2133e5407be37dc7612f935a1b53e4";
+const RC22_REVIEW_SHA256 = "f18dda5c0c758d4193cb1dfdf69e296da79814ebcb39cdefb4e7dc9bec963bed";
+const RC22_REVIEW_PHYSICAL_SCOPE_DECISION_ID = "flatbush-phase1-center-running-bus-lanes-2025-09";
+const RC22_REVIEW_PHYSICAL_SCOPE_RELATION_ID =
+  "relation_flatbush-phase1-treatment-on-bounded-corridor-livingston-state-20260715";
+const RC22_REVIEW_PHYSICAL_SCOPE_OCCURRENCE_ID = "occurrence:8c987704152b459014217d44";
+const RC22_REVIEW_PHYSICAL_SCOPE_SOURCE_ID = "flatbush_ave_bus_priority_mtp_briefing_apr2026";
+const RC22_REVIEW_PHYSICAL_SCOPE_EVIDENCE_ID =
+  "flatbush_ave_bus_priority_mtp_briefing_apr2026#p004_c0002";
 
 const SUPPORTED_BUNDLE_ANALYSIS_FAMILIES = new Set([
   "all_door_boarding",
@@ -61,13 +304,13 @@ const ReleaseFileSchema = Schema.Struct({
 });
 
 const ReleaseManifestV3Schema = Schema.Struct({
-  manifest_version: Schema.Literal(MANIFEST_VERSION),
+  manifest_version: Schema.Literal(MANIFEST_VERSION_V3),
   release_id: Schema.String,
   generator_commit: Schema.String,
   contract_versions: Schema.Struct({
     operational_anchors: Schema.Literal(OPERATIONAL_ANCHOR_CONTRACT_VERSION),
     operational_anchor_review_decisions: Schema.Literal(OPERATIONAL_ANCHOR_REVIEW_CONTRACT_VERSION),
-    operational_occurrences: Schema.Literal(OPERATIONAL_OCCURRENCE_CONTRACT_VERSION),
+    operational_occurrences: Schema.Literal(OPERATIONAL_OCCURRENCE_CONTRACT_VERSION_V1),
     operational_occurrence_review_decisions: Schema.Literal(
       OPERATIONAL_OCCURRENCE_REVIEW_CONTRACT_VERSION,
     ),
@@ -88,6 +331,316 @@ const ReleaseManifestV3Schema = Schema.Struct({
 });
 type ReleaseManifestV3 = typeof ReleaseManifestV3Schema.Type;
 
+const ReleaseManifestV4Schema = Schema.Struct({
+  manifest_version: Schema.Literal(MANIFEST_VERSION_V4),
+  release_id: Schema.String,
+  generator_commit: Schema.String,
+  contract_versions: Schema.Struct({
+    operational_anchors: Schema.Literal(OPERATIONAL_ANCHOR_CONTRACT_VERSION),
+    operational_anchor_review_decisions: Schema.Literal(OPERATIONAL_ANCHOR_REVIEW_CONTRACT_VERSION),
+    operational_occurrences: Schema.Literal(OPERATIONAL_OCCURRENCE_CONTRACT_VERSION_V2),
+    operational_occurrence_review_decisions: Schema.Literal(
+      OPERATIONAL_OCCURRENCE_REVIEW_CONTRACT_VERSION,
+    ),
+    relationship_integrity_bundle: Schema.Literal(RELATIONSHIP_INTEGRITY_BUNDLE_CONTRACT_VERSION),
+  }),
+  record_counts: StringCountSchema,
+  files: Schema.Record(Schema.String, ReleaseFileSchema),
+  pointers: Schema.Struct({
+    operational_anchors: Schema.String,
+    operational_anchor_summary: Schema.String,
+    operational_anchor_review_decisions: Schema.String,
+    operational_occurrences: Schema.String,
+    operational_occurrence_summary: Schema.String,
+    operational_occurrence_review_decisions: Schema.String,
+    relationship_integrity_bundle: Schema.String,
+    route_anchors: Schema.NullOr(Schema.String),
+    taxonomy: Schema.NullOr(Schema.String),
+    quality_report: Schema.NullOr(Schema.String),
+  }),
+});
+type ReleaseManifestV4 = typeof ReleaseManifestV4Schema.Type;
+type ReleaseManifest = ReleaseManifestV3 | ReleaseManifestV4;
+
+const RelationshipBundleArtifactSchema = Schema.Struct({
+  role: Schema.String,
+  source_path: Schema.String,
+  release_path: Schema.String,
+  bytes: NonNegativeIntegerSchema,
+  sha256: Sha256Schema,
+});
+
+const RelationshipIntegrityBundleSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  bundle_id: Schema.Literal("relationship-integrity-v1"),
+  contract_id: Schema.Literal("relationship-contract-v1"),
+  validation_mode: Schema.Literal("enforce"),
+  artifact_count: NonNegativeIntegerSchema,
+  descriptor: Schema.Struct({
+    source_path: Schema.Literal("data/contracts/relationships/v1/release-bundle-sources.json"),
+    bytes: NonNegativeIntegerSchema,
+    sha256: Sha256Schema,
+  }),
+  artifacts: Schema.Array(RelationshipBundleArtifactSchema),
+});
+type RelationshipBundleArtifact = typeof RelationshipBundleArtifactSchema.Type;
+
+const RelationshipContractSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  contract_id: Schema.Literal("relationship-contract-v1"),
+  contract_status: Schema.Literal("enforced"),
+  enforcement_state: Schema.Literal("enforced_ready"),
+  reviewed_at: Schema.String,
+  reviewed_by: Schema.String,
+  completeness_roles: Schema.Record(
+    Schema.String,
+    Schema.Struct({
+      disposition_allowed: Schema.Boolean,
+      required_roles: Schema.Array(Schema.String),
+    }),
+  ),
+  endpoint_matrix: Schema.Struct({
+    matrix_kind: Schema.Literal("post_remediation_reviewed"),
+    new_shape_policy: Schema.Literal("error"),
+    obsolete_baseline_tuple_policy: Schema.Literal("reject"),
+    path: Schema.String,
+    relation_count: NonNegativeIntegerSchema,
+    relation_ids_sha256: Sha256Schema,
+    sha256: Sha256Schema,
+    tuple_count: NonNegativeIntegerSchema,
+    tuple_set_sha256: Sha256Schema,
+    unlisted_relation_policy: Schema.Literal("error"),
+  }),
+  enforcement_proof: Schema.Struct({
+    path: Schema.String,
+    required_gate_ids: Schema.Array(Schema.String),
+    sha256: Sha256Schema,
+    transition_receipt: Schema.Struct({
+      path: Schema.String,
+      sha256: Sha256Schema,
+    }),
+  }),
+  evidence_policy: Schema.Struct({
+    block_identity_required: Schema.Boolean,
+    broad_same_page_block_threshold: NonNegativeIntegerSchema,
+    hash_required: Schema.Boolean,
+    minimum_refs_per_relation: NonNegativeIntegerSchema,
+  }),
+  finding_codes: Schema.Record(
+    Schema.String,
+    Schema.Struct({
+      default_severity: Schema.Literals(["error", "warning", "info"]),
+      enforcement_eligible: Schema.Boolean,
+    }),
+  ),
+  identity_policy: Schema.Struct({
+    ambiguous_alias_resolution: Schema.Literal("reject"),
+    canonical_endpoint_required: Schema.Boolean,
+    local_id_scope: Schema.Literal("source"),
+    superseded_endpoint_resolution: Schema.Literal("rewrite_to_survivor"),
+  }),
+  migration_criteria: Schema.Record(Schema.String, Schema.Array(Schema.String)),
+});
+type RelationshipContract = typeof RelationshipContractSchema.Type;
+
+const RelationshipEnforcementProofSchema = Schema.Struct({
+  schema_version: Schema.Literal(2),
+  proof_id: Schema.Literal("relationship-contract-v1-enforcement-proof"),
+  contract_id: Schema.Literal("relationship-contract-v1"),
+  proof_stage: Schema.Literal("post_promotion_enforced"),
+  validation_mode: Schema.Literal("enforce"),
+  proof_status: Schema.Literal("ready"),
+  reviewed_at: Schema.String,
+  reviewed_by: Schema.String,
+  all_gates_ready: Schema.Literal(true),
+  gate_count: NonNegativeIntegerSchema,
+  total_violation_count: Schema.Literal(0),
+  final_matrix: Schema.Struct({
+    path: Schema.String,
+    relation_count: NonNegativeIntegerSchema,
+    relation_ids_sha256: Sha256Schema,
+    sha256: Sha256Schema,
+    tuple_count: NonNegativeIntegerSchema,
+    tuple_set_sha256: Sha256Schema,
+  }),
+  gates: Schema.Array(
+    Schema.Struct({
+      gate_id: Schema.String,
+      artifact_path: Schema.String,
+      artifact_sha256: Sha256Schema,
+      criteria: Schema.Array(Schema.String),
+      status: Schema.Literal("ready"),
+      violation_count: Schema.Literal(0),
+    }),
+  ),
+  previous_proof: Schema.Struct({
+    path: Schema.String,
+    proof_stage: Schema.Literal("pre_promotion_warning"),
+    sha256: Sha256Schema,
+  }),
+  transition_receipt: Schema.Struct({
+    path: Schema.String,
+    sha256: Sha256Schema,
+  }),
+});
+type RelationshipEnforcementProof = typeof RelationshipEnforcementProofSchema.Type;
+
+const RelationshipGraphAuditSummarySchema = Schema.Struct({
+  canonical_record_count: NonNegativeIntegerSchema,
+  canonical_relation_count: NonNegativeIntegerSchema,
+  distinct_relation_kind_count: NonNegativeIntegerSchema,
+  contract_rule_count: NonNegativeIntegerSchema,
+  contract_covered_relation_count: NonNegativeIntegerSchema,
+  finding_count: NonNegativeIntegerSchema,
+  findings_by_code: StringCountSchema,
+  findings_by_severity: StringCountSchema,
+  primary_dispositions: StringCountSchema,
+  orphan_records_by_kind: StringCountSchema,
+  duplicate_triple_groups: NonNegativeIntegerSchema,
+  duplicate_triple_records: NonNegativeIntegerSchema,
+  exact_duplicate_groups: NonNegativeIntegerSchema,
+  exact_duplicate_records: NonNegativeIntegerSchema,
+  ambiguous_aliases: NonNegativeIntegerSchema,
+  semantic_supersessions: NonNegativeIntegerSchema,
+});
+type RelationshipGraphAuditSummary = typeof RelationshipGraphAuditSummarySchema.Type;
+
+const RelationshipTransitionReceiptSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  receipt_id: Schema.Literal("relationship-contract-v1-enforcement-transition"),
+  contract_id: Schema.Literal("relationship-contract-v1"),
+  transition: Schema.Struct({
+    from_state: Schema.Literal("warning_ready"),
+    to_state: Schema.Literal("enforced_refresh_required"),
+  }),
+  promoted_at: Schema.String,
+  promoted_by: Schema.String,
+  previous_proof: Schema.Struct({
+    path: Schema.String,
+    sha256: Sha256Schema,
+    proof_stage: Schema.Literal("pre_promotion_warning"),
+  }),
+  previous_gates: Schema.Array(
+    Schema.Struct({ gate_id: Schema.String, path: Schema.String, sha256: Sha256Schema }),
+  ),
+  pre_promotion_sources: Schema.Array(
+    Schema.Struct({
+      path: Schema.String,
+      role: Schema.String,
+      sha256: Sha256Schema,
+      archive_path: Schema.String,
+      transition_fingerprint: Schema.optionalKey(Sha256Schema),
+    }),
+  ),
+  refresh_artifacts: Schema.Array(
+    Schema.Struct({
+      path: Schema.String,
+      role: Schema.String,
+      sha256: Sha256Schema,
+      archive_path: Schema.optionalKey(Schema.String),
+      transition_fingerprint: Schema.optionalKey(Sha256Schema),
+    }),
+  ),
+  invariant_artifacts: Schema.Array(
+    Schema.Struct({ role: Schema.String, path: Schema.String, sha256: Sha256Schema }),
+  ),
+  final_matrix: Schema.Struct({
+    path: Schema.String,
+    relation_count: NonNegativeIntegerSchema,
+    relation_ids_sha256: Sha256Schema,
+    sha256: Sha256Schema,
+    tuple_count: NonNegativeIntegerSchema,
+    tuple_set_sha256: Sha256Schema,
+  }),
+});
+
+const RelationshipEndpointShapeSchema = Schema.Struct({
+  subject_kind: Schema.String,
+  object_kind: Schema.String,
+});
+const RelationshipEndpointFamilyShapeSchema = Schema.Struct({
+  relation_family: Schema.String,
+  subject_kind: Schema.String,
+  object_kind: Schema.String,
+  provenance: Schema.Literal("reviewed_post_remediation"),
+  review_decision_ids: Schema.Array(Schema.String),
+  relation_count: PositiveIntegerSchema,
+  relation_ids_sha256: Sha256Schema,
+});
+const RelationshipEndpointRuleSchema = Schema.Struct({
+  relation_kind: Schema.String,
+  relation_families: Schema.Array(Schema.String),
+  allowed_shapes: Schema.Array(RelationshipEndpointShapeSchema),
+  allowed_family_shapes: Schema.Array(RelationshipEndpointFamilyShapeSchema),
+  review_basis: Schema.Literal("reviewed_post_remediation"),
+});
+const RelationshipEndpointMatrixSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  matrix_id: Schema.Literal("relationship-contract-v1-post-remediation-final"),
+  contract_id: Schema.Literal("relationship-contract-v1"),
+  review_status: Schema.Literal("reviewed_post_remediation"),
+  generated_from: Schema.Struct({
+    projected_relations_path: Schema.Literal(
+      "data/quality/relationship-integrity/semantic-remediation/projected-relations.jsonl",
+    ),
+    projected_relations_sha256: Sha256Schema,
+    projected_relations_logical_sha256: Sha256Schema,
+    projected_tuples_path: Schema.Literal(
+      "data/quality/relationship-integrity/semantic-remediation/projected-tuples.json",
+    ),
+    projected_tuples_sha256: Sha256Schema,
+    projected_tuples_logical_sha256: Sha256Schema,
+    semantic_remediation_summary_path: Schema.Literal(
+      "data/quality/relationship-integrity/semantic-remediation/summary.json",
+    ),
+    semantic_remediation_summary_sha256: Sha256Schema,
+    campaign_id: Schema.Literal("relationship-semantic-remediation-v1"),
+    skipped_correction_count: Schema.Literal(0),
+    unmapped_relation_count: Schema.Literal(0),
+  }),
+  obsolete_baseline_tuple_policy: Schema.Literal("reject"),
+  relation_kind_rule_count: NonNegativeIntegerSchema,
+  allowed_family_shape_count: NonNegativeIntegerSchema,
+  covered_relation_count: NonNegativeIntegerSchema,
+  relation_ids_sha256: Sha256Schema,
+  tuple_set_sha256: Sha256Schema,
+  rules: Schema.Array(RelationshipEndpointRuleSchema),
+});
+type RelationshipEndpointMatrix = typeof RelationshipEndpointMatrixSchema.Type;
+
+const RelationshipGraphAuditManifestSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  contract_id: Schema.Literal("relationship-contract-v1"),
+  contract_sha256: Sha256Schema,
+  endpoint_matrix_sha256: Sha256Schema,
+  canonical_relations_sha256: Sha256Schema,
+  input_fingerprint: Sha256Schema,
+  mode: Schema.Literal("enforce"),
+  artifacts: Schema.Array(
+    Schema.Struct({
+      path: Schema.String,
+      sha256: Sha256Schema,
+      rows: Schema.optionalKey(NonNegativeIntegerSchema),
+    }),
+  ),
+  reproduction_commands: Schema.Array(Schema.String),
+});
+type RelationshipGraphAuditManifest = typeof RelationshipGraphAuditManifestSchema.Type;
+
+const RelationshipEnforcementGateSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  artifact_id: Schema.String,
+  contract_id: Schema.Literal("relationship-contract-v1"),
+  gate_id: Schema.String,
+  reviewed_at: Schema.String,
+  reviewed_by: Schema.String,
+  source_count: NonNegativeIntegerSchema,
+  source_artifacts: Schema.Array(
+    Schema.Struct({ role: Schema.String, path: Schema.String, sha256: Sha256Schema }),
+  ),
+  derived_violation_count: NonNegativeIntegerSchema,
+});
+
 const ImportErrorCodeSchema = Schema.Literals([
   "invalid_input",
   "unsafe_path",
@@ -102,6 +655,7 @@ const ImportErrorCodeSchema = Schema.Literals([
   "summary_mismatch",
   "duplicate_occurrence_id",
   "semantic_mismatch",
+  "contract_incompatible",
   "write_failed",
 ]);
 
@@ -199,6 +753,158 @@ function countBy(values: readonly string[]): Record<string, number> {
   );
 }
 
+function sameRolePaths(
+  actual: readonly { readonly role: string; readonly path: string }[],
+  expected: readonly { readonly role: string; readonly path: string }[],
+): boolean {
+  return (
+    canonicalJson(actual.map(({ role, path }) => ({ role, path }))) === canonicalJson(expected)
+  );
+}
+
+function relationshipTransitionFingerprint(role: string, text: string): string | null {
+  try {
+    if (role === "canonical_db") return null;
+    if (role === "graph_audit_findings") {
+      const rows = text
+        .split(/\r?\n/u)
+        .filter((line) => line.trim().length > 0)
+        .map((line) => {
+          const parsed = JSON.parse(line) as unknown;
+          if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+            throw new Error("graph finding is not an object");
+          }
+          const { severity: _severity, ...stable } = parsed as Record<string, unknown>;
+          return stable;
+        });
+      return canonicalDigest(rows);
+    }
+    const parsed = JSON.parse(text) as unknown;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+    const value = { ...(parsed as Record<string, unknown>) };
+    if (role === "graph_audit_manifest") {
+      delete value["contract_sha256"];
+      delete value["input_fingerprint"];
+      delete value["mode"];
+      delete value["reproduction_commands"];
+      if (Array.isArray(value["artifacts"])) {
+        value["artifacts"] = value["artifacts"].map((entry) => {
+          if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+            throw new Error("graph manifest artifact is not an object");
+          }
+          const { sha256: _sha256, ...stable } = entry as Record<string, unknown>;
+          return stable;
+        });
+      }
+    } else if (role === "graph_audit_summary") {
+      delete value["mode"];
+      delete value["findings_by_severity"];
+    } else if (role === "sql_integrity_summary") {
+      delete value["canonical_db_sha256"];
+      delete value["graph_findings_sha256"];
+      delete value["graph_manifest_sha256"];
+      delete value["graph_summary_sha256"];
+      delete value["enforcement_mode"];
+    } else if (role === "linkage_materialization_summary") {
+      delete value["canonical_db_sha256"];
+    } else {
+      return null;
+    }
+    return canonicalDigest(value);
+  } catch {
+    return null;
+  }
+}
+
+function endpointTupleKey(
+  relationKind: string,
+  relationFamily: string,
+  subjectKind: string,
+  objectKind: string,
+): string {
+  return [relationKind, relationFamily, subjectKind, objectKind].join("\0");
+}
+
+function isValidFinalEndpointMatrix(matrix: RelationshipEndpointMatrix): boolean {
+  if (
+    matrix.relation_kind_rule_count !== matrix.rules.length ||
+    !isSortedUnique(matrix.rules.map((rule) => rule.relation_kind))
+  ) {
+    return false;
+  }
+  const tuples = new Set<string>();
+  let tupleCount = 0;
+  let relationCount = 0;
+  for (const rule of matrix.rules) {
+    const shapeKeys = rule.allowed_shapes.map((shape) =>
+      endpointTupleKey(rule.relation_kind, "", shape.subject_kind, shape.object_kind),
+    );
+    if (
+      rule.relation_kind.trim() !== rule.relation_kind ||
+      rule.relation_kind.length === 0 ||
+      !isSortedUnique(rule.relation_families) ||
+      rule.relation_families.some((family) => family.length === 0 || family.trim() !== family) ||
+      rule.allowed_shapes.length === 0 ||
+      new Set(shapeKeys).size !== shapeKeys.length ||
+      rule.allowed_shapes.some(
+        (shape) =>
+          shape.subject_kind.length === 0 ||
+          shape.subject_kind.trim() !== shape.subject_kind ||
+          shape.object_kind.length === 0 ||
+          shape.object_kind.trim() !== shape.object_kind,
+      ) ||
+      rule.allowed_family_shapes.length === 0
+    ) {
+      return false;
+    }
+    const tupleFamilies = new Set<string>();
+    const tupleShapes = new Set<string>();
+    for (const tuple of rule.allowed_family_shapes) {
+      const key = endpointTupleKey(
+        rule.relation_kind,
+        tuple.relation_family,
+        tuple.subject_kind,
+        tuple.object_kind,
+      );
+      const shapeKey = endpointTupleKey(
+        rule.relation_kind,
+        "",
+        tuple.subject_kind,
+        tuple.object_kind,
+      );
+      if (
+        tuples.has(key) ||
+        tuple.relation_family.length === 0 ||
+        tuple.relation_family.trim() !== tuple.relation_family ||
+        !rule.relation_families.includes(tuple.relation_family) ||
+        !shapeKeys.includes(shapeKey) ||
+        tuple.review_decision_ids.length === 0 ||
+        !isSortedUnique(tuple.review_decision_ids) ||
+        tuple.review_decision_ids.some(
+          (decisionId) => decisionId.length === 0 || decisionId.trim() !== decisionId,
+        )
+      ) {
+        return false;
+      }
+      tuples.add(key);
+      tupleFamilies.add(tuple.relation_family);
+      tupleShapes.add(shapeKey);
+      tupleCount += 1;
+      relationCount += tuple.relation_count;
+    }
+    if (
+      canonicalJson([...tupleFamilies].toSorted()) !== canonicalJson(rule.relation_families) ||
+      canonicalJson([...tupleShapes].toSorted()) !== canonicalJson([...shapeKeys].toSorted())
+    ) {
+      return false;
+    }
+  }
+  return (
+    tupleCount === matrix.allowed_family_shape_count &&
+    relationCount === matrix.covered_relation_count
+  );
+}
+
 function parseJson(
   text: string,
   input: { operation: string; path: string; line?: number | null | undefined },
@@ -224,13 +930,15 @@ function validOnset(date: string, precision: "day" | "month"): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
 }
 
-function bindingKey(binding: OperationalOccurrenceEvidenceBinding): string {
+type AnyOccurrenceEvidenceBinding =
+  | OperationalOccurrenceEvidenceBinding
+  | OperationalOccurrenceEvidenceBindingV2;
+
+function bindingKey(binding: AnyOccurrenceEvidenceBinding): string {
   return canonicalJson(binding);
 }
 
-function bindingsAreCanonicalUnique(
-  bindings: readonly OperationalOccurrenceEvidenceBinding[],
-): boolean {
+function bindingsAreCanonicalUnique(bindings: readonly AnyOccurrenceEvidenceBinding[]): boolean {
   return new Set(bindings.map(bindingKey)).size === bindings.length;
 }
 
@@ -246,9 +954,7 @@ function stringsAreNonEmptyUnique(values: readonly string[], nonempty = false): 
   );
 }
 
-function treatmentReviewShape(
-  row: OperationalOccurrenceRow,
-): OperationalOccurrenceReviewDecision["treatment"] {
+function treatmentReviewShape(row: OperationalOccurrenceRowAny) {
   if (row.treatment.kind === "atomic") {
     return {
       kind: "atomic",
@@ -279,8 +985,8 @@ function rowSemanticError(input: { path: string; line: number; detail: string })
   });
 }
 
-function validateOccurrenceRow(
-  row: OperationalOccurrenceRow,
+function validateOccurrenceRowBase(
+  row: OperationalOccurrenceRowAny,
   input: { path: string; line: number },
 ): Effect.Effect<void, MtaWikiOperationalOccurrenceImportError> {
   const fail = (detail: string) => Effect.fail(rowSemanticError({ ...input, detail }));
@@ -497,6 +1203,110 @@ function validateOccurrenceRow(
   return Effect.void;
 }
 
+function evidenceBindingsAreSorted(bindings: readonly AnyOccurrenceEvidenceBinding[]): boolean {
+  const values = bindings.map(bindingKey);
+  return values.join("\n") === [...values].toSorted().join("\n");
+}
+
+function validateOccurrenceRowV2(
+  row: OperationalOccurrenceRowV2,
+  input: { path: string; line: number },
+): Effect.Effect<void, MtaWikiOperationalOccurrenceImportError> {
+  const fail = (detail: string) =>
+    Effect.fail(rowSemanticError({ ...input, detail: `occurrence-v2: ${detail}` }));
+  const phaseArrays = [row.phase_record_ids, row.phase_relation_record_ids];
+  const physicalArrays = [row.physical_scope_record_ids, row.physical_scope_relation_record_ids];
+  if (
+    phaseArrays.some((values) => !isSortedUnique(values) || !stringsAreNonEmptyUnique(values)) ||
+    physicalArrays.some((values) => !isSortedUnique(values) || !stringsAreNonEmptyUnique(values))
+  ) {
+    return fail("phase and physical-scope identities must be sorted, non-empty, and unique");
+  }
+  if (row.phase_record_ids.length === 0) return fail("phase_record_ids must not be empty");
+  if (canonicalJson(row.phase_record_ids) !== canonicalJson(row.provenance.event_record_ids)) {
+    return fail("phase_record_ids must exactly equal provenance.event_record_ids");
+  }
+  if (
+    !bindingsAreCanonicalUnique(row.phase_relation_evidence_bindings) ||
+    !evidenceBindingsAreSorted(row.phase_relation_evidence_bindings) ||
+    row.phase_relation_evidence_bindings.some((binding) => binding.role !== "phase_relation")
+  ) {
+    return fail("phase relation evidence must be sorted, unique, and use phase_relation");
+  }
+  if (
+    canonicalJson(row.phase_relation_evidence_bindings.map((binding) => binding.record_id)) !==
+    canonicalJson(row.phase_relation_record_ids)
+  ) {
+    return fail("phase relation evidence must exactly cover phase_relation_record_ids");
+  }
+  if (
+    row.phase_relation_record_ids.some(
+      (relationId) => !row.provenance.relation_record_ids.includes(relationId),
+    )
+  ) {
+    return fail("phase relation ids must be present in provenance.relation_record_ids");
+  }
+  if (
+    row.phase_relation_disposition === "single_phase" &&
+    (row.phase_record_ids.length !== 1 ||
+      row.phase_relation_record_ids.length !== 0 ||
+      row.phase_relation_evidence_bindings.length !== 0)
+  ) {
+    return fail("single_phase requires one phase and no phase relation or evidence");
+  }
+  if (
+    row.phase_relation_disposition === "related_phases" &&
+    (row.phase_record_ids.length < 2 ||
+      row.phase_relation_record_ids.length === 0 ||
+      row.phase_relation_evidence_bindings.length === 0)
+  ) {
+    return fail("related_phases requires multiple phases plus relation identities and evidence");
+  }
+
+  const physicalPresence = [
+    row.physical_scope_record_ids.length > 0,
+    row.physical_scope_relation_record_ids.length > 0,
+    row.physical_scope_evidence_bindings.length > 0,
+  ];
+  if (new Set(physicalPresence).size !== 1) {
+    return fail("physical scope record, relation, and evidence arrays must be present together");
+  }
+  if (
+    !bindingsAreCanonicalUnique(row.physical_scope_evidence_bindings) ||
+    !evidenceBindingsAreSorted(row.physical_scope_evidence_bindings) ||
+    row.physical_scope_evidence_bindings.some((binding) => binding.role !== "physical_scope")
+  ) {
+    return fail("physical scope evidence must be sorted, unique, and use physical_scope");
+  }
+  if (
+    canonicalJson(row.physical_scope_evidence_bindings.map((binding) => binding.record_id)) !==
+    canonicalJson(row.physical_scope_relation_record_ids)
+  ) {
+    return fail("physical scope evidence must exactly cover physical_scope_relation_record_ids");
+  }
+  if (
+    row.physical_scope_relation_record_ids.some(
+      (relationId) =>
+        !row.provenance.relation_record_ids.includes(relationId) ||
+        !row.observations.some((observation) =>
+          observation.relation_record_ids.includes(relationId),
+        ),
+    )
+  ) {
+    return fail("physical scope relations must be present in provenance and an observation");
+  }
+  const topLevelBindingKeys = new Set(row.evidence_bindings.map(bindingKey));
+  for (const binding of [
+    ...row.phase_relation_evidence_bindings,
+    ...row.physical_scope_evidence_bindings,
+  ]) {
+    if (!topLevelBindingKeys.has(bindingKey(binding))) {
+      return fail(`v2 lineage binding is absent from top-level evidence: ${binding.evidence_id}`);
+    }
+  }
+  return Effect.void;
+}
+
 const decodeOccurrenceRows = Effect.fn("MtaWikiOperationalOccurrences.decodeRows")(function* (
   file: VerifiedMtaWikiReleaseFile,
 ) {
@@ -533,7 +1343,7 @@ const decodeOccurrenceRows = Effect.fn("MtaWikiOperationalOccurrences.decodeRows
       path: file.path,
       line: lineNumber,
     });
-    yield* validateOccurrenceRow(row, { path: file.path, line: lineNumber });
+    yield* validateOccurrenceRowBase(row, { path: file.path, line: lineNumber });
     const prior = ids.get(row.occurrence_id);
     if (prior !== undefined) {
       return yield* importError({
@@ -574,6 +1384,84 @@ const decodeOccurrenceRows = Effect.fn("MtaWikiOperationalOccurrences.decodeRows
   return rows.toSorted((left, right) => left.occurrence_id.localeCompare(right.occurrence_id));
 });
 
+const decodeOccurrenceRowsV2 = Effect.fn("MtaWikiOperationalOccurrences.decodeRowsV2")(function* (
+  file: VerifiedMtaWikiReleaseFile,
+) {
+  const text = yield* decodeMtaWikiReleaseUtf8(file.bytes, {
+    operation: "decodeOperationalOccurrencesV2",
+    path: file.path,
+  }).pipe(Effect.mapError(fromReleaseError));
+  if (text.length === 0) return [];
+  const lines = text.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  const rows: OperationalOccurrenceRowV2[] = [];
+  const ids = new Map<string, number>();
+  const aliases = new Map<string, number>();
+  for (const [index, line] of lines.entries()) {
+    const lineNumber = index + 1;
+    if (line.trim().length === 0) {
+      return yield* importError({
+        code: "invalid_json",
+        operation: "decodeOperationalOccurrencesV2",
+        path: file.path,
+        line: lineNumber,
+        detail: "blank JSONL records are not allowed",
+      });
+    }
+    const value = yield* parseJson(line, {
+      operation: "decodeOperationalOccurrencesV2",
+      path: file.path,
+      line: lineNumber,
+    });
+    const row = yield* decodeStrict({
+      schema: OperationalOccurrenceRowV2Schema,
+      value,
+      operation: "decodeOperationalOccurrencesV2",
+      path: file.path,
+      line: lineNumber,
+    });
+    yield* validateOccurrenceRowBase(row, { path: file.path, line: lineNumber });
+    yield* validateOccurrenceRowV2(row, { path: file.path, line: lineNumber });
+    const prior = ids.get(row.occurrence_id);
+    if (prior !== undefined) {
+      return yield* importError({
+        code: "duplicate_occurrence_id",
+        operation: "decodeOperationalOccurrencesV2",
+        path: file.path,
+        line: lineNumber,
+        detail: `occurrence_id ${row.occurrence_id} already appeared on line ${prior}`,
+      });
+    }
+    ids.set(row.occurrence_id, lineNumber);
+    for (const alias of row.occurrence_aliases) {
+      const aliasOwner = aliases.get(alias);
+      if (aliasOwner !== undefined) {
+        return yield* importError({
+          code: "semantic_mismatch",
+          operation: "decodeOperationalOccurrencesV2",
+          path: file.path,
+          line: lineNumber,
+          detail: `occurrence alias ${alias} already appeared on line ${aliasOwner}`,
+        });
+      }
+      aliases.set(alias, lineNumber);
+    }
+    rows.push(row);
+  }
+  for (const [alias, line] of aliases) {
+    if (ids.has(alias)) {
+      return yield* importError({
+        code: "semantic_mismatch",
+        operation: "decodeOperationalOccurrencesV2",
+        path: file.path,
+        line,
+        detail: `occurrence alias collides with an active occurrence_id: ${alias}`,
+      });
+    }
+  }
+  return rows.toSorted((left, right) => left.occurrence_id.localeCompare(right.occurrence_id));
+});
+
 const decodeJsonFile = Effect.fn("MtaWikiOperationalOccurrences.decodeJsonFile")(function* <
   S extends Schema.Constraint,
 >(file: VerifiedMtaWikiReleaseFile, schema: S, operation: string) {
@@ -583,6 +1471,52 @@ const decodeJsonFile = Effect.fn("MtaWikiOperationalOccurrences.decodeJsonFile")
   }).pipe(Effect.mapError(fromReleaseError));
   const value = yield* parseJson(text, { operation, path: file.path });
   return yield* decodeStrict({ schema, value, operation, path: file.path });
+});
+
+const validateRelationshipArtifactSyntax = Effect.fn(
+  "MtaWikiOperationalOccurrences.validateRelationshipArtifactSyntax",
+)(function* (entry: RelationshipBundleArtifact, file: VerifiedMtaWikiReleaseFile) {
+  const text = yield* decodeMtaWikiReleaseUtf8(file.bytes, {
+    operation: "validateRelationshipArtifactSyntax",
+    path: file.path,
+  }).pipe(Effect.mapError(fromReleaseError));
+  if (entry.source_path.endsWith(".json")) {
+    yield* parseJson(text, {
+      operation: "validateRelationshipArtifactSyntax",
+      path: file.path,
+    });
+    return;
+  }
+  if (entry.source_path.endsWith(".jsonl")) {
+    if (text.length === 0) return;
+    const lines = text.split("\n");
+    if (lines.at(-1) === "") lines.pop();
+    for (const [index, line] of lines.entries()) {
+      if (line.trim().length === 0) {
+        return yield* importError({
+          code: "invalid_json",
+          operation: "validateRelationshipArtifactSyntax",
+          path: file.path,
+          line: index + 1,
+          detail: "blank JSONL records are not allowed",
+        });
+      }
+      yield* parseJson(line, {
+        operation: "validateRelationshipArtifactSyntax",
+        path: file.path,
+        line: index + 1,
+      });
+    }
+    return;
+  }
+  if (!entry.source_path.endsWith(".md")) {
+    return yield* importError({
+      code: "semantic_mismatch",
+      operation: "validateRelationshipArtifactSyntax",
+      path: file.path,
+      detail: `unsupported relationship artifact media type: ${entry.source_path}`,
+    });
+  }
 });
 
 export function recomputeOperationalOccurrenceSummary(
@@ -599,6 +1533,17 @@ export function recomputeOperationalOccurrenceSummary(
       .filter((row) => row.study_projection_eligible)
       .reduce((sum, row) => sum + row.routes.length, 0),
     counts_by_exclusion_reason: countBy(rows.flatMap((row) => row.exclusion_reasons)),
+  };
+}
+
+export function recomputeOperationalOccurrenceSummaryV2(
+  rows: readonly OperationalOccurrenceRowV2[],
+): OperationalOccurrenceSummaryV2 {
+  return {
+    ...recomputeOperationalOccurrenceSummary(
+      rows as unknown as readonly OperationalOccurrenceRow[],
+    ),
+    schema_version: 2,
   };
 }
 
@@ -620,9 +1565,29 @@ function validateSummary(
       );
 }
 
+function validateSummaryV2(
+  rows: readonly OperationalOccurrenceRowV2[],
+  summary: OperationalOccurrenceSummaryV2,
+  path: string,
+): Effect.Effect<void, MtaWikiOperationalOccurrenceImportError> {
+  const expected = recomputeOperationalOccurrenceSummaryV2(rows);
+  return canonicalJson(expected) === canonicalJson(summary)
+    ? Effect.void
+    : Effect.fail(
+        importError({
+          code: "summary_mismatch",
+          operation: "validateOperationalOccurrenceSummaryV2",
+          path,
+          detail: `producer summary does not match v2 rows; expected ${canonicalJson(expected)}`,
+        }),
+      );
+}
+
 function validateReviewSnapshot(input: {
-  rows: readonly OperationalOccurrenceRow[];
-  snapshot: OperationalOccurrenceReviewSnapshot;
+  rows: readonly OperationalOccurrenceRowAny[];
+  snapshot:
+    | OperationalOccurrenceReviewSnapshot
+    | OperationalOccurrenceReviewSnapshotV1Rc22Inspection;
   path: string;
 }): Effect.Effect<void, MtaWikiOperationalOccurrenceImportError> {
   const fail = (detail: string) =>
@@ -639,8 +1604,14 @@ function validateReviewSnapshot(input: {
   }
   const decisionIds = input.snapshot.decisions.map((decision) => decision.decision_id);
   if (!isSortedUnique(decisionIds)) return fail("review decisions must be sorted and unique");
-  const byOccurrence = new Map<string, OperationalOccurrenceReviewDecision>();
-  const byDecisionId = new Map<string, OperationalOccurrenceReviewDecision>();
+  const byOccurrence = new Map<
+    string,
+    OperationalOccurrenceReviewDecision | OperationalOccurrenceReviewDecisionV1Rc22Inspection
+  >();
+  const byDecisionId = new Map<
+    string,
+    OperationalOccurrenceReviewDecision | OperationalOccurrenceReviewDecisionV1Rc22Inspection
+  >();
   for (const decision of input.snapshot.decisions) {
     if (
       !isNonEmptyString(decision.decision_id) ||
@@ -766,6 +1737,96 @@ function validateReviewSnapshot(input: {
   return Effect.void;
 }
 
+const LEGACY_REVIEW_EVIDENCE_ROLES = new Set([
+  "bundle_analysis_family",
+  "event_date",
+  "route_identity",
+  "route_scope",
+  "route_treatment_event_bridge",
+  "timeline_relation",
+  "treatment_definition",
+  "treatment_scope",
+]);
+
+function decisionEvidenceBindings(
+  decision: OperationalOccurrenceReviewDecisionV1Rc22Inspection,
+): AnyOccurrenceEvidenceBinding[] {
+  const treatmentBindings =
+    decision.treatment.kind === "atomic"
+      ? decision.treatment.member.evidence_bindings
+      : [
+          ...decision.treatment.bundle_family_evidence_bindings,
+          ...decision.treatment.members.flatMap((member) => member.evidence_bindings),
+        ];
+  return [
+    ...decision.resolved_onset.evidence_bindings,
+    ...decision.routes.flatMap((route) => route.evidence_bindings),
+    ...treatmentBindings,
+    ...decision.evidence_bindings,
+  ];
+}
+
+export function classifyOperationalOccurrenceReviewCompatibility(input: {
+  manifestSha256: string;
+  reviewSha256: string;
+  snapshot: OperationalOccurrenceReviewSnapshotV1Rc22Inspection;
+}):
+  | "compatible"
+  | "known_rc22_review_v1_physical_scope_incompatibility"
+  | "unsupported_review_v1_occurrence_v2_roles" {
+  const unsupported = input.snapshot.decisions.flatMap((decision) =>
+    decisionEvidenceBindings(decision)
+      .filter((binding) => !LEGACY_REVIEW_EVIDENCE_ROLES.has(binding.role))
+      .map((binding) => ({ decision, binding })),
+  );
+  if (unsupported.length === 0) return "compatible";
+
+  const only = unsupported[0];
+  const knownBinding =
+    unsupported.length === 1 &&
+    only !== undefined &&
+    input.manifestSha256 === RC22_MANIFEST_SHA256 &&
+    input.reviewSha256 === RC22_REVIEW_SHA256 &&
+    only.decision.decision_id === RC22_REVIEW_PHYSICAL_SCOPE_DECISION_ID &&
+    only.decision.occurrence_id === RC22_REVIEW_PHYSICAL_SCOPE_OCCURRENCE_ID &&
+    only.binding.role === "physical_scope" &&
+    only.binding.record_id === RC22_REVIEW_PHYSICAL_SCOPE_RELATION_ID &&
+    only.binding.source_id === RC22_REVIEW_PHYSICAL_SCOPE_SOURCE_ID &&
+    only.binding.evidence_id === RC22_REVIEW_PHYSICAL_SCOPE_EVIDENCE_ID &&
+    only.decision.evidence_bindings.some(
+      (binding) => bindingKey(binding) === bindingKey(only.binding),
+    );
+  return knownBinding
+    ? "known_rc22_review_v1_physical_scope_incompatibility"
+    : "unsupported_review_v1_occurrence_v2_roles";
+}
+
+function reviewCompatibilityStatus(input: {
+  manifestSha256: string;
+  reviewFile: VerifiedMtaWikiReleaseFile;
+  snapshot: OperationalOccurrenceReviewSnapshotV1Rc22Inspection;
+}): Effect.Effect<
+  "compatible" | "known_rc22_review_v1_physical_scope_incompatibility",
+  MtaWikiOperationalOccurrenceImportError
+> {
+  const classification = classifyOperationalOccurrenceReviewCompatibility({
+    manifestSha256: input.manifestSha256,
+    reviewSha256: input.reviewFile.metadata.sha256,
+    snapshot: input.snapshot,
+  });
+  return classification !== "unsupported_review_v1_occurrence_v2_roles"
+    ? Effect.succeed(classification)
+    : Effect.fail(
+        importError({
+          code: "contract_incompatible",
+          operation: "validateOperationalOccurrenceReviewContract",
+          path: input.reviewFile.path,
+          detail:
+            "review-v1 contains occurrence-v2 evidence roles outside the one fingerprinted rc22 inspection exception",
+        }),
+      );
+}
+
 function importedFile(file: VerifiedMtaWikiReleaseFile, releaseId: string) {
   return {
     pointer: file.pointer,
@@ -775,7 +1836,572 @@ function importedFile(file: VerifiedMtaWikiReleaseFile, releaseId: string) {
   };
 }
 
-const buildImportArtifact = Effect.fn("MtaWikiOperationalOccurrences.buildArtifact")(
+function canonicalDigest(value: unknown): string {
+  return sha256Bytes(new TextEncoder().encode(canonicalJson(value)));
+}
+
+const verifyRelationshipIntegrity = Effect.fn(
+  "MtaWikiOperationalOccurrences.verifyRelationshipIntegrity",
+)(function* (input: {
+  manifest: ReleaseManifestV4;
+  releaseId: string;
+  manifestPath: string;
+  resolved: {
+    releaseDirectory: string;
+    canonicalReleaseDirectory: string;
+  };
+  bundleFile: VerifiedMtaWikiReleaseFile;
+}) {
+  const fail = (detail: string, path = input.bundleFile.path) =>
+    Effect.fail(
+      importError({
+        code: "semantic_mismatch",
+        operation: "verifyRelationshipIntegrity",
+        path,
+        detail,
+      }),
+    );
+  const bundle = yield* decodeJsonFile(
+    input.bundleFile,
+    RelationshipIntegrityBundleSchema,
+    "decodeRelationshipIntegrityBundle",
+  );
+  if (bundle.artifact_count !== bundle.artifacts.length) {
+    return yield* fail("relationship bundle artifact_count does not match artifacts length");
+  }
+  const descriptorValue = {
+    schema_version: bundle.schema_version,
+    bundle_id: bundle.bundle_id,
+    contract_id: bundle.contract_id,
+    validation_mode: bundle.validation_mode,
+    artifacts: bundle.artifacts.map(({ role, source_path, bytes, sha256 }) => ({
+      role,
+      source_path,
+      bytes,
+      sha256,
+    })),
+  };
+  const descriptorBytes = new TextEncoder().encode(`${canonicalJson(descriptorValue)}\n`);
+  if (
+    descriptorBytes.length !== bundle.descriptor.bytes ||
+    sha256Bytes(descriptorBytes) !== bundle.descriptor.sha256
+  ) {
+    return yield* fail("relationship bundle descriptor commitment does not match artifacts");
+  }
+
+  const roles = new Set<string>();
+  const sourcePaths = new Set<string>();
+  const releasePaths = new Set<string>();
+  const canonicalTargets = new Set<string>();
+  const verifiedByRole = new Map<
+    string,
+    { entry: RelationshipBundleArtifact; file: VerifiedMtaWikiReleaseFile }
+  >();
+  const verifiedBySourcePath = new Map<
+    string,
+    { entry: RelationshipBundleArtifact; file: VerifiedMtaWikiReleaseFile }
+  >();
+  for (const entry of bundle.artifacts) {
+    if (
+      !isNonEmptyString(entry.role) ||
+      !isSafeMtaWikiReleaseRelativePath(entry.source_path) ||
+      !isSafeMtaWikiReleaseRelativePath(entry.release_path) ||
+      entry.release_path !== `relationship-integrity/${entry.source_path}`
+    ) {
+      return yield* fail(`unsafe or inconsistent relationship artifact path for ${entry.role}`);
+    }
+    if (
+      roles.has(entry.role) ||
+      sourcePaths.has(entry.source_path) ||
+      releasePaths.has(entry.release_path)
+    ) {
+      return yield* fail(`duplicate relationship artifact identity for ${entry.role}`);
+    }
+    roles.add(entry.role);
+    sourcePaths.add(entry.source_path);
+    releasePaths.add(entry.release_path);
+    const manifestMetadata = input.manifest.files[entry.release_path];
+    if (
+      manifestMetadata === undefined ||
+      manifestMetadata.bytes !== entry.bytes ||
+      manifestMetadata.sha256 !== entry.sha256
+    ) {
+      return yield* fail(
+        `relationship artifact metadata disagrees with manifest: ${entry.release_path}`,
+        input.manifestPath,
+      );
+    }
+    const file = yield* verifyMtaWikiReleaseFile({
+      ...input.resolved,
+      pointer: entry.release_path,
+      metadata: manifestMetadata,
+      operation: `verifyRelationshipArtifact:${entry.role}`,
+    }).pipe(Effect.mapError(fromReleaseError));
+    if (canonicalTargets.has(file.path)) {
+      return yield* fail(`multiple relationship pointers resolve to ${file.path}`, file.path);
+    }
+    yield* validateRelationshipArtifactSyntax(entry, file);
+    canonicalTargets.add(file.path);
+    verifiedByRole.set(entry.role, { entry, file });
+    verifiedBySourcePath.set(entry.source_path, { entry, file });
+  }
+
+  const required = (role: string) => {
+    const value = verifiedByRole.get(role);
+    return value === undefined
+      ? Effect.fail(
+          importError({
+            code: "missing_manifest_file",
+            operation: "verifyRelationshipIntegrity",
+            path: input.bundleFile.path,
+            detail: `relationship bundle is missing required role ${role}`,
+          }),
+        )
+      : Effect.succeed(value);
+  };
+
+  const contractArtifact = yield* required("relationship_contract");
+  const proofArtifact = yield* required("enforcement_proof");
+  const transitionArtifact = yield* required("enforcement_transition_receipt");
+  const endpointArtifact = yield* required("endpoint_type_matrix");
+  const graphAuditArtifact = yield* required("graph_audit_summary");
+  const graphManifestArtifact = yield* required("graph_audit_manifest");
+  const contract: RelationshipContract = yield* decodeJsonFile(
+    contractArtifact.file,
+    RelationshipContractSchema,
+    "decodeRelationshipContract",
+  );
+  const proof: RelationshipEnforcementProof = yield* decodeJsonFile(
+    proofArtifact.file,
+    RelationshipEnforcementProofSchema,
+    "decodeRelationshipEnforcementProof",
+  );
+  const transition = yield* decodeJsonFile(
+    transitionArtifact.file,
+    RelationshipTransitionReceiptSchema,
+    "decodeRelationshipTransitionReceipt",
+  );
+  const endpointMatrix = yield* decodeJsonFile(
+    endpointArtifact.file,
+    RelationshipEndpointMatrixSchema,
+    "decodeRelationshipEndpointMatrix",
+  );
+  const graphAudit: RelationshipGraphAuditSummary = yield* decodeJsonFile(
+    graphAuditArtifact.file,
+    RelationshipGraphAuditSummarySchema,
+    "decodeRelationshipGraphAuditSummary",
+  );
+  const graphManifest: RelationshipGraphAuditManifest = yield* decodeJsonFile(
+    graphManifestArtifact.file,
+    RelationshipGraphAuditManifestSchema,
+    "decodeRelationshipGraphAuditManifest",
+  );
+
+  const proofCanonicalSha256 = canonicalDigest(proof);
+  const transitionCanonicalSha256 = canonicalDigest(transition);
+  const endpointCanonicalSha256 = canonicalDigest(endpointMatrix);
+  const contractPolicy = {
+    identity_policy: contract.identity_policy,
+    evidence_policy: contract.evidence_policy,
+    finding_codes: contract.finding_codes,
+    completeness_roles: contract.completeness_roles,
+    migration_criteria: contract.migration_criteria,
+  };
+  if (
+    contract.reviewed_at.trim() !== contract.reviewed_at ||
+    contract.reviewed_at.length === 0 ||
+    contract.reviewed_by.trim() !== contract.reviewed_by ||
+    contract.reviewed_by.length === 0 ||
+    canonicalJson(contractPolicy) !== canonicalJson(RELATIONSHIP_CONTRACT_POLICY_V1) ||
+    !isValidFinalEndpointMatrix(endpointMatrix) ||
+    contract.enforcement_proof.path !== proofArtifact.entry.source_path ||
+    contract.enforcement_proof.sha256 !== proofCanonicalSha256 ||
+    contract.enforcement_proof.transition_receipt.path !== transitionArtifact.entry.source_path ||
+    contract.enforcement_proof.transition_receipt.sha256 !== transitionCanonicalSha256 ||
+    proof.transition_receipt.path !== transitionArtifact.entry.source_path ||
+    proof.transition_receipt.sha256 !== transitionCanonicalSha256 ||
+    contract.endpoint_matrix.path !== endpointArtifact.entry.source_path ||
+    contract.endpoint_matrix.sha256 !== endpointCanonicalSha256 ||
+    proof.final_matrix.path !== endpointArtifact.entry.source_path ||
+    proof.final_matrix.sha256 !== endpointCanonicalSha256
+  ) {
+    return yield* fail("relationship contract policy, final matrix, or canonical pointers drifted");
+  }
+
+  const graphArtifactContract = [
+    { path: "findings.jsonl", hasRows: true },
+    { path: "orphan-records.jsonl", hasRows: true },
+    { path: "relation-audit.jsonl", hasRows: true },
+    { path: "report.md", hasRows: false },
+    { path: "summary.json", hasRows: false },
+  ] as const;
+  const rootRelations = input.manifest.files["relations.jsonl"];
+  const expectedGraphFingerprint = canonicalDigest({
+    contract_sha256: graphManifest.contract_sha256,
+    endpoint_matrix_sha256: graphManifest.endpoint_matrix_sha256,
+    canonical_relations_sha256: graphManifest.canonical_relations_sha256,
+  });
+  if (
+    graphManifestArtifact.entry.source_path !==
+      "data/quality/relationship-integrity/graph-audit/manifest.json" ||
+    graphManifest.endpoint_matrix_sha256 !== endpointCanonicalSha256 ||
+    rootRelations === undefined ||
+    graphManifest.canonical_relations_sha256 !== rootRelations.sha256 ||
+    graphManifest.input_fingerprint !== expectedGraphFingerprint ||
+    graphManifest.artifacts.length !== graphArtifactContract.length ||
+    graphManifest.reproduction_commands.length === 0 ||
+    graphManifest.reproduction_commands.some((command) => command.trim().length === 0)
+  ) {
+    return yield* fail("relationship graph-audit manifest lineage drifted");
+  }
+  const graphArtifactRowCounts = new Map<string, number>();
+  for (const [index, expected] of graphArtifactContract.entries()) {
+    const pin = graphManifest.artifacts[index];
+    if (
+      pin === undefined ||
+      pin.path !== expected.path ||
+      expected.hasRows !== (pin.rows !== undefined)
+    ) {
+      return yield* fail("relationship graph-audit manifest artifact set drifted");
+    }
+    const sourcePath = `data/quality/relationship-integrity/graph-audit/${pin.path}`;
+    const bundled = verifiedBySourcePath.get(sourcePath);
+    if (bundled === undefined || bundled.file.metadata.sha256 !== pin.sha256) {
+      return yield* fail(`relationship graph-audit artifact digest drifted: ${pin.path}`);
+    }
+    if (pin.rows !== undefined) {
+      const text = yield* decodeMtaWikiReleaseUtf8(bundled.file.bytes, {
+        operation: "countRelationshipGraphAuditRows",
+        path: bundled.file.path,
+      }).pipe(Effect.mapError(fromReleaseError));
+      const rows =
+        text.length === 0 ? 0 : text.split("\n").filter((line) => line.length > 0).length;
+      if (rows !== pin.rows) {
+        return yield* fail(`relationship graph-audit row count drifted: ${pin.path}`);
+      }
+      graphArtifactRowCounts.set(pin.path, rows);
+    }
+  }
+  const previousProofArtifact = verifiedBySourcePath.get(proof.previous_proof.path);
+  if (previousProofArtifact === undefined) {
+    return yield* fail("relationship proof previous_proof is absent from the release bundle");
+  }
+  const previousProofValue = yield* decodeJsonFile(
+    previousProofArtifact.file,
+    Schema.Unknown,
+    "decodePreviousRelationshipEnforcementProof",
+  );
+  if (
+    canonicalJson(proof.previous_proof) !== canonicalJson(transition.previous_proof) ||
+    canonicalDigest(previousProofValue) !== proof.previous_proof.sha256 ||
+    canonicalJson(transition.final_matrix) !== canonicalJson(proof.final_matrix)
+  ) {
+    return yield* fail("relationship enforcement transition lineage commitments drifted");
+  }
+
+  const requiredGateIds = [...contract.enforcement_proof.required_gate_ids];
+  const proofGateIds = proof.gates.map((gate) => gate.gate_id);
+  if (
+    !isSortedUnique(requiredGateIds) ||
+    !isSortedUnique(proofGateIds) ||
+    proof.gate_count !== proof.gates.length ||
+    canonicalJson(requiredGateIds) !== canonicalJson(proofGateIds) ||
+    canonicalJson(requiredGateIds) !== canonicalJson(REQUIRED_RELATIONSHIP_GATE_IDS)
+  ) {
+    return yield* fail("relationship proof gate identities are incomplete or inconsistent");
+  }
+  const previousGateIds = transition.previous_gates.map((gate) => gate.gate_id).toSorted();
+  if (
+    canonicalJson(previousGateIds) !== canonicalJson(requiredGateIds) ||
+    !isSortedUnique(transition.previous_gates.map((gate) => gate.gate_id))
+  ) {
+    return yield* fail("relationship transition previous-gate identities are incomplete");
+  }
+  if (
+    !sameRolePaths(transition.invariant_artifacts, RELATIONSHIP_INVARIANT_ROLE_PATHS) ||
+    !sameRolePaths(transition.refresh_artifacts, RELATIONSHIP_REFRESH_ROLE_PATHS) ||
+    transition.invariant_artifacts.some((pin) => !isSafeMtaWikiReleaseRelativePath(pin.path)) ||
+    transition.refresh_artifacts.some(
+      (pin) =>
+        !isSafeMtaWikiReleaseRelativePath(pin.path) ||
+        (pin.role === "canonical_db"
+          ? pin.archive_path !== undefined || pin.transition_fingerprint !== undefined
+          : pin.archive_path === undefined ||
+            pin.transition_fingerprint === undefined ||
+            !isSafeMtaWikiReleaseRelativePath(pin.archive_path)),
+    )
+  ) {
+    return yield* fail("relationship transition invariant or refresh role contract drifted");
+  }
+  for (const pin of transition.invariant_artifacts) {
+    const bundled = verifiedBySourcePath.get(pin.path);
+    if (pin.role === "final_endpoint_matrix") {
+      if (
+        pin.path !== endpointArtifact.entry.source_path ||
+        pin.sha256 !== endpointCanonicalSha256
+      ) {
+        return yield* fail("relationship transition final-matrix invariant drifted");
+      }
+    } else if (
+      (pin.role === "determinism_consumer_summary" && bundled === undefined) ||
+      (bundled !== undefined && bundled.file.metadata.sha256 !== pin.sha256)
+    ) {
+      return yield* fail(`relationship transition invariant digest drifted: ${pin.role}`);
+    }
+  }
+
+  const archivedGateSources: Array<{ role: string; path: string; sha256: string }> = [];
+  for (const gate of transition.previous_gates) {
+    const artifact = verifiedBySourcePath.get(gate.path);
+    if (
+      !isSafeMtaWikiReleaseRelativePath(gate.path) ||
+      artifact === undefined ||
+      artifact.file.metadata.sha256 !== gate.sha256
+    ) {
+      return yield* fail(`relationship transition previous gate drifted: ${gate.gate_id}`);
+    }
+    const decodedGate = yield* decodeJsonFile(
+      artifact.file,
+      RelationshipEnforcementGateSchema,
+      `decodePreviousRelationshipEnforcementGate:${gate.gate_id}`,
+    );
+    const expectedSources =
+      RELATIONSHIP_GATE_SOURCE_PATHS[gate.gate_id as keyof typeof RELATIONSHIP_GATE_SOURCE_PATHS];
+    if (
+      decodedGate.artifact_id !== `relationship-contract-v1-enforcement-gate:${gate.gate_id}` ||
+      decodedGate.gate_id !== gate.gate_id ||
+      decodedGate.source_count !== decodedGate.source_artifacts.length ||
+      decodedGate.derived_violation_count !== 0 ||
+      expectedSources === undefined ||
+      !sameRolePaths(decodedGate.source_artifacts, expectedSources) ||
+      decodedGate.source_artifacts.some((source) => !isSafeMtaWikiReleaseRelativePath(source.path))
+    ) {
+      return yield* fail(
+        `relationship transition previous gate source set drifted: ${gate.gate_id}`,
+      );
+    }
+    archivedGateSources.push(...decodedGate.source_artifacts);
+  }
+  archivedGateSources.sort(
+    (left, right) => left.role.localeCompare(right.role) || left.path.localeCompare(right.path),
+  );
+  const receiptSources = transition.pre_promotion_sources.map(({ role, path, sha256 }) => ({
+    role,
+    path,
+    sha256,
+  }));
+  const sortedReceiptSources = [...receiptSources].toSorted(
+    (left, right) => left.role.localeCompare(right.role) || left.path.localeCompare(right.path),
+  );
+  if (
+    canonicalJson(receiptSources) !== canonicalJson(sortedReceiptSources) ||
+    new Set(receiptSources.map((source) => source.role)).size !== receiptSources.length ||
+    new Set(receiptSources.map((source) => source.path)).size !== receiptSources.length ||
+    canonicalJson(archivedGateSources) !== canonicalJson(receiptSources)
+  ) {
+    return yield* fail(
+      "relationship transition archived gates do not reconcile with pre-promotion sources",
+    );
+  }
+  const refreshRoles = new Set<string>(
+    RELATIONSHIP_REFRESH_ROLE_PATHS.map(({ role }) => role).filter(
+      (role) => role !== "canonical_db",
+    ),
+  );
+  for (const source of transition.pre_promotion_sources) {
+    const active = verifiedBySourcePath.get(source.path);
+    const archive = verifiedBySourcePath.get(source.archive_path);
+    const needsFingerprint = refreshRoles.has(source.role);
+    if (
+      !isSafeMtaWikiReleaseRelativePath(source.path) ||
+      !isSafeMtaWikiReleaseRelativePath(source.archive_path) ||
+      active === undefined ||
+      archive === undefined ||
+      archive.file.metadata.sha256 !== source.sha256 ||
+      needsFingerprint !== (source.transition_fingerprint !== undefined) ||
+      (!needsFingerprint && active.file.metadata.sha256 !== source.sha256)
+    ) {
+      return yield* fail(`relationship transition source archive drifted: ${source.role}`);
+    }
+    if (source.transition_fingerprint !== undefined) {
+      const activeText = yield* decodeMtaWikiReleaseUtf8(active.file.bytes, {
+        operation: "fingerprintRelationshipTransitionActiveSource",
+        path: active.file.path,
+      }).pipe(Effect.mapError(fromReleaseError));
+      const archiveText = yield* decodeMtaWikiReleaseUtf8(archive.file.bytes, {
+        operation: "fingerprintRelationshipTransitionArchivedSource",
+        path: archive.file.path,
+      }).pipe(Effect.mapError(fromReleaseError));
+      if (
+        relationshipTransitionFingerprint(source.role, activeText) !==
+          source.transition_fingerprint ||
+        relationshipTransitionFingerprint(source.role, archiveText) !==
+          source.transition_fingerprint
+      ) {
+        return yield* fail(`relationship transition source fingerprint drifted: ${source.role}`);
+      }
+    }
+  }
+  for (const artifact of transition.refresh_artifacts) {
+    if (artifact.role === "canonical_db") continue;
+    const active = verifiedBySourcePath.get(artifact.path);
+    const archive =
+      artifact.archive_path === undefined
+        ? undefined
+        : verifiedBySourcePath.get(artifact.archive_path);
+    const prior = transition.pre_promotion_sources.find((source) => source.role === artifact.role);
+    if (
+      active === undefined ||
+      archive === undefined ||
+      prior === undefined ||
+      artifact.archive_path !== prior.archive_path ||
+      artifact.path !== prior.path ||
+      artifact.sha256 !== prior.sha256 ||
+      artifact.transition_fingerprint !== prior.transition_fingerprint ||
+      archive.file.metadata.sha256 !== artifact.sha256
+    ) {
+      return yield* fail(`relationship transition refresh commitment drifted: ${artifact.role}`);
+    }
+  }
+  for (const gate of proof.gates) {
+    const gateArtifact = yield* required(`enforcement_gate:${gate.gate_id}`);
+    const decodedGate = yield* decodeJsonFile(
+      gateArtifact.file,
+      RelationshipEnforcementGateSchema,
+      `decodeRelationshipEnforcementGate:${gate.gate_id}`,
+    );
+    if (
+      gate.artifact_path !== gateArtifact.entry.source_path ||
+      gate.artifact_sha256 !== gateArtifact.file.metadata.sha256 ||
+      decodedGate.artifact_id !== `relationship-contract-v1-enforcement-gate:${gate.gate_id}` ||
+      decodedGate.gate_id !== gate.gate_id ||
+      decodedGate.source_count !== decodedGate.source_artifacts.length ||
+      decodedGate.derived_violation_count !== 0
+    ) {
+      return yield* fail(`relationship enforcement gate mismatch: ${gate.gate_id}`);
+    }
+    const expectedSources =
+      RELATIONSHIP_GATE_SOURCE_PATHS[gate.gate_id as keyof typeof RELATIONSHIP_GATE_SOURCE_PATHS];
+    if (
+      expectedSources === undefined ||
+      !sameRolePaths(decodedGate.source_artifacts, expectedSources) ||
+      decodedGate.source_artifacts.some((source) => {
+        const bundled = verifiedBySourcePath.get(source.path);
+        return (
+          !isSafeMtaWikiReleaseRelativePath(source.path) ||
+          bundled === undefined ||
+          bundled.file.metadata.sha256 !== source.sha256
+        );
+      })
+    ) {
+      return yield* fail(`relationship enforcement gate source set drifted: ${gate.gate_id}`);
+    }
+  }
+
+  const manifestRelationCount = input.manifest.record_counts["relation"] ?? -1;
+  const manifestRecordCount = Object.values(input.manifest.record_counts).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  const graphFindingCodeCount = Object.values(graphAudit.findings_by_code).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  const graphFindingSeverityCount = Object.values(graphAudit.findings_by_severity).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  const graphDispositionCount = Object.values(graphAudit.primary_dispositions).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  const graphOrphanCount = Object.values(graphAudit.orphan_records_by_kind).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  if (
+    contract.endpoint_matrix.relation_count !== manifestRelationCount ||
+    proof.final_matrix.relation_count !== manifestRelationCount ||
+    endpointMatrix.covered_relation_count !== manifestRelationCount ||
+    graphAudit.distinct_relation_kind_count !== endpointMatrix.relation_kind_rule_count ||
+    graphAudit.contract_rule_count !== endpointMatrix.relation_kind_rule_count ||
+    graphAudit.canonical_relation_count !== manifestRelationCount ||
+    graphAudit.contract_covered_relation_count !== manifestRelationCount ||
+    graphAudit.canonical_record_count !== manifestRecordCount ||
+    graphAudit.finding_count !== graphFindingCodeCount ||
+    graphAudit.finding_count !== graphFindingSeverityCount ||
+    graphDispositionCount !== manifestRelationCount ||
+    graphOrphanCount !== (graphAudit.findings_by_code["REL_ORPHAN_RECORD"] ?? -1) ||
+    (graphArtifactRowCounts.get("findings.jsonl") ?? -1) +
+      (graphArtifactRowCounts.get("orphan-records.jsonl") ?? -1) !==
+      graphAudit.finding_count ||
+    graphArtifactRowCounts.get("orphan-records.jsonl") !== graphOrphanCount ||
+    graphArtifactRowCounts.get("relation-audit.jsonl") !== manifestRelationCount ||
+    contract.endpoint_matrix.tuple_count !== proof.final_matrix.tuple_count ||
+    contract.endpoint_matrix.relation_ids_sha256 !== proof.final_matrix.relation_ids_sha256 ||
+    contract.endpoint_matrix.tuple_set_sha256 !== proof.final_matrix.tuple_set_sha256 ||
+    endpointMatrix.relation_ids_sha256 !== proof.final_matrix.relation_ids_sha256 ||
+    endpointMatrix.tuple_set_sha256 !== proof.final_matrix.tuple_set_sha256 ||
+    (graphAudit.findings_by_severity["error"] ?? 0) !== 0 ||
+    (graphAudit.findings_by_code["REL_FAMILY_TYPE_SUSPECT_REVIEWED"] ?? 0) !== 3 ||
+    graphAudit.finding_count !==
+      (graphAudit.findings_by_code["REL_FAMILY_TYPE_SUSPECT_REVIEWED"] ?? 0) +
+        (graphAudit.findings_by_code["REL_ORPHAN_RECORD"] ?? 0)
+  ) {
+    return yield* fail("relationship graph counts, matrix identities, or advisory totals drifted");
+  }
+
+  return {
+    bundle: importedFile(input.bundleFile, input.releaseId),
+    bundleId: bundle.bundle_id,
+    contractId: bundle.contract_id,
+    validationMode: bundle.validation_mode,
+    artifactCount: bundle.artifact_count,
+    verifiedArtifactCount: verifiedByRole.size,
+    descriptor: {
+      sourcePath: bundle.descriptor.source_path,
+      bytes: bundle.descriptor.bytes,
+      sha256: bundle.descriptor.sha256,
+    },
+    contract: {
+      file: importedFile(contractArtifact.file, input.releaseId),
+      contractStatus: contract.contract_status,
+      enforcementState: contract.enforcement_state,
+      reviewedAt: contract.reviewed_at,
+      reviewedBy: contract.reviewed_by,
+    },
+    enforcementProof: {
+      file: importedFile(proofArtifact.file, input.releaseId),
+      canonicalSha256: proofCanonicalSha256,
+      proofId: proof.proof_id,
+      proofStage: proof.proof_stage,
+      proofStatus: proof.proof_status,
+      gateCount: proof.gate_count,
+      totalViolationCount: proof.total_violation_count,
+    },
+    transitionReceipt: {
+      file: importedFile(transitionArtifact.file, input.releaseId),
+      canonicalSha256: transitionCanonicalSha256,
+    },
+    endpointMatrix: {
+      file: importedFile(endpointArtifact.file, input.releaseId),
+      canonicalSha256: endpointCanonicalSha256,
+      relationCount: proof.final_matrix.relation_count,
+      tupleCount: proof.final_matrix.tuple_count,
+    },
+    graphAudit: {
+      file: importedFile(graphAuditArtifact.file, input.releaseId),
+      canonicalRecordCount: graphAudit.canonical_record_count,
+      canonicalRelationCount: graphAudit.canonical_relation_count,
+      enforceableViolationCount: proof.total_violation_count,
+      reviewedNonEnforceableAdvisoryCount:
+        graphAudit.findings_by_code["REL_FAMILY_TYPE_SUSPECT_REVIEWED"] ?? 0,
+      informationalOrphanRecordCount: graphAudit.findings_by_code["REL_ORPHAN_RECORD"] ?? 0,
+    },
+  };
+});
+
+const buildImportArtifactV3 = Effect.fn("MtaWikiOperationalOccurrences.buildArtifactV3")(
   function* (input: {
     manifest: ReleaseManifestV3;
     manifestSha256: string;
@@ -822,9 +2448,87 @@ const buildImportArtifact = Effect.fn("MtaWikiOperationalOccurrences.buildArtifa
       projectionRejections,
     };
     return yield* decodeStrict({
-      schema: MtaWikiOperationalOccurrenceImportArtifactSchema,
+      schema: MtaWikiOperationalOccurrenceImportArtifactV3Schema,
       value,
       operation: "buildOperationalOccurrenceImportArtifact",
+      path: input.occurrenceFile.path,
+    });
+  },
+);
+
+const buildImportArtifactV4 = Effect.fn("MtaWikiOperationalOccurrences.buildArtifactV4")(
+  function* (input: {
+    manifest: ReleaseManifestV4;
+    manifestSha256: string;
+    occurrenceFile: VerifiedMtaWikiReleaseFile;
+    summaryFile: VerifiedMtaWikiReleaseFile;
+    reviewFile: VerifiedMtaWikiReleaseFile;
+    summary: OperationalOccurrenceSummaryV2;
+    snapshot: OperationalOccurrenceReviewSnapshotV1Rc22Inspection;
+    rows: readonly OperationalOccurrenceRowV2[];
+    producerReviewCompatibility:
+      | "compatible"
+      | "known_rc22_review_v1_physical_scope_incompatibility";
+    relationshipIntegrity: unknown;
+  }) {
+    const projectionRejections = input.rows
+      .filter((row) => !row.study_projection_eligible)
+      .map((row) => ({
+        occurrenceId: row.occurrence_id,
+        reasonCodes: uniqueSorted(row.exclusion_reasons),
+      }));
+    const producerReviewStatus =
+      input.producerReviewCompatibility === "compatible"
+        ? ({ compatibility: "compatible", promotionEligible: true } as const)
+        : ({
+            compatibility: "known_rc22_review_v1_physical_scope_incompatibility",
+            promotionEligible: false,
+          } as const);
+    const value: unknown = {
+      artifactKind: "bp.studio.mta_wiki_operational_occurrences.v4",
+      schemaVersion: 4,
+      sourceRelease: {
+        manifestVersion: 4,
+        releaseId: input.manifest.release_id,
+        generatorCommit: input.manifest.generator_commit,
+        manifestPath: `data/exports/releases/${input.manifest.release_id}/manifest.json`,
+        manifestSha256: input.manifestSha256,
+        operationalOccurrenceContractVersion: 2,
+        operationalOccurrenceReviewDecisionContractVersion: 1,
+        relationshipIntegrityBundleContractVersion: 1,
+        producerReviewStatus,
+        occurrences: importedFile(input.occurrenceFile, input.manifest.release_id),
+        summary: importedFile(input.summaryFile, input.manifest.release_id),
+        reviewDecisions: importedFile(input.reviewFile, input.manifest.release_id),
+        reviewDecisionCount: input.snapshot.decision_count,
+        relationshipIntegrity: input.relationshipIntegrity,
+      },
+      producerSummary: input.summary,
+      summary: {
+        sourceOccurrenceCount: input.rows.length,
+        eligibleOccurrenceCount: input.rows.filter((row) => row.study_projection_eligible).length,
+        routeProjectionCount: input.summary.candidate_projection_count,
+        rejectedOccurrenceCount: projectionRejections.length,
+        countsByRejectionReason: countBy(
+          projectionRejections.flatMap((entry) => entry.reasonCodes),
+        ),
+        singlePhaseOccurrenceCount: input.rows.filter(
+          (row) => row.phase_relation_disposition === "single_phase",
+        ).length,
+        relatedPhaseOccurrenceCount: input.rows.filter(
+          (row) => row.phase_relation_disposition === "related_phases",
+        ).length,
+        exactPhysicalScopeOccurrenceCount: input.rows.filter(
+          (row) => row.physical_scope_record_ids.length > 0,
+        ).length,
+      },
+      occurrences: input.rows,
+      projectionRejections,
+    };
+    return yield* decodeStrict({
+      schema: MtaWikiOperationalOccurrenceImportArtifactV4Schema,
+      value,
+      operation: "buildOperationalOccurrenceImportArtifactV4",
       path: input.occurrenceFile.path,
     });
   },
@@ -858,12 +2562,33 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
       operation: "decodeManifest",
       path: manifestPath,
     });
-    const manifest = yield* decodeStrict({
-      schema: ReleaseManifestV3Schema,
-      value: manifestValue,
-      operation: "decodeManifest",
-      path: manifestPath,
-    });
+    const manifestVersion =
+      typeof manifestValue === "object" && manifestValue !== null && !Array.isArray(manifestValue)
+        ? (manifestValue as Record<string, unknown>)["manifest_version"]
+        : undefined;
+    let manifest: ReleaseManifest;
+    if (manifestVersion === MANIFEST_VERSION_V3) {
+      manifest = yield* decodeStrict({
+        schema: ReleaseManifestV3Schema,
+        value: manifestValue,
+        operation: "decodeManifestV3",
+        path: manifestPath,
+      });
+    } else if (manifestVersion === MANIFEST_VERSION_V4) {
+      manifest = yield* decodeStrict({
+        schema: ReleaseManifestV4Schema,
+        value: manifestValue,
+        operation: "decodeManifestV4",
+        path: manifestPath,
+      });
+    } else {
+      return yield* importError({
+        code: "schema_mismatch",
+        operation: "decodeManifest",
+        path: manifestPath,
+        detail: `unsupported manifest_version ${String(manifestVersion)}; expected 3 or 4`,
+      });
+    }
     if (manifest.release_id !== input.wikiRelease) {
       return yield* importError({
         code: "release_mismatch",
@@ -922,6 +2647,14 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         pointer: manifest.pointers.operational_occurrence_review_decisions,
         operation: "verifyOperationalOccurrenceReviewDecisions",
       },
+      ...(manifest.manifest_version === MANIFEST_VERSION_V4
+        ? [
+            {
+              pointer: manifest.pointers.relationship_integrity_bundle,
+              operation: "verifyRelationshipIntegrityBundle",
+            },
+          ]
+        : []),
     ] as const;
     const pointers = addressed.map(({ pointer }) => pointer);
     if (new Set(pointers).size !== pointers.length) {
@@ -929,7 +2662,7 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         code: "invalid_input",
         operation: "verifyManifest",
         path: manifestPath,
-        detail: "all six anchor and occurrence dual-publish pointers must be different files",
+        detail: `all ${pointers.length} addressed release pointers must be different files`,
       });
     }
 
@@ -973,29 +2706,89 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
       });
     }
 
-    const rows = yield* decodeOccurrenceRows(occurrenceFile);
-    const summary = yield* decodeJsonFile(
-      summaryFile,
-      OperationalOccurrenceSummarySchema,
-      "decodeOperationalOccurrenceSummary",
-    );
-    const snapshot = yield* decodeJsonFile(
-      reviewFile,
-      OperationalOccurrenceReviewSnapshotSchema,
-      "decodeOperationalOccurrenceReviewSnapshot",
-    );
-    yield* validateSummary(rows, summary, summaryFile.path);
-    yield* validateReviewSnapshot({ rows, snapshot, path: reviewFile.path });
-    const artifact = yield* buildImportArtifact({
-      manifest,
-      manifestSha256: actualManifestSha256,
-      occurrenceFile,
-      summaryFile,
-      reviewFile,
-      summary,
-      snapshot,
-      rows,
-    });
+    const canonicalAddressedTargets = verifiedFiles.map((file) => file.path);
+    if (new Set(canonicalAddressedTargets).size !== canonicalAddressedTargets.length) {
+      return yield* importError({
+        code: "unsafe_path",
+        operation: "verifyManifest",
+        path: manifestPath,
+        detail: "multiple addressed release pointers resolve to the same canonical file",
+      });
+    }
+
+    let artifact: MtaWikiOperationalOccurrenceImportArtifact;
+    if (manifest.manifest_version === MANIFEST_VERSION_V3) {
+      const rows = yield* decodeOccurrenceRows(occurrenceFile);
+      const summary = yield* decodeJsonFile(
+        summaryFile,
+        OperationalOccurrenceSummarySchema,
+        "decodeOperationalOccurrenceSummary",
+      );
+      const snapshot = yield* decodeJsonFile(
+        reviewFile,
+        OperationalOccurrenceReviewSnapshotSchema,
+        "decodeOperationalOccurrenceReviewSnapshot",
+      );
+      yield* validateSummary(rows, summary, summaryFile.path);
+      yield* validateReviewSnapshot({ rows, snapshot, path: reviewFile.path });
+      artifact = yield* buildImportArtifactV3({
+        manifest,
+        manifestSha256: actualManifestSha256,
+        occurrenceFile,
+        summaryFile,
+        reviewFile,
+        summary,
+        snapshot,
+        rows,
+      });
+    } else {
+      const bundleFile = verifiedFiles[6];
+      if (bundleFile === undefined) {
+        return yield* importError({
+          code: "missing_manifest_file",
+          operation: "verifyManifest",
+          path: manifestPath,
+          detail: "manifest-v4 relationship bundle verification is incomplete",
+        });
+      }
+      const rows = yield* decodeOccurrenceRowsV2(occurrenceFile);
+      const summary = yield* decodeJsonFile(
+        summaryFile,
+        OperationalOccurrenceSummaryV2Schema,
+        "decodeOperationalOccurrenceSummaryV2",
+      );
+      const snapshot = yield* decodeJsonFile(
+        reviewFile,
+        OperationalOccurrenceReviewSnapshotV1Rc22InspectionSchema,
+        "decodeOperationalOccurrenceReviewSnapshotV1ForV2Inspection",
+      );
+      yield* validateSummaryV2(rows, summary, summaryFile.path);
+      yield* validateReviewSnapshot({ rows, snapshot, path: reviewFile.path });
+      const producerReviewCompatibility = yield* reviewCompatibilityStatus({
+        manifestSha256: actualManifestSha256,
+        reviewFile,
+        snapshot,
+      });
+      const relationshipIntegrity = yield* verifyRelationshipIntegrity({
+        manifest,
+        releaseId: manifest.release_id,
+        manifestPath,
+        resolved,
+        bundleFile,
+      });
+      artifact = yield* buildImportArtifactV4({
+        manifest,
+        manifestSha256: actualManifestSha256,
+        occurrenceFile,
+        summaryFile,
+        reviewFile,
+        summary,
+        snapshot,
+        rows,
+        producerReviewCompatibility,
+        relationshipIntegrity,
+      });
+    }
 
     const files = yield* PipelineFileSystemService;
     yield* files

@@ -2,8 +2,10 @@ import { MtaWikiOperationalOccurrenceImportArtifactSchema } from "@bp/domain/doc
 import {
   StudyEventApprovalArtifactSchema,
   StudyEventApprovalArtifactV2Schema,
+  StudyEventApprovalArtifactV3Schema,
   type StudyEventMergeArtifact,
   type StudyEventMergeArtifactV2,
+  type StudyEventMergeArtifactV3,
 } from "@bp/domain/studio/study";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { loadStudyEventRegistryRows } from "@bp/pipeline-v2/local-db-aggregates";
@@ -16,7 +18,9 @@ import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import {
   buildStudyEventMergeArtifact,
   buildStudyEventMergeArtifactV2,
+  buildStudyEventMergeArtifactV3,
   pinnedOccurrenceStudyInput,
+  pinnedOccurrenceStudyInputV4,
 } from "../../lib/study-engine/study-events.ts";
 
 const DEFAULT_OUTPUT_PATH = fromRepoRoot("data/artifacts/studio/v2/studies/study-events.json");
@@ -29,9 +33,11 @@ export type RunStudyEventMergeInput = {
   readonly outputPath?: string | undefined;
 };
 
-export async function runStudyEventMerge(
-  input: RunStudyEventMergeInput,
-): Promise<(StudyEventMergeArtifact | StudyEventMergeArtifactV2) & { outputPath: string }> {
+export async function runStudyEventMerge(input: RunStudyEventMergeInput): Promise<
+  (StudyEventMergeArtifact | StudyEventMergeArtifactV2 | StudyEventMergeArtifactV3) & {
+    outputPath: string;
+  }
+> {
   if (input.withoutWikiAnchors && input.wikiImportPath !== undefined) {
     throw new Error("Cannot provide --wiki-import together with --without-wiki-anchors");
   }
@@ -54,42 +60,56 @@ export async function runStudyEventMerge(
         );
   const registryEvents = loadStudyEventRegistryRows({ sqlite: input.local.sqlite });
   const artifact =
-    wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v3"
-      ? buildStudyEventMergeArtifactV2({
+    wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v4"
+      ? buildStudyEventMergeArtifactV3({
           registryEvents,
-          wiki: pinnedOccurrenceStudyInput(wikiImport),
-          withoutWikiAnchors: false,
+          wiki: pinnedOccurrenceStudyInputV4(wikiImport),
           availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
           approval:
             input.approvalPath === undefined
               ? undefined
               : await readJsonArtifact(
                   input.approvalPath,
-                  StudyEventApprovalArtifactV2Schema,
+                  StudyEventApprovalArtifactV3Schema,
                   "strict",
                 ),
         })
-      : buildStudyEventMergeArtifact({
-          registryEvents,
-          wiki:
-            wikiImport === null
-              ? null
-              : {
-                  releaseId: wikiImport.sourceRelease.releaseId,
-                  manifestSha256: wikiImport.sourceRelease.manifestSha256,
-                  artifactSha256: wikiImport.sourceRelease.anchors.sha256,
-                  assertions: wikiImport.assertions,
-                },
-          withoutWikiAnchors: input.withoutWikiAnchors,
-          approval:
-            input.approvalPath === undefined
-              ? undefined
-              : await readJsonArtifact(
-                  input.approvalPath,
-                  StudyEventApprovalArtifactSchema,
-                  "strict",
-                ),
-        });
+      : wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v3"
+        ? buildStudyEventMergeArtifactV2({
+            registryEvents,
+            wiki: pinnedOccurrenceStudyInput(wikiImport),
+            withoutWikiAnchors: false,
+            availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
+            approval:
+              input.approvalPath === undefined
+                ? undefined
+                : await readJsonArtifact(
+                    input.approvalPath,
+                    StudyEventApprovalArtifactV2Schema,
+                    "strict",
+                  ),
+          })
+        : buildStudyEventMergeArtifact({
+            registryEvents,
+            wiki:
+              wikiImport === null
+                ? null
+                : {
+                    releaseId: wikiImport.sourceRelease.releaseId,
+                    manifestSha256: wikiImport.sourceRelease.manifestSha256,
+                    artifactSha256: wikiImport.sourceRelease.anchors.sha256,
+                    assertions: wikiImport.assertions,
+                  },
+            withoutWikiAnchors: input.withoutWikiAnchors,
+            approval:
+              input.approvalPath === undefined
+                ? undefined
+                : await readJsonArtifact(
+                    input.approvalPath,
+                    StudyEventApprovalArtifactSchema,
+                    "strict",
+                  ),
+          });
   const outputPath = input.outputPath ?? DEFAULT_OUTPUT_PATH;
   await writeJson(outputPath, artifact);
   return { ...artifact, outputPath };
@@ -139,7 +159,11 @@ export default defineCommand({
   output: Schema.Struct({
     outputPath: Schema.String,
     candidateSetId: Schema.String,
-    approvalState: Schema.Literals(["awaiting_approval", "approved"]),
+    approvalState: Schema.Literals([
+      "awaiting_approval",
+      "approved",
+      "blocked_contract_incompatible",
+    ]),
     candidateCount: Schema.Number,
     approvedCount: Schema.Number,
     sourceRejectionCount: Schema.Number,
