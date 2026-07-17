@@ -1,0 +1,1927 @@
+{
+  "artifactKind": "bp.studio.codex_review_batch.v1",
+  "candidateSetId": "candidate-set-v2:1810cf792be7e2346b335fb5",
+  "candidateSetSha256": "8bf554a8a9c0f6d90d81b910094710e46d3bc779d5373b982f412b1b04348dbb",
+  "batchId": "ace",
+  "reviewer": "Codex agent, delegated rc19 ACE review",
+  "authorization": "non_authorizing_recommendation_only",
+  "decisionCount": 91,
+  "countsByRecommendation": {
+    "recommend_approve": 5,
+    "recommend_reject": 86,
+    "needs_followup": 0
+  },
+  "decisions": [
+    {
+      "candidateId": "study-event-v2:0039b7c086043a2fda964003",
+      "identity": "BX3|automated_bus_lane_enforcement|2025-09-15|day",
+      "routeId": "BX3",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact BX3 ACE operational onset on 2025-09-15. Hard gates fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.7692); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:03813ff8679515098ca9e796",
+      "identity": "BX15|automated_bus_lane_enforcement|2025-11-10|day",
+      "routeId": "BX15",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-11-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX15 ACE operational onset on 2025-11-10. Hard gate fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8000).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_4_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:05c9218302abad6e96d87532",
+      "identity": "BX6+|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "BX6+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX6+ ACE operational onset on 2024-09-30. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4000).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:0735371d0122a08352422a18",
+      "identity": "BX5|automated_bus_lane_enforcement|2025-05-27|day",
+      "routeId": "BX5",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-05-27",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX5 ACE operational onset on 2025-05-27. Hard gates fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.7692); the row is an unresolved cross-source duplicate of the same route/date/phase; a same-route bus_lane candidate on 2025-11-12 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection_and_same_route_bus_lane_2025_11_12_inside_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:0abd7df14c61c6ad82ace8e4",
+      "identity": "M23+|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "M23+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but M23+ already began ABLE on 2020-08-10; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family.",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2020_08_10",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2020_08_10",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:0cb56544dd18c98b445228b4",
+      "identity": "BX3|automated_bus_lane_enforcement|2025-09-15|day",
+      "routeId": "BX3",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX3 ACE operational onset on 2025-09-15. Hard gates fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.7692); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:0cbbed3260f58eceb20275c7",
+      "identity": "BX28|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "BX28",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "recommendation": "recommend_approve",
+      "rationale": "The official MTA route registry row binds exact BX28 ACE operational onset on 2024-09-16. The pinned series_ready_with_gaps spine and 6 pre/6 post calendar months pass admission, with no same-route candidate onset inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready_with_gaps",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "approved",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:14957487712554bf2e693177",
+      "identity": "M101|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "M101",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M101 ACE operational onset on 2024-09-16. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6333).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:1606deb768d3ee2b715b482f",
+      "identity": "S79+|automated_bus_lane_enforcement|2022-10-31|day",
+      "routeId": "S79+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2022-10-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact S79+ ABLE operational onset on 2022-10-31. Hard gates fail: only 0 pre and 1 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.3846).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_0_pre_1_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:16c305bcaf114b0542cd9e2a",
+      "identity": "Q58|automated_bus_lane_enforcement|2023-07-14|day",
+      "routeId": "Q58",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2023-07-14",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact Q58 ABLE operational onset on 2023-07-14. Hard gates fail: only 3 pre and 6 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4706).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_3_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "pass_queens_redesign_2025_06_29_outside_window"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:19d2e9b5aab3653f740dc0ad",
+      "identity": "BX7|automated_bus_lane_enforcement|2025-09-15|day",
+      "routeId": "BX7",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX7 ACE operational onset on 2025-09-15. Hard gates fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8750); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:1b82930cb17bb96c9a2a3381",
+      "identity": "B25|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "B25",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-09-30, but B25 already began ABLE on 2022-12-12; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6316).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2022_12_12",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2022_12_12",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:1c8d2b98b241af9a76a11735",
+      "identity": "M4|automated_bus_lane_enforcement|2025-05-19|day",
+      "routeId": "M4",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-05-19",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact M4 ACE operational onset on 2025-05-19. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4167); the row is an unresolved cross-source duplicate of the same route/date/phase; a same-route bus_lane candidate on 2024-11-27 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection_and_same_route_bus_lane_2024_11_27_inside_window",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:1df985a7921c77b266282164",
+      "identity": "BX20|automated_bus_lane_enforcement|2025-09-15|day",
+      "routeId": "BX20",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX20 ACE operational onset on 2025-09-15. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6667); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:22e2e4cd0c7d4bbef4a63711",
+      "identity": "BX41+|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "BX41+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but BX41+ already began ABLE on 2022-11-18; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6667).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2022_11_18",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2022_11_18",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:2362196d21a20c407b45332f",
+      "identity": "B42|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "B42",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-09-16, but B42 already began ABLE on 2022-12-12; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family.",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2022_12_12",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2022_12_12",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:26fbe7ee18767c4b42fa9a74",
+      "identity": "BX12+|automated_bus_lane_enforcement|2022-11-18|day",
+      "routeId": "BX12+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2022-11-18",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX12+ ABLE operational onset on 2022-11-18. Hard gates fail: only 0 pre and 2 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8333).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "fail_0_pre_2_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:299778b2655b5059dfe5ffdb",
+      "identity": "Q44+|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "Q44+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but Q44+ already began ABLE on 2022-10-03; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.3333).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2022_10_03",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2022_10_03",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:29a2c760ce6e012d69575aff",
+      "identity": "M15+|automated_bus_lane_enforcement|2019-10-07|day",
+      "routeId": "M15+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2019-10-07",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M15+ ABLE operational onset on 2019-10-07. Hard gates fail: only 0 pre and 0 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4706).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:2c40d9b9b1e25429818756c7",
+      "identity": "B12|automated_bus_lane_enforcement|2026-03-16|day",
+      "routeId": "B12",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2026-03-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B12 ACE operational onset on 2026-03-16. Hard gates fail: only 6 pre and 0 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.5556).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_6_pre_0_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:2cfe1d3a2798cc23b0ce3f8c",
+      "identity": "B63|automated_bus_lane_enforcement|2025-11-10|day",
+      "routeId": "B63",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-11-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B63 ACE operational onset on 2025-11-10. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6667); a same-route bus_lane candidate on 2025-10-02 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_4_post_calendar_months",
+        "conflict": "fail_same_route_bus_lane_2025_10_02_inside_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:32af8f389db18c972b341f0d",
+      "identity": "BX36|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "BX36",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but BX36 already began ABLE on 2023-06-12; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.7273); the row is an unresolved cross-source duplicate of the same route/date/phase; a same-route bus_lane candidate on 2023-12-01 lies inside the window.",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2023_06_12",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection_and_later_phase_after_prior_able_2023_06_12_and_same_route_bus_lane_2023_12_01_inside_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:33a554b864d6cd104cb54470",
+      "identity": "BX19|automated_bus_lane_enforcement|2022-11-28|day",
+      "routeId": "BX19",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2022-11-28",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX19 ABLE operational onset on 2022-11-28. Hard gate fail: only 0 pre and 2 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready_with_gaps",
+        "outcome": "fail_0_pre_2_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:346da22227c696087ffd1cd4",
+      "identity": "M4|automated_bus_lane_enforcement|2025-05-19|day",
+      "routeId": "M4",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-05-19",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M4 ACE operational onset on 2025-05-19. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4167); the row is an unresolved cross-source duplicate of the same route/date/phase; a same-route bus_lane candidate on 2024-11-27 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection_and_same_route_bus_lane_2024_11_27_inside_window",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:38d2ed837c7fb305e1cc03e0",
+      "identity": "BX35|automated_bus_lane_enforcement|2023-05-01|day",
+      "routeId": "BX35",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2023-05-01",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX35 ABLE operational onset on 2023-05-01. Hard gate fail: only 1 pre and 6 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "fail_1_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:3ba350b819677638f26792ad",
+      "identity": "Q54|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "Q54",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but Q54 already began ABLE on 2023-11-08; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6000).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2023_11_08",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2023_11_08",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:3ea076999c631277fd625e27",
+      "identity": "B15|automated_bus_lane_enforcement|2026-04-13|day",
+      "routeId": "B15",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2026-04-13",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B15 ACE operational onset on 2026-04-13. Hard gates fail: only 6 pre and 0 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6667). The onset is after the analysis cutoff.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_6_pre_0_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:45b1a3e59f241408afefc42d",
+      "identity": "B68|automated_bus_lane_enforcement|2025-12-08|day",
+      "routeId": "B68",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-12-08",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact B68 ACE operational onset on 2025-12-08. Hard gates fail: only 6 pre and 3 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "pass_series_ready",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:46d2197497225194af668e40",
+      "identity": "M15+|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "M15+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but M15+ already began ABLE on 2019-10-07; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4706).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2019_10_07",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2019_10_07",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:4c9efea0d35e2912037d99c2",
+      "identity": "M79+|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "M79+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "recommendation": "recommend_approve",
+      "rationale": "The official MTA route registry row binds exact M79+ ACE operational onset on 2024-09-30. The pinned series_ready spine and 6 pre/6 post calendar months pass admission, with no same-route candidate onset inside the window. Congestion pricing remains a required Plan 074 flag and sensitivity, not an onset ambiguity.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "approved",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:4d0530b77a63ac21ae95229b",
+      "identity": "M96|automated_bus_lane_enforcement|2025-10-13|day",
+      "routeId": "M96",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-10-13",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M96 ACE operational onset on 2025-10-13. Hard gate fail: a same-route bus_lane candidate on 2025-08-04 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_5_post_calendar_months",
+        "conflict": "fail_same_route_bus_lane_2025_08_04_inside_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:4eb80c60a5c6e8607fcd7f97",
+      "identity": "Q54|automated_bus_lane_enforcement|2023-11-08|day",
+      "routeId": "Q54",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2023-11-08",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact Q54 ABLE operational onset on 2023-11-08. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6000).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:502b608e73015825544dfe24",
+      "identity": "Q5|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "Q5",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact Q5 ACE operational onset on 2024-09-30. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.5116).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "pass_queens_redesign_2025_06_29_outside_window"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:5481bee07b19e8e62d92321d",
+      "identity": "Q44+|automated_bus_lane_enforcement|2022-10-03|day",
+      "routeId": "Q44+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2022-10-03",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact Q44+ ABLE operational onset on 2022-10-03. Hard gates fail: only 0 pre and 1 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.3333).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_0_pre_1_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:54903f4b68b30479354df508",
+      "identity": "B44+|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "B44+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but B44+ already began ABLE on 2019-10-30; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6154).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2019_10_30",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2019_10_30",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:552b8cc8a4896c0441078e60",
+      "identity": "M100|automated_bus_lane_enforcement|2025-05-27|day",
+      "routeId": "M100",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-05-27",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M100 ACE operational onset on 2025-05-27. Hard gates fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8333); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:55ab3fe1ef9b6cb04ea6fdc4",
+      "identity": "Q58|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "Q58",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but Q58 already began ABLE on 2023-07-14; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4706).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2023_07_14",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2023_07_14",
+        "confounder": "pass_queens_redesign_2025_06_29_outside_window"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:5ee7f7afe0e581424b5bc915",
+      "identity": "BX20|automated_bus_lane_enforcement|2025-09-15|day",
+      "routeId": "BX20",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact BX20 ACE operational onset on 2025-09-15. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6667); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:5f0d2e20b6fcecbefe91966a",
+      "identity": "B82+|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "B82+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "recommendation": "recommend_approve",
+      "rationale": "The official MTA route registry row binds exact B82+ ACE operational onset on 2024-09-30. The pinned series_ready spine and 6 pre/6 post calendar months pass admission, with no same-route candidate onset inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "approved",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:5fd90c61a5a8eda67acfa667",
+      "identity": "M100|automated_bus_lane_enforcement|2025-05-27|day",
+      "routeId": "M100",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-05-27",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact M100 ACE operational onset on 2025-05-27. Hard gates fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8333); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:666e8d02a3feb4cb1c239e70",
+      "identity": "Q69|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "Q69",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact Q69 ACE operational onset on 2024-09-30. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4444).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "pass_queens_redesign_2025_08_31_outside_window"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:6afced32d375c2933f5344f9",
+      "identity": "BX38|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "BX38",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "recommendation": "recommend_approve",
+      "rationale": "The official MTA route registry row binds exact BX38 ACE operational onset on 2024-09-16. The pinned series_ready_with_gaps spine and 6 pre/6 post calendar months pass admission, with no same-route candidate onset inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready_with_gaps",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "approved",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:6b62a379bd2b7a8bfe82fa9f",
+      "identity": "BX36|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "BX36",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence confirms 2024-06-20, but BX36 already began ABLE on 2023-06-12; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.7273); the row is an unresolved cross-source duplicate of the same route/date/phase; a same-route bus_lane candidate on 2023-12-01 lies inside the window.",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2023_06_12",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection_and_later_phase_after_prior_able_2023_06_12_and_same_route_bus_lane_2023_12_01_inside_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:6ce8c212cdf17496440feda4",
+      "identity": "M60+|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "M60+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M60+ ACE operational onset on 2024-09-30. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.5000).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:6d873627c6906b32e69c3e75",
+      "identity": "B11|automated_bus_lane_enforcement|2025-11-10|day",
+      "routeId": "B11",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-11-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B11 ACE operational onset on 2025-11-10. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6471).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_4_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:7389e5d0e3f7e0d819f6babd",
+      "identity": "B62|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "B62",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but B62 already began ABLE on 2022-12-12; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.5000).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2022_12_12",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2022_12_12",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:74d01efd8af9e0f2c0690525",
+      "identity": "Q17|automated_bus_lane_enforcement|2026-02-16|day",
+      "routeId": "Q17",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2026-02-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact Q17 ACE operational onset on 2026-02-16. Hard gates fail: only 6 pre and 1 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.3500); a same-route bus_lane candidate on 2025-09-15 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_6_pre_1_post_calendar_months",
+        "conflict": "fail_same_route_bus_lane_2025_09_15_inside_window",
+        "confounder": "pass_queens_redesign_2025_06_29_outside_window"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:754e5c72aaec62607149061c",
+      "identity": "M57|automated_bus_lane_enforcement|2025-12-08|day",
+      "routeId": "M57",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-12-08",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact M57 ACE operational onset on 2025-12-08. Hard gates fail: only 6 pre and 3 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6667); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:7678db4869508e698ffadf19",
+      "identity": "B68|automated_bus_lane_enforcement|2025-12-08|day",
+      "routeId": "B68",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-12-08",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B68 ACE operational onset on 2025-12-08. Hard gates fail: only 6 pre and 3 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:7b8916b645568af3b23ebe21",
+      "identity": "M116|automated_bus_lane_enforcement|2025-10-13|day",
+      "routeId": "M116",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-10-13",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M116 ACE operational onset on 2025-10-13. Hard gates fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8571); a same-route bus_lane candidate on 2025-08-04 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_5_post_calendar_months",
+        "conflict": "fail_same_route_bus_lane_2025_08_04_inside_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:7e3d1007aa964ea7b423d080",
+      "identity": "BX7|automated_bus_lane_enforcement|2025-09-15|day",
+      "routeId": "BX7",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact BX7 ACE operational onset on 2025-09-15. Hard gates fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8750); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:7f5e9237dedc194ea8ed04d2",
+      "identity": "B46+|automated_bus_lane_enforcement|2020-02-19|day",
+      "routeId": "B46+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2020-02-19",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B46+ ABLE operational onset on 2020-02-19. Hard gate fail: only 0 pre and 0 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready_with_gaps",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:8000f5a5d237dddafa99574b",
+      "identity": "M2|automated_bus_lane_enforcement|2025-05-19|day",
+      "routeId": "M2",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-05-19",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact M2 ACE operational onset on 2025-05-19. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.5000); the row is an unresolved cross-source duplicate of the same route/date/phase; a same-route bus_lane candidate on 2024-11-27 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection_and_same_route_bus_lane_2024_11_27_inside_window",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:86061c130984a2a48d5f7047",
+      "identity": "M86+|automated_bus_lane_enforcement|2020-08-10|day",
+      "routeId": "M86+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2020-08-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M86+ ABLE operational onset on 2020-08-10. Hard gate fail: only 0 pre and 0 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:87a3f49f5479e6c5bb0c98a6",
+      "identity": "BX36|automated_bus_lane_enforcement|2023-06-12|day",
+      "routeId": "BX36",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2023-06-12",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX36 ABLE operational onset on 2023-06-12. Hard gates fail: only 2 pre and 6 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.7273); a same-route bus_lane candidate on 2023-12-01 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_2_pre_6_post_calendar_months",
+        "conflict": "fail_same_route_bus_lane_2023_12_01_inside_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:87d04c206eed929e08f17c60",
+      "identity": "BX2|automated_bus_lane_enforcement|2025-10-13|day",
+      "routeId": "BX2",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-10-13",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX2 ACE operational onset on 2025-10-13. Hard gate fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8571).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_5_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:87d3f99372e1eb40a6cc66ee",
+      "identity": "BX19|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "BX19",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but BX19 already began ABLE on 2022-11-28; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family.",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2022_11_28",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready_with_gaps",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2022_11_28",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:89b8d0bfbd6049a9028be565",
+      "identity": "B26|automated_bus_lane_enforcement|2023-09-25|day",
+      "routeId": "B26",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2023-09-25",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B26 ABLE operational onset on 2023-09-25. Hard gate fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.7500).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_5_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:92110e594b14695aa175e16d",
+      "identity": "M57|automated_bus_lane_enforcement|2025-12-08|day",
+      "routeId": "M57",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-12-08",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M57 ACE operational onset on 2025-12-08. Hard gates fail: only 6 pre and 3 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6667); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:926b58154d6383a00bc6f987",
+      "identity": "B46+|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "B46+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but B46+ already began ABLE on 2020-02-19; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family.",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2020_02_19",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready_with_gaps",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2020_02_19",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:939de261fd0ad681c0d74e53",
+      "identity": "B41|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "B41",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B41 ACE operational onset on 2024-09-16. Hard gate fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.7778).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:95ebfdb07b4a1d005ec09cae",
+      "identity": "BX35|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "BX35",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-09-16, but BX35 already began ABLE on 2023-05-01; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family.",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2023_05_01",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2023_05_01",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:97b07a93edb60db66f6d1eb7",
+      "identity": "Q53+|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "Q53+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact Q53+ ACE operational onset on 2024-09-30. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4615).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:97e75d06b50723f86aeaecde",
+      "identity": "B62|automated_bus_lane_enforcement|2022-12-12|day",
+      "routeId": "B62",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2022-12-12",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B62 ABLE operational onset on 2022-12-12. Hard gates fail: only 0 pre and 3 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.5000).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_0_pre_3_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:9ffaf570e961caee0f910a6a",
+      "identity": "Q43|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "Q43",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-09-16, but Q43 already began ABLE on 2022-11-28; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.2963).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2022_11_28",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2022_11_28",
+        "confounder": "pass_queens_redesign_2025_06_29_outside_window"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:aa1598899d0362c9cb76c611",
+      "identity": "Q43|automated_bus_lane_enforcement|2022-11-28|day",
+      "routeId": "Q43",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2022-11-28",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact Q43 ABLE operational onset on 2022-11-28. Hard gates fail: only 0 pre and 2 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.2963).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_0_pre_2_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "pass_queens_redesign_2025_06_29_outside_window"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:bc86cbd7aa99948b5e2f4e5e",
+      "identity": "B44+|automated_bus_lane_enforcement|2019-10-30|day",
+      "routeId": "B44+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2019-10-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B44+ ABLE operational onset on 2019-10-30. Hard gates fail: only 0 pre and 0 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6154).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:bcf0af4d68df25137507c7d3",
+      "identity": "S46|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "S46",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact S46 ACE operational onset on 2024-09-16. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.7000).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:bdfe11b3288e8dde73c1247d",
+      "identity": "M2|automated_bus_lane_enforcement|2025-05-19|day",
+      "routeId": "M2",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-05-19",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M2 ACE operational onset on 2025-05-19. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.5000); the row is an unresolved cross-source duplicate of the same route/date/phase; a same-route bus_lane candidate on 2024-11-27 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection_and_same_route_bus_lane_2024_11_27_inside_window",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:bfa36744797550ea4f651fdc",
+      "identity": "M31|automated_bus_lane_enforcement|2026-04-13|day",
+      "routeId": "M31",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2026-04-13",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M31 ACE operational onset on 2026-04-13. Hard gates fail: only 6 pre and 0 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6250). The onset is after the analysis cutoff.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_6_pre_0_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:bff2030b147ab90027f3e748",
+      "identity": "BX9|automated_bus_lane_enforcement|2025-11-10|day",
+      "routeId": "BX9",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-11-10",
+      "recommendation": "recommend_approve",
+      "rationale": "The official MTA route registry row binds exact BX9 ACE operational onset on 2025-11-10. The pinned series_ready_with_gaps spine and 6 pre/4 post calendar months pass admission, with no same-route candidate onset inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready_with_gaps",
+        "outcome": "pass_6_pre_4_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "approved",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c1d8b7226bb5b83bb406d27c",
+      "identity": "M86+|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "M86+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-09-30, but M86+ already began ABLE on 2020-08-10; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family.",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2020_08_10",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2020_08_10",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c26a62f8b03b5035873d7165",
+      "identity": "M42|automated_bus_lane_enforcement|2025-05-27|day",
+      "routeId": "M42",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-05-27",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact M42 ACE operational onset on 2025-05-27. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4211); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c443449bc29edf16333b8279",
+      "identity": "BX5|automated_bus_lane_enforcement|2025-05-27|day",
+      "routeId": "BX5",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-05-27",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact BX5 ACE operational onset on 2025-05-27. Hard gates fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.7692); the row is an unresolved cross-source duplicate of the same route/date/phase; a same-route bus_lane candidate on 2025-11-12 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection_and_same_route_bus_lane_2025_11_12_inside_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ccc4df593c45b475565bcbcd",
+      "identity": "B25|automated_bus_lane_enforcement|2022-12-12|day",
+      "routeId": "B25",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2022-12-12",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B25 ABLE operational onset on 2022-12-12. Hard gates fail: only 0 pre and 3 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6316).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_0_pre_3_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:cccbc1696194ad156f466bf2",
+      "identity": "B42|automated_bus_lane_enforcement|2022-12-12|day",
+      "routeId": "B42",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2022-12-12",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B42 ABLE operational onset on 2022-12-12. Hard gate fail: only 0 pre and 3 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "fail_0_pre_3_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d0b1adf6caa6b9b0a2f1e86f",
+      "identity": "B60|automated_bus_lane_enforcement|2025-12-08|day",
+      "routeId": "B60",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-12-08",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B60 ACE operational onset on 2025-12-08. Hard gates fail: only 6 pre and 3 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready_with_gaps",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d2694f50ff4363dabf61b13d",
+      "identity": "M34+|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "M34+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but M34+ already began ABLE on 2020-08-10; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.5714).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2020_08_10",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2020_08_10",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d50fe456bfb32a3a161711bd",
+      "identity": "BX41+|automated_bus_lane_enforcement|2022-11-18|day",
+      "routeId": "BX41+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2022-11-18",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX41+ ABLE operational onset on 2022-11-18. Hard gates fail: only 0 pre and 2 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.6667).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_0_pre_2_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d69eaf38e225dfebcf57663f",
+      "identity": "M42|automated_bus_lane_enforcement|2025-05-27|day",
+      "routeId": "M42",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-05-27",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M42 ACE operational onset on 2025-05-27. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4211); the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "pass_with_congestion_pricing_flag_and_sensitivity_required"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d75ce301dd2c427f5bf61c1e",
+      "identity": "B60|automated_bus_lane_enforcement|2025-12-08|day",
+      "routeId": "B60",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-12-08",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact B60 ACE operational onset on 2025-12-08. Hard gates fail: only 6 pre and 3 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the row is an unresolved cross-source duplicate of the same route/date/phase.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "pass_series_ready_with_gaps",
+        "outcome": "fail_6_pre_3_post_calendar_months",
+        "conflict": "fail_cross_source_same_day_duplicate_projection",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d88eaac9053ed64c936985f2",
+      "identity": "M23+|automated_bus_lane_enforcement|2020-08-10|day",
+      "routeId": "M23+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2020-08-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M23+ ABLE operational onset on 2020-08-10. Hard gate fail: only 0 pre and 0 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "pass_series_ready",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e393c4ee9b0acfa7ec170881",
+      "identity": "M34+|automated_bus_lane_enforcement|2020-08-10|day",
+      "routeId": "M34+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2020-08-10",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact M34+ ABLE operational onset on 2020-08-10. Hard gates fail: only 0 pre and 0 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.5714).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_0_pre_0_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e4237d9085f254f3ba70d62f",
+      "identity": "Q27|automated_bus_lane_enforcement|2026-02-16|day",
+      "routeId": "Q27",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2026-02-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact Q27 ACE operational onset on 2026-02-16. Hard gates fail: only 6 pre and 1 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.3400); a same-route bus_lane candidate on 2025-09-15 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "fail_6_pre_1_post_calendar_months",
+        "conflict": "fail_same_route_bus_lane_2025_09_15_inside_window",
+        "confounder": "pass_queens_redesign_2025_06_29_outside_window"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e8a9b4e9b7f9642bdfd34606",
+      "identity": "Q6|automated_bus_lane_enforcement|2025-09-15|day",
+      "routeId": "Q6",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-09-15",
+      "recommendation": "recommend_reject",
+      "rationale": "The hash-matched rc19 reviewed occurrence binds exact Q6 ACE operational onset on 2025-09-15. Hard gates fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.4706); a same-route route_redesign candidate on 2025-08-31 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_rc19_reviewed_occurrence",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_same_route_route_redesign_2025_08_31_inside_window",
+        "confounder": "fail_same_route_queens_redesign_2025_08_31_inside_window"
+      },
+      "historicalContext": {
+        "decision": null,
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ec9c23934535d434a2feafd6",
+      "identity": "Q60|automated_bus_lane_enforcement|2026-03-16|day",
+      "routeId": "Q60",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2026-03-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact Q60 ACE operational onset on 2026-03-16. Hard gates fail: only 6 pre and 0 post calendar months fall within 2023-04 through 2026-03, below the four-per-side minimum; the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.7778); a same-route bus_lane candidate on 2025-12-13 lies inside the window.",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "fail_6_pre_0_post_calendar_months",
+        "conflict": "fail_same_route_bus_lane_2025_12_13_inside_window",
+        "confounder": "pass_queens_redesign_2025_08_31_outside_window"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ecdeca8e3b5ef28eda73cf17",
+      "identity": "S79+|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "S79+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-09-16, but S79+ already began ABLE on 2022-10-31; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (low_monthly_spine_coverage, partial_months_require_pattern_grouping; minimum coverage 0.3846).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2022_10_31",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_low_monthly_spine_coverage_and_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2022_10_31",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ef37cbb53cd8f0784352387e",
+      "identity": "B35|automated_bus_lane_enforcement|2024-09-16|day",
+      "routeId": "B35",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-16",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact B35 ACE operational onset on 2024-09-16. Hard gate fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8462).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f37ddee84cce5da1e4b08178",
+      "identity": "BX22|automated_bus_lane_enforcement|2025-10-13|day",
+      "routeId": "BX22",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2025-10-13",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row binds exact BX22 ACE operational onset on 2025-10-13. Hard gate fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8696).",
+      "gates": {
+        "evidenceScope": "pass_exact_route_treatment_and_realized_onset",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_5_post_calendar_months",
+        "conflict": "pass_none_within_candidate_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f4a9f2a73c01b6c12d081fcf",
+      "identity": "B26|automated_bus_lane_enforcement|2024-09-30|day",
+      "routeId": "B26",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-09-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-09-30, but B26 already began ABLE on 2023-09-25; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gate fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.7500).",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2023_09_25",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2023_09_25",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    },
+    {
+      "candidateId": "study-event-v2:fe6bd9c3075d9718b962de5e",
+      "identity": "BX12+|automated_bus_lane_enforcement|2024-06-20|day",
+      "routeId": "BX12+",
+      "treatmentFamily": "automated_bus_lane_enforcement",
+      "implementationDate": "2024-06-20",
+      "recommendation": "recommend_reject",
+      "rationale": "The official MTA route registry row confirms 2024-06-20, but BX12+ already began ABLE on 2022-11-18; this is a later ACE expansion/rebrand, not a clean first onset of the collapsed enforcement family. Hard gates fail: the pinned spine is needs_pattern_review (partial_months_require_pattern_grouping; minimum coverage 0.8333); a same-route bus_lane candidate on 2023-12-01 lies inside the window.",
+      "gates": {
+        "evidenceScope": "fail_later_ace_phase_after_prior_able_onset_2022_11_18",
+        "date": "pass_exact_day_official_mta_registry",
+        "spine": "fail_needs_pattern_review_partial_months_require_pattern_grouping",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "fail_later_phase_after_prior_able_2022_11_18_and_same_route_bus_lane_2023_12_01_inside_window",
+        "confounder": "not_applicable"
+      },
+      "historicalContext": {
+        "decision": "rejected",
+        "reusedAsAuthorization": false
+      }
+    }
+  ]
+}

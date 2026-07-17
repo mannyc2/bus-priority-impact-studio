@@ -1,0 +1,692 @@
+<title>075 — History-tab study cards</title>
+<style>
+  /* ── App tokens, verbatim from apps/web/src/global.css ─────────────── */
+  :root {
+    --canvas: #f4f5f7;
+    --paper: #fafbfc;
+    --paper-deep: #eceef1;
+    --card: #ffffff;
+    --ink: #101418;
+    --ink70: rgba(16, 20, 24, 0.72);
+    --ink55: rgba(16, 20, 24, 0.6);
+    --ink40: rgba(16, 20, 24, 0.42);
+    --ink20: rgba(16, 20, 24, 0.2);
+    --ink06: rgba(16, 20, 24, 0.06);
+    --rule: rgba(16, 20, 24, 0.14);
+    --accent: #0039a6;
+    --accent-bg: #e8eef8;
+    --series-b: oklch(0.48 0.15 300);
+    --good: oklch(0.45 0.12 155);
+    --good-bg: oklch(0.95 0.04 155);
+    --warn: oklch(0.48 0.13 70);
+    --warn-bg: oklch(0.96 0.05 80);
+    --bad: oklch(0.52 0.16 28);
+    --bad-bg: oklch(0.95 0.05 28);
+    --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ── Comp chrome (annotation layer — NOT part of the proposed design) ── */
+  .x-topbar {
+    background: var(--ink);
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .x-topbar .mono { font-size: 10.5px; font-weight: 400; color: rgba(255,255,255,0.66); }
+  .x-wrap { max-width: 1040px; margin: 0 auto; padding: 26px 20px 90px; }
+  .x-intro {
+    background: var(--card);
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px var(--rule);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .x-intro h1 { margin: 0; font-size: 19px; letter-spacing: -0.01em; text-wrap: balance; }
+  .x-intro p { margin: 0; max-width: 72ch; font-size: 13px; color: var(--ink70); }
+  .x-changes { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--ink70); display: flex; flex-direction: column; gap: 4px; }
+  .x-changes b { color: var(--ink); font-weight: 600; }
+  .x-truth {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .x-truth > div {
+    background: var(--paper-deep);
+    border-radius: 3px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink70);
+  }
+  .x-truth b { display: block; font-size: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink55); margin-bottom: 3px; }
+  .x-vhead { display: flex; align-items: baseline; gap: 10px; margin: 40px 0 14px; flex-wrap: wrap; }
+  .x-vhead .x-vchip {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #fff;
+    background: var(--accent);
+    border-radius: 2px;
+    padding: 3px 8px;
+  }
+  .x-vhead h2 { margin: 0; font-size: 16px; letter-spacing: -0.005em; }
+  .x-vhead span { font-size: 12.5px; color: var(--ink55); }
+  .x-exhibit { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 18px; align-items: start; }
+  .x-surface {
+    border: 1px dashed rgba(16, 20, 24, 0.28);
+    border-radius: 4px;
+    padding: 18px;
+    background: var(--canvas);
+  }
+  .x-notes { display: flex; flex-direction: column; gap: 12px; font-size: 11.5px; color: var(--ink70); }
+  .x-note { border-left: 2px solid var(--accent-bg); padding-left: 10px; }
+  .x-note b { font-weight: 600; color: var(--ink); }
+  .x-note .x-ref {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: var(--accent-bg);
+    border-radius: 2px;
+    padding: 1px 5px;
+    margin-right: 5px;
+  }
+  .x-tagwrap { position: relative; }
+  .x-tag {
+    position: absolute;
+    top: -8px;
+    right: 10px;
+    z-index: 2;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: var(--accent-bg);
+    border-radius: 2px;
+    padding: 1px 6px;
+  }
+  @media (max-width: 900px) {
+    .x-exhibit { grid-template-columns: minmax(0, 1fr); }
+    .x-truth { grid-template-columns: 1fr; }
+  }
+
+  /* ── App component replicas (SectionCard / Badge / cards) ──────────── */
+  .scard {
+    background: var(--card);
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px var(--rule);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+  }
+  .scard-head { margin-bottom: 14px; }
+  .scard-head h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.005em; line-height: 1.2; }
+  .scard-head .sub { margin-top: 3px; font-size: 11.5px; color: var(--ink55); }
+  .cards { display: flex; flex-direction: column; gap: 14px; }
+  .ccard {
+    background: var(--card);
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px var(--rule);
+    padding: 16px;
+  }
+  .ccard.is-target { box-shadow: 0 0 0 1px var(--rule), 0 0 0 3px var(--accent-bg), 0 0 0 4px var(--accent); }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .b-neutral { background: var(--ink06); color: var(--ink70); }
+  .b-accent { background: var(--accent-bg); color: var(--accent); }
+  .b-good { background: var(--good-bg); color: var(--good); }
+  .b-warn { background: var(--warn-bg); color: var(--warn); }
+
+  /* shadcn chart-card anatomy: header (title+description | stat), chart body, footer */
+  .chead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .chead .t { font-size: 13px; font-weight: 600; line-height: 1.25; }
+  .chead .desc { margin-top: 3px; font-size: 11.5px; line-height: 1.4; color: var(--ink55); }
+  .chead .w { margin-top: 3px; font-family: var(--mono); font-size: 10.5px; color: var(--ink40); }
+  .hstat { text-align: right; flex-shrink: 0; }
+  .hstat .l { font-family: var(--mono); font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink55); }
+  .hstat .v { margin-top: 2px; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; line-height: 1.05; }
+  .hstat .ci { margin-top: 3px; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 10.5px; color: var(--ink55); }
+  .chart { margin-top: 14px; position: relative; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  .chart svg text { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .legend { display: flex; justify-content: center; gap: 16px; margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink55); }
+  .legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+  .tip {
+    position: absolute;
+    background: var(--card);
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px var(--rule), 0 6px 18px rgba(16, 20, 24, 0.16);
+    padding: 8px 10px;
+    min-width: 148px;
+    transform: translate(-108%, -20%);
+    pointer-events: none;
+  }
+  .tip .tl { font-family: var(--mono); font-size: 10px; color: var(--ink55); margin-bottom: 5px; }
+  .tip .tr { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink70); }
+  .tip .tr + .tr { margin-top: 3px; }
+  .tip .tr i { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .tip .tr .tv { margin-left: auto; font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
+  .cfooter { margin-top: 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .cfooter .f1 { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; line-height: 1.4; }
+  .cfooter .f1 svg { flex-shrink: 0; }
+  .cfooter .f2 { font-size: 11.5px; line-height: 1.45; color: var(--ink55); max-width: 62ch; }
+  .sn {
+    font-size: 11px;
+    color: var(--ink55);
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+  }
+  .sentence { margin-top: 12px; font-size: 13px; line-height: 1.55; max-width: 62ch; }
+  .dgrid { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dm { background: var(--paper-deep); border-radius: 3px; padding: 8px 12px; }
+  .dm .l { font-family: var(--mono); font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink55); }
+  .dm .v { margin-top: 3px; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 600; }
+  .cav { margin-top: 12px; font-size: 11.5px; line-height: 1.45; color: var(--ink55); }
+
+  /* /interventions row replica */
+  .irow {
+    display: grid;
+    grid-template-columns: 64px auto minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: start;
+    padding: 10px 0;
+    box-shadow: inset 0 -1px 0 var(--rule);
+  }
+  .irow:last-child { box-shadow: none; }
+  .irow .yr { padding-top: 2px; font-family: var(--mono); font-size: 11px; color: var(--ink70); }
+  .rbadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .irow .body .tt { font-size: 13px; font-weight: 600; line-height: 1.25; }
+  .irow .body .dd { margin-top: 3px; font-size: 12px; line-height: 1.45; color: var(--ink55); }
+  .irow .right { text-align: right; font-size: 11.5px; color: var(--ink55); }
+  .irow .right .d { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600; color: var(--ink); }
+  .irow .right > div + div { margin-top: 3px; }
+
+  /* Decision checklist */
+  .x-dec { margin-top: 44px; }
+  .x-dec .scard-head h3 { font-size: 16px; }
+  .x-dlist { display: flex; flex-direction: column; }
+  .x-d { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: 12px 0; box-shadow: inset 0 -1px 0 var(--rule); }
+  .x-d:last-child { box-shadow: none; }
+  .x-d .id { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent); padding-top: 2px; }
+  .x-d .q { font-size: 13px; font-weight: 600; }
+  .x-d .o { margin-top: 3px; font-size: 12px; line-height: 1.5; color: var(--ink70); max-width: 78ch; }
+  .x-d .o b { font-weight: 600; color: var(--ink); }
+  .x-resolved { font-size: 12px; line-height: 1.6; color: var(--ink70); background: var(--paper-deep); border-radius: 3px; padding: 10px 12px; margin-bottom: 12px; }
+  .x-resolved b { color: var(--ink); font-weight: 600; }
+  .x-foot { margin-top: 30px; font-family: var(--mono); font-size: 10.5px; color: var(--ink40); }
+</style>
+
+<div class="x-topbar">
+  <div>Bus Priority Impact Studio</div>
+  <div class="mono">plan 075 comp, round 3 — design review page, not the app</div>
+</div>
+
+<div class="x-wrap">
+  <div class="x-intro">
+    <h1>History-tab study cards — round 3: the verbosity pass</h1>
+    <ul class="x-changes">
+      <li><b>Stat label</b> “change vs controls” → <b>“vs controls”</b>.</li>
+      <li><b>Null copy</b> “No detectable change” → <b>“No clear change”</b> (display only — the artifact value stays <span class="mono" style="font-size: 11px;">no_detectable_change</span>).</li>
+      <li><b>Header window line deleted.</b> The chart already carries the dates: end ticks plus the implementation rule. Exact windows stay in Method &amp; provenance.</li>
+      <li><b>Footer range line deleted</b> for the same reason — the footer keeps only the finding (plus the tolling caveat on the null card).</li>
+      <li><b>Legend shortened</b> to “treated segments / matched controls” — the route prefix is redundant on the route’s own page.</li>
+      <li>Carried from round 2: Variant B, checks off the card face, one metric per card, shadcn chart-card anatomy.</li>
+    </ul>
+    <div class="x-truth">
+      <div>
+        <b>Real data</b>
+        B41, M104 and M21 monthly speeds are actual trip-weighted means from the local pipeline DB
+        (Mar 2024–May 2025), and all three events are real registry records: B41 camera enforcement
+        began Sep 2024; M104 and M21 lane segments opened Nov 2024.
+      </div>
+      <div>
+        <b>Illustrative until 074 runs</b>
+        Confidence intervals and control-segment series are hand-set to plausible values — the study
+        engine that computes them is plan 074. Everything shown maps to fields already in 074’s
+        output contract; approving this comp locks no schema change.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ Refined Variant B ═══════════════ -->
+  <div class="x-vhead">
+    <span class="x-vchip">VARIANT B — ROUND 2</span>
+    <h2>Chart-card study cards</h2>
+    <span>header carries the one metric; the chart is the body; the footer states the finding</span>
+  </div>
+  <div class="x-exhibit">
+    <div class="x-surface">
+      <section class="scard">
+        <div class="scard-head">
+          <h3>Before &amp; after evaluations</h3>
+          <div class="sub">4 evaluations, 3 with matched-segment studies.</div>
+        </div>
+        <div class="cards">
+
+          <!-- B1: gated estimate -->
+          <div class="x-tagwrap">
+            <span class="x-tag">B1</span>
+            <div class="ccard">
+              <div class="chead">
+                <div>
+                  <div class="t">Automated camera enforcement (ACE)</div>
+                  <div class="desc">Monthly speed, mph.</div>
+                </div>
+                <div class="hstat">
+                  <div class="l">vs controls</div>
+                  <div class="v" style="color: var(--good);">+0.22 mph</div>
+                  <div class="ci">95% CI +0.06 to +0.39</div>
+                </div>
+              </div>
+              <div class="chart" data-chart="b41"></div>
+              <div class="cfooter">
+                <div class="f1">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--good);" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
+                  Speeds on treated segments rose while matched controls held flat
+                </div>
+                <span class="sn">Method &amp; provenance (6)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- B2: no detectable change, deep-link highlight -->
+          <div class="x-tagwrap">
+            <span class="x-tag">B2</span>
+            <div class="ccard is-target">
+              <div class="chead">
+                <div>
+                  <div class="t">Bus lane segments opened (NYC DOT)</div>
+                  <div class="desc">Monthly speed, mph.</div>
+                </div>
+                <div class="hstat">
+                  <div class="l">vs controls</div>
+                  <div class="v" style="color: var(--accent); font-size: 18px;">No clear change</div>
+                  <div class="ci">95% CI −0.16 to +0.17</div>
+                </div>
+              </div>
+              <div class="chart" data-chart="m104"></div>
+              <div class="cfooter">
+                <div class="f1">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color: var(--accent);" aria-hidden="true"><line x1="4" y1="12" x2="20" y2="12"></line></svg>
+                  Treated and control segments moved together before and after the lanes opened
+                </div>
+                <div class="f2">Excluding the months after Manhattan tolling began: +0.01 mph (95% CI −0.17 to +0.19) — the conclusion does not change.</div>
+                <span class="sn">Method &amp; provenance (6)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- B3: descriptive tier -->
+          <div class="x-tagwrap">
+            <span class="x-tag">B3</span>
+            <div class="ccard">
+              <div class="chead">
+                <div>
+                  <div class="t">Bus lane segments opened (NYC DOT)</div>
+                  <div class="desc">Not a controlled comparison.</div>
+                </div>
+                <div class="hstat">
+                  <div class="l">before vs after</div>
+                  <div class="v" style="color: var(--ink70);">+0.13 mph</div>
+                </div>
+              </div>
+              <div class="sentence">
+                Only one lane-matched segment on this route, so control segments can’t be matched
+                fairly and no interval is computed. Route speeds averaged 6.44 mph in the six months
+                before the lanes opened (Nov 2024) and 6.57 mph in the six months after — many
+                things besides the lanes could explain the difference.
+              </div>
+              <div class="cfooter">
+                <span class="sn">Method &amp; provenance (3)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- B4: legacy card, no study — byte-identical to today -->
+          <div class="x-tagwrap">
+            <span class="x-tag">B4</span>
+            <div class="ccard">
+              <div class="chead">
+                <div>
+                  <div class="t">Automated bus lane enforcement (ABLE)</div>
+                  <div class="w" style="margin-top: 2px;">2023 / 2023-05 to 2023-10 → 2023-12 to 2024-05</div>
+                </div>
+                <span class="badge b-accent">6 routes</span>
+              </div>
+              <div class="dgrid" style="margin-top: 16px;">
+                <div class="dm"><div class="l">route</div><div class="v" style="color: var(--good);">+0.18 mph</div></div>
+                <div class="dm"><div class="l">adjusted</div><div class="v" style="color: var(--good);">+0.12 mph</div></div>
+              </div>
+              <div class="cav">
+                Route-grain comparison against six borough peers; segment-level attribution is not
+                available for this window.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+    <aside class="x-notes">
+      <div class="x-note"><span class="x-ref">B1</span>Gated estimate. Header is three short lines: title, “Monthly speed, mph.”, and the stat. All dates live on the chart (end ticks + implementation rule); exact windows sit in Method &amp; provenance. Hover tooltip shown open at Jan 2025 — stock shadcn tooltip in app tokens.</div>
+      <div class="x-note"><span class="x-ref">B2</span>Honest null: the stat slot reads <b>No clear change</b> — display copy for the artifact’s no_detectable_change state — with the CI beneath. The flat overlapping areas are the evidence; the tolling marker and one-sentence caveat stay (D13). Card also shows the <b>?study=</b> deep-link ring.</div>
+      <div class="x-note"><span class="x-ref">B3</span>Descriptive tier: same anatomy minus the chart — the consolidated before/after change in muted ink, disclaimer as the description and body sentence, date inline (Nov 2024). No tone color, no interval, no icon.</div>
+      <div class="x-note"><span class="x-ref">B4</span>Event with no matched study — renders exactly as the card does today.</div>
+    </aside>
+  </div>
+
+  <!-- ═══════════════ /interventions rows ═══════════════ -->
+  <div class="x-vhead">
+    <span class="x-vchip">ROWS</span>
+    <h2>/interventions — evaluated rows</h2>
+    <span>unchanged from round 1; the studied row gains the study number, CI and a deep link</span>
+  </div>
+  <div class="x-exhibit">
+    <div class="x-surface">
+      <section class="scard">
+        <div class="scard-head">
+          <h3>Evaluated</h3>
+          <div class="sub">Rows whose event matches a study gain the study number and a deep link.</div>
+        </div>
+        <div>
+          <div class="x-tagwrap">
+            <span class="x-tag" style="top: 2px;">R1</span>
+            <div class="irow">
+              <div class="yr">2024</div>
+              <span class="rbadge">B41</span>
+              <div class="body">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <span class="badge b-neutral">program record</span>
+                  <span class="tt">Automated camera enforcement (ACE)</span>
+                </div>
+                <div class="dd">Camera enforcement along the full corridor from Sep 2024; studied against matched Brooklyn control segments.</div>
+                <div style="margin-top: 4px;"><span class="sn">Sources (2)</span></div>
+              </div>
+              <div class="right">
+                <div class="d" style="color: var(--good);">+0.22 mph</div>
+                <div>95% CI +0.06 to +0.39</div>
+                <div>matched-segment study</div>
+                <div><a href="/routes/b41?tab=history" style="font-size: 11.5px;">View study →</a></div>
+              </div>
+            </div>
+          </div>
+          <div class="x-tagwrap">
+            <span class="x-tag" style="top: 2px;">R2</span>
+            <div class="irow">
+              <div class="yr">2023</div>
+              <span class="rbadge">M15+</span>
+              <div class="body">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <span class="badge b-neutral">program record</span>
+                  <span class="tt">Automated bus lane enforcement (ABLE)</span>
+                </div>
+                <div class="dd">Lane camera precursor program; route-grain comparison only for this window.</div>
+                <div style="margin-top: 4px;"><span class="sn">Sources (1)</span></div>
+              </div>
+              <div class="right">
+                <div class="d">+0.12 mph</div>
+                <div>peer adjusted before after</div>
+                <div>6 comparison routes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <aside class="x-notes">
+      <div class="x-note"><span class="x-ref">R1</span>Studied row deep-links to <b>/routes/b41?tab=history&amp;study=…</b>, landing on the highlighted card (B2 shows the target state).</div>
+      <div class="x-note"><span class="x-ref">R2</span>Row without a study — pixel-identical to today.</div>
+    </aside>
+  </div>
+
+  <!-- ═══════════════ Decisions ═══════════════ -->
+  <div class="x-dec">
+    <section class="scard">
+      <div class="scard-head">
+        <h3>Decisions — round 2</h3>
+        <div class="sub">Answer by number. Approvals become the plan-075 acceptance target; rejections become doctrine rules.</div>
+      </div>
+      <div class="x-resolved">
+        <b>Resolved in round 1:</b> Variant B layout wins (D1). <b>Round 2:</b> checks never render
+        on the card face (provenance-only); one consolidated header metric; window-band shading
+        dropped; chart cards align to the shadcn chart-card anatomy. <b>Round 3:</b> verbosity pass —
+        “vs controls” stat label, “No clear change” null copy, header window line and footer range
+        line deleted, legends shortened.
+      </div>
+      <div class="x-dlist">
+        <div class="x-d"><div class="id">D10</div><div><div class="q">Single metric placement: header-right stat block, as shown?</div><div class="o">Mirrors the shadcn interactive-chart header and keeps the number adjacent to the chart it summarizes. Alternative: left-aligned above the chart under the title. <b>Default: header-right as shown.</b></div></div></div>
+        <div class="x-d"><div class="id">D11</div><div><div class="q">Chart series: two overlaid areas (treated vs matched controls), or a single “gap vs controls” series?</div><div class="o">Two series read as “my bus vs similar streets” — immediately legible. A single difference series is statistically tighter but abstract. <b>Default: two series as shown.</b></div></div></div>
+        <div class="x-d"><div class="id">D12</div><div><div class="q">Hover tooltip (shown open on B1): approve the interaction?</div><div class="o">It is the stock shadcn ChartTooltipContent restyled to app tokens — free with the primitives we already use. <b>Default: yes.</b></div></div></div>
+        <div class="x-d"><div class="id">D13</div><div><div class="q">The null card’s tolling caveat: keep the one-sentence footer note + chart marker (B2), or move it fully into provenance?</div><div class="o">It is the last visible trace of the former checks — kept because it qualifies a public claim on a Manhattan route in plain words. <b>Default: keep as shown.</b></div></div></div>
+        <div class="x-d"><div class="id">D14</div><div><div class="q">Footer trend icon (13px arrow / flat line): keep or drop?</div><div class="o">Part of the shadcn footer anatomy; tone-colored, never a verdict word. <b>Default: keep; drop if it reads decorative.</b></div></div></div>
+        <div class="x-d"><div class="id">D15</div><div><div class="q">Carried from round 1, defaults stand unless vetoed: CI copy (D7), deep-link ring (D8), section sub-line (D9).</div><div class="o">Long-form “95% CI +0.06 to +0.39” on cards, compact “+0.22 (+0.06 to +0.39) mph” on rows; 2px MTA-blue fading ring; “4 evaluations, 3 with matched-segment studies.” <b>Default: all three as shown.</b></div></div></div>
+        <div class="x-d"><div class="id">D16</div><div><div class="q">Null display copy “No clear change” — approved?</div><div class="o">Shorter than “No detectable change” while keeping the hedge; the artifact enum stays <b>no_detectable_change</b>, so this is copy only. <b>Default: as shown.</b></div></div></div>
+        <div class="x-d"><div class="id">D17</div><div><div class="q">The legacy no-study card (B4) still shows today’s long window line. Extend the deletion to it?</div><div class="o">Plan 075 pins no-study cards byte-identical to today; trimming their window line is a one-line scope addition in the same file. <b>Default: leave unchanged in 075; note it for a later sweep.</b></div></div></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="x-foot">
+    plans/mockups/075-history-tab/study-cards-comp.html — round 3, 2026-07-10. Approved decisions amend the design authority; rejections become doctrine-lint rules.
+  </div>
+</div>
+
+<script type="application/json" id="chart-data">
+{
+  "b41": {
+    "aria": "Monthly speeds, B41 treated segments versus matched controls, March 2024 to March 2025",
+    "treated": [6.95, 7.03, 6.77, 6.86, 7.13, 7.06, 6.89, 6.99, 7.04, 7.11, 7.40, 7.24, 7.27],
+    "control": [6.91, 6.99, 6.76, 6.81, 7.05, 7.00, 6.84, 6.87, 6.86, 6.90, 7.02, 6.88, 6.91],
+    "names": ["treated segments", "matched controls"],
+    "first": "Mar 2024", "last": "Mar 2025",
+    "impl": { "i": 6, "label": "enforcement starts Sep 2024" },
+    "tooltip": { "i": 10, "label": "Jan 2025" },
+    "marker": null
+  },
+  "m104": {
+    "aria": "Monthly speeds, M104 treated segments versus matched controls, May 2024 to May 2025",
+    "treated": [5.87, 5.92, 5.92, 5.97, 5.89, 5.86, 5.88, 5.94, 5.99, 5.93, 5.91, 5.90, 5.90],
+    "control": [5.90, 5.93, 5.91, 5.95, 5.92, 5.89, 5.90, 5.93, 5.95, 5.96, 5.94, 5.92, 5.93],
+    "names": ["treated segments", "matched controls"],
+    "first": "May 2024", "last": "May 2025",
+    "impl": { "i": 6, "label": "lanes open Nov 2024" },
+    "tooltip": null,
+    "marker": { "i": 8, "label": "tolling starts" }
+  }
+}
+</script>
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("chart-data").textContent);
+  var W = 560, H = 214, L = 34, R = 548, T = 16, B = 168;
+  var INK40 = "rgba(16,20,24,0.42)", GRID = "rgba(16,20,24,0.08)";
+
+  function rnd(v) { return Math.round(v * 100) / 100; }
+
+  /* Fritsch–Carlson monotone cubic, same family as Recharts type="monotone" */
+  function monotonePath(pts) {
+    var n = pts.length, i;
+    if (n < 3) return "M" + pts.map(function (p) { return p.join(","); }).join("L");
+    var dx = [], m = [], t = [];
+    for (i = 0; i < n - 1; i++) {
+      dx[i] = pts[i + 1][0] - pts[i][0];
+      m[i] = (pts[i + 1][1] - pts[i][1]) / dx[i];
+    }
+    t[0] = m[0]; t[n - 1] = m[n - 2];
+    for (i = 1; i < n - 1; i++) {
+      if (m[i - 1] * m[i] <= 0) t[i] = 0;
+      else {
+        const w1 = 2 * dx[i] + dx[i - 1], w2 = dx[i] + 2 * dx[i - 1];
+        t[i] = (w1 + w2) / (w1 / m[i - 1] + w2 / m[i]);
+      }
+    }
+    var d = "M" + rnd(pts[0][0]) + "," + rnd(pts[0][1]);
+    for (i = 0; i < n - 1; i++) {
+      d += "C" + rnd(pts[i][0] + dx[i] / 3) + "," + rnd(pts[i][1] + t[i] * dx[i] / 3) +
+        " " + rnd(pts[i + 1][0] - dx[i] / 3) + "," + rnd(pts[i + 1][1] - t[i + 1] * dx[i] / 3) +
+        " " + rnd(pts[i + 1][0]) + "," + rnd(pts[i + 1][1]);
+    }
+    return d;
+  }
+
+  function el(name, attrs, text) {
+    var node = document.createElementNS("http://www.w3.org/2000/svg", name), k;
+    for (k in attrs) node.setAttribute(k, attrs[k]);
+    if (text) node.textContent = text;
+    return node;
+  }
+
+  function render(host, cfg, id) {
+    var all = cfg.treated.concat(cfg.control);
+    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+    var pad = (hi - lo) * 0.22 || 0.2;
+    lo -= pad; hi += pad;
+    var n = cfg.treated.length;
+    function x(i) { return L + i * (R - L) / (n - 1); }
+    function y(v) { return B - (v - lo) / (hi - lo) * (B - T); }
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": cfg.aria });
+
+    var defs = el("defs", {});
+    var grads = [["ga-" + id, "#0039a6", 0.22], ["gb-" + id, "oklch(0.48 0.15 300)", 0.13]];
+    grads.forEach(function (g) {
+      var lg = el("linearGradient", { id: g[0], x1: 0, y1: 0, x2: 0, y2: 1 });
+      lg.appendChild(el("stop", { offset: "5%", "stop-color": g[1], "stop-opacity": g[2] }));
+      lg.appendChild(el("stop", { offset: "95%", "stop-color": g[1], "stop-opacity": 0 }));
+      defs.appendChild(lg);
+    });
+    svg.appendChild(defs);
+
+    /* grid + tiny reference values (shadcn hides the y-axis; we keep 3 quiet values) */
+    [0.82, 0.5, 0.18].forEach(function (f) {
+      var v = lo + f * (hi - lo), gy = rnd(y(v));
+      svg.appendChild(el("line", { x1: L, y1: gy, x2: R, y2: gy, stroke: GRID }));
+      svg.appendChild(el("text", { x: L - 5, y: gy + 3, "text-anchor": "end", "font-size": 9, fill: INK40 }, v.toFixed(1)));
+    });
+
+    /* areas then lines: control beneath, treated on top */
+    var series = [
+      { vals: cfg.control, color: "oklch(0.48 0.15 300)", wid: 1.5, grad: "gb-" + id, dot: 2.5 },
+      { vals: cfg.treated, color: "#0039a6", wid: 2, grad: "ga-" + id, dot: 3 }
+    ];
+    series.forEach(function (s) {
+      var pts = s.vals.map(function (v, i) { return [x(i), y(v)]; });
+      var line = monotonePath(pts);
+      var area = line + "L" + R + "," + B + "L" + L + "," + B + "Z";
+      svg.appendChild(el("path", { d: area, fill: "url(#" + s.grad + ")", stroke: "none" }));
+      svg.appendChild(el("path", { d: line, fill: "none", stroke: s.color, "stroke-width": s.wid }));
+    });
+
+    /* implementation reference line */
+    var ix = rnd(x(cfg.impl.i));
+    svg.appendChild(el("line", { x1: ix, y1: T - 6, x2: ix, y2: B, stroke: INK40, "stroke-dasharray": "3 3" }));
+    svg.appendChild(el("text", { x: ix + 6, y: B + 14, "font-size": 9, fill: INK40 }, cfg.impl.label));
+
+    /* optional confounder marker */
+    if (cfg.marker) {
+      const mx = rnd(x(cfg.marker.i));
+      svg.appendChild(el("line", { x1: mx, y1: T - 6, x2: mx, y2: B, "class": "s-warn", "stroke-dasharray": "2 4" }));
+      svg.appendChild(el("text", { x: mx + 5, y: T + 4, "font-size": 9, "class": "f-warn" }, cfg.marker.label));
+    }
+
+    /* endpoint dots */
+    series.forEach(function (s) {
+      svg.appendChild(el("circle", { cx: rnd(x(n - 1)), cy: rnd(y(s.vals[n - 1])), r: s.dot, fill: s.color }));
+    });
+
+    /* x ticks: first + last only (impl label sits at its own rule) */
+    svg.appendChild(el("text", { x: L, y: H - 4, "font-size": 9, fill: INK40 }, cfg.first));
+    svg.appendChild(el("text", { x: R, y: H - 4, "text-anchor": "end", "font-size": 9, fill: INK40 }, cfg.last));
+
+    /* static hover-state demo: cursor + point dots + HTML tooltip */
+    if (cfg.tooltip) {
+      const ti = cfg.tooltip.i, tx = rnd(x(ti));
+      svg.appendChild(el("line", { x1: tx, y1: T - 6, x2: tx, y2: B, stroke: "rgba(16,20,24,0.2)" }));
+      series.forEach(function (s) {
+        svg.appendChild(el("circle", {
+          cx: tx, cy: rnd(y(s.vals[ti])), r: 3.5, fill: s.color, stroke: "#ffffff", "stroke-width": 1.5
+        }));
+      });
+    }
+
+    host.appendChild(svg);
+
+    if (cfg.tooltip) {
+      const tip = document.createElement("div");
+      tip.className = "tip";
+      tip.setAttribute("aria-hidden", "true");
+      tip.innerHTML =
+        '<div class="tl">' + cfg.tooltip.label + " (hover state shown)</div>" +
+        '<div class="tr"><i style="background:#0039a6;"></i>treated<span class="tv">' + cfg.treated[cfg.tooltip.i].toFixed(2) + "</span></div>" +
+        '<div class="tr"><i style="background:oklch(0.48 0.15 300);"></i>controls<span class="tv">' + cfg.control[cfg.tooltip.i].toFixed(2) + "</span></div>";
+      tip.style.left = (x(cfg.tooltip.i) / W * 100) + "%";
+      tip.style.top = "18%";
+      host.appendChild(tip);
+    }
+
+    var legend = document.createElement("div");
+    legend.className = "legend";
+    legend.innerHTML =
+      '<span><i style="background:#0039a6;"></i>' + cfg.names[0] + "</span>" +
+      '<span><i style="background:oklch(0.48 0.15 300);"></i>' + cfg.names[1] + "</span>";
+    host.parentNode.insertBefore(legend, host.nextSibling);
+  }
+
+  document.querySelectorAll("[data-chart]").forEach(function (host) {
+    var key = host.getAttribute("data-chart");
+    if (DATA[key]) render(host, DATA[key], key);
+  });
+})();
+</script>
+<style>
+  .s-warn { stroke: var(--warn); }
+  .f-warn { fill: var(--warn); }
+</style>
+<noscript><div style="max-width: 1040px; margin: 0 auto; padding: 0 20px 40px; font-size: 12px; color: rgba(16,20,24,0.6);">Charts on this page render with JavaScript enabled.</div></noscript>

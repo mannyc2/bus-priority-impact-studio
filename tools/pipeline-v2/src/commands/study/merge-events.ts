@@ -1,6 +1,9 @@
+import { MtaWikiOperationalOccurrenceImportArtifactSchema } from "@bp/domain/documents/operational-occurrence";
 import {
   StudyEventApprovalArtifactSchema,
+  StudyEventApprovalArtifactV2Schema,
   type StudyEventMergeArtifact,
+  type StudyEventMergeArtifactV2,
 } from "@bp/domain/studio/study";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { loadStudyEventRegistryRows } from "@bp/pipeline-v2/local-db-aggregates";
@@ -10,7 +13,11 @@ import { readJsonArtifact, writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { MtaWikiOperationalAnchorImportArtifactSchema } from "../../lib/mta-wiki-operational-anchors.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
-import { buildStudyEventMergeArtifact } from "../../lib/study-engine/study-events.ts";
+import {
+  buildStudyEventMergeArtifact,
+  buildStudyEventMergeArtifactV2,
+  pinnedOccurrenceStudyInput,
+} from "../../lib/study-engine/study-events.ts";
 
 const DEFAULT_OUTPUT_PATH = fromRepoRoot("data/artifacts/studio/v2/studies/study-events.json");
 
@@ -24,7 +31,7 @@ export type RunStudyEventMergeInput = {
 
 export async function runStudyEventMerge(
   input: RunStudyEventMergeInput,
-): Promise<StudyEventMergeArtifact & { outputPath: string }> {
+): Promise<(StudyEventMergeArtifact | StudyEventMergeArtifactV2) & { outputPath: string }> {
   if (input.withoutWikiAnchors && input.wikiImportPath !== undefined) {
     throw new Error("Cannot provide --wiki-import together with --without-wiki-anchors");
   }
@@ -39,31 +46,68 @@ export async function runStudyEventMerge(
       ? null
       : await readJsonArtifact(
           input.wikiImportPath,
-          MtaWikiOperationalAnchorImportArtifactSchema,
+          Schema.Union([
+            MtaWikiOperationalAnchorImportArtifactSchema,
+            MtaWikiOperationalOccurrenceImportArtifactSchema,
+          ]),
           "strict",
         );
-  const approval =
-    input.approvalPath === undefined
-      ? undefined
-      : await readJsonArtifact(input.approvalPath, StudyEventApprovalArtifactSchema, "strict");
   const registryEvents = loadStudyEventRegistryRows({ sqlite: input.local.sqlite });
-  const artifact = buildStudyEventMergeArtifact({
-    registryEvents,
-    wiki:
-      wikiImport === null
-        ? null
-        : {
-            releaseId: wikiImport.sourceRelease.releaseId,
-            manifestSha256: wikiImport.sourceRelease.manifestSha256,
-            artifactSha256: wikiImport.sourceRelease.anchors.sha256,
-            assertions: wikiImport.assertions,
-          },
-    withoutWikiAnchors: input.withoutWikiAnchors,
-    approval,
-  });
+  const artifact =
+    wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v3"
+      ? buildStudyEventMergeArtifactV2({
+          registryEvents,
+          wiki: pinnedOccurrenceStudyInput(wikiImport),
+          withoutWikiAnchors: false,
+          availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
+          approval:
+            input.approvalPath === undefined
+              ? undefined
+              : await readJsonArtifact(
+                  input.approvalPath,
+                  StudyEventApprovalArtifactV2Schema,
+                  "strict",
+                ),
+        })
+      : buildStudyEventMergeArtifact({
+          registryEvents,
+          wiki:
+            wikiImport === null
+              ? null
+              : {
+                  releaseId: wikiImport.sourceRelease.releaseId,
+                  manifestSha256: wikiImport.sourceRelease.manifestSha256,
+                  artifactSha256: wikiImport.sourceRelease.anchors.sha256,
+                  assertions: wikiImport.assertions,
+                },
+          withoutWikiAnchors: input.withoutWikiAnchors,
+          approval:
+            input.approvalPath === undefined
+              ? undefined
+              : await readJsonArtifact(
+                  input.approvalPath,
+                  StudyEventApprovalArtifactSchema,
+                  "strict",
+                ),
+        });
   const outputPath = input.outputPath ?? DEFAULT_OUTPUT_PATH;
   await writeJson(outputPath, artifact);
   return { ...artifact, outputPath };
+}
+
+function loadAvailableAnalysisRouteIds(local: OpenLocalPipelineDb): Set<string> {
+  const hasSpeedRows = local.sqlite
+    .query("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1")
+    .get("local_route_segment_speed") as { ok?: number } | null;
+  if (hasSpeedRows?.ok !== 1) {
+    throw new Error(
+      "Required local_route_segment_speed table is missing; occurrence route availability cannot be verified",
+    );
+  }
+  const rows = local.sqlite
+    .query("SELECT DISTINCT route_id FROM local_route_segment_speed ORDER BY route_id")
+    .all() as Array<{ route_id: string }>;
+  return new Set(rows.map((row) => row.route_id.trim().toUpperCase()));
 }
 
 export default defineCommand({

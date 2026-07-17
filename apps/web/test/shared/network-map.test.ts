@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { PERIOD_HOURS, periodSpeed } from "../../src/components/route/NetworkMapLibre";
 import type { NetworkMapFeature } from "../../src/studio/api-client";
-import { compareRankedRoutes, rankSubline, rankValue } from "../../src/studio/pages/network-map";
+import type { StudyIndexRow } from "../../src/studio/api-contract";
+import { lensValue, popupStats, routeStudySummary } from "../../src/studio/pages/network-map";
 
 function feature(overrides: {
   routeId?: string;
@@ -102,41 +103,78 @@ describe("periodSpeed", () => {
   });
 });
 
-describe("compareRankedRoutes", () => {
-  const slow = feature({ routeId: "S", label: "B slow", currentMph: 4 });
-  const fast = feature({ routeId: "F", label: "B fast", currentMph: 10 });
-  const busy = feature({ routeId: "B", label: "B busy", dailyRiders: 40_000, laneCoverage: 80 });
-  const quiet = feature({ routeId: "Q", label: "B quiet", dailyRiders: 2_000, laneCoverage: 10 });
+describe("lensValue", () => {
+  const f = feature({ currentMph: 5.4, dailyRiders: 12_400, laneCoverage: 63 });
 
-  test("speed lens ranks slowest first", () => {
-    expect([fast, slow].sort((l, r) => compareRankedRoutes(l, r, "all", "speed"))[0]).toBe(slow);
-  });
-
-  test("riders lens ranks highest ridership first", () => {
-    expect([quiet, busy].sort((l, r) => compareRankedRoutes(l, r, "all", "riders"))[0]).toBe(busy);
-  });
-
-  test("lanes lens ranks lowest coverage first", () => {
-    expect([busy, quiet].sort((l, r) => compareRankedRoutes(l, r, "all", "lanes"))[0]).toBe(quiet);
+  test("formats per lens without interpunct styling", () => {
+    expect(lensValue(f, "all", "speed")).toBe("5.4 mph");
+    expect(lensValue(f, "all", "riders")).toBe("12k");
+    expect(lensValue(f, "all", "lanes")).toBe("63%");
+    for (const lens of ["speed", "riders", "lanes"] as const) {
+      expect(lensValue(f, "all", lens)).not.toContain("·");
+    }
   });
 });
 
-describe("rankValue and rankSubline", () => {
+describe("popupStats", () => {
   const f = feature({ currentMph: 5.4, dailyRiders: 12_400, laneCoverage: 63 });
 
-  test("rankValue per lens", () => {
-    expect(rankValue(f, "all", "speed")).toBe("5.4 mph");
-    expect(rankValue(f, "all", "riders")).toBe("12k");
-    expect(rankValue(f, "all", "lanes")).toBe("63%");
+  test("drops the active lens and keeps the other three measures", () => {
+    expect(popupStats(f, "all", "speed")).toEqual([
+      { label: "Riders", value: "12k" },
+      { label: "Lanes", value: "63%" },
+      { label: "Delay", value: "No data" },
+    ]);
+    expect(popupStats(f, "all", "riders").map((stat) => stat.label)).toEqual([
+      "Speed",
+      "Lanes",
+      "Delay",
+    ]);
+    expect(popupStats(f, "all", "lanes").map((stat) => stat.label)).toEqual([
+      "Speed",
+      "Riders",
+      "Delay",
+    ]);
   });
 
-  test("sublines avoid interpunct styling", () => {
-    for (const lens of ["speed", "riders", "lanes"] as const) {
-      const subline = rankSubline(f, "all", lens);
-      expect(subline).not.toContain("·");
-      expect(rankValue(f, "all", lens)).not.toContain("·");
-    }
-    expect(rankSubline(f, "all", "speed")).toBe("Brooklyn / 12k riders");
-    expect(rankSubline(f, "all", "riders")).toBe("Brooklyn / 5.4 mph");
+  test("formats rider-hours of delay when available", () => {
+    const withDelay: NetworkMapFeature = {
+      ...f,
+      properties: { ...f.properties, riderHoursLost: 3_400 },
+    };
+    expect(popupStats(withDelay, "all", "speed")[2]).toEqual({ label: "Delay", value: "3k hr" });
+  });
+});
+
+describe("routeStudySummary", () => {
+  const row = (eventKey: string): StudyIndexRow => ({
+    eventKey,
+    routeId: "BX28",
+    routeSlug: "bx28",
+    treatmentFamily: "automated_bus_lane_enforcement",
+    implementationMonth: "2024-09",
+    effectMph: -0.04,
+    confidenceInterval: null,
+    evaluationLevel: "segment_matched_did",
+    claimTier: "gated_estimate",
+    direction: "no_detectable_change",
+  });
+
+  test("no studies yields no deep link", () => {
+    expect(routeStudySummary([])).toEqual({ count: 0, eventKey: null });
+  });
+
+  test("a single study deep-links by event key", () => {
+    expect(routeStudySummary([row("study-event-a")])).toEqual({
+      count: 1,
+      eventKey: "study-event-a",
+    });
+  });
+
+  test("multiple studies link to the history tab without a key", () => {
+    expect(routeStudySummary([row("study-event-a"), row("study-event-b")])).toEqual({
+      count: 2,
+      eventKey: null,
+    });
   });
 });

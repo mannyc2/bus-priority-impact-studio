@@ -36,9 +36,12 @@ const NETWORK_COLOR_ENDPOINTS = {
   riders: ["#9abbe0", "#1364b0"],
 } as const;
 
+// Pan fence, not a viewport: MapLibre constrains the whole viewport inside
+// maxBounds, so these must stay much wider than the route network (which spans
+// roughly -74.25..-73.70, 40.50..40.93) or panning locks at citywide zooms.
 export const NYC_MAP_BOUNDS = [
-  [-74.35, 40.45],
-  [-73.65, 40.98],
+  [-74.8, 40.15],
+  [-73.15, 41.2],
 ] as const;
 
 export function mapBaseStyle(): MapLibreStyleSpecification {

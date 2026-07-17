@@ -158,12 +158,14 @@ REJECTED (with one-line rationale)
 
 Planned at commit `99fa763` on a dirty tree (plan 074/079 execution in
 flight) by a read-only advisor session, answering the operator's direction
-question: with only 5 of 403 study candidates approved (all ACE onsets;
-3 gated estimates, 2 descriptive, 4 of 5 `no_detectable_change`), is the
-gated study engine the right investment versus naive intervention-date
-before/after highlighting on route detail? Two fan-out audits (route-detail
-page anatomy; corpus/candidate/spine coverage math) with every load-bearing
-number re-verified by the lead session.
+question against the then-current receipt: with only 5 of 403 study
+candidates approved (all ACE onsets; 3 gated estimates, 2 descriptive, 4 of
+5 `no_detectable_change`), is the gated study engine the right investment
+versus naive intervention-date before/after highlighting on route detail?
+Two fan-out audits (route-detail page anatomy; corpus/candidate/spine coverage
+math) with every load-bearing number re-verified by the lead session. The
+2026-07-14 rc19 amendment below preserves that as history and replaces it as
+the current coverage premise.
 
 **Direction verdict (recorded so it is not re-litigated):** the engine's
 rigor is not the overcomplication — its gates caught real confounds on the
@@ -173,17 +175,21 @@ worsening with failed pre-trend). What is missing is the cheap broad layer:
 dated intervention MARKERS on the route chart (annotation, never computed
 deltas). Coverage math: 201 of 323 candidate routes have in-window
 implementation months and the route page already loads dated events for its
-History timeline, versus 5 routes with studies. The study-count bottleneck is
-NOT review conservatism: 267 of 385 routes are `needs_pattern_review` on the
-segment spine, and 39 calendar-eligible ACE candidates were rejected solely
-on that status — a data-engineering unlock, not a standards question.
+History timeline, versus 5 routes with studies. The spine remains a major
+technical bottleneck: 267 of 385 routes are `needs_pattern_review`. The
+historical 39-row ACE bucket was a primary rejection category, not proof of a
+sole blocker; rc19 rebaselines it to 39 identities/37 routes (20 with no
+additional phase/overlap defect named), 40 current calendar-eligible ACE
+identities/38 routes failing the mechanical spine gate, and 75 new
+spine-blocked identities/74 routes. Plan 083 measures advancement to full
+review without weakening any standard.
 
 ## Execution order & status (gen 10)
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 075 rec.; operator comp approval (hard gate in-plan) | TODO |
-| 083 | Spine pattern-grouping spike: measure the honest unlock for the 39 blocked ACE studies | P2 | M | 078 (DONE) | TODO |
+| 083 | Spine pattern-grouping spike: measure honest candidate-coverage gains | P2 | M | 078 (DONE) | TODO (rc19-rebaselined; flips advance rows to review, never approval) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
@@ -446,7 +452,7 @@ decision layer.
 | 071 | Steering-doc truth sweep (README schema claim, /methods SEO, master-plan status) | P2 | S-M | 068 (rec.) | DONE (Effect Schema README claim, retired `/methods` SEO removal, master-plan status block, and knowledge log verified) |
 | 072 | Dependency hygiene: bun update within semver + audit residue log | P3 | S | 068 | DONE (audit reduced 15→13; all residual advisories documented; full tests/build and `/` + `/map` smoke pass) |
 | 073 | Serve the reviewed intervention corpus + reconciliation report | P1 | M-L | 068 | DONE (310 valid; 29 study-date-ready; 11 exact matches; no study-ready corpus-only candidates) |
-| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 | IN PROGRESS (anchors report written; STOPPED for operator review; 5 approved studies are below the original ≥10 criterion) |
+| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 | IN PROGRESS (historical 5-study run remains bound to its receipt; rc19 has 489 rows, zero approvals, and requires a new exact-set-bound operator receipt) |
 | 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073 for step 5 | DONE (2026-07-12, branch advisor/075-studies-integration; live serving detail/routes artifacts still need regeneration to carry eventId before studied cards appear publicly) |
 | 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | TODO |
 

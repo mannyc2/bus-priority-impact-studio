@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { OperationalOccurrenceEvidenceBindingSchema } from "../documents/operational-occurrence/index.js";
 
 export const StudyTreatmentFamilySchema = Schema.Literals([
   "all_door_boarding",
@@ -99,6 +100,91 @@ export const StudyEventMergeArtifactSchema = Schema.Struct({
   approval: Schema.NullOr(StudyEventApprovalArtifactSchema),
 });
 export type StudyEventMergeArtifact = typeof StudyEventMergeArtifactSchema.Type;
+
+export const StudyEventProvenanceV2Schema = Schema.Struct({
+  sourceKind: StudyEventSourceKindSchema,
+  sourceId: Schema.String,
+  sourceEventId: Schema.String,
+  releaseId: Schema.NullOr(Schema.String),
+  anchorIds: Schema.Array(Schema.String),
+  occurrenceId: Schema.NullOr(Schema.String),
+  occurrenceAliases: Schema.Array(Schema.String),
+  manifestSha256: Schema.NullOr(Schema.String),
+  artifactSha256: Schema.NullOr(Schema.String),
+  occurrenceReviewDecisionId: Schema.NullOr(Schema.String),
+  gtfsRouteId: Schema.NullOr(Schema.String),
+  analysisRouteId: Schema.String,
+  routeEvidenceBindings: Schema.Array(OperationalOccurrenceEvidenceBindingSchema),
+  treatmentEvidenceBindings: Schema.Array(OperationalOccurrenceEvidenceBindingSchema),
+});
+export type StudyEventProvenanceV2 = typeof StudyEventProvenanceV2Schema.Type;
+
+export const StudyEventCandidateV2Schema = Schema.Struct({
+  candidateId: Schema.String,
+  routeId: Schema.String,
+  treatmentFamily: StudyTreatmentFamilySchema,
+  implementationDate: Schema.String,
+  implementationMonth: Schema.String,
+  datePrecision: Schema.Literals(["day", "month"]),
+  conflictState: Schema.Literals(["none", "same_month_review_required"]),
+  occurrenceId: Schema.NullOr(Schema.String),
+  confounderGroupId: Schema.NullOr(Schema.String),
+  treatmentScopeKind: Schema.Literals(["atomic", "bundle"]),
+  // Component ontology is descriptive and can be broader than the supported
+  // analysis-family enum (for example, route-redesign service_pattern members).
+  componentTreatmentFamilies: Schema.Array(Schema.String),
+  provenance: Schema.Array(StudyEventProvenanceV2Schema),
+});
+export type StudyEventCandidateV2 = typeof StudyEventCandidateV2Schema.Type;
+
+export const StudyEventApprovalArtifactV2Schema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.study_event_approvals.v2"),
+  schemaVersion: Schema.Literal(2),
+  candidateSetId: Schema.String,
+  decisions: Schema.Array(StudyEventApprovalDecisionSchema),
+});
+export type StudyEventApprovalArtifactV2 = typeof StudyEventApprovalArtifactV2Schema.Type;
+
+export const StudyEventMergeArtifactV2Schema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.study_events.v2"),
+  schemaVersion: Schema.Literal(2),
+  candidateSetId: Schema.String,
+  wikiInput: Schema.Struct({
+    mode: Schema.Literals(["pinned_occurrence_release", "explicit_opt_out"]),
+    releaseId: Schema.NullOr(Schema.String),
+    manifestSha256: Schema.NullOr(Schema.String),
+    artifactSha256: Schema.NullOr(Schema.String),
+  }),
+  summary: Schema.Struct({
+    registryInputCount: Schema.Number,
+    wikiInputCount: Schema.Number,
+    candidateCount: Schema.Number,
+    approvedCount: Schema.Number,
+    rejectedByOperatorCount: Schema.Number,
+    sourceRejectionCount: Schema.Number,
+    conflictCount: Schema.Number,
+    exactDeduplicationCount: Schema.Number,
+  }),
+  approvalState: Schema.Literals(["awaiting_approval", "approved"]),
+  candidates: Schema.Array(StudyEventCandidateV2Schema),
+  approvedEvents: Schema.Array(StudyEventCandidateV2Schema),
+  rejections: Schema.Array(StudyEventRejectionSchema),
+  conflicts: Schema.Array(StudyEventConflictSchema),
+  approval: Schema.NullOr(StudyEventApprovalArtifactV2Schema),
+});
+export type StudyEventMergeArtifactV2 = typeof StudyEventMergeArtifactV2Schema.Type;
+
+export const StudyEventApprovalArtifactAnySchema = Schema.Union([
+  StudyEventApprovalArtifactSchema,
+  StudyEventApprovalArtifactV2Schema,
+]);
+export type StudyEventApprovalArtifactAny = typeof StudyEventApprovalArtifactAnySchema.Type;
+
+export const StudyEventMergeArtifactAnySchema = Schema.Union([
+  StudyEventMergeArtifactSchema,
+  StudyEventMergeArtifactV2Schema,
+]);
+export type StudyEventMergeArtifactAny = typeof StudyEventMergeArtifactAnySchema.Type;
 
 const StudyMonthSchema = Schema.String.check(Schema.isPattern(/^\d{4}-(?:0[1-9]|1[0-2])$/u));
 const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(

@@ -1,0 +1,1453 @@
+{
+  "artifactKind": "bp.studio.codex_review_batch.v1",
+  "authorization": "non_authorizing_recommendation_only",
+  "authorizesStudyRun": false,
+  "authorizesPublication": false,
+  "batchId": "route-redesign",
+  "candidateSetId": "candidate-set-v2:24080902f508b55a0033df32",
+  "candidateSetSha256": "42d9dc3139b4ba1439b0737b7f2b2175e7fe71fa20286c1ec349addf8f6455ba",
+  "reviewer": "Codex multi-agent review, corrected-set deterministic reconciliation",
+  "decisionCount": 84,
+  "countsByRecommendation": {
+    "recommend_approve": 11,
+    "recommend_reject": 73,
+    "needs_followup": 0
+  },
+  "validatedInputHashes": {
+    "candidateSet": "42d9dc3139b4ba1439b0737b7f2b2175e7fe71fa20286c1ec349addf8f6455ba",
+    "historicalCandidateSet": "63da356a9ace61e2755b41540567b4a79a6d8c4a4b5c045df85f79b7b687bb84",
+    "historicalReceipt": "6c17f106dd394b70848bd401283ee1fb7d5b1b8123c4cb2ea8dd8c36a959b6a2",
+    "spineManifest": "aa342bc154340a1da7209225eb0e32e0bb3df0321b84e3ebb432cb2dffe2b7a7",
+    "correctedRecheck": "3ead9d3217e99f07c6a9bbe3c053101d946a09da6a000b99ea0302ad688f27e6"
+  },
+  "decisions": [
+    {
+      "candidateId": "study-event-v2:01f4caf6d1cc0ae9a91d6080",
+      "identity": "Q61|route_redesign|2025-06-29|day",
+      "routeId": "Q61",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q61; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable, and no independently evidenced same-route intervention or conflict falls within the study window.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_separate_same_route_intervention_or_conflict_in_window",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:0349a1b243640cf1419f2193",
+      "identity": "QM15|route_redesign|2025-09-02|day",
+      "routeId": "QM15",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-09-02",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-09-02 route-redesign bundle to QM15; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:0cab0ec3a9940e815f2d7d04",
+      "identity": "QM2|route_redesign|2025-06-29|day",
+      "routeId": "QM2",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to QM2; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:11c26463b667e63b09e685f9",
+      "identity": "Q101|route_redesign|2025-08-31|day",
+      "routeId": "Q101",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q101; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:141748ce44b6c5bcae7f4952",
+      "identity": "Q20|route_redesign|2025-06-29|day",
+      "routeId": "Q20",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q20; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:163bec6dab0cfa4f3652240f",
+      "identity": "Q24|route_redesign|2025-08-31|day",
+      "routeId": "Q24",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q24; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:188477718d04f33920bf81c2",
+      "identity": "Q12|route_redesign|2025-06-29|day",
+      "routeId": "Q12",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q12; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:19de46e13097a4ae1cc20524",
+      "identity": "QM24|route_redesign|2025-09-02|day",
+      "routeId": "QM24",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-09-02",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-09-02 route-redesign bundle to QM24; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:1dba1145a8566729540a29af",
+      "identity": "QM11|route_redesign|2025-06-30|day",
+      "routeId": "QM11",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM11; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:1f145b332ed18a06332e3ec6",
+      "identity": "Q80|route_redesign|2025-08-31|day",
+      "routeId": "Q80",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q80; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable, and no independently evidenced same-route intervention or conflict falls within the study window.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_separate_same_route_intervention_or_conflict_in_window",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:23934fe6311a476757966e42",
+      "identity": "Q86|route_redesign|2025-06-29|day",
+      "routeId": "Q86",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q86; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable, and no independently evidenced same-route intervention or conflict falls within the study window.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_separate_same_route_intervention_or_conflict_in_window",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:24fc15d263b7d90921861de0",
+      "identity": "Q35|route_redesign|2025-08-31|day",
+      "routeId": "Q35",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q35; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:25dc5ffd1bfbf27527615d22",
+      "identity": "Q13|route_redesign|2025-06-29|day",
+      "routeId": "Q13",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q13; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:25ed06d34a709215cc7e996e",
+      "identity": "Q26|route_redesign|2025-06-29|day",
+      "routeId": "Q26",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q26; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:291fb40fb236807c711a2b0a",
+      "identity": "Q47|route_redesign|2025-08-31|day",
+      "routeId": "Q47",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q47; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:2a62d2e92dca879a8d6f9911",
+      "identity": "Q75|route_redesign|2025-06-30|day",
+      "routeId": "Q75",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to Q75; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:2e3137e8c35cce15134a15f1",
+      "identity": "Q83|route_redesign|2025-06-29|day",
+      "routeId": "Q83",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q83; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:30479c9a440e637c17c00eb9",
+      "identity": "Q114|route_redesign|2025-06-29|day",
+      "routeId": "Q114",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q114; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:3340ad589e433d8d7dce0975",
+      "identity": "Q33|route_redesign|2025-08-31|day",
+      "routeId": "Q33",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q33; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:44d7e92d98e22f08b1c0b581",
+      "identity": "QM42|route_redesign|2025-06-30|day",
+      "routeId": "QM42",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM42; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:4a5a89da8e8674496963bd44",
+      "identity": "Q31|route_redesign|2025-06-29|day",
+      "routeId": "Q31",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q31; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:4bcabb4311b95de5430cd6bd",
+      "identity": "Q69|route_redesign|2025-08-31|day",
+      "routeId": "Q69",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q69; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:4c5ee02cdbb73eefe57f7694",
+      "identity": "Q102|route_redesign|2025-08-31|day",
+      "routeId": "Q102",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q102; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:53496e8a34d5c6a774c0b25c",
+      "identity": "Q10|route_redesign|2025-08-31|day",
+      "routeId": "Q10",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q10; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:540ff82f457c7e9905043ffe",
+      "identity": "Q77|route_redesign|2025-06-29|day",
+      "routeId": "Q77",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q77; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:59d436834bb8f89a9f794def",
+      "identity": "Q45|route_redesign|2025-06-29|day",
+      "routeId": "Q45",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q45; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable, and no independently evidenced same-route intervention or conflict falls within the study window.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_separate_same_route_intervention_or_conflict_in_window",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:5a60e52b6e44239418486138",
+      "identity": "QM34|route_redesign|2025-09-02|day",
+      "routeId": "QM34",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-09-02",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-09-02 route-redesign bundle to QM34; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable. An apparent in-window DOT lane row is proximity/street matched without exact route, treatment, or lane-overlap binding, so it is not a genuinely separate same-route conflict.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_exact_same_route_conflict_proximity_only_lane_row_not_route_bound",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:5a74fca9ca2e6eeba7c18851",
+      "identity": "Q82|route_redesign|2025-06-29|day",
+      "routeId": "Q82",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q82; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:5b93c24a36cc919390a97111",
+      "identity": "QM63|route_redesign|2025-06-30|day",
+      "routeId": "QM63",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM63; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:6372c8374c18100ab160a30e",
+      "identity": "Q1|route_redesign|2025-06-29|day",
+      "routeId": "Q1",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q1; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:65a7d2d7df13aa1427fc2374",
+      "identity": "QM4|route_redesign|2025-06-29|day",
+      "routeId": "QM4",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to QM4; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:67ac4ce526fe8a66d64ed882",
+      "identity": "Q58|route_redesign|2025-06-29|day",
+      "routeId": "Q58",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q58; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:681d94a5a1f1236eb000220e",
+      "identity": "Q65|route_redesign|2025-06-29|day",
+      "routeId": "Q65",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q65; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:69ab89d0af7ed56dede2d21d",
+      "identity": "Q63|route_redesign|2025-06-29|day",
+      "routeId": "Q63",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q63; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable. An apparent in-window DOT lane row is proximity/street matched without exact route, treatment, or lane-overlap binding, so it is not a genuinely separate same-route conflict.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_exact_same_route_conflict_proximity_only_lane_row_not_route_bound",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:6b72be6abdf7fc2dffe46a70",
+      "identity": "Q52+|route_redesign|2025-08-31|day",
+      "routeId": "Q52+",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q52+; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:705b4a5bd5b25bc43976e676",
+      "identity": "Q27|route_redesign|2025-06-29|day",
+      "routeId": "Q27",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q27; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:7146396498bfea73fe1fb254",
+      "identity": "Q22|route_redesign|2025-08-31|day",
+      "routeId": "Q22",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q22; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:72f7e53817cbc4ea63d82663",
+      "identity": "Q46|route_redesign|2025-06-29|day",
+      "routeId": "Q46",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q46; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:7528a8fdaa8407f53e1f6f50",
+      "identity": "Q5|route_redesign|2025-06-29|day",
+      "routeId": "Q5",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q5; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:7e20a1b08937bfd99ecfa376",
+      "identity": "Q88|route_redesign|2025-06-29|day",
+      "routeId": "Q88",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q88; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:812e7f356330a5e09c803076",
+      "identity": "Q32|route_redesign|2025-08-31|day",
+      "routeId": "Q32",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q32; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:82c06bfcbd04f3ab847853d2",
+      "identity": "Q6|route_redesign|2025-08-31|day",
+      "routeId": "Q6",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q6; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:82f351bd46e78275d6aa3996",
+      "identity": "QM8|route_redesign|2025-06-30|day",
+      "routeId": "QM8",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM8; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:8428391e7126ecbc34d375e4",
+      "identity": "Q87|route_redesign|2025-06-30|day",
+      "routeId": "Q87",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to Q87; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable, and no independently evidenced same-route intervention or conflict falls within the study window.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_separate_same_route_intervention_or_conflict_in_window",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:8476b86179cbe2ae5d827cd1",
+      "identity": "Q7|route_redesign|2025-08-31|day",
+      "routeId": "Q7",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q7; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:911c26e93368f1f9b14c2355",
+      "identity": "Q16|route_redesign|2025-06-29|day",
+      "routeId": "Q16",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q16; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:94b892f86c21048e3f4f033d",
+      "identity": "Q23|route_redesign|2025-06-29|day",
+      "routeId": "Q23",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q23; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:965c06112730fb974779c276",
+      "identity": "Q17|route_redesign|2025-06-29|day",
+      "routeId": "Q17",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q17; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:9bcbc3ea2372885571e1edd2",
+      "identity": "Q41|route_redesign|2025-08-31|day",
+      "routeId": "Q41",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q41; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:a30b1ecff3e42a8445495845",
+      "identity": "QM12|route_redesign|2025-06-30|day",
+      "routeId": "QM12",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM12; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:a313d393cbb030c3d2eae29f",
+      "identity": "Q30|route_redesign|2025-06-29|day",
+      "routeId": "Q30",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q30; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:a418af5dbc9aae39d56fe4eb",
+      "identity": "Q67|route_redesign|2025-06-29|day",
+      "routeId": "Q67",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q67; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:a9ba7daea3e3e88b4a61c971",
+      "identity": "QM20|route_redesign|2025-06-30|day",
+      "routeId": "QM20",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM20; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:acc161051bf17a0f7dd6f945",
+      "identity": "QM10|route_redesign|2025-06-30|day",
+      "routeId": "QM10",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM10; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:ad22332e905af0e0675f2a24",
+      "identity": "Q11|route_redesign|2025-08-31|day",
+      "routeId": "Q11",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q11; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:b48a99f94bb29420499c01f8",
+      "identity": "Q39|route_redesign|2025-06-29|day",
+      "routeId": "Q39",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q39; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:b6e30561a2c60598b1691af9",
+      "identity": "QM44|route_redesign|2025-06-30|day",
+      "routeId": "QM44",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM44; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable, and no independently evidenced same-route intervention or conflict falls within the study window.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_separate_same_route_intervention_or_conflict_in_window",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:b7479620a771486691d90901",
+      "identity": "Q15|route_redesign|2025-06-29|day",
+      "routeId": "Q15",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q15; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:bd0049d10da52243700f9a89",
+      "identity": "Q89|route_redesign|2025-06-29|day",
+      "routeId": "Q89",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q89; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable, and no independently evidenced same-route intervention or conflict falls within the study window.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_separate_same_route_intervention_or_conflict_in_window",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c093903b8d79915988f92a5d",
+      "identity": "QM25|route_redesign|2025-09-02|day",
+      "routeId": "QM25",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-09-02",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-09-02 route-redesign bundle to QM25; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c1f317bad6c1296b0fb94b39",
+      "identity": "Q103|route_redesign|2025-08-31|day",
+      "routeId": "Q103",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q103; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c4ff161260c9b57c693dcffe",
+      "identity": "Q4|route_redesign|2025-06-29|day",
+      "routeId": "Q4",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q4; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c6a78dba10b9f0f017134994",
+      "identity": "Q48|route_redesign|2025-06-30|day",
+      "routeId": "Q48",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to Q48; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c83db679782bc49417896042",
+      "identity": "Q112|route_redesign|2025-06-29|day",
+      "routeId": "Q112",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q112; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c97b4fc78460fec5fc51c7b1",
+      "identity": "Q25|route_redesign|2025-06-29|day",
+      "routeId": "Q25",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q25; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:c9aeecc5484a6f8606c820c1",
+      "identity": "Q18|route_redesign|2025-08-31|day",
+      "routeId": "Q18",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q18; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:cbe6755fdeb4be3267ad5c31",
+      "identity": "B62|route_redesign|2025-08-31|day",
+      "routeId": "B62",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to B62; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d4456efaf2b2be7c98de94a3",
+      "identity": "QM21|route_redesign|2025-06-30|day",
+      "routeId": "QM21",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM21; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d50970b9f67859e54aff2a8a",
+      "identity": "Q43|route_redesign|2025-06-29|day",
+      "routeId": "Q43",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q43; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d6dc7a1a0a38795f9ffa2faa",
+      "identity": "QM68|route_redesign|2025-06-30|day",
+      "routeId": "QM68",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM68; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable. An apparent in-window DOT lane row is proximity/street matched without exact route, treatment, or lane-overlap binding, so it is not a genuinely separate same-route conflict.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_exact_same_route_conflict_proximity_only_lane_row_not_route_bound",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:d716194f8ff637a8447534c8",
+      "identity": "Q110|route_redesign|2025-06-29|day",
+      "routeId": "Q110",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q110; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:dcb706c3f2a9b04a6d882ab0",
+      "identity": "Q38|route_redesign|2025-06-29|day",
+      "routeId": "Q38",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q38; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e3c00ca497b9e34334ba11b7",
+      "identity": "Q37|route_redesign|2025-08-31|day",
+      "routeId": "Q37",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q37; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e3e97c7c1bce30366ae25697",
+      "identity": "Q76|route_redesign|2025-06-29|day",
+      "routeId": "Q76",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q76; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e56d19210a0deedac4ade15b",
+      "identity": "Q111|route_redesign|2025-06-29|day",
+      "routeId": "Q111",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q111; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e647ff133d2e7e608278c558",
+      "identity": "QM32|route_redesign|2025-06-30|day",
+      "routeId": "QM32",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM32; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e6bd55bf561173214ddb6d24",
+      "identity": "QM6|route_redesign|2025-06-29|day",
+      "routeId": "QM6",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to QM6; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e8254bdd4bc74e49f7358cd5",
+      "identity": "QM36|route_redesign|2025-06-30|day",
+      "routeId": "QM36",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM36; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:e8880622a4a104413f7c4f9e",
+      "identity": "Q36|route_redesign|2025-06-29|day",
+      "routeId": "Q36",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q36; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:eff7fc05a534c7083c6ef4b9",
+      "identity": "Q2|route_redesign|2025-06-29|day",
+      "routeId": "Q2",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q2; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f0c0de1423b27a3ba8471ae1",
+      "identity": "QM64|route_redesign|2025-06-30|day",
+      "routeId": "QM64",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-30",
+      "recommendation": "recommend_approve",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-30 route-redesign bundle to QM64; the exact-day date, exact route scope, six-pre/six-post calendar window, and series_ready spine pass. The tested Queens self-confounder gate is not applicable. An apparent in-window DOT lane row is proximity/street matched without exact route, treatment, or lane-overlap binding, so it is not a genuinely separate same-route conflict.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "pass_series_ready",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_no_exact_same_route_conflict_proximity_only_lane_row_not_route_bound",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f29f02a7c86b818fb4ff5cc9",
+      "identity": "Q113|route_redesign|2025-06-29|day",
+      "routeId": "Q113",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q113; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:f5a71e90505ce87d75a83fcc",
+      "identity": "Q60|route_redesign|2025-08-31|day",
+      "routeId": "Q60",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-08-31",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-08-31 route-redesign bundle to Q60; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    },
+    {
+      "candidateId": "study-event-v2:fc7f1dfe1db1cace9043e365",
+      "identity": "Q85|route_redesign|2025-06-29|day",
+      "routeId": "Q85",
+      "treatmentFamily": "route_redesign",
+      "implementationDate": "2025-06-29",
+      "recommendation": "recommend_reject",
+      "rationale": "The pinned rc19 occurrence and approved occurrence-review evidence exactly bind a realized 2025-06-29 route-redesign bundle to Q85; its exact-day date, exact route scope, and six-pre/six-post calendar window pass. The exact-route spine is needs_pattern_review, a hard Plan 074 failure. The tested Queens self-confounder gate is not applicable but does not clear the spine gate.",
+      "gates": {
+        "evidenceScope": "pass_official_mta_realized_exact_route_bundle",
+        "date": "pass_exact_day",
+        "spine": "fail_needs_pattern_review",
+        "outcome": "pass_6_pre_6_post_calendar_months",
+        "conflict": "pass_none",
+        "confounder": "not_applicable_queens_redesign_group_is_treatment_onset"
+      }
+    }
+  ]
+}

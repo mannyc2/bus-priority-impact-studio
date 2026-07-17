@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { EmptyState } from "@/components/EmptyState";
+import { FilterChips } from "@/components/FilterChips";
 import { RouteBadge } from "@/components/RouteBadge";
 import { SectionCard } from "@/components/SectionCard";
+import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import {
   ciLongLabel,
   signedMphLabel,
@@ -10,8 +13,10 @@ import {
   studyTone,
   studyToneColor,
 } from "@/components/study/study-display";
-import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import type {
   StudioIntervention,
   StudioInterventionCorpus,
@@ -27,7 +32,6 @@ import type {
   StudyIndexRow,
 } from "../api-contract.js";
 import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../home-route-index.js";
-import { StudioPage } from "../page.js";
 
 type InterventionEvidenceBundle = StudioInterventionsEvidenceBundle | StudioRouteEvidenceBundle;
 
@@ -86,14 +90,28 @@ export function InterventionsPage({
     [routes, evidence, corpus],
   );
   const studyRowsByJoinKey = useMemo(() => studyIndexRowsByJoinKey(studiesIndex), [studiesIndex]);
-  const boroughRows =
-    borough === ROUTE_INDEX_ALL_BOROUGHS
-      ? rows
-      : rows.filter((row) => row.routes.some((route) => route.borough.includes(borough)));
-  const filteredRows = boroughRows.filter((row) => matchesFilter(row.event, filter));
+  const boroughRows = useMemo(
+    () =>
+      borough === ROUTE_INDEX_ALL_BOROUGHS
+        ? rows
+        : rows.filter((row) => row.routes.some((route) => route.borough.includes(borough))),
+    [borough, rows],
+  );
+  const filteredRows = useMemo(
+    () => boroughRows.filter((row) => matchesFilter(row.event, filter)),
+    [boroughRows, filter],
+  );
   const visibleRows = filteredRows.slice(0, limit);
   const remaining = filteredRows.length - visibleRows.length;
-  const groups = yearGroups(visibleRows);
+  const datedRows = visibleRows.filter((row) => yearLabel(row.event.year) !== "Undated");
+  const undatedRows = visibleRows.filter((row) => yearLabel(row.event.year) === "Undated");
+  const groups = yearGroups(datedRows);
+  const routeCount = new Set(rows.flatMap((row) => row.routes.map((route) => route.slug))).size;
+  const totalDatedCount = rows.filter((row) => yearLabel(row.event.year) !== "Undated").length;
+  const filteredDatedCount = filteredRows.filter(
+    (row) => yearLabel(row.event.year) !== "Undated",
+  ).length;
+  const filteredUndatedCount = filteredRows.length - filteredDatedCount;
 
   const selectFilter = (next: InterventionFilter) => {
     setFilter(next);
@@ -105,102 +123,132 @@ export function InterventionsPage({
   };
 
   return (
-    <StudioPage>
-      <header className="mb-6 border-b border-[var(--bp-color-rule)] pb-5">
-        <h1 className="m-0 text-[26px] font-semibold leading-[1.15] tracking-[-0.015em]">
-          Interventions
-        </h1>
-        <p className="mt-2 max-w-[640px] text-[13.5px] leading-[1.55] text-[var(--bp-color-ink-70)]">
-          Documented bus lanes, camera enforcement, signal priority, and service changes across the
-          tracked network, newest first.
-        </p>
-      </header>
+    <main className="min-h-full bg-[var(--bp-color-paper)]">
+      <section className="mx-auto max-w-[1180px] px-9 pb-16 pt-14 max-sm:px-4 max-sm:pt-10">
+        <header className="mb-7">
+          <h1 className="m-0 text-[26px] font-semibold leading-[1.15] tracking-[-0.022em]">
+            Interventions
+          </h1>
+          <p className="mt-2.5 max-w-[720px] text-[15px] leading-[1.55] text-[var(--bp-color-ink-70)]">
+            Documented bus lanes, camera enforcement, signal priority, and service changes across
+            the tracked network.
+          </p>
+          <p className="mt-3 font-mono text-[11px] tabular-nums text-[var(--bp-color-ink-55)]">
+            {`${rows.length} records across ${routeCount} routes. ${totalDatedCount} dated. Newest first.`}
+          </p>
+        </header>
 
-      <div className="mb-5 flex flex-col gap-2.5">
-        <div className="flex flex-wrap gap-1.5">
-          {filters.map((item) => (
-            <FilterChip
-              key={item.id}
-              active={filter === item.id}
-              label={`${item.label} (${boroughRows.filter((row) => matchesFilter(row.event, item.id)).length})`}
-              onClick={() => selectFilter(item.id)}
-            />
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {[ROUTE_INDEX_ALL_BOROUGHS, ...ROUTE_INDEX_BOROUGHS].map((item) => (
-            <FilterChip
-              key={item}
-              active={borough === item}
-              label={item}
-              onClick={() => selectBorough(item as BoroughFilter)}
-            />
-          ))}
-        </div>
-      </div>
-
-      <SectionCard
-        title="Network timeline"
-        sub="Open a route for maps, speed history, and full citations."
-      >
-        {filteredRows.length === 0 ? (
-          <div className="px-1 py-4 text-[13px] text-[var(--bp-color-ink-55)]">
-            No intervention records match this filter.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {groups.map((group) => (
-              <div key={group.year}>
-                <div className="border-b border-[var(--bp-color-rule)] pb-1 text-[13px] font-semibold">
-                  {group.year}
-                </div>
-                {group.rows.map((row) => (
-                  <ChronicleRow
-                    key={row.key}
-                    row={row}
-                    study={studyIndexRowForEventId(row.event.eventId, studyRowsByJoinKey)}
+        <div className="grid grid-cols-[238px_minmax(0,1fr)] items-start gap-6 max-lg:grid-cols-1">
+          <aside className="sticky top-6 max-lg:static">
+            <SectionCard
+              title="Filter timeline"
+              sub={`${filteredRows.length} records in the current view.`}
+            >
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <div className="text-[11px] font-semibold text-[var(--bp-color-ink-70)]">
+                    Status
+                  </div>
+                  <FilterChips
+                    value={filter}
+                    onChange={selectFilter}
+                    ariaLabel="Filter interventions by status"
+                    options={filters.map((item) => ({
+                      id: item.id,
+                      label: `${item.label} (${boroughRows.filter((row) => matchesFilter(row.event, item.id)).length})`,
+                    }))}
                   />
-                ))}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <div className="text-[11px] font-semibold text-[var(--bp-color-ink-70)]">
+                    Borough
+                  </div>
+                  <FilterChips
+                    value={borough}
+                    onChange={selectBorough}
+                    ariaLabel="Filter interventions by borough"
+                    options={[ROUTE_INDEX_ALL_BOROUGHS, ...ROUTE_INDEX_BOROUGHS].map((item) => ({
+                      id: item as BoroughFilter,
+                      label: item,
+                    }))}
+                  />
+                </div>
+                <Separator />
+                <dl className="m-0 grid grid-cols-2 gap-3">
+                  <TimelineCount label="Dated" value={filteredDatedCount} />
+                  <TimelineCount label="No date" value={filteredUndatedCount} />
+                </dl>
               </div>
-            ))}
-            {remaining > 0 ? (
-              <button
-                type="button"
-                onClick={() => setLimit((value) => value + INTERVENTIONS_PAGE_SIZE)}
-                className="w-full rounded-[3px] px-3 py-2.5 text-[12px] font-semibold text-[var(--bp-color-ink-55)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)] transition-colors hover:text-[var(--bp-color-ink)]"
-              >
-                {`Show ${Math.min(INTERVENTIONS_PAGE_SIZE, remaining)} more (${remaining} left)`}
-              </button>
-            ) : null}
+            </SectionCard>
+          </aside>
+
+          <div className="flex min-w-0 flex-col gap-5">
+            {filteredRows.length === 0 ? (
+              <SectionCard title="Network timeline" sub="No records match the current filters.">
+                <EmptyState
+                  title="No matching interventions"
+                  body="Choose another status or borough to return records to the timeline."
+                />
+              </SectionCard>
+            ) : (
+              <>
+                {groups.length > 0 ? (
+                  <SectionCard
+                    title="Network timeline"
+                    sub={`${filteredDatedCount} dated records. Open a route for maps, speed history, and full citations.`}
+                    right={<Badge variant="neutral">Newest first</Badge>}
+                  >
+                    <InterventionTimeline groups={groups} studyRowsByJoinKey={studyRowsByJoinKey} />
+                  </SectionCard>
+                ) : null}
+
+                {undatedRows.length > 0 ? (
+                  <SectionCard
+                    title="Undated records"
+                    sub="Documented treatments, projects, and source gaps without a defensible event date."
+                  >
+                    <div className="flex flex-col">
+                      {undatedRows.map((row, index) => (
+                        <div key={row.key}>
+                          {index === 0 ? null : <Separator />}
+                          <div className="py-3.5 first:pt-0 last:pb-0">
+                            <InterventionRecord
+                              row={row}
+                              study={studyIndexRowForEventId(row.event.eventId, studyRowsByJoinKey)}
+                              undated
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </SectionCard>
+                ) : null}
+
+                {remaining > 0 ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setLimit((value) => value + INTERVENTIONS_PAGE_SIZE)}
+                    className="w-full"
+                  >
+                    {`Show ${Math.min(INTERVENTIONS_PAGE_SIZE, remaining)} more (${remaining} left)`}
+                  </Button>
+                ) : null}
+              </>
+            )}
           </div>
-        )}
-      </SectionCard>
-    </StudioPage>
+        </div>
+      </section>
+    </main>
   );
 }
 
-function FilterChip({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
+function TimelineCount({ label, value }: { label: string; value: number }) {
   return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={
-        active
-          ? "rounded-[3px] border-0 bg-[var(--bp-color-ink)] px-3 py-1.5 text-[12px] font-semibold text-[var(--bp-color-paper)]"
-          : "rounded-[3px] border border-[var(--bp-color-ink-20)] bg-transparent px-3 py-1.5 text-[12px] font-semibold text-[var(--bp-color-ink-70)] hover:bg-[var(--bp-color-card)]"
-      }
-    >
-      {label}
-    </button>
+    <div>
+      <dt className="text-[10px] font-semibold text-[var(--bp-color-ink-55)]">{label}</dt>
+      <dd className="m-0 mt-1 font-mono text-[17px] font-semibold tabular-nums">{value}</dd>
+    </div>
   );
 }
 
@@ -223,9 +271,91 @@ export function yearGroups(
   return groups;
 }
 
-function ChronicleRow({ row, study }: { row: InterventionRow; study?: StudyIndexRow | undefined }) {
-  const cohort = row.event.comparisonCohort;
-  const undated = yearLabel(row.event.year) === "Undated";
+function InterventionTimeline({
+  groups,
+  studyRowsByJoinKey,
+}: {
+  groups: readonly { year: string; rows: InterventionRow[] }[];
+  studyRowsByJoinKey: ReadonlyMap<string, StudyIndexRow | null>;
+}) {
+  return (
+    <ol
+      aria-label="Network intervention timeline"
+      className="relative m-0 flex list-none flex-col gap-7 p-0 before:pointer-events-none before:absolute before:bottom-4 before:left-[75px] before:top-2 before:w-px before:bg-[var(--bp-color-rule)] max-sm:before:left-[5px]"
+    >
+      {groups.map((group) => (
+        <li
+          key={group.year}
+          className="relative grid grid-cols-[72px_minmax(0,1fr)] gap-8 max-sm:block"
+        >
+          <div className="pt-0.5 max-sm:mb-3 max-sm:pl-7">
+            <div className="font-mono text-[15px] font-semibold tabular-nums leading-none">
+              {group.year}
+            </div>
+            <div className="mt-1.5 font-mono text-[9.5px] tabular-nums text-[var(--bp-color-ink-40)]">
+              {`${group.rows.length} ${group.rows.length === 1 ? "record" : "records"}`}
+            </div>
+          </div>
+          <ol className="m-0 flex list-none flex-col gap-6 p-0 max-sm:pl-7">
+            {group.rows.map((row, index) => {
+              const study = studyIndexRowForEventId(row.event.eventId, studyRowsByJoinKey);
+              const tone = timelineTone(row.event, study);
+              return (
+                <li key={row.key} className="relative">
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute -left-[33px] top-1.5 block ring-[3px] ring-[var(--bp-color-card)] max-sm:-left-[27px]",
+                      index === 0 ? "size-2.5 rounded-[2px]" : "size-2 rounded-full",
+                      timelineToneClass[tone],
+                    )}
+                  />
+                  <InterventionRecord row={row} study={study} />
+                </li>
+              );
+            })}
+          </ol>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+type TimelineTone = "accent" | "good" | "warn" | "bad" | "neutral";
+
+const timelineToneClass: Record<TimelineTone, string> = {
+  accent: "bg-[var(--bp-color-accent)]",
+  good: "bg-[var(--bp-color-good)]",
+  warn: "bg-[var(--bp-color-warn)]",
+  bad: "bg-[var(--bp-color-bad)]",
+  neutral: "bg-[var(--bp-color-card)] shadow-[inset_0_0_0_1px_var(--bp-color-ink-40)]",
+};
+
+function timelineTone(event: InterventionDisplayEvent, study?: StudyIndexRow): TimelineTone {
+  if (event.source === "source_gap" || event.filterState === "source-gap") return "warn";
+  if (study !== undefined) return studyTone(study.direction);
+  if (event.comparisonCohort !== undefined) {
+    const effect =
+      event.comparisonCohort.adjustedSpeedDeltaMph ?? event.comparisonCohort.routeSpeedDeltaMph;
+    if (effect === null || effect === 0) return "neutral";
+    return effect > 0 ? "good" : "bad";
+  }
+  if (event.filterState === "future") return "accent";
+  if (event.tone === "good" || event.tone === "warn" || event.tone === "bad") return event.tone;
+  if (event.source === "wiki" || event.source === "corpus") return "neutral";
+  return "accent";
+}
+
+function InterventionRecord({
+  row,
+  study,
+  undated = false,
+}: {
+  row: InterventionRow;
+  study?: StudyIndexRow | undefined;
+  undated?: boolean;
+}) {
+  const hasStudySummary = row.event.comparisonCohort !== undefined;
   const citationSourceEntries: SourceNoteEntry[] =
     row.event.citationKeys.length > 0
       ? citationEntries(row.evidence, row.event.citationKeys)
@@ -237,35 +367,45 @@ function ChronicleRow({ row, study }: { row: InterventionRow; study?: StudyIndex
   const primaryRoute = row.routes[0] ?? null;
 
   return (
-    <div className="grid grid-cols-[64px_auto_minmax(0,1fr)_auto] items-start gap-3 py-2.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-md:grid-cols-[64px_minmax(0,1fr)]">
-      <div
-        className={`pt-0.5 font-mono text-[11px] ${undated ? "text-[var(--bp-color-ink-40)]" : "text-[var(--bp-color-ink-70)]"}`}
-      >
-        {undated ? "Undated" : row.event.year}
-      </div>
-      <div className="flex flex-wrap gap-1 pt-0.5">
-        {row.routes.length === 0 ? (
-          <span className="font-mono text-[10.5px] text-[var(--bp-color-ink-40)]">Network</span>
-        ) : (
-          row.routes.map((route) => (
-            <Link
-              key={route.slug}
-              to="/routes/$routeId"
-              params={{ routeId: route.slug }}
-              viewTransition
-              className="no-underline"
+    <article
+      className={cn(
+        "grid items-start gap-5 max-md:grid-cols-1 max-md:gap-3",
+        hasStudySummary ? "grid-cols-[minmax(0,1fr)_170px]" : "grid-cols-1",
+      )}
+    >
+      <div className="min-w-0">
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          {undated ? (
+            <span className="font-mono text-[10.5px] text-[var(--bp-color-ink-40)]">Undated</span>
+          ) : (
+            <time
+              dateTime={timelineDateTime(row.event.year)}
+              className="font-mono text-[10.5px] font-semibold tabular-nums text-[var(--bp-color-ink-55)]"
             >
-              <RouteBadge route={route.label} sbs={route.sbs} size="sm" />
-            </Link>
-          ))
-        )}
-      </div>
-      <div className="min-w-0 max-md:col-span-2">
+              {timelineDateLabel(row.event.year)}
+            </time>
+          )}
+          {row.routes.length === 0 ? (
+            <span className="font-mono text-[10.5px] text-[var(--bp-color-ink-40)]">Network</span>
+          ) : (
+            row.routes.map((route) => (
+              <Link
+                key={route.slug}
+                to="/routes/$routeId"
+                params={{ routeId: route.slug }}
+                viewTransition
+                className="no-underline"
+              >
+                <RouteBadge route={route.label} sbs={route.sbs} size="sm" />
+              </Link>
+            ))
+          )}
+          <Badge variant="neutral">{humanizeKind(row.event.kind)}</Badge>
+          <EventStatusBadge event={row.event} study={study} />
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="neutral">{row.event.kind.replaceAll("_", " ")}</Badge>
-          {row.event.documented ? <Badge variant="neutral">documented</Badge> : null}
           {primaryRoute === null ? (
-            <span className="text-[13px] font-semibold leading-tight text-[var(--bp-color-ink)]">
+            <span className="text-[13.5px] font-semibold leading-[1.3] text-[var(--bp-color-ink)]">
               {row.event.title}
             </span>
           ) : (
@@ -273,58 +413,119 @@ function ChronicleRow({ row, study }: { row: InterventionRow; study?: StudyIndex
               to="/routes/$routeId"
               params={{ routeId: primaryRoute.slug }}
               viewTransition
-              className="text-[13px] font-semibold leading-tight text-[var(--bp-color-ink)] no-underline"
+              className="text-[13.5px] font-semibold leading-[1.3] text-[var(--bp-color-ink)] no-underline hover:text-[var(--bp-color-accent)]"
             >
               {row.event.title}
             </Link>
           )}
         </div>
-        <div className="mt-1 line-clamp-2 text-[12px] leading-[1.45] text-[var(--bp-color-ink-55)]">
+        <div className="mt-1.5 text-[12px] leading-[1.5] text-[var(--bp-color-ink-70)]">
           {row.event.detail}
         </div>
         {entries.length > 0 ? (
-          <div className="mt-1">
+          <div className="mt-1.5">
             <SourceNote entries={entries} />
           </div>
         ) : null}
       </div>
-      {cohort && study !== undefined && study.effectMph !== null ? (
-        <div className="text-right text-[11.5px] text-[var(--bp-color-ink-55)] max-md:col-span-2 max-md:text-left">
-          <div
-            className="font-mono text-[15px] font-semibold"
-            style={{ color: studyToneColor(studyTone(study.direction)) }}
-          >
-            {signedMphLabel(study.effectMph)}
-          </div>
-          {study.confidenceInterval === null ? null : (
-            <div className="mt-1 font-mono">{ciLongLabel(study.confidenceInterval)}</div>
-          )}
-          <div className="mt-1">matched-segment study</div>
-          <div className="mt-1">
-            <Link
-              to="/routes/$routeId"
-              params={{ routeId: study.routeSlug }}
-              search={{ tab: "history", study: study.eventKey }}
-              viewTransition
-              className="text-[11.5px]"
-            >
-              View study →
-            </Link>
-          </div>
-        </div>
-      ) : cohort ? (
-        <div className="text-right text-[11.5px] text-[var(--bp-color-ink-55)] max-md:col-span-2 max-md:text-left">
-          <div className="font-mono text-[15px] font-semibold text-[var(--bp-color-ink)]">
-            {formatDelta(cohort.adjustedSpeedDeltaMph ?? cohort.routeSpeedDeltaMph)}
-          </div>
-          <div className="mt-1">{cohort.causalInterpretation.replaceAll("_", " ")}</div>
-          <div className="mt-1">{cohort.routeCount} comparison routes</div>
-        </div>
-      ) : (
-        <div />
-      )}
-    </div>
+      <StudySummary row={row} study={study} />
+    </article>
   );
+}
+
+function StudySummary({ row, study }: { row: InterventionRow; study: StudyIndexRow | undefined }) {
+  const cohort = row.event.comparisonCohort;
+  if (cohort && study !== undefined && study.effectMph !== null) {
+    return (
+      <aside className="text-right text-[11px] leading-[1.4] text-[var(--bp-color-ink-55)] max-md:text-left">
+        <div
+          className="font-mono text-[15px] font-semibold tabular-nums"
+          style={{ color: studyToneColor(studyTone(study.direction)) }}
+        >
+          {signedMphLabel(study.effectMph)}
+        </div>
+        {study.confidenceInterval === null ? null : (
+          <div className="mt-1 font-mono tabular-nums">{ciLongLabel(study.confidenceInterval)}</div>
+        )}
+        <div className="mt-1.5">
+          <Link
+            to="/routes/$routeId"
+            params={{ routeId: study.routeSlug }}
+            search={{ tab: "history", study: study.eventKey }}
+            viewTransition
+            className="font-semibold text-[var(--bp-color-accent)]"
+          >
+            View study →
+          </Link>
+        </div>
+      </aside>
+    );
+  }
+  if (cohort) {
+    return (
+      <aside className="text-right text-[11px] leading-[1.4] text-[var(--bp-color-ink-55)] max-md:text-left">
+        <div className="font-mono text-[15px] font-semibold tabular-nums text-[var(--bp-color-ink)]">
+          {formatDelta(cohort.adjustedSpeedDeltaMph ?? cohort.routeSpeedDeltaMph)}
+        </div>
+        <div className="mt-1">{cohort.causalInterpretation.replaceAll("_", " ")}</div>
+        <div className="mt-1">{cohort.routeCount} comparison routes</div>
+      </aside>
+    );
+  }
+  return null;
+}
+
+function EventStatusBadge({
+  event,
+  study,
+}: {
+  event: InterventionDisplayEvent;
+  study: StudyIndexRow | undefined;
+}) {
+  if (event.source === "source_gap" || event.filterState === "source-gap") {
+    return <Badge variant="warn">Needs source</Badge>;
+  }
+  if (event.filterState === "future") return <Badge variant="accent">Future</Badge>;
+  if (study !== undefined || event.comparisonCohort !== undefined) {
+    return <Badge variant={timelineTone(event, study)}>Evaluated</Badge>;
+  }
+  if (event.documented) return <Badge variant="neutral">Documented</Badge>;
+  return null;
+}
+
+function humanizeKind(kind: string): string {
+  return kind.replaceAll("_", " ").trim();
+}
+
+const MONTH_LABELS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+function timelineDateTime(dateish: string): string {
+  const isoDate = dateish.match(/^\d{4}(?:-\d{2})?(?:-\d{2})?/u)?.[0];
+  return isoDate ?? yearLabel(dateish);
+}
+
+function timelineDateLabel(dateish: string): string {
+  const isoParts = dateish.match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/u);
+  if (isoParts !== null) {
+    const month = MONTH_LABELS[Number(isoParts[2]) - 1];
+    if (month !== undefined) return isoParts[3] === undefined ? month : `${month} ${isoParts[3]}`;
+  }
+  const year = yearLabel(dateish);
+  const remainder = dateish.replace(year, "").trim();
+  return remainder.length > 0 ? remainder : "Year";
 }
 
 export function interventionRows(
@@ -347,7 +548,7 @@ export function interventionRows(
           event: {
             ...event,
             sortKey: event.year,
-            kind: "program record",
+            kind: event.interventionType ?? "program record",
             source: "serving",
             citationKeys: [],
           },

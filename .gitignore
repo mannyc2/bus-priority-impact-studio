@@ -25,6 +25,23 @@ data/working/*
 data/artifacts/*
 data/exports/*
 data/local/*
+# The reviewed Plan 073 documentation corpus is a pinned source input, not a
+# generated serving artifact. Keep this one file commit-able while retaining
+# the rest of the multi-gigabyte capture tree as local data.
+!data/artifacts/docs/
+data/artifacts/docs/*
+!data/artifacts/docs/gap-roadmap-docs-2026-05-25/
+data/artifacts/docs/gap-roadmap-docs-2026-05-25/*
+!data/artifacts/docs/gap-roadmap-docs-2026-05-25/intervention-records-corpus-v3-reviewed-2026-05-27.json
+# Keep the evidence-funnel handoff report reviewable in version control while
+# all machine-sized study artifacts remain local/release-managed.
+!data/artifacts/studio/
+data/artifacts/studio/*
+!data/artifacts/studio/v2/
+data/artifacts/studio/v2/*
+!data/artifacts/studio/v2/studies/
+data/artifacts/studio/v2/studies/*
+!data/artifacts/studio/v2/studies/temporal-anchor-audit.md
 # Operational run logs, PIDs, and scratch from local backfill runners.
 data/ops/*
 data/ops/backfills/

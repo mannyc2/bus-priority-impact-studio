@@ -99,7 +99,19 @@ export function congestionPricingOverlapGate(input: {
 export function queensRedesignOverlapGate(input: {
   readonly routeId: string;
   readonly windowMonths: readonly string[];
+  readonly treatmentFamily?: string | undefined;
+  readonly treatmentConfounderGroupId?: string | null | undefined;
 }): StudyGate {
+  if (
+    input.treatmentFamily === "route_redesign" &&
+    input.treatmentConfounderGroupId === "queens_bus_network_redesign_2025"
+  ) {
+    return {
+      status: "not_applicable",
+      reason:
+        "The reviewed Queens redesign occurrence is the treatment onset, not an external confounder.",
+    };
+  }
   const overlaps =
     input.routeId.startsWith("Q") &&
     input.windowMonths.some(

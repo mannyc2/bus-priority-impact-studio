@@ -2,9 +2,12 @@ import type * as MapLibre from "maplibre-gl";
 
 export type MapLibreModule = typeof MapLibre;
 export type MapLibreMap = MapLibre.Map;
+export type MapLibrePopup = MapLibre.Popup;
 export type MapLibreGeoJSONSource = MapLibre.GeoJSONSource;
 export type MapLibreMapLayerMouseEvent = MapLibre.MapLayerMouseEvent;
+export type MapLibreMapMouseEvent = MapLibre.MapMouseEvent;
 export type MapLibreStyleSpecification = MapLibre.StyleSpecification;
+export type MapLibreExpression = MapLibre.ExpressionSpecification;
 
 declare global {
   interface Window {

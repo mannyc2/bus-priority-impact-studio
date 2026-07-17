@@ -8186,6 +8186,22 @@ interpunct chains, kicker eyebrows, and banned phrases; its allowlist now holds
 only live-file exceptions (CorridorMap, RouteGeoMap, RouteMapLibre.map
 interpuncts; RouteMapSection kicker).
 
+## [2026-07-10] design | 075 study-card comp approved (3 rounds); comp gate + chart rules ratcheted
+
+The operator approved the History-tab study-card design via the new
+comp-before-implementation gate: `plans/mockups/075-history-tab/
+study-cards-comp.html` went through three same-day review rounds (real
+B41/M104/M21 registry events + monthly speeds; CIs illustrative pending plan
+074). Outcomes: chart-first cards on the shadcn chart-card anatomy in app
+tokens; one consolidated metric per card; check/gate internals behind the
+"Method & provenance" SourceNote only; terse copy ("vs controls", "No clear
+change", no date lines where the chart carries dates). Plan 075 was rewritten
+to carry the approved anatomy as its binding acceptance target plus a new
+`BANNED_PHRASES` entry (`no detectable change` prose form); plans/README.md
+gen-8/9 notes now bind the comp gate (080/081 comp rounds before
+implementation) and the chart rules; durable rules recorded in
+wiki/engineering/studio_design_pass_status.md.
+
 ## [2026-07-11] engineering | Plan 071 steering-doc truth sweep
 
 Aligned the root README with ADR-0020's Effect Schema-only contract, removed the deleted
@@ -8272,20 +8288,6 @@ The leaf gate is empty across pipeline, analytics, Studio API, and web. Final ve
 211 pipeline tests, 102 analytics tests, 54 Studio API tests, 22 Worker tests in 6.30 seconds, 155
 web tests, 550 repo unit tests, web architecture, CLI help diffs, `git diff --check`, and style.
 
-## [2026-07-11] engineering | Plan 067 removes the domain schema compatibility facade
-
-Migrated the domain registry, primitives, routes, maps, Studio, documents, and findings contracts
-to native Effect Schema with real per-type brands, literal-tagged unions, and explicit boundary
-decode policies. Removed `schema-compat.ts` and its package export, then added and deliberately
-tripped an architecture gate that prevents the compatibility facade or imports from returning.
-Pruning the migrated findings surface removed 1,166 unused migrated-format lines while preserving
-the dependency closure used by production and tests.
-
-Every served JSON Schema artifact is byte-identical to its pre-migration capture. Final
-verification passed: repository typechecking, 553 unit tests, 155 web tests, 22 Worker tests,
-architecture gates, `git diff --check`, and style. The production entry remains 105.5 KB gzip and
-the full web bundle remains 312.5 KB gzip.
-
 ## [2026-07-11] engineering | Plan 077 restores validated MapLibre rendering
 
 Replaced every MapLibre-facing OKLCH value with a parser-tested sRGB ramp, centralized the base
@@ -8303,6 +8305,20 @@ Final verification passed: web typecheck, 9 focused tests, all 161 web tests, st
 105.6 KB gzip entry / 313.7 KB gzip total bundle. Chrome for Testing 149.0.7827.55 verified
 `/map`, B48, and M15-SBS at desktop and 390px, including NYC clamping, page scroll over the
 embedded map, reduced motion, and forced vendor-failure recovery.
+
+## [2026-07-11] engineering | Plan 067 removes the domain schema compatibility facade
+
+Migrated the domain registry, primitives, routes, maps, Studio, documents, and findings contracts
+to native Effect Schema with real per-type brands, literal-tagged unions, and explicit boundary
+decode policies. Removed `schema-compat.ts` and its package export, then added and deliberately
+tripped an architecture gate that prevents the compatibility facade or imports from returning.
+Pruning the migrated findings surface removed 1,166 unused migrated-format lines while preserving
+the dependency closure used by production and tests.
+
+Every served JSON Schema artifact is byte-identical to its pre-migration capture. Final
+verification passed: repository typechecking, 553 unit tests, 155 web tests, 22 Worker tests,
+architecture gates, `git diff --check`, and style. The production entry remains 105.5 KB gzip and
+the full web bundle remains 312.5 KB gzip.
 
 ## [2026-07-11] engineering | Plan 078 establishes canonical map segment identity
 
@@ -8325,13 +8341,79 @@ output/spine-root resolution discovered by the executable checker.
 Published a strict, source-linked projection of all 310 reviewed intervention records through the
 existing artifact endpoint and merged it into `/interventions` with exact registry-ID deduplication,
 route and treatment badges, documented-history treatment, nullable loading, and source citations.
-The report-only reconciliation preserves the reviewed corpus and admits only route-addressable,
-month-ready implemented or in-progress records to study inputs.
+The immutable input is pinned at SHA-256
+`593cb776ffdfb4c95526772757c54ac6bfb60ba2dbe1443f013445e251132d04`;
+declared count, strict row validity, and unique record IDs are fail-closed, so no reviewed row may
+be silently dropped. Reconciliation is documentation/source-coverage analysis only and never
+supplies Plan 074 causal onset dates.
 
 The corrected study-readiness gate found 29 of 62 implemented/in-progress records month-ready. The
 live registry reconciliation found 11 matched corpus records (26 event IDs), 543 registry-only
-events, three pre-window corpus-only records, and no corpus-only event currently eligible for a
-study; therefore the Plan 074 operator-review list is empty. Final verification passed: 219
+events, three pre-window corpus-only records, and no corpus-only causal candidate. Final verification passed: 219
 pipeline tests, 72 domain tests, 165 web tests, root typechecking, 22 architecture boundaries plus
 five doctrine checks, style, a 105.7 KB gzip entry / 314.6 KB gzip total build, local R2 serving,
 and a headless-Chromium `/interventions` render with corpus rows and citations.
+
+## [2026-07-11] engineering | Temporal anchors reach the explicit study-event approval boundary
+
+Added a manifest-pinned, hash-checked MTA Wiki operational-anchor import and merged only locally
+revalidated Wiki rows with implemented events from the two trusted registry sources. The current
+clean release narrows 633 Wiki rows to 619 assertions, 3 locally eligible assertions,
+and 2 supported Wiki candidates. Preserving distinct local and SBS route identities yields
+401 trusted registry candidates and 403 total candidates in
+`candidate-set:49af8c8721457fa7532a7345`. Plan 073's documentation corpus is not
+a causal-date input; this supersedes the earlier corpus-derived Plan 074 operator-list description.
+
+The canary now also pins and validates the exact three-decision accepted-review snapshot in the
+MTA Wiki manifest; the tracker verifies its hash, schema, evidence roles, and one-to-one reviewed
+anchor bindings before importing any row.
+
+The set remains `awaiting_approval` with zero approved events. The producer changes are committed at
+`d28b64c8`; clean immutable release `v2-operational-anchors-1` was reproduced byte-for-byte from an
+independent clean worktree with manifest SHA-256
+`b69bd9458a92a817c329cfaa2741ef93dece4d2bbdb4695ea775b09622f5c56c` before import.
+Operator receipts now have a tracked, append-only handoff location under
+`data/study-event-approvals/`, with an intentionally non-validating example so no template can be
+mistaken for approval. Plan 074 remains TODO; the evidence funnel, unresolved-date queue, hashes,
+and current approval requirement are recorded in `data/artifacts/studio/v2/studies/temporal-anchor-audit.md`.
+
+## [2026-07-12] engineering | Plan 074 reaches the real-data anchor review stop
+
+Applied the complete candidate-set-bound receipt: 5 exact-route MTA ACE onsets were approved and
+398 candidates were conservatively rejected. The strict merge preserved
+`candidate-set:49af8c8721457fa7532a7345` and admitted only the five approved events.
+
+The March 2026 segment-study run produced five studies and five route rollups: three gated
+estimates, two descriptive comparisons, four honest `no_detectable_change` results, no ineligible
+studies, and no lane fallback. No estimate exceeded 0.36 mph in absolute value, so the implausible
+effect STOP condition did not fire. All artifacts decode against the native Effect schemas and an
+identical rerun reproduced every study, index, and rollup byte-for-byte. Verification passed 287
+pipeline tests, root typechecking, and repository style.
+
+`data/artifacts/studio/v2/studies/anchors-report.md` is now the binding operator-review handoff.
+Plan 074 remains IN PROGRESS and Plan 075 has not started: the operator must sanity-check published
+anchors and explicitly resolve whether the five approved studies satisfy the intended real-data
+scope, because the original done criterion expected at least ten and rejected events cannot be
+silently readmitted.
+
+## [2026-07-14] research | MTA Wiki v1-rc19 study-candidate audit
+
+Assessed the pinned MTA Wiki v1-rc19 release against the Tracker operational-occurrence and
+study-candidate pipeline. The manifest and all 20 declared files were independently rehashed;
+the verified manifest SHA-256 is
+c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f. The release produced 135
+occurrences, 134 study-eligible occurrences, 172 route projections, and 1 correctly rejected
+occurrence. The deterministic before/after audit compares the historical 403-row candidate set
+with the corrected 489-row set: 87 identity additions, 1 removal, 12 exact cross-source
+deduplications, zero conflict groups, 84 rows in the Queens redesign treatment group, and zero
+approved rows.
+
+Plan 083 is rebaselined: its historical 39-ACE statement and 5-of-403 coverage premise are not
+current rc19 facts. The new set has 75 spine-blocked additions, while Plan 074's spine,
+evidence, confounder, approval, and publication gates remain unchanged. Review exposed and fixed a
+narrow consumer merge defect that prevented exact registry/Wiki event deduplication; the fix
+retains both provenances and fails closed on ambiguous occurrence matches. The final non-authorizing
+Codex/subagent reconciliation records 16 approval recommendations and 473 rejection
+recommendations, but creates no receipt and authorizes no study or publication. rc19 uses the
+versioned occurrence importer because the legacy anchor importer is v2-only. See
+docs/research/mta-wiki-rc19-plan-rebaseline.md and the generated audit artifacts.

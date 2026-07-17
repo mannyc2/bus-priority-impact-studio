@@ -19,6 +19,7 @@ import {
 import { Effect, Schema } from "effect";
 import { PipelineFileSystemLayer, PipelineFileSystemService } from "../effect/file-system.ts";
 import { runPipelineEffect } from "../effect/runtime.ts";
+import { verifyMtaWikiReleaseFile as verifySharedMtaWikiReleaseFile } from "./mta-wiki-release.ts";
 
 const COMMAND = "studio.import-mta-wiki-operational-anchors";
 const MANIFEST_VERSION = 2;
@@ -818,30 +819,17 @@ const verifyReleaseFile = Effect.fn("MtaWikiOperationalAnchors.verifyReleaseFile
     VerifiedReleaseFile,
     never
   > {
-    const path = yield* safeReleaseFilePath(input);
-    const bytes = yield* readBytes(path, input.operation);
-    if (bytes.length !== input.metadata.bytes) {
-      return yield* Effect.fail(
+    return yield* verifySharedMtaWikiReleaseFile(input).pipe(
+      Effect.mapError((error) =>
         importError({
-          code: "byte_count_mismatch",
-          operation: input.operation,
-          path,
-          detail: `expected ${input.metadata.bytes} bytes, received ${bytes.length}`,
+          code: error.code,
+          operation: error.operation,
+          path: error.path,
+          line: error.line,
+          detail: error.detail,
         }),
-      );
-    }
-    const actualSha256 = sha256(bytes);
-    if (actualSha256 !== input.metadata.sha256) {
-      return yield* Effect.fail(
-        importError({
-          code: "hash_mismatch",
-          operation: input.operation,
-          path,
-          detail: `expected ${input.metadata.sha256}, received ${actualSha256}`,
-        }),
-      );
-    }
-    return { pointer: input.pointer, path, bytes, metadata: input.metadata };
+      ),
+    );
   },
 );
 

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, type ReactNode, Suspense, useState } from "react";
 import { MAP_COLORS, scaledMapColor, speedToColor } from "@/components/route/maplibre-style";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { NetworkMapFeature, NetworkMapFeatureCollection } from "@/studio/api-client";
@@ -7,15 +7,22 @@ const NetworkMapLibreMap = lazy(() =>
   import("./NetworkMapLibre.map.js").then((module) => ({ default: module.NetworkMapLibreMap })),
 );
 
+export type NetworkMapPopupState = {
+  anchor: readonly [number, number];
+  content: ReactNode;
+};
+
 export type NetworkMapLibreProps = {
   collection: NetworkMapFeatureCollection;
   context: RouteGeoContext | null;
   period: MapPeriod;
   lens: NetworkMapLens;
-  hoveredRouteId: string | null;
-  setHoveredRouteId: (routeId: string | null) => void;
   selectedRouteId: string | null;
-  onSelectRoute?: (routeId: string) => void;
+  // lngLat is null when the click comes from the static fallback, which has no
+  // geographic anchor for a popup.
+  onSelectRoute?: (routeId: string, lngLat: readonly [number, number] | null) => void;
+  onClearSelection?: () => void;
+  popup: NetworkMapPopupState | null;
 };
 
 export type NetworkMapLens = "speed" | "riders" | "lanes";
@@ -75,10 +82,10 @@ function NetworkMapStatic({
   collection,
   period,
   lens,
-  hoveredRouteId,
   selectedRouteId,
   onSelectRoute,
 }: NetworkMapLibreProps) {
+  const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null);
   const width = 980;
   const height = 640;
   const padding = 24;
@@ -112,10 +119,12 @@ function NetworkMapStatic({
             key={feature.properties.routeId}
             opacity={hasFocus && !active ? 0.28 : 1}
             style={onSelectRoute === undefined ? undefined : { cursor: "pointer" }}
+            onMouseEnter={() => setHoveredRouteId(feature.properties.routeId)}
+            onMouseLeave={() => setHoveredRouteId(null)}
             onClick={
               onSelectRoute === undefined
                 ? undefined
-                : () => onSelectRoute(feature.properties.routeId)
+                : () => onSelectRoute(feature.properties.routeId, null)
             }
           >
             {feature.geometry.coordinates.map((line, index) => (

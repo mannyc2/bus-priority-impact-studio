@@ -1,10 +1,15 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   loadMapLibre,
+  type MapLibreExpression,
   type MapLibreGeoJSONSource,
   type MapLibreMap,
   type MapLibreMapLayerMouseEvent,
+  type MapLibreMapMouseEvent,
+  type MapLibreModule,
+  type MapLibrePopup,
   resetMapLibreLoader,
 } from "@/components/route/load-maplibre";
 import { type MapRuntimeMap, startMapLibreRuntime } from "@/components/route/maplibre-runtime";
@@ -18,6 +23,7 @@ import {
 import {
   type MapPeriod,
   type NetworkMapLens,
+  type NetworkMapPopupState,
   periodSpeed,
 } from "@/components/route/NetworkMapLibre";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
@@ -42,23 +48,17 @@ export type NetworkMapLibreMapProps = {
   context: RouteGeoContext | null;
   period: MapPeriod;
   lens: NetworkMapLens;
-  hoveredRouteId: string | null;
-  setHoveredRouteId: (routeId: string | null) => void;
   selectedRouteId: string | null;
-  onSelectRoute?: (routeId: string) => void;
+  onSelectRoute?: (routeId: string, lngLat: readonly [number, number] | null) => void;
+  onClearSelection?: () => void;
+  popup: NetworkMapPopupState | null;
   fallback: ReactNode;
 };
 
 type NetworkLineProperties = {
   routeId: string;
-  label: string;
-  borough: string;
-  speedMph: number;
   color: string;
-  opacity: number;
-  lineWidth: number;
   sbs: boolean;
-  dailyRiders: number;
 };
 
 const LAND_SOURCE = "bp-network-land";
@@ -67,21 +67,30 @@ const CASING_LAYER = "bp-network-casing";
 const LINE_LAYER = "bp-network-lines";
 const HIT_LAYER = "bp-network-hit";
 
+// Hover/selection render through feature-state so pointer interaction never
+// rebuilds the 50k-coordinate source; setData only runs on period/lens change.
+const LINE_WIDTH_EXPRESSION: MapLibreExpression = [
+  "case",
+  ["boolean", ["feature-state", "active"], false],
+  5.8,
+  ["case", ["get", "sbs"], 3.6, 2.4],
+];
+const LINE_OPACITY_EXPRESSION: MapLibreExpression = [
+  "case",
+  ["boolean", ["feature-state", "dimmed"], false],
+  0.2,
+  0.92,
+];
+
 function networkFeatureCollection(input: {
   collection: NetworkMapFeatureCollection;
   period: MapPeriod;
   lens: NetworkMapLens;
-  hoveredRouteId: string | null;
-  selectedRouteId: string | null;
 }): FeatureCollection<MultiLineString, NetworkLineProperties> {
   return {
     type: "FeatureCollection",
     features: input.collection.features.map((feature) => {
       const speedMph = periodSpeed(feature, input.period).value;
-      const active =
-        feature.properties.routeId === input.hoveredRouteId ||
-        feature.properties.routeId === input.selectedRouteId;
-      const hasFocus = input.hoveredRouteId !== null || input.selectedRouteId !== null;
       return {
         type: "Feature",
         id: feature.id,
@@ -93,14 +102,8 @@ function networkFeatureCollection(input: {
         },
         properties: {
           routeId: feature.properties.routeId,
-          label: feature.properties.label,
-          borough: feature.properties.borough ?? "Unavailable",
-          speedMph: speedMph ?? 0,
           color: networkLensColor(feature, input.lens, speedMph),
-          opacity: hasFocus && !active ? 0.2 : 0.92,
-          lineWidth: active ? 5.8 : feature.properties.sbs ? 3.6 : 2.4,
           sbs: feature.properties.sbs ?? false,
-          dailyRiders: feature.properties.dailyRiders ?? 0,
         },
       };
     }),
@@ -160,6 +163,19 @@ function source(map: MapLibreMap, id: string): MapLibreGeoJSONSource | null {
   return found === undefined ? null : (found as MapLibreGeoJSONSource);
 }
 
+function applyNetworkFocus(
+  map: MapLibreMap,
+  routeIds: readonly string[],
+  focus: string | null,
+): void {
+  for (const routeId of routeIds) {
+    map.setFeatureState(
+      { source: NETWORK_SOURCE, id: routeId },
+      { active: routeId === focus, dimmed: focus !== null && routeId !== focus },
+    );
+  }
+}
+
 function supportsWebGl(): boolean {
   try {
     const canvas = document.createElement("canvas");
@@ -174,22 +190,33 @@ export function NetworkMapLibreMap({
   context,
   period,
   lens,
-  hoveredRouteId,
-  setHoveredRouteId,
   selectedRouteId,
   onSelectRoute,
+  onClearSelection,
+  popup,
   fallback,
 }: NetworkMapLibreMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const vendorRef = useRef<MapLibreModule | null>(null);
+  const popupRef = useRef<MapLibrePopup | null>(null);
+  const routeIdsRef = useRef<readonly string[]>([]);
+  const hoverRouteIdRef = useRef<string | null>(null);
   const onSelectRouteRef = useRef(onSelectRoute);
   onSelectRouteRef.current = onSelectRoute;
+  const onClearSelectionRef = useRef(onClearSelection);
+  onClearSelectionRef.current = onClearSelection;
+  const selectedRouteIdRef = useRef(selectedRouteId);
+  selectedRouteIdRef.current = selectedRouteId;
   const [ready, setReady] = useState(false);
   const [failure, setFailure] = useState<"runtime" | "unsupported" | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
+  const [popupNode] = useState(() =>
+    typeof document === "undefined" ? null : document.createElement("div"),
+  );
   const networkData = useMemo(
-    () => networkFeatureCollection({ collection, period, lens, hoveredRouteId, selectedRouteId }),
-    [collection, period, lens, hoveredRouteId, selectedRouteId],
+    () => networkFeatureCollection({ collection, period, lens }),
+    [collection, period, lens],
   );
   const landData = useMemo(() => landCollection(context), [context]);
 
@@ -199,26 +226,42 @@ export function NetworkMapLibreMap({
       setFailure("unsupported");
       return;
     }
+    const currentFocus = () => hoverRouteIdRef.current ?? selectedRouteIdRef.current;
     const onMouseMove = (event: MapLibreMapLayerMouseEvent) => {
       const map = mapRef.current;
       const feature = event.features?.[0];
       const properties = feature?.properties as { routeId?: unknown } | undefined;
       const routeId = properties?.routeId;
-      if (map !== null && typeof routeId === "string") {
-        map.getCanvas().style.cursor = "pointer";
-        setHoveredRouteId(routeId);
+      if (map === null || typeof routeId !== "string") return;
+      map.getCanvas().style.cursor = "pointer";
+      if (hoverRouteIdRef.current !== routeId) {
+        hoverRouteIdRef.current = routeId;
+        applyNetworkFocus(map, routeIdsRef.current, currentFocus());
       }
     };
     const onMouseLeave = () => {
       const map = mapRef.current;
-      if (map !== null) map.getCanvas().style.cursor = "";
-      setHoveredRouteId(null);
+      if (map === null) return;
+      map.getCanvas().style.cursor = "";
+      if (hoverRouteIdRef.current !== null) {
+        hoverRouteIdRef.current = null;
+        applyNetworkFocus(map, routeIdsRef.current, currentFocus());
+      }
     };
     const onClick = (event: MapLibreMapLayerMouseEvent) => {
       const feature = event.features?.[0];
       const properties = feature?.properties as { routeId?: unknown } | undefined;
       const routeId = properties?.routeId;
-      if (typeof routeId === "string") onSelectRouteRef.current?.(routeId);
+      if (typeof routeId === "string") {
+        onSelectRouteRef.current?.(routeId, [event.lngLat.lng, event.lngLat.lat]);
+      }
+    };
+    const onBackgroundClick = (event: MapLibreMapMouseEvent) => {
+      const map = mapRef.current;
+      if (map === null || map.getLayer(HIT_LAYER) === undefined) return;
+      if (map.queryRenderedFeatures(event.point, { layers: [HIT_LAYER] }).length === 0) {
+        onClearSelectionRef.current?.();
+      }
     };
 
     const controller = startMapLibreRuntime({
@@ -227,6 +270,7 @@ export function NetworkMapLibreMap({
       createMap: (maplibregl) => {
         const container = containerRef.current;
         if (container === null) throw new Error("Network map container is unavailable.");
+        vendorRef.current = maplibregl;
         const map = new maplibregl.Map({
           container,
           style: mapBaseStyle(),
@@ -258,8 +302,8 @@ export function NetworkMapLibreMap({
           source: NETWORK_SOURCE,
           paint: {
             "line-color": MAP_COLORS.paper,
-            "line-width": ["+", ["get", "lineWidth"], 3.5],
-            "line-opacity": ["get", "opacity"],
+            "line-width": ["+", LINE_WIDTH_EXPRESSION, 3.5],
+            "line-opacity": LINE_OPACITY_EXPRESSION,
           },
           layout: { "line-cap": "round", "line-join": "round" },
         });
@@ -269,8 +313,8 @@ export function NetworkMapLibreMap({
           source: NETWORK_SOURCE,
           paint: {
             "line-color": ["get", "color"],
-            "line-width": ["get", "lineWidth"],
-            "line-opacity": ["get", "opacity"],
+            "line-width": LINE_WIDTH_EXPRESSION,
+            "line-opacity": LINE_OPACITY_EXPRESSION,
           },
           layout: { "line-cap": "round", "line-join": "round" },
         });
@@ -281,14 +325,18 @@ export function NetworkMapLibreMap({
           paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
           layout: { "line-cap": "round", "line-join": "round" },
         });
+        routeIdsRef.current = collection.features.map((feature) => feature.properties.routeId);
+        applyNetworkFocus(map, routeIdsRef.current, currentFocus());
         const bounds = boundsOfNetwork(collection);
         if (bounds !== null) map.fitBounds(bounds, { padding: 28, duration: 0 });
         map.on("mousemove", HIT_LAYER, onMouseMove);
         map.on("mouseleave", HIT_LAYER, onMouseLeave);
         map.on("click", HIT_LAYER, onClick);
+        map.on("click", onBackgroundClick);
         setReady(true);
       },
       onFatal: (error) => {
+        popupRef.current = null;
         mapRef.current = null;
         setReady(false);
         setFailure("runtime");
@@ -301,6 +349,9 @@ export function NetworkMapLibreMap({
         map.off("mousemove", HIT_LAYER, onMouseMove);
         map.off("mouseleave", HIT_LAYER, onMouseLeave);
         map.off("click", HIT_LAYER, onClick);
+        map.off("click", onBackgroundClick);
+        popupRef.current?.remove();
+        popupRef.current = null;
         mapRef.current = null;
         setReady(false);
       },
@@ -322,6 +373,37 @@ export function NetworkMapLibreMap({
     if (map === null || !ready) return;
     source(map, NETWORK_SOURCE)?.setData(networkData);
   }, [networkData, ready]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map === null || !ready) return;
+    routeIdsRef.current = collection.features.map((feature) => feature.properties.routeId);
+    applyNetworkFocus(map, routeIdsRef.current, hoverRouteIdRef.current ?? selectedRouteId);
+  }, [collection, ready, selectedRouteId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const maplibregl = vendorRef.current;
+    if (map === null || maplibregl === null || popupNode === null || !ready) return;
+    if (popup === null) {
+      popupRef.current?.remove();
+      return;
+    }
+    if (popupRef.current === null) {
+      popupRef.current = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        focusAfterOpen: false,
+        maxWidth: "none",
+        offset: 14,
+        className: "bp-map-popup",
+      });
+    }
+    popupRef.current
+      .setLngLat([popup.anchor[0], popup.anchor[1]])
+      .setDOMContent(popupNode)
+      .addTo(map);
+  }, [popup, popupNode, ready]);
 
   if (failure !== null) {
     return (
@@ -345,12 +427,15 @@ export function NetworkMapLibreMap({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="h-full min-h-[320px] overflow-hidden bg-[var(--bp-color-card)]"
-      role="img"
-      aria-label="Citywide bus route speed map"
-    />
+    <>
+      <div
+        ref={containerRef}
+        className="h-full min-h-[320px] overflow-hidden bg-[var(--bp-color-card)]"
+        role="img"
+        aria-label="Citywide bus route speed map"
+      />
+      {popupNode !== null && popup !== null ? createPortal(popup.content, popupNode) : null}
+    </>
   );
 }
 

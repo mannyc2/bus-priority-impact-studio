@@ -19,6 +19,35 @@ the RouteMapSection kicker). The July-4
 export below remains a useful reference for layout/component structure, but its
 color tokens are retired.
 
+## Study-card / chart-card rules — 2026-07-10 (approved comp)
+
+The operator approved plan 075's study-card design through three comp review
+rounds; `plans/mockups/075-history-tab/study-cards-comp.html` (round 3) is the
+binding acceptance target for that plan. Durable rules extracted for ALL
+future chart/metric surfaces (including gen-9 plans 080/081):
+
+- Chart cards follow the shadcn chart-card anatomy (header = title + short
+  description + one right-aligned stat block; body = gradient-area chart;
+  footer = finding sentence) restyled to the app tokens — assembled from the
+  existing shadcn/Recharts primitives.
+- One consolidated metric per chart card — no stat strips or metric grids
+  beside a chart.
+- Method/gate internals (pre-trend, placebo, sample checks, control pools)
+  never render on a card face; they live in the "Method & provenance"
+  SourceNote popover. A single plain-language caveat sentence may stay
+  visible when it qualifies a public claim (e.g. congestion-pricing
+  sensitivity).
+- Terse copy: minimal stat labels ("vs controls"); null display copy is
+  "No clear change" (the artifact enum stays `no_detectable_change`; plan 075
+  adds the prose form to the doctrine `BANNED_PHRASES`); no date/window lines
+  where the chart itself carries the dates (end ticks + implementation
+  reference line) — exact windows belong in provenance.
+- Process (the comp gate): frontend plans do not start implementation until
+  an operator-approved HTML comp exists in `plans/mockups/`, built from real
+  data in the app tokens and passing the doctrine banned-pattern greps.
+  Approvals become the plan's acceptance target; rejections ratchet into
+  `tests/harness/design-doctrine.test.ts` or this document.
+
 ## Current design source - 2026-07-04
 
 The latest design source is the July 4 source capture:

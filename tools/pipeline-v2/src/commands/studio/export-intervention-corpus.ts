@@ -1,5 +1,6 @@
-import { mkdir } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative } from "node:path";
+import { createHash } from "node:crypto";
+import { mkdir, readFile } from "node:fs/promises";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { RouteTreatmentInterventionEventRow } from "@bp/analytics/interventions";
 import { decodeStrict } from "@bp/domain/decode";
 import {
@@ -28,6 +29,7 @@ import { defaultArtifactRootPath, fromCliPath, fromRepoRoot, repoRoot } from "..
 const DEFAULT_CORPUS_PATH = fromRepoRoot(
   "data/artifacts/docs/gap-roadmap-docs-2026-05-25/intervention-records-corpus-v3-reviewed-2026-05-27.json",
 );
+const DEFAULT_CORPUS_SHA256 = "593cb776ffdfb4c95526772757c54ac6bfb60ba2dbe1443f013445e251132d04";
 const ANALYSIS_WINDOW_START_MONTH = "2023-04";
 const ANALYSIS_WINDOW_END_MONTH = "2026-03";
 
@@ -99,6 +101,8 @@ export function projectInterventionCorpusRecord(
     recordKind: record.recordKind,
     statusLatest: record.statusHistory.at(-1)?.status ?? null,
     corridorStreets: [...(record.corridor?.streets ?? [])],
+    // Documentation/display hint only. Study eligibility is built separately
+    // from trusted registry events plus manifest-pinned Wiki anchors.
     evaluableInWindow:
       record.recordKind !== "proposed" &&
       record.routes.length > 0 &&
@@ -371,7 +375,9 @@ export function interventionCorpusReconciliationMarkdown(
     "",
     "Undated proposals remain visible in the serving corpus but are never admitted to study inputs. The study-readiness gate is applied to implemented/in-progress records, because proposals are not expected to have implementation dates.",
     "",
-    "## Corpus-only evaluable records (operator review required before Plan 074 merge)",
+    "Corpus-only rows are documentation and source-coverage findings. They never enter Plan 074 causal inputs; those come only from trusted registry events plus manifest-pinned, locally revalidated Wiki anchors.",
+    "",
+    "## Corpus-only window-aligned documentation findings (not study inputs)",
     "",
   ];
   if (report.corpusOnlyEvaluable.length === 0) {
@@ -396,6 +402,7 @@ export async function runExportInterventionCorpus(input: {
   reconciliationMarkdownOutput?: string | undefined;
   local?: OpenLocalPipelineDb | undefined;
   generatedAt?: string | undefined;
+  expectedCorpusSha256?: string | undefined;
 }): Promise<{
   outputPath: string;
   reconciliationOutputPath: string | null;
@@ -411,31 +418,40 @@ export async function runExportInterventionCorpus(input: {
   const artifactRoot = input.artifactRoot ?? defaultArtifactRootPath();
   const outputPath = input.output ?? join(artifactRoot, interventionCorpusKey());
   const generatedAt = input.generatedAt ?? new Date().toISOString();
-  const envelope = await readJsonArtifact(corpusPath, ReviewedCorpusEnvelopeSchema, "strip");
-  const { records, invalidRecordCount } = decodeRecords(envelope);
-  const invalidShare =
-    envelope.documentInterventionRecords.length === 0
-      ? 0
-      : invalidRecordCount / envelope.documentInterventionRecords.length;
-  if (invalidShare > 0.2) {
+  const corpusBytes = await readFile(corpusPath);
+  const corpusSha256 = createHash("sha256").update(corpusBytes).digest("hex");
+  const expectedCorpusSha256 =
+    input.expectedCorpusSha256 ??
+    (resolve(corpusPath) === resolve(DEFAULT_CORPUS_PATH) ? DEFAULT_CORPUS_SHA256 : undefined);
+  if (
+    expectedCorpusSha256 !== undefined &&
+    (!/^[a-f0-9]{64}$/u.test(expectedCorpusSha256) || corpusSha256 !== expectedCorpusSha256)
+  ) {
     throw new Error(
-      `Intervention corpus validation failed: ${invalidRecordCount}/${envelope.documentInterventionRecords.length} records invalid (>20%).`,
+      `Reviewed intervention corpus SHA-256 mismatch: expected ${expectedCorpusSha256}, received ${corpusSha256}.`,
     );
+  }
+  const envelope = await readJsonArtifact(corpusPath, ReviewedCorpusEnvelopeSchema, "strip");
+  if (envelope.summary.recordCount !== envelope.documentInterventionRecords.length) {
+    throw new Error(
+      `Reviewed intervention corpus count mismatch: summary declares ${envelope.summary.recordCount}, array contains ${envelope.documentInterventionRecords.length}.`,
+    );
+  }
+  const { records, invalidRecordCount } = decodeRecords(envelope);
+  if (invalidRecordCount > 0) {
+    throw new Error(
+      `Reviewed intervention corpus validation failed: ${invalidRecordCount}/${envelope.documentInterventionRecords.length} records invalid; zero row loss is permitted.`,
+    );
+  }
+  const recordIds = records.map((record) => record.recordId);
+  if (new Set(recordIds).size !== recordIds.length) {
+    throw new Error("Reviewed intervention corpus contains duplicate recordId values.");
   }
 
   const studyRelevantRecords = records.filter((record) => record.recordKind !== "proposed");
   const studyDateReadyRecords = studyRelevantRecords.filter(
     (record) => effectiveMonth(record) !== null,
   );
-  const missingStudyDateShare =
-    studyRelevantRecords.length === 0
-      ? 0
-      : 1 - studyDateReadyRecords.length / studyRelevantRecords.length;
-  if (missingStudyDateShare > 0.6) {
-    throw new Error(
-      `Intervention corpus study-date readiness failed: ${studyRelevantRecords.length - studyDateReadyRecords.length}/${studyRelevantRecords.length} implemented/in-progress records lack month-ready effective dates (>60%).`,
-    );
-  }
 
   const sourceLabels = await loadSourceLabels(
     corpusPath,
@@ -449,6 +465,7 @@ export async function runExportInterventionCorpus(input: {
       version: envelope.version,
       generatedAt: envelope.generatedAt,
       recordCount: envelope.summary.recordCount,
+      sha256: corpusSha256,
     },
     records: records.map((record) =>
       projectInterventionCorpusRecord(
@@ -523,6 +540,9 @@ export default defineCommand({
         corpus: Schema.String.pipe(
           Schema.withDecodingDefaultTypeKey(Effect.succeed(repoDisplayPath(DEFAULT_CORPUS_PATH))),
         ).annotate({ description: "Reviewed intervention corpus JSON path" }),
+        expectedCorpusSha256: Schema.optionalKey(
+          Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u)),
+        ).annotate({ description: "Optional exact SHA-256 pin for a custom reviewed corpus" }),
         artifactRoot: Schema.optionalKey(Schema.String).annotate({
           description: "Override artifact root directory",
         }),
@@ -564,6 +584,7 @@ export default defineCommand({
     const run = (local?: OpenLocalPipelineDb) =>
       runExportInterventionCorpus({
         corpusPath: fromCliPath(options.corpus),
+        expectedCorpusSha256: options.expectedCorpusSha256,
         artifactRoot:
           options.artifactRoot === undefined ? undefined : fromCliPath(options.artifactRoot),
         output: options.output === undefined ? undefined : fromCliPath(options.output),

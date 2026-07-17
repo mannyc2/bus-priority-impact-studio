@@ -29,6 +29,11 @@
       "bun": "./src/documents/operational-date/index.ts",
       "import": "./src/documents/operational-date/index.ts"
     },
+    "./documents/operational-occurrence": {
+      "types": "./src/documents/operational-occurrence/index.ts",
+      "bun": "./src/documents/operational-occurrence/index.ts",
+      "import": "./src/documents/operational-occurrence/index.ts"
+    },
     "./findings": {
       "types": "./src/findings/index.ts",
       "bun": "./src/findings/index.ts",
