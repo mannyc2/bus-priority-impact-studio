@@ -45,6 +45,30 @@ rationale). Estimator, sample/control, pre-trend, placebo, sensitivity,
 claim-tier, run, and publication gates remain independently binding. See
 `docs/research/mta-wiki-rc19-plan-rebaseline.md`.
 
+### Binding rc22 contract amendment — 2026-07-17
+
+The manifest-v4/occurrence-v2 replay preserves all 489 candidate identities,
+but the 100 Wiki-bound rows acquire new release, relationship-proof, phase,
+physical-scope, and route-record provenance. They therefore form the distinct
+`candidate-set-v3:9761a5648df08fbdf6c38bb4` (SHA-256
+`25d1fa96f8796f053c538631fbce19aa3b77fb1435e5b357c50eec2f94bf6129`).
+The rc19 review cannot be rebound implicitly.
+
+The exact rc22 release is inspection-only because review-decisions-v1 emits
+one v2-only `physical_scope` role. Its candidate artifact is
+`blocked_contract_incompatible`, with null approval and zero approved events.
+No receipt or study run is allowed until a corrected named Wiki release passes
+the ordinary strict contract path and a fresh complete candidate-set receipt
+is issued.
+
+Before any later run, also close two independent engine boundaries found by
+adversarial review: control eligibility must exclude real rejected/unreviewed
+interventions as well as approved events, and bounded treatments must never
+fall back automatically to all route spines without an explicit
+physical-scope/claim-tier gate. Neither issue changes the immutable historical
+five-study run. Full evidence and operator guidance are in
+`docs/research/mta-wiki-rc22-migration-report.md`.
+
 ## Why this matters
 
 The product is named Bus Priority **Impact** Studio, but impact is currently
