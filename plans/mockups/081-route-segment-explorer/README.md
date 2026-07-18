@@ -1,6 +1,10 @@
 # 081 comp round — Route page: Slow segments & Riders
 
-**Status: ROUND 4 (2026-07-18) — awaiting operator review.** This is the
+**Status: APPROVED (round 4, 2026-07-18) — operator: "Implement," with the
+expander clarified (collapsed is the default; "Show fewer" exists only after
+expanding — the comp already behaved this way). The visual/interaction layer
+is implemented on `codex/081-route-segment-explorer`; this comp is the
+acceptance target for that work.** This is the
 comp-gate round for plan 081 (`plans/081-route-segment-explorer.md`), amended
 the same day to fold in the operator critique below. Open
 `segment-explorer-comp.html` in a browser. Exhibit A is interactive (hover
