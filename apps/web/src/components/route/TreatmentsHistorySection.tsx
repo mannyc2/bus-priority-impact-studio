@@ -1,10 +1,10 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { routeInsightPlacements } from "@/components/route/route-insight-placement";
-import { DescriptiveStudyCard, StudyCard } from "@/components/study/StudyCard";
-import { studiesByEventId } from "@/components/study/study-display";
 import { SectionCard } from "@/components/SectionCard";
 import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
+import { DescriptiveStudyCard, StudyCard } from "@/components/study/StudyCard";
+import { studiesByEventId } from "@/components/study/study-display";
 import { TreatmentInventory } from "@/components/TreatmentBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -115,10 +115,7 @@ export function TreatmentsHistorySection({
 
       <DocumentedTreatments evidence={evidence} />
 
-      <SectionCard
-        title="Before & after evaluations"
-        sub={comparisonCardsSubLine(comparisonCards)}
-      >
+      <SectionCard title="Before & after evaluations" sub={comparisonCardsSubLine(comparisonCards)}>
         <ComparisonCards cards={comparisonCards} studyKey={studyKey} />
       </SectionCard>
     </div>
@@ -165,10 +162,11 @@ export function mergedTreatmentTimelineRows(
   for (const record of corpusRecords) {
     if (record.effectiveDate === null) continue; // undated corpus records live on /interventions
     const row = corpusTimelineRow(record);
-    const family =
-      record.primaryTreatments[0] ?? treatmentFamilyOfText(`${row.kind} ${row.title}`);
+    const family = record.primaryTreatments[0] ?? treatmentFamilyOfText(`${row.kind} ${row.title}`);
     const existing =
-      family === null ? undefined : byYearFamily.get(`${timelineYearLabel(row.dateLabel)}:${family}`);
+      family === null
+        ? undefined
+        : byYearFamily.get(`${timelineYearLabel(row.dateLabel)}:${family}`);
     if (existing !== undefined) {
       existing.sourceEntries = [...(existing.sourceEntries ?? []), ...(row.sourceEntries ?? [])];
       continue;
@@ -238,7 +236,7 @@ export function routeCorpusRecords(
 }
 
 /** In-component lazy fetch: the corpus is citywide and must not ride the
- * route loader (matches the SlowSegments artifact-fetch idiom). */
+ * route loader (matches the route-detail-data artifact-fetch idiom). */
 function useInterventionCorpus(): StudioInterventionCorpus | null {
   const [corpus, setCorpus] = useState<StudioInterventionCorpus | null>(null);
 
@@ -627,7 +625,10 @@ function ComparisonCards({
         }
         studiedIndex += 1;
         return (
-          <ComparisonCardShell key={`${card.year}-${card.title}`} highlighted={study.eventKey === studyKey}>
+          <ComparisonCardShell
+            key={`${card.year}-${card.title}`}
+            highlighted={study.eventKey === studyKey}
+          >
             {study.claimTier === "descriptive" ? (
               <DescriptiveStudyCard title={card.title} study={study} />
             ) : (

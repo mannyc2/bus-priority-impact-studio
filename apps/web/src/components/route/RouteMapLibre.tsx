@@ -1,21 +1,21 @@
-import type { MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
+import type {
+  MapBusLaneFeatureCollection,
+  MapRouteSegmentFeatureCollection,
+} from "@bp/domain/maps";
 import { lazy, Suspense } from "react";
 import { RouteGeoMap } from "@/components/route/RouteGeoMap";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { StudioRoute, StudioSegment } from "@/studio/api-contract";
-import type { RouteMapLayerState } from "./RouteMapLibre.map";
-
-export type { RouteMapLayerState } from "./RouteMapLibre.map";
 
 const RouteMapLibreMap = lazy(() =>
   import("./RouteMapLibre.map.js").then((module) => ({ default: module.RouteMapLibreMap })),
 );
 
-function RouteMapSkeleton() {
+function RouteMapSkeleton({ height }: { height: number }) {
   return (
     <div
       className="animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none"
-      style={{ height: 560 }}
+      style={{ height }}
       aria-hidden
     />
   );
@@ -28,8 +28,12 @@ export type RouteMapLibreProps = {
   segments: readonly StudioSegment[];
   hoveredSegmentId: string | null;
   setHoveredSegmentId: (segmentId: string | null) => void;
-  layers: RouteMapLayerState;
-  highlightId?: string | undefined;
+  pinnedSegmentId: string | null;
+  onSegmentSelect: (segmentId: string) => void;
+  activeDirection: "all" | "NB" | "SB" | "EB" | "WB";
+  showLanes: boolean;
+  busLanes: MapBusLaneFeatureCollection | null;
+  compact?: boolean | undefined;
   onInteractiveAvailabilityChange?: ((available: boolean) => void) | undefined;
 };
 
@@ -38,12 +42,12 @@ export function RouteMapLibre(props: RouteMapLibreProps) {
     <RouteGeoMap
       collection={props.collection}
       context={props.context}
-      highlightId={props.highlightId}
+      {...(props.pinnedSegmentId === null ? {} : { highlightId: props.pinnedSegmentId })}
     />
   );
 
   return (
-    <Suspense fallback={<RouteMapSkeleton />}>
+    <Suspense fallback={<RouteMapSkeleton height={props.compact ? 300 : 460} />}>
       <RouteMapLibreMap {...props} fallback={fallback} />
     </Suspense>
   );

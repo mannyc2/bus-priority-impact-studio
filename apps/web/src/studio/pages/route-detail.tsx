@@ -7,9 +7,8 @@ import { ReliabilitySection } from "@/components/route/ReliabilitySection";
 import { RidersSection } from "@/components/route/RidersSection";
 import { RouteDetailHeader } from "@/components/route/RouteDetailHeader";
 import { RouteDetailShell } from "@/components/route/RouteDetailShell";
-import { RouteMapSection } from "@/components/route/RouteMapSection";
 import { routeSectionBadges } from "@/components/route/route-insight-placement";
-import { SlowSegmentsSection } from "@/components/route/SlowSegments";
+import { SegmentExplorerSection } from "@/components/route/SegmentExplorer";
 import {
   type RouteDetailSectionValue,
   type RouteDetailTabValue,
@@ -40,19 +39,20 @@ export function RouteDetailPage({
   studies = null,
   tab,
   studyKey,
+  pinnedSegment,
 }: {
   data: StudioRouteDetailResponse | null;
   evidence: StudioRouteEvidenceBundle | null;
   studies?: RouteStudiesArtifact | null;
   tab?: RouteDetailTabValue | undefined;
   studyKey?: string | undefined;
+  pinnedSegment?: string | undefined;
 }) {
   const navigate = useNavigate();
 
   if (data === null) return <NotFoundPage />;
 
-  const { route, segments } = data;
-  const flagged = segments.find((s) => s.flagged);
+  const { route } = data;
 
   const tabRegistry = routeTabRegistry(data.capability, routeSectionBadges(data.insights));
   const requestedTab: RouteDetailTabValue = tab ?? "overview";
@@ -98,31 +98,59 @@ export function RouteDetailPage({
     case "overview":
       panel = <OverviewSection data={data} onNavigate={navigateToTab} />;
       break;
-    case "segments":
+    case "segments": {
+      // One linked explorer owns list + map (plan 081/comp r4). The `map`
+      // section renders a map-only explorer just when the ranked list can't
+      // (its speed-history surface is empty but geometry is ready), so both
+      // capability gates keep meaning something.
+      const onPinChange = (spineId: string | null) => {
+        navigate({
+          to: "/routes/$routeId",
+          params: { routeId: route.slug },
+          search: spineId === null ? { tab: "segments" } : { tab: "segments", segment: spineId },
+          replace: true,
+        });
+      };
+      const whereWhenRenders =
+        tabRegistry.sectionRegistry.presentations["where-when"].mode === "render";
       panel = (
         <>
           {section("where-when", () => (
-            <SlowSegmentsSection
-              route={route}
-              segments={segments}
-              insights={data.insights}
-              {...(flagged?.id ? { flaggedId: flagged.id } : {})}
-              dossier={data.dossier}
-              peakWindows={data.peakWindows}
-              slowestWindows={data.slowestWindows}
+            <SegmentExplorerSection
+              data={data}
+              pinnedSpineId={pinnedSegment ?? null}
+              onPinChange={onPinChange}
             />
           ))}
-          {section("map", () => (
-            <RouteMapSection data={data} />
-          ))}
+          {whereWhenRenders
+            ? null
+            : section("map", () => (
+                <SegmentExplorerSection
+                  data={data}
+                  pinnedSpineId={pinnedSegment ?? null}
+                  onPinChange={onPinChange}
+                  mapOnly
+                />
+              ))}
         </>
       );
       break;
+    }
     case "riders":
       panel = (
         <>
           {section("riders", () => (
-            <RidersSection data={data} />
+            <RidersSection
+              data={data}
+              onOpenSegment={(spineId) => {
+                navigate({
+                  to: "/routes/$routeId",
+                  params: { routeId: route.slug },
+                  search:
+                    spineId === null ? { tab: "segments" } : { tab: "segments", segment: spineId },
+                });
+              }}
+            />
           ))}
           {section("reliability", () => (
             <ReliabilitySection data={data} />

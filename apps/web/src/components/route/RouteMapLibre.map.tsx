@@ -1,4 +1,8 @@
-import type { MapRouteSegmentFeature, MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
+import type {
+  MapBusLaneFeatureCollection,
+  MapRouteSegmentFeature,
+  MapRouteSegmentFeatureCollection,
+} from "@bp/domain/maps";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -12,6 +16,7 @@ import { type MapRuntimeMap, startMapLibreRuntime } from "@/components/route/map
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { StudioRoute, StudioSegment } from "@/studio/api-contract";
 import { boundsOf, MAP_COLORS, mapBaseStyle, NYC_MAP_BOUNDS, speedToColor } from "./maplibre-style";
+import { BUS_LANE_COLOR } from "./network-map-model";
 
 type Position = [number, number];
 type LineString = { type: "LineString"; coordinates: Position[] };
@@ -28,12 +33,6 @@ type FeatureCollection<TGeometry, TProperties = Record<string, unknown>> = {
   features: Array<Feature<TGeometry, TProperties>>;
 };
 
-export type RouteMapLayerState = {
-  lane: boolean;
-  ace: boolean;
-  tsp: boolean;
-};
-
 export type RouteMapLibreMapProps = {
   collection: MapRouteSegmentFeatureCollection;
   context: RouteGeoContext | null;
@@ -41,8 +40,15 @@ export type RouteMapLibreMapProps = {
   segments: readonly StudioSegment[];
   hoveredSegmentId: string | null;
   setHoveredSegmentId: (segmentId: string | null) => void;
-  layers: RouteMapLayerState;
-  highlightId?: string | undefined;
+  /** Exact current studio segment id; presentation only (feature-state). */
+  pinnedSegmentId: string | null;
+  onSegmentSelect: (segmentId: string) => void;
+  /** Dims segments outside the active direction filter. */
+  activeDirection: "all" | "NB" | "SB" | "EB" | "WB";
+  showLanes: boolean;
+  /** Published NYC DOT bus-lane geometry (loaded lazily by the section). */
+  busLanes: MapBusLaneFeatureCollection | null;
+  compact?: boolean | undefined;
   fallback: ReactNode;
   onInteractiveAvailabilityChange?: ((available: boolean) => void) | undefined;
 };
@@ -55,32 +61,37 @@ type SegmentMapProperties = {
   from: string;
   to: string;
   speedMph: number;
-  scheduledMph: number | null;
-  riderHours: number;
   color: string;
-  opacity: number;
-  lineWidth: number;
-  isWorst: boolean;
-  isHovered: boolean;
-  lane: StudioSegment["lane"];
-  ace: boolean;
-  tsp: boolean;
-  speedLabel: string;
   detailJoinStatus: "available" | "unavailable";
-};
-
-type MarkerProperties = {
-  studioSegmentId: string;
-  kind: "ace" | "tsp" | "stop" | "terminus";
-  label: string;
-  color: string;
 };
 
 const LAND_SOURCE = "bp-route-land";
 const SEGMENT_SOURCE = "bp-route-segments";
-const MARKER_SOURCE = "bp-route-markers";
+const STOP_SOURCE = "bp-route-stops";
+const LANES_SOURCE = "bp-route-lanes";
 const CASING_LAYER = "bp-route-casing";
+const LANES_LAYER = "bp-route-lanes";
+const LINES_LAYER = "bp-route-lines";
+const PIN_RING_LAYER = "bp-route-pin-ring";
 const HIT_LAYER = "bp-route-hit";
+
+/** Effect-schema collections are readonly; MapLibre wants mutable GeoJSON. */
+function laneFeatureCollection(
+  lanes: MapBusLaneFeatureCollection | null,
+): FeatureCollection<LineString> {
+  return {
+    type: "FeatureCollection",
+    features:
+      lanes?.features.map((feature) => ({
+        type: "Feature" as const,
+        geometry: {
+          type: "LineString" as const,
+          coordinates: feature.geometry.coordinates.map(([lon, lat]) => [lon, lat] as Position),
+        },
+        properties: {},
+      })) ?? [],
+  };
+}
 
 function lineStringGeometry(geometry: MapRouteSegmentFeature["geometry"]): LineString {
   return {
@@ -89,23 +100,15 @@ function lineStringGeometry(geometry: MapRouteSegmentFeature["geometry"]): LineS
   };
 }
 
-function midpoint(coordinates: ReadonlyArray<readonly [number, number]>): Position | null {
-  if (coordinates.length === 0) return null;
-  const coordinate = coordinates[Math.floor(coordinates.length / 2)];
-  return coordinate === undefined ? null : [coordinate[0], coordinate[1]];
-}
-
+/** Presentation state (hover/pin/direction dim) lives in feature-state, so
+ * this collection changes only when the served data changes — never on
+ * interaction (plan 081 step 3: no hover-time setData). */
 function routeSegmentCollection(input: {
   collection: MapRouteSegmentFeatureCollection;
   route: StudioRoute;
   segments: readonly StudioSegment[];
-  hoveredSegmentId: string | null;
-  highlightId?: string | undefined;
 }): FeatureCollection<LineString, SegmentMapProperties> {
   const segmentsById = new Map(input.segments.map((segment) => [segment.id, segment]));
-  const totalRiderHours = input.segments.reduce((sum, segment) => sum + segment.riderHours, 0);
-  const worstId =
-    input.highlightId ?? input.segments.find((segment) => segment.flagged)?.id ?? null;
 
   return {
     type: "FeatureCollection",
@@ -116,16 +119,8 @@ function routeSegmentCollection(input: {
         segment === null
           ? (feature.properties.averageSpeedMph ?? input.route.weightedAvgSpeed)
           : segment.speedMph;
-      const hovered = input.hoveredSegmentId === studioSegmentId;
-      const hasHover = input.hoveredSegmentId !== null;
-      const isWorst = studioSegmentId === worstId;
       const from = segment?.from ?? feature.properties.startStopName ?? "Segment start";
       const to = segment?.to ?? feature.properties.endStopName ?? "Segment end";
-      const riderHours = segment?.riderHours ?? 0;
-      const share =
-        totalRiderHours > 0 && riderHours > 0
-          ? ` · ${Math.round((riderHours / totalRiderHours) * 100)}% delay`
-          : "";
       return {
         type: "Feature",
         id: String(feature.id),
@@ -138,17 +133,7 @@ function routeSegmentCollection(input: {
           from,
           to,
           speedMph,
-          scheduledMph: segment?.scheduledMph ?? null,
-          riderHours,
           color: speedToColor(speedMph),
-          opacity: hasHover && !hovered ? 0.5 : 1,
-          lineWidth: hovered ? 10 : isWorst ? 8 : 7,
-          isWorst,
-          isHovered: hovered,
-          lane: segment?.lane ?? "none",
-          ace: segment?.ace ?? false,
-          tsp: segment?.tsp ?? false,
-          speedLabel: `${speedMph.toFixed(1)}${share}`,
           detailJoinStatus: segment === null ? "unavailable" : "available",
         },
       };
@@ -156,48 +141,15 @@ function routeSegmentCollection(input: {
   };
 }
 
-function markerCollection(
+function stopCollection(
   segmentCollection: FeatureCollection<LineString, SegmentMapProperties>,
-  layers: RouteMapLayerState,
-): FeatureCollection<Point, MarkerProperties> {
-  const seenStops = new Map<string, Feature<Point, MarkerProperties>>();
-  const markers: Feature<Point, MarkerProperties>[] = [];
-
+): FeatureCollection<Point, { label: string }> {
+  const seenStops = new Map<string, Feature<Point, { label: string }>>();
   for (const feature of segmentCollection.features) {
     const coordinates = feature.geometry.coordinates;
-    const middle = midpoint(coordinates);
-    if (middle !== null && layers.ace && feature.properties.ace) {
-      markers.push({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: middle },
-        properties: {
-          studioSegmentId: feature.properties.studioSegmentId,
-          kind: "ace",
-          label: "ACE",
-          color: MAP_COLORS.accent,
-        },
-      });
-    }
-    if (middle !== null && layers.tsp && feature.properties.tsp) {
-      markers.push({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: middle },
-        properties: {
-          studioSegmentId: feature.properties.studioSegmentId,
-          kind: "tsp",
-          label: "TSP",
-          color: MAP_COLORS.good,
-        },
-      });
-    }
-
     const ends = [
-      { coordinate: coordinates[0], label: feature.properties.from, terminus: false },
-      {
-        coordinate: coordinates[coordinates.length - 1],
-        label: feature.properties.to,
-        terminus: false,
-      },
+      { coordinate: coordinates[0], label: feature.properties.from },
+      { coordinate: coordinates[coordinates.length - 1], label: feature.properties.to },
     ];
     for (const end of ends) {
       if (end.coordinate === undefined) continue;
@@ -206,18 +158,11 @@ function markerCollection(
       seenStops.set(key, {
         type: "Feature",
         geometry: { type: "Point", coordinates: end.coordinate },
-        properties: {
-          studioSegmentId: feature.properties.studioSegmentId,
-          kind: "stop",
-          label: end.label,
-          color: MAP_COLORS.ink70,
-        },
+        properties: { label: end.label },
       });
     }
   }
-
-  markers.push(...seenStops.values());
-  return { type: "FeatureCollection", features: markers };
+  return { type: "FeatureCollection", features: [...seenStops.values()] };
 }
 
 function landCollection(context: RouteGeoContext | null): FeatureCollection<MultiPolygon> {
@@ -258,8 +203,12 @@ export function RouteMapLibreMap({
   segments,
   hoveredSegmentId,
   setHoveredSegmentId,
-  layers,
-  highlightId,
+  pinnedSegmentId,
+  onSegmentSelect,
+  activeDirection,
+  showLanes,
+  busLanes,
+  compact = false,
   fallback,
   onInteractiveAvailabilityChange,
 }: RouteMapLibreMapProps) {
@@ -269,11 +218,26 @@ export function RouteMapLibreMap({
   const [failure, setFailure] = useState<"runtime" | "unsupported" | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const segmentData = useMemo(
-    () => routeSegmentCollection({ collection, route, segments, hoveredSegmentId, highlightId }),
-    [collection, route, segments, hoveredSegmentId, highlightId],
+    () => routeSegmentCollection({ collection, route, segments }),
+    [collection, route, segments],
   );
-  const markerData = useMemo(() => markerCollection(segmentData, layers), [segmentData, layers]);
+  const laneData = useMemo(() => laneFeatureCollection(busLanes), [busLanes]);
+  const stopData = useMemo(() => stopCollection(segmentData), [segmentData]);
   const landData = useMemo(() => landCollection(context), [context]);
+  const segmentIds = useMemo(
+    () => segmentData.features.map((feature) => feature.properties.studioSegmentId),
+    [segmentData],
+  );
+  const directionsById = useMemo(
+    () =>
+      new Map(
+        segmentData.features.map((feature) => [
+          feature.properties.studioSegmentId,
+          feature.properties.direction,
+        ]),
+      ),
+    [segmentData],
+  );
   const unavailableDetailCount = useMemo(
     () =>
       segmentData.features.filter(
@@ -281,6 +245,13 @@ export function RouteMapLibreMap({
       ).length,
     [segmentData],
   );
+  const minHeight = compact ? 300 : 460;
+
+  // Latest interaction callbacks without re-initializing the map.
+  const onSelectRef = useRef(onSegmentSelect);
+  onSelectRef.current = onSegmentSelect;
+  const setHoverRef = useRef(setHoveredSegmentId);
+  setHoverRef.current = setHoveredSegmentId;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -289,7 +260,6 @@ export function RouteMapLibreMap({
       onInteractiveAvailabilityChange?.(false);
       return;
     }
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const onMouseMove = (event: MapLibreMapLayerMouseEvent) => {
       const map = mapRef.current;
       const feature = event.features?.[0];
@@ -297,13 +267,19 @@ export function RouteMapLibreMap({
       const segmentId = properties?.studioSegmentId;
       if (map !== null && typeof segmentId === "string") {
         map.getCanvas().style.cursor = "pointer";
-        setHoveredSegmentId(segmentId);
+        setHoverRef.current(segmentId);
       }
     };
     const onMouseLeave = () => {
       const map = mapRef.current;
       if (map !== null) map.getCanvas().style.cursor = "";
-      setHoveredSegmentId(null);
+      setHoverRef.current(null);
+    };
+    const onClick = (event: MapLibreMapLayerMouseEvent) => {
+      const feature = event.features?.[0];
+      const properties = feature?.properties as { studioSegmentId?: unknown } | undefined;
+      const segmentId = properties?.studioSegmentId;
+      if (typeof segmentId === "string") onSelectRef.current(segmentId);
     };
 
     const controller = startMapLibreRuntime({
@@ -345,80 +321,70 @@ export function RouteMapLibreMap({
           paint: {
             "line-color": MAP_COLORS.paper,
             "line-width": 13,
-            "line-opacity": ["get", "opacity"],
+            "line-opacity": ["case", ["boolean", ["feature-state", "dimmed"], false], 0.4, 1],
           },
           layout: { "line-cap": "round", "line-join": "round" },
         });
+        // Painted bus lanes (comp r4/D12): the published DOT geometry as one
+        // solid underlay between casing and route lines — laned stretches read
+        // as a green rim, divergent lane streets as their own thin solid line.
+        // No dasharray (fixed-pixel at every zoom), no blur.
+        map.addSource(LANES_SOURCE, { type: "geojson", data: laneData });
         map.addLayer({
-          id: "bp-route-worst-glow",
+          id: LANES_LAYER,
           type: "line",
-          source: SEGMENT_SOURCE,
-          filter: ["==", ["get", "isWorst"], true],
-          paint: { "line-color": MAP_COLORS.bad, "line-width": 20, "line-opacity": 0.16 },
-          layout: { "line-cap": "round", "line-join": "round" },
-        });
-        map.addLayer({
-          id: "bp-route-bus-lane-full",
-          type: "line",
-          source: SEGMENT_SOURCE,
-          filter: ["all", ["==", ["get", "lane"], "yes"]],
+          source: LANES_SOURCE,
+          layout: {
+            "line-cap": "round",
+            "line-join": "round",
+            visibility: showLanes ? "visible" : "none",
+          },
           paint: {
-            "line-color": MAP_COLORS.good,
-            "line-width": layers.lane ? 3 : 0,
-            "line-offset": 9,
-            "line-opacity": 0.9,
+            "line-color": BUS_LANE_COLOR,
+            "line-width": ["interpolate", ["linear"], ["zoom"], 10, 5, 14, 11, 16, 15],
+            "line-opacity": 0.95,
           },
-          layout: { "line-cap": "round", "line-join": "round" },
         });
+        // Pinned ring beneath the line itself: accent halo via feature-state.
         map.addLayer({
-          id: "bp-route-bus-lane-partial",
+          id: PIN_RING_LAYER,
           type: "line",
           source: SEGMENT_SOURCE,
-          filter: ["all", ["in", ["get", "lane"], ["literal", ["partial", "minimal"]]]],
           paint: {
-            "line-color": MAP_COLORS.warn,
-            "line-width": layers.lane ? 3 : 0,
-            "line-offset": 9,
-            "line-opacity": 0.9,
+            "line-color": MAP_COLORS.accent,
+            "line-width": 16,
+            "line-opacity": ["case", ["boolean", ["feature-state", "pinned"], false], 0.22, 0],
           },
           layout: { "line-cap": "round", "line-join": "round" },
         });
         map.addLayer({
-          id: "bp-route-lines",
+          id: LINES_LAYER,
           type: "line",
           source: SEGMENT_SOURCE,
           paint: {
             "line-color": ["get", "color"],
-            "line-width": ["get", "lineWidth"],
-            "line-opacity": ["get", "opacity"],
-            "line-color-transition": { duration: prefersReducedMotion ? 0 : 500 },
-            "line-width-transition": { duration: prefersReducedMotion ? 0 : 180 },
+            "line-width": [
+              "case",
+              ["boolean", ["feature-state", "pinned"], false],
+              10,
+              ["boolean", ["feature-state", "hovered"], false],
+              9,
+              7,
+            ],
+            "line-opacity": ["case", ["boolean", ["feature-state", "dimmed"], false], 0.25, 1],
           },
           layout: { "line-cap": "round", "line-join": "round" },
         });
-        map.addSource(MARKER_SOURCE, { type: "geojson", data: markerData });
+        map.addSource(STOP_SOURCE, { type: "geojson", data: stopData });
         map.addLayer({
           id: "bp-route-stops",
           type: "circle",
-          source: MARKER_SOURCE,
-          filter: ["==", ["get", "kind"], "stop"],
+          source: STOP_SOURCE,
           paint: {
             "circle-radius": 3.2,
             "circle-color": MAP_COLORS.card,
             "circle-stroke-color": MAP_COLORS.ink70,
             "circle-stroke-width": 1.6,
-          },
-        });
-        map.addLayer({
-          id: "bp-route-markers",
-          type: "circle",
-          source: MARKER_SOURCE,
-          filter: ["in", ["get", "kind"], ["literal", ["ace", "tsp"]]],
-          paint: {
-            "circle-radius": ["case", ["==", ["get", "kind"], "ace"], 5.5, 4.8],
-            "circle-color": ["get", "color"],
-            "circle-stroke-color": "#fff",
-            "circle-stroke-width": 1.5,
           },
         });
         map.addLayer({
@@ -433,6 +399,7 @@ export function RouteMapLibreMap({
         if (bounds !== null) map.fitBounds(bounds, { padding: 42, duration: 0 });
         map.on("mousemove", HIT_LAYER, onMouseMove);
         map.on("mouseleave", HIT_LAYER, onMouseLeave);
+        map.on("click", HIT_LAYER, onClick);
         setReady(true);
         onInteractiveAvailabilityChange?.(true);
       },
@@ -449,6 +416,7 @@ export function RouteMapLibreMap({
       onCleanup: (map) => {
         map.off("mousemove", HIT_LAYER, onMouseMove);
         map.off("mouseleave", HIT_LAYER, onMouseLeave);
+        map.off("click", HIT_LAYER, onClick);
         mapRef.current = null;
         setReady(false);
       },
@@ -465,40 +433,60 @@ export function RouteMapLibreMap({
     source(map, LAND_SOURCE)?.setData(landData);
   }, [landData, ready]);
 
+  // setData only when the served data actually changes.
   useEffect(() => {
     const map = mapRef.current;
     if (map === null || !ready) return;
     source(map, SEGMENT_SOURCE)?.setData(segmentData);
-    source(map, MARKER_SOURCE)?.setData(markerData);
-    if (map.getLayer("bp-route-bus-lane-full") !== undefined) {
-      map.setPaintProperty("bp-route-bus-lane-full", "line-width", layers.lane ? 3 : 0);
-      map.setPaintProperty("bp-route-bus-lane-partial", "line-width", layers.lane ? 3 : 0);
+    source(map, STOP_SOURCE)?.setData(stopData);
+  }, [ready, segmentData, stopData]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map === null || !ready) return;
+    source(map, LANES_SOURCE)?.setData(laneData);
+  }, [laneData, ready]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map === null || !ready || map.getLayer(LANES_LAYER) === undefined) return;
+    map.setLayoutProperty(LANES_LAYER, "visibility", showLanes ? "visible" : "none");
+  }, [ready, showLanes]);
+
+  // Presentation state: hover / pin / direction dim, all feature-state.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map === null || !ready) return;
+    for (const id of segmentIds) {
+      const direction = directionsById.get(id);
+      map.setFeatureState(
+        { source: SEGMENT_SOURCE, id },
+        {
+          hovered: id === hoveredSegmentId,
+          pinned: id === pinnedSegmentId,
+          dimmed: activeDirection !== "all" && direction !== activeDirection,
+        },
+      );
     }
-  }, [layers, markerData, ready, segmentData]);
+  }, [activeDirection, directionsById, hoveredSegmentId, pinnedSegmentId, ready, segmentIds]);
 
   if (failure !== null) {
-    const overlayUnavailable =
-      onInteractiveAvailabilityChange === undefined && (layers.lane || layers.ace || layers.tsp);
-    const showFallbackActions = overlayUnavailable || failure === "runtime";
     return (
-      <div className="relative min-h-[560px]">
+      <div className="relative" style={{ minHeight }}>
         {fallback}
-        {showFallbackActions ? (
+        {failure === "runtime" ? (
           <div className="absolute bottom-3 left-3 flex items-center gap-3 rounded-[3px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-card)] px-3 py-2 text-[12px] text-[var(--bp-color-ink)] shadow-sm">
-            {overlayUnavailable ? <span>Interactive layers unavailable.</span> : null}
-            {failure === "runtime" ? (
-              <button
-                type="button"
-                className="font-semibold underline decoration-[var(--bp-color-rule)] underline-offset-2"
-                onClick={() => {
-                  resetMapLibreLoader();
-                  setFailure(null);
-                  setRetryAttempt((attempt) => attempt + 1);
-                }}
-              >
-                Retry interactive map
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="font-semibold underline decoration-[var(--bp-color-rule)] underline-offset-2"
+              onClick={() => {
+                resetMapLibreLoader();
+                setFailure(null);
+                setRetryAttempt((attempt) => attempt + 1);
+              }}
+            >
+              Retry interactive map
+            </button>
           </div>
         ) : null}
       </div>
@@ -506,13 +494,13 @@ export function RouteMapLibreMap({
   }
 
   return (
-    <div className="relative min-h-[560px]">
+    <div className="relative" style={{ minHeight }}>
       <div
         ref={containerRef}
-        className="bp-bus-map min-h-[560px] overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]"
-        style={{ minHeight: 560 }}
-        aria-label={`${route.label} street map`}
-        role="img"
+        className="bp-bus-map overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]"
+        style={{ minHeight }}
+        role="region"
+        aria-label={`Interactive ${route.label} segment map; the segment list carries the same data`}
       />
       {unavailableDetailCount > 0 ? (
         <div className="absolute bottom-3 left-3 rounded-[3px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-card)] px-3 py-2 text-[11.5px] text-[var(--bp-color-ink-70)] shadow-sm">

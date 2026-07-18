@@ -47,14 +47,18 @@ export const Route = createFileRoute("/routes/$routeId")({
     })),
   validateSearch: (
     search: Record<string, unknown>,
-  ): { tab?: RouteDetailTabSearch; study?: string } => {
+  ): { tab?: RouteDetailTabSearch; study?: string; segment?: string } => {
     const tab = search["tab"];
     if (!isTabSearch(tab)) return {};
     // `study` deep-links to a card on the History tab only; dropped elsewhere.
     const study = search["study"];
-    return tab === "history" && typeof study === "string" && study.length > 0
-      ? { tab, study }
-      : { tab };
+    if (tab === "history" && typeof study === "string" && study.length > 0) return { tab, study };
+    // `segment` pins a stable spine id in the Segments explorer only. This is
+    // the structural check; the page drops ids the loaded route doesn't have.
+    const segment = search["segment"];
+    if (tab === "segments" && typeof segment === "string" && segment.length > 0)
+      return { tab, segment };
+    return { tab };
   },
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: RouteDetailRouteFallback,
@@ -73,6 +77,7 @@ function RouteDetailRoute() {
         studies={data.studies}
         tab={search.tab}
         studyKey={search.study}
+        pinnedSegment={search.segment}
       />
     </Suspense>
   );

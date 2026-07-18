@@ -13,7 +13,10 @@ import type {
 import { stableInsightSort } from "./route-insight-placement";
 
 type RiderImpactRoute = Pick<StudioRoute, "dailyRiders" | "ridersYoyPct" | "riderHoursLost">;
-type RiderImpactSegment = Pick<StudioSegment, "id" | "from" | "to" | "riderHours" | "flagged">;
+type RiderImpactSegment = Pick<
+  StudioSegment,
+  "id" | "from" | "to" | "riderHours" | "flagged" | "spineSegmentId"
+>;
 
 export type RiderImpactSummary = {
   dailyRidersLabel: string;
@@ -24,7 +27,9 @@ export type RiderImpactSummary = {
   trendDetail: string;
   historyLabel: string;
   historyDetail: string;
-  topSegments: RiderImpactSegment[];
+  /** Highest rider-hour burden segment — the KPI headline fact. The full
+   * ranking lives only on the Segments tab (one segment surface, plan 081). */
+  topSegment: RiderImpactSegment | null;
 };
 
 const RIDER_IMPACT_DETECTOR_IDS = new Set([
@@ -58,7 +63,7 @@ export function riderImpactSummary({
         ? "trend unavailable"
         : "YoY in current projection"
       : "6 mo ridership trend";
-  const topSegments = [...segments].sort((a, b) => b.riderHours - a.riderHours).slice(0, 6);
+  const topSegment = [...segments].sort((a, b) => b.riderHours - a.riderHours).at(0) ?? null;
   const historyLabel = monthCount > 0 ? `${monthCount} months` : "current";
   const historyDetail =
     monthCount > 0
@@ -81,7 +86,7 @@ export function riderImpactSummary({
     trendDetail,
     historyLabel,
     historyDetail,
-    topSegments,
+    topSegment,
   };
 }
 

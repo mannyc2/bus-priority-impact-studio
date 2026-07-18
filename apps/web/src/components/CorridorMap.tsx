@@ -42,7 +42,7 @@ function CorridorMapFull({
   }
 
   const width = 1040;
-  const height = 286;
+  const height = 208;
   const padL = 58;
   const padR = 92;
   const trackLeft = padL;
@@ -51,10 +51,6 @@ function CorridorMapFull({
   const segW = segments.length > 0 ? trackW / segments.length : trackW;
   const profileTop = 92;
   const profileBottom = 188;
-  const laneY = 226;
-  const aceY = 247;
-  const tspY = 267;
-  const railLabelX = padL - 11;
   const minSpeed = Math.min(...segments.map((segment) => segment.speedMph), route.weightedAvgSpeed);
   const scheduledSpeeds = [
     ...segments.flatMap((segment) => (segment.scheduledMph === null ? [] : [segment.scheduledMph])),
@@ -85,11 +81,6 @@ function CorridorMapFull({
     0,
     segments.findIndex((segment) => segment.id === highlightId || segment.flagged),
   );
-  const laneFull = segments.filter((segment) => segment.lane === "yes").length;
-  const lanePartial = segments.filter((segment) => segment.lane === "partial").length;
-  const aceCount = segments.filter((segment) => segment.ace).length;
-  const tspCount = segments.filter((segment) => segment.tsp).length;
-  const pct = (count: number) => `${Math.round((count / Math.max(1, segments.length)) * 100)}%`;
   const lastSegment = segments[segments.length - 1];
 
   return (
@@ -265,52 +256,6 @@ function CorridorMapFull({
           </text>
         </g>
       ) : null}
-
-      <text
-        x={railLabelX}
-        y={profileBottom + 42}
-        textAnchor="end"
-        fontSize="8.5"
-        fontFamily="var(--font-mono)"
-        fontWeight="700"
-        letterSpacing="0.08em"
-        fill="var(--bp-color-ink-40)"
-      >
-        PRIORITY
-      </text>
-      <text x={trackLeft} y={profileBottom + 42} fontSize="9.5" fill="var(--bp-color-ink-55)">
-        Segment-varying treatments on these visible timepoints
-      </text>
-      <CoverageRail
-        segments={segments}
-        kind="lane"
-        y={laneY}
-        segW={segW}
-        trackLeft={trackLeft}
-        labelX={railLabelX}
-        label="LANE"
-        summary={`${pct(laneFull)} full${lanePartial ? ` · ${lanePartial} partial` : ""}`}
-      />
-      <CoverageRail
-        segments={segments}
-        kind="ace"
-        y={aceY}
-        segW={segW}
-        trackLeft={trackLeft}
-        labelX={railLabelX}
-        label="ACE"
-        summary={pct(aceCount)}
-      />
-      <CoverageRail
-        segments={segments}
-        kind="tsp"
-        y={tspY}
-        segW={segW}
-        trackLeft={trackLeft}
-        labelX={railLabelX}
-        label="TSP"
-        summary={pct(tspCount)}
-      />
     </svg>
   );
 }
@@ -373,71 +318,6 @@ function CorridorMapMini({
       <circle cx={padX} cy="11" r="2.5" fill="var(--bp-color-ink)" />
       <circle cx={padX + trackW} cy="11" r="2.5" fill="var(--bp-color-ink)" />
     </svg>
-  );
-}
-
-function CoverageRail({
-  segments,
-  kind,
-  y,
-  segW,
-  trackLeft,
-  labelX,
-  label,
-  summary,
-}: {
-  segments: readonly StudioSegment[];
-  kind: "lane" | "ace" | "tsp";
-  y: number;
-  segW: number;
-  trackLeft: number;
-  labelX: number;
-  label: string;
-  summary: string;
-}) {
-  return (
-    <g>
-      <text
-        x={labelX}
-        y={y + 3}
-        textAnchor="end"
-        fontSize="8.5"
-        fontFamily="var(--font-mono)"
-        fontWeight="700"
-        letterSpacing="0.1em"
-        fill="var(--bp-color-ink-40)"
-      >
-        {label}
-      </text>
-      {segments.map((segment, index) => {
-        const x1 = trackLeft + index * segW + 4;
-        const x2 = trackLeft + (index + 1) * segW - 4;
-        const state = railState(segment, kind);
-        return (
-          <line
-            key={`${kind}-${segment.id}`}
-            x1={x1}
-            x2={x2}
-            y1={y}
-            y2={y}
-            stroke={state.color}
-            strokeWidth={state.present ? 4 : 1.5}
-            strokeLinecap="round"
-            strokeDasharray={state.partial ? "6 4" : state.present ? undefined : "1.5 4"}
-            opacity={state.present ? 1 : 0.8}
-          />
-        );
-      })}
-      <text
-        x={trackLeft + segments.length * segW + 6}
-        y={y + 3}
-        fontSize="9"
-        fontFamily="var(--font-mono)"
-        fill="var(--bp-color-ink-55)"
-      >
-        {summary}
-      </text>
-    </g>
   );
 }
 
@@ -505,30 +385,6 @@ function nodeY(segments: readonly StudioSegment[], index: number, yOf: (mph: num
   if (index === 0) return yOf(segments[0]?.speedMph ?? 0);
   if (index >= segments.length) return yOf(segments[segments.length - 1]?.speedMph ?? 0);
   return (yOf(segments[index - 1]?.speedMph ?? 0) + yOf(segments[index]?.speedMph ?? 0)) / 2;
-}
-
-function railState(segment: StudioSegment, kind: "lane" | "ace" | "tsp") {
-  if (kind === "lane") {
-    if (segment.lane === "yes") {
-      return { present: true, partial: false, color: "var(--bp-color-good)" };
-    }
-    if (segment.lane === "partial" || segment.lane === "minimal") {
-      return { present: true, partial: true, color: "var(--bp-color-warn)" };
-    }
-    return { present: false, partial: false, color: "var(--bp-color-ink-20)" };
-  }
-  if (kind === "ace") {
-    return {
-      present: segment.ace,
-      partial: false,
-      color: segment.ace ? "var(--bp-color-accent)" : "var(--bp-color-ink-20)",
-    };
-  }
-  return {
-    present: segment.tsp,
-    partial: false,
-    color: segment.tsp ? "var(--bp-color-good)" : "var(--bp-color-ink-20)",
-  };
 }
 
 function speedColor(mph: number) {

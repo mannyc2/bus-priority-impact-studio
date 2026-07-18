@@ -79,7 +79,7 @@ describe("riderImpactSummary", () => {
       trendLabel: "+3.2%",
       trendDetail: "6 mo ridership trend",
     });
-    expect(summary.topSegments[0]).toMatchObject({
+    expect(summary.topSegment).toMatchObject({
       id: "top",
       from: "Flatbush Av",
       to: "Church Av",
@@ -107,7 +107,7 @@ describe("riderImpactSummary", () => {
       burdenDetail: "no rider-hour loss in projection",
       historyLabel: "current",
       historyDetail: "Monthly ridership history has not been built for this route.",
-      topSegments: [],
+      topSegment: null,
     });
   });
 
