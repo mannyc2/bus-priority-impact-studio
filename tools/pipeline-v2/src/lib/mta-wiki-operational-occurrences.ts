@@ -652,6 +652,147 @@ const RelationshipEnforcementGateSchema = Schema.Struct({
   derived_violation_count: NonNegativeIntegerSchema,
 });
 
+const RelationshipAuditFilePinSchema = Schema.Struct({
+  path: Schema.String,
+  bytes: NonNegativeIntegerSchema,
+  sha256: Sha256Schema,
+  row_count: Schema.optionalKey(NonNegativeIntegerSchema),
+});
+type RelationshipAuditFilePin = typeof RelationshipAuditFilePinSchema.Type;
+
+const OccurrenceTreatmentPhysicalityManifestSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  contract_id: Schema.Literal("occurrence-treatment-physicality-v1"),
+  release_id: Schema.String,
+  review_stage: Schema.Literal("final_post_semantic_release"),
+  input_pins: Schema.Array(RelationshipAuditFilePinSchema),
+  files: Schema.Record(Schema.String, RelationshipAuditFilePinSchema),
+  audit_fingerprint: Sha256Schema,
+});
+
+const OccurrenceTreatmentPhysicalitySummarySchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  eligible_occurrence_count: NonNegativeIntegerSchema,
+  unique_treatment_count: NonNegativeIntegerSchema,
+  treatment_membership_count: NonNegativeIntegerSchema,
+  classification_counts: Schema.Struct({
+    physical_corridor_or_segment_intervention: NonNegativeIntegerSchema,
+    nonphysical_service_operations_policy_control: NonNegativeIntegerSchema,
+    point_or_stop_physical_intervention: NonNegativeIntegerSchema,
+    review_required: Schema.Literal(0),
+  }),
+  scope_requirement_counts: Schema.Struct({
+    corridor_or_segment_required: NonNegativeIntegerSchema,
+    not_applicable: NonNegativeIntegerSchema,
+    point_or_stop_required: NonNegativeIntegerSchema,
+    review_required: Schema.Literal(0),
+  }),
+  occurrence_disposition_counts: Schema.Struct({
+    physical_scope_satisfied: NonNegativeIntegerSchema,
+    physical_scope_missing: Schema.Literal(0),
+    physical_scope_relation_missing: Schema.Literal(0),
+    physical_scope_evidence_missing: Schema.Literal(0),
+    physical_scope_relation_invalid: Schema.Literal(0),
+    physicality_review_required: Schema.Literal(0),
+    physical_scope_not_applicable: NonNegativeIntegerSchema,
+  }),
+  finding_counts: StringCountSchema,
+  review_ledger_complete: Schema.Literal(true),
+  physical_scope_complete: Schema.Literal(true),
+  hard_mode_ready: Schema.Literal(true),
+  release_id: Schema.String,
+  review_stage: Schema.Literal("final_post_semantic_release"),
+  release_manifest_sha256: Sha256Schema,
+  review_ledger_sha256: Sha256Schema,
+  policy_sha256: Sha256Schema,
+  contract_sha256: Sha256Schema,
+  by_treatment_family: Schema.Record(
+    Schema.String,
+    Schema.Struct({
+      unique_treatment_count: NonNegativeIntegerSchema,
+      occurrence_membership_count: NonNegativeIntegerSchema,
+      classifications: StringCountSchema,
+    }),
+  ),
+  final_post_semantic_release_guard_ready: Schema.Literal(true),
+});
+
+const OperationalOccurrencePhaseAuditManifestSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  contract_id: Schema.Literal("operational-occurrence-phase-review-v1"),
+  generated_at: Schema.String,
+  generated_by: Schema.String,
+  route_anchor_release: Schema.Struct({
+    release_id: Schema.String,
+    manifest: RelationshipAuditFilePinSchema,
+    route_anchors: RelationshipAuditFilePinSchema,
+    operational_occurrences: RelationshipAuditFilePinSchema,
+  }),
+  input_aggregates: Schema.Record(
+    Schema.String,
+    Schema.Struct({
+      file_count: NonNegativeIntegerSchema,
+      bytes: NonNegativeIntegerSchema,
+      sha256: Sha256Schema,
+      path_roots: Schema.Array(Schema.String),
+    }),
+  ),
+  derived_inputs: Schema.Struct({
+    canonical_record_count: NonNegativeIntegerSchema,
+    operational_occurrence_count: NonNegativeIntegerSchema,
+    operational_occurrences_sha256: Sha256Schema,
+    relevant_canonical_record_count: NonNegativeIntegerSchema,
+    canonical_phase_projection_sha256: Sha256Schema,
+  }),
+  outputs: Schema.Record(Schema.String, RelationshipAuditFilePinSchema),
+  reproduction_command: Schema.String,
+});
+
+const OperationalOccurrencePhaseAuditSummarySchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  contract_id: Schema.Literal("operational-occurrence-phase-review-v1"),
+  occurrence_count: NonNegativeIntegerSchema,
+  eligible_occurrence_count: NonNegativeIntegerSchema,
+  ineligible_occurrence_count: NonNegativeIntegerSchema,
+  phase_identity_membership_count: NonNegativeIntegerSchema,
+  unique_phase_event_count: NonNegativeIntegerSchema,
+  projected_phase_relation_count: NonNegativeIntegerSchema,
+  checked_event_event_candidate_count: NonNegativeIntegerSchema,
+  counts_by_primary_disposition: Schema.Struct({
+    single_observed_phase_no_related_phase_asserted: NonNegativeIntegerSchema,
+    evidence_bound_related_phases: NonNegativeIntegerSchema,
+    review_required: Schema.Literal(0),
+  }),
+  counts_by_candidate_disposition: Schema.Struct({
+    projected_reviewed_phase_relation: NonNegativeIntegerSchema,
+    not_projected_external_event_not_selected: NonNegativeIntegerSchema,
+    not_projected_non_phase_semantics: NonNegativeIntegerSchema,
+    review_required_unprojected_same_occurrence_temporal_relation: Schema.Literal(0),
+  }),
+  finding_counts: StringCountSchema,
+  phase_identity_complete: Schema.Literal(true),
+  phase_relation_or_disposition_complete: Schema.Literal(true),
+  exact_evidence_complete: Schema.Literal(true),
+  hard_mode_ready: Schema.Literal(true),
+  ledger_id: Schema.Literal("operational-occurrence-phase-review-ledger-v1"),
+  release_id: Schema.String,
+  reviewed_occurrence_count: NonNegativeIntegerSchema,
+  single_observed_phase_count: NonNegativeIntegerSchema,
+  related_phase_count: NonNegativeIntegerSchema,
+  unresolved_phase_count: Schema.Literal(0),
+  missing_evidence_count: Schema.Literal(0),
+  ambiguous_phase_count: Schema.Literal(0),
+  review_complete: Schema.Literal(true),
+  violation_count: Schema.Literal(0),
+  content_hashes: Schema.Struct({
+    review_ledger_sha256: Sha256Schema,
+    event_event_candidates_sha256: Sha256Schema,
+    findings_sha256: Sha256Schema,
+    operational_occurrences_sha256: Sha256Schema,
+    canonical_phase_projection_sha256: Sha256Schema,
+  }),
+});
+
 const ImportErrorCodeSchema = Schema.Literals([
   "invalid_input",
   "unsafe_path",
@@ -1918,6 +2059,8 @@ const verifyRelationshipIntegrity = Effect.fn(
     canonicalReleaseDirectory: string;
   };
   bundleFile: VerifiedMtaWikiReleaseFile;
+  occurrenceFile: VerifiedMtaWikiReleaseFile;
+  occurrenceRows: readonly OperationalOccurrenceRowV2[];
 }) {
   const fail = (detail: string, path = input.bundleFile.path) =>
     Effect.fail(
@@ -2027,12 +2170,38 @@ const verifyRelationshipIntegrity = Effect.fn(
       : Effect.succeed(value);
   };
 
+  const requiredSource = (sourcePath: string) => {
+    const value = verifiedBySourcePath.get(sourcePath);
+    return value === undefined
+      ? Effect.fail(
+          importError({
+            code: "missing_manifest_file",
+            operation: "verifyRelationshipIntegrity",
+            path: input.bundleFile.path,
+            detail: `relationship bundle is missing required source ${sourcePath}`,
+          }),
+        )
+      : Effect.succeed(value);
+  };
+
   const contractArtifact = yield* required("relationship_contract");
   const proofArtifact = yield* required("enforcement_proof");
   const transitionArtifact = yield* required("enforcement_transition_receipt");
   const endpointArtifact = yield* required("endpoint_type_matrix");
   const graphAuditArtifact = yield* required("graph_audit_summary");
   const graphManifestArtifact = yield* required("graph_audit_manifest");
+  const physicalManifestArtifact = yield* requiredSource(
+    "data/quality/relationship-integrity/occurrence-treatment-physicality/manifest.json",
+  );
+  const physicalSummaryArtifact = yield* requiredSource(
+    "data/quality/relationship-integrity/occurrence-treatment-physicality/summary.json",
+  );
+  const phaseManifestArtifact = yield* requiredSource(
+    "data/quality/relationship-integrity/operational-occurrence-phases/manifest.json",
+  );
+  const phaseSummaryArtifact = yield* requiredSource(
+    "data/quality/relationship-integrity/operational-occurrence-phases/summary.json",
+  );
   const contract: RelationshipContract = yield* decodeJsonFile(
     contractArtifact.file,
     RelationshipContractSchema,
@@ -2062,6 +2231,26 @@ const verifyRelationshipIntegrity = Effect.fn(
     graphManifestArtifact.file,
     RelationshipGraphAuditManifestSchema,
     "decodeRelationshipGraphAuditManifest",
+  );
+  const physicalManifest = yield* decodeJsonFile(
+    physicalManifestArtifact.file,
+    OccurrenceTreatmentPhysicalityManifestSchema,
+    "decodeOccurrenceTreatmentPhysicalityManifest",
+  );
+  const physicalSummary = yield* decodeJsonFile(
+    physicalSummaryArtifact.file,
+    OccurrenceTreatmentPhysicalitySummarySchema,
+    "decodeOccurrenceTreatmentPhysicalitySummary",
+  );
+  const phaseManifest = yield* decodeJsonFile(
+    phaseManifestArtifact.file,
+    OperationalOccurrencePhaseAuditManifestSchema,
+    "decodeOperationalOccurrencePhaseAuditManifest",
+  );
+  const phaseSummary = yield* decodeJsonFile(
+    phaseSummaryArtifact.file,
+    OperationalOccurrencePhaseAuditSummarySchema,
+    "decodeOperationalOccurrencePhaseAuditSummary",
   );
 
   const proofCanonicalSha256 = canonicalDigest(proof);
@@ -2093,6 +2282,332 @@ const verifyRelationshipIntegrity = Effect.fn(
     proof.final_matrix.sha256 !== endpointCanonicalSha256
   ) {
     return yield* fail("relationship contract policy, final matrix, or canonical pointers drifted");
+  }
+
+  const emptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+  const physicalOutputRoot = "data/quality/relationship-integrity/occurrence-treatment-physicality";
+  const phaseOutputRoot = "data/quality/relationship-integrity/operational-occurrence-phases";
+  const expectedPhysicalOutputNames = [
+    "findings.jsonl",
+    "occurrence-audit.jsonl",
+    "report.md",
+    "summary.json",
+    "treatment-audit.jsonl",
+  ];
+  const expectedPhaseOutputPaths = [
+    "data/contracts/operational-occurrence-phases/v1/contract.json",
+    "data/contracts/operational-occurrence-phases/v1/review-ledger.jsonl",
+    `${phaseOutputRoot}/event-event-candidates.jsonl`,
+    `${phaseOutputRoot}/findings.jsonl`,
+    `${phaseOutputRoot}/report.md`,
+    `${phaseOutputRoot}/summary.json`,
+  ];
+  if (
+    canonicalJson(Object.keys(physicalManifest.files).toSorted()) !==
+      canonicalJson(expectedPhysicalOutputNames) ||
+    canonicalJson(Object.keys(phaseManifest.outputs).toSorted()) !==
+      canonicalJson(expectedPhaseOutputPaths)
+  ) {
+    return yield* fail("phase or physical audit output set drifted");
+  }
+
+  const auditOutputRowCounts = new Map<string, number>();
+  for (const [name, pin] of Object.entries(physicalManifest.files)) {
+    const expectedPath = `${physicalOutputRoot}/${name}`;
+    const bundled = verifiedBySourcePath.get(pin.path);
+    if (
+      pin.path !== expectedPath ||
+      bundled === undefined ||
+      bundled.file.metadata.bytes !== pin.bytes ||
+      bundled.file.metadata.sha256 !== pin.sha256
+    ) {
+      return yield* fail(`physical audit output pin drifted: ${name}`);
+    }
+    if (pin.row_count !== undefined) {
+      const text = yield* decodeMtaWikiReleaseUtf8(bundled.file.bytes, {
+        operation: "countPhysicalAuditRows",
+        path: bundled.file.path,
+      }).pipe(Effect.mapError(fromReleaseError));
+      const rows =
+        text.length === 0 ? 0 : text.split("\n").filter((line) => line.length > 0).length;
+      if (rows !== pin.row_count) {
+        return yield* fail(`physical audit output row count drifted: ${name}`);
+      }
+      auditOutputRowCounts.set(pin.path, rows);
+    }
+  }
+  for (const [path, pin] of Object.entries(phaseManifest.outputs)) {
+    const bundled = verifiedBySourcePath.get(pin.path);
+    if (
+      pin.path !== path ||
+      bundled === undefined ||
+      bundled.file.metadata.bytes !== pin.bytes ||
+      bundled.file.metadata.sha256 !== pin.sha256
+    ) {
+      return yield* fail(`phase audit output pin drifted: ${path}`);
+    }
+    if (pin.row_count !== undefined) {
+      const text = yield* decodeMtaWikiReleaseUtf8(bundled.file.bytes, {
+        operation: "countPhaseAuditRows",
+        path: bundled.file.path,
+      }).pipe(Effect.mapError(fromReleaseError));
+      const rows =
+        text.length === 0 ? 0 : text.split("\n").filter((line) => line.length > 0).length;
+      if (rows !== pin.row_count) {
+        return yield* fail(`phase audit output row count drifted: ${path}`);
+      }
+      auditOutputRowCounts.set(pin.path, rows);
+    }
+  }
+
+  const physicalInputPaths = physicalManifest.input_pins.map((pin) => pin.path);
+  if (
+    new Set(physicalInputPaths).size !== physicalInputPaths.length ||
+    physicalInputPaths.some((path) => !isSafeMtaWikiReleaseRelativePath(path))
+  ) {
+    return yield* fail("physical audit input pins are unsafe or duplicated");
+  }
+  const uniquePhysicalInput = (predicate: (path: string) => boolean) => {
+    const matches = physicalManifest.input_pins.filter((pin) => predicate(pin.path));
+    return matches.length === 1 ? matches[0] : undefined;
+  };
+  const physicalReleaseManifestPin = uniquePhysicalInput(
+    (path) => path.startsWith("data/exports/releases/") && path.endsWith("/manifest.json"),
+  );
+  const physicalOccurrencePin = uniquePhysicalInput((path) =>
+    path.endsWith("/operational_occurrences.jsonl"),
+  );
+  const physicalTreatmentPin = uniquePhysicalInput((path) =>
+    path.endsWith("/treatment_components.jsonl"),
+  );
+  const physicalRelationPin = uniquePhysicalInput((path) => path.endsWith("/relations.jsonl"));
+  const physicalCorridorPin = uniquePhysicalInput((path) => path.endsWith("/corridors.jsonl"));
+  const physicalPolicyPin = uniquePhysicalInput((path) =>
+    path.endsWith("/occurrence-treatment-physicality/v1/policy.json"),
+  );
+  const physicalLedgerPin = uniquePhysicalInput((path) =>
+    path.endsWith("/occurrence-treatment-physicality/v1/review-ledger.jsonl"),
+  );
+  const physicalContractPin = uniquePhysicalInput((path) =>
+    path.endsWith("/occurrence-treatment-physicality/v1/contract.json"),
+  );
+  const physicalCompletenessManifestPin = uniquePhysicalInput(
+    (path) => path === "data/quality/relationship-integrity/completeness/manifest.json",
+  );
+  const physicalCompletenessRowsPin = uniquePhysicalInput(
+    (path) =>
+      path === "data/quality/relationship-integrity/completeness/occurrence-completeness.jsonl",
+  );
+  if (
+    physicalReleaseManifestPin === undefined ||
+    physicalOccurrencePin === undefined ||
+    physicalTreatmentPin === undefined ||
+    physicalRelationPin === undefined ||
+    physicalCorridorPin === undefined ||
+    physicalPolicyPin === undefined ||
+    physicalLedgerPin === undefined ||
+    physicalContractPin === undefined ||
+    physicalCompletenessManifestPin === undefined ||
+    physicalCompletenessRowsPin === undefined
+  ) {
+    return yield* fail("physical audit input pin set is incomplete or ambiguous");
+  }
+  if (
+    physicalOccurrencePin.bytes !== input.occurrenceFile.metadata.bytes ||
+    physicalOccurrencePin.sha256 !== input.occurrenceFile.metadata.sha256 ||
+    physicalOccurrencePin.row_count !== input.occurrenceRows.length
+  ) {
+    return yield* fail("physical audit occurrence input is not the imported occurrence file");
+  }
+  const physicalRootPins: ReadonlyArray<readonly [RelationshipAuditFilePin, string, string]> = [
+    [physicalTreatmentPin, "treatment_components.jsonl", "treatment_component"],
+    [physicalRelationPin, "relations.jsonl", "relation"],
+    [physicalCorridorPin, "corridors.jsonl", "corridor"],
+  ];
+  for (const [pin, rootPath, recordKind] of physicalRootPins) {
+    const rootFile = input.manifest.files[rootPath];
+    const rootCount = input.manifest.record_counts[recordKind];
+    if (
+      rootFile === undefined ||
+      rootCount === undefined ||
+      pin.bytes !== rootFile.bytes ||
+      pin.sha256 !== rootFile.sha256 ||
+      pin.row_count !== rootCount
+    ) {
+      return yield* fail(`physical audit root input drifted: ${rootPath}`);
+    }
+  }
+  for (const pin of [
+    physicalCompletenessManifestPin,
+    physicalCompletenessRowsPin,
+    physicalPolicyPin,
+    physicalLedgerPin,
+    physicalContractPin,
+  ]) {
+    const bundled = verifiedBySourcePath.get(pin.path);
+    if (
+      bundled === undefined ||
+      bundled.file.metadata.bytes !== pin.bytes ||
+      bundled.file.metadata.sha256 !== pin.sha256
+    ) {
+      return yield* fail(`physical audit bundled input drifted: ${pin.path}`);
+    }
+    if (pin.row_count !== undefined) {
+      const text = yield* decodeMtaWikiReleaseUtf8(bundled.file.bytes, {
+        operation: "countPhysicalAuditInputRows",
+        path: bundled.file.path,
+      }).pipe(Effect.mapError(fromReleaseError));
+      const rows =
+        text.length === 0 ? 0 : text.split("\n").filter((line) => line.length > 0).length;
+      if (rows !== pin.row_count) {
+        return yield* fail(`physical audit bundled input row count drifted: ${pin.path}`);
+      }
+    }
+  }
+
+  const physicalSummaryPin = physicalManifest.files["summary.json"];
+  const physicalFindingsPin = physicalManifest.files["findings.jsonl"];
+  if (
+    physicalSummaryPin === undefined ||
+    physicalFindingsPin === undefined ||
+    physicalSummaryPin.sha256 !== physicalSummaryArtifact.file.metadata.sha256 ||
+    physicalSummaryPin.bytes !== physicalSummaryArtifact.file.metadata.bytes ||
+    physicalFindingsPin.bytes !== 0 ||
+    physicalFindingsPin.sha256 !== emptySha256 ||
+    physicalFindingsPin.row_count !== 0 ||
+    physicalManifest.release_id !== physicalSummary.release_id ||
+    physicalSummary.release_manifest_sha256 !== physicalReleaseManifestPin.sha256 ||
+    physicalSummary.review_ledger_sha256 !== physicalLedgerPin.sha256 ||
+    physicalSummary.policy_sha256 !== physicalPolicyPin.sha256 ||
+    physicalSummary.contract_sha256 !== physicalContractPin.sha256 ||
+    Object.keys(physicalSummary.finding_counts).length !== 0
+  ) {
+    return yield* fail("physical audit summary lineage or zero-finding proof drifted");
+  }
+
+  const eligibleRows = input.occurrenceRows.filter((row) => row.study_projection_eligible);
+  const exactPhysicalRows = eligibleRows.filter((row) => row.physical_scope_record_ids.length > 0);
+  const treatmentMembers = eligibleRows.flatMap((row) =>
+    row.treatment.kind === "atomic" ? [row.treatment.member] : row.treatment.members,
+  );
+  const treatmentIds = treatmentMembers.map((member) => member.treatment_record_id);
+  const physicalClassificationCount = Object.values(physicalSummary.classification_counts).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  const physicalRequirementCount = Object.values(physicalSummary.scope_requirement_counts).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  const physicalDispositionCount = Object.values(
+    physicalSummary.occurrence_disposition_counts,
+  ).reduce((sum, count) => sum + count, 0);
+  const familyUniqueCount = Object.values(physicalSummary.by_treatment_family).reduce(
+    (sum, value) => sum + value.unique_treatment_count,
+    0,
+  );
+  const familyMembershipCount = Object.values(physicalSummary.by_treatment_family).reduce(
+    (sum, value) => sum + value.occurrence_membership_count,
+    0,
+  );
+  if (
+    physicalSummary.eligible_occurrence_count !== eligibleRows.length ||
+    physicalSummary.unique_treatment_count !== new Set(treatmentIds).size ||
+    physicalSummary.treatment_membership_count !== treatmentIds.length ||
+    physicalClassificationCount !== physicalSummary.unique_treatment_count ||
+    physicalRequirementCount !== physicalSummary.unique_treatment_count ||
+    familyUniqueCount !== physicalSummary.unique_treatment_count ||
+    familyMembershipCount !== physicalSummary.treatment_membership_count ||
+    Object.values(physicalSummary.by_treatment_family).some(
+      (value) =>
+        Object.values(value.classifications).reduce((sum, count) => sum + count, 0) !==
+        value.unique_treatment_count,
+    ) ||
+    physicalDispositionCount !== eligibleRows.length ||
+    physicalSummary.occurrence_disposition_counts.physical_scope_satisfied !==
+      exactPhysicalRows.length ||
+    physicalSummary.occurrence_disposition_counts.physical_scope_not_applicable !==
+      eligibleRows.length - exactPhysicalRows.length
+  ) {
+    return yield* fail("physical audit denominators do not reconcile to imported occurrences");
+  }
+
+  const phaseOccurrencePin = phaseManifest.route_anchor_release.operational_occurrences;
+  const phaseSummaryPath = `${phaseOutputRoot}/summary.json`;
+  const phaseFindingsPath = `${phaseOutputRoot}/findings.jsonl`;
+  const phaseCandidatesPath = `${phaseOutputRoot}/event-event-candidates.jsonl`;
+  const phaseLedgerPath = "data/contracts/operational-occurrence-phases/v1/review-ledger.jsonl";
+  const phaseSummaryPin = phaseManifest.outputs[phaseSummaryPath];
+  const phaseFindingsPin = phaseManifest.outputs[phaseFindingsPath];
+  const phaseCandidatesPin = phaseManifest.outputs[phaseCandidatesPath];
+  const phaseLedgerPin = phaseManifest.outputs[phaseLedgerPath];
+  if (
+    phaseOccurrencePin.bytes !== input.occurrenceFile.metadata.bytes ||
+    phaseOccurrencePin.sha256 !== input.occurrenceFile.metadata.sha256 ||
+    phaseOccurrencePin.row_count !== input.occurrenceRows.length ||
+    phaseSummaryPin === undefined ||
+    phaseFindingsPin === undefined ||
+    phaseCandidatesPin === undefined ||
+    phaseLedgerPin === undefined ||
+    phaseSummaryPin.sha256 !== phaseSummaryArtifact.file.metadata.sha256 ||
+    phaseSummaryPin.bytes !== phaseSummaryArtifact.file.metadata.bytes ||
+    phaseFindingsPin.bytes !== 0 ||
+    phaseFindingsPin.sha256 !== emptySha256 ||
+    phaseFindingsPin.row_count !== 0 ||
+    phaseManifest.route_anchor_release.release_id !== phaseSummary.release_id ||
+    phaseManifest.derived_inputs.canonical_record_count !==
+      Object.values(input.manifest.record_counts).reduce((sum, count) => sum + count, 0) ||
+    phaseManifest.derived_inputs.operational_occurrence_count !== input.occurrenceRows.length ||
+    phaseManifest.derived_inputs.relevant_canonical_record_count !== input.occurrenceRows.length ||
+    phaseSummary.content_hashes.review_ledger_sha256 !== phaseLedgerPin.sha256 ||
+    phaseSummary.content_hashes.event_event_candidates_sha256 !== phaseCandidatesPin.sha256 ||
+    phaseSummary.content_hashes.findings_sha256 !== phaseFindingsPin.sha256 ||
+    phaseSummary.content_hashes.operational_occurrences_sha256 !==
+      phaseManifest.derived_inputs.operational_occurrences_sha256 ||
+    phaseSummary.content_hashes.canonical_phase_projection_sha256 !==
+      phaseManifest.derived_inputs.canonical_phase_projection_sha256 ||
+    Object.keys(phaseSummary.finding_counts).length !== 0
+  ) {
+    return yield* fail("phase audit lineage or zero-finding proof drifted");
+  }
+
+  const phaseIdentityMembershipCount = input.occurrenceRows.reduce(
+    (sum, row) => sum + row.phase_record_ids.length,
+    0,
+  );
+  const uniquePhaseEventCount = new Set(input.occurrenceRows.flatMap((row) => row.phase_record_ids))
+    .size;
+  const projectedPhaseRelationCount = new Set(
+    input.occurrenceRows.flatMap((row) => row.phase_relation_record_ids),
+  ).size;
+  const singlePhaseCount = input.occurrenceRows.filter(
+    (row) => row.phase_relation_disposition === "single_phase",
+  ).length;
+  const relatedPhaseCount = input.occurrenceRows.length - singlePhaseCount;
+  const phaseCandidateDispositionCount = Object.values(
+    phaseSummary.counts_by_candidate_disposition,
+  ).reduce((sum, count) => sum + count, 0);
+  if (
+    phaseSummary.occurrence_count !== input.occurrenceRows.length ||
+    phaseSummary.eligible_occurrence_count !== eligibleRows.length ||
+    phaseSummary.ineligible_occurrence_count !==
+      input.occurrenceRows.length - eligibleRows.length ||
+    phaseSummary.phase_identity_membership_count !== phaseIdentityMembershipCount ||
+    phaseSummary.unique_phase_event_count !== uniquePhaseEventCount ||
+    phaseSummary.projected_phase_relation_count !== projectedPhaseRelationCount ||
+    phaseSummary.checked_event_event_candidate_count !== phaseCandidatesPin.row_count ||
+    phaseCandidateDispositionCount !== phaseSummary.checked_event_event_candidate_count ||
+    phaseSummary.counts_by_candidate_disposition.projected_reviewed_phase_relation !==
+      projectedPhaseRelationCount ||
+    phaseSummary.counts_by_primary_disposition.single_observed_phase_no_related_phase_asserted !==
+      singlePhaseCount ||
+    phaseSummary.counts_by_primary_disposition.evidence_bound_related_phases !==
+      relatedPhaseCount ||
+    phaseSummary.reviewed_occurrence_count !== input.occurrenceRows.length ||
+    phaseSummary.single_observed_phase_count !== singlePhaseCount ||
+    phaseSummary.related_phase_count !== relatedPhaseCount
+  ) {
+    return yield* fail("phase audit denominators do not reconcile to imported occurrences");
   }
 
   const graphArtifactContract = [
@@ -2854,6 +3369,8 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         manifestPath,
         resolved,
         bundleFile,
+        occurrenceFile,
+        occurrenceRows: rows,
       });
       yield* validateReviewSnapshot({
         rows,

@@ -665,6 +665,11 @@ async function writeReleaseFixtureV4(
     graphManifestRowCountMismatch?: boolean;
     weakenedContractPolicy?: boolean;
     invalidEndpointMatrix?: boolean;
+    physicalOccurrencePinMismatch?: boolean;
+    phaseOccurrencePinMismatch?: boolean;
+    physicalAuditNotReady?: boolean;
+    phaseAuditViolation?: boolean;
+    physicalSummaryPinMismatch?: boolean;
   } = {},
 ): Promise<ReleaseFixtureV4> {
   const root = await mkdtemp(join(tmpdir(), "bp-wiki-operational-occurrence-v4-"));
@@ -703,13 +708,31 @@ async function writeReleaseFixtureV4(
   const archiveRoot = "data/contracts/relationships/v1/enforcement-proofs/fixture";
   const previousProofPath = `${archiveRoot}/proof.json`;
   const canonicalRelationsText = `${JSON.stringify({ record_id: "relation:fixture" })}\n`;
+  const eligibleRows = row.study_projection_eligible ? [row] : [];
+  const treatmentMembers = eligibleRows.flatMap((entry) =>
+    entry.treatment.kind === "atomic" ? [entry.treatment.member] : entry.treatment.members,
+  );
+  const uniqueTreatmentIds = [
+    ...new Set(treatmentMembers.map((entry) => entry.treatment_record_id)),
+  ];
+  const treatmentComponentsText = uniqueTreatmentIds
+    .map((recordId) => JSON.stringify({ record_id: recordId }))
+    .join("\n")
+    .concat(uniqueTreatmentIds.length === 0 ? "" : "\n");
+  const corridorsText = `${JSON.stringify({ record_id: "corridor:fixture" })}\n`;
+  const eventRecordCount = row.phase_record_ids.length;
+  const relationRecordCount = 1;
+  const corridorRecordCount = 1;
+  const treatmentRecordCount = uniqueTreatmentIds.length;
+  const canonicalRecordCount =
+    eventRecordCount + relationRecordCount + corridorRecordCount + treatmentRecordCount;
   const previousProof = {
     schema_version: 1,
     proof_stage: "pre_promotion_warning",
     fixture: true,
   };
   const graph = {
-    canonical_record_count: 2,
+    canonical_record_count: canonicalRecordCount,
     canonical_relation_count: 1,
     distinct_relation_kind_count: 1,
     contract_rule_count: 1,
@@ -814,6 +837,315 @@ async function writeReleaseFixtureV4(
     reproduction_commands: ["bun fixture graph-audit --mode enforce"],
   };
   const graphManifestText = `${JSON.stringify(graphManifest)}\n`;
+
+  const auditPin = (path: string, text: string, rowCount?: number) => ({
+    path,
+    bytes: Buffer.byteLength(text),
+    sha256: sha256(text),
+    ...(rowCount === undefined ? {} : { row_count: rowCount }),
+  });
+  const physicalRoot = "data/quality/relationship-integrity/occurrence-treatment-physicality";
+  const phaseRoot = "data/quality/relationship-integrity/operational-occurrence-phases";
+  const physicalManifestPath = `${physicalRoot}/manifest.json`;
+  const physicalSummaryPath = `${physicalRoot}/summary.json`;
+  const phaseManifestPath = `${phaseRoot}/manifest.json`;
+  const phaseSummaryPath = `${phaseRoot}/summary.json`;
+  const physicalPolicyPath = "data/contracts/occurrence-treatment-physicality/v1/policy.json";
+  const physicalLedgerPath =
+    "data/contracts/occurrence-treatment-physicality/v1/review-ledger.jsonl";
+  const physicalContractPath = "data/contracts/occurrence-treatment-physicality/v1/contract.json";
+  const physicalCompletenessManifestPath =
+    "data/quality/relationship-integrity/completeness/manifest.json";
+  const physicalCompletenessRowsPath =
+    "data/quality/relationship-integrity/completeness/occurrence-completeness.jsonl";
+  const phaseContractPath = "data/contracts/operational-occurrence-phases/v1/contract.json";
+  const phaseLedgerPath = "data/contracts/operational-occurrence-phases/v1/review-ledger.jsonl";
+  const physicalPolicyText = `${JSON.stringify({ schema_version: 1, fixture: true })}\n`;
+  const physicalLedgerText = `${JSON.stringify({ fixture: true })}\n`;
+  const physicalContractText = `${JSON.stringify({ schema_version: 1, fixture: true })}\n`;
+  const physicalCompletenessManifestText = `${JSON.stringify({ schema_version: 1, fixture: true })}\n`;
+  const physicalCompletenessRowsText = eligibleRows
+    .map((entry) => JSON.stringify({ occurrence_id: entry.occurrence_id }))
+    .join("\n")
+    .concat(eligibleRows.length === 0 ? "" : "\n");
+  const phaseContractText = `${JSON.stringify({ schema_version: 1, fixture: true })}\n`;
+  const phaseLedgerText = `${JSON.stringify({ occurrence_id: row.occurrence_id })}\n`;
+  const physicalFindingsText = "";
+  const physicalOccurrenceAuditText = eligibleRows
+    .map((entry) => JSON.stringify({ occurrence_id: entry.occurrence_id }))
+    .join("\n")
+    .concat(eligibleRows.length === 0 ? "" : "\n");
+  const physicalTreatmentAuditText = treatmentMembers
+    .map((entry) => JSON.stringify({ treatment_record_id: entry.treatment_record_id }))
+    .join("\n")
+    .concat(treatmentMembers.length === 0 ? "" : "\n");
+  const physicalReportText = "# Fixture physical audit\n";
+  const exactPhysicalCount = eligibleRows.filter(
+    (entry) => entry.physical_scope_record_ids.length > 0,
+  ).length;
+  const treatmentFamilyRows = new Map<
+    string,
+    { ids: Set<string>; occurrenceMembershipCount: number }
+  >();
+  for (const member of treatmentMembers) {
+    const current = treatmentFamilyRows.get(member.treatment_family) ?? {
+      ids: new Set<string>(),
+      occurrenceMembershipCount: 0,
+    };
+    current.ids.add(member.treatment_record_id);
+    current.occurrenceMembershipCount += 1;
+    treatmentFamilyRows.set(member.treatment_family, current);
+  }
+  const physicalClassification =
+    exactPhysicalCount > 0
+      ? "physical_corridor_or_segment_intervention"
+      : "nonphysical_service_operations_policy_control";
+  const physicalSummary = {
+    schema_version: 1,
+    eligible_occurrence_count: eligibleRows.length,
+    unique_treatment_count: uniqueTreatmentIds.length,
+    treatment_membership_count: treatmentMembers.length,
+    classification_counts: {
+      physical_corridor_or_segment_intervention:
+        exactPhysicalCount > 0 ? uniqueTreatmentIds.length : 0,
+      nonphysical_service_operations_policy_control:
+        exactPhysicalCount > 0 ? 0 : uniqueTreatmentIds.length,
+      point_or_stop_physical_intervention: 0,
+      review_required: 0,
+    },
+    scope_requirement_counts: {
+      corridor_or_segment_required: exactPhysicalCount > 0 ? uniqueTreatmentIds.length : 0,
+      not_applicable: exactPhysicalCount > 0 ? 0 : uniqueTreatmentIds.length,
+      point_or_stop_required: 0,
+      review_required: 0,
+    },
+    occurrence_disposition_counts: {
+      physical_scope_satisfied: exactPhysicalCount,
+      physical_scope_missing: 0,
+      physical_scope_relation_missing: 0,
+      physical_scope_evidence_missing: 0,
+      physical_scope_relation_invalid: 0,
+      physicality_review_required: 0,
+      physical_scope_not_applicable: eligibleRows.length - exactPhysicalCount,
+    },
+    finding_counts: {},
+    review_ledger_complete: true,
+    physical_scope_complete: true,
+    hard_mode_ready: input.physicalAuditNotReady ? false : true,
+    release_id: "v1-fixture-audit",
+    review_stage: "final_post_semantic_release",
+    release_manifest_sha256: "b".repeat(64),
+    review_ledger_sha256: sha256(physicalLedgerText),
+    policy_sha256: sha256(physicalPolicyText),
+    contract_sha256: sha256(physicalContractText),
+    by_treatment_family: Object.fromEntries(
+      [...treatmentFamilyRows.entries()]
+        .toSorted(([left], [right]) => left.localeCompare(right))
+        .map(([family, value]) => [
+          family,
+          {
+            unique_treatment_count: value.ids.size,
+            occurrence_membership_count: value.occurrenceMembershipCount,
+            classifications: { [physicalClassification]: value.ids.size },
+          },
+        ]),
+    ),
+    final_post_semantic_release_guard_ready: true,
+  };
+  const physicalSummaryText = `${JSON.stringify(physicalSummary)}\n`;
+  const physicalManifest = {
+    schema_version: 1,
+    contract_id: "occurrence-treatment-physicality-v1",
+    release_id: "v1-fixture-audit",
+    review_stage: "final_post_semantic_release",
+    input_pins: [
+      {
+        path: "data/exports/releases/v1-fixture-audit/manifest.json",
+        bytes: 1,
+        sha256: "b".repeat(64),
+      },
+      {
+        ...auditPin(
+          "data/exports/releases/v1-fixture-audit/operational_occurrences.jsonl",
+          occurrenceText,
+          1,
+        ),
+        ...(input.physicalOccurrencePinMismatch ? { sha256: "f".repeat(64) } : {}),
+      },
+      auditPin(
+        "data/exports/releases/v1-fixture-audit/treatment_components.jsonl",
+        treatmentComponentsText,
+        treatmentRecordCount,
+      ),
+      auditPin(
+        "data/exports/releases/v1-fixture-audit/relations.jsonl",
+        canonicalRelationsText,
+        relationRecordCount,
+      ),
+      auditPin(
+        "data/exports/releases/v1-fixture-audit/corridors.jsonl",
+        corridorsText,
+        corridorRecordCount,
+      ),
+      auditPin(physicalCompletenessManifestPath, physicalCompletenessManifestText),
+      auditPin(physicalCompletenessRowsPath, physicalCompletenessRowsText, eligibleRows.length),
+      auditPin(physicalPolicyPath, physicalPolicyText),
+      auditPin(physicalLedgerPath, physicalLedgerText, 1),
+      auditPin(physicalContractPath, physicalContractText),
+    ],
+    files: {
+      "findings.jsonl": auditPin(`${physicalRoot}/findings.jsonl`, physicalFindingsText, 0),
+      "occurrence-audit.jsonl": auditPin(
+        `${physicalRoot}/occurrence-audit.jsonl`,
+        physicalOccurrenceAuditText,
+        eligibleRows.length,
+      ),
+      "report.md": auditPin(`${physicalRoot}/report.md`, physicalReportText),
+      "summary.json": {
+        ...auditPin(physicalSummaryPath, physicalSummaryText),
+        ...(input.physicalSummaryPinMismatch ? { sha256: "f".repeat(64) } : {}),
+      },
+      "treatment-audit.jsonl": auditPin(
+        `${physicalRoot}/treatment-audit.jsonl`,
+        physicalTreatmentAuditText,
+        treatmentMembers.length,
+      ),
+    },
+    audit_fingerprint: "d".repeat(64),
+  };
+  const physicalManifestText = `${JSON.stringify(physicalManifest)}\n`;
+
+  const phaseRelationIds = [...new Set(row.phase_relation_record_ids)];
+  const phaseCandidatesText = phaseRelationIds
+    .map((recordId) => JSON.stringify({ relation_record_id: recordId }))
+    .join("\n")
+    .concat(phaseRelationIds.length === 0 ? "" : "\n");
+  const phaseFindingsText = "";
+  const phaseReportText = "# Fixture phase audit\n";
+  const occurrenceCanonicalSha256 = canonicalDigest([row]);
+  const phaseProjectionSha256 = canonicalDigest({
+    phase_record_ids: row.phase_record_ids,
+    phase_relation_record_ids: row.phase_relation_record_ids,
+  });
+  const singlePhaseCount = row.phase_relation_disposition === "single_phase" ? 1 : 0;
+  const relatedPhaseCount = 1 - singlePhaseCount;
+  const phaseSummary = {
+    schema_version: 1,
+    contract_id: "operational-occurrence-phase-review-v1",
+    occurrence_count: 1,
+    eligible_occurrence_count: eligibleRows.length,
+    ineligible_occurrence_count: 1 - eligibleRows.length,
+    phase_identity_membership_count: row.phase_record_ids.length,
+    unique_phase_event_count: new Set(row.phase_record_ids).size,
+    projected_phase_relation_count: phaseRelationIds.length,
+    checked_event_event_candidate_count: phaseRelationIds.length,
+    counts_by_primary_disposition: {
+      single_observed_phase_no_related_phase_asserted: singlePhaseCount,
+      evidence_bound_related_phases: relatedPhaseCount,
+      review_required: 0,
+    },
+    counts_by_candidate_disposition: {
+      projected_reviewed_phase_relation: phaseRelationIds.length,
+      not_projected_external_event_not_selected: 0,
+      not_projected_non_phase_semantics: 0,
+      review_required_unprojected_same_occurrence_temporal_relation: 0,
+    },
+    finding_counts: {},
+    phase_identity_complete: true,
+    phase_relation_or_disposition_complete: true,
+    exact_evidence_complete: true,
+    hard_mode_ready: true,
+    ledger_id: "operational-occurrence-phase-review-ledger-v1",
+    release_id: "v1-fixture-audit",
+    reviewed_occurrence_count: 1,
+    single_observed_phase_count: singlePhaseCount,
+    related_phase_count: relatedPhaseCount,
+    unresolved_phase_count: 0,
+    missing_evidence_count: 0,
+    ambiguous_phase_count: 0,
+    review_complete: true,
+    violation_count: input.phaseAuditViolation ? 1 : 0,
+    content_hashes: {
+      review_ledger_sha256: sha256(phaseLedgerText),
+      event_event_candidates_sha256: sha256(phaseCandidatesText),
+      findings_sha256: sha256(phaseFindingsText),
+      operational_occurrences_sha256: occurrenceCanonicalSha256,
+      canonical_phase_projection_sha256: phaseProjectionSha256,
+    },
+  };
+  const phaseSummaryText = `${JSON.stringify(phaseSummary)}\n`;
+  const phaseManifest = {
+    schema_version: 1,
+    contract_id: "operational-occurrence-phase-review-v1",
+    generated_at: "2026-07-17T00:00:00.000Z",
+    generated_by: "fixture",
+    route_anchor_release: {
+      release_id: "v1-fixture-audit",
+      manifest: {
+        path: "data/exports/releases/v1-fixture-audit/manifest.json",
+        bytes: 1,
+        sha256: "b".repeat(64),
+      },
+      route_anchors: {
+        path: "data/exports/releases/v1-fixture-audit/route_anchors.jsonl",
+        bytes: 0,
+        sha256: sha256(""),
+        row_count: 0,
+      },
+      operational_occurrences: {
+        ...auditPin(
+          "data/exports/releases/v1-fixture-audit/operational_occurrences.jsonl",
+          occurrenceText,
+          1,
+        ),
+        ...(input.phaseOccurrencePinMismatch ? { sha256: "f".repeat(64) } : {}),
+      },
+    },
+    input_aggregates: {},
+    derived_inputs: {
+      canonical_record_count: canonicalRecordCount,
+      operational_occurrence_count: 1,
+      operational_occurrences_sha256: occurrenceCanonicalSha256,
+      relevant_canonical_record_count: 1,
+      canonical_phase_projection_sha256: phaseProjectionSha256,
+    },
+    outputs: {
+      [phaseContractPath]: auditPin(phaseContractPath, phaseContractText),
+      [phaseLedgerPath]: auditPin(phaseLedgerPath, phaseLedgerText, 1),
+      [`${phaseRoot}/event-event-candidates.jsonl`]: auditPin(
+        `${phaseRoot}/event-event-candidates.jsonl`,
+        phaseCandidatesText,
+        phaseRelationIds.length,
+      ),
+      [`${phaseRoot}/findings.jsonl`]: auditPin(
+        `${phaseRoot}/findings.jsonl`,
+        phaseFindingsText,
+        0,
+      ),
+      [`${phaseRoot}/report.md`]: auditPin(`${phaseRoot}/report.md`, phaseReportText),
+      [phaseSummaryPath]: auditPin(phaseSummaryPath, phaseSummaryText),
+    },
+    reproduction_command: "bun fixture phase-audit --check",
+  };
+  const phaseManifestText = `${JSON.stringify(phaseManifest)}\n`;
+  const auditArtifactTexts = [
+    [physicalManifestPath, physicalManifestText],
+    [physicalPolicyPath, physicalPolicyText],
+    [physicalLedgerPath, physicalLedgerText],
+    [physicalContractPath, physicalContractText],
+    [physicalCompletenessManifestPath, physicalCompletenessManifestText],
+    [physicalCompletenessRowsPath, physicalCompletenessRowsText],
+    [`${physicalRoot}/findings.jsonl`, physicalFindingsText],
+    [`${physicalRoot}/occurrence-audit.jsonl`, physicalOccurrenceAuditText],
+    [`${physicalRoot}/report.md`, physicalReportText],
+    [`${physicalRoot}/treatment-audit.jsonl`, physicalTreatmentAuditText],
+    [phaseManifestPath, phaseManifestText],
+    [phaseContractPath, phaseContractText],
+    [phaseLedgerPath, phaseLedgerText],
+    [`${phaseRoot}/event-event-candidates.jsonl`, phaseCandidatesText],
+    [`${phaseRoot}/findings.jsonl`, phaseFindingsText],
+    [`${phaseRoot}/report.md`, phaseReportText],
+  ] as const;
   const activeSourceTexts = new Map<string, string>([
     ["data/quality/relationship-integrity/graph-audit/findings.jsonl", graphFindingsText],
     ["data/quality/relationship-integrity/graph-audit/manifest.json", graphManifestText],
@@ -824,6 +1156,8 @@ async function writeReleaseFixtureV4(
     ],
     ["data/quality/relationship-integrity/graph-audit/report.md", graphReportText],
     [graphPath, graphSummaryText],
+    [physicalSummaryPath, physicalSummaryText],
+    [phaseSummaryPath, phaseSummaryText],
   ]);
   const gateSourcePins = new Map<string, { role: string; path: string }>();
   for (const sources of Object.values(RELATIONSHIP_GATE_SOURCES)) {
@@ -1077,6 +1411,11 @@ async function writeReleaseFixtureV4(
       sourcePath: gate.sourcePath,
       text: gate.text,
     })),
+    ...auditArtifactTexts.map(([sourcePath, text]) => ({
+      role: `artifact:${sourcePath}`,
+      sourcePath,
+      text,
+    })),
     ...activeSources.map((source) => ({
       role: source.role.startsWith("graph_audit_") ? source.role : `artifact:${source.path}`,
       sourcePath: source.path,
@@ -1156,7 +1495,9 @@ async function writeReleaseFixtureV4(
     "operational_anchors.jsonl": "",
     "operational_anchors_summary.json": "{}\n",
     "operational_anchor_review_decisions.json": "{}\n",
+    "treatment_components.jsonl": treatmentComponentsText,
     "relations.jsonl": canonicalRelationsText,
+    "corridors.jsonl": corridorsText,
   };
   const releaseFiles: Record<string, string> = {
     ...legacyFiles,
@@ -1191,7 +1532,12 @@ async function writeReleaseFixtureV4(
       operational_occurrence_review_decisions: 1,
       relationship_integrity_bundle: 1,
     },
-    record_counts: { event: 1, relation: 1 },
+    record_counts: {
+      event: eventRecordCount,
+      treatment_component: treatmentRecordCount,
+      relation: relationRecordCount,
+      corridor: corridorRecordCount,
+    },
     files: Object.fromEntries(
       Object.entries(releaseFiles).map(([pointer, text]) => [
         pointer,
@@ -2037,7 +2383,7 @@ describe("manifest-v4 occurrence-v2 and relationship-integrity import", () => {
         contract: { contractStatus: "enforced", enforcementState: "enforced_ready" },
         enforcementProof: { gateCount: 7, totalViolationCount: 0 },
         graphAudit: {
-          canonicalRecordCount: 2,
+          canonicalRecordCount: 4,
           canonicalRelationCount: 1,
           reviewedNonEnforceableAdvisoryCount: 3,
         },
@@ -2060,6 +2406,42 @@ describe("manifest-v4 occurrence-v2 and relationship-integrity import", () => {
         summary: { candidateCount: 1, approvedCount: 0 },
       });
       expect(() => decodeStrict(StudyEventMergeArtifactV3Schema)(candidates)).not.toThrow();
+    });
+  });
+
+  test("binds phase and physical audit proofs to the exact imported occurrence graph", async () => {
+    await withFixtureV4({ physicalOccurrencePinMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("physical audit occurrence input"),
+      });
+    });
+    await withFixtureV4({ phaseOccurrencePinMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("phase audit lineage"),
+      });
+    });
+    await withFixtureV4({ physicalSummaryPinMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("physical audit output pin"),
+      });
+    });
+  });
+
+  test("rejects non-ready or nonzero phase and physical audit summaries", async () => {
+    await withFixtureV4({ physicalAuditNotReady: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "schema_mismatch",
+        operation: "decodeOccurrenceTreatmentPhysicalitySummary",
+      });
+    });
+    await withFixtureV4({ phaseAuditViolation: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "schema_mismatch",
+        operation: "decodeOperationalOccurrencePhaseAuditSummary",
+      });
     });
   });
 
