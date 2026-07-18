@@ -8471,7 +8471,9 @@ ledger parity and strict canonical proof. The consumer binds both phase and
 physical audit manifests to the imported occurrence bytes/SHA/row count,
 reconciles physical treatment/relation/corridor roots and bundled
 completeness/policy/ledger/contract inputs, and requires hard-mode,
-complete-review, exact-evidence, and zero-finding/violation semantics. Nested,
+complete-review, and exact-evidence semantics, zero phase/physical-audit
+findings, and zero enforceable relationship violations while retaining reviewed
+and informational graph findings. Nested,
 rogue, stale, and unknown-version evidence still fails closed; rc22 remains an
 exact fingerprinted, non-promotable inspection profile.
 
@@ -8486,7 +8488,14 @@ rows remain unchanged. All 321 excluded bus-lane candidates remain unchanged,
 registry-only, unapproved, and unresolved.
 
 The pinned release is ready for a separate operator release-pointer review,
-not automatically promoted. No candidate approval, study, publication,
-deployment, D1/R2 write, or `LATEST` mutation occurred. Plans 074, 075, and
-083 retain their independent control, physical-scope, spine, approval, and
-publication gates. See `docs/research/mta-wiki-rc23-migration-report.md`.
+not automatically promoted. After this record was drafted, merging Tracker PR
+#61 triggered main-push workflow run `29625533041`; deploy job
+`88029151351` successfully built and deployed the Worker. No candidate
+approval, study run, study publication, study-data D1/R2 write, or `LATEST`
+mutation occurred.
+
+Plan 074 remains IN PROGRESS. Plan 075's UI code exists from PR #59, but the
+plan remains IN PROGRESS because its recorded Plan 074 operator-anchor
+prerequisite never closed; no rc23 output was activated. Plan 083 remains
+TODO. Their control, physical-scope, spine, approval, and publication gates
+remain independent. See `docs/research/mta-wiki-rc23-migration-report.md`.

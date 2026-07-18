@@ -13,10 +13,15 @@
 
 ## Status
 
+- **Plan status**: IN PROGRESS (the UI integration landed in PR #59, but the
+  recorded Plan 074 operator-anchor prerequisite was never closed; public
+  activation remains blocked and no rc23 study output may be served)
 - **Priority**: P2
 - **Effort**: M
 - **Risk**: MED (public claims surface — mitigated by claim-language rules and the 074 operator-review gate)
-- **Depends on**: plans/074-segment-study-engine.md (DONE + operator anchor review passed), plans/073-intervention-corpus-serving.md (corpus artifact, for step 5)
+- **Depends on**: plans/074-segment-study-engine.md (must be DONE with
+  operator anchor review passed; currently unmet),
+  plans/073-intervention-corpus-serving.md (corpus artifact, for step 5)
 - **Category**: direction
 - **Planned at**: commit `cd878f7`, 2026-07-09 (rescoped same day per operator direction)
 
@@ -54,6 +59,14 @@ to that exact set, a separately authorized Plan 074 run, operator anchor
 review, and every existing publication gate. rc22 remains quarantined and all
 already published artifacts remain immutable. See
 `docs/research/mta-wiki-rc23-migration-report.md`.
+
+### Status reconciliation — 2026-07-18
+
+PR #59 merged the UI integration even though the Plan 074 anchor report still
+records a STOP. The code's existence is not evidence that the prerequisite
+passed. Treat the integration as an implemented but inactive milestone:
+operator anchor review, exact-set approval, a separately authorized study run,
+serving regeneration, and publication authorization remain open.
 
 ## Why this matters
 

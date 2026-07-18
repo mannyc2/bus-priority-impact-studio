@@ -5,8 +5,10 @@
   "trackerBaselineCommit": "5e656c2450792a23e36b4afc9ca29bdda97a1b5e",
   "trackerReviewProjectionCommit": "7b5c988b69af17769256332414b798e0d35246d6",
   "trackerCanonicalAuditBindingCommit": "745f098e1b62c89bf7bc2341818eaaacdba926f8",
+  "trackerConsumerHeadCommit": "a7b3db644e59b6979723fb1e106d20feca4e6410",
+  "trackerMergedMainCommit": "27ceded6373ceaf7e5630bd13ec4605471fc21e4",
   "mtaWikiProducerRepairCommit": "443e6e344b75d3f7c085574fbab8e57b1a1e8cf3",
-  "mtaWikiImmutableReleaseCommit": "d40ee4b6",
+  "mtaWikiImmutableReleaseCommit": "d40ee4b62c069f2d8df131a18fe1a71bab9cdbbf",
   "mtaWikiMergedMainCommit": "299752f2e9c7696296b29b1bcefbb5f454cb1699",
   "releaseId": "v1-rc23",
   "manifestSha256": "e412b0b7a3e98e87e43c8b59375f335c1c0bd84ab4024171ec6c45203f1da83b",
@@ -58,10 +60,10 @@
       "runCount": 2,
       "byteIdentical": true,
       "outputPath": "docs/research/artifacts/mta-wiki-rc23-lineage-audit.json",
-      "bytes": 13904,
+      "bytes": 14120,
       "sha256ByRun": [
-        "39472a8fec7aaa88dc02c1ceae66f98281688aae1586ccb8092cf2ff5f6f04d7",
-        "39472a8fec7aaa88dc02c1ceae66f98281688aae1586ccb8092cf2ff5f6f04d7"
+        "3de53aea97bb5c7423101f84938b6f67f47cf7df69526f113c7606810c997dbc",
+        "3de53aea97bb5c7423101f84938b6f67f47cf7df69526f113c7606810c997dbc"
       ],
       "verifiedManifestAddressedArtifactCountPerRelease": 246,
       "rc22ToRc23ByteIdenticalArtifactCount": 245,
@@ -87,6 +89,19 @@
     "exactCandidateDateAndPhaseCount": 0,
     "newOrUpdatedOccurrenceCount": 0,
     "approvedCandidateCount": 0
+  },
+  "observedPostMergeDeployment": {
+    "occurred": true,
+    "trigger": "push_to_main_after_pr_61_merge",
+    "mergeCommit": "27ceded6373ceaf7e5630bd13ec4605471fc21e4",
+    "workflowRunId": 29625533041,
+    "workflowRunUrl": "https://github.com/mannyc2/bus-priority-impact-studio/actions/runs/29625533041",
+    "deployJobId": 88029151351,
+    "deployJobUrl": "https://github.com/mannyc2/bus-priority-impact-studio/actions/runs/29625533041/job/88029151351",
+    "conclusion": "success",
+    "buildWebReleaseStepConclusion": "success",
+    "deployWorkerStepConclusion": "success",
+    "authorizedByThisRecord": false
   },
   "approvalState": "awaiting_approval",
   "approvalReceiptPresent": false,

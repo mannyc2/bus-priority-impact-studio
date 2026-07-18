@@ -40,8 +40,16 @@ authorizable: its merge state is `blocked_contract_incompatible`, its approval
 must be null, and supplying any receipt is rejected. Do not prepare a worksheet
 or receipt for it. Wait for a corrected named Wiki release to pass the normal
 strict-compatible import, rebuild the v3 set, and use the new exact ID and
-hash. The rc19 v2 set remains unapproved and its non-authorizing Codex review
-is not a receipt.
+hash.
+
+The corrected rc23 release produced authorizable set
+`candidate-set-v3:aba25fe4209247be31d43b66`, artifact SHA-256
+`60422e951226b97abe40ae3705469084c5134488e666084284771e1b60ab22b5`.
+It is still `awaiting_approval`, has a null receipt, and contains zero
+approved events. Any operator review must cover all 489 candidates and bind
+the exact candidate-set ID plus recorded inputs; no rc19/rc22 or historical
+403-row receipt applies. The rc19 v2 set remains unapproved and its
+non-authorizing Codex review is not a receipt.
 
 1. Use a clean, immutable MTA Wiki release and rebuild
    `data/artifacts/studio/v2/studies/study-events.json` without an approval.

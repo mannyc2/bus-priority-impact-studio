@@ -8,7 +8,7 @@
     "trackerReviewProjection": "7b5c988b69af17769256332414b798e0d35246d6",
     "trackerCanonicalAuditBinding": "745f098e1b62c89bf7bc2341818eaaacdba926f8",
     "mtaWikiProducerRepair": "443e6e344b75d3f7c085574fbab8e57b1a1e8cf3",
-    "mtaWikiImmutableRc23": "d40ee4b6",
+    "mtaWikiImmutableRc23": "d40ee4b62c069f2d8df131a18fe1a71bab9cdbbf",
     "mtaWikiMergedMain": "299752f2e9c7696296b29b1bcefbb5f454cb1699"
   },
   "inputs": {
@@ -146,7 +146,12 @@
     "physicalAuditOccurrencePinMatches": true,
     "rootTreatmentRelationCorridorPinsMatch": true,
     "hardModeAndCompletenessReady": true,
-    "findingOrViolationCount": 0
+    "graphFindingCount": 45986,
+    "enforceableViolationCount": 0,
+    "reviewedNonEnforceableAdvisoryCount": 3,
+    "informationalOrphanRecordCount": 45983,
+    "phaseFindingCount": 0,
+    "physicalFindingCount": 0
   },
   "rc19ToRc23": {
     "rc19OccurrenceCount": 135,

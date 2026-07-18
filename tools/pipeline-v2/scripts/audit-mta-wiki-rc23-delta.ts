@@ -66,7 +66,7 @@ const ManifestV4Schema = Schema.Struct({
   }),
 });
 
-const Rc23DeltaAuditSchema = Schema.Struct({
+export const Rc23DeltaAuditSchema = Schema.Struct({
   artifactKind: Schema.Literal("bp.studio.mta_wiki_rc23_lineage_delta.v1"),
   schemaVersion: Schema.Literal(1),
   authorization: Schema.Literal("non_authorizing_migration_audit_only"),
@@ -76,7 +76,7 @@ const Rc23DeltaAuditSchema = Schema.Struct({
     trackerReviewProjection: Schema.Literal("7b5c988b69af17769256332414b798e0d35246d6"),
     trackerCanonicalAuditBinding: Schema.Literal("745f098e1b62c89bf7bc2341818eaaacdba926f8"),
     mtaWikiProducerRepair: Schema.Literal("443e6e344b75d3f7c085574fbab8e57b1a1e8cf3"),
-    mtaWikiImmutableRc23: Schema.Literal("d40ee4b6"),
+    mtaWikiImmutableRc23: Schema.Literal("d40ee4b62c069f2d8df131a18fe1a71bab9cdbbf"),
     mtaWikiMergedMain: Schema.Literal("299752f2e9c7696296b29b1bcefbb5f454cb1699"),
   }),
   inputs: Schema.Struct({
@@ -123,7 +123,12 @@ const Rc23DeltaAuditSchema = Schema.Struct({
     physicalAuditOccurrencePinMatches: Schema.Literal(true),
     rootTreatmentRelationCorridorPinsMatch: Schema.Literal(true),
     hardModeAndCompletenessReady: Schema.Literal(true),
-    findingOrViolationCount: Schema.Literal(0),
+    graphFindingCount: Schema.Literal(45_986),
+    enforceableViolationCount: Schema.Literal(0),
+    reviewedNonEnforceableAdvisoryCount: Schema.Literal(3),
+    informationalOrphanRecordCount: Schema.Literal(45_983),
+    phaseFindingCount: Schema.Literal(0),
+    physicalFindingCount: Schema.Literal(0),
   }),
   rc19ToRc23: Schema.Unknown,
   categoryCountsByDimension: Schema.Unknown,
@@ -583,7 +588,7 @@ export async function runRc23DeltaAudit(argv: readonly string[]): Promise<void> 
       trackerReviewProjection: "7b5c988b69af17769256332414b798e0d35246d6",
       trackerCanonicalAuditBinding: "745f098e1b62c89bf7bc2341818eaaacdba926f8",
       mtaWikiProducerRepair: "443e6e344b75d3f7c085574fbab8e57b1a1e8cf3",
-      mtaWikiImmutableRc23: "d40ee4b6",
+      mtaWikiImmutableRc23: "d40ee4b62c069f2d8df131a18fe1a71bab9cdbbf",
       mtaWikiMergedMain: "299752f2e9c7696296b29b1bcefbb5f454cb1699",
     },
     inputs: {
@@ -672,7 +677,19 @@ export async function runRc23DeltaAudit(argv: readonly string[]): Promise<void> 
       physicalAuditOccurrencePinMatches: true,
       rootTreatmentRelationCorridorPinsMatch: true,
       hardModeAndCompletenessReady: true,
-      findingOrViolationCount: 0,
+      graphFindingCount:
+        rc23Import.sourceRelease.relationshipIntegrity.graphAudit
+          .reviewedNonEnforceableAdvisoryCount +
+        rc23Import.sourceRelease.relationshipIntegrity.graphAudit.informationalOrphanRecordCount,
+      enforceableViolationCount:
+        rc23Import.sourceRelease.relationshipIntegrity.graphAudit.enforceableViolationCount,
+      reviewedNonEnforceableAdvisoryCount:
+        rc23Import.sourceRelease.relationshipIntegrity.graphAudit
+          .reviewedNonEnforceableAdvisoryCount,
+      informationalOrphanRecordCount:
+        rc23Import.sourceRelease.relationshipIntegrity.graphAudit.informationalOrphanRecordCount,
+      phaseFindingCount: 0,
+      physicalFindingCount: 0,
     },
     rc19ToRc23: {
       ...rc22Audit.rc19ToRc22,
