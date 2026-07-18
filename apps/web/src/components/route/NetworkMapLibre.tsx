@@ -1,7 +1,15 @@
-import { lazy, type ReactNode, Suspense, useState } from "react";
-import { MAP_COLORS, scaledMapColor, speedToColor } from "@/components/route/maplibre-style";
+import type { MapBusLaneFeatureCollection } from "@bp/domain/maps";
+import { lazy, type ReactNode, Suspense } from "react";
+import { featureStyle, type NetworkView, periodSpeed } from "@/components/route/network-map-model";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { NetworkMapFeature, NetworkMapFeatureCollection } from "@/studio/api-client";
+
+// Compat re-exports: the period model moved into network-map-model.
+export {
+  type MapPeriod,
+  PERIOD_HOURS,
+  periodSpeed,
+} from "@/components/route/network-map-model";
 
 const NetworkMapLibreMap = lazy(() =>
   import("./NetworkMapLibre.map.js").then((module) => ({ default: module.NetworkMapLibreMap })),
@@ -12,53 +20,26 @@ export type NetworkMapPopupState = {
   content: ReactNode;
 };
 
+export type NetworkBadge = {
+  routeId: string;
+  label: string;
+  sbs: boolean;
+  lngLat: readonly [number, number];
+};
+
 export type NetworkMapLibreProps = {
   collection: NetworkMapFeatureCollection;
   context: RouteGeoContext | null;
-  period: MapPeriod;
-  lens: NetworkMapLens;
+  view: NetworkView;
+  badges: readonly NetworkBadge[];
+  busLanes: MapBusLaneFeatureCollection | null;
+  showLanes: boolean;
   selectedRouteId: string | null;
-  // lngLat is null when the click comes from the static fallback, which has no
-  // geographic anchor for a popup.
+  // A route without usable geometry has no geographic anchor and cannot be pinned.
   onSelectRoute?: (routeId: string, lngLat: readonly [number, number] | null) => void;
   onClearSelection?: () => void;
   popup: NetworkMapPopupState | null;
 };
-
-export type NetworkMapLens = "speed" | "riders" | "lanes";
-
-export type MapPeriod = "all" | "am" | "pm";
-
-export const PERIOD_HOURS: Record<MapPeriod, number[] | null> = {
-  all: null, // use currentMph
-  am: [7, 8, 9], // AM peak
-  pm: [16, 17, 18, 19], // PM peak
-};
-
-export function periodSpeed(
-  feature: NetworkMapFeature,
-  period: MapPeriod,
-): { value: number | null; observedHours: number; expectedHours: number } {
-  const hours = PERIOD_HOURS[period];
-  if (hours === null) {
-    return { value: feature.properties.currentMph, observedHours: 1, expectedHours: 1 };
-  }
-  const observed = hours.flatMap((hour) => {
-    const speed = feature.properties.hourlySpeedMph[hour];
-    const traversals = feature.properties.hourlyTraversalCount[hour] ?? 0;
-    return speed === null || speed === undefined || traversals <= 0 ? [] : [{ speed, traversals }];
-  });
-  const minimumHours = period === "am" ? 2 : 3;
-  if (observed.length < minimumHours) {
-    return { value: null, observedHours: observed.length, expectedHours: hours.length };
-  }
-  const traversals = observed.reduce((sum, row) => sum + row.traversals, 0);
-  return {
-    value: observed.reduce((sum, row) => sum + row.speed * row.traversals, 0) / traversals,
-    observedHours: observed.length,
-    expectedHours: hours.length,
-  };
-}
 
 function NetworkMapSkeleton() {
   return (
@@ -78,14 +59,7 @@ export function NetworkMapLibre(props: NetworkMapLibreProps) {
   );
 }
 
-function NetworkMapStatic({
-  collection,
-  period,
-  lens,
-  selectedRouteId,
-  onSelectRoute,
-}: NetworkMapLibreProps) {
-  const [hoveredRouteId, setHoveredRouteId] = useState<string | null>(null);
+function NetworkMapStatic({ collection, view, selectedRouteId, popup }: NetworkMapLibreProps) {
   const width = 980;
   const height = 640;
   const padding = 24;
@@ -98,55 +72,57 @@ function NetworkMapStatic({
     );
   }
   const project = projector(bounds, { width, height, padding });
+  // Paint order mirrors the interactive map: neutral routes first, urgency on top.
+  const ordered = collection.features
+    .map((feature) => ({ feature, style: featureStyle(feature, view) }))
+    .sort((left, right) => left.style.sortKey - right.style.sortKey);
   return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      className="block h-full w-full bg-[var(--bp-color-card)]"
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label="Citywide bus route speed map"
-    >
-      <rect width={width} height={height} fill="var(--bp-color-card)" />
-      {collection.features.map((feature) => {
-        const active =
-          feature.properties.routeId === hoveredRouteId ||
-          feature.properties.routeId === selectedRouteId;
-        const hasFocus = hoveredRouteId !== null || selectedRouteId !== null;
-        const speed = periodSpeed(feature, period).value;
-        return (
-          // biome-ignore lint/a11y/noStaticElementInteractions: static fallback mirrors the map's click-through
-          <g
-            key={feature.properties.routeId}
-            opacity={hasFocus && !active ? 0.28 : 1}
-            style={onSelectRoute === undefined ? undefined : { cursor: "pointer" }}
-            onMouseEnter={() => setHoveredRouteId(feature.properties.routeId)}
-            onMouseLeave={() => setHoveredRouteId(null)}
-            onClick={
-              onSelectRoute === undefined
-                ? undefined
-                : () => onSelectRoute(feature.properties.routeId, null)
-            }
-          >
-            {feature.geometry.coordinates.map((line, index) => (
-              <path
-                key={`${feature.properties.routeId}-${index}`}
-                d={linePath(line, project)}
-                fill="none"
-                stroke={networkLensColor(feature, lens, speed)}
-                strokeWidth={active ? 5 : feature.properties.sbs ? 3.4 : 2.2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <title>
-                  {feature.properties.label} /{" "}
-                  {speed === null ? "No data" : `${speed.toFixed(1)} mph`}
-                </title>
-              </path>
-            ))}
-          </g>
-        );
-      })}
-    </svg>
+    <div className="relative h-full min-h-[320px]">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="block h-full w-full bg-[var(--bp-color-card)]"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={
+          view.lens === "delay"
+            ? "Citywide bus route rider-delay map"
+            : "Citywide bus route speed map"
+        }
+      >
+        <rect width={width} height={height} fill="var(--bp-color-card)" />
+        {ordered.map(({ feature, style }) => {
+          const active = feature.properties.routeId === selectedRouteId;
+          const hasFocus = selectedRouteId !== null;
+          const speed = periodSpeed(feature, view.period).value;
+          return (
+            <g key={feature.properties.routeId} opacity={hasFocus && !active ? 0.28 : 1}>
+              {feature.geometry.coordinates.map((line, index) => (
+                <path
+                  key={`${feature.properties.routeId}-${index}`}
+                  d={linePath(line, project)}
+                  fill="none"
+                  stroke={style.color}
+                  strokeWidth={active ? 5 : feature.properties.sbs ? 3.2 : 2.2}
+                  strokeDasharray={style.noData ? "5 5" : undefined}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <title>
+                    {feature.properties.label} /{" "}
+                    {speed === null ? "No data" : `${speed.toFixed(1)} mph`}
+                  </title>
+                </path>
+              ))}
+            </g>
+          );
+        })}
+      </svg>
+      {popup === null ? null : (
+        <div className="absolute bottom-4 right-4 z-10 w-[292px] max-w-[calc(100%-32px)]">
+          {popup.content}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -212,18 +188,4 @@ function linePath(
     .join(" ");
 }
 
-function networkLensColor(
-  feature: NetworkMapFeatureCollection["features"][number],
-  lens: NetworkMapLens,
-  speedMph: number | null,
-): string {
-  if (lens === "speed") return speedMph === null ? MAP_COLORS.ink20 : speedToColor(speedMph);
-  if (lens === "lanes") {
-    return feature.properties.laneCoverage === null
-      ? MAP_COLORS.ink20
-      : scaledMapColor(feature.properties.laneCoverage, 0, 100, "lanes");
-  }
-  return feature.properties.dailyRiders === null
-    ? MAP_COLORS.ink20
-    : scaledMapColor(feature.properties.dailyRiders, 0, 45_000, "riders");
-}
+export type { NetworkMapFeature };

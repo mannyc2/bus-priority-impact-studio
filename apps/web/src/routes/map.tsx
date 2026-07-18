@@ -36,6 +36,8 @@ export const Route = createFileRoute("/map")({
       context: bundle?.context.status === "ready" ? bundle.context.data : null,
       mapMessage:
         [joined.message, contextMessage].filter((message) => message !== null).join(" ") || null,
+      manifest: bundle?.manifest ?? null,
+      coverageEnd: null,
       lanesAvailable:
         bundle?.manifest.layers.some(
           (layer) =>
@@ -60,6 +62,8 @@ function MapRoute() {
       network={data.network}
       context={data.context}
       mapMessage={data.mapMessage}
+      manifest={data.manifest}
+      coverageEnd={data.coverageEnd}
       lanesAvailable={data.lanesAvailable}
       studyIndex={data.studyIndex}
     />
