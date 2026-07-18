@@ -542,41 +542,74 @@ function transitionFingerprint(role: string, text: string): string {
 }
 
 function occurrenceRowV2(
-  options: { exactPhysicalScope?: boolean } = {},
+  options: { exactPhysicalScope?: boolean; relatedPhases?: boolean } = {},
 ): OperationalOccurrenceRowV2 {
   const legacy = occurrenceRow();
   const eventId = legacy.provenance.event_record_ids[0];
   if (eventId === undefined) throw new Error("fixture needs one phase event");
+  const relatedEventId = `${eventId}:phase-2`;
+  const phase = {
+    role: "phase_relation" as const,
+    record_id: "relation:phase-1-precedes-phase-2",
+    source_id: "source:official",
+    evidence_id: "source:official#phase-1-precedes-phase-2",
+  };
   const physical = {
     role: "physical_scope" as const,
     record_id: "relation:physical-scope",
     source_id: "source:official",
     evidence_id: "source:official#physical-scope",
   };
+  const v2Bindings = [
+    ...(options.relatedPhases ? [phase] : []),
+    ...(options.exactPhysicalScope ? [physical] : []),
+  ];
+  const observations = legacy.observations.map((observation) => ({
+    ...observation,
+    relation_record_ids: options.exactPhysicalScope
+      ? sortedStrings([...observation.relation_record_ids, physical.record_id])
+      : observation.relation_record_ids,
+  }));
+  if (options.relatedPhases) {
+    observations.push({
+      event_record_id: relatedEventId,
+      relation_record_ids: [phase.record_id],
+      document_time_statuses: ["implemented"],
+      document_time_dates: [
+        {
+          raw: "July 1, 2025",
+          normalized: "2025-07-01",
+          precision: "day",
+          source_field: "event_date",
+        },
+      ],
+      status_as_of_dates: [],
+    });
+  }
   return {
     ...legacy,
     schema_version: 2,
-    observations: legacy.observations.map((observation) => ({
-      ...observation,
-      relation_record_ids: options.exactPhysicalScope
-        ? sortedStrings([...observation.relation_record_ids, physical.record_id])
-        : observation.relation_record_ids,
-    })),
-    evidence_bindings: options.exactPhysicalScope
-      ? sortedBindings([...legacy.evidence_bindings, physical])
-      : legacy.evidence_bindings,
-    phase_record_ids: [eventId],
-    phase_relation_record_ids: [],
-    phase_relation_evidence_bindings: [],
-    phase_relation_disposition: "single_phase",
+    observations: observations.toSorted((left, right) =>
+      left.event_record_id.localeCompare(right.event_record_id),
+    ),
+    evidence_bindings: sortedBindings([...legacy.evidence_bindings, ...v2Bindings]),
+    phase_record_ids: options.relatedPhases ? sortedStrings([eventId, relatedEventId]) : [eventId],
+    phase_relation_record_ids: options.relatedPhases ? [phase.record_id] : [],
+    phase_relation_evidence_bindings: options.relatedPhases ? [phase] : [],
+    phase_relation_disposition: options.relatedPhases ? "related_phases" : "single_phase",
     physical_scope_record_ids: options.exactPhysicalScope ? ["corridor:physical-scope"] : [],
     physical_scope_relation_record_ids: options.exactPhysicalScope ? [physical.record_id] : [],
     physical_scope_evidence_bindings: options.exactPhysicalScope ? [physical] : [],
     provenance: {
       ...legacy.provenance,
-      relation_record_ids: options.exactPhysicalScope
-        ? sortedStrings([...legacy.provenance.relation_record_ids, physical.record_id])
-        : legacy.provenance.relation_record_ids,
+      event_record_ids: options.relatedPhases
+        ? sortedStrings([eventId, relatedEventId])
+        : legacy.provenance.event_record_ids,
+      relation_record_ids: sortedStrings([
+        ...legacy.provenance.relation_record_ids,
+        ...(options.relatedPhases ? [phase.record_id] : []),
+        ...(options.exactPhysicalScope ? [physical.record_id] : []),
+      ]),
     },
   };
 }
@@ -595,10 +628,19 @@ function sortedBindings(
 
 function reviewDecisionV2(
   row: OperationalOccurrenceRowV2,
+  options: { includeV2LineageRoles?: boolean } = {},
 ): OperationalOccurrenceReviewSnapshotV1Rc22Inspection["decisions"][number] {
-  return reviewDecision(
+  const decision = reviewDecision(
     row as unknown as OperationalOccurrenceRow,
   ) as unknown as OperationalOccurrenceReviewSnapshotV1Rc22Inspection["decisions"][number];
+  return {
+    ...decision,
+    evidence_bindings: options.includeV2LineageRoles
+      ? [...decision.evidence_bindings]
+      : decision.evidence_bindings.filter(
+          (binding) => binding.role !== "phase_relation" && binding.role !== "physical_scope",
+        ),
+  };
 }
 
 type ReleaseFixtureV4 = ReleaseFixture & {
@@ -610,6 +652,8 @@ type ReleaseFixtureV4 = ReleaseFixture & {
 async function writeReleaseFixtureV4(
   input: {
     row?: OperationalOccurrenceRowV2;
+    reviewDecision?: OperationalOccurrenceReviewSnapshotV1Rc22Inspection["decisions"][number];
+    includeV2LineageRolesInReview?: boolean;
     occurrenceContractVersion?: number;
     extraContractKey?: boolean;
     extraBundleArtifactText?: string;
@@ -638,7 +682,14 @@ async function writeReleaseFixtureV4(
     snapshot_version: 1,
     decision_schema_version: 1,
     decision_count: 1,
-    decisions: [reviewDecisionV2(row)],
+    decisions: [
+      input.reviewDecision ??
+        reviewDecisionV2(row, {
+          ...(input.includeV2LineageRolesInReview === undefined
+            ? {}
+            : { includeV2LineageRoles: input.includeV2LineageRolesInReview }),
+        }),
+    ],
   })}\n`;
 
   const matrixIdsSha = "1".repeat(64);
@@ -2092,12 +2143,134 @@ describe("manifest-v4 occurrence-v2 and relationship-integrity import", () => {
     });
   });
 
-  test("quarantines review-v1 occurrence-v2 roles unless the exact rc22 defect matches", async () => {
-    await withFixtureV4({ row: occurrenceRowV2({ exactPhysicalScope: true }) }, async (fixture) => {
-      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
-        code: "contract_incompatible",
+  test("accepts review-v1 parity projections while retaining occurrence-v2 lineage", async () => {
+    const exactPhysical = occurrenceRowV2({ exactPhysicalScope: true });
+    await withFixtureV4({ row: exactPhysical }, async (fixture) => {
+      const imported = await importFixtureV4(fixture);
+      expect(imported.sourceRelease.producerReviewStatus).toEqual({
+        compatibility: "compatible",
+        promotionEligible: true,
+      });
+      expect(imported.summary).toMatchObject({
+        exactPhysicalScopeOccurrenceCount: 1,
+        singlePhaseOccurrenceCount: 1,
+      });
+      expect(imported.occurrences[0]).toMatchObject({
+        physical_scope_record_ids: ["corridor:physical-scope"],
+        physical_scope_relation_record_ids: ["relation:physical-scope"],
+        physical_scope_evidence_bindings: [
+          {
+            role: "physical_scope",
+            record_id: "relation:physical-scope",
+          },
+        ],
       });
     });
+
+    const relatedPhases = occurrenceRowV2({ relatedPhases: true });
+    await withFixtureV4({ row: relatedPhases }, async (fixture) => {
+      const imported = await importFixtureV4(fixture);
+      expect(imported.sourceRelease.producerReviewStatus).toEqual({
+        compatibility: "compatible",
+        promotionEligible: true,
+      });
+      expect(imported.summary).toMatchObject({
+        relatedPhaseOccurrenceCount: 1,
+        singlePhaseOccurrenceCount: 0,
+      });
+      expect(imported.occurrences[0]).toMatchObject({
+        phase_relation_disposition: "related_phases",
+        phase_relation_record_ids: ["relation:phase-1-precedes-phase-2"],
+        phase_relation_evidence_bindings: [
+          {
+            role: "phase_relation",
+            record_id: "relation:phase-1-precedes-phase-2",
+          },
+        ],
+      });
+    });
+  });
+
+  test("rejects unproved, nested, or stale review-v1 projection omissions", async () => {
+    for (const role of ["phase_relation", "physical_scope"] as const) {
+      const row = occurrenceRowV2();
+      const rogueBinding: OperationalOccurrenceEvidenceBindingV2 = {
+        role,
+        record_id: `relation:rogue-${role}`,
+        source_id: "source:official",
+        evidence_id: `source:official#rogue-${role}`,
+      };
+      const rogueRow: OperationalOccurrenceRowV2 = {
+        ...row,
+        evidence_bindings: sortedBindings([...row.evidence_bindings, rogueBinding]),
+      };
+      await withFixtureV4({ row: rogueRow }, async (fixture) => {
+        await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          detail: expect.stringContaining(`top-level ${role} evidence`),
+        });
+      });
+    }
+
+    const nestedRow = occurrenceRowV2({ exactPhysicalScope: true });
+    const route = nestedRow.routes[0];
+    const physicalBinding = nestedRow.physical_scope_evidence_bindings[0];
+    if (route === undefined || physicalBinding === undefined) {
+      throw new Error("nested v2 fixture needs one route and physical binding");
+    }
+    await withFixtureV4(
+      {
+        row: {
+          ...nestedRow,
+          routes: [
+            {
+              ...route,
+              evidence_bindings: sortedBindings([...route.evidence_bindings, physicalBinding]),
+            },
+          ],
+        },
+      },
+      async (fixture) => {
+        await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          detail: expect.stringContaining("must stay in dedicated v2 lineage fields"),
+        });
+      },
+    );
+
+    const physicalRow = occurrenceRowV2({ exactPhysicalScope: true });
+    const staleDecision = reviewDecisionV2(physicalRow);
+    await withFixtureV4(
+      {
+        row: physicalRow,
+        reviewDecision: {
+          ...staleDecision,
+          evidence_bindings: staleDecision.evidence_bindings.filter(
+            (binding) => binding.role !== "event_date",
+          ),
+        },
+      },
+      async (fixture) => {
+        await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          detail: expect.stringContaining("is stale"),
+        });
+      },
+    );
+  });
+
+  test("quarantines review-v1 occurrence-v2 roles unless the exact rc22 defect matches", async () => {
+    await withFixtureV4(
+      {
+        row: occurrenceRowV2({ exactPhysicalScope: true }),
+        includeV2LineageRolesInReview: true,
+      },
+      async (fixture) => {
+        await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+          code: "contract_incompatible",
+        });
+      },
+    );
     const decision = reviewDecisionV2(occurrenceRowV2());
     const physicalBinding = {
       role: "physical_scope" as const,

@@ -46,6 +46,17 @@ const OPERATIONAL_OCCURRENCE_CONTRACT_VERSION_V1 = 1;
 const OPERATIONAL_OCCURRENCE_CONTRACT_VERSION_V2 = 2;
 const OPERATIONAL_OCCURRENCE_REVIEW_CONTRACT_VERSION = 1;
 const RELATIONSHIP_INTEGRITY_BUNDLE_CONTRACT_VERSION = 1;
+const REVIEW_V1_EVIDENCE_ROLES = new Set([
+  "bundle_analysis_family",
+  "event_date",
+  "route_identity",
+  "route_scope",
+  "route_treatment_event_bridge",
+  "timeline_relation",
+  "treatment_definition",
+  "treatment_scope",
+]);
+const REVIEW_V2_ONLY_LINEAGE_EVIDENCE_ROLES = new Set(["phase_relation", "physical_scope"]);
 const REQUIRED_RELATIONSHIP_GATE_IDS = [
   "bus_lane_acquisition_linkage",
   "determinism_and_consumer_proof",
@@ -942,6 +953,14 @@ function bindingsAreCanonicalUnique(bindings: readonly AnyOccurrenceEvidenceBind
   return new Set(bindings.map(bindingKey)).size === bindings.length;
 }
 
+function isReviewV2OnlyLineageBinding(binding: AnyOccurrenceEvidenceBinding): boolean {
+  return REVIEW_V2_ONLY_LINEAGE_EVIDENCE_ROLES.has(binding.role);
+}
+
+function sortedBindingKeys(bindings: readonly AnyOccurrenceEvidenceBinding[]): string[] {
+  return bindings.map(bindingKey).toSorted();
+}
+
 function isNonEmptyString(value: string): boolean {
   return value.trim().length > 0;
 }
@@ -1295,14 +1314,42 @@ function validateOccurrenceRowV2(
   ) {
     return fail("physical scope relations must be present in provenance and an observation");
   }
-  const topLevelBindingKeys = new Set(row.evidence_bindings.map(bindingKey));
-  for (const binding of [
-    ...row.phase_relation_evidence_bindings,
-    ...row.physical_scope_evidence_bindings,
-  ]) {
-    if (!topLevelBindingKeys.has(bindingKey(binding))) {
-      return fail(`v2 lineage binding is absent from top-level evidence: ${binding.evidence_id}`);
-    }
+  const topLevelPhaseBindings = row.evidence_bindings.filter(
+    (binding) => binding.role === "phase_relation",
+  );
+  if (
+    canonicalJson(sortedBindingKeys(row.phase_relation_evidence_bindings)) !==
+    canonicalJson(sortedBindingKeys(topLevelPhaseBindings))
+  ) {
+    return fail(
+      "top-level phase_relation evidence must exactly equal phase_relation_evidence_bindings",
+    );
+  }
+  const topLevelPhysicalBindings = row.evidence_bindings.filter(
+    (binding) => binding.role === "physical_scope",
+  );
+  if (
+    canonicalJson(sortedBindingKeys(row.physical_scope_evidence_bindings)) !==
+    canonicalJson(sortedBindingKeys(topLevelPhysicalBindings))
+  ) {
+    return fail(
+      "top-level physical_scope evidence must exactly equal physical_scope_evidence_bindings",
+    );
+  }
+  const reviewV1NestedBindings = [
+    ...row.resolved_onset.evidence_bindings,
+    ...row.routes.flatMap((route) => route.evidence_bindings),
+    ...(row.treatment.kind === "atomic"
+      ? row.treatment.member.evidence_bindings
+      : [
+          ...row.treatment.bundle_family_evidence_bindings,
+          ...row.treatment.members.flatMap((member) => member.evidence_bindings),
+        ]),
+  ];
+  if (reviewV1NestedBindings.some(isReviewV2OnlyLineageBinding)) {
+    return fail(
+      "phase_relation/physical_scope evidence must stay in dedicated v2 lineage fields and the top-level ledger",
+    );
   }
   return Effect.void;
 }
@@ -1583,12 +1630,58 @@ function validateSummaryV2(
       );
 }
 
+type ReviewDecisionForComparison =
+  | OperationalOccurrenceReviewDecision
+  | OperationalOccurrenceReviewDecisionV1Rc22Inspection;
+type ReviewSnapshotComparisonMode = "declared_review_v1" | "fingerprinted_rc22_inspection";
+
+function reviewDecisionParityProjection(decision: ReviewDecisionForComparison) {
+  return {
+    decision_id: decision.decision_id,
+    occurrence_id: decision.occurrence_id,
+    founding_key: decision.founding_key,
+    anchor_review_decision_ids: decision.anchor_review_decision_ids,
+    resolved_onset: decision.resolved_onset,
+    routes: decision.routes,
+    treatment: decision.treatment,
+    evidence_bindings: decision.evidence_bindings,
+  };
+}
+
+function occurrenceReviewParityProjection(
+  row: OperationalOccurrenceRowAny,
+  mode: ReviewSnapshotComparisonMode,
+) {
+  return {
+    decision_id: row.occurrence_review_decision_id,
+    occurrence_id: row.occurrence_id,
+    founding_key: row.founding_key,
+    anchor_review_decision_ids: row.provenance.anchor_review_decision_ids,
+    resolved_onset: {
+      date: row.resolved_onset.date,
+      precision: row.resolved_onset.precision,
+      evidence_bindings: row.resolved_onset.evidence_bindings,
+    },
+    routes: row.routes.map((route) => ({
+      route_record_id: route.route_record_id,
+      gtfs_route_id: route.gtfs_route_id,
+      evidence_bindings: route.evidence_bindings,
+    })),
+    treatment: treatmentReviewShape(row),
+    evidence_bindings:
+      mode === "declared_review_v1" && row.schema_version === 2
+        ? row.evidence_bindings.filter((binding) => !isReviewV2OnlyLineageBinding(binding))
+        : row.evidence_bindings,
+  };
+}
+
 function validateReviewSnapshot(input: {
   rows: readonly OperationalOccurrenceRowAny[];
   snapshot:
     | OperationalOccurrenceReviewSnapshot
     | OperationalOccurrenceReviewSnapshotV1Rc22Inspection;
   path: string;
+  comparisonMode: ReviewSnapshotComparisonMode;
 }): Effect.Effect<void, MtaWikiOperationalOccurrenceImportError> {
   const fail = (detail: string) =>
     Effect.fail(
@@ -1707,24 +1800,9 @@ function validateReviewSnapshot(input: {
         `occurrence ${row.occurrence_id} does not bind its approved review decision ${decision.decision_id}`,
       );
     }
-    const expectedRoutes = row.routes.map((route) => ({
-      route_record_id: route.route_record_id,
-      gtfs_route_id: route.gtfs_route_id,
-      evidence_bindings: route.evidence_bindings,
-    }));
     if (
-      decision.founding_key !== row.founding_key ||
-      canonicalJson(decision.anchor_review_decision_ids) !==
-        canonicalJson(row.provenance.anchor_review_decision_ids) ||
-      canonicalJson(decision.resolved_onset) !==
-        canonicalJson({
-          date: row.resolved_onset.date,
-          precision: row.resolved_onset.precision,
-          evidence_bindings: row.resolved_onset.evidence_bindings,
-        }) ||
-      canonicalJson(decision.routes) !== canonicalJson(expectedRoutes) ||
-      canonicalJson(decision.treatment) !== canonicalJson(treatmentReviewShape(row)) ||
-      canonicalJson(decision.evidence_bindings) !== canonicalJson(row.evidence_bindings)
+      canonicalJson(reviewDecisionParityProjection(decision)) !==
+      canonicalJson(occurrenceReviewParityProjection(row, input.comparisonMode))
     ) {
       return fail(`review decision ${decision.decision_id} is stale for ${row.occurrence_id}`);
     }
@@ -1736,17 +1814,6 @@ function validateReviewSnapshot(input: {
   }
   return Effect.void;
 }
-
-const LEGACY_REVIEW_EVIDENCE_ROLES = new Set([
-  "bundle_analysis_family",
-  "event_date",
-  "route_identity",
-  "route_scope",
-  "route_treatment_event_bridge",
-  "timeline_relation",
-  "treatment_definition",
-  "treatment_scope",
-]);
 
 function decisionEvidenceBindings(
   decision: OperationalOccurrenceReviewDecisionV1Rc22Inspection,
@@ -1776,7 +1843,7 @@ export function classifyOperationalOccurrenceReviewCompatibility(input: {
   | "unsupported_review_v1_occurrence_v2_roles" {
   const unsupported = input.snapshot.decisions.flatMap((decision) =>
     decisionEvidenceBindings(decision)
-      .filter((binding) => !LEGACY_REVIEW_EVIDENCE_ROLES.has(binding.role))
+      .filter((binding) => !REVIEW_V1_EVIDENCE_ROLES.has(binding.role))
       .map((binding) => ({ decision, binding })),
   );
   if (unsupported.length === 0) return "compatible";
@@ -2730,7 +2797,12 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         "decodeOperationalOccurrenceReviewSnapshot",
       );
       yield* validateSummary(rows, summary, summaryFile.path);
-      yield* validateReviewSnapshot({ rows, snapshot, path: reviewFile.path });
+      yield* validateReviewSnapshot({
+        rows,
+        snapshot,
+        path: reviewFile.path,
+        comparisonMode: "declared_review_v1",
+      });
       artifact = yield* buildImportArtifactV3({
         manifest,
         manifestSha256: actualManifestSha256,
@@ -2757,24 +2829,40 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         OperationalOccurrenceSummaryV2Schema,
         "decodeOperationalOccurrenceSummaryV2",
       );
-      const snapshot = yield* decodeJsonFile(
+      const inspectionSnapshot = yield* decodeJsonFile(
         reviewFile,
         OperationalOccurrenceReviewSnapshotV1Rc22InspectionSchema,
         "decodeOperationalOccurrenceReviewSnapshotV1ForV2Inspection",
       );
-      yield* validateSummaryV2(rows, summary, summaryFile.path);
-      yield* validateReviewSnapshot({ rows, snapshot, path: reviewFile.path });
       const producerReviewCompatibility = yield* reviewCompatibilityStatus({
         manifestSha256: actualManifestSha256,
         reviewFile,
-        snapshot,
+        snapshot: inspectionSnapshot,
       });
+      let snapshot: OperationalOccurrenceReviewSnapshotV1Rc22Inspection = inspectionSnapshot;
+      if (producerReviewCompatibility === "compatible") {
+        snapshot = yield* decodeJsonFile(
+          reviewFile,
+          OperationalOccurrenceReviewSnapshotSchema,
+          "decodeOperationalOccurrenceReviewSnapshotV1",
+        );
+      }
+      yield* validateSummaryV2(rows, summary, summaryFile.path);
       const relationshipIntegrity = yield* verifyRelationshipIntegrity({
         manifest,
         releaseId: manifest.release_id,
         manifestPath,
         resolved,
         bundleFile,
+      });
+      yield* validateReviewSnapshot({
+        rows,
+        snapshot,
+        path: reviewFile.path,
+        comparisonMode:
+          producerReviewCompatibility === "known_rc22_review_v1_physical_scope_incompatibility"
+            ? "fingerprinted_rc22_inspection"
+            : "declared_review_v1",
       });
       artifact = yield* buildImportArtifactV4({
         manifest,
