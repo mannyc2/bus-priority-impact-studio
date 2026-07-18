@@ -4,9 +4,11 @@
 track), 8 (plans 068-076, the 2026-07-09 audit fix-pack + the
 business-problem arc), 9 (plans 077-081, the truthful interactive-map
 overhaul), 10 (plans 082-083, the route-detail annotation layer +
-study-coverage spike), and 11 (plans 084-088, the de-month cutover: monthly
+study-coverage spike), 11 (plans 084-088, the de-month cutover: monthly
 baselines/releases retired for coverage windows, a freshness ledger, and a
-harness gate — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
+harness gate), and 12 (plan 090, typed intervention relevance + route
+observation bundles, followed by amended plan 082's first renderer — all
+below).** Generation 6 (048-060, the MTA-visual-language UI/UX
 overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
 `packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
 business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
@@ -17,6 +19,81 @@ notes. Generations 4 (030-035) and 5 (036-047) are DONE; generation 3
 complete or superseded; older sections are kept further down as history and
 rationale. Each executor: read your plan fully before starting, honor its STOP
 conditions, and update your row when done.
+
+---
+
+# Generation 12 — typed intervention relevance + route observation bundles (2026-07-18)
+
+Planned at workspace commit `b41169df`; the rc23-capable contracts were
+independently checked at `origin/main` commit `27ceded6` because the planning
+checkout was eight commits behind main. This generation turns the operator's
+idea into a value-blind contract: a closed treatment-family registry states
+which canonical products/metrics are relevant, the offline pipeline resolves
+those bindings into route/event observation series, and amended plan 082
+renders the first supported speed slice on route Overview. Source review still
+establishes what/when/where; only a gated `StudyArtifact` can supply a causal
+effect claim.
+
+Numbering note: plan number **089 is already claimed by the tracked
+interventions redesign comp**. Do not rename 090 to close the apparent gap or
+create a second 089 in this checkout.
+
+## Execution order & status (gen 12)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 090 | Materialize typed intervention-relevance specs and route observation bundles | P1 | L | 084, 088, 085, 086 (all hard) | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+## Dependency notes (gen 12)
+
+- Direct dependency spine: `084 → 088 → 085 → 086 → 090 → 082`. Plan 090
+  needs the post-de-month product/release vocabulary; plan 082 needs the
+  public typed bundle, key helper, and generated artifacts from 090. The
+  operator-approved 082 comp remains a separate hard gate before app code.
+- Preserve Generation 9's existing interleaving constraints. The combined
+  roadmap is `084 → 088 → 079 → 080 → 081 → 085 → 086 → 090 → 082` where
+  those map-contract plans remain outstanding; do not parallelize overlapping
+  `api-client.ts`, serving-contract, or Overview worktrees. The already-landed
+  visual-only portion of 080 does not waive its remaining contract gates.
+- Plan 090 reuses the full shared rc23 trusted-registry gate, not a
+  status-only filter: source is `mta_ace_routes` or `nyc_dot_bus_lanes`, status
+  is implemented, the study family is supported, the ISO day is valid,
+  month/date agree, and normalized route is nonempty. Rejected rows are
+  reason-counted but never published; only admitted non-ACE study families
+  become explicit unsupported-relevance entries. The rc23 merge/candidate
+  artifact is not a serving input, and `awaiting_approval` is never promoted
+  by implication.
+- Plan 090 inherits `releaseId` and `publishedAt` only from the strictly
+  decoded `data/artifacts/studio/v1/release.json` and exposes no independent
+  CLI identity overrides.
+- Plan 090 is deliberately UI-free. Amended plan 082 fetches
+  `StudioRouteInterventionObservationBundle`, selects the typed
+  `route_speed_around_implementation_v1` binding without reading values, and
+  renders an event-centered real-month speed series plus quiet markers.
+  History evidence and Plan 075 studies remain separate presentation lanes.
+
+## Findings considered and rejected (gen 12 — do not re-audit)
+
+- **Deriving relevance or chart markers from source text, evidence claims,
+  intervention titles, or merged UI timeline rows** — rejected. Prose remains
+  evidence for the event anchor; product/metric relevance is a reviewed typed
+  registry and the web consumes its resolved artifact.
+- **Selecting or prioritizing a metric because its observed effect is large,
+  favorable, significant, or visually interesting** — rejected as
+  cherry-picking. Selection occurs before values are inspected and is guarded
+  by rising-versus-falling invariance tests in both materializer and renderer.
+- **Consuming rc23 `awaiting_approval` candidates directly because they are
+  structured** — rejected. Candidate review is not publication; only the
+  population admitted by the full shared trusted-registry gate enters Plan
+  090.
+- **A generic query/expression DSL, embedding lookup, or LLM-selected metric
+  layer** — rejected for v1. A closed registry of canonical product, feature,
+  resolver, metric, scope, and role ids is smaller, auditable, and fail-closed.
+- **A duplicate intervention-chart UI plan** — rejected. Plan 082 retains its
+  approved Overview/month-axis/comp scope and is amended to consume Plan 090.
 
 ---
 
@@ -71,11 +148,12 @@ REJECTED (with one-line rationale)
 - Combined order: `084 → 088 → 079 → 080 → 081 → 085 → 086 → 087`.
 - Gen-10 coordination: gen-10's 082 (chart markers + a REAL MONTH AXIS on the
   Overview trend) is grain, fully compatible with ADR-0022 — a month as a
-  chart coordinate is exactly what survives. Serialize gen-10 082 with
-  gen-11 085 (both touch Overview trend surfaces/tests); gen-10 083 (spine
-  spike) has no file overlap with this generation. Gen-8's 074/075/076 are
-  unaffected (verified: their month usage is grain — monthly series and
-  event windows — not baseline identity).
+  chart coordinate is exactly what survives. Plan 082 is transitively after
+  085 and 086 through Plan 090; do not parallelize their
+  `api-client.ts`/Overview worktrees. Gen-10 083 (spine spike) has no file
+  overlap with this generation. Gen-8's 074/075/076 are unaffected
+  (verified: their month usage is grain — monthly series and event windows —
+  not baseline identity).
 - 085 and amended 079 both edit `public-api.ts` / `api-client.ts` — hard
   sequencing, never parallel worktrees. 086 edits `export/d1.ts` after 085
   touched its builder-call lines — drift checks compare excerpts.
@@ -188,7 +266,7 @@ review without weakening any standard.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 075 rec.; operator comp approval (hard gate in-plan) | TODO |
+| 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 090 hard; operator comp approval (hard gate in-plan) | TODO |
 | 083 | Spine pattern-grouping spike: measure honest candidate-coverage gains | P2 | M | 078 (DONE) | TODO (rc23 re-evaluated; denominator unchanged; flips advance rows to review, never approval) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
@@ -204,9 +282,9 @@ REJECTED (with one-line rationale)
   at 5/5); rejected candidates are never silently readmitted, and the path
   to more studies is plan 083's unlock plus a batch-2 review of newly
   eligible candidates under a NEW candidate-set id.
-- Execute 075 before 082 (priority order and shared smoke surface). 082
-  imports the exported `mergedTreatmentTimelineRows` from
-  `TreatmentsHistorySection.tsx` but does not edit any plan-075 file.
+- Plan 075 is DONE. Execute 090 before 082. Plan 082 fetches the nullable
+  typed observation bundle and must not import `TreatmentsHistorySection` or
+  merged timeline helpers.
 - 082 carries the standing comp gate: no app code until an operator-approved
   comp exists at `plans/mockups/082-overview-trend-markers/comp.html`.
 - 083 is a pure spike: its decision doc commissions any production spine
