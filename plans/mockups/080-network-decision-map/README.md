@@ -66,14 +66,16 @@ Open `network-map-comp.html` in a browser. Exhibits B and C are interactive
   lost, the most citywide, at 7.9 mph the old ramp called green.
 - Full decision table D1–D17 with 080-status is in the comp.
 
-## Needs an 080 amendment if approved
+## Approved amendment resolution
 
-- **D4** Persistent desktop inspector/list → opt-in "Find a route" overlay panel
-  (080 Step 5 specifies a ~320–360px persistent right inspector).
-- **D7** "Vs all day" compare mode (diverging Δ scale, bins ±0.75 / −1.5). The
-  comp shows it surfacing the QM express-route PM collapse (−2.0 to −2.5 mph).
-- **D15** Optional width-by-daily-riders on the delay lens.
-- **D17** Legend-as-histogram (stricter than 080's legend spec).
+- **Surface**: Atlas/light selected; Signal/dark not selected.
+- **D4 approved**: persistent desktop inspector/list becomes the opt-in
+  "Find a route" overlay panel.
+- **D7 approved**: "Vs all day" compare mode uses the diverging delta scale
+  with bins at ±0.75 / −1.5 mph.
+- **D15 deferred**: do not ship width-by-daily-riders in this milestone.
+- **D17 approved**: the self-labelled proportional legend strip replaces the
+  original ticked legend.
 
 ## Standing rulings respected
 
@@ -81,12 +83,9 @@ No autoplay/hour-scrubber (2026-07-04 rejection, commit `9789242`); no external
 tiles or CSP changes; no treatment-gap composite (076 gate); no new pages/tabs;
 "Data through March 2026" phrasing; no banned doctrine phrases.
 
-## Open operator questions
+## Remaining operator question
 
-1. Default surface: Signal (dark) or Atlas (light)?
-2. Approve D7 compare mode as an 080 amendment?
-3. Ship D15 width-by-riders with the delay lens, or hold?
-4. (Later, separate call) Should rider-delay become the landing lens?
+- Later, separate call: should rider-delay become the landing lens?
 
 ## Provenance
 

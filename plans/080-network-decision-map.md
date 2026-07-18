@@ -21,8 +21,24 @@
 > against route facts uses the `coverage_mismatch` state 079 defines. Do not
 > introduce new fields, props, or copy containing "baseline".
 
+> **Amendment (2026-07-17 — approved round-3 Atlas comp, binding).**
+> The operator selected the light Atlas surface and approved implementation.
+> D4 replaces the persistent desktop inspector/list with the opt-in
+> "Find a route" overlay panel. D7 adds the "Vs all day" compare mode with
+> the approved diverging delta bins. D17 replaces the ticked legend with the
+> self-labelled proportional legend strip. D15 width-by-daily-riders is
+> deferred and must not ship in this milestone. The visual checkpoint on
+> `codex/080-map-visual-redesign` implements those approved decisions plus
+> the attention scale, route badges/labels, DOT-lanes layer, popup redesign,
+> and remembered note dismissal. It does not complete Plan 080: URL state,
+> served-borough binding, Data notes, mobile Sheet, hover-performance rework,
+> and the remaining lens-eligibility gates still depend on Plan 079 and the
+> steps below. The dark Signal comp is retained only as a rejected alternative.
+
 ## Status
 
+- **Plan status**: TODO (approved visual checkpoint implemented; full plan is
+  not complete)
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: MED
