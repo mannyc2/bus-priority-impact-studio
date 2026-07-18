@@ -1,0 +1,375 @@
+{
+  "artifactKind": "bp.studio.mta_wiki_rc23_lineage_delta.v1",
+  "schemaVersion": 1,
+  "authorization": "non_authorizing_migration_audit_only",
+  "generatedAt": "2026-07-18T00:00:00.000Z",
+  "sourceCommits": {
+    "trackerBaseline": "5e656c2450792a23e36b4afc9ca29bdda97a1b5e",
+    "trackerReviewProjection": "7b5c988b69af17769256332414b798e0d35246d6",
+    "trackerCanonicalAuditBinding": "745f098e1b62c89bf7bc2341818eaaacdba926f8",
+    "mtaWikiProducerRepair": "443e6e344b75d3f7c085574fbab8e57b1a1e8cf3",
+    "mtaWikiImmutableRc23": "d40ee4b6",
+    "mtaWikiMergedMain": "299752f2e9c7696296b29b1bcefbb5f454cb1699"
+  },
+  "inputs": {
+    "rc22LineageAudit": {
+      "pointer": "mta-wiki-rc22-lineage-audit.json",
+      "path": "docs/research/artifacts/mta-wiki-rc22-lineage-audit.json",
+      "bytes": 1567471,
+      "sha256": "042bd160b6c57f490547f9808b2683a0a7d2a26ccd8f494d74e61c84d873dfa7"
+    },
+    "rc22Manifest": {
+      "pointer": "manifest.json",
+      "path": "data/exports/releases/v1-rc22/manifest.json",
+      "bytes": 50741,
+      "sha256": "249ef6be1d927e44d405c11bcff643d18b2133e5407be37dc7612f935a1b53e4"
+    },
+    "rc23Manifest": {
+      "pointer": "manifest.json",
+      "path": "data/exports/releases/v1-rc23/manifest.json",
+      "bytes": 50741,
+      "sha256": "e412b0b7a3e98e87e43c8b59375f335c1c0bd84ab4024171ec6c45203f1da83b"
+    },
+    "rc22Import": {
+      "pointer": "mta-wiki-v1-rc22.operational-occurrences-import.json",
+      "path": "docs/research/artifacts/mta-wiki-v1-rc22.operational-occurrences-import.json",
+      "bytes": 1229353,
+      "sha256": "fa7f6ca25b4ba2ec435e3ca4397a579ff89f7b97b20c0adb956263129bf857f9"
+    },
+    "rc23Import": {
+      "pointer": "mta-wiki-v1-rc23.operational-occurrences-import.json",
+      "path": "docs/research/artifacts/mta-wiki-v1-rc23.operational-occurrences-import.json",
+      "bytes": 1229311,
+      "sha256": "27049c650366c91453f39919d574456eb28d5fab9cb8dce43afc5ceccdf99232"
+    },
+    "rc22CandidateSet": {
+      "pointer": "candidate-set-v3-9761a5648df08fbdf6c38bb4.study-events.json",
+      "path": "docs/research/artifacts/candidate-set-v3-9761a5648df08fbdf6c38bb4.study-events.json",
+      "bytes": 1136910,
+      "sha256": "25d1fa96f8796f053c538631fbce19aa3b77fb1435e5b357c50eec2f94bf6129"
+    },
+    "rc23CandidateSet": {
+      "pointer": "candidate-set-v3-aba25fe4209247be31d43b66.study-events.json",
+      "path": "docs/research/artifacts/candidate-set-v3-aba25fe4209247be31d43b66.study-events.json",
+      "bytes": 1132675,
+      "sha256": "60422e951226b97abe40ae3705469084c5134488e666084284771e1b60ab22b5"
+    },
+    "latestPointer": {
+      "pointer": "LATEST",
+      "path": "data/exports/releases/LATEST",
+      "bytes": 7,
+      "sha256": "d44b4b97597938d1953f7707b8d576a13537aaebafd0af19ad4d0e5365040d72"
+    }
+  },
+  "releaseCorrection": {
+    "addressedArtifactCount": 246,
+    "byteIdenticalArtifactCount": 245,
+    "changedArtifactCount": 1,
+    "changedArtifact": {
+      "path": "operational_occurrence_review_decisions.json",
+      "rc22": {
+        "bytes": 712308,
+        "sha256": "f18dda5c0c758d4193cb1dfdf69e296da79814ebcb39cdefb4e7dc9bec963bed"
+      },
+      "rc23": {
+        "bytes": 712052,
+        "sha256": "69eec1a5fd919eab4ac5743e492a036f0aae05349121195e68630f2fff54032c"
+      }
+    },
+    "reviewProjection": {
+      "rc22DecisionCount": 135,
+      "rc23DecisionCount": 135,
+      "removedPhaseRelationBindingCount": 0,
+      "removedPhysicalScopeBindingCount": 1,
+      "residualDifferenceCount": 0
+    },
+    "operationalOccurrenceBytesUnchanged": true,
+    "relationshipBundleBytesUnchanged": true
+  },
+  "canonicalProof": {
+    "operationalOccurrences": {
+      "pointer": "operational_occurrences.jsonl",
+      "path": "data/exports/releases/v1-rc23/operational_occurrences.jsonl",
+      "bytes": 866164,
+      "sha256": "d2fff454cc82c9a74f9f4ea9bb0b0334a12af385f53d0e7fbde126ea9e33f98f"
+    },
+    "relationshipBundle": {
+      "pointer": "relationship_integrity_bundle.json",
+      "path": "data/exports/releases/v1-rc23/relationship_integrity_bundle.json",
+      "bytes": 99060,
+      "sha256": "2a4fa7fd0e3b2345b236c06a4e0fc7640db106c959ab65ef6110d30ed6a0641f"
+    },
+    "enforcementProofRaw": {
+      "pointer": "enforcement-proof.json",
+      "path": "data/contracts/relationships/v1/enforcement-proof.json",
+      "bytes": 4198,
+      "sha256": "47abb7e6602083ef94ca7863c512635ad0ca2332d5bca8ed3483cb175928ef54"
+    },
+    "enforcementProofCanonicalSha256": "2bcdc8859c23baecfb0a463e32a2485eab267d3de5ad6ac9cf3c69c14e270536",
+    "graphManifest": {
+      "pointer": "manifest.json",
+      "path": "data/quality/relationship-integrity/graph-audit/manifest.json",
+      "bytes": 1349,
+      "sha256": "6631fd19b4520be5553420eb4ae347d2ab9fd39762c10a3ece9ab90b0313ac63"
+    },
+    "graphSummary": {
+      "pointer": "summary.json",
+      "path": "data/quality/relationship-integrity/graph-audit/summary.json",
+      "bytes": 1761,
+      "sha256": "7b77d742fc5cac8e3b3497d254591db0a3381bd694195b013f09252d70672e91"
+    },
+    "phaseAuditManifest": {
+      "pointer": "manifest.json",
+      "path": "data/quality/relationship-integrity/operational-occurrence-phases/manifest.json",
+      "bytes": 4777,
+      "sha256": "67c79704cf0d3c25634249d32a266d5952c1d82da747ce561fb82fb41e2f9340"
+    },
+    "phaseAuditSummary": {
+      "pointer": "summary.json",
+      "path": "data/quality/relationship-integrity/operational-occurrence-phases/summary.json",
+      "bytes": 1806,
+      "sha256": "ba37da3aa10ec9bfd6945506711defe10aa80a1e1367eae263262cb42a0f8da1"
+    },
+    "physicalAuditManifest": {
+      "pointer": "manifest.json",
+      "path": "data/quality/relationship-integrity/occurrence-treatment-physicality/manifest.json",
+      "bytes": 3651,
+      "sha256": "476640f7de4bd06ce22bf5dd94dd4335e217698e972d95bb3f661767435792b6"
+    },
+    "physicalAuditSummary": {
+      "pointer": "summary.json",
+      "path": "data/quality/relationship-integrity/occurrence-treatment-physicality/summary.json",
+      "bytes": 2694,
+      "sha256": "02926881a698f6825b5aa638e347208ea6b8597c04032dd86a37c11ef0a19dc2"
+    },
+    "phaseAuditOccurrencePinMatches": true,
+    "physicalAuditOccurrencePinMatches": true,
+    "rootTreatmentRelationCorridorPinsMatch": true,
+    "hardModeAndCompletenessReady": true,
+    "findingOrViolationCount": 0
+  },
+  "rc19ToRc23": {
+    "rc19OccurrenceCount": 135,
+    "rc22OccurrenceCount": 135,
+    "occurrenceCountDelta": 0,
+    "rc19EligibleOccurrenceCount": 134,
+    "rc22EligibleOccurrenceCount": 134,
+    "eligibleOccurrenceCountDelta": 0,
+    "rc19RejectedOccurrenceCount": 1,
+    "rc22RejectedOccurrenceCount": 1,
+    "rejectedOccurrenceCountDelta": 0,
+    "rc19RouteProjectionCount": 173,
+    "rc22RouteProjectionCount": 173,
+    "routeProjectionCountDelta": 0,
+    "rc19EligibleRouteProjectionCount": 172,
+    "rc22EligibleRouteProjectionCount": 172,
+    "eligibleRouteProjectionCountDelta": 0,
+    "rc19RejectedRouteProjectionCount": 1,
+    "rc22RejectedRouteProjectionCount": 1,
+    "rejectedRouteProjectionCountDelta": 0,
+    "rc19CandidateSetId": "candidate-set-v2:24080902f508b55a0033df32",
+    "rc22CandidateSetId": "candidate-set-v3:9761a5648df08fbdf6c38bb4",
+    "rc19CandidateCount": 489,
+    "rc22CandidateCount": 489,
+    "addedCandidateIdentityCount": 0,
+    "removedCandidateIdentityCount": 0,
+    "changedCandidateIdentityCount": 0,
+    "unchangedCandidateIdentityCount": 489,
+    "wikiBoundProvenanceRebindingCount": 100,
+    "registryOnlyCandidateCount": 389,
+    "approvalRebindingRequired": true,
+    "rc19ApprovalReceiptApplies": false,
+    "rc19ReviewRecommendationApplies": false,
+    "datePrecisionCounts": {
+      "day": 487,
+      "month": 2
+    },
+    "treatmentFamilyCounts": {
+      "automated_bus_lane_enforcement": 79,
+      "bus_lane": 325,
+      "off_board_fare_collection": 1,
+      "route_redesign": 84
+    },
+    "sourceCombinationCounts": {
+      "mta_wiki": 88,
+      "mta_wiki+registry": 12,
+      "registry": 389
+    },
+    "spineReadinessCounts": {
+      "needs_pattern_review": 371,
+      "series_ready": 87,
+      "series_ready_with_gaps": 31
+    },
+    "outcomeWindowCounts": {
+      "calendar_ineligible": 215,
+      "eligible_day_4plus": 31,
+      "eligible_day_6x6": 241,
+      "eligible_month_precision": 2
+    },
+    "confounderGroupCounts": {
+      "none": 405,
+      "queens_bus_network_redesign_2025": 84
+    },
+    "occurrenceDatePrecisionCounts": {
+      "day": 132,
+      "month": 3
+    },
+    "eligibleOccurrenceRouteDatePrecisionCounts": {
+      "day": 161,
+      "month": 11
+    },
+    "rc23CandidateSetId": "candidate-set-v3:aba25fe4209247be31d43b66",
+    "rc22ToRc23OccurrenceIdentityDelta": 0,
+    "rc22ToRc23RouteProjectionDelta": 0,
+    "rc22ToRc23CandidateAdditions": 0,
+    "rc22ToRc23CandidateRemovals": 0,
+    "rc22ToRc23NonProvenanceCandidateChanges": 0,
+    "rc22ToRc23WikiBoundProvenanceRebindings": 100,
+    "rc22ToRc23ExactlyUnchangedCandidateRows": 389,
+    "rc22ToRc23NormalizedResidualChanges": 0,
+    "priorReceiptApplies": false
+  },
+  "categoryCountsByDimension": {
+    "routeIdentity": {
+      "structured_primary": 0,
+      "wiki_primary_structured_validated": 173,
+      "wiki_only": 0,
+      "unresolved_physical_link": 0,
+      "historical_version_missing": 0
+    },
+    "routeVersionIdentity": {
+      "structured_primary": 0,
+      "wiki_primary_structured_validated": 0,
+      "wiki_only": 0,
+      "unresolved_physical_link": 0,
+      "historical_version_missing": 173
+    },
+    "treatmentOccurrenceDate": {
+      "structured_primary": 0,
+      "wiki_primary_structured_validated": 0,
+      "wiki_only": 173,
+      "unresolved_physical_link": 0,
+      "historical_version_missing": 0
+    },
+    "treatmentFamily": {
+      "structured_primary": 0,
+      "wiki_primary_structured_validated": 0,
+      "wiki_only": 173,
+      "unresolved_physical_link": 0,
+      "historical_version_missing": 0
+    },
+    "routeScope": {
+      "structured_primary": 0,
+      "wiki_primary_structured_validated": 0,
+      "wiki_only": 173,
+      "unresolved_physical_link": 0,
+      "historical_version_missing": 0
+    },
+    "physicalTreatedSegmentScope": {
+      "structured_primary": 0,
+      "wiki_primary_structured_validated": 0,
+      "wiki_only": 171,
+      "unresolved_physical_link": 2,
+      "historical_version_missing": 0
+    },
+    "phaseIdentity": {
+      "structured_primary": 0,
+      "wiki_primary_structured_validated": 0,
+      "wiki_only": 173,
+      "unresolved_physical_link": 0,
+      "historical_version_missing": 0
+    },
+    "outcomeData": {
+      "structured_primary": 173,
+      "wiki_primary_structured_validated": 0,
+      "wiki_only": 0,
+      "unresolved_physical_link": 0,
+      "historical_version_missing": 0
+    },
+    "causalInterpretation": {
+      "structured_primary": 173,
+      "wiki_primary_structured_validated": 0,
+      "wiki_only": 0,
+      "unresolved_physical_link": 0,
+      "historical_version_missing": 0
+    }
+  },
+  "trackerCandidateFunnel": {
+    "acceptedOccurrenceCount": 91,
+    "rejectedOccurrenceCount": 44,
+    "acceptedRouteProjectionCount": 100,
+    "rejectedRouteProjectionCount": 73,
+    "producerEligibleLocallyRejectedOccurrenceCount": 43,
+    "producerEligibleLocallyRejectedRouteProjectionCount": 72,
+    "rejectionReasonCounts": {
+      "producer_study_projection_ineligible": 1,
+      "unsupported_bundle_analysis_family": 1,
+      "unsupported_treatment_family": 43
+    },
+    "locallyRejectedTreatmentFamilyOccurrenceCounts": {
+      "bus_stop_or_boarding": 28,
+      "fare_collection": 2,
+      "service_pattern": 13
+    },
+    "locallyRejectedTreatmentFamilyRouteProjectionCounts": {
+      "bus_stop_or_boarding": 28,
+      "fare_collection": 14,
+      "service_pattern": 30
+    },
+    "exactCrossSourceDeduplicationCount": 12
+  },
+  "physicalAndRouteLineage": {
+    "occurrenceCount": 135,
+    "eligibleOccurrenceCount": 134,
+    "rejectedOccurrenceCount": 1,
+    "sourceRouteProjectionCount": 173,
+    "eligibleRouteProjectionCount": 172,
+    "rejectedRouteProjectionCount": 1,
+    "routeLineageRowCount": 173,
+    "resolvedCurrentRouteCount": 173,
+    "unresolvedCurrentRouteCount": 0,
+    "historicalRouteVersionMissingCount": 173,
+    "exactPhysicalScopeOccurrenceCount": 1,
+    "exactPhysicalScopeRouteProjectionCount": 2,
+    "unresolvedPhysicalLinkCount": 2,
+    "trackerSegmentLinkCount": 0,
+    "singlePhaseOccurrenceCount": 135,
+    "relatedPhaseOccurrenceCount": 0,
+    "baseRouteLineageRowCount": 173,
+    "baseRouteLineageCanonicalSha256": "01e911b18d8345c293bcf789bb466c9646dd34b8e49231413b01249c3d0a5bc6",
+    "unchangedUnderRc23": true
+  },
+  "excludedBusLaneQueue": {
+    "candidateCount": 321,
+    "unchangedCandidateRowCount": 321,
+    "stillUnresolvedCount": 321,
+    "genericAuthoritativeRouteTreatmentLinkCount": 54,
+    "exactCandidateSegmentProofCount": 1,
+    "exactCandidateDateAndPhaseCount": 0,
+    "newOrUpdatedOccurrenceCount": 0,
+    "canonicalWikiOccurrenceProjectionCount": 0,
+    "wikiBoundCandidateCount": 0,
+    "approvedCandidateCount": 0,
+    "candidateIdsSha256": "7bcbd605cccf5516e7ba8a035c4a5f7f436ccefde08f140fbefc4e767855e44c"
+  },
+  "boundaries": {
+    "candidateApprovalState": "awaiting_approval",
+    "approvalReceiptPresent": false,
+    "approvedCandidateCount": 0,
+    "studyRunAuthorized": false,
+    "publicationAuthorized": false,
+    "publicD1OrR2MutationAuthorized": false,
+    "deploymentAuthorized": false,
+    "latestMutationAuthorized": false
+  },
+  "promotionRecommendation": {
+    "decision": "ready_for_operator_release_pointer_review",
+    "targetRelease": "v1-rc23",
+    "latestObserved": "v1-rc5",
+    "operatorReadyToPromotePinnedRelease": true,
+    "authorizesPromotion": false,
+    "explicitOperatorActionRequired": true,
+    "explicitReleaseAndManifestPinningStillRequired": true,
+    "additionalMtaWikiProducerRepairRequired": false
+  }
+}
