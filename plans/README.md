@@ -274,7 +274,7 @@ The governing user questions are:
 | 077 | Restore validated MapLibre rendering and clean failure recovery | P0 | M | 068; coordinate with 072 | DONE |
 | 078 | Canonical map/detail/history segment identity and readiness | P0 | L | 068, 077; before 074 | DONE |
 | 079 | Truthful network-map data, layer readiness, freshness, and budgets | P1 | L | 062, 068, 078 | TODO |
-| 080 | Accessible, searchable, shareable network decision explorer | P1 | L | 077, 079 | TODO |
+| 080 | Accessible, searchable, shareable network decision explorer | P1 | L | 077, 079 | TODO (comp APPROVED r3 2026-07-17, light surface; visual layer implemented ahead of 079 on `codex/080-map-visual-redesign` — attention scale, Find-a-route panel, one-strip legend, badges/labels, lanes layer, popup redesign. Remaining: URL state, verified served-borough binding, Data notes, mobile sheet, hover-perf rework, lens eligibility gates) |
 | 081 | Linked route-segment evidence explorer with exact overlays | P1 | L | 077-080 | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
