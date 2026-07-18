@@ -40,6 +40,21 @@ Plan 075 may serve results only after a fresh candidate-set approval, a
 separately authorized Plan 074 run, and the existing publication gates all
 pass. See `docs/research/mta-wiki-rc22-migration-report.md`.
 
+### Binding rc23 publication amendment — 2026-07-18
+
+rc23 is strict-compatible and ready for a separate operator release-pointer
+review, but it still produces no public study input. Its new 489-row candidate
+set `candidate-set-v3:aba25fe4209247be31d43b66` is `awaiting_approval`, has no
+receipt, and has zero approved events. Neither strict compatibility nor a
+future `LATEST` promotion authorizes route-study regeneration, serving-index
+changes, publication, D1/R2 writes, or deployment.
+
+Plan 075 may consume rc23-derived results only after a complete receipt bound
+to that exact set, a separately authorized Plan 074 run, operator anchor
+review, and every existing publication gate. rc22 remains quarantined and all
+already published artifacts remain immutable. See
+`docs/research/mta-wiki-rc23-migration-report.md`.
+
 ## Why this matters
 
 Plan 074 produces defensible per-treatment effect estimates with gates and

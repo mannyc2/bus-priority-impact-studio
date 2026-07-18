@@ -8456,3 +8456,37 @@ marks every historical version missing, and retains the only two exact-scope
 route projections as unresolved against Tracker segments. No study, serving
 artifact, D1/R2 data, publication, `LATEST`, deployment, or producer repository
 was changed. See `docs/research/mta-wiki-rc22-migration-report.md`.
+
+## [2026-07-18] engineering | rc23 closes the review contract and canonical audit boundary
+
+MTA Wiki published immutable `v1-rc23` after quarantining rc22. Across the 246
+manifest-addressed artifacts, 245 are byte-identical and only
+`operational_occurrence_review_decisions.json` changed. The corrected review-v1
+snapshot removes one unsupported Flatbush `physical_scope` top-level binding;
+the occurrence-v2 file is unchanged and retains the binding in its dedicated
+physical ledger.
+
+Tracker now projects occurrence-v2 into review-v1 only after exact dedicated-
+ledger parity and strict canonical proof. The consumer binds both phase and
+physical audit manifests to the imported occurrence bytes/SHA/row count,
+reconciles physical treatment/relation/corridor roots and bundled
+completeness/policy/ledger/contract inputs, and requires hard-mode,
+complete-review, exact-evidence, and zero-finding/violation semantics. Nested,
+rogue, stale, and unknown-version evidence still fails closed; rc22 remains an
+exact fingerprinted, non-promotable inspection profile.
+
+Two final rc23 imports are byte-identical at SHA-256
+`27049c650366c91453f39919d574456eb28d5fab9cb8dce43afc5ceccdf99232`.
+Two candidate merges are byte-identical at
+`60422e951226b97abe40ae3705469084c5134488e666084284771e1b60ab22b5`,
+producing `candidate-set-v3:aba25fe4209247be31d43b66`: 489 candidates,
+`awaiting_approval`, null receipt, and zero approved events. Identities do not
+change; exactly 100 Wiki-bound provenance rows rebind and 389 registry-only
+rows remain unchanged. All 321 excluded bus-lane candidates remain unchanged,
+registry-only, unapproved, and unresolved.
+
+The pinned release is ready for a separate operator release-pointer review,
+not automatically promoted. No candidate approval, study, publication,
+deployment, D1/R2 write, or `LATEST` mutation occurred. Plans 074, 075, and
+083 retain their independent control, physical-scope, spine, approval, and
+publication gates. See `docs/research/mta-wiki-rc23-migration-report.md`.

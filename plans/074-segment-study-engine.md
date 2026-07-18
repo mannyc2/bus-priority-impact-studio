@@ -69,6 +69,29 @@ physical-scope/claim-tier gate. Neither issue changes the immutable historical
 five-study run. Full evidence and operator guidance are in
 `docs/research/mta-wiki-rc22-migration-report.md`.
 
+### Binding rc23 compatibility amendment — 2026-07-18
+
+The corrected rc23 release passes Tracker's ordinary strict-compatible path,
+including canonical phase/physical audit pins. It changes no candidate
+identity, occurrence, route projection, outcome window, spine classification,
+or confounder group. The 100 Wiki-bound rows nevertheless acquire corrected
+release provenance and therefore form the new
+`candidate-set-v3:aba25fe4209247be31d43b66` (artifact SHA-256
+`60422e951226b97abe40ae3705469084c5134488e666084284771e1b60ab22b5`).
+The set is `awaiting_approval`, has no receipt, and contains zero approved
+events. Release compatibility or an operator `LATEST` promotion does not
+authorize a Plan 074 run.
+
+Before any later run, the control universe must exclude evidence-backed real
+interventions even when their candidate is rejected or unreviewed. Approval
+governs treated-study execution; it does not make an otherwise real
+intervention safe as a control. Bounded treatments also require exact
+occurrence→geometry→spine binding. Unresolved/ambiguous scope fails admission,
+and an empty physical-scope array is never route-wide. All-route spines are
+allowed only when the evidence explicitly establishes a route-wide treatment.
+The historical five-study run remains immutable. See
+`docs/research/mta-wiki-rc23-migration-report.md`.
+
 ## Why this matters
 
 The product is named Bus Priority **Impact** Studio, but impact is currently
@@ -371,9 +394,13 @@ structure on `tools/pipeline-v2/test/commands/export/route-dossier-summaries.tes
   or current treatment geometry cannot map unambiguously to the stable spine.
   Do not create a second study-only identity scheme.
 
-- The lane-overlap index turns out not to map treatments to segments for >50%
-  of lane events — fall back to all-route segments for those and NOTE it, but
-  if the index is entirely absent/deleted, report before proceeding.
+- A bounded treatment lacks an exact, evidence-backed
+  occurrence→geometry→stable-spine binding, or that binding is ambiguous.
+  Fail admission and report the unresolved scope; never fall back to all-route
+  segments. All-route spines are admissible only when the treatment evidence
+  explicitly establishes route-wide scope. If the lane-overlap index is
+  absent, incomplete, or maps fewer than half of bounded lane events, report
+  coverage before proceeding and do not weaken this rule.
 - Real-run effects are implausible (|effect| > 3 mph on >25% of studies) —
   report with 2 worked examples; do not tune thresholds to make results look
   better.

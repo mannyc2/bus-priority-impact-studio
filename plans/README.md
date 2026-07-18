@@ -189,7 +189,7 @@ review without weakening any standard.
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 075 rec.; operator comp approval (hard gate in-plan) | TODO |
-| 083 | Spine pattern-grouping spike: measure honest candidate-coverage gains | P2 | M | 078 (DONE) | TODO (rc19-rebaselined; flips advance rows to review, never approval) |
+| 083 | Spine pattern-grouping spike: measure honest candidate-coverage gains | P2 | M | 078 (DONE) | TODO (rc23 re-evaluated; denominator unchanged; flips advance rows to review, never approval) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
@@ -452,7 +452,7 @@ decision layer.
 | 071 | Steering-doc truth sweep (README schema claim, /methods SEO, master-plan status) | P2 | S-M | 068 (rec.) | DONE (Effect Schema README claim, retired `/methods` SEO removal, master-plan status block, and knowledge log verified) |
 | 072 | Dependency hygiene: bun update within semver + audit residue log | P3 | S | 068 | DONE (audit reduced 15→13; all residual advisories documented; full tests/build and `/` + `/map` smoke pass) |
 | 073 | Serve the reviewed intervention corpus + reconciliation report | P1 | M-L | 068 | DONE (310 valid; 29 study-date-ready; 11 exact matches; no study-ready corpus-only candidates) |
-| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 | IN PROGRESS (historical run remains immutable; rc22's 489-row v3 set is contract-blocked, and control-contamination plus bounded-scope fallback gates must be closed before any new run) |
+| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 | IN PROGRESS (rc23's 489-row set is strict-compatible but unapproved; control-contamination and bounded-scope admission gates remain open before any new run) |
 | 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073 for step 5 | DONE (2026-07-12, branch advisor/075-studies-integration; live serving detail/routes artifacts still need regeneration to carry eventId before studied cards appear publicly) |
 | 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | TODO |
 
