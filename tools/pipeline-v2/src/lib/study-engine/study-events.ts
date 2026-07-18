@@ -8,24 +8,39 @@ import {
   type WikiOperationalDateAssertion,
 } from "@bp/domain/documents/operational-date";
 import type {
-  MtaWikiOperationalOccurrenceImportArtifact,
+  MtaWikiOperationalOccurrenceImportArtifactV3,
+  MtaWikiOperationalOccurrenceImportArtifactV4,
   OperationalOccurrenceEvidenceBinding,
   OperationalOccurrenceRow,
+  OperationalOccurrenceRowV2,
 } from "@bp/domain/documents/operational-occurrence";
 import type {
   StudyEventApprovalArtifact,
   StudyEventApprovalArtifactV2,
+  StudyEventApprovalArtifactV3,
   StudyEventCandidate,
   StudyEventCandidateV2,
+  StudyEventCandidateV3,
   StudyEventConflict,
   StudyEventMergeArtifact,
   StudyEventMergeArtifactV2,
+  StudyEventMergeArtifactV3,
   StudyEventProvenance,
   StudyEventRejection,
   StudyTreatmentFamily,
 } from "@bp/domain/studio/study";
 
 const trustedRegistrySources = new Set(["mta_ace_routes", "nyc_dot_bus_lanes"]);
+
+const RC22_QUARANTINED_INPUT = {
+  releaseId: "v1-rc22",
+  manifestSha256: "249ef6be1d927e44d405c11bcff643d18b2133e5407be37dc7612f935a1b53e4",
+  artifactSha256: "d2fff454cc82c9a74f9f4ea9bb0b0334a12af385f53d0e7fbde126ea9e33f98f",
+  relationshipBundleSha256: "2a4fa7fd0e3b2345b236c06a4e0fc7640db106c959ab65ef6110d30ed6a0641f",
+  relationshipEnforcementProofCanonicalSha256:
+    "2bcdc8859c23baecfb0a463e32a2485eab267d3de5ad6ac9cf3c69c14e270536",
+  producerReviewCompatibility: "known_rc22_review_v1_physical_scope_incompatibility",
+} as const;
 
 export type PinnedWikiStudyInput = {
   releaseId: string;
@@ -1024,13 +1039,287 @@ export function buildStudyEventMergeArtifactV2(
   };
 }
 
+export type PinnedWikiOccurrenceStudyInputV4 = {
+  releaseId: string;
+  manifestSha256: string;
+  artifactSha256: string;
+  relationshipBundleSha256: string;
+  relationshipEnforcementProofCanonicalSha256: string;
+  producerReviewCompatibility: "compatible" | "known_rc22_review_v1_physical_scope_incompatibility";
+  occurrences: readonly OperationalOccurrenceRowV2[];
+};
+
+export type BuildStudyEventMergeV3Input = {
+  registryEvents: readonly RouteTreatmentInterventionEventRow[];
+  wiki: PinnedWikiOccurrenceStudyInputV4;
+  availableAnalysisRouteIds: ReadonlySet<string>;
+  approval?: StudyEventApprovalArtifactV3 | undefined;
+};
+
+function validateV4ProducerReviewProfile(input: PinnedWikiOccurrenceStudyInputV4): void {
+  const isPinnedRc22 = input.manifestSha256 === RC22_QUARANTINED_INPUT.manifestSha256;
+  const usesRc22Exception =
+    input.producerReviewCompatibility === RC22_QUARANTINED_INPUT.producerReviewCompatibility;
+  const matchesRc22Fingerprint = Object.entries(RC22_QUARANTINED_INPUT).every(
+    ([key, value]) => input[key as keyof typeof RC22_QUARANTINED_INPUT] === value,
+  );
+  if (isPinnedRc22 && !matchesRc22Fingerprint) {
+    throw new Error(
+      "The pinned rc22 manifest requires its exact quarantined release, occurrence, relationship-bundle, proof, and compatibility fingerprint",
+    );
+  }
+  if (usesRc22Exception && !matchesRc22Fingerprint) {
+    throw new Error(
+      "The rc22 producer review-contract exception cannot be reused for another pinned input",
+    );
+  }
+}
+
+function validateApprovalV3(
+  candidateSetId: string,
+  candidates: readonly StudyEventCandidateV3[],
+  conflicts: readonly StudyEventConflict[],
+  approval: StudyEventApprovalArtifactV3,
+): void {
+  if (
+    approval.artifactKind !== "bp.studio.study_event_approvals.v3" ||
+    approval.schemaVersion !== 3
+  ) {
+    throw new Error("Study-event v3 candidate sets require a fresh v3 approval artifact");
+  }
+  if (approval.candidateSetId !== candidateSetId) {
+    throw new Error(
+      `Study-event v3 approval is stale: expected ${candidateSetId}, received ${approval.candidateSetId}`,
+    );
+  }
+  const candidateIds = candidates.map((candidate) => candidate.candidateId).toSorted();
+  const decisionIds = approval.decisions.map((decision) => decision.candidateId).toSorted();
+  if (new Set(decisionIds).size !== decisionIds.length) {
+    throw new Error("Study-event v3 approval contains duplicate candidate decisions");
+  }
+  if (
+    candidateIds.length !== decisionIds.length ||
+    candidateIds.some((value, index) => value !== decisionIds[index])
+  ) {
+    throw new Error(
+      "Study-event v3 approval must contain exactly one decision for every candidate",
+    );
+  }
+  if (
+    approval.decisions.some((decision) => !decision.reviewer.trim() || !decision.rationale.trim())
+  ) {
+    throw new Error("Study-event v3 approval decisions require reviewer and rationale");
+  }
+  const approvedIds = new Set(
+    approval.decisions
+      .filter((decision) => decision.decision === "approved")
+      .map((decision) => decision.candidateId),
+  );
+  for (const conflict of conflicts) {
+    if (
+      conflict.kind === "cross_source_same_month" &&
+      conflict.candidateIds.filter((candidateId) => approvedIds.has(candidateId)).length > 1
+    ) {
+      throw new Error(
+        `Study-event v3 approval may approve at most one candidate in same-month conflict ${conflict.conflictKey}`,
+      );
+    }
+  }
+}
+
+function occurrenceRouteForProvenance(
+  row: OperationalOccurrenceRowV2,
+  gtfsRouteId: string | null,
+  analysisRouteId: string,
+) {
+  const matches = row.routes.filter(
+    (route) =>
+      route.gtfs_route_id === gtfsRouteId &&
+      occurrenceAnalysisRouteId(route.gtfs_route_id) === analysisRouteId,
+  );
+  if (matches.length !== 1) {
+    throw new Error(
+      `Occurrence ${row.occurrence_id} must resolve exactly one Wiki route for ${String(gtfsRouteId)} -> ${analysisRouteId}`,
+    );
+  }
+  const match = matches[0];
+  if (match === undefined) throw new Error("unreachable occurrence route resolution failure");
+  return match;
+}
+
+export function buildStudyEventMergeArtifactV3(
+  input: BuildStudyEventMergeV3Input,
+): StudyEventMergeArtifactV3 {
+  validateV4ProducerReviewProfile(input.wiki);
+  const base = buildStudyEventMergeArtifactV2({
+    registryEvents: input.registryEvents,
+    wiki: {
+      releaseId: input.wiki.releaseId,
+      manifestSha256: input.wiki.manifestSha256,
+      artifactSha256: input.wiki.artifactSha256,
+      // The v2 importer has already validated every added field. The legacy
+      // projection core is reused only for unchanged candidate identity and
+      // family/date routing; the complete v2 lineage is restored below.
+      occurrences: input.wiki.occurrences as unknown as readonly OperationalOccurrenceRow[],
+    },
+    withoutWikiAnchors: false,
+    availableAnalysisRouteIds: input.availableAnalysisRouteIds,
+  });
+  const rowsById = new Map(input.wiki.occurrences.map((row) => [row.occurrence_id, row]));
+  const candidates: StudyEventCandidateV3[] = base.candidates.map((candidate) => ({
+    ...candidate,
+    provenance: candidate.provenance.map((provenance) => {
+      if (provenance.sourceKind === "registry") {
+        return {
+          ...provenance,
+          wikiRouteRecordId: null,
+          phaseRecordIds: [],
+          phaseRelationRecordIds: [],
+          phaseRelationEvidenceBindings: [],
+          phaseRelationDisposition: null,
+          physicalScopeRecordIds: [],
+          physicalScopeRelationRecordIds: [],
+          physicalScopeEvidenceBindings: [],
+          relationshipBundleSha256: null,
+          relationshipEnforcementProofCanonicalSha256: null,
+          producerReviewCompatibility: null,
+        };
+      }
+      const occurrenceId = provenance.occurrenceId;
+      const row = occurrenceId === null ? undefined : rowsById.get(occurrenceId);
+      if (row === undefined) {
+        throw new Error(`Missing occurrence-v2 lineage row for ${String(occurrenceId)}`);
+      }
+      const route = occurrenceRouteForProvenance(
+        row,
+        provenance.gtfsRouteId,
+        provenance.analysisRouteId,
+      );
+      return {
+        ...provenance,
+        wikiRouteRecordId: route.route_record_id,
+        phaseRecordIds: [...row.phase_record_ids],
+        phaseRelationRecordIds: [...row.phase_relation_record_ids],
+        phaseRelationEvidenceBindings: [...row.phase_relation_evidence_bindings],
+        phaseRelationDisposition: row.phase_relation_disposition,
+        physicalScopeRecordIds: [...row.physical_scope_record_ids],
+        physicalScopeRelationRecordIds: [...row.physical_scope_relation_record_ids],
+        physicalScopeEvidenceBindings: [...row.physical_scope_evidence_bindings],
+        relationshipBundleSha256: input.wiki.relationshipBundleSha256,
+        relationshipEnforcementProofCanonicalSha256:
+          input.wiki.relationshipEnforcementProofCanonicalSha256,
+        producerReviewCompatibility: input.wiki.producerReviewCompatibility,
+      };
+    }),
+  }));
+  const wikiInput = {
+    mode: "pinned_occurrence_release_v4" as const,
+    releaseId: input.wiki.releaseId,
+    manifestSha256: input.wiki.manifestSha256,
+    artifactSha256: input.wiki.artifactSha256,
+    relationshipBundleSha256: input.wiki.relationshipBundleSha256,
+    relationshipEnforcementProofCanonicalSha256:
+      input.wiki.relationshipEnforcementProofCanonicalSha256,
+    producerReviewCompatibility: input.wiki.producerReviewCompatibility,
+  };
+  const candidateSetId = digest("candidate-set-v3", {
+    candidates,
+    conflicts: base.conflicts,
+    wikiInput,
+  });
+  const contractBlocked =
+    input.wiki.producerReviewCompatibility ===
+    "known_rc22_review_v1_physical_scope_incompatibility";
+  if (contractBlocked && input.approval !== undefined) {
+    throw new Error(
+      "Study-event v3 approval is blocked by the pinned producer review-contract incompatibility",
+    );
+  }
+  if (!contractBlocked && input.approval !== undefined) {
+    validateApprovalV3(candidateSetId, candidates, base.conflicts, input.approval);
+  }
+  const approvedIds = new Set(
+    input.approval?.decisions
+      .filter((decision) => decision.decision === "approved")
+      .map((decision) => decision.candidateId) ?? [],
+  );
+  const approvedEvents = contractBlocked
+    ? []
+    : candidates.filter((candidate) => approvedIds.has(candidate.candidateId));
+  const rejectedByOperatorCount = contractBlocked
+    ? 0
+    : (input.approval?.decisions.filter((decision) => decision.decision === "rejected").length ??
+      0);
+  const common = {
+    artifactKind: "bp.studio.study_events.v3" as const,
+    schemaVersion: 3 as const,
+    candidateSetId,
+    wikiInput,
+    summary: {
+      ...base.summary,
+      approvedCount: approvedEvents.length,
+      rejectedByOperatorCount,
+    },
+    candidates,
+    approvedEvents,
+    rejections: base.rejections,
+    conflicts: base.conflicts,
+  };
+  if (contractBlocked) {
+    return {
+      ...common,
+      wikiInput: {
+        ...wikiInput,
+        producerReviewCompatibility: "known_rc22_review_v1_physical_scope_incompatibility" as const,
+      },
+      approvalState: "blocked_contract_incompatible",
+      approvedEvents: [],
+      approval: null,
+    };
+  }
+  const compatibleCommon = {
+    ...common,
+    wikiInput: {
+      ...wikiInput,
+      producerReviewCompatibility: "compatible" as const,
+    },
+  };
+  return input.approval === undefined
+    ? {
+        ...compatibleCommon,
+        approvalState: "awaiting_approval",
+        approvedEvents: [],
+        approval: null,
+      }
+    : {
+        ...compatibleCommon,
+        approvalState: "approved",
+        approval: input.approval,
+      };
+}
+
 export function pinnedOccurrenceStudyInput(
-  artifact: MtaWikiOperationalOccurrenceImportArtifact,
+  artifact: MtaWikiOperationalOccurrenceImportArtifactV3,
 ): PinnedWikiOccurrenceStudyInput {
   return {
     releaseId: artifact.sourceRelease.releaseId,
     manifestSha256: artifact.sourceRelease.manifestSha256,
     artifactSha256: artifact.sourceRelease.occurrences.sha256,
+    occurrences: artifact.occurrences,
+  };
+}
+
+export function pinnedOccurrenceStudyInputV4(
+  artifact: MtaWikiOperationalOccurrenceImportArtifactV4,
+): PinnedWikiOccurrenceStudyInputV4 {
+  return {
+    releaseId: artifact.sourceRelease.releaseId,
+    manifestSha256: artifact.sourceRelease.manifestSha256,
+    artifactSha256: artifact.sourceRelease.occurrences.sha256,
+    relationshipBundleSha256: artifact.sourceRelease.relationshipIntegrity.bundle.sha256,
+    relationshipEnforcementProofCanonicalSha256:
+      artifact.sourceRelease.relationshipIntegrity.enforcementProof.canonicalSha256,
+    producerReviewCompatibility: artifact.sourceRelease.producerReviewStatus.compatibility,
     occurrences: artifact.occurrences,
   };
 }

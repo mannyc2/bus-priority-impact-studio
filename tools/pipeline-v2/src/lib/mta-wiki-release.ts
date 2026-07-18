@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, realpath } from "node:fs/promises";
+import { lstat, readFile, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { Effect, Schema } from "effect";
 
@@ -180,6 +180,24 @@ export const resolveMtaWikiRelease = Effect.fn("MtaWikiRelease.resolveRelease")(
       detail: "wikiRelease escapes the MTA Wiki releases directory",
     });
   }
+  const releaseStat = yield* Effect.tryPromise({
+    try: () => lstat(releaseDirectory),
+    catch: (cause) =>
+      verificationError({
+        code: "read_failed",
+        operation,
+        path: releaseDirectory,
+        detail: String(cause),
+      }),
+  });
+  if (!releaseStat.isDirectory() || releaseStat.isSymbolicLink()) {
+    return yield* verificationError({
+      code: "unsafe_path",
+      operation,
+      path: releaseDirectory,
+      detail: "wikiRelease must name a regular non-symlink release directory",
+    });
+  }
   const canonicalReleasesRoot = yield* canonicalPath(releasesRoot, operation);
   const canonicalReleaseDirectory = yield* canonicalPath(releaseDirectory, operation);
   if (!isPathInside(canonicalReleasesRoot, canonicalReleaseDirectory)) {
@@ -230,6 +248,30 @@ export const safeMtaWikiReleaseFilePath = Effect.fn("MtaWikiRelease.safeFilePath
         path: target,
         detail: `release pointer escapes its release directory: ${input.pointer}`,
       });
+    }
+    const targetComponents = relative(input.releaseDirectory, target).split(sep);
+    let current = input.releaseDirectory;
+    for (const [index, component] of targetComponents.entries()) {
+      current = resolve(current, component);
+      const stat = yield* Effect.tryPromise({
+        try: () => lstat(current),
+        catch: (cause) =>
+          verificationError({
+            code: "read_failed",
+            operation: input.operation,
+            path: current,
+            detail: String(cause),
+          }),
+      });
+      const isLeaf = index === targetComponents.length - 1;
+      if (stat.isSymbolicLink() || (isLeaf ? !stat.isFile() : !stat.isDirectory())) {
+        return yield* verificationError({
+          code: "unsafe_path",
+          operation: input.operation,
+          path: current,
+          detail: `release pointer must traverse only regular directories and end at a regular non-symlink file: ${input.pointer}`,
+        });
+      }
     }
     const canonicalTarget = yield* canonicalPath(target, input.operation);
     if (!isPathInside(input.canonicalReleaseDirectory, canonicalTarget)) {

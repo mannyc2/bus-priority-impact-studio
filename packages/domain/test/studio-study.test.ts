@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { decodeEitherStrict } from "@bp/domain/decode";
+import { OperationalOccurrenceProducerReviewStatusSchema } from "@bp/domain/documents/operational-occurrence";
 import {
   RouteStudiesArtifactSchema,
   routeStudiesKey,
@@ -90,6 +91,33 @@ describe("study event contracts", () => {
           rejections: [],
           conflicts: [],
           approval,
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  test("binds the producer review compatibility to its promotion disposition", () => {
+    expect(
+      Result.isSuccess(
+        decodeEitherStrict(OperationalOccurrenceProducerReviewStatusSchema)({
+          compatibility: "compatible",
+          promotionEligible: true,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      Result.isSuccess(
+        decodeEitherStrict(OperationalOccurrenceProducerReviewStatusSchema)({
+          compatibility: "known_rc22_review_v1_physical_scope_incompatibility",
+          promotionEligible: false,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      Result.isFailure(
+        decodeEitherStrict(OperationalOccurrenceProducerReviewStatusSchema)({
+          compatibility: "known_rc22_review_v1_physical_scope_incompatibility",
+          promotionEligible: true,
         }),
       ),
     ).toBe(true);

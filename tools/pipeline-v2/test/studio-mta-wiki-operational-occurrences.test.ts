@@ -1,25 +1,38 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, symlink, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { RouteTreatmentInterventionEventRow } from "@bp/analytics/interventions";
 import { decodeStrict } from "@bp/domain/decode";
 import type {
+  MtaWikiOperationalOccurrenceImportArtifactV3,
+  MtaWikiOperationalOccurrenceImportArtifactV4,
   OperationalOccurrenceEvidenceBinding,
+  OperationalOccurrenceEvidenceBindingV2,
   OperationalOccurrenceReviewDecision,
+  OperationalOccurrenceReviewSnapshotV1Rc22Inspection,
   OperationalOccurrenceRow,
+  OperationalOccurrenceRowV2,
 } from "@bp/domain/documents/operational-occurrence";
-import { StudyEventMergeArtifactV2Schema } from "@bp/domain/studio/study";
+import {
+  StudyEventMergeArtifactV2Schema,
+  StudyEventMergeArtifactV3Schema,
+} from "@bp/domain/studio/study";
 import command from "../src/commands/studio/import-mta-wiki-operational-occurrences.ts";
 import {
+  classifyOperationalOccurrenceReviewCompatibility,
+  RELATIONSHIP_CONTRACT_POLICY_V1,
   recomputeOperationalOccurrenceSummary,
+  recomputeOperationalOccurrenceSummaryV2,
   runMtaWikiOperationalOccurrenceImport,
 } from "../src/lib/mta-wiki-operational-occurrences.ts";
 import { queensRedesignOverlapGate } from "../src/lib/study-engine/gates.ts";
 import {
   buildStudyEventMergeArtifactV2,
+  buildStudyEventMergeArtifactV3,
   occurrenceAnalysisRouteId,
+  pinnedOccurrenceStudyInputV4,
 } from "../src/lib/study-engine/study-events.ts";
 
 function sha256(value: Uint8Array | string): string {
@@ -385,13 +398,1213 @@ async function withFixture<T>(
   }
 }
 
-function importFixture(fixture: ReleaseFixture, output = "import.json") {
-  return runMtaWikiOperationalOccurrenceImport({
+async function importFixture(
+  fixture: ReleaseFixture,
+  output = "import.json",
+): Promise<MtaWikiOperationalOccurrenceImportArtifactV3> {
+  const artifact = await runMtaWikiOperationalOccurrenceImport({
     mtaWikiRoot: fixture.root,
     wikiRelease: fixture.releaseId,
     wikiManifestSha256: fixture.manifestSha256,
     output: join(fixture.root, output),
   });
+  if (artifact.artifactKind !== "bp.studio.mta_wiki_operational_occurrences.v3") {
+    throw new Error("legacy fixture unexpectedly produced a non-v3 import artifact");
+  }
+  return artifact;
+}
+
+const RELATIONSHIP_GATE_IDS = [
+  "bus_lane_acquisition_linkage",
+  "determinism_and_consumer_proof",
+  "occurrence_treatment_physicality",
+  "payload_reference_integrity",
+  "referential_type_evidence_integrity",
+  "relationship_completeness",
+  "semantic_remediation",
+] as const;
+const RELATIONSHIP_GATE_SOURCES = {
+  bus_lane_acquisition_linkage: [
+    [
+      "acquisition_summary",
+      "data/quality/relationship-integrity/bus-lane-acquisition/summary.json",
+    ],
+    [
+      "linkage_materialization_summary",
+      "data/quality/relationship-integrity/bus-lane-acquisition/linkage-materialization/summary.json",
+    ],
+    [
+      "linkage_reconciliation_summary",
+      "data/quality/relationship-integrity/bus-lane-acquisition/linkage-reconciliation/summary.json",
+    ],
+  ],
+  determinism_and_consumer_proof: [
+    [
+      "determinism_consumer_summary",
+      "data/quality/relationship-integrity/determinism-consumer/summary.json",
+    ],
+  ],
+  occurrence_treatment_physicality: [
+    [
+      "occurrence_treatment_physicality_summary",
+      "data/quality/relationship-integrity/occurrence-treatment-physicality/summary.json",
+    ],
+    [
+      "phase_review_summary",
+      "data/quality/relationship-integrity/operational-occurrence-phases/summary.json",
+    ],
+  ],
+  payload_reference_integrity: [
+    [
+      "payload_reference_summary",
+      "data/quality/relationship-integrity/payload-references/summary.json",
+    ],
+  ],
+  referential_type_evidence_integrity: [
+    ["graph_audit_findings", "data/quality/relationship-integrity/graph-audit/findings.jsonl"],
+    ["graph_audit_manifest", "data/quality/relationship-integrity/graph-audit/manifest.json"],
+    ["graph_audit_summary", "data/quality/relationship-integrity/graph-audit/summary.json"],
+    ["sql_integrity_summary", "data/quality/relationship-integrity/sql-integrity/summary.json"],
+  ],
+  relationship_completeness: [
+    [
+      "relationship_completeness_summary",
+      "data/quality/relationship-integrity/completeness/summary.json",
+    ],
+  ],
+  semantic_remediation: [
+    [
+      "semantic_remediation_summary",
+      "data/quality/relationship-integrity/semantic-remediation/summary.json",
+    ],
+  ],
+} as const;
+const RELATIONSHIP_REFRESH_ROLES = new Set([
+  "graph_audit_findings",
+  "graph_audit_manifest",
+  "graph_audit_summary",
+  "linkage_materialization_summary",
+  "sql_integrity_summary",
+]);
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  return `{${Object.entries(value)
+    .toSorted(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
+    .join(",")}}`;
+}
+
+function canonicalDigest(value: unknown): string {
+  return sha256(canonicalJson(value));
+}
+
+function transitionFingerprint(role: string, text: string): string {
+  if (role === "graph_audit_findings") {
+    return canonicalDigest(
+      text
+        .split(/\r?\n/u)
+        .filter((line) => line.trim().length > 0)
+        .map((line) => {
+          const { severity: _severity, ...stable } = JSON.parse(line) as Record<string, unknown>;
+          return stable;
+        }),
+    );
+  }
+  const value = JSON.parse(text) as Record<string, unknown>;
+  if (role === "graph_audit_manifest") {
+    delete value["contract_sha256"];
+    delete value["input_fingerprint"];
+    delete value["mode"];
+    delete value["reproduction_commands"];
+    if (Array.isArray(value["artifacts"])) {
+      value["artifacts"] = value["artifacts"].map((entry) => {
+        const { sha256: _sha256, ...stable } = entry as Record<string, unknown>;
+        return stable;
+      });
+    }
+  } else if (role === "graph_audit_summary") {
+    delete value["mode"];
+    delete value["findings_by_severity"];
+  } else if (role === "sql_integrity_summary") {
+    delete value["canonical_db_sha256"];
+    delete value["graph_findings_sha256"];
+    delete value["graph_manifest_sha256"];
+    delete value["graph_summary_sha256"];
+    delete value["enforcement_mode"];
+  } else if (role === "linkage_materialization_summary") {
+    delete value["canonical_db_sha256"];
+  } else {
+    throw new Error(`unsupported fixture refresh role ${role}`);
+  }
+  return canonicalDigest(value);
+}
+
+function occurrenceRowV2(
+  options: { exactPhysicalScope?: boolean; relatedPhases?: boolean } = {},
+): OperationalOccurrenceRowV2 {
+  const legacy = occurrenceRow();
+  const eventId = legacy.provenance.event_record_ids[0];
+  if (eventId === undefined) throw new Error("fixture needs one phase event");
+  const relatedEventId = `${eventId}:phase-2`;
+  const phase = {
+    role: "phase_relation" as const,
+    record_id: "relation:phase-1-precedes-phase-2",
+    source_id: "source:official",
+    evidence_id: "source:official#phase-1-precedes-phase-2",
+  };
+  const physical = {
+    role: "physical_scope" as const,
+    record_id: "relation:physical-scope",
+    source_id: "source:official",
+    evidence_id: "source:official#physical-scope",
+  };
+  const v2Bindings = [
+    ...(options.relatedPhases ? [phase] : []),
+    ...(options.exactPhysicalScope ? [physical] : []),
+  ];
+  const observations = legacy.observations.map((observation) => ({
+    ...observation,
+    relation_record_ids: options.exactPhysicalScope
+      ? sortedStrings([...observation.relation_record_ids, physical.record_id])
+      : observation.relation_record_ids,
+  }));
+  if (options.relatedPhases) {
+    observations.push({
+      event_record_id: relatedEventId,
+      relation_record_ids: [phase.record_id],
+      document_time_statuses: ["implemented"],
+      document_time_dates: [
+        {
+          raw: "July 1, 2025",
+          normalized: "2025-07-01",
+          precision: "day",
+          source_field: "event_date",
+        },
+      ],
+      status_as_of_dates: [],
+    });
+  }
+  return {
+    ...legacy,
+    schema_version: 2,
+    observations: observations.toSorted((left, right) =>
+      left.event_record_id.localeCompare(right.event_record_id),
+    ),
+    evidence_bindings: sortedBindings([...legacy.evidence_bindings, ...v2Bindings]),
+    phase_record_ids: options.relatedPhases ? sortedStrings([eventId, relatedEventId]) : [eventId],
+    phase_relation_record_ids: options.relatedPhases ? [phase.record_id] : [],
+    phase_relation_evidence_bindings: options.relatedPhases ? [phase] : [],
+    phase_relation_disposition: options.relatedPhases ? "related_phases" : "single_phase",
+    physical_scope_record_ids: options.exactPhysicalScope ? ["corridor:physical-scope"] : [],
+    physical_scope_relation_record_ids: options.exactPhysicalScope ? [physical.record_id] : [],
+    physical_scope_evidence_bindings: options.exactPhysicalScope ? [physical] : [],
+    provenance: {
+      ...legacy.provenance,
+      event_record_ids: options.relatedPhases
+        ? sortedStrings([eventId, relatedEventId])
+        : legacy.provenance.event_record_ids,
+      relation_record_ids: sortedStrings([
+        ...legacy.provenance.relation_record_ids,
+        ...(options.relatedPhases ? [phase.record_id] : []),
+        ...(options.exactPhysicalScope ? [physical.record_id] : []),
+      ]),
+    },
+  };
+}
+
+function sortedStrings(values: readonly string[]): string[] {
+  return [...values].toSorted();
+}
+
+function sortedBindings(
+  values: readonly OperationalOccurrenceEvidenceBindingV2[],
+): OperationalOccurrenceEvidenceBindingV2[] {
+  return [...values].toSorted((left, right) =>
+    canonicalJson(left).localeCompare(canonicalJson(right)),
+  );
+}
+
+function reviewDecisionV2(
+  row: OperationalOccurrenceRowV2,
+  options: { includeV2LineageRoles?: boolean } = {},
+): OperationalOccurrenceReviewSnapshotV1Rc22Inspection["decisions"][number] {
+  const decision = reviewDecision(
+    row as unknown as OperationalOccurrenceRow,
+  ) as unknown as OperationalOccurrenceReviewSnapshotV1Rc22Inspection["decisions"][number];
+  return {
+    ...decision,
+    evidence_bindings: options.includeV2LineageRoles
+      ? [...decision.evidence_bindings]
+      : decision.evidence_bindings.filter(
+          (binding) => binding.role !== "phase_relation" && binding.role !== "physical_scope",
+        ),
+  };
+}
+
+type ReleaseFixtureV4 = ReleaseFixture & {
+  relationshipBundlePath: string;
+  relationshipContractPath: string;
+  firstGatePath: string;
+};
+
+async function writeReleaseFixtureV4(
+  input: {
+    row?: OperationalOccurrenceRowV2;
+    reviewDecision?: OperationalOccurrenceReviewSnapshotV1Rc22Inspection["decisions"][number];
+    includeV2LineageRolesInReview?: boolean;
+    occurrenceContractVersion?: number;
+    extraContractKey?: boolean;
+    extraBundleArtifactText?: string;
+    transitionPreviousProofMismatch?: boolean;
+    transitionMissingRole?: boolean;
+    transitionDuplicateRole?: boolean;
+    transitionInvariantDigestMismatch?: boolean;
+    transitionFingerprintMismatch?: boolean;
+    graphManifestRowCountMismatch?: boolean;
+    weakenedContractPolicy?: boolean;
+    invalidEndpointMatrix?: boolean;
+    physicalOccurrencePinMismatch?: boolean;
+    phaseOccurrencePinMismatch?: boolean;
+    physicalAuditNotReady?: boolean;
+    phaseAuditViolation?: boolean;
+    physicalSummaryPinMismatch?: boolean;
+  } = {},
+): Promise<ReleaseFixtureV4> {
+  const root = await mkdtemp(join(tmpdir(), "bp-wiki-operational-occurrence-v4-"));
+  const releaseId = "fixture-occurrence-release-v4";
+  const releaseDirectory = join(root, "data", "exports", "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const row = input.row ?? occurrenceRowV2();
+  const occurrencePointer = "operational_occurrences.jsonl";
+  const summaryPointer = "operational_occurrences_summary.json";
+  const reviewPointer = "operational_occurrence_review_decisions.json";
+  const bundlePointer = "relationship_integrity_bundle.json";
+  const occurrenceText = `${JSON.stringify(row)}\n`;
+  const summaryText = `${JSON.stringify(recomputeOperationalOccurrenceSummaryV2([row]))}\n`;
+  const reviewText = `${JSON.stringify({
+    snapshot_version: 1,
+    decision_schema_version: 1,
+    decision_count: 1,
+    decisions: [
+      input.reviewDecision ??
+        reviewDecisionV2(row, {
+          ...(input.includeV2LineageRolesInReview === undefined
+            ? {}
+            : { includeV2LineageRoles: input.includeV2LineageRolesInReview }),
+        }),
+    ],
+  })}\n`;
+
+  const matrixIdsSha = "1".repeat(64);
+  const tupleSetSha = "2".repeat(64);
+  const transitionPath =
+    "data/contracts/relationships/v1/enforcement-transition-receipts/fixture.json";
+  const endpointPath = "data/contracts/relationships/v1/post-remediation-endpoint-matrix.json";
+  const proofPath = "data/contracts/relationships/v1/enforcement-proof.json";
+  const contractPath = "data/contracts/relationships/v1/contract.json";
+  const graphPath = "data/quality/relationship-integrity/graph-audit/summary.json";
+  const archiveRoot = "data/contracts/relationships/v1/enforcement-proofs/fixture";
+  const previousProofPath = `${archiveRoot}/proof.json`;
+  const canonicalRelationsText = `${JSON.stringify({ record_id: "relation:fixture" })}\n`;
+  const eligibleRows = row.study_projection_eligible ? [row] : [];
+  const treatmentMembers = eligibleRows.flatMap((entry) =>
+    entry.treatment.kind === "atomic" ? [entry.treatment.member] : entry.treatment.members,
+  );
+  const uniqueTreatmentIds = [
+    ...new Set(treatmentMembers.map((entry) => entry.treatment_record_id)),
+  ];
+  const treatmentComponentsText = uniqueTreatmentIds
+    .map((recordId) => JSON.stringify({ record_id: recordId }))
+    .join("\n")
+    .concat(uniqueTreatmentIds.length === 0 ? "" : "\n");
+  const corridorsText = `${JSON.stringify({ record_id: "corridor:fixture" })}\n`;
+  const eventRecordCount = row.phase_record_ids.length;
+  const relationRecordCount = 1;
+  const corridorRecordCount = 1;
+  const treatmentRecordCount = uniqueTreatmentIds.length;
+  const canonicalRecordCount =
+    eventRecordCount + relationRecordCount + corridorRecordCount + treatmentRecordCount;
+  const previousProof = {
+    schema_version: 1,
+    proof_stage: "pre_promotion_warning",
+    fixture: true,
+  };
+  const graph = {
+    canonical_record_count: canonicalRecordCount,
+    canonical_relation_count: 1,
+    distinct_relation_kind_count: 1,
+    contract_rule_count: 1,
+    contract_covered_relation_count: 1,
+    finding_count: 3,
+    findings_by_code: { REL_FAMILY_TYPE_SUSPECT_REVIEWED: 3, REL_ORPHAN_RECORD: 0 },
+    findings_by_severity: { error: 0, warning: 3 },
+    primary_dispositions: { clean: 1 },
+    orphan_records_by_kind: {},
+    duplicate_triple_groups: 0,
+    duplicate_triple_records: 0,
+    exact_duplicate_groups: 0,
+    exact_duplicate_records: 0,
+    ambiguous_aliases: 0,
+    semantic_supersessions: 0,
+  };
+  const endpoint = {
+    schema_version: 1,
+    matrix_id: "relationship-contract-v1-post-remediation-final",
+    contract_id: "relationship-contract-v1",
+    review_status: "reviewed_post_remediation",
+    generated_from: {
+      projected_relations_path:
+        "data/quality/relationship-integrity/semantic-remediation/projected-relations.jsonl",
+      projected_relations_sha256: "3".repeat(64),
+      projected_relations_logical_sha256: "4".repeat(64),
+      projected_tuples_path:
+        "data/quality/relationship-integrity/semantic-remediation/projected-tuples.json",
+      projected_tuples_sha256: "5".repeat(64),
+      projected_tuples_logical_sha256: "6".repeat(64),
+      semantic_remediation_summary_path:
+        "data/quality/relationship-integrity/semantic-remediation/summary.json",
+      semantic_remediation_summary_sha256: "7".repeat(64),
+      campaign_id: "relationship-semantic-remediation-v1",
+      skipped_correction_count: 0,
+      unmapped_relation_count: 0,
+    },
+    obsolete_baseline_tuple_policy: "reject",
+    relation_kind_rule_count: 1,
+    allowed_family_shape_count: 1,
+    covered_relation_count: 1,
+    relation_ids_sha256: matrixIdsSha,
+    tuple_set_sha256: tupleSetSha,
+    rules: [
+      {
+        relation_kind: "serves",
+        relation_families: ["service"],
+        allowed_shapes: [{ subject_kind: "event", object_kind: "route" }],
+        allowed_family_shapes: input.invalidEndpointMatrix
+          ? []
+          : [
+              {
+                relation_family: "service",
+                subject_kind: "event",
+                object_kind: "route",
+                provenance: "reviewed_post_remediation",
+                review_decision_ids: ["fixture-review"],
+                relation_count: 1,
+                relation_ids_sha256: "8".repeat(64),
+              },
+            ],
+        review_basis: "reviewed_post_remediation",
+      },
+    ],
+  };
+  const graphFindingsText = [0, 1, 2]
+    .map((index) =>
+      JSON.stringify({ code: "REL_FAMILY_TYPE_SUSPECT_REVIEWED", index, severity: "warning" }),
+    )
+    .join("\n")
+    .concat("\n");
+  const graphOrphansText = "";
+  const graphRelationAuditText = `${JSON.stringify({ relation_id: "relation:fixture" })}\n`;
+  const graphReportText = "# Fixture graph audit\n";
+  const graphSummaryText = `${JSON.stringify(graph)}\n`;
+  const graphManifestBase = {
+    schema_version: 1,
+    contract_id: "relationship-contract-v1",
+    contract_sha256: "9".repeat(64),
+    endpoint_matrix_sha256: canonicalDigest(endpoint),
+    canonical_relations_sha256: sha256(canonicalRelationsText),
+  };
+  const graphManifest = {
+    ...graphManifestBase,
+    input_fingerprint: canonicalDigest({
+      contract_sha256: graphManifestBase.contract_sha256,
+      endpoint_matrix_sha256: graphManifestBase.endpoint_matrix_sha256,
+      canonical_relations_sha256: graphManifestBase.canonical_relations_sha256,
+    }),
+    mode: "enforce",
+    artifacts: [
+      {
+        path: "findings.jsonl",
+        sha256: sha256(graphFindingsText),
+        rows: input.graphManifestRowCountMismatch ? 4 : 3,
+      },
+      { path: "orphan-records.jsonl", sha256: sha256(graphOrphansText), rows: 0 },
+      { path: "relation-audit.jsonl", sha256: sha256(graphRelationAuditText), rows: 1 },
+      { path: "report.md", sha256: sha256(graphReportText) },
+      { path: "summary.json", sha256: sha256(graphSummaryText) },
+    ],
+    reproduction_commands: ["bun fixture graph-audit --mode enforce"],
+  };
+  const graphManifestText = `${JSON.stringify(graphManifest)}\n`;
+
+  const auditPin = (path: string, text: string, rowCount?: number) => ({
+    path,
+    bytes: Buffer.byteLength(text),
+    sha256: sha256(text),
+    ...(rowCount === undefined ? {} : { row_count: rowCount }),
+  });
+  const physicalRoot = "data/quality/relationship-integrity/occurrence-treatment-physicality";
+  const phaseRoot = "data/quality/relationship-integrity/operational-occurrence-phases";
+  const physicalManifestPath = `${physicalRoot}/manifest.json`;
+  const physicalSummaryPath = `${physicalRoot}/summary.json`;
+  const phaseManifestPath = `${phaseRoot}/manifest.json`;
+  const phaseSummaryPath = `${phaseRoot}/summary.json`;
+  const physicalPolicyPath = "data/contracts/occurrence-treatment-physicality/v1/policy.json";
+  const physicalLedgerPath =
+    "data/contracts/occurrence-treatment-physicality/v1/review-ledger.jsonl";
+  const physicalContractPath = "data/contracts/occurrence-treatment-physicality/v1/contract.json";
+  const physicalCompletenessManifestPath =
+    "data/quality/relationship-integrity/completeness/manifest.json";
+  const physicalCompletenessRowsPath =
+    "data/quality/relationship-integrity/completeness/occurrence-completeness.jsonl";
+  const phaseContractPath = "data/contracts/operational-occurrence-phases/v1/contract.json";
+  const phaseLedgerPath = "data/contracts/operational-occurrence-phases/v1/review-ledger.jsonl";
+  const physicalPolicyText = `${JSON.stringify({ schema_version: 1, fixture: true })}\n`;
+  const physicalLedgerText = `${JSON.stringify({ fixture: true })}\n`;
+  const physicalContractText = `${JSON.stringify({ schema_version: 1, fixture: true })}\n`;
+  const physicalCompletenessManifestText = `${JSON.stringify({ schema_version: 1, fixture: true })}\n`;
+  const physicalCompletenessRowsText = eligibleRows
+    .map((entry) => JSON.stringify({ occurrence_id: entry.occurrence_id }))
+    .join("\n")
+    .concat(eligibleRows.length === 0 ? "" : "\n");
+  const phaseContractText = `${JSON.stringify({ schema_version: 1, fixture: true })}\n`;
+  const phaseLedgerText = `${JSON.stringify({ occurrence_id: row.occurrence_id })}\n`;
+  const physicalFindingsText = "";
+  const physicalOccurrenceAuditText = eligibleRows
+    .map((entry) => JSON.stringify({ occurrence_id: entry.occurrence_id }))
+    .join("\n")
+    .concat(eligibleRows.length === 0 ? "" : "\n");
+  const physicalTreatmentAuditText = treatmentMembers
+    .map((entry) => JSON.stringify({ treatment_record_id: entry.treatment_record_id }))
+    .join("\n")
+    .concat(treatmentMembers.length === 0 ? "" : "\n");
+  const physicalReportText = "# Fixture physical audit\n";
+  const exactPhysicalCount = eligibleRows.filter(
+    (entry) => entry.physical_scope_record_ids.length > 0,
+  ).length;
+  const treatmentFamilyRows = new Map<
+    string,
+    { ids: Set<string>; occurrenceMembershipCount: number }
+  >();
+  for (const member of treatmentMembers) {
+    const current = treatmentFamilyRows.get(member.treatment_family) ?? {
+      ids: new Set<string>(),
+      occurrenceMembershipCount: 0,
+    };
+    current.ids.add(member.treatment_record_id);
+    current.occurrenceMembershipCount += 1;
+    treatmentFamilyRows.set(member.treatment_family, current);
+  }
+  const physicalClassification =
+    exactPhysicalCount > 0
+      ? "physical_corridor_or_segment_intervention"
+      : "nonphysical_service_operations_policy_control";
+  const physicalSummary = {
+    schema_version: 1,
+    eligible_occurrence_count: eligibleRows.length,
+    unique_treatment_count: uniqueTreatmentIds.length,
+    treatment_membership_count: treatmentMembers.length,
+    classification_counts: {
+      physical_corridor_or_segment_intervention:
+        exactPhysicalCount > 0 ? uniqueTreatmentIds.length : 0,
+      nonphysical_service_operations_policy_control:
+        exactPhysicalCount > 0 ? 0 : uniqueTreatmentIds.length,
+      point_or_stop_physical_intervention: 0,
+      review_required: 0,
+    },
+    scope_requirement_counts: {
+      corridor_or_segment_required: exactPhysicalCount > 0 ? uniqueTreatmentIds.length : 0,
+      not_applicable: exactPhysicalCount > 0 ? 0 : uniqueTreatmentIds.length,
+      point_or_stop_required: 0,
+      review_required: 0,
+    },
+    occurrence_disposition_counts: {
+      physical_scope_satisfied: exactPhysicalCount,
+      physical_scope_missing: 0,
+      physical_scope_relation_missing: 0,
+      physical_scope_evidence_missing: 0,
+      physical_scope_relation_invalid: 0,
+      physicality_review_required: 0,
+      physical_scope_not_applicable: eligibleRows.length - exactPhysicalCount,
+    },
+    finding_counts: {},
+    review_ledger_complete: true,
+    physical_scope_complete: true,
+    hard_mode_ready: input.physicalAuditNotReady ? false : true,
+    release_id: "v1-fixture-audit",
+    review_stage: "final_post_semantic_release",
+    release_manifest_sha256: "b".repeat(64),
+    review_ledger_sha256: sha256(physicalLedgerText),
+    policy_sha256: sha256(physicalPolicyText),
+    contract_sha256: sha256(physicalContractText),
+    by_treatment_family: Object.fromEntries(
+      [...treatmentFamilyRows.entries()]
+        .toSorted(([left], [right]) => left.localeCompare(right))
+        .map(([family, value]) => [
+          family,
+          {
+            unique_treatment_count: value.ids.size,
+            occurrence_membership_count: value.occurrenceMembershipCount,
+            classifications: { [physicalClassification]: value.ids.size },
+          },
+        ]),
+    ),
+    final_post_semantic_release_guard_ready: true,
+  };
+  const physicalSummaryText = `${JSON.stringify(physicalSummary)}\n`;
+  const physicalManifest = {
+    schema_version: 1,
+    contract_id: "occurrence-treatment-physicality-v1",
+    release_id: "v1-fixture-audit",
+    review_stage: "final_post_semantic_release",
+    input_pins: [
+      {
+        path: "data/exports/releases/v1-fixture-audit/manifest.json",
+        bytes: 1,
+        sha256: "b".repeat(64),
+      },
+      {
+        ...auditPin(
+          "data/exports/releases/v1-fixture-audit/operational_occurrences.jsonl",
+          occurrenceText,
+          1,
+        ),
+        ...(input.physicalOccurrencePinMismatch ? { sha256: "f".repeat(64) } : {}),
+      },
+      auditPin(
+        "data/exports/releases/v1-fixture-audit/treatment_components.jsonl",
+        treatmentComponentsText,
+        treatmentRecordCount,
+      ),
+      auditPin(
+        "data/exports/releases/v1-fixture-audit/relations.jsonl",
+        canonicalRelationsText,
+        relationRecordCount,
+      ),
+      auditPin(
+        "data/exports/releases/v1-fixture-audit/corridors.jsonl",
+        corridorsText,
+        corridorRecordCount,
+      ),
+      auditPin(physicalCompletenessManifestPath, physicalCompletenessManifestText),
+      auditPin(physicalCompletenessRowsPath, physicalCompletenessRowsText, eligibleRows.length),
+      auditPin(physicalPolicyPath, physicalPolicyText),
+      auditPin(physicalLedgerPath, physicalLedgerText, 1),
+      auditPin(physicalContractPath, physicalContractText),
+    ],
+    files: {
+      "findings.jsonl": auditPin(`${physicalRoot}/findings.jsonl`, physicalFindingsText, 0),
+      "occurrence-audit.jsonl": auditPin(
+        `${physicalRoot}/occurrence-audit.jsonl`,
+        physicalOccurrenceAuditText,
+        eligibleRows.length,
+      ),
+      "report.md": auditPin(`${physicalRoot}/report.md`, physicalReportText),
+      "summary.json": {
+        ...auditPin(physicalSummaryPath, physicalSummaryText),
+        ...(input.physicalSummaryPinMismatch ? { sha256: "f".repeat(64) } : {}),
+      },
+      "treatment-audit.jsonl": auditPin(
+        `${physicalRoot}/treatment-audit.jsonl`,
+        physicalTreatmentAuditText,
+        treatmentMembers.length,
+      ),
+    },
+    audit_fingerprint: "d".repeat(64),
+  };
+  const physicalManifestText = `${JSON.stringify(physicalManifest)}\n`;
+
+  const phaseRelationIds = [...new Set(row.phase_relation_record_ids)];
+  const phaseCandidatesText = phaseRelationIds
+    .map((recordId) => JSON.stringify({ relation_record_id: recordId }))
+    .join("\n")
+    .concat(phaseRelationIds.length === 0 ? "" : "\n");
+  const phaseFindingsText = "";
+  const phaseReportText = "# Fixture phase audit\n";
+  const occurrenceCanonicalSha256 = canonicalDigest([row]);
+  const phaseProjectionSha256 = canonicalDigest({
+    phase_record_ids: row.phase_record_ids,
+    phase_relation_record_ids: row.phase_relation_record_ids,
+  });
+  const singlePhaseCount = row.phase_relation_disposition === "single_phase" ? 1 : 0;
+  const relatedPhaseCount = 1 - singlePhaseCount;
+  const phaseSummary = {
+    schema_version: 1,
+    contract_id: "operational-occurrence-phase-review-v1",
+    occurrence_count: 1,
+    eligible_occurrence_count: eligibleRows.length,
+    ineligible_occurrence_count: 1 - eligibleRows.length,
+    phase_identity_membership_count: row.phase_record_ids.length,
+    unique_phase_event_count: new Set(row.phase_record_ids).size,
+    projected_phase_relation_count: phaseRelationIds.length,
+    checked_event_event_candidate_count: phaseRelationIds.length,
+    counts_by_primary_disposition: {
+      single_observed_phase_no_related_phase_asserted: singlePhaseCount,
+      evidence_bound_related_phases: relatedPhaseCount,
+      review_required: 0,
+    },
+    counts_by_candidate_disposition: {
+      projected_reviewed_phase_relation: phaseRelationIds.length,
+      not_projected_external_event_not_selected: 0,
+      not_projected_non_phase_semantics: 0,
+      review_required_unprojected_same_occurrence_temporal_relation: 0,
+    },
+    finding_counts: {},
+    phase_identity_complete: true,
+    phase_relation_or_disposition_complete: true,
+    exact_evidence_complete: true,
+    hard_mode_ready: true,
+    ledger_id: "operational-occurrence-phase-review-ledger-v1",
+    release_id: "v1-fixture-audit",
+    reviewed_occurrence_count: 1,
+    single_observed_phase_count: singlePhaseCount,
+    related_phase_count: relatedPhaseCount,
+    unresolved_phase_count: 0,
+    missing_evidence_count: 0,
+    ambiguous_phase_count: 0,
+    review_complete: true,
+    violation_count: input.phaseAuditViolation ? 1 : 0,
+    content_hashes: {
+      review_ledger_sha256: sha256(phaseLedgerText),
+      event_event_candidates_sha256: sha256(phaseCandidatesText),
+      findings_sha256: sha256(phaseFindingsText),
+      operational_occurrences_sha256: occurrenceCanonicalSha256,
+      canonical_phase_projection_sha256: phaseProjectionSha256,
+    },
+  };
+  const phaseSummaryText = `${JSON.stringify(phaseSummary)}\n`;
+  const phaseManifest = {
+    schema_version: 1,
+    contract_id: "operational-occurrence-phase-review-v1",
+    generated_at: "2026-07-17T00:00:00.000Z",
+    generated_by: "fixture",
+    route_anchor_release: {
+      release_id: "v1-fixture-audit",
+      manifest: {
+        path: "data/exports/releases/v1-fixture-audit/manifest.json",
+        bytes: 1,
+        sha256: "b".repeat(64),
+      },
+      route_anchors: {
+        path: "data/exports/releases/v1-fixture-audit/route_anchors.jsonl",
+        bytes: 0,
+        sha256: sha256(""),
+        row_count: 0,
+      },
+      operational_occurrences: {
+        ...auditPin(
+          "data/exports/releases/v1-fixture-audit/operational_occurrences.jsonl",
+          occurrenceText,
+          1,
+        ),
+        ...(input.phaseOccurrencePinMismatch ? { sha256: "f".repeat(64) } : {}),
+      },
+    },
+    input_aggregates: {},
+    derived_inputs: {
+      canonical_record_count: canonicalRecordCount,
+      operational_occurrence_count: 1,
+      operational_occurrences_sha256: occurrenceCanonicalSha256,
+      relevant_canonical_record_count: 1,
+      canonical_phase_projection_sha256: phaseProjectionSha256,
+    },
+    outputs: {
+      [phaseContractPath]: auditPin(phaseContractPath, phaseContractText),
+      [phaseLedgerPath]: auditPin(phaseLedgerPath, phaseLedgerText, 1),
+      [`${phaseRoot}/event-event-candidates.jsonl`]: auditPin(
+        `${phaseRoot}/event-event-candidates.jsonl`,
+        phaseCandidatesText,
+        phaseRelationIds.length,
+      ),
+      [`${phaseRoot}/findings.jsonl`]: auditPin(
+        `${phaseRoot}/findings.jsonl`,
+        phaseFindingsText,
+        0,
+      ),
+      [`${phaseRoot}/report.md`]: auditPin(`${phaseRoot}/report.md`, phaseReportText),
+      [phaseSummaryPath]: auditPin(phaseSummaryPath, phaseSummaryText),
+    },
+    reproduction_command: "bun fixture phase-audit --check",
+  };
+  const phaseManifestText = `${JSON.stringify(phaseManifest)}\n`;
+  const auditArtifactTexts = [
+    [physicalManifestPath, physicalManifestText],
+    [physicalPolicyPath, physicalPolicyText],
+    [physicalLedgerPath, physicalLedgerText],
+    [physicalContractPath, physicalContractText],
+    [physicalCompletenessManifestPath, physicalCompletenessManifestText],
+    [physicalCompletenessRowsPath, physicalCompletenessRowsText],
+    [`${physicalRoot}/findings.jsonl`, physicalFindingsText],
+    [`${physicalRoot}/occurrence-audit.jsonl`, physicalOccurrenceAuditText],
+    [`${physicalRoot}/report.md`, physicalReportText],
+    [`${physicalRoot}/treatment-audit.jsonl`, physicalTreatmentAuditText],
+    [phaseManifestPath, phaseManifestText],
+    [phaseContractPath, phaseContractText],
+    [phaseLedgerPath, phaseLedgerText],
+    [`${phaseRoot}/event-event-candidates.jsonl`, phaseCandidatesText],
+    [`${phaseRoot}/findings.jsonl`, phaseFindingsText],
+    [`${phaseRoot}/report.md`, phaseReportText],
+  ] as const;
+  const activeSourceTexts = new Map<string, string>([
+    ["data/quality/relationship-integrity/graph-audit/findings.jsonl", graphFindingsText],
+    ["data/quality/relationship-integrity/graph-audit/manifest.json", graphManifestText],
+    ["data/quality/relationship-integrity/graph-audit/orphan-records.jsonl", graphOrphansText],
+    [
+      "data/quality/relationship-integrity/graph-audit/relation-audit.jsonl",
+      graphRelationAuditText,
+    ],
+    ["data/quality/relationship-integrity/graph-audit/report.md", graphReportText],
+    [graphPath, graphSummaryText],
+    [physicalSummaryPath, physicalSummaryText],
+    [phaseSummaryPath, phaseSummaryText],
+  ]);
+  const gateSourcePins = new Map<string, { role: string; path: string }>();
+  for (const sources of Object.values(RELATIONSHIP_GATE_SOURCES)) {
+    for (const [role, path] of sources) {
+      gateSourcePins.set(path, { role, path });
+      if (!activeSourceTexts.has(path)) {
+        activeSourceTexts.set(
+          path,
+          `${JSON.stringify({ schema_version: 1, role, fixture: true })}\n`,
+        );
+      }
+    }
+  }
+  const activeSources = [...gateSourcePins.values()]
+    .toSorted(
+      (left, right) => left.role.localeCompare(right.role) || left.path.localeCompare(right.path),
+    )
+    .map((source) => {
+      const text = activeSourceTexts.get(source.path);
+      if (text === undefined) throw new Error(`fixture source text missing: ${source.path}`);
+      return { ...source, text };
+    });
+  const archivedSources = activeSources.map((source) => ({
+    ...source,
+    sourcePath: `${archiveRoot}/sources/${source.role}${source.path.endsWith(".jsonl") ? ".jsonl" : ".json"}`,
+  }));
+  let prePromotionSources = activeSources.map((source, index) => {
+    const archive = archivedSources[index];
+    if (archive === undefined) throw new Error("fixture archive source missing");
+    return {
+      role: source.role,
+      path: source.path,
+      sha256: sha256(source.text),
+      archive_path: archive.sourcePath,
+      ...(RELATIONSHIP_REFRESH_ROLES.has(source.role)
+        ? { transition_fingerprint: transitionFingerprint(source.role, source.text) }
+        : {}),
+    };
+  });
+  if (input.transitionFingerprintMismatch) {
+    prePromotionSources = prePromotionSources.map((source) =>
+      source.role === "graph_audit_summary"
+        ? { ...source, transition_fingerprint: "f".repeat(64) }
+        : source,
+    );
+  }
+  const currentGateArtifacts = RELATIONSHIP_GATE_IDS.map((gateId) => {
+    const sourcePath = `data/contracts/relationships/v1/enforcement-gates/${gateId}.json`;
+    const sources = RELATIONSHIP_GATE_SOURCES[gateId].map(([role, path]) => {
+      const text = activeSourceTexts.get(path);
+      if (text === undefined) throw new Error(`fixture gate source missing: ${path}`);
+      return { role, path, sha256: sha256(text) };
+    });
+    const value = {
+      schema_version: 1,
+      artifact_id: `relationship-contract-v1-enforcement-gate:${gateId}`,
+      contract_id: "relationship-contract-v1",
+      gate_id: gateId,
+      reviewed_at: "2026-07-17T00:00:00.000Z",
+      reviewed_by: "fixture",
+      source_count: sources.length,
+      source_artifacts: sources,
+      derived_violation_count: 0,
+    };
+    const text = `${JSON.stringify(value)}\n`;
+    return { role: `enforcement_gate:${gateId}`, sourcePath, value, text };
+  });
+  const previousGateArtifacts = currentGateArtifacts.map((gate) => ({
+    ...gate,
+    role: `artifact:${archiveRoot}/gates/${gate.value.gate_id}.json`,
+    sourcePath: `${archiveRoot}/gates/${gate.value.gate_id}.json`,
+  }));
+  let invariantArtifacts = [
+    {
+      role: "canonical_relations",
+      path: "data/canonical/relations.jsonl",
+      sha256: "a".repeat(64),
+    },
+    {
+      role: "determinism_consumer_summary",
+      path: "data/quality/relationship-integrity/determinism-consumer/summary.json",
+      sha256: sha256(
+        activeSourceTexts.get(
+          "data/quality/relationship-integrity/determinism-consumer/summary.json",
+        ) ?? "",
+      ),
+    },
+    { role: "final_endpoint_matrix", path: endpointPath, sha256: canonicalDigest(endpoint) },
+    {
+      role: "reviewed_release_manifest",
+      path: "data/exports/releases/v1-rc21/manifest.json",
+      sha256: "b".repeat(64),
+    },
+  ];
+  if (input.transitionMissingRole) invariantArtifacts = invariantArtifacts.slice(0, -1);
+  if (input.transitionDuplicateRole) {
+    const firstInvariant = invariantArtifacts[0];
+    if (firstInvariant === undefined) throw new Error("fixture invariant is missing");
+    invariantArtifacts = [...invariantArtifacts, firstInvariant];
+  }
+  if (input.transitionInvariantDigestMismatch) {
+    invariantArtifacts = invariantArtifacts.map((pin) =>
+      pin.role === "determinism_consumer_summary" ? { ...pin, sha256: "f".repeat(64) } : pin,
+    );
+  }
+  const refreshArtifacts = [
+    { role: "canonical_db", path: "data/canonical.db", sha256: "c".repeat(64) },
+    ...prePromotionSources.filter((source) => RELATIONSHIP_REFRESH_ROLES.has(source.role)),
+  ];
+  const transition = {
+    schema_version: 1,
+    receipt_id: "relationship-contract-v1-enforcement-transition",
+    contract_id: "relationship-contract-v1",
+    transition: { from_state: "warning_ready", to_state: "enforced_refresh_required" },
+    promoted_at: "2026-07-17T00:00:00.000Z",
+    promoted_by: "fixture",
+    previous_proof: {
+      path: previousProofPath,
+      proof_stage: "pre_promotion_warning",
+      sha256: input.transitionPreviousProofMismatch
+        ? "f".repeat(64)
+        : canonicalDigest(previousProof),
+    },
+    previous_gates: previousGateArtifacts.map((gate) => ({
+      gate_id: gate.value.gate_id,
+      path: gate.sourcePath,
+      sha256: sha256(gate.text),
+    })),
+    pre_promotion_sources: prePromotionSources,
+    refresh_artifacts: refreshArtifacts,
+    invariant_artifacts: invariantArtifacts,
+    final_matrix: {
+      path: endpointPath,
+      relation_count: 1,
+      relation_ids_sha256: matrixIdsSha,
+      sha256: canonicalDigest(endpoint),
+      tuple_count: 1,
+      tuple_set_sha256: tupleSetSha,
+    },
+  };
+  const proof = {
+    schema_version: 2,
+    proof_id: "relationship-contract-v1-enforcement-proof",
+    contract_id: "relationship-contract-v1",
+    proof_stage: "post_promotion_enforced",
+    validation_mode: "enforce",
+    proof_status: "ready",
+    reviewed_at: "2026-07-17T00:00:00.000Z",
+    reviewed_by: "fixture",
+    all_gates_ready: true,
+    gate_count: RELATIONSHIP_GATE_IDS.length,
+    total_violation_count: 0,
+    final_matrix: {
+      path: endpointPath,
+      relation_count: 1,
+      relation_ids_sha256: matrixIdsSha,
+      sha256: canonicalDigest(endpoint),
+      tuple_count: 1,
+      tuple_set_sha256: tupleSetSha,
+    },
+    gates: currentGateArtifacts.map((gate) => ({
+      gate_id: gate.value.gate_id,
+      artifact_path: gate.sourcePath,
+      artifact_sha256: sha256(gate.text),
+      criteria: ["fixture"],
+      status: "ready",
+      violation_count: 0,
+    })),
+    previous_proof: {
+      path: previousProofPath,
+      proof_stage: "pre_promotion_warning",
+      sha256: canonicalDigest(previousProof),
+    },
+    transition_receipt: {
+      path: transitionPath,
+      sha256: canonicalDigest(transition),
+    },
+  };
+  const contract = {
+    ...(input.extraContractKey ? { excess: true } : {}),
+    schema_version: 1,
+    contract_id: "relationship-contract-v1",
+    contract_status: "enforced",
+    enforcement_state: "enforced_ready",
+    reviewed_at: "2026-07-17T00:00:00.000Z",
+    reviewed_by: "fixture",
+    ...RELATIONSHIP_CONTRACT_POLICY_V1,
+    ...(input.weakenedContractPolicy
+      ? {
+          evidence_policy: {
+            ...RELATIONSHIP_CONTRACT_POLICY_V1.evidence_policy,
+            hash_required: false,
+          },
+        }
+      : {}),
+    endpoint_matrix: {
+      matrix_kind: "post_remediation_reviewed",
+      new_shape_policy: "error",
+      obsolete_baseline_tuple_policy: "reject",
+      path: endpointPath,
+      relation_count: 1,
+      relation_ids_sha256: matrixIdsSha,
+      sha256: canonicalDigest(endpoint),
+      tuple_count: 1,
+      tuple_set_sha256: tupleSetSha,
+      unlisted_relation_policy: "error",
+    },
+    enforcement_proof: {
+      path: proofPath,
+      required_gate_ids: [...RELATIONSHIP_GATE_IDS],
+      sha256: canonicalDigest(proof),
+      transition_receipt: {
+        path: transitionPath,
+        sha256: canonicalDigest(transition),
+      },
+    },
+  };
+  const relationshipArtifacts: Array<{
+    role: string;
+    sourcePath: string;
+    text: string;
+  }> = [
+    {
+      role: "relationship_contract",
+      sourcePath: contractPath,
+      text: `${JSON.stringify(contract)}\n`,
+    },
+    { role: "enforcement_proof", sourcePath: proofPath, text: `${JSON.stringify(proof)}\n` },
+    {
+      role: "enforcement_transition_receipt",
+      sourcePath: transitionPath,
+      text: `${JSON.stringify(transition)}\n`,
+    },
+    {
+      role: "endpoint_type_matrix",
+      sourcePath: endpointPath,
+      text: `${JSON.stringify(endpoint)}\n`,
+    },
+    {
+      role: `artifact:${previousProofPath}`,
+      sourcePath: previousProofPath,
+      text: `${JSON.stringify(previousProof)}\n`,
+    },
+    ...currentGateArtifacts.map((gate) => ({
+      role: gate.role,
+      sourcePath: gate.sourcePath,
+      text: gate.text,
+    })),
+    ...previousGateArtifacts.map((gate) => ({
+      role: gate.role,
+      sourcePath: gate.sourcePath,
+      text: gate.text,
+    })),
+    ...auditArtifactTexts.map(([sourcePath, text]) => ({
+      role: `artifact:${sourcePath}`,
+      sourcePath,
+      text,
+    })),
+    ...activeSources.map((source) => ({
+      role: source.role.startsWith("graph_audit_") ? source.role : `artifact:${source.path}`,
+      sourcePath: source.path,
+      text: source.text,
+    })),
+    ...[
+      {
+        sourcePath: "data/quality/relationship-integrity/graph-audit/orphan-records.jsonl",
+        text: graphOrphansText,
+      },
+      {
+        sourcePath: "data/quality/relationship-integrity/graph-audit/relation-audit.jsonl",
+        text: graphRelationAuditText,
+      },
+      {
+        sourcePath: "data/quality/relationship-integrity/graph-audit/report.md",
+        text: graphReportText,
+      },
+    ].map((artifact) => ({ role: `artifact:${artifact.sourcePath}`, ...artifact })),
+    ...archivedSources.map((source) => ({
+      role: `artifact:${source.sourcePath}`,
+      sourcePath: source.sourcePath,
+      text: source.text,
+    })),
+  ];
+  if (input.extraBundleArtifactText !== undefined) {
+    relationshipArtifacts.push({
+      role: "artifact:data/quality/fixture-extra.json",
+      sourcePath: "data/quality/fixture-extra.json",
+      text: input.extraBundleArtifactText,
+    });
+  }
+  const sortedRelationshipArtifacts = relationshipArtifacts.toSorted((left, right) =>
+    left.role.localeCompare(right.role),
+  );
+  for (const artifact of sortedRelationshipArtifacts) {
+    const path = join(releaseDirectory, "relationship-integrity", artifact.sourcePath);
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, artifact.text, "utf8");
+  }
+  const bundleArtifacts = sortedRelationshipArtifacts.map((artifact) => ({
+    role: artifact.role,
+    source_path: artifact.sourcePath,
+    release_path: `relationship-integrity/${artifact.sourcePath}`,
+    bytes: Buffer.byteLength(artifact.text),
+    sha256: sha256(artifact.text),
+  }));
+  const descriptorValue = {
+    schema_version: 1,
+    bundle_id: "relationship-integrity-v1",
+    contract_id: "relationship-contract-v1",
+    validation_mode: "enforce",
+    artifacts: bundleArtifacts.map(({ role, source_path, bytes, sha256: digest }) => ({
+      role,
+      source_path,
+      bytes,
+      sha256: digest,
+    })),
+  };
+  const descriptorText = `${canonicalJson(descriptorValue)}\n`;
+  const bundle = {
+    schema_version: 1,
+    bundle_id: "relationship-integrity-v1",
+    contract_id: "relationship-contract-v1",
+    validation_mode: "enforce",
+    artifact_count: bundleArtifacts.length,
+    descriptor: {
+      source_path: "data/contracts/relationships/v1/release-bundle-sources.json",
+      bytes: Buffer.byteLength(descriptorText),
+      sha256: sha256(descriptorText),
+    },
+    artifacts: bundleArtifacts,
+  };
+  const bundleText = `${JSON.stringify(bundle)}\n`;
+
+  const legacyFiles = {
+    "operational_anchors.jsonl": "",
+    "operational_anchors_summary.json": "{}\n",
+    "operational_anchor_review_decisions.json": "{}\n",
+    "treatment_components.jsonl": treatmentComponentsText,
+    "relations.jsonl": canonicalRelationsText,
+    "corridors.jsonl": corridorsText,
+  };
+  const releaseFiles: Record<string, string> = {
+    ...legacyFiles,
+    [occurrencePointer]: occurrenceText,
+    [summaryPointer]: summaryText,
+    [reviewPointer]: reviewText,
+    [bundlePointer]: bundleText,
+    ...Object.fromEntries(
+      sortedRelationshipArtifacts.map((artifact) => [
+        `relationship-integrity/${artifact.sourcePath}`,
+        artifact.text,
+      ]),
+    ),
+  };
+  for (const [pointer, text] of Object.entries({
+    ...legacyFiles,
+    [occurrencePointer]: occurrenceText,
+    [summaryPointer]: summaryText,
+    [reviewPointer]: reviewText,
+    [bundlePointer]: bundleText,
+  })) {
+    await writeFile(join(releaseDirectory, pointer), text, "utf8");
+  }
+  const manifest = {
+    manifest_version: 4,
+    release_id: releaseId,
+    generator_commit: "4".repeat(40),
+    contract_versions: {
+      operational_anchors: 1,
+      operational_anchor_review_decisions: 1,
+      operational_occurrences: input.occurrenceContractVersion ?? 2,
+      operational_occurrence_review_decisions: 1,
+      relationship_integrity_bundle: 1,
+    },
+    record_counts: {
+      event: eventRecordCount,
+      treatment_component: treatmentRecordCount,
+      relation: relationRecordCount,
+      corridor: corridorRecordCount,
+    },
+    files: Object.fromEntries(
+      Object.entries(releaseFiles).map(([pointer, text]) => [
+        pointer,
+        { bytes: Buffer.byteLength(text), sha256: sha256(text) },
+      ]),
+    ),
+    pointers: {
+      operational_anchors: "operational_anchors.jsonl",
+      operational_anchor_summary: "operational_anchors_summary.json",
+      operational_anchor_review_decisions: "operational_anchor_review_decisions.json",
+      operational_occurrences: occurrencePointer,
+      operational_occurrence_summary: summaryPointer,
+      operational_occurrence_review_decisions: reviewPointer,
+      relationship_integrity_bundle: bundlePointer,
+      route_anchors: null,
+      taxonomy: null,
+      quality_report: null,
+    },
+  };
+  const manifestText = `${JSON.stringify(manifest)}\n`;
+  const manifestPath = join(releaseDirectory, "manifest.json");
+  await writeFile(manifestPath, manifestText, "utf8");
+  const firstGate = sortedRelationshipArtifacts.find((artifact) =>
+    artifact.role.startsWith("enforcement_gate:"),
+  );
+  if (firstGate === undefined) throw new Error("fixture needs a relationship gate");
+  return {
+    root,
+    releaseId,
+    releaseDirectory,
+    legacyAnchorPath: join(releaseDirectory, "operational_anchors.jsonl"),
+    occurrencePath: join(releaseDirectory, occurrencePointer),
+    summaryPath: join(releaseDirectory, summaryPointer),
+    reviewPath: join(releaseDirectory, reviewPointer),
+    manifestPath,
+    manifestSha256: sha256(manifestText),
+    relationshipBundlePath: join(releaseDirectory, bundlePointer),
+    relationshipContractPath: join(releaseDirectory, "relationship-integrity", contractPath),
+    firstGatePath: join(releaseDirectory, "relationship-integrity", firstGate.sourcePath),
+  };
+}
+
+async function withFixtureV4<T>(
+  input: Parameters<typeof writeReleaseFixtureV4>[0],
+  run: (fixture: ReleaseFixtureV4) => Promise<T>,
+): Promise<T> {
+  const fixture = await writeReleaseFixtureV4(input);
+  try {
+    return await run(fixture);
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+}
+
+async function importFixtureV4(
+  fixture: ReleaseFixtureV4,
+): Promise<MtaWikiOperationalOccurrenceImportArtifactV4> {
+  const artifact = await runMtaWikiOperationalOccurrenceImport({
+    mtaWikiRoot: fixture.root,
+    wikiRelease: fixture.releaseId,
+    wikiManifestSha256: fixture.manifestSha256,
+    output: join(fixture.root, "import-v4.json"),
+  });
+  if (artifact.artifactKind !== "bp.studio.mta_wiki_operational_occurrences.v4") {
+    throw new Error("v4 fixture unexpectedly produced a legacy import artifact");
+  }
+  return artifact;
 }
 
 describe("manifest-v3 MTA Wiki operational-occurrence import", () => {
@@ -794,6 +2007,24 @@ describe("manifest-v3 MTA Wiki operational-occurrence import", () => {
         await expect(importFixture(fixture)).rejects.toMatchObject({ code: "unsafe_path" });
       },
     );
+    await withFixture({ rows: [occurrenceRow()] }, async (fixture) => {
+      const original = await readFile(fixture.occurrencePath);
+      const target = join(fixture.releaseDirectory, "occurrence-target.jsonl");
+      await writeFile(target, original);
+      await unlink(fixture.occurrencePath);
+      await symlink("occurrence-target.jsonl", fixture.occurrencePath);
+      await expect(importFixture(fixture)).rejects.toMatchObject({ code: "unsafe_path" });
+    });
+    await withFixture(
+      { rows: [occurrenceRow()], occurrencePointer: "nested/occurrences.jsonl" },
+      async (fixture) => {
+        const nested = join(fixture.releaseDirectory, "nested");
+        const actual = join(fixture.releaseDirectory, "actual");
+        await rename(nested, actual);
+        await symlink("actual", nested);
+        await expect(importFixture(fixture)).rejects.toMatchObject({ code: "unsafe_path" });
+      },
+    );
   });
 
   test("verifies manifest-addressed occurrence bytes before decoding", async () => {
@@ -1127,5 +2358,421 @@ describe("manifest-v3 MTA Wiki operational-occurrence import", () => {
 
   test("registers the occurrence importer as a two-part studio command", () => {
     expect(command.path).toEqual(["studio", "import-mta-wiki-operational-occurrences"]);
+  });
+});
+
+describe("manifest-v4 occurrence-v2 and relationship-integrity import", () => {
+  test("strictly verifies a compatible relationship bundle and preserves v2 lineage", async () => {
+    await withFixtureV4({}, async (fixture) => {
+      const first = await importFixtureV4(fixture);
+      const second = await runMtaWikiOperationalOccurrenceImport({
+        mtaWikiRoot: fixture.root,
+        wikiRelease: fixture.releaseId,
+        wikiManifestSha256: fixture.manifestSha256,
+        output: join(fixture.root, "import-v4-second.json"),
+      });
+      if (second.artifactKind !== "bp.studio.mta_wiki_operational_occurrences.v4") {
+        throw new Error("second v4 fixture run unexpectedly produced a legacy artifact");
+      }
+      expect(first).toEqual(second);
+      expect(first.sourceRelease.producerReviewStatus).toEqual({
+        compatibility: "compatible",
+        promotionEligible: true,
+      });
+      expect(first.sourceRelease.relationshipIntegrity).toMatchObject({
+        contract: { contractStatus: "enforced", enforcementState: "enforced_ready" },
+        enforcementProof: { gateCount: 7, totalViolationCount: 0 },
+        graphAudit: {
+          canonicalRecordCount: 4,
+          canonicalRelationCount: 1,
+          reviewedNonEnforceableAdvisoryCount: 3,
+        },
+      });
+      expect(first.sourceRelease.relationshipIntegrity.verifiedArtifactCount).toBe(
+        first.sourceRelease.relationshipIntegrity.artifactCount,
+      );
+      expect(first.occurrences[0]).toMatchObject({
+        schema_version: 2,
+        phase_relation_disposition: "single_phase",
+        physical_scope_record_ids: [],
+      });
+      const candidates = buildStudyEventMergeArtifactV3({
+        registryEvents: [],
+        wiki: pinnedOccurrenceStudyInputV4(first),
+        availableAnalysisRouteIds: new Set(["B1"]),
+      });
+      expect(candidates).toMatchObject({
+        approvalState: "awaiting_approval",
+        summary: { candidateCount: 1, approvedCount: 0 },
+      });
+      expect(() => decodeStrict(StudyEventMergeArtifactV3Schema)(candidates)).not.toThrow();
+    });
+  });
+
+  test("binds phase and physical audit proofs to the exact imported occurrence graph", async () => {
+    await withFixtureV4({ physicalOccurrencePinMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("physical audit occurrence input"),
+      });
+    });
+    await withFixtureV4({ phaseOccurrencePinMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("phase audit lineage"),
+      });
+    });
+    await withFixtureV4({ physicalSummaryPinMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("physical audit output pin"),
+      });
+    });
+  });
+
+  test("rejects non-ready or nonzero phase and physical audit summaries", async () => {
+    await withFixtureV4({ physicalAuditNotReady: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "schema_mismatch",
+        operation: "decodeOccurrenceTreatmentPhysicalitySummary",
+      });
+    });
+    await withFixtureV4({ phaseAuditViolation: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "schema_mismatch",
+        operation: "decodeOperationalOccurrencePhaseAuditSummary",
+      });
+    });
+  });
+
+  test("fails closed on relationship artifact tamper and strict contract excess", async () => {
+    await withFixtureV4({}, async (fixture) => {
+      await writeFile(fixture.firstGatePath, "{}\n", "utf8");
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "byte_count_mismatch",
+      });
+    });
+    await withFixtureV4({ extraContractKey: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "schema_mismatch",
+        operation: "decodeRelationshipContract",
+      });
+    });
+    await withFixtureV4({ extraBundleArtifactText: "{invalid-json\n" }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "invalid_json",
+        operation: "validateRelationshipArtifactSyntax",
+      });
+    });
+    await withFixtureV4({ transitionPreviousProofMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("transition lineage commitments"),
+      });
+    });
+  });
+
+  test("rejects weakened relationship-v1 roles, pins, fingerprints, policy, and matrix", async () => {
+    for (const input of [{ transitionMissingRole: true }, { transitionDuplicateRole: true }]) {
+      await withFixtureV4(input, async (fixture) => {
+        await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          detail: expect.stringContaining("role contract"),
+        });
+      });
+    }
+    await withFixtureV4({ transitionInvariantDigestMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("invariant digest"),
+      });
+    });
+    await withFixtureV4({ transitionFingerprintMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("fingerprint"),
+      });
+    });
+    for (const input of [{ weakenedContractPolicy: true }, { invalidEndpointMatrix: true }]) {
+      await withFixtureV4(input, async (fixture) => {
+        await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          detail: expect.stringContaining("policy, final matrix"),
+        });
+      });
+    }
+  });
+
+  test("rejects a graph manifest whose declared JSONL row count is inconsistent", async () => {
+    await withFixtureV4({ graphManifestRowCountMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("row count"),
+      });
+    });
+  });
+
+  test("rejects unknown contract versions and invalid occurrence-v2 phase lineage", async () => {
+    await withFixtureV4({ occurrenceContractVersion: 3 }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({ code: "schema_mismatch" });
+    });
+    const invalidPhase = { ...occurrenceRowV2(), phase_record_ids: [] };
+    await withFixtureV4({ row: invalidPhase }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("phase_record_ids"),
+      });
+    });
+  });
+
+  test("accepts review-v1 parity projections while retaining occurrence-v2 lineage", async () => {
+    const exactPhysical = occurrenceRowV2({ exactPhysicalScope: true });
+    await withFixtureV4({ row: exactPhysical }, async (fixture) => {
+      const imported = await importFixtureV4(fixture);
+      expect(imported.sourceRelease.producerReviewStatus).toEqual({
+        compatibility: "compatible",
+        promotionEligible: true,
+      });
+      expect(imported.summary).toMatchObject({
+        exactPhysicalScopeOccurrenceCount: 1,
+        singlePhaseOccurrenceCount: 1,
+      });
+      expect(imported.occurrences[0]).toMatchObject({
+        physical_scope_record_ids: ["corridor:physical-scope"],
+        physical_scope_relation_record_ids: ["relation:physical-scope"],
+        physical_scope_evidence_bindings: [
+          {
+            role: "physical_scope",
+            record_id: "relation:physical-scope",
+          },
+        ],
+      });
+    });
+
+    const relatedPhases = occurrenceRowV2({ relatedPhases: true });
+    await withFixtureV4({ row: relatedPhases }, async (fixture) => {
+      const imported = await importFixtureV4(fixture);
+      expect(imported.sourceRelease.producerReviewStatus).toEqual({
+        compatibility: "compatible",
+        promotionEligible: true,
+      });
+      expect(imported.summary).toMatchObject({
+        relatedPhaseOccurrenceCount: 1,
+        singlePhaseOccurrenceCount: 0,
+      });
+      expect(imported.occurrences[0]).toMatchObject({
+        phase_relation_disposition: "related_phases",
+        phase_relation_record_ids: ["relation:phase-1-precedes-phase-2"],
+        phase_relation_evidence_bindings: [
+          {
+            role: "phase_relation",
+            record_id: "relation:phase-1-precedes-phase-2",
+          },
+        ],
+      });
+    });
+  });
+
+  test("rejects unproved, nested, or stale review-v1 projection omissions", async () => {
+    for (const role of ["phase_relation", "physical_scope"] as const) {
+      const row = occurrenceRowV2();
+      const rogueBinding: OperationalOccurrenceEvidenceBindingV2 = {
+        role,
+        record_id: `relation:rogue-${role}`,
+        source_id: "source:official",
+        evidence_id: `source:official#rogue-${role}`,
+      };
+      const rogueRow: OperationalOccurrenceRowV2 = {
+        ...row,
+        evidence_bindings: sortedBindings([...row.evidence_bindings, rogueBinding]),
+      };
+      await withFixtureV4({ row: rogueRow }, async (fixture) => {
+        await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          detail: expect.stringContaining(`top-level ${role} evidence`),
+        });
+      });
+    }
+
+    const nestedRow = occurrenceRowV2({ exactPhysicalScope: true });
+    const route = nestedRow.routes[0];
+    const physicalBinding = nestedRow.physical_scope_evidence_bindings[0];
+    if (route === undefined || physicalBinding === undefined) {
+      throw new Error("nested v2 fixture needs one route and physical binding");
+    }
+    await withFixtureV4(
+      {
+        row: {
+          ...nestedRow,
+          routes: [
+            {
+              ...route,
+              evidence_bindings: sortedBindings([...route.evidence_bindings, physicalBinding]),
+            },
+          ],
+        },
+      },
+      async (fixture) => {
+        await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          detail: expect.stringContaining("must stay in dedicated v2 lineage fields"),
+        });
+      },
+    );
+
+    const physicalRow = occurrenceRowV2({ exactPhysicalScope: true });
+    const staleDecision = reviewDecisionV2(physicalRow);
+    await withFixtureV4(
+      {
+        row: physicalRow,
+        reviewDecision: {
+          ...staleDecision,
+          evidence_bindings: staleDecision.evidence_bindings.filter(
+            (binding) => binding.role !== "event_date",
+          ),
+        },
+      },
+      async (fixture) => {
+        await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          detail: expect.stringContaining("is stale"),
+        });
+      },
+    );
+  });
+
+  test("quarantines review-v1 occurrence-v2 roles unless the exact rc22 defect matches", async () => {
+    await withFixtureV4(
+      {
+        row: occurrenceRowV2({ exactPhysicalScope: true }),
+        includeV2LineageRolesInReview: true,
+      },
+      async (fixture) => {
+        await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+          code: "contract_incompatible",
+        });
+      },
+    );
+    const decision = reviewDecisionV2(occurrenceRowV2());
+    const physicalBinding = {
+      role: "physical_scope" as const,
+      record_id: "relation_flatbush-phase1-treatment-on-bounded-corridor-livingston-state-20260715",
+      source_id: "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+      evidence_id: "flatbush_ave_bus_priority_mtp_briefing_apr2026#p004_c0002",
+    };
+    const snapshot = {
+      snapshot_version: 1 as const,
+      decision_schema_version: 1 as const,
+      decision_count: 1,
+      decisions: [
+        {
+          ...decision,
+          decision_id: "flatbush-phase1-center-running-bus-lanes-2025-09",
+          occurrence_id: "occurrence:8c987704152b459014217d44",
+          evidence_bindings: [...decision.evidence_bindings, physicalBinding],
+        },
+      ],
+    };
+    expect(
+      classifyOperationalOccurrenceReviewCompatibility({
+        manifestSha256: "249ef6be1d927e44d405c11bcff643d18b2133e5407be37dc7612f935a1b53e4",
+        reviewSha256: "f18dda5c0c758d4193cb1dfdf69e296da79814ebcb39cdefb4e7dc9bec963bed",
+        snapshot,
+      }),
+    ).toBe("known_rc22_review_v1_physical_scope_incompatibility");
+    const snapshotDecision = snapshot.decisions[0];
+    if (snapshotDecision === undefined) throw new Error("fixture needs one review decision");
+    expect(
+      classifyOperationalOccurrenceReviewCompatibility({
+        manifestSha256: "249ef6be1d927e44d405c11bcff643d18b2133e5407be37dc7612f935a1b53e4",
+        reviewSha256: "f18dda5c0c758d4193cb1dfdf69e296da79814ebcb39cdefb4e7dc9bec963bed",
+        snapshot: {
+          ...snapshot,
+          decisions: [
+            {
+              ...snapshotDecision,
+              evidence_bindings: [{ ...physicalBinding, evidence_id: "tampered" }],
+            },
+          ],
+        },
+      }),
+    ).toBe("unsupported_review_v1_occurrence_v2_roles");
+  });
+
+  test("blocks approvals for the fingerprinted incompatible profile", async () => {
+    await withFixtureV4({}, async (fixture) => {
+      const compatible = await importFixtureV4(fixture);
+      const quarantined: MtaWikiOperationalOccurrenceImportArtifactV4 = {
+        ...compatible,
+        sourceRelease: {
+          ...compatible.sourceRelease,
+          producerReviewStatus: {
+            compatibility: "known_rc22_review_v1_physical_scope_incompatibility",
+            promotionEligible: false,
+          },
+        },
+      };
+      expect(() =>
+        buildStudyEventMergeArtifactV3({
+          registryEvents: [],
+          wiki: pinnedOccurrenceStudyInputV4(quarantined),
+          availableAnalysisRouteIds: new Set(["B1"]),
+        }),
+      ).toThrow("cannot be reused for another pinned input");
+      const exactRc22Wiki = {
+        ...pinnedOccurrenceStudyInputV4(quarantined),
+        releaseId: "v1-rc22",
+        manifestSha256: "249ef6be1d927e44d405c11bcff643d18b2133e5407be37dc7612f935a1b53e4",
+        artifactSha256: "d2fff454cc82c9a74f9f4ea9bb0b0334a12af385f53d0e7fbde126ea9e33f98f",
+        relationshipBundleSha256:
+          "2a4fa7fd0e3b2345b236c06a4e0fc7640db106c959ab65ef6110d30ed6a0641f",
+        relationshipEnforcementProofCanonicalSha256:
+          "2bcdc8859c23baecfb0a463e32a2485eab267d3de5ad6ac9cf3c69c14e270536",
+      } as const;
+      const input = {
+        registryEvents: [],
+        wiki: exactRc22Wiki,
+        availableAnalysisRouteIds: new Set(["B1"]),
+      };
+      const blocked = buildStudyEventMergeArtifactV3(input);
+      expect(blocked).toMatchObject({
+        approvalState: "blocked_contract_incompatible",
+        approvedEvents: [],
+        approval: null,
+      });
+      expect(() => decodeStrict(StudyEventMergeArtifactV3Schema)(blocked)).not.toThrow();
+      expect(() =>
+        buildStudyEventMergeArtifactV3({
+          ...input,
+          wiki: { ...exactRc22Wiki, producerReviewCompatibility: "compatible" },
+        }),
+      ).toThrow("requires its exact quarantined");
+      const candidateId = blocked.candidates[0]?.candidateId;
+      if (candidateId === undefined) throw new Error("expected one blocked fixture candidate");
+      expect(() =>
+        buildStudyEventMergeArtifactV3({
+          ...input,
+          approval: {
+            artifactKind: "bp.studio.study_event_approvals.v3",
+            schemaVersion: 3,
+            candidateSetId: blocked.candidateSetId,
+            decisions: [
+              {
+                candidateId,
+                decision: "approved",
+                reviewer: "fixture-reviewer",
+                rationale: "Must remain blocked.",
+              },
+            ],
+          },
+        }),
+      ).toThrow("blocked by the pinned producer review-contract incompatibility");
+      expect(() =>
+        decodeStrict(StudyEventMergeArtifactV3Schema)({
+          ...blocked,
+          wikiInput: { ...blocked.wikiInput, producerReviewCompatibility: "compatible" },
+        }),
+      ).toThrow();
+    });
   });
 });

@@ -8417,3 +8417,76 @@ Codex/subagent reconciliation records 16 approval recommendations and 473 reject
 recommendations, but creates no receipt and authorizes no study or publication. rc19 uses the
 versioned occurrence importer because the legacy anchor importer is v2-only. See
 docs/research/mta-wiki-rc19-plan-rebaseline.md and the generated audit artifacts.
+
+## [2026-07-17] engineering | rc22 becomes a strict, quarantined occurrence-v2 consumer
+
+Rebaselined Tracker from merged PR #60 at
+`5e656c2450792a23e36b4afc9ca29bdda97a1b5e` and implemented explicit
+manifest-v3/occurrence-v1 and manifest-v4/occurrence-v2 profiles. The v4 path
+verifies every one of the relationship-integrity bundle's 225 artifacts,
+reconstructs its descriptor, verifies the seven-gate enforcement proof and
+canonical commitments, enforces the frozen v1 policy and all final matrix
+rules/tuples, reconciles transition roles/fingerprints and current/archived
+gate sources, and validates graph artifact hashes and row counts. It preserves
+phase/physical lineage and rejects unknown
+versions, excess fields, unsafe/symlinked paths, duplicate identities, and
+byte/hash/summary drift.
+
+The pinned rc22 replay is byte-deterministic: import SHA-256
+`fa7f6ca25b4ba2ec435e3ca4397a579ff89f7b97b20c0adb956263129bf857f9`;
+candidate SHA-256
+`25d1fa96f8796f053c538631fbce19aa3b77fb1435e5b357c50eec2f94bf6129`;
+lineage-audit SHA-256
+`042bd160b6c57f490547f9808b2683a0a7d2a26ccd8f494d74e61c84d873dfa7`.
+All 489 candidate identities are unchanged, but 100 Wiki-bound provenance
+bindings require the new `candidate-set-v3:9761a5648df08fbdf6c38bb4`.
+
+The final audit strictly decodes and reconciles the 321-row acquisition
+campaign, binds it to rc19 and Tracker candidate identities, and distinguishes
+the producer funnel (134/135 eligible occurrences; 172/173 route projections)
+from Tracker admission (91 occurrences/100 projections accepted; 44/73
+rejected). All 321 queue rows remain registry-only candidates with zero Wiki
+bindings and zero approvals.
+
+Promotion remains on hold. The producer declares review-v1 while emitting one
+v2-only Flatbush `physical_scope` role. Tracker's exact fingerprint exception
+is inspection-only and forces a contract-blocked merge with no approval or
+approved events. The 173-row canonical audit resolves current route identity,
+marks every historical version missing, and retains the only two exact-scope
+route projections as unresolved against Tracker segments. No study, serving
+artifact, D1/R2 data, publication, `LATEST`, deployment, or producer repository
+was changed. See `docs/research/mta-wiki-rc22-migration-report.md`.
+
+## [2026-07-18] engineering | rc23 closes the review contract and canonical audit boundary
+
+MTA Wiki published immutable `v1-rc23` after quarantining rc22. Across the 246
+manifest-addressed artifacts, 245 are byte-identical and only
+`operational_occurrence_review_decisions.json` changed. The corrected review-v1
+snapshot removes one unsupported Flatbush `physical_scope` top-level binding;
+the occurrence-v2 file is unchanged and retains the binding in its dedicated
+physical ledger.
+
+Tracker now projects occurrence-v2 into review-v1 only after exact dedicated-
+ledger parity and strict canonical proof. The consumer binds both phase and
+physical audit manifests to the imported occurrence bytes/SHA/row count,
+reconciles physical treatment/relation/corridor roots and bundled
+completeness/policy/ledger/contract inputs, and requires hard-mode,
+complete-review, exact-evidence, and zero-finding/violation semantics. Nested,
+rogue, stale, and unknown-version evidence still fails closed; rc22 remains an
+exact fingerprinted, non-promotable inspection profile.
+
+Two final rc23 imports are byte-identical at SHA-256
+`27049c650366c91453f39919d574456eb28d5fab9cb8dce43afc5ceccdf99232`.
+Two candidate merges are byte-identical at
+`60422e951226b97abe40ae3705469084c5134488e666084284771e1b60ab22b5`,
+producing `candidate-set-v3:aba25fe4209247be31d43b66`: 489 candidates,
+`awaiting_approval`, null receipt, and zero approved events. Identities do not
+change; exactly 100 Wiki-bound provenance rows rebind and 389 registry-only
+rows remain unchanged. All 321 excluded bus-lane candidates remain unchanged,
+registry-only, unapproved, and unresolved.
+
+The pinned release is ready for a separate operator release-pointer review,
+not automatically promoted. No candidate approval, study, publication,
+deployment, D1/R2 write, or `LATEST` mutation occurred. Plans 074, 075, and
+083 retain their independent control, physical-scope, spine, approval, and
+publication gates. See `docs/research/mta-wiki-rc23-migration-report.md`.

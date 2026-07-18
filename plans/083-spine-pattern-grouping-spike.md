@@ -48,6 +48,32 @@ additions. A spine flip means “advance to full review,” never “approved”
 “study unlocked.” The complete amendment and hash boundary are recorded in
 `docs/research/mta-wiki-rc19-plan-rebaseline.md`.
 
+### Binding rc22 re-evaluation — 2026-07-17
+
+rc22 changes no candidate identity, spine classification, or cohort count, so
+the independent pattern-grouping spike remains necessary on its existing
+denominator: 267 `needs_pattern_review`, 93 `series_ready`, and 25
+`series_ready_with_gaps` routes. The new v3 candidate set is nevertheless
+contract-blocked and its 100 Wiki-bound rows require provenance rebinding.
+Any measured spine flip remains only advancement to review; it cannot cure
+the producer contract defect, missing historical route versions, absent
+treated-segment crosswalks, phase/confounder failures, or approval/publication
+gates. See `docs/research/mta-wiki-rc22-migration-report.md`.
+
+### Binding rc23 re-evaluation — 2026-07-18
+
+rc23 corrects the producer contract but changes no candidate identity, spine
+classification, or cohort count. The spike remains independently necessary on
+the same 267 `needs_pattern_review`, 93 `series_ready`, and 25
+`series_ready_with_gaps` route denominator. The corrected release creates a
+new provenance-bound candidate set that is `awaiting_approval`; it does not
+unlock any candidate.
+
+Any measured readiness flip still means only “advance to full review.” It
+cannot supply a historical route version, treated-segment crosswalk, phase or
+confounder proof, human approval, study authorization, or publication
+authorization. See `docs/research/mta-wiki-rc23-migration-report.md`.
+
 ## Why this matters
 
 The plan 074 study engine can only study routes whose segment spine is

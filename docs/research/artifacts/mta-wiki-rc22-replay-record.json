@@ -1,0 +1,52 @@
+{
+  "artifactKind": "bp.studio.mta_wiki_rc22_replay_record.v1",
+  "schemaVersion": 1,
+  "authorization": "non_authorizing_reproducibility_record_only",
+  "trackerBaselineCommit": "5e656c2450792a23e36b4afc9ca29bdda97a1b5e",
+  "mtaWikiCampaignFinalBranchCommit": "82a34667041119333ea07d397e15f14eff4b7652",
+  "mtaWikiMergedMainCommit": "c8177e56e5852e2516b6b597ecf922d642ed421f",
+  "mtaWikiGeneratorCommit": "a874d93a3b0b328d6047c325657b7111704fa263",
+  "releaseId": "v1-rc22",
+  "manifestSha256": "249ef6be1d927e44d405c11bcff643d18b2133e5407be37dc7612f935a1b53e4",
+  "runs": {
+    "operationalOccurrenceImport": {
+      "command": "studio import-mta-wiki-operational-occurrences with an explicit v1-rc22 release, manifest hash, and isolated output",
+      "runCount": 2,
+      "byteIdentical": true,
+      "outputPath": "docs/research/artifacts/mta-wiki-v1-rc22.operational-occurrences-import.json",
+      "bytes": 1229353,
+      "sha256ByRun": [
+        "fa7f6ca25b4ba2ec435e3ca4397a579ff89f7b97b20c0adb956263129bf857f9",
+        "fa7f6ca25b4ba2ec435e3ca4397a579ff89f7b97b20c0adb956263129bf857f9"
+      ]
+    },
+    "candidateMerge": {
+      "command": "tools/pipeline-v2/scripts/replay-mta-wiki-rc22-candidates.ts with the pinned import and frozen logical merge snapshot",
+      "runCount": 2,
+      "byteIdentical": true,
+      "outputPath": "docs/research/artifacts/candidate-set-v3-9761a5648df08fbdf6c38bb4.study-events.json",
+      "candidateSetId": "candidate-set-v3:9761a5648df08fbdf6c38bb4",
+      "bytes": 1136910,
+      "sha256ByRun": [
+        "25d1fa96f8796f053c538631fbce19aa3b77fb1435e5b357c50eec2f94bf6129",
+        "25d1fa96f8796f053c538631fbce19aa3b77fb1435e5b357c50eec2f94bf6129"
+      ]
+    },
+    "lineageAudit": {
+      "command": "tools/pipeline-v2/scripts/audit-mta-wiki-rc22-lineage.ts with explicit import, candidate, Wiki, logical-input, spine, acquisition, and LATEST paths",
+      "runCount": 2,
+      "byteIdentical": true,
+      "outputPath": "docs/research/artifacts/mta-wiki-rc22-lineage-audit.json",
+      "bytes": 1567471,
+      "sha256ByRun": [
+        "042bd160b6c57f490547f9808b2683a0a7d2a26ccd8f494d74e61c84d873dfa7",
+        "042bd160b6c57f490547f9808b2683a0a7d2a26ccd8f494d74e61c84d873dfa7"
+      ]
+    }
+  },
+  "approvalState": "blocked_contract_incompatible",
+  "approvedCandidateCount": 0,
+  "authorizesStudyRun": false,
+  "authorizesPublication": false,
+  "authorizesPromotion": false
+}

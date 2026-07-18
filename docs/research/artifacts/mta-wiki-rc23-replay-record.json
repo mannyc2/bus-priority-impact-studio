@@ -1,0 +1,101 @@
+{
+  "artifactKind": "bp.studio.mta_wiki_rc23_replay_record.v1",
+  "schemaVersion": 1,
+  "authorization": "non_authorizing_reproducibility_record_only",
+  "trackerBaselineCommit": "5e656c2450792a23e36b4afc9ca29bdda97a1b5e",
+  "trackerReviewProjectionCommit": "7b5c988b69af17769256332414b798e0d35246d6",
+  "trackerCanonicalAuditBindingCommit": "745f098e1b62c89bf7bc2341818eaaacdba926f8",
+  "mtaWikiProducerRepairCommit": "443e6e344b75d3f7c085574fbab8e57b1a1e8cf3",
+  "mtaWikiImmutableReleaseCommit": "d40ee4b6",
+  "mtaWikiMergedMainCommit": "299752f2e9c7696296b29b1bcefbb5f454cb1699",
+  "releaseId": "v1-rc23",
+  "manifestSha256": "e412b0b7a3e98e87e43c8b59375f335c1c0bd84ab4024171ec6c45203f1da83b",
+  "latestObserved": "v1-rc5",
+  "runs": {
+    "operationalOccurrenceImport": {
+      "command": "bun --filter @bp/pipeline-v2 cli -- studio import-mta-wiki-operational-occurrences --mta-wiki-root /home/cjpher/.codex/worktrees/615d/mta-wiki --wiki-release v1-rc23 --wiki-manifest-sha256 e412b0b7a3e98e87e43c8b59375f335c1c0bd84ab4024171ec6c45203f1da83b --output <isolated-output> --json",
+      "runCount": 2,
+      "byteIdentical": true,
+      "outputPath": "docs/research/artifacts/mta-wiki-v1-rc23.operational-occurrences-import.json",
+      "bytes": 1229311,
+      "sha256ByRun": [
+        "27049c650366c91453f39919d574456eb28d5fab9cb8dce43afc5ceccdf99232",
+        "27049c650366c91453f39919d574456eb28d5fab9cb8dce43afc5ceccdf99232"
+      ],
+      "counts": {
+        "sourceOccurrences": 135,
+        "eligibleOccurrences": 134,
+        "routeProjections": 172,
+        "rejectedOccurrences": 1
+      }
+    },
+    "candidateMerge": {
+      "command": "bun tools/pipeline-v2/scripts/replay-mta-wiki-rc22-candidates.ts --wiki-import <verified-rc23-import> --logical-inputs docs/research/artifacts/mta-wiki-rc19-study-merge-logical-inputs.json --output <isolated-output>",
+      "runCount": 2,
+      "byteIdentical": true,
+      "logicalInputs": {
+        "path": "docs/research/artifacts/mta-wiki-rc19-study-merge-logical-inputs.json",
+        "bytes": 382633,
+        "sha256": "17530e0bc5a857463249d32a882ae7027a77ea44041babe00c5d761662363104"
+      },
+      "outputPath": "docs/research/artifacts/candidate-set-v3-aba25fe4209247be31d43b66.study-events.json",
+      "candidateSetId": "candidate-set-v3:aba25fe4209247be31d43b66",
+      "bytes": 1132675,
+      "sha256ByRun": [
+        "60422e951226b97abe40ae3705469084c5134488e666084284771e1b60ab22b5",
+        "60422e951226b97abe40ae3705469084c5134488e666084284771e1b60ab22b5"
+      ],
+      "counts": {
+        "candidates": 489,
+        "sourceRejections": 384,
+        "exactDeduplications": 12,
+        "conflicts": 0,
+        "approved": 0
+      }
+    },
+    "lineageAudit": {
+      "command": "bun tools/pipeline-v2/scripts/audit-mta-wiki-rc23-delta.ts with explicit rc22/rc23 release directories, content-addressed imports/candidates/base audit, v1-rc5 LATEST, baseline commit, and isolated output",
+      "runCount": 2,
+      "byteIdentical": true,
+      "outputPath": "docs/research/artifacts/mta-wiki-rc23-lineage-audit.json",
+      "bytes": 13904,
+      "sha256ByRun": [
+        "39472a8fec7aaa88dc02c1ceae66f98281688aae1586ccb8092cf2ff5f6f04d7",
+        "39472a8fec7aaa88dc02c1ceae66f98281688aae1586ccb8092cf2ff5f6f04d7"
+      ],
+      "verifiedManifestAddressedArtifactCountPerRelease": 246,
+      "rc22ToRc23ByteIdenticalArtifactCount": 245,
+      "rc22ToRc23ChangedArtifactCount": 1
+    }
+  },
+  "candidateComparison": {
+    "addedIdentityCount": 0,
+    "removedIdentityCount": 0,
+    "nonProvenanceChangeCount": 0,
+    "wikiBoundProvenanceRebindingCount": 100,
+    "exactlyUnchangedCandidateRowCount": 389,
+    "normalizedResidualChangeCount": 0,
+    "approvalRebindingRequired": true,
+    "priorReceiptApplies": false
+  },
+  "excludedBusLaneQueue": {
+    "candidateCount": 321,
+    "unchangedCandidateRowCount": 321,
+    "stillUnresolvedCount": 321,
+    "genericAuthoritativeRouteTreatmentLinkCount": 54,
+    "exactCandidateSegmentProofCount": 1,
+    "exactCandidateDateAndPhaseCount": 0,
+    "newOrUpdatedOccurrenceCount": 0,
+    "approvedCandidateCount": 0
+  },
+  "approvalState": "awaiting_approval",
+  "approvalReceiptPresent": false,
+  "approvedCandidateCount": 0,
+  "operatorReadyToPromotePinnedRelease": true,
+  "authorizesPromotion": false,
+  "authorizesStudyRun": false,
+  "authorizesPublication": false,
+  "authorizesDeployment": false,
+  "authorizesD1OrR2Writes": false,
+  "authorizesLatestMutation": false
+}
