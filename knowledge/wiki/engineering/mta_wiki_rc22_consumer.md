@@ -17,8 +17,9 @@ decodes the phase and physical audit manifests/summaries. Their occurrence
 pins must equal the exact imported bytes, SHA, and row count. Physical
 treatment-component, relation, and corridor pins must equal manifest-v4 root
 metadata and counts; bundled completeness, policy, ledger, and contract inputs
-must also reconcile. Hard-mode, complete-review, exact-evidence, and
-zero-finding/violation semantics are mandatory. Only then may top-level
+must also reconcile. Hard-mode, complete-review, and exact-evidence semantics are mandatory, with
+zero phase/physical-audit findings and zero enforceable relationship
+violations while preserving the graph's reviewed and informational findings. Only then may top-level
 `phase_relation` and `physical_scope` bindings be omitted from the review-v1
 comparison, and only when the dedicated v2 ledgers match them exactly. Nested
 or rogue omissions still fail.
@@ -89,6 +90,12 @@ Generic route linkage, or even one exact segment receipt, cannot supply the
 missing evidence-backed candidate date, phase, or canonical occurrence
 identity. Receipts remain immutable and candidate-set-bound; publication
 authorization remains separate from evidence review and study execution.
+
+Merging Tracker PR #61 triggered the repository's ordinary main-push CI and
+successfully deployed the Worker (workflow run `29625533041`, deploy job
+`88029151351`). This was a code-deployment side effect of the merge, not a
+candidate approval, study run, study publication, D1/R2 data promotion, or
+MTA Wiki pointer mutation.
 
 An operator may review promotion of `LATEST` from `v1-rc5` to `v1-rc23`, but
 Tracker itself continues to consume only explicit release/hash pins. Release

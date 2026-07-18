@@ -4,7 +4,10 @@
 - Tracker baseline: `5e656c2450792a23e36b4afc9ca29bdda97a1b5e` (merged PR #60)
 - Tracker review-v1 projection: `7b5c988b69af17769256332414b798e0d35246d6`
 - Tracker canonical audit binding: `745f098e1b62c89bf7bc2341818eaaacdba926f8`
+- Tracker consumer head: `a7b3db644e59b6979723fb1e106d20feca4e6410`
+- Tracker merged PR #61: `27ceded6373ceaf7e5630bd13ec4605471fc21e4`
 - MTA Wiki merged repair: PR #2, merge commit `299752f2e9c7696296b29b1bcefbb5f454cb1699`
+- MTA Wiki immutable rc23 commit: `d40ee4b62c069f2d8df131a18fe1a71bab9cdbbf`
 - Release: explicit `v1-rc23`; `LATEST` remains `v1-rc5` and was neither selected nor changed
 
 ## Recommendation
@@ -23,9 +26,17 @@ continues to require an explicit release ID and manifest SHA-256; it never
 follows `LATEST` implicitly.
 
 This recommendation does **not** approve the new candidate set, authorize a
-study run or publication, deploy code, write D1/R2 data, or change `LATEST`.
-The candidate set remains `awaiting_approval`, with a null receipt and zero
-approved events. rc22 remains quarantined and unchanged.
+study run or publication, authorize another deployment, write D1/R2 data, or
+change `LATEST`. The candidate set remains `awaiting_approval`, with a null
+receipt and zero approved events. rc22 remains quarantined and unchanged.
+
+Operational truth after the original report was drafted: merging Tracker PR
+#61 triggered the repository's normal main-push workflow. Workflow run
+`29625533041`, deploy job `88029151351`, successfully built the web release
+and deployed the Worker at merge commit
+`27ceded6373ceaf7e5630bd13ec4605471fc21e4`. That automatic code deployment
+did not approve candidates, run or publish a study, write study data to D1/R2,
+or mutate MTA Wiki `LATEST`.
 
 No additional MTA Wiki producer repair is presently required. The former
 blocker was corrected in rc23. The remaining study, geometry, confounder,
@@ -83,11 +94,16 @@ Before review-v1 projection, Tracker now independently verifies:
   135 rows; physical treatment-component, relation, and corridor pins against
   manifest-v4 metadata and record counts; and bundled completeness, policy,
   ledger, and contract inputs;
-- hard-mode, complete-review, exact-evidence, and zero-finding/violation
-  semantics, reconciled to the imported occurrence and treatment denominators.
+- hard-mode, complete-review, and exact-evidence semantics; zero phase and
+  physical-audit findings; and the graph's full split of zero enforceable
+  violations, three reviewed non-enforceable advisories, and 45,983
+  informational orphan-record findings.
 
 The canonical graph remains 85,392 records and 21,422 relations with zero
 enforceable violations and three reviewed non-enforceable shape advisories.
+Its 45,986 total findings are explicitly accounted for as those three
+reviewed advisories plus 45,983 informational orphan records; none is hidden
+behind a zero aggregate.
 Graph integrity proves relationship consistency, not universal exact treated
 segment coverage.
 
@@ -97,7 +113,7 @@ segment coverage.
 |---|---:|---:|---|
 | rc23 operational-occurrence import | 2 | 1,229,311 | `27049c650366c91453f39919d574456eb28d5fab9cb8dce43afc5ceccdf99232` |
 | rc23 candidate set | 2 | 1,132,675 | `60422e951226b97abe40ae3705469084c5134488e666084284771e1b60ab22b5` |
-| rc23 lineage delta audit | 2 | 13,904 | `39472a8fec7aaa88dc02c1ceae66f98281688aae1586ccb8092cf2ff5f6f04d7` |
+| rc23 lineage delta audit | 2 | 14,120 | `3de53aea97bb5c7423101f84938b6f67f47cf7df69526f113c7606810c997dbc` |
 
 The producer funnel is unchanged from rc19/rc22:
 
@@ -189,8 +205,11 @@ The acquisition receipts and exclusions remain evidence, not authorization.
   exclude evidence-backed rejected/unreviewed interventions, and bounded
   treatments must require exact occurrence→geometry→spine binding. Empty or
   unresolved scope cannot fall back to all-route spines.
-- Plan 075 receives no rc23 public input. Compatibility and release promotion
-  do not create an approved study or authorize serving regeneration.
+- Plan 075's UI integration code exists, but the plan remains in progress and
+  receives no rc23 public input. Its implementation landed before the recorded
+  Plan 074 operator-anchor prerequisite was closed; activation and publication
+  remain blocked by that decision, exact-set approval, a separately authorized
+  Plan 074 run, and the existing publication gates.
 - Plan 083 remains independently necessary on its existing route denominator.
   A readiness flip advances only to review and changes no candidate approval.
 
@@ -236,5 +255,7 @@ Checked-in evidence:
 - `docs/research/artifacts/mta-wiki-rc23-lineage-audit.json`
 - `docs/research/artifacts/mta-wiki-rc23-replay-record.json`
 
-No deploy, publication, study run, approval, D1/R2 write, `LATEST` change, or
-MTA Wiki mutation was performed.
+The PR #61 merge caused the automatic Worker deployment recorded above. No
+candidate approval, study run, study publication, study-data D1/R2 write,
+`LATEST` change, or MTA Wiki mutation was performed. This handoff does not
+authorize another deployment.

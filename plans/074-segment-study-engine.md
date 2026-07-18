@@ -16,7 +16,9 @@
 - **Plan status**: IN PROGRESS (the approved five-event real run and anchors
   report are complete; execution is stopped for operator anchor review, and
   the original ≥10-study criterion needs an explicit resolution because the
-  conservative receipt approved only five event-route onsets)
+  conservative receipt approved only five event-route onsets; before any new
+  run, the control-contamination and exact bounded-scope admission defects
+  documented below must also close)
 - **Priority**: P1 (core of the business-problem arc)
 - **Effort**: L
 - **Risk**: MED (new numeric machinery destined for public claims — mitigated by synthetic-fixture tests with known answers, gates, and an operator-review STOP before anything ships)
@@ -384,9 +386,12 @@ structure on `tools/pipeline-v2/test/commands/export/route-dossier-summaries.tes
 - [ ] `bun run pipeline study run --analysis-month 2026-03` writes ≥10 study artifacts + per-route rollups + index that validate against `study.ts` schemas
 - [x] Identical re-run produces byte-identical artifacts (seeded bootstrap)
 - [x] At least one real study reports `no_detectable_change` OR the report explains why none did (suspicious otherwise — say so)
-- [x] `anchors-report.md` exists; execution STOPPED for operator review (this plan is DONE at the stop, by design)
+- [x] `anchors-report.md` exists; execution STOPPED for operator review (the
+  historical engine/pilot milestone is complete, but the overall plan remains
+  IN PROGRESS until the recorded operator and engine-boundary decisions close)
 - [x] `bun run check:types` exits 0; only in-scope files modified
-- [ ] `plans/README.md` status row updated (status: DONE — awaiting operator anchor review)
+- [x] `plans/README.md` status row updated (status: IN PROGRESS, with the
+  remaining gates named explicitly)
 
 ## STOP conditions
 
