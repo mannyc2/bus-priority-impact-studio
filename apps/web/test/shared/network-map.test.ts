@@ -3,8 +3,8 @@ import { PERIOD_HOURS, periodSpeed } from "../../src/components/route/NetworkMap
 import {
   badgeFeatures,
   coverageLabel,
-  delayLensEligible,
   delayClass,
+  delayLensEligible,
   deltaClass,
   featureStyle,
   featureValue,
