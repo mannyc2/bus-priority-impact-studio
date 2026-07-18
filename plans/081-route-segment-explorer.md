@@ -27,7 +27,98 @@
 > `coverage`/`window`, never `baseline*`. Substance (same-export joins, exact
 > overlays, pinning) is unchanged.
 
-## Status
+> **Amendment (2026-07-18 — operator critique, binding; comp round 1 in
+> `plans/mockups/081-route-segment-explorer/`).** Measured basis, current
+> release (350 routes / 4,123 served segments): ACE varies within a route on
+> 0 routes, TSP on 0 (both are route-level values fanned out per segment —
+> confirmed by `field-provenance.ts`); lane proximity varies within 309.
+> Riders' "Top burden segments" is rows 1–6 of "Where the route loses time"
+> (same `riderHours` sort). Changes to this plan:
+>
+> 1. **One segment surface.** Delete the "Top burden segments" card and the
+>    `topSegments` duplication from the Riders tab; the Segments-tab table is
+>    the only segment ranking on the route page. The "Highest-impact segment"
+>    KPI tile stays and deep-links into the explorer, pinning that segment.
+>    Scope adds: `apps/web/src/components/route/RidersSection.tsx`,
+>    `apps/web/src/components/route/rider-impact-summary.ts`,
+>    `apps/web/src/components/SegmentRow.tsx`,
+>    `apps/web/src/components/route/route-derived.ts` (only to retire
+>    now-unused helpers), and `apps/web/test/shared/riders-section.test.ts`.
+> 2. **Riders gets rider-grain data.** Replace the deleted card with a
+>    boardings-by-hour card built from the served hourly profile (per-hour
+>    `ridership` + latest peak window). It supersedes the derived "Rider
+>    exposure by hour" strip (`HourExposure` usage) so the tab keeps one hour
+>    chart; monthly trend, KPIs, and equity context are unchanged.
+> 3. **No segment-grain treatment display anywhere.** Step 5's deletions now
+>    explicitly include the map section's 3-stat footer ("Bus lanes N%",
+>    "ACE/TSP N segments", "Focus segment") and the per-row ACE/TSP chips in
+>    `SegmentRow`/`TreatmentRow` usage. Lane proximity is the only treatment
+>    that may render per segment, always proxy-labeled. Route-level ACE/TSP
+>    render as caveated text facts in the readout (and Treatments tab), with
+>    the 080-approved phrasing pattern ("Bus lanes along N% of this route's
+>    shape").
+> 4. **Speed-by-hour redesign.** Step 2's "the existing Speed by hour card
+>    remains" now means: card stays, `WhereWhenWindowChips` is deleted, the
+>    slowest window becomes an on-chart annotation, and the peak-ridership
+>    windows move to the Riders card from item 2. Per-row hour strips leave
+>    the table; segment-hour severity renders in the pinned readout instead.
+> 5. **Comp gate.** The approved round of
+>    `plans/mockups/081-route-segment-explorer/` is the acceptance target for
+>    steps 2, 3, and 5 visuals (map interaction model, table anatomy, readout,
+>    Riders swap, Speed-by-hour). If the operator rejects an exhibit, treat it
+>    as a STOP for that surface and re-comp; do not improvise an alternative.
+>
+> **Round 2 (same day, binding — operator review of comp round 1):**
+>
+> 6. **Fixed-slot readout, no treatment prose.** The selected-segment readout
+>    uses identical slots for overview/preview/pin (label, segment line, lane
+>    line, three-stat row, severity strip, history slot, actions) — the layout
+>    never shifts with the selection. No route-level treatment facts render in
+>    the explorer at all (supersedes step 5's "badges in the readout/data
+>    note" for this surface — the Treatments & history tab and data notes own
+>    ACE/TSP). Lane renders as one plain readout line ("Along a DOT bus-lane
+>    street — most / part / a little of this stretch (proximity)") plus the
+>    opt-in DOT geometry layer.
+> 7. **Table defaults collapsed.** Eight rows + "Show all N segments"
+>    (supersedes step 2's "full table, not only the first eight rows" — the
+>    full table remains one expander away, which satisfies the accessible
+>    text-equivalent requirement). Pinning a segment outside the visible
+>    slice auto-expands. The lane column is deleted from the table.
+> 8. **Share is a button, never text.** Pinning writes the durable spine-ID
+>    URL (step 1 unchanged), but the UI must never render raw URL/query
+>    text — a "Copy link" action in the readout does it; segments without a
+>    spine ID get a disabled control, not a fabricated link.
+> 9. **Terse CTAs and legends.** The Riders "Highest-impact segment" KPI is
+>    the fact plus a two-word "Map ›" deep link; hour-chart legends carry no
+>    sentences (on-chart flags + card subtitles do the explaining).
+>
+> **Rounds 3–4 (same day, binding — lanes layer; r3's blurred-band treatment
+> was rejected by the operator, r4 replaces it):**
+>
+> 10. **Painted-lane solid underlay — no dashes, no glow.** Step 5's exact
+>     lane layer renders as ONE solid line layer ordered between the casing
+>     and the route/network lines: `line-color` from the shared lane green,
+>     full opacity, round caps/joins, `line-width` zoom-interpolated to sit
+>     ≈3px wider than the route line at every zoom (route line ≈3.5px → lane
+>     ≈6.5px; scale both together). Coincident stretches read as a crisp
+>     green rim around the speed-colored line; divergent lane streets read as
+>     their own thin solid line. No `line-dasharray` (the MapLibre v5 spec
+>     gives it neither smooth zoom scaling nor data-driven styling) and no
+>     `line-blur`. The toggle renders only when DOT lane geometry exists near
+>     the route (34/350 routes have none) and is labeled "Painted bus lanes
+>     (DOT)". Applying the same treatment to the network map's `LANES_LAYER`
+>     (today `line-dasharray [3,4]` at fixed 1.5px in
+>     `NetworkMapLibre.map.tsx`) is an 080 amendment candidate — adopt it
+>     there in the same commit only if 080's owner signs off; otherwise keep
+>     the two layers visually consistent at the token level and file the
+>     follow-up.
+> 11. **Readout header uses card grammar.** The selected-segment readout's
+>     header is a standard title + one-line description (the same anatomy as
+>     SectionCard titles), and the description line carries interaction
+>     state: "Pin a segment for its 36-month speed history." (overview) →
+>     "Previewing — click to pin." → "Pinned — Esc or Clear selection to
+>     release." No mono eyebrow labels in the readout header; the fixed-slot
+>     layout from item 6 is unchanged.
 
 - **Priority**: P1
 - **Effort**: L
