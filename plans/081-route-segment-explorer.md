@@ -120,6 +120,12 @@
 >     release." No mono eyebrow labels in the readout header; the fixed-slot
 >     layout from item 6 is unchanged.
 
+## Status
+
+- **Plan status**: DONE (completed 2026-07-19; implementation through
+  `aee2b3df`, with the browser and verification receipt recorded in
+  `knowledge/log.md`)
+
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: MED-HIGH

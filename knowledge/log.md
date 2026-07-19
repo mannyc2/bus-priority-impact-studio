@@ -8561,3 +8561,44 @@ motion. Headless Chromium omitted its compatibility click after otherwise
 uncanceled touch delivery, so the QA driver activated the already hit-tested
 DOM target to continue the mobile matrix. No serving release, D1/R2 data,
 deployment, or production source snapshot was mutated.
+
+## [2026-07-19] engineering | Plan 081 route-segment evidence explorer complete
+
+Completed the linked route-segment explorer through implementation commit
+`aee2b3df`. The Segments tab now owns one canonical URL/search model for
+direction, durable spine pin, month, daypart, and exact DOT-lane visibility;
+one stable-spine history model supplies the map, ranked list, and fixed-slot
+readout. Current geometry and verified route facts join only through the
+declared release artifact key, hash, exact source route, and coverage identity.
+Missing, mismatched, pattern-review, current-only, no-geometry, and WebGL
+failure states remain explicit and usable rather than fabricating a spatial or
+historical claim.
+
+The coordinated MapLibre/list/readout surface uses exact Studio IDs for
+feature-state hover and pin presentation without replacing geometry. Pointer
+selection disambiguates overlapping route lines by the active direction;
+keyboard rows, touch, Back/Forward, reload, 36-month history, historical nulls,
+and current delay-exposure labels share the same durable state. Published NYC
+DOT lanes load only after opt-in. The explorer contains no route-level ACE/TSP
+prose, and the Riders/overview/network entry points deep-link to the same
+segment contract.
+
+Real-browser QA found and fixed three concrete interaction/layout defects: a
+shared map `min-height: 100%` rule collapsed the route canvas hit region, the
+top rendered opposite-direction line could win an overlapping hit, and the
+mobile SectionCard controls could squeeze the explorer title to zero width. It
+also corrected the approved 36-month prompt and removed route-level treatment
+provenance from the fixed readout. Chrome for Testing 149.0.7827.55 then passed
+the isolated production-runtime matrix at 1440x900, 1024x768, and 390x844:
+B41 exact north/south pins plus stable history/gaps/no-data; M15 SBS exact
+identity and lazy DOT lanes; BX15 `needs_pattern_review`; forced no-geometry
+B42; keyboard, mouse, trusted touch, cooperative page scroll, reduced motion,
+200% zoom without horizontal overflow, and the WebGL-disabled SVG fallback.
+Screenshots and the receipt remained temporary under `/tmp`.
+
+Verification passed: 44 focused explorer/runtime/card tests; all 283 web tests;
+all 22 Worker tests; 22 production-boundary and 5 design-doctrine tests; root
+TypeScript; repository style with only pre-existing informational diagnostics;
+the web build at 137.6 KB gzip entry and 394.5 KB gzip total JavaScript; and the
+five-route web-performance matrix. No serving release, D1/R2 data, deployment,
+or production source snapshot was mutated.

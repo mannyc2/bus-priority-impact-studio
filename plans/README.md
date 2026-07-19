@@ -423,7 +423,7 @@ The governing user questions are:
 | 078 | Canonical map/detail/history segment identity and readiness | P0 | L | 068, 077; before 074 | DONE |
 | 079 | Truthful network-map data, layer readiness, freshness, and budgets | P1 | L | 062, 068, 078, 084, 088 | DONE (including the binding ADR-0022 v2 release-identity/catalog cutover) |
 | 080 | Accessible, searchable, shareable network decision explorer | P1 | L | 077, 079 | DONE (implementation `926ce17c`; strict shareable state, exact served-borough and route-segment evidence, O(1) map focus, Data Notes, responsive Sheet, and browser gate complete) |
-| 081 | Linked route-segment evidence explorer with exact overlays | P1 | L | 077-080 | IN PROGRESS (comp APPROVED r4 2026-07-18 "Implement"; visual/interaction layer LANDED on `codex/081-route-segment-explorer` ahead of 079, mirroring 080's precedent — SegmentExplorer merge, click-to-pin + ?segment= spine URLs, feature-state hover, solid lane underlay w/ auto-hidden toggle, Riders swap, proxy/stat deletions, CorridorMap rails removed. Remaining (079-gated per plan): verified-artifact boundary, historical month/daypart mode, overview locator + network CTA, real-browser QA matrix. Amended 2026-07-18: delete Riders "Top burden segments" + all segment-grain ACE/TSP display — measured 0/350 routes vary within-route; ACE/TSP are route-level fanned out, lane varies on 309/350 — kill "Bus lanes %" stat grid, redesign Speed-by-hour, Riders gets boardings-by-hour. Comp r4 in `mockups/081-route-segment-explorer/` (real B41 data; r2 = full-tab exhibits, fixed-slot readout, no treatment prose in explorer, 8-row default table, Copy-link button; r4 = solid painted-lane underlay/rim — r3 glow band rejected — card-grammar readout header w/ state in the description line, toggle auto-hidden on 34 lane-less routes; /map dashes = 080 amendment candidate) awaiting operator review) |
+| 081 | Linked route-segment evidence explorer with exact overlays | P1 | L | 077-080 | DONE (implementation through `aee2b3df`; strict shareable segment/direction/period state, exact verified map/fact/lane artifacts, one stable-spine history model, coordinated MapLibre/list/readout interaction, honest fallbacks, and browser gate complete) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
@@ -438,6 +438,15 @@ using the production MapLibre runtime passed at 1440x900, 1024x768, and
 Back/reload-safe URL state, exact M15+ segment evidence, the forced-unavailable
 B1 path, responsive Sheet transfer, accessibility-tree roles, bus lanes, and
 reduced motion.
+
+Plan 081 browser gate: Chrome for Testing 149.0.7827.55; an isolated fixture
+using the production MapLibre runtime passed at 1440x900, 1024x768, and
+390x844. B41 covered exact north/south selection, stable-spine history,
+Back/Forward, reload, gaps, and neutral no-data; M15 SBS covered exact source
+identity and lazy DOT lanes; BX15 covered pattern-review history; B42 forced
+the shareable no-geometry path. The matrix also passed keyboard, mouse,
+trusted touch, cooperative page scroll, reduced motion, 200% zoom, and the
+WebGL-disabled SVG fallback.
 
 ## Dependency notes (gen 9)
 
