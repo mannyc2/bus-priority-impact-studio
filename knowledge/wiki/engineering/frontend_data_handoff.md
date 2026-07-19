@@ -213,6 +213,10 @@ Show unavailable or omit:
 
 ### Methods And Docs
 
+> **De-month status (2026-07-12):** the month-keyed release facts below remain live but are
+> scheduled for removal per ADR-0022 — serving contract in plan 085, release identity in plan 086,
+> and freshness ledger in plan 087. Until those land, this section describes current behavior.
+
 Use now:
 
 - Dataset cards, metric definitions, caveats, glossary, public source credits.

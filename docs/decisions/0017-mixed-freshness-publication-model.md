@@ -4,7 +4,10 @@ Date: 2026-06-07
 
 ## Status
 
-Accepted.
+Accepted 2026-06-07. Partially superseded by ADR-0022 (2026-07-12): the
+"baseline month" anchor, release-month keying, and the monthly-cadence
+blessing list are retired; the operational rules (lightweight cron,
+deliberate publication, snapshot evidence) remain in force.
 
 ## Context
 

@@ -51,6 +51,10 @@ Endpoint docs describe the current contract. This catalog describes the product 
 
 ## Catalog
 
+> **De-month status (2026-07-12):** the month-keyed serving and release facts in these tables
+> remain live but are scheduled for removal per ADR-0022 — serving contract in plan 085, release
+> identity in plan 086, and freshness ledger in plan 087. Until those land, this catalog describes current behavior.
+
 ### Route Identity And Catalog
 
 | Data | Grain | State | Source of truth | Current and possible surfaces | Notes for design/API |

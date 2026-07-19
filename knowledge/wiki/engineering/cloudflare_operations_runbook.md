@@ -71,6 +71,10 @@ Keep this block out of source control until the project is ready to commit envir
 
 ## One-Time Release Publish
 
+> **De-month status (2026-07-12):** the month-keyed mechanics in this section remain live but are
+> scheduled for removal per ADR-0022 — serving contract in plan 085, release identity in plan 086,
+> and freshness ledger in plan 087. Until those land, this section describes current behavior.
+
 Build and verify local serving outputs first:
 
 ```bash
