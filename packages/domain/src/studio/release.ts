@@ -11,7 +11,7 @@ import {
   StudioRouteSchema,
   StudioSegmentSchema,
 } from "./routes/index.js";
-import { StudioQualitySchema } from "./shared.js";
+import { ReleaseIdentitySchema, StudioQualitySchema } from "./shared.js";
 
 export const StudioSearchSegmentCardSchema = Schema.Struct({
   segment: StudioSegmentSchema,
@@ -62,6 +62,7 @@ export const StudioReleasePayloadSchema = Schema.Struct({
   baselineMonth: IsoMonthSchema,
   quality: StudioQualitySchema,
   routes: Schema.Array(StudioRouteSchema),
+  mapRouteFactsMetadata: ReleaseIdentitySchema,
   routeFactMetadata: Schema.Array(MapRouteFactMetadataSchema),
   segments: Schema.Array(StudioSegmentSchema),
   routeArtifacts: Schema.Array(StudioRouteArtifactRefSchema),

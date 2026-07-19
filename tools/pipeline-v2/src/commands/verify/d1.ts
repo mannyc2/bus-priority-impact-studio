@@ -1,4 +1,9 @@
 import { dirname, join } from "node:path";
+import {
+  type ReleaseIdentity,
+  ReleaseIdentitySchema,
+  releaseIdFromPublishedAt,
+} from "@bp/domain/studio/shared";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
 import { runD1ReplayBoundary } from "../../effect/d1-replay.ts";
@@ -7,6 +12,7 @@ import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import { type D1SeedOutputResult, runExportD1Seed } from "../export/d1.ts";
 import {
   collectD1TableCounts,
@@ -18,9 +24,9 @@ import {
 
 export type D1VerifyResult = {
   schemaVersion: number;
-  isoMonth: string;
-  analysisPeriod: string;
-  generatedAt: string;
+  releaseId: string;
+  publishedAt: string;
+  coverage: ReleaseIdentity["coverage"];
   summaryPath: string;
   schemaPath: string;
   seedPath: string;
@@ -75,6 +81,7 @@ export type VerifyD1Inputs = {
   local: OpenLocalPipelineDb;
   year: number;
   month: number;
+  releaseIdentity: ReleaseIdentity;
   exportRoot?: string | undefined;
   artifactRoot?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
@@ -118,13 +125,18 @@ async function writeD1VerifySummary(result: D1VerifyResult): Promise<void> {
         operation: "writeD1VerifySummary",
         path: result.summaryPath,
         contents: `${JSON.stringify(result, null, 2)}\n`,
-        spanAttributes: { month: result.isoMonth },
+        spanAttributes: { month: result.coverage.end },
       }),
   });
 }
 
 export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1VerifyResult> {
   const month = isoMonth(inputs.year, inputs.month);
+  if (inputs.releaseIdentity.coverage.end !== month) {
+    throw new Error(
+      `D1 verification release coverage ends at ${inputs.releaseIdentity.coverage.end}, expected ${month}.`,
+    );
+  }
   const exportResult = await runExportD1Seed({
     local: inputs.local,
     year: inputs.year,
@@ -161,10 +173,8 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
   }
 
   const result: D1VerifyResult = {
-    schemaVersion: 1,
-    isoMonth: month,
-    analysisPeriod: month,
-    generatedAt: new Date().toISOString(),
+    schemaVersion: 2,
+    ...inputs.releaseIdentity,
     summaryPath: join(dirname(exportResult.seedPath), "verify-summary.json"),
     schemaPath: exportResult.schemaPath,
     seedPath: exportResult.seedPath,
@@ -211,9 +221,12 @@ export default defineCommand({
   },
   output: Schema.Struct({
     schemaVersion: Schema.Number,
-    isoMonth: Schema.String,
-    analysisPeriod: Schema.String,
-    generatedAt: Schema.String,
+    releaseId: Schema.String,
+    publishedAt: Schema.String,
+    coverage: Schema.Struct({
+      start: Schema.NullOr(Schema.String),
+      end: Schema.String,
+    }),
     summaryPath: Schema.String,
     schemaPath: Schema.String,
     seedPath: Schema.String,
@@ -233,11 +246,17 @@ export default defineCommand({
       spanAttributes: {
         month,
       },
-      run: (local) =>
-        runVerifyD1Export({
+      run: (local) => {
+        const publishedAt = new Date().toISOString();
+        return runVerifyD1Export({
           local,
           year: input.options.year,
           month: input.options.month,
+          releaseIdentity: decodeSchemaStrict(ReleaseIdentitySchema, {
+            releaseId: releaseIdFromPublishedAt(publishedAt),
+            publishedAt,
+            coverage: { start: null, end: month },
+          }),
           exportRoot:
             input.options.exportRoot === undefined
               ? undefined
@@ -254,7 +273,8 @@ export default defineCommand({
             input.options.routeEvidenceIndexPath === undefined
               ? undefined
               : fromCliPath(input.options.routeEvidenceIndexPath),
-        }),
+        });
+      },
     });
   },
 });

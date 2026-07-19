@@ -92,6 +92,10 @@ describe("truthful network map schemas", () => {
 
   test("accepts null hourly evidence and verified multi-borough membership", () => {
     const parsed = decodeStrict(MapNetworkFeatureCollectionSchema)({
+      schemaVersion: 2,
+      releaseId: "pub_20260401T000000123Z",
+      publishedAt: "2026-04-01T00:00:00.123Z",
+      coverage: { start: null, end: "2026-03" },
       type: "FeatureCollection",
       features: [
         {
@@ -122,6 +126,10 @@ describe("truthful network map schemas", () => {
 
   test("rejects wrong hour lengths, duplicate boroughs, and speed without traversals", () => {
     const base = {
+      schemaVersion: 2,
+      releaseId: "pub_20260401T000000123Z",
+      publishedAt: "2026-04-01T00:00:00.123Z",
+      coverage: { start: null, end: "2026-03" },
       type: "FeatureCollection",
       features: [
         {
@@ -258,7 +266,7 @@ describe("truthful network map schemas", () => {
           currencyStatus: "period_aligned",
           currency: {
             policy: "analysis_period",
-            baselineMonth: "2026-03",
+            coverage: { start: null, end: "2026-03" },
             coveragePassed: true,
           },
           sourceIds: ["mta_bus_segment_speeds"],
@@ -273,9 +281,10 @@ describe("truthful network map schemas", () => {
 
   test("rejects contradictory route-fact evidence", () => {
     const result = decodeEitherStrict(MapRouteFactsResponseSchema)({
-      schemaVersion: 1,
-      baselineMonth: "2026-03",
-      generatedAt: "2026-04-01T00:00:00Z",
+      schemaVersion: 2,
+      releaseId: "pub_20260401T000000123Z",
+      publishedAt: "2026-04-01T00:00:00.123Z",
+      coverage: { start: null, end: "2026-03" },
       routes: [
         {
           route: {
@@ -293,7 +302,7 @@ describe("truthful network map schemas", () => {
           delayExposure: {
             valueRiderHours: 100,
             status: "unavailable",
-            analysisPeriod: null,
+            coverage: null,
             grain: null,
             source: null,
             segmentCount: 0,

@@ -6,3 +6,5 @@ export type {
   D1SeedSqlResult,
 } from "./build-seed-sql.js";
 export { buildD1AppendixSeedSql, buildD1SeedSql } from "./build-seed-sql.js";
+export type { MapReleaseRegistrationInput } from "./map-release-registration.js";
+export { buildMapReleaseRegistrationSql } from "./map-release-registration.js";

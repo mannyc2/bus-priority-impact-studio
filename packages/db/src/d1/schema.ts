@@ -22,6 +22,22 @@ export const routeArtifact = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.month, table.artifactName] })],
 );
 
+export const mapReleaseCatalog = sqliteTable(
+  "map_release_catalog",
+  {
+    releaseId: text("release_id").primaryKey(),
+    publishedAt: text("published_at").notNull(),
+    coverageStart: text("coverage_start"),
+    coverageEnd: text("coverage_end").notNull(),
+    manifestKey: text("manifest_key").notNull(),
+    manifestSha256: text("manifest_sha256").notNull(),
+    releaseProfile: text("release_profile").notNull(),
+    verificationStatus: text("verification_status").notNull(),
+    routeCount: integer("route_count").notNull(),
+  },
+  (table) => [uniqueIndex("map_release_catalog_manifest_key_idx").on(table.manifestKey)],
+);
+
 export const routeScorecard = sqliteTable(
   "route_scorecard",
   {

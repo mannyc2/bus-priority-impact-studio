@@ -13,7 +13,10 @@ import { healthResponseJsonSchema, studioReleasePayloadJsonSchema } from "@bp/do
 import { RouteIdCodec } from "@bp/domain/primitives";
 import { HealthResponseSchema, RouteScorecardSchema } from "@bp/domain/routes";
 import { StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
-import { buildStudioRouteProjection } from "@bp/domain/studio/projections";
+import {
+  buildMapRouteFactsProjection,
+  buildStudioRouteProjection,
+} from "@bp/domain/studio/projections";
 import { StudioReleasePayloadSchema } from "@bp/domain/studio/release";
 import { StudioRouteDetailResponseSchema } from "@bp/domain/studio/routes";
 
@@ -454,6 +457,11 @@ describe("domain schemas", () => {
       schemaVersion: 2,
       generatedAt: "2026-05-18T00:00:00.000Z",
       baselineMonth: "2026-03",
+      mapRouteFactsMetadata: {
+        releaseId: "pub_20260518T000000000Z",
+        publishedAt: "2026-05-18T00:00:00.000Z",
+        coverage: { start: null, end: "2026-03" },
+      },
       quality: {
         releaseLayer: "baseline_release",
         completenessStatus: "complete",
@@ -498,7 +506,7 @@ describe("domain schemas", () => {
           delayExposure: {
             valueRiderHours: null,
             status: "unavailable",
-            analysisPeriod: null,
+            coverage: null,
             grain: null,
             source: null,
             segmentCount: 0,
@@ -560,6 +568,7 @@ describe("domain schemas", () => {
     const detail = decodeStrict(StudioRouteDetailResponseSchema)(
       buildStudioRouteProjection(release, route),
     );
+    const mapRouteFacts = buildMapRouteFactsProjection(release);
 
     expect(detail.artifactRefs).toEqual([
       expect.objectContaining({
@@ -567,6 +576,14 @@ describe("domain schemas", () => {
         key: "briefs/routes/m15-sbs/2026-03/brief.json",
       }),
     ]);
+    expect(mapRouteFacts).toMatchObject({
+      schemaVersion: 2,
+      releaseId: "pub_20260518T000000000Z",
+      publishedAt: "2026-05-18T00:00:00.000Z",
+      coverage: { start: null, end: "2026-03" },
+    });
+    expect(mapRouteFacts).not.toHaveProperty("baselineMonth");
+    expect(mapRouteFacts).not.toHaveProperty("generatedAt");
   });
 
   test("keeps health responses strict", () => {

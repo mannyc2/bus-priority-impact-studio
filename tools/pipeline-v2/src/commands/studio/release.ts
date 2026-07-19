@@ -23,6 +23,11 @@ import {
   buildStudioSegmentsProjection,
 } from "@bp/domain/studio/projections";
 import { type StudioReleasePayload, StudioReleasePayloadSchema } from "@bp/domain/studio/release";
+import {
+  type ReleaseIdentity,
+  ReleaseIdentitySchema,
+  releaseIdFromPublishedAt,
+} from "@bp/domain/studio/shared";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { normalizeHourlyRidershipRows } from "@bp/sources/adapters/mta/bus-ridership";
 import { normalizeSegmentSpeedRows } from "@bp/sources/adapters/mta/bus-speeds";
@@ -512,7 +517,10 @@ async function currentMonthScheduleRowsByRoute(
   });
 }
 
-async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> {
+async function buildRelease(
+  options: CliOptions,
+  releaseIdentity: ReleaseIdentity,
+): Promise<StudioReleasePayload> {
   const {
     routePresentationByRoute,
     readinessByRoute,
@@ -692,7 +700,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
   }
   const publicNoteSegments = withSparsePublicSegmentNotes(deterministicSegments, options.month);
   const segments = await enhanceSegmentAiNotesWithLlm(publicNoteSegments, options.segmentNoteLlm);
-  const releaseGeneratedAt = new Date().toISOString();
+  const releaseGeneratedAt = releaseIdentity.publishedAt;
   const tspSourceDate =
     [...tspEvidenceByRoute.values()].find((evidence) => evidence.tspSourceDate !== null)
       ?.tspSourceDate ?? null;
@@ -740,6 +748,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     schemaVersion: 2,
     generatedAt: releaseGeneratedAt,
     baselineMonth: options.month,
+    mapRouteFactsMetadata: releaseIdentity,
     quality: {
       releaseLayer: "baseline_release",
       completenessStatus: "partial_public_monthly_only",
@@ -767,7 +776,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
           ? {
               valueRiderHours: route.riderHoursLost,
               status: "available",
-              analysisPeriod: options.month,
+              coverage: releaseIdentity.coverage,
               grain: "all_observed_timepoint_segments",
               source: "mta_bus_segment_speeds",
               segmentCount: universe?.segmentCount ?? 0,
@@ -779,7 +788,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
           : {
               valueRiderHours: null,
               status: "unavailable",
-              analysisPeriod: null,
+              coverage: null,
               grain: null,
               source: null,
               segmentCount: universe?.segmentCount ?? 0,
@@ -886,6 +895,7 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
 }
 
 export type RunStudioReleaseInputs = {
+  releaseIdentity: ReleaseIdentity;
   month?: string | undefined;
   outputPath?: string | undefined;
   schemaPath?: string | undefined;
@@ -928,6 +938,11 @@ export async function runStudioRelease(
   inputs: RunStudioReleaseInputs,
 ): Promise<RunStudioReleaseResult> {
   const month = inputs.month ?? defaultMonth;
+  if (inputs.releaseIdentity.coverage.end !== month) {
+    throw new Error(
+      `Studio release coverage ends at ${inputs.releaseIdentity.coverage.end}, expected ${month}.`,
+    );
+  }
   const env = process.env as { OPENROUTER_API_KEY?: string };
   const llmInput = inputs.segmentNoteLlm ?? {};
   const options: CliOptions = {
@@ -968,7 +983,7 @@ export async function runStudioRelease(
   };
 
   const outputPath = fromCliPath(options.outputPath);
-  const release = await buildRelease(options);
+  const release = await buildRelease(options, inputs.releaseIdentity);
   const publicNoteCount = release.segments.filter((segment) => segment.aiNote !== undefined).length;
 
   await writeProjections(outputPath, release);
@@ -1086,7 +1101,14 @@ export default defineCommand({
       env.STUDIO_SEGMENT_NOTE_MODEL ??
       env.STUDIO_LLM_MODEL ??
       defaultSegmentNoteModel;
+    const publishedAt = new Date().toISOString();
+    const month = input.options.month;
     return runStudioRelease({
+      releaseIdentity: decodeSchemaStrict(ReleaseIdentitySchema, {
+        releaseId: releaseIdFromPublishedAt(publishedAt),
+        publishedAt,
+        coverage: { start: null, end: month },
+      }),
       month: input.options.month,
       outputPath: input.options.output === undefined ? undefined : input.options.output,
       schemaPath: input.options.schema === undefined ? undefined : input.options.schema,

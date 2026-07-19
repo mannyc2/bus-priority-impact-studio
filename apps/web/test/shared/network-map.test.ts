@@ -53,6 +53,7 @@ function feature(overrides: {
     },
     properties: {
       routeId: overrides.routeId ?? "R1",
+      month: "2026-03",
       label: overrides.label ?? "B1",
       borough: overrides.borough ?? "Brooklyn",
       sbs: false,
@@ -60,6 +61,7 @@ function feature(overrides: {
       trend6mPct: null,
       dailyRiders: overrides.dailyRiders === undefined ? 10_000 : overrides.dailyRiders,
       riderHoursLost: overrides.riderHoursLost === undefined ? null : overrides.riderHoursLost,
+      delayCoverage: null,
       laneCoverage: overrides.laneCoverage === undefined ? 40 : overrides.laneCoverage,
       ace: false,
       hourlySpeedMph: overrides.hourlySpeedMph ?? new Array<number | null>(24).fill(null),

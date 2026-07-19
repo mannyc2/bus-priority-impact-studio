@@ -6,7 +6,7 @@ import { verifyMapArtifactManifest } from "../map/artifacts.ts";
 
 export default defineCommand({
   path: ["audit", "map-artifacts"],
-  summary: "Verify the map artifact manifest for a release month.",
+  summary: "Verify the map artifact manifest for a covered-month partition.",
   input: {
     options: Schema.Struct({
       year: arg

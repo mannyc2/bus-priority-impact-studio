@@ -7,6 +7,11 @@ import {
 } from "../primitives/index.js";
 import { ApiDataQualitySchema } from "../routes/index.js";
 import { registerProjectSchema } from "../schema-registry.js";
+import {
+  CoverageWindowSchema,
+  ReleaseIdentitySchema,
+  releaseIdFromPublishedAt,
+} from "../studio/shared.js";
 
 export type {
   LongitudeLatitudeCoordinate,
@@ -17,13 +22,43 @@ export {
   MapLayerMetricSchema,
 } from "../primitives/index.js";
 
-const schemaVersion = 1;
+const schemaVersion = 2;
 
 const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/));
 const NonNegativeIntSchema = Schema.Number.check(Schema.isInt()).check(
   Schema.isGreaterThanOrEqualTo(0),
 );
+
+function releaseIdentityIssues(identity: {
+  readonly releaseId: string;
+  readonly publishedAt: string;
+}): Schema.FilterIssue[] {
+  try {
+    return identity.releaseId === releaseIdFromPublishedAt(identity.publishedAt)
+      ? []
+      : [
+          {
+            path: ["releaseId"],
+            issue: "Release ID must match the canonical publication timestamp.",
+          },
+        ];
+  } catch {
+    return [
+      {
+        path: ["publishedAt"],
+        issue: "Publication timestamp must be canonical before deriving a release ID.",
+      },
+    ];
+  }
+}
+
+function sameCoverage(
+  left: typeof CoverageWindowSchema.Type,
+  right: typeof CoverageWindowSchema.Type,
+): boolean {
+  return left.start === right.start && left.end === right.end;
+}
 
 export const MapBoroughSchema = Schema.Literals([
   "Bronx",
@@ -99,18 +134,24 @@ export const MapNetworkFeatureSchema = Schema.Struct({
 
 export const MapNetworkFeatureCollectionSchema = registerProjectSchema(
   Schema.Struct({
+    schemaVersion: Schema.Literal(schemaVersion),
+    ...ReleaseIdentitySchema.fields,
     type: Schema.Literal("FeatureCollection"),
     features: Schema.Array(MapNetworkFeatureSchema),
   }).check(
     Schema.makeFilter((collection) => {
+      const identityIssues = releaseIdentityIssues(collection);
       const routeIds = collection.features.map((feature) => feature.properties.routeId);
       return new Set(routeIds).size === routeIds.length
-        ? []
-        : [{ path: ["features"], issue: "Network map route IDs must be unique." }];
+        ? identityIssues
+        : [
+            ...identityIssues,
+            { path: ["features"], issue: "Network map route IDs must be unique." },
+          ];
     }),
   ),
   {
-    id: "bp.map_network_feature_collection.v1",
+    id: "bp.map_network_feature_collection.v2",
     title: "Map Network Feature Collection",
     description:
       "Citywide route geometry with hourly speed evidence and served-borough membership.",
@@ -188,7 +229,7 @@ export type MapBusLaneFeatureCollection = typeof MapBusLaneFeatureCollectionSche
 export const MapRouteDelayExposureSchema = Schema.Struct({
   valueRiderHours: Schema.NullOr(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))),
   status: Schema.Literals(["available", "unavailable"]),
-  analysisPeriod: Schema.NullOr(IsoMonthSchema),
+  coverage: Schema.NullOr(CoverageWindowSchema),
   grain: Schema.NullOr(Schema.Literal("all_observed_timepoint_segments")),
   source: Schema.NullOr(Schema.Literal("mta_bus_segment_speeds")),
   segmentCount: NonNegativeIntSchema,
@@ -201,7 +242,7 @@ export const MapRouteDelayExposureSchema = Schema.Struct({
     const available = exposure.status === "available";
     const complete =
       exposure.valueRiderHours !== null &&
-      exposure.analysisPeriod !== null &&
+      exposure.coverage !== null &&
       exposure.grain !== null &&
       exposure.source !== null &&
       exposure.segmentCount > 0 &&
@@ -211,7 +252,7 @@ export const MapRouteDelayExposureSchema = Schema.Struct({
       exposure.unavailableReason === null;
     const empty =
       exposure.valueRiderHours === null &&
-      exposure.analysisPeriod === null &&
+      exposure.coverage === null &&
       exposure.grain === null &&
       exposure.source === null &&
       exposure.ridershipDenominator === null &&
@@ -315,22 +356,26 @@ export type MapRouteFactMetadata = typeof MapRouteFactMetadataSchema.Type;
 
 export const MapRouteFactsResponseSchema = registerProjectSchema(
   Schema.Struct({
-    schemaVersion: Schema.Literal(1),
-    baselineMonth: IsoMonthSchema,
-    generatedAt: Schema.String,
+    schemaVersion: Schema.Literal(schemaVersion),
+    ...ReleaseIdentitySchema.fields,
     routes: Schema.Array(MapRouteFactSchema),
   }).check(
     Schema.makeFilter((response) => {
+      const identityIssues = releaseIdentityIssues(response);
       const routeIds = response.routes.map((fact) => fact.route.routeId);
       return new Set(routeIds).size === routeIds.length
-        ? []
-        : [{ path: ["routes"], issue: "Map route facts must have unique route IDs." }];
+        ? identityIssues
+        : [
+            ...identityIssues,
+            { path: ["routes"], issue: "Map route facts must have unique route IDs." },
+          ];
     }),
   ),
   {
-    id: "bp.map_route_facts_response.v1",
+    id: "bp.map_route_facts_response.v2",
     title: "Map Route Facts Response",
-    description: "Compact same-month canonical route facts joined to network geometry by route ID.",
+    description:
+      "Compact coverage-aligned canonical route facts joined to network geometry by route ID.",
     stability: "draft",
   },
 );
@@ -451,12 +496,12 @@ export const MapRouteFactsReferenceSchema = Schema.Union([
     status: Schema.Literal("available"),
     artifactKey: NonEmptyStringSchema,
     sha256: Sha256Schema,
-    schemaVersion: Schema.Literal(1),
-    baselineMonth: IsoMonthSchema,
+    schemaVersion: Schema.Literal(schemaVersion),
+    ...ReleaseIdentitySchema.fields,
     routeCount: NonNegativeIntSchema,
     byteLength: NonNegativeIntSchema,
     gzipByteLength: NonNegativeIntSchema,
-  }),
+  }).check(Schema.makeFilter(releaseIdentityIssues)),
   Schema.Struct({
     status: Schema.Literal("unavailable"),
     reason: NonEmptyStringSchema,
@@ -495,7 +540,7 @@ export const MapCurrencyEvidenceSchema = Schema.Union([
   }),
   Schema.Struct({
     policy: Schema.Literal("analysis_period"),
-    baselineMonth: IsoMonthSchema,
+    coverage: CoverageWindowSchema,
     coveragePassed: Schema.Boolean,
   }),
   Schema.Struct({
@@ -584,10 +629,7 @@ export type MapRouteUniverse = typeof MapRouteUniverseSchema.Type;
 export const MapManifestResponseSchema = registerProjectSchema(
   Schema.Struct({
     schemaVersion: Schema.Literal(schemaVersion),
-    generatedAt: Schema.String.check(
-      Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
-    ),
-    baselineMonth: IsoMonthSchema,
+    ...ReleaseIdentitySchema.fields,
     releaseProfile: Schema.Literals(["demo", "full"]),
     buildStatus: Schema.Literals(["pass", "fail"]),
     verificationStatus: Schema.Literals(["not_run", "pass", "fail"]),
@@ -605,9 +647,25 @@ export const MapManifestResponseSchema = registerProjectSchema(
     issueCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
     artifacts: Schema.Array(MapArtifactEntrySchema),
     quality: ApiDataQualitySchema,
-  }),
+  }).check(
+    Schema.makeFilter((manifest) => {
+      const issues = releaseIdentityIssues(manifest);
+      if (
+        manifest.routeFacts.status === "available" &&
+        (manifest.routeFacts.releaseId !== manifest.releaseId ||
+          manifest.routeFacts.publishedAt !== manifest.publishedAt ||
+          !sameCoverage(manifest.routeFacts.coverage, manifest.coverage))
+      ) {
+        issues.push({
+          path: ["routeFacts"],
+          issue: "Available route facts must carry the manifest release identity.",
+        });
+      }
+      return issues;
+    }),
+  ),
   {
-    id: "bp.map_manifest_response.v1",
+    id: "bp.map_manifest_response.v2",
     title: "Map Manifest Response",
     description: "Public API response for generated map artifact metadata.",
     stability: "draft",

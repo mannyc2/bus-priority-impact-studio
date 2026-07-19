@@ -1582,37 +1582,68 @@ describe("Studio API facade", () => {
     );
   });
 
-  it("serves R2-backed map manifests and artifact objects", async () => {
-    const hash = "b".repeat(64);
+  it("serves only the latest cataloged v2 map manifest and artifact objects", async () => {
+    const artifactHash = "b".repeat(64);
+    const routeFactsHash = "c".repeat(64);
+    const releaseId = "pub_20260719T123456789Z";
+    const publishedAt = "2026-07-19T12:34:56.789Z";
+    const coverage = { start: "2023-04", end: "2026-03" } as const;
+    const manifestValue = {
+      schemaVersion: 2,
+      artifactKind: "map_artifact_manifest",
+      releaseId,
+      publishedAt,
+      coverage,
+      releaseProfile: "full",
+      buildStatus: "pass",
+      verificationStatus: "pass",
+      routeFacts: {
+        status: "available",
+        artifactKey: "studio/v1/map-route-facts.json",
+        sha256: routeFactsHash,
+        schemaVersion: 2,
+        releaseId,
+        publishedAt,
+        coverage,
+        routeCount: 1,
+        byteLength: 256,
+        gzipByteLength: 128,
+      },
+      sources: [],
+      layers: [],
+      routeUniverse: {
+        includedRouteTypes: ["Local", "Limited", "SBS"],
+        excludedRouteTypes: ["Express", "School"],
+        expectedRouteIds: ["B46-SBS"],
+        geometryRouteIds: ["B46-SBS"],
+        routeSegmentRouteIds: ["B46-SBS"],
+        routeFactRouteIds: ["B46-SBS"],
+      },
+      status: "pass",
+      artifactCount: 1,
+      routeSegmentArtifactCount: 1,
+      totalFeatureCount: 3,
+      totalByteLength: 128,
+      issueCount: 0,
+      artifacts: [
+        {
+          artifactKind: "map_route_segments_geojson",
+          artifactKey: "map/route-segments/b46-sbs/2026-03/all-day.geojson",
+          contentType: "application/geo+json",
+          byteLength: 128,
+          gzipByteLength: 96,
+          sha256: artifactHash,
+          featureCount: 3,
+          coordinateCount: 12,
+          routeId: "B46-SBS",
+        },
+      ],
+    };
+    const manifestBody = JSON.stringify(manifestValue);
+    const manifestSha256 = createHash("sha256").update(manifestBody).digest("hex");
+    const manifestKey = `map/2026-03/manifest.${manifestSha256}.json`;
     const bucket = new FakeR2Bucket({
-      "map/2026-03/manifest.json": new FakeR2Object(
-        JSON.stringify({
-          schemaVersion: 1,
-          artifactKind: "map_artifact_manifest",
-          analysisPeriod: "2026-03",
-          generatedAt: "2026-05-17T15:46:47.037Z",
-          status: "pass",
-          artifactCount: 1,
-          routeSegmentArtifactCount: 1,
-          totalFeatureCount: 3,
-          totalByteLength: 128,
-          issueCount: 0,
-          artifacts: [
-            {
-              artifactKind: "map_route_segments_geojson",
-              artifactKey: "map/route-segments/b46-sbs/2026-03/all-day.geojson",
-              contentType: "application/geo+json",
-              byteLength: 128,
-              gzipByteLength: 96,
-              sha256: hash,
-              featureCount: 3,
-              coordinateCount: 12,
-              routeId: "B46-SBS",
-            },
-          ],
-        }),
-        "application/json; charset=utf-8",
-      ),
+      [manifestKey]: new FakeR2Object(manifestBody, "application/json; charset=utf-8"),
       "map/route-segments/b46-sbs/2026-03/all-day.geojson": new FakeR2Object(
         '{"type":"FeatureCollection","features":[]}',
         "application/geo+json",
@@ -1622,9 +1653,24 @@ describe("Studio API facade", () => {
         "application/geo+json",
       ),
     });
-    const env = { ARTIFACTS: bucket as unknown as R2Bucket };
+    const catalogRow = {
+      release_id: releaseId,
+      published_at: publishedAt,
+      coverage_start: coverage.start,
+      coverage_end: coverage.end,
+      manifest_key: manifestKey,
+      manifest_sha256: manifestSha256,
+      release_profile: "full",
+      verification_status: "pass",
+      route_count: 1,
+    };
+    const db = new FakeDb({ map_release_catalog: [catalogRow] });
+    const env = {
+      ARTIFACTS: bucket as unknown as R2Bucket,
+      DB: db as unknown as D1Database,
+    };
 
-    const manifestResponse = await fetchApi("/api/v1/map/manifest?month=2026-03", env);
+    const manifestResponse = await fetchApi("/api/v1/map/manifest?month=1900-99", env);
     const artifactResponse = await fetchApi(
       "/api/v1/artifacts/map/route-segments/b46-sbs/2026-03/all-day.geojson",
       env,
@@ -1640,7 +1686,10 @@ describe("Studio API facade", () => {
 
     expect(decodeStrict(MapManifestResponseSchema)(await manifestResponse.json())).toEqual(
       expect.objectContaining({
-        baselineMonth: "2026-03",
+        schemaVersion: 2,
+        releaseId,
+        publishedAt,
+        coverage,
         artifactCount: 1,
         artifacts: [
           expect.objectContaining({
@@ -1667,6 +1716,159 @@ describe("Studio API facade", () => {
       error: {
         code: "BAD_REQUEST",
         message: "Artifact key is invalid.",
+      },
+    });
+
+    const mismatchedCatalog = await fetchApi("/api/v1/map/manifest", {
+      ARTIFACTS: bucket as unknown as R2Bucket,
+      DB: new FakeDb({
+        map_release_catalog: [{ ...catalogRow, route_count: 2 }],
+      }) as unknown as D1Database,
+    });
+    expect(mismatchedCatalog.status).toBe(502);
+    expect((await mismatchedCatalog.json()) as unknown).toEqual({
+      error: {
+        code: "BAD_GATEWAY",
+        message: "The registered map manifest does not match its catalog record.",
+      },
+    });
+
+    async function expectRehashedManifestFailure(
+      candidate: unknown,
+      message: string,
+    ): Promise<void> {
+      const body = JSON.stringify(candidate);
+      const sha256 = createHash("sha256").update(body).digest("hex");
+      const key = `map/2026-03/manifest.${sha256}.json`;
+      const response = await fetchApi("/api/v1/map/manifest", {
+        ARTIFACTS: new FakeR2Bucket({
+          [key]: new FakeR2Object(body, "application/json"),
+        }) as unknown as R2Bucket,
+        DB: new FakeDb({
+          map_release_catalog: [{ ...catalogRow, manifest_key: key, manifest_sha256: sha256 }],
+        }) as unknown as D1Database,
+      });
+      expect(response.status).toBe(502);
+      expect((await response.json()) as unknown).toEqual({
+        error: { code: "BAD_GATEWAY", message },
+      });
+    }
+
+    const alternateRelease = {
+      releaseId: "pub_20260720T123456789Z",
+      publishedAt: "2026-07-20T12:34:56.789Z",
+    } as const;
+    await expectRehashedManifestFailure(
+      {
+        ...manifestValue,
+        ...alternateRelease,
+        routeFacts: { ...manifestValue.routeFacts, ...alternateRelease },
+      },
+      "The registered map manifest does not match its catalog record.",
+    );
+    const alternateCoverage = { start: "2024-01", end: "2026-03" } as const;
+    await expectRehashedManifestFailure(
+      {
+        ...manifestValue,
+        coverage: alternateCoverage,
+        routeFacts: { ...manifestValue.routeFacts, coverage: alternateCoverage },
+      },
+      "The registered map manifest does not match its catalog record.",
+    );
+    await expectRehashedManifestFailure(
+      {
+        ...manifestValue,
+        routeFacts: { ...manifestValue.routeFacts, coverage: alternateCoverage },
+      },
+      "The registered map manifest has an invalid v2 contract.",
+    );
+    await expectRehashedManifestFailure(
+      { ...manifestValue, status: "fail" },
+      "The registered map manifest does not match its catalog record.",
+    );
+    await expectRehashedManifestFailure(
+      { ...manifestValue, baselineMonth: "2026-03" },
+      "The registered map manifest has an invalid v2 shape.",
+    );
+  });
+
+  it("fails closed when no verified map release is cataloged or manifest bytes drift", async () => {
+    const emptyDb = new FakeDb({ map_release_catalog: [] });
+    const emptyBucket = new FakeR2Bucket({});
+    const noRelease = await fetchApi("/api/v1/map/manifest", {
+      DB: emptyDb as unknown as D1Database,
+      ARTIFACTS: emptyBucket as unknown as R2Bucket,
+    });
+    expect(noRelease.status).toBe(503);
+    expect((await noRelease.json()) as unknown).toEqual({
+      error: {
+        code: "SERVICE_UNAVAILABLE",
+        message: "No verified full map release is registered.",
+      },
+    });
+
+    const manifestKey = `map/2026-03/manifest.${"a".repeat(64)}.json`;
+    const corruptDb = new FakeDb({
+      map_release_catalog: [
+        {
+          release_id: "pub_20260719T123456789Z",
+          published_at: "2026-07-19T12:34:56.789Z",
+          coverage_start: null,
+          coverage_end: "2026-03",
+          manifest_key: manifestKey,
+          manifest_sha256: "a".repeat(64),
+          release_profile: "full",
+          verification_status: "pass",
+          route_count: 1,
+        },
+      ],
+    });
+    const corrupt = await fetchApi("/api/v1/map/manifest", {
+      DB: corruptDb as unknown as D1Database,
+      ARTIFACTS: new FakeR2Bucket({
+        [manifestKey]: new FakeR2Object("{}", "application/json"),
+      }) as unknown as R2Bucket,
+    });
+    expect(corrupt.status).toBe(502);
+    expect((await corrupt.json()) as unknown).toEqual({
+      error: {
+        code: "BAD_GATEWAY",
+        message: "The registered map manifest failed integrity verification.",
+      },
+    });
+
+    const v1Body = JSON.stringify({
+      schemaVersion: 1,
+      artifactKind: "map_artifact_manifest",
+      baselineMonth: "2026-03",
+    });
+    const v1Sha256 = createHash("sha256").update(v1Body).digest("hex");
+    const v1Key = `map/2026-03/manifest.${v1Sha256}.json`;
+    const v1 = await fetchApi("/api/v1/map/manifest", {
+      DB: new FakeDb({
+        map_release_catalog: [
+          {
+            release_id: "pub_20260719T123456789Z",
+            published_at: "2026-07-19T12:34:56.789Z",
+            coverage_start: null,
+            coverage_end: "2026-03",
+            manifest_key: v1Key,
+            manifest_sha256: v1Sha256,
+            release_profile: "full",
+            verification_status: "pass",
+            route_count: 1,
+          },
+        ],
+      }) as unknown as D1Database,
+      ARTIFACTS: new FakeR2Bucket({
+        [v1Key]: new FakeR2Object(v1Body, "application/json"),
+      }) as unknown as R2Bucket,
+    });
+    expect(v1.status).toBe(502);
+    expect((await v1.json()) as unknown).toEqual({
+      error: {
+        code: "BAD_GATEWAY",
+        message: "The registered map manifest has an invalid v2 shape.",
       },
     });
   });

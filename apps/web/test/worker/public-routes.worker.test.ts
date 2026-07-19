@@ -1,6 +1,7 @@
 /// <reference types="@cloudflare/vitest-pool-workers/types" />
 
 import { env, SELF } from "cloudflare:test";
+import { createHash } from "node:crypto";
 import { MapManifestResponseSchema } from "@bp/domain/maps";
 import {
   ReleaseStatusResponseSchema,
@@ -39,7 +40,66 @@ const fixtureTables = [
   "route_batch_built_route",
   "route_batch_issue",
   "route_batch_status",
+  "map_release_catalog",
 ] as const;
+
+const mapReleaseId = "pub_20260719T123456789Z";
+const mapPublishedAt = "2026-07-19T12:34:56.789Z";
+const mapCoverage = { start: "2023-04", end: "2026-03" } as const;
+const mapArtifactKey = "map/2026-03/routes/M57.segments.geojson";
+const mapManifestBody = JSON.stringify({
+  schemaVersion: 2,
+  artifactKind: "map_artifact_manifest",
+  releaseId: mapReleaseId,
+  publishedAt: mapPublishedAt,
+  coverage: mapCoverage,
+  releaseProfile: "full",
+  buildStatus: "pass",
+  verificationStatus: "pass",
+  routeFacts: {
+    status: "available",
+    artifactKey: "studio/v1/map-route-facts.json",
+    sha256,
+    schemaVersion: 2,
+    releaseId: mapReleaseId,
+    publishedAt: mapPublishedAt,
+    coverage: mapCoverage,
+    routeCount: 1,
+    byteLength: 128,
+    gzipByteLength: 96,
+  },
+  sources: [],
+  layers: [],
+  routeUniverse: {
+    includedRouteTypes: ["Local", "Limited", "SBS"],
+    excludedRouteTypes: ["Express", "School"],
+    expectedRouteIds: ["M57"],
+    geometryRouteIds: ["M57"],
+    routeSegmentRouteIds: ["M57"],
+    routeFactRouteIds: ["M57"],
+  },
+  status: "pass",
+  artifactCount: 1,
+  routeSegmentArtifactCount: 1,
+  totalFeatureCount: 2,
+  totalByteLength: 128,
+  issueCount: 0,
+  artifacts: [
+    {
+      artifactKind: "map_route_segments_geojson",
+      artifactKey: mapArtifactKey,
+      contentType: "application/geo+json",
+      byteLength: 128,
+      gzipByteLength: 96,
+      sha256,
+      featureCount: 2,
+      coordinateCount: 8,
+      routeId: "M57",
+    },
+  ],
+});
+const mapManifestSha256 = createHash("sha256").update(mapManifestBody).digest("hex");
+const mapManifestKey = `map/2026-03/manifest.${mapManifestSha256}.json`;
 
 function requireDb(): D1Database {
   expect(testEnv.DB).toBeDefined();
@@ -258,43 +318,60 @@ async function seedD1Fixture(): Promise<void> {
     url: "https://example.test/source/mta-speed",
     verified_at: "2026-04-27T00:00:00.000Z",
   });
+  await insertRow(db, "map_release_catalog", {
+    release_id: mapReleaseId,
+    published_at: mapPublishedAt,
+    coverage_start: mapCoverage.start,
+    coverage_end: mapCoverage.end,
+    manifest_key: mapManifestKey,
+    manifest_sha256: mapManifestSha256,
+    release_profile: "full",
+    verification_status: "pass",
+    route_count: 1,
+  });
+  await insertRow(db, "map_release_catalog", {
+    release_id: "pub_20260718T123456789Z",
+    published_at: "2026-07-18T12:34:56.789Z",
+    coverage_start: mapCoverage.start,
+    coverage_end: mapCoverage.end,
+    manifest_key: `map/2026-03/manifest.${"d".repeat(64)}.json`,
+    manifest_sha256: "d".repeat(64),
+    release_profile: "full",
+    verification_status: "pass",
+    route_count: 1,
+  });
+  await insertRow(db, "map_release_catalog", {
+    release_id: "pub_20260720T123456789Z",
+    published_at: "2026-07-20T12:34:56.789Z",
+    coverage_start: mapCoverage.start,
+    coverage_end: mapCoverage.end,
+    manifest_key: `map/2026-03/manifest.${"e".repeat(64)}.json`,
+    manifest_sha256: "e".repeat(64),
+    release_profile: "demo",
+    verification_status: "pass",
+    route_count: 1,
+  });
+  await insertRow(db, "map_release_catalog", {
+    release_id: "pub_20260721T123456789Z",
+    published_at: "2026-07-21T12:34:56.789Z",
+    coverage_start: mapCoverage.start,
+    coverage_end: mapCoverage.end,
+    manifest_key: `map/2026-03/manifest.${"f".repeat(64)}.json`,
+    manifest_sha256: "f".repeat(64),
+    release_profile: "full",
+    verification_status: "fail",
+    route_count: 1,
+  });
 }
 
 async function seedR2Fixture(): Promise<void> {
   const artifacts = requireArtifacts();
-  const artifactKey = "map/2026-03/routes/M57.segments.geojson";
-  await artifacts.put(
-    "map/2026-03/manifest.json",
-    JSON.stringify({
-      schemaVersion: 1,
-      generatedAt: "2026-04-27T14:45:59.462Z",
-      status: "pass",
-      artifactCount: 1,
-      routeSegmentArtifactCount: 1,
-      totalFeatureCount: 2,
-      totalByteLength: 128,
-      issueCount: 0,
-      artifacts: [
-        {
-          artifactKind: "route_segments",
-          artifactKey,
-          contentType: "application/geo+json",
-          byteLength: 128,
-          gzipByteLength: 96,
-          sha256,
-          featureCount: 2,
-          coordinateCount: 8,
-          routeId: "M57",
-        },
-      ],
-    }),
-    {
-      httpMetadata: {
-        contentType: "application/json",
-      },
+  await artifacts.put(mapManifestKey, mapManifestBody, {
+    httpMetadata: {
+      contentType: "application/json",
     },
-  );
-  await artifacts.put(artifactKey, '{"type":"FeatureCollection","features":[]}', {
+  });
+  await artifacts.put(mapArtifactKey, '{"type":"FeatureCollection","features":[]}', {
     httpMetadata: {
       contentType: "application/geo+json",
     },
@@ -396,6 +473,12 @@ describe("Worker public route API smoke", () => {
       MapManifestResponseSchema,
       await getJson("/api/v1/map/manifest"),
     );
+    expect(manifest).toMatchObject({
+      schemaVersion: 2,
+      releaseId: mapReleaseId,
+      publishedAt: mapPublishedAt,
+      coverage: mapCoverage,
+    });
     expect(manifest.artifacts[0]).toEqual(
       expect.objectContaining({
         routeId: "M57",

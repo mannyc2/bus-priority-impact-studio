@@ -5,6 +5,7 @@ import {
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
+import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import { buildNetworkMapFeatureCollection } from "../src/commands/map/artifacts";
 
 const summary = {
@@ -85,7 +86,14 @@ function segmentPayload(): MapRouteSegmentFeatureCollection {
 
 describe("buildNetworkMapFeatureCollection", () => {
   test("builds one simplified citywide network feature per route", () => {
+    const publishedAt = "2026-04-01T00:00:00.000Z";
+    const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+      releaseId: releaseIdFromPublishedAt(publishedAt),
+      publishedAt,
+      coverage: { start: "2026-03", end: "2026-03" },
+    });
     const collection = buildNetworkMapFeatureCollection({
+      releaseIdentity,
       routes: [
         {
           routeId: "M15+",
@@ -100,6 +108,7 @@ describe("buildNetworkMapFeatureCollection", () => {
     });
 
     expect(collection.features).toHaveLength(1);
+    expect(collection).toMatchObject({ schemaVersion: 2, ...releaseIdentity });
     const feature = collection.features[0];
     expect(feature?.properties).toMatchObject({
       routeId: "M15+",

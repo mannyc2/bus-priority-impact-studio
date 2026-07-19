@@ -1,6 +1,7 @@
 import {
   createD1ServingDb,
   findLatestNonBaselineObservedMonth,
+  findLatestVerifiedFullMapRelease,
   getRouteBatchStatus,
   getRouteBriefSummary,
   getRouteScorecard,
@@ -92,6 +93,51 @@ function artifactApiPath(key: string): string {
     .split("/")
     .map((part) => encodeURIComponent(part))
     .join("/")}`;
+}
+
+const mapArtifactManifestKeys = [
+  "artifactCount",
+  "artifactKind",
+  "artifacts",
+  "buildStatus",
+  "coverage",
+  "issueCount",
+  "layers",
+  "publishedAt",
+  "releaseId",
+  "releaseProfile",
+  "routeFacts",
+  "routeSegmentArtifactCount",
+  "routeUniverse",
+  "schemaVersion",
+  "sources",
+  "status",
+  "totalByteLength",
+  "totalFeatureCount",
+  "verificationStatus",
+] as const;
+
+const mapArtifactEntryKeys = [
+  "artifactKey",
+  "artifactKind",
+  "byteLength",
+  "contentType",
+  "coordinateCount",
+  "featureCount",
+  "gzipByteLength",
+  "routeId",
+  "sha256",
+] as const;
+
+function hasExactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
+  const actual = Object.keys(value);
+  const expectedSet = new Set(expected);
+  return actual.length === expected.length && actual.every((key) => expectedSet.has(key));
+}
+
+async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function hasAsciiControlCharacter(value: string): boolean {
@@ -531,24 +577,60 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
   );
 }
 
-async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Response> {
+async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<Response> {
+  if (env.DB === undefined) {
+    return dependencyNotConfigured("DB", "map release catalog");
+  }
   if (env.ARTIFACTS === undefined) {
     return dependencyNotConfigured("ARTIFACTS", "map manifest");
   }
 
-  const month = releaseStatusMonth(url, env);
-  if (month === null) {
-    return errorJson(400, "Query parameter month or BASELINE_MONTH must use YYYY-MM format.");
+  let catalog: Awaited<ReturnType<typeof findLatestVerifiedFullMapRelease>>;
+  try {
+    catalog = await findLatestVerifiedFullMapRelease(createD1ServingDb(env.DB));
+  } catch (error) {
+    console.error("Map release catalog query failed.", { error });
+    return errorJson(503, "The verified map release catalog is unavailable.");
+  }
+  if (catalog === null) {
+    return errorJson(503, "No verified full map release is registered.");
   }
 
-  const object = await env.ARTIFACTS.get(`map/${month}/manifest.json`);
+  let object: R2ObjectBody | null;
+  try {
+    object = await env.ARTIFACTS.get(catalog.manifestKey);
+  } catch (error) {
+    console.error("Registered map manifest fetch failed.", {
+      error,
+      manifestKey: catalog.manifestKey,
+    });
+    return errorJson(502, "The registered map manifest could not be fetched.");
+  }
   if (object === null) {
-    return errorJson(404, "Map manifest was not found.");
+    return errorJson(502, "The registered map manifest is unavailable.");
   }
 
-  const manifest = (await object.json()) as {
+  let bytes: ArrayBuffer;
+  try {
+    bytes = await object.arrayBuffer();
+  } catch (error) {
+    console.error("Registered map manifest body read failed.", {
+      error,
+      manifestKey: catalog.manifestKey,
+    });
+    return errorJson(502, "The registered map manifest body could not be read.");
+  }
+  const actualSha256 = await sha256Hex(bytes);
+  if (actualSha256 !== catalog.manifestSha256) {
+    return errorJson(502, "The registered map manifest failed integrity verification.");
+  }
+
+  let manifest: {
     schemaVersion?: unknown;
-    generatedAt?: unknown;
+    artifactKind?: unknown;
+    releaseId?: unknown;
+    publishedAt?: unknown;
+    coverage?: unknown;
     releaseProfile?: unknown;
     buildStatus?: unknown;
     verificationStatus?: unknown;
@@ -575,72 +657,103 @@ async function buildMapManifestResponse(url: URL, env: StudioApiEnv): Promise<Re
     }>;
   };
 
-  return json(
-    decodeSchemaStrict(MapManifestResponseSchema, {
-      schemaVersion: 1,
-      generatedAt: manifest.generatedAt,
-      baselineMonth: month,
-      releaseProfile: manifest.releaseProfile ?? "demo",
-      buildStatus: manifest.buildStatus ?? "pass",
-      verificationStatus: manifest.verificationStatus ?? "not_run",
-      routeFacts: manifest.routeFacts ?? {
-        status: "unavailable",
-        reason: "Legacy map manifest does not declare a route-facts projection.",
-      },
-      sources: Array.isArray(manifest.sources) ? manifest.sources : [],
-      layers: Array.isArray(manifest.layers) ? manifest.layers : [],
-      routeUniverse:
-        typeof manifest.routeUniverse === "object" && manifest.routeUniverse !== null
-          ? manifest.routeUniverse
-          : {
-              includedRouteTypes: ["Local", "Limited", "SBS"],
-              excludedRouteTypes: ["Express", "School"],
-              expectedRouteIds: [],
-              geometryRouteIds: [],
-              routeSegmentRouteIds: (manifest.artifacts ?? []).flatMap((artifact) =>
-                typeof artifact.routeId === "string" ? [artifact.routeId] : [],
-              ),
-              routeFactRouteIds: [],
-            },
-      status: manifest.status,
-      artifactCount: manifest.artifactCount,
-      routeSegmentArtifactCount: manifest.routeSegmentArtifactCount,
-      totalFeatureCount: manifest.totalFeatureCount,
-      totalByteLength: manifest.totalByteLength,
-      issueCount: manifest.issueCount,
-      artifacts: (manifest.artifacts ?? []).map((artifact) => ({
-        artifactKind: artifact.artifactKind,
-        artifactKey: artifact.artifactKey,
-        contentType: artifact.contentType,
-        byteLength: artifact.byteLength,
-        gzipByteLength: artifact.gzipByteLength,
-        sha256: artifact.sha256,
-        featureCount: artifact.featureCount,
-        coordinateCount: artifact.coordinateCount,
-        routeId: artifact.routeId,
-        apiPath:
-          typeof artifact.artifactKey === "string" ? artifactApiPath(artifact.artifactKey) : "",
-      })),
-      quality: {
-        releaseLayer: "baseline_release",
-        completenessStatus:
-          manifest.verificationStatus === "pass" &&
-          Array.isArray(manifest.layers) &&
-          manifest.layers.length > 0
-            ? "complete"
-            : "partial_public_monthly_only",
-        confidence:
-          manifest.verificationStatus === "pass" &&
-          Array.isArray(manifest.layers) &&
-          manifest.layers.length > 0
-            ? "high"
-            : "low",
-        caveats: [
-          "Map payloads are generated artifacts served from R2; the manifest only carries metadata and fetch paths.",
-        ],
-      },
-    }),
-  );
+  try {
+    const value: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return errorJson(502, "The registered map manifest has an invalid contract.");
+    }
+    if (
+      !hasExactKeys(value as Record<string, unknown>, mapArtifactManifestKeys) ||
+      !Array.isArray((value as { artifacts?: unknown }).artifacts) ||
+      !(value as { artifacts: unknown[] }).artifacts.every(
+        (artifact) =>
+          typeof artifact === "object" &&
+          artifact !== null &&
+          !Array.isArray(artifact) &&
+          hasExactKeys(artifact as Record<string, unknown>, mapArtifactEntryKeys),
+      )
+    ) {
+      return errorJson(502, "The registered map manifest has an invalid v2 shape.");
+    }
+    manifest = value as typeof manifest;
+  } catch {
+    return errorJson(502, "The registered map manifest is not valid JSON.");
+  }
+
+  if (manifest.artifactKind !== "map_artifact_manifest") {
+    return errorJson(502, "The registered map manifest has an invalid artifact kind.");
+  }
+
+  const response = decodeSchemaEitherStrict(MapManifestResponseSchema, {
+    schemaVersion: manifest.schemaVersion,
+    releaseId: manifest.releaseId,
+    publishedAt: manifest.publishedAt,
+    coverage: manifest.coverage,
+    releaseProfile: manifest.releaseProfile,
+    buildStatus: manifest.buildStatus,
+    verificationStatus: manifest.verificationStatus,
+    routeFacts: manifest.routeFacts,
+    sources: manifest.sources,
+    layers: manifest.layers,
+    routeUniverse: manifest.routeUniverse,
+    status: manifest.status,
+    artifactCount: manifest.artifactCount,
+    routeSegmentArtifactCount: manifest.routeSegmentArtifactCount,
+    totalFeatureCount: manifest.totalFeatureCount,
+    totalByteLength: manifest.totalByteLength,
+    issueCount: manifest.issueCount,
+    artifacts: Array.isArray(manifest.artifacts)
+      ? manifest.artifacts.map((artifact) => ({
+          artifactKind: artifact.artifactKind,
+          artifactKey: artifact.artifactKey,
+          contentType: artifact.contentType,
+          byteLength: artifact.byteLength,
+          gzipByteLength: artifact.gzipByteLength,
+          sha256: artifact.sha256,
+          featureCount: artifact.featureCount,
+          coordinateCount: artifact.coordinateCount,
+          routeId: artifact.routeId,
+          apiPath:
+            typeof artifact.artifactKey === "string" ? artifactApiPath(artifact.artifactKey) : "",
+        }))
+      : manifest.artifacts,
+    quality: {
+      releaseLayer: "observed_release",
+      completenessStatus: "complete",
+      confidence: "high",
+      caveats: [
+        "Map payloads are verified generated artifacts served from R2; the manifest carries coverage metadata and fetch paths.",
+      ],
+    },
+  });
+  if (Result.isFailure(response)) {
+    return errorJson(502, "The registered map manifest has an invalid v2 contract.");
+  }
+
+  const value = response.success;
+  const routeCount = value.routeUniverse.expectedRouteIds.length;
+  const identityMatches =
+    value.releaseId === catalog.releaseId &&
+    value.publishedAt === catalog.publishedAt &&
+    value.coverage.start === catalog.coverage.start &&
+    value.coverage.end === catalog.coverage.end;
+  const publicationMatches =
+    value.releaseProfile === catalog.releaseProfile &&
+    value.verificationStatus === catalog.verificationStatus &&
+    value.releaseProfile === "full" &&
+    value.buildStatus === "pass" &&
+    value.verificationStatus === "pass" &&
+    value.status === "pass" &&
+    value.issueCount === 0;
+  const routeCountsMatch =
+    routeCount === catalog.routeCount &&
+    value.routeFacts.status === "available" &&
+    value.routeFacts.routeCount === catalog.routeCount;
+  if (!identityMatches || !publicationMatches || !routeCountsMatch) {
+    return errorJson(502, "The registered map manifest does not match its catalog record.");
+  }
+
+  return json(value);
 }
 
 async function buildArtifactResponse(url: URL, env: StudioApiEnv): Promise<Response> {

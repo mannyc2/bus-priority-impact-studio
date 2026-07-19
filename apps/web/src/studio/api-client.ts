@@ -1,11 +1,14 @@
 import { decodeStrict } from "@bp/domain/decode";
-import type {
-  MapBusLaneFeatureCollection,
-  MapContextFeatureCollection,
-  MapManifestResponse,
-  MapNetworkFeatureCollection as MapNetworkGeometryCollection,
-  MapRouteFactsResponse,
-  MapRouteSegmentFeatureCollection,
+import {
+  type MapBusLaneFeatureCollection,
+  type MapContextFeatureCollection,
+  type MapManifestResponse,
+  MapManifestResponseSchema,
+  MapNetworkFeatureCollectionSchema,
+  type MapNetworkFeatureCollection as MapNetworkGeometryCollection,
+  type MapRouteFactsResponse,
+  MapRouteFactsResponseSchema,
+  type MapRouteSegmentFeatureCollection,
 } from "@bp/domain/maps";
 import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key";
 import { routeStudiesKey, studyIndexKey } from "@bp/domain/studio/study-key";
@@ -220,6 +223,7 @@ export type NetworkMapFeature = {
   };
   properties: {
     routeId: string;
+    month: string;
     label: string;
     borough: string | null;
     sbs: boolean | null;
@@ -227,12 +231,13 @@ export type NetworkMapFeature = {
     trend6mPct: number | null;
     dailyRiders: number | null;
     riderHoursLost: number | null;
+    delayCoverage: { start: string | null; end: string } | null;
     laneCoverage: number | null;
     ace: boolean | null;
     hourlySpeedMph: Array<number | null>;
     hourlyTraversalCount: number[];
     servedBoroughs: string[];
-    factsStatus: "ready" | "unavailable" | "baseline_mismatch";
+    factsStatus: "ready" | "unavailable" | "coverage_mismatch";
   };
 };
 
@@ -242,7 +247,8 @@ export type NetworkMapFeatureCollection = {
 };
 
 export async function fetchMapManifest(options?: StudioQueryOptions) {
-  return loadNullableStudioJson<MapManifestResponse>(studioPath("public.mapManifest"), options);
+  const manifest = await loadNullableStudioJson<unknown>(studioPath("public.mapManifest"), options);
+  return manifest === null ? null : decodeStrict(MapManifestResponseSchema)(manifest);
 }
 
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
@@ -273,7 +279,6 @@ type JsonRecord = Record<string, unknown> &
   Partial<
     Record<
       | "ace"
-      | "baselineMonth"
       | "boroName"
       | "borough"
       | "coordinates"
@@ -320,44 +325,11 @@ function isCoordinate(value: unknown): boolean {
 }
 
 function parseNetworkCollection(value: unknown): MapNetworkGeometryCollection | null {
-  if (!isRecord(value) || value.type !== "FeatureCollection" || !Array.isArray(value.features))
+  try {
+    return decodeStrict(MapNetworkFeatureCollectionSchema)(value);
+  } catch {
     return null;
-  const routeIds = new Set<string>();
-  for (const feature of value.features) {
-    if (!isRecord(feature) || !isRecord(feature.geometry) || !isRecord(feature.properties))
-      return null;
-    const geometry = feature.geometry;
-    const properties = feature.properties;
-    if (geometry.type !== "MultiLineString" || !Array.isArray(geometry.coordinates)) return null;
-    if (
-      !geometry.coordinates.every(
-        (line) => Array.isArray(line) && line.length >= 2 && line.every(isCoordinate),
-      )
-    )
-      return null;
-    const routeId = properties.routeId;
-    const speeds = properties.hourlySpeedMph;
-    const traversals = properties.hourlyTraversalCount;
-    if (
-      typeof routeId !== "string" ||
-      routeIds.has(routeId) ||
-      !Array.isArray(speeds) ||
-      speeds.length !== 24 ||
-      !Array.isArray(traversals) ||
-      traversals.length !== 24
-    )
-      return null;
-    if (
-      speeds.some(
-        (speed, index) =>
-          (speed !== null && typeof speed !== "number") ||
-          (speed !== null && !(typeof traversals[index] === "number" && traversals[index] > 0)),
-      )
-    )
-      return null;
-    routeIds.add(routeId);
   }
-  return value as MapNetworkGeometryCollection;
 }
 
 function parseContextCollection(value: unknown): MapContextFeatureCollection | null {
@@ -405,30 +377,11 @@ function parseBusLaneCollection(value: unknown): MapBusLaneFeatureCollection | n
 }
 
 function parseRouteFacts(value: unknown): MapRouteFactsResponse | null {
-  if (
-    !isRecord(value) ||
-    value.schemaVersion !== 1 ||
-    typeof value.baselineMonth !== "string" ||
-    !Array.isArray(value.routes)
-  )
+  try {
+    return decodeStrict(MapRouteFactsResponseSchema)(value);
+  } catch {
     return null;
-  const routeIds = new Set<string>();
-  const valid = value.routes.every((fact) => {
-    if (!isRecord(fact) || !isRecord(fact.route)) return false;
-    const routeId = fact.route.routeId;
-    if (typeof routeId !== "string" || routeIds.has(routeId)) return false;
-    routeIds.add(routeId);
-    return (
-      typeof fact.route.label === "string" &&
-      typeof fact.route.speedMph === "number" &&
-      typeof fact.route.dailyRiders === "number" &&
-      isRecord(fact.delayExposure) &&
-      isRecord(fact.provenance) &&
-      isRecord(fact.provenance.lane) &&
-      isRecord(fact.provenance.ace)
-    );
-  });
-  return valid ? (value as MapRouteFactsResponse) : null;
+  }
 }
 
 export async function fetchVerifiedMapArtifact<T>(
@@ -581,18 +534,46 @@ export async function fetchNetworkMapGeo(
 
 export type NetworkMapJoinResult = {
   collection: NetworkMapFeatureCollection | null;
-  factsStatus: "ready" | "unavailable" | "baseline_mismatch";
+  factsStatus: "ready" | "unavailable" | "coverage_mismatch";
   completeFactCount: number;
   routeCount: number;
   /**
-   * Unanimous delay-exposure analysis period (ISO month) across every mapped
-   * route, or null when any route lacks an available delay fact or the served
-   * periods disagree. This is the coverage window of the rider-delay measure,
-   * never a release identity.
+   * End of the unanimous delay-exposure coverage window across every mapped
+   * route, or null when any route lacks an available delay fact or the full
+   * windows disagree. This is evidence grain, never release identity.
    */
   delayCoverageEnd: string | null;
   message: string | null;
 };
+
+type CoverageLike = { readonly start: string | null; readonly end: string };
+type ReleaseIdentityLike = {
+  readonly releaseId: string;
+  readonly publishedAt: string;
+  readonly coverage: CoverageLike;
+};
+
+function coverageMatches(left: CoverageLike, right: CoverageLike): boolean {
+  return left.start === right.start && left.end === right.end;
+}
+
+function releaseIdentityMatches(left: ReleaseIdentityLike, right: ReleaseIdentityLike): boolean {
+  return (
+    left.releaseId === right.releaseId &&
+    left.publishedAt === right.publishedAt &&
+    coverageMatches(left.coverage, right.coverage)
+  );
+}
+
+function coverageLabel(coverage: CoverageLike): string {
+  return coverage.start === null || coverage.start === coverage.end
+    ? coverage.end
+    : `${coverage.start} through ${coverage.end}`;
+}
+
+function releaseIdentityLabel(identity: ReleaseIdentityLike): string {
+  return `${identity.releaseId} published ${identity.publishedAt}, covering ${coverageLabel(identity.coverage)}`;
+}
 
 export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMapJoinResult {
   if (bundle === null)
@@ -616,17 +597,23 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
           ? `Network geometry failed integrity verification (expected ${bundle.network.expectedSha256}, received ${bundle.network.actualSha256}).`
           : `Citywide network geometry is unavailable (${bundle.network.status}).`,
     };
-  const baselineMismatch =
+  const networkIdentityMismatch = !releaseIdentityMatches(bundle.network.data, bundle.manifest);
+  const routeFactsIdentityMismatch =
     bundle.routeFacts.status === "ready" &&
-    bundle.routeFacts.data.baselineMonth !== bundle.manifest.baselineMonth;
+    (bundle.manifest.routeFacts.status !== "available" ||
+      !releaseIdentityMatches(bundle.routeFacts.data, bundle.manifest) ||
+      !releaseIdentityMatches(bundle.routeFacts.data, bundle.network.data) ||
+      !releaseIdentityMatches(bundle.routeFacts.data, bundle.manifest.routeFacts));
+  const coverageMismatch = networkIdentityMismatch || routeFactsIdentityMismatch;
   const facts =
-    bundle.routeFacts.status === "ready" && !baselineMismatch ? bundle.routeFacts.data : null;
+    bundle.routeFacts.status === "ready" && !coverageMismatch ? bundle.routeFacts.data : null;
   const factsByRoute = new Map(
     facts?.routes.map((fact) => [fact.route.routeId, fact] as const) ?? [],
   );
   let completeFactCount = 0;
   let delayFactCount = 0;
-  const delayPeriods = new Set<string>();
+  let unanimousDelayCoverage: { start: string | null; end: string } | null = null;
+  let delayCoverageMismatch = false;
   const features = bundle.network.data.features.map((feature) => {
     const fact = factsByRoute.get(feature.properties.routeId);
     if (fact !== undefined) completeFactCount += 1;
@@ -635,10 +622,14 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
       exposure !== undefined &&
       exposure.status === "available" &&
       exposure.valueRiderHours !== null &&
-      exposure.analysisPeriod !== null
+      exposure.coverage !== null
     ) {
       delayFactCount += 1;
-      delayPeriods.add(exposure.analysisPeriod);
+      if (unanimousDelayCoverage === null) {
+        unanimousDelayCoverage = exposure.coverage;
+      } else if (!coverageMatches(unanimousDelayCoverage, exposure.coverage)) {
+        delayCoverageMismatch = true;
+      }
     }
     return {
       type: "Feature" as const,
@@ -646,6 +637,7 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
       geometry: feature.geometry,
       properties: {
         routeId: feature.properties.routeId,
+        month: feature.properties.month,
         label: fact?.route.label ?? feature.properties.routeId,
         borough: fact?.route.borough ?? null,
         sbs: fact?.route.sbs ?? null,
@@ -653,6 +645,7 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
         trend6mPct: fact?.route.movement6mPct ?? null,
         dailyRiders: fact?.route.dailyRiders ?? null,
         riderHoursLost: fact?.delayExposure.valueRiderHours ?? null,
+        delayCoverage: fact?.delayExposure.coverage ?? null,
         laneCoverage: fact?.provenance.lane.valuePct ?? null,
         ace:
           fact === undefined || fact.provenance.ace.status === "unknown"
@@ -661,8 +654,8 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
         hourlySpeedMph: [...feature.properties.hourlySpeedMph],
         hourlyTraversalCount: [...feature.properties.hourlyTraversalCount],
         servedBoroughs: [...feature.properties.servedBoroughs],
-        factsStatus: baselineMismatch
-          ? ("baseline_mismatch" as const)
+        factsStatus: coverageMismatch
+          ? ("coverage_mismatch" as const)
           : fact === undefined
             ? ("unavailable" as const)
             : ("ready" as const),
@@ -670,14 +663,18 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
     };
   });
   const routeCount = features.length;
-  // The delay lens needs 100% of mapped routes on one shared analysis period;
+  // The delay lens needs 100% of mapped routes on one shared evidence window;
   // anything less serves no coverage label and the lens stays hidden.
+  const resolvedDelayCoverage = unanimousDelayCoverage as CoverageLike | null;
   const delayCoverageEnd =
-    routeCount > 0 && delayFactCount === routeCount && delayPeriods.size === 1
-      ? ([...delayPeriods][0] ?? null)
+    routeCount > 0 &&
+    delayFactCount === routeCount &&
+    !delayCoverageMismatch &&
+    resolvedDelayCoverage !== null
+      ? resolvedDelayCoverage.end
       : null;
-  const factsStatus = baselineMismatch
-    ? "baseline_mismatch"
+  const factsStatus = coverageMismatch
+    ? "coverage_mismatch"
     : completeFactCount === routeCount && bundle.routeFacts.status === "ready"
       ? "ready"
       : "unavailable";
@@ -685,14 +682,19 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
     bundle.routeFacts.status === "integrity_mismatch"
       ? `Route facts failed integrity verification (expected ${bundle.routeFacts.expectedSha256}, received ${bundle.routeFacts.actualSha256}).`
       : null;
+  const coverageMismatchMessage = networkIdentityMismatch
+    ? `Manifest covers ${coverageLabel(bundle.manifest.coverage)}, but map geometry covers ${coverageLabel(bundle.network.data.coverage)}. Release identity mismatch: expected ${releaseIdentityLabel(bundle.manifest)}; received ${releaseIdentityLabel(bundle.network.data)}.`
+    : routeFactsIdentityMismatch && bundle.routeFacts.status === "ready"
+      ? `Map geometry covers ${coverageLabel(bundle.network.data.coverage)}, but route facts cover ${coverageLabel(bundle.routeFacts.data.coverage)}. Release identity mismatch: manifest ${releaseIdentityLabel(bundle.manifest)}; network ${releaseIdentityLabel(bundle.network.data)}; route facts ${releaseIdentityLabel(bundle.routeFacts.data)}; manifest reference ${bundle.manifest.routeFacts.status === "available" ? releaseIdentityLabel(bundle.manifest.routeFacts) : "unavailable"}.`
+      : null;
   return {
     collection: { type: "FeatureCollection", features },
     factsStatus,
     completeFactCount,
     routeCount,
     delayCoverageEnd,
-    message: baselineMismatch
-      ? `Map geometry is for ${bundle.manifest.baselineMonth}, but route facts are for ${bundle.routeFacts.status === "ready" ? bundle.routeFacts.data.baselineMonth : "an unavailable month"}.`
+    message: coverageMismatchMessage
+      ? coverageMismatchMessage
       : factFailureMessage !== null
         ? `${factFailureMessage} ${completeFactCount} of ${routeCount} routes have complete metric facts.`
         : completeFactCount === routeCount

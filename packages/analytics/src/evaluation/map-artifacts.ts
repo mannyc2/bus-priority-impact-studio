@@ -11,10 +11,16 @@ import {
   type MapRouteUniverse,
   type MapSourceStatus,
 } from "@bp/domain/maps";
+import {
+  type CoverageWindow,
+  CoverageWindowSchema,
+  type ReleaseIdentity,
+  releaseIdFromPublishedAt,
+} from "@bp/domain/studio/shared";
 import { Result } from "effect";
 import { decodeSchemaEitherStrict } from "../schema-decode.js";
 
-export const MAP_ARTIFACT_SCHEMA_VERSION = 1;
+export const MAP_ARTIFACT_SCHEMA_VERSION = 2;
 export const MAP_ARTIFACT_JSON_CONTENT_TYPE = "application/json" as const;
 export const MAP_ARTIFACT_GEOJSON_CONTENT_TYPE = "application/geo+json" as const;
 
@@ -68,19 +74,34 @@ export function evaluateMaxAgeSnapshotCurrency(input: {
 }
 
 export function evaluateAnalysisPeriodCurrency(input: {
-  baselineMonth: string;
-  releaseMonth: string;
+  coverage: CoverageWindow;
+  releaseCoverage: CoverageWindow;
   coveragePassed: boolean;
 }): MapCurrencyResult {
-  if (input.baselineMonth !== input.releaseMonth) {
+  if (
+    input.coverage.start !== input.releaseCoverage.start ||
+    input.coverage.end !== input.releaseCoverage.end
+  ) {
     return {
       status: "stale",
-      reason: `Analysis period ${input.baselineMonth} does not match release month ${input.releaseMonth}.`,
+      reason: `Analysis coverage ${coverageLabel(input.coverage)} does not match release coverage ${coverageLabel(input.releaseCoverage)}.`,
     };
   }
   return input.coveragePassed
-    ? { status: "period_aligned", reason: `Analysis evidence covers ${input.releaseMonth}.` }
-    : { status: "unknown", reason: `Analysis coverage for ${input.releaseMonth} did not pass.` };
+    ? {
+        status: "period_aligned",
+        reason: `Analysis evidence covers ${coverageLabel(input.releaseCoverage)}.`,
+      }
+    : {
+        status: "unknown",
+        reason: `Analysis coverage for ${coverageLabel(input.releaseCoverage)} did not pass.`,
+      };
+}
+
+function coverageLabel(coverage: CoverageWindow): string {
+  return coverage.start === null || coverage.start === coverage.end
+    ? coverage.end
+    : `${coverage.start} through ${coverage.end}`;
 }
 
 export function evaluateRevisionPinnedCurrency(input: {
@@ -97,7 +118,7 @@ export function evaluateRevisionPinnedCurrency(input: {
 
 export function evaluateMapCurrencyEvidence(
   evidence: MapCurrencyEvidence,
-  releaseMonth: string,
+  releaseCoverage: CoverageWindow,
 ): MapCurrencyResult {
   switch (evidence.policy) {
     case "max_age_snapshot":
@@ -108,8 +129,8 @@ export function evaluateMapCurrencyEvidence(
       });
     case "analysis_period":
       return evaluateAnalysisPeriodCurrency({
-        baselineMonth: evidence.baselineMonth,
-        releaseMonth,
+        coverage: evidence.coverage,
+        releaseCoverage,
         coveragePassed: evidence.coveragePassed,
       });
     case "revision_pinned":
@@ -173,8 +194,9 @@ export type MapArtifactEntry = {
 export type MapArtifactManifest = {
   schemaVersion: typeof MAP_ARTIFACT_SCHEMA_VERSION;
   artifactKind: "map_artifact_manifest";
-  analysisPeriod: string;
-  generatedAt: string;
+  releaseId: string;
+  publishedAt: string;
+  coverage: CoverageWindow;
   releaseProfile: "demo" | "full";
   buildStatus: "pass" | "fail";
   verificationStatus: "not_run" | "pass" | "fail";
@@ -183,8 +205,10 @@ export type MapArtifactManifest = {
         status: "available";
         artifactKey: string;
         sha256: string;
-        schemaVersion: 1;
-        baselineMonth: string;
+        schemaVersion: 2;
+        releaseId: string;
+        publishedAt: string;
+        coverage: CoverageWindow;
         routeCount: number;
         byteLength: number;
         gzipByteLength: number;
@@ -227,8 +251,9 @@ export type MapJsonArtifact = {
 type ManifestCandidate = {
   schemaVersion?: unknown;
   artifactKind?: unknown;
-  analysisPeriod?: unknown;
-  generatedAt?: unknown;
+  releaseId?: unknown;
+  publishedAt?: unknown;
+  coverage?: unknown;
   releaseProfile?: unknown;
   buildStatus?: unknown;
   verificationStatus?: unknown;
@@ -244,6 +269,31 @@ type ManifestCandidate = {
   issueCount?: unknown;
   artifacts?: unknown;
 };
+
+function isMatchingRouteFactsReference(
+  value: unknown,
+  identity: { releaseId: string; publishedAt: string; coverage: CoverageWindow },
+): boolean {
+  if (!isJsonObject(value)) return false;
+  if (value["status"] === "unavailable") {
+    return typeof value["reason"] === "string" && value["reason"].length > 0;
+  }
+  const coverage = decodeSchemaEitherStrict(CoverageWindowSchema, value["coverage"]);
+  return (
+    value["status"] === "available" &&
+    value["schemaVersion"] === 2 &&
+    typeof value["artifactKey"] === "string" &&
+    typeof value["sha256"] === "string" &&
+    typeof value["routeCount"] === "number" &&
+    typeof value["byteLength"] === "number" &&
+    typeof value["gzipByteLength"] === "number" &&
+    value["releaseId"] === identity.releaseId &&
+    value["publishedAt"] === identity.publishedAt &&
+    Result.isSuccess(coverage) &&
+    coverage.success.start === identity.coverage.start &&
+    coverage.success.end === identity.coverage.end
+  );
+}
 
 export function mapArtifactSha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -291,8 +341,7 @@ export function buildMapJsonArtifact(input: {
 }
 
 export function buildMapArtifactManifest(input: {
-  month: string;
-  generatedAt: string;
+  releaseIdentity: ReleaseIdentity;
   artifacts: readonly MapArtifactEntry[];
   releaseProfile: "demo" | "full";
   routeFacts: MapArtifactManifest["routeFacts"];
@@ -307,8 +356,7 @@ export function buildMapArtifactManifest(input: {
   return {
     schemaVersion: MAP_ARTIFACT_SCHEMA_VERSION,
     artifactKind: "map_artifact_manifest",
-    analysisPeriod: input.month,
-    generatedAt: input.generatedAt,
+    ...input.releaseIdentity,
     releaseProfile: input.releaseProfile,
     buildStatus: "pass",
     verificationStatus: "not_run",
@@ -332,17 +380,35 @@ export function isMapArtifactManifest(value: unknown): value is MapArtifactManif
   }
 
   const candidate = value as ManifestCandidate;
+  const coverage = decodeSchemaEitherStrict(CoverageWindowSchema, candidate.coverage);
+  const decodedCoverage = Result.isSuccess(coverage) ? coverage.success : null;
+  let identityIsValid = false;
+  if (
+    typeof candidate.releaseId === "string" &&
+    typeof candidate.publishedAt === "string" &&
+    decodedCoverage !== null
+  ) {
+    try {
+      identityIsValid = candidate.releaseId === releaseIdFromPublishedAt(candidate.publishedAt);
+    } catch {
+      identityIsValid = false;
+    }
+  }
   return (
     candidate.schemaVersion === MAP_ARTIFACT_SCHEMA_VERSION &&
     candidate.artifactKind === "map_artifact_manifest" &&
-    typeof candidate.analysisPeriod === "string" &&
-    typeof candidate.generatedAt === "string" &&
+    identityIsValid &&
     (candidate.releaseProfile === "demo" || candidate.releaseProfile === "full") &&
     (candidate.buildStatus === "pass" || candidate.buildStatus === "fail") &&
     (candidate.verificationStatus === "not_run" ||
       candidate.verificationStatus === "pass" ||
       candidate.verificationStatus === "fail") &&
-    isJsonObject(candidate.routeFacts) &&
+    decodedCoverage !== null &&
+    isMatchingRouteFactsReference(candidate.routeFacts, {
+      releaseId: candidate.releaseId as string,
+      publishedAt: candidate.publishedAt as string,
+      coverage: decodedCoverage,
+    }) &&
     Array.isArray(candidate.sources) &&
     Array.isArray(candidate.layers) &&
     isJsonObject(candidate.routeUniverse) &&
@@ -373,6 +439,7 @@ export function mapArtifactPayloadIssues(input: {
   artifact: MapArtifactEntry;
   payload: unknown;
   month: string;
+  releaseIdentity?: ReleaseIdentity;
 }): MapArtifactIssue[] {
   const issues: MapArtifactIssue[] = [];
   const expectedFeatureCount = featureCountForPayload(input.payload);
@@ -434,6 +501,19 @@ export function mapArtifactPayloadIssues(input: {
         message: `Map artifact ${input.artifact.artifactKey} failed its domain GeoJSON contract.`,
       });
     } else {
+      if (
+        input.releaseIdentity !== undefined &&
+        (result.success.releaseId !== input.releaseIdentity.releaseId ||
+          result.success.publishedAt !== input.releaseIdentity.publishedAt ||
+          result.success.coverage.start !== input.releaseIdentity.coverage.start ||
+          result.success.coverage.end !== input.releaseIdentity.coverage.end)
+      ) {
+        issues.push({
+          code: "map_network_identity_mismatch",
+          artifactKey: input.artifact.artifactKey,
+          message: `Map network artifact ${input.artifact.artifactKey} does not carry the manifest release identity.`,
+        });
+      }
       const monthMismatches = result.success.features.filter(
         (feature) => feature.properties.month !== input.month,
       );
@@ -528,10 +608,10 @@ export function verifyMapArtifactManifestContents(input: {
       message: `Map artifact manifest profile is ${manifest.releaseProfile}, expected ${input.expectedProfile}.`,
     });
   }
-  if (manifest.analysisPeriod !== input.month) {
+  if (manifest.coverage.end !== input.month) {
     issues.push({
       code: "map_artifact_manifest_month_mismatch",
-      message: `Map artifact manifest is for ${manifest.analysisPeriod}, expected ${input.month}.`,
+      message: `Map artifact manifest coverage ends ${manifest.coverage.end}, expected ${input.month}.`,
     });
   }
 
@@ -568,7 +648,7 @@ export function verifyMapArtifactManifestContents(input: {
         message: `Required ${layerId} layer is ${layer.readiness}/${layer.currencyStatus}: ${layer.reason}`,
       });
     }
-    const evaluatedCurrency = evaluateMapCurrencyEvidence(layer.currency, input.month);
+    const evaluatedCurrency = evaluateMapCurrencyEvidence(layer.currency, manifest.coverage);
     if (layer.currencyStatus !== evaluatedCurrency.status) {
       issues.push({
         code: "map_layer_currency_mismatch",
@@ -590,7 +670,7 @@ export function verifyMapArtifactManifestContents(input: {
     });
   }
   for (const source of manifest.sources) {
-    const evaluatedCurrency = evaluateMapCurrencyEvidence(source.currency, input.month);
+    const evaluatedCurrency = evaluateMapCurrencyEvidence(source.currency, manifest.coverage);
     if (source.currencyStatus !== evaluatedCurrency.status) {
       issues.push({
         code: "map_source_currency_mismatch",
@@ -722,10 +802,15 @@ export function verifyMapArtifactManifestContents(input: {
         code: "map_route_facts_unavailable",
         message: "Full map release lacks the manifest-referenced route-facts projection.",
       });
-    } else if (manifest.routeFacts.baselineMonth !== input.month) {
+    } else if (
+      manifest.routeFacts.releaseId !== manifest.releaseId ||
+      manifest.routeFacts.publishedAt !== manifest.publishedAt ||
+      manifest.routeFacts.coverage.start !== manifest.coverage.start ||
+      manifest.routeFacts.coverage.end !== manifest.coverage.end
+    ) {
       issues.push({
-        code: "map_route_facts_month_mismatch",
-        message: `Map route facts are for ${manifest.routeFacts.baselineMonth}, expected ${input.month}.`,
+        code: "map_route_facts_identity_mismatch",
+        message: "Map route facts do not carry the manifest release identity.",
       });
     }
   }

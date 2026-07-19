@@ -17,6 +17,7 @@ import {
   MapRouteUniverseSchema,
   MapSourceStatusSchema,
 } from "@bp/domain/maps";
+import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
   runPublishR2Artifacts,
   type S3Driver,
@@ -46,10 +47,10 @@ function recordingDriver(remoteIndex: Map<string, { size: number; etag: string }
 }
 
 async function seedArtifacts(root: string, month: string): Promise<void> {
-  await mkdir(join(root, "map", month), { recursive: true });
+  await mkdir(join(root, "assets", month), { recursive: true });
   await mkdir(join(root, "studio"), { recursive: true });
   await writeFile(
-    join(root, "map", month, "tiles.geojson"),
+    join(root, "assets", month, "tiles.geojson"),
     '{"type":"FeatureCollection","features":[]}',
   );
   await writeFile(join(root, "studio", "index.json"), '{"v":1}');
@@ -85,13 +86,23 @@ async function seedPublishableFullMap(
   input?: { staleLane?: boolean },
 ): Promise<void> {
   const generatedAt = "2026-04-01T00:00:00.000Z";
+  const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+    releaseId: releaseIdFromPublishedAt(generatedAt),
+    publishedAt: generatedAt,
+    coverage: { start: MONTH, end: MONTH },
+  });
   const definitions = [
     {
       artifactKey: "map/sources/source-snapshot.json",
       artifactKind: "map_source_snapshot" as const,
       contentType: MAP_ARTIFACT_JSON_CONTENT_TYPE,
       routeId: null,
-      payload: { sources: [] },
+      payload: {
+        schemaVersion: 2,
+        artifactKind: "map_source_snapshot",
+        ...releaseIdentity,
+        sources: [],
+      },
       featureCount: 0,
     },
     {
@@ -149,7 +160,7 @@ async function seedPublishableFullMap(
       artifactKind: "map_network_simplified_geojson" as const,
       contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
-      payload: { type: "FeatureCollection", features: [] },
+      payload: { schemaVersion: 2, ...releaseIdentity, type: "FeatureCollection", features: [] },
       featureCount: 0,
     },
     ...(input?.staleLane
@@ -173,7 +184,7 @@ async function seedPublishableFullMap(
   }
   const routeFactsKey = "studio/v1/map-route-facts.json";
   const routeFactsBytes = new TextEncoder().encode(
-    `${JSON.stringify({ schemaVersion: 1, baselineMonth: MONTH, generatedAt, routes: [] }, null, 2)}\n`,
+    `${JSON.stringify({ schemaVersion: 2, ...releaseIdentity, routes: [] }, null, 2)}\n`,
   );
   await mkdir(join(root, "studio", "v1"), { recursive: true });
   await writeFile(join(root, routeFactsKey), routeFactsBytes);
@@ -229,7 +240,11 @@ async function seedPublishableFullMap(
           : layerId === "network_simplified" ||
               layerId === "route_segments" ||
               layerId === "route_facts"
-            ? { policy: "analysis_period", baselineMonth: MONTH, coveragePassed: true }
+            ? {
+                policy: "analysis_period",
+                coverage: releaseIdentity.coverage,
+                coveragePassed: true,
+              }
             : {
                 policy: "max_age_snapshot",
                 fetchedAt:
@@ -256,16 +271,15 @@ async function seedPublishableFullMap(
     routeFactRouteIds: [],
   });
   const manifest = buildMapArtifactManifest({
-    month: MONTH,
-    generatedAt,
+    releaseIdentity,
     artifacts: artifacts.map((artifact) => artifact.entry),
     releaseProfile: "full",
     routeFacts: {
       status: "available",
       artifactKey: routeFactsKey,
       sha256: createHash("sha256").update(routeFactsBytes).digest("hex"),
-      schemaVersion: 1,
-      baselineMonth: MONTH,
+      schemaVersion: 2,
+      ...releaseIdentity,
       routeCount: 0,
       byteLength: routeFactsBytes.byteLength,
       gzipByteLength: gzipSync(routeFactsBytes, { level: 9 }).byteLength,
@@ -276,10 +290,12 @@ async function seedPublishableFullMap(
   });
   const path = join(root, "map", MONTH, "manifest.json");
   await mkdir(join(root, "map", MONTH), { recursive: true });
-  await writeFile(
-    path,
+  const manifestBytes = new TextEncoder().encode(
     `${JSON.stringify({ ...manifest, verificationStatus: "pass", status: "pass" }, null, 2)}\n`,
   );
+  await writeFile(path, manifestBytes);
+  const manifestSha256 = createHash("sha256").update(manifestBytes).digest("hex");
+  await writeFile(join(root, "map", MONTH, `manifest.${manifestSha256}.json`), manifestBytes);
 }
 
 const MONTH = "2026-03";
@@ -304,7 +320,7 @@ function baseOptions(input: {
     concurrency: 4,
     maxAttempts: 1,
     backoffMsBase: 1,
-    prefixes: ["map", "studio"] as const,
+    prefixes: ["assets", "studio"] as const,
     manifestDirs: [] as const,
     d1SchemaPath: join(input.artifactRoot, "missing-schema.sql"),
     d1SeedPath: join(input.artifactRoot, "missing-seed.sql"),
@@ -352,8 +368,30 @@ describe("runPublishR2Artifacts", () => {
         .filter((c) => c.kind === "put")
         .map((c) => c.key)
         .sort();
-      expect(statKeys).toEqual([`map/${MONTH}/tiles.geojson`, "studio/index.json"]);
-      expect(putKeys).toEqual([`map/${MONTH}/tiles.geojson`, "studio/index.json"]);
+      expect(statKeys).toEqual([`assets/${MONTH}/tiles.geojson`, "studio/index.json"]);
+      expect(putKeys).toEqual([`assets/${MONTH}/tiles.geojson`, "studio/index.json"]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a broad map prefix when no verified map manifest is in scope", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-ungated-map-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await mkdir(join(artifactRoot, "map", MONTH), { recursive: true });
+      await writeFile(join(artifactRoot, "map", MONTH, "draft.geojson"), "{}");
+      const { driver, calls } = recordingDriver(new Map());
+
+      await expect(
+        runPublishR2Artifacts({
+          ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+          prefixes: ["map"],
+          manifestDirs: [],
+        }),
+      ).rejects.toThrow("is required for publication");
+      expect(calls).toEqual([]);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
@@ -364,18 +402,10 @@ describe("runPublishR2Artifacts", () => {
     try {
       const artifactRoot = join(tmp, "artifacts");
       const outputPath = join(tmp, "report.json");
-      await seedArtifacts(artifactRoot, MONTH);
-      await writeFile(
-        join(artifactRoot, "map", MONTH, "manifest.json"),
-        JSON.stringify({
-          releaseProfile: "demo",
-          buildStatus: "pass",
-          verificationStatus: "not_run",
-          analysisPeriod: MONTH,
-          routeFacts: { status: "unavailable", reason: "fixture" },
-          artifacts: [],
-        }),
-      );
+      await seedPublishableFullMap(artifactRoot);
+      const manifestPath = join(artifactRoot, "map", MONTH, "manifest.json");
+      const manifest = await Bun.file(manifestPath).json();
+      await writeFile(manifestPath, JSON.stringify({ ...manifest, releaseProfile: "demo" }));
       const { driver, calls } = recordingDriver(new Map());
       await expect(
         runPublishR2Artifacts({
@@ -409,6 +439,31 @@ describe("runPublishR2Artifacts", () => {
     }
   });
 
+  it("does not publish undeclared files under a manifest-governed map prefix", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-declared-map-only-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await seedPublishableFullMap(artifactRoot);
+      const unrelatedKey = `map/${MONTH}/unrelated-draft.geojson`;
+      await writeFile(
+        join(artifactRoot, unrelatedKey),
+        '{"type":"FeatureCollection","features":[]}',
+      );
+      const { driver, calls } = recordingDriver(new Map());
+
+      const report = await runPublishR2Artifacts({
+        ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+        manifestDirs: ["map"],
+      });
+
+      expect(report.status).toBe("pass");
+      expect(calls.some((call) => call.key === unrelatedKey)).toBe(false);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("rejects a stale optional lane key before remote HEAD or PUT calls", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "publish-r2-stale-lanes-"));
     try {
@@ -433,9 +488,9 @@ describe("runPublishR2Artifacts", () => {
     try {
       const artifactRoot = join(tmp, "artifacts");
       const outputPath = join(tmp, "report.json");
-      const directory = join(artifactRoot, "map", MONTH);
+      const directory = join(artifactRoot, "assets", MONTH);
       await mkdir(directory, { recursive: true });
-      const key = `map/${MONTH}/network.${"a".repeat(64)}.geojson`;
+      const key = `assets/${MONTH}/network.${"a".repeat(64)}.geojson`;
       await writeFile(join(artifactRoot, key), '{"type":"FeatureCollection","features":[]}');
       const { driver, calls } = recordingDriver(new Map());
       const report = await runPublishR2Artifacts(
