@@ -14,10 +14,24 @@ borough route roundels are unchanged. Generation-6 plans 048-059 implement this;
 plan 050 machine-enforces the 2026-06-12 and 2026-07-06 copy bans. Gen-6 is
 complete as of 2026-07-06: plan 060 swept the orphaned component layer and the
 `check:design-doctrine` ratchet is the standing guard (allowlist holds only the
-live-file exceptions CorridorMap/RouteGeoMap/RouteMapLibre.map interpuncts and
-the RouteMapSection kicker). The July-4
+live-file CorridorMap and RouteGeoMap interpunct exceptions). The July-4
 export below remains a useful reference for layout/component structure, but its
 color tokens are retired.
+
+## Month-identity doctrine gate — 2026-07-19
+
+`check:month-doctrine` is the architecture ratchet for ADR-0022. It rejects
+month-keyed product identity: retired contract tokens, release-identity fields
+and phrases on their audited surfaces, public `?month=` selectors, and pinned
+month literals on serving or publication surfaces. It deliberately permits a
+month as source grain, a time-series coordinate, an ingest partition, an
+analysis window, or an operator-selected build window.
+
+The allowlist records exact counts per file and rule. Its initial entries are
+all shrink-only dispositions owned by Plans 079 and 085-087; a production edit
+must remove or reassign its matching entry in the same commit. No permanent
+exception exists at gate landing. Plan 086 may later preserve only the audited
+immutable compatibility readers identified by its binding plan amendment.
 
 ## Study-card / chart-card rules — 2026-07-10 (approved comp)
 

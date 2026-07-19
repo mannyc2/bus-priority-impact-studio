@@ -182,7 +182,7 @@ its number.
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 084 | Retire the monthly-baseline doctrine: ADR-0022 + steering-doc truth sweep | P1 | S-M | — (run first) | DONE |
-| 088 | Month-doctrine harness gate (ratchet allowlist; runs SECOND) | P1 | S-M | 084 | TODO |
+| 088 | Month-doctrine harness gate (ratchet allowlist; runs SECOND) | P1 | S-M | 084 | DONE |
 | 085 | De-month the public serving contract (releaseId + publishedAt + coverage) | P1 | L | 084, 088; 079 as amended, 080, 081 (all hard) | TODO |
 | 086 | De-month pipeline release identity + publish gates; empty the ratchet | P1 | M-L | 084, 088; 079 as amended + 085 (hard) | TODO |
 | 087 | Freshness ledger: `audit freshness` per-source lag report | P2 | M | 084, 088; 086 (hard) | TODO |
