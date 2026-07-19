@@ -554,7 +554,7 @@ export default defineCommand({
       month: Schema.String.check(
         Schema.isPattern(monthPattern, { message: "must be YYYY-MM" }),
       ).annotate({
-        description: "Release month, YYYY-MM",
+        description: "Covered-month partition, YYYY-MM",
       }),
       bucket: Schema.String.check(Schema.isMinLength(1)).annotate({
         description: "R2 bucket name",
