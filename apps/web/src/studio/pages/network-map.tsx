@@ -563,18 +563,18 @@ export function NetworkMapPage({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented || mobileSheetOpen || dataNotesOpen)
         return;
-      if (selectedRouteId !== null) {
-        setClickedAnchor(null);
-        setSelectedAutoFocus(null);
-        onSearchChange(withoutPin(effectiveSearch), { replace: true });
-        requestAnimationFrame(() => findPillRef.current?.focus());
-        return;
-      }
       if (browseOpen) {
         setBrowseOpen(false);
         setPointerPreviewRouteId(null);
         setFocusedPreviewRouteId(null);
         findPillRef.current?.focus();
+        return;
+      }
+      if (selectedRouteId !== null) {
+        setClickedAnchor(null);
+        setSelectedAutoFocus(null);
+        onSearchChange(withoutPin(effectiveSearch), { replace: true });
+        requestAnimationFrame(() => findPillRef.current?.focus());
       }
     };
     window.addEventListener("keydown", onKeyDown);

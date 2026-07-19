@@ -12,7 +12,7 @@ import {
   SPEED_CLASS_COLORS,
   viewEncoding,
 } from "@/components/route/network-map-model";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import type { NetworkMapFeature, SelectedRouteMapEvidence } from "@/studio/api-client";
 import type { StudioRoute } from "@/studio/api-contract";
 
@@ -411,21 +411,14 @@ export function NetworkMapSelected({
           Clear pin
         </Button>
         {route === null ? null : (
-          <Button
-            nativeButton={false}
-            render={
-              <Link
-                to="/routes/$routeId"
-                params={{ routeId: route.slug }}
-                search={{ tab: "segments" as const }}
-              />
-            }
-            size="sm"
-            variant="primary"
-            className="ml-auto"
+          <Link
+            to="/routes/$routeId"
+            params={{ routeId: route.slug }}
+            search={{ tab: "segments" as const }}
+            className={buttonVariants({ size: "sm", variant: "primary", className: "ml-auto" })}
           >
             Open route
-          </Button>
+          </Link>
         )}
       </div>
     </div>
