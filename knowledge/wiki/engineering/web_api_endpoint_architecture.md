@@ -2,7 +2,7 @@
 title: Web API Endpoint Architecture
 type: engineering
 status: active
-last_updated: 2026-07-05
+last_updated: 2026-07-19
 owner: codex
 source_count: 0
 tags: [api, worker, frontend, d1, r2, contracts, studio]
@@ -212,26 +212,36 @@ parse request
 
 ## Shared Contract Envelope
 
-> **De-month status (2026-07-12):** the month-keyed API metadata and caching mechanics below remain
-> live but are scheduled for removal per ADR-0022 — serving contract in plan 085, release identity
-> in plan 086, and freshness ledger in plan 087. Until those land, this describes current behavior.
+Release-bearing responses identify a publication, not a selected month. The canonical identity is
+derived from the publication timestamp, while `coverage` describes the time-series evidence
+included in that publication. `coverage.start` may be `null` when the earliest covered month is
+unknown or heterogeneous; `coverage.end` is the latest covered month. Month-valued fields such as
+`dataAsOf`, `currentSignalMonth`, chart coordinates, and D1 `(routeId, month)` keys remain evidence
+grain rather than release identity.
 
-Every Studio response should include:
+Every release-bearing Studio response should include:
 
 ```ts
+type StudioCoverage = {
+  start: string | null;
+  end: string;
+};
+
 type StudioApiMeta = {
   schemaVersion: 1;
   generatedAt: string;
-  baselineMonth: string;
+  releaseId: string;
+  publishedAt: string;
+  coverage: StudioCoverage;
   currentSignalMonth?: string;
-  releaseLayer: "baseline_release" | "current_signal" | "pending_publication" | "observed_release";
+  releaseLayer: "published_release" | "current_signal" | "pending_publication" | "observed_release";
 };
 
 type StudioDataQuality = {
   completenessStatus:
     | "complete"
     | "partial_realtime_only"
-    | "partial_public_monthly_only"
+    | "partial_public_speed_only"
     | "missing_speed"
     | "missing_realtime"
     | "insufficient_samples"
@@ -248,6 +258,16 @@ type StudioApiError = {
 };
 ```
 
+The server derives `releaseId` only from canonical `publishedAt`; it does not construct release
+identity from an R2 prefix, request time, an environment month pin, or `coverage.end`. The status
+resource repeats the same identity in its nested `release` block, and schema validation requires
+the top-level and nested `releaseId`, `publishedAt`, and `coverage` values to match.
+
+Current release resources always resolve the latest published, passing serving release from D1.
+They do not accept `?month=`. Endpoints that intentionally query historical evidence use an
+explicit grain name such as the scorecard's required `?asOfMonth=`, without changing the serving
+release identity.
+
 Do not hide source gaps. If a section cannot make a claim from D1/R2, return a section-level
 unavailable state with `quality`, not a fabricated value.
 
@@ -258,7 +278,7 @@ or authorization questions.
 
 | Endpoint | Purpose | Initial backing |
 |---|---|---|
-| `GET /api/v1/studio/bootstrap` | Shell/navigation metadata, release status, primary months | D1 release status helper plus static route metadata |
+| `GET /api/v1/studio/bootstrap` | Shell/navigation metadata, publication identity, coverage, and release status | D1 release status helper plus static route metadata |
 | `GET /api/v1/studio/routes` | Home route cards, search-first ranking, quick filters | D1 route card repository plus route metadata |
 | `GET /api/v1/studio/search?q=` | Grouped results for routes, segments, briefs, methods | D1 route lookup plus R2/static index later |
 | `GET /api/v1/studio/routes/:routeId` | Route detail KPIs, diagnosis, chart refs, slow segments, intervention potential | D1 route profile repositories plus segment/evidence artifacts |
@@ -420,7 +440,7 @@ the entity is not part of the serving projection. Use `503` for missing bindings
 
 | Data kind | Cache |
 |---|---|
-| Monthly baseline Studio responses | `public, max-age=3600, stale-while-revalidate=86400` |
+| Published Studio responses | `public, max-age=3600, stale-while-revalidate=86400` |
 | R2 immutable artifacts with hash | `public, max-age=31536000, immutable` |
 | Current signal appendices | `public, max-age=60, stale-while-revalidate=300` |
 | Write/composition endpoints | `no-store` |
@@ -434,7 +454,7 @@ Use `ETag` or artifact hashes for R2-backed payloads where practical.
 Every Studio handler should emit:
 
 - `Server-Timing` for app/D1/R2 durations.
-- Structured log row with route template, status, duration, release month, and request id.
+- Structured log row with route template, status, duration, release ID, and request id.
 - No secrets, API keys, or raw user query text beyond sanitized search terms.
 
 See `knowledge/wiki/engineering/web_observability_performance_seo_plan.md` for the full

@@ -1,14 +1,26 @@
 # Data Pipeline Operationalization Status
 
-Updated: 2026-05-22
+Updated: 2026-07-19
 
 This status turns the completed 2023-present checkpoint into the next operational steps.
 
+## 2026-07-19 serving-contract addendum
+
+Plan 085 removes month-as-release identity from public serving responses. The Worker now resolves
+the latest published, passing route batch from D1 and reports its canonical `releaseId`, stored
+`publishedAt`, and `coverage: { start, end }`. There is no public `?month=` release selector and no
+`BASELINE_MONTH` or `LAST_BUILT_SPEED_MONTH` environment pin. The historical route-scorecard query
+uses `?asOfMonth=` because that value is evidence grain, not release identity.
+
+D1 tables keyed by month and fields such as `dataAsOf` remain unchanged where they describe source
+or time-series grain. Plan 086 follows by migrating and republishing the static pipeline release
+artifacts; do not deploy the Plan 085 reader contract alone against older capability or dossier
+objects that still carry the previous schema.
+
 ## Release decision
 
-> **De-month status (2026-07-12):** production still reports `baselineMonth=2026-03`, about four
-> months behind this status date. ADR-0022 retires that identity; plan 087's freshness ledger will
-> report upstream, ingested, and published coverage lag as first-class source state.
+The release evidence below records the production state observed in May 2026. Its historical field
+names are retained as evidence of that deployment, not as the current serving-contract doctrine.
 
 The refreshed March 2026 serving release is **published**.
 
