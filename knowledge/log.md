@@ -8528,3 +8528,36 @@ stale entries, duplicate pairs, malformed metadata, and premature permanent
 exceptions fail the gate. Synthetic tests cover selector variants, scoped
 identity rules, legal-grain cases, URI/date exclusions, and ratchet audit
 failure modes. No production contract changes are part of this checkpoint.
+
+## [2026-07-19] engineering | Plan 080 network decision explorer complete
+
+Completed the `/map` decision-explorer contract at implementation commit
+`926ce17c`. The map now starts neutral; exposes a complete searchable ranked
+route list; keeps lens, period, comparison, exact served borough, route slug,
+stable segment, and bus-lane visibility in a strict canonical URL; and restores
+that state on reload. Route, keyboard, list, and pin focus use constant-size
+MapLibre feature-state updates. Selected-route detail and exact matched-spine
+segments load lazily against release identity plus the declared artifact key
+and SHA, so same-release object rollover, ambiguity, missing evidence, and
+integrity failure remain distinct and fail closed.
+
+Desktop and mobile inspectors provide equivalent metrics, ranked segment
+evidence, one explicit route-detail action, clear/back behavior, and focus
+restoration. Data Notes and copied citations expose publication identity,
+coverage, route universe, source posture, exact evidence hashes, mutable-alias
+status, and unavailable/join reasons. The change lens remains deferred because
+the serving contract does not publish its real endpoint months.
+
+Verification passed: web TypeScript; 92 focused map/API/runtime tests; all 260
+web tests; all 22 Worker tests; design-doctrine and production-boundary
+harnesses; repository style (existing informational diagnostics only); the web
+build at 135.4 KB gzip entry and 388.9 KB gzip total JavaScript; and the
+five-route web-performance matrix. Chrome for Testing 149.0.7827.55 exercised
+the production MapLibre canvas through an isolated fixture at 1440x900,
+1024x768, and 390x844 with keyboard, mouse, uncanceled touch/pointer delivery,
+responsive Sheet transfer, URL reload, exact M15+ / `m15-n-14-23` evidence,
+forced-unavailable B1, accessibility-tree inspection, bus lanes, and reduced
+motion. Headless Chromium omitted its compatibility click after otherwise
+uncanceled touch delivery, so the QA driver activated the already hit-tested
+DOM target to continue the mobile matrix. No serving release, D1/R2 data,
+deployment, or production source snapshot was mutated.

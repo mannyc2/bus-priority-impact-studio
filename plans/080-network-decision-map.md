@@ -72,8 +72,9 @@
 
 ## Status
 
-- **Plan status**: IN PROGRESS (post-079 rebind; parallel implementation lanes
-  start from the shared amended-plan commit)
+- **Plan status**: DONE (completed 2026-07-19; implementation commit
+  `926ce17c`, with the browser and verification receipt recorded in
+  `knowledge/log.md`)
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: MED
