@@ -569,6 +569,9 @@ async function createNamedReleaseFixture(
   const snapshotBytes = `${canonicalJson(snapshot)}\n`;
 
   const canonical = {
+    "claims.jsonl": "",
+    "corridors.jsonl": "",
+    "entities.jsonl": "",
     "routes.jsonl": asJsonl(
       routeRecords.toSorted((left, right) => left.record_id.localeCompare(right.record_id)),
     ),
@@ -642,6 +645,7 @@ async function createNamedReleaseFixture(
     "metric_claims.jsonl": "",
     "treatment_components.jsonl": "",
     "source_gaps.jsonl": "",
+    "tables.jsonl": "",
   };
   const manifestPointerFiles = {
     "operational_anchor_review_decisions.json": "{}\n",
@@ -696,6 +700,9 @@ async function createNamedReleaseFixture(
       taxonomy: "taxonomy.json",
     },
     record_counts: {
+      claim: 0,
+      corridor: 0,
+      entity: 0,
       event: 0,
       metric_claim: 0,
       project: 3,
@@ -703,6 +710,7 @@ async function createNamedReleaseFixture(
       route: 3,
       source: 1,
       source_gap: 0,
+      table: 0,
       treatment_component: 0,
     },
   };
