@@ -10,8 +10,14 @@ import {
 } from "../../src/components/route/maplibre-runtime";
 import { networkMapAriaLabel } from "../../src/components/route/NetworkMapLibre";
 import {
+  applyNetworkMapControlInset,
   applySelectedSegmentPresentation,
   createNetworkFocusController,
+  networkMapFitDuration,
+  networkMapFitPadding,
+  resolveNetworkFocusPresentation,
+  resolveNetworkMapInspectorInset,
+  routeSegmentFeatureCollection,
 } from "../../src/components/route/NetworkMapLibre.map";
 
 class FakeScript {
@@ -261,6 +267,70 @@ describe("MapLibre loader and runtime", () => {
     expect(harness.setDataCalls()).toBe(0);
   });
 
+  test("focus sources keep keyboard, map hover, list preview, and pin priorities distinct", () => {
+    const base = {
+      focusedRouteId: "keyboard",
+      hoveredRouteId: "map-hover",
+      hoverDimEngaged: false,
+      previewRouteId: "list-hover",
+      selectedRouteId: "pin",
+    };
+
+    expect(resolveNetworkFocusPresentation(base)).toEqual({
+      mode: "focus",
+      routeId: "keyboard",
+    });
+    expect(resolveNetworkFocusPresentation({ ...base, focusedRouteId: null })).toEqual({
+      mode: "preview",
+      routeId: "map-hover",
+    });
+    expect(
+      resolveNetworkFocusPresentation({
+        ...base,
+        focusedRouteId: null,
+        hoveredRouteId: null,
+      }),
+    ).toEqual({ mode: "focus", routeId: "list-hover" });
+    expect(
+      resolveNetworkFocusPresentation({
+        ...base,
+        focusedRouteId: null,
+        hoveredRouteId: null,
+        previewRouteId: null,
+      }),
+    ).toEqual({ mode: "focus", routeId: "pin" });
+  });
+
+  test("the inspector only insets the desktop map and shares that inset with camera padding", () => {
+    expect(resolveNetworkMapInspectorInset({ inspectorOpen: true, desktopViewport: false })).toBe(
+      0,
+    );
+    expect(resolveNetworkMapInspectorInset({ inspectorOpen: true, desktopViewport: true })).toBe(
+      360,
+    );
+    expect(
+      resolveNetworkMapInspectorInset({
+        inspectorOpen: true,
+        desktopViewport: true,
+        inspectorInset: 412,
+      }),
+    ).toBe(412);
+    expect(networkMapFitPadding(412)).toEqual({ top: 28, right: 440, bottom: 28, left: 28 });
+
+    const controls = { style: { right: "" } };
+    const map = {
+      getContainer: () => ({ querySelector: () => controls }),
+    } as unknown as Parameters<typeof applyNetworkMapControlInset>[0];
+    applyNetworkMapControlInset(map, 412);
+    expect(controls.style.right).toBe("412px");
+  });
+
+  test("camera refits are instant for initial load and reduced-motion users", () => {
+    expect(networkMapFitDuration(false, false)).toBe(0);
+    expect(networkMapFitDuration(true, true)).toBe(0);
+    expect(networkMapFitDuration(true, false)).toBe(240);
+  });
+
   test("segment pin emphasis changes paint without replacing selected-route geometry", () => {
     const harness = presentationHarness();
 
@@ -270,6 +340,44 @@ describe("MapLibre loader and runtime", () => {
     expect(harness.paintCalls).toHaveLength(6);
     expect(harness.setDataCalls()).toBe(0);
     expect(JSON.stringify(harness.paintCalls)).toContain("m15-n-node-002-node-003");
+  });
+
+  test("only matched spine identities survive the route-segment map adapter", () => {
+    const segmentCollection = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          id: "matched",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [-73.99, 40.72],
+              [-73.98, 40.73],
+            ],
+          },
+          properties: { spineSegmentId: "stable-id", spineJoinStatus: "matched" },
+        },
+        {
+          type: "Feature",
+          id: "ambiguous",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [-73.97, 40.74],
+              [-73.96, 40.75],
+            ],
+          },
+          properties: { spineSegmentId: "stable-id", spineJoinStatus: "ambiguous" },
+        },
+      ],
+    } as unknown as NonNullable<Parameters<typeof routeSegmentFeatureCollection>[0]>;
+
+    expect(
+      routeSegmentFeatureCollection(segmentCollection).features.map(
+        (feature) => feature.properties.spineSegmentId,
+      ),
+    ).toEqual(["stable-id", null]);
   });
 
   test("the default map-region label tracks lens, period, and highlighted route", () => {

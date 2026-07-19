@@ -40,7 +40,12 @@ export function networkMapAriaLabel({
   collection,
   view,
   selectedRouteId,
-}: Pick<NetworkMapLibreProps, "collection" | "view" | "selectedRouteId">): string {
+  focusedRouteId,
+  previewRouteId,
+}: Pick<
+  NetworkMapLibreProps,
+  "collection" | "view" | "selectedRouteId" | "focusedRouteId" | "previewRouteId"
+>): string {
   const encoding = viewEncoding(view);
   const measure =
     encoding === "delay"
@@ -48,12 +53,13 @@ export function networkMapAriaLabel({
       : encoding === "delta"
         ? `${view.period.toUpperCase()} peak speed compared with all day`
         : `${view.period === "all" ? "all-day" : `${view.period.toUpperCase()} peak`} speed`;
-  const selected = collection.features.find(
-    (feature) => feature.properties.routeId === selectedRouteId,
+  const highlightedRouteId = focusedRouteId ?? previewRouteId ?? selectedRouteId;
+  const highlighted = collection.features.find(
+    (feature) => feature.properties.routeId === highlightedRouteId,
   );
   const routeCount = collection.features.length;
   return `NYC bus network ${measure} map showing ${routeCount} ${routeCount === 1 ? "route" : "routes"}${
-    selected === undefined ? "" : `; ${selected.properties.label} highlighted`
+    highlighted === undefined ? "" : `; ${highlighted.properties.label} highlighted`
   }.`;
 }
 
@@ -80,7 +86,18 @@ export type NetworkMapLibreProps = {
   routeSegments?: MapRouteSegmentFeatureCollection | null;
   /** Exact stable spine identity. Selection emphasis never replaces source data. */
   selectedSegmentId?: string | null;
+  /** Durable map pin. External keyboard and pointer focus use the props below. */
   selectedRouteId: string | null;
+  /** Keyboard focus from the equivalent route list; wins over every pointer/pin state. */
+  focusedRouteId?: string | null;
+  /** Pointer preview from the equivalent route list; wins over the durable pin. */
+  previewRouteId?: string | null;
+  /** Desktop inspector state. Mobile sheets do not occlude or alter the map runtime. */
+  inspectorOpen?: boolean;
+  /** Desktop inspector width in CSS pixels; defaults to 360 when open. */
+  inspectorInset?: number;
+  /** Changing this identity explicitly requests a fit to the current network collection. */
+  fitCollectionKey?: string | number | null;
   // A route without usable geometry has no geographic anchor and cannot be pinned.
   onSelectRoute?: (routeId: string, lngLat: readonly [number, number] | null) => void;
   onClearSelection?: () => void;
@@ -108,6 +125,8 @@ function NetworkMapStatic({
   routeSegments = null,
   selectedSegmentId = null,
   selectedRouteId,
+  focusedRouteId = null,
+  previewRouteId = null,
   popup,
   ariaLabel,
   ariaDescribedBy,
@@ -115,12 +134,22 @@ function NetworkMapStatic({
   const width = 980;
   const height = 640;
   const padding = 24;
+  const fallbackAriaLabel =
+    ariaLabel ??
+    networkMapAriaLabel({
+      collection,
+      view,
+      selectedRouteId,
+      focusedRouteId,
+      previewRouteId,
+    });
+  const highlightedRouteId = focusedRouteId ?? previewRouteId ?? selectedRouteId;
   const bounds = networkBounds(collection);
   if (bounds === null) {
     return (
       <section
         className="flex h-full min-h-[320px] items-center justify-center bg-[var(--bp-color-paper-deep)] text-[12.5px] text-[var(--bp-color-ink-55)]"
-        aria-label={ariaLabel ?? networkMapAriaLabel({ collection, view, selectedRouteId })}
+        aria-label={fallbackAriaLabel}
         aria-describedby={ariaDescribedBy}
       >
         Network geometry is unavailable.
@@ -135,7 +164,7 @@ function NetworkMapStatic({
   return (
     <section
       className="relative h-full min-h-[320px]"
-      aria-label={ariaLabel ?? networkMapAriaLabel({ collection, view, selectedRouteId })}
+      aria-label={fallbackAriaLabel}
       aria-describedby={ariaDescribedBy}
     >
       <svg
@@ -145,11 +174,11 @@ function NetworkMapStatic({
         aria-hidden
         focusable="false"
       >
-        <title>{ariaLabel ?? networkMapAriaLabel({ collection, view, selectedRouteId })}</title>
+        <title>{fallbackAriaLabel}</title>
         <rect width={width} height={height} fill="var(--bp-color-card)" />
         {ordered.map(({ feature, style }) => {
-          const active = feature.properties.routeId === selectedRouteId;
-          const hasFocus = selectedRouteId !== null;
+          const active = feature.properties.routeId === highlightedRouteId;
+          const hasFocus = highlightedRouteId !== null;
           const speed = periodSpeed(feature, view.period).value;
           return (
             <g key={feature.properties.routeId} opacity={hasFocus && !active ? 0.28 : 1}>
@@ -175,7 +204,9 @@ function NetworkMapStatic({
         })}
         {routeSegments?.features.map((feature) => {
           const selected =
-            selectedSegmentId !== null && feature.properties.spineSegmentId === selectedSegmentId;
+            selectedSegmentId !== null &&
+            feature.properties.spineJoinStatus === "matched" &&
+            feature.properties.spineSegmentId === selectedSegmentId;
           const path = linePath(feature.geometry.coordinates, project);
           return (
             <g key={feature.id}>
