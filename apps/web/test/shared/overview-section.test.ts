@@ -51,11 +51,13 @@ const baseRoute = {
 
 const dossier = {
   artifactKind: "studio_route_dossier_summary",
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedAt: "2026-06-12T00:00:00.000Z",
   routeId: "M15+",
   routeSlug: "m15-sbs",
-  releaseMonth: "2026-03",
+  releaseId: "pub_20260612T000000000Z",
+  publishedAt: "2026-06-12T00:00:00.000Z",
+  coverage: { start: null, end: "2026-03" },
   dataAsOf: "2026-03",
   speed: {
     current: 5.8,
@@ -145,7 +147,9 @@ function detail(overrides: Partial<StudioRouteDetailResponse>): StudioRouteDetai
   return {
     schemaVersion: 3,
     generatedAt: "2026-06-12T00:00:00.000Z",
-    baselineMonth: "2026-03",
+    releaseId: "pub_20260612T000000000Z",
+    publishedAt: "2026-06-12T00:00:00.000Z",
+    coverage: { start: "2023-04", end: "2026-03" },
     route: baseRoute,
     segments: [segment],
     artifactRefs: [],

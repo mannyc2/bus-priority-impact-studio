@@ -121,7 +121,7 @@ describe("resolveRouteFactEvidence", () => {
     });
   });
 
-  test("rejects a baseline mismatch", () => {
+  test("rejects a Studio coverage mismatch", () => {
     const result = resolveRouteFactEvidence(
       { ...detail, coverageEnd: "2026-02" },
       identity,

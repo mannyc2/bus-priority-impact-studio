@@ -395,15 +395,13 @@ describe("Worker public route API smoke", () => {
     expect(testEnv.DB).toBeDefined();
     expect(testEnv.ARTIFACTS).toBeDefined();
     expect(testEnv.GTFS_RT_RAW).toBeDefined();
-    expect(testEnv.BASELINE_MONTH).toBe("2026-03");
-    expect(testEnv.LAST_BUILT_SPEED_MONTH).toBe("2026-03");
     expect(testEnv.TEST_D1_MIGRATIONS).toBeDefined();
   });
 
   it("serves route status, list, profile, and scorecard from real D1 tables", async () => {
     const status = decodeSchemaStrict(ReleaseStatusResponseSchema, await getJson("/api/v1/status"));
-    expect(status.baselineMonth).toBe("2026-03");
-    expect(status.canonicalMonthlyRelease.routeCount).toBe(2);
+    expect(status.coverage.end).toBe("2026-03");
+    expect(status.release.routeCount).toBe(2);
     expect(status.observedRealtimeEvidence.observedRouteCount).toBe(1);
 
     const routes = decodeSchemaStrict(
@@ -435,7 +433,7 @@ describe("Worker public route API smoke", () => {
 
     const scorecard = decodeSchemaStrict(
       RouteScorecardSchema,
-      await getJson("/api/routes/m57/scorecard?month=2026-03"),
+      await getJson("/api/routes/m57/scorecard?asOfMonth=2026-03"),
     );
     expect(scorecard.routeId).toBe("M57");
     expect(scorecard.citations[0]?.sourceId).toBe("fixture_mta_speed");

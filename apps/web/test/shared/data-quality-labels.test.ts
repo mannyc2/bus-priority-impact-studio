@@ -7,9 +7,9 @@ import {
 import type { StudioQuality } from "../../src/studio/api-contract";
 
 describe("data quality display labels", () => {
-  test("renders the ADR-0017 release labels without leaking snake_case", () => {
+  test("renders the ADR-0022 release labels without leaking snake_case", () => {
     const expected: Record<StudioQuality["releaseLayer"], string> = {
-      baseline_release: "Baseline Release",
+      published_release: "Published Release",
       current_signal: "Current Signal",
       pending_publication: "Pending Publication",
       observed_release: "Observed Release",
@@ -27,7 +27,7 @@ describe("data quality display labels", () => {
   test("renders completeness status labels without raw enum separators", () => {
     const statuses: StudioQuality["completenessStatus"][] = [
       "complete",
-      "partial_public_monthly_only",
+      "partial_public_speed_only",
       "missing_realtime",
       "insufficient_samples",
       "source_lag_expected",

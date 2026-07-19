@@ -11,6 +11,7 @@ import {
   fetchStudioInterventionsEvidence,
   fetchStudioRoute,
   fetchStudioRouteIndex,
+  fetchStudioRoutes,
   fetchVerifiedMapArtifact,
   joinNetworkMapBundle,
   StudioApiError,
@@ -34,12 +35,13 @@ function emptyRouteIndexV3(): StudioRouteIndex3Response {
   return {
     schemaVersion: 3,
     generatedAt: "2026-07-18T00:00:00.000Z",
-    releaseId: "studio/v3",
-    baselineMonth: "2026-07",
+    releaseId: "pub_20260718T000000000Z",
+    publishedAt: "2026-07-18T00:00:00.000Z",
+    coverage: { start: "2023-04", end: "2026-07" },
     dataAsOf: "2026-07",
     routes: [],
     quality: {
-      releaseLayer: "baseline_release",
+      releaseLayer: "published_release",
       completenessStatus: "unavailable",
       confidence: "low",
       caveats: [],
@@ -108,7 +110,7 @@ function mapManifestFixture(
     issueCount: 0,
     artifacts: input.artifacts ?? [],
     quality: {
-      releaseLayer: "baseline_release" as const,
+      releaseLayer: "published_release" as const,
       completenessStatus: "complete" as const,
       confidence: "high" as const,
       caveats: [],
@@ -126,7 +128,7 @@ function selectedRouteDetailFixture(routeId = "M15+"): StudioRouteDetailResponse
   return {
     schemaVersion: 3,
     generatedAt: "2026-04-01T00:00:00.123Z",
-    baselineMonth: "2026-03",
+    ...mapReleaseIdentity,
     route: {
       slug: "m15-sbs",
       routeId,
@@ -169,9 +171,24 @@ function selectedRouteDetailFixture(routeId = "M15+"): StudioRouteDetailResponse
     dossier: null,
     equityContext: null,
     quality: {
-      releaseLayer: "baseline_release",
-      completenessStatus: "partial_public_monthly_only",
+      releaseLayer: "published_release",
+      completenessStatus: "partial_public_speed_only",
       confidence: "medium",
+      caveats: [],
+    },
+  };
+}
+
+function emptyRoutesFixture() {
+  return {
+    schemaVersion: 2,
+    generatedAt: mapReleaseIdentity.publishedAt,
+    ...mapReleaseIdentity,
+    routes: [],
+    quality: {
+      releaseLayer: "published_release" as const,
+      completenessStatus: "complete" as const,
+      confidence: "high" as const,
       caveats: [],
     },
   };
@@ -228,6 +245,25 @@ function routeSegmentArtifact(sha256: string, routeId = "M15+") {
 }
 
 describe("Studio API client", () => {
+  test("strictly decodes Studio routes and detail publication identities", async () => {
+    mockFetch((async (input) =>
+      Response.json(
+        String(input).includes("/studio/routes/M15%2B")
+          ? selectedRouteDetailFixture()
+          : emptyRoutesFixture(),
+      )) as typeof globalThis.fetch);
+
+    await expect(fetchStudioRoutes()).resolves.toMatchObject(mapReleaseIdentity);
+    await expect(fetchStudioRoute("M15+")).resolves.toMatchObject(mapReleaseIdentity);
+
+    mockFetch((async () =>
+      Response.json({
+        ...emptyRoutesFixture(),
+        publishedAt: undefined,
+      })) as unknown as typeof globalThis.fetch);
+    await expect(fetchStudioRoutes()).rejects.toThrow();
+  });
+
   test("requests and strictly decodes route-index schema v3", async () => {
     let requestedPath = "";
     mockFetch((async (input) => {
@@ -261,7 +297,6 @@ describe("Studio API client", () => {
       Response.json({
         ...mapManifestFixture(),
         schemaVersion: 1,
-        baselineMonth: "2026-03",
         generatedAt: mapReleaseIdentity.publishedAt,
       })) as unknown as typeof globalThis.fetch);
     await expect(fetchMapManifest()).rejects.toThrow();
@@ -381,7 +416,6 @@ describe("Studio API client", () => {
 
     const legacyFactsBody = JSON.stringify({
       schemaVersion: 1,
-      baselineMonth: "2026-03",
       generatedAt: mapReleaseIdentity.publishedAt,
       routes: [],
     });

@@ -249,8 +249,9 @@ function routeIndexRow(input: {
   const sbs = input.routeId.endsWith("+");
   const displayLabel = sbs ? input.routeId.replace("+", " SBS") : input.routeId;
   return {
-    releaseId: "studio/v2",
-    baselineMonth: "2026-03",
+    releaseId: "pub_20260610T000000000Z",
+    publishedAt: "2026-06-10T00:00:00.000Z",
+    coverage: { start: "2023-04", end: "2026-03" },
     routeId: input.routeId,
     slug: input.slug,
     label: displayLabel,
@@ -291,8 +292,9 @@ describe("interventions page evidence aggregation", () => {
     const routeIndex = {
       schemaVersion: 3,
       generatedAt: "2026-06-10T00:00:00.000Z",
-      releaseId: "studio/v2",
-      baselineMonth: "2026-03",
+      releaseId: "pub_20260610T000000000Z",
+      publishedAt: "2026-06-10T00:00:00.000Z",
+      coverage: { start: "2023-04", end: "2026-03" },
       dataAsOf: "2026-03",
       routes: [
         routeIndexRow({ routeId: "B99", slug: "b99" }),
@@ -313,8 +315,8 @@ describe("interventions page evidence aggregation", () => {
         }),
       ],
       quality: {
-        releaseLayer: "baseline_release",
-        completenessStatus: "partial_public_monthly_only",
+        releaseLayer: "published_release",
+        completenessStatus: "partial_public_speed_only",
         confidence: "medium",
         caveats: [],
       },

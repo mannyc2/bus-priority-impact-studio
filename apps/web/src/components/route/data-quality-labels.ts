@@ -4,9 +4,9 @@ type ReleaseLayer = StudioQuality["releaseLayer"];
 type CompletenessStatus = StudioQuality["completenessStatus"];
 
 const RELEASE_LAYER_COPY: Record<ReleaseLayer, { label: string; description: string }> = {
-  baseline_release: {
-    label: "Baseline Release",
-    description: "Reviewed baseline rollup for public route surfaces.",
+  published_release: {
+    label: "Published Release",
+    description: "Reviewed published data currently backing public route surfaces.",
   },
   current_signal: {
     label: "Current Signal",
@@ -24,7 +24,7 @@ const RELEASE_LAYER_COPY: Record<ReleaseLayer, { label: string; description: str
 
 const COMPLETENESS_STATUS_LABELS: Record<CompletenessStatus, string> = {
   complete: "complete",
-  partial_public_monthly_only: "partial public monthly only",
+  partial_public_speed_only: "partial public speed only",
   missing_realtime: "missing realtime",
   insufficient_samples: "insufficient samples",
   source_lag_expected: "source lag expected",
