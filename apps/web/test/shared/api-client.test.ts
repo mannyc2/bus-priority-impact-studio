@@ -155,7 +155,85 @@ describe("Studio API client", () => {
       dailyRiders: null,
       factsStatus: "unavailable",
     });
+    expect(result.delayCoverageEnd).toBeNull();
     expect(result.message).toBe("0 of 1 routes have complete metric facts.");
+  });
+
+  test("serves a delay coverage window only for a unanimous complete release", () => {
+    const networkFeature = (routeId: string) => ({
+      type: "Feature",
+      geometry: {
+        type: "MultiLineString",
+        coordinates: [
+          [
+            [-73.99, 40.75],
+            [-73.98, 40.76],
+          ],
+        ],
+      },
+      properties: {
+        routeId,
+        month: "2026-03",
+        hourlySpeedMph: new Array(24).fill(null),
+        hourlyTraversalCount: new Array(24).fill(0),
+        servedBoroughs: ["Manhattan"],
+        servedBoroughsStatus: "verified",
+      },
+    });
+    const delayFact = (routeId: string, valueRiderHours: number | null, period: string | null) => ({
+      route: {
+        routeId,
+        label: routeId,
+        borough: "Manhattan",
+        sbs: false,
+        speedMph: 7.1,
+        movement6mPct: null,
+        dailyRiders: 9_000,
+      },
+      delayExposure: {
+        status: valueRiderHours === null ? "unavailable" : "available",
+        valueRiderHours,
+        analysisPeriod: period,
+      },
+      provenance: {
+        lane: { status: "unavailable", valuePct: null },
+        ace: { status: "unknown" },
+      },
+    });
+    const bundle = (facts: ReturnType<typeof delayFact>[]) =>
+      joinNetworkMapBundle({
+        manifest: { baselineMonth: "2026-03" },
+        network: {
+          status: "ready",
+          path: "/network.json",
+          expectedSha256: "a".repeat(64),
+          actualSha256: "a".repeat(64),
+          data: {
+            type: "FeatureCollection",
+            features: [networkFeature("M1"), networkFeature("M2")],
+          },
+        },
+        context: { status: "unavailable", reason: "fixture" },
+        routeFacts: {
+          status: "ready",
+          path: "/facts.json",
+          expectedSha256: "b".repeat(64),
+          actualSha256: "b".repeat(64),
+          data: { schemaVersion: 1, baselineMonth: "2026-03", generatedAt: "x", routes: facts },
+        },
+      } as never);
+
+    const unanimous = bundle([delayFact("M1", 12_000, "2026-03"), delayFact("M2", 800, "2026-03")]);
+    expect(unanimous.delayCoverageEnd).toBe("2026-03");
+
+    const partial = bundle([delayFact("M1", 12_000, "2026-03"), delayFact("M2", null, null)]);
+    expect(partial.delayCoverageEnd).toBeNull();
+
+    const disagreeing = bundle([
+      delayFact("M1", 12_000, "2026-03"),
+      delayFact("M2", 800, "2026-02"),
+    ]);
+    expect(disagreeing.delayCoverageEnd).toBeNull();
   });
 
   test("refuses cross-month fact joins and reports both months", () => {

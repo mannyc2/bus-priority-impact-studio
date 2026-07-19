@@ -6,21 +6,80 @@
 > report — do not improvise. When done, update the status row for this plan
 > in `plans/README.md`.
 >
-> **Drift check (run first)**: `git diff --stat 99fa763..HEAD -- apps/web/src/components/SpeedTrend.tsx apps/web/src/components/SpeedTrend.chart.tsx apps/web/src/components/route/OverviewSection.tsx apps/web/src/components/route/route-derived.ts apps/web/src/components/route/TreatmentsHistorySection.tsx`
-> The tree at planning time was already dirty (plan 074/079 execution in
-> flight), so compare the "Current state" excerpts against the live code
-> before proceeding; on a mismatch, treat it as a STOP condition. Plan 075
-> may land before this plan and edits `TreatmentsHistorySection.tsx` — that
-> is expected; this plan only IMPORTS one exported function from it.
+> **Dependency check (run first)**: Plans 090 and 092 in `plans/README.md`
+> must both say `DONE`. Do not begin the comp/app work against a draft
+> observation schema or before the route loader/Overview presentation seam is
+> migrated to the typed intervention inventory.
+>
+> **Drift check (run next)**: `git diff --stat b41169df..HEAD -- apps/web/src/studio/api-contract.ts apps/web/src/studio/api-client.ts apps/web/src/routes/routes/$routeId.tsx apps/web/src/studio/pages/route-detail.tsx apps/web/src/components/SpeedTrend.tsx apps/web/src/components/SpeedTrend.chart.tsx apps/web/src/components/route/OverviewSection.tsx apps/web/src/components/route/route-derived.ts apps/web/src/components/route/intervention-trend-model.ts apps/web/test/shared/api-client.test.ts apps/web/test/shared/overview-section.test.ts apps/web/test/shared/intervention-trend-model.test.ts packages/domain/src/studio/intervention-observations.ts packages/domain/src/studio/intervention-observations-key.ts`
+> Plan 090, Plan 092, and the required Generation 11 plans are expected to change some
+> listed files after this amendment. Compare the live domain type, binding
+> ids, artifact key, and web excerpts against "Current state" before
+> proceeding. If the contract is not semantically equivalent, stop and
+> report instead of adapting it privately in web code.
 
 ## Status
 
-- **Priority**: P1 (the highest-leverage route-detail upgrade after plan 075)
+- **Priority**: P1 (the highest-leverage remaining route-detail chart upgrade)
 - **Effort**: M
-- **Risk**: MED (public chart surface; mitigated by a comp gate, annotation-only rule, and byte-identical fallback when no dated events exist)
-- **Depends on**: plans/075-studies-surface.md recommended first (sequencing only — 075 is the priority surface and both plans smoke the same tab set; there is no hard code dependency). Operator-approved comp (step 1) is a HARD gate.
+- **Risk**: MED (public chart surface; mitigated by a comp gate,
+  annotation-only rule, and marker-free fallback when no dated events exist)
+- **Depends on**: `plans/090-structured-intervention-observations.md` and
+  `plans/092-route-intervention-recognition-ui.md` (both HARD; together they
+  transitively require exact route identity, Plan 091, and plans 084, 088,
+  085, and 086). Plan 075's UI integration has landed but activation remains
+  blocked by its recorded gates; it remains the study-presentation authority.
+  Operator-approved comp (step 1) is a second HARD gate.
 - **Category**: direction
 - **Planned at**: commit `99fa763`, 2026-07-12
+- **Binding amendment**: commit `b41169df`, 2026-07-18; rc23-capable
+  contracts checked at `origin/main` commit `27ceded6`
+- **Dependency reconciliation**: commit `ac940967`, 2026-07-18; exact route
+  identity plus Plans 091/092 supersede the historical rc23/UI premises
+
+## Binding amendment — typed observation bundle (2026-07-18)
+
+This amendment replaces the plan's original event-admission and data-flow
+assumption. **It controls wherever later historical wording conflicts with
+it.** Plan 082 must consume the Plan 090 public artifact
+`StudioRouteInterventionObservationBundle`. It must never derive chart
+markers or data relevance from `mergedTreatmentTimelineRows`,
+`TreatmentsHistorySection`, `StudioRouteEvidenceBundle`, intervention titles,
+evidence prose, citation text, or other display-copy heuristics.
+
+The required data flow is:
+
+```text
+Plan 090 typed bundle key
+  → api-client nullable artifact fetch
+  → route loader fail-soft result
+  + Plan 091 inventory already fetched by Plan 092
+  → RouteDetailPage props
+  → OverviewSection
+  → pure intervention-trend model
+  → SpeedTrend real-month points + structured event markers
+```
+
+The pure model recognizes the typed binding id
+`route_speed_around_implementation_v1` and verifies its metric id is
+`route_average_speed_mph`. It selects the most recent eligible event by
+`implementationMonth` then `occurrenceId`/`eventId`, never by observed values. That event's
+available/partial 25-month series becomes the chart's points. The focal event
+and any other eligible events inside those point months become markers,
+clustered by month. Marker
+copy comes from Plan 092's named presentation helper after resolving each
+Plan 090 `treatmentId`/`occurrenceId` in the same-release Plan 091 inventory.
+The helper owns an optional operational annotation stem; v1's canonical ACE
+treatment returns `Enforcement starts`. Web code never equates Plan 091's
+presentation family with Plan 090's analysis family, and never reads event
+description, source text, or UI timeline title.
+
+If the bundle is null, unsupported, or contains no available/partial speed
+binding, preserve the month-axis improvement by rendering the dossier's
+month-preserving speed points with **zero intervention markers**. Do not fall
+back to text-derived markers. Missing observations remain explicit null gaps.
+The chart remains annotation/descriptive only: no before/after aggregate,
+delta, percent, direction, verdict, or causal language may be added.
 
 ## Why this matters
 
@@ -30,11 +89,13 @@ already loads: the chart shows monthly speeds on an anonymous 1,2,3… index
 axis, while dated, source-labeled intervention events render only as text
 rows in the History tab. A reader cannot see "enforcement started here" on
 the speed line. The segment-study engine (plan 074) produces causal estimates
-for only 5 routes today; dated intervention events exist for ~201 routes
-inside the served speed window (2023-04..2026-03). Drawing those dates as
-quiet reference markers on the existing chart makes most route pages more
-useful at annotation-level honesty — the chart shows *when*, the reader sees
-the before/after with their own eyes, and no computed claim is added. This
+for only 5 routes today. The original ~201-route count measured historical
+raw-event reach inside the served speed window; it is not typed v1 coverage.
+Plan 090 v1 is intentionally ACE-only. Plan 093 owns the reviewed non-ACE
+expansion after this first renderer lands. For supported routes, quiet
+reference markers make Overview more useful at
+annotation-level honesty — the chart shows *when*, the reader sees the
+observations around it, and no computed claim is added. This
 was already flagged in gen-6 (plan 057 maintenance notes: "trend chart with
 intervention event markers — attractive but needs a design pass"). This plan
 is that design pass plus the implementation.
@@ -102,26 +163,33 @@ export function dossierSpeedSeries(dossier: RouteDossierSummaryForDetail | null)
   visually collapses), and a dated marker cannot be placed. Fixing the axis
   to real months is a prerequisite inside this plan, not a separate task.
 
-- **Dated events already on the page** (no new fetches needed). The route
-  loader (`apps/web/src/routes/routes/$routeId.tsx:30-37`) already fetches
-  both inputs:
-  - `route.interventions` — `StudioIntervention` rows. The field named `year`
-    actually carries the implementation MONTH: verified in
-    `packages/domain/src/studio/interventions.ts:230`
-    (`year: comparison.implementationMonth`, format `YYYY-MM`). Rows carry
-    `eventId`, `interventionType`, `title`, `tone`, `sourceLabel`.
-  - `evidence.timeline` — `StudioRouteEvidenceTimelineEvent` rows
-    (`packages/domain/src/studio/route-evidence.ts:34-46`) with
-    `dateNormalized` (`YYYY`, `YYYY-MM`, or `YYYY-MM-DD`), `title`,
-    `eventKind`, `citationKeys`.
-  - The History tab already merges both into one row model:
-    `mergedTreatmentTimelineRows(interventions, evidence)` — EXPORTED from
-    `apps/web/src/components/route/TreatmentsHistorySection.tsx:112-140`.
-    Each row: `{ key, dateLabel, sortKey, kind, title, detail, source:
-    "serving"|"wiki", citationKeys, sourceLabel, tone }`. Wiki rows are
-    admitted only when `citationKeys.length > 0` (line 134). Date-format
-    check helper `isNormalizedDate` is at lines 172-174. **Reuse this
-    exported builder — do not re-derive event admission rules.**
+- **Typed observations become the only chart-event input after Plan 090.**
+  `packages/domain/src/studio/intervention-observations.ts` exports
+  `StudioRouteInterventionObservationBundle`. Each event carries structured
+  `eventId`, `occurrenceId`, `treatmentId`, `treatmentKind`,
+  `analysisFamily`, `implementationMonth`, `resolutionStatus`, and bounded
+  series. Each series carries `bindingId`, `metricId`, `role`,
+  `claimCeiling`, `status`, `coverage`, and explicit month/value/null points.
+  The key-only function
+  `interventionObservationBundleKey(routeSlug)` resolves
+  `studio/v2/routes/<routeSlug>/intervention-observations.json`.
+- **The generic artifact fetch pattern already exists.**
+  `apps/web/src/studio/api-client.ts` imports key-only helpers for the corpus
+  and studies, passes them through `publicArtifactPath`, and uses
+  `loadNullableStudioJson<T>` so a 404 becomes `null`. Add the observation
+  fetch by matching `fetchStudioRouteStudies`; do not add a Worker route.
+- **The route loader has an established fail-soft optional-artifact pattern.**
+  `apps/web/src/routes/routes/$routeId.tsx` fetches detail, evidence, and route
+  studies in `Promise.all`; studies catch non-abort errors and return null.
+  Add observations with the same abort-preserving behavior. Thread the result
+  through `RouteDetailPage` in
+  `apps/web/src/studio/pages/route-detail.tsx`, then only into
+  `OverviewSection`. History continues to receive evidence/studies unchanged.
+- **Binding ids are semantic keys, not display copy.** V1 recognizes exactly
+  `route_speed_around_implementation_v1` plus metric
+  `route_average_speed_mph`. Unknown binding/metric pairs are ignored and
+  surfaced only through the bundle's existing limitations; web code must not
+  guess from labels, units, descriptions, or numeric values.
 
 - **Design authority (binding)**:
   - Approved chart grammar from the 075 comp
@@ -153,36 +221,51 @@ export function dossierSpeedSeries(dossier: RouteDossierSummaryForDetail | null)
 | Web build + budget | `bun --filter @bp/web build` | exit 0, budget passes |
 | Doctrine/architecture | `bun run check:architecture` | exit 0, no new allowlist entries |
 | Style | `bun run check:style` | exit 0 |
+| Observation artifact build | `bun run pipeline -- studio export-intervention-observations --db data/local/pipeline.sqlite --inventory-index data/artifacts/studio/v2/interventions/route-inventory-index.json --release-artifact data/artifacts/studio/v1/release.json --artifact-root data/artifacts` | exit 0; nonzero bundle/event summary |
 | Local artifact seed | `bun run seed:local-studio-r2` | exit 0 |
 | Smoke | `bun run serve:web-smoke` | route pages render |
 
 ## Scope
 
 **In scope** (the only files you should create/modify):
+- `plans/082-route-trend-intervention-markers.md` (record approved comp
+  decisions)
 - `plans/mockups/082-overview-trend-markers/comp.html` (new — step 1)
+- `apps/web/src/studio/api-contract.ts` (explicit domain type re-export)
+- `apps/web/src/studio/api-client.ts` (nullable bundle fetch)
+- `apps/web/src/routes/routes/$routeId.tsx` (fail-soft loader fetch)
+- `apps/web/src/studio/pages/route-detail.tsx` (typed prop plumbing)
 - `apps/web/src/components/SpeedTrend.chart.tsx` (month axis + markers prop)
 - `apps/web/src/components/SpeedTrend.tsx` (prop passthrough only)
 - `apps/web/src/components/route/route-derived.ts` (month-preserving series helper)
-- `apps/web/src/components/route/trend-markers.ts` (new — pure marker derivation)
+- `apps/web/src/components/route/intervention-trend-model.ts` (new — pure,
+  typed binding/point/marker selection)
 - `apps/web/src/components/route/OverviewSection.tsx` (wire series + markers)
-- `apps/web/test/shared/trend-markers.test.ts` (new)
-- `apps/web/test/shared/` — extend an existing overview/speed-trend test only if one exists (check first)
+- `apps/web/test/shared/intervention-trend-model.test.ts` (new)
+- `apps/web/test/shared/api-client.test.ts` (artifact path/null/abort coverage)
+- `apps/web/test/shared/overview-section.test.ts` (bundle/fallback rendering)
+- `apps/web/test/shared/speed-trend-chart.test.ts` (new — direct chart-model
+  and non-lazy chart render coverage)
+- `knowledge/wiki/engineering/studio_design_pass_status.md` (record approved
+  comp decisions)
 - `plans/README.md` (status row)
 
 **Out of scope** (do NOT touch, even though they look related):
-- `apps/web/src/components/route/TreatmentsHistorySection.tsx` — plan 075
-  owns its edits; this plan only IMPORTS `mergedTreatmentTimelineRows` from it.
+- `apps/web/src/components/route/TreatmentsHistorySection.tsx` and all
+  route-evidence/timeline display helpers — History owns them; this plan must
+  not import them.
 - Any map component (`RouteGeoMap`, `CorridorMap`, `RouteMapLibre*`) — gen-9
   plan 081 owns map-geometry truthfulness; markers are time-axis only.
-- `packages/studio-api/**`, `tools/pipeline-v2/**`, `packages/domain/**` —
-  no serving or schema changes; the data is already on the page.
+- `packages/studio-api/**`, `tools/pipeline-v2/**`, `packages/domain/**` — Plan
+  090 owns the typed contract/materializer and the generic artifact endpoint
+  already serves it. Do not patch that contract from the web consumer plan.
 - The Riders tab ridership sparkline and the Segments tab hour chart —
   Overview's speed trend only, this pass.
 - `/interventions` page.
 
 ## Git workflow
 
-- Branch: `advisor/082-trend-markers` off the current branch.
+- Branch: `codex/082-trend-markers` off the current branch.
 - Commit per step; short imperative messages matching `git log --oneline` style.
 - Do NOT push or open a PR unless the operator instructed it.
 
@@ -190,25 +273,51 @@ export function dossierSpeedSeries(dossier: RouteDossierSummaryForDetail | null)
 
 ### Step 1: Comp round — STOP for operator approval
 
+After confirming Plans 090 and 092 are DONE, preflight the canonical local inputs:
+
+```bash
+test -f data/local/pipeline.sqlite
+test -f data/artifacts/studio/v1/release.json
+test -f data/artifacts/studio/v2/interventions/route-inventory-index.json
+bun run pipeline -- studio export-intervention-observations --db data/local/pipeline.sqlite --inventory-index data/artifacts/studio/v2/interventions/route-inventory-index.json --release-artifact data/artifacts/studio/v1/release.json --artifact-root data/artifacts
+```
+
+The export must exit 0 and report nonzero `routeBundleCount` and `eventCount`;
+record its full summary, including rejected-event/reason counts. If either
+input is absent, the release artifact fails strict decode, either required DB
+table is missing, or the summary is zero, STOP. Rebuild the upstream local DB
+and Studio release through
+`knowledge/wiki/engineering/cli_commands.md` and
+`knowledge/wiki/engineering/cloudflare_operations_runbook.md`; never invent
+release metadata or hand-author an observation artifact. The generated route
+bundles/index are the canonical real inputs for this comp and Step 6 smoke;
+reuse them rather than substituting study/dossier values.
+
 Build `plans/mockups/082-overview-trend-markers/comp.html`: a static,
 self-contained HTML comp of the Overview "Speed history" ChartFrame in app
 tokens (copy the token values used by
 `plans/mockups/075-history-tab/study-cards-comp.html` — same palette,
 Helvetica stack, card anatomy), showing REAL data for two routes:
 
-- **BX28** (has a 2024-09 ACE onset inside the window; pull its real monthly
-  speeds from `data/artifacts/studio/v2/routes/bx28/studies.json` treated
-  series or the served dossier) — one dashed vertical marker labeled in plain
-  language ("ACE enforcement starts Sep 2024").
-- A route with 2+ dated events in-window and at least one null month, to
-  show the clustered-marker treatment and the null gap.
+- **BX28** (has a 2024-09 ACE onset inside the window; use its real
+  `route_speed_around_implementation_v1` points from the Plan 090 route
+  observation bundle) — one dashed vertical marker labeled in plain language
+  ("Enforcement starts Sep 2024").
+- A real route with 2+ supported events in the same displayed window and at
+  least one null month, to show clustering and the null gap. If no real route
+  has 2+ supported same-window events, use a clearly labeled synthetic
+  same-month event pair over a real Plan 090 speed series solely to compare
+  cluster anatomy. The comp must say it is synthetic and must never present
+  that pair as production coverage.
 
 Decisions the comp must present for operator resolution (mark each variant):
 1. Marker anatomy: dashed vertical rule in `var(--bp-color-ink-40)` with a
-   small rotated/inline label vs. tick-top label chip. Label text is terse
-   plain language from the event title/kind — never a number.
-2. Same-month clustering: one marker with "2 treatments, Jun 2024"-style
-   label vs. stacked labels. (Recommend: one marker, combined count label.)
+   small rotated/inline label vs. tick-top label chip. Label text comes from
+   Plan 092's typed presentation registry plus the structured implementation
+   month — never an event title, description, source string, or effect number.
+2. Same-month clustering: one marker with "2 starts, Jun 2024"-style label
+   vs. stacked labels. The count is distinct occurrence IDs, not treatments
+   or source rows. (Recommend: one marker, combined occurrence count label.)
 3. Marker cap: max markers per chart before overflow (recommend 4, with the
    quiet text "+N more in History" NOT rendered — History tab is one tab
    away; comp decides whether any overflow hint appears at all).
@@ -220,9 +329,11 @@ Decisions the comp must present for operator resolution (mark each variant):
 5. Null months rendered as visible gaps (`connectNulls={false}`) — this
    changes today's look (gaps currently collapse); the comp must show a
    route where this is visible.
-6. Whether wiki-derived (citation-backed) events get markers in v1, or only
-   serving/registry interventions. (Recommend: serving interventions only in
-   v1 — they have exact months and tones; wiki events keep timeline-only.)
+6. Typed eligibility treatment: only events with the supported speed binding
+   and matching metric become marker candidates. Compare a quiet dossier-only
+   fallback (recommended) against an unavailable annotation when the typed
+   bundle is null, unsupported, or has no usable speed points. Text/evidence
+   fallback is not a variant and must not appear in the comp.
 
 Run the doctrine banned-pattern greps against the comp text (no "data as of",
 no interpunct chains, no verdict words). **Then STOP and report** — do not
@@ -246,104 +357,254 @@ export function dossierSpeedPoints(dossier: RouteDossierSummaryForDetail | null)
 ```
 
 returning the sparkline with months preserved, values rounded to 2 decimals,
-nulls KEPT (honest gaps). In `SpeedTrend.chart.tsx`, extend props to accept
-`points?: readonly { month: string; value: number | null }[]` alongside the
-legacy `data` (keep `data` working — grep for other `SpeedTrend` call sites
-first and list them in your report; `RouteBoardingsTrend` or peers may share
-the file). When `points` is provided: `rows = points`, x-axis becomes
-`dataKey="month"` (category axis) with ticks per the approved comp decision
-(default: first and last month only via explicit `ticks={[first, last]}`),
-and the Area gets `connectNulls={false}`. Y-domain math must skip nulls.
-
-**Verify**: `bun run check:types` → exit 0; `bun run test:web` → pass
-(existing tests unaffected because `data` path is unchanged).
-
-### Step 3: Pure marker derivation + tests
-
-New `apps/web/src/components/route/trend-markers.ts`:
+nulls KEPT (honest gaps). In `SpeedTrend.chart.tsx`, replace the ambiguous
+required-`data` plus optional-`points` shape with a discriminated union:
 
 ```ts
-export type TrendMarker = { month: string; label: string; count: number; tone: string };
-export function trendMarkers(
-  interventions: readonly StudioIntervention[],
-  evidence: StudioRouteEvidenceBundle | null,
-  months: readonly string[],          // the sparkline months, ascending
-  cap?: number,                        // from the approved comp decision
-): TrendMarker[]
+type SpeedTrendSeriesInput =
+  | { mode: "legacy"; data: readonly number[]; points?: never }
+  | { mode: "calendar"; points: readonly TrendPoint[]; data?: never };
 ```
 
-Rules (encode exactly; unit-test each):
-- Build rows via the EXPORTED `mergedTreatmentTimelineRows(interventions, evidence)`
-  from `TreatmentsHistorySection.tsx` — one admission ruleset in the app.
-  If the approved comp restricted v1 to serving interventions, filter
-  `row.source === "serving"` here (single line, comment pointing at the comp
-  decision).
-- Keep only rows whose `sortKey` starts with a month: `/^\d{4}-\d{2}/` —
-  year-only and undated events get NO marker (a year cannot be honestly
-  placed at a month position).
-- Truncate `sortKey` to `YYYY-MM`; keep only months present in `months`
-  (events outside the chart window drop silently).
-- Cluster by month: one marker per month, `count` = merged rows, label = the
-  single row's plain-language title when count is 1, else the approved
-  cluster label form. Labels must never contain digits that read as effects
-  (dates are fine).
-- Sort ascending by month; apply `cap` keeping the most recent markers.
+Keep the legacy mode working—grep all `SpeedTrend` call sites first and list
+them in the report. Calendar mode uses `dataKey="month"`, ticks per the
+approved comp (default first/last), and `connectNulls={false}`. Reject an
+input containing both or neither series shape at compile time. A chart is
+available only when it has at least one finite observed value. Empty or
+all-null calendar input retains its rows in the pure model for diagnostics but
+renders the existing honest empty state; a scheduled line alone does not turn
+it into observed history. Y-domain math skips null/nonfinite values, includes
+the optional finite scheduled value only after observed availability is true,
+and returns `null` rather than an invented domain for empty/all-null input.
 
-Tests in `apps/web/test/shared/trend-markers.test.ts`, modeled structurally
-on `apps/web/test/shared/treatments-history.test.ts` (fixture builders +
-`bun:test`): in-window month match, year-only exclusion, undated exclusion,
-out-of-window exclusion, same-month clustering, cap-keeps-most-recent,
-null evidence bundle, empty months array → `[]`.
+In `SpeedTrend.chart.tsx`, also export a pure `buildSpeedTrendChartModel`
+helper used by `SpeedTrendChart` itself. Given legacy `data` or calendar `points`, optional
+scheduled speed, and markers, it returns the rows, x-axis data key, explicit
+first/last calendar ticks, `hasObservedData`, nullable finite y-domain, last
+non-null point, and retained markers. The calendar path must preserve every
+explicit null row, calculate the y-domain from finite non-null values plus the
+optional scheduled value only in the observed case, and never collapse
+missing months. Keep this helper free of React/Recharts so its null/tick/domain
+behavior is directly testable.
 
-**Verify**: `bun run test:web` → all pass including the new file.
+Create `apps/web/test/shared/speed-trend-chart.test.ts`. Unit-test
+`buildSpeedTrendChartModel` for legacy rows, ordered calendar rows, explicit null retention,
+first/last ticks, y-domain ignoring nulls, scheduled-domain inclusion, and
+last non-null point. Add empty, all-null, scheduled-only, both-input compile-
+time, and neither-input compile-time cases. Do not claim static Recharts
+markup proves ticks or reference labels: `ResponsiveContainer` emits only its
+wrapper under `renderToStaticMarkup`. Verify rendered SVG/ticks/reference
+labels in the Step 6 browser smoke instead.
 
-### Step 4: Render markers
+**Verify**: `bun run check:types` → exit 0; `bun run test:web` → pass,
+including the new direct chart tests.
 
-- `SpeedTrend.chart.tsx`: optional `markers?: readonly TrendMarker[]` prop.
-  For each marker render a `<ReferenceLine x={marker.month} ...>` styled per
-  the approved comp (dashed, `var(--bp-color-ink-40)` stroke or the comp's
-  resolved token, small label). Reuse the existing scheduled-baseline
-  ReferenceLine at lines 78-92 as the styling exemplar. Markers render only
-  when the month axis (`points`) is active.
-- `OverviewSection.tsx`: swap `dossierSpeedSeries` → `dossierSpeedPoints`,
-  compute `trendMarkers(route.interventions, evidence, months, cap)` and pass
-  both. The section receives `evidence` — check `route-detail.tsx` for how
-  `evidence` is threaded to sections and match it (TreatmentsHistorySection
-  already receives it; add the same prop to OverviewSection's call site).
-- When `trendMarkers` returns `[]`, the rendered chart must be visually
-  identical to the step-2 state (no marker layer artifacts).
+### Step 3: Build the pure typed observation trend model
 
-**Verify**: `bun run check:types` → exit 0; `bun --filter @bp/web build` →
-exit 0, entry budget delta ≤ 0.5KB vs the pre-plan build (record both
-numbers); `bun run check:architecture` → exit 0 with no new allowlist
-entries; `bun run check:style` → exit 0.
+Create `apps/web/src/components/route/intervention-trend-model.ts`. Import
+`StudioRouteInterventionObservationBundle` and
+`StudioRouteInterventionInventoryBundle` from the web API contract, Plan
+092's named pure `interventionPresentationForTreatment` helper, and the
+`TrendPoint` type from `route-derived.ts`; do not import any History, timeline,
+corpus, evidence, or study component/helper.
 
-### Step 5: Smoke the four states
+Export these semantic constants and types:
 
-Seed local artifacts (`bun run seed:local-studio-r2`), `bun run
-serve:web-smoke`, then check:
-1. A route with ≥1 in-window dated intervention (BX28) → marker at the right
-   month with the approved label.
-2. A route with no dated in-window events → chart renders with month axis,
-   zero markers.
-3. A route with a null month → visible gap, no crash, tooltip skips it.
-4. Evidence fetch absent/null → identical to state 2 (loader already
-   tolerates null evidence).
+```ts
+export const ROUTE_SPEED_OBSERVATION_BINDING_ID =
+  "route_speed_around_implementation_v1" as const;
+export const ROUTE_SPEED_OBSERVATION_METRIC_ID =
+  "route_average_speed_mph" as const;
 
-**Verify**: all four render; screenshot or DOM-assert per the repo's
-verification convention (if no headless browser exists in the workspace,
-note that and rely on SSR render tests + HTTP smoke, matching the gen-6
-precedent).
+export type TrendMarker = {
+  month: string;
+  label: string;
+  count: number;
+  eventIds: readonly string[];
+  occurrenceIds: readonly string[];
+  treatmentIds: readonly string[];
+};
+
+export type RouteSpeedTrendModel = {
+  source: "observation_bundle" | "dossier_fallback";
+  points: readonly TrendPoint[];
+  markers: readonly TrendMarker[];
+  focalEventId: string | null;
+  limitations: readonly string[];
+};
+```
+
+Implement
+`routeSpeedInterventionTrend(observations, inventory, dossierPoints,
+markerCap)` with these rules in this exact order:
+
+1. Both typed inputs are nullable. Before inspecting events, require matching
+   inventory/observation `releaseId`, `publishedAt`, and exact route identity.
+   A null or mismatched pair returns the marker-free dossier fallback plus a
+   typed limitation; it does not display a stale observation series.
+2. Read only `observations.events`. An eligible event has a series whose
+   `bindingId` and `metricId` equal the two constants, whose status is
+   `available` or `partial`, and whose points contain at least one non-null
+   value. Ignore display labels, units, descriptions, limitations, and other
+   prose plus numeric magnitudes/direction when deciding eligibility; explicit
+   non-null coverage remains the eligibility check stated above.
+3. Sort eligible events by `implementationMonth`, then `eventId`, and choose
+   the last as the focal event. Selection must not depend on speed magnitude,
+   direction, sample count, null count, or study result.
+4. When there is a focal event, return its selected series points in calendar
+   order with nulls retained. When there is none, return `dossierPoints`, an
+   empty marker array, and `source: "dossier_fallback"`.
+5. Marker candidates are eligible observation events whose structured
+   `implementationMonth` occurs in the focal point months. Require a same-
+   bundle occurrence + treatment resolution by the explicit IDs.
+   Pass the resolved treatment to Plan 092's presentation helper and use only
+   its non-null `operationalAnnotationStem`. An unknown/dangling ID, mismatched
+   route/release, or null annotation stem produces no marker and an explicit
+   model limitation; it never falls back to either family enum or prose.
+6. Cluster same-month candidates deterministically. A single marker label is
+   `<annotation stem> <Mon YYYY>`; a cluster uses the operator-approved
+   occurrence-count form. Sort markers ascending and apply the approved cap
+   by retaining the most recent months. Sort/deduplicate `eventIds`,
+   `occurrenceIds`, and `treatmentIds` for stable output; `count` is the number
+   of distinct occurrence IDs.
+
+Tests in `apps/web/test/shared/intervention-trend-model.test.ts`, modeled on
+the fixture-builder + `bun:test` style in
+`apps/web/test/shared/overview-section.test.ts`, must cover: null bundle
+fallback; exact binding+metric match; wrong binding despite a matching label;
+available and partial admission; missing/no-non-null exclusion; latest-event
+selection; point null retention; out-of-window event exclusion; same-month
+clustering; cap keeps most recent; mismatched release/route, dangling
+occurrence/treatment, and null annotation-stem exclusion; and marker labels
+remaining byte-identical when event descriptions/titles and numeric values
+are changed. The last test is the web-layer anti-cherry-picking guard.
+
+**Verify**: `bun run test:web` → all pass including the new file (at least 12
+named cases).
+
+### Step 4: Fetch the bundle and thread it to Overview
+
+1. In `apps/web/src/studio/api-contract.ts`, explicitly re-export the
+   `StudioRouteInterventionObservationBundle` type from
+   `@bp/domain/studio/intervention-observations`. Reuse the
+   `StudioRouteInterventionInventoryBundle` export already added by Plan 092.
+2. In `apps/web/src/studio/api-client.ts`, import
+   `interventionObservationBundleKey` from the Plan 090 key-only subpath and
+   add:
+
+```ts
+export function fetchStudioRouteInterventionObservations(
+  routeSlug: string,
+  options?: StudioQueryOptions,
+): Promise<StudioRouteInterventionObservationBundle | null>
+```
+
+   Implement it with `loadNullableStudioJson` and `publicArtifactPath`, exactly
+   like `fetchStudioRouteStudies`. Add API-client tests for encoded bundle
+   path, decoded JSON passthrough, 404 → null, and abort propagation.
+3. In `apps/web/src/routes/routes/$routeId.tsx`, add the fetch to the existing
+   `Promise.all`. Like studies, non-abort errors log once and return null;
+   `AbortError` is rethrown. Include `observations` in loader data and pass it
+   to `RouteDetailPage`.
+4. In `apps/web/src/studio/pages/route-detail.tsx`, add the optional typed prop
+   `observations?: StudioRouteInterventionObservationBundle | null`, default
+   it to null. Continue passing Plan 092's nullable inventory to both Overview
+   and History; pass the new observations prop only to `<OverviewSection>`.
+   Do not alter History's evidence/study/inventory plumbing.
+
+The route detail request must still render when the new artifact is absent,
+404s, or its optional fetch fails. Do not add a Worker endpoint or make the
+optional artifact part of the route-detail response contract.
+
+**Verify**: `bun run check:types` → exit 0; `bun run test:web` → all pass,
+including the API-client cases.
+
+### Step 5: Render the real-month series and structured markers
+
+- `OverviewSection.tsx`: build dossier fallback points with
+  `dossierSpeedPoints`, call
+  `routeSpeedInterventionTrend(observations, inventory, dossierPoints,
+  approvedCap)`, and pass the returned points/markers to `SpeedTrend` in
+  calendar mode. Determine chart
+  availability, month count, and displayed coverage window from the returned
+  points, not from the discarded legacy number array. Do not read
+  `route.interventions`, evidence, or display text for the chart.
+- `SpeedTrend.chart.tsx`: accept optional
+  `markers?: readonly TrendMarker[]`. Render one `<ReferenceLine>` per marker
+  only when the month-axis `points` path is active, styled exactly as the
+  approved comp. Reuse the existing scheduled-baseline `ReferenceLine` only
+  as a Recharts implementation exemplar; intervention marker labels remain
+  annotation-only.
+- `SpeedTrend.tsx`: pass the new point/marker props through the lazy boundary
+  without importing domain or route-page modules into the eager entry.
+- Add a concise visually hidden marker summary and give SpeedTrend's owned
+  chart wrapper `role="img"`, `aria-label={seriesLabel}`, and an
+  `aria-describedby` value containing the summary's unique ID. The summary
+  lists each marked month and annotation stem; a cluster includes the
+  distinct occurrence count (for example, “June 2024, 2 starts”). Do not
+  assume the current plain `ChartContainer` div or Recharts SVG labels expose
+  the accessible name/description without this explicit role-bearing target.
+- When the model returns `dossier_fallback`, the month axis and null gaps
+  remain, but the marker layer is absent. Do not synthesize a marker from any
+  other route data.
+
+`OverviewSection` renders the lazy `SpeedTrend` wrapper, so server
+`renderToStaticMarkup` sees `ChartFallback`, not Recharts output. Extend
+`apps/web/test/shared/overview-section.test.ts` only for model-derived card
+metadata and fallback behavior: a typed bundle changes the displayed coverage
+window/month count from the selected model points; a null bundle uses dossier
+metadata; no usable points render the honest empty state. Do not assert month
+ticks, marker labels, SVG paths, or visual gaps in this SSR test. Those belong
+in `speed-trend-chart.test.ts`, which tests the pure chart model and may
+assert the wrapper's accessible name/description plus hidden marker-summary
+text. It must not claim static Recharts output contains ticks or reference
+lines. Use fixture values only in tests; the comp/smoke uses the real Step 1
+artifacts.
+
+**Verify**: `bun run check:types` → exit 0; `bun run test:web` → all pass;
+`bun --filter @bp/web build` → exit 0 and budget passes; record the entry
+gzip size before/after and keep growth ≤0.5KB; `bun run check:architecture`
+and `bun run check:style` → exit 0 with no new allowlist entry.
+
+### Step 6: Smoke chart, fallback, and accessibility states
+
+Reuse the observation artifacts generated and recorded in Step 1; do not
+regenerate them with alternate release metadata. Run
+`bun run seed:local-studio-r2` and `bun run serve:web-smoke`, then check:
+
+1. BX28 with its supported speed binding → the Plan 090 25-month point series
+   renders and the marker lands on 2024-09 with the Plan 092 treatment
+   presentation helper's annotation stem.
+2. A route whose bundle has only unsupported events or no usable speed
+   binding → dossier month points render with zero intervention markers.
+3. A supported series with a null month → a visible gap, no crash, and the
+   tooltip does not invent a value.
+4. Observation artifact request returns 404/null → route detail still renders,
+   dossier month points remain, and zero intervention markers appear.
+5. With keyboard/browser accessibility inspection, the owned chart wrapper
+   exposes `role="img"`, the series label as its accessible name, and the
+   hidden marker summary through `aria-describedby`; each marked month is
+   present in that summary, clustered starts announce their occurrence count,
+   and no SVG-only label is required to understand the annotations.
+
+**Verify**: all five states pass in the available browser/manual smoke. Record
+screenshots or DOM assertions where the existing harness supports them; do
+not replace visual tick/reference-line verification with static SSR claims.
 
 ## Test plan
 
-- New: `apps/web/test/shared/trend-markers.test.ts` (cases in step 3).
-- Extend: if an SSR test covering OverviewSection exists under
-  `apps/web/test/`, add one assertion that a fixture route with a dated
-  intervention renders exactly one marker label and that a route with no
-  dated events renders none; if none exists, add a minimal one modeled on
-  `treatments-history.test.ts` and say so in the report.
-- Gates: `check:types`, `test:web`, `check:architecture`, `check:style`,
+- New: `apps/web/test/shared/intervention-trend-model.test.ts` (at least the
+  12 cases named in step 3, including value/description invariance).
+- New: `apps/web/test/shared/speed-trend-chart.test.ts` for pure calendar
+  rows/ticks/nullable-y-domain/null behavior, discriminated input modes, and
+  nonvisual marker-summary structure. Actual SVG tick/reference placement is
+  verified in browser smoke, not static Recharts markup.
+- Extend: `apps/web/test/shared/api-client.test.ts` for artifact path, 404,
+  JSON, and abort behavior.
+- Extend: `apps/web/test/shared/overview-section.test.ts` for typed bundle,
+  dossier fallback, and honest card metadata/empty state only; it must not
+  claim to inspect lazy chart markup.
+- Gates: `check:types`, `test:web`, `check:architecture`, `check:style`, and
   `bun --filter @bp/web build` budget.
 
 ## Done criteria
@@ -351,45 +612,78 @@ precedent).
 Machine-checkable. ALL must hold:
 
 - [ ] Operator-approved comp exists at `plans/mockups/082-overview-trend-markers/comp.html` and its resolved decisions are recorded in this file
-- [ ] `bun run test:web` exits 0 including `trend-markers.test.ts` (≥8 cases)
-- [ ] `grep -rniE "caused|improved because|thanks to" apps/web/src/components/route/trend-markers.ts apps/web/src/components/SpeedTrend.chart.tsx` → no hits
-- [ ] `grep -n "delta\|Delta\|%" apps/web/src/components/route/trend-markers.ts` → no hits (markers carry no computed numbers)
-- [ ] `bun run check:types`, `bun run check:architecture` (no new allowlist entries), `bun run check:style`, `bun --filter @bp/web build` all exit 0; entry budget delta ≤0.5KB recorded
-- [ ] Four smoke states from step 5 verified
-- [ ] Only in-scope files modified (`git status`)
+- [ ] Plans 090 and 092 are DONE; the app imports Plan 090's public type/key
+      subpaths, resolves observation occurrence/treatment IDs against Plan
+      091 inventory, and reuses Plan 092's named presentation helper and
+      annotation stem with no private duplicate interface or enum collapse
+- [ ] The exact Step 1 export command exits 0 against
+      `data/local/pipeline.sqlite` and
+      `data/artifacts/studio/v1/release.json`, with nonzero
+      `routeBundleCount`/`eventCount` and recorded admission counts
+- [ ] `bun run test:web` exits 0, including at least 12 named intervention-model cases, API-client cases, Overview metadata/fallback cases, and `speed-trend-chart.test.ts`
+- [ ] The pure SpeedTrend chart model tests preserve calendar null rows,
+      first/last tick values, finite observed y-domain, and null domain for
+      empty/all-null/scheduled-only input; static structure exposes a named
+      `role="img"` wrapper associated with the hidden marker summary without
+      claiming Recharts SVG output
+- [ ] `rg -n 'mergedTreatmentTimelineRows|TreatmentsHistorySection|StudioRouteEvidenceBundle' apps/web/src/components/route/intervention-trend-model.ts apps/web/src/components/route/OverviewSection.tsx` → no matches
+- [ ] `rg -n 'description|title|citation|evidence' apps/web/src/components/route/intervention-trend-model.ts` → no matches
+- [ ] `test ! -e apps/web/src/components/route/trend-markers.ts` → exit 0
+- [ ] `rg -n 'beforeMean|afterMean|delta|percentChange|effectEstimate|verdict|caused|improved because|thanks to' apps/web/src/components/route/intervention-trend-model.ts apps/web/src/components/SpeedTrend.chart.tsx` → no matches
+- [ ] `rg -n 'fetchStudioRouteInterventionObservations|observations=' apps/web/src/studio/api-client.ts apps/web/src/routes/routes/\$routeId.tsx apps/web/src/studio/pages/route-detail.tsx` finds the fetch, loader result, and prop plumbing
+- [ ] `bun run check:types`, `bun run check:architecture` (no new allowlist entries), `bun run check:style`, and `bun --filter @bp/web build` all exit 0; entry budget delta ≤0.5KB recorded
+- [ ] Five browser/manual smoke states from step 6 verified, including actual
+      month tick/reference placement and the nonvisual marker summary
+- [ ] Only in-scope files modified (`git status --short`)
 - [ ] `plans/README.md` status row updated
 
 ## STOP conditions
 
 Stop and report back (do not improvise) if:
 
-- The operator does not approve a comp variant (step 1) — this plan does not
-  proceed on an unapproved design.
-- `mergedTreatmentTimelineRows` is no longer exported or its row shape lost
-  `sortKey`/`source`/`tone` (plan 075 landed a breaking edit) — report; do
-  not fork a private copy of the admission rules.
-- The dossier sparkline months turn out not to be contiguous calendar months
-  (e.g. quarter-decimated) for real routes — the month-axis assumption
-  failed; report with two examples.
-- Placing markers requires a new fetch or any change under
-  `packages/studio-api/` — the data-already-on-page assumption failed.
-- `check:design-doctrine` requires an allowlist entry — report the violating
+- Plan 090 or Plan 092 is not DONE, or Plan 090's live public contract lacks
+  `StudioRouteInterventionObservationBundle`,
+  `interventionObservationBundleKey`, the speed binding id, structured
+  occurrence/treatment IDs, `implementationMonth`, or explicit null points
+  with equivalent semantics; or Plan 092 lacks the named treatment
+  presentation helper/annotation stem.
+- `data/local/pipeline.sqlite` or
+  `data/artifacts/studio/v1/release.json` is absent/invalid, either required DB
+  table is missing, or the canonical export returns zero bundles/events.
+  Rebuild upstream through the documented runbook; never invent release
+  metadata, fixture events, or production coverage to pass the comp gate.
+- The operator does not approve a comp variant in step 1.
+- The generic artifact endpoint cannot serve the Plan 090 key and completing
+  the fetch appears to require a Worker route, D1 migration, or change under
+  `packages/studio-api/**`.
+- Anyone proposes selecting the focal series, markers, label, visibility, or
+  priority from event/source prose, display titles, observed magnitude/sign,
+  sample count, a before/after comparison, or a study verdict.
+- The marker label would require a new private map instead of Plan 092's
+  exhaustive typed presentation helper, or would require treating Plan 090's
+  analysis family as Plan 091's presentation family.
+- Optional observation fetch failure blocks the route page instead of
+  degrading to dossier points with zero markers.
+- The dossier or observation point months are not valid ascending calendar
+  coordinates, or Plan 090 no longer retains explicit null gaps.
+- `check:design-doctrine` requires an allowlist entry; report the violating
   pattern instead of adding it.
+- A verification fails twice after a reasonable fix, or implementation needs
+  a file outside Scope.
 
 ## Maintenance notes
 
-- Plan 075's `?tab=history&study=<eventKey>` deep link is the natural click
-  target for a marker whose event has a study; deliberately NOT in this plan
-  (markers are static v1). If added later, it needs a fresh comp round.
-- If plan 075 step 4 later merges corpus rows into
-  `mergedTreatmentTimelineRows`, markers inherit them automatically — but all
-  310 corpus records are currently pre-window (0 have `evaluableInWindow:
-  true`), so no visual change is expected; re-run the step-5 smoke after 075
-  lands to confirm.
-- The riders sparkline (`dossierRidershipSeries`) could reuse
-  `dossierSpeedPoints`'s month-preserving pattern later; out of scope here.
-- Reviewer scrutiny points: the `year`-field-holds-a-month quirk
-  (`interventions.ts:230`) — if the serving pipeline ever renames it to
-  `implementationMonth`, `trend-markers.ts` and the timeline both need the
-  rename; the null-gap rendering change on the Overview chart (operator
-  approved it via the comp, but it is a visible change on EVERY route page).
+- Plan 090 owns relevance, event admission, artifact schema, and binding ids;
+  Plan 092 owns treatment presentation labels, and Plan 082 owns only the
+  first typed web renderer. If a binding id changes,
+  update the analytics/domain contract and its invariance tests first, then
+  deliberately migrate this consumer—never add a label/text fallback.
+- History evidence and Plan 075 study cards remain separate lanes. A future
+  click-through from a marker to `?tab=history&study=<eventKey>` needs an
+  explicit typed event/study join plus a fresh comp; it is not inferred here.
+- The ridership binding in Plan 090 is deliberately not rendered in this
+  slice. A later Riders-tab renderer may reuse the pure selection pattern but
+  needs its own product question, comp, and missing-data behavior.
+- Reviewers should scrutinize binding+metric matching, value-blind focal
+  selection, typed family labels, abort-preserving fail-soft loading, null-gap
+  rendering, and the visible month-axis change on every route page.

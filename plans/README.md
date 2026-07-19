@@ -87,7 +87,9 @@ REJECTED (with one-line rationale)
   before amended Plan 082 because both edit Overview, the route loader, and
   `api-client.ts`.
 - Plan 082's original display-text marker admission is superseded. Its binding
-  amendment consumes only Plan 090 typed observations and Plan 092 labels.
+  amendment consumes Plan 090 typed observations, resolves their IDs against
+  the same-release Plan 091 inventory, and uses Plan 092's named presentation
+  helper/annotation stem.
   The existing 082 comp approval remains its own visual gate; it is unrelated
   to the already-authorized exact-route implementation task.
 - Plan 093 separates a descriptive observation-anchor gate from the causal
@@ -136,9 +138,12 @@ REJECTED (with one-line rationale)
 - **One generic speed/ridership profile for every intervention** — rejected as
   semantically weak and cherry-picking-prone. Unsupported kinds remain
   explicit with an unlock requirement.
-- **Treat rc23 candidates or `awaiting_approval` rows as public facts because
-  they are structured** — rejected. Candidate review is not publication, and
-  the exact-route defect quarantines the old identity projection.
+- **Treat rc23 candidates or `awaiting_approval` study rows as public facts
+  because they are structured** — rejected. Candidate review is not
+  publication, and the exact-route defect quarantines the old identity
+  projection. A fresh manifest-v5 producer-approved operational occurrence
+  may enter Plan 091's display inventory without a Tracker study receipt, but
+  the candidate-set artifact itself is never a serving input.
 - **Fan route-level treatments onto segment rows** — rejected. Plan 081
   measured no within-route ACE/TSP variation; only independently evidenced
   segment scope may render there.
@@ -304,9 +309,10 @@ exact routes where naive before/after would have shipped a confident wrong
 number (M79+ +0.36 mph raw with congestion-pricing overlap; B82+ descriptive
 worsening with failed pre-trend). What is missing is the cheap broad layer:
 dated intervention MARKERS on the route chart (annotation, never computed
-deltas). Coverage math: 201 of 323 candidate routes have in-window
-implementation months and the route page already loads dated events for its
-History timeline, versus 5 routes with studies. The spine remains a major
+deltas). The historical raw-event audit found 201 of 323 candidate routes
+with in-window implementation months, versus 5 routes with studies; that is
+not typed publication coverage. Generation 12 first builds the exact
+inventory and reviewed observation contracts. The spine remains a major
 technical bottleneck: 267 of 385 routes are `needs_pattern_review`. The
 historical 39-row ACE bucket was a primary rejection category, not proof of a
 sole blocker; rc19 rebaselines it to 39 identities/37 routes (20 with no
@@ -339,7 +345,8 @@ REJECTED (with one-line rationale)
   recorded study gates. Plan 082 does not depend on activation. Its original
   `mergedTreatmentTimelineRows`/History-text admission is superseded by the
   Generation 12 amendment: execute 091 → 090 → 092 before 082, then consume
-  only the typed observation bundle and presentation registry.
+  the typed observation bundle, resolve its IDs against the same-release
+  inventory, and use the named treatment presentation helper.
 - 082 carries the standing comp gate: no app code until an operator-approved
   comp exists at `plans/mockups/082-overview-trend-markers/comp.html`.
 - 083 is a pure spike: its decision doc commissions any production spine
@@ -585,8 +592,8 @@ decision layer.
 | 071 | Steering-doc truth sweep (README schema claim, /methods SEO, master-plan status) | P2 | S-M | 068 (rec.) | DONE (Effect Schema README claim, retired `/methods` SEO removal, master-plan status block, and knowledge log verified) |
 | 072 | Dependency hygiene: bun update within semver + audit residue log | P3 | S | 068 | DONE (audit reduced 15→13; all residual advisories documented; full tests/build and `/` + `/map` smoke pass) |
 | 073 | Serve the reviewed intervention corpus + reconciliation report | P1 | M-L | 068 | DONE (310 valid; 29 study-date-ready; 11 exact matches; no study-ready corpus-only candidates) |
-| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 | IN PROGRESS (rc23's 489-row set is strict-compatible but unapproved; control-contamination and bounded-scope admission gates remain open before any new run) |
-| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073 for step 5 | IN PROGRESS (UI integration landed in PR #59 before the recorded anchor-review prerequisite closed; activation/publication remains blocked) |
+| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 + exact-route task before any future run | IN PROGRESS (historical five-study output is immutable; rc23 is route-identity-quarantined; require a fresh manifest-v5 release/candidate set/receipt plus control-contamination and bounded-scope repairs) |
+| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | IN PROGRESS (UI integration landed in PR #59, but remains inactive; rc23 cannot activate it, and fresh exact-route study/publication gates remain open) |
 | 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |

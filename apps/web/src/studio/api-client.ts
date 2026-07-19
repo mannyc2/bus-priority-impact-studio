@@ -559,6 +559,13 @@ export type NetworkMapJoinResult = {
   factsStatus: "ready" | "unavailable" | "baseline_mismatch";
   completeFactCount: number;
   routeCount: number;
+  /**
+   * Unanimous delay-exposure analysis period (ISO month) across every mapped
+   * route, or null when any route lacks an available delay fact or the served
+   * periods disagree. This is the coverage window of the rider-delay measure,
+   * never a release identity.
+   */
+  delayCoverageEnd: string | null;
   message: string | null;
 };
 
@@ -569,6 +576,7 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
       factsStatus: "unavailable",
       completeFactCount: 0,
       routeCount: 0,
+      delayCoverageEnd: null,
       message: "The map manifest is unavailable.",
     };
   if (bundle.network.status !== "ready")
@@ -577,6 +585,7 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
       factsStatus: "unavailable",
       completeFactCount: 0,
       routeCount: 0,
+      delayCoverageEnd: null,
       message:
         bundle.network.status === "integrity_mismatch"
           ? `Network geometry failed integrity verification (expected ${bundle.network.expectedSha256}, received ${bundle.network.actualSha256}).`
@@ -591,9 +600,21 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
     facts?.routes.map((fact) => [fact.route.routeId, fact] as const) ?? [],
   );
   let completeFactCount = 0;
+  let delayFactCount = 0;
+  const delayPeriods = new Set<string>();
   const features = bundle.network.data.features.map((feature) => {
     const fact = factsByRoute.get(feature.properties.routeId);
     if (fact !== undefined) completeFactCount += 1;
+    const exposure = fact?.delayExposure;
+    if (
+      exposure !== undefined &&
+      exposure.status === "available" &&
+      exposure.valueRiderHours !== null &&
+      exposure.analysisPeriod !== null
+    ) {
+      delayFactCount += 1;
+      delayPeriods.add(exposure.analysisPeriod);
+    }
     return {
       type: "Feature" as const,
       id: `network-route:${feature.properties.routeId}`,
@@ -624,6 +645,12 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
     };
   });
   const routeCount = features.length;
+  // The delay lens needs 100% of mapped routes on one shared analysis period;
+  // anything less serves no coverage label and the lens stays hidden.
+  const delayCoverageEnd =
+    routeCount > 0 && delayFactCount === routeCount && delayPeriods.size === 1
+      ? ([...delayPeriods][0] ?? null)
+      : null;
   const factsStatus = baselineMismatch
     ? "baseline_mismatch"
     : completeFactCount === routeCount && bundle.routeFacts.status === "ready"
@@ -638,6 +665,7 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
     factsStatus,
     completeFactCount,
     routeCount,
+    delayCoverageEnd,
     message: baselineMismatch
       ? `Map geometry is for ${bundle.manifest.baselineMonth}, but route facts are for ${bundle.routeFacts.status === "ready" ? bundle.routeFacts.data.baselineMonth : "an unavailable month"}.`
       : factFailureMessage !== null

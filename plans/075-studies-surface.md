@@ -21,7 +21,8 @@
 - **Risk**: MED (public claims surface — mitigated by claim-language rules and the 074 operator-review gate)
 - **Depends on**: plans/074-segment-study-engine.md (must be DONE with
   operator anchor review passed; currently unmet),
-  plans/073-intervention-corpus-serving.md (corpus artifact, for step 5)
+  plans/073-intervention-corpus-serving.md (corpus artifact, for step 5), and
+  exact-route task `019f7640-fd5c-7be2-8a40-a7c264284c0f` before activation
 - **Category**: direction
 - **Planned at**: commit `cd878f7`, 2026-07-09 (rescoped same day per operator direction)
 
@@ -59,6 +60,24 @@ to that exact set, a separately authorized Plan 074 run, operator anchor
 review, and every existing publication gate. rc22 remains quarantined and all
 already published artifacts remain immutable. See
 `docs/research/mta-wiki-rc23-migration-report.md`.
+
+### Binding exact-route publication quarantine — 2026-07-18
+
+The later exact-route audit supersedes rc23's prospective publication basis.
+Although rc23 passed the then-current manifest-v4 decoder, its route
+projection collapses exact services and is quarantined without mutation by
+the active MTA Wiki Plan 035 program. Plan 075 must never serve studies,
+indexes, rollups, or links derived from
+`candidate-set-v3:aba25fe4209247be31d43b66`, and no approval may be rebound to
+it.
+
+Activation now requires the external exact-route task
+`019f7640-fd5c-7be2-8a40-a7c264284c0f`, a fresh non-quarantined manifest-v5
+Wiki release, a new exact-route candidate set, its complete set-bound receipt,
+a separately authorized post-amendment Plan 074 run, operator anchor review,
+serving regeneration, and publication authorization. The UI code landed by
+PR #59 remains implemented but inactive; this amendment does not remove it or
+activate any public result.
 
 ### Status reconciliation — 2026-07-18
 

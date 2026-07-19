@@ -2,6 +2,7 @@ import type { MapBusLaneFeatureCollection, MapManifestResponse } from "@bp/domai
 import { Link } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MapHourStrip } from "@/components/route/MapHourStrip";
 import {
   type NetworkBadge,
   NetworkMapLibre,
@@ -18,6 +19,7 @@ import {
   formatViewValue,
   insightModel,
   legendModel,
+  type NetworkEncoding,
   type NetworkView,
   percentileLine,
   periodLabel,
@@ -25,7 +27,6 @@ import {
   slowestWindow,
   sortFeaturesForView,
   speedBandTerm,
-  speedClass,
   viewEncoding,
 } from "@/components/route/network-map-model";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
@@ -616,22 +617,38 @@ function LegendStrip({ legend }: { legend: NonNullable<ReturnType<typeof legendM
   );
 }
 
-/** Popup stat rows: always the same trio, spelled out with units and windows. */
+/**
+ * Popup stat rows, spelled out with units and windows. The middle slot
+ * complements the hero: a delay hero gets the all-day Speed row and any speed
+ * hero gets Delay, so no metric appears twice in one card.
+ */
 export function popupStatRows(
   feature: NetworkMapFeature,
   coverageShort: string | null,
+  encoding: NetworkEncoding,
 ): Array<{ label: string; value: string; sub: string }> {
+  const middle =
+    encoding === "delay"
+      ? {
+          label: "Speed",
+          value:
+            feature.properties.currentMph === null
+              ? "No data"
+              : feature.properties.currentMph.toFixed(1),
+          sub: "mph, all day",
+        }
+      : {
+          label: "Delay",
+          value: compactNumber(feature.properties.riderHoursLost),
+          sub: coverageShort === null ? "rider-hours" : `rider-hrs, ${coverageShort}`,
+        };
   return [
     {
       label: "Riders",
       value: compactNumber(feature.properties.dailyRiders),
       sub: "per day",
     },
-    {
-      label: "Delay",
-      value: compactNumber(feature.properties.riderHoursLost),
-      sub: coverageShort === null ? "rider-hours" : `rider-hrs, ${coverageShort}`,
-    },
+    middle,
     {
       label: "Bus lanes",
       value:
@@ -720,30 +737,10 @@ function NetworkMapPopup({
         </div>
       )}
       <div className="mt-2.5">
-        <div className="flex h-[26px] items-end gap-px">
-          {feature.properties.hourlySpeedMph.map((speed, hour) => {
-            const cls = speedClass(speed);
-            const height = speed === null ? 2 : Math.max(3, Math.min(26, ((speed - 3) / 12) * 26));
-            const inWindow =
-              window !== null &&
-              speed !== null &&
-              speed <= window.worstMph + 0.4 &&
-              window.label.length > 0;
-            return (
-              <span
-                key={hour}
-                title={`${hour}:00 — ${speed === null ? "no data" : `${speed.toFixed(1)} mph`}`}
-                style={{
-                  height: `${height}px`,
-                  backgroundColor:
-                    cls === null ? "var(--bp-color-ink-06)" : SPEED_CLASS_COLORS[cls],
-                  opacity: inWindow ? 1 : 0.45,
-                }}
-                className="flex-1 rounded-[1px]"
-              />
-            );
-          })}
-        </div>
+        <MapHourStrip
+          hourlySpeedMph={feature.properties.hourlySpeedMph}
+          emphasisMaxMph={window === null ? null : window.worstMph + 0.4}
+        />
         <div className="mt-0.5 flex justify-between font-mono text-[9.5px] text-[var(--bp-color-ink-40)]">
           <span>12A</span>
           <span>6A</span>
@@ -758,7 +755,7 @@ function NetworkMapPopup({
         )}
       </div>
       <div className="mt-2.5 grid grid-cols-3 gap-2.5">
-        {popupStatRows(feature, shortCoverage(coverage)).map((stat) => (
+        {popupStatRows(feature, shortCoverage(coverage), encoding).map((stat) => (
           <div key={stat.label} className="min-w-0 border-t border-[var(--bp-color-rule)] pt-1.5">
             <div className="text-[9.5px] font-semibold uppercase tracking-[0.06em] text-[var(--bp-color-ink-55)]">
               {stat.label}
