@@ -2,7 +2,7 @@
 title: CLI Commands
 type: engineering
 status: active
-last_updated: 2026-05-19
+last_updated: 2026-07-19
 owner: codex
 source_count: 2
 tags: [cli, tools, codex, typescript, bun]
@@ -12,7 +12,8 @@ tags: [cli, tools, codex, typescript, bun]
 
 ## Why this matters
 
-The CLI is the boundary between local heavy compute and the managed public app. Commands live in `tools/pipeline` as a TypeScript package named `@bp/pipeline`.
+The CLI is the boundary between local heavy compute and the managed public app. Commands live in
+`tools/pipeline-v2` as the TypeScript package `@bp/pipeline-v2`.
 
 The public app should not run these commands at request time.
 
@@ -21,7 +22,7 @@ The public app should not run these commands at request time.
 Run commands through Bun:
 
 ```bash
-bun --filter @bp/pipeline <script> -- <args>
+bun run pipeline <command> <subcommand> [options]
 ```
 
 The package may expose a `bp` binary later, but do not add a global CLI abstraction until the first commands work.
@@ -167,16 +168,13 @@ Primary batch entrypoint:
 - `build:network` is the preferred monthly “try every build-eligible route” command; it recomputes readiness and the build plan, skips already-built routes by default, writes incremental progress to `data/artifacts/network-builds/<month>/summary.json` after each route attempt, and supports `--no-resume` when a full rebuild is desired.
 - `build:planned-routes` remains available as a compatibility alias for `build:routes -- --planned`.
 
-## Export commands
-
-> **De-month status (2026-07-12):** the month-keyed export and promotion mechanics below remain
-> live but are scheduled for removal per ADR-0022 — serving contract in plan 085, release identity
-> in plan 086, and freshness ledger in plan 087. Until those land, this section describes current behavior.
+## Export and release commands
 
 ```bash
-bun run export:d1 -- --year 2026 --month 3
-bun run export:d1 -- --year 2026 --month 3 --network-dir data/working/network
-bun run verify:d1 -- --year 2026 --month 3
+bun run pipeline export d1 --year 2026 --month 3
+bun run pipeline verify d1 --year 2026 --month 3
+bun run pipeline studio release --month 2026-03
+bun run pipeline map release --year 2026 --month 3 --context-source <reviewed-borough-boundary.csv>
 bun run check:bus-observatory-gtfs-rt -- --year 2026 --month 3
 bun run import:bus-observatory-gtfs-rt -- --run-id bus-observatory-2026-03 --year 2026 --month 3 --canonical-csv data/working/bus-observatory/2026-03/vehicle-positions.csv
 bun run import:bus-observatory-headway-samples -- --run-id bus-observatory-2026-03 --year 2026 --month 3 --snapshots-csv data/working/bus-observatory/2026-03/raw-provenance/snapshots-30s.csv --headway-samples-csv data/working/bus-observatory/2026-03/raw-provenance/headway-samples.csv
@@ -188,14 +186,23 @@ bun --filter @bp/pipeline export:r2 -- --route M1 --month 2026-01
 
 Expected outputs:
 
-- D1 seed SQL or import-ready rows
-- D1 export summaries with schema/seed byte lengths and SHA-256 hashes
+- month-keyed D1 schema/seed partitions under `data/exports/d1/<YYYY-MM>/`; the directory is data
+  grain, not release identity
+- D1 export summaries carrying canonical `releaseId`, `publishedAt`, and `coverage`, plus schema/seed
+  byte lengths and SHA-256 hashes
 - D1 verification summaries that load generated seed SQL, validate expected-vs-loaded serving row counts, and exercise typed repository readback
+- a schema-v3 Studio release payload and public projections carrying the same publication ID and
+  timestamp, with dataset-specific coverage windows
+- a coordinated map release whose D1, Studio, map manifest, and catalog registration share one
+  publication instant and whose coverage ends at the selected partition
 - Bus Observatory third-party GTFS-RT availability artifact at `data/artifacts/source-availability/bus-observatory-gtfs-rt-YYYY-MM.json`, including file inventory, bridge-file coverage, provenance, CC BY-NC 4.0 license, and row-level QA requirements before use
 - Bus Observatory recovered GTFS-RT local import from a canonical CSV exported from Parquet. The importer writes `local_gtfs_rt_collection_run`, `local_gtfs_rt_feed_snapshot`, `local_gtfs_rt_parsed_snapshot`, and `local_gtfs_rt_vehicle_position` rows for a `third_party_recovered` run id, then the existing `build:observed-headways`, `route-observed-reliability`, and `gtfs-rt:preflight` commands become the promotion gate.
 - Bus Observatory recovered headway-sample import from DuckDB-derived CSVs. This is the strict March 2026 recovered path: compact 30-second snapshot buckets provide collection/feed/parsed/vehicle-position evidence, while derived headway samples back route reliability summaries and `gtfs-rt:preflight`.
 - Bus Observatory recovered reliability summary import from a precomputed route summary CSV. This is the current practical March 2026 recovered-data load path: it fills every current catalog route, skips archive routes outside the catalog, writes reliability source-status rows, and then requires `brief-artifacts`, `route-batch-audit`, `export:d1`, and `verify:d1` to refresh the serving release.
-- one-shot serving release publish commands through `publish:serving-release`; it applies generated D1 schema/seed SQL and uploads selected release artifacts to R2, dry-running unless `--execute` is passed
+- one-shot serving release publication through `publish:serving-release`; its required `--month`
+  selects the already-built export partition whose `coverage.end` must match, then it applies D1
+  SQL, uploads release artifacts to R2, and registers the verified map release last; it dry-runs
+  unless `--execute` is passed
 - R2-to-pipeline mirror commands through `pull:gtfs-rt-r2-run`; it fetches Worker-written GTFS-RT manifests and raw protobuf objects from R2, dry-running unless `--execute` is passed
 - artifact keys and hashes
 - dry-run or executed R2 upload through `publish:serving-release` after local artifact contracts are stable and real Cloudflare resource names are configured
