@@ -72,11 +72,6 @@ export async function runMapRelease(
 ) {
   const month = isoMonth(inputs.year, inputs.month);
   const publishedAt = new Date().toISOString();
-  const releaseIdentity = decodeSchemaStrict(ReleaseIdentitySchema, {
-    releaseId: releaseIdFromPublishedAt(publishedAt),
-    publishedAt,
-    coverage: { start: null, end: month },
-  });
   const artifactRoot = inputs.artifactRoot ?? defaultArtifactRootPath();
   const exportRoot = inputs.exportRoot ?? defaultExportRootPath();
   const routeShapeSnapshotPath =
@@ -100,6 +95,11 @@ export async function runMapRelease(
     endMonth: month,
     artifactRoot,
     generatedAt: publishedAt,
+  });
+  const releaseIdentity = decodeSchemaStrict(ReleaseIdentitySchema, {
+    releaseId: releaseIdFromPublishedAt(publishedAt),
+    publishedAt,
+    coverage: { start: speedSpines.coverageStart, end: month },
   });
   const d1 = await dependencies.verifyD1({
     local: inputs.local,
@@ -185,7 +185,8 @@ export async function runMapRelease(
     manifest.releaseProfile !== "full" ||
     manifest.buildStatus !== "pass" ||
     manifest.verificationStatus !== "pass" ||
-    manifest.status !== "pass"
+    manifest.status !== "pass" ||
+    manifest.issueCount !== 0
   ) {
     throw new Error("Only a verified full map manifest can be finalized and cataloged.");
   }

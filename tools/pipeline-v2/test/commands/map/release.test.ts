@@ -42,6 +42,7 @@ describe("runMapRelease", () => {
           record("speedSpines", input);
           return {
             manifestPath: join(artifactRoot, "route-speed-spines", "manifest.json"),
+            coverageStart: "2025-02",
           };
         },
         async verifyD1(input: unknown) {
@@ -181,7 +182,7 @@ describe("runMapRelease", () => {
         | undefined;
       expect(d1?.["releaseIdentity"]).toEqual(studio?.["releaseIdentity"]);
       expect(studio?.["releaseIdentity"]).toEqual(mapReleaseIdentity);
-      expect(mapReleaseIdentity?.coverage).toEqual({ start: null, end: "2026-04" });
+      expect(mapReleaseIdentity?.coverage).toEqual({ start: "2025-02", end: "2026-04" });
       expect(calls.find((call) => call.name === "speedSpines")?.input["generatedAt"]).toBe(
         mapReleaseIdentity?.publishedAt,
       );
@@ -197,5 +198,37 @@ describe("runMapRelease", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  test("keeps coverage start null when the built speed-spine evidence is empty", async () => {
+    const observedIdentities: Array<{ coverage: { start: string | null; end: string } }> = [];
+    const dependencies = {
+      async routeBrief() {
+        return { isoMonth: "2026-04" };
+      },
+      async speedSpines() {
+        return { manifestPath: "unused.json", coverageStart: null };
+      },
+      async verifyD1(input: unknown) {
+        observedIdentities.push(
+          (input as { releaseIdentity: { coverage: { start: string | null; end: string } } })
+            .releaseIdentity,
+        );
+        throw new Error("stop after identity capture");
+      },
+    } as unknown as MapReleaseDependencies;
+
+    await expect(
+      runMapRelease(
+        {
+          local: { path: "unused.sqlite" } as OpenLocalPipelineDb,
+          year: 2026,
+          month: 4,
+          contextSourcePath: "unused.csv",
+        },
+        dependencies,
+      ),
+    ).rejects.toThrow("stop after identity capture");
+    expect(observedIdentities[0]?.coverage).toEqual({ start: null, end: "2026-04" });
   });
 });

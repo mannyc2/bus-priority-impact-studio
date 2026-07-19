@@ -135,6 +135,17 @@ function hasExactKeys(value: Record<string, unknown>, expected: readonly string[
   return actual.length === expected.length && actual.every((key) => expectedSet.has(key));
 }
 
+function hasExactUniqueMembers(actual: readonly string[], expected: readonly string[]): boolean {
+  const actualSet = new Set(actual);
+  const expectedSet = new Set(expected);
+  return (
+    actualSet.size === actual.length &&
+    expectedSet.size === expected.length &&
+    actual.length === expected.length &&
+    actual.every((member) => expectedSet.has(member))
+  );
+}
+
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -748,7 +759,11 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
   const routeCountsMatch =
     routeCount === catalog.routeCount &&
     value.routeFacts.status === "available" &&
-    value.routeFacts.routeCount === catalog.routeCount;
+    value.routeFacts.routeCount >= catalog.routeCount &&
+    hasExactUniqueMembers(
+      value.routeUniverse.routeFactRouteIds,
+      value.routeUniverse.expectedRouteIds,
+    );
   if (!identityMatches || !publicationMatches || !routeCountsMatch) {
     return errorJson(502, "The registered map manifest does not match its catalog record.");
   }

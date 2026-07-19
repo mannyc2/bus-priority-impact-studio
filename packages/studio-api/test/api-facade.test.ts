@@ -1754,6 +1754,59 @@ describe("Studio API facade", () => {
       });
     }
 
+    const broaderRouteFactsManifest = {
+      ...manifestValue,
+      routeFacts: {
+        ...manifestValue.routeFacts,
+        // The projection may also contain Express/School facts outside the public map universe.
+        routeCount: 3,
+      },
+    };
+    const broaderRouteFactsBody = JSON.stringify(broaderRouteFactsManifest);
+    const broaderRouteFactsSha256 = createHash("sha256")
+      .update(broaderRouteFactsBody)
+      .digest("hex");
+    const broaderRouteFactsKey = `map/2026-03/manifest.${broaderRouteFactsSha256}.json`;
+    const broaderRouteFactsResponse = await fetchApi("/api/v1/map/manifest", {
+      ARTIFACTS: new FakeR2Bucket({
+        [broaderRouteFactsKey]: new FakeR2Object(broaderRouteFactsBody, "application/json"),
+      }) as unknown as R2Bucket,
+      DB: new FakeDb({
+        map_release_catalog: [
+          {
+            ...catalogRow,
+            manifest_key: broaderRouteFactsKey,
+            manifest_sha256: broaderRouteFactsSha256,
+          },
+        ],
+      }) as unknown as D1Database,
+    });
+    expect(broaderRouteFactsResponse.status).toBe(200);
+    expect(
+      decodeStrict(MapManifestResponseSchema)(await broaderRouteFactsResponse.json()).routeFacts,
+    ).toEqual(expect.objectContaining({ status: "available", routeCount: 3 }));
+
+    await expectRehashedManifestFailure(
+      {
+        ...manifestValue,
+        routeUniverse: {
+          ...manifestValue.routeUniverse,
+          routeFactRouteIds: ["B46-SBS", "B46-SBS"],
+        },
+      },
+      "The registered map manifest does not match its catalog record.",
+    );
+    await expectRehashedManifestFailure(
+      {
+        ...manifestValue,
+        routeUniverse: {
+          ...manifestValue.routeUniverse,
+          routeFactRouteIds: ["B46-SBS", "X1"],
+        },
+      },
+      "The registered map manifest does not match its catalog record.",
+    );
+
     const alternateRelease = {
       releaseId: "pub_20260720T123456789Z",
       publishedAt: "2026-07-20T12:34:56.789Z",

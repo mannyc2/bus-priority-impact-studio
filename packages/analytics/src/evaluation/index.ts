@@ -20,6 +20,7 @@ export {
   evaluateMaxAgeSnapshotCurrency,
   evaluateRevisionPinnedCurrency,
   isMapArtifactManifest,
+  isSafeArtifactKey,
   MAP_ARTIFACT_BUDGETS,
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,

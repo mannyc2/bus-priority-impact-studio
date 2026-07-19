@@ -6,6 +6,7 @@ import {
   classifyRouteSpeedSpineArtifact,
   type RouteSpeedSpineArtifact,
 } from "@bp/analytics/feature-history";
+import { earliestRouteSpeedSpineCoverageStart } from "../../../src/commands/studio/route-speed-spines.ts";
 
 function artifact(input: {
   validationStatus?: RouteSpeedSpineArtifact["validation"]["status"];
@@ -75,6 +76,17 @@ function artifact(input: {
 }
 
 describe("studio route speed spines manifest", () => {
+  test("derives the earliest observed coverage month and preserves unknown empty evidence", () => {
+    expect(
+      earliestRouteSpeedSpineCoverageStart([
+        { startMonth: "2024-02" },
+        { startMonth: "2023-04" },
+        { startMonth: "2025-01" },
+      ]),
+    ).toBe("2023-04");
+    expect(earliestRouteSpeedSpineCoverageStart([])).toBeNull();
+  });
+
   test("classifies fully covered routes as series-ready", () => {
     const audit = classifyRouteSpeedSpineArtifact(
       artifact({ monthCoverage: Array.from({ length: 4 }, () => ({ coverageShare: 1 })) }),

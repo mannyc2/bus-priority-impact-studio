@@ -20,6 +20,8 @@ import {
   evaluateAnalysisPeriodCurrency,
   evaluateMaxAgeSnapshotCurrency,
   evaluateRevisionPinnedCurrency,
+  isMapArtifactManifest,
+  isSafeArtifactKey,
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,
   MAP_LAYER_REGISTRY,
@@ -265,7 +267,7 @@ describe("evaluation data products", () => {
         releaseCoverage: decodeCoverage({ start: null, end: "2026-03" }),
         coveragePassed: true,
       }).status,
-    ).toBe("stale");
+    ).toBe("period_aligned");
     expect(evaluateRevisionPinnedCurrency({ embeddedSha256: "a", sourceSha256: "b" }).status).toBe(
       "stale",
     );
@@ -432,6 +434,21 @@ describe("evaluation data products", () => {
         month,
       }),
     );
+
+    expect(isMapArtifactManifest(manifest)).toBe(true);
+    expect(isMapArtifactManifest({ ...manifest, baselineMonth: month })).toBe(false);
+    expect(isMapArtifactManifest({ ...manifest, sources: [null] })).toBe(false);
+    expect(
+      isMapArtifactManifest({
+        ...manifest,
+        artifacts: [{ ...manifest.artifacts[0], artifactKey: "../secret.json" }],
+      }),
+    ).toBe(false);
+    expect(isSafeArtifactKey("map/2026-03/manifest.json")).toBe(true);
+    expect(isSafeArtifactKey("../secret.json")).toBe(false);
+    expect(isSafeArtifactKey("map//secret.json")).toBe(false);
+    expect(isSafeArtifactKey("map\\secret.json")).toBe(false);
+    expect(isSafeArtifactKey("C:/secret.json")).toBe(false);
 
     expect(
       verifyMapArtifactManifestContents({

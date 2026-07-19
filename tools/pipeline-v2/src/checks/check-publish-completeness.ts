@@ -127,6 +127,7 @@ if (mapManifest === null) {
   if (mapManifest.verificationStatus !== "pass")
     conflicts.push("Map manifest verificationStatus is not pass.");
   if (mapManifest.status !== "pass") conflicts.push("Map manifest status is not pass.");
+  if (mapManifest.issueCount !== 0) conflicts.push("Map manifest issueCount is not zero.");
   if (mapManifest.coverage.end !== month)
     conflicts.push(
       `Map manifest coverage end ${mapManifest.coverage.end} conflicts with ${month}.`,

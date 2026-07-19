@@ -20,6 +20,7 @@ import {
 import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
   runPublishR2Artifacts,
+  runPublishR2ArtifactsCommand,
   type S3Driver,
 } from "../../../src/commands/publish/r2-artifacts.ts";
 
@@ -419,6 +420,106 @@ describe("runPublishR2Artifacts", () => {
     }
   });
 
+  it("rejects malformed, unresolved, and traversing map manifests before remote calls", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-invalid-map-manifests-"));
+    const cases: Array<{
+      name: string;
+      expected: string;
+      mutate: (manifest: Record<string, unknown>) => Record<string, unknown>;
+    }> = [
+      {
+        name: "legacy-dual-shape",
+        expected: "does not satisfy the v2 release contract",
+        mutate: (manifest) => ({ ...manifest, baselineMonth: MONTH }),
+      },
+      {
+        name: "malformed-nested-source",
+        expected: "does not satisfy the v2 release contract",
+        mutate: (manifest) => ({ ...manifest, sources: [null] }),
+      },
+      {
+        name: "unresolved-issues",
+        expected: "issueCount must be zero",
+        mutate: (manifest) => ({ ...manifest, issueCount: 1 }),
+      },
+      {
+        name: "traversing-artifact-key",
+        expected: "does not satisfy the v2 release contract",
+        mutate: (manifest) => {
+          const artifacts = manifest["artifacts"] as Array<Record<string, unknown>>;
+          return {
+            ...manifest,
+            artifacts: [{ ...artifacts[0], artifactKey: "../secret.json" }, ...artifacts.slice(1)],
+          };
+        },
+      },
+      {
+        name: "traversing-route-facts-key",
+        expected: "does not satisfy the v2 release contract",
+        mutate: (manifest) => ({
+          ...manifest,
+          routeFacts: {
+            ...(manifest["routeFacts"] as Record<string, unknown>),
+            artifactKey: "../route-facts.json",
+          },
+        }),
+      },
+      {
+        name: "traversing-layer-key",
+        expected: "does not satisfy the v2 release contract",
+        mutate: (manifest) => {
+          const layers = manifest["layers"] as Array<Record<string, unknown>>;
+          return {
+            ...manifest,
+            layers: [{ ...layers[0], artifactKey: "../route-shapes.json" }, ...layers.slice(1)],
+          };
+        },
+      },
+    ];
+
+    try {
+      for (const candidate of cases) {
+        const artifactRoot = join(tmp, candidate.name);
+        const outputPath = join(tmp, `${candidate.name}.json`);
+        await seedPublishableFullMap(artifactRoot);
+        const manifestPath = join(artifactRoot, "map", MONTH, "manifest.json");
+        const manifest = (await Bun.file(manifestPath).json()) as Record<string, unknown>;
+        await writeFile(manifestPath, JSON.stringify(candidate.mutate(manifest)));
+        const { driver, calls } = recordingDriver(new Map());
+
+        await expect(
+          runPublishR2Artifacts({
+            ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+            manifestDirs: ["map"],
+          }),
+        ).rejects.toThrow(candidate.expected);
+        expect(calls).toEqual([]);
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a traversing artifact scope before scanning or remote calls", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-traversing-scope-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await mkdir(artifactRoot, { recursive: true });
+      const { driver, calls } = recordingDriver(new Map());
+
+      await expect(
+        runPublishR2Artifacts({
+          ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+          prefixes: ["../outside"],
+        }),
+      ).rejects.toThrow("is not a safe artifact-root path");
+      expect(calls).toEqual([]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("publishes a verified full P0 map release with typed unavailable lanes", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "publish-r2-full-no-lanes-"));
     try {
@@ -500,6 +601,11 @@ describe("runPublishR2Artifacts", () => {
       expect(report.status).toBe("fail");
       expect(report.failed[0]?.error).toContain("content-addressed filename hash mismatch");
       expect(calls).toEqual([]);
+      await expect(
+        runPublishR2ArtifactsCommand(
+          baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+        ),
+      ).rejects.toThrow("R2 artifact publication failed for 1 of 1 candidates");
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
