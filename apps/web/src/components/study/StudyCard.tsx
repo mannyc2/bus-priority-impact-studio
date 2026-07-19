@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SourceNote } from "@/components/SourceNote";
 import { Badge } from "@/components/ui/badge";
 import type { StudyArtifact } from "@/studio/api-contract";
+import { StudyEventChart } from "./StudyEventChart.js";
 import {
   caveatSentence,
   ciLongLabel,
@@ -11,15 +12,20 @@ import {
   findingSentence,
   implementationLineLabel,
   methodProvenanceEntries,
+  type StudyTone,
   signedMphLabel,
   studyBadgeLabel,
   studyTone,
   studyToneColor as toneColor,
-  type StudyTone,
 } from "./study-display.js";
-import { StudyEventChart } from "./StudyEventChart.js";
 
-function TrendIcon({ direction, tone }: { direction: StudyArtifact["direction"]; tone: StudyTone }) {
+function TrendIcon({
+  direction,
+  tone,
+}: {
+  direction: StudyArtifact["direction"];
+  tone: StudyTone;
+}) {
   const stroke = { color: toneColor(tone) };
   if (direction === "improved") {
     return (

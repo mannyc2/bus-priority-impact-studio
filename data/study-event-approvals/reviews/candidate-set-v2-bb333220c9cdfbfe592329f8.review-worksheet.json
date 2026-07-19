@@ -29,22 +29,14 @@
   "focus": {
     "occurrenceId": "occurrence:c5e9aba290ca2be1be6fb38e",
     "routeId": "Q7",
-    "candidateIds": [
-      "study-event-v2:8476b86179cbe2ae5d827cd1"
-    ],
+    "candidateIds": ["study-event-v2:8476b86179cbe2ae5d827cd1"],
     "status": "REVIEW_REQUIRED",
     "treatmentFamily": "route_redesign",
     "treatmentScopeKind": "bundle",
-    "componentTreatmentFamilies": [
-      "service_pattern"
-    ],
+    "componentTreatmentFamilies": ["service_pattern"],
     "confounderGroupId": "queens_bus_network_redesign_2025",
-    "gtfsRouteIds": [
-      "Q07"
-    ],
-    "occurrenceReviewDecisionIds": [
-      "q7-route-redesign-2025-08-31"
-    ],
+    "gtfsRouteIds": ["Q07"],
+    "occurrenceReviewDecisionIds": ["q7-route-redesign-2025-08-31"],
     "handoffChecks": {
       "candidatePresentExactlyOnce": true,
       "routeIdentityBound": true,
@@ -688,9 +680,7 @@
           "sourceId": "201111_1st2nd_progress_report",
           "sourceEventId": "occurrence:b45f5df36b98c638d8052c7a",
           "releaseId": "v3-operational-occurrences-1",
-          "anchorIds": [
-            "m15-2010-10-10-off-board-fare"
-          ],
+          "anchorIds": ["m15-2010-10-10-off-board-fare"],
           "occurrenceId": "occurrence:b45f5df36b98c638d8052c7a",
           "occurrenceAliases": [],
           "manifestSha256": "01cb22b55b9a7f3acee15f7bfbdd92d1028a44d5b999338346172d0412c190a0",
@@ -7401,9 +7391,7 @@
       "occurrenceId": "occurrence:c5e9aba290ca2be1be6fb38e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",

@@ -875,10 +875,6 @@
     "plan084Occupied": true,
     "plan084Title": "Retire the monthly-baseline doctrine: ADR-0022 + steering-doc truth sweep",
     "rc19Plan084Created": false,
-    "existingPlansRebaselined": [
-      "074",
-      "075",
-      "083"
-    ]
+    "existingPlansRebaselined": ["074", "075", "083"]
   }
 }
