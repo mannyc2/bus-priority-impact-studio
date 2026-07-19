@@ -272,9 +272,9 @@
         </h3>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           <div class="chips" id="dirchips">
-            <button data-d="all" class="on">All</button>
-            <button data-d="NB">NB</button>
-            <button data-d="SB">SB</button>
+            <button type="button" data-d="all" class="on">All</button>
+            <button type="button" data-d="NB">NB</button>
+            <button type="button" data-d="SB">SB</button>
           </div>
           <label class="tglane"><input type="checkbox" id="lanetg" /> Painted bus lanes (DOT)</label>
         </div>
@@ -301,7 +301,7 @@
         </thead>
         <tbody id="segrows"></tbody>
       </table>
-      <button class="showall" id="showall"></button>
+      <button type="button" class="showall" id="showall"></button>
       <div class="ranklab"><b>Slowest first — current all-day.</b> Rider-hrs/wkdy = observed-vs-scheduled delay exposure in the current projection; it colors nothing and controls no rank.</div>
     </div>
 
@@ -362,7 +362,7 @@
         <div class="kpi">
           <div class="lb">Highest-impact segment</div>
           <div class="v seg">Flatbush Av/Avenue P → Avenue U</div>
-          <div class="sb">21.9K rider-hrs/wkdy · <a href="#">Map ›</a></div>
+          <div class="sb">21.9K rider-hrs/wkdy · <a href="#maparea">Map ›</a></div>
         </div>
       </div>
     </div>
@@ -370,7 +370,7 @@
     <div class="r2">
       <div class="s-card trend">
         <div class="s-title"><h3>Monthly ridership <span class="sub">36 months, through May 2026</span></h3></div>
-        <svg id="ridtrend" viewBox="0 0 340 130" preserveAspectRatio="none" height="130"></svg>
+        <svg id="ridtrend" viewBox="0 0 340 130" preserveAspectRatio="none" height="130" role="img" aria-label="Monthly ridership trend"></svg>
         <div class="hax"><span>Jun 2023</span><span>May 2026</span></div>
       </div>
       <div class="s-card">
@@ -580,7 +580,9 @@ function nearestSegment(canvas, ev) {
 function renderLegend() {
   const v = filtered();
   const counts = [0, 0, 0];
-  v.forEach((s) => counts[band(s.mph)]++);
+  v.forEach((s) => {
+    counts[band(s.mph)]++;
+  });
   const seg = (i, label) => counts[i]
     ? `<span class="lg${i === 2 ? " base" : ""}" style="${i === 2 ? "" : `background:${BANDC[i]}`};min-width:${34 + counts[i] * 6}px;">${label}<small>${counts[i]} seg${counts[i] === 1 ? "" : "s"}</small></span>` : "";
   document.getElementById("legend").innerHTML =
@@ -760,7 +762,9 @@ document.getElementById("dirchips").addEventListener("click", (ev) => {
   const pinned = segs.find((s) => s.id === state.pin);
   if (pinned && state.dir !== "all" && pinned.dir !== state.dir) state.pin = null; // explicit dir change clears an out-of-direction pin (081 rule)
   state.showAll = false;
-  document.querySelectorAll("#dirchips button").forEach((x) => x.classList.toggle("on", x === b));
+  document.querySelectorAll("#dirchips button").forEach((x) => {
+    x.classList.toggle("on", x === b);
+  });
   renderAll();
 });
 document.getElementById("lanetg").addEventListener("change", (ev) => { state.lanes = ev.target.checked; renderMapOnly(); });
