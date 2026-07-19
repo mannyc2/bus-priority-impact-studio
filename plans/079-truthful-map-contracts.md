@@ -7,7 +7,7 @@
 > `plans/README.md` (Generation 9 table).
 >
 > **Drift check (run first)**:
-> `git diff --stat cd878f7..HEAD -- packages/domain/src/maps packages/domain/src/studio/routes packages/domain/src/studio/release.ts packages/domain/src/studio/projections.ts packages/domain/test packages/analytics/src/evaluation/map-artifacts.ts packages/analytics/test/evaluation-products.test.ts tools/pipeline-v2/src/commands/map tools/pipeline-v2/src/commands/studio/release.ts tools/pipeline-v2/src/commands/studio/route-speed-spines.ts tools/pipeline-v2/src/commands/audit/map-artifacts.ts tools/pipeline-v2/src/commands/verify/d1.ts tools/pipeline-v2/src/commands/publish tools/pipeline-v2/src/checks/check-publish-completeness.ts tools/pipeline-v2/src/checks/check-web-performance.ts tools/pipeline-v2/test scripts/publish-serving-release.sh packages/studio-api/src/public-api.ts packages/studio-api/src/studio/read-handlers.ts packages/studio-api/test apps/web/test/worker/public-routes.worker.test.ts apps/web/src/studio/api-client.ts apps/web/src/routes/map.tsx apps/web/src/studio/pages/network-map.tsx apps/web/src/components/route/NetworkMapLibre.tsx apps/web/src/components/route/NetworkMapLibre.map.tsx apps/web/test/shared`
+> `git diff --stat cd878f7..HEAD -- packages/domain/src/maps packages/domain/src/studio/shared.ts packages/domain/src/studio/release.ts packages/domain/src/studio/projections.ts packages/domain/test packages/analytics/src/evaluation/map-artifacts.ts packages/analytics/test/evaluation-products.test.ts tools/pipeline-v2/src/commands/map tools/pipeline-v2/src/commands/studio/release.ts tools/pipeline-v2/src/commands/studio/route-speed-spines.ts tools/pipeline-v2/src/commands/audit/map-artifacts.ts tools/pipeline-v2/src/commands/verify/d1.ts tools/pipeline-v2/src/commands/publish tools/pipeline-v2/src/checks/check-publish-completeness.ts tools/pipeline-v2/src/checks/check-web-performance.ts tools/pipeline-v2/test scripts/publish-serving-release.sh packages/studio-api/src/public-api.ts packages/studio-api/test apps/web/test/worker/public-routes.worker.test.ts apps/web/src/studio/api-client.ts apps/web/src/routes/map.tsx apps/web/src/studio/pages/network-map.tsx apps/web/src/components/route/NetworkMapLibre.tsx apps/web/src/components/route/NetworkMapLibre.map.tsx apps/web/test/shared tests/harness/month-doctrine-allowlist.ts`
 > If any in-scope file changed since this plan was written, compare the
 > "Current state" excerpts against the live code before proceeding; on a
 > mismatch, treat it as a STOP condition.
@@ -33,17 +33,224 @@
 > - The client mismatch state is named `coverage_mismatch` (not
 >   `baseline_mismatch`) and its message speaks coverage, e.g. "Map geometry
 >   covers 2026-05, but route facts cover 2026-03."
-> - The public map resolver must NOT keep any `?month=`/`env.BASELINE_MONTH`
->   fallback — resolve the latest published release from the D1 map catalog
->   this plan introduces (plan 085 deletes the env vars).
-> - CLI `--month` flags stay as data-window selectors with no hardcoded
->   default month; `data/artifacts/map/<YYYY-MM>/` stays as a partition
->   layout.
+> - Public resolver ownership is staged. This plan owns a minimal D1
+>   `map_release_catalog`, its migration/query/registration SQL, and the map
+>   endpoint's fail-closed latest-v2 resolver. It leaves the existing shared
+>   `releaseStatusMonth` selector untouched for the four non-map callers.
+>   Plan 085 removes those callers' `?month=` / `env.BASELINE_MONTH` fallback.
+>   Existing v1 map artifacts are never backfilled into the new catalog.
+> - CLI `--month` flags stay as data-window selectors;
+>   `data/artifacts/map/<YYYY-MM>/` stays as a partition layout. This plan
+>   removes defaults only from the map commands it owns. Plan 086 owns the
+>   existing `studio release` default and the top-level static-release
+>   identity.
+> - The shared-file boundary is exact. In
+>   `packages/domain/src/studio/release.ts`, this plan adds only the map-fact
+>   metadata contract; its top-level `baselineMonth` remains Plan 086 debt.
+>   In `tools/pipeline-v2/src/commands/studio/release.ts`, this plan owns
+>   only the two `MapRouteDelayExposure` output-member matches currently near
+>   lines 770/782. The route-brief input/window reads near 293/579/755 are
+>   legal analysis grain and stay. Plan 086 owns the top-level release payload
+>   tokens and hardcoded default.
+> - `packages/domain/src/studio/projections.ts` is staged too. Its initial
+>   `retired-identity-token` entry is `retire-079` for all six current
+>   occurrences across three assignment sites. This plan removes only the two
+>   map-facts projection occurrences, then atomically shrinks the entry to the
+>   exact four routes/detail projection occurrences and reassigns it to
+>   `retire-085`.
+> - `tools/pipeline-v2/src/checks/check-publish-completeness.ts` has the same
+>   staged split: its initial four `baselineMonth` occurrences are
+>   `retire-079`. This plan removes the two map/route-fact comparison
+>   occurrences, then shrinks and reassigns the exact two Studio routes
+>   comparison occurrences to `retire-085`.
+> - `packages/studio-api/src/public-api.ts` is also staged. This plan removes
+>   the map handler's exact four retired-token matches: its env/month error,
+>   map-manifest `baselineMonth`, and two legacy quality literals. The handler
+>   moves to the v2 catalog resolver, while the shared `releaseStatusMonth`
+>   function and its four non-map callers remain for Plan 085. Shrink the
+>   initial 21-match `retired-identity-token` entry to the exact 17 non-map
+>   remainder and reassign it from `retire-079` to `retire-085`. Preserve the
+>   separate two-match `public-month-selector` / `retire-085` entry.
+> - The map manifest producer and its direct publication consumer are atomic:
+>   this plan replaces the two `analysisPeriod` checks in
+>   `commands/publish/r2-artifacts.ts` with `publishedAt`/coverage checks and
+>   owns that file's `analysis-period-identity` entry. Plan 086 must not defer
+>   this consumer migration.
 >
 > Plans 085/086 grep-gate on the names `publishedAt`/`coverage`, and the
 > month-doctrine harness gate (plan 088) bans the retired tokens with a
-> shrink-only allowlist — delete this plan's allowlist entries as you land
-> each contract. Do not improvise different field names.
+> shrink-only allowlist. Delete this plan's unambiguous entries as each
+> contract lands; for only the staged `public-api.ts`, `projections.ts`, and
+> `check-publish-completeness.ts` pairs, shrink the count and reassign the exact
+> remainder to `retire-085`.
+> Editing those initial `retire-079` pairs in
+> `tests/harness/month-doctrine-allowlist.ts` is in scope and required; a stale
+> or growing entry is a failure, not a reason to loosen the scanner. Do not
+> improvise different field names.
+
+## Binding completion audit and residual execution (2026-07-19)
+
+This section supersedes the old drift STOP, current-state inventory, scope,
+Steps 1-6, test plan, done criteria, and STOP conditions below wherever they
+describe already-landed work. Those sections are retained as the design
+record; **do not replay them**. Commits `28ac88bd`, `994aabd0`, `327c8e05`,
+`dec02748`, `eed4266f`,
+`84a46edc`, `a536354b`, `82b1c500`, `a0740d3e`, `89aa2e1c`, `7080fa13`,
+`75145271`, and `337f2143` already delivered the strict map schemas,
+null-preserving hourly evidence, borough context, canonical route facts,
+content-addressed publication checks, full/demo readiness, manifest
+verification, same-root release orchestration, and artifact budgets. The
+checked 2026-03 fixture certifies 350 expected, geometry, route-segment, and
+route-fact routes. First rerun the focused fixture suite; a regression is a
+STOP, but the existence of that landed implementation is expected drift.
+
+The only remaining Plan 079 work is the ADR-0022 v2 map-release identity
+cutover below. It runs after Plans 084 and 088 and before Plans 085 and 086.
+Do not parallelize production edits for those plans with this cutover.
+
+### Residual Step A: define one release identity contract
+
+1. Add and explicitly export `CoverageWindowSchema` / `CoverageWindow` from
+   `packages/domain/src/studio/shared.ts`: `{ start: IsoMonth | null, end:
+   IsoMonth }`. Plan 085 imports this exact schema rather than redefining it.
+2. Add one shared `releaseIdFromPublishedAt(publishedAt)` helper beside that
+   contract. It must accept only a canonical UTC ISO timestamp, preserve
+   millisecond precision in a compact non-month identifier, and round-trip to
+   the same instant. Reject non-canonical or lossy inputs. A repeated ID is
+   idempotent only when all persisted catalog values match; a same-ID or
+   same-manifest-key collision with different metadata fails.
+3. Capture exactly one `publishedAt = new Date().toISOString()` in
+   `runMapRelease`. Derive `releaseId` once and pass both values plus
+   `coverage` through the Studio map-facts build, map artifact build,
+   manifest verification, and catalog-registration builder. Nested commands
+   must not call `new Date()` for release identity.
+4. `coverage.end` is the required `--month` build partition.
+   `coverage.start` is the earliest month present in the already-loaded
+   route-fact/history evidence, or `null` when no honest lower bound exists.
+   Month-keyed filesystem paths remain build partitions, not release IDs.
+
+Focused tests must prove canonical/non-canonical timestamps, millisecond
+preservation, identical retry, conflicting collision, one timestamp across
+all outputs, and honest null/start coverage.
+
+### Residual Step B: hard-cut map wire contracts to v2
+
+Replace map release-identity `baselineMonth` and `analysisPeriod` members with
+`releaseId`, `publishedAt`, and `coverage` on the network collection root,
+map-route-facts response, route-facts manifest reference, analytics manifest,
+and public manifest response. Keep each network feature's
+`properties.month`: it is the feature's observed evidence grain, not release
+identity. Bump every changed schema literal and annotation/registry ID from v1
+to v2; do not make a v1 field optional and do not accept a dual shape. Segment
+months and route-brief analysis periods likewise remain legal evidence grain.
+
+In `tools/pipeline-v2/src/commands/studio/release.ts`, migrate only the two
+map-fact output `analysisPeriod` members targeted by Plan 088. Preserve the
+three route-brief input/window reads and `_release-types.ts`. In
+`packages/domain/src/studio/projections.ts`, remove only the map-facts identity
+pair, then shrink/reassign the exact four routes/detail remainder to
+`retire-085`. Likewise, remove only the map comparison pair from
+`check-publish-completeness.ts` and reassign its exact two Studio-route
+remainder to `retire-085`.
+
+Migrate `commands/publish/r2-artifacts.ts` in the same commit as the manifest
+producer: require v2, exact `releaseId`/`publishedAt`/coverage agreement,
+`coverage.end === options.month`, full/pass verification, declared artifact
+hashes, and the existing route-universe gates. Its two retiring
+`analysisPeriod` matches go to zero here; Plan 086 must not defer this
+consumer.
+
+In `commands/verify/d1.ts`, replace the redundant outward `isoMonth` and
+`analysisPeriod` aliases with the same `releaseId`/`publishedAt`/coverage
+triple supplied by `runMapRelease`; a standalone verifier captures one
+canonical timestamp at its command boundary. Remove its Plan-079
+`analysis-period-identity` entry. Plan 086 later migrates the underlying D1
+export summary and may thread this existing identity into that producer, but
+must not rename or weaken the verifier's landed v2 contract.
+
+### Residual Step C: add the fail-closed D1 map-release catalog
+
+Add `map_release_catalog` to `packages/db/src/d1/schema.ts` and migration
+`0033`, including generated Drizzle snapshot/journal metadata. The table is
+minimal and publication-oriented:
+
+```text
+release_id TEXT PRIMARY KEY
+published_at TEXT NOT NULL
+coverage_start TEXT NULL
+coverage_end TEXT NOT NULL
+manifest_key TEXT NOT NULL UNIQUE
+manifest_sha256 TEXT NOT NULL
+release_profile TEXT NOT NULL
+verification_status TEXT NOT NULL
+route_count INTEGER NOT NULL
+```
+
+Add `packages/db/src/d1/queries/map-release-catalog.ts`, explicit D1-barrel
+exports, and fixture-backed DB tests. The latest query orders by canonical
+`published_at DESC, release_id DESC` and defensively returns only
+`release_profile = 'full'` and `verification_status = 'pass'`. Validate the
+stored coverage/timestamp/hash/route count on decode. Leave the table empty
+for all existing v1 artifacts; there is no compatibility backfill or
+month-based fallback.
+
+Add a pure registration-SQL builder under `packages/db/src/d1/seed/` and
+export it explicitly. `runMapRelease` writes
+`data/exports/d1/<coverage.end>/map-release-registration.sql` only after the
+v2 manifest verifies, using the final manifest key and body SHA-256. The SQL
+must be retry-safe: an identical row succeeds, while any field mismatch for
+the same release ID or any manifest-key collision hard-fails. Test SQL
+escaping, identical retry, both collision modes, and that demo/unverified v1
+input cannot produce registration SQL.
+
+### Residual Step D: publish, then make the release discoverable
+
+Change `scripts/publish-serving-release.sh` and its focused ordering test to
+enforce this exact sequence:
+
+```text
+local completeness verification
+→ ordinary D1 schema/serving seed
+→ all declared R2 uploads
+→ final D1 map-release catalog registration
+```
+
+The final registration uses the generated SQL file and the same retry wrapper
+as other D1 mutations. An R2 failure therefore creates no catalog row. A final
+D1 registration failure leaves an undiscoverable upload and is safe to retry;
+it must not delete or overwrite R2 data. Dry-run validates local inputs and
+prints the same ordering without remote mutation.
+
+In `packages/studio-api/src/public-api.ts`, the map endpoint queries only the
+latest verified/full v2 catalog row, fetches exactly its `manifest_key`, checks
+the body SHA-256, parses the v2 schema, and requires every stored identity
+field to match. If no row exists or any check fails, return a clear 503/502
+failure; never consult `?month=`, `BASELINE_MONTH`, a directory scan, or a v1
+manifest. Leave the shared selector and four non-map handlers for Plan 085.
+
+### Residual Step E: ratchet, verification, and operator boundary
+
+Update only Plan 079's exact Plan-088 entries. At the audited baseline:
+
+- `public-api.ts` has 21 retired-token matches; remove the four map matches,
+  reassign the exact 17 non-map remainder to `retire-085`, and preserve its
+  two `public-month-selector` matches for Plan 085;
+- `studio/projections.ts` goes from six matches to four assigned to
+  `retire-085`;
+- `check-publish-completeness.ts` goes from four matches to two assigned to
+  `retire-085`;
+- `r2-artifacts.ts` goes from two `analysisPeriod` matches to zero; and
+- only the two scanner-targeted map-fact output members in Studio release are
+  removed; its three legal route-brief/window uses remain excluded.
+
+Run focused domain, DB, analytics, pipeline, Studio API, Worker, and web tests,
+then `bun run check:month-doctrine`, `bun run check:architecture`,
+`bun run check:style`, and `bun run check:prepush`. Update Plan 079's README
+row only when the v2 fixture cutover is green.
+
+This plan generates and tests a v2 release locally. The first production
+rebuild, R2 upload, and catalog registration is a separate operator-authorized
+deployment gate; fixture completion does not authorize remote mutation.
 
 ## Status
 
@@ -52,7 +259,9 @@
 - **Risk**: MED
 - **Depends on**: `plans/062-delete-pipeline-v1-doctrine.md`,
   `plans/068-verification-baseline.md`,
-  `plans/078-canonical-map-segment-identity.md`
+  `plans/078-canonical-map-segment-identity.md`,
+  `plans/084-retire-month-anchors-doctrine.md`, and
+  `plans/088-month-doctrine-gate.md`
 - **Category**: bug
 - **Planned at**: commit `cd878f7`, 2026-07-09 (working tree already dirty in
   `plans/` only)
@@ -148,7 +357,7 @@ missingness and layer readiness, and makes cache semantics match the key.
 - The latest D1 catalog-card projection is not a canonical metric source for
   the map: `read-handlers.ts:571-578,620-647` recomputes lane coverage as
   matched features/stops, divides ridership by 30, and hardcodes
-  `riderHoursLost: null`. The dedicated same-month map-facts projection planned
+  `riderHoursLost: null`. The dedicated same-coverage map-facts projection planned
   below is built from the same canonical route objects as the static Studio
   projection. Do not silently use the convenient latest D1 listing for map
   colors/ranks.
@@ -188,19 +397,21 @@ missingness and layer readiness, and makes cache semantics match the key.
 **In scope**:
 
 - `packages/domain/src/maps/index.ts` and focused domain tests
-- `packages/domain/src/studio/routes/index.ts`,
-  `packages/domain/src/studio/release.ts`, `packages/domain/src/studio/projections.ts`,
-  and focused tests only to add a typed baseline month to versioned
-  release/route-list/route-detail responses and build a dedicated strict map-facts
-  projection without changing the shared `StudioRouteSchema`
+- `packages/domain/src/studio/shared.ts` only to add the canonical shared
+  `CoverageWindowSchema`/type consumed by map and later serving contracts
+- `packages/domain/src/studio/release.ts` and
+  `packages/domain/src/studio/projections.ts`, plus focused tests, only to add
+  and build the dedicated strict map-facts projection without changing the
+  shared `StudioRouteSchema` or any top-level release identity field
 - `packages/analytics/src/evaluation/map-artifacts.ts`
 - `packages/analytics/test/evaluation-products.test.ts`
 - `tools/pipeline-v2/src/commands/map/artifacts.ts`
 - `tools/pipeline-v2/src/commands/map/context.ts`
 - new `tools/pipeline-v2/src/commands/map/release.ts`, focused test, and
   `tools/pipeline-v2/test/cli/registry.test.ts` for the new command descriptor
-- `tools/pipeline-v2/src/commands/studio/release.ts` only to populate the typed
-  baseline month and write the dedicated map-facts projection
+- `tools/pipeline-v2/src/commands/studio/release.ts` only to write the
+  dedicated map-facts projection and replace its map-fact `analysisPeriod`
+  members with coverage
 - `tools/pipeline-v2/src/commands/audit/map-artifacts.ts`
 - `tools/pipeline-v2/src/commands/verify/d1.ts` and
   `tools/pipeline-v2/test/commands/verify/d1.test.ts` only to return and test
@@ -217,7 +428,6 @@ missingness and layer readiness, and makes cache semantics match the key.
 - `scripts/publish-serving-release.sh` and a focused pipeline test that asserts
   completeness runs before every remote mutation
 - `packages/studio-api/src/public-api.ts`
-- `packages/studio-api/src/studio/read-handlers.ts`
 - focused `packages/studio-api/test/` coverage
 - `apps/web/test/worker/public-routes.worker.test.ts`
 - `apps/web/src/studio/api-client.ts`
@@ -226,12 +436,14 @@ missingness and layer readiness, and makes cache semantics match the key.
 - `apps/web/src/components/route/NetworkMapLibre.tsx`
 - `apps/web/src/components/route/NetworkMapLibre.map.tsx`
 - `apps/web/test/shared/network-map.test.ts`
-- the five current shared tests with typed `StudioRouteDetailResponse`
-  fixtures: `route-map-highlight.test.ts`, `riders-section.test.ts`,
-  `overview-section.test.ts`, `riders-section-equity.test.ts`, and
-  `treatments-history.test.ts`
+- focused shared map tests/fixtures that consume the network or map-facts
+  bundle; do not version or migrate unrelated route-detail fixtures
 - `tools/pipeline-v2/src/checks/check-web-performance.ts`
 - focused harness/performance tests if the current check has a sibling test
+- `tests/harness/month-doctrine-allowlist.ts` (remove only initial
+  `retire-079` entries whose production matches this plan removes; for the
+  staged public API and projections pairs, shrink and reassign only the exact
+  remainder to `retire-085`)
 - `plans/README.md` (status row only)
 
 **Out of scope**:
@@ -261,6 +473,11 @@ missingness and layer readiness, and makes cache semantics match the key.
 
 ### Step 1: Define strict network geometry, context, and manifest contracts
 
+First add and export the canonical `CoverageWindowSchema` (`start:
+IsoMonth | null`, `end: IsoMonth`) from
+`packages/domain/src/studio/shared.ts`; map contracts import it. Plan 085 is a
+downstream consumer of this landed schema and must not redefine it.
+
 Add explicit named schemas/types to `packages/domain/src/maps/index.ts` (no
 wildcard barrel):
 
@@ -282,7 +499,7 @@ wildcard barrel):
    be non-empty; `unavailable` must carry an empty array. Route label, primary
    route-family borough, all-day speed, daily riders, route-slice
    delay-exposure hours,
-   movement, lane coverage, ACE, and reliability come from the same-month
+   movement, lane coverage, ACE, and reliability come from the same-coverage
    dedicated `MapRouteFactsResponse` referenced by the manifest—not the latest
    D1 catalog-card response. `servedBoroughs` is geographic map evidence and
    deliberately remains in this artifact.
@@ -308,9 +525,9 @@ wildcard barrel):
    - `max_age_snapshot` for current route/stop and bus-lane snapshots, carrying
      `fetchedAt`, `evaluatedAt`, `ageDays`, and `maxAgeDays: 45`; compare exact
      elapsed milliseconds against 45×24 hours and never use file mtime;
-   - `analysis_period` for segment-speed/route-fact evidence, carrying the
-     explicit ISO baseline month; it is `period_aligned` only when it equals
-     the release month and its coverage gate passes;
+   - `coverage_window` for segment-speed/route-fact evidence, carrying
+     `{ start: IsoMonth | null, end: IsoMonth }`; it is `period_aligned` only
+     when it equals the manifest coverage and its evidence gate passes;
    - `revision_pinned` for borough boundary context, carrying the captured
      source ID and SHA-256 of the exact CSV/body used. This says the geometry is
      reproducible, not that a dateless boundary capture is “fresh.”
@@ -337,31 +554,25 @@ wildcard barrel):
    optional artifact is referenced for upload, its hash, schema, currency, and
    budget must all pass just like P0. Demo output may remain visibly
    stale/unknown. Test the exact 45-day boundary, missing snapshot timestamp,
-   baseline mismatch, source-hash mismatch, and fixed P0/P1 registry.
+   coverage mismatch, source-hash mismatch, and fixed P0/P1 registry.
 4. A `releaseProfile: "demo" | "full"`, separate `buildStatus` from
    `verificationStatus`, and per-entry gzip bytes. A generated file is not
    automatically a verified complete release.
 5. A required discriminated `routeFacts` field. Its `available` variant contains
    the exact compact map-facts projection artifact key, body SHA-256, schema
-   version, baseline month, and route count; its `unavailable` variant contains
+   version, `publishedAt`, coverage window, and route count; its `unavailable` variant contains
    no key and a typed reason. This is an external manifest dependency, not
    duplicated route facts inside network GeoJSON. Full verification requires
    `available`, recomputes the referenced body hash, and checks its parsed
    contract/universe; publication completeness includes that key. Demo may
    carry `unavailable` and render neutral geometry without inventing facts.
 
-Version `StudioReleasePayloadSchema` and `StudioRoutesResponseSchema` from
-schema version 1 to 2, and `StudioRouteDetailResponseSchema` from version 2 to
-3; add required `baselineMonth: IsoMonth` to all three.
-Populate the release field from the explicit Studio release command month,
-then copy it into static route-list and per-route projections; populate D1
-route-list/detail responses from `resolveServingMonths(...).servingMonth` in
-the read handler. Never derive it from `generatedAt`. Update typed clients and
-focused static/D1 tests so route detail always serves the month needed for
-plan 081's fact alignment. Update all five current typed route-detail fixtures
-listed in Scope to schema version 3 with an explicit baseline month; do not
-leave contract-stale fixtures merely because `test:web` transpiles a file
-without independently typechecking every literal.
+Do not version or add identity fields to `StudioRoutesResponseSchema` or
+`StudioRouteDetailResponseSchema`; Plan 085 owns those serving contracts. In
+`StudioReleasePayloadSchema`, add only the map-fact metadata needed below;
+Plan 086 owns its top-level release identity migration. Map alignment is
+proved entirely by the dedicated map-facts response's `publishedAt` and
+coverage.
 
 Do **not** add fields to shared `StudioRouteSchema`: it is embedded in route
 detail, history, search, compare, and release contracts with independent
@@ -389,7 +600,7 @@ payload:
   delayExposure: {
     valueRiderHours: number | null;
     status: "available" | "unavailable";
-    analysisPeriod: IsoMonth | null;
+    coverage: { start: IsoMonth | null; end: IsoMonth } | null;
     grain: "all_observed_timepoint_segments" | null;
     source: "mta_bus_segment_speeds" | null;
     segmentCount: number;
@@ -426,17 +637,20 @@ payload:
 }
 ```
 
-The response carries schema version 1, `baselineMonth`, `generatedAt`, and one
-unique fact per route. Add `routeFactMetadata: Array<{ routeId,
-delayExposure, provenance }>` to `StudioReleasePayloadSchema` v2. Build it in
-`studio release` while the validated route-brief inputs and pipeline-extended
-lane/TSP fields are still available, then have `buildMapRouteFactsProjection`
-project the exact named summary fields from the same route objects used by
-`buildStudioRoutesProjection`; write
+The response carries schema version 2, `releaseId`, `publishedAt`, coverage,
+and one unique
+fact per route. Add a map-only `mapRouteFactsMetadata: { publishedAt, coverage
+}` member plus `routeFactMetadata: Array<{ routeId, delayExposure, provenance
+}>` to `StudioReleasePayloadSchema` v2. Stamp the map metadata once in `studio
+release` from the build time and selected window while the validated
+route-brief/pipeline-extended lane/TSP inputs are available.
+`buildMapRouteFactsProjection` must source its identity metadata from that
+map-only member, not the retiring top-level field, and project the exact named summary fields from
+the same route objects used by `buildStudioRoutesProjection`; write
 `studio/v1/map-route-facts.json` beside `routes.json`. For delay exposure,
 populate metadata only from the existing route-brief `segmentUniverse`;
 `available` requires the exact literals above, positive segment count,
-matching analysis/baseline month, and equality between `valueRiderHours` and
+matching evidence/response coverage, and equality between `valueRiderHours` and
 the canonical route's non-null `riderHoursLost`. Otherwise the dedicated value
 is null with an explicit unavailable reason—never convert missing evidence to
 zero. Populate lane/TSP provenance from the release's already-built geometry
@@ -454,11 +668,19 @@ available lane/ACE value are individually equal to the corresponding
 canonical route fields in `routes.json`; unavailable facts obey the null
 invariants. No second metric derivation is allowed.
 
+In `packages/domain/src/studio/projections.ts`, replace only the map-facts
+projection's retiring month member with the new map-only metadata above. In the
+same change, shrink that file's `retired-identity-token` allowlist count from
+its initial six occurrences to the exact four routes/detail projection
+occurrences and
+reassign the pair from `retire-079` to `retire-085`; Plan 085 migrates those
+remaining serving projections. Do not edit them here.
+
 The latest D1 catalog-card builder remains a discovery response and is never
 adapted into this richer fact schema. This dedicated contract avoids silently
 changing the embedded `StudioRoute` shape across route history, search,
-compare, or segment-card responses. Route detail's explicit v3 bump above is
-only for its top-level `baselineMonth`, not map-only fact fields.
+compare, or segment-card responses. No route-detail schema bump belongs in
+this plan.
 
 Version changed public schemas rather than weakening `.strict()`. If plan 067
 has landed, implement this in native Effect Schema.
@@ -512,9 +734,10 @@ typed `routeFacts: { status: "unavailable", reason }` variant.
 The CLI resolves an omitted flag only to
 `<artifactRoot>/studio/v1/map-route-facts.json` (the same artifact root as the
 map build; never silently fall back to repo-global state when a temporary root
-is passed). Parse `MapRouteFactsResponse` schema version 1, recompute its body
-hash, require its baseline month to equal the map month, and write only the
-typed reference into the manifest. In `full`, every mapped route must exist
+is passed). Parse `MapRouteFactsResponse` schema version 2, recompute its body
+hash, require its coverage to equal the map manifest coverage, and copy its
+exact `publishedAt`/coverage metadata into the typed manifest reference. In
+`full`, every mapped route must exist
 exactly once in this projection; broader Express/School facts may exist.
 In `demo`, a measured partial projection is allowed and reported. Never read a
 route-facts URL from the browser that was not first declared and hash-checked
@@ -620,6 +843,14 @@ that exporter reads and writes detector-readiness, route-capability, dossier,
 timeline, and evidence artifacts under the default root. This single verified
 export is the sole D1 input to Studio; `runMapRelease` never exports again.
 
+In the same `verify/d1.ts` contract edit, replace its redundant top-level
+`isoMonth` and `analysisPeriod` identity aliases with `publishedAt` and
+`coverage: { start: null, end: month }` in the result, descriptor output
+schema, and tests. The command's `month` input remains the D1 partition
+selector. Remove its `analysis-period-identity` / `retire-079` entry in the
+same change, and add a focused grep assertion that neither retired output key
+survives.
+
 Call `runStudioRelease` with the requested month and these explicit inputs:
 `schemaPath: d1.schemaPath`, `seedPath: d1.seedPath`,
 `localDbPath: inputs.local.path`,
@@ -655,10 +886,10 @@ A missing/partial fact, invalid context, missing required spine, second D1
 export, or path outside the resolved roots fails the focused release before it
 can be certified. In `full`, compute the authoritative expected map universe
 from the validated route-shape snapshot filtered to Local/Limited/SBS. Every
-expected map route must have a canonical row in the same-month map-facts
+expected map route must have a canonical row in the same-coverage map-facts
 projection, but that projection may legitimately include Express/School facts
 and those extras are not an error. Every compact route field must exactly match
-its same-month static Studio route projection source. The latest D1 catalog index is
+its same-coverage static Studio route projection source. The latest D1 catalog index is
 useful for discovery but is not this metric contract.
 Filter map production to the expected set; network features and route-segment
 artifacts must then match it exactly, with missing or extra mapped routes
@@ -709,9 +940,16 @@ must fail if the configured public route universe is not fully represented.
 Update `check-publish-completeness.ts` to parse the map manifest and reject
 anything except `releaseProfile: "full"`, `verificationStatus: "pass"`, and
 complete expected/actual route/P0-layer coverage before it emits publish keys.
-It must also require the map `baselineMonth`, Studio route projection
-`baselineMonth`, D1 export/serving month, and requested publish month to be
-identical; report every conflicting value.
+It must also require the map manifest and parsed route-facts response to carry
+identical coverage, require the manifest's route-facts reference metadata to
+match the response's `publishedAt` and coverage exactly, and require
+`coverage.end` to equal both the selected D1 serving partition and requested
+publish partition. Report every conflicting value. Do not add a top-level
+Studio release-identity check here; Plan 086 owns that payload migration.
+Remove the map pair from this file's initial `retired-identity-token` entry,
+then shrink and reassign its exact two Studio routes comparison occurrences to
+`retire-085`; Plan 085 converts that remaining comparison to coverage with the
+routes projection.
 Thus a default demo build can be inspected locally but can never reach R2 as a
 production release.
 
@@ -730,6 +968,14 @@ Make that gate fail closed at both publication entry points:
   There is no bypass
   flag; `--dry-run` evaluates the same invariant before remote HEAD requests.
 
+This producer/consumer cutover is atomic. In
+`commands/publish/r2-artifacts.ts`, replace the current
+`manifest.analysisPeriod` equality check with validation that `publishedAt`
+exists and `manifest.coverage.end === options.month`; preserve all other
+checks. Remove that file's `analysis-period-identity` / `retire-079` pair in
+the same change. Plan 086 may strengthen or retest the landed gate, but must not
+be required to make this Plan 079 manifest publishable.
+
 Add a test that pins shell ordering and direct publisher tests proving a
 demo/P0-stale manifest cannot upload, a full manifest with typed unavailable
 lanes can publish its P0 keys, and an optional stale/over-budget lane key cannot
@@ -745,15 +991,23 @@ bun test tools/pipeline-v2/test/commands/verify/d1.test.ts tools/pipeline-v2/tes
 
 Expected: tests cover full complete, demo partial, missing-network,
 missing/extra route, duplicate route, invalid hour, unavailable borough,
-map/route-fact/D1 month mismatch, current/stale/period-aligned/revision-pinned/
+map/route-fact/D1 coverage mismatch, current/stale/period-aligned/revision-pinned/
 unknown thresholds, required-versus-optional layer gating, pre-mutation
-shell ordering, same-month/custom-root D1-before-Studio-before-map
+shell ordering, same-coverage/custom-root D1-before-Studio-before-map
 release building with exactly one D1 verification, and direct publish
 rejection of demo/unverified/P0-stale manifests; all pass.
 
 ### Step 4: Correct cache semantics with an exact content-addressed grammar
 
-In `packages/studio-api/src/public-api.ts`, classify artifact keys without a
+In `packages/studio-api/src/public-api.ts`, first migrate only the map-manifest
+response member from the retiring month field to the parsed manifest's
+`publishedAt`/coverage. Leave `releaseStatusMonth`, its env/error behavior, and
+shared quality literals for Plan 085. Atomically shrink this file's
+`retired-identity-token` allowlist count to the exact non-map remainder and
+reassign it from `retire-079` to `retire-085`; leave its separate
+`public-month-selector` entry unchanged.
+
+Then classify artifact keys without a
 manifest lookup on every request. Adopt one exact content-addressed grammar:
 the filename must end `<stem>.<64 lowercase hex SHA-256>.<extension>`. Then:
 
@@ -805,8 +1059,8 @@ type NetworkMapBundle = {
 };
 ```
 
-Preserve `baselineMonth`, `generatedAt`, `quality`, layer status, hash, and
-route universe. Implement one `fetchVerifiedMapArtifact` boundary that reads
+Preserve `publishedAt`, coverage, `generatedAt`, quality, layer status, hash,
+and route universe. Implement one `fetchVerifiedMapArtifact` boundary that reads
 bytes, computes SHA-256 with cross-runtime Web Crypto, compares the matching
 manifest entry/reference, and only then JSON-parses with the supplied shared
 schema. Use it for network, context, route facts, and lazy lanes—not just route
@@ -836,18 +1090,19 @@ available `routeFacts.artifactKey`, not from the latest D1 route-list endpoint
 and not as a naked route array. For the unavailable manifest variant it returns
 an unavailable `ArtifactLoad` without fetching. The network-bundle loader calls
 it in parallel with the network collection; route detail may call it with only
-the manifest and does not need to download the 4.6 MB raw network GeoJSON. A same-month hash mismatch
+the manifest and does not need to download the 4.6 MB raw network GeoJSON. A same-coverage hash mismatch
 from the shared verified-fetch boundary is
 `factsStatus: "integrity_mismatch"`: retain neutral geometry, disable fact
 lenses, and report expected/actual hashes; never join a corrected mutable alias
-to an older manifest. Require
-`bundle.routeFacts.data.baselineMonth ===
-bundle.manifest.baselineMonth` before joining route facts. On mismatch, retain
-the geometry/context but mark every joined fact `factsStatus:
-"baseline_mismatch"`, disable metric lenses that require those facts, and show
-both months in one explicit unavailable message. Never relabel either side or
-select the newer month in the browser. Full publication should prevent this,
-but the runtime remains fail-honest for skewed deploys.
+to an older manifest. Before joining route facts, require both exact
+`bundle.routeFacts.data.coverage` equality with `bundle.manifest.coverage` and
+equality between the response's `publishedAt` and the manifest's route-facts
+reference `publishedAt`. On mismatch, retain the geometry/context but mark every
+joined fact `factsStatus: "coverage_mismatch"`, disable metric lenses that
+require those facts, and show both coverage windows in one explicit unavailable
+message. Never relabel either side or select the newer window in the browser.
+Full publication should prevent this, but the runtime remains fail-honest for
+skewed deploys.
 
 Create one pure web view-model join only when both `bundle.network` and
 `bundle.routeFacts` are ready, from `bundle.network.data.features` and
@@ -991,13 +1246,13 @@ gate passes.
   full/demo universe reports.
 - Cross-surface: join one route geometry to canonical `StudioRoute` metrics and
   prove lane/ridership values are identical to the route page because there is
-  only one source; a mismatched route-facts/map baseline refuses the fact join.
+  only one source; mismatched route-facts/map coverage refuses the fact join.
 - API/Worker: manifest quality derived from required coverage,
   mutable-vs-hashed cache policies, ETag retained; publisher rejects a hash
   filename that does not match its bytes, rejects demo/P0-stale manifests, and
   refuses an excluded P1 key on direct invocation.
 - Web: manifest metadata preserved, route-fact unavailable/integrity-mismatch
-  states, period coverage threshold, baseline-month mismatch, no silent all-day
+  states, period coverage threshold, `coverage_mismatch`, no silent all-day
   substitution.
 - Performance: generated full-map verification enforces required
   network/map-facts budgets and excludes an over-budget optional lane layer;
@@ -1011,8 +1266,9 @@ gate passes.
 - [ ] Missing hourly observations remain null with counts; period ranking never
       substitutes all-day speed.
 - [ ] Route-level metrics on `/map` come from `StudioRoute` by exact route ID.
-- [ ] Map, route-fact, D1, and publish months must agree; runtime skew produces
-      an explicit baseline-mismatch state rather than a cross-month join.
+- [ ] Map, route-fact, D1, and publish coverage must agree; runtime skew
+      produces an explicit `coverage_mismatch` state rather than a
+      cross-window join.
 - [ ] Context retains borough names and deterministic label points.
 - [ ] Geographic borough filtering uses verified `servedBoroughs`, not the
       route-ID-derived primary borough.
@@ -1029,6 +1285,11 @@ gate passes.
       the web build reports/enforces MapLibre vendor size.
 - [ ] Domain, analytics, pipeline, API, Worker, web, performance,
       architecture, and style checks pass.
+- [ ] `bun run check:month-doctrine` passes with no `retire-079` entries; the
+      staged `public-api.ts`, `projections.ts`, and
+      `check-publish-completeness.ts` pairs were shrunk and reassigned to
+      `retire-085`, while all other owned pairs were deleted with their
+      production matches.
 - [ ] No files outside the in-scope list are modified (`git status`).
 - [ ] `plans/README.md` status row is updated.
 
