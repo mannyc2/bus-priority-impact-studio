@@ -1,4 +1,4 @@
-# Plan 088: Month-doctrine harness gate — make month-targeting machine-impossible
+# Plan 088: Month-doctrine harness gate — make month-keyed product identity a failing architecture check
 
 > **Executor instructions**: Follow this plan step by step. Run every
 > verification command and confirm the expected result before moving to the
@@ -6,248 +6,485 @@
 > report — do not improvise. When done, update the status row for this plan in
 > `plans/README.md` (Generation 11 table).
 >
-> **Sequencing note**: this plan runs SECOND in generation 11 (right after
-> 084), despite its number — it was numbered late to avoid renumbering after
-> a concurrent-session collision claimed 082/083. It intentionally lands
-> BEFORE the code sweeps (amended 079-081, 085, 086): the ratchet freezes
-> today's violations and forces every later plan to delete its own entries.
+> **Sequencing note**: Plan 084 is DONE at the planned-at commit and ADR-0022
+> is the authority for the vocabulary below. This gate must land before amended
+> 079 and the 085-087 code sweeps so those plans shrink a frozen baseline
+> instead of redefining it. Binding ratchet/scope amendments in plans 079 and
+> 085-087 are part of this planning repair; they make every disposition below
+> executable. Plans 080/081 have no frozen violations at the planned-at commit
+> and must not add any.
 >
 > **Drift check (run first)**:
-> `git diff --stat 27755f4..HEAD -- tests/harness package.json`
-> If either changed since this plan was written, compare the "Current state"
-> excerpts against the live code before proceeding; on a mismatch, treat it
-> as a STOP condition.
+> `git diff --stat 490bec5f..HEAD -- tests/harness package.json knowledge/wiki/engineering/studio_design_pass_status.md knowledge/log.md plans/README.md plans/079-truthful-map-contracts.md plans/085-demonth-serving-contract.md plans/086-demonth-release-identity.md plans/087-freshness-ledger.md packages/*/src apps/web/src apps/web/wrangler.jsonc tools/pipeline-v2/src`
+> If scanned production source changed, rerun Step 0. A reduced violation set
+> is safe; a new file/rule pair without an owner is a STOP condition.
 
 ## Status
 
 - **Priority**: P1
 - **Effort**: S-M
-- **Risk**: LOW (additive check; allowlist freezes the status quo, so nothing
-  existing breaks)
-- **Depends on**: `plans/084-retire-month-anchors-doctrine.md` (ADR-0022 is
-  the doctrine this gate enforces)
+- **Risk**: MED (the check is additive, but an over-broad rule would block
+  legitimate month-grain work)
+- **Depends on**: `plans/084-retire-month-anchors-doctrine.md` (ADR-0022 must
+  exist and be accepted)
 - **Category**: dx
-- **Planned at**: commit `27755f4`, 2026-07-12
+- **Planned at**: commit `490bec5f`, 2026-07-19
 
 ## Why this matters
 
-The operator's requirement is not merely that month-anchoring be removed —
-it is that "targeting of months" be **impossible to reintroduce**. This repo
-already knows how to make a doctrine machine-enforced: the gen-6 design
-slop-lint (`tests/harness/design-doctrine.test.ts`, plan 050) bans copy
-patterns with a ratchet allowlist whose stale-entry guard forces the list to
-shrink as pages are fixed, and the gen-7 schema-compat module-specifier gate
-made a retired schema dialect unrepresentable. This plan applies the same
-mechanism to month-identity vocabulary: a harness test that fails the build
-when production source names a baseline/release month, reads a month-pinning
-env var, accepts a `?month=` product selector, or hardcodes a specific
-`"YYYY-MM"` literal. It lands FIRST with today's violations frozen in the
-allowlist; plans 079-081 (amended), 085, and 086 each delete their entries
-(the stale-entry guard forces it), and 086 asserts the terminal state. After
-that, regression is a red `check:architecture`, not a code-review hope.
+ADR-0022 permits months as source grain, time-series coordinates, coverage
+windows, ingest partitions, and operator-selected build windows. It forbids a
+calendar month from being the identity of a product or publication. The gate
+therefore bans known representations of **month-keyed identity**: retired
+contract names, month-pinning env variables, public `?month=` selectors,
+release-identity phrases, and hardcoded month defaults on serving/publication
+surfaces. It deliberately does not ban `month`, `startMonth`, `endMonth`,
+`implementationMonth`, `IsoMonth`, `--month`, monthly source descriptions, or
+hardcoded source/study coverage boundaries.
 
-## Current state
+The ratchet freezes existing identity debt with exact per-file/per-rule counts.
+Every entry says which plan removes it. Legal grain is excluded by rule design,
+not mislabeled as permanent debt; the only eventual permanent entries are
+exact reads of an immutable detector-readiness field. New synonyms still
+require normal architecture review, but quote choice, whitespace, computed
+selector methods, and static query-string variants cannot bypass the rules
+defined here.
 
-- Harness precedents (copy their structure):
-  - `tests/harness/production-boundaries.test.ts` — wired as root script
-    `check:web-architecture` (`package.json:70`).
-  - `tests/harness/design-doctrine.test.ts` — wired as `check:design-doctrine`
-    (`package.json:71`), with a ratchet allowlist + stale-entry guard
-    (plan 050's mechanism; plan 060 asserted its end state). Read this file
-    before writing anything — the new gate should mirror its scanning,
-    allowlist, and failure-message conventions.
-  - `package.json:69` — `"check:architecture": "bun run check:web-architecture
-    && bun run check:design-doctrine && bun run check:claude-config"`, and
-    `check:architecture` runs inside `check` (:64) and `check:prepush` (:79).
-- The tokens to ban exist today at (verified 2026-07-12; these become the
-  initial allowlist):
-  - `baselineMonth` — `packages/domain/src` (routes/index.ts ×5,
-    studio/routes/index.ts ×3, studio/snapshots.ts ×4, studio/release.ts ×1,
-    maps/index.ts ×4), `packages/studio-api/src` (public-api.ts,
-    read-handlers.ts, route-index-read-model.ts), `apps/web/src`
-    (api-client.ts).
-  - `BASELINE_MONTH` / `LAST_BUILT_SPEED_MONTH` — `apps/web/wrangler.jsonc:35-36`,
-    `packages/studio-api/src/env.ts:7-8`, `public-api.ts:81` + error strings,
-    `source-refresh.ts` ×6, `read-handlers.ts:1787`.
-  - `canonicalMonthlyRelease` — `public-api.ts:274` (+ domain schema).
-  - `releaseMonth` — `packages/domain/src/studio/route-capability.ts:110`,
-    `packages/analytics/src/evaluation/build-route-capability-manifest.ts`,
-    `tools/pipeline-v2/src/commands/export/{d1.ts,route-capability-manifest.ts,route-dossier-summaries.ts}`,
-    `packages/studio-api/src/studio/read-handlers.ts:251,271`.
-  - `analysisPeriod` — `tools/pipeline-v2/src/commands/export/d1.ts:286`,
-    `commands/publish/r2-artifacts.ts:164`,
-    `packages/analytics/src/evaluation/map-artifacts.ts` (079's file).
-  - `baseline_release` / `partial_public_monthly_only` /
-    `baseline_mismatch` — domain quality enums, `public-api.ts:291-293`,
-    `read-handlers.ts:408-409`, `apps/web/src/studio/api-client.ts:604-614`,
-    `apps/web/src/components/route/data-quality-labels.ts`.
-  - `searchParams.get("month")` — `public-api.ts:81`.
-  - Pinned month literals `"20XX-XX"` in production source —
-    `tools/pipeline-v2/src/commands/studio/release.ts:88-91`
-    (`"2026-03"` ×3), `apps/web/wrangler.jsonc:35-36`, plus any
-    history-window origin constants the scan surfaces (e.g. a study-spine
-    start month near `tools/pipeline-v2/src/lib/study-engine/` — those are
-    legitimate coverage-origin facts and get PERMANENT allowlist entries with
-    justification notes, not fixes).
-- What must NOT be banned (grain vocabulary, legitimate forever): bare
-  `month`/`months` fields and args, `IsoMonth`/`IsoMonthSchema`, `dataAsOf`,
-  `asOfMonth`, `startMonth`/`endMonth`, `implementationMonth`,
-  `currentSignalMonth`, `latestSpeedMonth`, `latestCompleteMonth`,
-  `lastBuiltMonth`, `--month` CLI window selectors,
-  `socrata-monthly-ingest.ts`, month math/formatting helpers, and the word
-  "monthly" in copy that names a source's grain ("Monthly ridership"). The
-  gate bans IDENTITY tokens, not the concept of a month.
+## Current state and ownership audit
+
+At `490bec5f`, the original broad scan produced too much noise: a raw
+`YYYY-MM` scan found 56 matches in 21 files, mostly source coverage boundaries,
+study windows, and examples in comments. Those are not product identity. The
+repaired rules below produce this auditable baseline:
+
+- exact globally retired identity tokens: 174 matches in 24 files;
+- scoped `releaseMonth` identity fields/reads: 82 matches in 11 files;
+- scoped release/manifest `analysisPeriod`: 23 matches in 9 files;
+- exact serialized data-product `release_month`: 70 matches in one file;
+- identity phrases with flexible whitespace/hyphens on contract/copy
+  surfaces: 48 matches in 11 files;
+- public month selectors: two matches in `packages/studio-api/src/public-api.ts`;
+- pinned identity-month literals after comment stripping and path scoping:
+  five matches (`apps/web/wrangler.jsonc` x2 and
+  `tools/pipeline-v2/src/commands/studio/release.ts` x3: one whole-month
+  default and two local D1 path segments).
+
+The executor must generate exact rule-specific counts; the totals above are a
+drift signal, not values to hardcode in the test.
+
+### Retiring ownership by rule
+
+Assign every match to the named disposition below. A file appearing under
+multiple rule IDs gets one exact-count entry per rule. The rule split is
+load-bearing: it lets shared files have different owners without granting one
+plan authority over the other's code.
+
+#### `retired-identity-token`
+
+- **`retire-079`**: `apps/web/src/studio/api-client.ts`,
+  `packages/analytics/src/evaluation/map-artifacts.ts`,
+  `packages/domain/src/maps/index.ts`,
+  `packages/domain/src/studio/projections.ts`,
+  `packages/studio-api/src/public-api.ts`,
+  `tools/pipeline-v2/src/checks/check-publish-completeness.ts`, and
+  `tools/pipeline-v2/src/commands/map/artifacts.ts`.
+- **`retire-085`**:
+  `apps/web/src/components/route/data-quality-labels.ts`,
+  `apps/web/wrangler.jsonc`,
+  `packages/analytics/src/evaluation/build-route-capability-manifest.ts`,
+  `packages/db/src/d1/queries/{route-observed-reliability.ts,studio-route-index.ts}`,
+  `packages/domain/src/routes/index.ts`,
+  `packages/domain/src/studio/{routes/index.ts,shared.ts,snapshots.ts}`,
+  `packages/studio-api/src/{env.ts,source-refresh.ts}`,
+  `packages/studio-api/src/studio/{read-handlers.ts,route-index-read-model.ts}`,
+  `tools/pipeline-v2/src/commands/export/route-capability-manifest.ts`
+  (active capability-row field only), and
+  `tools/pipeline-v2/src/commands/studio/build-mta-wiki-route-fixture.ts`.
+- **`retire-086`**: `packages/domain/src/studio/release.ts` and
+  `tools/pipeline-v2/src/commands/studio/release.ts`.
+
+Three initial `retire-079` entries are staged. Plan 079 removes the map-owned
+occurrences in `public-api.ts`, `studio/projections.ts`, and
+`check-publish-completeness.ts`, then shrinks each to its exact non-map
+remainder and reassigns it to `retire-085`. Plan 085 deletes the public API and
+completeness remainders; it changes the projections' retired output keys but
+reassigns the exact four temporary legacy-payload reads to `retire-086`.
+Plan 086 removes those reads when it migrates the payload.
+
+#### `release-month-identity`
+
+- **`retire-079`**:
+  `packages/analytics/src/evaluation/map-artifacts.ts` and
+  `tools/pipeline-v2/src/commands/map/artifacts.ts`.
+- **`retire-085`**:
+  `packages/analytics/src/evaluation/{build-route-capability-manifest.ts,build-route-dossier-summary.ts}`,
+  `packages/domain/src/studio/{route-capability.ts,route-dossier.ts}`,
+  `packages/studio-api/src/studio/read-handlers.ts`,
+  `tools/pipeline-v2/src/commands/export/d1.ts`,
+  `tools/pipeline-v2/src/commands/export/route-dossier-summaries.ts`, and
+  `tools/pipeline-v2/src/commands/export/route-capability-manifest.ts` (mixed
+  at initial landing: Plan 085 removes active builder matches and atomically
+  reassigns the exact frozen-reader remainder to `retire-086`).
+- **`retire-086`**:
+  `tools/pipeline-v2/src/commands/export/d1-inputs.ts`. Plan 086 removes its
+  retiring disposition only after testing all seven immutable compatibility
+  matches: four legacy route-timeline plus three detector-readiness reads.
+
+#### `analysis-period-identity`
+
+- **`retire-079`**: `apps/web/src/studio/api-client.ts`,
+  `packages/analytics/src/evaluation/map-artifacts.ts`,
+  `packages/domain/src/maps/index.ts`,
+  `tools/pipeline-v2/src/checks/check-publish-completeness.ts`,
+  `tools/pipeline-v2/src/commands/map/artifacts.ts`,
+  `tools/pipeline-v2/src/commands/publish/r2-artifacts.ts`,
+  `tools/pipeline-v2/src/commands/studio/release.ts` (only the two map-fact
+  output-member matches), and
+  `tools/pipeline-v2/src/commands/verify/d1.ts`.
+- **`retire-086`**: `tools/pipeline-v2/src/commands/export/d1.ts` only.
+
+#### Remaining rules
+
+- **`serialized-release-month` / `retire-086`**:
+  `packages/analytics/src/data-products/registry.ts`.
+- **`identity-phrase` / `retire-079`**:
+  `packages/analytics/src/evaluation/map-artifacts.ts` and
+  `tools/pipeline-v2/src/commands/audit/map-artifacts.ts`.
+- **`identity-phrase` / `retire-085`**:
+  `packages/analytics/src/evaluation/{build-route-capability-manifest.ts,build-route-dossier-summary.ts}`,
+  `packages/domain/src/routes/index.ts`,
+  `packages/domain/src/studio/{field-provenance.ts,route-capability.ts}`, and
+  `packages/studio-api/src/studio/route-index-read-model.ts`.
+- **`identity-phrase` / `retire-086`**:
+  `packages/analytics/src/data-products/registry.ts` and
+  `tools/pipeline-v2/src/commands/publish/r2-artifacts.ts`.
+- **`identity-phrase` / `retire-087`**:
+  `tools/pipeline-v2/src/commands/plan/source-refresh.ts`.
+- **`public-month-selector` / `retire-085`**:
+  `packages/studio-api/src/public-api.ts`.
+- **`pinned-identity-month`**: `apps/web/wrangler.jsonc` is `retire-085`;
+  `tools/pipeline-v2/src/commands/studio/release.ts` is `retire-086`.
+
+### Legal grain and the terminal exception model
+
+The scanner intentionally excludes:
+
+- `releaseMonth` used only as a local classification, source/history-window,
+  artifact-path, or storage-partition placeholder in analytics and pipeline
+  modules;
+- `analysisPeriod` in route-treatment, study, route-brief, and route-equity
+  analysis windows;
+- embedded storage/diagnostic names such as
+  `local_route_reliability_baseline_release`,
+  `release_month_mismatch`, and `single_release_month`;
+- all broad `YYYY-MM` source/study boundaries outside the identity surfaces.
+
+These are not allowlist entries. Initially, every reported match is retiring.
+During Plan 085, the mixed `route-capability-manifest.ts` entry shrinks and is
+reassigned to `retire-086`. During Plan 086, the `release-month-identity`
+entries for `export/d1-inputs.ts` and `export/route-capability-manifest.ts` are
+replaced with `permanent-frozen-artifact` entries only after active matches
+are gone and compatibility behavior is tested. The audited terminal counts are
+seven in `d1-inputs.ts` (legacy timeline 4 + detector readiness 3) and three in
+`route-capability-manifest.ts` (detector readiness 3). Recompute them from the
+landed tree before changing disposition; the notes must preserve this branch
+breakdown. No other permanent exception is pre-approved.
 
 ## Commands you will need
 
 | Purpose | Command | Expected on success |
 |---|---|---|
-| Run the new gate alone | `bun run check:month-doctrine` | exit 0 |
-| Architecture chain | `bun run check:architecture` | exit 0 |
-| Style | `bun run check:style` | exit 0 |
-| Full gate (final) | `bun run check:prepush` | exit 0 |
+| Gate alone | `bun run check:month-doctrine` | exit 0 |
+| Architecture | `bun run check:architecture` | exit 0 |
+| Style | `bun run check:style` | exit 0 (warnings/infos may remain) |
+| Knowledge | `bun run check:knowledge` | exit 0 |
+| Full gate | `bun run check:prepush` | exit 0 |
 
 ## Scope
 
-**In scope** (the only files you should modify/create):
-- `tests/harness/month-doctrine.test.ts` (create)
-- `tests/harness/month-doctrine-allowlist.json` (create — or `.ts` if the
-  design-doctrine allowlist is code; match its format exactly)
-- `package.json` (add `check:month-doctrine`; append it to
-  `check:architecture`)
-- `knowledge/wiki/engineering/cli_commands.md` or the doc that lists harness
-  checks (one entry), `knowledge/log.md` (append)
+**In scope** (the only files to modify/create):
 
-**Out of scope** (do NOT touch):
-- Every file the scanner flags — this plan FREEZES violations, it does not
-  fix them. Zero production-source edits.
-- `tests/harness/design-doctrine.test.ts` and its allowlist — sibling, not a
-  merge target; a separate file keeps the two doctrines' lifecycles
-  independent.
-- `data/**`, `knowledge/raw/**`, `plans/**` (beyond your status row).
+- `tests/harness/month-doctrine.test.ts` (create)
+- `tests/harness/month-doctrine-allowlist.ts` (create; the existing doctrine
+  ratchet is TypeScript, so keep structured entries in code)
+- `package.json`
+- `knowledge/wiki/engineering/studio_design_pass_status.md`
+- `knowledge/log.md`
+- `plans/README.md` (status row only)
+
+**Out of scope**:
+
+- All production files the scanner reports; this plan freezes debt and does
+  not remove it.
+- `tests/harness/design-doctrine.test.ts`.
+- `knowledge/wiki/engineering/cli_commands.md`; it is not where the existing
+  doctrine harness is documented.
+- `data/**`, `knowledge/raw/**`, and all other plan files.
 
 ## Git workflow
 
-- Branch: `advisor/088-month-doctrine-gate`.
-- Two commits: (1) gate + allowlist, (2) wiring + docs.
-- Do NOT push or open a PR unless the operator instructed it.
+- Branch: `codex/088-month-doctrine-gate`.
+- Keep gate/allowlist and wiring/docs as separate logical commits if useful.
+- Do not push or open a PR unless instructed.
 
 ## Steps
 
-### Step 1: Write the scanner test
+### Step 0: confirm ADR and regenerate the inventory
 
-Create `tests/harness/month-doctrine.test.ts`, mirroring
-`design-doctrine.test.ts`'s structure (file walking, allowlist load, failure
-messages). Rules:
+Confirm `docs/decisions/0022-multi-year-corpus-and-freshness-ledger.md`
+exists, is Accepted, and contains the vocabulary table described by Plan 084.
+Confirm plans 079 and 085-087 contain their binding plan-088 allowlist/scope
+amendments. Run discovery with the rule/path pairs from Step 1 and compare
+file/rule pairs to the ownership audit above. Expected reductions are safe.
+Do not broaden a surface or add a vague permanent exception to make counts fit.
 
-1. **Scan roots**: `packages/*/src`, `apps/web/src`, `tools/pipeline-v2/src`,
-   plus the single config file `apps/web/wrangler.jsonc`.
-   **Excluded**: any `test`/`tests`/`fixtures` directory segment,
-   `node_modules`, `packages/db/migrations`, `.repos`, `vendor`.
-2. **Banned identity tokens** (exact, case-sensitive):
+**Verify**: `test -f docs/decisions/0022-multi-year-corpus-and-freshness-ledger.md && rg -n 'Status|Accepted|coverage|publishedAt' docs/decisions/0022-multi-year-corpus-and-freshness-ledger.md` → file exists and the four concepts are present;
+`rg -n 'month-doctrine-allowlist|retire-0(79|85|86|87)' plans/079-truthful-map-contracts.md plans/085-demonth-serving-contract.md plans/086-demonth-release-identity.md plans/087-freshness-ledger.md` → each plan has binding ratchet ownership.
+
+### Step 1: implement precise scanner rules
+
+Mirror `tests/harness/design-doctrine.test.ts` for Bun file walking and failure
+style, but keep pure `collectViolations` and `auditAllowlist` helpers so rule
+behavior can be tested with synthetic text.
+
+Scan `**/*.{ts,tsx}` below `packages/*/src`, `apps/web/src`, and
+`tools/pipeline-v2/src`, plus the exact file `apps/web/wrangler.jsonc`.
+Exclude any `test`, `tests`, or `fixtures` path segment plus `node_modules`,
+migrations, `.repos`, and `vendor`. JSON source captures, SQL, Markdown, and
+generated data are not production TypeScript contract surfaces and are not
+part of the counts above.
+
+Create `month-doctrine-allowlist.ts` with the exported rule-ID union and an
+empty readonly entry array so this first test run compiles. Use these distinct,
+stable rule IDs and keep their file scopes next to their regex definitions:
+
+1. **`retired-identity-token`**: globally match exact word-bounded
    `baselineMonth`, `BASELINE_MONTH`, `LAST_BUILT_SPEED_MONTH`,
-   `canonicalMonthlyRelease`, `releaseMonth`, `analysisPeriod`,
-   `baseline_release`, `partial_public_monthly_only`, `baseline_mismatch`,
-   `searchParams.get("month")`.
-3. **Banned phrases** (case-insensitive, string/comment content):
-   `monthly release`, `baseline month`, `release month`.
-4. **Pinned-month literal rule**: regex
-   `["'\`]20[0-9]{2}-(0[1-9]|1[0-2])["'\`]` — a hardcoded specific month in
-   production source is a pin. (Fixtures/tests are excluded by rule 1;
-   legitimate coverage-origin constants get permanent allowlist entries.)
-5. **Allowlist semantics** (ratchet): entries are
-   `{ file, rule, count, note }`. A violation not covered → fail with the
-   file:line and rule. An entry whose file now has FEWER matches than
-   `count` → fail as STALE ("shrink the entry") — this is what forces plans
-   085/086 and the amended 079-081 to delete entries as they fix code. An
-   entry with more matches than `count` → fail (no silent growth). Every
-   entry MUST have a non-empty `note`; permanent entries say why they are
-   permanent (e.g. `route-capability-manifest.ts` reads `releaseMonth` from a
-   frozen artifact of the deleted detector program — see plan 086 Step 5).
+   `canonicalMonthlyRelease`, `baseline_release`,
+   `partial_public_monthly_only`, and `baseline_mismatch`. Quoted exact keys
+   match. Longer storage/partition identifiers do not; for example
+   `local_route_reliability_baseline_release` is legal.
+2. **`release-month-identity`**: match exact word-bounded `releaseMonth` in
+   these identity-bearing files only:
+   `packages/analytics/src/evaluation/{build-route-capability-manifest.ts,build-route-dossier-summary.ts,map-artifacts.ts}`,
+   `packages/domain/src/studio/{route-capability.ts,route-dossier.ts}`,
+   `packages/studio-api/src/studio/read-handlers.ts`,
+   `tools/pipeline-v2/src/commands/export/{d1.ts,route-capability-manifest.ts,route-dossier-summaries.ts}`,
+   and `tools/pipeline-v2/src/commands/map/artifacts.ts`.
+   In `tools/pipeline-v2/src/commands/export/d1-inputs.ts`, do **not** match
+   every token. Match only `(releaseMonth)(?=\s*:\s*Schema\.)` and the
+   captured token in
+   `(?:projection(?:\.success)?|manifest)\.(releaseMonth)`. This reports the
+   active/frozen serialized readers while excluding the local source-coverage
+   path placeholders in the same file.
+3. **`analysis-period-identity`**: match exact word-bounded `analysisPeriod`
+   only in `apps/web/src/studio/api-client.ts`,
+   `packages/analytics/src/evaluation/map-artifacts.ts`,
+   `packages/domain/src/maps/index.ts`,
+   `tools/pipeline-v2/src/checks/check-publish-completeness.ts`,
+   `tools/pipeline-v2/src/commands/export/d1.ts`,
+   `tools/pipeline-v2/src/commands/map/artifacts.ts`,
+   `tools/pipeline-v2/src/commands/publish/r2-artifacts.ts`,
+   and `tools/pipeline-v2/src/commands/verify/d1.ts`. In
+   `tools/pipeline-v2/src/commands/studio/release.ts`, match only
+   `(analysisPeriod)(?=\s*:\s*(?:options\.month|null)\b)`, the two map-fact
+   output members. Do not scan `_release-types.ts` or the same file's
+   route-brief input/window reads. Do not scan
+   route-treatment, study, route-brief, or equity analysis-window files.
+4. **`serialized-release-month`**: match exact word-bounded `release_month`
+   only in `packages/analytics/src/data-products/registry.ts`. Diagnostic
+   reason codes and one-month-window labels elsewhere are not serialized
+   product cadence/identity.
+5. **`identity-phrase`**: case-insensitively match `monthly release`,
+   `baseline month`, and `release month` using `(?:[\s-]+)` between words.
+   Scan raw text (including comments) only in the 11 phrase surfaces listed
+   under that rule in the ownership matrix. Do not scan findings or source
+   coverage modules whose month is a run/window partition.
+6. **`public-month-selector`**: in public runtime source, match
+   `searchParams` dot **or bracket** calls to
+   `get|getAll|has|set|append|delete`, accepting single, double, or backtick
+   quotes, optional chaining, and arbitrary whitespace around
+   operators/arguments. Also match static `[?&]month\s*=` query fragments and
+   `new URLSearchParams({... month: ...})` / quoted-key variants even when
+   `month` is not the first object member. These patterns run only in
+   `apps/web/src` and `packages/studio-api/src`, where `month` must not choose
+   the served product.
+7. **`pinned-identity-month`**: lex quoted string/template literals after
+   stripping comments while preserving offsets/newlines. Flag either a whole
+   literal equal to `YYYY-MM` or a local path segment matching
+   `(?:^|/)YYYY-MM(?:/|$)`. Ignore URI literals beginning with a scheme such as
+   `https://`, and do not flag full ISO dates/timestamps merely because their
+   prefix contains a month. Use a small lexical state machine that distinguishes
+   line comments, block comments, and single/double/template strings; a
+   regex-only comment stripper will corrupt URL strings and escaped quotes.
+   Apply this rule only to identity-bearing surfaces:
+   `apps/web/src`, `packages/studio-api/src`, `apps/web/wrangler.jsonc`,
+   `packages/domain/src/routes/**`, `packages/domain/src/maps/**`,
+   `packages/domain/src/studio/release.ts`,
+   `packages/analytics/src/evaluation/map-artifacts.ts`,
+   `tools/pipeline-v2/src/commands/map/**`,
+   `tools/pipeline-v2/src/commands/studio/{_release-types.ts,release.ts}`,
+   `tools/pipeline-v2/src/commands/publish/**`,
+   `tools/pipeline-v2/src/commands/{verify/d1.ts,export/d1.ts}`, and
+   `tools/pipeline-v2/src/checks/check-publish-completeness.ts`. Do not scan
+   ingest, backfill, study-engine, source-coverage, or feature-history modules
+   for this rule.
 
-**Verify**: `bun test tests/harness/month-doctrine.test.ts --timeout 5000`
-→ runs (fails — allowlist not yet written; expected at this step).
-
-### Step 2: Freeze the allowlist
-
-Run the scanner, capture every current violation, and write the allowlist
-with per-file counts and notes of the form "retired by plan 085" / "retired
-by plan 086" / "retired by amended plan 079" / "PERMANENT: <justification>".
-Cross-check the note assignments against the plan scopes: domain/studio-api/
-web sites → 085; pipeline release/publish/data-products sites → 086; maps +
-api-client network join sites → amended 079; `source-refresh.ts` strings →
-087. If the scan surfaces a site no plan owns, STOP and report it (a gap in
-the plan set, not something to silently allowlist).
+Bare `month`, `startMonth`, `endMonth`, `implementationMonth`, `IsoMonth`,
+month axes, coverage fields, source-grain copy, `--month` partition selectors,
+`releaseMonthRowCount`, legal out-of-scope `releaseMonth`/`analysisPeriod`, and
+YYYY-MM literals outside the identity surfaces must not produce violations.
 
 **Verify**: `bun test tests/harness/month-doctrine.test.ts --timeout 5000` →
-exit 0 on the current tree; then temporarily add `const x = "2026-01";` to
-any scanned src file → test FAILS naming the file and rule; revert; add a
-fake allowlist entry for a non-existent file → test FAILS as stale; revert.
+the scanner unit cases run; the current-tree assertion fails only because the
+allowlist is not populated yet.
 
-### Step 3: Wire into the architecture chain
+### Step 2: create the disposition-bearing ratchet
 
-In root `package.json`: add
-`"check:month-doctrine": "bun test tests/harness/month-doctrine.test.ts --timeout 5000"`
-and extend `check:architecture` (:69) to
-`"… && bun run check:design-doctrine && bun run check:month-doctrine && bun run check:claude-config"`.
+In `month-doctrine-allowlist.ts`, export sorted entries shaped as:
 
-**Verify**: `bun run check:architecture` → exit 0; `bun run check:prepush` →
-exit 0 (the gate now runs in the standard chain).
+```ts
+type MonthDoctrineAllowlistEntry = {
+  file: string;
+  rule: MonthDoctrineRuleId;
+  count: number;
+  disposition:
+    | "retire-079"
+    | "retire-085"
+    | "retire-086"
+    | "retire-087"
+    | "permanent-frozen-artifact";
+  note: string;
+};
+```
 
-### Step 4: Docs + log
+Counts are exact regex occurrence counts per file/rule. Reject duplicate
+file/rule pairs, non-positive counts, missing/nonexistent files, empty notes,
+unknown dispositions, unlisted violations, fewer matches (stale), and more
+matches (growth). Notes for retiring entries name the exact contract family;
+permanent notes identify the immutable external field and reader.
 
-Add the check to the harness-checks documentation (wherever
-`check:design-doctrine` is documented — `cli_commands.md` or the architecture
-wiki page; match that location) with three sentences: what it bans, that the
-allowlist only shrinks, and that permanent entries require a justification
-note. Append a `knowledge/log.md` entry.
+Keep `d1-inputs.ts` as `retire-086` and the initially mixed
+`route-capability-manifest.ts` entry as `retire-085`, exactly as the ownership
+matrix requires. Neither is permanent at gate landing; do not prematurely
+freeze it. Record the audited 7/3 branch breakdown in notes, but recompute the
+exact count from the landed tree before Plan 086 changes disposition.
 
-**Verify**: `bun run check:knowledge` → exit 0.
+**Verify**: `bun test tests/harness/month-doctrine.test.ts --timeout 5000` →
+all current-tree and synthetic ratchet cases pass.
+
+### Step 3: prove rule precision and wire the gate
+
+Synthetic tests in the harness must prove:
+
+- every quote/whitespace selector variant above fails;
+- optional-chaining selectors and static `?month=` construction fail;
+- every globally retired exact token fails, while an embedded storage token
+  such as `local_route_reliability_baseline_release` remains legal;
+- `releaseMonth` fails on each identity surface and in both contextual
+  `d1-inputs.ts` reader forms, while `releaseMonthRowCount` and a
+  source/history-window `releaseMonth` outside those surfaces remain legal;
+- `analysisPeriod` fails on a manifest/release surface and remains legal in
+  route-treatment, study, route-brief, and equity-window files;
+- exact `release_month` fails in the registry but a diagnostic reason code
+  outside it remains legal;
+- each flexible phrase fails on its contract/copy surface and legal
+  source-window copy outside that surface is ignored;
+- a whole-month literal and a local `/YYYY-MM/` path segment on an identity
+  surface fail even when the file contains comments, while an HTTP(S) URL path,
+  a full ISO date/timestamp, and the same literal in an ingest/study file are
+  ignored;
+- `startMonth`, `endMonth`, `implementationMonth`, `IsoMonth`, `--month`, and
+  “monthly ridership” remain legal;
+- unlisted, stale, growth, duplicate, note-less, and invalid-disposition
+  entries fail.
+
+Add `check:month-doctrine` to `package.json` and place it in
+`check:architecture` after `check:design-doctrine` and before
+`check:claude-config`.
+
+**Verify**: `bun run check:month-doctrine && bun run check:architecture` → both exit 0; `rg -n 'check:month-doctrine' package.json` → exactly 2 hits.
+
+### Step 4: document and log the gate
+
+Update `knowledge/wiki/engineering/studio_design_pass_status.md`, the current
+home of `check:design-doctrine`, with the new gate, its identity-vs-grain
+boundary, and shrink-only dispositions. While editing its existing ratchet
+paragraph, reconcile the named design-doctrine exceptions with the live
+allowlist; do not preserve the already-stale RouteMapLibre/RouteMapSection
+claim. Append a `knowledge/log.md` entry and update only Plan 088's status row.
+
+**Verify**: `bun run check:knowledge && bun run check:style` → exit 0.
+
+### Step 5: final verification
+
+Run `bun run check:prepush`. If the Worker harness alone fails because the
+execution sandbox cannot bind loopback (`EPERM` on `127.0.0.1`), rerun that
+command in an approved environment that permits the local Worker listener;
+do not misreport a sandbox limitation as a doctrine failure.
+
+**Verify**: `bun run check:prepush` → exit 0.
 
 ## Test plan
 
-The gate IS a test. Its own correctness cases (executed manually in Step 2's
-verify, then kept as assertions inside the test file where the
-design-doctrine harness does the same): unlisted violation fails; stale
-entry fails; over-count fails; note-less entry fails; clean tree passes.
+The gate is its own test. Keep the precision and ratchet cases from Step 3 as
+permanent assertions; do not rely on temporarily editing production source.
+The initial current-tree test proves every violation is explicitly retiring;
+the permanent disposition exists only for Plan 086's later frozen-reader
+transition.
 
 ## Done criteria
 
-- [ ] `bun run check:month-doctrine` exits 0 on the frozen tree
-- [ ] A deliberately added `"2026-01"` literal in `apps/web/src` makes it exit 1 (verified and reverted)
-- [ ] A stale allowlist entry makes it exit 1 (verified and reverted)
-- [ ] `check:architecture` includes the new check (`rg -n 'check:month-doctrine' package.json` → 2 hits)
-- [ ] Every allowlist entry has a `note` naming its retiring plan or PERMANENT justification
-- [ ] `bun run check:prepush` exits 0
-- [ ] No files outside the in-scope list modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] ADR-0022 exists and is Accepted.
+- [ ] `bun run check:month-doctrine` exits 0.
+- [ ] Selector tests cover single/double/backtick quotes, whitespace, bracket
+      access, and static query fragments.
+- [ ] Legal-grain tests cover named month fields, CLI selectors, source copy,
+      non-identity YYYY-MM literals, out-of-scope `releaseMonth` and
+      `analysisPeriod`, and embedded storage/diagnostic names.
+- [ ] Every allowlist entry has an exact count, disposition, and useful note;
+      no entry is permanent at initial landing.
+- [ ] `rg -n 'check:month-doctrine' package.json` returns exactly 2 hits.
+- [ ] `bun run check:architecture`, `bun run check:knowledge`,
+      `bun run check:style`, and `bun run check:prepush` exit 0.
+- [ ] `git status --short` shows no files outside Scope.
+- [ ] Plan 088's status row is updated.
 
 ## STOP conditions
 
-Stop and report back (do not improvise) if:
+Stop and report instead of broadening an exception when:
 
-- `design-doctrine.test.ts` uses a materially different allowlist mechanism
-  than described (the excerpt assumptions drifted) — mirror what exists, and
-  report the difference.
-- The scan finds a banned-token site that no gen-11 plan or amendment owns
-  (a coverage gap in the plan set — the lead must assign it, not you).
-- The pinned-month literal rule flags more than ~5 legitimate coverage-origin
-  constants — the rule may be too broad; report the list instead of
-  allowlisting en masse.
-- Adding the check to `check:architecture` breaks unrelated scripts (chain
-  ordering matters somewhere) — report rather than reordering the chain.
+- ADR-0022 is absent, not Accepted, or uses different identity field names.
+- A current violation has no disposition in the ownership matrix.
+- A proposed permanent exception exists at initial landing or, after Plan
+  086, is not an actual remaining match in the two frozen files / three
+  immutable branches (legacy timeline plus both detector-readiness readers).
+- A legitimate source/history/analysis-window site is reported; fix the
+  surface scope instead of allowlisting the false positive.
+- The refined pinned-literal rule reports a current site other than the two
+  Wrangler values and the three Studio release sites (one default plus two D1
+  local-path segments); inspect whether path/URI classification or comment
+  stripping is wrong before assigning ownership.
+- Scanner helpers cannot preserve line numbers while stripping comments, or
+  selector tests reveal an accepted quote/whitespace variant.
+- Wiring the check breaks an unrelated architecture script.
+
+There is no arbitrary “more than five month literals” threshold. Legitimate
+grain is excluded by rule design; every actual identity match is handled by
+explicit ownership.
 
 ## Maintenance notes
 
-- The allowlist's terminal state (after 086): empty except PERMANENT entries.
-  Plan 086's done criteria assert this; reviewers should reject any later PR
-  that grows the allowlist instead of fixing its code.
-- When amended 079/080/081 and 085/086/087 land, each deletes its entries —
-  the stale-entry guard makes forgetting impossible.
-- If a future feature genuinely needs a new permanent entry (another frozen
-  artifact), the note requirement is the review surface — a note-less or
-  vague entry is the smell.
-- This gate bans vocabulary, not months: month-grain fields (`dataAsOf`,
-  `startMonth`/`endMonth`, series coordinates) stay legal by design. If the
-  gate ever blocks legitimate grain code, fix the rule, don't allowlist the
-  code.
+- 079, 085, 086, and 087 remove their entries as they land. Fewer matches
+  without an allowlist edit must fail, forcing the ratchet to shrink in the
+  same commit.
+- After 086, only `retire-087` plus the permanent entries may remain. After
+  087, the terminal allowlist contains only the audited immutable-reader
+  entries: `export/d1-inputs.ts` count 7 (timeline 4 + detector 3) and
+  `route-capability-manifest.ts` count 3 (detector 3).
+- If a frozen compatibility reader is later deleted, its permanent entry must
+  shrink or disappear in the same commit; permanence is not a count floor.
+- New permanent entries require a doctrine review; “this is convenient” is
+  not a justification.
+- Reviewers should scrutinize selector-pattern tests and identity-surface
+  scoping. The gate protects product identity, not the existence of months.

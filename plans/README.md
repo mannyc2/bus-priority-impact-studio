@@ -183,9 +183,9 @@ its number.
 |------|-------|----------|--------|------------|--------|
 | 084 | Retire the monthly-baseline doctrine: ADR-0022 + steering-doc truth sweep | P1 | S-M | — (run first) | DONE |
 | 088 | Month-doctrine harness gate (ratchet allowlist; runs SECOND) | P1 | S-M | 084 | TODO |
-| 085 | De-month the public serving contract (coverage + publishedAt) | P1 | L | 084, 088; 079 as amended (hard); 080/081 rec. | TODO |
+| 085 | De-month the public serving contract (releaseId + publishedAt + coverage) | P1 | L | 084, 088; 079 as amended, 080, 081 (all hard) | TODO |
 | 086 | De-month pipeline release identity + publish gates; empty the ratchet | P1 | M-L | 084, 088; 079 as amended + 085 (hard) | TODO |
-| 087 | Freshness ledger: `audit freshness` per-source lag report | P2 | M | 084; 086 (hard) | TODO |
+| 087 | Freshness ledger: `audit freshness` per-source lag report | P2 | M | 084, 088; 086 (hard) | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
@@ -421,7 +421,7 @@ The governing user questions are:
 |------|-------|----------|--------|------------|--------|
 | 077 | Restore validated MapLibre rendering and clean failure recovery | P0 | M | 068; coordinate with 072 | DONE |
 | 078 | Canonical map/detail/history segment identity and readiness | P0 | L | 068, 077; before 074 | DONE |
-| 079 | Truthful network-map data, layer readiness, freshness, and budgets | P1 | L | 062, 068, 078 | TODO |
+| 079 | Truthful network-map data, layer readiness, freshness, and budgets | P1 | L | 062, 068, 078, 084, 088 | TODO (core map truth/readiness work landed; remaining scope is the binding ADR-0022 v2 release-identity/catalog cutover) |
 | 080 | Accessible, searchable, shareable network decision explorer | P1 | L | 077, 079 | TODO (comp APPROVED r3 2026-07-17, light surface; visual layer implemented ahead of 079 on `codex/080-map-visual-redesign` — attention scale, Find-a-route panel, one-strip legend, badges/labels, lanes layer, popup redesign. Remaining: URL state, verified served-borough binding, Data notes, mobile sheet, hover-perf rework, lens eligibility gates) |
 | 081 | Linked route-segment evidence explorer with exact overlays | P1 | L | 077-080 | IN PROGRESS (comp APPROVED r4 2026-07-18 "Implement"; visual/interaction layer LANDED on `codex/081-route-segment-explorer` ahead of 079, mirroring 080's precedent — SegmentExplorer merge, click-to-pin + ?segment= spine URLs, feature-state hover, solid lane underlay w/ auto-hidden toggle, Riders swap, proxy/stat deletions, CorridorMap rails removed. Remaining (079-gated per plan): verified-artifact boundary, historical month/daypart mode, overview locator + network CTA, real-browser QA matrix. Amended 2026-07-18: delete Riders "Top burden segments" + all segment-grain ACE/TSP display — measured 0/350 routes vary within-route; ACE/TSP are route-level fanned out, lane varies on 309/350 — kill "Bus lanes %" stat grid, redesign Speed-by-hour, Riders gets boardings-by-hour. Comp r4 in `mockups/081-route-segment-explorer/` (real B41 data; r2 = full-tab exhibits, fixed-slot readout, no treatment prose in explorer, 8-row default table, Copy-link button; r4 = solid painted-lane underlay/rim — r3 glow band rejected — card-grammar readout header w/ state in the description line, toggle auto-hidden on 34 lane-less routes; /map dashes = 080 amendment candidate) awaiting operator review) |
 

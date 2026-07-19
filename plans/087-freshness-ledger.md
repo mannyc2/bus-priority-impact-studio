@@ -7,10 +7,16 @@
 > `plans/README.md` (Generation 11 table).
 >
 > **Drift check (run first)**:
-> `git diff --stat 27755f4..HEAD -- tools/pipeline-v2/src/commands/audit tools/pipeline-v2/src/commands/plan/source-refresh.ts tools/pipeline-v2/src/commands/check/route-speed-availability.ts tools/pipeline-v2/src/lib packages/sources/src/registry tools/pipeline-v2/test knowledge/wiki/engineering`
+> `git diff --stat 27755f4..HEAD -- tools/pipeline-v2/src/commands/audit tools/pipeline-v2/src/commands/plan/source-refresh.ts tools/pipeline-v2/src/commands/check/route-speed-availability.ts tools/pipeline-v2/src/lib packages/sources/src/registry tools/pipeline-v2/test knowledge/wiki/engineering tests/harness/month-doctrine-allowlist.ts`
 > If any in-scope file changed since this plan was written, compare the
 > "Current state" excerpts against the live code before proceeding; on a
 > mismatch, treat it as a STOP condition.
+
+> **Amendment (2026-07-19 — plan-088 ratchet, binding).** Plan 086 leaves the
+> exact `retire-087` source-refresh prose entry in the shrink-only
+> month-doctrine allowlist. Removing that entry in the same commit as the
+> Step-3 copy cleanup is required and in scope. Do not change permanent
+> frozen-reader entries.
 
 ## Status
 
@@ -18,6 +24,7 @@
 - **Effort**: M
 - **Risk**: LOW (additive command + artifact; only string edits to existing code)
 - **Depends on**: `plans/084-retire-month-anchors-doctrine.md` (vocabulary),
+  `plans/088-month-doctrine-gate.md` (shrink-only ownership ratchet),
   `plans/086-demonth-release-identity.md` (hard — the ledger reads
   `publishedAt`/`coverage` from `export-summary.json`)
 - **Category**: dx
@@ -108,6 +115,9 @@ the retired month anchors were standing in for.
   `knowledge/wiki/engineering/data_pipeline_operationalization_status.md`
   (replace plan 084's dated staleness addendum with the ledger pointer),
   `knowledge/log.md` (append)
+- `tests/harness/month-doctrine-allowlist.ts` (remove the exact
+  `retire-087` source-refresh file/rule pair only)
+- `plans/README.md` (status row only)
 
 **Out of scope** (do NOT touch):
 - The Worker/serving path — the status endpoint's coverage reporting landed in
@@ -175,7 +185,9 @@ and publish a release only when same-window GTFS-RT evidence exists.";
 "Keep the current build as the latest published release."; summary: "Write
 the production source-refresh plan for GTFS-RT and public speed data." Do not
 change ids, statuses, or the artifact shape. Remove the corresponding entries
-from the plan-088 month-doctrine allowlist if 086 left any for this file.
+from the plan-088 month-doctrine allowlist in the same commit. Plan 086 must
+leave this exact `retire-087` entry; if it is absent before the prose edit,
+STOP because the ratchet history drifted.
 
 **Verify**: `rg -in 'monthly release|monthly promotion' tools/pipeline-v2/src/commands/plan/source-refresh.ts` → 0; `bun --filter @bp/pipeline-v2 test` → pass.
 
@@ -223,6 +235,8 @@ behavior both ways.
 - [ ] Ledger artifact schema includes per-row `upstreamLatest`, `ingestedLatest`, `publishedCoverageEnd`, both lags, `status` (test asserts)
 - [ ] A source without a probe reports `unknown` — grep the test for the case
 - [ ] `rg -in 'monthly release|monthly promotion' tools/pipeline-v2/src/commands/plan/source-refresh.ts` → 0 hits
+- [ ] `bun run check:month-doctrine` passes with no `retire-087` entries and
+      only exact `permanent-frozen-artifact` entries remaining
 - [ ] `knowledge/wiki/engineering/freshness_ledger.md` exists; `cli_commands.md` lists the command; `bun run check:knowledge` exit 0
 - [ ] `bun run check:prepush` exit 0
 - [ ] No files outside the in-scope list modified (`git status`)
