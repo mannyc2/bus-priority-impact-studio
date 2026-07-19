@@ -93,7 +93,7 @@ function routeFact(
         matchMethod: "route_id",
       },
     },
-  } as MapRouteFact;
+  } as unknown as MapRouteFact;
 }
 
 function response(fact: MapRouteFact = routeFact()): MapRouteFactsResponse {
@@ -101,7 +101,7 @@ function response(fact: MapRouteFact = routeFact()): MapRouteFactsResponse {
     schemaVersion: 2,
     ...identity,
     routes: [fact],
-  } as MapRouteFactsResponse;
+  } as unknown as MapRouteFactsResponse;
 }
 
 function mismatchFields(result: ReturnType<typeof resolveRouteFactEvidence>): string[] {
@@ -114,7 +114,7 @@ describe("resolveRouteFactEvidence", () => {
     const result = resolveRouteFactEvidence(detail, identity, response());
     expect(result.status).toBe("available");
     if (result.status !== "available") return;
-    expect(result.fact.route.routeId).toBe("M15+");
+    expect(String(result.fact.route.routeId)).toBe("M15+");
     expect(result.fact.provenance.tsp).toMatchObject({
       status: "installed",
       sourceDate: "2017-12-31",
@@ -134,7 +134,7 @@ describe("resolveRouteFactEvidence", () => {
     const result = resolveRouteFactEvidence(detail, identity, {
       ...response(),
       coverage: { start: "2025-01", end: "2026-03" },
-    });
+    } as unknown as MapRouteFactsResponse);
     expect(mismatchFields(result)).toContain("release.coverage.start");
   });
 

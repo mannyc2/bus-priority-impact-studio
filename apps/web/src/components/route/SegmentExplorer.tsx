@@ -283,7 +283,7 @@ export function SegmentExplorerSection({
   );
   const activePeriodLabel =
     historicalActive && explorerSearch.month !== undefined
-      ? `${formatMonthLabel(explorerSearch.month)} · ${daypartLabel(explorerSearch.daypart)}`
+      ? `${formatMonthLabel(explorerSearch.month)}, ${daypartLabel(explorerSearch.daypart)}`
       : "current all-day";
 
   const urlPinned = resolvePinnedSegment(segments, explorerSearch.segment ?? null);
@@ -455,7 +455,7 @@ export function SegmentExplorerSection({
         title="Slowest segments"
         sub={
           allRankedSpeedsMissing
-            ? `Route order — no ranked speed evidence · ${activePeriodLabel}`
+            ? `Route order — no ranked speed evidence, ${activePeriodLabel}`
             : `Slowest first — ${activePeriodLabel}${coverage === null || historicalActive ? "" : `, ${coverage}`}`
         }
         right={
@@ -647,14 +647,14 @@ function RouteFactProvenance({ state }: { state: RouteFactEvidenceState }) {
   const { ace, tsp } = state.fact.provenance;
   const laneLine =
     state.fact.provenance.lane.status === "available"
-      ? `Bus-lane proximity proxy ${state.fact.provenance.lane.valuePct ?? 0}% · route-shape proximity, not exact mapped coverage`
-      : `Bus-lane proximity unavailable · ${state.fact.provenance.lane.unavailableReason ?? "source unavailable"}`;
+      ? `Bus-lane proximity proxy ${state.fact.provenance.lane.valuePct ?? 0}%; route-shape proximity, not exact mapped coverage`
+      : `Bus-lane proximity unavailable: ${state.fact.provenance.lane.unavailableReason ?? "source unavailable"}`;
   const aceLine =
     ace.sourceStatus === "available"
-      ? `ACE ${ace.status} · route-month · ${ace.sourceAsOf ?? "source date unavailable"}`
-      : `ACE unavailable · ${ace.unavailableReason ?? "source date unavailable"}`;
-  const tspSnapshot = tsp.sourceId === "nyc_dot_tsp_status_2017" ? " · 2017 status snapshot" : "";
-  const tspLine = `TSP ${tsp.status} · route/corridor${tspSnapshot} · ${tsp.sourceDate ?? "source date unavailable"}`;
+      ? `ACE ${ace.status}, route-month, ${ace.sourceAsOf ?? "source date unavailable"}`
+      : `ACE unavailable: ${ace.unavailableReason ?? "source date unavailable"}`;
+  const tspSnapshot = tsp.sourceId === "nyc_dot_tsp_status_2017" ? ", 2017 status snapshot" : "";
+  const tspLine = `TSP ${tsp.status}, route/corridor${tspSnapshot}, ${tsp.sourceDate ?? "source date unavailable"}`;
   return (
     <div className="mt-2 space-y-0.5 text-[10.5px] leading-normal text-[var(--bp-color-ink-55)]">
       <p className="m-0">{laneLine}</p>
@@ -888,7 +888,7 @@ function SegmentReadout({
           label="Speed"
           value={mph === null ? "—" : mph.toFixed(1)}
           valueColor={SPEED_BAND(mph)}
-          sub={mph === null ? `no data · ${periodLabel}` : `mph · ${periodLabel}`}
+          sub={mph === null ? `no data, ${periodLabel}` : `mph, ${periodLabel}`}
         />
         <ReadoutStat
           label="vs sched"
@@ -900,7 +900,7 @@ function SegmentReadout({
           value={riderHours === null ? "—" : formatRiderHoursCompact(riderHours)}
           sub={
             historicalActive && delayCoverageEnd !== undefined
-              ? `rider-hrs · ${delayCoverageEnd}, all-day`
+              ? `rider-hrs, ${delayCoverageEnd}, all-day`
               : riderHoursSub
           }
         />

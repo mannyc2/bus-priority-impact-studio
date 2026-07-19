@@ -9,10 +9,10 @@ import { gzipSync } from "node:zlib";
 // Budgets in gzipped KB. Set with headroom over current sizes; tighten over time.
 // `entry` = the eagerly-loaded main chunk that gates first paint.
 // `totalJs` = every JS chunk, a backstop against overall bloat.
-// totalJs raised 300 -> 430 for the Recharts charting library (~95 KB gz),
-// which is code-split into a lazy chunk and never loaded at first paint
-// (entry budget unchanged). See components/ui/chart.tsx + HourBars/HourOverlay.
-const BUDGET_KB = { entry: 145, totalJs: 390 } as const;
+// Plan 081 remeasured 394.4 KB total after adding the lazy route-history,
+// verified-provenance, and historical-map controls. The total cap moves from
+// 390 -> 400 KB with modest headroom; the first-paint entry cap is unchanged.
+const BUDGET_KB = { entry: 145, totalJs: 400 } as const;
 
 const assetsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "dist", "client", "assets");
 

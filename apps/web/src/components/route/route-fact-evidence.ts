@@ -1,4 +1,4 @@
-import type { MapManifestResponse, MapRouteFact, MapRouteFactsResponse } from "@bp/domain/maps";
+import type { MapRouteFact, MapRouteFactsResponse } from "@bp/domain/maps";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
 type ComparableFactValue = string | number | boolean | null;
@@ -62,6 +62,12 @@ export type ResolvedRouteFactEvidence = Extract<
   { status: "available" | "unavailable" | "mismatch" }
 >;
 
+type ReleaseIdentityInput = {
+  releaseId: string;
+  publishedAt: string;
+  coverage: { start: string | null; end: string };
+};
+
 /** Snapshot only the Studio fields that participate in route-fact parity. */
 export function routeFactParityInput(data: StudioRouteDetailResponse): RouteFactParityInput {
   const { route } = data;
@@ -92,7 +98,7 @@ export function routeFactParityInput(data: StudioRouteDetailResponse): RouteFact
  */
 export function resolveRouteFactEvidence(
   detail: RouteFactParityInput,
-  manifest: Pick<MapManifestResponse, "releaseId" | "publishedAt" | "coverage">,
+  manifest: ReleaseIdentityInput,
   response: MapRouteFactsResponse,
 ): ResolvedRouteFactEvidence {
   const fact = response.routes.find(

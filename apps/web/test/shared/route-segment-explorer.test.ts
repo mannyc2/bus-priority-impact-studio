@@ -80,8 +80,9 @@ describe("route detail search", () => {
       daypart: "pm_peak",
       lanes: true,
     });
-    expect(validateRouteDetailSearch({ tab: "segments", month: "2026-13", daypart: "midday" }))
-      .toEqual({ tab: "segments" });
+    expect(
+      validateRouteDetailSearch({ tab: "segments", month: "2026-13", daypart: "midday" }),
+    ).toEqual({ tab: "segments" });
     expect(validateRouteDetailSearch({ tab: "riders", segment: "stable-1", lanes: true })).toEqual({
       tab: "riders",
     });

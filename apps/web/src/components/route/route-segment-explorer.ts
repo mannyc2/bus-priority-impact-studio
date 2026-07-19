@@ -57,24 +57,28 @@ function isBoundedSearchToken(value: unknown): value is string {
  * later so a loading or transiently unavailable artifact never destroys a
  * structurally valid shared historical URL. */
 export function validateRouteDetailSearch(search: Record<string, unknown>): RouteDetailSearch {
-  const tab = isMember(ROUTE_DETAIL_TABS, search["tab"]) ? search["tab"] : undefined;
+  const {
+    tab: rawTab,
+    study: rawStudy,
+    segment: rawSegment,
+    direction: rawDirection,
+    month: rawMonth,
+    daypart: rawDaypart,
+    lanes: rawLanes,
+  } = search;
+  const tab = isMember(ROUTE_DETAIL_TABS, rawTab) ? rawTab : undefined;
   if (tab === undefined) return {};
   if (tab === "history") {
-    const study = isBoundedSearchToken(search["study"]) ? search["study"] : undefined;
+    const study = isBoundedSearchToken(rawStudy) ? rawStudy : undefined;
     return { tab, ...(study === undefined ? {} : { study }) };
   }
   if (tab !== "segments") return { tab };
 
-  const segment = isBoundedSearchToken(search["segment"]) ? search["segment"] : undefined;
-  const direction = isMember(EXPLORER_DIRECTIONS, search["direction"])
-    ? search["direction"]
-    : undefined;
-  const month = typeof search["month"] === "string" && ISO_MONTH.test(search["month"])
-    ? search["month"]
-    : undefined;
-  const daypart = month !== undefined && isMember(EXPLORER_DAYPARTS, search["daypart"])
-    ? search["daypart"]
-    : undefined;
+  const segment = isBoundedSearchToken(rawSegment) ? rawSegment : undefined;
+  const direction = isMember(EXPLORER_DIRECTIONS, rawDirection) ? rawDirection : undefined;
+  const month = typeof rawMonth === "string" && ISO_MONTH.test(rawMonth) ? rawMonth : undefined;
+  const daypart =
+    month !== undefined && isMember(EXPLORER_DAYPARTS, rawDaypart) ? rawDaypart : undefined;
 
   return {
     tab,
@@ -82,7 +86,7 @@ export function validateRouteDetailSearch(search: Record<string, unknown>): Rout
     ...(direction === undefined ? {} : { direction }),
     ...(month === undefined ? {} : { month }),
     ...(daypart === undefined ? {} : { daypart }),
-    ...(search["lanes"] === true ? { lanes: true as const } : {}),
+    ...(rawLanes === true ? { lanes: true as const } : {}),
   };
 }
 
@@ -159,10 +163,7 @@ export function canonicalizeRouteDetailSearch(
         historicalState = "current";
       } else {
         historicalState = "ready";
-        if (
-          search.daypart !== undefined &&
-          !history.dimensions.dayparts.includes(search.daypart)
-        ) {
+        if (search.daypart !== undefined && !history.dimensions.dayparts.includes(search.daypart)) {
           delete search.daypart;
         }
       }

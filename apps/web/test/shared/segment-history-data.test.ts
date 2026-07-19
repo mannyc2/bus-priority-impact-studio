@@ -113,19 +113,13 @@ describe("historical segment values", () => {
   test("all-day is traversal-first and falls back to observations only at zero traversals", () => {
     expect(
       historicalSpeedForCells(
-        [
-          cell("am_peak", "available", 4, 9, 100),
-          cell("midday", "available", 10, 1, 100),
-        ],
+        [cell("am_peak", "available", 4, 9, 100), cell("midday", "available", 10, 1, 100)],
         ["am_peak", "midday"],
       ),
     ).toBeCloseTo(4.6);
     expect(
       historicalSpeedForCells(
-        [
-          cell("am_peak", "available", 4, 0, 3),
-          cell("midday", "available", 10, 0, 1),
-        ],
+        [cell("am_peak", "available", 4, 0, 3), cell("midday", "available", 10, 0, 1)],
         ["am_peak", "midday"],
       ),
     ).toBeCloseTo(5.5);
@@ -134,19 +128,13 @@ describe("historical segment values", () => {
   test("not-expected is excluded, but any missing expected daypart makes all-day unavailable", () => {
     expect(
       historicalSpeedForCells(
-        [
-          cell("am_peak", "available", 6, 2, 2),
-          cell("midday", "not_expected", null, 0, 0),
-        ],
+        [cell("am_peak", "available", 6, 2, 2), cell("midday", "not_expected", null, 0, 0)],
         ["am_peak", "midday"],
       ),
     ).toBe(6);
     expect(
       historicalSpeedForCells(
-        [
-          cell("am_peak", "available", 6, 2, 2),
-          cell("midday", "missing", null, 0, 0),
-        ],
+        [cell("am_peak", "available", 6, 2, 2), cell("midday", "missing", null, 0, 0)],
         ["am_peak", "midday"],
       ),
     ).toBeNull();
