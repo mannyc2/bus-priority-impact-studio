@@ -30,13 +30,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "candidateId",
-          "identity",
-          "recommendation",
-          "rationale",
-          "gates"
-        ],
+        "required": ["candidateId", "identity", "recommendation", "rationale", "gates"],
         "properties": {
           "candidateId": { "type": "string" },
           "identity": { "type": "string" },
@@ -47,14 +41,7 @@
           "rationale": { "type": "string", "minLength": 1 },
           "gates": {
             "type": "object",
-            "required": [
-              "evidenceScope",
-              "date",
-              "spine",
-              "outcome",
-              "conflict",
-              "confounder"
-            ],
+            "required": ["evidenceScope", "date", "spine", "outcome", "conflict", "confounder"],
             "properties": {
               "evidenceScope": { "type": "string" },
               "date": { "type": "string" },

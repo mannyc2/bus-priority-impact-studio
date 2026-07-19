@@ -48,6 +48,7 @@ import {
   routeBriefSummary,
   routeBuildPlan,
   routeCatalog,
+  routeCatalogTripType,
   routeCatalogType,
   routeComparisonRank,
   routeDirection,
@@ -94,6 +95,7 @@ const RouteBriefSlowestWindowInsertSchema = uncheckedSeedValidator;
 const RouteBuildPlanInsertSchema = uncheckedSeedValidator;
 const RouteCatalogInsertSchema = uncheckedSeedValidator;
 const RouteCatalogTypeInsertSchema = uncheckedSeedValidator;
+const RouteCatalogTripTypeInsertSchema = uncheckedSeedValidator;
 const RouteDirectionInsertSchema = uncheckedSeedValidator;
 const RouteEquityContextInsertSchema = uncheckedSeedValidator;
 const RouteInterventionComparisonInsertSchema = uncheckedSeedValidator;
@@ -227,6 +229,7 @@ export type D1SeedSqlResult = {
   comparisonRowCount: number;
   routeCatalogRowCount: number;
   routeCatalogTypeRowCount: number;
+  routeCatalogTripTypeRowCount: number;
   routeDirectionRowCount: number;
   routeCoverageRowCount: number;
   routeReadinessRowCount: number;
@@ -363,6 +366,13 @@ function validateD1SeedRows(input: D1SeedInput): void {
         routeId: route.routeId,
         typeRank: index + 1,
         routeType,
+      });
+    });
+    route.tripTypes.forEach((tripType, index) => {
+      validateSeedRow(RouteCatalogTripTypeInsertSchema, "route_catalog_trip_type", {
+        routeId: route.routeId,
+        tripTypeRank: index + 1,
+        tripType,
       });
     });
     route.directions.forEach((directionName, index) => {
@@ -720,6 +730,7 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
   const { month } = input;
   const statements: string[] = [
     renderQuery(seedDb.delete(routeCatalogType)),
+    renderQuery(seedDb.delete(routeCatalogTripType)),
     renderQuery(seedDb.delete(routeDirection)),
     renderQuery(seedDb.delete(routeCatalog)),
     renderQuery(seedDb.delete(routeMonthCoverage).where(eq(routeMonthCoverage.month, month))),
@@ -783,6 +794,7 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     renderQuery(seedDb.delete(routeBatchStatus).where(eq(routeBatchStatus.month, month))),
   ];
   let routeCatalogTypeRowCount = 0;
+  let routeCatalogTripTypeRowCount = 0;
   let routeDirectionRowCount = 0;
   let routeReadinessMissingInputRowCount = 0;
   let routeReliabilityGapWindowRowCount = 0;
@@ -819,6 +831,19 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
             routeId: route.routeId,
             typeRank: index + 1,
             routeType: type,
+          }),
+        ),
+      );
+    });
+
+    route.tripTypes.forEach((tripType, index) => {
+      routeCatalogTripTypeRowCount += 1;
+      statements.push(
+        renderQuery(
+          seedDb.insert(routeCatalogTripType).values({
+            routeId: route.routeId,
+            tripTypeRank: index + 1,
+            tripType,
           }),
         ),
       );
@@ -1479,6 +1504,7 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     comparisonRowCount: input.routeComparisonRanks.length,
     routeCatalogRowCount: input.routeCatalog.length,
     routeCatalogTypeRowCount,
+    routeCatalogTripTypeRowCount,
     routeDirectionRowCount,
     routeCoverageRowCount: input.routeCoverage.length,
     routeReadinessRowCount: input.routeReadiness.length,

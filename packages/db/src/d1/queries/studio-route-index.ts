@@ -4,6 +4,7 @@ import {
   routeArtifact,
   routeBriefSummary,
   routeCatalog,
+  routeCatalogTripType,
   routeCatalogType,
   routeMonthTrend,
   routeReadiness,
@@ -12,6 +13,9 @@ import {
 import { sqliteBool } from "./shared.js";
 
 type RouteCatalogTypeIndexRow = Awaited<ReturnType<typeof selectRouteCatalogTypeIndexRows>>[number];
+type RouteCatalogTripTypeIndexRow = Awaited<
+  ReturnType<typeof selectRouteCatalogTripTypeIndexRows>
+>[number];
 type RouteReadinessIndexRow = Awaited<ReturnType<typeof selectRouteReadinessIndexRows>>[number];
 type RouteBriefSummaryIndexRow = Awaited<
   ReturnType<typeof selectRouteBriefSummaryIndexRows>
@@ -39,6 +43,7 @@ export type StudioRouteIndexSourceRow = {
   routeLongName: string | null;
   routeTypes: string[];
   shapeCount: number;
+  tripTypes: string[];
   stopCount: number;
   timepointStopCount: number;
   readiness: {
@@ -121,6 +126,16 @@ function groupRouteTypes(rows: readonly RouteCatalogTypeIndexRow[]): Map<string,
   for (const row of rows) {
     const group = output.get(row.route_id) ?? [];
     group.push(row.route_type);
+    output.set(row.route_id, group);
+  }
+  return output;
+}
+
+function groupTripTypes(rows: readonly RouteCatalogTripTypeIndexRow[]): Map<string, string[]> {
+  const output = new Map<string, string[]>();
+  for (const row of rows) {
+    const group = output.get(row.route_id) ?? [];
+    group.push(row.trip_type);
     output.set(row.route_id, group);
   }
   return output;
@@ -367,6 +382,17 @@ async function selectRouteCatalogTypeIndexRows(db: D1ServingDb) {
     .orderBy(asc(routeCatalogType.routeId), asc(routeCatalogType.typeRank));
 }
 
+async function selectRouteCatalogTripTypeIndexRows(db: D1ServingDb) {
+  return db
+    .select({
+      route_id: routeCatalogTripType.routeId,
+      trip_type_rank: routeCatalogTripType.tripTypeRank,
+      trip_type: routeCatalogTripType.tripType,
+    })
+    .from(routeCatalogTripType)
+    .orderBy(asc(routeCatalogTripType.routeId), asc(routeCatalogTripType.tripTypeRank));
+}
+
 async function selectRouteReadinessIndexRows(db: D1ServingDb, month: string) {
   return db
     .select({
@@ -465,6 +491,7 @@ export async function listStudioRouteIndexSourceRows(
   const [
     catalogRows,
     typeRows,
+    tripTypeRows,
     readinessRows,
     summaryRows,
     artifactRows,
@@ -473,6 +500,7 @@ export async function listStudioRouteIndexSourceRows(
   ] = await Promise.all([
     selectRouteCatalogIndexRows(db),
     selectRouteCatalogTypeIndexRows(db),
+    selectRouteCatalogTripTypeIndexRows(db),
     selectRouteReadinessIndexRows(db, month),
     selectRouteBriefSummaryIndexRows(db, month),
     selectRouteArtifactIndexRows(db, month),
@@ -481,6 +509,7 @@ export async function listStudioRouteIndexSourceRows(
   ]);
 
   const routeTypes = groupRouteTypes(typeRows);
+  const tripTypes = groupTripTypes(tripTypeRows);
   const readiness = new Map(
     readinessRows.map((row) => {
       return [row.route_id, toReadiness(row)] as const;
@@ -505,6 +534,7 @@ export async function listStudioRouteIndexSourceRows(
       shapeCount: row.shape_count,
       stopCount: row.stop_count,
       timepointStopCount: row.timepoint_stop_count,
+      tripTypes: tripTypes.get(row.route_id) ?? [],
       readiness: readiness.get(row.route_id) ?? null,
       summary: summaries.get(row.route_id) ?? null,
       artifactNames: artifactNames.get(row.route_id) ?? [],

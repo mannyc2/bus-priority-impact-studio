@@ -57,6 +57,7 @@ function countQuery(database: Database, query: string): number {
 const COUNTED_TABLES = [
   "route_catalog",
   "route_catalog_type",
+  "route_catalog_trip_type",
   "route_direction",
   "route_month_coverage",
   "route_readiness",
@@ -116,6 +117,7 @@ const TABLE_COUNT_EXPECTATIONS: ReadonlyArray<{
 }> = [
   { table: "route_catalog", pick: (r) => r.routeCatalogRowCount },
   { table: "route_catalog_type", pick: (r) => r.routeCatalogTypeRowCount },
+  { table: "route_catalog_trip_type", pick: (r) => r.routeCatalogTripTypeRowCount },
   { table: "route_direction", pick: (r) => r.routeDirectionRowCount },
   { table: "route_month_coverage", pick: (r) => r.routeCoverageRowCount },
   { table: "route_readiness", pick: (r) => r.routeReadinessRowCount },

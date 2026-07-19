@@ -15,9 +15,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:5d51147fc80a669bfb81da45",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -96,9 +94,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 1,
@@ -112,22 +108,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -156,10 +138,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:287b7cae95debf96f5ee0ca8",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -226,9 +205,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.75,
@@ -242,22 +219,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08"
-        ],
-        "postMonths": [
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
+        "postMonths": ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -286,10 +249,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:5abd35486a8f37bf2873fd9d",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -356,10 +316,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.7273,
@@ -373,22 +330,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -417,10 +360,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:17599e5e02011a49dbf3a39e",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -499,10 +439,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4286,
@@ -516,22 +453,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -560,9 +483,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:b18b9a4512c3b2860dd8aa29",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -641,9 +562,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 0.75,
@@ -657,22 +576,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -701,10 +606,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:370d345af8a0924d2963de06",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -771,10 +673,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5385,
@@ -788,22 +687,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -832,10 +717,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:df4a071a40b50c02d19c06d9",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -914,10 +796,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4762,
@@ -931,22 +810,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -975,10 +840,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:894538e84dd38a83e6811bcf",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -1045,9 +907,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8889,
@@ -1061,22 +921,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08"
-        ],
-        "postMonths": [
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
+        "postMonths": ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1105,10 +951,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:9b893749748fe73ac7f37c02",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -1175,10 +1018,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4444,
@@ -1192,22 +1032,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1236,9 +1062,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:8ceb4179de2ab8a2852347df",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -1305,9 +1129,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 8,
         "coverage": {
           "minCoverageShare": 1,
@@ -1321,22 +1143,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1365,10 +1173,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:d30e60bf0a04874c1ae7d40b",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -1435,9 +1240,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 1,
@@ -1451,22 +1254,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1495,10 +1284,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:1837c6c5074899a254d2f432",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -1577,10 +1363,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.381,
@@ -1594,22 +1377,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1638,10 +1407,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:de25867eefd234ee717d5477",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -1708,10 +1474,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4444,
@@ -1725,22 +1488,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1769,10 +1518,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:9cc235d476d6671abef6061f",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -1875,10 +1621,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3478,
@@ -1892,22 +1635,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1936,10 +1665,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:8fe6a36ee85ea925934f0090",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -2030,10 +1756,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.2903,
@@ -2047,22 +1770,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2091,10 +1800,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:5ac0e55f39f63140204859b1",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -2161,9 +1867,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 0.75,
@@ -2177,22 +1881,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2221,10 +1911,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:75842379c2c3565e620378c4",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -2315,10 +2002,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3704,
@@ -2332,22 +2016,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2376,10 +2046,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:4bbc8d192f8954066abd895d",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -2458,10 +2125,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4138,
@@ -2475,22 +2139,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2519,10 +2169,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:861f40e9854e6efb535671d2",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -2589,10 +2236,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3846,
@@ -2606,22 +2250,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2650,10 +2280,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:a622f17cbc3aa72283c3fb36",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -2732,10 +2359,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5455,
@@ -2749,22 +2373,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2793,10 +2403,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:6ae7cf4ad6af0772d6c7f258",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -2875,10 +2482,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4,
@@ -2892,22 +2496,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2936,10 +2526,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:0362fbd73e6243c009bd0cde",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -3006,10 +2593,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4444,
@@ -3023,22 +2607,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3067,9 +2637,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:6db5b36a1964f9acbc9a8c28",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -3136,10 +2704,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.375,
@@ -3153,22 +2718,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3197,10 +2748,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:347b3c72a4ae99cf931fff3f",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -3267,10 +2815,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5263,
@@ -3284,22 +2829,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3328,10 +2859,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:6e77fd301c480a7727683f26",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -3410,10 +2938,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3704,
@@ -3427,22 +2952,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3471,9 +2982,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:9256051973f8f7ff0847b5c1",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -3540,9 +3049,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 1,
@@ -3556,22 +3063,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3600,10 +3093,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:934c000394ad0200c1c110a0",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -3670,9 +3160,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -3686,22 +3174,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08"
-        ],
-        "postMonths": [
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
+        "postMonths": ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3730,10 +3204,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:136f3d32a53a62f096f8f44e",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -3824,9 +3295,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 0.8889,
@@ -3840,22 +3309,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3884,10 +3339,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:4dc018a72fe45633f36e2d50",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -4002,9 +3454,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 0.9231,
@@ -4018,22 +3468,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4062,10 +3498,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:da2c48455650dbf4288cbd62",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -4144,10 +3577,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.36,
@@ -4161,22 +3591,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4205,10 +3621,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:a00bff657f5fddaaa323b4c7",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -4275,10 +3688,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5833,
@@ -4292,22 +3702,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4336,10 +3732,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:5a5d5bfd5584cafa14b96d50",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -4406,10 +3799,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4706,
@@ -4423,22 +3813,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4467,10 +3843,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:e3e892497a55c312fb79e181",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -4585,10 +3958,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4348,
@@ -4602,22 +3972,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4646,10 +4002,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:a31494bfefdd2128f130b872",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -4716,9 +4069,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 1,
@@ -4732,22 +4083,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4776,10 +4113,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:70956fca3524ebf56de16ef4",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "fare_collection",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["fare_collection", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -4846,10 +4180,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3846,
@@ -4863,22 +4194,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4907,10 +4224,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:012a7db8f83a7369d830cfbe",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -5001,10 +4315,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.34,
@@ -5018,22 +4329,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5062,10 +4359,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:348b29a03ef80cb34b909b32",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -5156,10 +4450,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3793,
@@ -5173,22 +4464,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5217,10 +4494,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:c322da8e3fb82d49a0721687",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -5299,10 +4573,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5294,
@@ -5316,22 +4587,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5360,9 +4617,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:88e85e2d2475090abec9877a",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -5429,10 +4684,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5116,
@@ -5446,22 +4698,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5490,10 +4728,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:3dbf308d5babdf713808de0d",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -5560,10 +4795,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.1622,
@@ -5577,22 +4809,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5621,10 +4839,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:18aebfff2a26e1be82b30d92",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -5691,10 +4906,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3333,
@@ -5708,22 +4920,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5752,10 +4950,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:ddb7be06c9eb2b6292ef86c9",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -5822,10 +5017,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4706,
@@ -5839,22 +5031,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5883,10 +5061,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:b18e417a22f1b7b7ff70b74b",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -5965,10 +5140,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.2927,
@@ -5982,22 +5154,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6026,10 +5184,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:a04ec993d0faee78af481311",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -6096,9 +5251,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 1,
@@ -6112,22 +5265,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6156,9 +5295,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:c5e9aba290ca2be1be6fb38e",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -6237,10 +5374,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4545,
@@ -6254,22 +5388,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6298,10 +5418,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:b1dc7a8d3d036d4af5dcff24",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -6368,10 +5485,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.375,
@@ -6385,22 +5499,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6429,10 +5529,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:267aaa5473dee60fb3a4141d",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -6535,10 +5632,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3333,
@@ -6552,22 +5646,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6596,10 +5676,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:86a96bd18ca50921cbfb07bf",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -6666,10 +5743,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.35,
@@ -6683,22 +5757,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6727,10 +5787,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:1837c3123f0d9dec2eb20266",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -6809,10 +5866,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4333,
@@ -6826,22 +5880,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6870,10 +5910,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:59ecd060600071fd96d07ab4",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -6952,10 +5989,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4286,
@@ -6969,22 +6003,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7013,10 +6033,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:dfa34727804a2ac5dd5bd0a7",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -7107,10 +6124,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4138,
@@ -7124,22 +6138,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7168,10 +6168,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:520813b94f4e503a2c4896b1",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -7238,10 +6235,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3529,
@@ -7255,22 +6249,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7299,10 +6279,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:2e94830e7941ea7613836b0e",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -7369,9 +6346,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.75,
@@ -7385,22 +6360,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7429,10 +6390,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:55158c93238b243e5707e43a",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -7499,10 +6457,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5,
@@ -7516,22 +6471,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7560,10 +6501,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:28e219b4524b102cdd9dd1d0",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -7642,10 +6580,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3333,
@@ -7659,22 +6594,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7703,10 +6624,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:1c5986351caf8047a1649e37",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -7773,10 +6691,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4375,
@@ -7790,22 +6705,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7834,10 +6735,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:347bc4f1a346152697520648",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -7904,9 +6802,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -7920,22 +6816,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7964,10 +6846,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:54b94cada9a20943c7cb212c",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -8046,10 +6925,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5,
@@ -8063,22 +6939,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -8107,10 +6969,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:2748598653b74d33fcdce3d1",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -8177,9 +7036,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 1,
@@ -8193,22 +7050,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -8237,10 +7080,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:9170c983a3c76974673a0ce6",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -8307,10 +7147,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6667,
@@ -8324,22 +7161,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08"
-        ],
-        "postMonths": [
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
+        "postMonths": ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -8368,10 +7191,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:c52f5ae327c2f0f315749440",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -8438,10 +7258,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3333,
@@ -8455,22 +7272,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -8499,10 +7302,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:f4781bf6f18f46b8c24e8578",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -8569,10 +7369,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.44,
@@ -8586,22 +7383,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -8630,10 +7413,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:29fc4436c22b58d52f231964",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -8700,10 +7480,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3,
@@ -8717,22 +7494,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -8761,10 +7524,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:bf2c33f3d46b5740aa43e3b5",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -8831,10 +7591,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4706,
@@ -8848,22 +7605,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -8892,10 +7635,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:4a1a43f2512f477e5c68f917",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -8962,9 +7702,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8333,
@@ -8978,22 +7716,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -9022,10 +7746,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:f653aafce703bf517a5eea5e",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -9092,10 +7813,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4286,
@@ -9109,22 +7827,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -9153,9 +7857,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:18bf68576411afed0305dfed",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -9222,10 +7924,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5,
@@ -9239,22 +7938,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -9283,10 +7968,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:4750a23a8904d74dfd492589",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -9353,10 +8035,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5,
@@ -9370,22 +8049,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -9414,10 +8079,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:c88a94143d770aa926bd2457",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -9496,10 +8158,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.2963,
@@ -9513,22 +8172,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -9557,10 +8202,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:bca0b565b6971c90a6af9e55",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -9651,9 +8293,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 1,
@@ -9667,22 +8307,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -9711,11 +8337,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:6a6f8f8e85979d872ba2bdd7",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "route_redesign",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "route_redesign", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -9794,10 +8416,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3333,
@@ -9811,22 +8430,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -9855,10 +8460,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:ba2df83e40caa33e0414df00",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -9937,10 +8539,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4,
@@ -9954,22 +8553,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -9998,10 +8583,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:2337005e58ee4742dd8e3ce7",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -10068,9 +8650,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.9091,
@@ -10084,22 +8664,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -10128,10 +8694,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:11142a33a2e70c97f1f4bc37",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -10210,10 +8773,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4063,
@@ -10227,22 +8787,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -10271,9 +8817,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:b882f54df6c24c9a1b7b89f6",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -10340,10 +8884,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4545,
@@ -10357,22 +8898,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -10401,10 +8928,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:8ff6aee08d593dad55a5a127",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -10471,10 +8995,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6364,
@@ -10488,22 +9009,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -10532,10 +9039,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:14a30b1a82ea107ffc9a3dd4",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -10614,10 +9118,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4545,
@@ -10631,22 +9132,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -10675,10 +9162,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:4825e837e6c5e411396f513d",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -10757,10 +9241,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4444,
@@ -10774,22 +9255,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -10818,10 +9285,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:ddf934c07f27311eaf4ca32c",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -10912,10 +9376,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.26,
@@ -10929,22 +9390,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -10973,9 +9420,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:542bec22dbd7cc59c2134b2c",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -11042,10 +9487,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.2222,
@@ -11059,22 +9501,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -11103,10 +9531,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:8e0377c6acfe62e1a61d910b",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -11221,9 +9646,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 10,
         "coverage": {
           "minCoverageShare": 1,
@@ -11237,22 +9660,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -11281,10 +9690,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:8bda306337ad21b2c982bc83",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -11351,10 +9757,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6316,
@@ -11368,22 +9771,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -11412,10 +9801,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:e48912d67516283b48a05867",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -11482,9 +9868,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.7778,
@@ -11498,22 +9882,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07"
-        ],
-        "postMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07"],
+        "postMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -11542,10 +9912,7 @@
       "datePrecision": "day",
       "occurrenceId": "occurrence:7a4cb90846e515964b1d7198",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "conflictState": "none",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "provenance": [
@@ -11624,10 +9991,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.375,
@@ -11641,22 +10005,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04",
-          "2025-05"
-        ],
-        "postMonths": [
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12"
-        ],
+        "preMonths": ["2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05"],
+        "postMonths": ["2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true

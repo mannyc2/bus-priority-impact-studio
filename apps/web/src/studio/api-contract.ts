@@ -8,13 +8,6 @@ export type {
 } from "@bp/domain/studio";
 export type { StudioIntervention } from "@bp/domain/studio/interventions";
 export type {
-  RouteStudiesArtifact,
-  StudyArtifact,
-  StudyIndexArtifact,
-  StudyIndexRow,
-  StudySensitivityEstimate,
-} from "@bp/domain/studio/study";
-export type {
   StudioInterventionsEvidenceBundle,
   StudioInterventionsEvidenceCitation,
   StudioInterventionsEvidenceCoverage,
@@ -54,7 +47,15 @@ export type {
 } from "@bp/domain/studio/routes";
 export type { ComparableRoute, StudioQuality } from "@bp/domain/studio/shared";
 export type {
-  StudioRouteIndex2Response,
-  StudioRouteIndex2Row,
+  StudioRouteIndex3Response,
+  StudioRouteIndex3Row,
   StudioSnapshot2ProjectionRef,
 } from "@bp/domain/studio/snapshots";
+export { StudioRouteIndex3ResponseSchema } from "@bp/domain/studio/snapshots";
+export type {
+  RouteStudiesArtifact,
+  StudyArtifact,
+  StudyIndexArtifact,
+  StudyIndexRow,
+  StudySensitivityEstimate,
+} from "@bp/domain/studio/study";

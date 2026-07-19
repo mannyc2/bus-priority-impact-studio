@@ -85,9 +85,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.7692,
@@ -101,22 +99,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08"
-        ],
-        "postMonths": [
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
+        "postMonths": ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -173,9 +157,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8,
@@ -189,20 +171,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10"
-        ],
-        "postMonths": [
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10"],
+        "postMonths": ["2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 4,
         "calendarMinimumFourPerSide": true
@@ -259,10 +229,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4,
@@ -276,22 +243,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -348,9 +301,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -364,22 +315,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -436,9 +373,7 @@
       ],
       "spine": {
         "readiness": "series_ready_with_gaps",
-        "reasons": [
-          "partial_months_within_gap_tolerance"
-        ],
+        "reasons": ["partial_months_within_gap_tolerance"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8947,
@@ -452,22 +387,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -524,10 +445,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6333,
@@ -541,22 +459,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -613,10 +517,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3846,
@@ -631,9 +532,7 @@
       "outcomeWindow": {
         "analysisMonth": "2026-03",
         "preMonths": [],
-        "postMonths": [
-          "2023-04"
-        ],
+        "postMonths": ["2023-04"],
         "preMonthCount": 0,
         "postMonthCount": 1,
         "calendarMinimumFourPerSide": false
@@ -690,10 +589,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4706,
@@ -707,19 +603,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-04",
-          "2023-05",
-          "2023-06"
-        ],
-        "postMonths": [
-          "2023-08",
-          "2023-09",
-          "2023-10",
-          "2023-11",
-          "2023-12",
-          "2024-01"
-        ],
+        "preMonths": ["2023-04", "2023-05", "2023-06"],
+        "postMonths": ["2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01"],
         "preMonthCount": 3,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": false
@@ -776,10 +661,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6316,
@@ -793,22 +675,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -919,10 +787,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4167,
@@ -936,22 +801,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04"
-        ],
-        "postMonths": [
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11"
-        ],
+        "preMonths": ["2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04"],
+        "postMonths": ["2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1008,10 +859,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6667,
@@ -1025,22 +873,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1097,9 +931,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -1113,22 +945,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1185,9 +1003,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8333,
@@ -1202,10 +1018,7 @@
       "outcomeWindow": {
         "analysisMonth": "2026-03",
         "preMonths": [],
-        "postMonths": [
-          "2023-04",
-          "2023-05"
-        ],
+        "postMonths": ["2023-04", "2023-05"],
         "preMonthCount": 0,
         "postMonthCount": 2,
         "calendarMinimumFourPerSide": false
@@ -1262,10 +1075,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3333,
@@ -1279,22 +1089,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1351,10 +1147,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4706,
@@ -1426,10 +1219,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5556,
@@ -1443,14 +1233,7 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "postMonths": [],
         "preMonthCount": 6,
         "postMonthCount": 0,
@@ -1508,10 +1291,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6667,
@@ -1525,20 +1305,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10"
-        ],
-        "postMonths": [
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10"],
+        "postMonths": ["2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 4,
         "calendarMinimumFourPerSide": true
@@ -1595,9 +1363,7 @@
       ],
       "spine": {
         "readiness": "series_ready_with_gaps",
-        "reasons": [
-          "partial_months_within_gap_tolerance"
-        ],
+        "reasons": ["partial_months_within_gap_tolerance"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.9091,
@@ -1612,10 +1378,7 @@
       "outcomeWindow": {
         "analysisMonth": "2026-03",
         "preMonths": [],
-        "postMonths": [
-          "2023-04",
-          "2023-05"
-        ],
+        "postMonths": ["2023-04", "2023-05"],
         "preMonthCount": 0,
         "postMonthCount": 2,
         "calendarMinimumFourPerSide": false
@@ -1672,9 +1435,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -1688,17 +1449,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-04"
-        ],
-        "postMonths": [
-          "2023-06",
-          "2023-07",
-          "2023-08",
-          "2023-09",
-          "2023-10",
-          "2023-11"
-        ],
+        "preMonths": ["2023-04"],
+        "postMonths": ["2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11"],
         "preMonthCount": 1,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": false
@@ -1755,10 +1507,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6,
@@ -1772,22 +1521,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -1844,10 +1579,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6667,
@@ -1861,14 +1593,7 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "postMonths": [],
         "preMonthCount": 6,
         "postMonthCount": 0,
@@ -1974,9 +1699,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -1990,19 +1713,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11"
-        ],
-        "postMonths": [
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11"],
+        "postMonths": ["2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 3,
         "calendarMinimumFourPerSide": false
@@ -2059,10 +1771,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4706,
@@ -2076,22 +1785,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2148,9 +1843,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -2164,22 +1857,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2236,9 +1915,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -2252,21 +1929,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09"
-        ],
-        "postMonths": [
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09"],
+        "postMonths": ["2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 5,
         "calendarMinimumFourPerSide": true
@@ -2323,10 +1987,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6,
@@ -2340,22 +2001,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-05",
-          "2023-06",
-          "2023-07",
-          "2023-08",
-          "2023-09",
-          "2023-10"
-        ],
-        "postMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
+        "preMonths": ["2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10"],
+        "postMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2412,10 +2059,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5116,
@@ -2429,22 +2073,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2501,10 +2131,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3333,
@@ -2519,9 +2146,7 @@
       "outcomeWindow": {
         "analysisMonth": "2026-03",
         "preMonths": [],
-        "postMonths": [
-          "2023-04"
-        ],
+        "postMonths": ["2023-04"],
         "preMonthCount": 0,
         "postMonthCount": 1,
         "calendarMinimumFourPerSide": false
@@ -2578,10 +2203,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6154,
@@ -2595,22 +2217,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2667,10 +2275,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4706,
@@ -2684,22 +2289,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2803,10 +2394,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6667,
@@ -2820,22 +2408,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08"
-        ],
-        "postMonths": [
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
+        "postMonths": ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -2892,9 +2466,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -2908,22 +2480,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3046,9 +2604,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8333,
@@ -3062,22 +2618,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04"
-        ],
-        "postMonths": [
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11"
-        ],
+        "preMonths": ["2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04"],
+        "postMonths": ["2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3134,10 +2676,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4444,
@@ -3151,22 +2690,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3223,9 +2748,7 @@
       ],
       "spine": {
         "readiness": "series_ready_with_gaps",
-        "reasons": [
-          "partial_months_within_gap_tolerance"
-        ],
+        "reasons": ["partial_months_within_gap_tolerance"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8667,
@@ -3239,22 +2762,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3353,10 +2862,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.7273,
@@ -3370,22 +2876,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3442,10 +2934,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5,
@@ -3459,22 +2948,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3531,10 +3006,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6471,
@@ -3548,20 +3020,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10"
-        ],
-        "postMonths": [
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10"],
+        "postMonths": ["2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 4,
         "calendarMinimumFourPerSide": true
@@ -3618,10 +3078,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5,
@@ -3635,22 +3092,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -3707,10 +3150,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.35,
@@ -3724,17 +3164,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01"
-        ],
-        "postMonths": [
-          "2026-03"
-        ],
+        "preMonths": ["2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01"],
+        "postMonths": ["2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 1,
         "calendarMinimumFourPerSide": false
@@ -3839,10 +3270,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6667,
@@ -3856,19 +3284,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11"
-        ],
-        "postMonths": [
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11"],
+        "postMonths": ["2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 3,
         "calendarMinimumFourPerSide": false
@@ -3925,9 +3342,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8571,
@@ -3941,21 +3356,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09"
-        ],
-        "postMonths": [
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09"],
+        "postMonths": ["2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 5,
         "calendarMinimumFourPerSide": true
@@ -4059,9 +3461,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.875,
@@ -4075,22 +3475,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08"
-        ],
-        "postMonths": [
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
+        "postMonths": ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4147,9 +3533,7 @@
       ],
       "spine": {
         "readiness": "series_ready_with_gaps",
-        "reasons": [
-          "partial_months_within_gap_tolerance"
-        ],
+        "reasons": ["partial_months_within_gap_tolerance"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8333,
@@ -4275,10 +3659,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5,
@@ -4292,22 +3673,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04"
-        ],
-        "postMonths": [
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11"
-        ],
+        "preMonths": ["2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04"],
+        "postMonths": ["2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4364,9 +3731,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -4438,10 +3803,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.7273,
@@ -4455,18 +3817,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-04",
-          "2023-05"
-        ],
-        "postMonths": [
-          "2023-07",
-          "2023-08",
-          "2023-09",
-          "2023-10",
-          "2023-11",
-          "2023-12"
-        ],
+        "preMonths": ["2023-04", "2023-05"],
+        "postMonths": ["2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12"],
         "preMonthCount": 2,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": false
@@ -4523,9 +3875,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8571,
@@ -4539,21 +3889,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09"
-        ],
-        "postMonths": [
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09"],
+        "postMonths": ["2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 5,
         "calendarMinimumFourPerSide": true
@@ -4610,9 +3947,7 @@
       ],
       "spine": {
         "readiness": "series_ready_with_gaps",
-        "reasons": [
-          "partial_months_within_gap_tolerance"
-        ],
+        "reasons": ["partial_months_within_gap_tolerance"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.9091,
@@ -4626,22 +3961,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4698,9 +4019,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.75,
@@ -4714,21 +4033,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-04",
-          "2023-05",
-          "2023-06",
-          "2023-07",
-          "2023-08"
-        ],
-        "postMonths": [
-          "2023-10",
-          "2023-11",
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03"
-        ],
+        "preMonths": ["2023-04", "2023-05", "2023-06", "2023-07", "2023-08"],
+        "postMonths": ["2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03"],
         "preMonthCount": 5,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4785,9 +4091,7 @@
       ],
       "spine": {
         "readiness": "series_ready_with_gaps",
-        "reasons": [
-          "partial_months_within_gap_tolerance"
-        ],
+        "reasons": ["partial_months_within_gap_tolerance"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8333,
@@ -4801,22 +4105,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4873,9 +4163,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.7778,
@@ -4889,22 +4177,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -4961,9 +4235,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -4977,22 +4249,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5049,10 +4307,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4615,
@@ -5066,22 +4321,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5138,10 +4379,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5,
@@ -5156,11 +4394,7 @@
       "outcomeWindow": {
         "analysisMonth": "2026-03",
         "preMonths": [],
-        "postMonths": [
-          "2023-04",
-          "2023-05",
-          "2023-06"
-        ],
+        "postMonths": ["2023-04", "2023-05", "2023-06"],
         "preMonthCount": 0,
         "postMonthCount": 3,
         "calendarMinimumFourPerSide": false
@@ -5217,10 +4451,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.2963,
@@ -5234,22 +4465,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5306,10 +4523,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.2963,
@@ -5324,10 +4538,7 @@
       "outcomeWindow": {
         "analysisMonth": "2026-03",
         "preMonths": [],
-        "postMonths": [
-          "2023-04",
-          "2023-05"
-        ],
+        "postMonths": ["2023-04", "2023-05"],
         "preMonthCount": 0,
         "postMonthCount": 2,
         "calendarMinimumFourPerSide": false
@@ -5384,10 +4595,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6154,
@@ -5459,10 +4667,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.7,
@@ -5476,22 +4681,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5548,10 +4739,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.625,
@@ -5565,14 +4753,7 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "postMonths": [],
         "preMonthCount": 6,
         "postMonthCount": 0,
@@ -5630,9 +4811,7 @@
       ],
       "spine": {
         "readiness": "series_ready_with_gaps",
-        "reasons": [
-          "partial_months_within_gap_tolerance"
-        ],
+        "reasons": ["partial_months_within_gap_tolerance"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.9231,
@@ -5646,20 +4825,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10"
-        ],
-        "postMonths": [
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10"],
+        "postMonths": ["2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 4,
         "calendarMinimumFourPerSide": true
@@ -5716,9 +4883,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -5732,22 +4897,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -5870,10 +5021,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4211,
@@ -5887,22 +5035,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04"
-        ],
-        "postMonths": [
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11"
-        ],
+        "preMonths": ["2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04"],
+        "postMonths": ["2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6025,9 +5159,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.7692,
@@ -6041,22 +5173,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03",
-          "2025-04"
-        ],
-        "postMonths": [
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11"
-        ],
+        "preMonths": ["2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04"],
+        "postMonths": ["2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6113,10 +5231,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6316,
@@ -6131,11 +5246,7 @@
       "outcomeWindow": {
         "analysisMonth": "2026-03",
         "preMonths": [],
-        "postMonths": [
-          "2023-04",
-          "2023-05",
-          "2023-06"
-        ],
+        "postMonths": ["2023-04", "2023-05", "2023-06"],
         "preMonthCount": 0,
         "postMonthCount": 3,
         "calendarMinimumFourPerSide": false
@@ -6192,9 +5303,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -6209,11 +5318,7 @@
       "outcomeWindow": {
         "analysisMonth": "2026-03",
         "preMonths": [],
-        "postMonths": [
-          "2023-04",
-          "2023-05",
-          "2023-06"
-        ],
+        "postMonths": ["2023-04", "2023-05", "2023-06"],
         "preMonthCount": 0,
         "postMonthCount": 3,
         "calendarMinimumFourPerSide": false
@@ -6270,10 +5375,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5714,
@@ -6287,22 +5389,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6359,10 +5447,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.6667,
@@ -6377,10 +5462,7 @@
       "outcomeWindow": {
         "analysisMonth": "2026-03",
         "preMonths": [],
-        "postMonths": [
-          "2023-04",
-          "2023-05"
-        ],
+        "postMonths": ["2023-04", "2023-05"],
         "preMonthCount": 0,
         "postMonthCount": 2,
         "calendarMinimumFourPerSide": false
@@ -6485,9 +5567,7 @@
       ],
       "spine": {
         "readiness": "series_ready_with_gaps",
-        "reasons": [
-          "partial_months_within_gap_tolerance"
-        ],
+        "reasons": ["partial_months_within_gap_tolerance"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.9412,
@@ -6501,19 +5581,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11"
-        ],
-        "postMonths": [
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11"],
+        "postMonths": ["2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 3,
         "calendarMinimumFourPerSide": false
@@ -6570,9 +5639,7 @@
       ],
       "spine": {
         "readiness": "series_ready",
-        "reasons": [
-          "full_spine_coverage_all_months"
-        ],
+        "reasons": ["full_spine_coverage_all_months"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 1,
@@ -6644,10 +5711,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.5714,
@@ -6719,10 +5783,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.34,
@@ -6736,17 +5797,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-08",
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01"
-        ],
-        "postMonths": [
-          "2026-03"
-        ],
+        "preMonths": ["2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01"],
+        "postMonths": ["2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 1,
         "calendarMinimumFourPerSide": false
@@ -6834,10 +5886,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4706,
@@ -6851,22 +5900,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-03",
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08"
-        ],
-        "postMonths": [
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08"],
+        "postMonths": ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -6918,9 +5953,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.7778,
@@ -6934,14 +5967,7 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-09",
-          "2025-10",
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02"
-        ],
+        "preMonths": ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02"],
         "postMonths": [],
         "preMonthCount": 6,
         "postMonthCount": 0,
@@ -6999,10 +6025,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.3846,
@@ -7016,22 +6039,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7088,9 +6097,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8462,
@@ -7104,22 +6111,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7176,9 +6169,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8696,
@@ -7192,21 +6183,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2025-04",
-          "2025-05",
-          "2025-06",
-          "2025-07",
-          "2025-08",
-          "2025-09"
-        ],
-        "postMonths": [
-          "2025-11",
-          "2025-12",
-          "2026-01",
-          "2026-02",
-          "2026-03"
-        ],
+        "preMonths": ["2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09"],
+        "postMonths": ["2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
         "preMonthCount": 6,
         "postMonthCount": 5,
         "calendarMinimumFourPerSide": true
@@ -7263,9 +6241,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.75,
@@ -7279,22 +6255,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2024-03",
-          "2024-04",
-          "2024-05",
-          "2024-06",
-          "2024-07",
-          "2024-08"
-        ],
-        "postMonths": [
-          "2024-10",
-          "2024-11",
-          "2024-12",
-          "2025-01",
-          "2025-02",
-          "2025-03"
-        ],
+        "preMonths": ["2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08"],
+        "postMonths": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true
@@ -7351,9 +6313,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.8333,
@@ -7367,22 +6327,8 @@
       },
       "outcomeWindow": {
         "analysisMonth": "2026-03",
-        "preMonths": [
-          "2023-12",
-          "2024-01",
-          "2024-02",
-          "2024-03",
-          "2024-04",
-          "2024-05"
-        ],
-        "postMonths": [
-          "2024-07",
-          "2024-08",
-          "2024-09",
-          "2024-10",
-          "2024-11",
-          "2024-12"
-        ],
+        "preMonths": ["2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05"],
+        "postMonths": ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12"],
         "preMonthCount": 6,
         "postMonthCount": 6,
         "calendarMinimumFourPerSide": true

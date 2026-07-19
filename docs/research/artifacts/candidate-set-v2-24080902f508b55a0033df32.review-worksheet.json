@@ -29,20 +29,14 @@
   "focus": {
     "occurrenceId": "occurrence:8c987704152b459014217d44",
     "routeId": "B67",
-    "candidateIds": [
-      "study-event-v2:d70a3ee36eb94ae88732065f"
-    ],
+    "candidateIds": ["study-event-v2:d70a3ee36eb94ae88732065f"],
     "status": "REVIEW_REQUIRED",
     "treatmentFamily": "bus_lane",
     "treatmentScopeKind": "atomic",
     "componentTreatmentFamilies": [],
     "confounderGroupId": null,
-    "gtfsRouteIds": [
-      "B67"
-    ],
-    "occurrenceReviewDecisionIds": [
-      "flatbush-phase1-center-running-bus-lanes-2025-09"
-    ],
+    "gtfsRouteIds": ["B67"],
+    "occurrenceReviewDecisionIds": ["flatbush-phase1-center-running-bus-lanes-2025-09"],
     "handoffChecks": {
       "candidatePresentExactlyOnce": true,
       "routeIdentityBound": true,
@@ -185,9 +179,7 @@
       "occurrenceId": "occurrence:5d51147fc80a669bfb81da45",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -277,10 +269,7 @@
       "occurrenceId": "occurrence:287b7cae95debf96f5ee0ca8",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -732,10 +721,7 @@
       "occurrenceId": "occurrence:5abd35486a8f37bf2873fd9d",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -888,9 +874,7 @@
           "sourceId": "201111_1st2nd_progress_report",
           "sourceEventId": "occurrence:b45f5df36b98c638d8052c7a",
           "releaseId": "v1-rc19",
-          "anchorIds": [
-            "m15-2010-10-10-off-board-fare"
-          ],
+          "anchorIds": ["m15-2010-10-10-off-board-fare"],
           "occurrenceId": "occurrence:b45f5df36b98c638d8052c7a",
           "occurrenceAliases": [],
           "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
@@ -1011,10 +995,7 @@
       "occurrenceId": "occurrence:17599e5e02011a49dbf3a39e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -1172,9 +1153,7 @@
       "occurrenceId": "occurrence:b18b9a4512c3b2860dd8aa29",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -1468,10 +1447,7 @@
       "occurrenceId": "occurrence:370d345af8a0924d2963de06",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -1821,10 +1797,7 @@
       "occurrenceId": "occurrence:df4a071a40b50c02d19c06d9",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -1982,10 +1955,7 @@
       "occurrenceId": "occurrence:894538e84dd38a83e6811bcf",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -2355,10 +2325,7 @@
       "occurrenceId": "occurrence:9b893749748fe73ac7f37c02",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -2538,9 +2505,7 @@
       "occurrenceId": "occurrence:8ceb4179de2ab8a2852347df",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -2754,10 +2719,7 @@
       "occurrenceId": "occurrence:d30e60bf0a04874c1ae7d40b",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -2869,10 +2831,7 @@
       "occurrenceId": "occurrence:1837c6c5074899a254d2f432",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -3064,10 +3023,7 @@
       "occurrenceId": "occurrence:de25867eefd234ee717d5477",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -3145,10 +3101,7 @@
       "occurrenceId": "occurrence:9cc235d476d6671abef6061f",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -3534,10 +3487,7 @@
       "occurrenceId": "occurrence:8fe6a36ee85ea925934f0090",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -3741,10 +3691,7 @@
       "occurrenceId": "occurrence:5ac0e55f39f63140204859b1",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -4196,10 +4143,7 @@
       "occurrenceId": "occurrence:75842379c2c3565e620378c4",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -4301,10 +4245,7 @@
       "occurrenceId": "occurrence:4bbc8d192f8954066abd895d",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -4598,10 +4539,7 @@
       "occurrenceId": "occurrence:861f40e9854e6efb535671d2",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -5427,10 +5365,7 @@
       "occurrenceId": "occurrence:a622f17cbc3aa72283c3fb36",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -5942,10 +5877,7 @@
       "occurrenceId": "occurrence:6ae7cf4ad6af0772d6c7f258",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -6069,10 +6001,7 @@
       "occurrenceId": "occurrence:0362fbd73e6243c009bd0cde",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -6150,9 +6079,7 @@
       "occurrenceId": "occurrence:6db5b36a1964f9acbc9a8c28",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -6604,10 +6531,7 @@
       "occurrenceId": "occurrence:347b3c72a4ae99cf931fff3f",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -6719,10 +6643,7 @@
       "occurrenceId": "occurrence:6e77fd301c480a7727683f26",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -7220,9 +7141,7 @@
       "occurrenceId": "occurrence:9256051973f8f7ff0847b5c1",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -7334,10 +7253,7 @@
       "occurrenceId": "occurrence:934c000394ad0200c1c110a0",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -7415,10 +7331,7 @@
       "occurrenceId": "occurrence:136f3d32a53a62f096f8f44e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -7554,10 +7467,7 @@
       "occurrenceId": "occurrence:4dc018a72fe45633f36e2d50",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -8204,10 +8114,7 @@
       "occurrenceId": "occurrence:da2c48455650dbf4288cbd62",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -8297,10 +8204,7 @@
       "occurrenceId": "occurrence:a00bff657f5fddaaa323b4c7",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -8548,10 +8452,7 @@
       "occurrenceId": "occurrence:5a5d5bfd5584cafa14b96d50",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -8663,10 +8564,7 @@
       "occurrenceId": "occurrence:e3e892497a55c312fb79e181",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -8894,10 +8792,7 @@
       "occurrenceId": "occurrence:a31494bfefdd2128f130b872",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -9289,10 +9184,7 @@
       "occurrenceId": "occurrence:70956fca3524ebf56de16ef4",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "fare_collection",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["fare_collection", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -9540,10 +9432,7 @@
       "occurrenceId": "occurrence:012a7db8f83a7369d830cfbe",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -9679,10 +9568,7 @@
       "occurrenceId": "occurrence:348b29a03ef80cb34b909b32",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -9886,10 +9772,7 @@
       "occurrenceId": "occurrence:c322da8e3fb82d49a0721687",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -10285,9 +10168,7 @@
       "occurrenceId": "occurrence:88e85e2d2475090abec9877a",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -10787,10 +10668,7 @@
       "occurrenceId": "occurrence:3dbf308d5babdf713808de0d",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -11207,10 +11085,7 @@
       "occurrenceId": "occurrence:18aebfff2a26e1be82b30d92",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -11356,10 +11231,7 @@
       "occurrenceId": "occurrence:ddb7be06c9eb2b6292ef86c9",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -11505,10 +11377,7 @@
       "occurrenceId": "occurrence:b18e417a22f1b7b7ff70b74b",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -11632,10 +11501,7 @@
       "occurrenceId": "occurrence:a04ec993d0faee78af481311",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -11747,9 +11613,7 @@
       "occurrenceId": "occurrence:c5e9aba290ca2be1be6fb38e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -12689,10 +12553,7 @@
       "occurrenceId": "occurrence:b1dc7a8d3d036d4af5dcff24",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -13042,10 +12903,7 @@
       "occurrenceId": "occurrence:267aaa5473dee60fb3a4141d",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -13329,10 +13187,7 @@
       "occurrenceId": "occurrence:86a96bd18ca50921cbfb07bf",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -13750,10 +13605,7 @@
       "occurrenceId": "occurrence:1837c3123f0d9dec2eb20266",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -14081,10 +13933,7 @@
       "occurrenceId": "occurrence:59ecd060600071fd96d07ab4",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -14174,10 +14023,7 @@
       "occurrenceId": "occurrence:dfa34727804a2ac5dd5bd0a7",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -14313,10 +14159,7 @@
       "occurrenceId": "occurrence:520813b94f4e503a2c4896b1",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -14598,10 +14441,7 @@
       "occurrenceId": "occurrence:2e94830e7941ea7613836b0e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -14781,10 +14621,7 @@
       "occurrenceId": "occurrence:55158c93238b243e5707e43a",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -14896,10 +14733,7 @@
       "occurrenceId": "occurrence:28e219b4524b102cdd9dd1d0",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -15295,10 +15129,7 @@
       "occurrenceId": "occurrence:1c5986351caf8047a1649e37",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -15614,10 +15445,7 @@
       "occurrenceId": "occurrence:347bc4f1a346152697520648",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -15695,10 +15523,7 @@
       "occurrenceId": "occurrence:54b94cada9a20943c7cb212c",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -16060,10 +15885,7 @@
       "occurrenceId": "occurrence:2748598653b74d33fcdce3d1",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -16277,10 +16099,7 @@
       "occurrenceId": "occurrence:9170c983a3c76974673a0ce6",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -16426,10 +16245,7 @@
       "occurrenceId": "occurrence:c52f5ae327c2f0f315749440",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -16979,10 +16795,7 @@
       "occurrenceId": "occurrence:f4781bf6f18f46b8c24e8578",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -17162,10 +16975,7 @@
       "occurrenceId": "occurrence:29fc4436c22b58d52f231964",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -17345,10 +17155,7 @@
       "occurrenceId": "occurrence:bf2c33f3d46b5740aa43e3b5",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -17528,10 +17335,7 @@
       "occurrenceId": "occurrence:4a1a43f2512f477e5c68f917",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -17643,10 +17447,7 @@
       "occurrenceId": "occurrence:f653aafce703bf517a5eea5e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -17826,9 +17627,7 @@
       "occurrenceId": "occurrence:18bf68576411afed0305dfed",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -18416,10 +18215,7 @@
       "occurrenceId": "occurrence:4750a23a8904d74dfd492589",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -18531,10 +18327,7 @@
       "occurrenceId": "occurrence:c88a94143d770aa926bd2457",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -18692,10 +18485,7 @@
       "occurrenceId": "occurrence:bca0b565b6971c90a6af9e55",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -18899,11 +18689,7 @@
       "occurrenceId": "occurrence:6a6f8f8e85979d872ba2bdd7",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "route_redesign",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "route_redesign", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -19313,10 +19099,7 @@
       "occurrenceId": "occurrence:ba2df83e40caa33e0414df00",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -19780,10 +19563,7 @@
       "occurrenceId": "occurrence:2337005e58ee4742dd8e3ce7",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -19861,10 +19641,7 @@
       "occurrenceId": "occurrence:11142a33a2e70c97f1f4bc37",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -20056,9 +19833,7 @@
       "occurrenceId": "occurrence:b882f54df6c24c9a1b7b89f6",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -20170,10 +19945,7 @@
       "occurrenceId": "occurrence:8ff6aee08d593dad55a5a127",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -20251,10 +20023,7 @@
       "occurrenceId": "occurrence:14a30b1a82ea107ffc9a3dd4",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -20412,10 +20181,7 @@
       "occurrenceId": "occurrence:4825e837e6c5e411396f513d",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -20539,10 +20305,7 @@
       "occurrenceId": "occurrence:ddf934c07f27311eaf4ca32c",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -21151,9 +20914,7 @@
       "occurrenceId": "occurrence:542bec22dbd7cc59c2134b2c",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -21231,10 +20992,7 @@
       "occurrenceId": "occurrence:8e0377c6acfe62e1a61d910b",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -21428,10 +21186,7 @@
       "occurrenceId": "occurrence:8bda306337ad21b2c982bc83",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -21645,10 +21400,7 @@
       "occurrenceId": "occurrence:e48912d67516283b48a05867",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -21964,10 +21716,7 @@
       "occurrenceId": "occurrence:7a4cb90846e515964b1d7198",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",

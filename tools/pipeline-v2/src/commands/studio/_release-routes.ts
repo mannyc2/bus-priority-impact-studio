@@ -6,6 +6,15 @@ import type {
   RouteObservedReliabilitySummary,
   RouteReadiness,
 } from "@bp/db";
+import type { StudioRouteIndexSourceRow } from "@bp/db/d1";
+import {
+  routeIdToStudioSlug,
+  STUDIO_CURRENT_BUS_ROUTE_TYPES,
+  STUDIO_CURRENT_BUS_TRIP_TYPES,
+  type StudioCurrentBusRouteType,
+  type StudioCurrentBusTripType,
+  studioRouteServiceModesForOfficialTypes,
+} from "@bp/domain/studio";
 import type { StudioSpeedPercentileContext } from "@bp/domain/studio/docs";
 import type { StudioObservedReliability, StudioRouteArtifactRef } from "@bp/domain/studio/routes";
 import { longNameEndpoints } from "./_release-geometry.ts";
@@ -22,15 +31,11 @@ import type {
 } from "./_release-types.ts";
 
 export function routeIdToSlug(routeId: string): string {
-  return routeId
-    .toLowerCase()
-    .replace(/\+/g, "-sbs")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  return routeIdToStudioSlug(routeId);
 }
 
 export function routeLabel(readiness: RouteReadiness): string {
-  return readiness.routeShortName.replace("-SBS", "");
+  return readiness.routeShortName;
 }
 
 export function routeBorough(routeId: string): string {
@@ -338,12 +343,50 @@ export function routeSpeedSpark(
     months: points.map((row) => row.month),
   };
 }
+function exactRoutePresentation(row: StudioRouteIndexSourceRow) {
+  if (row.routeShortName.length === 0) {
+    throw new Error(`Static release route ${row.routeId}: missing official route_short_name`);
+  }
+  const routeTypes = [...new Set(row.routeTypes)]
+    .map((value) => {
+      if (!(STUDIO_CURRENT_BUS_ROUTE_TYPES as readonly string[]).includes(value)) {
+        throw new Error(`Static release route ${row.routeId}: unsupported route_type ${value}`);
+      }
+      return value as StudioCurrentBusRouteType;
+    })
+    .toSorted();
+  const tripTypes = [...new Set(row.tripTypes)]
+    .map((value) => {
+      if (!(STUDIO_CURRENT_BUS_TRIP_TYPES as readonly unknown[]).includes(value)) {
+        throw new Error(`Static release route ${row.routeId}: unsupported trip_type ${value}`);
+      }
+      return value as StudioCurrentBusTripType;
+    })
+    .toSorted((left, right) => String(left).localeCompare(String(right)));
+  const serviceModes = studioRouteServiceModesForOfficialTypes(routeTypes, tripTypes);
+  const designationLiterals = [
+    ...new Set([
+      ...routeTypes.map((value) => `route_type:${value}`),
+      ...tripTypes.map((value) => `trip_type:${String(value)}`),
+    ]),
+  ].toSorted();
+  return {
+    routeFamilyId: row.routeId.endsWith("+") ? row.routeId.slice(0, -1) : row.routeId,
+    displayLabel: row.routeShortName,
+    officialLongName: row.routeLongName,
+    designationLiterals,
+    serviceModes,
+    routeTypes,
+    tripTypes,
+  };
+}
 
 export function buildRoute(
   readiness: RouteReadiness,
   summary: RouteBriefSummary,
   artifact: RouteBriefInputArtifact | null,
   geometry: RouteGeometrySummary | undefined,
+  routePresentation: StudioRouteIndexSourceRow,
   peerSlug: string | null,
   observed: RouteObservedReliabilitySummary | undefined,
   interventionComparisons: readonly RouteInterventionComparison[],
@@ -359,6 +402,11 @@ export function buildRoute(
   const slug = routeIdToSlug(readiness.routeId);
   const speedMph = routeObservedSpeed(summary, readiness);
   const scheduledMph = routeScheduledSpeedMph(readiness.routeId, artifact);
+  if (routePresentation.routeId !== readiness.routeId) {
+    throw new Error("Static release route presentation identity mismatch");
+  }
+  const presentation = exactRoutePresentation(routePresentation);
+  const corridor = presentation.officialLongName ?? presentation.displayLabel;
   const coverage = geometry?.laneCoverage ?? 0;
   const coverageSource = geometry?.laneCoverageSource ?? "geometry_unavailable";
   const ridershipSpark = routeRidershipSpark(routeTrends, summary.month);
@@ -367,11 +415,19 @@ export function buildRoute(
   return {
     slug,
     routeId: readiness.routeId,
-    label: routeLabel(readiness),
-    corridor: readiness.routeLongName ?? readiness.routeShortName,
-    corridorFull: readiness.routeLongName ?? readiness.routeShortName,
+    label: presentation.displayLabel,
+    routeSchemaVersion: 2,
+    routeFamilyId: presentation.routeFamilyId,
+    displayLabel: presentation.displayLabel,
+    officialLongName: presentation.officialLongName,
+    designationLiterals: presentation.designationLiterals,
+    serviceModes: presentation.serviceModes,
+    routeTypes: presentation.routeTypes,
+    tripTypes: presentation.tripTypes,
+    corridor,
+    corridorFull: corridor,
     borough: routeBorough(readiness.routeId),
-    sbs: readiness.routeId.includes("+") || readiness.routeShortName.includes("SBS"),
+    sbs: presentation.serviceModes.includes("sbs"),
     speedMph,
     scheduledMph,
     weightedAvgSpeed: speedMph,
@@ -430,7 +486,12 @@ export function buildRoute(
 
 // Helper used by intervention assembly
 export function routeKey(routeId: string): string {
-  return routeId.toUpperCase().replace(/\+$/u, "");
+  if (routeId.length === 0 || routeId !== routeId.trim()) {
+    throw new Error(
+      `Expected an exact non-empty route identity, received ${JSON.stringify(routeId)}`,
+    );
+  }
+  return routeId;
 }
 
 // Re-export for orchestrator

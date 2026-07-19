@@ -10,7 +10,9 @@ import {
   type RouteBriefSummary,
   type RouteInterventionComparison,
 } from "@bp/db";
+import { listStudioRouteIndexSourceRows } from "@bp/db/d1";
 import type { LocalRouteHourlyRidership, LocalRouteScheduleTimepoint } from "@bp/db/local";
+import { assertInjectiveStudioRouteIdentityUniverse } from "@bp/domain/studio";
 import type { StudioIntervention } from "@bp/domain/studio/interventions";
 import {
   buildMapRouteFactsProjection,
@@ -135,17 +137,22 @@ async function loadStudioReleaseD1Context(options: CliOptions) {
     run: async ({ db }) => {
       const [
         readinessRows,
+        routePresentationRows,
         briefSummaries,
         observedRows,
         routeArtifactRows,
         interventionComparisonRows,
       ] = await Promise.all([
         listRouteReadiness(db, options.month),
+        listStudioRouteIndexSourceRows(db, options.month),
         listRouteBriefSummaries(db, options.month),
         listRouteObservedReliabilitySummaries(db, options.month),
         listRouteArtifacts(db, options.month),
         listRouteInterventionComparisons(db, options.month),
       ]);
+      const routePresentationByRoute = new Map(
+        routePresentationRows.map((row) => [row.routeId, row]),
+      );
       const readinessByRoute = new Map(readinessRows.map((row) => [row.routeId, row]));
       const summariesByRoute = new Map(
         briefSummaries.map((summary: RouteBriefSummary) => [summary.routeId, summary]),
@@ -171,7 +178,7 @@ async function loadStudioReleaseD1Context(options: CliOptions) {
         options.profile === "full"
           ? orderedSummaries
           : orderedSummaries.slice(0, Math.max(options.routeLimit, requiredSummaries.length));
-      const routeFilter = new Set(options.routeIds.map((routeId) => routeId.trim().toUpperCase()));
+      const routeFilter = new Set(options.routeIds);
       const selectedSummaries = profileSelectedSummaries.filter(
         (summary) => routeFilter.size === 0 || routeFilter.has(summary.routeId),
       );
@@ -190,6 +197,7 @@ async function loadStudioReleaseD1Context(options: CliOptions) {
       );
 
       return {
+        routePresentationByRoute,
         readinessByRoute,
         observedByRoute,
         interventionsByRoute,
@@ -506,6 +514,7 @@ async function currentMonthScheduleRowsByRoute(
 
 async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> {
   const {
+    routePresentationByRoute,
     readinessByRoute,
     observedByRoute,
     interventionsByRoute,
@@ -616,6 +625,10 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
     if (readiness === undefined) {
       return [];
     }
+    const routePresentation = routePresentationByRoute.get(summary.routeId);
+    if (routePresentation === undefined) {
+      throw new Error(`Static release route ${summary.routeId}: official presentation is missing`);
+    }
 
     return [
       buildRoute(
@@ -623,6 +636,7 @@ async function buildRelease(options: CliOptions): Promise<StudioReleasePayload> 
         summary,
         routeInputs.get(summary.routeId) ?? null,
         routeGeometry.get(summary.routeId),
+        routePresentation,
         descriptivePeerSlugs.get(summary.routeId) ?? null,
         observedByRoute.get(summary.routeId),
         interventionsByRoute.get(summary.routeId) ?? [],
@@ -848,6 +862,8 @@ function isLlmGeneratedSegmentNote(value: unknown): boolean {
 async function writeProjections(outputPath: string, release: StudioReleasePayload): Promise<void> {
   const outputDir = dirname(resolve(outputPath));
 
+  assertInjectiveStudioRouteIdentityUniverse(release.routes, "Static Studio release routes");
+
   await rm(outputDir, { recursive: true, force: true });
   await writeJson(outputPath, release);
   await writeJson(analystNotesOutputPath(outputDir), buildSegmentAnalystNotesArtifact(release));
@@ -931,7 +947,14 @@ export async function runStudioRelease(
     publishableInterventionsByRoutePath: inputs.publishableInterventionsByRoutePath ?? null,
     localDbPath: inputs.localDbPath ?? defaultLocalPipelineDbPath(),
     profile: inputs.profile ?? "full",
-    routeIds: (inputs.routeIds ?? []).map((routeId) => routeId.trim().toUpperCase()),
+    routeIds: (inputs.routeIds ?? []).map((routeId) => {
+      if (routeId.length === 0 || routeId !== routeId.trim()) {
+        throw new Error(
+          `Studio release route filter must be an exact non-empty route identity: ${JSON.stringify(routeId)}`,
+        );
+      }
+      return routeId;
+    }),
     segmentNoteLlm: {
       enabled: llmInput.enabled ?? false,
       model: llmInput.model ?? defaultSegmentNoteModel,

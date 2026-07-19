@@ -1,3 +1,4 @@
+import { decodeStrict } from "@bp/domain/decode";
 import type {
   MapBusLaneFeatureCollection,
   MapContextFeatureCollection,
@@ -20,11 +21,12 @@ import type {
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteHourlyProfileResponse,
-  StudioRouteIndex2Response,
+  StudioRouteIndex3Response,
   StudioRouteSpeedHistoryResponse,
   StudioRoutesResponse,
   StudyIndexArtifact,
 } from "./api-contract.js";
+import { StudioRouteIndex3ResponseSchema } from "./api-contract.js";
 
 type StudioApiErrorBody = {
   error?: {
@@ -133,10 +135,9 @@ export function fetchStudioRoutes(options?: StudioQueryOptions) {
   return loadStudioJson<StudioRoutesResponse>(studioPath("studio.routes"), options);
 }
 
-export function fetchStudioRouteIndex(options?: StudioQueryOptions) {
-  return loadStudioJson<StudioRouteIndex2Response>(
-    `${studioPath("studio.routes")}?schema=2`,
-    options,
+export async function fetchStudioRouteIndex(options?: StudioQueryOptions) {
+  return decodeStrict(StudioRouteIndex3ResponseSchema)(
+    await loadStudioJson<unknown>(`${studioPath("studio.routes")}?schema=3`, options),
   );
 }
 
@@ -172,7 +173,7 @@ export function fetchStudioStudiesIndex(options?: StudioQueryOptions) {
   return loadNullableStudioJson<StudyIndexArtifact>(publicArtifactPath(studyIndexKey()), options);
 }
 
-export function timelineEvidenceRouteSlugs(routeIndex: StudioRouteIndex2Response): string[] {
+export function timelineEvidenceRouteSlugs(routeIndex: StudioRouteIndex3Response): string[] {
   return routeIndex.routes.flatMap((route) =>
     route.projectionRefs.some(
       (ref) => ref.id === "route_timeline" && ref.status === "available" && ref.path !== null,
@@ -268,7 +269,40 @@ export type ArtifactLoad<T> =
   | { status: "invalid_contract"; path: string; reason: string }
   | { status: "request_failed"; path: string; httpStatus: number; reason: string };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+type JsonRecord = Record<string, unknown> &
+  Partial<
+    Record<
+      | "ace"
+      | "baselineMonth"
+      | "boroName"
+      | "borough"
+      | "coordinates"
+      | "dailyRiders"
+      | "delayExposure"
+      | "facility"
+      | "features"
+      | "geometry"
+      | "hourlySpeedMph"
+      | "hourlyTraversalCount"
+      | "label"
+      | "labelPoint"
+      | "lane"
+      | "properties"
+      | "provenance"
+      | "route"
+      | "routeId"
+      | "routes"
+      | "schemaVersion"
+      | "segmentId"
+      | "sourceRevision"
+      | "speedMph"
+      | "street"
+      | "type",
+      unknown
+    >
+  >;
+
+function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -286,29 +320,24 @@ function isCoordinate(value: unknown): boolean {
 }
 
 function parseNetworkCollection(value: unknown): MapNetworkGeometryCollection | null {
-  if (
-    !isRecord(value) ||
-    value["type"] !== "FeatureCollection" ||
-    !Array.isArray(value["features"])
-  )
+  if (!isRecord(value) || value.type !== "FeatureCollection" || !Array.isArray(value.features))
     return null;
   const routeIds = new Set<string>();
-  for (const feature of value["features"]) {
-    if (!isRecord(feature) || !isRecord(feature["geometry"]) || !isRecord(feature["properties"]))
+  for (const feature of value.features) {
+    if (!isRecord(feature) || !isRecord(feature.geometry) || !isRecord(feature.properties))
       return null;
-    const geometry = feature["geometry"];
-    const properties = feature["properties"];
-    if (geometry["type"] !== "MultiLineString" || !Array.isArray(geometry["coordinates"]))
-      return null;
+    const geometry = feature.geometry;
+    const properties = feature.properties;
+    if (geometry.type !== "MultiLineString" || !Array.isArray(geometry.coordinates)) return null;
     if (
-      !geometry["coordinates"].every(
+      !geometry.coordinates.every(
         (line) => Array.isArray(line) && line.length >= 2 && line.every(isCoordinate),
       )
     )
       return null;
-    const routeId = properties["routeId"];
-    const speeds = properties["hourlySpeedMph"];
-    const traversals = properties["hourlyTraversalCount"];
+    const routeId = properties.routeId;
+    const speeds = properties.hourlySpeedMph;
+    const traversals = properties.hourlyTraversalCount;
     if (
       typeof routeId !== "string" ||
       routeIds.has(routeId) ||
@@ -334,46 +363,42 @@ function parseNetworkCollection(value: unknown): MapNetworkGeometryCollection | 
 function parseContextCollection(value: unknown): MapContextFeatureCollection | null {
   if (
     !isRecord(value) ||
-    value["type"] !== "FeatureCollection" ||
-    !isRecord(value["sourceRevision"]) ||
-    !Array.isArray(value["features"]) ||
-    value["features"].length === 0
+    value.type !== "FeatureCollection" ||
+    !isRecord(value.sourceRevision) ||
+    !Array.isArray(value.features) ||
+    value.features.length === 0
   )
     return null;
-  const valid = value["features"].every(
+  const valid = value.features.every(
     (feature) =>
       isRecord(feature) &&
-      isRecord(feature["properties"]) &&
-      typeof feature["properties"]["boroName"] === "string" &&
-      isCoordinate(feature["properties"]["labelPoint"]) &&
-      isRecord(feature["geometry"]) &&
-      feature["geometry"]["type"] === "MultiPolygon" &&
-      Array.isArray(feature["geometry"]["coordinates"]),
+      isRecord(feature.properties) &&
+      typeof feature.properties.boroName === "string" &&
+      isCoordinate(feature.properties.labelPoint) &&
+      isRecord(feature.geometry) &&
+      feature.geometry.type === "MultiPolygon" &&
+      Array.isArray(feature.geometry.coordinates),
   );
   return valid ? (value as MapContextFeatureCollection) : null;
 }
 
 function parseBusLaneCollection(value: unknown): MapBusLaneFeatureCollection | null {
-  if (
-    !isRecord(value) ||
-    value["type"] !== "FeatureCollection" ||
-    !Array.isArray(value["features"])
-  )
+  if (!isRecord(value) || value.type !== "FeatureCollection" || !Array.isArray(value.features))
     return null;
-  const valid = value["features"].every((feature) => {
-    if (!isRecord(feature) || !isRecord(feature["geometry"]) || !isRecord(feature["properties"]))
+  const valid = value.features.every((feature) => {
+    if (!isRecord(feature) || !isRecord(feature.geometry) || !isRecord(feature.properties))
       return false;
-    const coordinates = feature["geometry"]["coordinates"];
-    const properties = feature["properties"];
+    const coordinates = feature.geometry.coordinates;
+    const properties = feature.properties;
     return (
-      feature["geometry"]["type"] === "LineString" &&
+      feature.geometry.type === "LineString" &&
       Array.isArray(coordinates) &&
       coordinates.length >= 2 &&
       coordinates.every(isCoordinate) &&
-      typeof properties["segmentId"] === "string" &&
-      typeof properties["street"] === "string" &&
-      typeof properties["borough"] === "string" &&
-      typeof properties["facility"] === "string"
+      typeof properties.segmentId === "string" &&
+      typeof properties.street === "string" &&
+      typeof properties.borough === "string" &&
+      typeof properties.facility === "string"
     );
   });
   return valid ? (value as MapBusLaneFeatureCollection) : null;
@@ -382,25 +407,25 @@ function parseBusLaneCollection(value: unknown): MapBusLaneFeatureCollection | n
 function parseRouteFacts(value: unknown): MapRouteFactsResponse | null {
   if (
     !isRecord(value) ||
-    value["schemaVersion"] !== 1 ||
-    typeof value["baselineMonth"] !== "string" ||
-    !Array.isArray(value["routes"])
+    value.schemaVersion !== 1 ||
+    typeof value.baselineMonth !== "string" ||
+    !Array.isArray(value.routes)
   )
     return null;
   const routeIds = new Set<string>();
-  const valid = value["routes"].every((fact) => {
-    if (!isRecord(fact) || !isRecord(fact["route"])) return false;
-    const routeId = fact["route"]["routeId"];
+  const valid = value.routes.every((fact) => {
+    if (!isRecord(fact) || !isRecord(fact.route)) return false;
+    const routeId = fact.route.routeId;
     if (typeof routeId !== "string" || routeIds.has(routeId)) return false;
     routeIds.add(routeId);
     return (
-      typeof fact["route"]["label"] === "string" &&
-      typeof fact["route"]["speedMph"] === "number" &&
-      typeof fact["route"]["dailyRiders"] === "number" &&
-      isRecord(fact["delayExposure"]) &&
-      isRecord(fact["provenance"]) &&
-      isRecord(fact["provenance"]["lane"]) &&
-      isRecord(fact["provenance"]["ace"])
+      typeof fact.route.label === "string" &&
+      typeof fact.route.speedMph === "number" &&
+      typeof fact.route.dailyRiders === "number" &&
+      isRecord(fact.delayExposure) &&
+      isRecord(fact.provenance) &&
+      isRecord(fact.provenance.lane) &&
+      isRecord(fact.provenance.ace)
     );
   });
   return valid ? (value as MapRouteFactsResponse) : null;

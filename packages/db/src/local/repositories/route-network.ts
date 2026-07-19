@@ -3,6 +3,7 @@ import { insertAll, type LocalPipelineDb } from "../client.js";
 import {
   localRouteBuildPlan,
   localRouteCatalog,
+  localRouteCatalogTripType,
   localRouteCatalogType,
   localRouteDirection,
   localRouteLionLink,
@@ -16,6 +17,7 @@ export type LocalRouteCatalogEntry = {
   routeShortName: string;
   routeLongName: string | null;
   routeTypes: string[];
+  tripTypes: string[];
   directions: string[];
   shapeCount: number;
   stopCount: number;
@@ -147,6 +149,13 @@ export function replaceRouteCatalog(
       routeType,
     })),
   );
+  const tripTypes = rows.flatMap((row) =>
+    row.tripTypes.map((tripType, index) => ({
+      routeId: row.routeId,
+      tripTypeRank: index + 1,
+      tripType,
+    })),
+  );
   const directions = rows.flatMap((row) =>
     row.directions.map((directionName, index) => ({
       routeId: row.routeId,
@@ -157,11 +166,13 @@ export function replaceRouteCatalog(
 
   db.transaction((tx) => {
     tx.delete(localRouteCatalogType).run();
+    tx.delete(localRouteCatalogTripType).run();
     tx.delete(localRouteDirection).run();
     tx.delete(localRouteCatalog).run();
     insertAll(tx, localRouteCatalog, catalogValues);
     insertAll(tx, localRouteCatalogType, routeTypes);
     insertAll(tx, localRouteDirection, directions);
+    insertAll(tx, localRouteCatalogTripType, tripTypes);
   });
 }
 
@@ -185,7 +196,7 @@ export async function listRouteCatalogIds(db: LocalPipelineDb): Promise<string[]
 }
 
 export async function listRouteCatalog(db: LocalPipelineDb): Promise<LocalRouteCatalogEntry[]> {
-  const [routes, routeTypes, directions] = await Promise.all([
+  const [routes, routeTypes, tripTypes, directions] = await Promise.all([
     db.select().from(localRouteCatalog).orderBy(asc(localRouteCatalog.routeId)),
     db
       .select()
@@ -193,10 +204,15 @@ export async function listRouteCatalog(db: LocalPipelineDb): Promise<LocalRouteC
       .orderBy(asc(localRouteCatalogType.routeId), asc(localRouteCatalogType.typeRank)),
     db
       .select()
+      .from(localRouteCatalogTripType)
+      .orderBy(asc(localRouteCatalogTripType.routeId), asc(localRouteCatalogTripType.tripTypeRank)),
+    db
+      .select()
       .from(localRouteDirection)
       .orderBy(asc(localRouteDirection.routeId), asc(localRouteDirection.directionRank)),
   ]);
   const routeTypesByRoute = groupRouteValues(routeTypes, (row) => row.routeType);
+  const tripTypesByRoute = groupRouteValues(tripTypes, (row) => row.tripType);
   const directionsByRoute = groupRouteValues(directions, (row) => row.directionName);
 
   return routes.map((row) => ({
@@ -207,6 +223,7 @@ export async function listRouteCatalog(db: LocalPipelineDb): Promise<LocalRouteC
     directions: directionsByRoute.get(row.routeId) ?? [],
     shapeCount: row.shapeCount,
     stopCount: row.stopCount,
+    tripTypes: tripTypesByRoute.get(row.routeId) ?? [],
     timepointStopCount: row.timepointStopCount,
     latitudeMin: row.latitudeMin,
     latitudeMax: row.latitudeMax,

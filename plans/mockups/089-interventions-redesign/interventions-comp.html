@@ -249,6 +249,9 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    border: 0;
+    background: transparent;
+    font-family: var(--sans);
     font-size: 12px;
     font-weight: 500;
     color: var(--ink70);
@@ -387,8 +390,8 @@
               <p>Open a route for maps, speed history, and full citations.</p>
             </div>
             <div class="stattabs">
-              <button class="stab on"><span class="k">Documented</span><span class="v">631</span></button>
-              <button class="stab"><span class="k">Planned</span><span class="v">254</span></button>
+              <button type="button" class="stab on"><span class="k">Documented</span><span class="v">631</span></button>
+              <button type="button" class="stab"><span class="k">Planned</span><span class="v">254</span></button>
             </div>
           </div>
           <div class="x-tagwrap">
@@ -396,9 +399,9 @@
             <div class="ltool">
               <div class="lsearch"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>Route, street, or corridor…</div>
               <div class="spacer"></div>
-              <label class="ltog"><span class="box"></span>studied only</label>
-              <button class="lsel">Kind: <b>All</b><span class="car">▼</span></button>
-              <button class="lsel">Borough: <b>All</b><span class="car">▼</span></button>
+              <button type="button" class="ltog" aria-pressed="false"><span class="box"></span>studied only</button>
+              <button type="button" class="lsel">Kind: <b>All</b><span class="car">▼</span></button>
+              <button type="button" class="lsel">Borough: <b>All</b><span class="car">▼</span></button>
             </div>
           </div>
           <div class="lstrip">
@@ -464,7 +467,7 @@
             <div class="r">
               <div class="d f-accent">+0.11 mph</div>
               <div class="ci">95% CI −0.01 to +0.28</div>
-              <div><a href="#">matched-segment study →</a></div>
+              <div><a href="/routes/bx9?tab=history">matched-segment study →</a></div>
             </div>
           </div>
           <div class="trow">
@@ -489,7 +492,7 @@
             <div class="r">
               <div class="d f-accent">−0.04 mph</div>
               <div class="ci">95% CI −0.14 to +0.04</div>
-              <div><a href="#">matched-segment study →</a></div>
+              <div><a href="/routes/bx28?tab=history">matched-segment study →</a></div>
             </div>
           </div>
           <div class="trow">
@@ -503,7 +506,7 @@
             <div class="r">
               <div class="d" style="color: var(--ink70);">−0.25 mph</div>
               <div class="ci">95% CI −0.50 to −0.04</div>
-              <div><a href="#">descriptive study →</a></div>
+              <div><a href="/routes/b82-sbs?tab=history">descriptive study →</a></div>
             </div>
           </div>
           <div class="trow">
@@ -522,7 +525,7 @@
 
           <div class="x-tagwrap">
             <span class="x-tag" style="top: 2px;">A5</span>
-            <div class="tfold"><div class="in"><span class="rbadge">B46+</span><span class="grow">116 documented treatments and 8 projects without dates</span><a href="#">Route history →</a></div></div>
+            <div class="tfold"><div class="in"><span class="rbadge">B46+</span><span class="grow">116 documented treatments and 8 projects without dates</span><a href="/routes/b46-sbs?tab=history">Route history →</a></div></div>
           </div>
           <div class="tfold"><div class="in"><span class="grow">…11 more evidence routes and 25 undated network records, collapsed at the end of the ledger.</span></div></div>
 

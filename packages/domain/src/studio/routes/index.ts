@@ -2,6 +2,12 @@ import { Effect, Schema, SchemaGetter } from "effect";
 import { StudioInterventionSchema } from "../interventions.js";
 import { StudioRouteCapabilitySchema } from "../route-capability.js";
 import { RouteDossierSummaryForDetailSchema } from "../route-dossier.js";
+import {
+  assertStudioRouteIdentityPresentation,
+  StudioCurrentBusRouteTypeSchema,
+  StudioCurrentBusTripTypeSchema,
+  StudioRouteServiceModeSchema,
+} from "../route-presentation.js";
 import { StudioQualitySchema } from "../shared.js";
 
 export const StudioObservedReliabilitySchema = Schema.Struct({
@@ -79,10 +85,44 @@ function legacyTermini(route: StudioRouteCompatInput): {
   };
 }
 
+const STUDIO_ROUTE_IDENTITY_V2_FIELDS = [
+  "routeSchemaVersion",
+  "routeFamilyId",
+  "displayLabel",
+  "officialLongName",
+  "designationLiterals",
+  "serviceModes",
+  "routeTypes",
+  "tripTypes",
+] as const;
+
+function assertStudioRouteIdentityV2(
+  route: Record<string, unknown> & { routeSchemaVersion?: unknown },
+): void {
+  const present = STUDIO_ROUTE_IDENTITY_V2_FIELDS.filter((field) => Object.hasOwn(route, field));
+  if (present.length === 0) return;
+  if (route.routeSchemaVersion !== 2) {
+    throw new Error("Studio route exact-identity fields require routeSchemaVersion 2");
+  }
+  const missing = STUDIO_ROUTE_IDENTITY_V2_FIELDS.filter((field) => !Object.hasOwn(route, field));
+  if (missing.length > 0) {
+    throw new Error(`Studio route v2 exact-identity fields are incomplete: ${missing.join(",")}`);
+  }
+  assertStudioRouteIdentityPresentation(route);
+}
+
 const StudioRouteShapeSchema = Schema.Struct({
   slug: Schema.String,
   routeId: Schema.String,
   label: Schema.String,
+  routeSchemaVersion: Schema.optional(Schema.Literal(2)),
+  routeFamilyId: Schema.optional(Schema.String),
+  displayLabel: Schema.optional(Schema.String),
+  officialLongName: Schema.optional(Schema.NullOr(Schema.String)),
+  designationLiterals: Schema.optional(Schema.Array(Schema.String)),
+  serviceModes: Schema.optional(Schema.Array(StudioRouteServiceModeSchema)),
+  routeTypes: Schema.optional(Schema.Array(StudioCurrentBusRouteTypeSchema)),
+  tripTypes: Schema.optional(Schema.Array(StudioCurrentBusTripTypeSchema)),
   corridor: Schema.String,
   corridorFull: Schema.String,
   borough: Schema.String,
@@ -123,7 +163,7 @@ export const StudioRouteSchema = Schema.Unknown.pipe(
         return Schema.decodeUnknownSync(Schema.toEncoded(StudioRouteShapeSchema))(value);
       }
       const route = value as StudioRouteCompatInput;
-      return Schema.decodeUnknownSync(Schema.toEncoded(StudioRouteShapeSchema), {
+      const decoded = Schema.decodeUnknownSync(Schema.toEncoded(StudioRouteShapeSchema), {
         onExcessProperty: "ignore",
       })({
         ...route,
@@ -131,6 +171,8 @@ export const StudioRouteSchema = Schema.Unknown.pipe(
         diagnosis: legacyDiagnosis(route),
         termini: legacyTermini(route),
       });
+      assertStudioRouteIdentityV2(decoded);
+      return decoded;
     }),
     encode: SchemaGetter.passthrough(),
   }),

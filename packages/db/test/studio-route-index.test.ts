@@ -32,12 +32,20 @@ describe("Studio route index D1 read model", () => {
         ) VALUES (?, ?, ?, ?, ?, ?)`,
       )
       .run("M15+", "M15+", "Select Bus Service", 12, 80, 16);
+    sqlite.exec(
+      "INSERT INTO route_catalog_type (route_id, type_rank, route_type) VALUES ('M15+', 1, 'SBS')",
+    );
+    sqlite.exec(
+      "INSERT INTO route_catalog_trip_type (route_id, trip_type_rank, trip_type) VALUES ('M15+', 1, '14')",
+    );
 
     const rows = await listStudioRouteIndexSourceRows(createBunSqliteServingDb(sqlite), "2026-03");
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       routeId: "M15+",
+      routeTypes: ["SBS"],
+      tripTypes: ["14"],
       speedHistoryCoverage: null,
     });
   });

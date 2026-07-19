@@ -31,6 +31,7 @@ import {
 } from "../studio/routes/index.js";
 import {
   StudioRouteIndex2ResponseSchema,
+  StudioRouteIndex3ResponseSchema,
   StudioSnapshotResponseSchema,
 } from "../studio/snapshots.js";
 
@@ -49,6 +50,9 @@ export const studioRoutesResponseJsonSchema = toProjectJsonSchema(StudioRoutesRe
 export const studioSearchResponseJsonSchema = toProjectJsonSchema(StudioSearchResponseSchema);
 export const studioRouteIndex2ResponseJsonSchema = toProjectJsonSchema(
   StudioRouteIndex2ResponseSchema,
+);
+export const studioRouteIndex3ResponseJsonSchema = toProjectJsonSchema(
+  StudioRouteIndex3ResponseSchema,
 );
 export const studioRouteSectionsResponseJsonSchema = toProjectJsonSchema(
   StudioRouteSectionsResponseSchema,

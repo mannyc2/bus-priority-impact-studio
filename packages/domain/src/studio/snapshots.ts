@@ -1,5 +1,9 @@
 import { Schema } from "effect";
 import { StudioRouteCapabilitySchema } from "./route-capability.js";
+import {
+  assertStudioRouteIdentityPresentation,
+  StudioRouteIdentityPresentationSchema,
+} from "./route-presentation.js";
 import { StudioRouteHistoryCoverageSchema } from "./routes/index.js";
 import { StudioQualitySchema } from "./shared.js";
 
@@ -79,6 +83,26 @@ export const StudioRouteIndex2RowSchema = Schema.Struct({
   updatedAt: Schema.String,
 });
 
+export const StudioRouteIndex3RowSchema = Schema.Struct({
+  ...StudioRouteIndex2RowSchema.fields,
+  ...StudioRouteIdentityPresentationSchema.fields,
+  routeSchemaVersion: Schema.Literal(2),
+}).check(
+  Schema.makeFilter((row) => {
+    try {
+      assertStudioRouteIdentityPresentation(row as Readonly<Record<string, unknown>>);
+      return [];
+    } catch (error) {
+      return [
+        {
+          path: [],
+          issue: error instanceof Error ? error.message : "Invalid exact route identity.",
+        },
+      ];
+    }
+  }),
+);
+
 export const StudioSourceMonthStateSchema = Schema.Struct({
   sourceId: Schema.String.check(Schema.isMinLength(1)),
   label: Schema.String.check(Schema.isMinLength(1)),
@@ -105,6 +129,11 @@ export const StudioRouteIndex2ResponseSchema = Schema.Struct({
   dataAsOf: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
   routes: Schema.Array(StudioRouteIndex2RowSchema),
   quality: StudioQualitySchema,
+});
+export const StudioRouteIndex3ResponseSchema = Schema.Struct({
+  ...StudioRouteIndex2ResponseSchema.fields,
+  schemaVersion: Schema.Literal(3),
+  routes: Schema.Array(StudioRouteIndex3RowSchema),
 });
 
 export const StudioSnapshot2Schema = Schema.Struct({
@@ -171,5 +200,7 @@ export type StudioSnapshot2ProjectionRef = typeof StudioSnapshot2ProjectionRefSc
 export type StudioRouteIndex2Row = typeof StudioRouteIndex2RowSchema.Type;
 export type StudioSourceMonthState = typeof StudioSourceMonthStateSchema.Type;
 export type StudioRouteIndex2Response = typeof StudioRouteIndex2ResponseSchema.Type;
+export type StudioRouteIndex3Row = typeof StudioRouteIndex3RowSchema.Type;
 export type StudioSnapshot2 = typeof StudioSnapshot2Schema.Type;
 export type StudioSnapshotResponse = typeof StudioSnapshotResponseSchema.Type;
+export type StudioRouteIndex3Response = typeof StudioRouteIndex3ResponseSchema.Type;

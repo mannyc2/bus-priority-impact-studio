@@ -19,12 +19,23 @@ import {
 import { Effect, Schema } from "effect";
 import { PipelineFileSystemLayer, PipelineFileSystemService } from "../effect/file-system.ts";
 import { runPipelineEffect } from "../effect/runtime.ts";
-import { verifyMtaWikiReleaseFile as verifySharedMtaWikiReleaseFile } from "./mta-wiki-release.ts";
+import {
+  readMtaWikiReleaseQuarantineStatus,
+  verifyMtaWikiReleaseFile as verifySharedMtaWikiReleaseFile,
+} from "./mta-wiki-release.ts";
+import {
+  assertMtaWikiRouteIdentitySnapshotSelfIntegrity,
+  type MtaWikiRouteIdentitySnapshot,
+  MtaWikiRouteIdentitySnapshotSchema,
+  projectableGtfsRouteIdForRecord,
+} from "./mta-wiki-route-identities.ts";
 
 const COMMAND = "studio.import-mta-wiki-operational-anchors";
 const MANIFEST_VERSION = 2;
+const MANIFEST_VERSION_V5 = 5;
 const OPERATIONAL_ANCHOR_CONTRACT_VERSION = 1;
 const OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION = 1;
+const OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION_V2 = 2;
 const OPERATIONAL_ANCHOR_REVIEW_DECISION_VERSION = 1;
 
 const NonNegativeIntegerSchema = Schema.Number.check(
@@ -33,6 +44,7 @@ const NonNegativeIntegerSchema = Schema.Number.check(
 );
 const PositiveIntegerSchema = Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0));
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
+const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
 const StringCountSchema = Schema.Record(Schema.String, NonNegativeIntegerSchema);
 
 const ReleaseFileSchema = Schema.Struct({
@@ -40,7 +52,7 @@ const ReleaseFileSchema = Schema.Struct({
   sha256: Sha256Schema,
 });
 
-const ReleaseManifestSchema = Schema.Struct({
+const ReleaseManifestV2Schema = Schema.Struct({
   manifest_version: Schema.Literal(MANIFEST_VERSION),
   release_id: Schema.String,
   generator_commit: Schema.String,
@@ -59,7 +71,41 @@ const ReleaseManifestSchema = Schema.Struct({
     quality_report: Schema.NullOr(Schema.String),
   }),
 });
-type ReleaseManifest = typeof ReleaseManifestSchema.Type;
+type ReleaseManifestV2 = typeof ReleaseManifestV2Schema.Type;
+
+const ReleaseManifestV5Schema = Schema.Struct({
+  manifest_version: Schema.Literal(MANIFEST_VERSION_V5),
+  release_id: NonEmptyStringSchema,
+  generator_commit: NonEmptyStringSchema,
+  contract_versions: Schema.Struct({
+    operational_anchor_review_decisions: Schema.Literal(
+      OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION_V2,
+    ),
+    operational_anchors: Schema.Literal(OPERATIONAL_ANCHOR_CONTRACT_VERSION),
+    operational_occurrence_review_decisions: Schema.Literals([1, 2]),
+    operational_occurrences: Schema.Literal(2),
+    relationship_integrity_bundle: Schema.Literal(1),
+    route_anchors: Schema.Literal(1),
+    route_identity_snapshot: Schema.Literal(1),
+  }),
+  record_counts: StringCountSchema,
+  files: Schema.Record(Schema.String, ReleaseFileSchema),
+  pointers: Schema.Struct({
+    operational_anchor_review_decisions: NonEmptyStringSchema,
+    operational_anchor_summary: NonEmptyStringSchema,
+    operational_anchors: NonEmptyStringSchema,
+    operational_occurrence_review_decisions: NonEmptyStringSchema,
+    operational_occurrence_summary: NonEmptyStringSchema,
+    operational_occurrences: NonEmptyStringSchema,
+    quality_report: Schema.NullOr(NonEmptyStringSchema),
+    relationship_integrity_bundle: NonEmptyStringSchema,
+    route_anchors: Schema.Literal("route_anchors.jsonl"),
+    route_identity_snapshot: Schema.Literal("route_identity_snapshot.json"),
+    taxonomy: NonEmptyStringSchema,
+  }),
+});
+type ReleaseManifestV5 = typeof ReleaseManifestV5Schema.Type;
+type ReleaseManifest = ReleaseManifestV2 | ReleaseManifestV5;
 type ReleaseFile = typeof ReleaseFileSchema.Type;
 
 const OperationalAnchorDateCandidateSchema = Schema.Struct({
@@ -140,16 +186,94 @@ const OperationalAnchorRowSchema = Schema.Struct({
 });
 type OperationalAnchorRow = typeof OperationalAnchorRowSchema.Type;
 
-const OperationalAnchorSummarySchema = Schema.Struct({
+function assertActiveAnchorRouteProjections(
+  rows: readonly OperationalAnchorRow[],
+  snapshot: MtaWikiRouteIdentitySnapshot,
+): void {
+  for (const row of rows) {
+    const routeRecordIds = new Set(row.route_record_ids);
+    if (row.unmatched_route_record_ids.some((recordId) => !routeRecordIds.has(recordId))) {
+      throw new Error(
+        `operational anchor ${row.anchor_id}: unmatched route record is absent from route_record_ids`,
+      );
+    }
+    const unmatched = new Set(row.unmatched_route_record_ids);
+    const expectedGtfsRouteIds = [
+      ...new Set(
+        row.route_record_ids
+          .filter((recordId) => !unmatched.has(recordId))
+          .map((recordId) => projectableGtfsRouteIdForRecord(snapshot, recordId)),
+      ),
+    ].toSorted();
+    const actualGtfsRouteIds = [...row.gtfs_route_ids].toSorted();
+    if (canonicalJson(actualGtfsRouteIds) !== canonicalJson(expectedGtfsRouteIds)) {
+      throw new Error(
+        `operational anchor ${row.anchor_id}: exact GTFS routes disagree with projectable route bindings`,
+      );
+    }
+  }
+}
+
+const OperationalAnchorFunnelSchema = Schema.Struct({
+  canonical_events: NonNegativeIntegerSchema,
+  timeline_linked_operational_events: NonNegativeIntegerSchema,
+  candidate_operational_date_present: NonNegativeIntegerSchema,
+  realized_operational: NonNegativeIntegerSchema,
+  realized_day_or_month: NonNegativeIntegerSchema,
+  resolved_route_scope: NonNegativeIntegerSchema,
+  resolved_treatment_scope: NonNegativeIntegerSchema,
+  evidence_complete: NonNegativeIntegerSchema,
+  conflict_free: NonNegativeIntegerSchema,
+  study_eligible: NonNegativeIntegerSchema,
+});
+
+const OperationalAnchorLegacySummarySchema = Schema.Struct({
   schema_version: Schema.Literal(OPERATIONAL_ANCHOR_CONTRACT_VERSION),
   row_count: NonNegativeIntegerSchema,
   study_eligible_count: NonNegativeIntegerSchema,
   counts_by_temporal_role: StringCountSchema,
   counts_by_scope_resolution: StringCountSchema,
   counts_by_exclusion_reason: StringCountSchema,
+  funnel: OperationalAnchorFunnelSchema,
+});
+
+const OperationalAnchorBroadFunnelSchema = Schema.Struct({
+  operational_family_events_total: NonNegativeIntegerSchema,
+  timeline_linked_distinct_events: NonNegativeIntegerSchema,
+  unlinked_operational_events: NonNegativeIntegerSchema,
+  candidate_operational_date_present: NonNegativeIntegerSchema,
+  realized_operational: NonNegativeIntegerSchema,
+  realized_day_or_month: NonNegativeIntegerSchema,
+  resolved_route_scope: NonNegativeIntegerSchema,
+  resolved_treatment_scope: NonNegativeIntegerSchema,
+  evidence_complete: NonNegativeIntegerSchema,
+  conflict_free: NonNegativeIntegerSchema,
+  study_eligible: NonNegativeIntegerSchema,
+});
+
+const OperationalAnchorExpandedSummarySchema = Schema.Struct({
+  schema_version: Schema.Literal(OPERATIONAL_ANCHOR_CONTRACT_VERSION),
+  row_count: NonNegativeIntegerSchema,
+  broad_row_count: NonNegativeIntegerSchema,
+  reviewed_row_count: NonNegativeIntegerSchema,
+  distinct_operational_event_count: NonNegativeIntegerSchema,
+  study_eligible_count: NonNegativeIntegerSchema,
+  study_eligible_reviewed_count: NonNegativeIntegerSchema,
+  counts_by_temporal_role: StringCountSchema,
+  counts_by_scope_resolution: StringCountSchema,
+  counts_by_exclusion_reason: StringCountSchema,
+  entry_gate: Schema.Struct({
+    relations_examined: NonNegativeIntegerSchema,
+    non_event_timeline_objects: NonNegativeIntegerSchema,
+    non_operational_event_objects: NonNegativeIntegerSchema,
+  }),
+  broad_funnel: OperationalAnchorBroadFunnelSchema,
   funnel: Schema.Struct({
     canonical_events: NonNegativeIntegerSchema,
+    operational_family_events_total: NonNegativeIntegerSchema,
     timeline_linked_operational_events: NonNegativeIntegerSchema,
+    timeline_linked_distinct_events: NonNegativeIntegerSchema,
+    unlinked_operational_events: NonNegativeIntegerSchema,
     candidate_operational_date_present: NonNegativeIntegerSchema,
     realized_operational: NonNegativeIntegerSchema,
     realized_day_or_month: NonNegativeIntegerSchema,
@@ -160,6 +284,10 @@ const OperationalAnchorSummarySchema = Schema.Struct({
     study_eligible: NonNegativeIntegerSchema,
   }),
 });
+const OperationalAnchorSummarySchema = Schema.Union([
+  OperationalAnchorExpandedSummarySchema,
+  OperationalAnchorLegacySummarySchema,
+]);
 type OperationalAnchorSummary = typeof OperationalAnchorSummarySchema.Type;
 
 const OperationalAnchorReviewEvidenceBindingSchema = Schema.Struct({
@@ -181,9 +309,9 @@ const OperationalAnchorReviewDecisionSchema = Schema.Struct({
   schema_version: Schema.Literal(OPERATIONAL_ANCHOR_REVIEW_DECISION_VERSION),
   decision_id: Schema.String,
   review_state: Schema.Literal("accepted"),
-  accepted_at: Schema.String,
-  reviewer: Schema.String,
-  rationale: Schema.String,
+  accepted_at: NonEmptyStringSchema,
+  reviewer: NonEmptyStringSchema,
+  rationale: NonEmptyStringSchema,
   source_id: Schema.String,
   event_record_id: Schema.String,
   timeline_relation_record_id: Schema.String,
@@ -197,13 +325,113 @@ const OperationalAnchorReviewDecisionSchema = Schema.Struct({
   evidence_bindings: Schema.Array(OperationalAnchorReviewEvidenceBindingSchema),
 });
 
-const OperationalAnchorReviewSnapshotSchema = Schema.Struct({
+const OperationalAnchorReviewSnapshotV1Schema = Schema.Struct({
   snapshot_version: Schema.Literal(OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION),
   decision_schema_version: Schema.Literal(OPERATIONAL_ANCHOR_REVIEW_DECISION_VERSION),
   decision_count: NonNegativeIntegerSchema,
   decisions: Schema.Array(OperationalAnchorReviewDecisionSchema),
 });
-type OperationalAnchorReviewSnapshot = typeof OperationalAnchorReviewSnapshotSchema.Type;
+type OperationalAnchorReviewSnapshotV1 = typeof OperationalAnchorReviewSnapshotV1Schema.Type;
+
+const SafeIdSchema = NonEmptyStringSchema.check(Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u));
+const RetirementSourceArtifactSchema = Schema.Struct({
+  artifact_path: NonEmptyStringSchema,
+  bytes: NonNegativeIntegerSchema,
+  sha256: Sha256Schema,
+});
+const RetirementReleaseArtifactSchema = Schema.Struct({
+  release_path: NonEmptyStringSchema,
+  bytes: NonNegativeIntegerSchema,
+  sha256: Sha256Schema,
+});
+const RetirementBindingSchema = Schema.Struct({
+  route_record_id: SafeIdSchema,
+  route_binding_decision_id: SafeIdSchema,
+  route_binding_sha256: Sha256Schema,
+  dataset_id: Schema.Literals(["mta-nyct-bus", "mta-bus-company"]),
+  source_route_id: NonEmptyStringSchema,
+  gtfs_route_id: NonEmptyStringSchema,
+  projectable: Schema.Literal(false),
+  ineligibility_reasons: Schema.Array(
+    Schema.Literals([
+      "identity_not_exact",
+      "service_class_not_regular_mta_bus",
+      "record_not_current",
+      "raw_route_type_not_3",
+      "catalog_not_in_effect",
+      "reliability_not_proven",
+      "not_scheduled_in_window",
+    ]),
+  ),
+});
+const RetirementAnchorSourceTargetSchema = Schema.Struct({
+  review_contract: Schema.Literal("operational-anchor-review-v1"),
+  decision_id: SafeIdSchema,
+  projection_state: Schema.Literal("retired"),
+  reason_code: Schema.Literal("route_binding_nonprojectable"),
+  original_artifact: RetirementSourceArtifactSchema,
+});
+const RetirementOccurrenceSourceTargetSchema = Schema.Struct({
+  review_contract: Schema.Literal("operational-occurrence-review-v1"),
+  decision_id: SafeIdSchema,
+  occurrence_id: SafeIdSchema,
+  founding_key: NonEmptyStringSchema,
+  pinned_gtfs_route_ids: Schema.Array(NonEmptyStringSchema),
+  projection_state: Schema.Literal("retired"),
+  reason_code: Schema.Literal("route_binding_nonprojectable"),
+  original_artifact: RetirementSourceArtifactSchema,
+});
+const OperationalProjectionRetirementSourceSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  contract_id: Schema.Literal("operational-review-projection-retirement-v1"),
+  retirement_id: SafeIdSchema,
+  state: Schema.Literal("accepted"),
+  accepted_by: NonEmptyStringSchema,
+  accepted_at: NonEmptyStringSchema,
+  rationale: NonEmptyStringSchema,
+  route_identity_snapshot_id: SafeIdSchema,
+  route_identity_snapshot_sha256: Sha256Schema,
+  binding: RetirementBindingSchema,
+  anchor_review_decisions: Schema.Array(RetirementAnchorSourceTargetSchema),
+  occurrence_review_decisions: Schema.Array(RetirementOccurrenceSourceTargetSchema),
+});
+type OperationalProjectionRetirementSource =
+  typeof OperationalProjectionRetirementSourceSchema.Type;
+
+const OperationalAnchorReviewRetirementProjectionSchema = Schema.Struct({
+  retirement_id: SafeIdSchema,
+  retirement_source: RetirementReleaseArtifactSchema,
+  accepted_by: NonEmptyStringSchema,
+  accepted_at: NonEmptyStringSchema,
+  rationale: NonEmptyStringSchema,
+  route_identity_snapshot_id: SafeIdSchema,
+  route_identity_snapshot_sha256: Sha256Schema,
+  binding: RetirementBindingSchema,
+  target: Schema.Struct({
+    review_contract: Schema.Literal("operational-anchor-review-v1"),
+    decision_id: SafeIdSchema,
+    projection_state: Schema.Literal("retired"),
+    reason_code: Schema.Literal("route_binding_nonprojectable"),
+    original_artifact: RetirementReleaseArtifactSchema,
+  }),
+});
+type OperationalAnchorReviewRetirementProjection =
+  typeof OperationalAnchorReviewRetirementProjectionSchema.Type;
+
+const OperationalAnchorReviewSnapshotV2Schema = Schema.Struct({
+  snapshot_version: Schema.Literal(OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION_V2),
+  decision_schema_version: Schema.Literal(OPERATIONAL_ANCHOR_REVIEW_DECISION_VERSION),
+  source_decision_count: NonNegativeIntegerSchema,
+  decision_count: NonNegativeIntegerSchema,
+  decisions: Schema.Array(OperationalAnchorReviewDecisionSchema),
+  retirement_schema_version: Schema.Literal(1),
+  retirement_count: NonNegativeIntegerSchema,
+  retirements: Schema.Array(OperationalAnchorReviewRetirementProjectionSchema),
+});
+type OperationalAnchorReviewSnapshotV2 = typeof OperationalAnchorReviewSnapshotV2Schema.Type;
+type OperationalAnchorReviewSnapshot =
+  | OperationalAnchorReviewSnapshotV1
+  | OperationalAnchorReviewSnapshotV2;
 
 const ImportedReleaseFileSchema = Schema.Struct({
   pointer: Schema.String,
@@ -225,7 +453,7 @@ const OperationalAnchorConflictSchema = Schema.Struct({
   reason: Schema.Literal("cross_anchor_date_conflict"),
 });
 
-export const MtaWikiOperationalAnchorImportArtifactSchema = Schema.Struct({
+export const MtaWikiOperationalAnchorImportArtifactV2Schema = Schema.Struct({
   artifactKind: Schema.Literal("bp.studio.mta_wiki_operational_date_assertions.v2"),
   schemaVersion: Schema.Literal(2),
   sourceRelease: Schema.Struct({
@@ -259,6 +487,52 @@ export const MtaWikiOperationalAnchorImportArtifactSchema = Schema.Struct({
   rejections: Schema.Array(OperationalAnchorRejectionSchema),
   conflicts: Schema.Array(OperationalAnchorConflictSchema),
 });
+export const MtaWikiOperationalAnchorImportArtifactV3Schema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.mta_wiki_operational_date_assertions.v3"),
+  schemaVersion: Schema.Literal(3),
+  sourceRelease: Schema.Struct({
+    manifestVersion: Schema.Literal(MANIFEST_VERSION_V5),
+    releaseId: Schema.String,
+    generatorCommit: Schema.String,
+    manifestPath: Schema.String,
+    manifestSha256: Sha256Schema,
+    operationalAnchorContractVersion: Schema.Literal(OPERATIONAL_ANCHOR_CONTRACT_VERSION),
+    operationalAnchorReviewDecisionContractVersion: Schema.Literal(
+      OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION_V2,
+    ),
+    routeIdentitySnapshotContractVersion: Schema.Literal(1),
+    routeIdentitySnapshotId: Schema.String,
+    anchors: ImportedReleaseFileSchema,
+    summary: ImportedReleaseFileSchema,
+    reviewDecisions: ImportedReleaseFileSchema,
+    routeIdentitySnapshot: ImportedReleaseFileSchema,
+    sourceReviewDecisionCount: NonNegativeIntegerSchema,
+    reviewDecisionCount: NonNegativeIntegerSchema,
+    retirementCount: NonNegativeIntegerSchema,
+    retiredDecisionIds: Schema.Array(Schema.String),
+    retirementSources: Schema.Array(ImportedReleaseFileSchema),
+    retiredReviewDecisions: Schema.Array(ImportedReleaseFileSchema),
+  }),
+  producerSummary: OperationalAnchorSummarySchema,
+  summary: Schema.Struct({
+    sourceRowCount: NonNegativeIntegerSchema,
+    assertionCount: NonNegativeIntegerSchema,
+    eligibleAssertionCount: NonNegativeIntegerSchema,
+    rejectedAssertionCount: NonNegativeIntegerSchema,
+    rejectedAnchorCount: NonNegativeIntegerSchema,
+    exactDuplicateGroupCount: NonNegativeIntegerSchema,
+    exactDuplicateRowCount: NonNegativeIntegerSchema,
+    crossDateConflictGroupCount: NonNegativeIntegerSchema,
+    countsByRejectionReason: StringCountSchema,
+  }),
+  assertions: Schema.Array(WikiOperationalDateAssertionSchema),
+  rejections: Schema.Array(OperationalAnchorRejectionSchema),
+  conflicts: Schema.Array(OperationalAnchorConflictSchema),
+});
+export const MtaWikiOperationalAnchorImportArtifactSchema = Schema.Union([
+  MtaWikiOperationalAnchorImportArtifactV2Schema,
+  MtaWikiOperationalAnchorImportArtifactV3Schema,
+]);
 export type MtaWikiOperationalAnchorImportArtifact =
   typeof MtaWikiOperationalAnchorImportArtifactSchema.Type;
 
@@ -276,6 +550,7 @@ const ImportErrorCodeSchema = Schema.Literals([
   "summary_mismatch",
   "duplicate_anchor_id",
   "semantic_mismatch",
+  "contract_incompatible",
   "write_failed",
 ]);
 
@@ -387,12 +662,25 @@ function canonicalJson(value: unknown): string {
   return `{${entries.map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`).join(",")}}`;
 }
 
+function canonicalJsonl(values: readonly unknown[]): string {
+  return values.length === 0 ? "" : `${values.map(canonicalJson).join("\n")}\n`;
+}
+
 function artifactJson(artifact: MtaWikiOperationalAnchorImportArtifact): string {
   return `${JSON.stringify(artifact, null, 2)}\n`;
 }
 
 function releaseArtifactPath(releaseId: string, pointer: string): string {
   return `data/exports/releases/${releaseId}/${pointer}`;
+}
+
+function importedReleaseFile(file: VerifiedReleaseFile, releaseId: string) {
+  return {
+    pointer: file.pointer,
+    path: releaseArtifactPath(releaseId, file.pointer),
+    bytes: file.metadata.bytes,
+    sha256: file.metadata.sha256,
+  };
 }
 
 function isInside(root: string, path: string): boolean {
@@ -910,7 +1198,14 @@ const decodeOperationalAnchorSummary = Effect.fn("MtaWikiOperationalAnchors.deco
 
 const decodeOperationalAnchorReviewSnapshot = Effect.fn(
   "MtaWikiOperationalAnchors.decodeReviewSnapshot",
-)(function* (file: VerifiedReleaseFile) {
+)(function* (
+  file: VerifiedReleaseFile,
+  version: 1 | 2,
+): Generator<
+  Effect.Effect<unknown, MtaWikiOperationalAnchorImportError>,
+  OperationalAnchorReviewSnapshot,
+  never
+> {
   const text = yield* decodeUtf8(file.bytes, {
     operation: "decodeOperationalAnchorReviewSnapshot",
     path: file.path,
@@ -919,12 +1214,60 @@ const decodeOperationalAnchorReviewSnapshot = Effect.fn(
     operation: "decodeOperationalAnchorReviewSnapshot",
     path: file.path,
   });
+  if (version === OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION) {
+    return yield* decodeStrict({
+      schema: OperationalAnchorReviewSnapshotV1Schema,
+      value,
+      operation: "decodeOperationalAnchorReviewSnapshotV1",
+      path: file.path,
+    });
+  }
   return yield* decodeStrict({
-    schema: OperationalAnchorReviewSnapshotSchema,
+    schema: OperationalAnchorReviewSnapshotV2Schema,
     value,
-    operation: "decodeOperationalAnchorReviewSnapshot",
+    operation: "decodeOperationalAnchorReviewSnapshotV2",
     path: file.path,
   });
+});
+
+const decodeRouteIdentitySnapshot = Effect.fn(
+  "MtaWikiOperationalAnchors.decodeRouteIdentitySnapshot",
+)(function* (file: VerifiedReleaseFile) {
+  const text = yield* decodeUtf8(file.bytes, {
+    operation: "decodeRouteIdentitySnapshot",
+    path: file.path,
+  });
+  const value = yield* parseJson(text, {
+    operation: "decodeRouteIdentitySnapshot",
+    path: file.path,
+  });
+  const snapshot = yield* decodeStrict({
+    schema: MtaWikiRouteIdentitySnapshotSchema,
+    value,
+    operation: "decodeRouteIdentitySnapshot",
+    path: file.path,
+  });
+  if (text !== `${canonicalJson(snapshot)}\n`) {
+    return yield* Effect.fail(
+      importError({
+        code: "semantic_mismatch",
+        operation: "decodeRouteIdentitySnapshot",
+        path: file.path,
+        detail: "route identity snapshot must use canonical stable JSON bytes followed by LF",
+      }),
+    );
+  }
+  yield* Effect.try({
+    try: () => assertMtaWikiRouteIdentitySnapshotSelfIntegrity(snapshot),
+    catch: (cause) =>
+      importError({
+        code: "semantic_mismatch",
+        operation: "decodeRouteIdentitySnapshot",
+        path: file.path,
+        detail: String(cause),
+      }),
+  });
+  return snapshot;
 });
 
 const requiredReviewEvidenceRoles = [
@@ -988,8 +1331,8 @@ const validateOperationalAnchorReviewSnapshot = Effect.fn(
         `${decision.decision_id} expected_operational_date disagrees with expected_date_precision`,
       );
     }
-    if (Number.isNaN(Date.parse(decision.accepted_at))) {
-      return yield* fail(`${decision.decision_id} accepted_at is not an ISO date-time`);
+    if (!isUtcInstant(decision.accepted_at)) {
+      return yield* fail(`${decision.decision_id} accepted_at is not an ISO-8601 UTC instant`);
     }
     const roles = new Set(decision.evidence_bindings.map((binding) => binding.role));
     for (const role of requiredReviewEvidenceRoles) {
@@ -1025,11 +1368,366 @@ const validateOperationalAnchorReviewSnapshot = Effect.fn(
   return undefined;
 });
 
+type OperationalAnchorRetirementClosure = {
+  readonly routeIdentitySnapshotId: string;
+  readonly routeIdentitySnapshotFile: VerifiedReleaseFile;
+  readonly retirementSourceFiles: VerifiedReleaseFile[];
+  readonly retiredReviewDecisionFiles: VerifiedReleaseFile[];
+  readonly retiredDecisionIds: string[];
+};
+
+function isSortedUnique(values: readonly string[]): boolean {
+  return (
+    new Set(values).size === values.length &&
+    values.every((value, index) => index === 0 || (values[index - 1] ?? "") < value)
+  );
+}
+
+function isUtcInstant(value: string): boolean {
+  return (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value) &&
+    !Number.isNaN(Date.parse(value))
+  );
+}
+
+function sameFileMetadata(
+  left: { bytes: number; sha256: string },
+  right: { bytes: number; sha256: string },
+): boolean {
+  return left.bytes === right.bytes && left.sha256 === right.sha256;
+}
+
+function sourceProjection(
+  source: OperationalProjectionRetirementSource,
+  target: OperationalProjectionRetirementSource["anchor_review_decisions"][number],
+  sourceFile: VerifiedReleaseFile,
+): OperationalAnchorReviewRetirementProjection {
+  return {
+    retirement_id: source.retirement_id,
+    retirement_source: {
+      release_path: sourceFile.pointer,
+      bytes: sourceFile.metadata.bytes,
+      sha256: sourceFile.metadata.sha256,
+    },
+    accepted_by: source.accepted_by,
+    accepted_at: source.accepted_at,
+    rationale: source.rationale,
+    route_identity_snapshot_id: source.route_identity_snapshot_id,
+    route_identity_snapshot_sha256: source.route_identity_snapshot_sha256,
+    binding: source.binding,
+    target: {
+      review_contract: target.review_contract,
+      decision_id: target.decision_id,
+      projection_state: target.projection_state,
+      reason_code: target.reason_code,
+      original_artifact: {
+        release_path: `review-retirements/operational-anchor/${target.decision_id}.json`,
+        bytes: target.original_artifact.bytes,
+        sha256: target.original_artifact.sha256,
+      },
+    },
+  };
+}
+
+const validateOperationalAnchorRetirementClosure = Effect.fn(
+  "MtaWikiOperationalAnchors.validateRetirementClosure",
+)(function* (input: {
+  manifest: ReleaseManifestV5;
+  snapshot: OperationalAnchorReviewSnapshotV2;
+  rows: readonly OperationalAnchorRow[];
+  routeIdentitySnapshot: MtaWikiRouteIdentitySnapshot;
+  routeIdentitySnapshotFile: VerifiedReleaseFile;
+  releaseDirectory: string;
+  canonicalReleaseDirectory: string;
+}): Generator<
+  Effect.Effect<unknown, MtaWikiOperationalAnchorImportError>,
+  OperationalAnchorRetirementClosure,
+  never
+> {
+  const fail = (detail: string, path = input.routeIdentitySnapshotFile.path) =>
+    Effect.fail(
+      importError({
+        code: "semantic_mismatch",
+        operation: "validateOperationalAnchorRetirementClosure",
+        path,
+        detail,
+      }),
+    );
+  if (
+    input.snapshot.decision_count !== input.snapshot.decisions.length ||
+    input.snapshot.retirement_count !== input.snapshot.retirements.length ||
+    input.snapshot.source_decision_count !==
+      input.snapshot.decision_count + input.snapshot.retirement_count
+  ) {
+    return yield* fail(
+      "review-v2 active, retired, and source decision denominators do not reconcile",
+    );
+  }
+  if (input.snapshot.retirement_count === 0) {
+    return yield* fail("review-v2 requires at least one manifest-addressed retirement");
+  }
+  const activeDecisionIds = input.snapshot.decisions.map((decision) => decision.decision_id);
+  const retiredDecisionIds = input.snapshot.retirements.map(
+    (retirement) => retirement.target.decision_id,
+  );
+  if (!isSortedUnique(retiredDecisionIds)) {
+    return yield* fail("retirements must be sorted and unique by target decision_id");
+  }
+  if (retiredDecisionIds.some((decisionId) => activeDecisionIds.includes(decisionId))) {
+    return yield* fail("active and retired anchor review decision ids must be disjoint");
+  }
+  const expectedArchivePaths = retiredDecisionIds.map(
+    (decisionId) => `review-retirements/operational-anchor/${decisionId}.json`,
+  );
+  const declaredArchivePaths = Object.keys(input.manifest.files)
+    .filter((path) => path.startsWith("review-retirements/operational-anchor/"))
+    .toSorted();
+  if (canonicalJson(declaredArchivePaths) !== canonicalJson(expectedArchivePaths)) {
+    return yield* fail(
+      "manifest anchor retirement archives must exactly equal the review-v2 retirement targets",
+    );
+  }
+
+  const routeSnapshotSha256 = input.routeIdentitySnapshotFile.metadata.sha256;
+  if (
+    input.routeIdentitySnapshot.record_binding_count !==
+      input.routeIdentitySnapshot.record_bindings.length ||
+    input.routeIdentitySnapshot.record_bindings_sha256 !==
+      sha256(new TextEncoder().encode(canonicalJsonl(input.routeIdentitySnapshot.record_bindings)))
+  ) {
+    return yield* fail("route identity snapshot record binding count or digest is stale");
+  }
+  const routeBindingIds = input.routeIdentitySnapshot.record_bindings.map(
+    (binding) => binding.route_record_id,
+  );
+  if (!isSortedUnique(routeBindingIds)) {
+    return yield* fail("route identity snapshot bindings must be sorted and unique");
+  }
+
+  const sourceFiles = new Map<string, VerifiedReleaseFile>();
+  const sourceReceipts = new Map<string, OperationalProjectionRetirementSource>();
+  const seenSourceAnchorTargets = new Map<string, Set<string>>();
+  const archivedFiles: VerifiedReleaseFile[] = [];
+  for (const projection of input.snapshot.retirements) {
+    const decisionId = projection.target.decision_id;
+    if (!isUtcInstant(projection.accepted_at)) {
+      return yield* fail(`${decisionId}: accepted_at must be an ISO-8601 UTC instant`);
+    }
+    if (
+      projection.binding.source_route_id !== projection.binding.gtfs_route_id ||
+      !isSortedUnique(projection.binding.ineligibility_reasons) ||
+      !projection.binding.ineligibility_reasons.includes("catalog_not_in_effect")
+    ) {
+      return yield* fail(
+        `${decisionId}: retirement binding must preserve an exact nonprojectable catalog identity`,
+      );
+    }
+    const expectedSourcePath = `review-retirements/source/${projection.retirement_id}.json`;
+    const expectedArchivePath = `review-retirements/operational-anchor/${decisionId}.json`;
+    if (
+      projection.retirement_source.release_path !== expectedSourcePath ||
+      projection.target.original_artifact.release_path !== expectedArchivePath
+    ) {
+      return yield* fail(`${decisionId}: retirement archive paths do not match their exact ids`);
+    }
+    const sourceMetadata = input.manifest.files[expectedSourcePath];
+    const archiveMetadata = input.manifest.files[expectedArchivePath];
+    if (
+      sourceMetadata === undefined ||
+      archiveMetadata === undefined ||
+      !sameFileMetadata(sourceMetadata, projection.retirement_source) ||
+      !sameFileMetadata(archiveMetadata, projection.target.original_artifact)
+    ) {
+      return yield* fail(
+        `${decisionId}: retirement bytes and hashes are not exactly manifest-pinned`,
+      );
+    }
+
+    let sourceFile = sourceFiles.get(expectedSourcePath);
+    let source = sourceReceipts.get(expectedSourcePath);
+    if (sourceFile === undefined || source === undefined) {
+      sourceFile = yield* verifyReleaseFile({
+        releaseDirectory: input.releaseDirectory,
+        canonicalReleaseDirectory: input.canonicalReleaseDirectory,
+        pointer: expectedSourcePath,
+        metadata: sourceMetadata,
+        operation: "verifyOperationalAnchorRetirementSource",
+      });
+      const sourceText = yield* decodeUtf8(sourceFile.bytes, {
+        operation: "decodeOperationalAnchorRetirementSource",
+        path: sourceFile.path,
+      });
+      const sourceValue = yield* parseJson(sourceText, {
+        operation: "decodeOperationalAnchorRetirementSource",
+        path: sourceFile.path,
+      });
+      source = yield* decodeStrict({
+        schema: OperationalProjectionRetirementSourceSchema,
+        value: sourceValue,
+        operation: "decodeOperationalAnchorRetirementSource",
+        path: sourceFile.path,
+      });
+      if (sourceText !== `${canonicalJson(source)}\n`) {
+        return yield* fail(
+          `${source.retirement_id}: retirement source must use canonical stable JSON bytes followed by LF`,
+          sourceFile.path,
+        );
+      }
+      const sourceAnchorIds = source.anchor_review_decisions.map((target) => target.decision_id);
+      const sourceOccurrenceIds = source.occurrence_review_decisions.map(
+        (target) => target.decision_id,
+      );
+      if (
+        source.retirement_id !== projection.retirement_id ||
+        !isUtcInstant(source.accepted_at) ||
+        source.anchor_review_decisions.length + source.occurrence_review_decisions.length === 0 ||
+        !isSortedUnique(sourceAnchorIds) ||
+        !isSortedUnique(sourceOccurrenceIds)
+      ) {
+        return yield* fail(
+          `${source.retirement_id}: invalid or incomplete retirement source`,
+          sourceFile.path,
+        );
+      }
+      for (const target of source.anchor_review_decisions) {
+        if (
+          target.original_artifact.artifact_path !==
+          `data/operational-anchor-review/accepted/decisions/${target.decision_id}.json`
+        ) {
+          return yield* fail(
+            `${target.decision_id}: source anchor decision path is not exact`,
+            sourceFile.path,
+          );
+        }
+      }
+      for (const target of source.occurrence_review_decisions) {
+        if (
+          target.original_artifact.artifact_path !==
+            `data/operational-occurrence-review/accepted/decisions/${target.decision_id}.json` ||
+          !isSortedUnique(target.pinned_gtfs_route_ids)
+        ) {
+          return yield* fail(
+            `${target.decision_id}: source occurrence retirement identity is not exact`,
+            sourceFile.path,
+          );
+        }
+      }
+      sourceFiles.set(expectedSourcePath, sourceFile);
+      sourceReceipts.set(expectedSourcePath, source);
+    }
+    const sourceTarget = source.anchor_review_decisions.find(
+      (target) => target.decision_id === decisionId,
+    );
+    if (
+      sourceTarget === undefined ||
+      canonicalJson(sourceProjection(source, sourceTarget, sourceFile)) !==
+        canonicalJson(projection)
+    ) {
+      return yield* fail(
+        `${decisionId}: review-v2 retirement projection differs from its source receipt`,
+        sourceFile.path,
+      );
+    }
+    const seen = seenSourceAnchorTargets.get(expectedSourcePath) ?? new Set<string>();
+    seen.add(decisionId);
+    seenSourceAnchorTargets.set(expectedSourcePath, seen);
+
+    const archivedFile = yield* verifyReleaseFile({
+      releaseDirectory: input.releaseDirectory,
+      canonicalReleaseDirectory: input.canonicalReleaseDirectory,
+      pointer: expectedArchivePath,
+      metadata: archiveMetadata,
+      operation: "verifyRetiredOperationalAnchorReviewDecision",
+    });
+    const archivedText = yield* decodeUtf8(archivedFile.bytes, {
+      operation: "decodeRetiredOperationalAnchorReviewDecision",
+      path: archivedFile.path,
+    });
+    const archivedValue = yield* parseJson(archivedText, {
+      operation: "decodeRetiredOperationalAnchorReviewDecision",
+      path: archivedFile.path,
+    });
+    const archivedDecision = yield* decodeStrict({
+      schema: OperationalAnchorReviewDecisionSchema,
+      value: archivedValue,
+      operation: "decodeRetiredOperationalAnchorReviewDecision",
+      path: archivedFile.path,
+    });
+    if (
+      archivedDecision.decision_id !== decisionId ||
+      archivedDecision.route_record_id !== projection.binding.route_record_id ||
+      input.rows.some((row) => row.anchor_id === `operational-reviewed:${decisionId}`)
+    ) {
+      return yield* fail(
+        `${decisionId}: retired decision identity disagrees with its archive or remains active`,
+        archivedFile.path,
+      );
+    }
+    archivedFiles.push(archivedFile);
+
+    if (
+      projection.route_identity_snapshot_id !== input.routeIdentitySnapshot.gtfs_snapshot_id ||
+      projection.route_identity_snapshot_sha256 !== routeSnapshotSha256
+    ) {
+      return yield* fail(`${decisionId}: retirement addresses another route identity snapshot`);
+    }
+    const routeBinding = input.routeIdentitySnapshot.record_bindings.find(
+      (binding) => binding.route_record_id === projection.binding.route_record_id,
+    );
+    // route_binding_sha256 commits the accepted decision JSONL row. The release snapshot contains
+    // its typed projection, not those source bytes, so compare every projected identity field here
+    // while preserving the already schema-validated decision receipt verbatim.
+    if (
+      routeBinding === undefined ||
+      !("decision_id" in routeBinding) ||
+      routeBinding.decision_id !== projection.binding.route_binding_decision_id ||
+      routeBinding.dataset_id !== projection.binding.dataset_id ||
+      routeBinding.source_route_id !== projection.binding.source_route_id ||
+      routeBinding.gtfs_route_id !== projection.binding.gtfs_route_id ||
+      routeBinding.projectable !== false ||
+      routeBinding.decision_kind !== "current_ineligible" ||
+      canonicalJson(routeBinding.ineligibility_reasons) !==
+        canonicalJson(projection.binding.ineligibility_reasons)
+    ) {
+      return yield* fail(`${decisionId}: retirement binding differs from the route snapshot`);
+    }
+  }
+
+  for (const [sourcePath, source] of sourceReceipts) {
+    const expected = source.anchor_review_decisions.map((target) => target.decision_id);
+    const actual = [...(seenSourceAnchorTargets.get(sourcePath) ?? [])].toSorted();
+    if (canonicalJson(actual) !== canonicalJson(expected)) {
+      return yield* fail(
+        `${source.retirement_id}: anchor review snapshot does not close every source anchor target`,
+        sourceFiles.get(sourcePath)?.path,
+      );
+    }
+  }
+  return {
+    routeIdentitySnapshotId: input.routeIdentitySnapshot.gtfs_snapshot_id,
+    routeIdentitySnapshotFile: input.routeIdentitySnapshotFile,
+    retirementSourceFiles: [...sourceFiles.values()].toSorted((left, right) =>
+      left.pointer.localeCompare(right.pointer),
+    ),
+    retiredReviewDecisionFiles: archivedFiles.toSorted((left, right) =>
+      left.pointer.localeCompare(right.pointer),
+    ),
+    retiredDecisionIds,
+  };
+});
+
 function recomputedProducerSummary(
   rows: readonly OperationalAnchorRow[],
-  canonicalEventCount: number,
+  source: OperationalAnchorSummary,
 ): OperationalAnchorSummary {
-  const dated = rows.filter((row) => row.candidate_operational_date_normalized !== null);
+  const expanded = "broad_funnel" in source;
+  const broadRows = expanded
+    ? rows.filter((row) => row.anchor_id.startsWith("operational:"))
+    : rows;
+  const reviewedRows = expanded
+    ? rows.filter((row) => row.anchor_id.startsWith("operational-reviewed:"))
+    : [];
+  const dated = broadRows.filter((row) => row.candidate_operational_date_normalized !== null);
   const realized = dated.filter((row) => row.temporal_role === "realized_operational");
   const precise = realized.filter(
     (row) =>
@@ -1052,24 +1750,59 @@ function recomputedProducerSummary(
     Object.values(row.evidence_coverage).every(Boolean),
   );
   const conflictFree = evidenceComplete.filter((row) => row.conflict_states.length === 0);
-  return {
+  const base = {
     schema_version: OPERATIONAL_ANCHOR_CONTRACT_VERSION,
     row_count: rows.length,
     study_eligible_count: rows.filter((row) => row.study_eligible).length,
     counts_by_temporal_role: countBy(rows.map((row) => row.temporal_role)),
     counts_by_scope_resolution: countBy(rows.map((row) => row.scope_resolution)),
     counts_by_exclusion_reason: countBy(rows.flatMap((row) => row.exclusion_reasons)),
+  } as const;
+  if (!expanded) {
+    return {
+      ...base,
+      funnel: {
+        canonical_events: source.funnel.canonical_events,
+        timeline_linked_operational_events: rows.length,
+        candidate_operational_date_present: dated.length,
+        realized_operational: realized.length,
+        realized_day_or_month: precise.length,
+        resolved_route_scope: routeResolved.length,
+        resolved_treatment_scope: treatmentResolved.length,
+        evidence_complete: evidenceComplete.length,
+        conflict_free: conflictFree.length,
+        study_eligible: rows.filter((row) => row.study_eligible).length,
+      },
+    };
+  }
+
+  const distinctOperationalEventCount = new Set(broadRows.map((row) => row.event_record_id)).size;
+  const operationalFamilyEventCount = source.funnel.operational_family_events_total;
+  const broadFunnel = {
+    operational_family_events_total: operationalFamilyEventCount,
+    timeline_linked_distinct_events: distinctOperationalEventCount,
+    unlinked_operational_events: operationalFamilyEventCount - distinctOperationalEventCount,
+    candidate_operational_date_present: dated.length,
+    realized_operational: realized.length,
+    realized_day_or_month: precise.length,
+    resolved_route_scope: routeResolved.length,
+    resolved_treatment_scope: treatmentResolved.length,
+    evidence_complete: evidenceComplete.length,
+    conflict_free: conflictFree.length,
+    study_eligible: broadRows.filter((row) => row.study_eligible).length,
+  } as const;
+  return {
+    ...base,
+    broad_row_count: broadRows.length,
+    reviewed_row_count: reviewedRows.length,
+    distinct_operational_event_count: distinctOperationalEventCount,
+    study_eligible_reviewed_count: reviewedRows.filter((row) => row.study_eligible).length,
+    entry_gate: source.entry_gate,
+    broad_funnel: broadFunnel,
     funnel: {
-      canonical_events: canonicalEventCount,
-      timeline_linked_operational_events: rows.length,
-      candidate_operational_date_present: dated.length,
-      realized_operational: realized.length,
-      realized_day_or_month: precise.length,
-      resolved_route_scope: routeResolved.length,
-      resolved_treatment_scope: treatmentResolved.length,
-      evidence_complete: evidenceComplete.length,
-      conflict_free: conflictFree.length,
-      study_eligible: rows.filter((row) => row.study_eligible).length,
+      canonical_events: source.funnel.canonical_events,
+      ...broadFunnel,
+      timeline_linked_operational_events: broadRows.length,
     },
   };
 }
@@ -1112,7 +1845,22 @@ function validateProducerSummary(
       }),
     );
   }
-  const expected = recomputedProducerSummary(rows, summary.funnel.canonical_events);
+  if (
+    "broad_funnel" in summary &&
+    (summary.broad_row_count + summary.reviewed_row_count !== summary.row_count ||
+      summary.funnel.operational_family_events_total <
+        summary.funnel.timeline_linked_distinct_events)
+  ) {
+    return Effect.fail(
+      importError({
+        code: "summary_mismatch",
+        operation: "validateOperationalAnchorSummary",
+        path,
+        detail: "expanded producer summary row partition or operational-event funnel is invalid",
+      }),
+    );
+  }
+  const expected = recomputedProducerSummary(rows, summary);
   if (canonicalJson(expected) !== canonicalJson(summary)) {
     return Effect.fail(
       importError({
@@ -1584,6 +2332,7 @@ const buildImportArtifact = Effect.fn("MtaWikiOperationalAnchors.buildImportArti
     summaryFile: VerifiedReleaseFile;
     reviewDecisionFile: VerifiedReleaseFile;
     reviewSnapshot: OperationalAnchorReviewSnapshot;
+    retirementClosure: OperationalAnchorRetirementClosure | null;
     producerSummary: OperationalAnchorSummary;
     rows: readonly OperationalAnchorRow[];
   }) {
@@ -1614,37 +2363,7 @@ const buildImportArtifact = Effect.fn("MtaWikiOperationalAnchors.buildImportArti
           (left.anchorIds[0] ?? "").localeCompare(right.anchorIds[0] ?? ""),
       );
     const countsByRejectionReason = countBy(rejections.flatMap((entry) => entry.reasonCodes));
-    const artifactValue: unknown = {
-      artifactKind: "bp.studio.mta_wiki_operational_date_assertions.v2",
-      schemaVersion: 2,
-      sourceRelease: {
-        manifestVersion: MANIFEST_VERSION,
-        releaseId: input.manifest.release_id,
-        generatorCommit: input.manifest.generator_commit,
-        manifestPath: releaseArtifactPath(input.manifest.release_id, "manifest.json"),
-        manifestSha256: input.manifestSha256,
-        operationalAnchorContractVersion: OPERATIONAL_ANCHOR_CONTRACT_VERSION,
-        operationalAnchorReviewDecisionContractVersion: OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION,
-        anchors: {
-          pointer: input.anchorFile.pointer,
-          path: releaseArtifactPath(input.manifest.release_id, input.anchorFile.pointer),
-          bytes: input.anchorFile.metadata.bytes,
-          sha256: input.anchorFile.metadata.sha256,
-        },
-        summary: {
-          pointer: input.summaryFile.pointer,
-          path: releaseArtifactPath(input.manifest.release_id, input.summaryFile.pointer),
-          bytes: input.summaryFile.metadata.bytes,
-          sha256: input.summaryFile.metadata.sha256,
-        },
-        reviewDecisions: {
-          pointer: input.reviewDecisionFile.pointer,
-          path: releaseArtifactPath(input.manifest.release_id, input.reviewDecisionFile.pointer),
-          bytes: input.reviewDecisionFile.metadata.bytes,
-          sha256: input.reviewDecisionFile.metadata.sha256,
-        },
-        reviewDecisionCount: input.reviewSnapshot.decision_count,
-      },
+    const resultBody = {
       producerSummary: input.producerSummary,
       summary: {
         sourceRowCount: input.rows.length,
@@ -1662,6 +2381,65 @@ const buildImportArtifact = Effect.fn("MtaWikiOperationalAnchors.buildImportArti
       rejections,
       conflicts: quarantined.conflicts,
     };
+    const commonSourceRelease = {
+      releaseId: input.manifest.release_id,
+      generatorCommit: input.manifest.generator_commit,
+      manifestPath: releaseArtifactPath(input.manifest.release_id, "manifest.json"),
+      manifestSha256: input.manifestSha256,
+      operationalAnchorContractVersion: OPERATIONAL_ANCHOR_CONTRACT_VERSION,
+      anchors: importedReleaseFile(input.anchorFile, input.manifest.release_id),
+      summary: importedReleaseFile(input.summaryFile, input.manifest.release_id),
+      reviewDecisions: importedReleaseFile(input.reviewDecisionFile, input.manifest.release_id),
+      reviewDecisionCount: input.reviewSnapshot.decision_count,
+    };
+    const artifactValue: unknown =
+      input.manifest.manifest_version === MANIFEST_VERSION
+        ? {
+            artifactKind: "bp.studio.mta_wiki_operational_date_assertions.v2",
+            schemaVersion: 2,
+            sourceRelease: {
+              ...commonSourceRelease,
+              manifestVersion: MANIFEST_VERSION,
+              operationalAnchorReviewDecisionContractVersion:
+                OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION,
+            },
+            ...resultBody,
+          }
+        : input.retirementClosure === null || input.reviewSnapshot.snapshot_version !== 2
+          ? yield* Effect.fail(
+              importError({
+                code: "semantic_mismatch",
+                operation: "buildImportArtifact",
+                path: input.reviewDecisionFile.path,
+                detail: "manifest-v5 requires a verified review-v2 retirement closure",
+              }),
+            )
+          : {
+              artifactKind: "bp.studio.mta_wiki_operational_date_assertions.v3",
+              schemaVersion: 3,
+              sourceRelease: {
+                ...commonSourceRelease,
+                manifestVersion: MANIFEST_VERSION_V5,
+                operationalAnchorReviewDecisionContractVersion:
+                  OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION_V2,
+                routeIdentitySnapshotContractVersion: 1,
+                routeIdentitySnapshotId: input.retirementClosure.routeIdentitySnapshotId,
+                routeIdentitySnapshot: importedReleaseFile(
+                  input.retirementClosure.routeIdentitySnapshotFile,
+                  input.manifest.release_id,
+                ),
+                sourceReviewDecisionCount: input.reviewSnapshot.source_decision_count,
+                retirementCount: input.reviewSnapshot.retirement_count,
+                retiredDecisionIds: input.retirementClosure.retiredDecisionIds,
+                retirementSources: input.retirementClosure.retirementSourceFiles.map((file) =>
+                  importedReleaseFile(file, input.manifest.release_id),
+                ),
+                retiredReviewDecisions: input.retirementClosure.retiredReviewDecisionFiles.map(
+                  (file) => importedReleaseFile(file, input.manifest.release_id),
+                ),
+              },
+              ...resultBody,
+            };
     return yield* decodeStrict({
       schema: MtaWikiOperationalAnchorImportArtifactSchema,
       value: artifactValue,
@@ -1692,6 +2470,31 @@ export const importMtaWikiOperationalAnchors = Effect.fn("importMtaWikiOperation
         }),
       );
     }
+    const quarantineStatus = yield* readMtaWikiReleaseQuarantineStatus({
+      mtaWikiRoot: input.mtaWikiRoot,
+      wikiRelease: input.wikiRelease,
+      wikiManifestSha256: actualManifestSha256,
+    }).pipe(
+      Effect.mapError((error) =>
+        importError({
+          code: error.code,
+          operation: error.operation,
+          path: error.path,
+          line: error.line,
+          detail: error.detail,
+        }),
+      ),
+    );
+    if (quarantineStatus !== null) {
+      return yield* Effect.fail(
+        importError({
+          code: "contract_incompatible",
+          operation: "verifyReleaseStatus",
+          path: manifestPath,
+          detail: `MTA Wiki release ${input.wikiRelease} is quarantined (${quarantineStatus.reasonCode}): ${quarantineStatus.reason}`,
+        }),
+      );
+    }
     const manifestText = yield* decodeUtf8(manifestBytes, {
       operation: "decodeManifest",
       path: manifestPath,
@@ -1700,12 +2503,35 @@ export const importMtaWikiOperationalAnchors = Effect.fn("importMtaWikiOperation
       operation: "decodeManifest",
       path: manifestPath,
     });
-    const manifest = yield* decodeStrict({
-      schema: ReleaseManifestSchema,
-      value: manifestValue,
-      operation: "decodeManifest",
-      path: manifestPath,
-    });
+    const manifestVersion =
+      typeof manifestValue === "object" && manifestValue !== null && !Array.isArray(manifestValue)
+        ? (manifestValue as { manifest_version?: unknown }).manifest_version
+        : undefined;
+    let manifest: ReleaseManifest;
+    if (manifestVersion === MANIFEST_VERSION) {
+      manifest = yield* decodeStrict({
+        schema: ReleaseManifestV2Schema,
+        value: manifestValue,
+        operation: "decodeManifest",
+        path: manifestPath,
+      });
+    } else if (manifestVersion === MANIFEST_VERSION_V5) {
+      manifest = yield* decodeStrict({
+        schema: ReleaseManifestV5Schema,
+        value: manifestValue,
+        operation: "decodeManifestV5",
+        path: manifestPath,
+      });
+    } else {
+      return yield* Effect.fail(
+        importError({
+          code: "schema_mismatch",
+          operation: "decodeManifest",
+          path: manifestPath,
+          detail: `unsupported manifest_version ${String(manifestVersion)}; expected 2 or 5`,
+        }),
+      );
+    }
     if (manifest.release_id !== input.wikiRelease) {
       return yield* Effect.fail(
         importError({
@@ -1788,15 +2614,72 @@ export const importMtaWikiOperationalAnchors = Effect.fn("importMtaWikiOperation
       metadata: reviewDecisionMetadata,
       operation: "verifyOperationalAnchorReviewDecisions",
     });
+    let routeIdentitySnapshotFile: VerifiedReleaseFile | null = null;
+    let routeIdentitySnapshot: MtaWikiRouteIdentitySnapshot | null = null;
+    if (manifest.manifest_version === MANIFEST_VERSION_V5) {
+      const routeIdentityMetadata = manifest.files[manifest.pointers.route_identity_snapshot];
+      if (routeIdentityMetadata === undefined) {
+        return yield* Effect.fail(
+          importError({
+            code: "missing_manifest_file",
+            operation: "verifyManifest",
+            path: manifestPath,
+            detail: `files is missing ${manifest.pointers.route_identity_snapshot}`,
+          }),
+        );
+      }
+      routeIdentitySnapshotFile = yield* verifyReleaseFile({
+        releaseDirectory,
+        canonicalReleaseDirectory,
+        pointer: manifest.pointers.route_identity_snapshot,
+        metadata: routeIdentityMetadata,
+        operation: "verifyRouteIdentitySnapshot",
+      });
+      routeIdentitySnapshot = yield* decodeRouteIdentitySnapshot(routeIdentitySnapshotFile);
+    }
     const rows = yield* decodeOperationalAnchorRows(anchorFile);
+    if (routeIdentitySnapshot !== null) {
+      try {
+        assertActiveAnchorRouteProjections(rows, routeIdentitySnapshot);
+      } catch (cause) {
+        return yield* Effect.fail(
+          importError({
+            code: "semantic_mismatch",
+            operation: "validateActiveAnchorRouteProjections",
+            path: routeIdentitySnapshotFile?.path ?? anchorFile.path,
+            detail: cause instanceof Error ? cause.message : String(cause),
+          }),
+        );
+      }
+    }
     const producerSummary = yield* decodeOperationalAnchorSummary(summaryFile);
-    const reviewSnapshot = yield* decodeOperationalAnchorReviewSnapshot(reviewDecisionFile);
+    const reviewSnapshot = yield* decodeOperationalAnchorReviewSnapshot(
+      reviewDecisionFile,
+      manifest.manifest_version === MANIFEST_VERSION
+        ? OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION
+        : OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION_V2,
+    );
     yield* validateProducerSummary(rows, producerSummary, manifest, summaryFile.path);
     yield* validateOperationalAnchorReviewSnapshot({
       snapshot: reviewSnapshot,
       rows,
       path: reviewDecisionFile.path,
     });
+    const retirementClosure =
+      manifest.manifest_version === MANIFEST_VERSION_V5 &&
+      reviewSnapshot.snapshot_version === OPERATIONAL_ANCHOR_REVIEW_SNAPSHOT_VERSION_V2 &&
+      routeIdentitySnapshotFile !== null &&
+      routeIdentitySnapshot !== null
+        ? yield* validateOperationalAnchorRetirementClosure({
+            manifest,
+            snapshot: reviewSnapshot,
+            rows,
+            routeIdentitySnapshot,
+            routeIdentitySnapshotFile,
+            releaseDirectory,
+            canonicalReleaseDirectory,
+          })
+        : null;
     const artifact = yield* buildImportArtifact({
       manifest,
       manifestSha256: actualManifestSha256,
@@ -1804,6 +2687,7 @@ export const importMtaWikiOperationalAnchors = Effect.fn("importMtaWikiOperation
       summaryFile,
       reviewDecisionFile,
       reviewSnapshot,
+      retirementClosure,
       producerSummary,
       rows,
     });

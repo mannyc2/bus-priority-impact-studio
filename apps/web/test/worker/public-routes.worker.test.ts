@@ -8,7 +8,7 @@ import {
   RouteProfileResponseSchema,
   RouteScorecardSchema,
 } from "@bp/domain/routes";
-import { StudioRouteIndex2ResponseSchema } from "@bp/domain/studio/snapshots";
+import { StudioRouteIndex3ResponseSchema } from "@bp/domain/studio/snapshots";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Env } from "../../src/worker/index.js";
 import worker from "../../src/worker/index.js";
@@ -377,17 +377,17 @@ describe("Worker public route API smoke", () => {
       expect(routes.routes).toHaveLength(1);
 
       const studioRoutesResponse = await SELF.fetch(
-        new Request("https://example.test/api/v1/studio/routes?schema=2", {
+        new Request("https://example.test/api/v1/studio/routes?schema=3", {
           headers: cookie === null ? {} : { Cookie: cookie },
         }),
       );
       const studioRoutes = decodeSchemaStrict(
-        StudioRouteIndex2ResponseSchema,
+        StudioRouteIndex3ResponseSchema,
         await studioRoutesResponse.json(),
       );
 
       expect(studioRoutesResponse.status).toBe(200);
-      expect(studioRoutes.schemaVersion).toBe(2);
+      expect(studioRoutes.schemaVersion).toBe(3);
     }
   });
 

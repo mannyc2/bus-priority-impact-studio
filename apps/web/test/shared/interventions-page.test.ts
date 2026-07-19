@@ -13,8 +13,8 @@ import type {
   StudioInterventionCorpus,
   StudioRoute,
   StudioRouteEvidenceBundle,
-  StudioRouteIndex2Response,
-  StudioRouteIndex2Row,
+  StudioRouteIndex3Response,
+  StudioRouteIndex3Row,
 } from "../../src/studio/api-contract";
 import {
   InterventionsPage,
@@ -244,14 +244,26 @@ const corpus = {
 function routeIndexRow(input: {
   routeId: string;
   slug: string;
-  projectionRefs?: StudioRouteIndex2Row["projectionRefs"];
-}): StudioRouteIndex2Row {
+  projectionRefs?: StudioRouteIndex3Row["projectionRefs"];
+}): StudioRouteIndex3Row {
+  const sbs = input.routeId.endsWith("+");
+  const displayLabel = sbs ? input.routeId.replace("+", " SBS") : input.routeId;
   return {
     releaseId: "studio/v2",
     baselineMonth: "2026-03",
     routeId: input.routeId,
     slug: input.slug,
-    label: input.routeId.replace("+", " SBS"),
+    label: displayLabel,
+    routeSchemaVersion: 2,
+    routeFamilyId: sbs ? input.routeId.slice(0, -1) : input.routeId,
+    displayLabel,
+    officialLongName: null,
+    designationLiterals: sbs
+      ? ["route_type:SBS", "trip_type:14"]
+      : ["route_type:Local", "trip_type:1"],
+    serviceModes: sbs ? ["sbs"] : ["local"],
+    routeTypes: sbs ? ["SBS"] : ["Local"],
+    tripTypes: sbs ? ["14"] : ["1"],
     longName: null,
     borough: "Manhattan",
     routeFamily: "local",
@@ -277,7 +289,7 @@ function routeIndexRow(input: {
 describe("interventions page evidence aggregation", () => {
   test("limits global evidence fetches to routes with timeline projections", () => {
     const routeIndex = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       generatedAt: "2026-06-10T00:00:00.000Z",
       releaseId: "studio/v2",
       baselineMonth: "2026-03",
@@ -306,7 +318,7 @@ describe("interventions page evidence aggregation", () => {
         confidence: "medium",
         caveats: [],
       },
-    } satisfies StudioRouteIndex2Response;
+    } satisfies StudioRouteIndex3Response;
 
     expect(timelineEvidenceRouteSlugs(routeIndex)).toEqual(["m15-sbs"]);
   });
@@ -348,6 +360,38 @@ describe("interventionRows", () => {
     ]);
     expect(rows.find((row) => row.key === "corpus:corpus-b41")?.routes[0]?.slug).toBe("b41");
     expect(rows.find((row) => row.key === "corpus:corpus-network")?.routes).toEqual([]);
+  });
+
+  test("joins corpus records by exact case-sensitive service identity without route-family collapse", () => {
+    const template = corpus.records[1];
+    if (template === undefined) throw new Error("corpus fixture needs a record template");
+    const exactCorpus = {
+      ...corpus,
+      records: [
+        {
+          ...template,
+          recordId: "corpus-b44-plus",
+          routes: ["B44+"],
+          title: "B44+ exact service intervention",
+        },
+        {
+          ...template,
+          recordId: "corpus-b44-label-only",
+          routes: ["B44-SBS"],
+          title: "B44 display-label-only intervention",
+        },
+      ],
+    } satisfies StudioInterventionCorpus;
+    const exactRoutes = [
+      makeRoute({ slug: "b44", label: "B44", borough: "Brooklyn" }),
+      makeRoute({ slug: "b44-sbs", label: "B44 SBS", borough: "Brooklyn" }),
+    ];
+
+    const rows = interventionRows(exactRoutes, [], exactCorpus);
+    expect(rows.find((row) => row.key === "corpus:corpus-b44-plus")?.routes).toMatchObject([
+      { routeId: "B44+", slug: "b44-sbs" },
+    ]);
+    expect(rows.find((row) => row.key === "corpus:corpus-b44-label-only")?.routes).toEqual([]);
   });
 });
 

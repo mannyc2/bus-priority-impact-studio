@@ -9,6 +9,8 @@ import {
   studioRouteEvidenceBundleJsonSchema,
   studioRouteHistoryResponseJsonSchema,
   studioRouteHourlyProfileResponseJsonSchema,
+  studioRouteIndex2ResponseJsonSchema,
+  studioRouteIndex3ResponseJsonSchema,
   studioRouteSectionsResponseJsonSchema,
   studioRouteSpeedHistoryResponseJsonSchema,
   studioRoutesResponseJsonSchema,
@@ -63,6 +65,14 @@ const monthQueryParameter = {
   required: false,
   schema: { type: "string", pattern: "^\\d{4}-\\d{2}$" },
   description: "Optional YYYY-MM serving month.",
+};
+const studioRoutesSchemaQueryParameter = {
+  name: "schema",
+  in: "query" as const,
+  required: false,
+  schema: { type: "integer", enum: [2, 3] },
+  description:
+    "Use 3 for strict exact route identity, 2 for the legacy addressability index, or omit for route cards.",
 };
 
 function jsonResponse(description: string, schema: unknown) {
@@ -203,7 +213,14 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
       operationId: "getStudioRoutes",
       summary: "List Studio route projections.",
       tags: ["Studio"],
-      responseSchema: studioRoutesResponseJsonSchema,
+      parameters: [studioRoutesSchemaQueryParameter],
+      responseSchema: {
+        oneOf: [
+          studioRoutesResponseJsonSchema,
+          studioRouteIndex2ResponseJsonSchema,
+          studioRouteIndex3ResponseJsonSchema,
+        ],
+      },
     }),
   },
   "/api/v1/studio/snapshot": {
