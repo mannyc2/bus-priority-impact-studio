@@ -37,13 +37,6 @@ const PortableRepoRelativePathSchema = Schema.String.check(
   ),
 );
 
-const GENERATOR_SOURCE_RELATIVE_PATHS = [
-  "packages/domain/src/studio/route-presentation.ts",
-  "packages/domain/src/studio/routes/index.ts",
-  "tools/pipeline-v2/src/commands/studio/build-mta-wiki-route-fixture.ts",
-  "tools/pipeline-v2/src/lib/mta-wiki-route-identities.ts",
-] as const;
-
 const COMPATIBILITY_CAVEAT =
   "Deterministic temporary route-universe fixture derived from the pinned rc24 route identity snapshot; no performance, approval, publication, or deployment claim.";
 const COMPATIBILITY_TEXT =
@@ -203,26 +196,32 @@ export async function verifyMtaWikiRouteFixtureGeneratorCommit(commit: string): 
   if (resolvedCommitResult.exitCode !== 0 || resolvedCommit !== commit) {
     throw new Error(`generatorCommit does not resolve to the exact supplied commit: ${commit}`);
   }
-  const ancestor = await runGit(["merge-base", "--is-ancestor", resolvedCommit, "HEAD"]);
-  if (ancestor.exitCode !== 0) {
-    throw new Error(
-      `generatorCommit must be a commit reachable from current HEAD: ${ancestor.stderr.trim()}`,
-    );
+  const headResult = await runGit(["rev-parse", "--verify", "HEAD^{commit}"]);
+  if (headResult.exitCode !== 0) {
+    throw new Error(`current HEAD is not a commit: ${headResult.stderr.trim()}`);
   }
-  for (const sourcePath of GENERATOR_SOURCE_RELATIVE_PATHS) {
-    const committedSource = await runGit(["show", `${resolvedCommit}:${sourcePath}`]);
-    if (committedSource.exitCode !== 0) {
-      throw new Error(
-        `generatorCommit does not contain ${sourcePath}: ${committedSource.stderr.trim()}`,
-      );
-    }
-    const currentSource = new Uint8Array(await readFile(resolve(repoRoot, sourcePath)));
-    if (
-      committedSource.stdout.length !== currentSource.length ||
-      !currentSource.every((byte, index) => byte === committedSource.stdout[index])
-    ) {
-      throw new Error(`generatorCommit does not contain the current bytes of ${sourcePath}`);
-    }
+  const headCommit = new TextDecoder().decode(headResult.stdout).trim();
+  const statusResult = await runGit(["status", "--porcelain=v1", "--untracked-files=no"]);
+  if (statusResult.exitCode !== 0) {
+    throw new Error(`cannot verify tracked worktree state: ${statusResult.stderr.trim()}`);
+  }
+  assertMtaWikiRouteFixtureGeneratorGitState({
+    generatorCommit: resolvedCommit,
+    headCommit,
+    trackedStatus: new TextDecoder().decode(statusResult.stdout),
+  });
+}
+
+export function assertMtaWikiRouteFixtureGeneratorGitState(input: {
+  generatorCommit: string;
+  headCommit: string;
+  trackedStatus: string;
+}): void {
+  if (input.generatorCommit !== input.headCommit) {
+    throw new Error("generatorCommit must exactly equal current HEAD");
+  }
+  if (input.trackedStatus.trim().length !== 0) {
+    throw new Error("fixture generation requires a clean tracked index and worktree");
   }
 }
 

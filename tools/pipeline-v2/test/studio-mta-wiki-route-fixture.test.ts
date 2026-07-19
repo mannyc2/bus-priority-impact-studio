@@ -5,6 +5,7 @@ import { join, relative } from "node:path";
 import { decodeStrict } from "@bp/domain/decode";
 import {
   assertMtaWikiRouteFixtureDestinationSafety,
+  assertMtaWikiRouteFixtureGeneratorGitState,
   buildMtaWikiRouteFixtureArtifact,
   MtaWikiRouteFixtureReceiptSchema,
   verifyLegacyRouteArtifactContrast,
@@ -301,6 +302,30 @@ describe("MTA Wiki route compatibility fixture", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+
+  test("requires the supplied generator commit to be exact HEAD with no tracked changes", () => {
+    expect(() =>
+      assertMtaWikiRouteFixtureGeneratorGitState({
+        generatorCommit: fixedCommit,
+        headCommit: fixedCommit,
+        trackedStatus: "",
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertMtaWikiRouteFixtureGeneratorGitState({
+        generatorCommit: fixedCommit,
+        headCommit: "c".repeat(40),
+        trackedStatus: "",
+      }),
+    ).toThrow("must exactly equal current HEAD");
+    expect(() =>
+      assertMtaWikiRouteFixtureGeneratorGitState({
+        generatorCommit: fixedCommit,
+        headCommit: fixedCommit,
+        trackedStatus: " M tools/pipeline-v2/src/lib/mta-wiki-route-identities.ts\n",
+      }),
+    ).toThrow("requires a clean tracked index and worktree");
   });
 
   test("stops on catalog parity or official-label disagreement", () => {
