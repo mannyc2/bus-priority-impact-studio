@@ -25,5 +25,7 @@ describe("SectionCard", () => {
       createElement(SectionCard, { title: "T", right: "RIGHT-SLOT", children: "x" }),
     );
     expect(html).toContain("RIGHT-SLOT");
+    expect(html).toContain("max-md:flex-col");
+    expect(html).toContain("max-md:w-full");
   });
 });

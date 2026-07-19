@@ -636,34 +636,6 @@ function routeDelayEvidenceNote(
   return `Current all-day, ${exposure.coverage.start}–${exposure.coverage.end}; ${exposure.segmentCount} observed timepoint segments; average-service-day route-hourly ridership denominator. It colors nothing and controls no rank.`;
 }
 
-function RouteFactProvenance({ state }: { state: RouteFactEvidenceState }) {
-  if (state.status !== "available") {
-    return (
-      <p className="m-0 mt-2 text-[10.5px] leading-normal text-[var(--bp-color-ink-55)]">
-        Route-level ACE/TSP provenance unavailable: {routeFactUnavailableReason(state)}
-      </p>
-    );
-  }
-  const { ace, tsp } = state.fact.provenance;
-  const laneLine =
-    state.fact.provenance.lane.status === "available"
-      ? `Bus-lane proximity proxy ${state.fact.provenance.lane.valuePct ?? 0}%; route-shape proximity, not exact mapped coverage`
-      : `Bus-lane proximity unavailable: ${state.fact.provenance.lane.unavailableReason ?? "source unavailable"}`;
-  const aceLine =
-    ace.sourceStatus === "available"
-      ? `ACE ${ace.status}, route-month, ${ace.sourceAsOf ?? "source date unavailable"}`
-      : `ACE unavailable: ${ace.unavailableReason ?? "source date unavailable"}`;
-  const tspSnapshot = tsp.sourceId === "nyc_dot_tsp_status_2017" ? ", 2017 status snapshot" : "";
-  const tspLine = `TSP ${tsp.status}, route/corridor${tspSnapshot}, ${tsp.sourceDate ?? "source date unavailable"}`;
-  return (
-    <div className="mt-2 space-y-0.5 text-[10.5px] leading-normal text-[var(--bp-color-ink-55)]">
-      <p className="m-0">{laneLine}</p>
-      <p className="m-0">{aceLine}</p>
-      <p className="m-0">{tspLine}</p>
-    </div>
-  );
-}
-
 function PeriodControls({
   history,
   month,
@@ -812,7 +784,7 @@ function SegmentReadout({
 }) {
   const [copied, setCopied] = useState(false);
   const active = hovered ?? pinned;
-  const isPinned = active !== null && active.id === pinned?.id && hovered === null;
+  const isPinned = active !== null && active.id === pinned?.id;
   const totalRiderHours = segments.reduce((sum, segment) => sum + segment.riderHours, 0);
   const delayEvidenceAvailable =
     routeFact.status === "available" && routeFact.fact.delayExposure.status === "available";
@@ -837,7 +809,7 @@ function SegmentReadout({
       : "Current segment; stable history/share link unavailable."
     : active !== null
       ? "Previewing — click to pin."
-      : "Pin a segment for its month-by-month speed history.";
+      : "Pin a segment for its 36-month speed history.";
   const contextLine =
     active === null
       ? `${segments.length} timepoint segments, all directions`
@@ -909,8 +881,6 @@ function SegmentReadout({
       <div className="mt-2 min-h-[17px] text-[11px] text-[var(--bp-color-ink-55)]">
         {contextLine}
       </div>
-      <RouteFactProvenance state={routeFact} />
-
       <div className="mt-3 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-40)]">
         Severity by hour{historicalActive ? " — current" : ""}
       </div>

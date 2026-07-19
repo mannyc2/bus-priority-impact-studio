@@ -13,7 +13,7 @@ import {
   resetMapLibreLoader,
 } from "@/components/route/load-maplibre";
 import { type MapRuntimeMap, startMapLibreRuntime } from "@/components/route/maplibre-runtime";
-import type { RouteGeoContext } from "@/components/route/route-geo-map";
+import { interactiveRouteSegmentId, type RouteGeoContext } from "@/components/route/route-geo-map";
 import type { StudioRoute, StudioSegment } from "@/studio/api-contract";
 import { boundsOf, MAP_COLORS, mapBaseStyle, NYC_MAP_BOUNDS, speedToColor } from "./maplibre-style";
 import { BUS_LANE_COLOR } from "./network-map-model";
@@ -253,6 +253,8 @@ export function RouteMapLibreMap({
   onSelectRef.current = onSegmentSelect;
   const setHoverRef = useRef(setHoveredSegmentId);
   setHoverRef.current = setHoveredSegmentId;
+  const activeDirectionRef = useRef(activeDirection);
+  activeDirectionRef.current = activeDirection;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -263,10 +265,11 @@ export function RouteMapLibreMap({
     }
     const onMouseMove = (event: MapLibreMapLayerMouseEvent) => {
       const map = mapRef.current;
-      const feature = event.features?.[0];
-      const properties = feature?.properties as { studioSegmentId?: unknown } | undefined;
-      const segmentId = properties?.studioSegmentId;
-      if (map !== null && typeof segmentId === "string") {
+      const segmentId = interactiveRouteSegmentId(
+        event.features as Parameters<typeof interactiveRouteSegmentId>[0],
+        activeDirectionRef.current,
+      );
+      if (map !== null && segmentId !== null) {
         map.getCanvas().style.cursor = "pointer";
         setHoverRef.current(segmentId);
       }
@@ -277,10 +280,11 @@ export function RouteMapLibreMap({
       setHoverRef.current(null);
     };
     const onClick = (event: MapLibreMapLayerMouseEvent) => {
-      const feature = event.features?.[0];
-      const properties = feature?.properties as { studioSegmentId?: unknown } | undefined;
-      const segmentId = properties?.studioSegmentId;
-      if (typeof segmentId === "string") onSelectRef.current(segmentId);
+      const segmentId = interactiveRouteSegmentId(
+        event.features as Parameters<typeof interactiveRouteSegmentId>[0],
+        activeDirectionRef.current,
+      );
+      if (segmentId !== null) onSelectRef.current(segmentId);
     };
 
     const controller = startMapLibreRuntime({

@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { MapRouteSegmentFeature } from "@bp/domain/maps";
-import { geoSpeedColor, routeGeoMapModel } from "@/components/route/route-geo-map";
+import {
+  geoSpeedColor,
+  interactiveRouteSegmentId,
+  routeGeoMapModel,
+} from "@/components/route/route-geo-map";
 
 const BOX = { width: 1040, height: 420, padding: 44 };
 
@@ -136,5 +140,22 @@ describe("geoSpeedColor", () => {
     expect(geoSpeedColor(5.5)).toBe("var(--bp-color-warn)");
     expect(geoSpeedColor(8)).toBe("var(--bp-color-good)");
     expect(geoSpeedColor(null)).toBe("var(--bp-color-ink-20)");
+  });
+});
+
+describe("interactiveRouteSegmentId", () => {
+  const overlapping = [
+    { properties: { studioSegmentId: "south", direction: "SB" } },
+    { properties: { studioSegmentId: "north", direction: "NB" } },
+  ];
+
+  test("uses rendered order when every direction is active", () => {
+    expect(interactiveRouteSegmentId(overlapping, "all")).toBe("south");
+  });
+
+  test("uses the direction filter to disambiguate overlapping route lines", () => {
+    expect(interactiveRouteSegmentId(overlapping, "NB")).toBe("north");
+    expect(interactiveRouteSegmentId(overlapping, "SB")).toBe("south");
+    expect(interactiveRouteSegmentId(overlapping, "EB")).toBeNull();
   });
 });

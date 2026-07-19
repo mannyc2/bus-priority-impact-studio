@@ -44,6 +44,31 @@ export type RouteGeoMapModel = {
   slowest: (RouteGeoLabelPoint & { speedMph: number }) | null;
 };
 
+type InteractiveRouteFeature = {
+  properties?: {
+    studioSegmentId?: unknown;
+    direction?: unknown;
+  };
+};
+
+/** Pick the top rendered hit in the active direction. Opposite-direction
+ * geometries commonly overlap exactly, so the direction filter must also
+ * disambiguate pointer/touch selection rather than merely dim paint. */
+export function interactiveRouteSegmentId(
+  features: readonly InteractiveRouteFeature[] | undefined,
+  activeDirection: "all" | "NB" | "SB" | "EB" | "WB",
+): string | null {
+  const candidates =
+    activeDirection === "all"
+      ? (features ?? [])
+      : (features ?? []).filter((feature) => feature.properties?.direction === activeDirection);
+  for (const feature of candidates) {
+    const segmentId = feature.properties?.studioSegmentId;
+    if (typeof segmentId === "string") return segmentId;
+  }
+  return null;
+}
+
 function coordKey(coordinate: readonly [number, number]): string {
   return `${coordinate[0].toFixed(5)},${coordinate[1].toFixed(5)}`;
 }
