@@ -119,6 +119,12 @@ describe("study display helpers", () => {
       studies: [
         indexRow(),
         indexRow({ eventKey: "study-event-m79", routeId: "M79+", implementationMonth: "2024-09" }),
+        indexRow({ eventKey: "study-event-b44", routeId: "B44", implementationMonth: "2024-10" }),
+        indexRow({
+          eventKey: "study-event-b44-plus",
+          routeId: "B44+",
+          implementationMonth: "2024-10",
+        }),
         indexRow({ eventKey: "dupe-a", routeId: "Q44", implementationMonth: "2024-11" }),
         indexRow({ eventKey: "dupe-b", routeId: "Q44", implementationMonth: "2024-11" }),
       ],
@@ -126,9 +132,14 @@ describe("study display helpers", () => {
     expect(studyIndexRowForEventId("ace:B41:ACE:2024-09-16", map)?.eventKey).toBe(
       "study-event-abc",
     );
-    // Registry ids and index rows normalize the same way (M79+ ↔ M79).
     expect(studyIndexRowForEventId("ace:M79+:ACE:2024-09-29", map)?.eventKey).toBe(
       "study-event-m79",
+    );
+    expect(studyIndexRowForEventId("ace:B44:ACE:2024-10-01", map)?.eventKey).toBe(
+      "study-event-b44",
+    );
+    expect(studyIndexRowForEventId("ace:B44+:ACE:2024-10-01", map)?.eventKey).toBe(
+      "study-event-b44-plus",
     );
     expect(studyIndexRowForEventId("ace:Q44:ACE:2024-11-01", map)).toBeUndefined();
     expect(studyIndexRowForEventId(undefined, map)).toBeUndefined();

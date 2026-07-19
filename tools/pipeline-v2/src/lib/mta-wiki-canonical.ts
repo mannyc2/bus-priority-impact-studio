@@ -154,9 +154,7 @@ async function readTextIfExists(path: string): Promise<string | null> {
   });
 }
 
-export async function readMtaWikiJsonlRecords(path: string): Promise<MtaWikiCanonicalRecord[]> {
-  const text = await readTextIfExists(path);
-  if (text === null) throw new Error(`mta-wiki canonical JSONL not found: ${path}`);
+export function parseMtaWikiJsonlRecords(text: string, path: string): MtaWikiCanonicalRecord[] {
   const records: MtaWikiCanonicalRecord[] = [];
   let lineNumber = 0;
   for (const line of text.split(/\r?\n/u)) {
@@ -172,6 +170,12 @@ export async function readMtaWikiJsonlRecords(path: string): Promise<MtaWikiCano
     records.push(canonicalRecordValue(parsed, path, lineNumber));
   }
   return records;
+}
+
+export async function readMtaWikiJsonlRecords(path: string): Promise<MtaWikiCanonicalRecord[]> {
+  const text = await readTextIfExists(path);
+  if (text === null) throw new Error(`mta-wiki canonical JSONL not found: ${path}`);
+  return parseMtaWikiJsonlRecords(text, path);
 }
 
 function routeAnchorValue(value: unknown, path: string, lineNumber: number): MtaWikiRouteAnchor {
@@ -232,6 +236,123 @@ export async function loadMtaWikiCanonicalCorpus(
       join(canonicalRoot, MTA_WIKI_CANONICAL_FILES.sourceGaps),
     ),
     routeAnchors: await readMtaWikiRouteAnchors(join(canonicalRoot, MTA_WIKI_ROUTE_ANCHORS_FILE)),
+  };
+}
+
+const VERIFIED_CANONICAL_FILES = {
+  sources: { fileName: "sources.jsonl", recordKind: "source" },
+  routes: { fileName: "routes.jsonl", recordKind: "route" },
+  projects: { fileName: "projects.jsonl", recordKind: "project" },
+  events: { fileName: "events.jsonl", recordKind: "event" },
+  metricClaims: { fileName: "metric_claims.jsonl", recordKind: "metric_claim" },
+  relations: { fileName: "relations.jsonl", recordKind: "relation" },
+  treatmentComponents: {
+    fileName: "treatment_components.jsonl",
+    recordKind: "treatment_component",
+  },
+  sourceGaps: { fileName: "source_gaps.jsonl", recordKind: "source_gap" },
+} as const;
+
+function canonicalStableJson(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    const encoded = JSON.stringify(value);
+    if (encoded === undefined) throw new Error("Canonical JSON cannot encode undefined");
+    return encoded;
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalStableJson).join(",")}]`;
+  return `{${Object.entries(value as Record<string, unknown>)
+    .toSorted(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalStableJson(entry)}`)
+    .join(",")}}`;
+}
+
+function decodeVerifiedCanonicalFile(input: {
+  bytes: Uint8Array;
+  path: string;
+  recordKind: string;
+  expectedCount: number | undefined;
+}): MtaWikiCanonicalRecord[] {
+  if (input.expectedCount === undefined) {
+    throw new Error(`MTA Wiki manifest is missing record count for ${input.recordKind}`);
+  }
+  let text: string;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(input.bytes);
+  } catch (cause) {
+    throw new Error(`${input.path}: invalid UTF-8: ${String(cause)}`);
+  }
+  if (text.length > 0 && (!text.endsWith("\n") || text.includes("\r") || text.includes("\n\n"))) {
+    throw new Error(`${input.path}: expected canonical LF-terminated JSONL bytes`);
+  }
+  if (text.length > 0) {
+    for (const [index, line] of text.slice(0, -1).split("\n").entries()) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(line);
+      } catch (cause) {
+        throw new Error(`${input.path}:${index + 1}: invalid canonical JSON: ${String(cause)}`);
+      }
+      if (canonicalStableJson(parsed) !== line) {
+        throw new Error(`${input.path}:${index + 1}: expected canonical stable JSON`);
+      }
+    }
+  }
+  const records = parseMtaWikiJsonlRecords(text, input.path);
+  if (records.length !== input.expectedCount) {
+    throw new Error(
+      `${input.path}: logical row count mismatch; expected ${input.expectedCount}, received ${records.length}`,
+    );
+  }
+  const wrongKind = records.find((record) => record.record_kind !== input.recordKind);
+  if (wrongKind !== undefined) {
+    throw new Error(
+      `${input.path}: record ${wrongKind.record_id} has kind ${wrongKind.record_kind}, expected ${input.recordKind}`,
+    );
+  }
+  return records;
+}
+
+export function loadMtaWikiCanonicalCorpusFromVerifiedRelease(input: {
+  root: string;
+  releaseDirectory: string;
+  wikiRelease: string;
+  files: Readonly<Record<string, Uint8Array>>;
+  recordCounts: Readonly<Record<string, number>>;
+  routeAnchors: MtaWikiRouteAnchor[];
+}): MtaWikiCanonicalCorpus {
+  const decoded = Object.fromEntries(
+    Object.entries(VERIFIED_CANONICAL_FILES).map(([key, descriptor]) => {
+      const bytes = input.files[descriptor.fileName];
+      if (bytes === undefined) {
+        throw new Error(`Missing verified MTA Wiki canonical bytes for ${descriptor.fileName}`);
+      }
+      return [
+        key,
+        decodeVerifiedCanonicalFile({
+          bytes,
+          path: join(input.releaseDirectory, descriptor.fileName),
+          recordKind: descriptor.recordKind,
+          expectedCount: input.recordCounts[descriptor.recordKind],
+        }),
+      ];
+    }),
+  ) as Pick<
+    MtaWikiCanonicalCorpus,
+    | "sources"
+    | "routes"
+    | "projects"
+    | "events"
+    | "metricClaims"
+    | "relations"
+    | "treatmentComponents"
+    | "sourceGaps"
+  >;
+  return {
+    root: input.root,
+    canonicalRoot: input.releaseDirectory,
+    wikiRelease: input.wikiRelease,
+    ...decoded,
+    routeAnchors: [...input.routeAnchors],
   };
 }
 

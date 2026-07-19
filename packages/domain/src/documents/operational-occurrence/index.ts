@@ -7,6 +7,8 @@ const NonNegativeIntegerSchema = Schema.Number.check(
 const PositiveIntegerSchema = Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0));
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
 const GitCommitSchema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{40}$/u));
+const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
+const SafeIdSchema = NonEmptyStringSchema.check(Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u));
 const StringCountSchema = Schema.Record(Schema.String, NonNegativeIntegerSchema);
 
 export const OperationalOccurrenceEvidenceRoleV1Schema = Schema.Literals([
@@ -313,12 +315,68 @@ export const OperationalOccurrenceReviewDecisionSchema = Schema.Struct({
 export type OperationalOccurrenceReviewDecision =
   typeof OperationalOccurrenceReviewDecisionSchema.Type;
 
-export const OperationalOccurrenceReviewSnapshotSchema = Schema.Struct({
+export const OperationalOccurrenceReviewSnapshotV1Schema = Schema.Struct({
   snapshot_version: Schema.Literal(1),
   decision_schema_version: Schema.Literal(1),
   decision_count: NonNegativeIntegerSchema,
   decisions: Schema.Array(OperationalOccurrenceReviewDecisionSchema),
 });
+
+export const OperationalProjectionReleaseArtifactSchema = Schema.Struct({
+  release_path: NonEmptyStringSchema,
+  bytes: NonNegativeIntegerSchema,
+  sha256: Sha256Schema,
+});
+
+export const OperationalProjectionRetirementBindingSchema = Schema.Struct({
+  route_record_id: SafeIdSchema,
+  route_binding_decision_id: SafeIdSchema,
+  route_binding_sha256: Sha256Schema,
+  dataset_id: Schema.Literals(["mta-nyct-bus", "mta-bus-company"]),
+  source_route_id: NonEmptyStringSchema,
+  gtfs_route_id: NonEmptyStringSchema,
+  projectable: Schema.Literal(false),
+  ineligibility_reasons: Schema.Array(NonEmptyStringSchema),
+});
+
+export const OperationalOccurrenceReviewRetirementProjectionSchema = Schema.Struct({
+  retirement_id: SafeIdSchema,
+  retirement_source: OperationalProjectionReleaseArtifactSchema,
+  accepted_by: NonEmptyStringSchema,
+  accepted_at: NonEmptyStringSchema,
+  rationale: NonEmptyStringSchema,
+  route_identity_snapshot_id: SafeIdSchema,
+  route_identity_snapshot_sha256: Sha256Schema,
+  binding: OperationalProjectionRetirementBindingSchema,
+  target: Schema.Struct({
+    review_contract: Schema.Literal("operational-occurrence-review-v1"),
+    decision_id: SafeIdSchema,
+    occurrence_id: SafeIdSchema,
+    founding_key: NonEmptyStringSchema,
+    pinned_gtfs_route_ids: Schema.Array(NonEmptyStringSchema),
+    projection_state: Schema.Literal("retired"),
+    reason_code: Schema.Literal("route_binding_nonprojectable"),
+    original_artifact: OperationalProjectionReleaseArtifactSchema,
+  }),
+});
+export type OperationalOccurrenceReviewRetirementProjection =
+  typeof OperationalOccurrenceReviewRetirementProjectionSchema.Type;
+
+export const OperationalOccurrenceReviewSnapshotV2Schema = Schema.Struct({
+  snapshot_version: Schema.Literal(2),
+  decision_schema_version: Schema.Literal(1),
+  source_decision_count: NonNegativeIntegerSchema,
+  decision_count: NonNegativeIntegerSchema,
+  decisions: Schema.Array(OperationalOccurrenceReviewDecisionSchema),
+  retirement_schema_version: Schema.Literal(1),
+  retirement_count: NonNegativeIntegerSchema,
+  retirements: Schema.Array(OperationalOccurrenceReviewRetirementProjectionSchema),
+});
+
+export const OperationalOccurrenceReviewSnapshotSchema = Schema.Union([
+  OperationalOccurrenceReviewSnapshotV1Schema,
+  OperationalOccurrenceReviewSnapshotV2Schema,
+]);
 export type OperationalOccurrenceReviewSnapshot =
   typeof OperationalOccurrenceReviewSnapshotSchema.Type;
 
@@ -537,9 +595,54 @@ export const MtaWikiOperationalOccurrenceImportArtifactV4Schema = Schema.Struct(
 export type MtaWikiOperationalOccurrenceImportArtifactV4 =
   typeof MtaWikiOperationalOccurrenceImportArtifactV4Schema.Type;
 
+export const MtaWikiOperationalOccurrenceImportArtifactV5Schema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.mta_wiki_operational_occurrences.v5"),
+  schemaVersion: Schema.Literal(5),
+  sourceRelease: Schema.Struct({
+    manifestVersion: Schema.Literal(5),
+    releaseId: Schema.String,
+    generatorCommit: Schema.String,
+    manifestPath: Schema.String,
+    manifestSha256: Sha256Schema,
+    operationalOccurrenceContractVersion: Schema.Literal(2),
+    operationalOccurrenceReviewDecisionContractVersion: Schema.Literals([1, 2]),
+    relationshipIntegrityBundleContractVersion: Schema.Literal(1),
+    routeIdentityContractVersion: Schema.Literal(1),
+    producerReviewStatus: Schema.Struct({
+      compatibility: Schema.Literal("compatible"),
+      promotionEligible: Schema.Literal(true),
+    }),
+    occurrences: OperationalOccurrenceImportedReleaseFileSchema,
+    summary: OperationalOccurrenceImportedReleaseFileSchema,
+    reviewDecisions: OperationalOccurrenceImportedReleaseFileSchema,
+    reviewDecisionCount: NonNegativeIntegerSchema,
+    reviewSourceDecisionCount: NonNegativeIntegerSchema,
+    reviewRetirementCount: NonNegativeIntegerSchema,
+    reviewRetirements: Schema.Array(OperationalOccurrenceReviewRetirementProjectionSchema),
+    routeIdentitySnapshot: OperationalOccurrenceImportedReleaseFileSchema,
+    relationshipIntegrity: OperationalOccurrenceRelationshipIntegritySchema,
+  }),
+  producerSummary: OperationalOccurrenceSummaryV2Schema,
+  summary: Schema.Struct({
+    sourceOccurrenceCount: NonNegativeIntegerSchema,
+    eligibleOccurrenceCount: NonNegativeIntegerSchema,
+    routeProjectionCount: NonNegativeIntegerSchema,
+    rejectedOccurrenceCount: NonNegativeIntegerSchema,
+    countsByRejectionReason: StringCountSchema,
+    singlePhaseOccurrenceCount: NonNegativeIntegerSchema,
+    relatedPhaseOccurrenceCount: NonNegativeIntegerSchema,
+    exactPhysicalScopeOccurrenceCount: NonNegativeIntegerSchema,
+  }),
+  occurrences: Schema.Array(OperationalOccurrenceRowV2Schema),
+  projectionRejections: Schema.Array(OperationalOccurrenceProjectionRejectionSchema),
+});
+export type MtaWikiOperationalOccurrenceImportArtifactV5 =
+  typeof MtaWikiOperationalOccurrenceImportArtifactV5Schema.Type;
+
 export const MtaWikiOperationalOccurrenceImportArtifactSchema = Schema.Union([
   MtaWikiOperationalOccurrenceImportArtifactV3Schema,
   MtaWikiOperationalOccurrenceImportArtifactV4Schema,
+  MtaWikiOperationalOccurrenceImportArtifactV5Schema,
 ]);
 export type MtaWikiOperationalOccurrenceImportArtifact =
   typeof MtaWikiOperationalOccurrenceImportArtifactSchema.Type;

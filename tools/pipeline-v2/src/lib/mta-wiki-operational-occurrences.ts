@@ -2,14 +2,18 @@ import {
   type MtaWikiOperationalOccurrenceImportArtifact,
   MtaWikiOperationalOccurrenceImportArtifactV3Schema,
   MtaWikiOperationalOccurrenceImportArtifactV4Schema,
+  MtaWikiOperationalOccurrenceImportArtifactV5Schema,
   type OperationalOccurrenceEvidenceBinding,
+  OperationalOccurrenceEvidenceBindingSchema,
   type OperationalOccurrenceEvidenceBindingV2,
   type OperationalOccurrenceReviewDecision,
   type OperationalOccurrenceReviewDecisionV1Rc22Inspection,
+  type OperationalOccurrenceReviewRetirementProjection,
   type OperationalOccurrenceReviewSnapshot,
   OperationalOccurrenceReviewSnapshotSchema,
   type OperationalOccurrenceReviewSnapshotV1Rc22Inspection,
   OperationalOccurrenceReviewSnapshotV1Rc22InspectionSchema,
+  OperationalOccurrenceReviewSnapshotV1Schema,
   type OperationalOccurrenceRow,
   type OperationalOccurrenceRowAny,
   OperationalOccurrenceRowSchema,
@@ -27,25 +31,57 @@ import {
   decodeMtaWikiReleaseUtf8,
   isSafeMtaWikiReleaseRelativePath,
   type MtaWikiReleaseVerificationError,
+  type ResolvedMtaWikiRelease,
   readMtaWikiReleaseBytes,
+  readMtaWikiReleaseQuarantineStatus,
   resolveMtaWikiRelease,
   safeMtaWikiReleaseFilePath,
   sha256Bytes,
   type VerifiedMtaWikiReleaseFile,
   verifyMtaWikiReleaseFile,
 } from "./mta-wiki-release.ts";
+import {
+  assertMtaWikiRouteIdentitySnapshotSelfIntegrity,
+  type MtaWikiRouteAnchorV1,
+  MtaWikiRouteAnchorV1Schema,
+  type MtaWikiRouteIdentitySnapshot,
+  MtaWikiRouteIdentitySnapshotSchema,
+  projectableGtfsRouteIdForRecord,
+  reconstructedRouteAnchors,
+} from "./mta-wiki-route-identities.ts";
 
 export type { MtaWikiOperationalOccurrenceImportArtifact } from "@bp/domain/documents/operational-occurrence";
 
 const COMMAND = "studio.import-mta-wiki-operational-occurrences";
 const MANIFEST_VERSION_V3 = 3;
 const MANIFEST_VERSION_V4 = 4;
+const MANIFEST_VERSION_V5 = 5;
 const OPERATIONAL_ANCHOR_CONTRACT_VERSION = 1;
 const OPERATIONAL_ANCHOR_REVIEW_CONTRACT_VERSION = 1;
 const OPERATIONAL_OCCURRENCE_CONTRACT_VERSION_V1 = 1;
 const OPERATIONAL_OCCURRENCE_CONTRACT_VERSION_V2 = 2;
 const OPERATIONAL_OCCURRENCE_REVIEW_CONTRACT_VERSION = 1;
+const OPERATIONAL_OCCURRENCE_REVIEW_CONTRACT_VERSION_V2 = 2;
 const RELATIONSHIP_INTEGRITY_BUNDLE_CONTRACT_VERSION = 1;
+const ROUTE_ANCHOR_CONTRACT_VERSION = 1;
+const ROUTE_IDENTITY_CONTRACT_VERSION = 1;
+
+function assertActiveOccurrenceRouteProjections(
+  rows: readonly OperationalOccurrenceRowV2[],
+  snapshot: MtaWikiRouteIdentitySnapshot,
+): void {
+  for (const row of rows) {
+    for (const route of row.routes) {
+      const expectedGtfsRouteId = projectableGtfsRouteIdForRecord(snapshot, route.route_record_id);
+      if (route.gtfs_route_id !== expectedGtfsRouteId) {
+        throw new Error(
+          `operational occurrence ${row.occurrence_id}: route ${route.route_record_id} ` +
+            `uses ${route.gtfs_route_id}, expected ${expectedGtfsRouteId}`,
+        );
+      }
+    }
+  }
+}
 const REVIEW_V1_EVIDENCE_ROLES = new Set([
   "bundle_analysis_family",
   "event_date",
@@ -307,7 +343,16 @@ const NonNegativeIntegerSchema = Schema.Number.check(
 );
 const PositiveIntegerSchema = Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0));
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
+const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
+const SafeIdSchema = NonEmptyStringSchema.check(Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u));
 const StringCountSchema = Schema.Record(Schema.String, NonNegativeIntegerSchema);
+
+function isUtcInstant(value: string): boolean {
+  return (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value) &&
+    !Number.isNaN(Date.parse(value))
+  );
+}
 
 const ReleaseFileSchema = Schema.Struct({
   bytes: NonNegativeIntegerSchema,
@@ -371,7 +416,144 @@ const ReleaseManifestV4Schema = Schema.Struct({
   }),
 });
 type ReleaseManifestV4 = typeof ReleaseManifestV4Schema.Type;
-type ReleaseManifest = ReleaseManifestV3 | ReleaseManifestV4;
+
+const ReleaseManifestV5Schema = Schema.Struct({
+  manifest_version: Schema.Literal(MANIFEST_VERSION_V5),
+  release_id: Schema.String,
+  generator_commit: Schema.String,
+  contract_versions: Schema.Struct({
+    operational_anchors: Schema.Literal(OPERATIONAL_ANCHOR_CONTRACT_VERSION),
+    operational_anchor_review_decisions: Schema.Literals([
+      OPERATIONAL_ANCHOR_REVIEW_CONTRACT_VERSION,
+      OPERATIONAL_OCCURRENCE_REVIEW_CONTRACT_VERSION_V2,
+    ]),
+    operational_occurrences: Schema.Literal(OPERATIONAL_OCCURRENCE_CONTRACT_VERSION_V2),
+    operational_occurrence_review_decisions: Schema.Literals([
+      OPERATIONAL_OCCURRENCE_REVIEW_CONTRACT_VERSION,
+      OPERATIONAL_OCCURRENCE_REVIEW_CONTRACT_VERSION_V2,
+    ]),
+    relationship_integrity_bundle: Schema.Literal(RELATIONSHIP_INTEGRITY_BUNDLE_CONTRACT_VERSION),
+    route_anchors: Schema.Literal(ROUTE_ANCHOR_CONTRACT_VERSION),
+    route_identity_snapshot: Schema.Literal(ROUTE_IDENTITY_CONTRACT_VERSION),
+  }),
+  record_counts: StringCountSchema,
+  files: Schema.Record(Schema.String, ReleaseFileSchema),
+  pointers: Schema.Struct({
+    operational_anchors: Schema.String,
+    operational_anchor_summary: Schema.String,
+    operational_anchor_review_decisions: Schema.String,
+    operational_occurrences: Schema.String,
+    operational_occurrence_summary: Schema.String,
+    operational_occurrence_review_decisions: Schema.String,
+    relationship_integrity_bundle: Schema.String,
+    route_anchors: Schema.Literal("route_anchors.jsonl"),
+    route_identity_snapshot: Schema.Literal("route_identity_snapshot.json"),
+    taxonomy: Schema.String,
+    quality_report: Schema.NullOr(Schema.String),
+  }),
+});
+type ReleaseManifestV5 = typeof ReleaseManifestV5Schema.Type;
+type ReleaseManifest = ReleaseManifestV3 | ReleaseManifestV4 | ReleaseManifestV5;
+
+const RetirementSourceArtifactSchema = Schema.Struct({
+  artifact_path: NonEmptyStringSchema,
+  bytes: NonNegativeIntegerSchema,
+  sha256: Sha256Schema,
+});
+
+const RetirementBindingSchema = Schema.Struct({
+  route_record_id: SafeIdSchema,
+  route_binding_decision_id: SafeIdSchema,
+  route_binding_sha256: Sha256Schema,
+  dataset_id: Schema.Literals(["mta-nyct-bus", "mta-bus-company"]),
+  source_route_id: NonEmptyStringSchema,
+  gtfs_route_id: NonEmptyStringSchema,
+  projectable: Schema.Literal(false),
+  ineligibility_reasons: Schema.Array(NonEmptyStringSchema),
+});
+
+const RetirementAnchorTargetSchema = Schema.Struct({
+  review_contract: Schema.Literal("operational-anchor-review-v1"),
+  decision_id: SafeIdSchema,
+  projection_state: Schema.Literal("retired"),
+  reason_code: Schema.Literal("route_binding_nonprojectable"),
+  original_artifact: RetirementSourceArtifactSchema,
+});
+
+const RetirementOccurrenceTargetSchema = Schema.Struct({
+  review_contract: Schema.Literal("operational-occurrence-review-v1"),
+  decision_id: SafeIdSchema,
+  occurrence_id: SafeIdSchema,
+  founding_key: NonEmptyStringSchema,
+  pinned_gtfs_route_ids: Schema.Array(NonEmptyStringSchema),
+  projection_state: Schema.Literal("retired"),
+  reason_code: Schema.Literal("route_binding_nonprojectable"),
+  original_artifact: RetirementSourceArtifactSchema,
+});
+
+const OperationalProjectionRetirementSourceSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  contract_id: Schema.Literal("operational-review-projection-retirement-v1"),
+  retirement_id: SafeIdSchema,
+  state: Schema.Literal("accepted"),
+  accepted_by: NonEmptyStringSchema,
+  accepted_at: NonEmptyStringSchema,
+  rationale: NonEmptyStringSchema,
+  route_identity_snapshot_id: SafeIdSchema,
+  route_identity_snapshot_sha256: Sha256Schema,
+  binding: RetirementBindingSchema,
+  anchor_review_decisions: Schema.Array(RetirementAnchorTargetSchema),
+  occurrence_review_decisions: Schema.Array(RetirementOccurrenceTargetSchema),
+});
+type OperationalProjectionRetirementSource =
+  typeof OperationalProjectionRetirementSourceSchema.Type;
+
+const OperationalOccurrenceAcceptedTreatmentMemberSchema = Schema.Struct({
+  treatment_record_id: Schema.String,
+  treatment_family: Schema.String,
+  evidence_bindings: Schema.Array(OperationalOccurrenceEvidenceBindingSchema),
+});
+
+const OperationalOccurrenceAcceptedTreatmentSchema = Schema.Union([
+  Schema.Struct({
+    kind: Schema.Literal("atomic"),
+    member: OperationalOccurrenceAcceptedTreatmentMemberSchema,
+  }),
+  Schema.Struct({
+    kind: Schema.Literal("bundle"),
+    analysis_family: Schema.String,
+    analysis_family_evidence_bindings: Schema.Array(OperationalOccurrenceEvidenceBindingSchema),
+    members: Schema.Array(OperationalOccurrenceAcceptedTreatmentMemberSchema),
+  }),
+]);
+
+const OperationalOccurrenceAcceptedDecisionSchema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  decision_id: Schema.String,
+  review_state: Schema.Literal("approved"),
+  accepted_at: Schema.String,
+  reviewer: Schema.String,
+  rationale: Schema.String,
+  occurrence_id: Schema.String,
+  founding_key: Schema.String,
+  observation_event_record_ids: Schema.Array(Schema.String),
+  observation_relation_record_ids: Schema.Array(Schema.String),
+  resolved_status: Schema.Literal("realized"),
+  resolved_onset: Schema.Struct({
+    date: Schema.String,
+    precision: Schema.Literals(["day", "month"]),
+    evidence_bindings: Schema.Array(OperationalOccurrenceEvidenceBindingSchema),
+  }),
+  routes: Schema.Array(
+    Schema.Struct({
+      route_record_id: Schema.String,
+      gtfs_route_id: Schema.String,
+      evidence_bindings: Schema.Array(OperationalOccurrenceEvidenceBindingSchema),
+    }),
+  ),
+  treatment_scope_kind: Schema.Literals(["atomic", "bundle"]),
+  treatment: OperationalOccurrenceAcceptedTreatmentSchema,
+});
 
 const RelationshipBundleArtifactSchema = Schema.Struct({
   role: Schema.String,
@@ -660,12 +842,27 @@ const RelationshipAuditFilePinSchema = Schema.Struct({
 });
 type RelationshipAuditFilePin = typeof RelationshipAuditFilePinSchema.Type;
 
+const RelationshipAuditRetirementPinSchema = Schema.Struct({
+  retirement_id: SafeIdSchema,
+  accepted_by: NonEmptyStringSchema,
+  accepted_at: NonEmptyStringSchema,
+  path: Schema.String,
+  bytes: NonNegativeIntegerSchema,
+  sha256: Sha256Schema,
+  row_count: Schema.optionalKey(NonNegativeIntegerSchema),
+});
+type RelationshipAuditRetirementPin = typeof RelationshipAuditRetirementPinSchema.Type;
+const RelationshipAuditInputPinSchema = Schema.Union([
+  RelationshipAuditRetirementPinSchema,
+  RelationshipAuditFilePinSchema,
+]);
+
 const OccurrenceTreatmentPhysicalityManifestSchema = Schema.Struct({
   schema_version: Schema.Literal(1),
   contract_id: Schema.Literal("occurrence-treatment-physicality-v1"),
   release_id: Schema.String,
   review_stage: Schema.Literal("final_post_semantic_release"),
-  input_pins: Schema.Array(RelationshipAuditFilePinSchema),
+  input_pins: Schema.Array(RelationshipAuditInputPinSchema),
   files: Schema.Record(Schema.String, RelationshipAuditFilePinSchema),
   audit_fingerprint: Sha256Schema,
 });
@@ -702,7 +899,8 @@ const OccurrenceTreatmentPhysicalitySummarySchema = Schema.Struct({
   hard_mode_ready: Schema.Literal(true),
   release_id: Schema.String,
   review_stage: Schema.Literal("final_post_semantic_release"),
-  release_manifest_sha256: Sha256Schema,
+  release_manifest_sha256: Schema.optionalKey(Sha256Schema),
+  release_input_fingerprint: Schema.optionalKey(Sha256Schema),
   review_ledger_sha256: Sha256Schema,
   policy_sha256: Sha256Schema,
   contract_sha256: Sha256Schema,
@@ -724,7 +922,7 @@ const OperationalOccurrencePhaseAuditManifestSchema = Schema.Struct({
   generated_by: Schema.String,
   route_anchor_release: Schema.Struct({
     release_id: Schema.String,
-    manifest: RelationshipAuditFilePinSchema,
+    manifest: Schema.optionalKey(RelationshipAuditFilePinSchema),
     route_anchors: RelationshipAuditFilePinSchema,
     operational_occurrences: RelationshipAuditFilePinSchema,
   }),
@@ -886,6 +1084,10 @@ function canonicalJson(value: unknown): string {
   return `{${entries.map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`).join(",")}}`;
 }
 
+function canonicalJsonl(rows: readonly unknown[]): string {
+  return rows.length === 0 ? "" : `${rows.map(canonicalJson).join("\n")}\n`;
+}
+
 function uniqueSorted(values: readonly string[]): string[] {
   return [...new Set(values)].toSorted((left, right) => left.localeCompare(right));
 }
@@ -957,6 +1159,9 @@ function relationshipTransitionFingerprint(role: string, text: string): string |
       delete value["graph_manifest_sha256"];
       delete value["graph_summary_sha256"];
       delete value["enforcement_mode"];
+      // Producer v9 adds only the independently pinned Plan 035 route-reference tables. Retain
+      // the reviewed v8 transition fingerprint while every raw v9 byte remains manifest-pinned.
+      if (value["canonical_db_version"] === 9) value["canonical_db_version"] = 8;
     } else if (role === "linkage_materialization_summary") {
       delete value["canonical_db_sha256"];
     } else {
@@ -1572,6 +1777,54 @@ const decodeOccurrenceRows = Effect.fn("MtaWikiOperationalOccurrences.decodeRows
   return rows.toSorted((left, right) => left.occurrence_id.localeCompare(right.occurrence_id));
 });
 
+const decodeRouteAnchors = Effect.fn("MtaWikiOperationalOccurrences.decodeRouteAnchors")(function* (
+  file: VerifiedMtaWikiReleaseFile,
+) {
+  const text = yield* decodeMtaWikiReleaseUtf8(file.bytes, {
+    operation: "decodeRouteAnchors",
+    path: file.path,
+  }).pipe(Effect.mapError(fromReleaseError));
+  if (text.length === 0) return [];
+  const lines = text.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  const rows: MtaWikiRouteAnchorV1[] = [];
+  for (const [index, line] of lines.entries()) {
+    const lineNumber = index + 1;
+    if (line.length === 0) {
+      return yield* importError({
+        code: "invalid_json",
+        operation: "decodeRouteAnchors",
+        path: file.path,
+        line: lineNumber,
+        detail: "blank JSONL records are not allowed",
+      });
+    }
+    const value = yield* parseJson(line, {
+      operation: "decodeRouteAnchors",
+      path: file.path,
+      line: lineNumber,
+    });
+    const row = yield* decodeStrict({
+      schema: MtaWikiRouteAnchorV1Schema,
+      value,
+      operation: "decodeRouteAnchors",
+      path: file.path,
+      line: lineNumber,
+    });
+    if (line !== canonicalJson(row)) {
+      return yield* importError({
+        code: "semantic_mismatch",
+        operation: "decodeRouteAnchors",
+        path: file.path,
+        line: lineNumber,
+        detail: "route anchors must use canonical stable JSONL bytes",
+      });
+    }
+    rows.push(row);
+  }
+  return rows;
+});
+
 const decodeOccurrenceRowsV2 = Effect.fn("MtaWikiOperationalOccurrences.decodeRowsV2")(function* (
   file: VerifiedMtaWikiReleaseFile,
 ) {
@@ -1659,6 +1912,399 @@ const decodeJsonFile = Effect.fn("MtaWikiOperationalOccurrences.decodeJsonFile")
   }).pipe(Effect.mapError(fromReleaseError));
   const value = yield* parseJson(text, { operation, path: file.path });
   return yield* decodeStrict({ schema, value, operation, path: file.path });
+});
+
+const decodeCanonicalJsonFile = Effect.fn("MtaWikiOperationalOccurrences.decodeCanonicalJsonFile")(
+  function* <S extends Schema.Constraint>(
+    file: VerifiedMtaWikiReleaseFile,
+    schema: S,
+    operation: string,
+  ) {
+    const text = yield* decodeMtaWikiReleaseUtf8(file.bytes, {
+      operation,
+      path: file.path,
+    }).pipe(Effect.mapError(fromReleaseError));
+    const value = yield* parseJson(text, { operation, path: file.path });
+    const decoded = yield* decodeStrict({ schema, value, operation, path: file.path });
+    if (text !== `${canonicalJson(decoded)}\n`) {
+      return yield* importError({
+        code: "semantic_mismatch",
+        operation,
+        path: file.path,
+        detail: "expected canonical stable JSON bytes followed by LF",
+      });
+    }
+    return decoded;
+  },
+);
+
+const verifyManifestV5File = Effect.fn("MtaWikiOperationalOccurrences.verifyManifestV5File")(
+  function* (input: {
+    manifest: ReleaseManifestV5;
+    resolved: ResolvedMtaWikiRelease;
+    pointer: string;
+    operation: string;
+    expected?: { bytes: number; sha256: string } | undefined;
+  }) {
+    if (!isSafeMtaWikiReleaseRelativePath(input.pointer)) {
+      return yield* importError({
+        code: "unsafe_path",
+        operation: input.operation,
+        path: input.pointer,
+        detail: "retirement artifact path is not a safe release-relative path",
+      });
+    }
+    const metadata = input.manifest.files[input.pointer];
+    if (metadata === undefined) {
+      return yield* importError({
+        code: "missing_manifest_file",
+        operation: input.operation,
+        path: input.pointer,
+        detail: "retirement artifact is not content-addressed by the release manifest",
+      });
+    }
+    if (
+      input.expected !== undefined &&
+      (metadata.bytes !== input.expected.bytes || metadata.sha256 !== input.expected.sha256)
+    ) {
+      return yield* importError({
+        code: "semantic_mismatch",
+        operation: input.operation,
+        path: input.pointer,
+        detail: "retirement projection metadata disagrees with the release manifest",
+      });
+    }
+    return yield* verifyMtaWikiReleaseFile({
+      ...input.resolved,
+      pointer: input.pointer,
+      metadata,
+      operation: input.operation,
+    }).pipe(Effect.mapError(fromReleaseError));
+  },
+);
+
+type VerifiedManifestV5OccurrenceRetirements = {
+  routeIdentitySnapshot: MtaWikiRouteIdentitySnapshot;
+  sourceDecisionCount: number;
+  retirementCount: number;
+  retirements: OperationalOccurrenceReviewRetirementProjection[];
+};
+
+const validateManifestV5OccurrenceRetirements = Effect.fn(
+  "MtaWikiOperationalOccurrences.validateManifestV5OccurrenceRetirements",
+)(function* (input: {
+  manifest: ReleaseManifestV5;
+  resolved: ResolvedMtaWikiRelease;
+  routeIdentityFile: VerifiedMtaWikiReleaseFile;
+  snapshot: OperationalOccurrenceReviewSnapshot;
+  rows: readonly OperationalOccurrenceRowV2[];
+}) {
+  const fail = (detail: string, path = input.routeIdentityFile.path) =>
+    Effect.fail(
+      importError({
+        code: "semantic_mismatch",
+        operation: "validateOperationalOccurrenceReviewRetirements",
+        path,
+        detail,
+      }),
+    );
+  const routeIdentitySnapshot = yield* decodeCanonicalJsonFile(
+    input.routeIdentityFile,
+    MtaWikiRouteIdentitySnapshotSchema,
+    "decodeRouteIdentitySnapshotForOccurrenceRetirements",
+  );
+  yield* Effect.try({
+    try: () => assertMtaWikiRouteIdentitySnapshotSelfIntegrity(routeIdentitySnapshot),
+    catch: (cause) =>
+      importError({
+        code: "semantic_mismatch",
+        operation: "validateOperationalOccurrenceReviewRetirements",
+        path: input.routeIdentityFile.path,
+        detail: String(cause),
+      }),
+  });
+  const encoded = (value: string) => new TextEncoder().encode(value);
+  const routeBindingIds = routeIdentitySnapshot.record_bindings.map(
+    (binding) => binding.route_record_id,
+  );
+  if (
+    routeIdentitySnapshot.gtfs_snapshot_id !== routeIdentitySnapshot.gtfs_snapshot.snapshot_id ||
+    routeIdentitySnapshot.gtfs_snapshot_sha256 !==
+      sha256Bytes(encoded(`${canonicalJson(routeIdentitySnapshot.gtfs_snapshot)}\n`)) ||
+    canonicalJson(routeIdentitySnapshot.current_catalog) !==
+      canonicalJson(routeIdentitySnapshot.gtfs_snapshot.current_catalog) ||
+    routeIdentitySnapshot.service_identity_count !==
+      routeIdentitySnapshot.service_identities.length ||
+    routeIdentitySnapshot.service_identities_sha256 !==
+      sha256Bytes(encoded(canonicalJsonl(routeIdentitySnapshot.service_identities))) ||
+    routeIdentitySnapshot.record_binding_count !== routeIdentitySnapshot.record_bindings.length ||
+    routeIdentitySnapshot.record_bindings_sha256 !==
+      sha256Bytes(encoded(canonicalJsonl(routeIdentitySnapshot.record_bindings))) ||
+    !isSortedUnique(routeBindingIds) ||
+    routeIdentitySnapshot.service_identities.some(
+      (identity) => identity.snapshot_id !== routeIdentitySnapshot.gtfs_snapshot_id,
+    )
+  ) {
+    return yield* fail(
+      "route identity snapshot ids, catalog, counts, ordering, or internal digests are stale",
+    );
+  }
+  const reviewContract = input.manifest.contract_versions.operational_occurrence_review_decisions;
+  if (input.manifest.contract_versions.operational_anchor_review_decisions !== reviewContract) {
+    return yield* fail("manifest-v5 anchor and occurrence review contracts must advance together");
+  }
+
+  const retirementPaths = Object.keys(input.manifest.files).filter((path) =>
+    path.startsWith("review-retirements/"),
+  );
+  if (reviewContract === OPERATIONAL_OCCURRENCE_REVIEW_CONTRACT_VERSION) {
+    if (input.snapshot.snapshot_version !== 1 || retirementPaths.length > 0) {
+      return yield* fail(
+        "manifest-v5 review-v1 must contain a review-v1 snapshot and no retirement artifacts",
+      );
+    }
+    return {
+      routeIdentitySnapshot,
+      sourceDecisionCount: input.snapshot.decision_count,
+      retirementCount: 0,
+      retirements: [],
+    } satisfies VerifiedManifestV5OccurrenceRetirements;
+  }
+
+  if (input.snapshot.snapshot_version !== 2) {
+    return yield* fail("manifest-v5 review-v2 contract requires a review-v2 snapshot");
+  }
+  if (
+    input.snapshot.retirement_count !== input.snapshot.retirements.length ||
+    input.snapshot.source_decision_count !==
+      input.snapshot.decision_count + input.snapshot.retirement_count ||
+    input.snapshot.retirement_count === 0
+  ) {
+    return yield* fail("review-v2 source, active-decision, and retirement counts do not reconcile");
+  }
+  const retirementDecisionIds = input.snapshot.retirements.map(
+    (retirement) => retirement.target.decision_id,
+  );
+  if (!isSortedUnique(retirementDecisionIds)) {
+    return yield* fail("review-v2 retirements must be sorted and unique by decision_id");
+  }
+  const activeDecisionIds = new Set(
+    input.snapshot.decisions.map((decision) => decision.decision_id),
+  );
+  const activeOccurrenceIds = new Set(input.rows.map((row) => row.occurrence_id));
+  const activeFoundingKeys = new Set(input.rows.map((row) => row.founding_key));
+  if (
+    input.snapshot.retirements.some(
+      (retirement) =>
+        activeDecisionIds.has(retirement.target.decision_id) ||
+        activeOccurrenceIds.has(retirement.target.occurrence_id) ||
+        activeFoundingKeys.has(retirement.target.founding_key),
+    )
+  ) {
+    return yield* fail(
+      "retired occurrence identities were reintroduced into the active projection",
+    );
+  }
+
+  const routeBindings = new Map(
+    routeIdentitySnapshot.record_bindings.map((binding) => [binding.route_record_id, binding]),
+  );
+  const projectionsByRetirementId = new Map<
+    string,
+    OperationalOccurrenceReviewRetirementProjection[]
+  >();
+  for (const projection of input.snapshot.retirements) {
+    const target = projection.target;
+    const expectedSourcePath = `review-retirements/source/${projection.retirement_id}.json`;
+    const expectedArchivePath = `review-retirements/operational-occurrence/${target.decision_id}.json`;
+    if (
+      projection.retirement_source.release_path !== expectedSourcePath ||
+      target.original_artifact.release_path !== expectedArchivePath ||
+      projection.route_identity_snapshot_id !== routeIdentitySnapshot.gtfs_snapshot_id ||
+      projection.route_identity_snapshot_sha256 !== input.routeIdentityFile.metadata.sha256
+    ) {
+      return yield* fail(
+        `retirement ${projection.retirement_id} does not address the exact release route snapshot and archive paths`,
+      );
+    }
+    if (
+      !isSortedUnique(projection.binding.ineligibility_reasons) ||
+      !projection.binding.ineligibility_reasons.includes("catalog_not_in_effect") ||
+      !isSortedUnique(target.pinned_gtfs_route_ids) ||
+      target.pinned_gtfs_route_ids.length === 0
+    ) {
+      return yield* fail(
+        `retirement ${projection.retirement_id} has noncanonical route ineligibility or route pins`,
+      );
+    }
+    const routeBinding = routeBindings.get(projection.binding.route_record_id);
+    // route_binding_sha256 is the accepted decision-row receipt; the snapshot exposes only its
+    // typed projection. Preserve that receipt and compare the complete projectable identity here.
+    if (
+      routeBinding === undefined ||
+      !("decision_id" in routeBinding) ||
+      routeBinding.decision_id !== projection.binding.route_binding_decision_id ||
+      routeBinding.dataset_id !== projection.binding.dataset_id ||
+      routeBinding.source_route_id !== projection.binding.source_route_id ||
+      routeBinding.gtfs_route_id !== projection.binding.gtfs_route_id ||
+      routeBinding.projectable !== false ||
+      routeBinding.decision_kind !== "current_ineligible" ||
+      canonicalJson(routeBinding.ineligibility_reasons) !==
+        canonicalJson(projection.binding.ineligibility_reasons)
+    ) {
+      return yield* fail(
+        `retirement ${projection.retirement_id} differs from its accepted nonprojectable route binding`,
+      );
+    }
+    const current = projectionsByRetirementId.get(projection.retirement_id) ?? [];
+    current.push(projection);
+    projectionsByRetirementId.set(projection.retirement_id, current);
+  }
+
+  const sourcePaths = Object.keys(input.manifest.files)
+    .filter((path) => path.startsWith("review-retirements/source/"))
+    .toSorted();
+  const sourceReceipts = new Map<string, OperationalProjectionRetirementSource>();
+  for (const sourcePath of sourcePaths) {
+    const sourceFile = yield* verifyManifestV5File({
+      manifest: input.manifest,
+      resolved: input.resolved,
+      pointer: sourcePath,
+      operation: "verifyOperationalProjectionRetirementSource",
+    });
+    const source = yield* decodeCanonicalJsonFile(
+      sourceFile,
+      OperationalProjectionRetirementSourceSchema,
+      "decodeOperationalProjectionRetirementSource",
+    );
+    if (
+      sourcePath !== `review-retirements/source/${source.retirement_id}.json` ||
+      !isUtcInstant(source.accepted_at) ||
+      source.anchor_review_decisions.length + source.occurrence_review_decisions.length === 0 ||
+      !isSortedUnique(source.anchor_review_decisions.map((target) => target.decision_id)) ||
+      !isSortedUnique(source.occurrence_review_decisions.map((target) => target.decision_id)) ||
+      sourceReceipts.has(source.retirement_id)
+    ) {
+      return yield* fail(
+        "retirement source receipts are incomplete, duplicated, or unsorted",
+        sourceFile.path,
+      );
+    }
+    sourceReceipts.set(source.retirement_id, source);
+    if (
+      source.occurrence_review_decisions.length > 0 &&
+      !projectionsByRetirementId.has(source.retirement_id)
+    ) {
+      return yield* fail(
+        `retirement source ${source.retirement_id} has an unrepresented occurrence target`,
+        sourceFile.path,
+      );
+    }
+  }
+
+  const expectedOccurrenceArchivePaths = new Set<string>();
+  for (const [retirementId, projections] of projectionsByRetirementId) {
+    const source = sourceReceipts.get(retirementId);
+    const first = projections[0];
+    if (source === undefined || first === undefined) {
+      return yield* fail(
+        `retirement ${retirementId} is missing its manifest-addressed source receipt`,
+      );
+    }
+    if (
+      source.accepted_by !== first.accepted_by ||
+      source.accepted_at !== first.accepted_at ||
+      source.rationale !== first.rationale ||
+      source.route_identity_snapshot_id !== first.route_identity_snapshot_id ||
+      source.route_identity_snapshot_sha256 !== first.route_identity_snapshot_sha256 ||
+      canonicalJson(source.binding) !== canonicalJson(first.binding) ||
+      source.occurrence_review_decisions.length !== projections.length
+    ) {
+      return yield* fail(
+        `retirement source ${retirementId} differs from its review-v2 projections`,
+      );
+    }
+    const sourceMetadata = input.manifest.files[first.retirement_source.release_path];
+    if (
+      sourceMetadata === undefined ||
+      sourceMetadata.bytes !== first.retirement_source.bytes ||
+      sourceMetadata.sha256 !== first.retirement_source.sha256
+    ) {
+      return yield* fail(`retirement source ${retirementId} metadata is stale`);
+    }
+    const sourceTargets = new Map(
+      source.occurrence_review_decisions.map((target) => [target.decision_id, target]),
+    );
+    for (const projection of projections) {
+      const target = projection.target;
+      const sourceTarget = sourceTargets.get(target.decision_id);
+      const expectedSourceArtifactPath = `data/operational-occurrence-review/accepted/decisions/${target.decision_id}.json`;
+      if (
+        sourceTarget === undefined ||
+        sourceTarget.occurrence_id !== target.occurrence_id ||
+        sourceTarget.founding_key !== target.founding_key ||
+        canonicalJson(sourceTarget.pinned_gtfs_route_ids) !==
+          canonicalJson(target.pinned_gtfs_route_ids) ||
+        sourceTarget.original_artifact.artifact_path !== expectedSourceArtifactPath ||
+        sourceTarget.original_artifact.bytes !== target.original_artifact.bytes ||
+        sourceTarget.original_artifact.sha256 !== target.original_artifact.sha256
+      ) {
+        return yield* fail(
+          `retirement target ${target.decision_id} differs from its immutable source receipt`,
+        );
+      }
+      expectedOccurrenceArchivePaths.add(target.original_artifact.release_path);
+      const archiveFile = yield* verifyManifestV5File({
+        manifest: input.manifest,
+        resolved: input.resolved,
+        pointer: target.original_artifact.release_path,
+        operation: "verifyRetiredOperationalOccurrenceReview",
+        expected: target.original_artifact,
+      });
+      // The archive preserves the accepted decision's original immutable bytes, including its
+      // historical pretty-printing. Manifest bytes/hash plus strict schema decode are authoritative;
+      // rewriting it to the producer's newer canonical serializer would violate that provenance.
+      const archivedDecision = yield* decodeJsonFile(
+        archiveFile,
+        OperationalOccurrenceAcceptedDecisionSchema,
+        "decodeRetiredOperationalOccurrenceReview",
+      );
+      const pinnedRouteIds = archivedDecision.routes
+        .filter((route) => route.route_record_id === projection.binding.route_record_id)
+        .map((route) => route.gtfs_route_id)
+        .toSorted();
+      if (
+        archivedDecision.decision_id !== target.decision_id ||
+        archivedDecision.occurrence_id !== target.occurrence_id ||
+        archivedDecision.founding_key !== target.founding_key ||
+        archivedDecision.treatment_scope_kind !== archivedDecision.treatment.kind ||
+        canonicalJson(pinnedRouteIds) !== canonicalJson(target.pinned_gtfs_route_ids)
+      ) {
+        return yield* fail(
+          `retired review archive ${target.decision_id} does not prove the declared occurrence and route identity`,
+          archiveFile.path,
+        );
+      }
+    }
+  }
+
+  const actualOccurrenceArchivePaths = Object.keys(input.manifest.files)
+    .filter((path) => path.startsWith("review-retirements/operational-occurrence/"))
+    .toSorted();
+  if (
+    canonicalJson(actualOccurrenceArchivePaths) !==
+    canonicalJson([...expectedOccurrenceArchivePaths].toSorted())
+  ) {
+    return yield* fail(
+      "manifest occurrence retirement archives are not represented exactly once by review-v2",
+    );
+  }
+  return {
+    routeIdentitySnapshot,
+    sourceDecisionCount: input.snapshot.source_decision_count,
+    retirementCount: input.snapshot.retirement_count,
+    retirements: [...input.snapshot.retirements],
+  } satisfies VerifiedManifestV5OccurrenceRetirements;
 });
 
 const validateRelationshipArtifactSyntax = Effect.fn(
@@ -2051,7 +2697,8 @@ function canonicalDigest(value: unknown): string {
 const verifyRelationshipIntegrity = Effect.fn(
   "MtaWikiOperationalOccurrences.verifyRelationshipIntegrity",
 )(function* (input: {
-  manifest: ReleaseManifestV4;
+  manifest: ReleaseManifestV4 | ReleaseManifestV5;
+  manifestSha256: string;
   releaseId: string;
   manifestPath: string;
   resolved: {
@@ -2363,9 +3010,24 @@ const verifyRelationshipIntegrity = Effect.fn(
   const physicalInputPaths = physicalManifest.input_pins.map((pin) => pin.path);
   if (
     new Set(physicalInputPaths).size !== physicalInputPaths.length ||
-    physicalInputPaths.some((path) => !isSafeMtaWikiReleaseRelativePath(path))
+    physicalInputPaths.some((path) => !isSafeMtaWikiReleaseRelativePath(path)) ||
+    physicalManifest.audit_fingerprint !==
+      canonicalDigest({
+        schema_version: physicalManifest.schema_version,
+        release_id: physicalManifest.release_id,
+        review_stage: physicalManifest.review_stage,
+        input_pins: physicalManifest.input_pins,
+        files: physicalManifest.files,
+      })
   ) {
-    return yield* fail("physical audit input pins are unsafe or duplicated");
+    return yield* fail("physical audit identity, fingerprint, or input paths drifted");
+  }
+  const usesLegacyManifestCommitment = physicalSummary.release_manifest_sha256 !== undefined;
+  const usesReleaseInputFingerprint = physicalSummary.release_input_fingerprint !== undefined;
+  if (usesLegacyManifestCommitment === usesReleaseInputFingerprint) {
+    return yield* fail(
+      "physical audit summary must declare exactly one supported release-input commitment",
+    );
   }
   const uniquePhysicalInput = (predicate: (path: string) => boolean) => {
     const matches = physicalManifest.input_pins.filter((pin) => predicate(pin.path));
@@ -2388,6 +3050,12 @@ const verifyRelationshipIntegrity = Effect.fn(
   const physicalLedgerPin = uniquePhysicalInput((path) =>
     path.endsWith("/occurrence-treatment-physicality/v1/review-ledger.jsonl"),
   );
+  const physicalRetiredLedgerPin = uniquePhysicalInput((path) =>
+    path.endsWith("/occurrence-treatment-physicality/v1/retired-review-ledger.jsonl"),
+  );
+  const physicalRetirementReceiptPin = uniquePhysicalInput((path) =>
+    path.endsWith("/occurrence-treatment-physicality/v1/review-retirement-receipt.json"),
+  );
   const physicalContractPin = uniquePhysicalInput((path) =>
     path.endsWith("/occurrence-treatment-physicality/v1/contract.json"),
   );
@@ -2398,8 +3066,10 @@ const verifyRelationshipIntegrity = Effect.fn(
     (path) =>
       path === "data/quality/relationship-integrity/completeness/occurrence-completeness.jsonl",
   );
+  const physicalRetirementPins = physicalManifest.input_pins.filter(
+    (pin): pin is RelationshipAuditRetirementPin => "retirement_id" in pin,
+  );
   if (
-    physicalReleaseManifestPin === undefined ||
     physicalOccurrencePin === undefined ||
     physicalTreatmentPin === undefined ||
     physicalRelationPin === undefined ||
@@ -2408,9 +3078,35 @@ const verifyRelationshipIntegrity = Effect.fn(
     physicalLedgerPin === undefined ||
     physicalContractPin === undefined ||
     physicalCompletenessManifestPin === undefined ||
-    physicalCompletenessRowsPin === undefined
+    physicalCompletenessRowsPin === undefined ||
+    (usesLegacyManifestCommitment && physicalReleaseManifestPin === undefined) ||
+    (!usesLegacyManifestCommitment && physicalReleaseManifestPin !== undefined) ||
+    physicalRetirementPins.length > 0 !==
+      (physicalRetiredLedgerPin !== undefined && physicalRetirementReceiptPin !== undefined)
   ) {
     return yield* fail("physical audit input pin set is incomplete or ambiguous");
+  }
+  const recognizedPhysicalInputPaths = new Set(
+    [
+      physicalReleaseManifestPin,
+      physicalOccurrencePin,
+      physicalTreatmentPin,
+      physicalRelationPin,
+      physicalCorridorPin,
+      physicalPolicyPin,
+      physicalLedgerPin,
+      physicalRetiredLedgerPin,
+      physicalRetirementReceiptPin,
+      physicalContractPin,
+      physicalCompletenessManifestPin,
+      physicalCompletenessRowsPin,
+      ...physicalRetirementPins,
+    ]
+      .filter((pin) => pin !== undefined)
+      .map((pin) => pin.path),
+  );
+  if (recognizedPhysicalInputPaths.size !== physicalManifest.input_pins.length) {
+    return yield* fail("physical audit input pin set contains an unsupported role");
   }
   if (
     physicalOccurrencePin.bytes !== input.occurrenceFile.metadata.bytes ||
@@ -2437,13 +3133,16 @@ const verifyRelationshipIntegrity = Effect.fn(
       return yield* fail(`physical audit root input drifted: ${rootPath}`);
     }
   }
-  for (const pin of [
+  const physicalBundledInputPins: RelationshipAuditFilePin[] = [
     physicalCompletenessManifestPin,
     physicalCompletenessRowsPin,
     physicalPolicyPin,
     physicalLedgerPin,
     physicalContractPin,
-  ]) {
+    ...(physicalRetiredLedgerPin === undefined ? [] : [physicalRetiredLedgerPin]),
+    ...(physicalRetirementReceiptPin === undefined ? [] : [physicalRetirementReceiptPin]),
+  ];
+  for (const pin of physicalBundledInputPins) {
     const bundled = verifiedBySourcePath.get(pin.path);
     if (
       bundled === undefined ||
@@ -2465,6 +3164,64 @@ const verifyRelationshipIntegrity = Effect.fn(
     }
   }
 
+  const retirementIds = physicalRetirementPins.map((pin) => pin.retirement_id);
+  if (
+    new Set(retirementIds).size !== retirementIds.length ||
+    retirementIds.join("\n") !== retirementIds.toSorted().join("\n")
+  ) {
+    return yield* fail("physical audit retirement pins must have sorted unique identities");
+  }
+  for (const pin of physicalRetirementPins) {
+    const releasePointer = `review-retirements/source/${pin.retirement_id}.json`;
+    const expectedPath = `data/exports/releases/${input.releaseId}/${releasePointer}`;
+    const metadata = input.manifest.files[releasePointer];
+    if (
+      pin.path !== expectedPath ||
+      pin.row_count !== undefined ||
+      metadata === undefined ||
+      metadata.bytes !== pin.bytes ||
+      metadata.sha256 !== pin.sha256 ||
+      !isUtcInstant(pin.accepted_at)
+    ) {
+      return yield* fail(`physical audit retirement input drifted: ${pin.retirement_id}`);
+    }
+    const retirementFile = yield* verifyMtaWikiReleaseFile({
+      ...input.resolved,
+      pointer: releasePointer,
+      metadata,
+      operation: "verifyPhysicalityOperationalRetirement",
+    }).pipe(Effect.mapError(fromReleaseError));
+    const retirement = yield* decodeJsonFile(
+      retirementFile,
+      OperationalProjectionRetirementSourceSchema,
+      "decodePhysicalityOperationalRetirement",
+    );
+    if (
+      retirement.retirement_id !== pin.retirement_id ||
+      retirement.accepted_by !== pin.accepted_by ||
+      retirement.accepted_at !== pin.accepted_at
+    ) {
+      return yield* fail(
+        `physical audit retirement attribution drifted: ${pin.retirement_id}`,
+        retirementFile.path,
+      );
+    }
+  }
+
+  const physicalReleasePins = [
+    physicalOccurrencePin,
+    physicalTreatmentPin,
+    physicalRelationPin,
+    physicalCorridorPin,
+  ];
+  const physicalReleaseCommitmentMatches = usesLegacyManifestCommitment
+    ? physicalReleaseManifestPin !== undefined &&
+      physicalReleaseManifestPin.path ===
+        `data/exports/releases/${physicalManifest.release_id}/manifest.json` &&
+      physicalSummary.release_manifest_sha256 === physicalReleaseManifestPin.sha256
+    : physicalManifest.release_id === input.releaseId &&
+      physicalSummary.release_input_fingerprint === canonicalDigest(physicalReleasePins);
+
   const physicalSummaryPin = physicalManifest.files["summary.json"];
   const physicalFindingsPin = physicalManifest.files["findings.jsonl"];
   if (
@@ -2476,7 +3233,7 @@ const verifyRelationshipIntegrity = Effect.fn(
     physicalFindingsPin.sha256 !== emptySha256 ||
     physicalFindingsPin.row_count !== 0 ||
     physicalManifest.release_id !== physicalSummary.release_id ||
-    physicalSummary.release_manifest_sha256 !== physicalReleaseManifestPin.sha256 ||
+    !physicalReleaseCommitmentMatches ||
     physicalSummary.review_ledger_sha256 !== physicalLedgerPin.sha256 ||
     physicalSummary.policy_sha256 !== physicalPolicyPin.sha256 ||
     physicalSummary.contract_sha256 !== physicalContractPin.sha256 ||
@@ -2533,6 +3290,7 @@ const verifyRelationshipIntegrity = Effect.fn(
   }
 
   const phaseOccurrencePin = phaseManifest.route_anchor_release.operational_occurrences;
+  const phaseReleaseManifestPin = phaseManifest.route_anchor_release.manifest;
   const phaseSummaryPath = `${phaseOutputRoot}/summary.json`;
   const phaseFindingsPath = `${phaseOutputRoot}/findings.jsonl`;
   const phaseCandidatesPath = `${phaseOutputRoot}/event-event-candidates.jsonl`;
@@ -2542,6 +3300,13 @@ const verifyRelationshipIntegrity = Effect.fn(
   const phaseCandidatesPin = phaseManifest.outputs[phaseCandidatesPath];
   const phaseLedgerPin = phaseManifest.outputs[phaseLedgerPath];
   if (
+    (phaseReleaseManifestPin === undefined &&
+      phaseManifest.route_anchor_release.release_id !== input.releaseId) ||
+    (phaseReleaseManifestPin !== undefined &&
+      (phaseReleaseManifestPin.path !==
+        `data/exports/releases/${phaseManifest.route_anchor_release.release_id}/manifest.json` ||
+        phaseReleaseManifestPin.row_count !== undefined)) ||
+    (input.manifest.manifest_version === 4 && phaseReleaseManifestPin === undefined) ||
     phaseOccurrencePin.bytes !== input.occurrenceFile.metadata.bytes ||
     phaseOccurrencePin.sha256 !== input.occurrenceFile.metadata.sha256 ||
     phaseOccurrencePin.row_count !== input.occurrenceRows.length ||
@@ -2794,6 +3559,11 @@ const verifyRelationshipIntegrity = Effect.fn(
     const active = verifiedBySourcePath.get(source.path);
     const archive = verifiedBySourcePath.get(source.archive_path);
     const needsFingerprint = refreshRoles.has(source.role);
+    const isManifestV5ReleaseProjectionRefresh =
+      input.manifest.manifest_version === 5 &&
+      (source.role === "occurrence_treatment_physicality_summary" ||
+        source.role === "phase_review_summary" ||
+        source.role === "relationship_completeness_summary");
     if (
       !isSafeMtaWikiReleaseRelativePath(source.path) ||
       !isSafeMtaWikiReleaseRelativePath(source.archive_path) ||
@@ -2801,7 +3571,9 @@ const verifyRelationshipIntegrity = Effect.fn(
       archive === undefined ||
       archive.file.metadata.sha256 !== source.sha256 ||
       needsFingerprint !== (source.transition_fingerprint !== undefined) ||
-      (!needsFingerprint && active.file.metadata.sha256 !== source.sha256)
+      (!needsFingerprint &&
+        !isManifestV5ReleaseProjectionRefresh &&
+        active.file.metadata.sha256 !== source.sha256)
     ) {
       return yield* fail(`relationship transition source archive drifted: ${source.role}`);
     }
@@ -3116,6 +3888,85 @@ const buildImportArtifactV4 = Effect.fn("MtaWikiOperationalOccurrences.buildArti
   },
 );
 
+const buildImportArtifactV5 = Effect.fn("MtaWikiOperationalOccurrences.buildArtifactV5")(
+  function* (input: {
+    manifest: ReleaseManifestV5;
+    manifestSha256: string;
+    occurrenceFile: VerifiedMtaWikiReleaseFile;
+    summaryFile: VerifiedMtaWikiReleaseFile;
+    reviewFile: VerifiedMtaWikiReleaseFile;
+    routeIdentityFile: VerifiedMtaWikiReleaseFile;
+    summary: OperationalOccurrenceSummaryV2;
+    snapshot: OperationalOccurrenceReviewSnapshot;
+    rows: readonly OperationalOccurrenceRowV2[];
+    relationshipIntegrity: unknown;
+    retirementClosure: VerifiedManifestV5OccurrenceRetirements;
+  }) {
+    const projectionRejections = input.rows
+      .filter((row) => !row.study_projection_eligible)
+      .map((row) => ({
+        occurrenceId: row.occurrence_id,
+        reasonCodes: uniqueSorted(row.exclusion_reasons),
+      }));
+    const value: unknown = {
+      artifactKind: "bp.studio.mta_wiki_operational_occurrences.v5",
+      schemaVersion: 5,
+      sourceRelease: {
+        manifestVersion: 5,
+        releaseId: input.manifest.release_id,
+        generatorCommit: input.manifest.generator_commit,
+        manifestPath: `data/exports/releases/${input.manifest.release_id}/manifest.json`,
+        manifestSha256: input.manifestSha256,
+        operationalOccurrenceContractVersion: 2,
+        operationalOccurrenceReviewDecisionContractVersion:
+          input.manifest.contract_versions.operational_occurrence_review_decisions,
+        relationshipIntegrityBundleContractVersion: 1,
+        routeIdentityContractVersion: 1,
+        producerReviewStatus: {
+          compatibility: "compatible",
+          promotionEligible: true,
+        },
+        occurrences: importedFile(input.occurrenceFile, input.manifest.release_id),
+        summary: importedFile(input.summaryFile, input.manifest.release_id),
+        reviewDecisions: importedFile(input.reviewFile, input.manifest.release_id),
+        reviewDecisionCount: input.snapshot.decision_count,
+        reviewSourceDecisionCount: input.retirementClosure.sourceDecisionCount,
+        reviewRetirementCount: input.retirementClosure.retirementCount,
+        reviewRetirements: input.retirementClosure.retirements,
+        routeIdentitySnapshot: importedFile(input.routeIdentityFile, input.manifest.release_id),
+        relationshipIntegrity: input.relationshipIntegrity,
+      },
+      producerSummary: input.summary,
+      summary: {
+        sourceOccurrenceCount: input.rows.length,
+        eligibleOccurrenceCount: input.rows.filter((row) => row.study_projection_eligible).length,
+        routeProjectionCount: input.summary.candidate_projection_count,
+        rejectedOccurrenceCount: projectionRejections.length,
+        countsByRejectionReason: countBy(
+          projectionRejections.flatMap((entry) => entry.reasonCodes),
+        ),
+        singlePhaseOccurrenceCount: input.rows.filter(
+          (row) => row.phase_relation_disposition === "single_phase",
+        ).length,
+        relatedPhaseOccurrenceCount: input.rows.filter(
+          (row) => row.phase_relation_disposition === "related_phases",
+        ).length,
+        exactPhysicalScopeOccurrenceCount: input.rows.filter(
+          (row) => row.physical_scope_record_ids.length > 0,
+        ).length,
+      },
+      occurrences: input.rows,
+      projectionRejections,
+    };
+    return yield* decodeStrict({
+      schema: MtaWikiOperationalOccurrenceImportArtifactV5Schema,
+      value,
+      operation: "buildOperationalOccurrenceImportArtifactV5",
+      path: input.occurrenceFile.path,
+    });
+  },
+);
+
 export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOperationalOccurrences")(
   function* (input: ImportMtaWikiOperationalOccurrencesInput) {
     const resolved = yield* resolveMtaWikiRelease(input).pipe(Effect.mapError(fromReleaseError));
@@ -3134,6 +3985,25 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         operation: "verifyManifest",
         path: manifestPath,
         detail: `expected ${input.wikiManifestSha256}, received ${actualManifestSha256}`,
+      });
+    }
+    const quarantineStatus = yield* readMtaWikiReleaseQuarantineStatus({
+      mtaWikiRoot: input.mtaWikiRoot,
+      wikiRelease: input.wikiRelease,
+      wikiManifestSha256: actualManifestSha256,
+    }).pipe(Effect.mapError(fromReleaseError));
+    const isFingerprintableRc22Inspection =
+      quarantineStatus !== null &&
+      input.wikiRelease === "v1-rc22" &&
+      actualManifestSha256 === RC22_MANIFEST_SHA256 &&
+      quarantineStatus.recordSchemaVersion === 1 &&
+      quarantineStatus.reasonCode === "contract_payload_strict_decode_failed";
+    if (quarantineStatus !== null && !isFingerprintableRc22Inspection) {
+      return yield* importError({
+        code: "contract_incompatible",
+        operation: "verifyReleaseStatus",
+        path: manifestPath,
+        detail: `MTA Wiki release ${input.wikiRelease} is quarantined (${quarantineStatus.reasonCode}): ${quarantineStatus.reason}`,
       });
     }
     const manifestText = yield* decodeMtaWikiReleaseUtf8(manifestBytes, {
@@ -3163,12 +4033,19 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         operation: "decodeManifestV4",
         path: manifestPath,
       });
+    } else if (manifestVersion === MANIFEST_VERSION_V5) {
+      manifest = yield* decodeStrict({
+        schema: ReleaseManifestV5Schema,
+        value: manifestValue,
+        operation: "decodeManifestV5",
+        path: manifestPath,
+      });
     } else {
       return yield* importError({
         code: "schema_mismatch",
         operation: "decodeManifest",
         path: manifestPath,
-        detail: `unsupported manifest_version ${String(manifestVersion)}; expected 3 or 4`,
+        detail: `unsupported manifest_version ${String(manifestVersion)}; expected 3, 4, or 5`,
       });
     }
     if (manifest.release_id !== input.wikiRelease) {
@@ -3229,11 +4106,24 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         pointer: manifest.pointers.operational_occurrence_review_decisions,
         operation: "verifyOperationalOccurrenceReviewDecisions",
       },
-      ...(manifest.manifest_version === MANIFEST_VERSION_V4
+      ...(manifest.manifest_version === MANIFEST_VERSION_V4 ||
+      manifest.manifest_version === MANIFEST_VERSION_V5
         ? [
             {
               pointer: manifest.pointers.relationship_integrity_bundle,
               operation: "verifyRelationshipIntegrityBundle",
+            },
+          ]
+        : []),
+      ...(manifest.manifest_version === MANIFEST_VERSION_V5
+        ? [
+            {
+              pointer: manifest.pointers.route_anchors,
+              operation: "verifyRouteAnchors",
+            },
+            {
+              pointer: manifest.pointers.route_identity_snapshot,
+              operation: "verifyRouteIdentitySnapshot",
             },
           ]
         : []),
@@ -3308,7 +4198,7 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
       );
       const snapshot = yield* decodeJsonFile(
         reviewFile,
-        OperationalOccurrenceReviewSnapshotSchema,
+        OperationalOccurrenceReviewSnapshotV1Schema,
         "decodeOperationalOccurrenceReviewSnapshot",
       );
       yield* validateSummary(rows, summary, summaryFile.path);
@@ -3328,7 +4218,7 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         snapshot,
         rows,
       });
-    } else {
+    } else if (manifest.manifest_version === MANIFEST_VERSION_V4) {
       const bundleFile = verifiedFiles[6];
       if (bundleFile === undefined) {
         return yield* importError({
@@ -3358,13 +4248,14 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
       if (producerReviewCompatibility === "compatible") {
         snapshot = yield* decodeJsonFile(
           reviewFile,
-          OperationalOccurrenceReviewSnapshotSchema,
+          OperationalOccurrenceReviewSnapshotV1Schema,
           "decodeOperationalOccurrenceReviewSnapshotV1",
         );
       }
       yield* validateSummaryV2(rows, summary, summaryFile.path);
       const relationshipIntegrity = yield* verifyRelationshipIntegrity({
         manifest,
+        manifestSha256: actualManifestSha256,
         releaseId: manifest.release_id,
         manifestPath,
         resolved,
@@ -3392,6 +4283,111 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         rows,
         producerReviewCompatibility,
         relationshipIntegrity,
+      });
+    } else {
+      const bundleFile = verifiedFiles[6];
+      const routeAnchorFile = verifiedFiles[7];
+      const routeIdentityFile = verifiedFiles[8];
+      if (
+        bundleFile === undefined ||
+        routeAnchorFile === undefined ||
+        routeIdentityFile === undefined
+      ) {
+        return yield* importError({
+          code: "missing_manifest_file",
+          operation: "verifyManifest",
+          path: manifestPath,
+          detail:
+            "manifest-v5 relationship bundle or route identity snapshot verification is incomplete",
+        });
+      }
+      const rows = yield* decodeOccurrenceRowsV2(occurrenceFile);
+      const summary = yield* decodeJsonFile(
+        summaryFile,
+        OperationalOccurrenceSummaryV2Schema,
+        "decodeOperationalOccurrenceSummaryV2",
+      );
+      const snapshot = yield* decodeJsonFile(
+        reviewFile,
+        OperationalOccurrenceReviewSnapshotSchema,
+        "decodeOperationalOccurrenceReviewSnapshotV5",
+      );
+      if (
+        manifest.contract_versions.operational_occurrence_review_decisions !==
+        snapshot.snapshot_version
+      ) {
+        return yield* importError({
+          code: "contract_incompatible",
+          operation: "validateOperationalOccurrenceReviewContract",
+          path: reviewFile.path,
+          detail:
+            "manifest-v5 occurrence review contract version does not match the decoded review snapshot",
+        });
+      }
+      yield* validateSummaryV2(rows, summary, summaryFile.path);
+      const relationshipIntegrity = yield* verifyRelationshipIntegrity({
+        manifest,
+        manifestSha256: actualManifestSha256,
+        releaseId: manifest.release_id,
+        manifestPath,
+        resolved,
+        bundleFile,
+        occurrenceFile,
+        occurrenceRows: rows,
+      });
+      yield* validateReviewSnapshot({
+        rows,
+        snapshot,
+        path: reviewFile.path,
+        comparisonMode: "declared_review_v1",
+      });
+      const retirementClosure = yield* validateManifestV5OccurrenceRetirements({
+        manifest,
+        resolved,
+        routeIdentityFile,
+        snapshot,
+        rows,
+      });
+      const routeAnchors = yield* decodeRouteAnchors(routeAnchorFile);
+      const expectedRouteAnchors = reconstructedRouteAnchors(
+        retirementClosure.routeIdentitySnapshot,
+      );
+      if (
+        canonicalJson(routeAnchors) !== canonicalJson(expectedRouteAnchors) ||
+        routeAnchors.length !==
+          retirementClosure.routeIdentitySnapshot.expected_route_anchors_count ||
+        routeAnchorFile.metadata.sha256 !==
+          retirementClosure.routeIdentitySnapshot.expected_route_anchors_sha256
+      ) {
+        return yield* importError({
+          code: "semantic_mismatch",
+          operation: "validateRouteAnchorProjection",
+          path: routeAnchorFile.path,
+          detail: "route_anchors.jsonl is not the exact route identity snapshot projection",
+        });
+      }
+      try {
+        assertActiveOccurrenceRouteProjections(rows, retirementClosure.routeIdentitySnapshot);
+      } catch (cause) {
+        return yield* importError({
+          code: "semantic_mismatch",
+          operation: "validateActiveOccurrenceRouteProjections",
+          path: routeIdentityFile.path,
+          detail: cause instanceof Error ? cause.message : String(cause),
+        });
+      }
+      artifact = yield* buildImportArtifactV5({
+        manifest,
+        manifestSha256: actualManifestSha256,
+        occurrenceFile,
+        summaryFile,
+        reviewFile,
+        routeIdentityFile,
+        summary,
+        snapshot,
+        rows,
+        relationshipIntegrity,
+        retirementClosure,
       });
     }
 

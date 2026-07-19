@@ -222,17 +222,12 @@ export function treatmentFamilyOfText(text: string): string | null {
   return null;
 }
 
-/** Corpus records mentioning this route (same normalization as /interventions). */
+/** Corpus records explicitly bound to this exact case-sensitive route identity. */
 export function routeCorpusRecords(
   corpus: StudioInterventionCorpus | null,
   routeId: string,
 ): StudioInterventionCorpusRecord[] {
-  const normalize = (value: string) =>
-    value.trim().toUpperCase().replace(/-SBS$/, "").replace(/\+$/, "");
-  const target = normalize(routeId);
-  return (corpus?.records ?? []).filter((record) =>
-    record.routes.some((candidate) => normalize(candidate) === target),
-  );
+  return (corpus?.records ?? []).filter((record) => record.routes.includes(routeId));
 }
 
 /** In-component lazy fetch: the corpus is citywide and must not ride the

@@ -47,9 +47,8 @@ export function studiesByEventId(
   return map;
 }
 
-// Same normalization as the /interventions route join (routeJoinKey there).
 function studyRouteJoinKey(routeId: string): string {
-  return routeId.trim().toUpperCase().replace(/-SBS$/, "").replace(/\+$/, "");
+  return routeId;
 }
 
 /** Citywide index rows keyed by route + implementation month — the identity
@@ -171,19 +170,22 @@ export type StudyConfounderMarker = { month: string; label: string };
 
 /** Warn marker on the chart when a confounder gate flags. */
 export function confounderMarker(study: StudyArtifact): StudyConfounderMarker | null {
-  const candidates: { estimate: StudySensitivityEstimate | null; flagged: boolean; label: string }[] =
-    [
-      {
-        estimate: study.sensitivityEstimates.congestionPricing,
-        flagged: study.gates.congestionPricingOverlap.status === "fail",
-        label: "tolling starts",
-      },
-      {
-        estimate: study.sensitivityEstimates.queensRedesign,
-        flagged: study.gates.redesignOverlap.status === "fail",
-        label: "redesign starts",
-      },
-    ];
+  const candidates: {
+    estimate: StudySensitivityEstimate | null;
+    flagged: boolean;
+    label: string;
+  }[] = [
+    {
+      estimate: study.sensitivityEstimates.congestionPricing,
+      flagged: study.gates.congestionPricingOverlap.status === "fail",
+      label: "tolling starts",
+    },
+    {
+      estimate: study.sensitivityEstimates.queensRedesign,
+      flagged: study.gates.redesignOverlap.status === "fail",
+      label: "redesign starts",
+    },
+  ];
   for (const candidate of candidates) {
     const month = candidate.estimate?.excludedMonths[0];
     if (candidate.flagged && month !== undefined) {

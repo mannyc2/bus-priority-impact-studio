@@ -24,9 +24,7 @@
           "sourceId": "201111_1st2nd_progress_report",
           "sourceEventId": "occurrence:b45f5df36b98c638d8052c7a",
           "releaseId": "v1-rc19",
-          "anchorIds": [
-            "m15-2010-10-10-off-board-fare"
-          ],
+          "anchorIds": ["m15-2010-10-10-off-board-fare"],
           "occurrenceId": "occurrence:b45f5df36b98c638d8052c7a",
           "occurrenceAliases": [],
           "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
@@ -66,10 +64,7 @@
       ],
       "spine": {
         "readiness": "needs_pattern_review",
-        "reasons": [
-          "low_monthly_spine_coverage",
-          "partial_months_require_pattern_grouping"
-        ],
+        "reasons": ["low_monthly_spine_coverage", "partial_months_require_pattern_grouping"],
         "monthCount": 36,
         "coverage": {
           "minCoverageShare": 0.4706,

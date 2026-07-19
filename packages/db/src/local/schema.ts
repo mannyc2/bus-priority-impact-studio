@@ -23,6 +23,16 @@ export const localRouteCatalogType = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.typeRank] })],
 );
 
+export const localRouteCatalogTripType = sqliteTable(
+  "local_route_catalog_trip_type",
+  {
+    routeId: text("route_id").notNull(),
+    tripTypeRank: integer("trip_type_rank").notNull(),
+    tripType: text("trip_type").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.tripTypeRank] })],
+);
+
 export const localRouteDirection = sqliteTable(
   "local_route_direction",
   {

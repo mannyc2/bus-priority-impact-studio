@@ -16,12 +16,12 @@ function badgeWidth(widths: readonly [number, number, number, number], charCount
 
 function routeColor(route: string, express: boolean): string {
   if (express) return "var(--bp-route-express)";
-  const prefix = route.match(/^(BxM|BM|QM|Bx|SI|M|B|Q|S|X)/)?.[1] ?? "M";
-  if (prefix === "Bx") return "var(--bp-route-bronx)";
+  const prefix = route.toUpperCase().match(/^(BXM|BM|QM|BX|SI|M|B|Q|S|X)/)?.[1] ?? "M";
+  if (prefix === "BX") return "var(--bp-route-bronx)";
   if (prefix === "B") return "var(--bp-route-brooklyn)";
   if (prefix === "Q") return "var(--bp-route-queens)";
   if (prefix === "SI" || prefix === "S") return "var(--bp-route-si)";
-  if (prefix === "X" || prefix === "BM" || prefix === "BxM" || prefix === "QM") {
+  if (prefix === "X" || prefix === "BM" || prefix === "BXM" || prefix === "QM") {
     return "var(--bp-route-express)";
   }
   return "var(--bp-route-manhattan)";
@@ -32,21 +32,21 @@ export function RouteBadge({
   size = "md",
   sbs = false,
   express = false,
+  displayLabel,
 }: {
   route: string;
   size?: RouteBadgeSize;
   sbs?: boolean;
   express?: boolean;
+  displayLabel?: string | undefined;
 }) {
   const badge = badgeSizes[size];
-  // SBS arrives inconsistently across data sources: sometimes only via the `sbs`
-  // flag, sometimes baked into the name ("Q44 SBS" / "Q44-SBS"). Normalize to the
-  // bare route number, then render the MTA-style "Q44-SBS" as a single roundel -
-  // no separate SBS pill, and never doubled.
-  const base = route.replace(/[\s+-]*SBS\s*$/i, "").trim();
-  const isSbs = sbs || base !== route;
-  const display = isSbs ? `${base}-SBS` : base;
-  const background = routeColor(base, express);
+  // `sbs` is presentation metadata only. Route text comes from the selected
+  // source-backed display label (or the supplied route literal for legacy rows);
+  // never manufacture a suffix from a boolean service classification.
+  const display = displayLabel ?? route;
+  const usesLabelWidth = displayLabel !== undefined || sbs || display.length > 4;
+  const background = routeColor(route, express);
 
   return (
     <span
@@ -58,10 +58,10 @@ export function RouteBadge({
         height: badge.h,
         background,
         color: "white",
-        // Bare numbers keep their fixed-width roundel; SBS names grow with padding.
-        ...(isSbs
-          ? { minWidth: badgeWidth(badge.w, base.length), paddingInline: badge.pad }
-          : { width: badgeWidth(badge.w, base.length) }),
+        // Bare identifiers keep their fixed-width roundel; longer official labels grow with padding.
+        ...(usesLabelWidth
+          ? { minWidth: badgeWidth(badge.w, display.length), paddingInline: badge.pad }
+          : { width: badgeWidth(badge.w, display.length) }),
       }}
     >
       {display}

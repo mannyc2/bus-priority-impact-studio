@@ -160,7 +160,7 @@ async function loadSourceLabels(
 }
 
 function routeJoinKey(routeId: string): string {
-  return routeId.trim().toUpperCase().replace(/-SBS$/, "").replace(/\+$/, "");
+  return routeId;
 }
 
 const corpusFamilyToRegistryFamilies: Readonly<Record<string, readonly string[]>> = {

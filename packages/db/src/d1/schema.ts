@@ -72,6 +72,16 @@ export const routeCatalogType = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.typeRank] })],
 );
 
+export const routeCatalogTripType = sqliteTable(
+  "route_catalog_trip_type",
+  {
+    routeId: text("route_id").notNull(),
+    tripTypeRank: integer("trip_type_rank").notNull(),
+    tripType: text("trip_type").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.tripTypeRank] })],
+);
+
 export const routeDirection = sqliteTable(
   "route_direction",
   {

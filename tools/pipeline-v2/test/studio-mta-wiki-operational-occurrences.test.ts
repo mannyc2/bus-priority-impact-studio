@@ -8,6 +8,7 @@ import { decodeStrict } from "@bp/domain/decode";
 import type {
   MtaWikiOperationalOccurrenceImportArtifactV3,
   MtaWikiOperationalOccurrenceImportArtifactV4,
+  MtaWikiOperationalOccurrenceImportArtifactV5,
   OperationalOccurrenceEvidenceBinding,
   OperationalOccurrenceEvidenceBindingV2,
   OperationalOccurrenceReviewDecision,
@@ -27,6 +28,10 @@ import {
   recomputeOperationalOccurrenceSummaryV2,
   runMtaWikiOperationalOccurrenceImport,
 } from "../src/lib/mta-wiki-operational-occurrences.ts";
+import {
+  type MtaWikiRouteIdentitySnapshot,
+  reconstructedRouteAnchors,
+} from "../src/lib/mta-wiki-route-identities.ts";
 import { queensRedesignOverlapGate } from "../src/lib/study-engine/gates.ts";
 import {
   buildStudyEventMergeArtifactV2,
@@ -496,6 +501,10 @@ function canonicalJson(value: unknown): string {
     .join(",")}}`;
 }
 
+function canonicalJsonl(values: readonly unknown[]): string {
+  return values.length === 0 ? "" : `${values.map(canonicalJson).join("\n")}\n`;
+}
+
 function canonicalDigest(value: unknown): string {
   return sha256(canonicalJson(value));
 }
@@ -542,9 +551,13 @@ function transitionFingerprint(role: string, text: string): string {
 }
 
 function occurrenceRowV2(
-  options: { exactPhysicalScope?: boolean; relatedPhases?: boolean } = {},
+  options: {
+    exactPhysicalScope?: boolean;
+    relatedPhases?: boolean;
+    routes?: Array<{ route_record_id: string; gtfs_route_id: string }>;
+  } = {},
 ): OperationalOccurrenceRowV2 {
-  const legacy = occurrenceRow();
+  const legacy = occurrenceRow(options.routes === undefined ? {} : { routes: options.routes });
   const eventId = legacy.provenance.event_record_ids[0];
   if (eventId === undefined) throw new Error("fixture needs one phase event");
   const relatedEventId = `${eventId}:phase-2`;
@@ -668,6 +681,7 @@ async function writeReleaseFixtureV4(
     physicalOccurrencePinMismatch?: boolean;
     phaseOccurrencePinMismatch?: boolean;
     physicalAuditNotReady?: boolean;
+    physicalAuditFingerprintMismatch?: boolean;
     phaseAuditViolation?: boolean;
     physicalSummaryPinMismatch?: boolean;
   } = {},
@@ -1011,8 +1025,18 @@ async function writeReleaseFixtureV4(
         treatmentMembers.length,
       ),
     },
-    audit_fingerprint: "d".repeat(64),
+    audit_fingerprint: "",
   };
+  physicalManifest.audit_fingerprint = canonicalDigest({
+    schema_version: physicalManifest.schema_version,
+    release_id: physicalManifest.release_id,
+    review_stage: physicalManifest.review_stage,
+    input_pins: physicalManifest.input_pins,
+    files: physicalManifest.files,
+  });
+  if (input.physicalAuditFingerprintMismatch) {
+    physicalManifest.audit_fingerprint = "0".repeat(64);
+  }
   const physicalManifestText = `${JSON.stringify(physicalManifest)}\n`;
 
   const phaseRelationIds = [...new Set(row.phase_relation_record_ids)];
@@ -1603,6 +1627,725 @@ async function importFixtureV4(
   });
   if (artifact.artifactKind !== "bp.studio.mta_wiki_operational_occurrences.v4") {
     throw new Error("v4 fixture unexpectedly produced a legacy import artifact");
+  }
+  return artifact;
+}
+
+type ReleaseFixtureV5 = ReleaseFixtureV4 & {
+  routeIdentityPath: string;
+  retirementSourcePath: string;
+  retirementArchivePath: string;
+  retirementSourcePointer: string;
+  retirementArchivePointer: string;
+};
+
+type FixtureManifestJson = {
+  manifest_version: number;
+  contract_versions: Record<string, number>;
+  files: Record<string, { bytes: number; sha256: string }>;
+  pointers: {
+    operational_occurrence_review_decisions: string;
+    route_anchors: string | null;
+    route_identity_snapshot?: string;
+    taxonomy: string | null;
+  } & Record<string, unknown>;
+};
+
+type FixtureReviewV2Json = {
+  source_decision_count: number;
+  retirements: Array<{
+    binding: { source_route_id: string };
+    target: { occurrence_id: string };
+    future_disposition?: string;
+  }>;
+};
+
+function skeletalRouteIdentityRetirementSnapshot() {
+  const fixedSha = "0".repeat(64);
+  const metadata = (path: string, rows = 0) => ({
+    path,
+    sha256: fixedSha,
+    bytes: 0,
+    rows,
+  });
+  const currentCatalog = {
+    contract_version: 1,
+    dataset_id: "h2wf-afav",
+    artifact_sha256: fixedSha,
+    effective_as_of_date: "2026-07-18",
+    catalog_routes: metadata("catalog_routes.jsonl"),
+    catalog_gtfs_disagreements: metadata("catalog_gtfs_disagreements.jsonl", 1),
+    catalog_identity_count: 0,
+    catalog_only_count: 0,
+    gtfs_only_count: 1,
+  };
+  const components = [
+    "mta-bus-company",
+    "nyct-bronx",
+    "nyct-brooklyn",
+    "nyct-manhattan",
+    "nyct-queens",
+    "nyct-staten-island",
+  ].map((componentFeedId) => ({
+    component_feed_id: componentFeedId,
+    dataset_id: componentFeedId === "mta-bus-company" ? "mta-bus-company" : "mta-nyct-bus",
+    official_url: `https://rrgtfsfeeds.s3.amazonaws.com/${componentFeedId}.zip`,
+    archive_sha256: fixedSha,
+    feed_version: `fixture-${componentFeedId}`,
+    publisher: "MTA New York City Transit",
+    feed_start_date: "2026-06-28",
+    feed_end_date: "2026-09-05",
+    reliable_interval_start: "2026-06-28",
+    reliable_interval_end: "2026-09-05",
+    agency_timezone: "America/New_York",
+    frequencies_present: false,
+    conditional_location_files_present: false,
+    files: {},
+  }));
+  const serviceIdentity = {
+    dataset_id: "mta-bus-company",
+    component_feed_ids: ["mta-bus-company"],
+    source_route_id: "Q06",
+    gtfs_route_id: "Q06",
+    agency_id: "MTABC",
+    raw_route_type: "3",
+    route_family_id: "Q6",
+    route_short_name: "Q6",
+    route_long_name: "Jamaica - Long Island City",
+    route_desc: "via Queens Blvd",
+    declared_in_feed: true,
+    catalog_in_effect: "no",
+    catalog_effective_as_of_date: "2026-07-18",
+    reliability_status: "reliable",
+    scheduled_in_window: "yes",
+    scheduled_service_dates: [
+      "2026-07-12",
+      "2026-07-13",
+      "2026-07-14",
+      "2026-07-15",
+      "2026-07-16",
+      "2026-07-17",
+      "2026-07-18",
+    ],
+    scheduled_trip_template_date_count: 7,
+    frequencies_present: false,
+    designation_literals: ["route_type:Local"],
+    normalized_service_modes: ["local"],
+    display_label: "Q6",
+    display_label_source: "gtfs",
+    reliable_interval_start: "2026-06-28",
+    reliable_interval_end: "2026-09-05",
+    reliable_interval_derivation: "component_feed_bounds_intersection_v1",
+    label_fallback: null,
+    label_diff: null,
+    snapshot_id: "mta-bus-2026-07-18-route-provenance-v1",
+  };
+  const binding = {
+    route_record_id: "route_q6-ace",
+    route_family_id: "Q6",
+    dataset_id: "mta-bus-company",
+    component_feed_ids: ["mta-bus-company"],
+    source_route_id: "Q06",
+    gtfs_route_id: "Q06",
+    service_variant: "local",
+    identity_scope: "exact_service",
+    service_class: "regular_mta_bus",
+    record_temporal_scope: "current_description",
+    projectable: false,
+    presentation_primary: false,
+    derivation: "reviewed_exact_route_mapping_v1",
+    evidence_ids: ["source:official#q6"],
+    canonical_record_fingerprint: fixedSha,
+    identity_basis: "reviewed_exact_mapping",
+    expected_gtfs_identity_fingerprint: fixedSha,
+    decision_kind: "current_ineligible",
+    ineligibility_reasons: ["catalog_not_in_effect"],
+    decision_id: "route-binding-v1:route_q6-ace",
+    accepted_by: "fixture-owner",
+    accepted_at: "2026-07-18T12:00:00.000Z",
+    rationale: "Q06 is exact but not in the current route catalog.",
+    reviewed_axes: ["identity_mapping"],
+  };
+  const gtfsSnapshot = {
+    schema_version: 2,
+    contract_id: "gtfs-route-reference-snapshot-v2",
+    snapshot_id: "mta-bus-2026-07-18-route-provenance-v1",
+    dataset_id: "mta-bus-static",
+    captured_at: "2026-07-18T18:05:27Z",
+    as_of_date: "2026-07-18",
+    service_window_start: "2026-07-12",
+    service_window_end: "2026-07-18",
+    merge_policy: "shared-nyct-route-namespace-v1",
+    id_remapping_policy: "component-feed-prefixed-foreign-keys-v1",
+    current_catalog: currentCatalog,
+    components,
+    outputs: {},
+    counts: {
+      route_identity_count: 1,
+      route_activity_count: 1,
+      catalog_identity_count: 0,
+      catalog_only_count: 0,
+      gtfs_only_count: 1,
+    },
+  };
+  return {
+    schema_version: 1,
+    contract_id: "route-identity-snapshot-v1",
+    gtfs_snapshot_id: gtfsSnapshot.snapshot_id,
+    gtfs_snapshot: gtfsSnapshot,
+    gtfs_snapshot_sha256: sha256(`${canonicalJson(gtfsSnapshot)}\n`),
+    reviewed_decision_sha256: sha256(`${canonicalJson(binding)}\n`),
+    current_catalog: currentCatalog,
+    service_identity_count: 1,
+    service_identities_sha256: sha256(`${canonicalJson(serviceIdentity)}\n`),
+    service_identities: [serviceIdentity],
+    record_binding_count: 1,
+    record_bindings_sha256: sha256(`${canonicalJson(binding)}\n`),
+    record_bindings: [binding],
+    expected_route_anchors_count: 0,
+    expected_route_anchors_sha256: sha256(""),
+  };
+}
+
+function routeIdentityRetirementSnapshot(
+  input: { reviewedDecisionSha256?: string } = {},
+): MtaWikiRouteIdentitySnapshot {
+  const skeleton = skeletalRouteIdentityRetirementSnapshot();
+  const snapshotId = skeleton.gtfs_snapshot.snapshot_id;
+  const artifact = (path: string, text: string, rows: number) => ({
+    path,
+    sha256: sha256(text),
+    bytes: Buffer.byteLength(text),
+    rows,
+  });
+  const catalogRoutesText = `${canonicalJson({ route_id: "B1" })}\n`;
+  const catalogGtfsDisagreementsText = `${canonicalJson({
+    disposition: "gtfs_only",
+    route_id: "Q06",
+  })}\n`;
+  const currentCatalog = {
+    contract_version: 1 as const,
+    dataset_id: "h2wf-afav" as const,
+    artifact_sha256: sha256(`${catalogRoutesText}${catalogGtfsDisagreementsText}`),
+    effective_as_of_date: "2026-07-18",
+    catalog_routes: artifact("catalog_routes.jsonl", catalogRoutesText, 1),
+    catalog_gtfs_disagreements: artifact(
+      "catalog_gtfs_disagreements.jsonl",
+      catalogGtfsDisagreementsText,
+      1,
+    ),
+    catalog_identity_count: 1,
+    catalog_only_count: 0,
+    gtfs_only_count: 1,
+  };
+  const requiredGtfsFiles = [
+    "agency.txt",
+    "calendar.txt",
+    "calendar_dates.txt",
+    "feed_info.txt",
+    "routes.txt",
+    "stop_times.txt",
+    "stops.txt",
+    "trips.txt",
+  ];
+  const component = (componentFeedId: string, datasetId: "mta-bus-company" | "mta-nyct-bus") => ({
+    component_feed_id: componentFeedId,
+    dataset_id: datasetId,
+    official_url: `https://rrgtfsfeeds.s3.amazonaws.com/${componentFeedId}.zip`,
+    archive_sha256: sha256(componentFeedId),
+    feed_version: `fixture-${componentFeedId}`,
+    publisher: datasetId === "mta-bus-company" ? "MTA Bus Company" : "MTA New York City Transit",
+    feed_start_date: "2026-06-28",
+    feed_end_date: "2026-09-05",
+    reliable_interval_start: "2026-06-28",
+    reliable_interval_end: "2026-09-05",
+    agency_timezone: "America/New_York" as const,
+    frequencies_present: false,
+    conditional_location_files_present: false,
+    files: Object.fromEntries(
+      requiredGtfsFiles.map((fileName) => [fileName, artifact(fileName, "", 0)]),
+    ),
+  });
+  const components = [
+    component("mta-bus-company", "mta-bus-company"),
+    component("nyct-bronx", "mta-nyct-bus"),
+    component("nyct-brooklyn", "mta-nyct-bus"),
+    component("nyct-manhattan", "mta-nyct-bus"),
+    component("nyct-queens", "mta-nyct-bus"),
+    component("nyct-staten-island", "mta-nyct-bus"),
+  ];
+  const scheduledServiceDates = [
+    "2026-07-12",
+    "2026-07-13",
+    "2026-07-14",
+    "2026-07-15",
+    "2026-07-16",
+    "2026-07-17",
+    "2026-07-18",
+  ];
+  const q06Identity: MtaWikiRouteIdentitySnapshot["service_identities"][number] = {
+    dataset_id: "mta-bus-company",
+    component_feed_ids: ["mta-bus-company"],
+    source_route_id: "Q06",
+    gtfs_route_id: "Q06",
+    agency_id: "MTABC",
+    raw_route_type: "3",
+    route_family_id: "Q06",
+    route_short_name: "Q6",
+    route_long_name: "Jamaica - Long Island City",
+    route_desc: "via Queens Blvd",
+    declared_in_feed: true,
+    catalog_in_effect: "no",
+    catalog_effective_as_of_date: "2026-07-18",
+    reliability_status: "reliable",
+    scheduled_in_window: "yes",
+    scheduled_service_dates: scheduledServiceDates,
+    scheduled_trip_template_date_count: 7,
+    frequencies_present: false,
+    designation_literals: ["route_type:Local"],
+    normalized_service_modes: ["local"],
+    display_label: "Q6",
+    display_label_source: "gtfs",
+    reliable_interval_start: "2026-06-28",
+    reliable_interval_end: "2026-09-05",
+    reliable_interval_derivation: "component_feed_bounds_intersection_v1",
+    label_fallback: null,
+    label_diff: null,
+    snapshot_id: snapshotId,
+  };
+  const b1Identity: MtaWikiRouteIdentitySnapshot["service_identities"][number] = {
+    dataset_id: "mta-nyct-bus",
+    component_feed_ids: ["nyct-brooklyn"],
+    source_route_id: "B1",
+    gtfs_route_id: "B1",
+    agency_id: "MTA NYCT",
+    raw_route_type: "3",
+    route_family_id: "B1",
+    route_short_name: "B1",
+    route_long_name: "Bay Ridge - Manhattan Beach",
+    route_desc: null,
+    declared_in_feed: true,
+    catalog_in_effect: "yes",
+    catalog_effective_as_of_date: "2026-07-18",
+    reliability_status: "reliable",
+    scheduled_in_window: "yes",
+    scheduled_service_dates: scheduledServiceDates,
+    scheduled_trip_template_date_count: 7,
+    frequencies_present: false,
+    designation_literals: ["route_type:Local"],
+    normalized_service_modes: ["local"],
+    display_label: "B1",
+    display_label_source: "current_bus_routes",
+    reliable_interval_start: "2026-06-28",
+    reliable_interval_end: "2026-09-05",
+    reliable_interval_derivation: "component_feed_bounds_intersection_v1",
+    label_fallback: null,
+    label_diff: null,
+    snapshot_id: snapshotId,
+  };
+  const serviceIdentities = [q06Identity, b1Identity];
+  const activeBinding: MtaWikiRouteIdentitySnapshot["record_bindings"][number] = {
+    route_record_id: "route:b1",
+    route_family_id: "B1",
+    dataset_id: "mta-nyct-bus",
+    component_feed_ids: ["nyct-brooklyn"],
+    source_route_id: "B1",
+    gtfs_route_id: "B1",
+    service_variant: "local",
+    identity_scope: "exact_service",
+    service_class: "regular_mta_bus",
+    record_temporal_scope: "current_description",
+    projectable: true,
+    presentation_primary: true,
+    derivation: "deterministic_exact_route_id_v1",
+    evidence_ids: ["source:official#b1"],
+    canonical_record_fingerprint: "1".repeat(64),
+    identity_basis: "deterministic_exact",
+    expected_gtfs_identity_fingerprint: sha256(canonicalJson(b1Identity)),
+    decision_kind: "current_primary",
+    ineligibility_reasons: [],
+  };
+  const retiredBinding: MtaWikiRouteIdentitySnapshot["record_bindings"][number] = {
+    route_record_id: "route_q6-ace",
+    route_family_id: "Q06",
+    dataset_id: "mta-bus-company",
+    component_feed_ids: ["mta-bus-company"],
+    source_route_id: "Q06",
+    gtfs_route_id: "Q06",
+    service_variant: "local",
+    identity_scope: "exact_service",
+    service_class: "regular_mta_bus",
+    record_temporal_scope: "current_description",
+    projectable: false,
+    presentation_primary: false,
+    derivation: "reviewed_exact_route_mapping_v1",
+    evidence_ids: ["source:official#q6"],
+    canonical_record_fingerprint: "2".repeat(64),
+    identity_basis: "reviewed_exact_mapping",
+    expected_gtfs_identity_fingerprint: sha256(canonicalJson(q06Identity)),
+    decision_kind: "current_ineligible",
+    ineligibility_reasons: ["catalog_not_in_effect"],
+    decision_id: "route-binding-v1:route_q6-ace",
+    accepted_by: "fixture-owner",
+    accepted_at: "2026-07-18T12:00:00.000Z",
+    rationale: "Q06 is exact but not in the current route catalog.",
+    reviewed_axes: ["identity_mapping"],
+  };
+  const recordBindings = [activeBinding, retiredBinding];
+  const inventoryText = canonicalJsonl(serviceIdentities);
+  const routeActivityText = canonicalJsonl([
+    { route_id: "B1", scheduled_in_window: "yes" },
+    { route_id: "Q06", scheduled_in_window: "yes" },
+  ]);
+  const gtfsSnapshot = {
+    schema_version: 2 as const,
+    contract_id: "gtfs-route-reference-snapshot-v2" as const,
+    snapshot_id: snapshotId,
+    dataset_id: "mta-bus-static" as const,
+    captured_at: "2026-07-18T18:05:27Z",
+    as_of_date: "2026-07-18",
+    service_window_start: "2026-07-12",
+    service_window_end: "2026-07-18",
+    merge_policy: "shared-nyct-route-namespace-v1" as const,
+    id_remapping_policy: "component-feed-prefixed-foreign-keys-v1" as const,
+    current_catalog: currentCatalog,
+    components,
+    outputs: {
+      "agency.txt": artifact("agency.txt", "", 0),
+      "catalog_gtfs_disagreements.jsonl": currentCatalog.catalog_gtfs_disagreements,
+      "catalog_routes.jsonl": currentCatalog.catalog_routes,
+      "feed_info.txt": artifact("feed_info.txt", "", 0),
+      "receipt.json": artifact("receipt.json", "", 0),
+      "route_activity.jsonl": artifact(
+        "route_activity.jsonl",
+        routeActivityText,
+        serviceIdentities.length,
+      ),
+      "route_inventory.jsonl": artifact(
+        "route_inventory.jsonl",
+        inventoryText,
+        serviceIdentities.length,
+      ),
+      "routes.txt": artifact("routes.txt", "", 0),
+    },
+    counts: {
+      route_identity_count: serviceIdentities.length,
+      route_activity_count: serviceIdentities.length,
+      catalog_identity_count: 1,
+      catalog_only_count: 0,
+      gtfs_only_count: 1,
+    },
+  };
+  const draft: MtaWikiRouteIdentitySnapshot = {
+    schema_version: 1,
+    contract_id: "route-identity-snapshot-v1",
+    gtfs_snapshot_id: snapshotId,
+    gtfs_snapshot: gtfsSnapshot,
+    gtfs_snapshot_sha256: sha256(`${canonicalJson(gtfsSnapshot)}\n`),
+    reviewed_decision_sha256:
+      input.reviewedDecisionSha256 ?? sha256(canonicalJsonl([retiredBinding])),
+    current_catalog: currentCatalog,
+    service_identity_count: serviceIdentities.length,
+    service_identities_sha256: sha256(inventoryText),
+    service_identities: serviceIdentities,
+    record_binding_count: recordBindings.length,
+    record_bindings_sha256: sha256(canonicalJsonl(recordBindings)),
+    record_bindings: recordBindings,
+    expected_route_anchors_count: 0,
+    expected_route_anchors_sha256: sha256(""),
+  };
+  const anchors = reconstructedRouteAnchors(draft);
+  return {
+    ...draft,
+    expected_route_anchors_count: anchors.length,
+    expected_route_anchors_sha256: sha256(canonicalJsonl(anchors)),
+  };
+}
+
+type ReleaseFixtureV5Options = {
+  activeRow?: OperationalOccurrenceRowV2;
+  reviewedDecisionSha256?: string;
+  routeAnchorsText?: string;
+  routeBindingSha256?: string;
+};
+
+async function writeReleaseFixtureV5(
+  input: ReleaseFixtureV5Options = {},
+): Promise<ReleaseFixtureV5> {
+  const fixture = await writeReleaseFixtureV4(
+    input.activeRow === undefined ? {} : { row: input.activeRow },
+  );
+  const manifest = JSON.parse(await readFile(fixture.manifestPath, "utf8")) as FixtureManifestJson;
+  const review = JSON.parse(await readFile(fixture.reviewPath, "utf8")) as {
+    decisions: unknown[];
+  };
+  const retired = occurrenceRow({
+    id: "occurrence:q6-route-redesign-2025-08-31",
+    routes: [{ route_record_id: "route_q6-ace", gtfs_route_id: "Q06" }],
+  });
+  const acceptedAt = "2026-07-18T20:00:00.000Z";
+  const retirementId = "route-retirement:route_q6-ace";
+  const retirementSourcePointer = `review-retirements/source/${retirementId}.json`;
+  const retirementArchivePointer = `review-retirements/operational-occurrence/${retired.occurrence_review_decision_id}.json`;
+  const routeIdentityPointer = "route_identity_snapshot.json";
+  const routeAnchorsPointer = "route_anchors.jsonl";
+  const taxonomyPointer = "taxonomy.json";
+  const routeIdentity = routeIdentityRetirementSnapshot(
+    input.reviewedDecisionSha256 === undefined
+      ? {}
+      : { reviewedDecisionSha256: input.reviewedDecisionSha256 },
+  );
+  const routeIdentityText = `${canonicalJson(routeIdentity)}\n`;
+  const routeAnchorsText =
+    input.routeAnchorsText ?? canonicalJsonl(reconstructedRouteAnchors(routeIdentity));
+  const archive = {
+    schema_version: 1,
+    decision_id: retired.occurrence_review_decision_id,
+    review_state: "approved",
+    accepted_at: "2026-07-12T00:00:00.000Z",
+    reviewer: "fixture-reviewer",
+    rationale: "Exact fixture occurrence shape reviewed.",
+    occurrence_id: retired.occurrence_id,
+    founding_key: retired.founding_key,
+    observation_event_record_ids: retired.provenance.event_record_ids,
+    observation_relation_record_ids: retired.provenance.relation_record_ids,
+    resolved_status: "realized",
+    resolved_onset: {
+      date: retired.resolved_onset.date,
+      precision: retired.resolved_onset.precision,
+      evidence_bindings: retired.resolved_onset.evidence_bindings,
+    },
+    routes: retired.routes,
+    treatment_scope_kind: retired.treatment.kind,
+    treatment: retired.treatment,
+  };
+  const archiveText = `${canonicalJson(archive)}\n`;
+  const retiredRouteBinding = routeIdentity.record_bindings.find(
+    (binding) => binding.route_record_id === "route_q6-ace",
+  );
+  if (retiredRouteBinding === undefined) {
+    throw new Error("v5 occurrence fixture requires the retired Q06 route binding");
+  }
+  const bindingProjection = {
+    route_record_id: "route_q6-ace",
+    route_binding_decision_id: "route-binding-v1:route_q6-ace",
+    route_binding_sha256:
+      input.routeBindingSha256 ?? sha256(`${canonicalJson(retiredRouteBinding)}\n`),
+    dataset_id: "mta-bus-company",
+    source_route_id: "Q06",
+    gtfs_route_id: "Q06",
+    projectable: false,
+    ineligibility_reasons: ["catalog_not_in_effect"],
+  };
+  const originalArtifact = {
+    artifact_path: `data/operational-occurrence-review/accepted/decisions/${retired.occurrence_review_decision_id}.json`,
+    bytes: Buffer.byteLength(archiveText),
+    sha256: sha256(archiveText),
+  };
+  const retirementSource = {
+    schema_version: 1,
+    contract_id: "operational-review-projection-retirement-v1",
+    retirement_id: retirementId,
+    state: "accepted",
+    accepted_by: "fixture-owner",
+    accepted_at: acceptedAt,
+    rationale: "The exact Q06 binding is not in the current route catalog.",
+    route_identity_snapshot_id: routeIdentity.gtfs_snapshot_id,
+    route_identity_snapshot_sha256: sha256(routeIdentityText),
+    binding: bindingProjection,
+    anchor_review_decisions: [],
+    occurrence_review_decisions: [
+      {
+        review_contract: "operational-occurrence-review-v1",
+        decision_id: retired.occurrence_review_decision_id,
+        occurrence_id: retired.occurrence_id,
+        founding_key: retired.founding_key,
+        pinned_gtfs_route_ids: ["Q06"],
+        projection_state: "retired",
+        reason_code: "route_binding_nonprojectable",
+        original_artifact: originalArtifact,
+      },
+    ],
+  };
+  const retirementSourceText = `${canonicalJson(retirementSource)}\n`;
+  const retirementProjection = {
+    retirement_id: retirementId,
+    retirement_source: {
+      release_path: retirementSourcePointer,
+      bytes: Buffer.byteLength(retirementSourceText),
+      sha256: sha256(retirementSourceText),
+    },
+    accepted_by: retirementSource.accepted_by,
+    accepted_at: retirementSource.accepted_at,
+    rationale: retirementSource.rationale,
+    route_identity_snapshot_id: routeIdentity.gtfs_snapshot_id,
+    route_identity_snapshot_sha256: sha256(routeIdentityText),
+    binding: bindingProjection,
+    target: {
+      ...retirementSource.occurrence_review_decisions[0],
+      original_artifact: {
+        release_path: retirementArchivePointer,
+        bytes: originalArtifact.bytes,
+        sha256: originalArtifact.sha256,
+      },
+    },
+  };
+  const reviewV2 = {
+    snapshot_version: 2,
+    decision_schema_version: 1,
+    source_decision_count: 2,
+    decision_count: 1,
+    decisions: review.decisions,
+    retirement_schema_version: 1,
+    retirement_count: 1,
+    retirements: [retirementProjection],
+  };
+  const releaseFiles: Record<string, string> = {
+    [manifest.pointers.operational_occurrence_review_decisions]: `${canonicalJson(reviewV2)}\n`,
+    [routeIdentityPointer]: routeIdentityText,
+    [routeAnchorsPointer]: routeAnchorsText,
+    [taxonomyPointer]: "{}\n",
+    [retirementSourcePointer]: retirementSourceText,
+    [retirementArchivePointer]: archiveText,
+  };
+  for (const [pointer, text] of Object.entries(releaseFiles)) {
+    const path = join(fixture.releaseDirectory, pointer);
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, text, "utf8");
+    manifest.files[pointer] = {
+      bytes: Buffer.byteLength(text),
+      sha256: sha256(text),
+    };
+  }
+  manifest.manifest_version = 5;
+  manifest.contract_versions = {
+    ...manifest.contract_versions,
+    operational_anchor_review_decisions: 2,
+    operational_occurrence_review_decisions: 2,
+    route_anchors: 1,
+    route_identity_snapshot: 1,
+  };
+  manifest.pointers = {
+    ...manifest.pointers,
+    route_anchors: routeAnchorsPointer,
+    route_identity_snapshot: routeIdentityPointer,
+    taxonomy: taxonomyPointer,
+  };
+  const manifestText = `${JSON.stringify(manifest)}\n`;
+  await writeFile(fixture.manifestPath, manifestText, "utf8");
+  return {
+    ...fixture,
+    manifestSha256: sha256(manifestText),
+    routeIdentityPath: join(fixture.releaseDirectory, routeIdentityPointer),
+    retirementSourcePath: join(fixture.releaseDirectory, retirementSourcePointer),
+    retirementArchivePath: join(fixture.releaseDirectory, retirementArchivePointer),
+    retirementSourcePointer,
+    retirementArchivePointer,
+  };
+}
+
+async function repinFixtureV5Json(
+  fixture: ReleaseFixtureV5,
+  pointer: string,
+  value: unknown,
+): Promise<void> {
+  const text = `${canonicalJson(value)}\n`;
+  const path = join(fixture.releaseDirectory, pointer);
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, text, "utf8");
+  const manifest = JSON.parse(await readFile(fixture.manifestPath, "utf8")) as FixtureManifestJson;
+  manifest.files[pointer] = { bytes: Buffer.byteLength(text), sha256: sha256(text) };
+  const manifestText = `${JSON.stringify(manifest)}\n`;
+  await writeFile(fixture.manifestPath, manifestText, "utf8");
+  fixture.manifestSha256 = sha256(manifestText);
+}
+
+async function writeFixtureV5QuarantineStatus(fixture: ReleaseFixtureV5): Promise<void> {
+  const recordPointer = `data/exports/release-status/${fixture.releaseId}.json`;
+  const manifest = JSON.parse(await readFile(fixture.manifestPath, "utf8")) as FixtureManifestJson;
+  const routeIdentityMetadata = manifest.files["route_identity_snapshot.json"];
+  if (routeIdentityMetadata === undefined) {
+    throw new Error("v5 quarantine fixture requires route identity metadata");
+  }
+  const record = {
+    schema_version: 2,
+    release_id: fixture.releaseId,
+    release_path: `data/exports/releases/${fixture.releaseId}`,
+    status: "quarantined",
+    discovered_at: "2026-07-18",
+    reason_code: "exact_route_identity_collapse",
+    reason: "The candidate collapsed B44+ into the B44 route family.",
+    manifest_sha256: fixture.manifestSha256,
+    failing_artifact: {
+      path: "route_identity_snapshot.json",
+      bytes: routeIdentityMetadata.bytes,
+      sha256: routeIdentityMetadata.sha256,
+      declared_contract_version: 1,
+      detected_by_contract: "route-identity-snapshot-v1",
+      detected_by_contract_version: 1,
+      verifier_error: "B44 and B44+ must remain exact distinct route identities.",
+    },
+    affected_identities: [
+      {
+        identity_type: "route",
+        gtfs_route_id: "B44",
+        route_record_id: "route:b44-local",
+        route_family_id: "B44",
+      },
+      {
+        identity_type: "route",
+        gtfs_route_id: "B44+",
+        route_record_id: "route:b44-select",
+        route_family_id: "B44",
+      },
+    ],
+    replacement_release_id: null,
+  };
+  const index = {
+    schema_version: 2,
+    records: [
+      {
+        release_id: fixture.releaseId,
+        path: recordPointer,
+        status: "quarantined",
+        record_schema_version: 2,
+      },
+    ],
+  };
+  const recordPath = join(fixture.root, recordPointer);
+  await mkdir(dirname(recordPath), { recursive: true });
+  await writeFile(recordPath, `${canonicalJson(record)}\n`, "utf8");
+  await writeFile(
+    join(fixture.root, "data", "exports", "release-status", "index.json"),
+    `${canonicalJson(index)}\n`,
+    "utf8",
+  );
+}
+
+async function withFixtureV5<T>(
+  run: (fixture: ReleaseFixtureV5) => Promise<T>,
+  input: ReleaseFixtureV5Options = {},
+): Promise<T> {
+  const fixture = await writeReleaseFixtureV5(input);
+  try {
+    return await run(fixture);
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+}
+
+async function importFixtureV5(
+  fixture: ReleaseFixtureV5,
+  output = "import-v5.json",
+): Promise<MtaWikiOperationalOccurrenceImportArtifactV5> {
+  const artifact = await runMtaWikiOperationalOccurrenceImport({
+    mtaWikiRoot: fixture.root,
+    wikiRelease: fixture.releaseId,
+    wikiManifestSha256: fixture.manifestSha256,
+    output: join(fixture.root, output),
+  });
+  if (artifact.artifactKind !== "bp.studio.mta_wiki_operational_occurrences.v5") {
+    throw new Error("v5 fixture unexpectedly produced a legacy import artifact");
   }
   return artifact;
 }
@@ -2428,6 +3171,12 @@ describe("manifest-v4 occurrence-v2 and relationship-integrity import", () => {
         detail: expect.stringContaining("physical audit output pin"),
       });
     });
+    await withFixtureV4({ physicalAuditFingerprintMismatch: true }, async (fixture) => {
+      await expect(importFixtureV4(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("physical audit identity, fingerprint"),
+      });
+    });
   });
 
   test("rejects non-ready or nonzero phase and physical audit summaries", async () => {
@@ -2773,6 +3522,257 @@ describe("manifest-v4 occurrence-v2 and relationship-integrity import", () => {
           wikiInput: { ...blocked.wikiInput, producerReviewCompatibility: "compatible" },
         }),
       ).toThrow();
+    });
+  });
+});
+
+describe("manifest-v5 occurrence review-v2 retirement replay", () => {
+  test("deterministically imports active decisions and preserves exact retirement closure", async () => {
+    await withFixtureV5(async (fixture) => {
+      const first = await importFixtureV5(fixture, "import-v5-first.json");
+      const second = await importFixtureV5(fixture, "import-v5-second.json");
+      expect(first).toEqual(second);
+      expect(await readFile(join(fixture.root, "import-v5-first.json"), "utf8")).toBe(
+        await readFile(join(fixture.root, "import-v5-second.json"), "utf8"),
+      );
+      expect(first.sourceRelease).toMatchObject({
+        manifestVersion: 5,
+        operationalOccurrenceContractVersion: 2,
+        operationalOccurrenceReviewDecisionContractVersion: 2,
+        routeIdentityContractVersion: 1,
+        producerReviewStatus: { compatibility: "compatible", promotionEligible: true },
+        reviewDecisionCount: 1,
+        reviewSourceDecisionCount: 2,
+        reviewRetirementCount: 1,
+      });
+      expect(first.occurrences.map((row) => row.occurrence_id)).toEqual(["occurrence:atomic"]);
+      expect(first.sourceRelease.reviewRetirements).toMatchObject([
+        {
+          binding: {
+            route_record_id: "route_q6-ace",
+            dataset_id: "mta-bus-company",
+            source_route_id: "Q06",
+            gtfs_route_id: "Q06",
+            projectable: false,
+          },
+          target: {
+            occurrence_id: "occurrence:q6-route-redesign-2025-08-31",
+            pinned_gtfs_route_ids: ["Q06"],
+            projection_state: "retired",
+          },
+        },
+      ]);
+      const candidates = buildStudyEventMergeArtifactV3({
+        registryEvents: [],
+        wiki: pinnedOccurrenceStudyInputV4(first),
+        availableAnalysisRouteIds: new Set(["B1", "Q06"]),
+      });
+      expect(candidates).toMatchObject({
+        approvalState: "awaiting_approval",
+        summary: { candidateCount: 1, approvedCount: 0 },
+      });
+      expect(candidates.candidates.map((candidate) => candidate.routeId)).toEqual(["B1"]);
+    });
+  });
+
+  test("keeps occurrence and available-route identities exact outside the finite Queens crosswalk", async () => {
+    await withFixtureV5(async (fixture) => {
+      const imported = await importFixtureV5(fixture);
+      const pinned = pinnedOccurrenceStudyInputV4(imported);
+      const exactRow = occurrenceRowV2({
+        routes: [
+          { route_record_id: "route:b44-local", gtfs_route_id: "B44" },
+          { route_record_id: "route:b44-select", gtfs_route_id: "B44+" },
+        ],
+      });
+      const build = (
+        row: OperationalOccurrenceRowV2,
+        availableAnalysisRouteIds: ReadonlySet<string>,
+      ) =>
+        buildStudyEventMergeArtifactV3({
+          registryEvents: [],
+          wiki: { ...pinned, occurrences: [row] },
+          availableAnalysisRouteIds,
+        });
+
+      const exact = build(exactRow, new Set(["B44", "B44+"]));
+      expect(exact.candidates.map((candidate) => candidate.routeId).toSorted()).toEqual([
+        "B44",
+        "B44+",
+      ]);
+      expect(
+        exact.candidates
+          .flatMap((candidate) => candidate.provenance)
+          .map((provenance) => provenance.gtfsRouteId)
+          .toSorted(),
+      ).toEqual(["B44", "B44+"]);
+
+      const unavailableAliases = build(exactRow, new Set(["b44", "B44-SBS"]));
+      expect(unavailableAliases.candidates).toEqual([]);
+      expect(unavailableAliases.rejections[0]?.reasons).toEqual([
+        "analysis_route_unavailable:B44",
+        "analysis_route_unavailable:B44+",
+      ]);
+
+      const aliasLiteralRow = occurrenceRowV2({
+        routes: [
+          { route_record_id: "route:b44-lowercase", gtfs_route_id: "b44" },
+          { route_record_id: "route:b44-sbs-literal", gtfs_route_id: "B44-SBS" },
+        ],
+      });
+      const unrewrittenLiterals = build(aliasLiteralRow, new Set(["B44", "B44+"]));
+      expect(unrewrittenLiterals.candidates).toEqual([]);
+      expect(unrewrittenLiterals.rejections[0]?.reasons).toEqual([
+        "analysis_route_unavailable:B44-SBS",
+        "analysis_route_unavailable:b44",
+      ]);
+
+      expect(occurrenceAnalysisRouteId("Q07")).toBe("Q7");
+      expect(occurrenceAnalysisRouteId("q07")).toBe("q07");
+      expect(occurrenceAnalysisRouteId("B44-SBS")).toBe("B44-SBS");
+    });
+  });
+
+  test("requires each active occurrence route to use its exact projectable binding", async () => {
+    await withFixtureV5(
+      async (fixture) => {
+        await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          operation: "validateActiveOccurrenceRouteProjections",
+        });
+      },
+      {
+        activeRow: occurrenceRowV2({
+          routes: [{ route_record_id: "route:b1", gtfs_route_id: "b1" }],
+        }),
+      },
+    );
+
+    await withFixtureV5(
+      async (fixture) => {
+        await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          operation: "validateActiveOccurrenceRouteProjections",
+        });
+      },
+      {
+        activeRow: occurrenceRowV2({
+          routes: [{ route_record_id: "route_q6-ace", gtfs_route_id: "Q06" }],
+        }),
+      },
+    );
+  });
+
+  test("preserves producer decision-ledger and binding SHA receipts", async () => {
+    await withFixtureV5(
+      async (fixture) => {
+        await expect(importFixtureV5(fixture)).resolves.toBeDefined();
+      },
+      { reviewedDecisionSha256: "0".repeat(64) },
+    );
+
+    await withFixtureV5(
+      async (fixture) => {
+        await expect(importFixtureV5(fixture)).resolves.toBeDefined();
+      },
+      { routeBindingSha256: "0".repeat(64) },
+    );
+  });
+
+  test("rejects route-anchor bytes that are not the complete snapshot projection", async () => {
+    await withFixtureV5(
+      async (fixture) => {
+        await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+          code: "semantic_mismatch",
+          operation: "validateRouteAnchorProjection",
+        });
+      },
+      { routeAnchorsText: "" },
+    );
+  });
+
+  test("rejects a generic rc23-style exact-route quarantine", async () => {
+    await withFixtureV5(async (fixture) => {
+      await writeFixtureV5QuarantineStatus(fixture);
+      await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+        code: "contract_incompatible",
+        operation: "verifyReleaseStatus",
+      });
+    });
+  });
+
+  test("rejects count drift and reintroduction of a retired occurrence identity", async () => {
+    await withFixtureV5(async (fixture) => {
+      const review = JSON.parse(await readFile(fixture.reviewPath, "utf8")) as FixtureReviewV2Json;
+      review.source_decision_count = 3;
+      await repinFixtureV5Json(fixture, "operational_occurrence_review_decisions.json", review);
+      await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("counts do not reconcile"),
+      });
+    });
+    await withFixtureV5(async (fixture) => {
+      const review = JSON.parse(await readFile(fixture.reviewPath, "utf8")) as FixtureReviewV2Json;
+      const retirement = review.retirements[0];
+      if (retirement === undefined) throw new Error("fixture needs one retirement");
+      retirement.target.occurrence_id = "occurrence:atomic";
+      await repinFixtureV5Json(fixture, "operational_occurrence_review_decisions.json", review);
+      await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("reintroduced"),
+      });
+    });
+  });
+
+  test("rejects route-binding drift, unknown retirement fields, and unrepresented archives", async () => {
+    await withFixtureV5(async (fixture) => {
+      const review = JSON.parse(await readFile(fixture.reviewPath, "utf8")) as FixtureReviewV2Json;
+      const retirement = review.retirements[0];
+      if (retirement === undefined) throw new Error("fixture needs one retirement");
+      retirement.binding.source_route_id = "Q07";
+      await repinFixtureV5Json(fixture, "operational_occurrence_review_decisions.json", review);
+      await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("accepted nonprojectable route binding"),
+      });
+    });
+    await withFixtureV5(async (fixture) => {
+      const review = JSON.parse(await readFile(fixture.reviewPath, "utf8")) as FixtureReviewV2Json;
+      const retirement = review.retirements[0];
+      if (retirement === undefined) throw new Error("fixture needs one retirement");
+      retirement.future_disposition = "unsupported";
+      await repinFixtureV5Json(fixture, "operational_occurrence_review_decisions.json", review);
+      await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+        code: "schema_mismatch",
+        operation: "decodeOperationalOccurrenceReviewSnapshotV5",
+      });
+    });
+    await withFixtureV5(async (fixture) => {
+      const archive = JSON.parse(await readFile(fixture.retirementArchivePath, "utf8"));
+      await repinFixtureV5Json(
+        fixture,
+        "review-retirements/operational-occurrence/decision:unrepresented.json",
+        archive,
+      );
+      await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+        code: "semantic_mismatch",
+        detail: expect.stringContaining("represented exactly once"),
+      });
+    });
+  });
+
+  test("rejects immutable retirement receipt and archive byte tamper", async () => {
+    await withFixtureV5(async (fixture) => {
+      await writeFile(fixture.retirementSourcePath, "{}\n", "utf8");
+      await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+        code: "byte_count_mismatch",
+      });
+    });
+    await withFixtureV5(async (fixture) => {
+      await writeFile(fixture.retirementArchivePath, "{}\n", "utf8");
+      await expect(importFixtureV5(fixture)).rejects.toMatchObject({
+        code: "byte_count_mismatch",
+      });
     });
   });
 });

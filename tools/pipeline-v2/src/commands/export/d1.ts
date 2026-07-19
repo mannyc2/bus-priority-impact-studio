@@ -77,6 +77,7 @@ export type D1SeedOutputResult = {
   comparisonRowCount: number;
   routeCatalogRowCount: number;
   routeCatalogTypeRowCount: number;
+  routeCatalogTripTypeRowCount: number;
   routeDirectionRowCount: number;
   routeCoverageRowCount: number;
   routeReadinessRowCount: number;
@@ -300,6 +301,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     comparisonRowCount: seed.comparisonRowCount,
     routeCatalogRowCount: seed.routeCatalogRowCount,
     routeCatalogTypeRowCount: seed.routeCatalogTypeRowCount,
+    routeCatalogTripTypeRowCount: seed.routeCatalogTripTypeRowCount,
     routeDirectionRowCount: seed.routeDirectionRowCount,
     routeCoverageRowCount: seed.routeCoverageRowCount,
     routeReadinessRowCount: seed.routeReadinessRowCount,

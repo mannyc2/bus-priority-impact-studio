@@ -27,10 +27,50 @@ export const studioRouteFieldProvenance = {
     source: "MTA route catalog",
     note: "Canonical MTA route ID.",
   },
+  routeSchemaVersion: {
+    kind: "derived",
+    source: "public route contract",
+    note: "Version tag for the rich identity and presentation route shape.",
+  },
   label: {
     kind: "derived",
     source: "route catalog",
     note: "Display label normalized from route ID/name.",
+  },
+  routeFamilyId: {
+    kind: "derived",
+    source: "official route identity contract",
+    note: "Grouping context only; never an exact service identity.",
+  },
+  displayLabel: {
+    kind: "observed",
+    source: "official route identity contract",
+    note: "Verbatim official display label with source precedence.",
+  },
+  officialLongName: {
+    kind: "observed",
+    source: "official route identity contract",
+    note: "Verbatim official long name when available.",
+  },
+  designationLiterals: {
+    kind: "observed",
+    source: "official Current Bus Routes artifact",
+    note: "All preserved official service designation literals.",
+  },
+  serviceModes: {
+    kind: "derived",
+    source: "versioned route identity policy",
+    note: "Plural normalized modes mapped from official literals.",
+  },
+  routeTypes: {
+    kind: "observed",
+    source: "official route identity inputs",
+    note: "Preserved official route type values.",
+  },
+  tripTypes: {
+    kind: "observed",
+    source: "official route identity inputs",
+    note: "Preserved official trip type values.",
   },
   corridor: {
     kind: "derived",
@@ -49,8 +89,8 @@ export const studioRouteFieldProvenance = {
   },
   sbs: {
     kind: "derived",
-    source: "route ID",
-    note: "Select Bus Service flag derived from route identity.",
+    source: "official service modes",
+    note: "Compatibility flag derived only from serviceModes containing sbs.",
   },
   speedMph: {
     kind: "observed",

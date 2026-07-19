@@ -3,10 +3,12 @@ import {
   fetchMapBusLanes,
   fetchStudioInterventionsEvidence,
   fetchStudioRoute,
+  fetchStudioRouteIndex,
   fetchVerifiedMapArtifact,
   joinNetworkMapBundle,
   StudioApiError,
 } from "../../src/studio/api-client.js";
+import type { StudioRouteIndex3Response } from "../../src/studio/api-contract.js";
 
 const originalFetch = globalThis.fetch;
 
@@ -18,7 +20,45 @@ function mockFetch(handler: typeof globalThis.fetch) {
   globalThis.fetch = handler;
 }
 
+function emptyRouteIndexV3(): StudioRouteIndex3Response {
+  return {
+    schemaVersion: 3,
+    generatedAt: "2026-07-18T00:00:00.000Z",
+    releaseId: "studio/v3",
+    baselineMonth: "2026-07",
+    dataAsOf: "2026-07",
+    routes: [],
+    quality: {
+      releaseLayer: "baseline_release",
+      completenessStatus: "unavailable",
+      confidence: "low",
+      caveats: [],
+    },
+  };
+}
+
 describe("Studio API client", () => {
+  test("requests and strictly decodes route-index schema v3", async () => {
+    let requestedPath = "";
+    mockFetch((async (input) => {
+      requestedPath = String(input);
+      return Response.json(emptyRouteIndexV3());
+    }) as typeof globalThis.fetch);
+
+    await expect(fetchStudioRouteIndex()).resolves.toEqual(emptyRouteIndexV3());
+    expect(requestedPath).toBe("/api/v1/studio/routes?schema=3");
+  });
+
+  test("rejects future route-index payloads instead of type-casting them", async () => {
+    mockFetch((async () =>
+      Response.json({
+        ...emptyRouteIndexV3(),
+        schemaVersion: 4,
+      })) as unknown as typeof globalThis.fetch);
+
+    await expect(fetchStudioRouteIndex()).rejects.toThrow();
+  });
+
   test("throws StudioApiError with server error details", async () => {
     const fetchFailure = async () =>
       Response.json(

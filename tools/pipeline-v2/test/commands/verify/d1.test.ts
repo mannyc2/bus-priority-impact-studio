@@ -14,6 +14,7 @@ const loadedHelperPath = join(import.meta.dir, "../../../src/commands/verify/d1-
 const schemaSql = `
   CREATE TABLE route_catalog (route_id TEXT PRIMARY KEY);
   CREATE TABLE route_catalog_type (route_id TEXT, route_type TEXT);
+  CREATE TABLE route_catalog_trip_type (route_id TEXT, trip_type TEXT);
   CREATE TABLE route_direction (route_id TEXT, direction_id INTEGER);
   CREATE TABLE route_month_coverage (route_id TEXT, month TEXT);
   CREATE TABLE route_readiness (route_id TEXT, month TEXT);
@@ -50,6 +51,7 @@ const schemaSql = `
 
 const seedSql = `
   INSERT INTO route_catalog (route_id) VALUES ('B1');
+  INSERT INTO route_catalog_trip_type (route_id, trip_type) VALUES ('B1', '1');
   INSERT INTO route_brief_summary (route_id, month, public_visible) VALUES ('B1', '2026-03', 1);
   INSERT INTO route_scorecard (route_id, month) VALUES ('B1', '2026-03');
 `;
@@ -75,6 +77,7 @@ function emptyExportResult(): D1SeedOutputResult {
     comparisonRowCount: 0,
     routeCatalogRowCount: 1,
     routeCatalogTypeRowCount: 0,
+    routeCatalogTripTypeRowCount: 1,
     routeDirectionRowCount: 0,
     routeCoverageRowCount: 0,
     routeReadinessRowCount: 0,
@@ -141,12 +144,14 @@ describe("verify d1 helpers", () => {
       seedSql,
       run: ({ database }) => {
         const routeCatalogTable = "route_catalog";
+        const routeCatalogTripTypeTable = "route_catalog_trip_type";
         const routeBriefSummaryTable = "route_brief_summary";
         const routeScorecardTable = "route_scorecard";
         const routeArtifactTable = "route_artifact";
         const { tableCounts, publicTableCounts } = collectD1TableCounts(database);
         return {
           routeCatalogCount: tableCounts[routeCatalogTable],
+          routeCatalogTripTypeCount: tableCounts[routeCatalogTripTypeTable],
           routeBriefSummaryCount: tableCounts[routeBriefSummaryTable],
           routeScorecardCount: tableCounts[routeScorecardTable],
           routeArtifactCount: tableCounts[routeArtifactTable],
@@ -157,6 +162,7 @@ describe("verify d1 helpers", () => {
 
     expect(result).toEqual({
       routeCatalogCount: 1,
+      routeCatalogTripTypeCount: 1,
       routeBriefSummaryCount: 1,
       routeScorecardCount: 1,
       routeArtifactCount: 0,

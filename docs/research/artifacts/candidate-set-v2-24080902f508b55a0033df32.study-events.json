@@ -138,9 +138,7 @@
       "occurrenceId": "occurrence:5d51147fc80a669bfb81da45",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -227,10 +225,7 @@
       "occurrenceId": "occurrence:287b7cae95debf96f5ee0ca8",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -646,10 +641,7 @@
       "occurrenceId": "occurrence:5abd35486a8f37bf2873fd9d",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -793,9 +785,7 @@
           "sourceId": "201111_1st2nd_progress_report",
           "sourceEventId": "occurrence:b45f5df36b98c638d8052c7a",
           "releaseId": "v1-rc19",
-          "anchorIds": [
-            "m15-2010-10-10-off-board-fare"
-          ],
+          "anchorIds": ["m15-2010-10-10-off-board-fare"],
           "occurrenceId": "occurrence:b45f5df36b98c638d8052c7a",
           "occurrenceAliases": [],
           "manifestSha256": "c5d4563d37815d330b37898774a027fb07563335163fcfccbaeebfc3da81720f",
@@ -907,10 +897,7 @@
       "occurrenceId": "occurrence:17599e5e02011a49dbf3a39e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -1059,9 +1046,7 @@
       "occurrenceId": "occurrence:b18b9a4512c3b2860dd8aa29",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -1334,10 +1319,7 @@
       "occurrenceId": "occurrence:370d345af8a0924d2963de06",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -1660,10 +1642,7 @@
       "occurrenceId": "occurrence:df4a071a40b50c02d19c06d9",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -1812,10 +1791,7 @@
       "occurrenceId": "occurrence:894538e84dd38a83e6811bcf",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -2161,10 +2137,7 @@
       "occurrenceId": "occurrence:9b893749748fe73ac7f37c02",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -2332,9 +2305,7 @@
       "occurrenceId": "occurrence:8ceb4179de2ab8a2852347df",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -2533,10 +2504,7 @@
       "occurrenceId": "occurrence:d30e60bf0a04874c1ae7d40b",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -2642,10 +2610,7 @@
       "occurrenceId": "occurrence:1837c6c5074899a254d2f432",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -2825,10 +2790,7 @@
       "occurrenceId": "occurrence:de25867eefd234ee717d5477",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -2903,10 +2865,7 @@
       "occurrenceId": "occurrence:9cc235d476d6671abef6061f",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -3265,10 +3224,7 @@
       "occurrenceId": "occurrence:8fe6a36ee85ea925934f0090",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -3460,10 +3416,7 @@
       "occurrenceId": "occurrence:5ac0e55f39f63140204859b1",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -3879,10 +3832,7 @@
       "occurrenceId": "occurrence:75842379c2c3565e620378c4",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -3981,10 +3931,7 @@
       "occurrenceId": "occurrence:4bbc8d192f8954066abd895d",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -4257,10 +4204,7 @@
       "occurrenceId": "occurrence:861f40e9854e6efb535671d2",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -5017,10 +4961,7 @@
       "occurrenceId": "occurrence:a622f17cbc3aa72283c3fb36",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -5496,10 +5437,7 @@
       "occurrenceId": "occurrence:6ae7cf4ad6af0772d6c7f258",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -5617,10 +5555,7 @@
       "occurrenceId": "occurrence:0362fbd73e6243c009bd0cde",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -5695,9 +5630,7 @@
       "occurrenceId": "occurrence:6db5b36a1964f9acbc9a8c28",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -6113,10 +6046,7 @@
       "occurrenceId": "occurrence:347b3c72a4ae99cf931fff3f",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -6222,10 +6152,7 @@
       "occurrenceId": "occurrence:6e77fd301c480a7727683f26",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -6684,9 +6611,7 @@
       "occurrenceId": "occurrence:9256051973f8f7ff0847b5c1",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -6792,10 +6717,7 @@
       "occurrenceId": "occurrence:934c000394ad0200c1c110a0",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -6870,10 +6792,7 @@
       "occurrenceId": "occurrence:136f3d32a53a62f096f8f44e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -7003,10 +6922,7 @@
       "occurrenceId": "occurrence:4dc018a72fe45633f36e2d50",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -7614,10 +7530,7 @@
       "occurrenceId": "occurrence:da2c48455650dbf4288cbd62",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -7704,10 +7617,7 @@
       "occurrenceId": "occurrence:a00bff657f5fddaaa323b4c7",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -7937,10 +7847,7 @@
       "occurrenceId": "occurrence:5a5d5bfd5584cafa14b96d50",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -8046,10 +7953,7 @@
       "occurrenceId": "occurrence:e3e892497a55c312fb79e181",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -8265,10 +8169,7 @@
       "occurrenceId": "occurrence:a31494bfefdd2128f130b872",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -8639,10 +8540,7 @@
       "occurrenceId": "occurrence:70956fca3524ebf56de16ef4",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "fare_collection",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["fare_collection", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -8872,10 +8770,7 @@
       "occurrenceId": "occurrence:012a7db8f83a7369d830cfbe",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -9005,10 +8900,7 @@
       "occurrenceId": "occurrence:348b29a03ef80cb34b909b32",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -9200,10 +9092,7 @@
       "occurrenceId": "occurrence:c322da8e3fb82d49a0721687",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -9569,9 +9458,7 @@
       "occurrenceId": "occurrence:88e85e2d2475090abec9877a",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -10035,10 +9922,7 @@
       "occurrenceId": "occurrence:3dbf308d5babdf713808de0d",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -10431,10 +10315,7 @@
       "occurrenceId": "occurrence:18aebfff2a26e1be82b30d92",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -10571,10 +10452,7 @@
       "occurrenceId": "occurrence:ddb7be06c9eb2b6292ef86c9",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -10711,10 +10589,7 @@
       "occurrenceId": "occurrence:b18e417a22f1b7b7ff70b74b",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -10832,10 +10707,7 @@
       "occurrenceId": "occurrence:a04ec993d0faee78af481311",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -10941,9 +10813,7 @@
       "occurrenceId": "occurrence:c5e9aba290ca2be1be6fb38e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -11805,10 +11675,7 @@
       "occurrenceId": "occurrence:b1dc7a8d3d036d4af5dcff24",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -12131,10 +11998,7 @@
       "occurrenceId": "occurrence:267aaa5473dee60fb3a4141d",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -12400,10 +12264,7 @@
       "occurrenceId": "occurrence:86a96bd18ca50921cbfb07bf",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -12788,10 +12649,7 @@
       "occurrenceId": "occurrence:1837c3123f0d9dec2eb20266",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -13095,10 +12953,7 @@
       "occurrenceId": "occurrence:59ecd060600071fd96d07ab4",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -13185,10 +13040,7 @@
       "occurrenceId": "occurrence:dfa34727804a2ac5dd5bd0a7",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -13318,10 +13170,7 @@
       "occurrenceId": "occurrence:520813b94f4e503a2c4896b1",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -13582,10 +13431,7 @@
       "occurrenceId": "occurrence:2e94830e7941ea7613836b0e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -13753,10 +13599,7 @@
       "occurrenceId": "occurrence:55158c93238b243e5707e43a",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -13862,10 +13705,7 @@
       "occurrenceId": "occurrence:28e219b4524b102cdd9dd1d0",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -14231,10 +14071,7 @@
       "occurrenceId": "occurrence:1c5986351caf8047a1649e37",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -14526,10 +14363,7 @@
       "occurrenceId": "occurrence:347bc4f1a346152697520648",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -14604,10 +14438,7 @@
       "occurrenceId": "occurrence:54b94cada9a20943c7cb212c",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -14942,10 +14773,7 @@
       "occurrenceId": "occurrence:2748598653b74d33fcdce3d1",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -15144,10 +14972,7 @@
       "occurrenceId": "occurrence:9170c983a3c76974673a0ce6",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -15284,10 +15109,7 @@
       "occurrenceId": "occurrence:c52f5ae327c2f0f315749440",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -15804,10 +15626,7 @@
       "occurrenceId": "occurrence:f4781bf6f18f46b8c24e8578",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -15975,10 +15794,7 @@
       "occurrenceId": "occurrence:29fc4436c22b58d52f231964",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -16146,10 +15962,7 @@
       "occurrenceId": "occurrence:bf2c33f3d46b5740aa43e3b5",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -16317,10 +16130,7 @@
       "occurrenceId": "occurrence:4a1a43f2512f477e5c68f917",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -16426,10 +16236,7 @@
       "occurrenceId": "occurrence:f653aafce703bf517a5eea5e",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -16597,9 +16404,7 @@
       "occurrenceId": "occurrence:18bf68576411afed0305dfed",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -17139,10 +16944,7 @@
       "occurrenceId": "occurrence:4750a23a8904d74dfd492589",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -17248,10 +17050,7 @@
       "occurrenceId": "occurrence:c88a94143d770aa926bd2457",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -17400,10 +17199,7 @@
       "occurrenceId": "occurrence:bca0b565b6971c90a6af9e55",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -17601,11 +17397,7 @@
       "occurrenceId": "occurrence:6a6f8f8e85979d872ba2bdd7",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "route_redesign",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "route_redesign", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -17988,10 +17780,7 @@
       "occurrenceId": "occurrence:ba2df83e40caa33e0414df00",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -18419,10 +18208,7 @@
       "occurrenceId": "occurrence:2337005e58ee4742dd8e3ce7",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -18497,10 +18283,7 @@
       "occurrenceId": "occurrence:11142a33a2e70c97f1f4bc37",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -18680,9 +18463,7 @@
       "occurrenceId": "occurrence:b882f54df6c24c9a1b7b89f6",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -18788,10 +18569,7 @@
       "occurrenceId": "occurrence:8ff6aee08d593dad55a5a127",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -18866,10 +18644,7 @@
       "occurrenceId": "occurrence:14a30b1a82ea107ffc9a3dd4",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -19018,10 +18793,7 @@
       "occurrenceId": "occurrence:4825e837e6c5e411396f513d",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -19139,10 +18911,7 @@
       "occurrenceId": "occurrence:ddf934c07f27311eaf4ca32c",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -19706,9 +19475,7 @@
       "occurrenceId": "occurrence:542bec22dbd7cc59c2134b2c",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -19783,10 +19550,7 @@
       "occurrenceId": "occurrence:8e0377c6acfe62e1a61d910b",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -19971,10 +19735,7 @@
       "occurrenceId": "occurrence:8bda306337ad21b2c982bc83",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -20173,10 +19934,7 @@
       "occurrenceId": "occurrence:e48912d67516283b48a05867",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -20468,10 +20226,7 @@
       "occurrenceId": "occurrence:7a4cb90846e515964b1d7198",
       "confounderGroupId": "queens_bus_network_redesign_2025",
       "treatmentScopeKind": "bundle",
-      "componentTreatmentFamilies": [
-        "bus_stop_or_boarding",
-        "service_pattern"
-      ],
+      "componentTreatmentFamilies": ["bus_stop_or_boarding", "service_pattern"],
       "provenance": [
         {
           "sourceKind": "mta_wiki",
@@ -20649,3087 +20404,2305 @@
       "sourceKind": "mta_wiki",
       "sourceId": "fare_free_bus_pilot_evaluation",
       "sourceEventId": "occurrence:7a2f12e7e5c483d946eea9f4",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "fare_free_bus_pilot_evaluation",
       "sourceEventId": "occurrence:89db405827ea6e206146708c",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "m86_sbs_progress_report_2017",
       "sourceEventId": "occurrence:025c872102a446492605b997",
-      "reasons": [
-        "producer_study_projection_ineligible",
-        "unsupported_bundle_analysis_family"
-      ]
+      "reasons": ["producer_study_projection_ineligible", "unsupported_bundle_analysis_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "meeting_doc_143341",
       "sourceEventId": "occurrence:5110ac089234f4641e170f5e",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "meeting_doc_146846",
       "sourceEventId": "occurrence:8fd87e702db534906b401f11",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "meeting_doc_160441",
       "sourceEventId": "occurrence:1dddfb078a97dd148a4e123d",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "meeting_doc_160441",
       "sourceEventId": "occurrence:833f69866045c25967353373",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:00027f5ec1ea65794a3ae5cf",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:08c4564a266f9ce407bbafb9",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:09ea0322d6f8c130097ebfe4",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:1552e655aae6eb184e5bf069",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:172bd6cf2ba95fb530efe1ea",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:2223ede249d4fd7b352c8a40",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:4a6debe0dddd0a7beab0950e",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:654f57cceeb6697c2220a4be",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:6b643d9b210e25c1c39ca6d3",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:7497bde52fc4c2d6bedb0ec9",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:771f5f9c06cb706d0a867ecc",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:7c6ce82c3bf9406d5dfbab5d",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:7d60205c4d0a57b639defd1a",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:821ba75291ff6f8dec19a07f",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:88af5155921609f8d9c6b12a",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:8d3b28a38f4ebee3119cf554",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:934b8066ac790c3820f764d1",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:945379d2517d60e675fdad6f",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:9550bacedc3391a3365a6e95",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:982bedeb1f2e852a5753bd14",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:9d9f23af3933cda5d4dc1abd",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:9ddeca99f8c8394728a4b285",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:a8dd6f3a8e3204d0eeb69c4e",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:adf7db270c885b91a00425fb",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:b0386b3cb7a23934798f0a21",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:b5911e36c6aa226658a53bb3",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:bfd2a93891d015e91bc93b81",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:c9c4e3eee606b64dccb0c916",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:ce5829e0060fb3a0834fc99b",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:d93f0e5c985dd9f201320c7b",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:e62c82167eb4e9fac21cea9c",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:e80caddec379d8206557f4f9",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:e8b335ea5de4ad66af6ff19b",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:edd2e984c259a68b769207cf",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:efd16a2af21563a6b38bebb2",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:f07d48437c42bfd026f8f3db",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "mta_wiki",
       "sourceId": "mta_queens_bus_network_redesign_service_changes",
       "sourceEventId": "occurrence:f738d53af84e374b3b108739",
-      "reasons": [
-        "unsupported_treatment_family"
-      ]
+      "reasons": ["unsupported_treatment_family"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:B1:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:B14:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:B15:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:B17:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:B35:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:B46:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:B46+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:B49:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BM1:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BM2:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BM3:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BM4:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BM5:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX1:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX12:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX12+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX13:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX16:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX2:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX32:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX34:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX36:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX40:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX41:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX41+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX42:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX6:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX6+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BX95:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM1:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM10:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM11:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM18:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM2:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM3:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM4:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM6:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM7:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM8:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:BXM9:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:J90:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M1:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M100:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M101:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M102:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M103:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M11:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M12:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M15:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M15+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M2:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M20:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M3:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M34+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M34A+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M4:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M42:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M5:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M50:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M55:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M60+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M66:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M7:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M72:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M79+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M86+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M96:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:M98:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q1:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q11:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q110:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q111:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q112:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q113:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q114:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q115:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q12:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q13:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q14:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q15:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q17:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q19:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q2:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q20:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q24:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q25:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q26:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q27:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q29:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q3:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q30:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q31:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q32:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q36:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q4:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q41:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q42:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q43:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q44+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q5:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q50:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q52+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q53+:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q54:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q55:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q56:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q58:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q59:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q60:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q61:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q63:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q65:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q66:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q75:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q76:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q77:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q82:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q83:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q84:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q85:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q86:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q87:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q88:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q89:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q90:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:Q98:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM1:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM10:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM11:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM12:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM15:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM16:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM17:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM18:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM2:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM20:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM21:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM24:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM25:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM32:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM34:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM4:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM40:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM42:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM5:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM6:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM63:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM64:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM65:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM68:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM7:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:QM8:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM10:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM11:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM1C:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM22:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM23:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM24:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM25:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM26:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM3:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM30:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM31:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM33C:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM3C:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM4C:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM6:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:SIM8:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:X27:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:X28:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:X37:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "nyc_dot_bus_lanes",
       "sourceEventId": "bus-lane-source-gap:X38:2026-05",
-      "reasons": [
-        "registry_event_not_implemented"
-      ]
+      "reasons": ["registry_event_not_implemented"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44:intv_08d06ae598116326",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44:intv_13f60c34a324856c",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44:intv_2005649fc8a73a25",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44:intv_4eccc82b8d98e73c",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44:intv_721efe3e62521ddc",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44:intv_740b846f0d7fbfa0",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44:intv_9e3a5f58991138dc",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44:intv_b0ef865d79ca8983",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44:intv_d827b4f0ec8f555b",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44+:intv_08d06ae598116326",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44+:intv_13f60c34a324856c",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44+:intv_2005649fc8a73a25",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44+:intv_4eccc82b8d98e73c",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44+:intv_721efe3e62521ddc",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44+:intv_740b846f0d7fbfa0",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44+:intv_9e3a5f58991138dc",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44+:intv_b0ef865d79ca8983",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B44+:intv_d827b4f0ec8f555b",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B46:intv_3e67a8452d01bb56",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B46:intv_7d20432cc0660882",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B46:intv_aed241cce6476f32",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B46+:intv_3e67a8452d01bb56",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B46+:intv_7d20432cc0660882",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B46+:intv_aed241cce6476f32",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B49:intv_4eccc82b8d98e73c",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B49:intv_721efe3e62521ddc",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B82:intv_2d4c032f0d814ea3",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:B82+:intv_2d4c032f0d814ea3",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_02af8b2e84ed3271",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_0bd684d141a977f4",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_30f63e173a7afd85",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_536ecdeb440d2301",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_578cbbc947be5ab1",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_7508965aabd28e7f",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_762a5f922dc71b2a",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_77cb67e33d465f35",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_8b04e6be4e499fda",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_9a4bb793ddaafe0e",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_b0ed43ceb690a96f",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_b477973241185702",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_e319b987d57bdbc0",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12:intv_e4cb8cd3cfa5e67b",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_02af8b2e84ed3271",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_0bd684d141a977f4",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_30f63e173a7afd85",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_536ecdeb440d2301",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_578cbbc947be5ab1",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_7508965aabd28e7f",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_762a5f922dc71b2a",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_77cb67e33d465f35",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_8b04e6be4e499fda",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_9a4bb793ddaafe0e",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_b0ed43ceb690a96f",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_b477973241185702",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_e319b987d57bdbc0",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX12+:intv_e4cb8cd3cfa5e67b",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX15:intv_33bd0d2b37118a52",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX36:intv_271ae93c857fad53",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX36:intv_951dd780b3013ae9",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX36:intv_ef03f009adb5a505",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX40:intv_271ae93c857fad53",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41:intv_2c9211a84328aef8",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41:intv_30ae3f119c2a3ca5",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41:intv_33bd0d2b37118a52",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41:intv_645b846f52e31338",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41:intv_6f6f252c07360d48",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41:intv_971fd7c1aca757f1",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41:intv_c371482779f75057",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41:intv_ccf63ba367c69b8d",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41:intv_db2b52f868b3be59",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41+:intv_2c9211a84328aef8",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41+:intv_30ae3f119c2a3ca5",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41+:intv_33bd0d2b37118a52",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41+:intv_645b846f52e31338",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41+:intv_6f6f252c07360d48",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41+:intv_971fd7c1aca757f1",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41+:intv_c371482779f75057",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41+:intv_ccf63ba367c69b8d",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX41+:intv_db2b52f868b3be59",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX42:intv_271ae93c857fad53",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX6:intv_58a4dd7f8891282d",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX6:intv_a5a1d1d090dba9cc",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX6+:intv_58a4dd7f8891282d",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:BX6+:intv_a5a1d1d090dba9cc",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M14A+:intv_af61920d27589dfb",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M14A+:intv_cfe91104cd4b95c7",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M14A+:intv_e42cfb518475cb87",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M14D+:intv_af61920d27589dfb",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M14D+:intv_cfe91104cd4b95c7",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M14D+:intv_e42cfb518475cb87",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15:intv_02af8b2e84ed3271",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15:intv_308d1234d0ab7611",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15:intv_30f63e173a7afd85",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15:intv_436b974717c3b9b6",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15:intv_5c68f9097daca01b",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15:intv_6d6af5e87d38b608",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15:intv_b0ed43ceb690a96f",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15:intv_c331997d9770875d",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15:intv_c72db9f9c1c569ae",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15:intv_e274055212a74ac3",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15+:intv_02af8b2e84ed3271",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15+:intv_308d1234d0ab7611",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15+:intv_30f63e173a7afd85",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15+:intv_436b974717c3b9b6",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15+:intv_5c68f9097daca01b",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15+:intv_6d6af5e87d38b608",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15+:intv_b0ed43ceb690a96f",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15+:intv_c331997d9770875d",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15+:intv_c72db9f9c1c569ae",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M15+:intv_e274055212a74ac3",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34+:intv_30caebb4bf37948b",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34+:intv_45b4d57cbd603979",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34+:intv_83f4bb6f4630c7f6",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34+:intv_89afb64a411bc3f8",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34+:intv_c4959b1af85b35f0",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34+:intv_dc72d82e14e7809b",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34A+:intv_30caebb4bf37948b",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34A+:intv_83f4bb6f4630c7f6",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34A+:intv_c2ea6fda82953ebf",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34A+:intv_c4959b1af85b35f0",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M34A+:intv_dc72d82e14e7809b",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M60+:intv_5d6d575079d2c9f4",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M79+:intv_14ade0922bfae448",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M79+:intv_467e2acf973086a0",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M79+:intv_564d1c0fb8c34ff2",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M79+:intv_584eaae898f78632",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M79+:intv_5916eb324692069c",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M79+:intv_61e6817191e7a8ae",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M79+:intv_6dea5487be00ac81",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M79+:intv_8f6291a85d48ec53",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M79+:intv_f4b55e9e9bf94aa3",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M86+:intv_2157098276b46222",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M86+:intv_debf8ae9b70ffaa8",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:M86+:intv_ec6e695e6391e848",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q17:intv_9df0449155980032",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q19:intv_9df0449155980032",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q25:intv_9df0449155980032",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q27:intv_9df0449155980032",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q44+:intv_9df0449155980032",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q44+:intv_f36907f8bb2a0109",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q50:intv_9df0449155980032",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q52+:intv_18c62d9fb20fefeb",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q52+:intv_3f7d3a7a5baadae3",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q52+:intv_d60a20cada92bafd",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q52+:intv_d6be35489d49b747",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q52+:intv_da48e84c0cb828d7",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q52+:intv_eeb2b9016b9f104f",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q53+:intv_18c62d9fb20fefeb",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q53+:intv_38a52bcedca518dc",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q53+:intv_3f7d3a7a5baadae3",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q53+:intv_d60a20cada92bafd",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q53+:intv_d6be35489d49b747",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q53+:intv_eeb2b9016b9f104f",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q65:intv_62eadfb350795cad",
-      "reasons": [
-        "unsupported_treatment_family",
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["unsupported_treatment_family", "untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q65:intv_9df0449155980032",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:Q66:intv_9df0449155980032",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S59:intv_257e9855bf104673",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S59:intv_8f36df3c333e356a",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S78:intv_257e9855bf104673",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S78:intv_2f2b04ce3621c819",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S78:intv_6d3dbc0ceb5430d2",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S78:intv_8f36df3c333e356a",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S79+:intv_257e9855bf104673",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S79+:intv_25a4c103525809a5",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S79+:intv_2f2b04ce3621c819",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S79+:intv_428d7263cf40a832",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S79+:intv_7655759e3295c110",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     },
     {
       "sourceKind": "registry",
       "sourceId": "tier2_document_operational_date_assertions",
       "sourceEventId": "doc-anchor:S79+:intv_8f36df3c333e356a",
-      "reasons": [
-        "untrusted_or_retired_registry_source"
-      ]
+      "reasons": ["untrusted_or_retired_registry_source"]
     }
   ],
   "conflicts": [],

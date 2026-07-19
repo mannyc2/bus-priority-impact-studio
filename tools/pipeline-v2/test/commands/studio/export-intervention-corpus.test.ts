@@ -211,6 +211,48 @@ describe("studio export-intervention-corpus command", () => {
     });
     expect(report.corpusOnlyEvaluable[0]?.recordId).toBe("evaluable-only");
     expect(report.corpusOnlyPreWindow[0]?.recordId).toBe("pre-window");
+    const template = corpus.records[0];
+    if (template === undefined) throw new Error("corpus fixture needs one projected record");
+    const exactReport = reconcileInterventionCorpus({
+      corpus: {
+        ...corpus,
+        records: [
+          {
+            ...template,
+            recordId: "b44-plus-only",
+            routes: ["B44+"],
+            title: "B44+ exact-service intervention",
+          },
+        ],
+      },
+      generatedAt: "2026-07-11T00:00:00.000Z",
+      registryEvents: [
+        {
+          event_id: "registry-b44",
+          route_id: "B44",
+          intervention_type: "bus_lane_infrastructure",
+          source_id: "fixture-registry",
+          program: "Fixture lanes",
+          implementation_date: "2025-06-01",
+          implementation_month: "2025-06",
+          event_status: "implemented",
+          description: "Local-service sibling",
+        },
+        {
+          event_id: "registry-b44-plus",
+          route_id: "B44+",
+          intervention_type: "bus_lane_infrastructure",
+          source_id: "fixture-registry",
+          program: "Fixture lanes",
+          implementation_date: "2025-06-01",
+          implementation_month: "2025-06",
+          event_status: "implemented",
+          description: "Exact select-service identity",
+        },
+      ],
+    });
+    expect(exactReport.matched[0]?.matchedRegistryEventIds).toEqual(["registry-b44-plus"]);
+    expect(exactReport.registryOnly.map((event) => event.eventId)).toEqual(["registry-b44"]);
     const markdown = interventionCorpusReconciliationMarkdown(report);
     expect(markdown).toContain(
       "They never enter Plan 074 causal inputs; those come only from trusted registry events plus manifest-pinned, locally revalidated Wiki anchors.",

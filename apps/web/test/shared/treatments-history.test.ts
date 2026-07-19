@@ -5,23 +5,25 @@ import {
   comparisonCardsSubLine,
   interventionComparisonCards,
   mergedTreatmentTimelineRows,
-  treatmentFamilyOfText,
+  routeCorpusRecords,
   TreatmentsHistorySection,
   timelineDisplayRows,
   timelineYearLabel,
+  treatmentFamilyOfText,
   treatmentHistoryInsightRows,
   treatmentSourceRows,
 } from "../../src/components/route/TreatmentsHistorySection";
 import { citationEntries } from "../../src/components/SourceNote";
-import { studyFixture } from "./study-fixture";
 import type {
   StudioIntervention,
+  StudioInterventionCorpus,
   StudioInterventionCorpusRecord,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceTimelineEvent,
   StudioRouteInsight,
 } from "../../src/studio/api-contract";
+import { studyFixture } from "./study-fixture";
 
 function insight(input: Partial<StudioRouteInsight> = {}): StudioRouteInsight {
   const fixture: StudioRouteInsight = {
@@ -451,8 +453,10 @@ describe("TreatmentsHistorySection render", () => {
 });
 
 describe("study integration", () => {
+  const studiedEventBase = servingInterventions[0];
+  if (studiedEventBase === undefined) throw new Error("serving intervention fixture is empty");
   const studiedEvent: StudioIntervention = {
-    ...servingInterventions[0]!,
+    ...studiedEventBase,
     eventId: "ace:B41:ACE:2024-09-16",
   };
   const rollup = {
@@ -501,7 +505,13 @@ describe("study integration", () => {
     // servingInterventions[1] is "Bus lane repainted" in 2024-06.
     const merged = mergedTreatmentTimelineRows(servingInterventions, null, [
       corpusRecord({}),
-      corpusRecord({ recordId: "corpus-2", title: "Broadway — Busway", primaryTreatments: ["busway"], effectiveDate: "2021-10", datePrecision: "month" }),
+      corpusRecord({
+        recordId: "corpus-2",
+        title: "Broadway — Busway",
+        primaryTreatments: ["busway"],
+        effectiveDate: "2021-10",
+        datePrecision: "month",
+      }),
       corpusRecord({ recordId: "corpus-3", effectiveDate: null }),
     ]);
     const baseline = mergedTreatmentTimelineRows(servingInterventions, null);
@@ -521,5 +531,28 @@ describe("study integration", () => {
     expect(treatmentFamilyOfText("serving_intervention Bus lane repainted")).toBe("bus_lane");
     expect(treatmentFamilyOfText("ACE enforcement begins")).toBe("automated_bus_lane_enforcement");
     expect(treatmentFamilyOfText("Ridership dashboard")).toBeNull();
+  });
+
+  test("route corpus selection keeps B44 and B44+ exact and case-sensitive", () => {
+    const exactCorpus = {
+      schemaVersion: 1,
+      generatedAt: "2026-07-18T00:00:00.000Z",
+      sourceCorpus: {
+        path: "fixture.json",
+        version: 3,
+        generatedAt: "2026-07-18T00:00:00.000Z",
+        recordCount: 3,
+        sha256: "a".repeat(64),
+      },
+      records: [
+        corpusRecord({ recordId: "b44-local", routes: ["B44"] }),
+        corpusRecord({ recordId: "b44-plus", routes: ["B44+"] }),
+        corpusRecord({ recordId: "b44-lower", routes: ["b44+"] }),
+      ],
+    } satisfies StudioInterventionCorpus;
+
+    expect(routeCorpusRecords(exactCorpus, "B44+").map((record) => record.recordId)).toEqual([
+      "b44-plus",
+    ]);
   });
 });

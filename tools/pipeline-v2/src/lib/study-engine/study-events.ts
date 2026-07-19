@@ -10,6 +10,7 @@ import {
 import type {
   MtaWikiOperationalOccurrenceImportArtifactV3,
   MtaWikiOperationalOccurrenceImportArtifactV4,
+  MtaWikiOperationalOccurrenceImportArtifactV5,
   OperationalOccurrenceEvidenceBinding,
   OperationalOccurrenceRow,
   OperationalOccurrenceRowV2,
@@ -76,7 +77,7 @@ function digest(prefix: string, value: unknown): string {
   return `${prefix}:${createHash("sha256").update(stableJson(value)).digest("hex").slice(0, 24)}`;
 }
 
-function routeId(value: string): string {
+function legacyAliasedRouteId(value: string): string {
   return value.trim().toUpperCase().replace(/-SBS$/u, "+");
 }
 
@@ -168,7 +169,7 @@ function registryDrafts(rows: readonly RouteTreatmentInterventionEventRow[]): {
     if (day !== null && row.implementation_month !== day.slice(0, 7)) {
       reasons.push("registry_month_date_mismatch");
     }
-    const normalizedRouteId = routeId(row.route_id);
+    const normalizedRouteId = legacyAliasedRouteId(row.route_id);
     if (normalizedRouteId.length === 0) reasons.push("missing_route_id");
     if (reasons.length > 0 || family === null || day === null) {
       rejections.push(rejection("registry", row.source_id, row.event_id, reasons));
@@ -299,7 +300,7 @@ function wikiDrafts(input: PinnedWikiStudyInput): {
     if (family === null) reasons.push("unsupported_or_ambiguous_treatment_family");
     const date = wikiDate(assertion);
     if (date === null) reasons.push("invalid_wiki_implementation_date");
-    const normalizedRouteId = routeId(assertion.routeIds[0] ?? "");
+    const normalizedRouteId = legacyAliasedRouteId(assertion.routeIds[0] ?? "");
     if (normalizedRouteId.length === 0) reasons.push("missing_route_id");
     if (reasons.length > 0 || family === null || date === null) {
       rejections.push(rejection("mta_wiki", assertion.sourceId, assertion.wikiAnchorId, reasons));
@@ -550,8 +551,7 @@ const QUEENS_ZERO_PADDED_GTFS_TO_ANALYSIS_ROUTE = new Map([
  * leading-zero transform: every accepted alias is explicit and reviewable.
  */
 export function occurrenceAnalysisRouteId(gtfsRouteId: string): string {
-  const normalized = routeId(gtfsRouteId);
-  return QUEENS_ZERO_PADDED_GTFS_TO_ANALYSIS_ROUTE.get(normalized) ?? normalized;
+  return QUEENS_ZERO_PADDED_GTFS_TO_ANALYSIS_ROUTE.get(gtfsRouteId) ?? gtfsRouteId;
 }
 
 export type PinnedWikiOccurrenceStudyInput = {
@@ -699,7 +699,7 @@ function occurrenceDrafts(
 } {
   const drafts: CandidateDraftV2[] = [];
   const rejections: StudyEventRejection[] = [];
-  const available = new Set([...availableAnalysisRouteIds].map((value) => routeId(value)));
+  const available = new Set(availableAnalysisRouteIds);
   for (const row of input.occurrences) {
     const reasons: string[] = [...row.exclusion_reasons];
     if (!row.study_projection_eligible) reasons.push("producer_study_projection_ineligible");
@@ -1310,7 +1310,9 @@ export function pinnedOccurrenceStudyInput(
 }
 
 export function pinnedOccurrenceStudyInputV4(
-  artifact: MtaWikiOperationalOccurrenceImportArtifactV4,
+  artifact:
+    | MtaWikiOperationalOccurrenceImportArtifactV4
+    | MtaWikiOperationalOccurrenceImportArtifactV5,
 ): PinnedWikiOccurrenceStudyInputV4 {
   return {
     releaseId: artifact.sourceRelease.releaseId,

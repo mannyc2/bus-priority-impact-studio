@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { listRouteCatalogIds, replaceRouteCatalog } from "../src/local/index.js";
+import { listRouteCatalog, listRouteCatalogIds, replaceRouteCatalog } from "../src/local/index.js";
 import { createTestLocalDb } from "./local-test-db.js";
 
 describe("local route network repository", () => {
@@ -11,7 +11,8 @@ describe("local route network repository", () => {
           routeId: "Q1",
           routeShortName: "Q1",
           routeLongName: "Queens fixture",
-          routeTypes: ["local"],
+          routeTypes: ["Local"],
+          tripTypes: ["1"],
           directions: ["Eastbound", "Westbound"],
           shapeCount: 1,
           stopCount: 2,
@@ -25,7 +26,8 @@ describe("local route network repository", () => {
           routeId: "B1",
           routeShortName: "B1",
           routeLongName: "Brooklyn fixture",
-          routeTypes: ["local"],
+          routeTypes: ["Limited"],
+          tripTypes: ["12"],
           directions: ["Northbound", "Southbound"],
           shapeCount: 1,
           stopCount: 2,
@@ -38,6 +40,14 @@ describe("local route network repository", () => {
       ]);
 
       await expect(listRouteCatalogIds(local.db)).resolves.toEqual(["B1", "Q1"]);
+      await expect(listRouteCatalog(local.db)).resolves.toMatchObject([
+        {
+          routeId: "B1",
+          routeTypes: ["Limited"],
+          tripTypes: ["12"],
+        },
+        { routeId: "Q1", routeTypes: ["Local"], tripTypes: ["1"] },
+      ]);
     } finally {
       local.sqlite.close();
     }
