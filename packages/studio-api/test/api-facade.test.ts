@@ -1847,7 +1847,7 @@ describe("Studio API facade", () => {
     );
   });
 
-  it("does not load a sibling service identity's rich route artifact", async () => {
+  it("does not load a sibling service identity mispackaged under the exact route slug", async () => {
     const bx12Route = {
       ...route,
       slug: "bx12-sbs",
@@ -1862,7 +1862,7 @@ describe("Studio API facade", () => {
     const targetSegmentId = "BX12:2026-03:W:19:103999:104235";
     const env = {
       ARTIFACTS: new FakeR2Bucket({
-        "studio/v1/routes/bx12-sbs/index.json": new FakeR2Object(
+        "studio/v1/routes/bx12/index.json": new FakeR2Object(
           JSON.stringify({
             schemaVersion: 3,
             generatedAt: "2026-06-05T00:00:00.000Z",
@@ -1945,7 +1945,13 @@ describe("Studio API facade", () => {
       }) as unknown as R2Bucket,
       BASELINE_MONTH: "2026-03",
       DB: new FakeDb({
-        route_artifact: [],
+        route_artifact: [
+          {
+            route_id: "BX12",
+            month: "2026-03",
+            artifact_name: "brief.json",
+          },
+        ],
         route_brief_summary: [
           {
             route_id: "BX12",
@@ -2196,6 +2202,17 @@ describe("Studio API facade", () => {
     expect(sparse?.caveats).toContain(
       "A baseline summary exists, but the rich public artifact gate is not satisfied.",
     );
+  });
+  it("rejects unknown Studio route-index schema versions", async () => {
+    const response = await fetchApi("/api/v1/studio/routes?schema=4", {});
+
+    expect(response.status).toBe(400);
+    expect((await response.json()) as unknown).toEqual({
+      error: {
+        code: "BAD_REQUEST",
+        message: "Unsupported Studio route-index schema version: 4",
+      },
+    });
   });
   it("serves strict exact route identity in the D1-backed route index v3", async () => {
     const response = await fetchApi("/api/v1/studio/routes?schema=3", {

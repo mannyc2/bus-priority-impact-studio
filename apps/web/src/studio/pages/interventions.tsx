@@ -397,7 +397,7 @@ function InterventionRecord({
                 className="no-underline"
               >
                 <RouteBadge
-                  route={route.label}
+                  route={route.routeId}
                   displayLabel={route.displayLabel}
                   sbs={route.sbs}
                   size="sm"

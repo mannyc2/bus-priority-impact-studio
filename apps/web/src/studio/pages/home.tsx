@@ -74,7 +74,7 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
         primary: (
           <span className="inline-flex items-center gap-2.5">
             <RouteBadge
-              route={route.label}
+              route={route.routeId}
               displayLabel={route.displayLabel}
               sbs={route.sbs}
               size="sm"
@@ -148,7 +148,12 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
                   viewTransition
                   className="no-underline"
                 >
-                  <RouteBadge route={r.label} displayLabel={r.displayLabel} sbs={r.sbs} size="sm" />
+                  <RouteBadge
+                    route={r.routeId}
+                    displayLabel={r.displayLabel}
+                    sbs={r.sbs}
+                    size="sm"
+                  />
                 </Link>
               ))}
             </div>

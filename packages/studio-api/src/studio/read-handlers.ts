@@ -102,6 +102,7 @@ import {
   buildStudioRouteCardFromIndexRow,
   buildStudioRouteIndex2Row,
   buildStudioRouteIndex3Row,
+  exactRoutePresentationForIndexRow,
   FALLBACK_ROUTE_CAPABILITY,
   hasRouteTimelineBundle,
   listNormalizedStudioRouteIndexSourceRows,
@@ -897,12 +898,30 @@ function routeDetailWithInsightTargetSegments(input: {
 
 async function maybeLoadAliasedStudioRouteDetailProjection(input: {
   env: StudioReadEnv;
-  routeId: string;
+  row: NormalizedStudioRouteIndexSourceRow;
   requestedSlug: string;
 }): Promise<StudioRouteDetailResponse | null> {
-  for (const candidateSlug of routeDetailSlugCandidates(input.routeId, input.requestedSlug)) {
+  const expectedPresentation = exactRoutePresentationForIndexRow(input.row);
+  const expectedSlug = routeIdToStudioSlug(input.row.routeId);
+  for (const candidateSlug of routeDetailSlugCandidates(input.row.routeId, input.requestedSlug)) {
     const detail = await maybeLoadStudioRouteDetailProjection(input.env, candidateSlug);
-    if (detail !== null) return detail;
+    if (
+      detail !== null &&
+      detail.route.routeSchemaVersion === 2 &&
+      detail.route.routeId === expectedPresentation.routeId &&
+      detail.route.slug === expectedSlug &&
+      detail.route.routeFamilyId === expectedPresentation.routeFamilyId &&
+      detail.route.displayLabel === expectedPresentation.displayLabel &&
+      detail.route.officialLongName === expectedPresentation.officialLongName &&
+      JSON.stringify(detail.route.designationLiterals) ===
+        JSON.stringify(expectedPresentation.designationLiterals) &&
+      JSON.stringify(detail.route.serviceModes) ===
+        JSON.stringify(expectedPresentation.serviceModes) &&
+      JSON.stringify(detail.route.routeTypes) === JSON.stringify(expectedPresentation.routeTypes) &&
+      JSON.stringify(detail.route.tripTypes) === JSON.stringify(expectedPresentation.tripTypes)
+    ) {
+      return detail;
+    }
   }
   return null;
 }
@@ -1145,7 +1164,11 @@ async function buildStudioRouteDetailResponseFromD1(
   }
 
   if (row.artifactNames.length > 0) {
-    const richDetail = await maybeLoadStudioRouteDetailProjection(env, slug);
+    const richDetail = await maybeLoadAliasedStudioRouteDetailProjection({
+      env,
+      row,
+      requestedSlug: slug,
+    });
     if (richDetail !== null) {
       const [manifest, spines, capabilityManifest, dossier, equityContext, hourlyProfile] =
         await Promise.all([
@@ -1194,7 +1217,7 @@ async function buildStudioRouteDetailResponseFromD1(
     loadDetectorReadinessServingManifest(env),
     maybeLoadAliasedStudioRouteDetailProjection({
       env,
-      routeId: row.routeId,
+      row,
       requestedSlug: slug,
     }),
     loadRouteSpeedSpineCandidatesForSegments({
@@ -2170,13 +2193,17 @@ function routeSlug(
 
 const studioReadHandlers = {
   "studio.routes": async ({ url, env }) => {
-    if (url.searchParams.get("schema") === "3") {
+    const schemaVersion = url.searchParams.get("schema");
+    if (schemaVersion === "3") {
       const result = await buildStudioRouteIndex3Response(env);
       return result.ok ? studioJsonResponse(result.routeIndex, env) : result.response;
     }
-    if (url.searchParams.get("schema") === "2") {
+    if (schemaVersion === "2") {
       const result = await buildStudioRouteIndex2Response(env);
       return result.ok ? studioJsonResponse(result.routeIndex, env) : result.response;
+    }
+    if (schemaVersion !== null) {
+      return errorResponse(400, `Unsupported Studio route-index schema version: ${schemaVersion}`);
     }
 
     const result = await buildStudioRoutesResponse(env);

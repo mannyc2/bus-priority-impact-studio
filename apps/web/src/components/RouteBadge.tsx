@@ -16,12 +16,12 @@ function badgeWidth(widths: readonly [number, number, number, number], charCount
 
 function routeColor(route: string, express: boolean): string {
   if (express) return "var(--bp-route-express)";
-  const prefix = route.match(/^(BxM|BM|QM|Bx|SI|M|B|Q|S|X)/)?.[1] ?? "M";
-  if (prefix === "Bx") return "var(--bp-route-bronx)";
+  const prefix = route.toUpperCase().match(/^(BXM|BM|QM|BX|SI|M|B|Q|S|X)/)?.[1] ?? "M";
+  if (prefix === "BX") return "var(--bp-route-bronx)";
   if (prefix === "B") return "var(--bp-route-brooklyn)";
   if (prefix === "Q") return "var(--bp-route-queens)";
   if (prefix === "SI" || prefix === "S") return "var(--bp-route-si)";
-  if (prefix === "X" || prefix === "BM" || prefix === "BxM" || prefix === "QM") {
+  if (prefix === "X" || prefix === "BM" || prefix === "BXM" || prefix === "QM") {
     return "var(--bp-route-express)";
   }
   return "var(--bp-route-manhattan)";

@@ -51,7 +51,12 @@ export function RouteIndexRow({ route }: { route: StudioRoute }) {
       viewTransition
       className="grid grid-cols-[90px_1fr_90px_110px_120px_90px_16px] items-center gap-4 px-4.5 py-3.5 text-[var(--bp-color-ink)] no-underline shadow-[inset_0_-1px_0_var(--bp-color-rule)] transition-colors hover:bg-[var(--bp-color-paper-deep)] max-md:grid-cols-[auto_minmax(0,1fr)] max-md:gap-x-3 max-md:gap-y-2 max-md:px-3.5 max-md:py-3"
     >
-      <RouteBadge route={route.label} displayLabel={route.displayLabel} sbs={route.sbs} size="md" />
+      <RouteBadge
+        route={route.routeId}
+        displayLabel={route.displayLabel}
+        sbs={route.sbs}
+        size="md"
+      />
       <div className="min-w-0 truncate text-[13.5px] font-medium">{route.corridorFull}</div>
       <div className="hidden text-[11.5px] leading-[1.45] text-[var(--bp-color-ink-55)] max-md:col-span-2 max-md:block">
         {`${route.speedMph.toFixed(1)} mph, ${status}, ${formatRiders(route.dailyRiders)} riders/day`}

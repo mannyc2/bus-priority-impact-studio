@@ -39,6 +39,15 @@ describe("RouteBadge normalization", () => {
     expect(html).toContain("min-width:62px");
   });
 
+  test("uses exact route identity for borough color while preserving the official label", () => {
+    const html = renderToStaticMarkup(
+      createElement(RouteBadge, { route: "BX12+", displayLabel: "Bx12-SBS", sbs: true }),
+    );
+    expect(html).toContain("Bx12-SBS");
+    expect(html).toContain("background:var(--bp-route-bronx)");
+    expect(html).not.toContain("background:var(--bp-route-brooklyn)");
+  });
+
   test("leaves a plain route untouched", () => {
     const html = render("B41", false);
     expect(html).toContain("B41");
