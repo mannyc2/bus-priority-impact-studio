@@ -372,9 +372,12 @@ describe("evaluation data products", () => {
     expect(manifest.releaseId).toBe(releaseIdentity.releaseId);
     expect(manifest.coverage).toEqual(releaseIdentity.coverage);
     expect(manifest.routes[0]?.overallState).toBe("ready");
-    expect(manifest.routes[0]?.surfaces.speedHistory?.state).toBe("ready");
-    expect(manifest.routes[0]?.surfaces.speedHistory?.freshness).toBe("recent");
-    expect(manifest.routes[0]?.surfaces.reliability?.state).toBe("ready");
+    // biome-ignore lint/complexity/useLiteralKeys: surfaces is an index-signature map.
+    expect(manifest.routes[0]?.surfaces["speedHistory"]?.state).toBe("ready");
+    // biome-ignore lint/complexity/useLiteralKeys: surfaces is an index-signature map.
+    expect(manifest.routes[0]?.surfaces["speedHistory"]?.freshness).toBe("recent");
+    // biome-ignore lint/complexity/useLiteralKeys: surfaces is an index-signature map.
+    expect(manifest.routes[0]?.surfaces["reliability"]?.state).toBe("ready");
     expect(() =>
       buildRouteCapabilityManifest({
         generatedAt: publishedAt,

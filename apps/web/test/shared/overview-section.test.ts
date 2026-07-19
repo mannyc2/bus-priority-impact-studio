@@ -11,6 +11,7 @@ import type {
   StudioRouteInsight,
   StudioSegment,
 } from "../../src/studio/api-contract";
+import { isoMonthFixture } from "./schema-fixtures";
 
 function surface(state: RouteSurfaceCapability["state"]): RouteSurfaceCapability {
   return { state, reason: null, depth: null, dataAsOf: "2026-03", freshness: "current" };
@@ -57,7 +58,7 @@ const dossier = {
   routeSlug: "m15-sbs",
   releaseId: "pub_20260612T000000000Z",
   publishedAt: "2026-06-12T00:00:00.000Z",
-  coverage: { start: null, end: "2026-03" },
+  coverage: { start: null, end: isoMonthFixture("2026-03") },
   dataAsOf: "2026-03",
   speed: {
     current: 5.8,
@@ -149,7 +150,7 @@ function detail(overrides: Partial<StudioRouteDetailResponse>): StudioRouteDetai
     generatedAt: "2026-06-12T00:00:00.000Z",
     releaseId: "pub_20260612T000000000Z",
     publishedAt: "2026-06-12T00:00:00.000Z",
-    coverage: { start: "2023-04", end: "2026-03" },
+    coverage: { start: isoMonthFixture("2023-04"), end: isoMonthFixture("2026-03") },
     route: baseRoute,
     segments: [segment],
     artifactRefs: [],

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { decodeStrict } from "@bp/domain/decode";
+import { ReleaseIdentitySchema } from "@bp/domain/studio/shared";
 import { StudioSnapshotResponseSchema } from "@bp/domain/studio/snapshots";
 import {
   findRouteSpec,
@@ -206,11 +207,13 @@ describe("Studio API HTTP helpers", () => {
     expect(response?.status).toBe(200);
     expect(response?.headers.get("ETag")).toMatch(/^"studio-[a-f0-9]{8}"$/);
     expect(response?.headers.get("X-Studio-Content-Hash")).toMatch(/^[a-f0-9]{8}$/);
-    expect(body.release).toEqual({
-      releaseId: "pub_20260605T000000000Z",
-      publishedAt: "2026-06-05T00:00:00.000Z",
-      coverage: { start: null, end: "2026-03" },
-    });
+    expect(body.release).toEqual(
+      decodeStrict(ReleaseIdentitySchema)({
+        releaseId: "pub_20260605T000000000Z",
+        publishedAt: "2026-06-05T00:00:00.000Z",
+        coverage: { start: null, end: "2026-03" },
+      }),
+    );
     expect(body.counts).toEqual(
       expect.objectContaining({
         routes: 1,

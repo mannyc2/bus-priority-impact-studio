@@ -21,6 +21,7 @@ import {
   interventionRows,
   yearLabel,
 } from "../../src/studio/pages/interventions";
+import { isoMonthFixture } from "./schema-fixtures";
 
 // InterventionsPage renders TanStack <Link>s, which need a router context.
 async function renderWithRouter(node: ReactNode): Promise<string> {
@@ -251,7 +252,7 @@ function routeIndexRow(input: {
   return {
     releaseId: "pub_20260610T000000000Z",
     publishedAt: "2026-06-10T00:00:00.000Z",
-    coverage: { start: "2023-04", end: "2026-03" },
+    coverage: { start: isoMonthFixture("2023-04"), end: isoMonthFixture("2026-03") },
     routeId: input.routeId,
     slug: input.slug,
     label: displayLabel,
@@ -294,7 +295,7 @@ describe("interventions page evidence aggregation", () => {
       generatedAt: "2026-06-10T00:00:00.000Z",
       releaseId: "pub_20260610T000000000Z",
       publishedAt: "2026-06-10T00:00:00.000Z",
-      coverage: { start: "2023-04", end: "2026-03" },
+      coverage: { start: isoMonthFixture("2023-04"), end: isoMonthFixture("2026-03") },
       dataAsOf: "2026-03",
       routes: [
         routeIndexRow({ routeId: "B99", slug: "b99" }),

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { routePerformanceSummary } from "../../src/components/route/route-derived";
 import type { RouteDossierSummaryForDetail, StudioRoute } from "../../src/studio/api-contract";
+import { isoMonthFixture } from "./schema-fixtures";
 
 const route = {
   slug: "m15-sbs",
@@ -44,7 +45,7 @@ function dossier(current: number | null): RouteDossierSummaryForDetail {
     routeSlug: "m15-sbs",
     releaseId: "pub_20260610T000000000Z",
     publishedAt: "2026-06-10T00:00:00.000Z",
-    coverage: { start: null, end: "2026-03" },
+    coverage: { start: null, end: isoMonthFixture("2026-03") },
     dataAsOf: "2026-05",
     speed: {
       current,

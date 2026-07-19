@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ReliabilitySection } from "../../src/components/route/ReliabilitySection";
 import { RidersSection } from "../../src/components/route/RidersSection";
 import type { StudioRoute, StudioRouteDetailResponse } from "../../src/studio/api-contract";
+import { isoMonthFixture } from "./schema-fixtures";
 
 const observedReliability = {
   month: "2026-03",
@@ -25,7 +26,7 @@ const routeDetail = {
   generatedAt: "2026-07-01T00:00:00.000Z",
   releaseId: "pub_20260701T000000000Z",
   publishedAt: "2026-07-01T00:00:00.000Z",
-  coverage: { start: "2023-04", end: "2026-03" },
+  coverage: { start: isoMonthFixture("2023-04"), end: isoMonthFixture("2026-03") },
   route: {
     slug: "m15-sbs",
     routeId: "M15+",

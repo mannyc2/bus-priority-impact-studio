@@ -20,6 +20,7 @@ import type {
   StudioRouteDetailResponse,
   StudioRouteIndex3Response,
 } from "../../src/studio/api-contract.js";
+import { isoMonthFixture } from "./schema-fixtures.js";
 
 const originalFetch = globalThis.fetch;
 
@@ -37,7 +38,7 @@ function emptyRouteIndexV3(): StudioRouteIndex3Response {
     generatedAt: "2026-07-18T00:00:00.000Z",
     releaseId: "pub_20260718T000000000Z",
     publishedAt: "2026-07-18T00:00:00.000Z",
-    coverage: { start: "2023-04", end: "2026-07" },
+    coverage: { start: isoMonthFixture("2023-04"), end: isoMonthFixture("2026-07") },
     dataAsOf: "2026-07",
     routes: [],
     quality: {
@@ -52,7 +53,7 @@ function emptyRouteIndexV3(): StudioRouteIndex3Response {
 const mapReleaseIdentity = {
   releaseId: "pub_20260401T000000123Z",
   publishedAt: "2026-04-01T00:00:00.123Z",
-  coverage: { start: null, end: "2026-03" },
+  coverage: { start: null, end: isoMonthFixture("2026-03") },
 } as const;
 
 type MapReleaseIdentityFixture = {

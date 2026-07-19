@@ -24,6 +24,7 @@ import {
   StudioRouteSpeedHistoryResponseSchema,
   StudioRoutesResponseSchema,
 } from "@bp/domain/studio/routes";
+import { CoverageWindowSchema } from "@bp/domain/studio/shared";
 import {
   StudioRouteIndex2ResponseSchema,
   StudioRouteIndex3ResponseSchema,
@@ -3225,7 +3226,7 @@ describe("Studio API facade", () => {
     expect(response.status).toBe(200);
     const routeSections = decodeStrict(StudioRouteSectionsResponseSchema)(await response.json());
     // C3: months are resolved internally from D1, and rankings declare their freshness.
-    expect(routeSections.coverage).toEqual(STUDIO_COVERAGE);
+    expect(routeSections.coverage).toEqual(decodeStrict(CoverageWindowSchema)(STUDIO_COVERAGE));
     expect(routeSections.releaseId).toBe(STUDIO_RELEASE_ID);
     expect(routeSections.publishedAt).toBe(STUDIO_PUBLISHED_AT);
     expect(routeSections.dataAsOf).toBe("2026-03");

@@ -5,6 +5,7 @@ import type {
   RouteSurfaceCapability,
   StudioRouteCapability,
 } from "../../src/studio/api-contract";
+import { isoMonthFixture } from "./schema-fixtures";
 
 function surface(
   state: RouteSurfaceCapability["state"],
@@ -35,7 +36,7 @@ function dossier(months: number): RouteDossierSummaryForDetail {
     routeSlug: "m15-sbs",
     releaseId: "pub_20260610T000000000Z",
     publishedAt: "2026-06-10T00:00:00.000Z",
-    coverage: { start: null, end: "2026-03" },
+    coverage: { start: null, end: isoMonthFixture("2026-03") },
     dataAsOf: "2026-03",
     speed: {
       current: 6.9,
