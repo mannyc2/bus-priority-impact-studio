@@ -320,15 +320,18 @@ historical 39-row ACE bucket was a primary rejection category, not proof of a
 sole blocker; rc19 rebaselines it to 39 identities/37 routes (20 with no
 additional phase/overlap defect named), 40 current calendar-eligible ACE
 identities/38 routes failing the mechanical spine gate, and 75 new
-spine-blocked identities/74 routes. Plan 083 measures advancement to full
-review without weakening any standard.
+spine-blocked identities/74 routes. Plan 083 measured advancement without
+weakening any standard and closed as a negative spike: an unresolved artifact
+residual, conservatively treated as class D/true-gap for the STOP, dominated
+the representative taxonomy, so no production grouping change was
+commissioned.
 
 ## Execution order & status (gen 10)
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 090, 092; operator comp approval (hard gate in-plan) | TODO (2026-07-18 typed amendment: no History/text-derived marker admission) |
-| 083 | Spine pattern-grouping spike: measure honest candidate-coverage gains | P2 | M | 078 (DONE) | TODO (rc23 re-evaluated; denominator unchanged; flips advance rows to review, never approval) |
+| 083 | Spine pattern-grouping spike: measure honest candidate-coverage gains | P2 | M | 078 (DONE) | DONE (negative spike result; no implementation commissioned) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
@@ -341,8 +344,9 @@ REJECTED (with one-line rationale)
   criterion needs explicit resolution — recommended resolution, recorded
   2026-07-12: amend to "every approved event-route pair studied" (satisfied
   at 5/5); rejected candidates are never silently readmitted, and the path
-  to more studies is plan 083's unlock plus a batch-2 review of newly
-  eligible candidates under a NEW candidate-set id.
+  to more studies now requires a new data-completeness proposal; plan 083
+  found no production-safe grouping unlock and commissioned no batch-2
+  candidate rebuild or review.
 - Plan 075's UI integration has landed but remains inactive behind its
   recorded study gates. Plan 082 does not depend on activation. Its original
   `mergedTreatmentTimelineRows`/History-text admission is superseded by the
@@ -351,9 +355,11 @@ REJECTED (with one-line rationale)
   inventory, and use the named treatment presentation helper.
 - 082 carries the standing comp gate: no app code until an operator-approved
   comp exists at `plans/mockups/082-overview-trend-markers/comp.html`.
-- 083 is a pure spike: its decision doc commissions any production spine
-  change, spine rebuild, batch-2 review, and re-run as separate follow-ups.
-  Nothing in 083 touches production artifacts, thresholds, or receipts.
+- 083 is a completed negative spike. Its decision doc rejects productionizing
+  either prototype: exact aliases help a bounded minority, while recurring
+  profiles lack documentation that distinguishes service patterns from
+  repeated missingness or data loss. Nothing in 083 changes production
+  artifacts, thresholds, candidate sets, receipts, studies, or publication.
 - 076 (opportunity layer) stays deferred beyond its current gating: its
   effect-transfer input today is 3 gated estimates, all
   `no_detectable_change`, in a single treatment family — transferring null
