@@ -455,9 +455,11 @@ describe("domain schemas", () => {
 
   test("projects route artifact refs into Studio route detail contracts", () => {
     const release = decodeStrict(StudioReleasePayloadSchema)({
-      schemaVersion: 2,
+      schemaVersion: 3,
       generatedAt: "2026-05-18T00:00:00.000Z",
-      baselineMonth: "2026-03",
+      releaseId: "pub_20260518T000000000Z",
+      publishedAt: "2026-05-18T00:00:00.000Z",
+      coverage: { start: "2023-04", end: "2026-03" },
       mapRouteFactsMetadata: {
         releaseId: "pub_20260518T000000000Z",
         publishedAt: "2026-05-18T00:00:00.000Z",
@@ -575,12 +577,12 @@ describe("domain schemas", () => {
     expect(routes).toMatchObject({
       releaseId: "pub_20260518T000000000Z",
       publishedAt: "2026-05-18T00:00:00.000Z",
-      coverage: { start: "2026-03", end: "2026-03" },
+      coverage: { start: "2023-04", end: "2026-03" },
     });
     expect(detail).toMatchObject({
       releaseId: "pub_20260518T000000000Z",
       publishedAt: "2026-05-18T00:00:00.000Z",
-      coverage: { start: "2026-03", end: "2026-03" },
+      coverage: { start: "2023-04", end: "2026-03" },
     });
     expect(detail.artifactRefs).toEqual([
       expect.objectContaining({
@@ -596,6 +598,12 @@ describe("domain schemas", () => {
     });
     expect(mapRouteFacts).not.toHaveProperty("baselineMonth");
     expect(mapRouteFacts).not.toHaveProperty("generatedAt");
+    expect(() =>
+      decodeStrict(StudioReleasePayloadSchema)({
+        ...release,
+        releaseId: "pub_20260518T000000001Z",
+      }),
+    ).toThrow(/Release ID must be derived/);
   });
 
   test("keeps health responses strict", () => {

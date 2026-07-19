@@ -92,10 +92,7 @@ import type {
   StudioSegment,
 } from "./_release-types.ts";
 
-const defaultMonth = "2026-03";
 const defaultOutputPath = "data/artifacts/studio/v1/release.json";
-const defaultSchemaPath = "data/exports/d1/2026-03/schema.sql";
-const defaultSeedPath = "data/exports/d1/2026-03/seed.sql";
 const defaultRouteSliceArtifactsRoot = "data/artifacts/route-slices";
 const defaultRouteSliceRawRoot = "data/raw/route-slices";
 const defaultSpeedSpineRoot = "data/artifacts";
@@ -122,6 +119,26 @@ const canonicalRouteIds = [
   "M14A+",
   "M14D+",
 ];
+
+const missingMonthMessage =
+  "month is required — run `audit freshness` (plan 087) to see the latest complete month per source.";
+
+export function requireStudioReleaseMonth(month: string | undefined): string {
+  if (month === undefined) throw new Error(missingMonthMessage);
+  return month;
+}
+
+export function earliestStudioTrendMonth(
+  trendGroups: Iterable<readonly { month: string }[]>,
+): string | null {
+  let earliest: string | null = null;
+  for (const trends of trendGroups) {
+    for (const trend of trends) {
+      if (earliest === null || trend.month < earliest) earliest = trend.month;
+    }
+  }
+  return earliest;
+}
 async function writeJson(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
@@ -532,6 +549,14 @@ async function buildRelease(
     routeArtifactRows,
     routeTrends,
   } = await loadStudioReleaseD1Context(options);
+  const studioReleaseIdentity = decodeSchemaStrict(ReleaseIdentitySchema, {
+    releaseId: releaseIdentity.releaseId,
+    publishedAt: releaseIdentity.publishedAt,
+    coverage: {
+      start: earliestStudioTrendMonth(routeTrends.values()),
+      end: options.month,
+    },
+  });
   const routeGeometry = await routeGeometryIndex(
     options.routeShapeSnapshotPath,
     options.stopSnapshotPath,
@@ -745,13 +770,13 @@ async function buildRelease(
   ];
 
   return decodeSchemaStrict(StudioReleasePayloadSchema, {
-    schemaVersion: 2,
+    schemaVersion: 3,
     generatedAt: releaseGeneratedAt,
-    baselineMonth: options.month,
+    ...studioReleaseIdentity,
     mapRouteFactsMetadata: releaseIdentity,
     quality: {
-      releaseLayer: "baseline_release",
-      completenessStatus: "partial_public_monthly_only",
+      releaseLayer: "published_release",
+      completenessStatus: "partial_public_speed_only",
       confidence: "medium",
       caveats: qualityCaveats(options.month),
     },
@@ -896,7 +921,7 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
 
 export type RunStudioReleaseInputs = {
   releaseIdentity: ReleaseIdentity;
-  month?: string | undefined;
+  month: string;
   outputPath?: string | undefined;
   schemaPath?: string | undefined;
   seedPath?: string | undefined;
@@ -919,6 +944,7 @@ export type RunStudioReleaseInputs = {
 export type RunStudioReleaseResult = {
   outputPath: string;
   mapRouteFactsPath: string;
+  releaseIdentity: ReleaseIdentity;
   routeCount: number;
   segmentCount: number;
   source: {
@@ -937,7 +963,7 @@ export type RunStudioReleaseResult = {
 export async function runStudioRelease(
   inputs: RunStudioReleaseInputs,
 ): Promise<RunStudioReleaseResult> {
-  const month = inputs.month ?? defaultMonth;
+  const month = requireStudioReleaseMonth(inputs.month);
   if (inputs.releaseIdentity.coverage.end !== month) {
     throw new Error(
       `Studio release coverage ends at ${inputs.releaseIdentity.coverage.end}, expected ${month}.`,
@@ -948,8 +974,8 @@ export async function runStudioRelease(
   const options: CliOptions = {
     month,
     outputPath: inputs.outputPath ?? defaultOutputPath,
-    schemaPath: inputs.schemaPath ?? defaultSchemaPath,
-    seedPath: inputs.seedPath ?? defaultSeedPath,
+    schemaPath: inputs.schemaPath ?? `data/exports/d1/${month}/schema.sql`,
+    seedPath: inputs.seedPath ?? `data/exports/d1/${month}/seed.sql`,
     routeLimit: inputs.routeLimit ?? defaultRouteLimit,
     routeSliceArtifactsRoot: inputs.routeSliceArtifactsRoot ?? defaultRouteSliceArtifactsRoot,
     routeSliceRawRoot: inputs.routeSliceRawRoot ?? defaultRouteSliceRawRoot,
@@ -991,6 +1017,11 @@ export async function runStudioRelease(
   return {
     outputPath,
     mapRouteFactsPath: resolve(dirname(outputPath), "map-route-facts.json"),
+    releaseIdentity: decodeSchemaStrict(ReleaseIdentitySchema, {
+      releaseId: release.releaseId,
+      publishedAt: release.publishedAt,
+      coverage: release.coverage,
+    }),
     routeCount: release.routes.length,
     segmentCount: release.segments.length,
     source: {
@@ -1019,9 +1050,9 @@ export default defineCommand({
   summary: "Build the Bus Priority Impact Studio release projection set.",
   input: {
     options: Schema.Struct({
-      month: Schema.String.pipe(
-        Schema.withDecodingDefaultTypeKey(Effect.succeed(defaultMonth)),
-      ).annotate({ description: "Public release iso month" }),
+      month: Schema.optionalKey(Schema.String).annotate({
+        description: "Required covered-month partition, YYYY-MM",
+      }),
       output: Schema.optionalKey(Schema.String).annotate({
         description: "Override path for the release.json output",
       }),
@@ -1071,6 +1102,7 @@ export default defineCommand({
     outputPath: Schema.String,
     routeCount: Schema.Number,
     segmentCount: Schema.Number,
+    releaseIdentity: ReleaseIdentitySchema,
     source: Schema.Struct({
       schemaPath: Schema.String,
       seedPath: Schema.String,
@@ -1102,14 +1134,14 @@ export default defineCommand({
       env.STUDIO_LLM_MODEL ??
       defaultSegmentNoteModel;
     const publishedAt = new Date().toISOString();
-    const month = input.options.month;
+    const month = requireStudioReleaseMonth(input.options.month);
     return runStudioRelease({
       releaseIdentity: decodeSchemaStrict(ReleaseIdentitySchema, {
         releaseId: releaseIdFromPublishedAt(publishedAt),
         publishedAt,
         coverage: { start: null, end: month },
       }),
-      month: input.options.month,
+      month,
       outputPath: input.options.output === undefined ? undefined : input.options.output,
       schemaPath: input.options.schema === undefined ? undefined : input.options.schema,
       seedPath: input.options.seed === undefined ? undefined : input.options.seed,
