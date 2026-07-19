@@ -2,7 +2,6 @@ import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
 import { RouteGeoMap } from "@/components/route/RouteGeoMap";
 import { RouteInsightList } from "@/components/route/RouteInsightList";
-import { routeMapHighlight, useRouteSegmentsGeo } from "@/components/route/RouteMapSection";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
@@ -10,6 +9,11 @@ import {
   formatCompact,
   routePerformanceSummary,
 } from "@/components/route/route-derived";
+import { useRouteSegmentsGeo } from "@/components/route/route-detail-data";
+import {
+  insightTargetsSegment,
+  routeInsightPlacements,
+} from "@/components/route/route-insight-placement";
 import type { RouteDetailSectionValue } from "@/components/route/section-registry";
 import { SectionCard } from "@/components/SectionCard";
 import { SpeedTrend } from "@/components/SpeedTrend";
@@ -46,7 +50,16 @@ export function OverviewSection({
     : slowestByRiders
       ? `${slowestByRiders.from} to ${slowestByRiders.to} costs riders the most time`
       : null;
-  const mapHighlightSegment = routeMapHighlight(segments, data.insights).segment ?? slowestByRiders;
+  // Evidence-backed locator emphasis for the mini map: an insight-targeted
+  // segment, else the flagged one, else the top-burden one. Label only — the
+  // Segments explorer never fabricates a selection from this.
+  const mapInsights = routeInsightPlacements(data.insights).mapSegment;
+  const mapHighlightSegment =
+    segments.find((segment) =>
+      mapInsights.some((insight) => insightTargetsSegment(insight, segment.id)),
+    ) ??
+    segments.find((segment) => segment.flagged) ??
+    slowestByRiders;
   const treatments = routeTreatments(route, segments);
   const geo = useRouteSegmentsGeo(route.routeId);
 

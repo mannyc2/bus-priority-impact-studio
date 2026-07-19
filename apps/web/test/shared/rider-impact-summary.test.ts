@@ -63,8 +63,22 @@ describe("riderImpactSummary", () => {
         riderHoursLost: 6200,
       },
       segments: [
-        { id: "low", from: "A", to: "B", riderHours: 400, flagged: false },
-        { id: "top", from: "Flatbush Av", to: "Church Av", riderHours: 3100, flagged: true },
+        {
+          id: "low",
+          spineSegmentId: "spine-low",
+          from: "A",
+          to: "B",
+          riderHours: 400,
+          flagged: false,
+        },
+        {
+          id: "top",
+          spineSegmentId: "spine-top",
+          from: "Flatbush Av",
+          to: "Church Av",
+          riderHours: 3100,
+          flagged: true,
+        },
       ],
       dossier,
       capability: ridershipCapability,
@@ -79,7 +93,7 @@ describe("riderImpactSummary", () => {
       trendLabel: "+3.2%",
       trendDetail: "6 mo ridership trend",
     });
-    expect(summary.topSegments[0]).toMatchObject({
+    expect(summary.topSegment).toMatchObject({
       id: "top",
       from: "Flatbush Av",
       to: "Church Av",
@@ -107,7 +121,7 @@ describe("riderImpactSummary", () => {
       burdenDetail: "no rider-hour loss in projection",
       historyLabel: "current",
       historyDetail: "Monthly ridership history has not been built for this route.",
-      topSegments: [],
+      topSegment: null,
     });
   });
 
@@ -119,7 +133,16 @@ describe("riderImpactSummary", () => {
           ridersYoyPct: null,
           riderHoursLost: null,
         },
-        segments: [{ id: "top", from: "A", to: "B", riderHours: 4200, flagged: true }],
+        segments: [
+          {
+            id: "top",
+            spineSegmentId: "spine-top",
+            from: "A",
+            to: "B",
+            riderHours: 4200,
+            flagged: true,
+          },
+        ],
         dossier: null,
         capability: ridershipCapability,
       }),

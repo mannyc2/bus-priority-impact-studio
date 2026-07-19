@@ -18,7 +18,9 @@ import { MAP_COLORS, mapBaseStyle, NYC_MAP_BOUNDS } from "@/components/route/map
 import type { NetworkBadge, NetworkMapLibreProps } from "@/components/route/NetworkMapLibre";
 import {
   BUS_LANE_COLOR,
+  createHoverIntent,
   featureStyle,
+  type HoverIntent,
   type NetworkView,
 } from "@/components/route/network-map-model";
 
@@ -261,7 +263,7 @@ export function NetworkMapLibreMap({
   const vendorRef = useRef<MapLibreModule | null>(null);
   const popupRef = useRef<MapLibrePopup | null>(null);
   const routeIdsRef = useRef<readonly string[]>([]);
-  const hoverRouteIdRef = useRef<string | null>(null);
+  const hoverIntentRef = useRef<HoverIntent | null>(null);
   const previousDataRef = useRef<FeatureCollection<MultiLineString, NetworkLineProperties> | null>(
     null,
   );
@@ -290,27 +292,41 @@ export function NetworkMapLibreMap({
       setFailure("unsupported");
       return;
     }
-    const currentFocus = () => hoverRouteIdRef.current ?? selectedRouteIdRef.current;
+    const applyActive = (previous: string | null, next: string | null) => {
+      const map = mapRef.current;
+      if (map === null) return;
+      if (previous !== null)
+        map.setFeatureState({ source: NETWORK_SOURCE, id: previous }, { active: false });
+      if (next !== null)
+        map.setFeatureState({ source: NETWORK_SOURCE, id: next }, { active: true });
+    };
+    const applyFocus = () => {
+      const map = mapRef.current;
+      if (map === null) return;
+      applyNetworkFocus(
+        map,
+        routeIdsRef.current,
+        hoverIntent.hovered() ?? selectedRouteIdRef.current,
+      );
+    };
+    const hoverIntent = createHoverIntent({ applyActive, applyFocus });
+    hoverIntentRef.current = hoverIntent;
     const onMouseMove = (event: MapLibreMapLayerMouseEvent) => {
       const map = mapRef.current;
-      const feature = event.features?.[0];
-      const properties = feature?.properties as { routeId?: unknown } | undefined;
-      const routeId = properties?.routeId;
-      if (map === null || typeof routeId !== "string") return;
+      if (map === null) return;
+      const candidates = (event.features ?? []).flatMap((feature) => {
+        const routeId = (feature.properties as { routeId?: unknown } | undefined)?.routeId;
+        return typeof routeId === "string" ? [routeId] : [];
+      });
+      if (candidates.length === 0) return;
       map.getCanvas().style.cursor = "pointer";
-      if (hoverRouteIdRef.current !== routeId) {
-        hoverRouteIdRef.current = routeId;
-        applyNetworkFocus(map, routeIdsRef.current, currentFocus());
-      }
+      hoverIntent.move(candidates, selectedRouteIdRef.current !== null);
     };
     const onMouseLeave = () => {
       const map = mapRef.current;
       if (map === null) return;
       map.getCanvas().style.cursor = "";
-      if (hoverRouteIdRef.current !== null) {
-        hoverRouteIdRef.current = null;
-        applyNetworkFocus(map, routeIdsRef.current, currentFocus());
-      }
+      hoverIntent.leave();
     };
     const onClick = (event: MapLibreMapLayerMouseEvent) => {
       const feature = event.features?.[0];
@@ -452,7 +468,7 @@ export function NetworkMapLibreMap({
           layout: { "line-cap": "round", "line-join": "round" },
         });
         routeIdsRef.current = collection.features.map((feature) => feature.properties.routeId);
-        applyNetworkFocus(map, routeIdsRef.current, currentFocus());
+        applyFocus();
         previousDataRef.current = networkData;
         const bounds = boundsOfNetwork(collection);
         if (bounds !== null) map.fitBounds(bounds, { padding: 28, duration: 0 });
@@ -477,6 +493,8 @@ export function NetworkMapLibreMap({
         map.off("mouseleave", HIT_LAYER, onMouseLeave);
         map.off("click", HIT_LAYER, onClick);
         map.off("click", onBackgroundClick);
+        hoverIntent.dispose();
+        hoverIntentRef.current = null;
         popupRef.current?.remove();
         popupRef.current = null;
         mapRef.current = null;
@@ -539,7 +557,11 @@ export function NetworkMapLibreMap({
     const map = mapRef.current;
     if (map === null || !ready) return;
     routeIdsRef.current = collection.features.map((feature) => feature.properties.routeId);
-    applyNetworkFocus(map, routeIdsRef.current, hoverRouteIdRef.current ?? selectedRouteId);
+    applyNetworkFocus(
+      map,
+      routeIdsRef.current,
+      hoverIntentRef.current?.hovered() ?? selectedRouteId,
+    );
   }, [collection, ready, selectedRouteId]);
 
   // Borough/water labels and route badges live in a DOM overlay projected
@@ -568,7 +590,13 @@ export function NetworkMapLibreMap({
         "absolute left-0 top-0 whitespace-nowrap text-[10px] font-bold tracking-[3px] text-[rgba(16,20,24,0.48)]";
       nodes.push({ element, lngLat: [lon, lat], kind: "label", rotation });
     }
-    const badgeNodes: Array<{ element: HTMLElement; lngLat: readonly [number, number] }> = [];
+    const badgeNodes: Array<{
+      element: HTMLElement;
+      lngLat: readonly [number, number];
+      w: number;
+      h: number;
+      offset: readonly [number, number] | null;
+    }> = [];
     // While a route is pinned the popup is the focus; badges stand down so
     // they never paint over the card.
     for (const badge of popup === null ? badges : []) {
@@ -578,15 +606,24 @@ export function NetworkMapLibreMap({
       element.className =
         "absolute left-0 top-0 whitespace-nowrap rounded-[3px] px-[6px] py-[2px] text-[10px] font-bold leading-[13px] text-white shadow-[0_1px_4px_rgba(0,0,0,0.35)]";
       element.style.backgroundColor = badge.sbs ? "#0039a6" : "#101418";
-      badgeNodes.push({ element, lngLat: badge.lngLat });
+      badgeNodes.push({ element, lngLat: badge.lngLat, w: 0, h: 0, offset: null });
     }
     overlay.replaceChildren(
       ...nodes.map((node) => node.element),
       ...badgeNodes.map((node) => node.element),
     );
-    const update = () => {
-      const width = overlay.clientWidth;
-      const height = overlay.clientHeight;
+    // Badge text never changes while mounted: measure once so per-frame work
+    // stays write-only and never forces a layout pass mid-gesture.
+    for (const node of badgeNodes) {
+      node.w = node.element.offsetWidth;
+      node.h = node.element.offsetHeight;
+    }
+    let width = overlay.clientWidth;
+    let height = overlay.clientHeight;
+    // Runs on every frame of a pan/zoom: badges follow their anchors under the
+    // placement chosen at rest. Collision/visibility decisions are deferred to
+    // `layout` so labels stop flapping in and out mid-gesture.
+    const translate = () => {
       for (const node of nodes) {
         const point = map.project([node.lngLat[0], node.lngLat[1]]);
         const visible =
@@ -594,45 +631,54 @@ export function NetworkMapLibreMap({
         node.element.style.display = visible ? "" : "none";
         node.element.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -50%) rotate(${node.rotation}deg)`;
       }
+      for (const node of badgeNodes) {
+        if (node.offset === null) continue;
+        const point = map.project([node.lngLat[0], node.lngLat[1]]);
+        node.element.style.transform = `translate(${point.x + node.offset[0] - node.w / 2}px, ${
+          point.y + node.offset[1] - node.h / 2
+        }px)`;
+      }
+    };
+    const layout = () => {
+      width = overlay.clientWidth;
+      height = overlay.clientHeight;
       const placed: Rect[] = [];
       const blocked = overlayExclusions(width, height);
       for (const node of badgeNodes) {
         const point = map.project([node.lngLat[0], node.lngLat[1]]);
-        const w = node.element.offsetWidth;
-        const h = node.element.offsetHeight;
-        let box: Rect | null = null;
+        node.offset = null;
         for (const [dx, dy] of BADGE_OFFSETS) {
           const candidate: Rect = {
-            x: point.x + dx - w / 2,
-            y: point.y + dy - h / 2,
-            w,
-            h,
+            x: point.x + dx - node.w / 2,
+            y: point.y + dy - node.h / 2,
+            w: node.w,
+            h: node.h,
           };
           if (
             candidate.x < 2 ||
             candidate.y < 2 ||
-            candidate.x + w > width - 2 ||
-            candidate.y + h > height - 2
+            candidate.x + node.w > width - 2 ||
+            candidate.y + node.h > height - 2
           )
             continue;
           if (blocked.some((rect) => intersects(candidate, rect))) continue;
           if (placed.some((rect) => intersects(candidate, rect))) continue;
-          box = candidate;
+          node.offset = [dx, dy];
+          placed.push(candidate);
           break;
         }
-        if (box === null) {
-          node.element.style.display = "none";
-          continue;
-        }
-        placed.push(box);
-        node.element.style.display = "";
-        node.element.style.transform = `translate(${box.x}px, ${box.y}px)`;
+        node.element.style.display = node.offset === null ? "none" : "";
       }
+      translate();
     };
-    update();
-    map.on("move", update);
+    layout();
+    map.on("move", translate);
+    map.on("moveend", layout);
+    map.on("resize", layout);
     return () => {
-      map.off("move", update);
+      map.off("move", translate);
+      map.off("moveend", layout);
+      map.off("resize", layout);
       overlay.replaceChildren();
     };
   }, [ready, badges, selectedRouteId, popup]);
@@ -688,7 +734,11 @@ export function NetworkMapLibreMap({
         ref={containerRef}
         className="h-full min-h-[320px] overflow-hidden bg-[var(--bp-color-card)]"
         role="img"
-        aria-label="Citywide bus route speed map"
+        aria-label={
+          view.lens === "delay"
+            ? "Citywide bus route rider-delay map"
+            : "Citywide bus route speed map"
+        }
       />
       <div
         ref={overlayRef}

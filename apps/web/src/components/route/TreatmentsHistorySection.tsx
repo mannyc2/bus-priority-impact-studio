@@ -231,7 +231,7 @@ export function routeCorpusRecords(
 }
 
 /** In-component lazy fetch: the corpus is citywide and must not ride the
- * route loader (matches the SlowSegments artifact-fetch idiom). */
+ * route loader (matches the route-detail-data artifact-fetch idiom). */
 function useInterventionCorpus(): StudioInterventionCorpus | null {
   const [corpus, setCorpus] = useState<StudioInterventionCorpus | null>(null);
 

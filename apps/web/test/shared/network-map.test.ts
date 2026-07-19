@@ -3,6 +3,7 @@ import { PERIOD_HOURS, periodSpeed } from "../../src/components/route/NetworkMap
 import {
   badgeFeatures,
   coverageLabel,
+  createHoverIntent,
   delayClass,
   delayLensEligible,
   deltaClass,
@@ -252,6 +253,91 @@ describe("insightModel", () => {
   });
 });
 
+describe("createHoverIntent", () => {
+  function harness() {
+    const calls: string[] = [];
+    let pending: (() => void) | null = null;
+    const intent = createHoverIntent({
+      applyActive: (previous, next) => calls.push(`active:${previous ?? "-"}>${next ?? "-"}`),
+      applyFocus: () => calls.push("focus"),
+      schedule: (fire) => {
+        pending = fire;
+        return 1;
+      },
+      cancel: () => {
+        pending = null;
+      },
+    });
+    const fireDwell = () => {
+      const fire = pending;
+      pending = null;
+      fire?.();
+    };
+    return { calls, intent, fireDwell };
+  }
+
+  test("sweeping across routes swaps the light highlight without dimming", () => {
+    const { calls, intent } = harness();
+    intent.move(["A"]);
+    intent.move(["B"]);
+    intent.move(["C"]);
+    expect(calls).toEqual(["active:->A", "active:A>B", "active:B>C"]);
+    expect(intent.dimEngaged()).toBe(false);
+  });
+
+  test("keeps the hovered route while it is still under the cursor", () => {
+    const { calls, intent } = harness();
+    intent.move(["A"]);
+    intent.move(["B", "A"]);
+    expect(calls).toEqual(["active:->A"]);
+    expect(intent.hovered()).toBe("A");
+  });
+
+  test("dwell engages the dim once, then swaps focus instantly", () => {
+    const { calls, intent, fireDwell } = harness();
+    intent.move(["A"]);
+    fireDwell();
+    expect(calls).toEqual(["active:->A", "focus"]);
+    expect(intent.dimEngaged()).toBe(true);
+    intent.move(["B"]);
+    expect(calls).toEqual(["active:->A", "focus", "focus"]);
+  });
+
+  test("leaving before the dwell fires never dims", () => {
+    const { calls, intent, fireDwell } = harness();
+    intent.move(["A"]);
+    intent.leave();
+    fireDwell();
+    expect(calls).toEqual(["active:->A", "active:A>-"]);
+    expect(intent.dimEngaged()).toBe(false);
+    expect(intent.hovered()).toBeNull();
+  });
+
+  test("leaving after an engaged dim releases focus", () => {
+    const { calls, intent, fireDwell } = harness();
+    intent.move(["A"]);
+    fireDwell();
+    intent.leave();
+    expect(calls).toEqual(["active:->A", "focus", "focus"]);
+    expect(intent.dimEngaged()).toBe(false);
+  });
+
+  test("an existing pin or list preview keeps focus swaps immediate", () => {
+    const { calls, intent } = harness();
+    intent.move(["A"], true);
+    expect(calls).toEqual(["focus"]);
+    expect(intent.dimEngaged()).toBe(true);
+  });
+
+  test("dispose cancels a pending dwell", () => {
+    const { calls, intent, fireDwell } = harness();
+    intent.move(["A"]);
+    intent.dispose();
+    fireDwell();
+    expect(calls).toEqual(["active:->A"]);
+  });
+});
+
 describe("delayLensEligible", () => {
   test("requires an explicit coverage label and complete route values", () => {
     const complete = [feature({ routeId: "A", riderHoursLost: 10_000 })];
@@ -356,6 +442,7 @@ describe("popupStatRows", () => {
     const rows = popupStatRows(
       feature({ dailyRiders: 10_156, riderHoursLost: 101_000, laneCoverage: 17 }),
       "Mar 2026",
+      "speed",
     );
     expect(rows).toEqual([
       { label: "Riders", value: "10k", sub: "per day" },
@@ -371,8 +458,21 @@ describe("popupStatRows", () => {
     const rows = popupStatRows(
       feature({ dailyRiders: null, riderHoursLost: null, laneCoverage: null }),
       null,
+      "speed",
     );
     expect(rows.map((row) => row.value)).toEqual(["No data", "No data", "No data"]);
+  });
+
+  test("a delay hero swaps the middle slot to Speed so no metric repeats", () => {
+    const rows = popupStatRows(
+      feature({ currentMph: 8.25, riderHoursLost: 101_000 }),
+      "Mar 2026",
+      "delay",
+    );
+    expect(rows.map((row) => row.label)).toEqual(["Riders", "Speed", "Bus lanes"]);
+    expect(rows[1]).toEqual({ label: "Speed", value: "8.3", sub: "mph, all day" });
+    expect(popupStatRows(feature({ currentMph: null }), null, "delay")[1]?.value).toBe("No data");
+    expect(popupStatRows(feature({}), "Mar 2026", "delta")[1]?.label).toBe("Delay");
   });
 });
 

@@ -37,7 +37,9 @@ export const Route = createFileRoute("/map")({
       mapMessage:
         [joined.message, contextMessage].filter((message) => message !== null).join(" ") || null,
       manifest: bundle?.manifest ?? null,
-      coverageEnd: null,
+      // Coverage window of the served delay facts (unanimous analysis period);
+      // null keeps the rider-delay lens hidden without weakening its gate.
+      coverageEnd: joined.delayCoverageEnd,
       lanesAvailable:
         bundle?.manifest.layers.some(
           (layer) =>
@@ -50,7 +52,7 @@ export const Route = createFileRoute("/map")({
   },
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: NetworkMapLoadingPage,
-  head: () => routeHead("Network Map", "Citywide bus route speed map."),
+  head: () => routeHead("Network Map", "Citywide bus route speed and rider-delay map."),
   component: MapRoute,
 });
 

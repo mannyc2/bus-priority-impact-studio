@@ -4,9 +4,11 @@
 track), 8 (plans 068-076, the 2026-07-09 audit fix-pack + the
 business-problem arc), 9 (plans 077-081, the truthful interactive-map
 overhaul), 10 (plans 082-083, the route-detail annotation layer +
-study-coverage spike), and 11 (plans 084-088, the de-month cutover: monthly
+study-coverage spike), 11 (plans 084-088, the de-month cutover: monthly
 baselines/releases retired for coverage windows, a freshness ledger, and a
-harness gate — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
+harness gate), and 12 (plans 090-093 plus amended 082: exact, lossless route
+intervention inventory; typed relevance; complete UI recognition; and the
+first non-ACE observation expansion — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
 overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
 `packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
 business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
@@ -17,6 +19,142 @@ notes. Generations 4 (030-035) and 5 (036-047) are DONE; generation 3
 complete or superseded; older sections are kept further down as history and
 rationale. Each executor: read your plan fully before starting, honor its STOP
 conditions, and update your row when done.
+
+---
+
+# Generation 12 — exact intervention inventory + typed relevance across route surfaces (2026-07-18)
+
+Planned at commit `ac940967` on the dirty
+`codex/080-map-visual-redesign` worktree by an `improve` read-only audit. The
+advisor preserved the in-flight Plan 080/081 and map changes, audited the
+existing analytics/domain/pipeline and route UI seams in parallel, then
+re-verified the load-bearing findings against source. Only `plans/**` changed.
+The earlier branch-only Plan 090 and its typed Plan 082 amendment came from
+commit `4cd54701` and are reconciled here rather than duplicated.
+
+The central correction is that Tracker already has a broad
+`route_treatment_summary`; the missing work is to make it exact, lossless,
+strict, compact, and served. Today its reviewed-record adapter emits only the
+first treatment, its summary merge can collapse distinct occurrences, and
+its route matcher aliases exact services. The web then compensates with prose
+substring matching and special handling for lane/ACE/TSP/SBS. Generation 12
+repairs that seam while keeping five concepts separate: project, treatment
+state, operational occurrence, descriptive observation, and causal study.
+
+**Satisfied external prerequisite**: the Tracker half of MTA Wiki Plan 035 in
+task `019f7640-fd5c-7be2-8a40-a7c264284c0f` landed through Tracker PRs #65 and
+#66; `origin/main` contains merge commit `12acf278`. It owns manifest-v5 exact
+route identity, official labels, and B44/B44+ separation. These plans consume
+that merged contract and its green exact-identity fixtures; they do not
+duplicate route naming or await another identity approval.
+
+Numbering note: 089 remains claimed by the tracked
+`plans/mockups/089-interventions-redesign/` design-review comp, which is not an
+executable or approved full redesign plan. Plan 092 adds typed discovery and
+cross-links within the current page; it does not silently approve D22-D27.
+Plan 091 runs before the earlier-numbered Plan 090 because 090 was already
+claimed on its branch.
+
+## Execution order & status (gen 12)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 091 | Exact, lossless per-route intervention inventory from the existing materializer | P1 | L | exact-route PRs #65/#66 (DONE); 084, 088, 085, 086 | TODO |
+| 090 | Typed intervention-relevance specs + ACE route observation bundles | P1 | L | 091; exact-route PRs #65/#66 (DONE); 084, 088, 085, 086 | TODO |
+| 092 | Complete route intervention recognition + route History ↔ ledger links | P1 | L | 091; 080, 081, 085, 086 | TODO |
+| 093 | Value-blind non-ACE relevance coverage + first bus-lane/busway specs | P2 | L | 091, 090, 092, 082 | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+## Dependency notes (gen 12)
+
+- Full recommended spine:
+  `exact-route (DONE) → 084 → 088 → 079 → 080 → 081 → 085 → 086 → 091 → 090 → 092 → 082 → 093`.
+  Plan 087 may run after 086 but is not a blocker for this generation.
+- The landed exact-route work and Plans 080/081/085/092/082 touch overlapping
+  route contracts, `api-client.ts`, or route UI files. The exact-route merge is
+  now the baseline; do not execute the remaining plans in parallel worktrees
+  and try to merge by file. Finish/rebase in the recorded order and rerun drift
+  checks.
+- Plan 091 promotes the existing route-treatment materializer and exports one
+  checked bundle per exact route. It reuses Plan 073's reviewed corpus and the
+  existing cited route-evidence bundles; it does not create a second evidence
+  database or duplicate full project/citation records.
+- Plan 090 stays deliberately ACE-only and value-blind. It now consumes Plan
+  091's canonical treatment/occurrence IDs and exact route identity. Plan 093,
+  not an opportunistic edit to 090, owns non-ACE expansion.
+- Plan 092 may technically run in parallel with 090 after 091, but sequential
+  execution is recommended for a single clean contract review. It must finish
+  before amended Plan 082 because both edit Overview, the route loader, and
+  `api-client.ts`.
+- Plan 082's original display-text marker admission is superseded. Its binding
+  amendment consumes Plan 090 typed observations, resolves their IDs against
+  the same-release Plan 091 inventory, and uses Plan 092's named presentation
+  helper/annotation stem.
+  The required future 082 comp approval remains its own visual gate; it is
+  unrelated to the already-completed exact-route implementation task.
+- Plan 093 separates a descriptive observation-anchor gate from the causal
+  study gate and proves study outputs unchanged. Inventory display coverage
+  may be broad while observation and study coverage remain narrower.
+- Plan 075's UI code has landed, but activation/publication remains blocked by
+  its recorded Plan 074/anchor gates. Nothing here treats it as active or
+  promotes quarantined/unapproved candidate data.
+
+## Verified audit evidence (gen 12)
+
+- `packages/analytics/src/interventions/route-treatment-summary.ts:771-813`
+  gathers primary/custom treatments and emits only `firstTreatment`.
+  `:384-509` keys the derived summary by route/month/type/scope and keeps one
+  status-ranked winner, so it cannot be the retained occurrence store.
+- The same materializer's `canonicalRouteId` (`:369-381`) strips/adds `+` and
+  collapses Q20/SIM variants. Current corpus and web joins also strip `-SBS`
+  or `+`; the exact-route task owns the prerequisite correction.
+- The checked 310-record corpus includes multi-treatment records; the global
+  corpus is already served by completed Plan 073, so re-extraction is not the
+  missing layer.
+- `apps/web/src/studio/treatment-model.ts:124-215` infers most route
+  treatments from concatenated prose. Overview and History call it, while
+  cited structured treatments/projects render separately as generic text.
+- `TreatmentBadgeStrip` shows three family slots and an inert `+N`; Overview's
+  cap is also title-only. History can already render an unbounded inventory.
+- Route History downloads the entire citywide corpus and filters client-side;
+  `/interventions` has only local status/borough state, chooses one treatment
+  per corpus row, and links records to default route Overview.
+- Plan 090's branch correctly makes relevance pre-value and Plan 082 typed,
+  but v1 supports only `automated_bus_lane_enforcement`. That boundary is
+  intentional; Plan 093 adds explicit non-ACE specs rather than a generic
+  route-speed fallback.
+
+## Findings considered and rejected (gen 12 — do not re-audit)
+
+- **Duplicate exact-route/name plan** — rejected. The landed MTA Wiki Plan 035
+  work owns exact route identity and official labels; downstream plans consume
+  its tests.
+- **Another intervention database or page** — rejected. Reuse the existing
+  materializer, reviewed corpus, route-evidence bundles, generic R2 artifact
+  serving, route History, and `/interventions`.
+- **Use source prose/claims to infer treatments, relevant metrics, or chart
+  markers** — rejected. Typed source relationships establish what/when/where;
+  reviewed relevance specs select Tracker data before values are inspected.
+- **One generic speed/ridership profile for every intervention** — rejected as
+  semantically weak and cherry-picking-prone. Unsupported kinds remain
+  explicit with an unlock requirement.
+- **Treat rc23 candidates or `awaiting_approval` study rows as public facts
+  because they are structured** — rejected. Candidate review is not
+  publication, and the exact-route defect quarantines the old identity
+  projection. A fresh manifest-v5 producer-approved operational occurrence
+  may enter Plan 091's display inventory without a Tracker study receipt, but
+  the candidate-set artifact itself is never a serving input.
+- **Fan route-level treatments onto segment rows** — rejected. Plan 081
+  measured no within-route ACE/TSP variation; only independently evidenced
+  segment scope may render there.
+- **A bespoke badge on every `/interventions` row** — rejected. Typed family
+  filters/search make all kinds discoverable; the ledger stays text-led and
+  the full route inventory lives in History.
+- **Silently execute the full 089 comp** — rejected. Its design decisions are
+  unresolved; Plan 092 preserves the current visual surface while adding
+  typed data, URL state, accessibility, and cross-links.
 
 ---
 
@@ -173,9 +311,10 @@ exact routes where naive before/after would have shipped a confident wrong
 number (M79+ +0.36 mph raw with congestion-pricing overlap; B82+ descriptive
 worsening with failed pre-trend). What is missing is the cheap broad layer:
 dated intervention MARKERS on the route chart (annotation, never computed
-deltas). Coverage math: 201 of 323 candidate routes have in-window
-implementation months and the route page already loads dated events for its
-History timeline, versus 5 routes with studies. The spine remains a major
+deltas). The historical raw-event audit found 201 of 323 candidate routes
+with in-window implementation months, versus 5 routes with studies; that is
+not typed publication coverage. Generation 12 first builds the exact
+inventory and reviewed observation contracts. The spine remains a major
 technical bottleneck: 267 of 385 routes are `needs_pattern_review`. The
 historical 39-row ACE bucket was a primary rejection category, not proof of a
 sole blocker; rc19 rebaselines it to 39 identities/37 routes (20 with no
@@ -188,7 +327,7 @@ review without weakening any standard.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 075 rec.; operator comp approval (hard gate in-plan) | TODO |
+| 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 090, 092; operator comp approval (hard gate in-plan) | TODO (2026-07-18 typed amendment: no History/text-derived marker admission) |
 | 083 | Spine pattern-grouping spike: measure honest candidate-coverage gains | P2 | M | 078 (DONE) | TODO (rc23 re-evaluated; denominator unchanged; flips advance rows to review, never approval) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
@@ -204,9 +343,12 @@ REJECTED (with one-line rationale)
   at 5/5); rejected candidates are never silently readmitted, and the path
   to more studies is plan 083's unlock plus a batch-2 review of newly
   eligible candidates under a NEW candidate-set id.
-- Execute 075 before 082 (priority order and shared smoke surface). 082
-  imports the exported `mergedTreatmentTimelineRows` from
-  `TreatmentsHistorySection.tsx` but does not edit any plan-075 file.
+- Plan 075's UI integration has landed but remains inactive behind its
+  recorded study gates. Plan 082 does not depend on activation. Its original
+  `mergedTreatmentTimelineRows`/History-text admission is superseded by the
+  Generation 12 amendment: execute 091 → 090 → 092 before 082, then consume
+  the typed observation bundle, resolve its IDs against the same-release
+  inventory, and use the named treatment presentation helper.
 - 082 carries the standing comp gate: no app code until an operator-approved
   comp exists at `plans/mockups/082-overview-trend-markers/comp.html`.
 - 083 is a pure spike: its decision doc commissions any production spine
@@ -275,7 +417,7 @@ The governing user questions are:
 | 078 | Canonical map/detail/history segment identity and readiness | P0 | L | 068, 077; before 074 | DONE |
 | 079 | Truthful network-map data, layer readiness, freshness, and budgets | P1 | L | 062, 068, 078 | TODO |
 | 080 | Accessible, searchable, shareable network decision explorer | P1 | L | 077, 079 | TODO (comp APPROVED r3 2026-07-17, light surface; visual layer implemented ahead of 079 on `codex/080-map-visual-redesign` — attention scale, Find-a-route panel, one-strip legend, badges/labels, lanes layer, popup redesign. Remaining: URL state, verified served-borough binding, Data notes, mobile sheet, hover-perf rework, lens eligibility gates) |
-| 081 | Linked route-segment evidence explorer with exact overlays | P1 | L | 077-080 | TODO |
+| 081 | Linked route-segment evidence explorer with exact overlays | P1 | L | 077-080 | IN PROGRESS (comp APPROVED r4 2026-07-18 "Implement"; visual/interaction layer LANDED on `codex/081-route-segment-explorer` ahead of 079, mirroring 080's precedent — SegmentExplorer merge, click-to-pin + ?segment= spine URLs, feature-state hover, solid lane underlay w/ auto-hidden toggle, Riders swap, proxy/stat deletions, CorridorMap rails removed. Remaining (079-gated per plan): verified-artifact boundary, historical month/daypart mode, overview locator + network CTA, real-browser QA matrix. Amended 2026-07-18: delete Riders "Top burden segments" + all segment-grain ACE/TSP display — measured 0/350 routes vary within-route; ACE/TSP are route-level fanned out, lane varies on 309/350 — kill "Bus lanes %" stat grid, redesign Speed-by-hour, Riders gets boardings-by-hour. Comp r4 in `mockups/081-route-segment-explorer/` (real B41 data; r2 = full-tab exhibits, fixed-slot readout, no treatment prose in explorer, 8-row default table, Copy-link button; r4 = solid painted-lane underlay/rim — r3 glow band rejected — card-grammar readout header w/ state in the description line, toggle auto-hidden on 34 lane-less routes; /map dashes = 080 amendment candidate) awaiting operator review) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
@@ -452,8 +594,8 @@ decision layer.
 | 071 | Steering-doc truth sweep (README schema claim, /methods SEO, master-plan status) | P2 | S-M | 068 (rec.) | DONE (Effect Schema README claim, retired `/methods` SEO removal, master-plan status block, and knowledge log verified) |
 | 072 | Dependency hygiene: bun update within semver + audit residue log | P3 | S | 068 | DONE (audit reduced 15→13; all residual advisories documented; full tests/build and `/` + `/map` smoke pass) |
 | 073 | Serve the reviewed intervention corpus + reconciliation report | P1 | M-L | 068 | DONE (310 valid; 29 study-date-ready; 11 exact matches; no study-ready corpus-only candidates) |
-| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 | IN PROGRESS (rc23's 489-row set is strict-compatible but unapproved; control-contamination and bounded-scope admission gates remain open before any new run) |
-| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073 for step 5 | IN PROGRESS (UI integration landed in PR #59 before the recorded anchor-review prerequisite closed; activation/publication remains blocked) |
+| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 + exact-route task before any future run | IN PROGRESS (historical five-study output is immutable; rc23 is route-identity-quarantined; require a fresh manifest-v5 release/candidate set/receipt plus control-contamination and bounded-scope repairs) |
+| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | IN PROGRESS (UI integration landed in PR #59, but remains inactive; rc23 cannot activate it, and fresh exact-route study/publication gates remain open) |
 | 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |

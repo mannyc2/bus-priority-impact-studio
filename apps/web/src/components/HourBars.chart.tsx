@@ -18,6 +18,8 @@ export type HourBarsProps = {
   max?: number;
   /** Show the speed-band + scheduled key below the bars. */
   legend?: boolean;
+  /** On-chart annotation flagged at one hour (e.g. the slowest window). */
+  marker?: { hourOfDay: number; label: string };
 };
 
 const config = {
@@ -33,7 +35,15 @@ const SPEED_BANDS: ChartBand[] = [
   { label: "< 5 mph", color: "var(--bp-color-bad)", test: () => true },
 ];
 
-export function HourBarsChart({ data, sched, height = 200, min, max, legend }: HourBarsProps) {
+export function HourBarsChart({
+  data,
+  sched,
+  height = 200,
+  min,
+  max,
+  legend,
+  marker,
+}: HourBarsProps) {
   // Thread each bar's band color into the datum as `fill` so the shared tooltip
   // swatch resolves it (item.payload.fill) and matches the bar.
   const rows = data.slice(0, 24).map((value, hour) => {
@@ -91,6 +101,20 @@ export function HourBarsChart({ data, sched, height = 200, min, max, legend }: H
                 fill: "var(--bp-color-accent)",
                 fontSize: 10,
                 fontWeight: 600,
+              }}
+            />
+          ) : null}
+          {marker !== undefined ? (
+            <ReferenceLine
+              x={String(marker.hourOfDay)}
+              stroke="var(--bp-color-ink-40)"
+              strokeWidth={1}
+              label={{
+                value: marker.label,
+                position: "top",
+                fill: "var(--bp-color-ink)",
+                fontSize: 10,
+                fontWeight: 700,
               }}
             />
           ) : null}

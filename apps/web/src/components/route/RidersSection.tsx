@@ -1,13 +1,18 @@
+import type { ReactNode } from "react";
 import { ChartFrame } from "@/components/ChartFrame";
-import { HourExposure } from "@/components/HourExposure";
 import { riderImpactSummary } from "@/components/route/rider-impact-summary";
 import {
-  averageHourlySeverity,
   dossierMetricMonthCount,
   dossierMetricWindow,
   dossierRidershipSeries,
   formatCompact,
 } from "@/components/route/route-derived";
+import { useRouteHourlyProfile } from "@/components/route/route-detail-data";
+import {
+  formatCompactCount,
+  formatHourShort,
+  latestPeakWindow,
+} from "@/components/route/route-segment-explorer";
 import { SectionCard } from "@/components/SectionCard";
 import { SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { SpeedTrend } from "@/components/SpeedTrend";
@@ -19,15 +24,20 @@ const KPI_GRID_COLS: Record<number, string> = {
   3: "grid-cols-3",
 };
 
-export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
+export function RidersSection({
+  data,
+  onOpenSegment,
+}: {
+  data: StudioRouteDetailResponse;
+  /** Deep-links the KPI's segment into the Segments explorer (pins it). */
+  onOpenSegment?: ((spineSegmentId: string | null) => void) | undefined;
+}) {
   const { route, segments } = data;
   // biome-ignore lint/complexity/useLiteralKeys: surfaces is index-signature typed.
   const capability = data.capability?.surfaces["ridership"] ?? null;
   const summary = riderImpactSummary({ route, segments, dossier: data.dossier, capability });
-  const topSegments = summary.topSegments;
-  const topSegment = topSegments[0] ?? null;
-  const maxRiderHours = Math.max(...topSegments.map((s) => s.riderHours), 1);
-  const hourlyExposure = averageHourlySeverity(segments);
+  const topSegment = summary.topSegment;
+  const hourlyProfile = useRouteHourlyProfile(route.slug);
   const ridershipHistory = dossierRidershipSeries(data.dossier);
   const hasRidershipHistory = ridershipHistory.length > 0;
   const equityItems = routeEquityContextItems(data.equityContext);
@@ -38,6 +48,11 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
       ? { label: "Ridership shown from the current projection", detail: summary.historyDetail }
       : { label: `${summary.historyLabel} of monthly ridership`, detail: summary.historyDetail },
   ];
+  if (hourlyProfile.status === "ready" && hourlyProfile.data.summary.latestMonth !== null) {
+    aboutEntries.push({
+      label: `Hourly boardings from the ${hourlyProfile.data.summary.latestMonth} route-hour profile.`,
+    });
+  }
   if (showEquity && data.equityContext !== null) {
     aboutEntries.push({
       label: `ACS ${data.equityContext.acsYear} five-year estimates${
@@ -71,13 +86,31 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
           tone: route.riderHoursLost > 0 ? ("bad" as const) : ("neutral" as const),
         }
       : null,
-    {
-      label: "Highest-impact segment",
-      value: topSegment === null ? "n/a" : `${topSegment.from} to ${topSegment.to}`,
-      sub: topSegment === null ? "no segment data" : "riders here lose the most time per weekday",
-      tone: topSegment === null ? ("neutral" as const) : ("bad" as const),
-      compact: true,
-    },
+    topSegment !== null
+      ? {
+          label: "Highest-impact segment",
+          value: `${topSegment.from} to ${topSegment.to}`,
+          sub: (
+            <>
+              {formatCompact(topSegment.riderHours)} rider-hrs/wkdy
+              {onOpenSegment === undefined ? null : (
+                <>
+                  {" — "}
+                  <button
+                    type="button"
+                    onClick={() => onOpenSegment(topSegment.spineSegmentId)}
+                    className="font-semibold text-[var(--bp-color-accent)]"
+                  >
+                    Map ›
+                  </button>
+                </>
+              )}
+            </>
+          ),
+          tone: "neutral" as const,
+          compact: true,
+        }
+      : null,
   ].filter((tile) => tile !== null);
 
   return (
@@ -121,51 +154,8 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
             </div>
           )}
         </ChartFrame>
-        <SectionCard
-          title="Top burden segments"
-          sub="Where riders lose the most time."
-          bodyClassName="min-w-0 -mx-[18px] -mb-[18px]"
-        >
-          {topSegments.length > 0 ? (
-            topSegments.map((segment) => (
-              <div
-                key={segment.id}
-                className="grid grid-cols-[minmax(0,1fr)_88px] items-center gap-4 px-[18px] py-3 shadow-[inset_0_1px_0_var(--bp-color-rule)]"
-              >
-                <div className="min-w-0">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className="truncate text-[12.5px] font-medium">
-                      {segment.from} to {segment.to}
-                    </div>
-                    {segment.flagged ? <Badge variant="bad">flagged</Badge> : null}
-                  </div>
-                  <div className="mt-1 h-1 rounded-full bg-[var(--bp-color-ink-06)]">
-                    <div
-                      className="h-full rounded-full bg-[var(--bp-color-ink-40)]"
-                      style={{ width: `${(segment.riderHours / maxRiderHours) * 100}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="text-right font-mono text-[13px] font-semibold tabular-nums">
-                  {formatCompact(segment.riderHours)}
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="px-[18px] py-3 text-[12.5px] text-[var(--bp-color-ink-55)]">
-              No segment rider-hour burden is attached.
-            </div>
-          )}
-        </SectionCard>
+        <WhenRidersRideCard hourlyProfile={hourlyProfile} />
       </div>
-
-      <ChartFrame
-        title="Rider exposure by hour"
-        source="Delay exposure by hour; red marks rush periods."
-        height={112}
-      >
-        <HourExposure data={hourlyExposure} />
-      </ChartFrame>
 
       {showEquity ? (
         <SectionCard
@@ -190,6 +180,71 @@ export function RidersSection({ data }: { data: StudioRouteDetailResponse }) {
         </SectionCard>
       ) : null}
     </div>
+  );
+}
+
+/** Rider-grain replacement for the deleted "Top burden segments" duplicate
+ * (plan 081 amendment item 2 / comp D7): real boardings by hour with the
+ * busiest window flagged on the chart itself. */
+function WhenRidersRideCard({
+  hourlyProfile,
+}: {
+  hourlyProfile: ReturnType<typeof useRouteHourlyProfile>;
+}) {
+  const hours = hourlyProfile.data?.hours ?? null;
+  const boardings = hours?.map((hour) => hour.ridership ?? 0) ?? null;
+  const hasBoardings = boardings?.some((value) => value > 0) ?? false;
+  const peak = latestPeakWindow(hourlyProfile.data);
+  const profileMonth = hourlyProfile.data?.summary.latestMonth ?? null;
+
+  return (
+    <ChartFrame
+      title="When riders ride"
+      source={`Boardings by hour${profileMonth === null ? "" : `, ${profileMonth}`}.`}
+      height={148}
+    >
+      {hasBoardings && boardings !== null ? (
+        <div className="flex h-full min-h-[148px] flex-col justify-end gap-1 pt-4">
+          <div className="relative flex h-[110px] items-end gap-[2px]">
+            {boardings.map((value, hour) => {
+              const max = Math.max(...boardings, 1);
+              const isPeak = peak !== null && hour === peak.hourOfDay;
+              return (
+                <div
+                  key={hour}
+                  className="relative min-h-[2px] flex-1 rounded-t-[2px]"
+                  style={{
+                    height: `${(value / max) * 100}%`,
+                    background: "var(--bp-color-accent)",
+                    opacity: isPeak ? 1 : 0.72,
+                  }}
+                  title={`${formatHourShort(hour)} — ${formatCompactCount(value)} boardings`}
+                >
+                  {isPeak ? (
+                    <span className="absolute bottom-full left-1/2 mb-1 -translate-x-1/2 whitespace-nowrap rounded-[2px] bg-[var(--bp-color-accent)] px-1.5 py-0.5 font-mono text-[9px] font-bold text-white">
+                      {peak.label}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex justify-between font-mono text-[9.5px] text-[var(--bp-color-ink-40)]">
+            <span>12A</span>
+            <span>6A</span>
+            <span>12P</span>
+            <span>6P</span>
+            <span>11P</span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex h-full min-h-[148px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
+          {hourlyProfile.status === "loading"
+            ? "Loading hourly boardings."
+            : "Hourly boardings are not attached yet."}
+        </div>
+      )}
+    </ChartFrame>
   );
 }
 
@@ -244,7 +299,7 @@ function RiderKpi({
 }: {
   label: string;
   value: string;
-  sub: string;
+  sub: ReactNode;
   tone?: "neutral" | "bad";
   compact?: boolean;
 }) {

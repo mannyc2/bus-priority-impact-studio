@@ -118,7 +118,10 @@ describe("RidersSection", () => {
     expect(markup).toContain("Rider-hour burden");
     expect(markup).toContain("Highest-impact segment");
     expect(markup).toContain("14 St to 23 St");
-    expect(markup).toContain("Top burden segments");
+    // One segment surface (plan 081): the duplicate ranked card is deleted;
+    // rider-grain hourly boardings replace it.
+    expect(markup).not.toContain("Top burden segments");
+    expect(markup).toContain("When riders ride");
     expect(markup).toContain("grid-cols-3");
     for (const phrase of BANNED) {
       expect(markup).not.toContain(phrase);
