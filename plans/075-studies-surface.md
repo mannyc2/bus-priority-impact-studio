@@ -71,12 +71,12 @@ indexes, rollups, or links derived from
 `candidate-set-v3:aba25fe4209247be31d43b66`, and no approval may be rebound to
 it.
 
-Activation now requires the external exact-route task
-`019f7640-fd5c-7be2-8a40-a7c264284c0f`, a fresh non-quarantined manifest-v5
-Wiki release, a new exact-route candidate set, its complete set-bound receipt,
-a separately authorized post-amendment Plan 074 run, operator anchor review,
-serving regeneration, and publication authorization. The UI code landed by
-PR #59 remains implemented but inactive; this amendment does not remove it or
+The external exact-route prerequisite is now satisfied: Tracker PRs #65/#66
+merged, and the pinned non-quarantined v1-rc24 replay passed. Activation still
+requires a new exact-route candidate set, its complete set-bound receipt, a
+separately authorized post-amendment Plan 074 run, operator anchor review,
+serving regeneration, and publication authorization. The UI code landed by PR
+#59 remains implemented but inactive; this amendment does not remove it or
 activate any public result.
 
 ### Status reconciliation — 2026-07-18

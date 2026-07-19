@@ -9,11 +9,11 @@
 > per-route bundle, route index, and citywide facet index artifacts must exist.
 > Plans 080, 081, 085, and 086
 > must also be DONE because they edit `api-client.ts`, route-detail/map
-> surfaces, or serving vocabulary touched here. The external exact-route task
-> is inherited through Plan 091.
+> surfaces, or serving vocabulary touched here. The landed exact-route
+> baseline is inherited through Plan 091.
 >
 > **Drift check**:
-> `git diff --stat ac940967..HEAD -- apps/web/src/components/TreatmentBadge.tsx apps/web/src/components/route/OverviewSection.tsx apps/web/src/components/route/TreatmentsHistorySection.tsx apps/web/src/routes/routes/$routeId.tsx apps/web/src/routes/interventions.tsx apps/web/src/studio/api-contract.ts apps/web/src/studio/api-client.ts apps/web/src/studio/pages/route-detail.tsx apps/web/src/studio/pages/interventions.tsx apps/web/src/studio/treatment-model.ts apps/web/test/shared/api-client.test.ts apps/web/test/shared/interventions-page.test.ts apps/web/test/shared/overview-section.test.ts apps/web/test/shared/treatments-history.test.ts`
+> `git diff --stat ac940967..HEAD -- apps/web/src/components/TreatmentBadge.tsx apps/web/src/components/route/OverviewSection.tsx apps/web/src/components/route/TreatmentsHistorySection.tsx 'apps/web/src/routes/routes/$routeId.tsx' apps/web/src/routes/interventions.tsx apps/web/src/studio/api-contract.ts apps/web/src/studio/api-client.ts apps/web/src/studio/pages/route-detail.tsx apps/web/src/studio/pages/interventions.tsx apps/web/src/studio/treatment-model.ts apps/web/test/shared/api-client.test.ts apps/web/test/shared/interventions-page.test.ts apps/web/test/shared/overview-section.test.ts apps/web/test/shared/treatments-history.test.ts`
 >
 > Plan 091 and the prerequisite map/serving work are expected to cause drift.
 > Compare the live inventory schema/key, route props, and excerpts below. If

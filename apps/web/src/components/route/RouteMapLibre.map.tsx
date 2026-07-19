@@ -212,7 +212,7 @@ export function RouteMapLibreMap({
   fallback,
   onInteractiveAvailabilityChange,
 }: RouteMapLibreMapProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [ready, setReady] = useState(false);
   const [failure, setFailure] = useState<"runtime" | "unsupported" | null>(null);
@@ -495,11 +495,10 @@ export function RouteMapLibreMap({
 
   return (
     <div className="relative" style={{ minHeight }}>
-      <div
+      <section
         ref={containerRef}
         className="bp-bus-map overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]"
         style={{ minHeight }}
-        role="region"
         aria-label={`Interactive ${route.label} segment map; the segment list carries the same data`}
       />
       {unavailableDetailCount > 0 ? (

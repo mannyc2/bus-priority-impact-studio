@@ -41,11 +41,12 @@ substring matching and special handling for lane/ACE/TSP/SBS. Generation 12
 repairs that seam while keeping five concepts separate: project, treatment
 state, operational occurrence, descriptive observation, and causal study.
 
-**Hard external prerequisite**: the Tracker half of MTA Wiki Plan 035 in task
-`019f7640-fd5c-7be2-8a40-a7c264284c0f` must land first. It owns manifest-v5
-exact route identity, official labels, and B44/B44+ separation. These plans do
-not duplicate route naming or await another identity approval; they wait for
-the task's merged code and green exact-identity fixtures.
+**Satisfied external prerequisite**: the Tracker half of MTA Wiki Plan 035 in
+task `019f7640-fd5c-7be2-8a40-a7c264284c0f` landed through Tracker PRs #65 and
+#66; `origin/main` contains merge commit `12acf278`. It owns manifest-v5 exact
+route identity, official labels, and B44/B44+ separation. These plans consume
+that merged contract and its green exact-identity fixtures; they do not
+duplicate route naming or await another identity approval.
 
 Numbering note: 089 remains claimed by the tracked
 `plans/mockups/089-interventions-redesign/` design-review comp, which is not an
@@ -58,8 +59,8 @@ claimed on its branch.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 091 | Exact, lossless per-route intervention inventory from the existing materializer | P1 | L | exact-route task; 084, 088, 085, 086 | TODO |
-| 090 | Typed intervention-relevance specs + ACE route observation bundles | P1 | L | 091; exact-route task; 084, 088, 085, 086 | TODO |
+| 091 | Exact, lossless per-route intervention inventory from the existing materializer | P1 | L | exact-route PRs #65/#66 (DONE); 084, 088, 085, 086 | TODO |
+| 090 | Typed intervention-relevance specs + ACE route observation bundles | P1 | L | 091; exact-route PRs #65/#66 (DONE); 084, 088, 085, 086 | TODO |
 | 092 | Complete route intervention recognition + route History ↔ ledger links | P1 | L | 091; 080, 081, 085, 086 | TODO |
 | 093 | Value-blind non-ACE relevance coverage + first bus-lane/busway specs | P2 | L | 091, 090, 092, 082 | TODO |
 
@@ -69,12 +70,13 @@ REJECTED (with one-line rationale)
 ## Dependency notes (gen 12)
 
 - Full recommended spine:
-  `exact-route task → 084 → 088 → 079 → 080 → 081 → 085 → 086 → 091 → 090 → 092 → 082 → 093`.
+  `exact-route (DONE) → 084 → 088 → 079 → 080 → 081 → 085 → 086 → 091 → 090 → 092 → 082 → 093`.
   Plan 087 may run after 086 but is not a blocker for this generation.
-- The exact-route task and Plans 080/081/085/092/082 touch overlapping route
-  contracts, `api-client.ts`, or route UI files. Do not execute them in
-  parallel worktrees and try to merge by file; finish/rebase in the recorded
-  order and rerun drift checks.
+- The landed exact-route work and Plans 080/081/085/092/082 touch overlapping
+  route contracts, `api-client.ts`, or route UI files. The exact-route merge is
+  now the baseline; do not execute the remaining plans in parallel worktrees
+  and try to merge by file. Finish/rebase in the recorded order and rerun drift
+  checks.
 - Plan 091 promotes the existing route-treatment materializer and exports one
   checked bundle per exact route. It reuses Plan 073's reviewed corpus and the
   existing cited route-evidence bundles; it does not create a second evidence
@@ -90,8 +92,8 @@ REJECTED (with one-line rationale)
   amendment consumes Plan 090 typed observations, resolves their IDs against
   the same-release Plan 091 inventory, and uses Plan 092's named presentation
   helper/annotation stem.
-  The existing 082 comp approval remains its own visual gate; it is unrelated
-  to the already-authorized exact-route implementation task.
+  The required future 082 comp approval remains its own visual gate; it is
+  unrelated to the already-completed exact-route implementation task.
 - Plan 093 separates a descriptive observation-anchor gate from the causal
   study gate and proves study outputs unchanged. Inventory display coverage
   may be broad while observation and study coverage remain narrower.
@@ -126,8 +128,8 @@ REJECTED (with one-line rationale)
 
 ## Findings considered and rejected (gen 12 — do not re-audit)
 
-- **Duplicate exact-route/name plan** — rejected. The active MTA Wiki Plan 035
-  task owns exact route identity and official labels; downstream plans gate on
+- **Duplicate exact-route/name plan** — rejected. The landed MTA Wiki Plan 035
+  work owns exact route identity and official labels; downstream plans consume
   its tests.
 - **Another intervention database or page** — rejected. Reuse the existing
   materializer, reviewed corpus, route-evidence bundles, generic R2 artifact

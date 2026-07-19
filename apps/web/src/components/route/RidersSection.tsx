@@ -193,7 +193,7 @@ function WhenRidersRideCard({
 }) {
   const hours = hourlyProfile.data?.hours ?? null;
   const boardings = hours?.map((hour) => hour.ridership ?? 0) ?? null;
-  const hasBoardings = boardings !== null && boardings.some((value) => value > 0);
+  const hasBoardings = boardings?.some((value) => value > 0) ?? false;
   const peak = latestPeakWindow(hourlyProfile.data);
   const profileMonth = hourlyProfile.data?.summary.latestMonth ?? null;
 

@@ -33,8 +33,7 @@ const ALLOWLIST: Record<"interpunct" | "kicker" | "phrase", readonly string[]> =
     "components/CorridorMap.tsx", // 054
     "components/route/RouteGeoMap.tsx", // 054/060
   ],
-  kicker: [
-  ],
+  kicker: [],
   phrase: [],
 };
 
