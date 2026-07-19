@@ -30,6 +30,44 @@ const NonNegativeIntSchema = Schema.Number.check(Schema.isInt()).check(
   Schema.isGreaterThanOrEqualTo(0),
 );
 
+function hasAsciiControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
+function hasUnsafeArtifactKeyComponent(value: string): boolean {
+  return value.split("/").some((part) => part.length === 0 || part === "." || part === "..");
+}
+
+export function isSafeArtifactKey(key: string): boolean {
+  let current = key;
+  for (let pass = 0; pass < 4; pass += 1) {
+    if (
+      current.length === 0 ||
+      current.startsWith("/") ||
+      current.includes("\\") ||
+      /^[A-Za-z]:\//.test(current) ||
+      hasAsciiControlCharacter(current) ||
+      hasUnsafeArtifactKeyComponent(current)
+    ) {
+      return false;
+    }
+
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(current);
+    } catch {
+      return false;
+    }
+    if (decoded === current) return true;
+    current = decoded;
+  }
+  return false;
+}
+
 function releaseIdentityIssues(identity: {
   readonly releaseId: string;
   readonly publishedAt: string;

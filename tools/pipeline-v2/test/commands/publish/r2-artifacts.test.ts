@@ -102,9 +102,18 @@ async function seedPublishableFullMap(
         schemaVersion: 2,
         artifactKind: "map_source_snapshot",
         ...releaseIdentity,
-        sources: [],
+        sources: [
+          {
+            sourceId: "current_bus_routes",
+            snapshotPath: "data/raw/network/current_bus_routes.json",
+            status: "available",
+            fetchedAt: generatedAt,
+            rowCount: 0,
+            sha256: "a".repeat(64),
+          },
+        ],
       },
-      featureCount: 0,
+      featureCount: 1,
     },
     {
       artifactKey: "map/routes/current-local-limited-sbs.min.geojson",
@@ -495,6 +504,64 @@ describe("runPublishR2Artifacts", () => {
         ).rejects.toThrow(candidate.expected);
         expect(calls).toEqual([]);
       }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a hash-consistent malformed source snapshot before remote calls", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-invalid-source-snapshot-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await seedPublishableFullMap(artifactRoot);
+      const manifestPath = join(artifactRoot, "map", MONTH, "manifest.json");
+      const manifest = (await Bun.file(manifestPath).json()) as Record<string, unknown>;
+      const artifacts = manifest["artifacts"] as Array<Record<string, unknown>>;
+      const sourceIndex = artifacts.findIndex(
+        (artifact) => artifact["artifactKind"] === "map_source_snapshot",
+      );
+      const sourceEntry = artifacts[sourceIndex];
+      expect(sourceEntry).toBeDefined();
+      const malformedBytes = new TextEncoder().encode(`${JSON.stringify({ arbitrary: true })}\n`);
+      await writeFile(join(artifactRoot, String(sourceEntry?.["artifactKey"])), malformedBytes);
+      const replacement = {
+        ...sourceEntry,
+        byteLength: malformedBytes.byteLength,
+        gzipByteLength: gzipSync(malformedBytes, { level: 9 }).byteLength,
+        sha256: createHash("sha256").update(malformedBytes).digest("hex"),
+        featureCount: 0,
+        coordinateCount: 0,
+      };
+      const updatedArtifacts = [...artifacts];
+      updatedArtifacts[sourceIndex] = replacement;
+      const updatedManifest = {
+        ...manifest,
+        artifacts: updatedArtifacts,
+        totalByteLength:
+          Number(manifest["totalByteLength"]) -
+          Number(sourceEntry?.["byteLength"]) +
+          malformedBytes.byteLength,
+        totalFeatureCount: Number(manifest["totalFeatureCount"]) - 1,
+      };
+      const manifestBytes = new TextEncoder().encode(
+        `${JSON.stringify(updatedManifest, null, 2)}\n`,
+      );
+      await writeFile(manifestPath, manifestBytes);
+      const manifestSha256 = createHash("sha256").update(manifestBytes).digest("hex");
+      await writeFile(
+        join(artifactRoot, "map", MONTH, `manifest.${manifestSha256}.json`),
+        manifestBytes,
+      );
+      const { driver, calls } = recordingDriver(new Map());
+
+      await expect(
+        runPublishR2Artifacts({
+          ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+          manifestDirs: ["map"],
+        }),
+      ).rejects.toThrow("map_source_snapshot_payload_invalid");
+      expect(calls).toEqual([]);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

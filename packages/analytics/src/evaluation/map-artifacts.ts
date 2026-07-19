@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import {
+  isSafeArtifactKey,
   MAP_LAYER_CONTRACTS,
   MapBusLaneFeatureCollectionSchema,
   MapContextFeatureCollectionSchema,
@@ -186,20 +187,7 @@ const NonNegativeIntSchema = Schema.Number.check(Schema.isInt()).check(
 );
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/));
 
-export function isSafeArtifactKey(value: string): boolean {
-  if (
-    value.length === 0 ||
-    value.includes("\0") ||
-    value.includes("\\") ||
-    value.startsWith("/") ||
-    /^[A-Za-z]:\//.test(value)
-  ) {
-    return false;
-  }
-  return value
-    .split("/")
-    .every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
-}
+export { isSafeArtifactKey };
 
 const ArtifactKeySchema = Schema.String.check(
   Schema.makeFilter((value) =>
@@ -223,6 +211,62 @@ const MapArtifactKindSchema = Schema.Literals([
   "map_network_simplified_geojson",
   "map_route_segments_geojson",
 ]);
+
+const MapSourceSnapshotMetadataSchema = Schema.Struct({
+  sourceId: NonEmptyStringSchema,
+  snapshotPath: NonEmptyStringSchema,
+  status: Schema.Literals(["available", "missing"]),
+  fetchedAt: Schema.NullOr(
+    Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/)),
+  ),
+  rowCount: NonNegativeIntSchema,
+  sha256: Schema.NullOr(Sha256Schema),
+}).check(
+  Schema.makeFilter((source) => {
+    if (source.status === "available") {
+      return source.sha256 === null
+        ? [{ path: ["sha256"], issue: "Available snapshots require a content hash." }]
+        : [];
+    }
+    return source.fetchedAt === null && source.rowCount === 0 && source.sha256 === null
+      ? []
+      : [
+          {
+            path: [],
+            issue: "Missing snapshots cannot declare fetch time, rows, or a content hash.",
+          },
+        ];
+  }),
+);
+
+export const MapSourceSnapshotSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(MAP_ARTIFACT_SCHEMA_VERSION),
+  artifactKind: Schema.Literal("map_source_snapshot"),
+  ...ReleaseIdentitySchema.fields,
+  sources: Schema.Array(MapSourceSnapshotMetadataSchema).check(Schema.isMinLength(1)),
+}).check(
+  Schema.makeFilter((snapshot) => {
+    const issues: Schema.FilterIssue[] = [];
+    try {
+      if (snapshot.releaseId !== releaseIdFromPublishedAt(snapshot.publishedAt)) {
+        issues.push({
+          path: ["releaseId"],
+          issue: "Release ID must match the canonical publication timestamp.",
+        });
+      }
+    } catch {
+      issues.push({
+        path: ["publishedAt"],
+        issue: "Publication timestamp must be canonical before deriving a release ID.",
+      });
+    }
+    const sourceIds = snapshot.sources.map((source) => source.sourceId);
+    if (new Set(sourceIds).size !== sourceIds.length) {
+      issues.push({ path: ["sources"], issue: "Snapshot source IDs must be unique." });
+    }
+    return issues;
+  }),
+);
 
 export const MapArtifactEntrySchema = Schema.Struct({
   artifactKind: MapArtifactKindSchema,
@@ -444,6 +488,37 @@ export function mapArtifactPayloadIssues(input: {
       artifactKey: input.artifact.artifactKey,
       message: `Map artifact ${input.artifact.artifactKey} manifest featureCount is ${input.artifact.featureCount}, but payload has ${expectedFeatureCount}.`,
     });
+  }
+  if (input.artifact.artifactKind === "map_source_snapshot") {
+    const result = decodeSchemaEitherStrict(MapSourceSnapshotSchema, input.payload);
+    if (Result.isFailure(result)) {
+      issues.push({
+        code: "map_source_snapshot_payload_invalid",
+        artifactKey: input.artifact.artifactKey,
+        message: `Map source snapshot ${input.artifact.artifactKey} failed its payload contract.`,
+      });
+    } else {
+      if (result.success.sources.length !== input.artifact.featureCount) {
+        issues.push({
+          code: "map_source_snapshot_count_mismatch",
+          artifactKey: input.artifact.artifactKey,
+          message: `Map source snapshot ${input.artifact.artifactKey} declares ${input.artifact.featureCount} sources, but payload has ${result.success.sources.length}.`,
+        });
+      }
+      if (
+        input.releaseIdentity !== undefined &&
+        (result.success.releaseId !== input.releaseIdentity.releaseId ||
+          result.success.publishedAt !== input.releaseIdentity.publishedAt ||
+          result.success.coverage.start !== input.releaseIdentity.coverage.start ||
+          result.success.coverage.end !== input.releaseIdentity.coverage.end)
+      ) {
+        issues.push({
+          code: "map_source_snapshot_identity_mismatch",
+          artifactKey: input.artifact.artifactKey,
+          message: `Map source snapshot ${input.artifact.artifactKey} does not carry the manifest release identity.`,
+        });
+      }
+    }
   }
   if (input.artifact.artifactKind === "map_route_segments_geojson") {
     const result = decodeSchemaEitherStrict(MapRouteSegmentFeatureCollectionSchema, input.payload);

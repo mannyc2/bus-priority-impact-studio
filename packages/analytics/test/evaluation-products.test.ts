@@ -114,7 +114,16 @@ function artifactDefinitions(month: string, releaseIdentity: ReleaseIdentity) {
         schemaVersion: 2,
         artifactKind: "map_source_snapshot",
         ...releaseIdentity,
-        sources: [{ sourceId: "current_bus_routes", status: "available" }],
+        sources: [
+          {
+            sourceId: "current_bus_routes",
+            snapshotPath: "data/raw/network/current_bus_routes.json",
+            status: "available",
+            fetchedAt: releaseIdentity.publishedAt,
+            rowCount: 1,
+            sha256: "a".repeat(64),
+          },
+        ],
       },
       featureCount: 1,
     },
@@ -432,6 +441,7 @@ describe("evaluation data products", () => {
         artifact: artifact.entry,
         payload: definitions[index]?.payload,
         month,
+        releaseIdentity,
       }),
     );
 
@@ -449,6 +459,21 @@ describe("evaluation data products", () => {
     expect(isSafeArtifactKey("map//secret.json")).toBe(false);
     expect(isSafeArtifactKey("map\\secret.json")).toBe(false);
     expect(isSafeArtifactKey("C:/secret.json")).toBe(false);
+    expect(isSafeArtifactKey("map/%2e%2e/secret.json")).toBe(false);
+    expect(isSafeArtifactKey("map/\u0001secret.json")).toBe(false);
+
+    const sourceArtifact = artifacts.find(
+      (artifact) => artifact.entry.artifactKind === "map_source_snapshot",
+    );
+    expect(sourceArtifact).toBeDefined();
+    expect(
+      mapArtifactPayloadIssues({
+        artifact: sourceArtifact?.entry as MapArtifactEntry,
+        payload: { arbitrary: true },
+        month,
+        releaseIdentity,
+      }).map((issue) => issue.code),
+    ).toContain("map_source_snapshot_payload_invalid");
 
     expect(
       verifyMapArtifactManifestContents({

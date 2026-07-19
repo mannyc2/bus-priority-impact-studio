@@ -10,7 +10,7 @@ import {
   listRouteBriefSummaries,
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/d1";
-import { MapManifestResponseSchema } from "@bp/domain/maps";
+import { isSafeArtifactKey, MapManifestResponseSchema } from "@bp/domain/maps";
 import { IsoMonthSchema, type RouteId, RouteIdCodec } from "@bp/domain/primitives";
 import {
   HotspotListResponseSchema,
@@ -151,50 +151,8 @@ async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function hasAsciiControlCharacter(value: string): boolean {
-  for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index);
-    if (code <= 0x1f || code === 0x7f) return true;
-  }
-  return false;
-}
-
-function hasDotPathComponent(value: string): boolean {
-  return value.split("/").some((part) => part === "." || part === "..");
-}
-
 export function isValidArtifactKey(key: string): boolean {
-  if (
-    key.length === 0 ||
-    key.startsWith("/") ||
-    key.includes("\\") ||
-    hasAsciiControlCharacter(key) ||
-    hasDotPathComponent(key)
-  ) {
-    return false;
-  }
-
-  let current = key;
-  for (let pass = 0; pass < 4; pass += 1) {
-    let decoded: string;
-    try {
-      decoded = decodeURIComponent(current);
-    } catch {
-      return false;
-    }
-    if (decoded === current) return true;
-    if (
-      decoded.startsWith("/") ||
-      decoded.includes("\\") ||
-      hasAsciiControlCharacter(decoded) ||
-      hasDotPathComponent(decoded)
-    ) {
-      return false;
-    }
-    current = decoded;
-  }
-
-  return false;
+  return isSafeArtifactKey(key);
 }
 
 function decodeArtifactKey(rawKey: string): string | null {

@@ -35,6 +35,7 @@ export {
   type MapCurrencyStatus,
   type MapJsonArtifact,
   type MapLayerId,
+  MapSourceSnapshotSchema,
   mapArtifactPayloadIssues,
   mapArtifactSha256,
   mapBudgetIssues,
