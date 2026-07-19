@@ -863,13 +863,51 @@ export async function loadMtaWikiRouteIdentities(input: {
   if (manifest.release_id !== input.wikiRelease)
     throw new Error("MTA Wiki manifest release_id mismatch");
 
+  const addressedPointers = Object.entries(manifest.pointers).flatMap(([name, pointer]) =>
+    pointer === null ? [] : [[name, pointer] as const],
+  );
+  const pointerOwners = new Map<string, string>();
+  for (const [name, pointer] of addressedPointers) {
+    const existingOwner = pointerOwners.get(pointer);
+    if (existingOwner !== undefined) {
+      throw new Error(
+        `MTA Wiki manifest pointers ${existingOwner} and ${name} address the same file: ${pointer}`,
+      );
+    }
+    pointerOwners.set(pointer, name);
+    if (manifest.files[pointer] === undefined) {
+      throw new Error(`MTA Wiki manifest pointer ${name} lacks file metadata: ${pointer}`);
+    }
+  }
+
   const identityPointer = manifest.pointers.route_identity_snapshot;
   const anchorPointer = manifest.pointers.route_anchors;
+  const canonicalFileNames = Object.values(MTA_WIKI_RELEASE_CANONICAL_FILES);
+  const retainedFileNames = new Set<string>([
+    identityPointer,
+    anchorPointer,
+    ...canonicalFileNames,
+  ]);
+  const verifiedFiles = new Map<string, Uint8Array>();
+  for (const [fileName, metadata] of Object.entries(manifest.files).toSorted(([left], [right]) =>
+    left.localeCompare(right),
+  )) {
+    try {
+      const bytes = await safeReleaseFile(releaseDirectory, canonicalReleaseDirectory, fileName);
+      verifyMetadata(bytes, metadata, fileName);
+      if (retainedFileNames.has(fileName)) verifiedFiles.set(fileName, bytes);
+    } catch (error) {
+      throw new Error(
+        `MTA Wiki manifest file cannot be verified: ${fileName}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
   const identityMetadata = manifest.files[identityPointer];
   const anchorMetadata = manifest.files[anchorPointer];
-  if (identityMetadata === undefined || anchorMetadata === undefined)
+  if (identityMetadata === undefined || anchorMetadata === undefined) {
     throw new Error("MTA Wiki manifest is missing route contract file metadata");
-  const canonicalFileNames = Object.values(MTA_WIKI_RELEASE_CANONICAL_FILES);
+  }
   const canonicalMetadata = canonicalFileNames.map((fileName) => {
     const metadata = manifest.files[fileName];
     if (metadata === undefined) {
@@ -877,19 +915,14 @@ export async function loadMtaWikiRouteIdentities(input: {
     }
     return [fileName, metadata] as const;
   });
-  const [identityBytes, anchorBytes, ...canonicalBytes] = await Promise.all([
-    safeReleaseFile(releaseDirectory, canonicalReleaseDirectory, identityPointer),
-    safeReleaseFile(releaseDirectory, canonicalReleaseDirectory, anchorPointer),
-    ...canonicalMetadata.map(([fileName]) =>
-      safeReleaseFile(releaseDirectory, canonicalReleaseDirectory, fileName),
-    ),
-  ]);
-  verifyMetadata(identityBytes, identityMetadata, identityPointer);
-  verifyMetadata(anchorBytes, anchorMetadata, anchorPointer);
-  const verifiedCanonicalEntries = canonicalMetadata.map(([fileName, metadata], index) => {
-    const bytes = canonicalBytes[index];
+  const identityBytes = verifiedFiles.get(identityPointer);
+  const anchorBytes = verifiedFiles.get(anchorPointer);
+  if (identityBytes === undefined || anchorBytes === undefined) {
+    throw new Error("MTA Wiki manifest route contract files were not verified");
+  }
+  const verifiedCanonicalEntries = canonicalMetadata.map(([fileName]) => {
+    const bytes = verifiedFiles.get(fileName);
     if (bytes === undefined) throw new Error(`Missing verified canonical bytes for ${fileName}`);
-    verifyMetadata(bytes, metadata, fileName);
     return [fileName, bytes] as const;
   });
   const canonicalFiles = Object.fromEntries(verifiedCanonicalEntries) as Record<
@@ -1145,6 +1178,14 @@ export async function loadMtaWikiRouteIdentities(input: {
       ) {
         throw new Error(
           `route binding ${binding.route_record_id}: reviewed disposition lacks identity_scope attribution`,
+        );
+      }
+      if (
+        binding.identity_basis === "deterministic_exact" &&
+        binding.reviewed_axes.includes("identity_mapping")
+      ) {
+        throw new Error(
+          `route binding ${binding.route_record_id}: deterministic exact identity mapping cannot be reviewer-attributed`,
         );
       }
     } else if (binding.identity_basis !== "deterministic_exact") {

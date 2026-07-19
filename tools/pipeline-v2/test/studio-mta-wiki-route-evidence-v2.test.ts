@@ -643,7 +643,17 @@ async function createNamedReleaseFixture(
     "treatment_components.jsonl": "",
     "source_gaps.jsonl": "",
   };
-  for (const [name, bytes] of Object.entries(canonical)) {
+  const manifestPointerFiles = {
+    "operational_anchor_review_decisions.json": "{}\n",
+    "operational_anchors_summary.json": "{}\n",
+    "operational_anchors.jsonl": "",
+    "operational_occurrence_review_decisions.json": "{}\n",
+    "operational_occurrences_summary.json": "{}\n",
+    "operational_occurrences.jsonl": "",
+    "relationship_integrity_bundle.json": "{}\n",
+    "taxonomy.json": "{}\n",
+  };
+  for (const [name, bytes] of Object.entries({ ...manifestPointerFiles, ...canonical })) {
     await writeFile(join(releaseRoot, name), bytes);
   }
   await writeFile(join(releaseRoot, "route_anchors.jsonl"), anchorBytes);
@@ -664,7 +674,10 @@ async function createNamedReleaseFixture(
     },
     files: {
       ...Object.fromEntries(
-        Object.entries(canonical).map(([name, bytes]) => [name, fileMetadata(bytes)]),
+        Object.entries({ ...manifestPointerFiles, ...canonical }).map(([name, bytes]) => [
+          name,
+          fileMetadata(bytes),
+        ]),
       ),
       "route_anchors.jsonl": fileMetadata(anchorBytes),
       "route_identity_snapshot.json": fileMetadata(snapshotBytes),

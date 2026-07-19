@@ -32,8 +32,11 @@ import {
   type StudioRouteCapability,
   type StudioRouteEvidenceBundle,
   StudioRouteEvidenceBundleSchema,
+  type StudioRouteEvidenceBundleV2,
   type StudioRouteEvidenceIndex,
+  type StudioRouteEvidenceIndexRouteV2,
   StudioRouteEvidenceIndexSchema,
+  type StudioRouteEvidenceIndexV2,
   studioRouteEvidenceBundleKey,
 } from "@bp/domain/studio";
 import {
@@ -68,6 +71,7 @@ import {
   type StudioRouteIndex2Row,
   type StudioRouteIndex3Response,
   StudioRouteIndex3ResponseSchema,
+  type StudioRouteIndex3Row,
   type StudioSnapshot2,
   type StudioSnapshot2ProjectionRef,
   type StudioSnapshotProjection,
@@ -98,6 +102,10 @@ import {
   studioProjectionPrefix,
   studioReleaseKey,
 } from "./projections.js";
+import {
+  assertStudioRouteEvidenceV2ServingClosure,
+  type ExactD1RouteEvidenceIdentity,
+} from "./route-evidence-integrity.js";
 import {
   buildStudioRouteCardFromIndexRow,
   buildStudioRouteIndex2Row,
@@ -482,6 +490,97 @@ async function buildStudioRouteIndex3Response(
 function routeDetailSlugCandidates(routeId: string, requestedSlug: string): string[] {
   const candidates = [requestedSlug, routeIdToStudioSlug(routeId)];
   return [...new Set(candidates)];
+}
+
+function exactRouteEvidenceIdentity(
+  row: NormalizedStudioRouteIndexSourceRow,
+): ExactD1RouteEvidenceIdentity {
+  return {
+    slug: routeIdToStudioSlug(row.routeId),
+    presentation: exactRoutePresentationForIndexRow(row),
+  };
+}
+
+function exactRouteEvidenceIdentitiesFromD1(
+  rows: readonly NormalizedStudioRouteIndexSourceRow[],
+): ReadonlyMap<string, ExactD1RouteEvidenceIdentity> {
+  return new Map(rows.map((row) => [row.routeId, exactRouteEvidenceIdentity(row)]));
+}
+
+function exactRouteEvidenceIdentityFromIndex(
+  row: StudioRouteIndex3Row,
+): ExactD1RouteEvidenceIdentity {
+  return {
+    slug: row.slug,
+    presentation: {
+      routeId: row.routeId,
+      routeFamilyId: row.routeFamilyId,
+      displayLabel: row.displayLabel,
+      officialLongName: row.officialLongName,
+      designationLiterals: row.designationLiterals,
+      serviceModes: row.serviceModes,
+      routeTypes: row.routeTypes,
+      tripTypes: row.tripTypes,
+    },
+  };
+}
+
+function exactRouteEvidenceIdentitiesFromIndex(
+  rows: readonly StudioRouteIndex3Row[],
+): ReadonlyMap<string, ExactD1RouteEvidenceIdentity> {
+  return new Map(rows.map((row) => [row.routeId, exactRouteEvidenceIdentityFromIndex(row)]));
+}
+
+function closedRouteEvidenceIndex(
+  index: StudioRouteEvidenceIndex | null,
+  expectedRoutes: () => ReadonlyMap<string, ExactD1RouteEvidenceIdentity>,
+): StudioRouteEvidenceIndex | null {
+  if (index === null || index.schemaVersion === 1) return index;
+  try {
+    assertStudioRouteEvidenceV2ServingClosure({
+      kind: "index",
+      index,
+      expectedRoutes: expectedRoutes(),
+    });
+    return index;
+  } catch (error) {
+    console.error("Studio route evidence index failed exact D1 closure.", {
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+function routeEvidenceIndexRowV2(
+  index: StudioRouteEvidenceIndexV2,
+  routeId: string,
+): StudioRouteEvidenceIndexRouteV2 | null {
+  return index.routes.find((row) => row.routeId === routeId) ?? null;
+}
+
+function isRouteEvidenceBundleV2(
+  bundle: StudioRouteEvidenceBundle,
+): bundle is StudioRouteEvidenceBundleV2 {
+  return "schemaVersion" in bundle && bundle.schemaVersion === 2;
+}
+
+async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function routeEvidenceObjectPayload(object: R2ObjectBody): Promise<{
+  byteLength: number;
+  payload: unknown;
+  sha256: string;
+}> {
+  const bytes = await object.arrayBuffer();
+  const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  return {
+    byteLength: bytes.byteLength,
+    payload: JSON.parse(text) as unknown,
+    sha256: await sha256Hex(bytes),
+  };
 }
 
 async function loadStudioRouteEvidenceIndex(
@@ -962,11 +1061,14 @@ export async function buildStudioRouteSectionsResponse(
 
   const generatedAt = new Date().toISOString();
   const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
-  const [rows, routeEvidenceIndex, capabilityManifest] = await Promise.all([
+  const [rows, rawRouteEvidenceIndex, capabilityManifest] = await Promise.all([
     listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
     loadStudioRouteEvidenceIndex(env),
     loadRouteCapabilityManifest(env),
   ]);
+  const routeEvidenceIndex = closedRouteEvidenceIndex(rawRouteEvidenceIndex, () =>
+    exactRouteEvidenceIdentitiesFromD1(rows),
+  );
   const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
   const routes = rows.map((row) =>
     buildStudioRouteIndex2Row({
@@ -1548,7 +1650,11 @@ export async function buildStudioRouteTimelineResponse(
   }
   const baselineMonth = months.servingMonth;
 
-  const row = await findStudioRouteIndexSourceRow({ env, slug, baselineMonth });
+  const rows = await listNormalizedStudioRouteIndexSourceRows(
+    createD1ServingDb(env.DB),
+    baselineMonth,
+  );
+  const row = rows.find((candidate) => routeIdToStudioSlug(candidate.routeId) === slug) ?? null;
   if (row === null) {
     return { ok: false, response: errorResponse(404, "Studio route timeline was not found.") };
   }
@@ -1559,6 +1665,10 @@ export async function buildStudioRouteTimelineResponse(
     };
   }
 
+  const routeEvidenceIndex = closedRouteEvidenceIndex(await loadStudioRouteEvidenceIndex(env), () =>
+    exactRouteEvidenceIdentitiesFromD1(rows),
+  );
+
   const key = studioRouteEvidenceBundleKey(routeIdToStudioSlug(row.routeId));
   const object = await env.ARTIFACTS.get(key);
   if (object === null) {
@@ -1568,9 +1678,9 @@ export async function buildStudioRouteTimelineResponse(
     };
   }
 
-  let payload: unknown;
+  let objectPayload: Awaited<ReturnType<typeof routeEvidenceObjectPayload>>;
   try {
-    payload = await object.json();
+    objectPayload = await routeEvidenceObjectPayload(object);
   } catch {
     return {
       ok: false,
@@ -1582,7 +1692,7 @@ export async function buildStudioRouteTimelineResponse(
     };
   }
 
-  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceBundleSchema, payload);
+  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceBundleSchema, objectPayload.payload);
   if (Result.isFailure(parsed)) {
     console.error("Studio route evidence bundle failed contract validation.", {
       key,
@@ -1593,7 +1703,28 @@ export async function buildStudioRouteTimelineResponse(
       response: errorResponse(502, ARTIFACT_NOT_AVAILABLE_MESSAGE),
     };
   }
-  if (parsed.success.routeId !== row.routeId || parsed.success.routeSlug !== slug) {
+  const expectedRoute = exactRouteEvidenceIdentity(row);
+  try {
+    if (isRouteEvidenceBundleV2(parsed.success)) {
+      if (routeEvidenceIndex?.schemaVersion !== 2) {
+        throw new Error("Route evidence v2 bundle lacks a closed v2 index");
+      }
+      const indexRow = routeEvidenceIndexRowV2(routeEvidenceIndex, row.routeId);
+      if (indexRow === null) throw new Error("Route evidence v2 index row is missing");
+      assertStudioRouteEvidenceV2ServingClosure({
+        kind: "bundle",
+        index: routeEvidenceIndex,
+        indexRow,
+        expectedRoute,
+        artifactKey: key,
+        bundle: parsed.success,
+        byteLength: objectPayload.byteLength,
+        sha256: objectPayload.sha256,
+      });
+    } else if (parsed.success.routeId !== row.routeId || parsed.success.routeSlug !== slug) {
+      throw new Error("Legacy route evidence identity mismatch");
+    }
+  } catch {
     return {
       ok: false,
       response: artifactNotAvailableResponse(
@@ -1665,21 +1796,22 @@ function routeHasTimelineProjection(route: StudioRouteIndex2Row): boolean {
 
 async function loadCompactInterventionsEvidenceBundle(
   env: StudioReadEnv & { ARTIFACTS: R2Bucket },
-  route: StudioRouteIndex2Row,
+  route: StudioRouteIndex3Row,
+  routeEvidenceIndex: StudioRouteEvidenceIndex | null,
 ): Promise<{ ok: true; bundle: StudioInterventionsEvidenceBundle | null }> {
   const key = studioRouteEvidenceBundleKey(route.slug);
   const object = await env.ARTIFACTS.get(key);
   if (object === null) return { ok: true, bundle: null };
 
-  let payload: unknown;
+  let objectPayload: Awaited<ReturnType<typeof routeEvidenceObjectPayload>>;
   try {
-    payload = await object.json();
+    objectPayload = await routeEvidenceObjectPayload(object);
   } catch {
     console.error("Studio interventions evidence bundle is not valid JSON.", { key });
     return { ok: true, bundle: null };
   }
 
-  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceBundleSchema, payload);
+  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceBundleSchema, objectPayload.payload);
   if (Result.isFailure(parsed)) {
     console.error("Studio interventions evidence bundle failed contract validation.", {
       key,
@@ -1687,8 +1819,34 @@ async function loadCompactInterventionsEvidenceBundle(
     });
     return { ok: true, bundle: null };
   }
-  if (parsed.success.routeId !== route.routeId || parsed.success.routeSlug !== route.slug) {
-    console.error("Studio interventions evidence bundle failed contract validation.", { key });
+  try {
+    if (isRouteEvidenceBundleV2(parsed.success)) {
+      if (routeEvidenceIndex?.schemaVersion !== 2) {
+        throw new Error("Route evidence v2 bundle lacks a closed v2 index");
+      }
+      const indexRow = routeEvidenceIndexRowV2(routeEvidenceIndex, route.routeId);
+      if (indexRow === null) throw new Error("Route evidence v2 index row is missing");
+      assertStudioRouteEvidenceV2ServingClosure({
+        kind: "bundle",
+        index: routeEvidenceIndex,
+        indexRow,
+        expectedRoute: exactRouteEvidenceIdentityFromIndex(route),
+        artifactKey: key,
+        bundle: parsed.success,
+        byteLength: objectPayload.byteLength,
+        sha256: objectPayload.sha256,
+      });
+    } else if (
+      parsed.success.routeId !== route.routeId ||
+      parsed.success.routeSlug !== route.slug
+    ) {
+      throw new Error("Legacy route evidence identity mismatch");
+    }
+  } catch (error) {
+    console.error("Studio interventions evidence bundle failed contract validation.", {
+      key,
+      reason: error instanceof Error ? error.message : String(error),
+    });
     return { ok: true, bundle: null };
   }
 
@@ -1708,12 +1866,19 @@ async function buildStudioInterventionsEvidenceResponse(
 
   const routeIndexResult = await buildStudioRouteIndex3Response(env);
   if (!routeIndexResult.ok) return routeIndexResult;
+  const routeEvidenceIndex = closedRouteEvidenceIndex(await loadStudioRouteEvidenceIndex(env), () =>
+    exactRouteEvidenceIdentitiesFromIndex(routeIndexResult.routeIndex.routes),
+  );
 
   const bundleResults = await Promise.all(
     routeIndexResult.routeIndex.routes
       .filter((route) => routeHasTimelineProjection(route))
       .map((route) =>
-        loadCompactInterventionsEvidenceBundle({ ...env, ARTIFACTS: artifacts }, route),
+        loadCompactInterventionsEvidenceBundle(
+          { ...env, ARTIFACTS: artifacts },
+          route,
+          routeEvidenceIndex,
+        ),
       ),
   );
   const bundles = bundleResults.flatMap((result) => {
@@ -2051,7 +2216,7 @@ function buildSnapshot2(input: {
 }
 
 async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response> {
-  const [routesResult, methodsResult, docsResult, routeEvidenceIndex, modelProjection] =
+  const [routesResult, methodsResult, docsResult, rawRouteEvidenceIndex, modelProjection] =
     await Promise.all([
       buildStudioRoutesResponse(env),
       loadStudioProjection(env, "methods.json", StudioMethodsResponseSchema),
@@ -2060,6 +2225,20 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
       loadModelArtifactServingProjection(env),
     ]);
   if (!routesResult.ok) return routesResult.response;
+  let routeEvidenceIndex: StudioRouteEvidenceIndex | null = rawRouteEvidenceIndex;
+  if (rawRouteEvidenceIndex?.schemaVersion === 2) {
+    if (env.DB === undefined || routesResult.baselineMonth === null) {
+      routeEvidenceIndex = null;
+    } else {
+      const d1Rows = await listNormalizedStudioRouteIndexSourceRows(
+        createD1ServingDb(env.DB),
+        routesResult.baselineMonth,
+      );
+      routeEvidenceIndex = closedRouteEvidenceIndex(rawRouteEvidenceIndex, () =>
+        exactRouteEvidenceIdentitiesFromD1(d1Rows),
+      );
+    }
+  }
 
   const generatedAt = new Date().toISOString();
   const toleratedCaveats: string[] = [];

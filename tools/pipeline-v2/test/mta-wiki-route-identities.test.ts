@@ -91,6 +91,16 @@ const canonicalFileNames = [
   "sources.jsonl",
   "treatment_components.jsonl",
 ] as const;
+const manifestPointerFiles = {
+  "operational_anchor_review_decisions.json": "{}\n",
+  "operational_anchors_summary.json": "{}\n",
+  "operational_anchors.jsonl": "",
+  "operational_occurrence_review_decisions.json": "{}\n",
+  "operational_occurrences_summary.json": "{}\n",
+  "operational_occurrences.jsonl": "",
+  "relationship_integrity_bundle.json": "{}\n",
+  "taxonomy.json": "{}\n",
+} as const;
 const requiredGtfsFiles = [
   "agency.txt",
   "calendar.txt",
@@ -579,6 +589,9 @@ function buildManifest(
     "route_anchors.jsonl": fileMetadata(anchorBytes),
     "route_identity_snapshot.json": fileMetadata(snapshotBytes),
   };
+  for (const [name, bytes] of Object.entries(manifestPointerFiles)) {
+    fileEntries[name] = fileMetadata(bytes);
+  }
   for (const [name, bytes] of Object.entries(files)) fileEntries[name] = fileMetadata(bytes);
   return {
     manifest_version: 5,
@@ -639,7 +652,7 @@ async function fixture(): Promise<Fixture> {
   const snapshotBytes = canonicalJson(snapshot) + "\n";
   const anchorBytes = canonicalJsonl(anchors);
   const files = canonicalFiles(routeRecords);
-  for (const [name, bytes] of Object.entries(files)) {
+  for (const [name, bytes] of Object.entries({ ...manifestPointerFiles, ...files })) {
     await writeFile(join(release, name), bytes);
   }
   await writeFile(join(release, "route_anchors.jsonl"), anchorBytes);
@@ -757,6 +770,14 @@ function snapshotForAudit(
   currentBusRoutesSha256: string,
 ): MtaWikiRouteIdentitySnapshot {
   return makeSnapshot([identityRow], [], currentBusRoutesSha256);
+}
+
+function loadFixture(value: Fixture, manifestSha = value.manifestSha) {
+  return loadMtaWikiRouteIdentities({
+    mtaWikiRoot: value.root,
+    wikiRelease: value.releaseId,
+    wikiManifestSha256: manifestSha,
+  });
 }
 
 describe("MTA Wiki manifest-v5 route identities", () => {
@@ -886,6 +907,133 @@ describe("MTA Wiki manifest-v5 route identities", () => {
       ).rejects.toThrow(/routes\.jsonl: (byte count|SHA-256) mismatch/);
     } finally {
       await rm(tamperedCanonical.root, { recursive: true, force: true });
+    }
+  });
+
+  test("closes every manifest-v5 pointer and file metadata entry", async () => {
+    const missingMetadata = await fixture();
+    try {
+      delete missingMetadata.manifest.files["operational_occurrences.jsonl"];
+      const manifestSha = await writeManifest(missingMetadata);
+      await expect(loadFixture(missingMetadata, manifestSha)).rejects.toThrow(
+        "manifest pointer operational_occurrences lacks file metadata",
+      );
+    } finally {
+      await rm(missingMetadata.root, { recursive: true, force: true });
+    }
+
+    const missingFile = await fixture();
+    try {
+      await rm(join(missingFile.release, "operational_anchor_review_decisions.json"));
+      await expect(loadFixture(missingFile)).rejects.toThrow(
+        /manifest file cannot be verified: operational_anchor_review_decisions\.json/,
+      );
+    } finally {
+      await rm(missingFile.root, { recursive: true, force: true });
+    }
+
+    const tamperedPointer = await fixture();
+    try {
+      await writeFile(join(tamperedPointer.release, "taxonomy.json"), '{"forged":true}\n');
+      await expect(loadFixture(tamperedPointer)).rejects.toThrow(
+        /taxonomy\.json: (byte count|SHA-256) mismatch/,
+      );
+    } finally {
+      await rm(tamperedPointer.root, { recursive: true, force: true });
+    }
+
+    const duplicatePointer = await fixture();
+    try {
+      duplicatePointer.manifest.pointers.taxonomy =
+        duplicatePointer.manifest.pointers.relationship_integrity_bundle;
+      const manifestSha = await writeManifest(duplicatePointer);
+      await expect(loadFixture(duplicatePointer, manifestSha)).rejects.toThrow(
+        /pointers relationship_integrity_bundle and taxonomy address the same file/,
+      );
+    } finally {
+      await rm(duplicatePointer.root, { recursive: true, force: true });
+    }
+
+    const unsafePointer = await fixture();
+    try {
+      unsafePointer.manifest.pointers.taxonomy = "../taxonomy.json";
+      unsafePointer.manifest.files["../taxonomy.json"] = fileMetadata("{}\n");
+      const manifestSha = await writeManifest(unsafePointer);
+      await expect(loadFixture(unsafePointer, manifestSha)).rejects.toThrow(
+        "unsafe MTA Wiki release pointer",
+      );
+    } finally {
+      await rm(unsafePointer.root, { recursive: true, force: true });
+    }
+
+    const unconsumedDeclaredFile = await fixture();
+    try {
+      const original = '{"proof":"original"}\n';
+      const fileName = "unconsumed-proof.json";
+      await writeFile(join(unconsumedDeclaredFile.release, fileName), original);
+      unconsumedDeclaredFile.manifest.files[fileName] = fileMetadata(original);
+      const manifestSha = await writeManifest(unconsumedDeclaredFile);
+      await writeFile(join(unconsumedDeclaredFile.release, fileName), '{"proof":"forged"}\n');
+      await expect(loadFixture(unconsumedDeclaredFile, manifestSha)).rejects.toThrow(
+        /unconsumed-proof\.json: (byte count|SHA-256) mismatch/,
+      );
+    } finally {
+      await rm(unconsumedDeclaredFile.root, { recursive: true, force: true });
+    }
+  });
+
+  test("keeps legitimate reviewed axes on deterministic identities but rejects reviewer attribution of the mapping", async () => {
+    const temporalReview = await fixture();
+    try {
+      const manifestSha = await rewriteSnapshotAndProjectedAnchors(temporalReview, (snapshot) => {
+        const local = snapshot.record_bindings.find(
+          (binding) => binding.route_record_id === "route_b44-local",
+        );
+        if (local === undefined) throw new Error("Missing deterministic local binding fixture");
+        Object.assign(local, {
+          decision_id: "route-binding-v1:route_b44-local-temporal-review",
+          accepted_by: "fixture-owner",
+          accepted_at: "2026-07-18T12:00:00.000Z",
+          rationale: "The reviewer confirmed only the current temporal scope.",
+          reviewed_axes: ["record_temporal_scope"],
+        });
+      });
+      const loaded = await loadFixture(temporalReview, manifestSha);
+      expect(
+        loaded.snapshot.record_bindings.find(
+          (binding) => binding.route_record_id === "route_b44-local",
+        ),
+      ).toMatchObject({
+        identity_basis: "deterministic_exact",
+        reviewed_axes: ["record_temporal_scope"],
+      });
+    } finally {
+      await rm(temporalReview.root, { recursive: true, force: true });
+    }
+
+    const forgedMappingReview = await fixture();
+    try {
+      const manifestSha = await rewriteSnapshotAndProjectedAnchors(
+        forgedMappingReview,
+        (snapshot) => {
+          const local = snapshot.record_bindings.find(
+            (binding) => binding.route_record_id === "route_b44-local",
+          );
+          if (local === undefined) throw new Error("Missing deterministic local binding fixture");
+          Object.assign(local, {
+            decision_id: "route-binding-v1:route_b44-local-forged-mapping-review",
+            accepted_by: "fixture-owner",
+            accepted_at: "2026-07-18T12:00:00.000Z",
+            rationale: "This must not claim a reviewer created a deterministic mapping.",
+            reviewed_axes: ["identity_mapping"],
+          });
+        },
+      );
+      await expect(loadFixture(forgedMappingReview, manifestSha)).rejects.toThrow(
+        "deterministic exact identity mapping cannot be reviewer-attributed",
+      );
+    } finally {
+      await rm(forgedMappingReview.root, { recursive: true, force: true });
     }
   });
 
