@@ -16,6 +16,20 @@ class FakeR2Bucket {
   }
 }
 
+function speedTrendDb(month: string | null): D1Database {
+  return {
+    prepare: () => {
+      const statement = {
+        bind: () => statement,
+        first: async () => (month === null ? null : { month }),
+        all: async () => ({ results: month === null ? [] : [{ month }] }),
+        raw: async () => (month === null ? [] : [[month]]),
+      };
+      return statement;
+    },
+  } as unknown as D1Database;
+}
+
 describe("scheduled source refresh", () => {
   it("skips GTFS-RT capture when the raw bucket is not configured", async () => {
     const result = await runScheduledSourceRefresh(
@@ -118,7 +132,7 @@ describe("scheduled source refresh", () => {
     const result = await runRouteSpeedMonthlyWatcher(
       {
         ARTIFACTS: bucket as unknown as R2Bucket,
-        LAST_BUILT_SPEED_MONTH: "2026-02",
+        DB: speedTrendDb("2026-02"),
         SOCRATA_APP_TOKEN: "app-token",
       },
       {
@@ -178,7 +192,7 @@ describe("scheduled source refresh", () => {
 
   it("skips route-speed publication checks when the artifacts bucket is not configured", async () => {
     const result = await runRouteSpeedMonthlyWatcher(
-      { LAST_BUILT_SPEED_MONTH: "2026-03" },
+      { DB: speedTrendDb("2026-03") },
       { now: new Date("2026-05-17T12:00:00.000Z") },
     );
 
@@ -197,7 +211,7 @@ describe("scheduled source refresh", () => {
     const result = await runRouteSpeedMonthlyWatcher(
       {
         ARTIFACTS: new FakeR2Bucket() as unknown as R2Bucket,
-        LAST_BUILT_SPEED_MONTH: "2026-03",
+        DB: speedTrendDb("2026-03"),
       },
       { now: new Date("2026-05-17T12:00:00.000Z") },
     );
@@ -220,7 +234,7 @@ describe("scheduled source refresh", () => {
       {
         GTFS_RT_RAW: rawBucket as unknown as R2Bucket,
         ARTIFACTS: artifactsBucket as unknown as R2Bucket,
-        LAST_BUILT_SPEED_MONTH: "2026-03",
+        DB: speedTrendDb("2026-03"),
       },
       { cron: "* * * * *" },
     );
@@ -255,7 +269,7 @@ describe("scheduled source refresh", () => {
     const artifactsBucket = new FakeR2Bucket();
     await handleStudioScheduled({ cron: "* * * * *" } as ScheduledController, {
       ARTIFACTS: artifactsBucket as unknown as R2Bucket,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
+      DB: speedTrendDb("2026-03"),
     });
 
     const status = JSON.parse(String(artifactsBucket.writes.get("source-refresh/latest.json")));

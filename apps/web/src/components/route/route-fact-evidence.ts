@@ -72,7 +72,7 @@ type ReleaseIdentityInput = {
 export function routeFactParityInput(data: StudioRouteDetailResponse): RouteFactParityInput {
   const { route } = data;
   return {
-    coverageEnd: data.baselineMonth,
+    coverageEnd: data.coverage.end,
     route: {
       routeId: route.routeId,
       slug: route.slug,

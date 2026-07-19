@@ -12,7 +12,10 @@ import {
   MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
 import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key";
-import { StudioRouteDetailResponseSchema } from "@bp/domain/studio/routes";
+import {
+  StudioRouteDetailResponseSchema,
+  StudioRoutesResponseSchema,
+} from "@bp/domain/studio/routes";
 import { routeStudiesKey, studyIndexKey } from "@bp/domain/studio/study-key";
 import {
   createStudioApiClient,
@@ -28,7 +31,6 @@ import type {
   StudioRouteHourlyProfileResponse,
   StudioRouteIndex3Response,
   StudioRouteSpeedHistoryResponse,
-  StudioRoutesResponse,
   StudyIndexArtifact,
 } from "./api-contract.js";
 import { StudioRouteIndex3ResponseSchema } from "./api-contract.js";
@@ -136,8 +138,10 @@ async function loadNullableStudioJson<T>(
   return body;
 }
 
-export function fetchStudioRoutes(options?: StudioQueryOptions) {
-  return loadStudioJson<StudioRoutesResponse>(studioPath("studio.routes"), options);
+export async function fetchStudioRoutes(options?: StudioQueryOptions) {
+  return decodeStrict(StudioRoutesResponseSchema)(
+    await loadStudioJson<unknown>(studioPath("studio.routes"), options),
+  );
 }
 
 export async function fetchStudioRouteIndex(options?: StudioQueryOptions) {
@@ -188,11 +192,12 @@ export function timelineEvidenceRouteSlugs(routeIndex: StudioRouteIndex3Response
   );
 }
 
-export function fetchStudioRoute(routeId: string, options?: StudioQueryOptions) {
-  return loadNullableStudioJson<StudioRouteDetailResponse>(
+export async function fetchStudioRoute(routeId: string, options?: StudioQueryOptions) {
+  const value = await loadNullableStudioJson<unknown>(
     studioPath("studio.route", { params: { routeId } }),
     options,
   );
+  return value === null ? null : decodeStrict(StudioRouteDetailResponseSchema)(value);
 }
 
 export function fetchStudioRouteSpeedHistory(routeId: string, options?: StudioQueryOptions) {

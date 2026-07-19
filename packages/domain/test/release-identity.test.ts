@@ -55,6 +55,12 @@ describe("publication release identity", () => {
         decodeEitherStrict(CoverageWindowSchema)({ start: "2026-04", end: "2026-03" }),
       ),
     ).toBe(true);
+    for (const coverage of [
+      { start: "2023-4", end: "2026-03" },
+      { start: "2023-04", end: "2026-13" },
+    ]) {
+      expect(Result.isFailure(decodeEitherStrict(CoverageWindowSchema)(coverage))).toBe(true);
+    }
   });
 
   test("requires the release ID and publication timestamp to describe one instant", () => {

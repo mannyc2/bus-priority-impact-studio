@@ -8,6 +8,7 @@ import type {
   RouteSurfaceCapability,
   StudioRouteInsight,
 } from "../../src/studio/api-contract";
+import { isoMonthFixture } from "./schema-fixtures";
 
 const ridershipCapability = {
   state: "ready",
@@ -19,11 +20,13 @@ const ridershipCapability = {
 
 const dossier = {
   artifactKind: "studio_route_dossier_summary",
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedAt: "2026-06-12T00:00:00.000Z",
   routeId: "B41",
   routeSlug: "b41",
-  releaseMonth: "2026-03",
+  releaseId: "pub_20260612T000000000Z",
+  publishedAt: "2026-06-12T00:00:00.000Z",
+  coverage: { start: null, end: isoMonthFixture("2026-03") },
   dataAsOf: "2026-03",
   speed: {
     current: 5.8,

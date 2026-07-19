@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { CoverageWindowSchema } from "./shared.js";
 
 /**
  * The per-route dossier summary (frontend §7.2 / hard-cutover C2).
@@ -72,11 +73,13 @@ export type RouteDossierTreatmentPosture = typeof RouteDossierTreatmentPostureSc
 /** The authoritative artifact contract — what the pipeline builder emits per route. */
 export const RouteDossierSummarySchema = Schema.Struct({
   artifactKind: Schema.Literal("studio_route_dossier_summary"),
-  schemaVersion: Schema.Literal(1),
+  schemaVersion: Schema.Literal(2),
   generatedAt: Schema.String,
   routeId: Schema.String.check(Schema.isMinLength(1)),
   routeSlug: Schema.String.check(Schema.isMinLength(1)),
-  releaseMonth: MonthSchema,
+  releaseId: Schema.String,
+  publishedAt: Schema.String,
+  coverage: CoverageWindowSchema,
   /** Latest input month across all blocks; the page-level freshness anchor. */
   dataAsOf: Schema.NullOr(MonthSchema),
   speed: RouteDossierMetricSummarySchema,
@@ -92,11 +95,13 @@ export type RouteDossierSummary = typeof RouteDossierSummarySchema.Type;
  */
 export const RouteDossierSummaryForDetailSchema = Schema.Struct({
   artifactKind: Schema.Literal("studio_route_dossier_summary"),
-  schemaVersion: Schema.Literal(1),
+  schemaVersion: Schema.Literal(2),
   generatedAt: Schema.String,
   routeId: Schema.String,
   routeSlug: Schema.String,
-  releaseMonth: MonthSchema,
+  releaseId: Schema.String,
+  publishedAt: Schema.String,
+  coverage: CoverageWindowSchema,
   dataAsOf: Schema.NullOr(MonthSchema),
   speed: RouteDossierMetricSummarySchema,
   ridership: RouteDossierMetricSummarySchema,

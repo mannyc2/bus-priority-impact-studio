@@ -178,9 +178,9 @@ export function coverageGaps(
 export function routeIndexCaveats(row: NormalizedStudioRouteIndexSourceRow): string[] {
   const caveats: string[] = [];
   if (row.summary === null) {
-    caveats.push("No rich route summary is available for the baseline month.");
+    caveats.push("No rich route summary is available for the latest covered month.");
   } else if (!row.summary.publicVisible) {
-    caveats.push("A baseline summary exists, but the rich public artifact gate is not satisfied.");
+    caveats.push("A serving summary exists, but the rich public artifact gate is not satisfied.");
   }
   if (row.artifactNames.length === 0) {
     caveats.push("No route artifact bundle is indexed for this route in D1.");
@@ -197,7 +197,7 @@ export function routeIndexCaveats(row: NormalizedStudioRouteIndexSourceRow): str
     );
   }
   if (row.readiness === null) {
-    caveats.push("No baseline route-readiness row is available for this route.");
+    caveats.push("No route-readiness row is available for the latest covered month.");
   }
   return caveats;
 }
@@ -323,7 +323,8 @@ export function exactRoutePresentationForIndexRow(row: NormalizedStudioRouteInde
 
 export function buildStudioRouteIndex2Row(input: {
   releaseId: string;
-  baselineMonth: string;
+  publishedAt: string;
+  coverage: StudioRouteIndex2Row["coverage"];
   generatedAt: string;
   lastBuiltSpeedMonth: string | undefined;
   row: NormalizedStudioRouteIndexSourceRow;
@@ -332,7 +333,8 @@ export function buildStudioRouteIndex2Row(input: {
   const slug = routeIdToStudioSlug(input.row.routeId);
   return {
     releaseId: input.releaseId,
-    baselineMonth: input.baselineMonth,
+    publishedAt: input.publishedAt,
+    coverage: input.coverage,
     routeId: input.row.routeId,
     slug,
     label: input.row.routeShortName,
@@ -436,14 +438,14 @@ export function routeDiagnosisForIndexRow(
   speedMph: number,
   coverage: number,
 ): string {
-  const month = row.summary === null ? "the baseline month" : "the baseline serving export";
+  const month = row.summary === null ? "the latest covered month" : "the serving export";
   if (row.summary !== null) {
     return `${row.routeShortName} has a route score of ${row.summary.routeScore}, ${row.summary.hotspotCount} slow segment hotspots, ${speedMph} mph observed speed, and ${coverage}% lane coverage in ${month}.`;
   }
   if (row.readiness !== null) {
-    return `${row.routeShortName} is indexed from the route catalog with baseline readiness status ${row.readiness.status}, but no rich route summary is available for ${month}.`;
+    return `${row.routeShortName} is indexed from the route catalog with serving readiness status ${row.readiness.status}, but no rich route summary is available for ${month}.`;
   }
-  return `${row.routeShortName} is indexed from the route catalog, but no baseline readiness or rich route summary is available yet.`;
+  return `${row.routeShortName} is indexed from the route catalog, but no serving readiness or rich route summary is available yet.`;
 }
 
 export function routeFlagsForIndexRow(row: NormalizedStudioRouteIndexSourceRow): string[] {
@@ -451,7 +453,7 @@ export function routeFlagsForIndexRow(row: NormalizedStudioRouteIndexSourceRow):
     row.aceActive ? "ACE active" : "ACE inactive",
     row.artifactNames.length > 0 ? "Rich artifact indexed" : "No rich artifact",
     row.summary === null
-      ? "No baseline summary"
+      ? "No serving summary"
       : row.summary.publicVisible
         ? "Public summary"
         : "Summary gated",

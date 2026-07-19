@@ -1,10 +1,12 @@
 import {
   freshnessForDataAsOf,
+  freshnessReferenceMonth,
   type RouteCapabilityManifest,
   type RouteCapabilityManifestRow,
   type RouteSurfaceCapability,
   type RouteSurfaceState,
 } from "@bp/domain/studio";
+import { type CoverageWindow, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 
 /**
  * Pure builder for the route capability manifest (frontend §7.1 / hard-cutover C1).
@@ -32,8 +34,8 @@ export type RouteCapabilityInputRow = {
   /** Summary (route brief) presence + public visibility — drives `condition`. */
   readonly hasSummary: boolean;
   readonly publicVisible: boolean;
-  /** Baseline/release month behind the summary — `condition` dataAsOf. */
-  readonly baselineMonth: string | null;
+  /** Source month behind the summary — `condition` dataAsOf. */
+  readonly conditionDataAsOf: string | null;
   /** Rich route-detail (Tier-2) artifact present — lifts `overallState` past `building`. */
   readonly hasArtifact: boolean;
   readonly history: {
@@ -79,7 +81,9 @@ export type RouteCapabilityInputRow = {
 
 export type BuildRouteCapabilityManifestInput = {
   readonly generatedAt: string;
-  readonly releaseMonth: string;
+  readonly releaseId: string;
+  readonly publishedAt: string;
+  readonly coverage: CoverageWindow;
   readonly rows: readonly RouteCapabilityInputRow[];
 };
 
@@ -92,7 +96,7 @@ function latestMonth(months: readonly string[]): string | null {
 }
 
 function surface(
-  releaseMonth: string,
+  referenceMonth: string,
   input: {
     state: RouteSurfaceState;
     reason: string | null;
@@ -105,33 +109,36 @@ function surface(
     reason: input.reason,
     depth: input.depth,
     dataAsOf: input.dataAsOf,
-    freshness: freshnessForDataAsOf(input.dataAsOf, releaseMonth),
+    freshness: freshnessForDataAsOf(input.dataAsOf, referenceMonth),
   };
 }
 
 function conditionSurface(
   row: RouteCapabilityInputRow,
-  releaseMonth: string,
+  referenceMonth: string,
 ): RouteSurfaceCapability {
   if (!row.hasSummary) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "insufficient_data",
       reason: "no route summary",
       depth: null,
       dataAsOf: null,
     });
   }
-  return surface(releaseMonth, {
+  return surface(referenceMonth, {
     state: row.publicVisible ? "ready" : "partial",
     reason: row.publicVisible ? null : "summary built but not public",
     depth: null,
-    dataAsOf: row.baselineMonth,
+    dataAsOf: row.conditionDataAsOf,
   });
 }
 
-function trendSurface(row: RouteCapabilityInputRow, releaseMonth: string): RouteSurfaceCapability {
+function trendSurface(
+  row: RouteCapabilityInputRow,
+  referenceMonth: string,
+): RouteSurfaceCapability {
   if (row.history.pointCount === 0) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "insufficient_data",
       reason: "no multi-month history",
       depth: null,
@@ -139,7 +146,7 @@ function trendSurface(row: RouteCapabilityInputRow, releaseMonth: string): Route
     });
   }
   const partial = row.speedHistory !== null && row.speedHistory.missingCellCount > 0;
-  return surface(releaseMonth, {
+  return surface(referenceMonth, {
     state: partial ? "partial" : "ready",
     reason: partial ? "speed history has missing cells" : null,
     depth: { monthsCovered: row.history.pointCount, grains: ["route_month"] },
@@ -149,11 +156,11 @@ function trendSurface(row: RouteCapabilityInputRow, releaseMonth: string): Route
 
 function speedHistorySurface(
   row: RouteCapabilityInputRow,
-  releaseMonth: string,
+  referenceMonth: string,
 ): RouteSurfaceCapability {
   if (row.speedHistory !== null) {
     const partial = row.speedHistory.missingCellCount > 0;
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: partial ? "partial" : "ready",
       reason: partial ? `${row.speedHistory.missingCellCount} cells missing` : null,
       depth: { monthsCovered: row.speedHistory.monthCount, grains: ["segment_month"] },
@@ -161,14 +168,14 @@ function speedHistorySurface(
     });
   }
   if (row.history.speedMonthCount > 0) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "building",
       reason: "speed months present, history artifact not built",
       depth: { monthsCovered: row.history.speedMonthCount, grains: ["segment_month"] },
       dataAsOf: null,
     });
   }
-  return surface(releaseMonth, {
+  return surface(referenceMonth, {
     state: "insufficient_data",
     reason: "no segment speed history",
     depth: null,
@@ -178,10 +185,10 @@ function speedHistorySurface(
 
 function ridershipSurface(
   row: RouteCapabilityInputRow,
-  releaseMonth: string,
+  referenceMonth: string,
 ): RouteSurfaceCapability {
   if (row.sourceStatus.ridership === "blocked") {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "blocked",
       reason: "ridership source blocked",
       depth: null,
@@ -189,14 +196,14 @@ function ridershipSurface(
     });
   }
   if (row.history.ridershipMonthCount > 0) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "ready",
       reason: null,
       depth: { monthsCovered: row.history.ridershipMonthCount, grains: ["route_month"] },
       dataAsOf: row.history.endMonth,
     });
   }
-  return surface(releaseMonth, {
+  return surface(referenceMonth, {
     state: "insufficient_data",
     reason: "no ridership history",
     depth: null,
@@ -206,17 +213,17 @@ function ridershipSurface(
 
 function scheduleBaselineSurface(
   row: RouteCapabilityInputRow,
-  releaseMonth: string,
+  referenceMonth: string,
 ): RouteSurfaceCapability {
   if (row.scheduleTimepointCount > 0) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "ready",
       reason: null,
       depth: { monthsCovered: 1, grains: ["schedule_timepoint"] },
-      dataAsOf: row.baselineMonth,
+      dataAsOf: row.conditionDataAsOf,
     });
   }
-  return surface(releaseMonth, {
+  return surface(referenceMonth, {
     state: "insufficient_data",
     reason: "no schedule timepoints",
     depth: null,
@@ -226,7 +233,7 @@ function scheduleBaselineSurface(
 
 function treatmentSurface(
   row: RouteCapabilityInputRow,
-  releaseMonth: string,
+  referenceMonth: string,
 ): RouteSurfaceCapability {
   const hasTreatment = row.treatment.aceActive || row.treatment.busLaneMatchedLaneCount > 0;
   if (hasTreatment) {
@@ -235,22 +242,22 @@ function treatmentSurface(
       parts.push(`${row.treatment.busLaneMatchedLaneCount} bus-lane segments`);
     }
     if (row.treatment.aceActive) parts.push("ACE active");
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "ready",
       reason: parts.join("; ") || null,
       depth: null,
-      dataAsOf: row.baselineMonth,
+      dataAsOf: row.conditionDataAsOf,
     });
   }
   if (row.hasSummary) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "checked_clean",
       reason: "no bus lane or ACE treatment on record",
       depth: null,
-      dataAsOf: row.baselineMonth,
+      dataAsOf: row.conditionDataAsOf,
     });
   }
-  return surface(releaseMonth, {
+  return surface(referenceMonth, {
     state: "insufficient_data",
     reason: "no summary to assess treatment",
     depth: null,
@@ -260,10 +267,10 @@ function treatmentSurface(
 
 function reliabilitySurface(
   row: RouteCapabilityInputRow,
-  releaseMonth: string,
+  referenceMonth: string,
 ): RouteSurfaceCapability {
   if (row.sourceStatus.reliability === "blocked") {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "blocked",
       reason: "reliability source blocked",
       depth: null,
@@ -272,7 +279,7 @@ function reliabilitySurface(
   }
   const dataAsOf = latestMonth(row.detector.months);
   if (row.detector.reliabilityFindingCount > 0) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "ready",
       reason: null,
       depth: { monthsCovered: row.detector.months.length, grains: ["detector_run"] },
@@ -280,7 +287,7 @@ function reliabilitySurface(
     });
   }
   if (row.detector.reliabilityContextCount > 0) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "checked_clean",
       reason: "reliability detectors ran; no public finding",
       depth: { monthsCovered: row.detector.months.length, grains: ["detector_run"] },
@@ -288,14 +295,14 @@ function reliabilitySurface(
     });
   }
   if (row.detector.present) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "building",
       reason: "reliability detectors not yet calibrated for this route",
       depth: null,
       dataAsOf,
     });
   }
-  return surface(releaseMonth, {
+  return surface(referenceMonth, {
     state: "insufficient_data",
     reason: "no detector coverage",
     depth: null,
@@ -305,11 +312,11 @@ function reliabilitySurface(
 
 function detectorFindingsSurface(
   row: RouteCapabilityInputRow,
-  releaseMonth: string,
+  referenceMonth: string,
 ): RouteSurfaceCapability {
   const dataAsOf = latestMonth(row.detector.months);
   if (row.detector.findingCandidateCount > 0) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "ready",
       reason: `${row.detector.findingCandidateCount} finding candidate(s)`,
       depth: { monthsCovered: row.detector.months.length, grains: ["detector_run"] },
@@ -320,7 +327,7 @@ function detectorFindingsSurface(
     row.detector.contextCount + row.detector.reviewQueueCount + row.detector.suppressedCount >
     0
   ) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "checked_clean",
       reason: "detectors ran; nothing public",
       depth: { monthsCovered: row.detector.months.length, grains: ["detector_run"] },
@@ -328,14 +335,14 @@ function detectorFindingsSurface(
     });
   }
   if (row.detector.present) {
-    return surface(releaseMonth, {
+    return surface(referenceMonth, {
       state: "building",
       reason: "detector coverage expanding",
       depth: null,
       dataAsOf,
     });
   }
-  return surface(releaseMonth, {
+  return surface(referenceMonth, {
     state: "insufficient_data",
     reason: "no detector coverage",
     depth: null,
@@ -363,19 +370,22 @@ function overallState(row: RouteCapabilityInputRow): RouteSurfaceState {
   return "partial";
 }
 
-function buildRow(row: RouteCapabilityInputRow, releaseMonth: string): RouteCapabilityManifestRow {
+function buildRow(
+  row: RouteCapabilityInputRow,
+  referenceMonth: string,
+): RouteCapabilityManifestRow {
   return {
     routeId: row.routeId,
     overallState: overallState(row),
     surfaces: {
-      condition: conditionSurface(row, releaseMonth),
-      trend: trendSurface(row, releaseMonth),
-      speedHistory: speedHistorySurface(row, releaseMonth),
-      reliability: reliabilitySurface(row, releaseMonth),
-      ridership: ridershipSurface(row, releaseMonth),
-      treatment: treatmentSurface(row, releaseMonth),
-      scheduleBaseline: scheduleBaselineSurface(row, releaseMonth),
-      detectorFindings: detectorFindingsSurface(row, releaseMonth),
+      condition: conditionSurface(row, referenceMonth),
+      trend: trendSurface(row, referenceMonth),
+      speedHistory: speedHistorySurface(row, referenceMonth),
+      reliability: reliabilitySurface(row, referenceMonth),
+      ridership: ridershipSurface(row, referenceMonth),
+      treatment: treatmentSurface(row, referenceMonth),
+      scheduleBaseline: scheduleBaselineSurface(row, referenceMonth),
+      detectorFindings: detectorFindingsSurface(row, referenceMonth),
     },
     caveats: [...new Set(row.detector.caveats)].sort((left, right) => left.localeCompare(right)),
   };
@@ -384,14 +394,20 @@ function buildRow(row: RouteCapabilityInputRow, releaseMonth: string): RouteCapa
 export function buildRouteCapabilityManifest(
   input: BuildRouteCapabilityManifestInput,
 ): RouteCapabilityManifest {
+  if (input.releaseId !== releaseIdFromPublishedAt(input.publishedAt)) {
+    throw new Error("releaseId must match the canonical publishedAt-derived release ID.");
+  }
+  const referenceMonth = freshnessReferenceMonth(input.publishedAt);
   const routes = [...input.rows]
     .sort((left, right) => left.routeId.localeCompare(right.routeId))
-    .map((row) => buildRow(row, input.releaseMonth));
+    .map((row) => buildRow(row, referenceMonth));
   return {
     artifactKind: "route_capability_manifest",
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: input.generatedAt,
-    releaseMonth: input.releaseMonth,
+    releaseId: input.releaseId,
+    publishedAt: input.publishedAt,
+    coverage: input.coverage,
     routes,
   };
 }

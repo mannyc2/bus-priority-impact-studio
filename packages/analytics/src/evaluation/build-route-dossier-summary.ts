@@ -4,6 +4,7 @@ import type {
   RouteDossierSummary,
   RouteDossierWorstSegment,
 } from "@bp/domain/studio";
+import { type CoverageWindow, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 
 /**
  * Pure builder for the per-route dossier summary (frontend §7.2 / hard-cutover C2).
@@ -45,14 +46,16 @@ export type RouteDossierInputRow = {
     readonly aceSince: string | null;
     readonly busLaneMatchedLaneCount: number;
     readonly events: readonly RouteDossierEvent[];
-    /** Baseline month behind the treatment record. */
+    /** Source month behind the treatment record. */
     readonly dataAsOf: string | null;
   };
 };
 
 export type BuildRouteDossierSummariesInput = {
   readonly generatedAt: string;
-  readonly releaseMonth: string;
+  readonly releaseId: string;
+  readonly publishedAt: string;
+  readonly coverage: CoverageWindow;
   readonly rows: readonly RouteDossierInputRow[];
 };
 
@@ -164,6 +167,9 @@ function maxMonth(months: readonly (string | null)[]): string | null {
 export function buildRouteDossierSummaries(
   input: BuildRouteDossierSummariesInput,
 ): RouteDossierSummary[] {
+  if (input.releaseId !== releaseIdFromPublishedAt(input.publishedAt)) {
+    throw new Error("releaseId must match the canonical publishedAt-derived release ID.");
+  }
   const prepared = input.rows.map((row) => {
     const trend = sortedUniqueByMonth(row.trend);
     return {
@@ -201,11 +207,13 @@ export function buildRouteDossierSummaries(
       };
       return {
         artifactKind: "studio_route_dossier_summary",
-        schemaVersion: 1,
+        schemaVersion: 2,
         generatedAt: input.generatedAt,
         routeId: row.routeId,
         routeSlug: row.routeSlug,
-        releaseMonth: input.releaseMonth,
+        releaseId: input.releaseId,
+        publishedAt: input.publishedAt,
+        coverage: input.coverage,
         dataAsOf: maxMonth([
           speedSummary.dataAsOf,
           ridershipSummary.dataAsOf,

@@ -12,8 +12,9 @@ import {
 
 function exactIndexRow() {
   return {
-    releaseId: "studio/v3",
-    baselineMonth: "2026-07",
+    releaseId: "pub_20260718T000000000Z",
+    publishedAt: "2026-07-18T00:00:00.000Z",
+    coverage: { start: "2023-04", end: "2026-07" },
     routeId: "B44+",
     slug: "b44-sbs",
     label: "B44-SBS",
@@ -59,7 +60,7 @@ describe("Studio route identity presentation", () => {
 
   test("strictly decodes a semantically complete route-index v3 row", () => {
     const row = exactIndexRow();
-    expect(decodeStrict(StudioRouteIndex3RowSchema)(row)).toEqual(row);
+    expect(decodeStrict(StudioRouteIndex3RowSchema)(row) as unknown).toEqual(row);
   });
 
   test.each([

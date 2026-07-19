@@ -3,6 +3,7 @@ import { lstat, readFile, realpath } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { routeIdToStudioSlug } from "@bp/domain/studio";
 import { type StudioRoutesResponse, StudioRoutesResponseSchema } from "@bp/domain/studio/routes";
+import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
 import { writeJson } from "../../lib/json.ts";
@@ -378,10 +379,13 @@ export function buildMtaWikiRouteFixtureArtifact(input: {
     };
   });
 
+  const publishedAt = fixedGeneratedAt(input.generatedAt);
   return decodeSchemaStrict(StudioRoutesResponseSchema, {
     schemaVersion: 2,
-    generatedAt: fixedGeneratedAt(input.generatedAt),
-    baselineMonth: input.parity.effectiveAsOfDate.slice(0, 7),
+    generatedAt: publishedAt,
+    releaseId: releaseIdFromPublishedAt(publishedAt),
+    publishedAt,
+    coverage: { start: null, end: input.parity.effectiveAsOfDate.slice(0, 7) },
     routes,
     quality: {
       releaseLayer: "pending_publication",

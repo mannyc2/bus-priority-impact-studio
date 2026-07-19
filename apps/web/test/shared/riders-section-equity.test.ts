@@ -3,11 +3,14 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { RidersSection, routeEquityContextItems } from "../../src/components/route/RidersSection";
 import type { StudioRouteDetailResponse } from "../../src/studio/api-contract";
+import { isoMonthFixture } from "./schema-fixtures";
 
 const routeDetail = {
   schemaVersion: 3,
   generatedAt: "2026-07-01T00:00:00.000Z",
-  baselineMonth: "2026-03",
+  releaseId: "pub_20260701T000000000Z",
+  publishedAt: "2026-07-01T00:00:00.000Z",
+  coverage: { start: isoMonthFixture("2023-04"), end: isoMonthFixture("2026-03") },
   route: {
     slug: "m15-sbs",
     routeId: "M15+",
@@ -76,8 +79,8 @@ const routeDetail = {
     publicTransitCommuterShare: 58.2,
   },
   quality: {
-    releaseLayer: "baseline_release",
-    completenessStatus: "partial_public_monthly_only",
+    releaseLayer: "published_release",
+    completenessStatus: "partial_public_speed_only",
     confidence: "medium",
     caveats: [],
   },

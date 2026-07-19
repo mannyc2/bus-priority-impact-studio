@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { RouteDetailHeader } from "../../src/components/route/RouteDetailHeader";
 import type { RouteDossierSummaryForDetail, StudioRoute } from "../../src/studio/api-contract";
+import { isoMonthFixture } from "./schema-fixtures";
 
 const baseRoute = {
   slug: "m15-sbs",
@@ -47,11 +48,13 @@ const baseRoute = {
 
 const baseDossier = {
   artifactKind: "studio_route_dossier_summary",
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedAt: "2026-06-12T00:00:00.000Z",
   routeId: "M15+",
   routeSlug: "m15-sbs",
-  releaseMonth: "2026-05",
+  releaseId: "pub_20260612T000000000Z",
+  publishedAt: "2026-06-12T00:00:00.000Z",
+  coverage: { start: null, end: isoMonthFixture("2026-05") },
   dataAsOf: "2026-05",
   speed: {
     current: 6.3,

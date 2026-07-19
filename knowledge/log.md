@@ -2,6 +2,21 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-07-19] engineering | Plan 085 de-months the public serving contract
+
+Completed Plan 085. Release-bearing Studio and public API responses now resolve the latest passing
+published D1 batch and carry one canonical `releaseId` / `publishedAt` / `coverage` triple. Public
+release selection no longer accepts `?month=` or Worker month pins; the historical route-scorecard
+query uses `?asOfMonth=` as evidence grain. Capability and dossier producers use the same identity,
+and served capability freshness is recomputed at request time.
+
+Verification passed: root typecheck; architecture, design, and month-doctrine gates; 827 unit tests;
+284 web tests; 22 Worker tests; the web production build and bundle budgets; knowledge validation;
+and the focused publish-completeness/compatibility fixture gate (9 tests). The checked-in March
+serving artifacts retain the previous payload schema and must be regenerated with the Plan 086 D1,
+Studio, and map release cutover before this reader contract is deployed; code merge is safe because
+Plan 086 follows immediately.
+
 ## [2026-07-06] design | MTA visual language cutover
 
 Gen-6 plan 048 retires the warm "tarbell" surface ladder for the MTA signage

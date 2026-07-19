@@ -133,7 +133,7 @@ describe("domain package shape", () => {
           issueCount: 0,
           artifacts: [],
           quality: {
-            releaseLayer: "baseline_release",
+            releaseLayer: "published_release",
             completenessStatus: "complete",
             confidence: "high",
             caveats: [],

@@ -1,3 +1,4 @@
+import { createD1ServingDb, findLatestSpeedTrendMonth } from "@bp/db/d1";
 import { isSoda3ClientError } from "@nyc-transit-kit/compat/errors";
 import { querySoda3Rows } from "@nyc-transit-kit/compat/soda3";
 import type { StudioApiEnv } from "./env.js";
@@ -5,10 +6,10 @@ import type { StudioApiEnv } from "./env.js";
 type SourceRefreshEnv = Pick<
   StudioApiEnv,
   | "ARTIFACTS"
+  | "DB"
   | "GTFS_RT_RAW"
   | "GTFS_RT_SAMPLES_PER_CRON"
   | "GTFS_RT_SAMPLE_SECONDS"
-  | "LAST_BUILT_SPEED_MONTH"
   | "MTA_BUS_TIME_API_KEY"
   | "SOCRATA_APP_TOKEN"
 >;
@@ -92,10 +93,6 @@ function parseInteger(input: unknown): number {
   return 0;
 }
 
-function parseBuiltMonth(input: string | undefined): string | null {
-  return input?.match(/^\d{4}-\d{2}$/) ? input : null;
-}
-
 function parsePositiveInteger(input: string | undefined, fallback: number): number {
   if (input === undefined || input.length === 0) {
     return fallback;
@@ -103,6 +100,10 @@ function parsePositiveInteger(input: string | undefined, fallback: number): numb
 
   const value = Number.parseInt(input, 10);
   return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+async function findLastBuiltSpeedMonth(env: Pick<SourceRefreshEnv, "DB">): Promise<string | null> {
+  return env.DB === undefined ? null : findLatestSpeedTrendMonth(createD1ServingDb(env.DB));
 }
 
 function defaultDelay(milliseconds: number): Promise<void> {
@@ -344,13 +345,14 @@ export async function runRouteSpeedMonthlyWatcher(
 ): Promise<RouteSpeedWatcherResult> {
   const now = options.now ?? new Date();
   const checkedAt = now.toISOString();
+  const lastBuiltMonth = await findLastBuiltSpeedMonth(env);
   const bucket = env.ARTIFACTS;
   if (bucket === undefined) {
     return {
       status: "skipped",
       reason: "ARTIFACTS R2 binding is not configured.",
       latestCompleteMonth: null,
-      lastBuiltMonth: parseBuiltMonth(env.LAST_BUILT_SPEED_MONTH),
+      lastBuiltMonth,
       shouldRebuild: false,
       artifactKey: null,
       checkedAt,
@@ -363,7 +365,7 @@ export async function runRouteSpeedMonthlyWatcher(
       status: "skipped",
       reason: "SOCRATA_APP_TOKEN secret is not configured.",
       latestCompleteMonth: null,
-      lastBuiltMonth: parseBuiltMonth(env.LAST_BUILT_SPEED_MONTH),
+      lastBuiltMonth,
       shouldRebuild: false,
       artifactKey: null,
       checkedAt,
@@ -404,7 +406,7 @@ export async function runRouteSpeedMonthlyWatcher(
           ? "Route speed availability fetch failed."
           : `Route speed availability fetch failed with HTTP ${status}.`,
       latestCompleteMonth: null,
-      lastBuiltMonth: parseBuiltMonth(env.LAST_BUILT_SPEED_MONTH),
+      lastBuiltMonth,
       shouldRebuild: false,
       artifactKey: null,
       checkedAt,
@@ -413,7 +415,6 @@ export async function runRouteSpeedMonthlyWatcher(
 
   const months = summarizeSpeedRows(rowsResult.response.rows, options.minSpeedRoutes ?? 300);
   const latestCompleteMonth = months.find((month) => month.status === "complete")?.isoMonth ?? null;
-  const lastBuiltMonth = parseBuiltMonth(env.LAST_BUILT_SPEED_MONTH);
   const shouldRebuild =
     latestCompleteMonth !== null &&
     (lastBuiltMonth === null || latestCompleteMonth > lastBuiltMonth);
@@ -458,15 +459,15 @@ export async function runScheduledProductionRefresh(
     runScheduledGtfsRtCaptureBatch(env),
     shouldRunRouteSpeedWatcher
       ? runRouteSpeedMonthlyWatcher(env)
-      : Promise.resolve({
+      : findLastBuiltSpeedMonth(env).then((lastBuiltMonth) => ({
           status: "skipped" as const,
           reason: `Route speed watcher runs on cron ${ROUTE_SPEED_WATCHER_CRON}.`,
           latestCompleteMonth: null,
-          lastBuiltMonth: parseBuiltMonth(env.LAST_BUILT_SPEED_MONTH),
+          lastBuiltMonth,
           shouldRebuild: false,
           artifactKey: null,
           checkedAt: new Date().toISOString(),
-        }),
+        })),
   ]);
   const statusArtifactKey = "source-refresh/latest.json";
   if (env.ARTIFACTS !== undefined) {

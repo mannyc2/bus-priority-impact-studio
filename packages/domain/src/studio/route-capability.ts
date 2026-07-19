@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import { CoverageWindowSchema } from "./shared.js";
 
 /**
  * The route capability manifest (frontend §7.1 / hard-cutover C1).
@@ -37,7 +38,7 @@ export const RouteSurfaceStateSchema = Schema.Literals([
 ]);
 export type RouteSurfaceState = typeof RouteSurfaceStateSchema.Type;
 
-/** Freshness of a surface's data relative to the release month it was built against. */
+/** Freshness of a surface's data relative to the reference date it is evaluated against. */
 export const RouteCapabilityFreshnessSchema = Schema.Literals([
   "current",
   "recent",
@@ -68,6 +69,14 @@ export function freshnessForDataAsOf(
   if (dataIdx === null || referenceIdx === null) return "unknown";
   if (dataIdx >= referenceIdx) return "current";
   return referenceIdx - dataIdx <= RECENT_DATA_AS_OF_WINDOW_MONTHS ? "recent" : "stale";
+}
+
+export function freshnessReferenceMonth(nowIso: string): string {
+  const instant = new Date(nowIso);
+  if (!Number.isFinite(instant.getTime())) {
+    throw new Error("nowIso must be a valid ISO timestamp.");
+  }
+  return instant.toISOString().slice(0, 7);
 }
 
 export const RouteSurfaceDepthSchema = Schema.Struct({
@@ -105,9 +114,11 @@ export type RouteCapabilityManifestRow = typeof RouteCapabilityManifestRowSchema
 /** The authoritative manifest contract — what the pipeline builder emits and the fixture must satisfy. */
 export const RouteCapabilityManifestSchema = Schema.Struct({
   artifactKind: Schema.Literal("route_capability_manifest"),
-  schemaVersion: Schema.Literal(1),
+  schemaVersion: Schema.Literal(2),
   generatedAt: Schema.String,
-  releaseMonth: MonthSchema,
+  releaseId: Schema.String,
+  publishedAt: Schema.String,
+  coverage: CoverageWindowSchema,
   routes: Schema.Array(RouteCapabilityManifestRowSchema),
 });
 export type RouteCapabilityManifest = typeof RouteCapabilityManifestSchema.Type;
@@ -126,7 +137,7 @@ const RouteCapabilityManifestRowForIndexSchema = Schema.Struct({
 
 export const RouteCapabilityManifestForIndexSchema = Schema.Struct({
   artifactKind: Schema.Literal("route_capability_manifest"),
-  schemaVersion: Schema.Literal(1),
+  schemaVersion: Schema.Literal(2),
   routes: Schema.Array(RouteCapabilityManifestRowForIndexSchema),
 });
 export type RouteCapabilityManifestForIndex = typeof RouteCapabilityManifestForIndexSchema.Type;

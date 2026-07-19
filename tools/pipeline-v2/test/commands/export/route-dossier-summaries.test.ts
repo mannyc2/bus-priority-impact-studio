@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { routeSpeedHistoryArtifactPath } from "@bp/analytics/artifacts";
 import { decodeStrict } from "@bp/domain/decode";
 import { RouteDossierSummarySchema, routeDossierSummaryKey } from "@bp/domain/studio";
+import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
   buildAndWriteRouteDossierSummaries,
   toRouteDossierInputRows,
@@ -113,16 +114,25 @@ describe("toRouteDossierInputRows + buildAndWriteRouteDossierSummaries", () => {
     expect(b99?.trend).toEqual([]);
     expect(b99?.worstSegmentByMonth).toEqual([]);
 
+    const publishedAt = "2026-06-10T00:00:00.000Z";
+    const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+      releaseId: releaseIdFromPublishedAt(publishedAt),
+      publishedAt,
+      coverage: { start: "2026-02", end: "2026-03" },
+    });
     const { routeCount } = await buildAndWriteRouteDossierSummaries({
       d1Inputs,
       artifactRoot: tmp,
-      releaseMonth: "2026-03",
-      generatedAt: "2026-06-10T00:00:00.000Z",
+      ...releaseIdentity,
+      generatedAt: publishedAt,
     });
     expect(routeCount).toBe(2);
 
     const written = JSON.parse(await Bun.file(join(tmp, routeDossierSummaryKey("m15-sbs"))).text());
     const dossier = decodeStrict(RouteDossierSummarySchema)(written);
+    expect(dossier.schemaVersion).toBe(2);
+    expect(dossier.releaseId).toBe(releaseIdentity.releaseId);
+    expect(dossier.coverage).toEqual(releaseIdentity.coverage);
     expect(dossier.routeId).toBe("M15+");
     expect(dossier.speed.current).toBe(7);
     expect(dossier.worstSegment?.segmentId).toBe("seg-1");

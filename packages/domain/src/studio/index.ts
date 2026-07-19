@@ -143,6 +143,7 @@ export type {
 } from "./route-capability.js";
 export {
   freshnessForDataAsOf,
+  freshnessReferenceMonth,
   RouteCapabilityFreshnessSchema,
   RouteCapabilityManifestForIndexSchema,
   RouteCapabilityManifestRowSchema,

@@ -16,6 +16,7 @@ import { StudioMethodsResponseSchema } from "@bp/domain/studio/docs";
 import {
   buildMapRouteFactsProjection,
   buildStudioRouteProjection,
+  buildStudioRoutesProjection,
 } from "@bp/domain/studio/projections";
 import { StudioReleasePayloadSchema } from "@bp/domain/studio/release";
 import { StudioRouteDetailResponseSchema } from "@bp/domain/studio/routes";
@@ -73,7 +74,7 @@ describe("domain schemas", () => {
         schemaVersion: 1,
         generatedAt: "2026-05-18T00:00:00.000Z",
         quality: {
-          releaseLayer: "baseline_release",
+          releaseLayer: "published_release",
           completenessStatus: "complete",
           confidence: "medium",
           caveats: [],
@@ -110,7 +111,7 @@ describe("domain schemas", () => {
         },
       ],
       quality: {
-        releaseLayer: "baseline_release",
+        releaseLayer: "published_release",
         completenessStatus: "complete",
         confidence: "medium",
         caveats: [],
@@ -463,7 +464,7 @@ describe("domain schemas", () => {
         coverage: { start: null, end: "2026-03" },
       },
       quality: {
-        releaseLayer: "baseline_release",
+        releaseLayer: "published_release",
         completenessStatus: "complete",
         confidence: "medium",
         caveats: [],
@@ -568,8 +569,19 @@ describe("domain schemas", () => {
     const detail = decodeStrict(StudioRouteDetailResponseSchema)(
       buildStudioRouteProjection(release, route),
     );
+    const routes = buildStudioRoutesProjection(release);
     const mapRouteFacts = buildMapRouteFactsProjection(release);
 
+    expect(routes).toMatchObject({
+      releaseId: "pub_20260518T000000000Z",
+      publishedAt: "2026-05-18T00:00:00.000Z",
+      coverage: { start: "2026-03", end: "2026-03" },
+    });
+    expect(detail).toMatchObject({
+      releaseId: "pub_20260518T000000000Z",
+      publishedAt: "2026-05-18T00:00:00.000Z",
+      coverage: { start: "2026-03", end: "2026-03" },
+    });
     expect(detail.artifactRefs).toEqual([
       expect.objectContaining({
         routeId: "M15+",

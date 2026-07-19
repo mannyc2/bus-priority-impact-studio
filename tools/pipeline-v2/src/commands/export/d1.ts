@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { buildD1AppendixSeedSql, buildD1SeedSql } from "@bp/db/d1/seed";
+import { decodeStrict } from "@bp/domain/decode";
+import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
@@ -111,6 +113,16 @@ export type D1SeedOutputResult = {
   routeCapabilityManifestRouteCount: number;
   routeDossierSummaryRouteCount: number;
 };
+
+export function earliestRouteTrendMonth(d1Inputs: {
+  readonly routeMonthTrends: readonly { readonly month: string }[];
+}): string | null {
+  let earliest: string | null = null;
+  for (const trend of d1Inputs.routeMonthTrends) {
+    if (earliest === null || trend.month < earliest) earliest = trend.month;
+  }
+  return earliest;
+}
 
 export type D1AppendixSeedOutputResult = {
   schemaVersion: number;
@@ -262,6 +274,12 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
   const schemaSql = await readD1MigrationSql();
   const seed = buildD1SeedSql({ month, ...d1Inputs });
   const generatedAt = new Date().toISOString();
+  const publishedAt = generatedAt;
+  const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+    releaseId: releaseIdFromPublishedAt(publishedAt),
+    publishedAt,
+    coverage: { start: earliestRouteTrendMonth(d1Inputs), end: month },
+  });
 
   const readinessSummaries = await readDetectorReadinessRouteSummaries({
     manifestPath: inputs.detectorReadinessManifestPath,
@@ -271,13 +289,13 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     d1Inputs,
     readinessSummaries,
     artifactRoot,
-    releaseMonth: month,
+    ...releaseIdentity,
     generatedAt,
   });
   const dossierSummaries = await buildAndWriteRouteDossierSummaries({
     d1Inputs,
     artifactRoot,
-    releaseMonth: month,
+    ...releaseIdentity,
     generatedAt,
   });
 

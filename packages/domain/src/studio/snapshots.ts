@@ -5,7 +5,7 @@ import {
   StudioRouteIdentityPresentationSchema,
 } from "./route-presentation.js";
 import { StudioRouteHistoryCoverageSchema } from "./routes/index.js";
-import { StudioQualitySchema } from "./shared.js";
+import { CoverageWindowSchema, StudioQualitySchema } from "./shared.js";
 
 export const STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY =
   "studio/v2/detectors/model-artifacts.json";
@@ -68,7 +68,8 @@ export const StudioSnapshot2ProjectionRefSchema = Schema.Struct({
 
 export const StudioRouteIndex2RowSchema = Schema.Struct({
   releaseId: Schema.String,
-  baselineMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  publishedAt: Schema.String,
+  coverage: CoverageWindowSchema,
   routeId: Schema.String,
   slug: Schema.String,
   label: Schema.String,
@@ -123,8 +124,8 @@ export const StudioRouteIndex2ResponseSchema = Schema.Struct({
   schemaVersion: Schema.Literal(2),
   generatedAt: Schema.String,
   releaseId: Schema.String,
-  /** Serving month the index was built from (provenance; resolved internally, never from env — C3). */
-  baselineMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  publishedAt: Schema.String,
+  coverage: CoverageWindowSchema,
   /** Latest data month behind the index — the user-facing freshness label (C3). */
   dataAsOf: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
   routes: Schema.Array(StudioRouteIndex2RowSchema),
@@ -140,7 +141,8 @@ export const StudioSnapshot2Schema = Schema.Struct({
   schemaVersion: Schema.Literal(2),
   generatedAt: Schema.String,
   releaseId: Schema.String,
-  baselineMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  publishedAt: Schema.String,
+  coverage: CoverageWindowSchema,
   currentSignalMonth: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
   routeUniverse: Schema.Struct({
     source: Schema.Literal("route_catalog"),
@@ -176,10 +178,15 @@ export const StudioSnapshot2Schema = Schema.Struct({
 export const StudioSnapshotResponseSchema = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   generatedAt: Schema.String,
-  releaseId: Schema.String,
   projectionPrefix: Schema.String,
   releaseKey: Schema.String,
-  baselineMonth: Schema.NullOr(Schema.String),
+  release: Schema.NullOr(
+    Schema.Struct({
+      releaseId: Schema.String,
+      publishedAt: Schema.String,
+      coverage: CoverageWindowSchema,
+    }),
+  ),
   lastBuiltSpeedMonth: Schema.NullOr(Schema.String),
   counts: Schema.Struct({
     routes: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),

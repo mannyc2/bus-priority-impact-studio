@@ -79,14 +79,14 @@ export const ReleaseIdentitySchema = Schema.Struct({
 
 export const StudioQualitySchema = Schema.Struct({
   releaseLayer: Schema.Literals([
-    "baseline_release",
+    "published_release",
     "observed_release",
     "current_signal",
     "pending_publication",
   ]),
   completenessStatus: Schema.Literals([
     "complete",
-    "partial_public_monthly_only",
+    "partial_public_speed_only",
     "missing_realtime",
     "insufficient_samples",
     "source_lag_expected",

@@ -19,7 +19,7 @@ describe("schema semantic compatibility", () => {
         schemaVersion: 1,
         generatedAt: "2026-05-18T00:00:00.000Z",
         quality: {
-          releaseLayer: "baseline_release",
+          releaseLayer: "published_release",
           completenessStatus: "complete",
           confidence: "medium",
           caveats: [],

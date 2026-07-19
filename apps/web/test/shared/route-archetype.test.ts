@@ -5,6 +5,7 @@ import type {
   RouteSurfaceCapability,
   StudioRouteCapability,
 } from "../../src/studio/api-contract";
+import { isoMonthFixture } from "./schema-fixtures";
 
 function surface(
   state: RouteSurfaceCapability["state"],
@@ -29,11 +30,13 @@ function capability(
 function dossier(months: number): RouteDossierSummaryForDetail {
   return {
     artifactKind: "studio_route_dossier_summary",
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: "2026-06-10T00:00:00.000Z",
     routeId: "M15+",
     routeSlug: "m15-sbs",
-    releaseMonth: "2026-03",
+    releaseId: "pub_20260610T000000000Z",
+    publishedAt: "2026-06-10T00:00:00.000Z",
+    coverage: { start: null, end: isoMonthFixture("2026-03") },
     dataAsOf: "2026-03",
     speed: {
       current: 6.9,

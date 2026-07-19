@@ -1,7 +1,12 @@
 {
   "schemaVersion": 2,
-  "baselineMonth": "2026-05",
   "generatedAt": "2026-06-30T00:00:00.000Z",
+  "releaseId": "pub_20260630T000000000Z",
+  "publishedAt": "2026-06-30T00:00:00.000Z",
+  "coverage": {
+    "start": "2026-05",
+    "end": "2026-05"
+  },
   "routes": [
     {
       "slug": "m15-sbs",
@@ -40,8 +45,8 @@
     }
   ],
   "quality": {
-    "releaseLayer": "baseline_release",
-    "completenessStatus": "partial_public_monthly_only",
+    "releaseLayer": "published_release",
+    "completenessStatus": "partial_public_speed_only",
     "confidence": "medium",
     "caveats": []
   }

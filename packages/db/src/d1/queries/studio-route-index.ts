@@ -1,7 +1,8 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, min } from "drizzle-orm";
 import type { D1ServingDb } from "../client.js";
 import {
   routeArtifact,
+  routeBatchStatus,
   routeBriefSummary,
   routeCatalog,
   routeCatalogTripType,
@@ -458,10 +459,7 @@ async function selectRouteMonthTrendIndexRows(db: D1ServingDb) {
     .orderBy(asc(routeMonthTrend.routeId), asc(routeMonthTrend.month));
 }
 
-/**
- * Latest month with route brief summaries — the internal serving-month resolver
- * (hard-cutover C2). Public read paths use this instead of env.BASELINE_MONTH.
- */
+/** Latest month with route brief summaries for internal single-partition reads. */
 export async function findLatestStudioServingMonth(db: D1ServingDb): Promise<string | null> {
   const rows = await db
     .select({ month: routeBriefSummary.month })
@@ -472,7 +470,7 @@ export async function findLatestStudioServingMonth(db: D1ServingDb): Promise<str
   return typeof month === "string" && isIsoMonth(month) ? month : null;
 }
 
-/** Latest month with a speed trend row — replaces env.LAST_BUILT_SPEED_MONTH in public reads (C3). */
+/** Latest covered month with a public speed trend row. */
 export async function findLatestSpeedTrendMonth(db: D1ServingDb): Promise<string | null> {
   const rows = await db
     .select({ month: routeMonthTrend.month })
@@ -482,6 +480,42 @@ export async function findLatestSpeedTrendMonth(db: D1ServingDb): Promise<string
     .limit(1);
   const month = rows[0]?.month;
   return typeof month === "string" && isIsoMonth(month) ? month : null;
+}
+
+/** Earliest covered month with a public speed trend row. */
+export async function findEarliestSpeedTrendMonth(db: D1ServingDb): Promise<string | null> {
+  const rows = await db
+    .select({ month: min(routeMonthTrend.month) })
+    .from(routeMonthTrend)
+    .where(eq(routeMonthTrend.hasSpeedTrend, true))
+    .limit(1);
+  const month = rows[0]?.month;
+  return typeof month === "string" && isIsoMonth(month) ? month : null;
+}
+
+export type PublishedStudioServingRelease = {
+  end: string;
+  publishedAt: string;
+};
+
+/** Latest passing route batch that has route-summary serving rows. */
+export async function findLatestPublishedStudioServingRelease(
+  db: D1ServingDb,
+): Promise<PublishedStudioServingRelease | null> {
+  const rows = await db
+    .select({
+      end: routeBatchStatus.month,
+      publishedAt: routeBatchStatus.generatedAt,
+    })
+    .from(routeBatchStatus)
+    .innerJoin(routeBriefSummary, eq(routeBriefSummary.month, routeBatchStatus.month))
+    .where(eq(routeBatchStatus.status, "pass"))
+    .orderBy(desc(routeBatchStatus.month))
+    .limit(1);
+  const row = rows[0];
+  return row !== undefined && isIsoMonth(row.end) && typeof row.publishedAt === "string"
+    ? row
+    : null;
 }
 
 export async function listStudioRouteIndexSourceRows(
