@@ -112,3 +112,12 @@ export {
   type SegmentDaypartPanelEligibilityStatus,
   type SegmentDaypartPanelRow,
 } from "./segment-daypart-panel.js";
+export {
+  type ExactAliasCanonicalizationResult,
+  type ExactAliasGroup,
+  prototypeExactAliasCanonicalization,
+  prototypeRecurringPatternProfiles,
+  type RecurringPatternProfile,
+  type RecurringPatternProfileResult,
+  type SpinePatternGroupingMonthAudit,
+} from "./spine-pattern-grouping-prototype.js";

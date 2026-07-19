@@ -21,6 +21,31 @@
 - **Category**: direction (design/spike)
 - **Planned at**: commit `99fa763`, 2026-07-12
 
+### Artifact-path verification — 2026-07-19
+
+The manifest still has the planned SHA-256
+`aa342bc154340a1da7209225eb0e32e0bb3df0321b84e3ebb432cb2dffe2b7a7`
+and the planned 267 / 93 / 25 readiness counts. Its 385 per-route artifacts
+do not sit beside the manifest: each route entry records the canonical
+`artifactPath` under `data/artifacts/studio/v2/routes/<route-slug>/speed-spine.json`.
+All 385 recorded paths were verified present (about 99 MiB total), so the
+missing-input/rebuild STOP condition does not apply and no scratch rebuild is
+needed for this spike.
+
+### Execution outcome — 2026-07-19
+
+**DONE — negative spike result; no implementation commissioned.** The
+five-route taxonomy classified 466 missing-segment instances as an unresolved
+gap residual, conservatively treated as class D/true-gap for the STOP, more
+than recurring exact-pattern variance (180), exact-alias raw-key drift (145),
+or redesign/renaming boundaries (140). That triggers the plan's binding Step 2
+STOP condition. The artifact cannot distinguish undocumented patterns from
+data loss within that residual, so grouping cannot honestly classify or repair
+it. The completed pure prototypes and network measurement are retained as
+evidence, but the decision is to close the grouping proposal without changing
+production builders, readiness thresholds, artifacts, candidate sets,
+receipts, studies, or publication.
+
 ### Binding rc19 rebaseline — 2026-07-14
 
 The original “39 ACE candidates blocked solely by `needs_pattern_review`”
@@ -132,10 +157,10 @@ if (
   `data/artifacts/studio/v2/speed-spines/2023-04_to_2026-03/manifest.json`
   (~342KB). Verified counts by status: `needs_pattern_review` 267,
   `series_ready` 93, `series_ready_with_gaps` 25. Inspect its per-route
-  entry shape with `jq` before scripting against it. Per-route spine
-  artifacts live beside it under the same
-  `data/artifacts/studio/v2/speed-spines/2023-04_to_2026-03/` directory —
-  `ls` that ONE directory to learn the layout. **`data/` is ~409GB overall:
+  entry shape with `jq` before scripting against it. Resolve every per-route
+  artifact from that route entry's `artifactPath`; the current paths are under
+  `data/artifacts/studio/v2/routes/<route-slug>/speed-spine.json`, not beside
+  the manifest. **`data/` is ~409GB overall:
   never run find/grep/du across `data/` broadly; touch only this directory,
   the review-report path above, and `data/artifacts/studio/v2/studies/`.**
 
@@ -238,8 +263,10 @@ partial month's missing segments into: (a) raw-key drift (same physical
 segment under a different source key that month — check the artifact's
 `sourceKeys`/drift fields), (b) pattern variance (segments genuinely absent
 that month — seasonal/holiday/short-turn service), (c) redesign/renaming
-events (cluster at a known date, e.g. Queens mid/late-2025), (d) true data
-gaps. Add the taxonomy per route to the findings doc with counts per class.
+events (cluster at a known date, e.g. Queens mid/late-2025), (d) an unresolved
+gap residual, conservatively treated as true-gap for the STOP when the
+artifact cannot distinguish undocumented patterns from data loss. Add the
+taxonomy per route to the findings doc with counts per class.
 This step is reading artifacts and code (`route-speed-spine.ts` builds the
 `monthCoverage` rows — read how `coverageShare` is computed), not new
 machinery.
@@ -319,8 +346,8 @@ binding for its set; rejected candidates are never silently readmitted) →
 
 Stop and report back (do not improvise) if:
 
-- The per-route spine artifacts do not exist beside the manifest (the spike
-  assumed they are on disk; if only the manifest survives, a scratch rebuild
+- One or more of the 385 per-route `artifactPath` values recorded in the
+  manifest does not exist (if only the manifest survives, a scratch rebuild
   via `route-speed-spines --output <scratch>` is needed — report the disk
   cost first; the volume is 91%+ full).
 - Every strategy that produces meaningful flips requires similarity/position
@@ -329,8 +356,10 @@ Stop and report back (do not improvise) if:
 - The manifest's readiness counts no longer match this plan's numbers
   (a spine rebuild happened since 2026-07-12) — re-derive the cohort from
   the CURRENT manifest and note the delta.
-- Step 2 taxonomy shows the dominant cause is true data gaps (class d) —
-  grouping cannot fix absent data; report and recommend closing the spike.
+- Step 2 taxonomy shows the dominant class is the unresolved gap residual
+  (class d), conservatively treated as true-gap for the STOP — grouping cannot
+  honestly classify or repair it from the artifact alone; report and
+  recommend closing the spike.
 
 ## Maintenance notes
 
