@@ -4,7 +4,11 @@ import { mapArtifactManifestPath } from "@bp/analytics/artifacts";
 import { mapArtifactSha256 } from "@bp/analytics/evaluation";
 import { ROUTE_SPEED_SPINE_DEFAULT_START_MONTH } from "@bp/analytics/feature-history";
 import { buildMapReleaseRegistrationSql } from "@bp/db/d1/seed";
-import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
+import {
+  type ReleaseIdentity,
+  ReleaseIdentitySchema,
+  releaseIdFromPublishedAt,
+} from "@bp/domain/studio/shared";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
@@ -66,6 +70,27 @@ const defaultDependencies: MapReleaseDependencies = {
   audit: verifyMapArtifactManifest,
 };
 
+function assertReleaseIdentityOutput(input: {
+  label: string;
+  identity: unknown;
+  expected: ReleaseIdentity;
+  month: string;
+}): ReleaseIdentity {
+  const identity = decodeSchemaStrict(ReleaseIdentitySchema, input.identity);
+  if (
+    identity.releaseId !== input.expected.releaseId ||
+    identity.publishedAt !== input.expected.publishedAt
+  ) {
+    throw new Error(`${input.label} publication identity does not match the map release boundary.`);
+  }
+  if (identity.coverage.end !== input.month) {
+    throw new Error(
+      `${input.label} coverage ends at ${identity.coverage.end}, expected ${input.month}.`,
+    );
+  }
+  return identity;
+}
+
 export async function runMapRelease(
   inputs: RunMapReleaseInputs,
   dependencies: MapReleaseDependencies = defaultDependencies,
@@ -109,6 +134,16 @@ export async function runMapRelease(
     exportRoot,
     releaseIdentity,
   });
+  assertReleaseIdentityOutput({
+    label: "D1 export",
+    identity: {
+      releaseId: d1.releaseId,
+      publishedAt: d1.publishedAt,
+      coverage: d1.coverage,
+    },
+    expected: releaseIdentity,
+    month,
+  });
   const context = await dependencies.context({
     sourcePath: inputs.contextSourcePath,
     artifactRoot,
@@ -138,6 +173,17 @@ export async function runMapRelease(
     ...(inputs.publishableInterventionsByRoutePath === undefined
       ? {}
       : { publishableInterventionsByRoutePath: inputs.publishableInterventionsByRoutePath }),
+  });
+  const studioReleaseIdentity = (studio as typeof studio & { readonly releaseIdentity?: unknown })
+    .releaseIdentity;
+  if (studioReleaseIdentity === undefined) {
+    throw new Error("Studio release did not report its written release identity.");
+  }
+  assertReleaseIdentityOutput({
+    label: "Studio release",
+    identity: studioReleaseIdentity,
+    expected: releaseIdentity,
+    month,
   });
   const map = await dependencies.map({
     local: inputs.local,
@@ -173,14 +219,16 @@ export async function runMapRelease(
   if (manifest === null) {
     throw new Error(`Verified map manifest ${manifestPath} is missing or invalid.`);
   }
-  if (
-    manifest.releaseId !== releaseIdentity.releaseId ||
-    manifest.publishedAt !== releaseIdentity.publishedAt ||
-    manifest.coverage.start !== releaseIdentity.coverage.start ||
-    manifest.coverage.end !== releaseIdentity.coverage.end
-  ) {
-    throw new Error("Verified map manifest does not carry the orchestrated release identity.");
-  }
+  const mapReleaseIdentity = assertReleaseIdentityOutput({
+    label: "Verified map manifest",
+    identity: {
+      releaseId: manifest.releaseId,
+      publishedAt: manifest.publishedAt,
+      coverage: manifest.coverage,
+    },
+    expected: releaseIdentity,
+    month,
+  });
   if (
     manifest.releaseProfile !== "full" ||
     manifest.buildStatus !== "pass" ||
@@ -199,8 +247,14 @@ export async function runMapRelease(
   await writeFile(finalManifestPath, manifestBytes);
 
   const registrationPath = join(dirname(d1.seedPath), "map-release-registration.sql");
+  const catalogReleaseIdentity = assertReleaseIdentityOutput({
+    label: "Map catalog registration",
+    identity: mapReleaseIdentity,
+    expected: releaseIdentity,
+    month,
+  });
   const registrationSql = buildMapReleaseRegistrationSql({
-    ...releaseIdentity,
+    ...catalogReleaseIdentity,
     manifestKey: finalManifestKey,
     manifestSha256: finalManifestSha256,
     releaseProfile: "full",

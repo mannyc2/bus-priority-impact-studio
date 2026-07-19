@@ -132,20 +132,38 @@ async function writeD1VerifySummary(result: D1VerifyResult): Promise<void> {
 
 export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1VerifyResult> {
   const month = isoMonth(inputs.year, inputs.month);
-  if (inputs.releaseIdentity.coverage.end !== month) {
+  const releaseIdentity = decodeSchemaStrict(ReleaseIdentitySchema, inputs.releaseIdentity);
+  if (releaseIdentity.coverage.end !== month) {
     throw new Error(
-      `D1 verification release coverage ends at ${inputs.releaseIdentity.coverage.end}, expected ${month}.`,
+      `D1 verification release coverage ends at ${releaseIdentity.coverage.end}, expected ${month}.`,
     );
   }
   const exportResult = await runExportD1Seed({
     local: inputs.local,
     year: inputs.year,
     month: inputs.month,
+    publishedAt: releaseIdentity.publishedAt,
     exportRoot: inputs.exportRoot,
     artifactRoot: inputs.artifactRoot,
     routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
     routeEvidenceIndexPath: inputs.routeEvidenceIndexPath,
   });
+  const exportIdentity = decodeSchemaStrict(ReleaseIdentitySchema, {
+    releaseId: exportResult.releaseId,
+    publishedAt: exportResult.publishedAt,
+    coverage: exportResult.coverage,
+  });
+  if (
+    exportIdentity.releaseId !== releaseIdentity.releaseId ||
+    exportIdentity.publishedAt !== releaseIdentity.publishedAt
+  ) {
+    throw new Error("D1 export publication identity does not match the verification boundary.");
+  }
+  if (exportIdentity.coverage.end !== month) {
+    throw new Error(
+      `D1 export coverage ends at ${exportIdentity.coverage.end}, expected ${month}.`,
+    );
+  }
 
   const { schemaSql, seedSql } = await readD1ReplaySql({
     month,
@@ -174,7 +192,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
 
   const result: D1VerifyResult = {
     schemaVersion: 2,
-    ...inputs.releaseIdentity,
+    ...exportIdentity,
     summaryPath: join(dirname(exportResult.seedPath), "verify-summary.json"),
     schemaPath: exportResult.schemaPath,
     seedPath: exportResult.seedPath,
