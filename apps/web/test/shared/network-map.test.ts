@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import type { MapManifestResponse, MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
+import { networkMapCitationText } from "../../src/components/route/NetworkMapDataNotes";
+import { slowestCurrentSegments } from "../../src/components/route/NetworkMapInspector";
 import { PERIOD_HOURS, periodSpeed } from "../../src/components/route/NetworkMapLibre";
 import {
   badgeFeatures,
@@ -9,21 +12,29 @@ import {
   deltaClass,
   featureStyle,
   featureValue,
+  filterNetworkFeaturesByBorough,
   formatViewValue,
   insightModel,
   legendModel,
   type NetworkView,
   percentileLine,
+  periodEligible,
+  resolvePreviewRouteId,
+  routeSegmentSpineIds,
   slowestWindow,
   sortFeaturesForView,
   speedClass,
+  unverifiedBoroughFeatureCount,
   viewEncoding,
 } from "../../src/components/route/network-map-model";
 import type { NetworkMapFeature } from "../../src/studio/api-client";
 import type { StudyIndexRow } from "../../src/studio/api-contract";
 import {
+  networkMapReleaseKey,
+  networkMapSearchStateKey,
   popupStatRows,
   routeStudySummary,
+  selectedRouteEvidenceKey,
   shortCoverage,
 } from "../../src/studio/pages/network-map";
 
@@ -37,6 +48,7 @@ function feature(overrides: {
   dailyRiders?: number | null;
   laneCoverage?: number | null;
   riderHoursLost?: number | null;
+  servedBoroughs?: string[];
 }): NetworkMapFeature {
   return {
     type: "Feature",
@@ -66,7 +78,7 @@ function feature(overrides: {
       ace: false,
       hourlySpeedMph: overrides.hourlySpeedMph ?? new Array<number | null>(24).fill(null),
       hourlyTraversalCount: overrides.hourlyTraversalCount ?? new Array<number>(24).fill(0),
-      servedBoroughs: ["Brooklyn"],
+      servedBoroughs: overrides.servedBoroughs ?? ["Brooklyn"],
       factsStatus: "ready",
     },
   };
@@ -88,6 +100,90 @@ function hoursWith(values: Record<number, { speed: number; traversals: number }>
 const SPEED_ALL: NetworkView = { lens: "speed", period: "all", compare: false };
 const DELAY: NetworkView = { lens: "delay", period: "all", compare: false };
 const DELTA_PM: NetworkView = { lens: "speed", period: "pm", compare: true };
+
+describe("served borough filtering", () => {
+  const fleet = [
+    feature({ routeId: "B", servedBoroughs: ["Brooklyn"] }),
+    feature({ routeId: "BQ", servedBoroughs: ["Brooklyn", "Queens"] }),
+    feature({ routeId: "Q", servedBoroughs: ["Queens"] }),
+    feature({ routeId: "UNKNOWN", servedBoroughs: [] }),
+  ];
+
+  test("uses exact served membership and keeps cross-borough routes in both views", () => {
+    expect(
+      filterNetworkFeaturesByBorough(fleet, "Brooklyn").map(
+        (candidate) => candidate.properties.routeId,
+      ),
+    ).toEqual(["B", "BQ"]);
+    expect(
+      filterNetworkFeaturesByBorough(fleet, "Queens").map(
+        (candidate) => candidate.properties.routeId,
+      ),
+    ).toEqual(["BQ", "Q"]);
+  });
+
+  test("keeps unverified routes only in All and reports the gap", () => {
+    expect(filterNetworkFeaturesByBorough(fleet, undefined)).toHaveLength(4);
+    expect(filterNetworkFeaturesByBorough(fleet, "Manhattan")).toEqual([]);
+    expect(unverifiedBoroughFeatureCount(fleet)).toBe(1);
+  });
+});
+
+describe("transient route preview", () => {
+  test("focus and pointer previews clear independently", () => {
+    expect(resolvePreviewRouteId(null, "POINTER")).toBe("POINTER");
+    expect(resolvePreviewRouteId("FOCUS", "POINTER")).toBe("FOCUS");
+    expect(resolvePreviewRouteId("FOCUS", null)).toBe("FOCUS");
+    expect(resolvePreviewRouteId(null, null)).toBeNull();
+  });
+});
+
+describe("network map state identity", () => {
+  test("includes unknown runtime keys when comparing a URL to its canonical form", () => {
+    expect(networkMapSearchStateKey({ route: "m15-sbs", extra: "remove-me" })).not.toBe(
+      networkMapSearchStateKey({ route: "m15-sbs" }),
+    );
+    expect(networkMapSearchStateKey({ route: "m15-sbs", period: "am" })).toBe(
+      networkMapSearchStateKey({ period: "am", route: "m15-sbs" }),
+    );
+  });
+
+  test("changes when the manifest release identity changes", () => {
+    const base = {
+      schemaVersion: 2,
+      releaseId: "pub-a",
+      publishedAt: "2026-04-01T00:00:00.000Z",
+      coverage: { start: "2026-01", end: "2026-03" },
+    } as unknown as MapManifestResponse;
+    const next = { ...base, releaseId: "pub-b" } as MapManifestResponse;
+    expect(networkMapReleaseKey(base)).not.toBe(networkMapReleaseKey(next));
+  });
+
+  test("invalidates selected evidence when a same-release segment object changes", () => {
+    const artifact = {
+      artifactKind: "map_route_segments_geojson",
+      artifactKey: "map/routes/m15-a.geojson",
+      sha256: "a".repeat(64),
+      routeId: "M15+",
+    };
+    const manifest = {
+      schemaVersion: 2,
+      releaseId: "pub-a",
+      publishedAt: "2026-04-01T00:00:00.000Z",
+      coverage: { start: "2026-01", end: "2026-03" },
+      artifacts: [artifact],
+    } as unknown as MapManifestResponse;
+    expect(selectedRouteEvidenceKey(manifest, "M15+")).not.toBe(
+      selectedRouteEvidenceKey(
+        {
+          ...manifest,
+          artifacts: [{ ...artifact, sha256: "b".repeat(64) }],
+        } as unknown as MapManifestResponse,
+        "M15+",
+      ),
+    );
+  });
+});
 
 describe("periodSpeed", () => {
   test("all-day returns currentMph", () => {
@@ -116,6 +212,19 @@ describe("periodSpeed", () => {
       ...hoursWith({ 8: { speed: 6, traversals: 3 } }),
     });
     expect(periodSpeed(sparse, "am")).toEqual({ value: null, observedHours: 1, expectedHours: 3 });
+  });
+
+  test("peak eligibility requires complete mapped-universe coverage", () => {
+    const complete = feature({
+      ...hoursWith({
+        7: { speed: 6, traversals: 2 },
+        8: { speed: 7, traversals: 2 },
+      }),
+    });
+    const sparse = feature({ ...hoursWith({ 7: { speed: 6, traversals: 2 } }) });
+    expect(periodEligible([complete], "am")).toBe(true);
+    expect(periodEligible([complete, sparse], "am")).toBe(false);
+    expect(periodEligible([], "am")).toBe(false);
   });
 });
 
@@ -475,6 +584,187 @@ describe("popupStatRows", () => {
     expect(rows[1]).toEqual({ label: "Speed", value: "8.3", sub: "mph, all day" });
     expect(popupStatRows(feature({ currentMph: null }), null, "delay")[1]?.value).toBe("No data");
     expect(popupStatRows(feature({}), "Mar 2026", "delta")[1]?.label).toBe("Delay");
+  });
+});
+
+describe("selected-route segment context", () => {
+  test("ranks all-day speed and only exposes a unique matched spine identity", () => {
+    const collection = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          id: "slow",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [-73.9, 40.7],
+              [-73.8, 40.8],
+            ],
+          },
+          properties: {
+            segmentId: "slow",
+            sourceSegmentId: "source-slow",
+            studioSegmentId: "studio-slow",
+            spineSegmentId: "spine-slow",
+            spineJoinStatus: "matched",
+            routeId: "M15+",
+            directionId: "0",
+            month: "2026-03",
+            hourOfDay: null,
+            averageSpeedMph: 4,
+            hotspotScore: 90,
+            rankOnRoute: 1,
+            startStopName: "A",
+            endStopName: "B",
+          },
+        },
+        {
+          type: "Feature",
+          id: "duplicate-a",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [-73.8, 40.8],
+              [-73.7, 40.9],
+            ],
+          },
+          properties: {
+            segmentId: "duplicate-a",
+            sourceSegmentId: "source-a",
+            studioSegmentId: "studio-a",
+            spineSegmentId: "spine-duplicate",
+            spineJoinStatus: "matched",
+            routeId: "M15+",
+            directionId: "0",
+            month: "2026-03",
+            hourOfDay: null,
+            averageSpeedMph: 5,
+            hotspotScore: 80,
+            rankOnRoute: 2,
+            startStopName: "B",
+            endStopName: "C",
+          },
+        },
+        {
+          type: "Feature",
+          id: "duplicate-b",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [-73.7, 40.9],
+              [-73.6, 41],
+            ],
+          },
+          properties: {
+            segmentId: "duplicate-b",
+            sourceSegmentId: "source-b",
+            studioSegmentId: "studio-b",
+            spineSegmentId: "spine-duplicate",
+            spineJoinStatus: "matched",
+            routeId: "M15+",
+            directionId: "1",
+            month: "2026-03",
+            hourOfDay: null,
+            averageSpeedMph: 6,
+            hotspotScore: 70,
+            rankOnRoute: 3,
+            startStopName: "C",
+            endStopName: "D",
+          },
+        },
+      ],
+    } as unknown as MapRouteSegmentFeatureCollection;
+
+    const rows = slowestCurrentSegments(collection, 3);
+    expect(rows.map((row) => row.feature.id)).toEqual(["slow", "duplicate-a", "duplicate-b"]);
+    expect(rows.map((row) => row.durableSpineId)).toEqual(["spine-slow", null, null]);
+
+    const [slow, duplicateA, duplicateB] = collection.features;
+    if (slow === undefined || duplicateA === undefined || duplicateB === undefined) {
+      throw new Error("Expected three segment fixtures.");
+    }
+    const mixedJoinCollection = {
+      ...collection,
+      features: [
+        slow,
+        duplicateA,
+        {
+          ...duplicateB,
+          properties: { ...duplicateB.properties, spineJoinStatus: "ambiguous" },
+        },
+      ],
+    } as MapRouteSegmentFeatureCollection;
+    expect(routeSegmentSpineIds(mixedJoinCollection)).toEqual([
+      "spine-slow",
+      "spine-duplicate",
+      null,
+    ]);
+    expect(slowestCurrentSegments(mixedJoinCollection).map((row) => row.durableSpineId)).toEqual([
+      "spine-slow",
+      "spine-duplicate",
+      null,
+    ]);
+  });
+});
+
+describe("network map citation", () => {
+  test("copies release identity, evidence hashes, and the mutable-alias caveat", () => {
+    const manifest = {
+      releaseId: "pub_20260401T000000000Z",
+      publishedAt: "2026-04-01T00:00:00.000Z",
+      coverage: { start: "2026-01", end: "2026-03" },
+      verificationStatus: "pass",
+      routeFacts: {
+        status: "available",
+        artifactKey: "map/releases/pub/map-route-facts.json",
+        sha256: "b".repeat(64),
+      },
+      artifacts: [
+        {
+          artifactKind: "map_network_simplified_geojson",
+          artifactKey: "map/releases/pub/network.geojson",
+          sha256: "a".repeat(64),
+        },
+      ],
+    } as unknown as MapManifestResponse;
+    const citation = networkMapCitationText({
+      url: "https://example.test/map?route=m15-sbs",
+      manifest,
+      view: SPEED_ALL,
+      coverage: "March 2026",
+      completeFactCount: 2,
+      mappedRouteCount: 2,
+      factsStatus: "coverage_mismatch",
+      joinMessage: "Network release pub-old does not match manifest release pub-new.",
+    });
+    expect(citation).toContain("pub_20260401T000000000Z");
+    expect(citation).toContain("map/releases/pub/network.geojson");
+    expect(citation).toContain("a".repeat(64));
+    expect(citation).toContain("map/releases/pub/map-route-facts.json");
+    expect(citation).toContain("current-alias URL is not an immutable archive");
+    expect(citation).toContain("/api/v1/map/manifest");
+    expect(citation).toContain("hashes cover only the network and route-facts objects");
+    expect(citation).toContain("manifest has no exposed hash");
+    expect(citation).toContain("coverage mismatch detected");
+    expect(citation).toContain("route facts were not applied");
+    expect(citation).toContain("Manifest release");
+    expect(citation).toContain("manifest-declared verification");
+    expect(citation).toContain("pub-old does not match manifest release pub-new");
+    expect(citation.toLowerCase()).not.toContain("baseline");
+
+    const unavailableCitation = networkMapCitationText({
+      url: "https://example.test/map",
+      manifest,
+      view: SPEED_ALL,
+      coverage: "March 2026",
+      completeFactCount: 0,
+      mappedRouteCount: 2,
+      factsStatus: "unavailable",
+      joinMessage: "Route facts failed SHA-256 integrity verification.",
+    });
+    expect(unavailableCitation).toContain("route facts were not applied");
+    expect(unavailableCitation).toContain("failed SHA-256 integrity verification");
   });
 });
 

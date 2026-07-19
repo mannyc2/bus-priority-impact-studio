@@ -1,12 +1,24 @@
 import { describe, expect, test } from "bun:test";
 import {
   createMapLibreLoader,
+  createMapLibrePreloader,
   type MapLibreModule,
 } from "../../src/components/route/load-maplibre";
 import {
   type MapRuntimeMap,
   startMapLibreRuntime,
 } from "../../src/components/route/maplibre-runtime";
+import { networkMapAriaLabel } from "../../src/components/route/NetworkMapLibre";
+import {
+  applyNetworkMapControlInset,
+  applySelectedSegmentPresentation,
+  createNetworkFocusController,
+  networkMapFitDuration,
+  networkMapFitPadding,
+  resolveNetworkFocusPresentation,
+  resolveNetworkMapInspectorInset,
+  routeSegmentFeatureCollection,
+} from "../../src/components/route/NetworkMapLibre.map";
 
 class FakeScript {
   src = "";
@@ -62,11 +74,84 @@ class FakeMap implements MapRuntimeMap {
 }
 
 async function settle(): Promise<void> {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let turn = 0; turn < 6; turn += 1) await Promise.resolve();
+}
+
+function presentationHarness() {
+  const featureStateCalls: Array<{
+    target: { source: string; id?: string | number };
+    state: Record<string, unknown>;
+  }> = [];
+  const paintCalls: Array<{ layerId: string; name: string; value: unknown }> = [];
+  let setDataCalls = 0;
+  const map = {
+    setFeatureState(
+      target: { source: string; id?: string | number },
+      state: Record<string, unknown>,
+    ) {
+      featureStateCalls.push({ target, state });
+      return map;
+    },
+    setPaintProperty(layerId: string, name: string, value: unknown) {
+      paintCalls.push({ layerId, name, value });
+      return map;
+    },
+  } as unknown as Parameters<typeof createNetworkFocusController>[0];
+  const networkSource = {
+    setData: () => {
+      setDataCalls += 1;
+    },
+  };
+  return {
+    map,
+    networkSource,
+    featureStateCalls,
+    paintCalls,
+    setDataCalls: () => setDataCalls,
+  };
 }
 
 describe("MapLibre loader and runtime", () => {
+  test("preload is a guarded, deduplicated hint that retries after rejection", async () => {
+    let available = false;
+    let componentLoads = 0;
+    let vendorLoads = 0;
+    let rejectVendor = true;
+    const preload = createMapLibrePreloader({
+      available: () => available,
+      loadComponent: async () => {
+        componentLoads += 1;
+      },
+      loadVendor: async () => {
+        vendorLoads += 1;
+        if (rejectVendor) throw new Error("vendor unavailable");
+      },
+    });
+
+    preload();
+    await settle();
+    expect(componentLoads).toBe(0);
+    expect(vendorLoads).toBe(0);
+
+    available = true;
+    preload();
+    preload();
+    await settle();
+    expect(componentLoads).toBe(1);
+    expect(vendorLoads).toBe(1);
+
+    rejectVendor = false;
+    preload();
+    await settle();
+    expect(componentLoads).toBe(2);
+    expect(vendorLoads).toBe(2);
+
+    preload();
+    await settle();
+    expect(componentLoads).toBe(2);
+    expect(vendorLoads).toBe(2);
+  });
+
   test("a rejected vendor load resets so a second call can resolve", async () => {
     const scripts: FakeScript[] = [];
     let loadedModule: MapLibreModule | undefined;
@@ -153,5 +238,166 @@ describe("MapLibre loader and runtime", () => {
     expect(map.listeners.get("load")?.size).toBe(0);
     expect(map.listeners.get("error")?.size).toBe(0);
     expect(map.removeCalls).toBe(1);
+  });
+
+  test("hover previews cross routes with constant feature-state work and no source update", () => {
+    const harness = presentationHarness();
+    const focus = createNetworkFocusController(harness.map);
+
+    for (let index = 0; index < 10; index += 1) focus.preview(`route-${index}`);
+
+    expect(harness.featureStateCalls).toHaveLength(19);
+    expect(harness.paintCalls).toHaveLength(0);
+    expect(harness.setDataCalls()).toBe(0);
+  });
+
+  test("pinned focus changes only old/new feature state plus fixed layer paint", () => {
+    const harness = presentationHarness();
+    const focus = createNetworkFocusController(harness.map);
+
+    for (let index = 0; index < 10; index += 1) focus.focus(`route-${index}`);
+
+    expect(harness.featureStateCalls).toHaveLength(19);
+    expect(harness.paintCalls).toHaveLength(3);
+    expect(harness.setDataCalls()).toBe(0);
+
+    focus.focus(null);
+    expect(harness.featureStateCalls).toHaveLength(20);
+    expect(harness.paintCalls).toHaveLength(6);
+    expect(harness.setDataCalls()).toBe(0);
+  });
+
+  test("focus sources keep keyboard, map hover, list preview, and pin priorities distinct", () => {
+    const base = {
+      focusedRouteId: "keyboard",
+      hoveredRouteId: "map-hover",
+      hoverDimEngaged: false,
+      previewRouteId: "list-hover",
+      selectedRouteId: "pin",
+    };
+
+    expect(resolveNetworkFocusPresentation(base)).toEqual({
+      mode: "focus",
+      routeId: "keyboard",
+    });
+    expect(resolveNetworkFocusPresentation({ ...base, focusedRouteId: null })).toEqual({
+      mode: "preview",
+      routeId: "map-hover",
+    });
+    expect(
+      resolveNetworkFocusPresentation({
+        ...base,
+        focusedRouteId: null,
+        hoveredRouteId: null,
+      }),
+    ).toEqual({ mode: "focus", routeId: "list-hover" });
+    expect(
+      resolveNetworkFocusPresentation({
+        ...base,
+        focusedRouteId: null,
+        hoveredRouteId: null,
+        previewRouteId: null,
+      }),
+    ).toEqual({ mode: "focus", routeId: "pin" });
+  });
+
+  test("the inspector only insets the desktop map and shares that inset with camera padding", () => {
+    expect(resolveNetworkMapInspectorInset({ inspectorOpen: true, desktopViewport: false })).toBe(
+      0,
+    );
+    expect(resolveNetworkMapInspectorInset({ inspectorOpen: true, desktopViewport: true })).toBe(
+      360,
+    );
+    expect(
+      resolveNetworkMapInspectorInset({
+        inspectorOpen: true,
+        desktopViewport: true,
+        inspectorInset: 412,
+      }),
+    ).toBe(412);
+    expect(networkMapFitPadding(412)).toEqual({ top: 28, right: 440, bottom: 28, left: 28 });
+
+    const controls = { style: { right: "" } };
+    const map = {
+      getContainer: () => ({ querySelector: () => controls }),
+    } as unknown as Parameters<typeof applyNetworkMapControlInset>[0];
+    applyNetworkMapControlInset(map, 412);
+    expect(controls.style.right).toBe("412px");
+  });
+
+  test("camera refits are instant for initial load and reduced-motion users", () => {
+    expect(networkMapFitDuration(false, false)).toBe(0);
+    expect(networkMapFitDuration(true, true)).toBe(0);
+    expect(networkMapFitDuration(true, false)).toBe(240);
+  });
+
+  test("segment pin emphasis changes paint without replacing selected-route geometry", () => {
+    const harness = presentationHarness();
+
+    applySelectedSegmentPresentation(harness.map, "m15-n-node-001-node-002");
+    applySelectedSegmentPresentation(harness.map, "m15-n-node-002-node-003");
+
+    expect(harness.paintCalls).toHaveLength(6);
+    expect(harness.setDataCalls()).toBe(0);
+    expect(JSON.stringify(harness.paintCalls)).toContain("m15-n-node-002-node-003");
+  });
+
+  test("only matched spine identities survive the route-segment map adapter", () => {
+    const segmentCollection = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          id: "matched",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [-73.99, 40.72],
+              [-73.98, 40.73],
+            ],
+          },
+          properties: { spineSegmentId: "stable-id", spineJoinStatus: "matched" },
+        },
+        {
+          type: "Feature",
+          id: "ambiguous",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [-73.97, 40.74],
+              [-73.96, 40.75],
+            ],
+          },
+          properties: { spineSegmentId: "stable-id", spineJoinStatus: "ambiguous" },
+        },
+      ],
+    } as unknown as NonNullable<Parameters<typeof routeSegmentFeatureCollection>[0]>;
+
+    expect(
+      routeSegmentFeatureCollection(segmentCollection).features.map(
+        (feature) => feature.properties.spineSegmentId,
+      ),
+    ).toEqual(["stable-id", null]);
+  });
+
+  test("the default map-region label tracks lens, period, and highlighted route", () => {
+    const collection = {
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          properties: { routeId: "M15+", label: "M15 SBS" },
+        },
+      ],
+    } as Parameters<typeof networkMapAriaLabel>[0]["collection"];
+
+    expect(
+      networkMapAriaLabel({
+        collection,
+        view: { lens: "speed", period: "pm", compare: true },
+        selectedRouteId: "M15+",
+      }),
+    ).toBe(
+      "NYC bus network PM peak speed compared with all day map showing 1 route; M15 SBS highlighted.",
+    );
   });
 });

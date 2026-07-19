@@ -1,3 +1,4 @@
+import type { MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
 import type { NetworkMapFeature } from "@/studio/api-client";
 
 /**
@@ -10,6 +11,51 @@ export type NetworkLens = "speed" | "delay";
 export type NetworkEncoding = "speed" | "delay" | "delta";
 
 export type MapPeriod = "all" | "am" | "pm";
+
+export const NETWORK_BOROUGHS = [
+  "Bronx",
+  "Brooklyn",
+  "Manhattan",
+  "Queens",
+  "Staten Island",
+] as const;
+
+export type NetworkBorough = (typeof NETWORK_BOROUGHS)[number];
+
+/**
+ * Borough membership comes from the verified network artifact, never the
+ * route-prefix family label. An empty membership is an explicit evidence gap:
+ * keep it in the citywide view, but do not guess a borough for filtering.
+ */
+export function filterNetworkFeaturesByBorough(
+  features: readonly NetworkMapFeature[],
+  borough: NetworkBorough | undefined,
+): NetworkMapFeature[] {
+  return borough === undefined
+    ? [...features]
+    : features.filter((feature) => feature.properties.servedBoroughs.includes(borough));
+}
+
+export function unverifiedBoroughFeatureCount(features: readonly NetworkMapFeature[]): number {
+  return features.filter((feature) => feature.properties.servedBoroughs.length === 0).length;
+}
+
+/** Only exact matched joins can participate in a durable shared segment URL. */
+export function routeSegmentSpineIds(
+  collection: MapRouteSegmentFeatureCollection,
+): Array<string | null> {
+  return collection.features.map((feature) =>
+    feature.properties.spineJoinStatus === "matched" ? feature.properties.spineSegmentId : null,
+  );
+}
+
+/** Keyboard focus wins without allowing pointer leave to erase it (and vice versa). */
+export function resolvePreviewRouteId(
+  focusedRouteId: string | null,
+  pointerRouteId: string | null,
+): string | null {
+  return focusedRouteId ?? pointerRouteId;
+}
 
 export const PERIOD_HOURS: Record<MapPeriod, number[] | null> = {
   all: null, // use currentMph
@@ -40,6 +86,16 @@ export function periodSpeed(
     observedHours: observed.length,
     expectedHours: hours.length,
   };
+}
+
+/** A shareable peak period is enabled only when the mapped universe is complete. */
+export function periodEligible(
+  features: readonly NetworkMapFeature[],
+  period: Exclude<MapPeriod, "all">,
+): boolean {
+  return (
+    features.length > 0 && features.every((feature) => periodSpeed(feature, period).value !== null)
+  );
 }
 
 export type NetworkView = {

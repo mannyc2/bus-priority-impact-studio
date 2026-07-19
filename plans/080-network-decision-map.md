@@ -35,10 +35,46 @@
 > and the remaining lens-eligibility gates still depend on Plan 079 and the
 > steps below. The dark Signal comp is retained only as a rejected alternative.
 
+> **Execution rebind (2026-07-19 — post-079 live-tree drift, binding).** Plan
+> 079 is merged on `main` at `11e21ee0`. The required drift check shows that
+> the approved Atlas visual checkpoint has already landed: neutral first
+> paint, opt-in Find-a-route panel, click-to-pin popup, attention scales,
+> AM/PM and Vs-all-day controls, proportional legend, route badges/labels,
+> lazy bus lanes, and remembered note dismissal are present and tested. Treat
+> the stale "Current state" bullets and any step text that asks for those
+> features as historical evidence, not work to repeat. The remaining contract
+> is: strict shareable URL state and evidence-aware canonicalization; exact
+> served-borough filtering; O(1) MapLibre hover/pin updates through feature
+> state; lazy selected-route/segment validation; Data Notes with
+> `coverage`/`publishedAt` and source/lens posture; an accessible mobile
+> `Sheet`; and final keyboard/touch/reduced-motion/performance QA. Do not add a
+> change lens unless the served contract carries its real endpoint months.
+>
+> Parallel worktrees are permitted only within this plan, from the same
+> amended-plan commit, with these non-overlapping ownership boundaries:
+>
+> - **URL/model lane:** `apps/web/src/routes/map.tsx`, a focused new pure
+>   search/canonicalization module, and its new focused test file.
+> - **Runtime lane:** `NetworkMapLibre.map.tsx`, `NetworkMapLibre.tsx`,
+>   `load-maplibre.ts`, and `maplibre-runtime.test.ts`; it may not edit page,
+>   API-client, or URL-model files.
+> - **API/selected-route lane:** `apps/web/src/studio/api-client.ts` and
+>   `apps/web/test/shared/api-client.test.ts`; it exposes only the lazy typed
+>   loader/validation input needed by the integration lane.
+> - **Integration lane:** `network-map.tsx`, optional focused
+>   inspector/controls components, `network-map-model.ts`, and
+>   `network-map.test.ts`; it composes Data Notes, desktop/mobile UI, borough
+>   behavior, and the three lane commits.
+>
+> Finish and verify Plan 080 on the integration branch before starting Plan
+> 081. Plans 080/081/085/086 remain sequential because their live contracts
+> and UI files overlap.
+
 ## Status
 
-- **Plan status**: TODO (approved visual checkpoint implemented; full plan is
-  not complete)
+- **Plan status**: DONE (completed 2026-07-19; implementation commit
+  `926ce17c`, with the browser and verification receipt recorded in
+  `knowledge/log.md`)
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: MED

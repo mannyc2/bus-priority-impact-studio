@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import type { MapManifestResponse } from "@bp/domain/maps";
 import {
+  currentMapBusLaneArtifact,
   fetchMapBusLanes,
   fetchMapManifest,
   fetchMapRouteFacts,
   fetchNetworkMapGeo,
+  fetchSelectedRouteMapEvidence,
   fetchStudioInterventionsEvidence,
   fetchStudioRoute,
   fetchStudioRouteIndex,
@@ -11,7 +14,10 @@ import {
   joinNetworkMapBundle,
   StudioApiError,
 } from "../../src/studio/api-client.js";
-import type { StudioRouteIndex3Response } from "../../src/studio/api-contract.js";
+import type {
+  StudioRouteDetailResponse,
+  StudioRouteIndex3Response,
+} from "../../src/studio/api-contract.js";
 
 const originalFetch = globalThis.fetch;
 
@@ -113,6 +119,111 @@ async function sha256ForBody(body: string): Promise<string> {
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body)))]
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
+}
+
+function selectedRouteDetailFixture(routeId = "M15+"): StudioRouteDetailResponse {
+  return {
+    schemaVersion: 3,
+    generatedAt: "2026-04-01T00:00:00.123Z",
+    baselineMonth: "2026-03",
+    route: {
+      slug: "m15-sbs",
+      routeId,
+      label: "M15 SBS",
+      corridor: "First / Second",
+      corridorFull: "First Avenue / Second Avenue",
+      borough: "Manhattan",
+      sbs: true,
+      speedMph: 7.2,
+      scheduledMph: null,
+      weightedAvgSpeed: 7.2,
+      speedPercentile: null,
+      dailyRiders: 30_000,
+      ridersYoyPct: null,
+      riderHoursLost: 6200,
+      laneCoverage: 65,
+      aceStatus: "active",
+      aceSince: "2024",
+      tspCoverage: "none",
+      reliability: "High attention route",
+      observedReliability: null,
+      diagnosis: "M15 SBS has slow segments and active treatment evidence.",
+      spark: null,
+      termini: { north: "East Harlem", south: "South Ferry" },
+      miles: 8.1,
+      stops: 42,
+      flags: ["ACE active"],
+      peerSlug: null,
+      interventions: [],
+      movement6mPct: null,
+      context12mPct: null,
+    },
+    segments: [],
+    artifactRefs: [],
+    insights: [],
+    peakWindows: [],
+    slowestWindows: [],
+    reliabilitySamples: [],
+    capability: null,
+    dossier: null,
+    equityContext: null,
+    quality: {
+      releaseLayer: "baseline_release",
+      completenessStatus: "partial_public_monthly_only",
+      confidence: "medium",
+      caveats: [],
+    },
+  };
+}
+
+function routeSegmentCollectionFixture(routeId = "M15+") {
+  return {
+    type: "FeatureCollection" as const,
+    features: [
+      {
+        type: "Feature" as const,
+        id: `${routeId}:0:stop-a:stop-b`,
+        geometry: {
+          type: "LineString" as const,
+          coordinates: [
+            [-73.99, 40.75],
+            [-73.98, 40.76],
+          ],
+        },
+        properties: {
+          segmentId: `${routeId}:0:stop-a:stop-b`,
+          sourceSegmentId: "stop-a:stop-b",
+          studioSegmentId: "studio-segment-1",
+          spineSegmentId: "m15-n-stop-a-stop-b",
+          spineJoinStatus: "matched" as const,
+          routeId,
+          directionId: "0",
+          month: "2026-03",
+          hourOfDay: null,
+          averageSpeedMph: 5.2,
+          hotspotScore: 92,
+          rankOnRoute: 1,
+          startStopName: "14 St",
+          endStopName: "23 St",
+        },
+      },
+    ],
+  };
+}
+
+function routeSegmentArtifact(sha256: string, routeId = "M15+") {
+  return {
+    artifactKind: "map_route_segments_geojson",
+    artifactKey: `map/2026-03/routes/${encodeURIComponent(routeId)}.segments.geojson`,
+    contentType: "application/geo+json",
+    byteLength: 1,
+    gzipByteLength: 1,
+    sha256,
+    featureCount: 1,
+    coordinateCount: 2,
+    routeId,
+    apiPath: `/api/v1/artifacts/map/2026-03/routes/${encodeURIComponent(routeId)}.segments.geojson`,
+  };
 }
 
 describe("Studio API client", () => {
@@ -298,6 +409,172 @@ describe("Studio API client", () => {
         signal: controller.signal,
       }),
     ).rejects.toThrow("Aborted");
+  });
+
+  test("loads selected-route detail and verified segments in parallel without refetching the manifest", async () => {
+    const routeId = "M15+";
+    const segmentBody = JSON.stringify(routeSegmentCollectionFixture(routeId));
+    const segmentSha256 = await sha256ForBody(segmentBody);
+    const manifest = mapManifestFixture({
+      artifacts: [routeSegmentArtifact(segmentSha256, routeId)],
+    });
+    let resolveDetail: (response: Response) => void = () => {};
+    let resolveSegments: (response: Response) => void = () => {};
+    const detailResponse = new Promise<Response>((resolve) => {
+      resolveDetail = resolve;
+    });
+    const segmentResponse = new Promise<Response>((resolve) => {
+      resolveSegments = resolve;
+    });
+    const requestedPaths: string[] = [];
+    mockFetch(((input) => {
+      const path = String(input);
+      requestedPaths.push(path);
+      return path.includes("/studio/routes/") ? detailResponse : segmentResponse;
+    }) as typeof globalThis.fetch);
+
+    const load = fetchSelectedRouteMapEvidence(manifest as never, routeId);
+    await Promise.resolve();
+    expect(requestedPaths).toEqual([
+      "/api/v1/studio/routes/M15%2B",
+      routeSegmentArtifact(segmentSha256, routeId).apiPath,
+    ]);
+    expect(requestedPaths).not.toContain("/api/v1/map/manifest");
+
+    resolveDetail(Response.json(selectedRouteDetailFixture(routeId)));
+    resolveSegments(new Response(segmentBody));
+    await expect(load).resolves.toMatchObject({
+      routeId,
+      routeDetail: { status: "ready", data: { route: { routeId } } },
+      segments: {
+        status: "ready",
+        expectedSha256: segmentSha256,
+        actualSha256: segmentSha256,
+        data: { features: [{ properties: { routeId } }] },
+      },
+    });
+  });
+
+  test("preserves unavailable route detail and undeclared segment states", async () => {
+    const requestedPaths: string[] = [];
+    mockFetch(((input) => {
+      requestedPaths.push(String(input));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    }) as typeof globalThis.fetch);
+
+    await expect(
+      fetchSelectedRouteMapEvidence(mapManifestFixture() as never, "M15+"),
+    ).resolves.toMatchObject({
+      routeDetail: { status: "unavailable" },
+      segments: { status: "unavailable" },
+    });
+    expect(requestedPaths).toEqual(["/api/v1/studio/routes/M15%2B"]);
+  });
+
+  test("fails closed when a manifest declares duplicate exact route-segment artifacts", async () => {
+    const routeId = "M15+";
+    const artifact = routeSegmentArtifact("a".repeat(64), routeId);
+    const requestedPaths: string[] = [];
+    mockFetch(((input) => {
+      requestedPaths.push(String(input));
+      return Promise.resolve(Response.json(selectedRouteDetailFixture(routeId)));
+    }) as typeof globalThis.fetch);
+
+    await expect(
+      fetchSelectedRouteMapEvidence(
+        mapManifestFixture({ artifacts: [artifact, { ...artifact }] }) as never,
+        routeId,
+      ),
+    ).resolves.toMatchObject({
+      routeDetail: { status: "ready" },
+      segments: { status: "unavailable", reason: expect.stringContaining("multiple") },
+    });
+    expect(requestedPaths).toEqual(["/api/v1/studio/routes/M15%2B"]);
+  });
+
+  test("preserves missing, integrity-mismatch, and request-failed segment states", async () => {
+    const routeId = "M15+";
+    const body = JSON.stringify(routeSegmentCollectionFixture(routeId));
+    const sha256 = await sha256ForBody(body);
+    const manifest = mapManifestFixture({ artifacts: [routeSegmentArtifact(sha256, routeId)] });
+
+    mockFetch(((input) =>
+      String(input).includes("/studio/routes/")
+        ? Promise.resolve(Response.json(selectedRouteDetailFixture(routeId)))
+        : Promise.resolve(new Response(null, { status: 404 }))) as typeof globalThis.fetch);
+    await expect(fetchSelectedRouteMapEvidence(manifest as never, routeId)).resolves.toMatchObject({
+      routeDetail: { status: "ready" },
+      segments: { status: "missing" },
+    });
+
+    mockFetch(((input) =>
+      String(input).includes("/studio/routes/")
+        ? Promise.resolve(Response.json(selectedRouteDetailFixture(routeId)))
+        : Promise.resolve(new Response(body))) as typeof globalThis.fetch);
+    await expect(
+      fetchSelectedRouteMapEvidence(
+        mapManifestFixture({ artifacts: [routeSegmentArtifact("0".repeat(64), routeId)] }) as never,
+        routeId,
+      ),
+    ).resolves.toMatchObject({
+      routeDetail: { status: "ready" },
+      segments: { status: "integrity_mismatch", expectedSha256: "0".repeat(64) },
+    });
+
+    mockFetch(((input) =>
+      String(input).includes("/studio/routes/")
+        ? Promise.resolve(Response.json(selectedRouteDetailFixture(routeId)))
+        : Promise.resolve(new Response(null, { status: 503 }))) as typeof globalThis.fetch);
+    await expect(fetchSelectedRouteMapEvidence(manifest as never, routeId)).resolves.toMatchObject({
+      routeDetail: { status: "ready" },
+      segments: { status: "request_failed", httpStatus: 503 },
+    });
+  });
+
+  test("rejects selected-route segment payloads belonging to another exact source route", async () => {
+    const routeId = "M15+";
+    const body = JSON.stringify(routeSegmentCollectionFixture("B46-SBS"));
+    const sha256 = await sha256ForBody(body);
+    mockFetch(((input) =>
+      String(input).includes("/studio/routes/")
+        ? Promise.resolve(Response.json(selectedRouteDetailFixture(routeId)))
+        : Promise.resolve(new Response(body))) as typeof globalThis.fetch);
+
+    await expect(
+      fetchSelectedRouteMapEvidence(
+        mapManifestFixture({ artifacts: [routeSegmentArtifact(sha256, routeId)] }) as never,
+        routeId,
+      ),
+    ).resolves.toMatchObject({ segments: { status: "invalid_contract" } });
+  });
+
+  test("propagates one AbortSignal to both selected-route requests", async () => {
+    const routeId = "M15+";
+    const controller = new AbortController();
+    const signals: AbortSignal[] = [];
+    mockFetch(
+      ((_input, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          if (init?.signal instanceof AbortSignal) {
+            signals.push(init.signal);
+            init.signal.addEventListener("abort", () =>
+              reject(new DOMException("Aborted", "AbortError")),
+            );
+          }
+        })) as typeof globalThis.fetch,
+    );
+
+    const load = fetchSelectedRouteMapEvidence(
+      mapManifestFixture({
+        artifacts: [routeSegmentArtifact("0".repeat(64), routeId)],
+      }) as never,
+      routeId,
+      { signal: controller.signal },
+    );
+    await Promise.resolve();
+    expect(signals).toEqual([controller.signal, controller.signal]);
+    controller.abort();
+    await expect(load).rejects.toMatchObject({ name: "AbortError" });
   });
 
   test("retains neutral geometry when route facts are unavailable", () => {
@@ -580,11 +857,51 @@ describe("Studio API client", () => {
         artifacts: [
           {
             artifactKind: "map_bus_lanes_geojson",
+            artifactKey: "map/bus-lanes/current.geojson",
             apiPath: "/lanes.geojson",
             sha256,
           },
         ],
       } as never),
     ).resolves.toMatchObject({ status: "invalid_contract" });
+  });
+
+  test("requires the current layer and artifact tables to name the same bus-lane object", async () => {
+    const manifest = {
+      layers: [
+        {
+          layerId: "bus_lanes",
+          readiness: "available",
+          currencyStatus: "current",
+          artifactKey: "map/bus-lanes/current.geojson",
+          reason: "Current fixture.",
+        },
+      ],
+      artifacts: [
+        {
+          artifactKind: "map_bus_lanes_geojson",
+          artifactKey: "map/bus-lanes/old.geojson",
+          apiPath: "/old-lanes.geojson",
+          sha256: "a".repeat(64),
+        },
+      ],
+    } as unknown as MapManifestResponse;
+    expect(currentMapBusLaneArtifact(manifest)).toBeNull();
+    await expect(fetchMapBusLanes(manifest)).resolves.toMatchObject({ status: "unavailable" });
+
+    const exact = {
+      artifactKind: "map_bus_lanes_geojson",
+      artifactKey: "map/bus-lanes/current.geojson",
+      apiPath: "/current-lanes.geojson",
+      sha256: "b".repeat(64),
+    };
+    const duplicateManifest = {
+      ...manifest,
+      artifacts: [exact, { ...exact }],
+    } as unknown as MapManifestResponse;
+    expect(currentMapBusLaneArtifact(duplicateManifest)).toBeNull();
+    await expect(fetchMapBusLanes(duplicateManifest)).resolves.toMatchObject({
+      status: "unavailable",
+    });
   });
 });

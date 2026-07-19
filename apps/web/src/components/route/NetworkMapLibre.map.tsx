@@ -49,16 +49,28 @@ type NetworkLineProperties = {
   sbs: boolean;
 };
 
+type RouteSegmentLineProperties = {
+  spineSegmentId: string | null;
+};
+
 const LAND_SOURCE = "bp-network-land";
 const NETWORK_SOURCE = "bp-network-routes";
 const GHOST_SOURCE = "bp-network-ghost";
 const LANES_SOURCE = "bp-network-lanes";
+const ROUTE_SEGMENT_SOURCE = "bp-network-route-segments";
 const CASING_LAYER = "bp-network-casing";
 const LINE_LAYER = "bp-network-lines";
 const NODATA_LAYER = "bp-network-nodata";
 const GHOST_LAYER = "bp-network-ghost";
 const LANES_LAYER = "bp-network-lanes";
+const ROUTE_SEGMENT_CASING_LAYER = "bp-network-route-segment-casing";
+const ROUTE_SEGMENT_RING_LAYER = "bp-network-route-segment-ring";
+const ROUTE_SEGMENT_LINE_LAYER = "bp-network-route-segment-lines";
 const HIT_LAYER = "bp-network-hit";
+const DESKTOP_VIEWPORT_QUERY = "(min-width: 768px)";
+const DEFAULT_INSPECTOR_INSET = 360;
+const FIT_PADDING = 28;
+const FIT_DURATION_MS = 240;
 
 // Hover/selection render through feature-state so pointer interaction never
 // rebuilds the 50k-coordinate source; setData only runs on period/lens change.
@@ -68,13 +80,118 @@ const LINE_WIDTH_EXPRESSION: MapLibreExpression = [
   5.5,
   ["case", ["get", "sbs"], 3.2, 2.2],
 ];
-const LINE_OPACITY_EXPRESSION: MapLibreExpression = [
+const DEFAULT_LINE_OPACITY = 0.92;
+const FOCUSED_LINE_OPACITY_EXPRESSION: MapLibreExpression = [
   "case",
-  ["boolean", ["feature-state", "dimmed"], false],
+  ["boolean", ["feature-state", "active"], false],
+  DEFAULT_LINE_OPACITY,
   0.2,
-  0.92,
 ];
 const SORT_KEY_EXPRESSION: MapLibreExpression = ["get", "sortKey"];
+
+type NetworkFocusMap = Pick<MapLibreMap, "setFeatureState" | "setPaintProperty">;
+
+export type NetworkFocusController = {
+  preview(routeId: string | null): void;
+  focus(routeId: string | null): void;
+  dispose(): void;
+};
+
+export type NetworkFocusPresentation = {
+  mode: "focus" | "preview";
+  routeId: string | null;
+};
+
+/** Resolve all map/list focus sources without conflating the durable route pin. */
+export function resolveNetworkFocusPresentation(input: {
+  focusedRouteId: string | null;
+  hoveredRouteId: string | null;
+  hoverDimEngaged: boolean;
+  previewRouteId: string | null;
+  selectedRouteId: string | null;
+}): NetworkFocusPresentation {
+  if (input.focusedRouteId !== null) {
+    return { mode: "focus", routeId: input.focusedRouteId };
+  }
+  if (input.hoveredRouteId !== null) {
+    return {
+      mode: input.hoverDimEngaged ? "focus" : "preview",
+      routeId: input.hoveredRouteId,
+    };
+  }
+  if (input.previewRouteId !== null) {
+    return { mode: "focus", routeId: input.previewRouteId };
+  }
+  if (input.selectedRouteId !== null) {
+    return { mode: "focus", routeId: input.selectedRouteId };
+  }
+  return { mode: "preview", routeId: null };
+}
+
+function applyNetworkFocusPresentation(
+  controller: NetworkFocusController,
+  input: Parameters<typeof resolveNetworkFocusPresentation>[0],
+): void {
+  const presentation = resolveNetworkFocusPresentation(input);
+  controller[presentation.mode](presentation.routeId);
+}
+
+/**
+ * O(1) route focus: only the previous/new feature IDs change. Network-wide
+ * dimming is one fixed set of layer paint updates, never one state write per
+ * route and never a GeoJSON replacement.
+ */
+export function createNetworkFocusController(map: NetworkFocusMap): NetworkFocusController {
+  let activeRouteId: string | null = null;
+  let dimmed = false;
+
+  const setActiveRoute = (routeId: string | null) => {
+    if (routeId === activeRouteId) return;
+    if (activeRouteId !== null) {
+      map.setFeatureState({ source: NETWORK_SOURCE, id: activeRouteId }, { active: false });
+    }
+    if (routeId !== null) {
+      map.setFeatureState({ source: NETWORK_SOURCE, id: routeId }, { active: true });
+    }
+    activeRouteId = routeId;
+  };
+  const setDimmed = (next: boolean) => {
+    if (next === dimmed) return;
+    dimmed = next;
+    const opacity = next ? FOCUSED_LINE_OPACITY_EXPRESSION : DEFAULT_LINE_OPACITY;
+    for (const layerId of [CASING_LAYER, NODATA_LAYER, LINE_LAYER]) {
+      map.setPaintProperty(layerId, "line-opacity", opacity);
+    }
+  };
+  const apply = (routeId: string | null, shouldDim: boolean) => {
+    setActiveRoute(routeId);
+    setDimmed(shouldDim && routeId !== null);
+  };
+
+  return {
+    preview: (routeId) => apply(routeId, false),
+    focus: (routeId) => apply(routeId, true),
+    dispose: () => {
+      activeRouteId = null;
+      dimmed = false;
+    },
+  };
+}
+
+function selectedSegmentMatch(selectedSegmentId: string | null): MapLibreExpression | boolean {
+  return selectedSegmentId === null ? false : ["==", ["get", "spineSegmentId"], selectedSegmentId];
+}
+
+/** Paint-only segment emphasis; selection changes never replace its source. */
+export function applySelectedSegmentPresentation(
+  map: Pick<MapLibreMap, "setPaintProperty">,
+  selectedSegmentId: string | null,
+): void {
+  const selected = selectedSegmentMatch(selectedSegmentId);
+  map.setPaintProperty(ROUTE_SEGMENT_CASING_LAYER, "line-width", ["case", selected, 10, 7]);
+  map.setPaintProperty(ROUTE_SEGMENT_RING_LAYER, "line-opacity", ["case", selected, 0.22, 0]);
+  map.setPaintProperty(ROUTE_SEGMENT_LINE_LAYER, "line-width", ["case", selected, 6, 4]);
+}
 
 // First-party label anchors: no external glyph server, so labels and route
 // badges render as a DOM overlay projected through the map transform.
@@ -103,12 +220,10 @@ function networkFeatureCollection(input: {
       return {
         type: "Feature",
         id: feature.id,
-        geometry: {
-          type: "MultiLineString",
-          coordinates: feature.geometry.coordinates.map((line) =>
-            line.map(([lon, lat]) => [lon, lat]),
-          ),
-        },
+        // The served coordinates are immutable in this component. Reuse them
+        // across lens/period recolors instead of copying 50k points merely to
+        // attach display properties.
+        geometry: feature.geometry as unknown as MultiLineString,
         properties: {
           routeId: feature.properties.routeId,
           color: style.color,
@@ -118,6 +233,26 @@ function networkFeatureCollection(input: {
         },
       };
     }),
+  };
+}
+
+export function routeSegmentFeatureCollection(
+  segments: NetworkMapLibreProps["routeSegments"],
+): FeatureCollection<LineString, RouteSegmentLineProperties> {
+  return {
+    type: "FeatureCollection",
+    features:
+      segments?.features.map((feature) => ({
+        type: "Feature" as const,
+        id: feature.id,
+        geometry: feature.geometry as unknown as LineString,
+        properties: {
+          spineSegmentId:
+            feature.properties.spineJoinStatus === "matched"
+              ? feature.properties.spineSegmentId
+              : null,
+        },
+      })) ?? [],
   };
 }
 
@@ -186,22 +321,38 @@ function boundsOfNetwork(
   ];
 }
 
+function boundsOfRouteSegments(
+  segments: NetworkMapLibreProps["routeSegments"],
+): [[number, number], [number, number]] | null {
+  let minLon = Number.POSITIVE_INFINITY;
+  let minLat = Number.POSITIVE_INFINITY;
+  let maxLon = Number.NEGATIVE_INFINITY;
+  let maxLat = Number.NEGATIVE_INFINITY;
+  for (const feature of segments?.features ?? []) {
+    for (const [lon, lat] of feature.geometry.coordinates) {
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+  }
+  if (
+    !Number.isFinite(minLon) ||
+    !Number.isFinite(minLat) ||
+    !Number.isFinite(maxLon) ||
+    !Number.isFinite(maxLat)
+  ) {
+    return null;
+  }
+  return [
+    [minLon, minLat],
+    [maxLon, maxLat],
+  ];
+}
+
 function source(map: MapLibreMap, id: string): MapLibreGeoJSONSource | null {
   const found = map.getSource(id);
   return found === undefined ? null : (found as MapLibreGeoJSONSource);
-}
-
-function applyNetworkFocus(
-  map: MapLibreMap,
-  routeIds: readonly string[],
-  focus: string | null,
-): void {
-  for (const routeId of routeIds) {
-    map.setFeatureState(
-      { source: NETWORK_SOURCE, id: routeId },
-      { active: routeId === focus, dimmed: focus !== null && routeId !== focus },
-    );
-  }
 }
 
 function supportsWebGl(): boolean {
@@ -217,6 +368,53 @@ function prefersReducedMotion(): boolean {
   return typeof matchMedia === "function"
     ? matchMedia("(prefers-reduced-motion: reduce)").matches
     : false;
+}
+
+export function resolveNetworkMapInspectorInset(input: {
+  inspectorOpen: boolean;
+  desktopViewport: boolean;
+  inspectorInset?: number | undefined;
+}): number {
+  if (!input.inspectorOpen || !input.desktopViewport) return 0;
+  return Math.max(0, input.inspectorInset ?? DEFAULT_INSPECTOR_INSET);
+}
+
+export function networkMapFitPadding(inspectorInset: number): {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+} {
+  return {
+    top: FIT_PADDING,
+    right: FIT_PADDING + Math.max(0, inspectorInset),
+    bottom: FIT_PADDING,
+    left: FIT_PADDING,
+  };
+}
+
+export function applyNetworkMapControlInset(
+  map: Pick<MapLibreMap, "getContainer">,
+  inspectorInset: number,
+): void {
+  const controls = map.getContainer().querySelector<HTMLElement>(".maplibregl-ctrl-bottom-right");
+  if (controls !== null) controls.style.right = `${Math.max(0, inspectorInset)}px`;
+}
+
+export function networkMapFitDuration(animated: boolean, reducedMotion: boolean): number {
+  return animated && !reducedMotion ? FIT_DURATION_MS : 0;
+}
+
+function fitMapBounds(
+  map: Pick<MapLibreMap, "fitBounds">,
+  bounds: [[number, number], [number, number]],
+  inspectorInset: number,
+  animated: boolean,
+): void {
+  map.fitBounds(bounds, {
+    padding: networkMapFitPadding(inspectorInset),
+    duration: networkMapFitDuration(animated, prefersReducedMotion()),
+  });
 }
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -251,28 +449,62 @@ export function NetworkMapLibreMap({
   badges,
   busLanes,
   showLanes,
+  routeSegments = null,
+  selectedSegmentId = null,
   selectedRouteId,
+  focusedRouteId = null,
+  previewRouteId = null,
+  inspectorOpen = false,
+  inspectorInset,
+  fitCollectionKey,
   onSelectRoute,
   onClearSelection,
   popup,
   fallback,
+  ariaLabel,
+  ariaDescribedBy,
 }: NetworkMapLibreMapProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const vendorRef = useRef<MapLibreModule | null>(null);
   const popupRef = useRef<MapLibrePopup | null>(null);
-  const routeIdsRef = useRef<readonly string[]>([]);
+  const focusControllerRef = useRef<NetworkFocusController | null>(null);
   const hoverIntentRef = useRef<HoverIntent | null>(null);
   const previousDataRef = useRef<FeatureCollection<MultiLineString, NetworkLineProperties> | null>(
     null,
   );
+  const previousSegmentDataRef = useRef<FeatureCollection<
+    LineString,
+    RouteSegmentLineProperties
+  > | null>(null);
   const onSelectRouteRef = useRef(onSelectRoute);
   onSelectRouteRef.current = onSelectRoute;
   const onClearSelectionRef = useRef(onClearSelection);
   onClearSelectionRef.current = onClearSelection;
   const selectedRouteIdRef = useRef(selectedRouteId);
   selectedRouteIdRef.current = selectedRouteId;
+  const focusedRouteIdRef = useRef(focusedRouteId);
+  focusedRouteIdRef.current = focusedRouteId;
+  const previewRouteIdRef = useRef(previewRouteId);
+  previewRouteIdRef.current = previewRouteId;
+  const [desktopViewport, setDesktopViewport] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(DESKTOP_VIEWPORT_QUERY).matches,
+  );
+  const desktopInspectorOpen = inspectorOpen && desktopViewport;
+  const effectiveInspectorInset = resolveNetworkMapInspectorInset({
+    inspectorOpen,
+    desktopViewport,
+    inspectorInset,
+  });
+  const effectiveInspectorInsetRef = useRef(effectiveInspectorInset);
+  effectiveInspectorInsetRef.current = effectiveInspectorInset;
+  const previousInspectorInsetRef = useRef(effectiveInspectorInset);
+  const previousFitCollectionKeyRef = useRef(fitCollectionKey);
+  const fittedRouteSegmentsRef = useRef<NetworkMapLibreProps["routeSegments"]>(null);
   const [ready, setReady] = useState(false);
   const [failure, setFailure] = useState<"runtime" | "unsupported" | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
@@ -280,11 +512,25 @@ export function NetworkMapLibreMap({
     typeof document === "undefined" ? null : document.createElement("div"),
   );
   const networkData = useMemo(
-    () => networkFeatureCollection({ collection, view }),
-    [collection, view],
+    () =>
+      networkFeatureCollection({
+        collection,
+        view: { lens: view.lens, period: view.period, compare: view.compare },
+      }),
+    [collection, view.lens, view.period, view.compare],
   );
   const landData = useMemo(() => landCollection(context), [context]);
   const laneData = useMemo(() => laneFeatureCollection(busLanes), [busLanes]);
+  const segmentData = useMemo(() => routeSegmentFeatureCollection(routeSegments), [routeSegments]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(DESKTOP_VIEWPORT_QUERY);
+    const update = () => setDesktopViewport(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -292,24 +538,22 @@ export function NetworkMapLibreMap({
       setFailure("unsupported");
       return;
     }
-    const applyActive = (previous: string | null, next: string | null) => {
-      const map = mapRef.current;
-      if (map === null) return;
-      if (previous !== null)
-        map.setFeatureState({ source: NETWORK_SOURCE, id: previous }, { active: false });
-      if (next !== null)
-        map.setFeatureState({ source: NETWORK_SOURCE, id: next }, { active: true });
+    let hoverIntent: HoverIntent;
+    const syncPresentation = () => {
+      const focusController = focusControllerRef.current;
+      if (focusController === null) return;
+      applyNetworkFocusPresentation(focusController, {
+        focusedRouteId: focusedRouteIdRef.current,
+        hoveredRouteId: hoverIntent.hovered(),
+        hoverDimEngaged: hoverIntent.dimEngaged(),
+        previewRouteId: previewRouteIdRef.current,
+        selectedRouteId: selectedRouteIdRef.current,
+      });
     };
-    const applyFocus = () => {
-      const map = mapRef.current;
-      if (map === null) return;
-      applyNetworkFocus(
-        map,
-        routeIdsRef.current,
-        hoverIntent.hovered() ?? selectedRouteIdRef.current,
-      );
-    };
-    const hoverIntent = createHoverIntent({ applyActive, applyFocus });
+    hoverIntent = createHoverIntent({
+      applyActive: syncPresentation,
+      applyFocus: syncPresentation,
+    });
     hoverIntentRef.current = hoverIntent;
     const onMouseMove = (event: MapLibreMapLayerMouseEvent) => {
       const map = mapRef.current;
@@ -320,7 +564,12 @@ export function NetworkMapLibreMap({
       });
       if (candidates.length === 0) return;
       map.getCanvas().style.cursor = "pointer";
-      hoverIntent.move(candidates, selectedRouteIdRef.current !== null);
+      hoverIntent.move(
+        candidates,
+        focusedRouteIdRef.current !== null ||
+          previewRouteIdRef.current !== null ||
+          selectedRouteIdRef.current !== null,
+      );
     };
     const onMouseLeave = () => {
       const map = mapRef.current;
@@ -386,6 +635,7 @@ export function NetworkMapLibreMap({
           data: { type: "FeatureCollection", features: [] },
         });
         map.addSource(LANES_SOURCE, { type: "geojson", data: laneData });
+        map.addSource(ROUTE_SEGMENT_SOURCE, { type: "geojson", data: segmentData });
         map.addLayer({
           id: CASING_LAYER,
           type: "line",
@@ -394,7 +644,7 @@ export function NetworkMapLibreMap({
           paint: {
             "line-color": MAP_COLORS.paper,
             "line-width": ["+", LINE_WIDTH_EXPRESSION, 2.6],
-            "line-opacity": LINE_OPACITY_EXPRESSION,
+            "line-opacity": DEFAULT_LINE_OPACITY,
           },
           layout: {
             "line-cap": "round",
@@ -410,7 +660,7 @@ export function NetworkMapLibreMap({
           paint: {
             "line-color": ["get", "color"],
             "line-width": 1.8,
-            "line-opacity": LINE_OPACITY_EXPRESSION,
+            "line-opacity": DEFAULT_LINE_OPACITY,
             "line-dasharray": [2, 2.4],
           },
           layout: { "line-cap": "butt", "line-join": "round" },
@@ -423,7 +673,7 @@ export function NetworkMapLibreMap({
           paint: {
             "line-color": ["get", "color"],
             "line-width": LINE_WIDTH_EXPRESSION,
-            "line-opacity": LINE_OPACITY_EXPRESSION,
+            "line-opacity": DEFAULT_LINE_OPACITY,
           },
           layout: {
             "line-cap": "round",
@@ -460,6 +710,40 @@ export function NetworkMapLibreMap({
             "line-dasharray": [3, 4],
           },
         });
+        const selectedSegment = selectedSegmentMatch(selectedSegmentId);
+        map.addLayer({
+          id: ROUTE_SEGMENT_CASING_LAYER,
+          type: "line",
+          source: ROUTE_SEGMENT_SOURCE,
+          paint: {
+            "line-color": MAP_COLORS.paper,
+            "line-width": ["case", selectedSegment, 10, 7],
+            "line-opacity": 0.96,
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: ROUTE_SEGMENT_RING_LAYER,
+          type: "line",
+          source: ROUTE_SEGMENT_SOURCE,
+          paint: {
+            "line-color": MAP_COLORS.accent,
+            "line-width": 12,
+            "line-opacity": ["case", selectedSegment, 0.22, 0],
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: ROUTE_SEGMENT_LINE_LAYER,
+          type: "line",
+          source: ROUTE_SEGMENT_SOURCE,
+          paint: {
+            "line-color": MAP_COLORS.ink70,
+            "line-width": ["case", selectedSegment, 6, 4],
+            "line-opacity": 0.9,
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
         map.addLayer({
           id: HIT_LAYER,
           type: "line",
@@ -467,11 +751,16 @@ export function NetworkMapLibreMap({
           paint: { "line-color": "#000", "line-opacity": 0, "line-width": 18 },
           layout: { "line-cap": "round", "line-join": "round" },
         });
-        routeIdsRef.current = collection.features.map((feature) => feature.properties.routeId);
-        applyFocus();
+        focusControllerRef.current = createNetworkFocusController(map);
+        syncPresentation();
         previousDataRef.current = networkData;
-        const bounds = boundsOfNetwork(collection);
-        if (bounds !== null) map.fitBounds(bounds, { padding: 28, duration: 0 });
+        previousSegmentDataRef.current = segmentData;
+        fittedRouteSegmentsRef.current = routeSegments;
+        const inset = effectiveInspectorInsetRef.current;
+        previousInspectorInsetRef.current = inset;
+        applyNetworkMapControlInset(map, inset);
+        const bounds = boundsOfRouteSegments(routeSegments) ?? boundsOfNetwork(collection);
+        if (bounds !== null) fitMapBounds(map, bounds, inset, false);
         map.on("mousemove", HIT_LAYER, onMouseMove);
         map.on("mouseleave", HIT_LAYER, onMouseLeave);
         map.on("click", HIT_LAYER, onClick);
@@ -480,6 +769,8 @@ export function NetworkMapLibreMap({
       },
       onFatal: (error) => {
         popupRef.current = null;
+        focusControllerRef.current = null;
+        vendorRef.current = null;
         mapRef.current = null;
         setReady(false);
         setFailure("runtime");
@@ -495,10 +786,15 @@ export function NetworkMapLibreMap({
         map.off("click", onBackgroundClick);
         hoverIntent.dispose();
         hoverIntentRef.current = null;
+        focusControllerRef.current?.dispose();
+        focusControllerRef.current = null;
         popupRef.current?.remove();
         popupRef.current = null;
+        vendorRef.current = null;
         mapRef.current = null;
         previousDataRef.current = null;
+        previousSegmentDataRef.current = null;
+        fittedRouteSegmentsRef.current = null;
         setReady(false);
       },
     });
@@ -523,9 +819,10 @@ export function NetworkMapLibreMap({
     const network = source(map, NETWORK_SOURCE);
     if (network === null) return;
     const previous = previousDataRef.current;
+    if (previous === networkData) return;
     previousDataRef.current = networkData;
     const ghost = source(map, GHOST_SOURCE);
-    if (previous === null || previous === networkData || ghost === null || prefersReducedMotion()) {
+    if (previous === null || ghost === null || prefersReducedMotion()) {
       network.setData(networkData);
       return;
     }
@@ -547,6 +844,45 @@ export function NetworkMapLibreMap({
     source(map, LANES_SOURCE)?.setData(laneData);
   }, [laneData, ready]);
 
+  // Selected-route geometry is replaced only when its lazy artifact changes.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map === null || !ready || previousSegmentDataRef.current === segmentData) return;
+    previousSegmentDataRef.current = segmentData;
+    source(map, ROUTE_SEGMENT_SOURCE)?.setData(segmentData);
+  }, [ready, segmentData]);
+
+  // Preserve user pan/zoom during ordinary data refreshes. Only an explicit
+  // collection-fit key, newly available route geometry, or changed desktop
+  // inspector occlusion asks the camera to move.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map === null || !ready) return;
+    const inspectorInsetChanged = previousInspectorInsetRef.current !== effectiveInspectorInset;
+    const collectionFitRequested = previousFitCollectionKeyRef.current !== fitCollectionKey;
+    const routeSegmentsReady =
+      routeSegments !== null && fittedRouteSegmentsRef.current !== routeSegments;
+
+    previousInspectorInsetRef.current = effectiveInspectorInset;
+    previousFitCollectionKeyRef.current = fitCollectionKey;
+    fittedRouteSegmentsRef.current = routeSegments;
+    applyNetworkMapControlInset(map, effectiveInspectorInset);
+
+    let bounds: [[number, number], [number, number]] | null = null;
+    if (routeSegmentsReady) bounds = boundsOfRouteSegments(routeSegments);
+    if (bounds === null && collectionFitRequested) bounds = boundsOfNetwork(collection);
+    if (bounds === null && inspectorInsetChanged) {
+      bounds = boundsOfRouteSegments(routeSegments) ?? boundsOfNetwork(collection);
+    }
+    if (bounds !== null) fitMapBounds(map, bounds, effectiveInspectorInset, true);
+  }, [collection, effectiveInspectorInset, fitCollectionKey, ready, routeSegments]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map === null || !ready) return;
+    applySelectedSegmentPresentation(map, selectedSegmentId);
+  }, [ready, selectedSegmentId]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (map === null || !ready || map.getLayer(LANES_LAYER) === undefined) return;
@@ -554,15 +890,17 @@ export function NetworkMapLibreMap({
   }, [showLanes, ready]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (map === null || !ready) return;
-    routeIdsRef.current = collection.features.map((feature) => feature.properties.routeId);
-    applyNetworkFocus(
-      map,
-      routeIdsRef.current,
-      hoverIntentRef.current?.hovered() ?? selectedRouteId,
-    );
-  }, [collection, ready, selectedRouteId]);
+    const focusController = focusControllerRef.current;
+    const hoverIntent = hoverIntentRef.current;
+    if (focusController === null || hoverIntent === null || !ready) return;
+    applyNetworkFocusPresentation(focusController, {
+      focusedRouteId,
+      hoveredRouteId: hoverIntent.hovered(),
+      hoverDimEngaged: hoverIntent.dimEngaged(),
+      previewRouteId,
+      selectedRouteId,
+    });
+  }, [focusedRouteId, previewRouteId, ready, selectedRouteId]);
 
   // Borough/water labels and route badges live in a DOM overlay projected
   // through the map transform — no glyph server, no external origins.
@@ -599,7 +937,7 @@ export function NetworkMapLibreMap({
     }> = [];
     // While a route is pinned the popup is the focus; badges stand down so
     // they never paint over the card.
-    for (const badge of popup === null ? badges : []) {
+    for (const badge of popup === null && !desktopInspectorOpen ? badges : []) {
       if (badge.routeId === selectedRouteIdRef.current) continue;
       const element = document.createElement("span");
       element.textContent = badge.label;
@@ -681,7 +1019,7 @@ export function NetworkMapLibreMap({
       map.off("resize", layout);
       overlay.replaceChildren();
     };
-  }, [ready, badges, selectedRouteId, popup]);
+  }, [ready, badges, desktopInspectorOpen, selectedRouteId, popup]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -729,24 +1067,23 @@ export function NetworkMapLibreMap({
   }
 
   return (
-    <>
-      <div
+    <div className="relative h-full min-h-[320px]">
+      <section
         ref={containerRef}
         className="h-full min-h-[320px] overflow-hidden bg-[var(--bp-color-card)]"
-        role="img"
-        aria-label={
-          view.lens === "delay"
-            ? "Citywide bus route rider-delay map"
-            : "Citywide bus route speed map"
-        }
+        aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
+        aria-busy={!ready}
+        aria-hidden={ready ? undefined : true}
       />
+      {ready ? null : <div className="absolute inset-0 z-[3]">{fallback}</div>}
       <div
         ref={overlayRef}
         aria-hidden
         className="pointer-events-none absolute inset-0 z-[2] overflow-hidden"
       />
       {popupNode !== null && popup !== null ? createPortal(popup.content, popupNode) : null}
-    </>
+    </div>
   );
 }
 

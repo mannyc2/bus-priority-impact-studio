@@ -1,7 +1,10 @@
-import type { MapBusLaneFeatureCollection, MapManifestResponse } from "@bp/domain/maps";
+import type {
+  MapBusLaneFeatureCollection,
+  MapManifestResponse,
+  MapRouteSegmentFeatureCollection,
+} from "@bp/domain/maps";
 import { Link } from "@tanstack/react-router";
-import { Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { MapHourStrip } from "@/components/route/MapHourStrip";
 import {
   type NetworkBadge,
@@ -14,46 +17,177 @@ import {
   coverageLabel,
   delayLensEligible,
   featureAnchor,
-  featureClass,
   featureValue,
+  filterNetworkFeaturesByBorough,
   formatViewValue,
   insightModel,
   legendModel,
+  type NetworkBorough,
   type NetworkEncoding,
   type NetworkView,
   percentileLine,
+  periodEligible,
   periodLabel,
-  SPEED_CLASS_COLORS,
+  routeSegmentSpineIds,
   slowestWindow,
   sortFeaturesForView,
   speedBandTerm,
+  unverifiedBoroughFeatureCount,
   viewEncoding,
 } from "@/components/route/network-map-model";
-import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import {
+  buildNetworkMapIdentityIndex,
+  canonicalizeNetworkMapSearch,
+  type NetworkMapCanonicalizationNotice,
+  type NetworkMapRouteIdentity,
+  type NetworkMapSearch,
+  type SegmentValidation,
+} from "@/components/route/network-map-search";
+import type { RouteGeoContext } from "@/components/route/route-geo-map";
+import { Button } from "@/components/ui/button";
+import {
+  currentMapBusLaneArtifact,
   fetchMapBusLanes,
+  fetchSelectedRouteMapEvidence,
   type NetworkMapFeature,
   type NetworkMapFeatureCollection,
+  type SelectedRouteMapEvidence,
 } from "@/studio/api-client";
 import type { StudioRoute, StudyIndexRow } from "@/studio/api-contract";
+
+const NetworkMapControls = lazy(() =>
+  import("@/components/route/NetworkMapChrome").then((module) => ({
+    default: module.NetworkMapControls,
+  })),
+);
+const NetworkMapMobileOptions = lazy(() =>
+  import("@/components/route/NetworkMapChrome").then((module) => ({
+    default: module.NetworkMapMobileOptions,
+  })),
+);
+const NetworkMapBrowse = lazy(() =>
+  import("@/components/route/NetworkMapChrome").then((module) => ({
+    default: module.NetworkMapBrowse,
+  })),
+);
+const NetworkMapSelected = lazy(() =>
+  import("@/components/route/NetworkMapChrome").then((module) => ({
+    default: module.NetworkMapSelected,
+  })),
+);
+const NetworkMapMobileSheet = lazy(() =>
+  import("@/components/route/NetworkMapChrome").then((module) => ({
+    default: module.NetworkMapMobileSheet,
+  })),
+);
+const NetworkMapDataNotes = lazy(() =>
+  import("@/components/route/NetworkMapChrome").then((module) => ({
+    default: module.NetworkMapDataNotes,
+  })),
+);
+
+type SelectedEvidenceState =
+  | { status: "loading"; requestKey: string | null; routeId: string }
+  | {
+      status: "ready";
+      requestKey: string;
+      routeId: string;
+      evidence: SelectedRouteMapEvidence;
+    }
+  | { status: "unavailable"; requestKey: string | null; routeId: string; message: string };
+
+type BusLaneCache = {
+  artifactKey: string;
+  sha256: string;
+  data: MapBusLaneFeatureCollection;
+};
+
+type BusLaneError = { artifactKey: string; sha256: string; message: string };
+
+type UrlNotice = { searchKey: string; contextKey: string; message: string };
+
+export function networkMapReleaseKey(manifest: MapManifestResponse): string {
+  return JSON.stringify([
+    manifest.schemaVersion,
+    manifest.releaseId,
+    manifest.publishedAt,
+    manifest.coverage.start,
+    manifest.coverage.end,
+  ]);
+}
+
+export function selectedRouteEvidenceKey(manifest: MapManifestResponse, routeId: string): string {
+  const segmentObjects = manifest.artifacts
+    .filter(
+      (artifact) =>
+        artifact.artifactKind === "map_route_segments_geojson" && artifact.routeId === routeId,
+    )
+    .map((artifact): [string, string] => [artifact.artifactKey, artifact.sha256])
+    .sort(([left], [right]) => left.localeCompare(right));
+  return JSON.stringify([networkMapReleaseKey(manifest), routeId, segmentObjects]);
+}
 
 export function NetworkMapLoadingPage() {
   return (
     <main className="flex h-full min-h-0 flex-col">
       <div className="flex items-baseline gap-3 px-7 py-3 max-md:px-4">
-        <div className="h-6 w-44 animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]" />
+        <div className="h-6 w-44 animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none" />
       </div>
-      <div className="min-h-0 flex-1 animate-pulse bg-[var(--bp-color-ink-06)]" />
+      <div className="min-h-0 flex-1 animate-pulse bg-[var(--bp-color-ink-06)] motion-reduce:animate-none" />
     </main>
   );
 }
 
-type NetworkMapSelection = {
-  routeId: string;
-  anchor: readonly [number, number];
+const NOTE_DISMISSED_KEY = "bp.map.insight.dismissed";
+
+type SearchChangeOptions = { replace: boolean };
+
+type SearchPatch = {
+  [Key in keyof NetworkMapSearch]?: NetworkMapSearch[Key] | undefined;
 };
 
-const NOTE_DISMISSED_KEY = "bp.map.insight.dismissed";
+function patchSearch(search: NetworkMapSearch, patch: SearchPatch): NetworkMapSearch {
+  const next = { ...search };
+  for (const key of Object.keys(patch) as Array<keyof NetworkMapSearch>) {
+    const value = patch[key];
+    if (value === undefined) delete next[key];
+    else Object.assign(next, { [key]: value });
+  }
+  return next;
+}
+
+function withoutPin(search: NetworkMapSearch): NetworkMapSearch {
+  return patchSearch(search, { route: undefined, segment: undefined });
+}
+
+export function networkMapSearchStateKey(search: object): string {
+  return JSON.stringify(
+    Object.entries(search as Record<string, unknown>).sort(([left], [right]) =>
+      left.localeCompare(right),
+    ),
+  );
+}
+
+function noticeMessage(notice: NetworkMapCanonicalizationNotice): string {
+  switch (notice) {
+    case "unsupported_lens":
+      return "That metric is unavailable; the map returned to speed.";
+    case "unsupported_period":
+      return "That period lacks complete coverage; the map returned to all day.";
+    case "unknown_route":
+      return "The saved route is not in this mapped release.";
+    case "route_outside_borough":
+      return "That route does not serve this borough, so its pin was cleared.";
+    case "segment_invalid":
+      return "The saved segment is unavailable for this route and was removed from the link.";
+    case "lanes_unavailable":
+      return "NYC DOT bus lanes are unavailable for this release.";
+  }
+}
+
+function isMobileViewport(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+}
 
 function readNoteDismissed(): boolean {
   try {
@@ -81,6 +215,10 @@ export function NetworkMapPage({
   lanesAvailable,
   coverageEnd,
   studyIndex,
+  completeFactCount,
+  factsStatus,
+  search,
+  onSearchChange,
 }: {
   routes: readonly StudioRoute[];
   network: NetworkMapFeatureCollection | null;
@@ -90,18 +228,33 @@ export function NetworkMapPage({
   lanesAvailable: boolean;
   coverageEnd: string | null;
   studyIndex: readonly StudyIndexRow[] | null;
+  completeFactCount: number;
+  factsStatus: "ready" | "unavailable" | "coverage_mismatch";
+  search: NetworkMapSearch;
+  onSearchChange: (next: NetworkMapSearch, options: SearchChangeOptions) => void;
 }) {
-  const [view, setView] = useState<NetworkView>({ lens: "speed", period: "all", compare: false });
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [mobileMode, setMobileMode] = useState<"browse" | "selected">("browse");
+  const [dataNotesOpen, setDataNotesOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [selection, setSelection] = useState<NetworkMapSelection | null>(null);
-  const [previewRouteId, setPreviewRouteId] = useState<string | null>(null);
+  const [pointerPreviewRouteId, setPointerPreviewRouteId] = useState<string | null>(null);
+  const [focusedPreviewRouteId, setFocusedPreviewRouteId] = useState<string | null>(null);
+  const [clickedAnchor, setClickedAnchor] = useState<{
+    routeId: string;
+    anchor: readonly [number, number];
+  } | null>(null);
   const [noteDismissed, setNoteDismissed] = useState(readNoteDismissed);
-  const [lanesVisible, setLanesVisible] = useState(false);
-  const [busLanes, setBusLanes] = useState<MapBusLaneFeatureCollection | null>(null);
-  const [lanesError, setLanesError] = useState<string | null>(null);
+  const [busLaneCache, setBusLaneCache] = useState<BusLaneCache | null>(null);
+  const [lanesError, setLanesError] = useState<BusLaneError | null>(null);
+  const [urlNotice, setUrlNotice] = useState<UrlNotice | null>(null);
+  const [selectedEvidence, setSelectedEvidence] = useState<SelectedEvidenceState | null>(null);
+  const [selectedAutoFocus, setSelectedAutoFocus] = useState<"desktop" | "mobile" | null>(null);
+  const [mobileViewport, setMobileViewport] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const mobileSearchRef = useRef<HTMLInputElement | null>(null);
   const findPillRef = useRef<HTMLButtonElement | null>(null);
+  const mobileBrowseButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const routeById = useMemo(() => new Map(routes.map((route) => [route.routeId, route])), [routes]);
   const studiesByRouteId = useMemo(() => {
@@ -114,23 +267,229 @@ export function NetworkMapPage({
     return grouped;
   }, [studyIndex]);
 
-  const coverage = coverageEnd === null ? null : coverageLabel(coverageEnd);
+  const delayCoverage = coverageEnd === null ? null : coverageLabel(coverageEnd);
+  const releaseCoverage = manifest === null ? null : coverageLabel(manifest.coverage.end);
+  const releaseKey = manifest === null ? null : networkMapReleaseKey(manifest);
+  const busLaneArtifact = useMemo(
+    () => (manifest === null ? null : currentMapBusLaneArtifact(manifest)),
+    [manifest],
+  );
+  const busLanes =
+    busLaneArtifact !== null &&
+    busLaneCache?.artifactKey === busLaneArtifact.artifactKey &&
+    busLaneCache.sha256 === busLaneArtifact.sha256
+      ? busLaneCache.data
+      : null;
+  const activeLanesError =
+    busLaneArtifact !== null &&
+    lanesError?.artifactKey === busLaneArtifact.artifactKey &&
+    lanesError.sha256 === busLaneArtifact.sha256
+      ? lanesError.message
+      : null;
+  const lanesEligible = lanesAvailable && busLaneArtifact !== null;
+  const busLaneArtifactRef = useRef(busLaneArtifact);
+  busLaneArtifactRef.current = busLaneArtifact;
   const delayEligible = useMemo(
-    () => network !== null && delayLensEligible(network.features, coverage),
-    [network, coverage],
+    () => network !== null && delayLensEligible(network.features, delayCoverage),
+    [network, delayCoverage],
+  );
+  const amEligible = useMemo(
+    () => network !== null && periodEligible(network.features, "am"),
+    [network],
+  );
+  const pmEligible = useMemo(
+    () => network !== null && periodEligible(network.features, "pm"),
+    [network],
+  );
+  const identityRoutes = useMemo<NetworkMapRouteIdentity[]>(() => {
+    if (network === null) return [];
+    return network.features.flatMap((feature) => {
+      const route = routeById.get(feature.properties.routeId);
+      return route === undefined
+        ? []
+        : [
+            {
+              routeId: feature.properties.routeId,
+              slug: route.slug,
+              servedBoroughs: feature.properties.servedBoroughs,
+            },
+          ];
+    });
+  }, [network, routeById]);
+  const identity = useMemo(() => buildNetworkMapIdentityIndex(identityRoutes), [identityRoutes]);
+  const rawPinnedRouteId =
+    search.route === undefined ? null : (identity.routeIdBySlug.get(search.route) ?? null);
+  const selectedEvidenceKey =
+    manifest === null || rawPinnedRouteId === null
+      ? null
+      : selectedRouteEvidenceKey(manifest, rawPinnedRouteId);
+
+  useEffect(() => {
+    if (rawPinnedRouteId === null) {
+      setSelectedEvidence(null);
+      return;
+    }
+    if (manifest === null) {
+      setSelectedEvidence({
+        status: "unavailable",
+        requestKey: null,
+        routeId: rawPinnedRouteId,
+        message: "Selected-route evidence is unavailable because the map manifest is missing.",
+      });
+      return;
+    }
+    const controller = new AbortController();
+    const requestKey = selectedRouteEvidenceKey(manifest, rawPinnedRouteId);
+    setSelectedEvidence({
+      status: "loading",
+      requestKey,
+      routeId: rawPinnedRouteId,
+    });
+    fetchSelectedRouteMapEvidence(manifest, rawPinnedRouteId, { signal: controller.signal })
+      .then((evidence) => {
+        if (!controller.signal.aborted) {
+          setSelectedEvidence({
+            status: "ready",
+            requestKey,
+            routeId: rawPinnedRouteId,
+            evidence,
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setSelectedEvidence({
+          status: "unavailable",
+          requestKey,
+          routeId: rawPinnedRouteId,
+          message:
+            error instanceof Error
+              ? `Selected-route evidence could not be loaded: ${error.message}`
+              : "Selected-route evidence could not be loaded.",
+        });
+      });
+    return () => controller.abort();
+  }, [manifest, rawPinnedRouteId]);
+
+  const currentSelectedEvidence =
+    selectedEvidence?.routeId === rawPinnedRouteId &&
+    selectedEvidence.requestKey === selectedEvidenceKey
+      ? selectedEvidence
+      : null;
+
+  const segmentValidation = useMemo<SegmentValidation | undefined>(() => {
+    if (search.route === undefined || search.segment === undefined) return undefined;
+    if (currentSelectedEvidence === null || currentSelectedEvidence.status === "loading") {
+      return { status: "pending", routeSlug: search.route };
+    }
+    if (currentSelectedEvidence.status === "unavailable") {
+      return { status: "unavailable", routeSlug: search.route };
+    }
+    const segmentLoad = currentSelectedEvidence.evidence.segments;
+    return segmentLoad.status === "ready"
+      ? {
+          status: "ready",
+          routeSlug: search.route,
+          spineIds: routeSegmentSpineIds(segmentLoad.data),
+        }
+      : { status: "unavailable", routeSlug: search.route };
+  }, [search.route, search.segment, currentSelectedEvidence]);
+
+  const canonicalization = useMemo(
+    () =>
+      canonicalizeNetworkMapSearch(search, {
+        routes: identityRoutes,
+        eligibility: {
+          delayExposure: delayEligible,
+          change: false,
+          am: amEligible,
+          pm: pmEligible,
+          lanes: lanesEligible,
+        },
+        ...(segmentValidation === undefined ? {} : { segmentValidation }),
+      }),
+    [
+      search,
+      identityRoutes,
+      delayEligible,
+      amEligible,
+      pmEligible,
+      lanesEligible,
+      segmentValidation,
+    ],
+  );
+  const effectiveSearch = canonicalization.search;
+  const runtimeSearchKey = networkMapSearchStateKey(search);
+  const canonicalSearchKey = networkMapSearchStateKey(canonicalization.search);
+  const canonicalContextKey = JSON.stringify([
+    releaseKey,
+    delayEligible,
+    amEligible,
+    pmEligible,
+    lanesEligible,
+  ]);
+  const activeUrlNotice =
+    urlNotice?.searchKey === runtimeSearchKey && urlNotice.contextKey === canonicalContextKey
+      ? urlNotice.message
+      : null;
+  const effectiveSearchRef = useRef(effectiveSearch);
+  effectiveSearchRef.current = effectiveSearch;
+
+  useEffect(() => {
+    setUrlNotice((current) =>
+      current?.searchKey === runtimeSearchKey && current.contextKey === canonicalContextKey
+        ? current
+        : null,
+    );
+  }, [canonicalContextKey, runtimeSearchKey]);
+
+  useEffect(() => {
+    if (runtimeSearchKey === canonicalSearchKey) return;
+    const messages = [...new Set(canonicalization.notices.map(noticeMessage))];
+    setUrlNotice(
+      messages.length === 0
+        ? null
+        : {
+            searchKey: canonicalSearchKey,
+            contextKey: canonicalContextKey,
+            message: messages.join(" "),
+          },
+    );
+    onSearchChange(canonicalization.search, { replace: true });
+  }, [canonicalContextKey, canonicalSearchKey, canonicalization, onSearchChange, runtimeSearchKey]);
+
+  const view = useMemo<NetworkView>(
+    () => ({
+      lens: effectiveSearch.lens === "delay-exposure" ? "delay" : "speed",
+      period: effectiveSearch.period ?? "all",
+      compare: effectiveSearch.compare === true,
+    }),
+    [effectiveSearch.compare, effectiveSearch.lens, effectiveSearch.period],
+  );
+  const borough = effectiveSearch.borough as NetworkBorough | undefined;
+  const filteredFeatures = useMemo(
+    () => (network === null ? [] : filterNetworkFeaturesByBorough(network.features, borough)),
+    [network, borough],
+  );
+  const visibleNetwork = useMemo<NetworkMapFeatureCollection | null>(
+    () => (network === null ? null : { ...network, features: filteredFeatures }),
+    [network, filteredFeatures],
   );
   const legend = useMemo(
-    () => (network === null ? null : legendModel(network.features, view, coverage ?? "")),
-    [network, view, coverage],
+    () => (network === null ? null : legendModel(filteredFeatures, view, delayCoverage ?? "")),
+    [network, filteredFeatures, view, delayCoverage],
   );
   const insight = useMemo(
-    () => (network === null ? null : insightModel(network.features, view, coverage ?? "")),
-    [network, view, coverage],
+    () => (network === null ? null : insightModel(filteredFeatures, view, delayCoverage ?? "")),
+    [network, filteredFeatures, view, delayCoverage],
+  );
+  const rankedForView = useMemo(
+    () => sortFeaturesForView(filteredFeatures, view),
+    [filteredFeatures, view],
   );
   const ranked = useMemo(() => {
-    if (network === null) return [];
     const needle = query.trim().toLowerCase();
-    return sortFeaturesForView(network.features, view).filter((feature) => {
+    return rankedForView.filter((feature) => {
       if (needle === "") return true;
       const corridor = routeById.get(feature.properties.routeId)?.corridor ?? "";
       return (
@@ -138,10 +497,9 @@ export function NetworkMapPage({
         corridor.toLowerCase().includes(needle)
       );
     });
-  }, [network, view, query, routeById]);
+  }, [rankedForView, query, routeById]);
   const badges = useMemo<NetworkBadge[]>(() => {
-    if (network === null) return [];
-    return badgeFeatures(network.features, view, 10).flatMap((feature) => {
+    return badgeFeatures(filteredFeatures, view, 10).flatMap((feature) => {
       const anchor = featureAnchor(feature);
       return anchor === null
         ? []
@@ -154,54 +512,219 @@ export function NetworkMapPage({
             },
           ];
     });
-  }, [network, view]);
+  }, [filteredFeatures, view]);
+
+  const selectedRouteId = canonicalization.routeId;
+  const selectedFeature =
+    selectedRouteId === null
+      ? null
+      : (filteredFeatures.find((feature) => feature.properties.routeId === selectedRouteId) ??
+        null);
+  const selectedRoute = selectedRouteId === null ? null : (routeById.get(selectedRouteId) ?? null);
+  const selectedAnchor =
+    selectedFeature === null
+      ? null
+      : clickedAnchor?.routeId === selectedFeature.properties.routeId
+        ? clickedAnchor.anchor
+        : featureAnchor(selectedFeature);
+  const selectedSegments: MapRouteSegmentFeatureCollection | null =
+    currentSelectedEvidence?.status === "ready" &&
+    currentSelectedEvidence.routeId === selectedRouteId &&
+    currentSelectedEvidence.evidence.segments.status === "ready"
+      ? currentSelectedEvidence.evidence.segments.data
+      : null;
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const update = () => setMobileViewport(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileViewport) {
+      setMobileSheetOpen(false);
+    } else if (selectedRouteId !== null) {
+      setMobileMode("selected");
+      setMobileSheetOpen(true);
+    } else {
+      setSelectedAutoFocus(null);
+    }
+  }, [mobileViewport, selectedRouteId]);
+
+  useEffect(() => {
+    if (mobileViewport && mobileSheetOpen && mobileMode === "browse") {
+      mobileSearchRef.current?.focus();
+    }
+  }, [mobileMode, mobileSheetOpen, mobileViewport]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (selection !== null) {
-        setSelection(null);
+      if (event.key !== "Escape" || event.defaultPrevented || mobileSheetOpen || dataNotesOpen)
+        return;
+      if (browseOpen) {
+        setBrowseOpen(false);
+        setPointerPreviewRouteId(null);
+        setFocusedPreviewRouteId(null);
+        findPillRef.current?.focus();
         return;
       }
-      if (panelOpen) {
-        setPanelOpen(false);
-        setPreviewRouteId(null);
-        findPillRef.current?.focus();
+      if (selectedRouteId !== null) {
+        setClickedAnchor(null);
+        setSelectedAutoFocus(null);
+        onSearchChange(withoutPin(effectiveSearch), { replace: true });
+        requestAnimationFrame(() => findPillRef.current?.focus());
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selection, panelOpen]);
+  }, [
+    selectedRouteId,
+    browseOpen,
+    effectiveSearch,
+    onSearchChange,
+    mobileSheetOpen,
+    dataNotesOpen,
+  ]);
 
   useEffect(() => {
-    if (panelOpen) searchRef.current?.focus();
-  }, [panelOpen]);
+    if (browseOpen) searchRef.current?.focus();
+  }, [browseOpen]);
 
-  const toggleLanes = (visible: boolean) => {
-    setLanesVisible(visible);
-    if (!visible || busLanes !== null || manifest === null) return;
-    fetchMapBusLanes(manifest)
+  useEffect(() => {
+    if (
+      effectiveSearch.lanes !== true ||
+      busLaneArtifact === null ||
+      busLanes !== null ||
+      manifest === null
+    )
+      return;
+    const controller = new AbortController();
+    const requestArtifact = busLaneArtifact;
+    setLanesError((current) =>
+      current?.artifactKey === requestArtifact.artifactKey &&
+      current.sha256 === requestArtifact.sha256
+        ? null
+        : current,
+    );
+    fetchMapBusLanes(manifest, { signal: controller.signal })
       .then((load) => {
+        if (controller.signal.aborted) return;
+        const activeArtifact = busLaneArtifactRef.current;
+        if (
+          activeArtifact?.artifactKey !== requestArtifact.artifactKey ||
+          activeArtifact.sha256 !== requestArtifact.sha256
+        )
+          return;
         if (load.status === "ready") {
-          setBusLanes(load.data);
-          setLanesError(null);
+          setBusLaneCache({
+            artifactKey: requestArtifact.artifactKey,
+            sha256: requestArtifact.sha256,
+            data: load.data,
+          });
+          setLanesError((current) =>
+            current?.artifactKey === requestArtifact.artifactKey &&
+            current.sha256 === requestArtifact.sha256
+              ? null
+              : current,
+          );
         } else {
-          setLanesVisible(false);
-          setLanesError("The bus-lane layer failed to load.");
+          setLanesError({
+            artifactKey: requestArtifact.artifactKey,
+            sha256: requestArtifact.sha256,
+            message: "The bus-lane layer failed to load.",
+          });
+          onSearchChange(patchSearch(effectiveSearchRef.current, { lanes: undefined }), {
+            replace: true,
+          });
         }
       })
       .catch(() => {
-        setLanesVisible(false);
-        setLanesError("The bus-lane layer failed to load.");
+        if (controller.signal.aborted) return;
+        const activeArtifact = busLaneArtifactRef.current;
+        if (
+          activeArtifact?.artifactKey !== requestArtifact.artifactKey ||
+          activeArtifact.sha256 !== requestArtifact.sha256
+        )
+          return;
+        setLanesError({
+          artifactKey: requestArtifact.artifactKey,
+          sha256: requestArtifact.sha256,
+          message: "The bus-lane layer failed to load.",
+        });
+        onSearchChange(patchSearch(effectiveSearchRef.current, { lanes: undefined }), {
+          replace: true,
+        });
       });
+    return () => controller.abort();
+  }, [effectiveSearch.lanes, busLaneArtifact, busLanes, manifest, onSearchChange]);
+
+  const pinRoute = (
+    routeId: string,
+    anchor: readonly [number, number] | null,
+    interaction: "keyboard" | "pointer" = "pointer",
+  ) => {
+    if (anchor === null) return;
+    const slug = identity.slugByRouteId.get(routeId);
+    if (slug === undefined) return;
+    const mobile = isMobileViewport();
+    setBrowseOpen(false);
+    setPointerPreviewRouteId(null);
+    setFocusedPreviewRouteId(null);
+    setSelectedAutoFocus(interaction === "keyboard" ? (mobile ? "mobile" : "desktop") : null);
+    setClickedAnchor({ routeId, anchor });
+    onSearchChange(patchSearch(effectiveSearch, { route: slug, segment: undefined }), {
+      replace: false,
+    });
+    if (mobile) {
+      setMobileMode("selected");
+      setMobileSheetOpen(true);
+    }
   };
 
-  const pinRoute = (routeId: string, anchor: readonly [number, number] | null) => {
-    if (anchor === null) return;
-    setPanelOpen(false);
-    setPreviewRouteId(null);
-    setSelection({ routeId, anchor });
+  const clearPin = (restoreFocus = false) => {
+    setClickedAnchor(null);
+    setSelectedAutoFocus(null);
+    onSearchChange(withoutPin(effectiveSearch), { replace: true });
+    if (!restoreFocus) return;
+    if (isMobileViewport()) {
+      setMobileMode("browse");
+      setMobileSheetOpen(true);
+    } else {
+      requestAnimationFrame(() => findPillRef.current?.focus());
+    }
   };
+
+  const setMobileSheetState = (open: boolean) => {
+    setMobileSheetOpen(open);
+    if (!open) {
+      setPointerPreviewRouteId(null);
+      setFocusedPreviewRouteId(null);
+      setSelectedAutoFocus(null);
+      requestAnimationFrame(() => mobileBrowseButtonRef.current?.focus());
+    }
+  };
+
+  const updateView = (next: NetworkView) => {
+    onSearchChange(
+      patchSearch(effectiveSearch, {
+        lens: next.lens === "delay" ? "delay-exposure" : undefined,
+        period: next.lens === "speed" && next.period !== "all" ? next.period : undefined,
+        compare: next.lens === "speed" && next.period !== "all" && next.compare ? true : undefined,
+      }),
+      { replace: true },
+    );
+  };
+
+  const segmentNotice =
+    canonicalization.segmentState === "pending"
+      ? "Validating the saved segment against this route’s exact identities…"
+      : canonicalization.segmentState === "unavailable"
+        ? "Segment validation is temporarily unavailable; the shared segment link is preserved."
+        : canonicalization.segmentState === "invalid"
+          ? "The saved segment is not uniquely available for this route."
+          : activeUrlNotice;
 
   if (network === null) {
     return (
@@ -214,124 +737,135 @@ export function NetworkMapPage({
     );
   }
 
-  const selectedFeature =
-    selection === null
-      ? null
-      : (network.features.find((feature) => feature.properties.routeId === selection.routeId) ??
-        null);
   const popup: NetworkMapPopupState | null =
-    selection === null || selectedFeature === null
+    selectedFeature === null || selectedAnchor === null
       ? null
       : {
-          anchor: selection.anchor,
+          anchor: selectedAnchor,
           content: (
             <NetworkMapPopup
               feature={selectedFeature}
               features={network.features}
-              route={routeById.get(selection.routeId) ?? null}
-              studies={studiesByRouteId.get(selection.routeId) ?? []}
+              route={selectedRoute}
+              studies={studiesByRouteId.get(selectedFeature.properties.routeId) ?? []}
               view={view}
-              coverage={coverage}
-              onClose={() => setSelection(null)}
+              coverage={delayCoverage}
+              onClose={() => clearPin()}
             />
           ),
         };
   const encoding = viewEncoding(view);
+  const activeEvidence =
+    currentSelectedEvidence?.routeId === selectedRouteId
+      ? currentSelectedEvidence
+      : ({ status: "loading" } as const);
+  const selectedRankIndex =
+    selectedRouteId === null
+      ? -1
+      : rankedForView.findIndex((feature) => feature.properties.routeId === selectedRouteId);
+  const selectedRank = selectedRankIndex < 0 ? null : selectedRankIndex + 1;
+  const mapSummary = `${filteredFeatures.length} routes shown${
+    borough === undefined ? " citywide" : ` serving ${borough}`
+  }. ${view.lens === "delay" ? "Route-slice rider delay exposure" : "Bus speed"}, ${periodLabel(
+    view.period,
+  )}.${selectedFeature === null ? " No route selected." : ` ${selectedFeature.properties.label} selected.`}`;
 
   return (
     <main className="flex h-full min-h-0 flex-col">
-      <div className="flex items-baseline gap-3 px-7 py-3 max-md:px-4">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-7 py-3 max-md:px-4">
         <h1 className="m-0 text-[18px] font-semibold">Network map</h1>
         <span className="text-[12px] text-[var(--bp-color-ink-55)]">
-          {coverage === null
-            ? `${network.features.length} Local, Limited & SBS routes`
-            : `Data through ${coverage} — ${network.features.length} Local, Limited & SBS routes`}
+          {releaseCoverage === null
+            ? "Release coverage unavailable."
+            : `Data through ${releaseCoverage}.`}{" "}
+          Local, Limited & SBS. {completeFactCount}/{network.features.length} verified routes.
         </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => setDataNotesOpen(true)}
+          className="ml-auto"
+        >
+          Data notes
+        </Button>
       </div>
-      {mapMessage === null && lanesError === null ? null : (
+      {mapMessage === null && activeLanesError === null && activeUrlNotice === null ? null : (
         <p className="m-0 px-7 pb-2 text-[12px] text-[var(--bp-color-ink-55)]" role="status">
-          {[mapMessage, lanesError].filter((message) => message !== null).join(" ")}
+          {[mapMessage, activeLanesError, activeUrlNotice]
+            .filter((message) => message !== null)
+            .join(" ")}
         </p>
       )}
+      <p id="network-map-summary" className="sr-only" aria-live="polite">
+        {mapSummary}
+      </p>
+      <p id="network-map-route-list-description" className="sr-only">
+        Use Find a route or Browse all routes for the complete keyboard-accessible ranked list.
+      </p>
       <div className="relative min-h-0 flex-1">
         <NetworkMapLibre
-          collection={network}
+          collection={visibleNetwork ?? network}
           context={context}
           view={view}
           badges={badges}
           busLanes={busLanes}
-          showLanes={lanesVisible}
-          selectedRouteId={previewRouteId ?? selection?.routeId ?? null}
+          showLanes={effectiveSearch.lanes === true && busLanes !== null}
+          routeSegments={selectedSegments}
+          selectedSegmentId={effectiveSearch.segment ?? null}
+          selectedRouteId={selectedRouteId}
+          focusedRouteId={focusedPreviewRouteId}
+          previewRouteId={pointerPreviewRouteId}
+          inspectorOpen={browseOpen || selectedFeature !== null}
+          fitCollectionKey={borough ?? "all"}
           onSelectRoute={pinRoute}
-          onClearSelection={() => setSelection(null)}
+          onClearSelection={() => clearPin()}
           popup={popup}
+          ariaLabel="NYC bus network decision map"
+          ariaDescribedBy="network-map-summary network-map-route-list-description"
         />
-        <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-2">
-          <button
-            ref={findPillRef}
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={panelOpen}
-            onClick={() => {
-              if (panelOpen) setPreviewRouteId(null);
-              setPanelOpen((open) => !open);
+        <Suspense
+          fallback={
+            <p className="absolute left-4 top-4 z-10 m-0 rounded-[3px] bg-[var(--bp-color-card)]/95 px-3 py-2 text-[12px] text-[var(--bp-color-ink-55)] shadow-[0_1px_6px_rgba(0,0,0,0.15)]">
+              Loading map controls…
+            </p>
+          }
+        >
+          <NetworkMapControls
+            view={view}
+            delayEligible={delayEligible}
+            amEligible={amEligible}
+            pmEligible={pmEligible}
+            borough={borough}
+            lanesVisible={effectiveSearch.lanes === true}
+            lanesAvailable={lanesEligible}
+            routeCount={filteredFeatures.length}
+            browseExpanded={
+              browseOpen || (mobileViewport && mobileSheetOpen && mobileMode === "browse")
+            }
+            desktopBrowseButtonRef={findPillRef}
+            mobileBrowseButtonRef={mobileBrowseButtonRef}
+            onViewChange={updateView}
+            onBoroughChange={(nextBorough) =>
+              onSearchChange(patchSearch(effectiveSearch, { borough: nextBorough }), {
+                replace: true,
+              })
+            }
+            onLanesChange={(visible) =>
+              onSearchChange(patchSearch(effectiveSearch, { lanes: visible ? true : undefined }), {
+                replace: true,
+              })
+            }
+            onBrowse={() => {
+              if (isMobileViewport()) {
+                setMobileMode("browse");
+                setMobileSheetOpen(true);
+              } else {
+                setBrowseOpen(true);
+              }
             }}
-            className="flex items-center gap-2 rounded-[3px] border-0 bg-[var(--bp-color-card)]/95 px-3 py-2 text-[12px] font-semibold text-[var(--bp-color-ink-55)] shadow-[0_1px_6px_rgba(0,0,0,0.15)] hover:text-[var(--bp-color-ink)]"
-          >
-            <Search size={12} strokeWidth={2.5} aria-hidden className="opacity-50" />
-            Find a route
-          </button>
-          <MapToggle
-            label="Metric lens"
-            value={view.lens}
-            setValue={(lens) =>
-              setView((current) => ({
-                ...current,
-                lens,
-                compare: lens === "speed" ? current.compare : false,
-              }))
-            }
-            options={
-              delayEligible
-                ? [
-                    { label: "Speed", value: "speed" },
-                    { label: "Rider delay", value: "delay" },
-                  ]
-                : [{ label: "Speed", value: "speed" }]
-            }
           />
-          {view.lens === "speed" ? (
-            <MapToggle
-              label="Time period"
-              value={view.period}
-              setValue={(period) =>
-                setView((current) => ({
-                  ...current,
-                  period,
-                  compare: period === "all" ? false : current.compare,
-                }))
-              }
-              options={[
-                { label: "All day", value: "all" },
-                { label: "AM peak", value: "am" },
-                { label: "PM peak", value: "pm" },
-              ]}
-            />
-          ) : null}
-          {view.lens === "speed" && view.period !== "all" ? (
-            <MapToggle
-              label="Comparison"
-              value={view.compare ? "compare" : "absolute"}
-              setValue={(value) =>
-                setView((current) => ({ ...current, compare: value === "compare" }))
-              }
-              options={[
-                { label: "Absolute", value: "absolute" },
-                { label: "Vs all day", value: "compare" },
-              ]}
-            />
-          ) : null}
-        </div>
+        </Suspense>
         {insight === null ? null : noteDismissed ? (
           <button
             type="button"
@@ -365,29 +899,33 @@ export function NetworkMapPage({
           </div>
         )}
         {legend === null ? null : <LegendStrip legend={legend} />}
-        {panelOpen ? (
+        {browseOpen || selectedFeature !== null ? (
           <div
             role="dialog"
-            aria-label="Find a route"
-            className="absolute bottom-4 right-4 top-4 z-20 flex w-[302px] max-w-[calc(100%-32px)] flex-col rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule),0_10px_30px_rgba(16,20,24,0.2)]"
+            aria-label={browseOpen ? "Find a route" : "Selected route inspector"}
+            className="absolute bottom-4 right-4 top-4 z-20 flex w-[344px] max-w-[calc(100%-32px)] flex-col rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule),0_10px_30px_rgba(16,20,24,0.2)] max-md:hidden"
           >
             <div className="flex items-baseline gap-2 px-3 pb-0.5 pt-2.5">
               <b className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[var(--bp-color-ink-55)]">
-                {encoding === "delay"
-                  ? "Most rider time lost"
-                  : encoding === "delta"
-                    ? "Biggest peak slowdown"
-                    : `Slowest first (${periodLabel(view.period)})`}
+                {browseOpen
+                  ? encoding === "delay"
+                    ? "Most route-slice rider time lost"
+                    : encoding === "delta"
+                      ? "Biggest peak slowdown"
+                      : `Slowest first (${periodLabel(view.period)})`
+                  : "Route inspector"}
               </b>
               <span className="text-[10.5px] text-[var(--bp-color-ink-40)]">
-                {ranked.length} routes
+                {browseOpen ? `${ranked.length} routes` : "exact selected-route evidence"}
               </span>
               <button
                 type="button"
                 aria-label="Close"
                 onClick={() => {
-                  setPanelOpen(false);
-                  setPreviewRouteId(null);
+                  if (browseOpen) setBrowseOpen(false);
+                  else clearPin(true);
+                  setPointerPreviewRouteId(null);
+                  setFocusedPreviewRouteId(null);
                   findPillRef.current?.focus();
                 }}
                 className="ml-auto self-center rounded-[2px] border-0 bg-transparent px-1.5 py-0.5 text-[13px] text-[var(--bp-color-ink-40)] hover:bg-[var(--bp-color-paper-deep)] hover:text-[var(--bp-color-ink)]"
@@ -395,182 +933,141 @@ export function NetworkMapPage({
                 ✕
               </button>
             </div>
-            <div className="relative mx-2.5 mb-2 mt-1.5">
-              <Search
-                size={12}
-                strokeWidth={2.5}
-                aria-hidden
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 opacity-45"
-              />
-              <input
-                ref={searchRef}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="B41, M15, Q58, corridor"
-                aria-label="Find a route"
-                className="w-full rounded-[3px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-paper)] py-1.5 pl-7 pr-2.5 text-[12.5px] text-[var(--bp-color-ink)] outline-none placeholder:text-[var(--bp-color-ink-40)] focus:border-[var(--bp-color-accent)]"
-              />
-            </div>
-            <div
-              className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--bp-color-ink-06)]"
-              role="listbox"
-              aria-label="Ranked routes"
-            >
-              {ranked.map((feature, index) => (
-                <RankRow
-                  key={feature.properties.routeId}
-                  feature={feature}
-                  rank={index + 1}
-                  view={view}
-                  corridor={routeById.get(feature.properties.routeId)?.corridor ?? null}
-                  pinned={selection?.routeId === feature.properties.routeId}
-                  onPreview={setPreviewRouteId}
-                  onPin={() => pinRoute(feature.properties.routeId, featureAnchor(feature))}
-                />
-              ))}
-            </div>
-            <label
-              className={`flex items-center gap-2 border-t border-[var(--bp-color-rule)] px-3 py-2 text-[11.5px] font-semibold ${lanesAvailable ? "cursor-pointer text-[var(--bp-color-ink-70)]" : "text-[var(--bp-color-ink-40)]"}`}
-              title={
-                lanesAvailable
-                  ? undefined
-                  : "Current bus-lane geometry is unavailable for this release."
+            <Suspense
+              fallback={
+                <p className="m-0 p-4 text-[12px] text-[var(--bp-color-ink-55)]" role="status">
+                  Loading route panel…
+                </p>
               }
             >
-              <input
-                type="checkbox"
-                checked={lanesVisible}
-                disabled={!lanesAvailable}
-                onChange={(event) => toggleLanes(event.target.checked)}
-                className="m-0 accent-[var(--bp-color-ink)]"
-              />
-              DOT bus lanes
-              <em className="ml-auto text-[10px] font-normal not-italic text-[var(--bp-color-ink-40)]">
-                layer
-              </em>
-            </label>
+              {browseOpen || selectedFeature === null ? (
+                <NetworkMapBrowse
+                  ranked={ranked}
+                  routeById={routeById}
+                  view={view}
+                  query={query}
+                  pinnedRouteId={selectedRouteId}
+                  listId="network-map-route-list"
+                  searchRef={searchRef}
+                  onQueryChange={setQuery}
+                  onPointerPreview={setPointerPreviewRouteId}
+                  onFocusPreview={setFocusedPreviewRouteId}
+                  onPin={(feature, interaction) =>
+                    pinRoute(feature.properties.routeId, featureAnchor(feature), interaction)
+                  }
+                />
+              ) : (
+                <NetworkMapSelected
+                  feature={selectedFeature}
+                  route={selectedRoute}
+                  view={view}
+                  rank={selectedRank}
+                  routeCount={filteredFeatures.length}
+                  releaseCoverage={releaseCoverage}
+                  delayCoverage={delayCoverage}
+                  evidence={activeEvidence}
+                  selectedSegmentId={effectiveSearch.segment}
+                  segmentNotice={segmentNotice}
+                  autoFocus={selectedAutoFocus === "desktop"}
+                  onSelectSegment={(segment) =>
+                    onSearchChange(patchSearch(effectiveSearch, { segment }), { replace: true })
+                  }
+                  onClear={() => clearPin(true)}
+                  onBack={() => setBrowseOpen(true)}
+                />
+              )}
+            </Suspense>
           </div>
         ) : null}
       </div>
-    </main>
-  );
-}
-
-function MapToggle<TValue extends string>({
-  label,
-  value,
-  setValue,
-  options,
-}: {
-  label: string;
-  value: TValue;
-  setValue: (value: TValue) => void;
-  options: ReadonlyArray<{ label: string; value: TValue }>;
-}) {
-  return (
-    <fieldset
-      className="flex gap-1 rounded-[3px] border-0 bg-[var(--bp-color-card)]/95 p-1 shadow-[0_1px_6px_rgba(0,0,0,0.15)]"
-      aria-label={label}
-    >
-      {options.map((option) => {
-        const active = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            className={
-              active
-                ? "rounded-[3px] border-0 bg-[var(--bp-color-ink)] px-3 py-1.5 text-[12px] font-semibold text-[var(--bp-color-card)]"
-                : "rounded-[3px] border-0 bg-transparent px-3 py-1.5 text-[12px] font-semibold text-[var(--bp-color-ink-55)] hover:bg-[var(--bp-color-paper-deep)] hover:text-[var(--bp-color-ink)]"
+      {mobileViewport && mobileSheetOpen ? (
+        <Suspense fallback={null}>
+          <NetworkMapMobileSheet
+            open={mobileSheetOpen}
+            onOpenChange={setMobileSheetState}
+            title={
+              mobileMode === "selected" && selectedFeature !== null
+                ? `${selectedFeature.properties.label} route inspector`
+                : `Browse all ${filteredFeatures.length} routes`
             }
-            aria-pressed={active}
-            onClick={() => setValue(option.value)}
+            description={
+              mobileMode === "selected" && selectedFeature !== null
+                ? "Review route metrics and exact all-day segment evidence before opening route detail."
+                : "Keyboard-accessible ranked alternative to the map canvas."
+            }
           >
-            {option.label}
-          </button>
-        );
-      })}
-    </fieldset>
-  );
-}
-
-function RankRow({
-  feature,
-  rank,
-  view,
-  corridor,
-  pinned,
-  onPreview,
-  onPin,
-}: {
-  feature: NetworkMapFeature;
-  rank: number;
-  view: NetworkView;
-  corridor: string | null;
-  pinned: boolean;
-  onPreview: (routeId: string | null) => void;
-  onPin: () => void;
-}) {
-  const value = featureValue(feature, view);
-  const cls = featureClass(feature, view);
-  const encoding = viewEncoding(view);
-  const barColor =
-    cls === null
-      ? "var(--bp-color-ink-20)"
-      : encoding === "delay"
-        ? ["#9aa2ab", "#9a7ec7", "#65369f", "#38106e"][cls]
-        : encoding === "delta"
-          ? ["#5b2d8f", "#9b7fc4", "#9aa2ab", "#2f8f83"][cls]
-          : SPEED_CLASS_COLORS[cls];
-  const barShare =
-    value === null
-      ? 0
-      : encoding === "delay"
-        ? Math.min(1, value / 140_000)
-        : encoding === "delta"
-          ? Math.min(1, Math.abs(value) / 3)
-          : Math.min(1, value / 18);
-  return (
-    <div
-      role="option"
-      aria-selected={pinned}
-      tabIndex={0}
-      onMouseEnter={() => onPreview(feature.properties.routeId)}
-      onMouseLeave={() => onPreview(null)}
-      onFocus={() => onPreview(feature.properties.routeId)}
-      onBlur={() => onPreview(null)}
-      onClick={onPin}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onPin();
-        }
-      }}
-      className={`grid cursor-pointer grid-cols-[20px_46px_1fr_46px] items-center gap-2 border-l-2 px-3 py-1.5 ${
-        pinned
-          ? "border-[var(--bp-color-accent)] bg-[var(--bp-color-accent-bg)]"
-          : "border-transparent hover:border-[var(--bp-color-ink)] hover:bg-[var(--bp-color-paper-deep)]"
-      }`}
-    >
-      <span className="text-right font-mono text-[10.5px] text-[var(--bp-color-ink-40)]">
-        {rank}
-      </span>
-      <RoutePill label={feature.properties.label} sbs={feature.properties.sbs ?? false} />
-      <span className="min-w-0">
-        <span className="block truncate text-[11.5px] text-[var(--bp-color-ink-70)]">
-          {corridor ?? feature.properties.borough ?? ""}
-        </span>
-        <span className="mt-0.5 block h-[3px] overflow-hidden rounded-[2px] bg-[var(--bp-color-ink-06)]">
-          <span
-            className="block h-full rounded-[2px]"
-            style={{ width: `${Math.round(barShare * 100)}%`, backgroundColor: barColor }}
+            <NetworkMapMobileOptions
+              view={view}
+              delayEligible={delayEligible}
+              amEligible={amEligible}
+              pmEligible={pmEligible}
+              lanesVisible={effectiveSearch.lanes === true}
+              lanesAvailable={lanesEligible}
+              onViewChange={updateView}
+              onLanesChange={(visible) =>
+                onSearchChange(
+                  patchSearch(effectiveSearch, { lanes: visible ? true : undefined }),
+                  { replace: true },
+                )
+              }
+            />
+            {mobileMode === "selected" && selectedFeature !== null ? (
+              <NetworkMapSelected
+                feature={selectedFeature}
+                route={selectedRoute}
+                view={view}
+                rank={selectedRank}
+                routeCount={filteredFeatures.length}
+                releaseCoverage={releaseCoverage}
+                delayCoverage={delayCoverage}
+                evidence={activeEvidence}
+                selectedSegmentId={effectiveSearch.segment}
+                segmentNotice={segmentNotice}
+                autoFocus={selectedAutoFocus === "mobile"}
+                onSelectSegment={(segment) =>
+                  onSearchChange(patchSearch(effectiveSearch, { segment }), { replace: true })
+                }
+                onClear={() => clearPin(true)}
+                onBack={() => setMobileMode("browse")}
+              />
+            ) : (
+              <NetworkMapBrowse
+                ranked={ranked}
+                routeById={routeById}
+                view={view}
+                query={query}
+                pinnedRouteId={selectedRouteId}
+                listId="network-map-route-list-mobile"
+                searchRef={mobileSearchRef}
+                onQueryChange={setQuery}
+                onPointerPreview={setPointerPreviewRouteId}
+                onFocusPreview={setFocusedPreviewRouteId}
+                onPin={(feature, interaction) =>
+                  pinRoute(feature.properties.routeId, featureAnchor(feature), interaction)
+                }
+              />
+            )}
+          </NetworkMapMobileSheet>
+        </Suspense>
+      ) : null}
+      {dataNotesOpen ? (
+        <Suspense fallback={null}>
+          <NetworkMapDataNotes
+            open={dataNotesOpen}
+            onOpenChange={setDataNotesOpen}
+            manifest={manifest}
+            view={view}
+            coverage={delayCoverage}
+            completeFactCount={completeFactCount}
+            factsStatus={factsStatus}
+            mappedRouteCount={network.features.length}
+            visibleRouteCount={filteredFeatures.length}
+            unverifiedBoroughCount={unverifiedBoroughFeatureCount(network.features)}
+            mapMessage={mapMessage}
           />
-        </span>
-      </span>
-      <span className="text-right font-mono text-[11.5px] font-semibold tabular-nums">
-        {formatViewValue(feature, view)}
-      </span>
-    </div>
+        </Suspense>
+      ) : null}
+    </main>
   );
 }
 

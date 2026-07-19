@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useCallback } from "react";
+import { preloadNetworkMap } from "../components/route/NetworkMapLibre.js";
+import { validateNetworkMapSearch } from "../components/route/network-map-search.js";
 import { routeHead } from "../lib/head.js";
 import {
   fetchNetworkMapGeo,
@@ -10,7 +13,9 @@ import {
 import { NetworkMapLoadingPage, NetworkMapPage } from "../studio/pages/network-map.js";
 
 export const Route = createFileRoute("/map")({
+  validateSearch: validateNetworkMapSearch,
   loader: async ({ abortController }) => {
+    preloadNetworkMap();
     const options = { signal: abortController.signal };
     const [routes, bundle, studyIndex] = await Promise.all([
       fetchStudioRoutes(options),
@@ -40,6 +45,8 @@ export const Route = createFileRoute("/map")({
       // Coverage window of the served delay facts (unanimous analysis period);
       // null keeps the rider-delay lens hidden without weakening its gate.
       coverageEnd: joined.delayCoverageEnd,
+      completeFactCount: joined.completeFactCount,
+      factsStatus: joined.factsStatus,
       lanesAvailable:
         bundle?.manifest.layers.some(
           (layer) =>
@@ -58,6 +65,13 @@ export const Route = createFileRoute("/map")({
 
 function MapRoute() {
   const data = Route.useLoaderData();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const onSearchChange = useCallback(
+    (next: Parameters<typeof NetworkMapPage>[0]["search"], options: { replace: boolean }) =>
+      navigate({ search: next, replace: options.replace }),
+    [navigate],
+  );
   return (
     <NetworkMapPage
       routes={data.routes}
@@ -68,6 +82,10 @@ function MapRoute() {
       coverageEnd={data.coverageEnd}
       lanesAvailable={data.lanesAvailable}
       studyIndex={data.studyIndex}
+      completeFactCount={data.completeFactCount}
+      factsStatus={data.factsStatus}
+      search={search}
+      onSearchChange={onSearchChange}
     />
   );
 }
