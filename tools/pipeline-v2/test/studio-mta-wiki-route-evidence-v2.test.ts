@@ -569,6 +569,9 @@ async function createNamedReleaseFixture(
   const snapshotBytes = `${canonicalJson(snapshot)}\n`;
 
   const canonical = {
+    "claims.jsonl": "",
+    "corridors.jsonl": "",
+    "entities.jsonl": "",
     "routes.jsonl": asJsonl(
       routeRecords.toSorted((left, right) => left.record_id.localeCompare(right.record_id)),
     ),
@@ -642,8 +645,19 @@ async function createNamedReleaseFixture(
     "metric_claims.jsonl": "",
     "treatment_components.jsonl": "",
     "source_gaps.jsonl": "",
+    "tables.jsonl": "",
   };
-  for (const [name, bytes] of Object.entries(canonical)) {
+  const manifestPointerFiles = {
+    "operational_anchor_review_decisions.json": "{}\n",
+    "operational_anchors_summary.json": "{}\n",
+    "operational_anchors.jsonl": "",
+    "operational_occurrence_review_decisions.json": "{}\n",
+    "operational_occurrences_summary.json": "{}\n",
+    "operational_occurrences.jsonl": "",
+    "relationship_integrity_bundle.json": "{}\n",
+    "taxonomy.json": "{}\n",
+  };
+  for (const [name, bytes] of Object.entries({ ...manifestPointerFiles, ...canonical })) {
     await writeFile(join(releaseRoot, name), bytes);
   }
   await writeFile(join(releaseRoot, "route_anchors.jsonl"), anchorBytes);
@@ -664,7 +678,10 @@ async function createNamedReleaseFixture(
     },
     files: {
       ...Object.fromEntries(
-        Object.entries(canonical).map(([name, bytes]) => [name, fileMetadata(bytes)]),
+        Object.entries({ ...manifestPointerFiles, ...canonical }).map(([name, bytes]) => [
+          name,
+          fileMetadata(bytes),
+        ]),
       ),
       "route_anchors.jsonl": fileMetadata(anchorBytes),
       "route_identity_snapshot.json": fileMetadata(snapshotBytes),
@@ -683,6 +700,9 @@ async function createNamedReleaseFixture(
       taxonomy: "taxonomy.json",
     },
     record_counts: {
+      claim: 0,
+      corridor: 0,
+      entity: 0,
       event: 0,
       metric_claim: 0,
       project: 3,
@@ -690,6 +710,7 @@ async function createNamedReleaseFixture(
       route: 3,
       source: 1,
       source_gap: 0,
+      table: 0,
       treatment_component: 0,
     },
   };

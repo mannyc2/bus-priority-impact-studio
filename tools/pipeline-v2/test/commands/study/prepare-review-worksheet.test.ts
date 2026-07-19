@@ -246,6 +246,53 @@ function fixtureV3(): StudyEventMergeArtifactV3 {
 }
 
 describe("study review worksheet", () => {
+  test("reproduces byte-identically across isolated input roots", async () => {
+    const firstRoot = await mkdtemp(join(tmpdir(), "bp-study-review-root-a-"));
+    const secondRoot = await mkdtemp(join(tmpdir(), "bp-study-review-root-b-"));
+    try {
+      const inputBytes = `${JSON.stringify(fixtureV3(), null, 2)}\n`;
+      const outputFilename = "candidate-set-v3-89abcdef0123456789abcdef.review-worksheet.json";
+      const firstInputPath = join(firstRoot, "candidates.json");
+      const secondInputPath = join(secondRoot, "candidates.json");
+      const firstOutputPath = join(firstRoot, outputFilename);
+      const secondOutputPath = join(secondRoot, outputFilename);
+      await Promise.all([
+        writeFile(firstInputPath, inputBytes),
+        writeFile(secondInputPath, inputBytes),
+      ]);
+
+      await Promise.all([
+        runPrepareStudyEventReviewWorksheet({
+          inputPath: firstInputPath,
+          outputPath: firstOutputPath,
+          focusOccurrenceId: FOCUS_OCCURRENCE_ID_V3,
+          focusRouteId: "B44+",
+        }),
+        runPrepareStudyEventReviewWorksheet({
+          inputPath: secondInputPath,
+          outputPath: secondOutputPath,
+          focusOccurrenceId: FOCUS_OCCURRENCE_ID_V3,
+          focusRouteId: "B44+",
+        }),
+      ]);
+      const [firstBytes, secondBytes] = await Promise.all([
+        readFile(firstOutputPath, "utf8"),
+        readFile(secondOutputPath, "utf8"),
+      ]);
+      const worksheet = JSON.parse(firstBytes) as StudyEventReviewWorksheet;
+
+      expect(secondBytes).toBe(firstBytes);
+      expect(worksheet.generatedFrom).toBe("<isolated-input>/candidates.json");
+      expect(firstBytes).not.toContain(firstRoot);
+      expect(secondBytes).not.toContain(secondRoot);
+    } finally {
+      await Promise.all([
+        rm(firstRoot, { recursive: true, force: true }),
+        rm(secondRoot, { recursive: true, force: true }),
+      ]);
+    }
+  });
+
   test("strictly decodes and writes a deterministic, complete non-approval worksheet", async () => {
     const root = await mkdtemp(join(tmpdir(), "bp-study-review-"));
     try {

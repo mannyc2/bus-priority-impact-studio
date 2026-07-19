@@ -102,7 +102,7 @@ function displayPath(path: string): string {
   const portable = (value: string) => value.split(sep).join("/");
   return fromRoot !== ".." && !fromRoot.startsWith(`..${sep}`)
     ? portable(fromRoot)
-    : portable(absolute);
+    : `<isolated-input>/${portable(basename(absolute))}`;
 }
 
 function nonBlank(value: string | null): value is string {
