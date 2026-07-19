@@ -59,11 +59,20 @@ class FakeStatement<T> {
   private filteredRows(): T[] {
     if (
       this.call.query.includes("route_batch_status") &&
-      this.call.query.includes("where") &&
+      this.call.query.includes('."status" = ?') &&
       this.call.bound.length > 0
     ) {
       const status = this.call.bound[0];
       return this.rows.filter((row) => (row as { status?: unknown }).status === status);
+    }
+
+    if (
+      this.call.query.includes("route_batch_status") &&
+      this.call.query.includes('."month" = ?') &&
+      this.call.bound.length > 0
+    ) {
+      const month = this.call.bound[0];
+      return this.rows.filter((row) => (row as { month?: unknown }).month === month);
     }
 
     if (
@@ -1398,7 +1407,7 @@ describe("Studio API facade", () => {
       route_scorecard_citation: serializeRouteScorecardCitations(scorecard),
       route_scorecard: [serializeRouteScorecard(scorecard)],
     });
-    const response = await fetchApi("/api/routes/m1/scorecard?month=2026-03", {
+    const response = await fetchApi("/api/routes/m1/scorecard?asOfMonth=2026-03", {
       DB: db as unknown as D1Database,
     });
 
@@ -1638,35 +1647,72 @@ describe("Studio API facade", () => {
         },
       ],
     });
-    const env = { BASELINE_MONTH: "2026-03", DB: db as unknown as D1Database };
+    const env = { DB: db as unknown as D1Database };
 
     const [status, routes, profile, hotspots] = await Promise.all([
       fetchApi("/api/v1/status", env),
       fetchApi("/api/v1/routes?limit=2", env),
       fetchApi("/api/v1/routes/b46-sbs/profile", env),
-      fetchApi("/api/v1/hotspots?month=2026-03&limit=1", env),
+      fetchApi("/api/v1/hotspots?limit=1", env),
     ]);
 
-    expect(decodeStrict(ReleaseStatusResponseSchema)(await status.json())).toEqual(
+    const statusValue = decodeStrict(ReleaseStatusResponseSchema)(await status.json());
+    expect(statusValue).toEqual(
       expect.objectContaining({
-        baselineMonth: "2026-03",
-        canonicalMonthlyRelease: expect.objectContaining({ status: "pass", routeCount: 2 }),
+        releaseId: "pub_20260517T154652274Z",
+        publishedAt: "2026-05-17T15:46:52.274Z",
+        coverage: { start: null, end: "2026-03" },
+        release: expect.objectContaining({
+          releaseId: "pub_20260517T154652274Z",
+          publishedAt: "2026-05-17T15:46:52.274Z",
+          coverage: { start: null, end: "2026-03" },
+          status: "pass",
+          routeCount: 2,
+        }),
         observedRealtimeEvidence: expect.objectContaining({
           runId: "bus-observatory-2026-03",
           source: "third_party_recovered",
         }),
       }),
     );
-    expect(decodeStrict(RouteListResponseSchema)(await routes.json()).routes).toHaveLength(2);
-    expect(decodeStrict(RouteProfileResponseSchema)(await profile.json())).toEqual(
+    const routesValue = decodeStrict(RouteListResponseSchema)(await routes.json());
+    const profileValue = decodeStrict(RouteProfileResponseSchema)(await profile.json());
+    const hotspotsValue = decodeStrict(HotspotListResponseSchema)(await hotspots.json());
+    expect(routesValue.routes).toHaveLength(2);
+    expect(profileValue).toEqual(
       expect.objectContaining({
         route: expect.objectContaining({ routeId: "B46-SBS" }),
         artifacts: [expect.objectContaining({ key: "briefs/2026-03/b46-sbs.json" })],
       }),
     );
-    expect(decodeStrict(HotspotListResponseSchema)(await hotspots.json()).hotspots[0]).toEqual(
+    expect(hotspotsValue.hotspots[0]).toEqual(
       expect.objectContaining({ corridorName: "Utica Avenue", routeId: "B46-SBS" }),
     );
+    for (const response of [routesValue, profileValue, hotspotsValue]) {
+      expect({
+        releaseId: response.releaseId,
+        publishedAt: response.publishedAt,
+        coverage: response.coverage,
+      }).toEqual({
+        releaseId: statusValue.releaseId,
+        publishedAt: statusValue.publishedAt,
+        coverage: statusValue.coverage,
+      });
+    }
+  });
+
+  it("fails current public reads closed without published serving data", async () => {
+    const response = await fetchApi("/api/v1/status", {
+      DB: new FakeDb({}) as unknown as D1Database,
+    });
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: "SERVICE_UNAVAILABLE",
+        message: "No published serving data is available.",
+      },
+    });
   });
 
   it("serves only the latest cataloged v2 map manifest and artifact objects", async () => {

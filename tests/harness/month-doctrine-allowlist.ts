@@ -61,27 +61,6 @@ export const MONTH_DOCTRINE_ALLOWLIST = [
     note: "Plan 086 migrates the top-level static release payload identity.",
   },
   {
-    file: "packages/studio-api/src/env.ts",
-    rule: "retired-identity-token",
-    count: 1,
-    disposition: "retire-085",
-    note: "Plan 085 Step 4 removes the final public-API month selector seam.",
-  },
-  {
-    file: "packages/studio-api/src/public-api.ts",
-    rule: "public-month-selector",
-    count: 2,
-    disposition: "retire-085",
-    note: "Plan 085 removes the shared product selector and renames history grain to asOfMonth.",
-  },
-  {
-    file: "packages/studio-api/src/public-api.ts",
-    rule: "retired-identity-token",
-    count: 17,
-    disposition: "retire-085",
-    note: "Plan 085 removes the exact non-map serving identity remainder.",
-  },
-  {
     file: "tools/pipeline-v2/src/commands/export/d1-inputs.ts",
     rule: "release-month-identity",
     count: 7,

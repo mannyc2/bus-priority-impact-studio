@@ -1,6 +1,8 @@
 import {
   createD1ServingDb,
+  findEarliestSpeedTrendMonth,
   findLatestObservedMonthExcluding,
+  findLatestPublishedStudioServingRelease,
   findLatestVerifiedFullMapRelease,
   getRouteBatchStatus,
   getRouteBriefSummary,
@@ -19,6 +21,11 @@ import {
   RouteProfileResponseSchema,
   RouteScorecardSchema,
 } from "@bp/domain/routes";
+import {
+  type ReleaseIdentity,
+  ReleaseIdentitySchema,
+  releaseIdFromPublishedAt,
+} from "@bp/domain/studio/shared";
 import { Result } from "effect";
 import type { StudioApiEnv } from "./env.js";
 import { errorResponse as errorJson } from "./http/errors.js";
@@ -38,15 +45,15 @@ async function buildRouteScorecardResponse(url: URL, env: StudioApiEnv): Promise
 
   const match = url.pathname.match(/^\/api\/routes\/([^/]+)\/scorecard$/);
   const rawRouteId = match?.[1];
-  const rawMonth = url.searchParams.get("month");
+  const rawAsOfMonth = url.searchParams.get("asOfMonth");
 
   if (rawRouteId === undefined) {
     return errorJson(404, "Route scorecard endpoint not found.");
   }
 
-  const month = decodeSchemaEitherStrict(IsoMonthSchema, rawMonth);
+  const month = decodeSchemaEitherStrict(IsoMonthSchema, rawAsOfMonth);
   if (Result.isFailure(month)) {
-    return errorJson(400, "Query parameter month must use YYYY-MM format.");
+    return errorJson(400, "Query parameter asOfMonth must use YYYY-MM format.");
   }
 
   let routeId: RouteId;
@@ -78,15 +85,28 @@ function parseLimit(url: URL, fallback: number, maximum: number): number | null 
   return Math.min(limit, maximum);
 }
 
-function releaseStatusMonth(url: URL, env: StudioApiEnv): string | null {
-  const month = url.searchParams.get("month") ?? env.BASELINE_MONTH ?? null;
-  if (month === null) {
+async function resolvePublicServingRelease(
+  db: ReturnType<typeof createD1ServingDb>,
+): Promise<ReleaseIdentity | null> {
+  const [publishedRelease, coverageStart] = await Promise.all([
+    findLatestPublishedStudioServingRelease(db),
+    findEarliestSpeedTrendMonth(db),
+  ]);
+  if (publishedRelease === null) {
     return null;
   }
-
-  const parsed = decodeSchemaEitherStrict(IsoMonthSchema, month);
-  return Result.isSuccess(parsed) ? parsed.success : null;
+  try {
+    return decodeSchemaStrict(ReleaseIdentitySchema, {
+      releaseId: releaseIdFromPublishedAt(publishedRelease.publishedAt),
+      publishedAt: publishedRelease.publishedAt,
+      coverage: { start: coverageStart, end: publishedRelease.end },
+    });
+  } catch {
+    return null;
+  }
 }
+
+const NO_PUBLISHED_SERVING_DATA_MESSAGE = "No published serving data is available.";
 
 function artifactApiPath(key: string): string {
   return `/api/v1/artifacts/${key
@@ -219,7 +239,7 @@ function buildRouteCard(input: {
     quality: {
       releaseLayer: hasObservedReliability
         ? ("observed_release" as const)
-        : ("baseline_release" as const),
+        : ("published_release" as const),
       completenessStatus,
       confidence: source === "third_party_recovered" ? ("medium" as const) : ("high" as const),
       caveats:
@@ -232,17 +252,17 @@ function buildRouteCard(input: {
   };
 }
 
-async function buildReleaseStatusResponse(url: URL, env: StudioApiEnv): Promise<Response> {
+async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> {
   if (env.DB === undefined) {
     return dependencyNotConfigured("DB", "release status");
   }
 
-  const month = releaseStatusMonth(url, env);
-  if (month === null) {
-    return errorJson(400, "Query parameter month or BASELINE_MONTH must use YYYY-MM format.");
-  }
-
   const db = createD1ServingDb(env.DB);
+  const release = await resolvePublicServingRelease(db);
+  if (release === null) {
+    return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
+  }
+  const month = release.coverage.end;
   const [batchStatus, reliability, currentSignalMonth] = await Promise.all([
     getRouteBatchStatus(db, month),
     listRouteObservedReliabilitySummaries(db, month),
@@ -250,7 +270,7 @@ async function buildReleaseStatusResponse(url: URL, env: StudioApiEnv): Promise<
   ]);
 
   if (batchStatus === null) {
-    return errorJson(404, "Release status was not found.");
+    return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
   }
 
   const observedRows = reliability.filter((row) => row.reliabilityStatus === "observed");
@@ -284,10 +304,10 @@ async function buildReleaseStatusResponse(url: URL, env: StudioApiEnv): Promise<
     decodeSchemaStrict(ReleaseStatusResponseSchema, {
       schemaVersion: 1,
       generatedAt: batchStatus.generatedAt,
-      baselineMonth: month,
+      ...release,
       currentSignalMonth: currentObservedSignal?.month ?? null,
-      canonicalMonthlyRelease: {
-        month,
+      release: {
+        ...release,
         status: batchStatus.status,
         routeCount: batchStatus.routeCount,
         artifactCount: batchStatus.artifactCount,
@@ -303,9 +323,9 @@ async function buildReleaseStatusResponse(url: URL, env: StudioApiEnv): Promise<
       },
       currentObservedSignal,
       quality: {
-        releaseLayer: observedRouteCount > 0 ? "observed_release" : "baseline_release",
+        releaseLayer: observedRouteCount > 0 ? "observed_release" : "published_release",
         completenessStatus:
-          batchStatus.status === "pass" ? "complete" : "partial_public_monthly_only",
+          batchStatus.status === "pass" ? "complete" : "partial_public_speed_only",
         confidence: source === "third_party_recovered" ? "medium" : "high",
         caveats,
       },
@@ -340,12 +360,12 @@ async function buildCurrentObservedSignal(
     source === "third_party_recovered"
       ? [
           "Current observed signal is recovered from the third-party Bus Observatory archive, not official MTA historical replay.",
-          "Public monthly speed data is not yet available for this month; reliability evidence stands alone.",
+          "The monthly public speed dataset has not published this month yet; reliability evidence stands alone.",
         ]
       : source === "official_self_collected"
         ? [
             "Current observed signal comes from self-collected MTA Bus Time GTFS-RT snapshots.",
-            "Public monthly speed data is not yet available for this month; reliability evidence stands alone.",
+            "The monthly public speed dataset has not published this month yet; reliability evidence stands alone.",
           ]
         : ["Current observed signal has ambiguous provenance; multiple runs cover the same month."];
   return {
@@ -366,17 +386,17 @@ async function buildRouteListResponse(url: URL, env: StudioApiEnv): Promise<Resp
     return dependencyNotConfigured("DB", "route list");
   }
 
-  const month = releaseStatusMonth(url, env);
-  if (month === null) {
-    return errorJson(400, "Query parameter month or BASELINE_MONTH must use YYYY-MM format.");
-  }
-
   const limit = parseLimit(url, 50, 250);
   if (limit === null) {
     return errorJson(400, "Query parameter limit must be a positive integer.");
   }
 
   const db = createD1ServingDb(env.DB);
+  const release = await resolvePublicServingRelease(db);
+  if (release === null) {
+    return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
+  }
+  const month = release.coverage.end;
   const [summaries, reliability] = await Promise.all([
     listRouteBriefSummaries(db, month),
     listRouteObservedReliabilitySummaries(db, month),
@@ -403,12 +423,12 @@ async function buildRouteListResponse(url: URL, env: StudioApiEnv): Promise<Resp
     decodeSchemaStrict(RouteListResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
-      baselineMonth: month,
+      ...release,
       routes,
       quality: {
         releaseLayer: routes.some((route) => route.quality.releaseLayer === "observed_release")
           ? "observed_release"
-          : "baseline_release",
+          : "published_release",
         completenessStatus: routes.every((route) => route.quality.completenessStatus === "complete")
           ? "complete"
           : "insufficient_samples",
@@ -434,11 +454,6 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
     return errorJson(404, "Route profile endpoint not found.");
   }
 
-  const month = releaseStatusMonth(url, env);
-  if (month === null) {
-    return errorJson(400, "Query parameter month or BASELINE_MONTH must use YYYY-MM format.");
-  }
-
   let routeId: RouteId;
   try {
     routeId = decodeSchemaStrict(RouteIdCodec, decodeURIComponent(rawRouteId));
@@ -447,6 +462,11 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
   }
 
   const db = createD1ServingDb(env.DB);
+  const release = await resolvePublicServingRelease(db);
+  if (release === null) {
+    return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
+  }
+  const month = release.coverage.end;
   const [summary, reliability, artifacts] = await Promise.all([
     getRouteBriefSummary(db, routeId, month),
     listRouteObservedReliabilitySummaries(db, month),
@@ -467,7 +487,7 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
         ? "complete"
         : "insufficient_samples";
   const quality = {
-    releaseLayer: hasObservedReliability ? "observed_release" : "baseline_release",
+    releaseLayer: hasObservedReliability ? "observed_release" : "published_release",
     completenessStatus,
     confidence: source === "third_party_recovered" ? "medium" : "high",
     caveats:
@@ -482,7 +502,7 @@ async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<R
     decodeSchemaStrict(RouteProfileResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
-      baselineMonth: month,
+      ...release,
       route: {
         ...buildRouteCard({
           routeId: summary.routeId,
@@ -773,17 +793,18 @@ async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Re
     return dependencyNotConfigured("DB", "hotspot list");
   }
 
-  const month = releaseStatusMonth(url, env);
-  if (month === null) {
-    return errorJson(400, "Query parameter month or BASELINE_MONTH must use YYYY-MM format.");
-  }
-
   const limit = parseLimit(url, 50, 250);
   if (limit === null) {
     return errorJson(400, "Query parameter limit must be a positive integer.");
   }
 
-  const corridors = await listCorridorSummaries(createD1ServingDb(env.DB), month);
+  const db = createD1ServingDb(env.DB);
+  const release = await resolvePublicServingRelease(db);
+  if (release === null) {
+    return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
+  }
+  const month = release.coverage.end;
+  const corridors = await listCorridorSummaries(db, month);
   const hotspots = corridors
     .flatMap((corridor) =>
       corridor.topHotspots.map((hotspot) => ({
@@ -799,10 +820,10 @@ async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Re
         hotspotScore: hotspot.hotspot_score,
         riderImpactScore: hotspot.rider_impact_score,
         quality: {
-          releaseLayer: "baseline_release" as const,
+          releaseLayer: "published_release" as const,
           completenessStatus: "complete" as const,
           confidence: "high" as const,
-          caveats: ["Hotspots are precomputed from the canonical monthly public speed release."],
+          caveats: ["Hotspots are precomputed from the latest covered public speed month."],
         },
       })),
     )
@@ -822,10 +843,10 @@ async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Re
     decodeSchemaStrict(HotspotListResponseSchema, {
       schemaVersion: 1,
       generatedAt: new Date().toISOString(),
-      baselineMonth: month,
+      ...release,
       hotspots,
       quality: {
-        releaseLayer: "baseline_release",
+        releaseLayer: "published_release",
         completenessStatus: "complete",
         confidence: "high",
         caveats: [
@@ -838,7 +859,7 @@ async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Re
 
 export async function handlePublicApiRoutes(url: URL, env: StudioApiEnv): Promise<Response | null> {
   if (url.pathname === "/api/v1/status") {
-    return buildReleaseStatusResponse(url, env);
+    return buildReleaseStatusResponse(env);
   }
 
   if (url.pathname === "/api/v1/routes") {
