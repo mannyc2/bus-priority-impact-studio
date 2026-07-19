@@ -6,6 +6,7 @@ import {
   RouteCapabilityManifestSchema,
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
 } from "../src/studio";
+import { freshnessReferenceMonth } from "../src/studio/route-capability.js";
 
 function surface(state: string, extra: Record<string, unknown> = {}) {
   return {
@@ -20,9 +21,11 @@ function surface(state: string, extra: Record<string, unknown> = {}) {
 
 const manifest = {
   artifactKind: "route_capability_manifest",
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedAt: "2026-06-10T00:00:00.000Z",
-  releaseMonth: "2026-03",
+  releaseId: "pub_20260610T000000000Z",
+  publishedAt: "2026-06-10T00:00:00.000Z",
+  coverage: { start: "2023-04", end: "2026-03" },
   routes: [
     {
       routeId: "M15+",
@@ -100,6 +103,11 @@ describe("route capability manifest contract", () => {
 });
 
 describe("freshnessForDataAsOf (C4 shared freshness vocabulary)", () => {
+  test("derives the reference month from an evaluation timestamp", () => {
+    expect(freshnessReferenceMonth("2026-07-19T12:34:56.789Z")).toBe("2026-07");
+    expect(() => freshnessReferenceMonth("not-an-instant")).toThrow(/valid ISO timestamp/);
+  });
+
   test("classifies current / recent / stale / unknown", () => {
     expect(freshnessForDataAsOf("2026-03", "2026-03")).toBe("current");
     expect(freshnessForDataAsOf("2026-05", "2026-03")).toBe("current");

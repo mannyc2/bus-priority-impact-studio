@@ -95,7 +95,7 @@ export const studioRouteFieldProvenance = {
   speedMph: {
     kind: "observed",
     source: "D1 route_brief_summary.average_speed_mph",
-    note: "Observed monthly route speed in the generated release month.",
+    note: "Observed monthly route speed for the latest covered month.",
   },
   scheduledMph: {
     kind: "derived",
@@ -248,7 +248,7 @@ export const studioSegmentFieldProvenance = {
   speedMph: {
     kind: "observed",
     source: "route-slice segment speed observations",
-    note: "Observed segment speed for the release month.",
+    note: "Observed segment speed for the latest covered month.",
   },
   scheduledMph: {
     kind: "derived",

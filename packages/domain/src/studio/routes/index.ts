@@ -8,7 +8,7 @@ import {
   StudioCurrentBusTripTypeSchema,
   StudioRouteServiceModeSchema,
 } from "../route-presentation.js";
-import { StudioQualitySchema } from "../shared.js";
+import { CoverageWindowSchema, StudioQualitySchema } from "../shared.js";
 
 export const StudioObservedReliabilitySchema = Schema.Struct({
   month: Schema.String,
@@ -302,7 +302,9 @@ export const StudioRouteEquityContextSchema = Schema.Struct({
 export const StudioRoutesResponseSchema = Schema.Struct({
   schemaVersion: Schema.Literal(2),
   generatedAt: Schema.String,
-  baselineMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  releaseId: Schema.String,
+  publishedAt: Schema.String,
+  coverage: CoverageWindowSchema,
   routes: Schema.Array(StudioRouteSchema),
   quality: StudioQualitySchema,
 });
@@ -422,7 +424,9 @@ export const StudioRouteHourlyProfileResponseSchema = Schema.Struct({
 export const StudioRouteDetailResponseSchema = Schema.Struct({
   schemaVersion: Schema.Literal(3),
   generatedAt: Schema.String,
-  baselineMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  releaseId: Schema.String,
+  publishedAt: Schema.String,
+  coverage: CoverageWindowSchema,
   route: StudioRouteSchema,
   peerRoute: Schema.optional(StudioRouteSchema),
   segments: Schema.Array(StudioSegmentSchema),
@@ -663,8 +667,8 @@ export const StudioRouteSectionsResponseSchema = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   generatedAt: Schema.String,
   releaseId: Schema.String,
-  /** Serving month the sections were built from (provenance; resolved internally — C3). */
-  baselineMonth: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+  publishedAt: Schema.String,
+  coverage: CoverageWindowSchema,
   /** Latest data month behind the rankings — the user-facing freshness label (C3). */
   dataAsOf: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
   sections: Schema.Array(StudioRouteSectionSchema),

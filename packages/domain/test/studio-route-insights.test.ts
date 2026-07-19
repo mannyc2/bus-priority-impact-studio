@@ -321,7 +321,9 @@ describe("route insight projection", () => {
     const detail = decodeStrict(StudioRouteDetailResponseSchema)({
       schemaVersion: 3,
       generatedAt: "2026-06-08T00:00:00.000Z",
-      baselineMonth: "2026-03",
+      releaseId: "pub_20260608T000000000Z",
+      publishedAt: "2026-06-08T00:00:00.000Z",
+      coverage: { start: "2023-04", end: "2026-03" },
       route: {
         slug: "b47",
         routeId: "B47",
@@ -355,7 +357,7 @@ describe("route insight projection", () => {
       segments: [],
       artifactRefs: [],
       quality: {
-        releaseLayer: "baseline_release",
+        releaseLayer: "published_release",
         completenessStatus: "complete",
         confidence: "medium",
         caveats: [],

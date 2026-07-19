@@ -20,6 +20,7 @@ import {
   type StudioSegmentsResponse,
   StudioSegmentsResponseSchema,
 } from "./routes/index.js";
+import { releaseIdFromPublishedAt } from "./shared.js";
 
 export function getStudioRoute(
   release: Pick<StudioReleasePayload, "routes">,
@@ -40,7 +41,9 @@ export function buildStudioRoutesProjection(release: StudioReleasePayload): Stud
   return decodeStrict(StudioRoutesResponseSchema)({
     schemaVersion: 2,
     generatedAt: release.generatedAt,
-    baselineMonth: release.baselineMonth,
+    releaseId: releaseIdFromPublishedAt(release.generatedAt),
+    publishedAt: release.generatedAt,
+    coverage: { start: release.baselineMonth, end: release.baselineMonth },
     routes: release.routes,
     quality: release.quality,
   });
@@ -66,7 +69,9 @@ export function buildStudioRouteProjection(
   return decodeStrict(StudioRouteDetailResponseSchema)({
     schemaVersion: 3,
     generatedAt: release.generatedAt,
-    baselineMonth: release.baselineMonth,
+    releaseId: releaseIdFromPublishedAt(release.generatedAt),
+    publishedAt: release.generatedAt,
+    coverage: { start: release.baselineMonth, end: release.baselineMonth },
     route,
     ...(route.peerSlug ? { peerRoute: getStudioRoute(release, route.peerSlug) } : {}),
     segments: routeSegments(release, route.slug),

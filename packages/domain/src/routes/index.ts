@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import { IsoMonthSchema, RouteIdSchema, SourceCitationSchema } from "../primitives/index.js";
 import { registerProjectSchema } from "../schema-registry.js";
+import { CoverageWindowSchema } from "../studio/shared.js";
 
 const schemaVersion = 1;
 
@@ -42,7 +43,7 @@ export type RouteScorecard = typeof RouteScorecardSchema.Type;
 
 export const ReleaseLayerSchema = registerProjectSchema(
   Schema.Literals([
-    "baseline_release",
+    "published_release",
     "current_signal",
     "pending_publication",
     "observed_release",
@@ -61,7 +62,7 @@ export const CompletenessStatusSchema = registerProjectSchema(
   Schema.Literals([
     "complete",
     "partial_realtime_only",
-    "partial_public_monthly_only",
+    "partial_public_speed_only",
     "missing_speed",
     "missing_realtime",
     "insufficient_samples",
@@ -100,10 +101,14 @@ export const ReleaseStatusResponseSchema = registerProjectSchema(
     generatedAt: Schema.String.check(
       Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
     ),
-    baselineMonth: IsoMonthSchema,
+    releaseId: Schema.String,
+    publishedAt: Schema.String,
+    coverage: CoverageWindowSchema,
     currentSignalMonth: Schema.NullOr(IsoMonthSchema),
-    canonicalMonthlyRelease: Schema.Struct({
-      month: IsoMonthSchema,
+    release: Schema.Struct({
+      releaseId: Schema.String,
+      publishedAt: Schema.String,
+      coverage: CoverageWindowSchema,
       status: Schema.Literals(["pass", "fail", "missing"]),
       routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
       artifactCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
@@ -141,11 +146,25 @@ export const ReleaseStatusResponseSchema = registerProjectSchema(
       }),
     ),
     quality: ApiDataQualitySchema,
-  }),
+  }).check(
+    Schema.makeFilter((response) =>
+      response.releaseId === response.release.releaseId &&
+      response.publishedAt === response.release.publishedAt &&
+      response.coverage.start === response.release.coverage.start &&
+      response.coverage.end === response.release.coverage.end
+        ? []
+        : [
+            {
+              path: ["release"],
+              issue: "Nested release identity must match the response release identity.",
+            },
+          ],
+    ),
+  ),
   {
     id: "bp.release_status_response.v1",
     title: "Release Status Response",
-    description: "Public API response describing the active release month and data provenance.",
+    description: "Public API response describing the active published release and data provenance.",
     stability: "draft",
   },
 );
@@ -194,14 +213,16 @@ export const RouteListResponseSchema = registerProjectSchema(
     generatedAt: Schema.String.check(
       Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
     ),
-    baselineMonth: IsoMonthSchema,
+    releaseId: Schema.String,
+    publishedAt: Schema.String,
+    coverage: CoverageWindowSchema,
     routes: Schema.Array(RouteCardSchema),
     quality: ApiDataQualitySchema,
   }),
   {
     id: "bp.route_list_response.v1",
     title: "Route List Response",
-    description: "Public API response for compact route cards in the active release month.",
+    description: "Public API response for compact route cards in the active published release.",
     stability: "draft",
   },
 );
@@ -232,7 +253,9 @@ export const RouteProfileResponseSchema = registerProjectSchema(
     generatedAt: Schema.String.check(
       Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
     ),
-    baselineMonth: IsoMonthSchema,
+    releaseId: Schema.String,
+    publishedAt: Schema.String,
+    coverage: CoverageWindowSchema,
     route: RouteCardSchema,
     peakRidership: Schema.NullOr(
       Schema.Struct({
@@ -299,7 +322,7 @@ export const RouteProfileResponseSchema = registerProjectSchema(
   {
     id: "bp.route_profile_response.v1",
     title: "Route Profile Response",
-    description: "Public API response for one route profile panel in the active release month.",
+    description: "Public API response for one route profile panel in the active published release.",
     stability: "draft",
   },
 );
@@ -339,7 +362,9 @@ export const HotspotListResponseSchema = registerProjectSchema(
     generatedAt: Schema.String.check(
       Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
     ),
-    baselineMonth: IsoMonthSchema,
+    releaseId: Schema.String,
+    publishedAt: Schema.String,
+    coverage: CoverageWindowSchema,
     hotspots: Schema.Array(HotspotCardSchema),
     quality: ApiDataQualitySchema,
   }),
@@ -359,7 +384,9 @@ export const RouteCompareResponseSchema = registerProjectSchema(
     generatedAt: Schema.String.check(
       Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/),
     ),
-    baselineMonth: IsoMonthSchema,
+    releaseId: Schema.String,
+    publishedAt: Schema.String,
+    coverage: CoverageWindowSchema,
     routes: Schema.Tuple([RouteCardSchema, RouteCardSchema]),
     deltas: Schema.Struct({
       routeScore: Schema.Number,
