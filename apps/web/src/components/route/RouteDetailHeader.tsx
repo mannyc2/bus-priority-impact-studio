@@ -81,7 +81,12 @@ export function RouteDetailHeader({
   return (
     <header className="bg-[var(--bp-color-card)] px-7 py-5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] max-md:px-4">
       <div className="flex flex-wrap items-start gap-5">
-        <RouteBadge route={route.label} sbs={route.sbs} size="xl" />
+        <RouteBadge
+          route={route.label}
+          displayLabel={route.displayLabel}
+          sbs={route.sbs}
+          size="xl"
+        />
         <div className="min-w-0 flex-1">
           <h1 className="m-0 text-[24px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--bp-color-ink)] max-md:text-[20px]">
             {route.corridorFull || route.corridor}

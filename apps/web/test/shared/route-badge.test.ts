@@ -8,24 +8,35 @@ function render(route: string, sbs: boolean) {
 }
 
 describe("RouteBadge normalization", () => {
-  test("adds the -SBS suffix from the sbs flag", () => {
-    expect(render("M86", true)).toContain("M86-SBS");
+  test("does not manufacture an SBS suffix from the service-classification flag", () => {
+    const html = render("M86", true);
+    expect(html).toContain(">M86</span>");
+    expect(html).not.toContain("M86-SBS");
   });
 
-  test("does not double the suffix when the label already contains SBS", () => {
+  test("preserves a space-separated source label verbatim", () => {
     const html = render("M86 SBS", true);
-    expect(html).toContain("M86-SBS");
-    expect(html).not.toContain("SBS-SBS");
+    expect(html).toContain("M86 SBS");
+    expect(html).not.toContain("M86-SBS");
   });
 
-  test("normalizes the hyphenated form", () => {
+  test("preserves a hyphenated source label verbatim", () => {
     expect(render("M86-SBS", false)).toContain("M86-SBS");
   });
 
-  test("normalizes the '+SBS' form", () => {
+  test("preserves a plus-SBS source label verbatim", () => {
     const html = render("M86 +SBS", false);
-    expect(html).toContain("M86-SBS");
-    expect(html).not.toContain("SBS-SBS");
+    expect(html).toContain("M86 +SBS");
+    expect(html).not.toContain("M86-SBS");
+  });
+
+  test("renders a source-backed display label verbatim without SBS synthesis", () => {
+    const html = renderToStaticMarkup(
+      createElement(RouteBadge, { route: "B44+", sbs: true, displayLabel: "B44 Select" }),
+    );
+    expect(html).toContain("B44 Select");
+    expect(html).not.toContain("B44-SBS");
+    expect(html).toContain("min-width:62px");
   });
 
   test("leaves a plain route untouched", () => {

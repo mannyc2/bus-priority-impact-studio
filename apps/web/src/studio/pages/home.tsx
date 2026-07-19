@@ -73,7 +73,12 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
         id: route.slug,
         primary: (
           <span className="inline-flex items-center gap-2.5">
-            <RouteBadge route={route.label} sbs={route.sbs} size="sm" />
+            <RouteBadge
+              route={route.label}
+              displayLabel={route.displayLabel}
+              sbs={route.sbs}
+              size="sm"
+            />
             <span>{route.corridorFull}</span>
           </span>
         ),
@@ -143,7 +148,7 @@ export function HomePage({ routes }: { routes: readonly StudioRoute[] }) {
                   viewTransition
                   className="no-underline"
                 >
-                  <RouteBadge route={r.label} sbs={r.sbs} size="sm" />
+                  <RouteBadge route={r.label} displayLabel={r.displayLabel} sbs={r.sbs} size="sm" />
                 </Link>
               ))}
             </div>

@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test";
+import { routeKey } from "../../../src/commands/studio/_release-routes.ts";
 
 describe("studio release D1 replay boundary", () => {
+  test("keeps exact route identities distinct when assembling route interventions", () => {
+    expect(routeKey("B44")).toBe("B44");
+    expect(routeKey("B44+")).toBe("B44+");
+    expect(routeKey("b44")).toBe("b44");
+    expect(() => routeKey(" B44 ")).toThrow("exact non-empty route identity");
+  });
+
   test("loads serving export rows through the Effect D1 replay boundary", async () => {
     const source = await Bun.file(
       new URL("../../../src/commands/studio/release.ts", import.meta.url),

@@ -64,6 +64,7 @@ describe("D1 seed validation", () => {
         routeShortName: "M1",
         routeLongName: null,
         routeTypes: ["local"],
+        tripTypes: ["1"],
         directions: ["Northbound"],
         shapeCount: "many",
         stopCount: 10,

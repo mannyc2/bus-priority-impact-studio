@@ -5,16 +5,23 @@ import {
   type StudioRouteIndexSourceRow,
 } from "@bp/db/d1";
 import {
+  assertInjectiveStudioRouteIdentityUniverse,
   type RouteSurfaceState,
+  routeIdToStudioSlug,
   STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
+  StudioCurrentBusRouteTypeSchema,
+  StudioCurrentBusTripTypeSchema,
   type StudioRouteCapability,
+  studioRouteServiceModesForOfficialTypes,
 } from "@bp/domain/studio";
 import type { StudioObservedReliability, StudioRoute } from "@bp/domain/studio/routes";
 import type {
   StudioRouteFamily,
   StudioRouteIndex2Row,
+  StudioRouteIndex3Row,
   StudioSnapshot2ProjectionRef,
 } from "@bp/domain/studio/snapshots";
+import { decodeSchemaStrict } from "../schema-decode.js";
 
 function roundPct(value: number | null): number | null {
   return value === null ? null : Number((value * 100).toFixed(1));
@@ -30,13 +37,7 @@ export function realtimeSourceForRunId(
   return runId.startsWith("bus-observatory-") ? "third_party_recovered" : "official_self_collected";
 }
 
-export function routeIdToStudioSlug(routeId: string): string {
-  return routeId
-    .toLowerCase()
-    .replace(/\+/g, "-sbs")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+export { routeIdToStudioSlug } from "@bp/domain/studio";
 
 export function boroughForRouteId(routeId: string): StudioRouteIndex2Row["borough"] {
   const upper = routeId.toUpperCase();
@@ -81,7 +82,9 @@ export async function listNormalizedStudioRouteIndexSourceRows(
   month: string,
 ): Promise<NormalizedStudioRouteIndexSourceRow[]> {
   const rows = await listStudioRouteIndexSourceRows(db, month);
-  return rows.map(normalizeStudioRouteIndexSourceRow);
+  const normalized = rows.map(normalizeStudioRouteIndexSourceRow);
+  assertInjectiveStudioRouteIdentityUniverse(normalized, "D1 Studio route index");
+  return normalized;
 }
 
 export function routeFamilyForIndexRow(
@@ -292,6 +295,32 @@ export function routeProjectionRefs(input: {
   return refs;
 }
 
+export function exactRoutePresentationForIndexRow(row: NormalizedStudioRouteIndexSourceRow) {
+  const routeTypes = [...new Set(row.routeTypes)]
+    .map((routeType) => decodeSchemaStrict(StudioCurrentBusRouteTypeSchema, routeType))
+    .toSorted();
+  const tripTypes = [...new Set(row.tripTypes)]
+    .map((tripType) => decodeSchemaStrict(StudioCurrentBusTripTypeSchema, tripType))
+    .toSorted((left, right) => String(left).localeCompare(String(right)));
+  const serviceModes = studioRouteServiceModesForOfficialTypes(routeTypes, tripTypes);
+  const designationLiterals = [
+    ...new Set([
+      ...routeTypes.map((routeType) => `route_type:${routeType}`),
+      ...tripTypes.map((tripType) => `trip_type:${String(tripType)}`),
+    ]),
+  ].toSorted();
+  return {
+    routeId: row.routeId,
+    routeFamilyId: row.routeId.endsWith("+") ? row.routeId.slice(0, -1) : row.routeId,
+    displayLabel: row.routeShortName,
+    officialLongName: row.routeLongName,
+    designationLiterals,
+    serviceModes,
+    routeTypes,
+    tripTypes,
+  };
+}
+
 export function buildStudioRouteIndex2Row(input: {
   releaseId: string;
   baselineMonth: string;
@@ -306,7 +335,7 @@ export function buildStudioRouteIndex2Row(input: {
     baselineMonth: input.baselineMonth,
     routeId: input.row.routeId,
     slug,
-    label: input.row.routeShortName.replace("-SBS", " SBS"),
+    label: input.row.routeShortName,
     longName: input.row.routeLongName,
     borough: boroughForRouteId(input.row.routeId),
     routeFamily: routeFamilyForIndexRow(input.row),
@@ -319,6 +348,20 @@ export function buildStudioRouteIndex2Row(input: {
       lastBuiltSpeedMonth: input.lastBuiltSpeedMonth,
     }),
     updatedAt: input.generatedAt,
+  };
+}
+
+export function buildStudioRouteIndex3Row(
+  input: Parameters<typeof buildStudioRouteIndex2Row>[0],
+): StudioRouteIndex3Row {
+  const legacy = buildStudioRouteIndex2Row(input);
+  const presentation = exactRoutePresentationForIndexRow(input.row);
+  return {
+    ...legacy,
+    ...presentation,
+    routeSchemaVersion: 2,
+    label: presentation.displayLabel,
+    longName: presentation.officialLongName,
   };
 }
 
@@ -369,7 +412,7 @@ export function routeTerminiForIndexRow(row: NormalizedStudioRouteIndexSourceRow
 }
 
 export function routeLabelForIndexRow(row: NormalizedStudioRouteIndexSourceRow): string {
-  return row.routeShortName.replace("-SBS", " SBS");
+  return row.routeShortName;
 }
 
 export function routeSpeedMphForIndexRow(row: NormalizedStudioRouteIndexSourceRow): number {
@@ -427,15 +470,24 @@ export function buildStudioRouteCardFromIndexRow(
   const slug = routeIdToStudioSlug(row.routeId);
   const speedMph = routeSpeedMphForIndexRow(row);
   const coverage = routeLaneCoverageForIndexRow(row);
-  const corridor = row.routeLongName ?? row.routeShortName;
+  const presentation = exactRoutePresentationForIndexRow(row);
+  const corridor = presentation.officialLongName ?? presentation.displayLabel;
   return {
     slug,
-    routeId: row.routeId,
-    label: routeLabelForIndexRow(row),
+    routeId: presentation.routeId,
+    label: presentation.displayLabel,
+    routeSchemaVersion: 2,
+    routeFamilyId: presentation.routeFamilyId,
+    displayLabel: presentation.displayLabel,
+    officialLongName: presentation.officialLongName,
+    designationLiterals: presentation.designationLiterals,
+    serviceModes: presentation.serviceModes,
+    routeTypes: presentation.routeTypes,
+    tripTypes: presentation.tripTypes,
     corridor,
     corridorFull: corridor,
     borough: boroughForRouteId(row.routeId),
-    sbs: row.routeId.includes("+") || row.routeShortName.includes("SBS"),
+    sbs: presentation.serviceModes.includes("sbs"),
     speedMph,
     scheduledMph: null,
     weightedAvgSpeed: speedMph,

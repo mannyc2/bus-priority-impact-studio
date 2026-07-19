@@ -66,6 +66,8 @@ import {
   type StudioRouteIndex2Response,
   StudioRouteIndex2ResponseSchema,
   type StudioRouteIndex2Row,
+  type StudioRouteIndex3Response,
+  StudioRouteIndex3ResponseSchema,
   type StudioSnapshot2,
   type StudioSnapshot2ProjectionRef,
   type StudioSnapshotProjection,
@@ -99,6 +101,7 @@ import {
 import {
   buildStudioRouteCardFromIndexRow,
   buildStudioRouteIndex2Row,
+  buildStudioRouteIndex3Row,
   FALLBACK_ROUTE_CAPABILITY,
   hasRouteTimelineBundle,
   listNormalizedStudioRouteIndexSourceRows,
@@ -236,6 +239,10 @@ type BuildStudioInterventionsEvidenceResponseResult =
 
 type BuildStudioRouteIndex2ResponseResult =
   | { ok: true; routeIndex: StudioRouteIndex2Response }
+  | { ok: false; response: Response };
+
+type BuildStudioRouteIndex3ResponseResult =
+  | { ok: true; routeIndex: StudioRouteIndex3Response }
   | { ok: false; response: Response };
 
 type BuildStudioRouteSectionsResponseResult =
@@ -409,7 +416,7 @@ async function buildStudioRouteIndex2Response(
         completenessStatus: routes.length === 0 ? "unavailable" : "partial_public_monthly_only",
         confidence: routes.length === 0 ? "low" : "medium",
         caveats: [
-          "Route index v2 is the all-route addressability layer; rich route artifacts are exposed as per-route surface flags.",
+          "Route index v2 is the legacy all-route addressability layer; use schema v3 for exact source-backed route identity.",
           "Sparse routes are valid Studio routes even when summary, detail, finding, or evidence surfaces are unavailable.",
         ],
       },
@@ -417,16 +424,62 @@ async function buildStudioRouteIndex2Response(
   };
 }
 
-function routeIdAliases(routeId: string): string[] {
-  const upper = routeId.toUpperCase();
-  const aliases = new Set([upper]);
-  if (upper.endsWith("+")) aliases.add(upper.slice(0, -1));
-  else aliases.add(`${upper}+`);
-  return [...aliases];
+async function buildStudioRouteIndex3Response(
+  env: StudioReadEnv,
+): Promise<BuildStudioRouteIndex3ResponseResult> {
+  if (env.DB === undefined) {
+    return {
+      ok: false,
+      response: dependencyNotConfiguredResponse("DB", "Studio route index v3"),
+    };
+  }
+  const months = await resolveServingMonths(env);
+  if (months === null) {
+    return { ok: false, response: errorResponse(503, NO_SERVING_MONTH_MESSAGE) };
+  }
+
+  const generatedAt = new Date().toISOString();
+  const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
+  const [rows, capabilityManifest] = await Promise.all([
+    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
+    loadRouteCapabilityManifest(env),
+  ]);
+  const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
+  const routes = rows.map((row) =>
+    buildStudioRouteIndex3Row({
+      releaseId,
+      baselineMonth: months.servingMonth,
+      generatedAt,
+      lastBuiltSpeedMonth: months.latestSpeedMonth ?? undefined,
+      row,
+      capability: capabilityByRoute.get(row.routeId) ?? FALLBACK_ROUTE_CAPABILITY,
+    }),
+  );
+
+  return {
+    ok: true,
+    routeIndex: decodeSchemaStrict(StudioRouteIndex3ResponseSchema, {
+      schemaVersion: 3,
+      generatedAt,
+      releaseId,
+      baselineMonth: months.servingMonth,
+      dataAsOf: months.latestSpeedMonth ?? months.servingMonth,
+      routes,
+      quality: {
+        releaseLayer: "baseline_release",
+        completenessStatus: routes.length === 0 ? "unavailable" : "partial_public_monthly_only",
+        confidence: routes.length === 0 ? "low" : "medium",
+        caveats: [
+          "Route index v3 carries exact source-backed route identity/presentation; rich route artifacts remain per-route surface flags.",
+          "Sparse routes are valid Studio routes even when summary, detail, finding, or evidence surfaces are unavailable.",
+        ],
+      },
+    }),
+  };
 }
 
 function routeDetailSlugCandidates(routeId: string, requestedSlug: string): string[] {
-  const candidates = [requestedSlug, ...routeIdAliases(routeId).map(routeIdToStudioSlug)];
+  const candidates = [requestedSlug, routeIdToStudioSlug(routeId)];
   return [...new Set(candidates)];
 }
 
@@ -1061,11 +1114,7 @@ function routeCapabilityForRouteId(
   routeId: string,
 ): StudioRouteCapability | null {
   const byRoute = routeCapabilityByRouteId(manifest);
-  for (const alias of routeIdAliases(routeId)) {
-    const capability = byRoute.get(alias);
-    if (capability !== undefined) return capability;
-  }
-  return null;
+  return byRoute.get(routeId) ?? null;
 }
 
 // De-monthed (hard-cutover C2): the detail path never reads env.BASELINE_MONTH —
@@ -1634,7 +1683,7 @@ async function buildStudioInterventionsEvidenceResponse(
   }
   const artifacts = env.ARTIFACTS;
 
-  const routeIndexResult = await buildStudioRouteIndex2Response(env);
+  const routeIndexResult = await buildStudioRouteIndex3Response(env);
   if (!routeIndexResult.ok) return routeIndexResult;
 
   const bundleResults = await Promise.all(
@@ -1692,7 +1741,7 @@ function evidenceReadyRouteCount(routes: readonly StudioRouteIndex2Row[]): numbe
 }
 
 function sourceMonthStates(input: {
-  routeIndex: StudioRouteIndex2Response;
+  routeIndex: StudioRouteIndex3Response;
   sourceMonthCoverage: readonly D1SourceMonthCoverage[];
   lastBuiltSpeedMonth: string | undefined;
   routeEvidenceIndex: StudioRouteEvidenceIndex | null;
@@ -1820,7 +1869,7 @@ function sourceMonthStates(input: {
 }
 
 function buildSnapshot2(input: {
-  routeIndex: StudioRouteIndex2Response;
+  routeIndex: StudioRouteIndex3Response;
   sourceMonthCoverage: readonly D1SourceMonthCoverage[];
   skippedSourceMonthCoverageRows: number;
   lastBuiltSpeedMonth: string | undefined;
@@ -1839,10 +1888,10 @@ function buildSnapshot2(input: {
     {
       id: "route_index",
       status: routes.length > 0 ? "available" : "missing",
-      schemaVersion: 2,
+      schemaVersion: 3,
       grain: "route",
       storage: "worker",
-      path: "/api/v1/studio/routes?schema=2",
+      path: "/api/v1/studio/routes?schema=3",
       months: {
         start: input.routeIndex.baselineMonth,
         end: input.routeIndex.baselineMonth,
@@ -2039,7 +2088,7 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
 
   const resolvedMonths = await resolveServingMonths(env);
   const routesAreD1Backed = env.DB !== undefined && resolvedMonths !== null;
-  const routeIndex2Result = routesAreD1Backed ? await buildStudioRouteIndex2Response(env) : null;
+  const routeIndex2Result = routesAreD1Backed ? await buildStudioRouteIndex3Response(env) : null;
   let snapshot2: StudioSnapshot2 | undefined;
   if (routeIndex2Result?.ok === true && env.DB !== undefined) {
     try {
@@ -2113,12 +2162,18 @@ type StudioReadHandler = (input: {
   params: Readonly<Record<string, string>>;
 }) => Promise<Response>;
 
-function routeSlug(params: Readonly<Record<string, string>>): string {
-  return decodeURIComponent(params["routeId"] ?? "");
+function routeSlug(
+  params: Readonly<Record<string, string>> & { readonly routeId?: string },
+): string {
+  return decodeURIComponent(params.routeId ?? "");
 }
 
 const studioReadHandlers = {
   "studio.routes": async ({ url, env }) => {
+    if (url.searchParams.get("schema") === "3") {
+      const result = await buildStudioRouteIndex3Response(env);
+      return result.ok ? studioJsonResponse(result.routeIndex, env) : result.response;
+    }
     if (url.searchParams.get("schema") === "2") {
       const result = await buildStudioRouteIndex2Response(env);
       return result.ok ? studioJsonResponse(result.routeIndex, env) : result.response;

@@ -60,7 +60,8 @@ export async function runStudyEventMerge(input: RunStudyEventMergeInput): Promis
         );
   const registryEvents = loadStudyEventRegistryRows({ sqlite: input.local.sqlite });
   const artifact =
-    wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v4"
+    wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v4" ||
+    wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v5"
       ? buildStudyEventMergeArtifactV3({
           registryEvents,
           wiki: pinnedOccurrenceStudyInputV4(wikiImport),
@@ -115,7 +116,7 @@ export async function runStudyEventMerge(input: RunStudyEventMergeInput): Promis
   return { ...artifact, outputPath };
 }
 
-function loadAvailableAnalysisRouteIds(local: OpenLocalPipelineDb): Set<string> {
+export function loadAvailableAnalysisRouteIds(local: OpenLocalPipelineDb): Set<string> {
   const hasSpeedRows = local.sqlite
     .query("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1")
     .get("local_route_segment_speed") as { ok?: number } | null;
@@ -127,7 +128,16 @@ function loadAvailableAnalysisRouteIds(local: OpenLocalPipelineDb): Set<string> 
   const rows = local.sqlite
     .query("SELECT DISTINCT route_id FROM local_route_segment_speed ORDER BY route_id")
     .all() as Array<{ route_id: string }>;
-  return new Set(rows.map((row) => row.route_id.trim().toUpperCase()));
+  const routeIds = new Set<string>();
+  for (const row of rows) {
+    if (row.route_id.length === 0 || row.route_id !== row.route_id.trim()) {
+      throw new Error(
+        `local_route_segment_speed contains a noncanonical exact route identity: ${JSON.stringify(row.route_id)}`,
+      );
+    }
+    routeIds.add(row.route_id);
+  }
+  return routeIds;
 }
 
 export default defineCommand({

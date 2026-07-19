@@ -16,7 +16,7 @@ const optionsSchema = Schema.Struct({
   }),
   wikiRelease: Schema.String.annotate({
     description:
-      "Explicit manifest-v3 or manifest-v4 MTA Wiki release id under data/exports/releases.",
+      "Explicit manifest-v3, manifest-v4, or manifest-v5 MTA Wiki release id under data/exports/releases.",
   }),
   wikiManifestSha256: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u)).annotate({
     description: "Expected SHA-256 of the exact pinned release manifest bytes.",

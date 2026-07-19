@@ -25,6 +25,7 @@ import {
 } from "@bp/domain/studio/routes";
 import {
   StudioRouteIndex2ResponseSchema,
+  StudioRouteIndex3ResponseSchema,
   StudioSnapshotResponseSchema,
 } from "@bp/domain/studio/snapshots";
 import { handleStudioApiRequest, type StudioApiEnv } from "@bp/studio-api/server";
@@ -124,10 +125,13 @@ class FakeDb {
   prepare<T = unknown>(query: string): FakeStatement<T> {
     const call = { query, bound: [] };
     this.calls.push(call);
-    const table = Object.keys(this.rowsByTable)
-      .sort((left, right) => right.length - left.length)
-      .find((candidate) => query.includes(candidate));
-    const rows = (table === undefined ? [] : this.rowsByTable[table]) as T[];
+    const exactTable = query.match(/\bfrom\s+["`]?(\w+)["`]?/i)?.[1];
+    const table =
+      exactTable ??
+      Object.keys(this.rowsByTable)
+        .sort((left, right) => right.length - left.length)
+        .find((candidate) => query.includes(candidate));
+    const rows = (table === undefined ? [] : (this.rowsByTable[table] ?? [])) as T[];
 
     return new FakeStatement(call, rows);
   }
@@ -833,12 +837,24 @@ function createSparseStudioRouteDb(
       {
         route_id: "M15+",
         type_rank: 1,
-        route_type: "Select Bus Service",
+        route_type: "SBS",
       },
       {
         route_id: "B99",
         type_rank: 1,
         route_type: "Local",
+      },
+    ],
+    route_catalog_trip_type: [
+      {
+        route_id: "M15+",
+        trip_type_rank: 1,
+        trip_type: "14",
+      },
+      {
+        route_id: "B99",
+        trip_type_rank: 1,
+        trip_type: "1",
       },
     ],
     route_month_trend: [
@@ -1831,7 +1847,7 @@ describe("Studio API facade", () => {
     );
   });
 
-  it("loads alias route segment artifacts so treatment insights can attach to visible rows", async () => {
+  it("does not load a sibling service identity's rich route artifact", async () => {
     const bx12Route = {
       ...route,
       slug: "bx12-sbs",
@@ -1961,7 +1977,14 @@ describe("Studio API facade", () => {
           {
             route_id: "BX12",
             type_rank: 1,
-            route_type: "Select Bus Service",
+            route_type: "SBS",
+          },
+        ],
+        route_catalog_trip_type: [
+          {
+            route_id: "BX12",
+            trip_type_rank: 1,
+            trip_type: "14",
           },
         ],
         route_month_trend: [],
@@ -1993,7 +2016,8 @@ describe("Studio API facade", () => {
 
     expect(detail.route.routeId).toBe("BX12");
     expect(detail.route.slug).toBe("bx12");
-    expect(detail.segments.map((segment) => segment.id)).toEqual([richSegmentId, targetSegmentId]);
+    expect(detail.segments.map((segment) => segment.id)).toEqual([targetSegmentId]);
+    expect(detail.segments.map((segment) => segment.id)).not.toContain(richSegmentId);
     expect(detail.insights).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -2004,7 +2028,7 @@ describe("Studio API facade", () => {
         }),
       ]),
     );
-    expect(detail.quality.caveats).toContain(
+    expect(detail.quality.caveats).not.toContain(
       "Segment rows are loaded from an equivalent base/SBS route artifact so detector segment refs can attach deterministically.",
     );
     expect(detail.quality.caveats).toContain(
@@ -2171,6 +2195,46 @@ describe("Studio API facade", () => {
     expect(sparse?.capability.surfaces["detectorFindings"]?.state).toBe("insufficient_data");
     expect(sparse?.caveats).toContain(
       "A baseline summary exists, but the rich public artifact gate is not satisfied.",
+    );
+  });
+  it("serves strict exact route identity in the D1-backed route index v3", async () => {
+    const response = await fetchApi("/api/v1/studio/routes?schema=3", {
+      BASELINE_MONTH: "2026-03",
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+      LAST_BUILT_SPEED_MONTH: "2026-03",
+    });
+
+    expect(response.status).toBe(200);
+    const index = decodeStrict(StudioRouteIndex3ResponseSchema)(await response.json());
+    expect(index.schemaVersion).toBe(3);
+    expect(index.routes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          routeSchemaVersion: 2,
+          routeId: "M15+",
+          routeFamilyId: "M15",
+          slug: "m15-sbs",
+          label: "M15-SBS",
+          displayLabel: "M15-SBS",
+          officialLongName: "East Harlem - South Ferry",
+          designationLiterals: ["route_type:SBS", "trip_type:14"],
+          serviceModes: ["sbs"],
+          routeTypes: ["SBS"],
+          tripTypes: ["14"],
+        }),
+        expect.objectContaining({
+          routeSchemaVersion: 2,
+          routeId: "B99",
+          routeFamilyId: "B99",
+          slug: "b99",
+          label: "B99",
+          displayLabel: "B99",
+          designationLiterals: ["route_type:Local", "trip_type:1"],
+          serviceModes: ["local"],
+          routeTypes: ["Local"],
+          tripTypes: ["1"],
+        }),
+      ]),
     );
   });
 
@@ -2584,6 +2648,16 @@ describe("Studio API facade", () => {
       expect.arrayContaining([
         expect.objectContaining({
           slug: "m15-sbs",
+          routeSchemaVersion: 2,
+          routeId: "M15+",
+          routeFamilyId: "M15",
+          displayLabel: "M15-SBS",
+          officialLongName: "East Harlem - South Ferry",
+          designationLiterals: ["route_type:SBS", "trip_type:14"],
+          serviceModes: ["sbs"],
+          routeTypes: ["SBS"],
+          tripTypes: ["14"],
+          sbs: true,
           scheduledMph: null,
           speedPercentile: 1,
           ridersYoyPct: null,
@@ -2595,6 +2669,13 @@ describe("Studio API facade", () => {
         }),
         expect.objectContaining({
           slug: "b99",
+          routeSchemaVersion: 2,
+          routeId: "B99",
+          routeFamilyId: "B99",
+          displayLabel: "B99",
+          designationLiterals: ["route_type:Local", "trip_type:1"],
+          serviceModes: ["local"],
+          tripTypes: ["1"],
           scheduledMph: null,
           speedPercentile: 99,
           ridersYoyPct: null,
@@ -2644,12 +2725,12 @@ describe("Studio API facade", () => {
 
     const [snapshotResponse, routeIndexResponse, routesResponse] = await Promise.all([
       fetchApi("/api/v1/studio/snapshot", env),
-      fetchApi("/api/v1/studio/routes?schema=2", env),
+      fetchApi("/api/v1/studio/routes?schema=3", env),
       fetchApi("/api/v1/studio/routes", env),
     ]);
 
     const snapshot = decodeStrict(StudioSnapshotResponseSchema)(await snapshotResponse.json());
-    const routeIndex = decodeStrict(StudioRouteIndex2ResponseSchema)(
+    const routeIndex = decodeStrict(StudioRouteIndex3ResponseSchema)(
       await routeIndexResponse.json(),
     );
     const routes = decodeStrict(StudioRoutesResponseSchema)(await routesResponse.json());
@@ -2690,7 +2771,8 @@ describe("Studio API facade", () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: "route_index",
-          path: "/api/v1/studio/routes?schema=2",
+          path: "/api/v1/studio/routes?schema=3",
+          schemaVersion: 3,
           status: "available",
         }),
         expect.objectContaining({
@@ -3024,7 +3106,14 @@ describe("Studio API facade", () => {
         {
           route_id: "B46-SBS",
           type_rank: 1,
-          route_type: "Select Bus Service",
+          route_type: "SBS",
+        },
+      ],
+      route_catalog_trip_type: [
+        {
+          route_id: "B46-SBS",
+          trip_type_rank: 1,
+          trip_type: "14",
         },
       ],
       route_month_trend: [

@@ -35,6 +35,7 @@ function expectedTableCounts(exportResult: D1SeedOutputResult): Record<string, n
   return {
     route_catalog: exportResult.routeCatalogRowCount,
     route_catalog_type: exportResult.routeCatalogTypeRowCount,
+    route_catalog_trip_type: exportResult.routeCatalogTripTypeRowCount,
     route_direction: exportResult.routeDirectionRowCount,
     route_month_coverage: exportResult.routeCoverageRowCount,
     route_readiness: exportResult.routeReadinessRowCount,

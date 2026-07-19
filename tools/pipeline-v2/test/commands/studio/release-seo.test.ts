@@ -13,13 +13,13 @@ const releaseSeoPath = join(import.meta.dir, "../../../src/commands/studio/_rele
 const release = {
   generatedAt: "2026-03-01T00:00:00.000Z",
   routes: [
-    { slug: "m15-sbs", label: "M15", sbs: true },
+    { slug: "m15-sbs", label: "M15 SBS", sbs: true, displayLabel: "M15 SBS" },
     { slug: "b25", label: "B25", sbs: false },
   ],
 };
 
 describe("buildSeoTitleManifest", () => {
-  it("derives titles from the release payload, appending SBS for SBS routes", () => {
+  it("derives titles from release labels without synthesizing SBS", () => {
     const manifest = buildSeoTitleManifest(release);
 
     expect(manifest.generatedAt).toBe("2026-03-01T00:00:00.000Z");
@@ -74,5 +74,20 @@ describe("writeSeoArtifacts boundary", () => {
     expect(source).toContain("writeSeoArtifacts");
     expect(source).not.toContain('from "node:fs/promises"');
     expect(source).not.toContain("Bun.write");
+  });
+  it("uses an official display label verbatim without synthesizing SBS", () => {
+    const manifest = buildSeoTitleManifest({
+      generatedAt: "2026-07-18T00:00:00.000Z",
+      routes: [
+        {
+          slug: "b44-sbs",
+          label: "B44",
+          sbs: true,
+          displayLabel: "B44 Select",
+        },
+      ],
+    });
+
+    expect(manifest.routes).toEqual([["b44-sbs", "B44 Select"]]);
   });
 });

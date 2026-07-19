@@ -396,7 +396,12 @@ function InterventionRecord({
                 viewTransition
                 className="no-underline"
               >
-                <RouteBadge route={route.label} sbs={route.sbs} size="sm" />
+                <RouteBadge
+                  route={route.label}
+                  displayLabel={route.displayLabel}
+                  sbs={route.sbs}
+                  size="sm"
+                />
               </Link>
             ))
           )}
@@ -581,10 +586,6 @@ export function interventionRows(
   );
 }
 
-function routeJoinKey(routeId: string): string {
-  return routeId.trim().toUpperCase().replace(/-SBS$/, "").replace(/\+$/, "");
-}
-
 function corpusSourceEntry(record: StudioInterventionCorpusRecord): SourceNoteEntry {
   return {
     label: record.sourceLabel,
@@ -612,18 +613,16 @@ function corpusInterventionRows(
   corpus: StudioInterventionCorpus | null,
   visibleRegistryEventIds: ReadonlySet<string>,
 ): InterventionRow[] {
-  const routesByJoinKey = new Map(routes.map((route) => [routeJoinKey(route.routeId), route]));
+  const routesByExactId = new Map(routes.map((route) => [route.routeId, route]));
   return (corpus?.records ?? []).flatMap((record): InterventionRow[] => {
     if (record.matchedRegistryEventIds.some((eventId) => visibleRegistryEventIds.has(eventId))) {
       return [];
     }
     const matchedRoutes = record.routes.flatMap((routeId) => {
-      const route = routesByJoinKey.get(routeJoinKey(routeId));
+      const route = routesByExactId.get(routeId);
       return route === undefined ? [] : [route];
     });
-    const unmatchedRouteIds = record.routes.filter(
-      (routeId) => !routesByJoinKey.has(routeJoinKey(routeId)),
-    );
+    const unmatchedRouteIds = record.routes.filter((routeId) => !routesByExactId.has(routeId));
     const status = record.statusLatest ?? record.recordKind.replaceAll("_", " ");
     const corridor = record.corridorStreets.join(", ");
     const unmatchedRoutes =

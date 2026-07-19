@@ -1,39 +1,55 @@
 import { createHash } from "node:crypto";
-import { mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { mkdir, readFile } from "node:fs/promises";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { routeIdToStudioSlug, StudioRouteIdentityPresentationSchema } from "@bp/domain/studio";
 import {
-  STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
-  STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE,
   type StudioRouteEvidenceArtifact,
-  StudioRouteEvidenceArtifactSchema,
+  StudioRouteEvidenceArtifactV1Schema,
+  StudioRouteEvidenceArtifactV2Schema,
+  type StudioRouteEvidenceBinding,
   type StudioRouteEvidenceBundle,
+  type StudioRouteEvidenceBundleV2,
   type StudioRouteEvidenceCitation,
   StudioRouteEvidenceCitationSchema,
   type StudioRouteEvidenceIndex,
-  StudioRouteEvidenceIndexSchema,
+  StudioRouteEvidenceIndexV1Schema,
+  StudioRouteEvidenceIndexV2Schema,
   type StudioRouteEvidenceIntervention,
   type StudioRouteEvidenceMetricClaim,
   type StudioRouteEvidenceProject,
   type StudioRouteEvidenceSourceGap,
+  type StudioRouteEvidenceSourceV2,
   type StudioRouteEvidenceTimelineEvent,
   studioRouteEvidenceBundleKey,
 } from "@bp/domain/studio/route-evidence";
 import { type StudioRoute, StudioRoutesResponseSchema } from "@bp/domain/studio/routes";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
-import { readJsonArtifact, writeJson } from "../../lib/json.ts";
+import { writeJson } from "../../lib/json.ts";
 import {
   busRouteKeysFromText,
   busRouteKeysFromValue,
   type JsonObject,
   type JsonValue,
   loadMtaWikiCanonicalCorpus,
+  loadMtaWikiCanonicalCorpusFromVerifiedRelease,
   type MtaWikiCanonicalCorpus,
   type MtaWikiCanonicalRecord,
   type MtaWikiEvidenceRef,
   type MtaWikiRouteAnchor,
   normalizeBusRouteKey,
+  resolveMtaWikiRoot,
 } from "../../lib/mta-wiki-canonical.ts";
+import {
+  readMtaWikiReleaseQuarantineStatus,
+  resolveMtaWikiRelease,
+} from "../../lib/mta-wiki-release.ts";
+import {
+  auditCurrentBusRoutesParity,
+  loadMtaWikiRouteIdentities,
+  type MtaWikiRouteIdentitySnapshot,
+  type MtaWikiRouteRecordBinding,
+} from "../../lib/mta-wiki-route-identities.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 
@@ -72,6 +88,10 @@ type RouteEvidenceRecordKind =
 
 type RouteWork = {
   route: StudioRoute;
+  primaryWikiRouteRecordId: string | null;
+  routeIdentity: StudioRouteEvidenceBundleV2["routeIdentity"] | null;
+  operationalBindings: Map<string, StudioRouteEvidenceBinding>;
+  contextualBindings: Map<string, StudioRouteEvidenceBinding>;
   wikiRoutes: Map<string, MtaWikiCanonicalRecord>;
   aliases: Set<string>;
   timeline: Map<string, MtaWikiCanonicalRecord>;
@@ -94,9 +114,14 @@ type RelationRecord = {
 export type RunStudioImportMtaWikiRouteEvidenceInput = {
   mtaWikiRoot?: string | undefined;
   routesPath?: string | undefined;
+  routesSha256?: string | undefined;
   output?: string | undefined;
   servingOutputDir?: string | undefined;
   wikiRelease?: string | undefined;
+  wikiManifestSha256?: string | undefined;
+  currentBusRoutesPath?: string | undefined;
+  currentBusRoutesSha256?: string | undefined;
+  currentBusRoutesEffectiveAsOfDate?: string | undefined;
   generatedAt?: string | undefined;
   minMatchedRoutes?: number | undefined;
   writeServingArtifacts?: boolean | undefined;
@@ -177,15 +202,6 @@ function routeKeysForStudioRoute(route: StudioRoute): Set<string> {
   return keys;
 }
 
-function exactGtfsRouteKey(value: string | null | undefined): string | null {
-  if (value === undefined || value === null) return null;
-  const normalized = value
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9+]/gu, "");
-  return normalized.length === 0 ? null : normalized;
-}
-
 function allRecords(corpus: MtaWikiCanonicalCorpus): MtaWikiCanonicalRecord[] {
   return [
     ...corpus.routes,
@@ -229,14 +245,83 @@ function sourcesById(corpus: MtaWikiCanonicalCorpus): Map<string, MtaWikiCanonic
   return index;
 }
 
-function routeWorkFor(routes: readonly StudioRoute[]): {
+const CanonicalRouteSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+
+function routeEvidenceServingPath(routesDir: string, routeSlug: string): string {
+  if (!CanonicalRouteSlugPattern.test(routeSlug)) {
+    throw new Error(`Unsafe or noncanonical Tracker route slug ${JSON.stringify(routeSlug)}`);
+  }
+  const canonicalRoutesDir = resolve(routesDir);
+  const routePath = resolve(canonicalRoutesDir, `${routeSlug}.json`);
+  const fromRoutesDir = relative(canonicalRoutesDir, routePath);
+  if (
+    fromRoutesDir.length === 0 ||
+    fromRoutesDir === ".." ||
+    fromRoutesDir.startsWith(`..${sep}`) ||
+    isAbsolute(fromRoutesDir)
+  ) {
+    throw new Error(`Tracker route slug escapes serving directory: ${routeSlug}`);
+  }
+  return routePath;
+}
+
+function assertInjectiveRouteServingIdentities(
+  routes: readonly { routeId: string; routeSlug: string }[],
+  routesDir = ".",
+  requireCanonicalSlugs = false,
+): void {
+  const routeIds = new Set<string>();
+  const routeSlugs = new Set<string>();
+  const artifactKeys = new Set<string>();
+  for (const route of routes) {
+    if (routeIds.has(route.routeId)) {
+      throw new Error(`Duplicate exact Tracker route identity ${route.routeId}`);
+    }
+    const canonicalSlug = routeIdToStudioSlug(route.routeId);
+    if (requireCanonicalSlugs && route.routeSlug !== canonicalSlug) {
+      throw new Error(
+        "Tracker route " +
+          route.routeId +
+          " must use canonical slug " +
+          canonicalSlug +
+          ", received " +
+          route.routeSlug,
+      );
+    }
+    if (routeSlugs.has(route.routeSlug)) {
+      throw new Error(`Tracker route slug collision ${route.routeSlug}`);
+    }
+    routeEvidenceServingPath(routesDir, route.routeSlug);
+    const artifactKey = studioRouteEvidenceBundleKey(route.routeSlug);
+    if (artifactKeys.has(artifactKey)) {
+      throw new Error(`Tracker route evidence artifact-key collision ${artifactKey}`);
+    }
+    routeIds.add(route.routeId);
+    routeSlugs.add(route.routeSlug);
+    artifactKeys.add(artifactKey);
+  }
+}
+
+function routeWorkFor(
+  routes: readonly StudioRoute[],
+  strictExactRoutes = false,
+): {
   works: RouteWork[];
   byRouteKey: Map<string, RouteWork[]>;
   byGtfsRouteId: Map<string, RouteWork>;
 } {
+  assertInjectiveRouteServingIdentities(
+    routes.map((route) => ({ routeId: route.routeId, routeSlug: route.slug })),
+    ".",
+    strictExactRoutes,
+  );
   const works = routes
     .map((route) => ({
       route,
+      primaryWikiRouteRecordId: null,
+      routeIdentity: routeIdentityForWork(route),
+      operationalBindings: new Map<string, StudioRouteEvidenceBinding>(),
+      contextualBindings: new Map<string, StudioRouteEvidenceBinding>(),
       wikiRoutes: new Map<string, MtaWikiCanonicalRecord>(),
       aliases: new Set<string>(),
       timeline: new Map<string, MtaWikiCanonicalRecord>(),
@@ -256,8 +341,7 @@ function routeWorkFor(routes: readonly StudioRoute[]): {
       existing.push(work);
       byRouteKey.set(key, existing);
     }
-    const routeIdKey = exactGtfsRouteKey(work.route.routeId);
-    if (routeIdKey !== null) byGtfsRouteId.set(routeIdKey, work);
+    byGtfsRouteId.set(work.route.routeId, work);
   }
   return { works, byRouteKey, byGtfsRouteId };
 }
@@ -533,10 +617,47 @@ function addAnchorAliasesToWork(work: RouteWork, anchor: MtaWikiRouteAnchor): vo
   for (const alias of anchor.aliases) work.aliases.add(alias);
 }
 
+function consumerRouteBinding(binding: MtaWikiRouteRecordBinding): StudioRouteEvidenceBinding {
+  return {
+    routeRecordId: binding.route_record_id,
+    routeFamilyId: binding.route_family_id,
+    datasetId: binding.dataset_id,
+    componentFeedIds: [...binding.component_feed_ids],
+    sourceRouteId: binding.source_route_id,
+    gtfsRouteId: binding.gtfs_route_id,
+    serviceVariant: binding.service_variant,
+    identityScope: binding.identity_scope,
+    serviceClass: binding.service_class,
+    recordTemporalScope: binding.record_temporal_scope,
+    projectable: binding.projectable,
+    presentationPrimary: binding.presentation_primary,
+    derivation: binding.derivation,
+    evidenceIds: [...binding.evidence_ids],
+    canonicalRecordFingerprint: binding.canonical_record_fingerprint,
+  };
+}
+
+function routeIdentityForWork(
+  route: StudioRoute,
+): StudioRouteEvidenceBundleV2["routeIdentity"] | null {
+  if (route.displayLabel === undefined || route.routeFamilyId === undefined) return null;
+  return decodeSchemaStrict(StudioRouteIdentityPresentationSchema, {
+    routeId: route.routeId,
+    routeFamilyId: route.routeFamilyId,
+    displayLabel: route.displayLabel,
+    officialLongName: route.officialLongName ?? null,
+    designationLiterals: [...(route.designationLiterals ?? [])],
+    serviceModes: [...(route.serviceModes ?? [])],
+    routeTypes: [...(route.routeTypes ?? [])],
+    tripTypes: [...(route.tripTypes ?? [])],
+  });
+}
+
 function materializeBundle(input: {
   work: RouteWork;
   sources: ReadonlyMap<string, MtaWikiCanonicalRecord>;
   relations: readonly RelationRecord[];
+  sourceV2?: StudioRouteEvidenceSourceV2;
 }): StudioRouteEvidenceBundle {
   const timeline = [...input.work.timeline.values()]
     .map((record) => timelineEventFor(input.work, input.sources, record))
@@ -561,16 +682,37 @@ function materializeBundle(input: {
   const citations = [...input.work.citations.values()].toSorted((left, right) =>
     left.key.localeCompare(right.key),
   );
-  const wikiRouteIds = [...input.work.wikiRoutes.values()]
+  const legacyWikiRouteIds = [...input.work.wikiRoutes.values()]
     .flatMap((record) => routeAliasesForWikiRoute(record))
     .flatMap((alias) => [...busRouteKeysFromText(alias)])
     .toSorted();
+  const exactWikiRouteIds = [
+    ...new Set(
+      [...input.work.operationalBindings.values()].flatMap((binding) =>
+        binding.sourceRouteId === null ? [] : [binding.sourceRouteId],
+      ),
+    ),
+  ].toSorted();
+  if (
+    input.sourceV2 !== undefined &&
+    exactWikiRouteIds.some((routeId) => routeId !== input.work.route.routeId)
+  ) {
+    throw new Error(
+      `Named route ${input.work.route.routeId} contains a crossed exact operational binding`,
+    );
+  }
 
-  return {
+  const bundle = {
     routeId: input.work.route.routeId,
     routeSlug: input.work.route.slug,
-    wikiRouteRecordId: [...input.work.wikiRoutes.keys()].toSorted()[0] ?? null,
-    wikiRouteIds: [...new Set(wikiRouteIds)],
+    wikiRouteRecordId:
+      input.sourceV2 === undefined
+        ? (input.work.primaryWikiRouteRecordId ??
+          [...input.work.wikiRoutes.keys()].toSorted()[0] ??
+          null)
+        : input.work.primaryWikiRouteRecordId,
+    wikiRouteIds:
+      input.sourceV2 === undefined ? [...new Set(legacyWikiRouteIds)] : exactWikiRouteIds,
     wikiAliases: [...input.work.aliases].toSorted(),
     coverage: {
       timelineCount: timeline.length,
@@ -587,6 +729,31 @@ function materializeBundle(input: {
     sourceGaps,
     citations,
   };
+  if (input.sourceV2 === undefined) return bundle;
+  if (input.work.routeIdentity === null) {
+    throw new Error(
+      `Named route ${input.work.route.routeId} is missing exact identity presentation`,
+    );
+  }
+  return {
+    artifactKind: "bp.studio.route_evidence_bundle.v2",
+    schemaVersion: 2,
+    source: input.sourceV2,
+    routeIdentity: input.work.routeIdentity,
+    operationalBindings: [...input.work.operationalBindings.values()].toSorted((left, right) =>
+      left.routeRecordId.localeCompare(right.routeRecordId),
+    ),
+    contextualBindings: [...input.work.contextualBindings.values()].toSorted((left, right) =>
+      left.routeRecordId.localeCompare(right.routeRecordId),
+    ),
+    ...bundle,
+  };
+}
+
+function isRouteEvidenceBundleV2(
+  bundle: StudioRouteEvidenceBundle,
+): bundle is StudioRouteEvidenceBundleV2 {
+  return "artifactKind" in bundle && bundle.artifactKind === "bp.studio.route_evidence_bundle.v2";
 }
 
 function jsonDigest(value: unknown): { byteLength: number; sha256: string } {
@@ -622,41 +789,65 @@ export async function writeStudioRouteEvidenceServingArtifacts(input: {
 }): Promise<{ index: StudioRouteEvidenceIndex; indexPath: string; routeCount: number }> {
   const routesDir = join(input.outputDir, "routes");
   await mkdir(routesDir, { recursive: true });
+  assertInjectiveRouteServingIdentities(
+    input.artifact.routes.map((route) => ({
+      routeId: route.routeId,
+      routeSlug: route.routeSlug,
+    })),
+    routesDir,
+  );
   const routeRows: RouteEvidenceServingArtifactRow[] = [];
 
   for (const route of input.artifact.routes.toSorted((left, right) =>
     left.routeSlug.localeCompare(right.routeSlug),
   )) {
     assertBundleRecordsHaveCitations(route);
-    const routePath = join(routesDir, `${route.routeSlug}.json`);
+    const routePath = routeEvidenceServingPath(routesDir, route.routeSlug);
     const digest = jsonDigest(route);
     await writeJson(routePath, route);
-    routeRows.push({
+    const row = {
       routeId: route.routeId,
       routeSlug: route.routeSlug,
       wikiRouteRecordId: route.wikiRouteRecordId,
-      artifactName: STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
+      artifactName: "route_evidence" as const,
       artifactKey: studioRouteEvidenceBundleKey(route.routeSlug),
-      contentType: STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE,
+      contentType: "application/json" as const,
       byteLength: digest.byteLength,
       sha256: digest.sha256,
       coverage: route.coverage,
-    });
+    };
+    routeRows.push(
+      isRouteEvidenceBundleV2(route)
+        ? { ...row, bundleSchemaVersion: 2, routeIdentity: route.routeIdentity }
+        : row,
+    );
   }
 
-  const index = decodeSchemaStrict(StudioRouteEvidenceIndexSchema, {
-    artifactKind: "bp.studio.route_evidence_index.v1",
-    schemaVersion: 1,
-    generatedAt: input.artifact.generatedAt,
-    sourceArtifactKey: input.sourceArtifactKey ?? defaultSourceArtifactKey,
-    summary: {
-      routeCount: routeRows.length,
-      matchedBusRouteCount: routeRows.filter((route) => route.wikiRouteRecordId !== null).length,
-      citationCount: routeRows.reduce((sum, route) => sum + route.coverage.citationCount, 0),
-      totalByteLength: routeRows.reduce((sum, route) => sum + route.byteLength, 0),
-    },
-    routes: routeRows,
-  });
+  const summary = {
+    routeCount: routeRows.length,
+    matchedBusRouteCount: routeRows.filter((route) => route.wikiRouteRecordId !== null).length,
+    citationCount: routeRows.reduce((sum, route) => sum + route.coverage.citationCount, 0),
+    totalByteLength: routeRows.reduce((sum, route) => sum + route.byteLength, 0),
+  };
+  const index =
+    input.artifact.artifactKind === "bp.studio.route_evidence.v2"
+      ? decodeSchemaStrict(StudioRouteEvidenceIndexV2Schema, {
+          artifactKind: "bp.studio.route_evidence_index.v2",
+          schemaVersion: 2,
+          generatedAt: input.artifact.generatedAt,
+          sourceArtifactKey: input.sourceArtifactKey ?? defaultSourceArtifactKey,
+          source: input.artifact.source,
+          summary,
+          routes: routeRows,
+        })
+      : decodeSchemaStrict(StudioRouteEvidenceIndexV1Schema, {
+          artifactKind: "bp.studio.route_evidence_index.v1",
+          schemaVersion: 1,
+          generatedAt: input.artifact.generatedAt,
+          sourceArtifactKey: input.sourceArtifactKey ?? defaultSourceArtifactKey,
+          summary,
+          routes: routeRows,
+        });
   const indexPath = join(input.outputDir, "index.json");
   await writeJson(indexPath, index);
   return { index, indexPath, routeCount: routeRows.length };
@@ -666,20 +857,74 @@ export function buildStudioRouteEvidenceArtifact(input: {
   generatedAt: string;
   routes: readonly StudioRoute[];
   corpus: MtaWikiCanonicalCorpus;
+  strictExactRoutes?: boolean;
+  sourceV2?: StudioRouteEvidenceSourceV2;
+  routeIdentitySnapshot?: MtaWikiRouteIdentitySnapshot;
 }): StudioRouteEvidenceArtifact {
-  const { works, byRouteKey, byGtfsRouteId } = routeWorkFor(input.routes);
+  const { works, byRouteKey, byGtfsRouteId } = routeWorkFor(
+    input.routes,
+    input.strictExactRoutes === true,
+  );
   const matchedWikiRouteRecordIds = new Set<string>();
   const routeRecordsById = new Map(input.corpus.routes.map((route) => [route.record_id, route]));
-  const hasRouteAnchors = input.corpus.routeAnchors.length > 0;
+  const hasRouteAnchors = input.strictExactRoutes === true || input.corpus.routeAnchors.length > 0;
+  const routeBindingsById = new Map(
+    (input.routeIdentitySnapshot?.record_bindings ?? []).map((binding) => [
+      binding.route_record_id,
+      binding,
+    ]),
+  );
+  if (input.routeIdentitySnapshot !== undefined) {
+    if (input.sourceV2 === undefined) {
+      throw new Error("A named route identity snapshot requires v2 source provenance");
+    }
+    for (const binding of input.routeIdentitySnapshot.record_bindings) {
+      if (binding.projectable) {
+        if (
+          binding.identity_scope !== "exact_service" ||
+          binding.service_class !== "regular_mta_bus" ||
+          binding.record_temporal_scope !== "current_description" ||
+          binding.gtfs_route_id === null
+        ) {
+          throw new Error(
+            `route binding ${binding.route_record_id}: only current exact regular bus records are operational`,
+          );
+        }
+        continue;
+      }
+      const targets =
+        binding.gtfs_route_id === null
+          ? works.filter(
+              (work) =>
+                binding.route_family_id !== null &&
+                work.routeIdentity?.routeFamilyId === binding.route_family_id,
+            )
+          : [byGtfsRouteId.get(binding.gtfs_route_id)].filter(
+              (work): work is RouteWork => work !== undefined,
+            );
+      for (const target of targets) {
+        target.contextualBindings.set(binding.route_record_id, consumerRouteBinding(binding));
+      }
+    }
+  }
 
   if (hasRouteAnchors) {
     for (const anchor of input.corpus.routeAnchors) {
-      const routeIdKey = exactGtfsRouteKey(anchor.gtfs_route_id);
-      if (routeIdKey === null) continue;
-      const work = byGtfsRouteId.get(routeIdKey);
+      if (anchor.gtfs_route_id === null) continue;
+      const work = byGtfsRouteId.get(anchor.gtfs_route_id);
       if (work === undefined) continue;
+      work.primaryWikiRouteRecordId = anchor.canonical_route_record_id;
       addAnchorAliasesToWork(work, anchor);
       for (const recordId of routeRecordIdsForAnchor(anchor)) {
+        if (input.routeIdentitySnapshot !== undefined) {
+          const binding = routeBindingsById.get(recordId);
+          if (binding === undefined || !binding.projectable) {
+            throw new Error(
+              `MTA-wiki route anchor ${anchor.gtfs_route_id} lacks a projectable binding for ${recordId}.`,
+            );
+          }
+          work.operationalBindings.set(recordId, consumerRouteBinding(binding));
+        }
         const wikiRoute = routeRecordsById.get(recordId);
         if (wikiRoute === undefined) {
           throw new Error(
@@ -756,34 +1001,100 @@ export function buildStudioRouteEvidenceArtifact(input: {
     }
   }
 
-  const routes = works.map((work) => materializeBundle({ work, sources: sourceIndex, relations }));
+  const routes = works.map((work) =>
+    materializeBundle({
+      work,
+      sources: sourceIndex,
+      relations,
+      ...(input.sourceV2 === undefined ? {} : { sourceV2: input.sourceV2 }),
+    }),
+  );
   const citationCount = routes.reduce((sum, route) => sum + route.citations.length, 0);
-  return decodeSchemaStrict(StudioRouteEvidenceArtifactSchema, {
-    artifactKind: "bp.studio.route_evidence.v1",
-    schemaVersion: 1,
-    generatedAt: input.generatedAt,
-    source: {
-      kind: "mta-wiki-canonical-jsonl",
-      mtaWikiRoot: input.corpus.root,
-      canonicalRoot: input.corpus.canonicalRoot,
-    },
-    summary: {
-      routeCount: routes.length,
-      matchedBusRouteCount: routes.filter((route) => route.wikiRouteRecordId !== null).length,
-      unmatchedWikiRouteCount,
-      citationCount,
-      omittedAmbiguousRecordCount: works.reduce(
-        (sum, work) => sum + work.omittedAmbiguousRecordCount,
-        0,
-      ),
-    },
-    routes,
-  });
+  const summary = {
+    routeCount: routes.length,
+    matchedBusRouteCount: routes.filter((route) => route.wikiRouteRecordId !== null).length,
+    unmatchedWikiRouteCount,
+    citationCount,
+    omittedAmbiguousRecordCount: works.reduce(
+      (sum, work) => sum + work.omittedAmbiguousRecordCount,
+      0,
+    ),
+  };
+  return input.sourceV2 === undefined
+    ? decodeSchemaStrict(StudioRouteEvidenceArtifactV1Schema, {
+        artifactKind: "bp.studio.route_evidence.v1",
+        schemaVersion: 1,
+        generatedAt: input.generatedAt,
+        source: {
+          kind: "mta-wiki-canonical-jsonl",
+          mtaWikiRoot: input.corpus.root,
+          canonicalRoot: input.corpus.canonicalRoot,
+        },
+        summary,
+        routes,
+      })
+    : decodeSchemaStrict(StudioRouteEvidenceArtifactV2Schema, {
+        artifactKind: "bp.studio.route_evidence.v2",
+        schemaVersion: 2,
+        generatedAt: input.generatedAt,
+        source: input.sourceV2,
+        summary,
+        routes,
+      });
 }
 
-async function loadStudioRoutes(path: string): Promise<readonly StudioRoute[]> {
-  const routes = await readJsonArtifact(path, StudioRoutesResponseSchema);
+function loadStudioRoutes(bytes: Uint8Array): readonly StudioRoute[] {
+  const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  const routes = decodeSchemaStrict(StudioRoutesResponseSchema, JSON.parse(text) as unknown);
   return routes.routes;
+}
+
+function fixedGeneratedAt(value: string | undefined): string {
+  if (value === undefined) {
+    throw new Error("generatedAt is required for a named MTA Wiki release");
+  }
+  const match = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.exec(value);
+  const milliseconds = Date.parse(value);
+  if (match === null || !Number.isFinite(milliseconds)) {
+    throw new Error("generatedAt must be a fixed ISO-8601 UTC instant");
+  }
+  const canonical = new Date(milliseconds).toISOString();
+  if (value !== canonical && value !== canonical.replace(".000Z", "Z")) {
+    throw new Error("generatedAt must be a valid fixed ISO-8601 UTC instant");
+  }
+  return value;
+}
+
+function exactSortedRouteIds(values: readonly string[], label: string): string[] {
+  if (values.some((value) => value.length === 0 || value !== value.trim())) {
+    throw new Error(`${label} contains an invalid exact route ID`);
+  }
+  const sorted = [...values].toSorted();
+  if (new Set(sorted).size !== sorted.length) {
+    throw new Error(`${label} contains a duplicate exact route ID`);
+  }
+  return sorted;
+}
+
+function assertSameExactRouteUniverse(input: {
+  left: readonly string[];
+  leftLabel: string;
+  right: readonly string[];
+  rightLabel: string;
+}): void {
+  const left = exactSortedRouteIds(input.left, input.leftLabel);
+  const right = exactSortedRouteIds(input.right, input.rightLabel);
+  const leftSet = new Set(left);
+  const rightSet = new Set(right);
+  const leftOnly = left.filter((routeId) => !rightSet.has(routeId));
+  const rightOnly = right.filter((routeId) => !leftSet.has(routeId));
+  if (leftOnly.length > 0 || rightOnly.length > 0) {
+    throw new Error(
+      `${input.leftLabel}/${input.rightLabel} exact route universe mismatch: ` +
+        `${input.leftLabel}-only [${leftOnly.join(",")}], ` +
+        `${input.rightLabel}-only [${rightOnly.join(",")}]`,
+    );
+  }
 }
 
 export async function runStudioImportMtaWikiRouteEvidence(
@@ -796,14 +1107,159 @@ export async function runStudioImportMtaWikiRouteEvidence(
     input.servingOutputDir === undefined
       ? dirname(outputPath)
       : fromCliPath(input.servingOutputDir);
-  const routes = await loadStudioRoutes(routesPath);
-  const corpus = await loadMtaWikiCanonicalCorpus(input.mtaWikiRoot, {
-    wikiRelease: input.wikiRelease,
-  });
+  const trackerRouteInputBytes = await readFile(routesPath);
+  const trackerRouteInputSha256 = createHash("sha256").update(trackerRouteInputBytes).digest("hex");
+  let routes: readonly StudioRoute[] = loadStudioRoutes(trackerRouteInputBytes);
+  let corpus: MtaWikiCanonicalCorpus;
+  let sourceV2: StudioRouteEvidenceSourceV2 | undefined;
+  let routeIdentitySnapshot: MtaWikiRouteIdentitySnapshot | undefined;
+  let generatedAt = input.generatedAt ?? new Date().toISOString();
+  if (input.wikiRelease !== undefined) {
+    if (input.wikiManifestSha256 === undefined) {
+      throw new Error("wikiManifestSha256 is required for a named MTA Wiki release");
+    }
+    if (
+      input.routesSha256 === undefined ||
+      input.currentBusRoutesPath === undefined ||
+      input.currentBusRoutesSha256 === undefined ||
+      input.currentBusRoutesEffectiveAsOfDate === undefined
+    ) {
+      throw new Error(
+        "routesSha256, currentBusRoutesPath, currentBusRoutesSha256, and currentBusRoutesEffectiveAsOfDate are required for a named MTA Wiki release",
+      );
+    }
+    if (!/^[0-9a-f]{64}$/u.test(input.routesSha256)) {
+      throw new Error("routesSha256 must be a lowercase SHA-256 digest");
+    }
+    if (trackerRouteInputSha256 !== input.routesSha256) {
+      throw new Error(
+        `Tracker routes SHA-256 mismatch: expected ${input.routesSha256}, received ${trackerRouteInputSha256}`,
+      );
+    }
+    generatedAt = fixedGeneratedAt(input.generatedAt);
+    const mtaWikiRoot = resolveMtaWikiRoot(input.mtaWikiRoot);
+    await Effect.runPromise(
+      resolveMtaWikiRelease({
+        mtaWikiRoot,
+        wikiRelease: input.wikiRelease,
+        wikiManifestSha256: input.wikiManifestSha256,
+        output: outputPath,
+      }),
+    );
+    await Effect.runPromise(
+      resolveMtaWikiRelease({
+        mtaWikiRoot,
+        wikiRelease: input.wikiRelease,
+        wikiManifestSha256: input.wikiManifestSha256,
+        output: servingOutputDir,
+      }),
+    );
+    const quarantineStatus = await Effect.runPromise(
+      readMtaWikiReleaseQuarantineStatus({
+        mtaWikiRoot,
+        wikiRelease: input.wikiRelease,
+        wikiManifestSha256: input.wikiManifestSha256,
+      }),
+    );
+    if (quarantineStatus !== null) {
+      throw new Error(
+        `MTA Wiki release ${input.wikiRelease} is quarantined (${quarantineStatus.reasonCode}): ${quarantineStatus.reason}`,
+      );
+    }
+    const routeIdentities = await loadMtaWikiRouteIdentities({
+      mtaWikiRoot,
+      wikiRelease: input.wikiRelease,
+      wikiManifestSha256: input.wikiManifestSha256,
+    });
+    corpus = loadMtaWikiCanonicalCorpusFromVerifiedRelease({
+      root: mtaWikiRoot,
+      releaseDirectory: routeIdentities.releaseDirectory,
+      wikiRelease: input.wikiRelease,
+      files: routeIdentities.canonicalFiles,
+      recordCounts: routeIdentities.recordCounts,
+      routeAnchors: routeIdentities.anchors,
+    });
+    const parity = await auditCurrentBusRoutesParity({
+      currentBusRoutesPath: fromCliPath(input.currentBusRoutesPath),
+      expectedSha256: input.currentBusRoutesSha256,
+      effectiveAsOfDate: input.currentBusRoutesEffectiveAsOfDate,
+      snapshot: routeIdentities.snapshot,
+    });
+    if (!parity.parity.descriptorReconciled) {
+      throw new Error(
+        `Current Bus Routes descriptor mismatch for named release ${input.wikiRelease}: catalog-only [${parity.parity.catalogOnlyRouteIds.join(
+          ",",
+        )}], GTFS-only [${parity.parity.gtfsOnlyRouteIds.join(",")}]`,
+      );
+    }
+    routeIdentitySnapshot = routeIdentities.snapshot;
+    sourceV2 = {
+      kind: "mta-wiki-immutable-release",
+      wikiRelease: input.wikiRelease,
+      manifestSha256: routeIdentities.manifestSha256,
+      routeIdentitySha256: routeIdentities.routeIdentitySha256,
+      routeAnchorSha256: routeIdentities.routeAnchorSha256,
+      trackerRouteInputSha256,
+      catalogParity: parity.parity,
+    };
+    const identitiesByRouteId = new Map(
+      routeIdentities.snapshot.service_identities.map((identity) => [
+        identity.gtfs_route_id,
+        identity,
+      ]),
+    );
+    const trackerRouteIds = routes.map((route) => route.routeId);
+    const currentCatalogRouteIds = [...parity.designationsByRouteId.keys()];
+    const currentGtfsBackedCatalogRouteIds = currentCatalogRouteIds.filter(
+      (routeId) => !parity.parity.catalogOnlyRouteIds.includes(routeId),
+    );
+    const producerCatalogRouteIds = routeIdentities.snapshot.service_identities
+      .filter((identity) => identity.catalog_in_effect === "yes")
+      .map((identity) => identity.source_route_id);
+    assertSameExactRouteUniverse({
+      left: trackerRouteIds,
+      leftLabel: "Tracker",
+      right: currentGtfsBackedCatalogRouteIds,
+      rightLabel: "GTFS-backed Current Bus Routes",
+    });
+    assertSameExactRouteUniverse({
+      left: trackerRouteIds,
+      leftLabel: "Tracker",
+      right: producerCatalogRouteIds,
+      rightLabel: "producer catalog-in-effect",
+    });
+    routes = routes.map((route) => {
+      const identity = identitiesByRouteId.get(route.routeId);
+      if (identity === undefined) {
+        throw new Error("Missing exact producer identity for Tracker route " + route.routeId);
+      }
+      const designations = parity.designationsByRouteId.get(route.routeId);
+      const routeTypes = [...(designations?.routeTypes ?? [])];
+      const tripTypes = [...(designations?.tripTypes ?? [])];
+      return {
+        ...route,
+        label: identity.display_label,
+        routeSchemaVersion: 2 as const,
+        routeFamilyId: identity.route_family_id,
+        displayLabel: identity.display_label,
+        officialLongName: identity.route_long_name,
+        designationLiterals: [...identity.designation_literals],
+        serviceModes: [...identity.normalized_service_modes],
+        routeTypes,
+        tripTypes,
+        sbs: identity.normalized_service_modes.includes("sbs"),
+      };
+    });
+  } else {
+    corpus = await loadMtaWikiCanonicalCorpus(input.mtaWikiRoot);
+  }
   const artifact = buildStudioRouteEvidenceArtifact({
-    generatedAt: input.generatedAt ?? new Date().toISOString(),
+    generatedAt,
     routes,
     corpus,
+    ...(sourceV2 === undefined ? {} : { sourceV2 }),
+    ...(routeIdentitySnapshot === undefined ? {} : { routeIdentitySnapshot }),
+    strictExactRoutes: input.wikiRelease !== undefined,
   });
   const minMatchedRoutes = input.minMatchedRoutes ?? 1;
   if (artifact.summary.matchedBusRouteCount < minMatchedRoutes) {
@@ -830,8 +1286,23 @@ const optionsSchema = Schema.Struct({
   wikiRelease: Schema.optionalKey(Schema.String).annotate({
     description: "MTA-wiki release id under data/exports/releases/<id>.",
   }),
+  wikiManifestSha256: Schema.optionalKey(Schema.String).annotate({
+    description: "Required exact manifest SHA-256 for a named MTA-wiki release.",
+  }),
+  currentBusRoutesPath: Schema.optionalKey(Schema.String).annotate({
+    description: "Pinned official Current Bus Routes JSON path for a named release.",
+  }),
+  currentBusRoutesSha256: Schema.optionalKey(Schema.String).annotate({
+    description: "Required exact Current Bus Routes SHA-256 for a named release.",
+  }),
+  currentBusRoutesEffectiveAsOfDate: Schema.optionalKey(Schema.String).annotate({
+    description: "Required Current Bus Routes effective date (YYYY-MM-DD).",
+  }),
   routesPath: Schema.optionalKey(Schema.String).annotate({
     description: "Studio routes.json path.",
+  }),
+  routesSha256: Schema.optionalKey(Schema.String).annotate({
+    description: "Required exact SHA-256 of the pinned Studio routes.json input.",
   }),
   output: Schema.optionalKey(Schema.String).annotate({
     description: "Output route evidence JSON artifact path.",

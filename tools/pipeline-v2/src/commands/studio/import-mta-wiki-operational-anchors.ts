@@ -15,7 +15,8 @@ const optionsSchema = Schema.Struct({
     description: "Path to the MTA Wiki repository root.",
   }),
   wikiRelease: Schema.String.annotate({
-    description: "Explicit MTA Wiki release id under data/exports/releases.",
+    description:
+      "Explicit manifest-v2 or manifest-v5 MTA Wiki release id under data/exports/releases.",
   }),
   wikiManifestSha256: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u)).annotate({
     description: "Expected SHA-256 of the exact pinned release manifest bytes.",
@@ -31,6 +32,9 @@ const commandOutputSchema = Schema.Struct({
   outputPath: Schema.String,
   releaseId: Schema.String,
   manifestSha256: Schema.String,
+  manifestVersion: arg.int(),
+  reviewContractVersion: arg.int(),
+  retirementCount: arg.int(),
   sourceRowCount: arg.int(),
   assertionCount: arg.int(),
   eligibleAssertionCount: arg.int(),
@@ -46,6 +50,10 @@ function commandResult(
     outputPath,
     releaseId: artifact.sourceRelease.releaseId,
     manifestSha256: artifact.sourceRelease.manifestSha256,
+    manifestVersion: artifact.sourceRelease.manifestVersion,
+    reviewContractVersion: artifact.sourceRelease.operationalAnchorReviewDecisionContractVersion,
+    retirementCount:
+      "retirementCount" in artifact.sourceRelease ? artifact.sourceRelease.retirementCount : 0,
     sourceRowCount: artifact.summary.sourceRowCount,
     assertionCount: artifact.summary.assertionCount,
     eligibleAssertionCount: artifact.summary.eligibleAssertionCount,

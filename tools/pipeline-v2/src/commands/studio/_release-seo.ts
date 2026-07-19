@@ -19,7 +19,12 @@ export type SeoTitleManifest = {
 
 type ReleaseForSeo = {
   generatedAt: string;
-  routes: ReadonlyArray<{ slug: string; label: string; sbs: boolean }>;
+  routes: ReadonlyArray<{
+    slug: string;
+    label: string;
+    sbs: boolean;
+    displayLabel?: string | undefined;
+  }>;
 };
 
 /**
@@ -29,10 +34,7 @@ type ReleaseForSeo = {
 export function buildSeoTitleManifest(release: ReleaseForSeo): SeoTitleManifest {
   return {
     generatedAt: release.generatedAt,
-    routes: release.routes.map((route) => [
-      route.slug,
-      route.sbs ? `${route.label} SBS` : route.label,
-    ]),
+    routes: release.routes.map((route) => [route.slug, route.displayLabel ?? route.label]),
   };
 }
 
