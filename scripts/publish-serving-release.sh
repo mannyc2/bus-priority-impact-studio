@@ -9,10 +9,12 @@ Usage:
 Default mode is dry-run: commands are printed but not executed.
 
 Publishes one generated serving release:
-  1. applies data/exports/d1/YYYY-MM/schema.sql to Cloudflare D1 (via wrangler)
-  2. applies data/exports/d1/YYYY-MM/seed.sql to Cloudflare D1 (via wrangler)
-  3. uploads release artifacts to R2 via the S3-compatible API
+  1. validates the complete local release before any remote mutation
+  2. applies data/exports/d1/YYYY-MM/schema.sql to Cloudflare D1 (via wrangler)
+  3. applies data/exports/d1/YYYY-MM/seed.sql to Cloudflare D1 (via wrangler)
+  4. uploads release artifacts to R2 via the S3-compatible API
      (idempotent, resumable, parallel — see tools/pipeline publish:r2-artifacts)
+  5. registers the verified v2 map release in D1, making it discoverable
 
 When --appendix-month is provided, additionally:
   4. applies data/exports/d1/APPENDIX-MONTH/seed.appendix.sql to Cloudflare D1
@@ -109,6 +111,7 @@ mon="${month#*-}"
 export_dir="data/exports/d1/$month"
 schema_sql="$export_dir/schema.sql"
 seed_sql="$export_dir/seed.sql"
+map_release_registration_sql="$export_dir/map-release-registration.sql"
 
 if [ ! -f "$schema_sql" ]; then
   printf 'Missing D1 schema export: %s\n' "$schema_sql" >&2
@@ -117,6 +120,11 @@ fi
 
 if [ ! -f "$seed_sql" ]; then
   printf 'Missing D1 seed export: %s\n' "$seed_sql" >&2
+  exit 1
+fi
+
+if [ ! -f "$map_release_registration_sql" ]; then
+  printf 'Missing D1 map-release registration: %s\n' "$map_release_registration_sql" >&2
   exit 1
 fi
 
@@ -198,6 +206,11 @@ else
     --month "$month" \
     --bucket "$r2_bucket"
 fi
+
+# The catalog row is deliberately last. A failed upload cannot make a release
+# discoverable; a failed registration leaves safe, undiscoverable R2 objects
+# and can be retried without deleting or overwriting them.
+run bunx --bun wrangler d1 execute "$d1_database" --remote --file "$map_release_registration_sql"
 
 if [ "$execute" -eq 0 ]; then
   if [ -n "$appendix_month" ]; then

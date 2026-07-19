@@ -17,6 +17,9 @@ describe("artifact key validation", () => {
       "map/%252e%252e/manifest.json",
       "map\\2026-03\\manifest.json",
       "map/\u0000/manifest.json",
+      "map/\u0001/manifest.json",
+      "map//manifest.json",
+      "C:/manifest.json",
       ".",
       "..",
     ]) {

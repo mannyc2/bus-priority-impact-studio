@@ -41,6 +41,11 @@ export {
   listSavedSearchesForIdentity,
   softDeletePublicComment,
 } from "./queries/identity-surfaces.js";
+export type {
+  MapReleaseCatalogEntry,
+  MapReleaseCatalogRow,
+} from "./queries/map-release-catalog.js";
+export { findLatestVerifiedFullMapRelease } from "./queries/map-release-catalog.js";
 export type { RouteBatchStatus, RouteBatchStatusRow } from "./queries/route-batch-status.js";
 export { getRouteBatchStatus } from "./queries/route-batch-status.js";
 export type {

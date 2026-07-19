@@ -7,6 +7,12 @@ import {
 } from "@bp/domain/maps";
 import { RouteCapabilityManifestSchema } from "@bp/domain/studio";
 import {
+  CoverageWindowSchema,
+  type ReleaseIdentity,
+  ReleaseIdentitySchema,
+  releaseIdFromPublishedAt,
+} from "@bp/domain/studio/shared";
+import {
   buildMapArtifactManifest,
   buildMapJsonArtifact,
   buildRouteCapabilityManifest,
@@ -14,6 +20,8 @@ import {
   evaluateAnalysisPeriodCurrency,
   evaluateMaxAgeSnapshotCurrency,
   evaluateRevisionPinnedCurrency,
+  isMapArtifactManifest,
+  isSafeArtifactKey,
   MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
   MAP_ARTIFACT_JSON_CONTENT_TYPE,
   MAP_LAYER_REGISTRY,
@@ -94,7 +102,7 @@ function routeSegmentFeatureCollection(month: string, routeId: string) {
   };
 }
 
-function artifactDefinitions(month: string) {
+function artifactDefinitions(month: string, releaseIdentity: ReleaseIdentity) {
   const emptyFeatureCollection = { type: "FeatureCollection", features: [] };
   return [
     {
@@ -103,11 +111,19 @@ function artifactDefinitions(month: string) {
       contentType: MAP_ARTIFACT_JSON_CONTENT_TYPE,
       routeId: null,
       payload: {
-        schemaVersion: 1,
+        schemaVersion: 2,
         artifactKind: "map_source_snapshot",
-        analysisPeriod: month,
-        generatedAt: "2026-06-06T00:00:00.000Z",
-        sources: [{ sourceId: "current_bus_routes", status: "available" }],
+        ...releaseIdentity,
+        sources: [
+          {
+            sourceId: "current_bus_routes",
+            snapshotPath: "data/raw/network/current_bus_routes.json",
+            status: "available",
+            fetchedAt: releaseIdentity.publishedAt,
+            rowCount: 1,
+            sha256: "a".repeat(64),
+          },
+        ],
       },
       featureCount: 1,
     },
@@ -175,6 +191,8 @@ function artifactDefinitions(month: string) {
       contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
       payload: {
+        schemaVersion: 2,
+        ...releaseIdentity,
         type: "FeatureCollection",
         features: [
           {
@@ -214,6 +232,8 @@ function artifactDefinitions(month: string) {
 
 describe("evaluation data products", () => {
   test("evaluates fixed map-layer currency and budgets without weakening priorities", () => {
+    const decodeCoverage = decodeStrict(CoverageWindowSchema);
+
     expect(MAP_LAYER_REGISTRY.bus_lanes).toEqual({ priority: "p1", requiredForFull: false });
     expect(MAP_LAYER_REGISTRY.network_simplified).toEqual({
       priority: "p0",
@@ -238,11 +258,25 @@ describe("evaluation data products", () => {
     ).toBe("unknown");
     expect(
       evaluateAnalysisPeriodCurrency({
-        baselineMonth: "2026-02",
-        releaseMonth: "2026-03",
+        coverage: decodeCoverage({ start: "2026-02", end: "2026-02" }),
+        releaseCoverage: decodeCoverage({ start: "2026-03", end: "2026-03" }),
         coveragePassed: true,
       }).status,
     ).toBe("stale");
+    expect(
+      evaluateAnalysisPeriodCurrency({
+        coverage: decodeCoverage({ start: null, end: "2026-03" }),
+        releaseCoverage: decodeCoverage({ start: null, end: "2026-03" }),
+        coveragePassed: true,
+      }).status,
+    ).toBe("period_aligned");
+    expect(
+      evaluateAnalysisPeriodCurrency({
+        coverage: decodeCoverage({ start: "2026-03", end: "2026-03" }),
+        releaseCoverage: decodeCoverage({ start: null, end: "2026-03" }),
+        coveragePassed: true,
+      }).status,
+    ).toBe("period_aligned");
     expect(evaluateRevisionPinnedCurrency({ embeddedSha256: "a", sourceSha256: "b" }).status).toBe(
       "stale",
     );
@@ -334,11 +368,16 @@ describe("evaluation data products", () => {
 
   test("validates map manifests from manifest contents and caller-provided artifact checks", () => {
     const month = "2026-03";
-    const definitions = artifactDefinitions(month);
+    const publishedAt = "2026-06-06T00:00:00.000Z";
+    const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+      releaseId: releaseIdFromPublishedAt(publishedAt),
+      publishedAt,
+      coverage: { start: month, end: month },
+    });
+    const definitions = artifactDefinitions(month, releaseIdentity);
     const artifacts = definitions.map((definition) => buildMapJsonArtifact(definition));
     const manifest = buildMapArtifactManifest({
-      month,
-      generatedAt: "2026-06-06T00:00:00.000Z",
+      releaseIdentity,
       artifacts: artifacts.map((artifact) => artifact.entry),
       releaseProfile: "demo",
       routeFacts: { status: "unavailable", reason: "Fixture omits route facts." },
@@ -402,8 +441,39 @@ describe("evaluation data products", () => {
         artifact: artifact.entry,
         payload: definitions[index]?.payload,
         month,
+        releaseIdentity,
       }),
     );
+
+    expect(isMapArtifactManifest(manifest)).toBe(true);
+    expect(isMapArtifactManifest({ ...manifest, baselineMonth: month })).toBe(false);
+    expect(isMapArtifactManifest({ ...manifest, sources: [null] })).toBe(false);
+    expect(
+      isMapArtifactManifest({
+        ...manifest,
+        artifacts: [{ ...manifest.artifacts[0], artifactKey: "../secret.json" }],
+      }),
+    ).toBe(false);
+    expect(isSafeArtifactKey("map/2026-03/manifest.json")).toBe(true);
+    expect(isSafeArtifactKey("../secret.json")).toBe(false);
+    expect(isSafeArtifactKey("map//secret.json")).toBe(false);
+    expect(isSafeArtifactKey("map\\secret.json")).toBe(false);
+    expect(isSafeArtifactKey("C:/secret.json")).toBe(false);
+    expect(isSafeArtifactKey("map/%2e%2e/secret.json")).toBe(false);
+    expect(isSafeArtifactKey("map/\u0001secret.json")).toBe(false);
+
+    const sourceArtifact = artifacts.find(
+      (artifact) => artifact.entry.artifactKind === "map_source_snapshot",
+    );
+    expect(sourceArtifact).toBeDefined();
+    expect(
+      mapArtifactPayloadIssues({
+        artifact: sourceArtifact?.entry as MapArtifactEntry,
+        payload: { arbitrary: true },
+        month,
+        releaseIdentity,
+      }).map((issue) => issue.code),
+    ).toContain("map_source_snapshot_payload_invalid");
 
     expect(
       verifyMapArtifactManifestContents({

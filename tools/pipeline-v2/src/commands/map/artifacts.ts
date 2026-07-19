@@ -58,6 +58,11 @@ import {
   MapRouteUniverseSchema,
   MapSourceStatusSchema,
 } from "@bp/domain/maps";
+import {
+  type ReleaseIdentity,
+  ReleaseIdentitySchema,
+  releaseIdFromPublishedAt,
+} from "@bp/domain/studio/shared";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   type NormalizedRouteShape,
@@ -332,6 +337,7 @@ async function verifyArtifactFile(input: {
   artifactRoot: string;
   month: string;
   artifact: MapArtifactEntry;
+  releaseIdentity: ReleaseIdentity;
 }): Promise<MapArtifactIssue[]> {
   const path = join(input.artifactRoot, input.artifact.artifactKey);
   const file = Bun.file(path);
@@ -433,11 +439,27 @@ async function verifyRouteFactsReference(input: {
     });
   }
   if (facts !== null) {
-    if (facts.baselineMonth !== input.month) {
+    if (
+      facts.releaseId !== input.manifest.releaseId ||
+      facts.publishedAt !== input.manifest.publishedAt ||
+      facts.coverage.start !== input.manifest.coverage.start ||
+      facts.coverage.end !== input.manifest.coverage.end ||
+      facts.releaseId !== reference.releaseId ||
+      facts.publishedAt !== reference.publishedAt ||
+      facts.coverage.start !== reference.coverage.start ||
+      facts.coverage.end !== reference.coverage.end
+    ) {
+      issues.push({
+        code: "map_route_facts_identity_mismatch",
+        artifactKey: reference.artifactKey,
+        message: "Map route facts payload does not carry the manifest release identity.",
+      });
+    }
+    if (facts.coverage.end !== input.month) {
       issues.push({
         code: "map_route_facts_payload_month_mismatch",
         artifactKey: reference.artifactKey,
-        message: `Map route facts payload is for ${facts.baselineMonth}, expected ${input.month}.`,
+        message: `Map route facts coverage ends at ${facts.coverage.end}, expected ${input.month}.`,
       });
     }
     if (facts.routes.length !== reference.routeCount) {
@@ -494,6 +516,7 @@ export async function verifyMapArtifactManifest(input: {
                 artifactRoot: input.artifactRoot,
                 month: input.month,
                 artifact,
+                releaseIdentity: manifest,
               }),
             )
           ).flat(),
@@ -1053,8 +1076,11 @@ function thinCoordinatePairs(
 
 export function buildNetworkMapFeatureCollection(input: {
   routes: readonly NetworkRouteBuildInput[];
+  releaseIdentity: ReleaseIdentity;
 }): MapNetworkFeatureCollection {
   return decodeSchemaStrict(MapNetworkFeatureCollectionSchema, {
+    schemaVersion: MAP_ARTIFACT_SCHEMA_VERSION,
+    ...input.releaseIdentity,
     type: "FeatureCollection",
     features: input.routes.flatMap((route) => {
       const coordinates = route.segmentPayload.features
@@ -1231,6 +1257,7 @@ export type MapArtifactsInputs = {
   local: OpenLocalPipelineDb;
   year: number;
   month: number;
+  releaseIdentity: ReleaseIdentity;
   releaseProfile: "demo" | "full";
   artifactRoot?: string | undefined;
   speedSpineRoot?: string | undefined;
@@ -1247,17 +1274,26 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const isoMonthStr = isoMonth(args.year, args.month);
   const artifactRoot = args.artifactRoot ?? defaultArtifactRootPath();
   const speedSpineRoot = args.speedSpineRoot ?? artifactRoot;
-  const generatedAt = new Date().toISOString();
+  const generatedAt = args.releaseIdentity.publishedAt;
+  if (args.releaseIdentity.coverage.end !== isoMonthStr) {
+    throw new Error(
+      `Map release coverage ends at ${args.releaseIdentity.coverage.end}, expected ${isoMonthStr}.`,
+    );
+  }
   const routeFactsPath =
     args.routeFactsPath ?? join(artifactRoot, "studio", "v1", "map-route-facts.json");
   const routeFactsFile = Bun.file(routeFactsPath);
   const routeFacts = (await routeFactsFile.exists())
     ? decodeSchemaStrict(MapRouteFactsResponseSchema, await routeFactsFile.json())
     : null;
-  if (routeFacts !== null && routeFacts.baselineMonth !== isoMonthStr) {
-    throw new Error(
-      `Map route facts are for ${routeFacts.baselineMonth}, expected ${isoMonthStr}.`,
-    );
+  if (
+    routeFacts !== null &&
+    (routeFacts.releaseId !== args.releaseIdentity.releaseId ||
+      routeFacts.publishedAt !== args.releaseIdentity.publishedAt ||
+      routeFacts.coverage.start !== args.releaseIdentity.coverage.start ||
+      routeFacts.coverage.end !== args.releaseIdentity.coverage.end)
+  ) {
+    throw new Error("Map route facts do not carry the requested release identity.");
   }
   if (args.releaseProfile === "full" && routeFacts === null) {
     throw new Error(`Full map release requires route facts at ${routeFactsPath}.`);
@@ -1268,14 +1304,16 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     routeFacts === null
       ? {
           status: "unavailable",
-          reason: "Same-month map route facts are unavailable.",
+          reason: "Coverage-aligned map route facts are unavailable.",
         }
       : {
           status: "available",
           artifactKey: "studio/v1/map-route-facts.json",
           sha256: mapArtifactSha256(routeFactsBytes as Uint8Array),
-          schemaVersion: 1,
-          baselineMonth: routeFacts.baselineMonth,
+          schemaVersion: MAP_ARTIFACT_SCHEMA_VERSION,
+          releaseId: routeFacts.releaseId,
+          publishedAt: routeFacts.publishedAt,
+          coverage: routeFacts.coverage,
           routeCount: routeFacts.routes.length,
           byteLength: (routeFactsBytes as Uint8Array).byteLength,
           gzipByteLength: gzipSync(routeFactsBytes as Uint8Array, { level: 9 }).byteLength,
@@ -1332,8 +1370,8 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
     evaluatedAt: generatedAt,
   });
   const speedCurrency = evaluateAnalysisPeriodCurrency({
-    baselineMonth: isoMonthStr,
-    releaseMonth: isoMonthStr,
+    coverage: args.releaseIdentity.coverage,
+    releaseCoverage: args.releaseIdentity.coverage,
     coveragePassed:
       selectedRouteRows.length > 0 &&
       selectedRouteRows.every((route) =>
@@ -1341,8 +1379,8 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       ),
   });
   const routeFactsCurrency = evaluateAnalysisPeriodCurrency({
-    baselineMonth: routeFacts?.baselineMonth ?? isoMonthStr,
-    releaseMonth: isoMonthStr,
+    coverage: routeFacts?.coverage ?? args.releaseIdentity.coverage,
+    releaseCoverage: args.releaseIdentity.coverage,
     coveragePassed: routeFacts !== null,
   });
   if (args.releaseProfile === "full") {
@@ -1371,8 +1409,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   const sourcePayload = {
     schemaVersion: MAP_ARTIFACT_SCHEMA_VERSION,
     artifactKind: "map_source_snapshot",
-    analysisPeriod: options.isoMonth,
-    generatedAt,
+    ...args.releaseIdentity,
     sources: [routeShapeSnapshot.metadata, stopSnapshot.metadata, busLaneSnapshot.metadata],
   };
   const routeShapes = routeShapesFeatureCollection(routeShapeSnapshot.shapes);
@@ -1545,6 +1582,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
   }
   const networkPayload = buildNetworkMapFeatureCollection({
     routes: networkRoutes,
+    releaseIdentity: args.releaseIdentity,
   });
   artifacts.push(
     await writeJsonArtifact({
@@ -1606,7 +1644,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       currencyStatus: speedCurrency.status,
       currency: {
         policy: "analysis_period",
-        baselineMonth: isoMonthStr,
+        coverage: args.releaseIdentity.coverage,
         coveragePassed: speedCurrency.status === "period_aligned",
       },
       reason: speedCurrency.reason,
@@ -1633,7 +1671,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       currencyStatus: routeFactsCurrency.status,
       currency: {
         policy: "analysis_period",
-        baselineMonth: routeFacts?.baselineMonth ?? isoMonthStr,
+        coverage: routeFacts?.coverage ?? args.releaseIdentity.coverage,
         coveragePassed: routeFacts !== null,
       },
       reason: routeFactsCurrency.reason,
@@ -1706,7 +1744,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       currencyStatus: speedCurrency.status,
       currency: {
         policy: "analysis_period",
-        baselineMonth: isoMonthStr,
+        coverage: args.releaseIdentity.coverage,
         coveragePassed: speedCurrency.status === "period_aligned",
       },
       sourceIds: ["mta_bus_segment_speeds", "current_bus_routes", "current_bus_stops"],
@@ -1724,7 +1762,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       currencyStatus: speedCurrency.status,
       currency: {
         policy: "analysis_period",
-        baselineMonth: isoMonthStr,
+        coverage: args.releaseIdentity.coverage,
         coveragePassed: speedCurrency.status === "period_aligned",
       },
       sourceIds: ["mta_bus_segment_speeds", "current_bus_routes"],
@@ -1759,7 +1797,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       currencyStatus: routeFactsCurrency.status,
       currency: {
         policy: "analysis_period",
-        baselineMonth: routeFacts?.baselineMonth ?? isoMonthStr,
+        coverage: routeFacts?.coverage ?? args.releaseIdentity.coverage,
         coveragePassed: routeFacts !== null,
       },
       sourceIds: ["studio_map_route_facts"],
@@ -1805,8 +1843,7 @@ export async function runMapArtifacts(args: MapArtifactsInputs): Promise<MapArti
       .toSorted(),
   });
   const manifest = buildMapArtifactManifest({
-    month: options.isoMonth,
-    generatedAt,
+    releaseIdentity: args.releaseIdentity,
     artifacts,
     releaseProfile: args.releaseProfile,
     routeFacts: routeFactsReference,
@@ -1942,11 +1979,33 @@ export default defineCommand({
         year: input.options.year,
         month: input.options.month,
       },
-      run: (local) =>
-        runMapArtifacts({
+      run: async (local) => {
+        const month = isoMonth(input.options.year, input.options.month);
+        const effectiveRouteFactsPath =
+          routeFactsPath ??
+          join(artifactRoot ?? defaultArtifactRootPath(), "studio", "v1", "map-route-facts.json");
+        const routeFactsFile = Bun.file(effectiveRouteFactsPath);
+        const existingRouteFacts = (await routeFactsFile.exists())
+          ? decodeSchemaStrict(MapRouteFactsResponseSchema, await routeFactsFile.json())
+          : null;
+        const publishedAt = existingRouteFacts?.publishedAt ?? new Date().toISOString();
+        const releaseIdentity: ReleaseIdentity =
+          existingRouteFacts === null
+            ? decodeSchemaStrict(ReleaseIdentitySchema, {
+                releaseId: releaseIdFromPublishedAt(publishedAt),
+                publishedAt,
+                coverage: { start: null, end: month },
+              })
+            : {
+                releaseId: existingRouteFacts.releaseId,
+                publishedAt: existingRouteFacts.publishedAt,
+                coverage: existingRouteFacts.coverage,
+              };
+        return runMapArtifacts({
           local,
           year: input.options.year,
           month: input.options.month,
+          releaseIdentity,
           releaseProfile: input.options.profile,
           artifactRoot,
           speedSpineRoot,
@@ -1957,7 +2016,8 @@ export default defineCommand({
           contextSourcePath,
           routeFactsPath,
           routeIds: input.options.routes?.split(",").map((routeId) => routeId.trim()),
-        }),
+        });
+      },
     });
   },
 });

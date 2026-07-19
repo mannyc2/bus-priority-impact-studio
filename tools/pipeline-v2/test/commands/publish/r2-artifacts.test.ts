@@ -17,8 +17,10 @@ import {
   MapRouteUniverseSchema,
   MapSourceStatusSchema,
 } from "@bp/domain/maps";
+import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
   runPublishR2Artifacts,
+  runPublishR2ArtifactsCommand,
   type S3Driver,
 } from "../../../src/commands/publish/r2-artifacts.ts";
 
@@ -46,10 +48,10 @@ function recordingDriver(remoteIndex: Map<string, { size: number; etag: string }
 }
 
 async function seedArtifacts(root: string, month: string): Promise<void> {
-  await mkdir(join(root, "map", month), { recursive: true });
+  await mkdir(join(root, "assets", month), { recursive: true });
   await mkdir(join(root, "studio"), { recursive: true });
   await writeFile(
-    join(root, "map", month, "tiles.geojson"),
+    join(root, "assets", month, "tiles.geojson"),
     '{"type":"FeatureCollection","features":[]}',
   );
   await writeFile(join(root, "studio", "index.json"), '{"v":1}');
@@ -85,14 +87,33 @@ async function seedPublishableFullMap(
   input?: { staleLane?: boolean },
 ): Promise<void> {
   const generatedAt = "2026-04-01T00:00:00.000Z";
+  const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+    releaseId: releaseIdFromPublishedAt(generatedAt),
+    publishedAt: generatedAt,
+    coverage: { start: MONTH, end: MONTH },
+  });
   const definitions = [
     {
       artifactKey: "map/sources/source-snapshot.json",
       artifactKind: "map_source_snapshot" as const,
       contentType: MAP_ARTIFACT_JSON_CONTENT_TYPE,
       routeId: null,
-      payload: { sources: [] },
-      featureCount: 0,
+      payload: {
+        schemaVersion: 2,
+        artifactKind: "map_source_snapshot",
+        ...releaseIdentity,
+        sources: [
+          {
+            sourceId: "current_bus_routes",
+            snapshotPath: "data/raw/network/current_bus_routes.json",
+            status: "available",
+            fetchedAt: generatedAt,
+            rowCount: 0,
+            sha256: "a".repeat(64),
+          },
+        ],
+      },
+      featureCount: 1,
     },
     {
       artifactKey: "map/routes/current-local-limited-sbs.min.geojson",
@@ -149,7 +170,7 @@ async function seedPublishableFullMap(
       artifactKind: "map_network_simplified_geojson" as const,
       contentType: MAP_ARTIFACT_GEOJSON_CONTENT_TYPE,
       routeId: null,
-      payload: { type: "FeatureCollection", features: [] },
+      payload: { schemaVersion: 2, ...releaseIdentity, type: "FeatureCollection", features: [] },
       featureCount: 0,
     },
     ...(input?.staleLane
@@ -173,7 +194,7 @@ async function seedPublishableFullMap(
   }
   const routeFactsKey = "studio/v1/map-route-facts.json";
   const routeFactsBytes = new TextEncoder().encode(
-    `${JSON.stringify({ schemaVersion: 1, baselineMonth: MONTH, generatedAt, routes: [] }, null, 2)}\n`,
+    `${JSON.stringify({ schemaVersion: 2, ...releaseIdentity, routes: [] }, null, 2)}\n`,
   );
   await mkdir(join(root, "studio", "v1"), { recursive: true });
   await writeFile(join(root, routeFactsKey), routeFactsBytes);
@@ -229,7 +250,11 @@ async function seedPublishableFullMap(
           : layerId === "network_simplified" ||
               layerId === "route_segments" ||
               layerId === "route_facts"
-            ? { policy: "analysis_period", baselineMonth: MONTH, coveragePassed: true }
+            ? {
+                policy: "analysis_period",
+                coverage: releaseIdentity.coverage,
+                coveragePassed: true,
+              }
             : {
                 policy: "max_age_snapshot",
                 fetchedAt:
@@ -256,16 +281,15 @@ async function seedPublishableFullMap(
     routeFactRouteIds: [],
   });
   const manifest = buildMapArtifactManifest({
-    month: MONTH,
-    generatedAt,
+    releaseIdentity,
     artifacts: artifacts.map((artifact) => artifact.entry),
     releaseProfile: "full",
     routeFacts: {
       status: "available",
       artifactKey: routeFactsKey,
       sha256: createHash("sha256").update(routeFactsBytes).digest("hex"),
-      schemaVersion: 1,
-      baselineMonth: MONTH,
+      schemaVersion: 2,
+      ...releaseIdentity,
       routeCount: 0,
       byteLength: routeFactsBytes.byteLength,
       gzipByteLength: gzipSync(routeFactsBytes, { level: 9 }).byteLength,
@@ -276,10 +300,12 @@ async function seedPublishableFullMap(
   });
   const path = join(root, "map", MONTH, "manifest.json");
   await mkdir(join(root, "map", MONTH), { recursive: true });
-  await writeFile(
-    path,
+  const manifestBytes = new TextEncoder().encode(
     `${JSON.stringify({ ...manifest, verificationStatus: "pass", status: "pass" }, null, 2)}\n`,
   );
+  await writeFile(path, manifestBytes);
+  const manifestSha256 = createHash("sha256").update(manifestBytes).digest("hex");
+  await writeFile(join(root, "map", MONTH, `manifest.${manifestSha256}.json`), manifestBytes);
 }
 
 const MONTH = "2026-03";
@@ -304,7 +330,7 @@ function baseOptions(input: {
     concurrency: 4,
     maxAttempts: 1,
     backoffMsBase: 1,
-    prefixes: ["map", "studio"] as const,
+    prefixes: ["assets", "studio"] as const,
     manifestDirs: [] as const,
     d1SchemaPath: join(input.artifactRoot, "missing-schema.sql"),
     d1SeedPath: join(input.artifactRoot, "missing-seed.sql"),
@@ -352,8 +378,30 @@ describe("runPublishR2Artifacts", () => {
         .filter((c) => c.kind === "put")
         .map((c) => c.key)
         .sort();
-      expect(statKeys).toEqual([`map/${MONTH}/tiles.geojson`, "studio/index.json"]);
-      expect(putKeys).toEqual([`map/${MONTH}/tiles.geojson`, "studio/index.json"]);
+      expect(statKeys).toEqual([`assets/${MONTH}/tiles.geojson`, "studio/index.json"]);
+      expect(putKeys).toEqual([`assets/${MONTH}/tiles.geojson`, "studio/index.json"]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a broad map prefix when no verified map manifest is in scope", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-ungated-map-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await mkdir(join(artifactRoot, "map", MONTH), { recursive: true });
+      await writeFile(join(artifactRoot, "map", MONTH, "draft.geojson"), "{}");
+      const { driver, calls } = recordingDriver(new Map());
+
+      await expect(
+        runPublishR2Artifacts({
+          ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+          prefixes: ["map"],
+          manifestDirs: [],
+        }),
+      ).rejects.toThrow("is required for publication");
+      expect(calls).toEqual([]);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
@@ -364,18 +412,10 @@ describe("runPublishR2Artifacts", () => {
     try {
       const artifactRoot = join(tmp, "artifacts");
       const outputPath = join(tmp, "report.json");
-      await seedArtifacts(artifactRoot, MONTH);
-      await writeFile(
-        join(artifactRoot, "map", MONTH, "manifest.json"),
-        JSON.stringify({
-          releaseProfile: "demo",
-          buildStatus: "pass",
-          verificationStatus: "not_run",
-          analysisPeriod: MONTH,
-          routeFacts: { status: "unavailable", reason: "fixture" },
-          artifacts: [],
-        }),
-      );
+      await seedPublishableFullMap(artifactRoot);
+      const manifestPath = join(artifactRoot, "map", MONTH, "manifest.json");
+      const manifest = await Bun.file(manifestPath).json();
+      await writeFile(manifestPath, JSON.stringify({ ...manifest, releaseProfile: "demo" }));
       const { driver, calls } = recordingDriver(new Map());
       await expect(
         runPublishR2Artifacts({
@@ -383,6 +423,164 @@ describe("runPublishR2Artifacts", () => {
           manifestDirs: ["map"],
         }),
       ).rejects.toThrow("Map manifest is not publishable");
+      expect(calls).toEqual([]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects malformed, unresolved, and traversing map manifests before remote calls", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-invalid-map-manifests-"));
+    const cases: Array<{
+      name: string;
+      expected: string;
+      mutate: (manifest: Record<string, unknown>) => Record<string, unknown>;
+    }> = [
+      {
+        name: "legacy-dual-shape",
+        expected: "does not satisfy the v2 release contract",
+        mutate: (manifest) => ({ ...manifest, baselineMonth: MONTH }),
+      },
+      {
+        name: "malformed-nested-source",
+        expected: "does not satisfy the v2 release contract",
+        mutate: (manifest) => ({ ...manifest, sources: [null] }),
+      },
+      {
+        name: "unresolved-issues",
+        expected: "issueCount must be zero",
+        mutate: (manifest) => ({ ...manifest, issueCount: 1 }),
+      },
+      {
+        name: "traversing-artifact-key",
+        expected: "does not satisfy the v2 release contract",
+        mutate: (manifest) => {
+          const artifacts = manifest["artifacts"] as Array<Record<string, unknown>>;
+          return {
+            ...manifest,
+            artifacts: [{ ...artifacts[0], artifactKey: "../secret.json" }, ...artifacts.slice(1)],
+          };
+        },
+      },
+      {
+        name: "traversing-route-facts-key",
+        expected: "does not satisfy the v2 release contract",
+        mutate: (manifest) => ({
+          ...manifest,
+          routeFacts: {
+            ...(manifest["routeFacts"] as Record<string, unknown>),
+            artifactKey: "../route-facts.json",
+          },
+        }),
+      },
+      {
+        name: "traversing-layer-key",
+        expected: "does not satisfy the v2 release contract",
+        mutate: (manifest) => {
+          const layers = manifest["layers"] as Array<Record<string, unknown>>;
+          return {
+            ...manifest,
+            layers: [{ ...layers[0], artifactKey: "../route-shapes.json" }, ...layers.slice(1)],
+          };
+        },
+      },
+    ];
+
+    try {
+      for (const candidate of cases) {
+        const artifactRoot = join(tmp, candidate.name);
+        const outputPath = join(tmp, `${candidate.name}.json`);
+        await seedPublishableFullMap(artifactRoot);
+        const manifestPath = join(artifactRoot, "map", MONTH, "manifest.json");
+        const manifest = (await Bun.file(manifestPath).json()) as Record<string, unknown>;
+        await writeFile(manifestPath, JSON.stringify(candidate.mutate(manifest)));
+        const { driver, calls } = recordingDriver(new Map());
+
+        await expect(
+          runPublishR2Artifacts({
+            ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+            manifestDirs: ["map"],
+          }),
+        ).rejects.toThrow(candidate.expected);
+        expect(calls).toEqual([]);
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a hash-consistent malformed source snapshot before remote calls", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-invalid-source-snapshot-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await seedPublishableFullMap(artifactRoot);
+      const manifestPath = join(artifactRoot, "map", MONTH, "manifest.json");
+      const manifest = (await Bun.file(manifestPath).json()) as Record<string, unknown>;
+      const artifacts = manifest["artifacts"] as Array<Record<string, unknown>>;
+      const sourceIndex = artifacts.findIndex(
+        (artifact) => artifact["artifactKind"] === "map_source_snapshot",
+      );
+      const sourceEntry = artifacts[sourceIndex];
+      expect(sourceEntry).toBeDefined();
+      const malformedBytes = new TextEncoder().encode(`${JSON.stringify({ arbitrary: true })}\n`);
+      await writeFile(join(artifactRoot, String(sourceEntry?.["artifactKey"])), malformedBytes);
+      const replacement = {
+        ...sourceEntry,
+        byteLength: malformedBytes.byteLength,
+        gzipByteLength: gzipSync(malformedBytes, { level: 9 }).byteLength,
+        sha256: createHash("sha256").update(malformedBytes).digest("hex"),
+        featureCount: 0,
+        coordinateCount: 0,
+      };
+      const updatedArtifacts = [...artifacts];
+      updatedArtifacts[sourceIndex] = replacement;
+      const updatedManifest = {
+        ...manifest,
+        artifacts: updatedArtifacts,
+        totalByteLength:
+          Number(manifest["totalByteLength"]) -
+          Number(sourceEntry?.["byteLength"]) +
+          malformedBytes.byteLength,
+        totalFeatureCount: Number(manifest["totalFeatureCount"]) - 1,
+      };
+      const manifestBytes = new TextEncoder().encode(
+        `${JSON.stringify(updatedManifest, null, 2)}\n`,
+      );
+      await writeFile(manifestPath, manifestBytes);
+      const manifestSha256 = createHash("sha256").update(manifestBytes).digest("hex");
+      await writeFile(
+        join(artifactRoot, "map", MONTH, `manifest.${manifestSha256}.json`),
+        manifestBytes,
+      );
+      const { driver, calls } = recordingDriver(new Map());
+
+      await expect(
+        runPublishR2Artifacts({
+          ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+          manifestDirs: ["map"],
+        }),
+      ).rejects.toThrow("map_source_snapshot_payload_invalid");
+      expect(calls).toEqual([]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a traversing artifact scope before scanning or remote calls", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-traversing-scope-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await mkdir(artifactRoot, { recursive: true });
+      const { driver, calls } = recordingDriver(new Map());
+
+      await expect(
+        runPublishR2Artifacts({
+          ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+          prefixes: ["../outside"],
+        }),
+      ).rejects.toThrow("is not a safe artifact-root path");
       expect(calls).toEqual([]);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
@@ -404,6 +602,31 @@ describe("runPublishR2Artifacts", () => {
       expect(report.candidateCount).toBe(7);
       expect(calls.every((call) => call.kind === "stat")).toBe(true);
       expect(calls.some((call) => call.key.includes("bus-lanes"))).toBe(false);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("does not publish undeclared files under a manifest-governed map prefix", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "publish-r2-declared-map-only-"));
+    try {
+      const artifactRoot = join(tmp, "artifacts");
+      const outputPath = join(tmp, "report.json");
+      await seedPublishableFullMap(artifactRoot);
+      const unrelatedKey = `map/${MONTH}/unrelated-draft.geojson`;
+      await writeFile(
+        join(artifactRoot, unrelatedKey),
+        '{"type":"FeatureCollection","features":[]}',
+      );
+      const { driver, calls } = recordingDriver(new Map());
+
+      const report = await runPublishR2Artifacts({
+        ...baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+        manifestDirs: ["map"],
+      });
+
+      expect(report.status).toBe("pass");
+      expect(calls.some((call) => call.key === unrelatedKey)).toBe(false);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
@@ -433,9 +656,9 @@ describe("runPublishR2Artifacts", () => {
     try {
       const artifactRoot = join(tmp, "artifacts");
       const outputPath = join(tmp, "report.json");
-      const directory = join(artifactRoot, "map", MONTH);
+      const directory = join(artifactRoot, "assets", MONTH);
       await mkdir(directory, { recursive: true });
-      const key = `map/${MONTH}/network.${"a".repeat(64)}.geojson`;
+      const key = `assets/${MONTH}/network.${"a".repeat(64)}.geojson`;
       await writeFile(join(artifactRoot, key), '{"type":"FeatureCollection","features":[]}');
       const { driver, calls } = recordingDriver(new Map());
       const report = await runPublishR2Artifacts(
@@ -445,6 +668,11 @@ describe("runPublishR2Artifacts", () => {
       expect(report.status).toBe("fail");
       expect(report.failed[0]?.error).toContain("content-addressed filename hash mismatch");
       expect(calls).toEqual([]);
+      await expect(
+        runPublishR2ArtifactsCommand(
+          baseOptions({ artifactRoot, outputPath, driver, dryRun: true }),
+        ),
+      ).rejects.toThrow("R2 artifact publication failed for 1 of 1 candidates");
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

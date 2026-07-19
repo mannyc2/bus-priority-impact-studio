@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type MapReleaseDependencies, runMapRelease } from "../../../src/commands/map/release.ts";
@@ -42,6 +42,7 @@ describe("runMapRelease", () => {
           record("speedSpines", input);
           return {
             manifestPath: join(artifactRoot, "route-speed-spines", "manifest.json"),
+            coverageStart: "2025-02",
           };
         },
         async verifyD1(input: unknown) {
@@ -61,12 +62,63 @@ describe("runMapRelease", () => {
         },
         async map(input: unknown) {
           record("map", input);
+          const releaseIdentity = (input as { releaseIdentity: Record<string, unknown> })
+            .releaseIdentity;
+          const manifestPath = join(artifactRoot, "map", "2026-04", "manifest.json");
+          mkdirSync(join(artifactRoot, "map", "2026-04"), { recursive: true });
+          await Bun.write(
+            manifestPath,
+            `${JSON.stringify(
+              {
+                schemaVersion: 2,
+                artifactKind: "map_artifact_manifest",
+                ...releaseIdentity,
+                releaseProfile: "full",
+                buildStatus: "pass",
+                verificationStatus: "pass",
+                routeFacts: {
+                  status: "available",
+                  artifactKey: "studio/v1/map-route-facts.json",
+                  sha256: "a".repeat(64),
+                  schemaVersion: 2,
+                  ...releaseIdentity,
+                  routeCount: 1,
+                  byteLength: 1,
+                  gzipByteLength: 1,
+                },
+                sources: [],
+                layers: [],
+                routeUniverse: {
+                  includedRouteTypes: ["Local", "Limited", "SBS"],
+                  excludedRouteTypes: ["Express", "School"],
+                  expectedRouteIds: ["M1"],
+                  geometryRouteIds: ["M1"],
+                  routeSegmentRouteIds: ["M1"],
+                  routeFactRouteIds: ["M1"],
+                },
+                status: "pass",
+                artifactCount: 0,
+                routeSegmentArtifactCount: 0,
+                totalFeatureCount: 0,
+                totalByteLength: 0,
+                issueCount: 0,
+                artifacts: [],
+              },
+              null,
+              2,
+            )}\n`,
+          );
           return {
-            manifestPath: join(artifactRoot, "map", "2026-04", "manifest.json"),
+            manifestPath,
           };
         },
         async audit(input: unknown) {
           record("audit", input);
+          expect(
+            readdirSync(join(artifactRoot, "map", "2026-04")).filter(
+              (name) => name.startsWith("manifest.") && name !== "manifest.json",
+            ),
+          ).toEqual([]);
           return { status: "pass", issueCount: 0, issues: [] };
         },
       } as unknown as MapReleaseDependencies;
@@ -125,11 +177,58 @@ describe("runMapRelease", () => {
         routeFactsPath: mapRouteFactsPath,
         releaseProfile: "full",
       });
+      const mapReleaseIdentity = map?.["releaseIdentity"] as
+        | { publishedAt: string; coverage: { start: string | null; end: string } }
+        | undefined;
+      expect(d1?.["releaseIdentity"]).toEqual(studio?.["releaseIdentity"]);
+      expect(studio?.["releaseIdentity"]).toEqual(mapReleaseIdentity);
+      expect(mapReleaseIdentity?.coverage).toEqual({ start: "2025-02", end: "2026-04" });
+      expect(calls.find((call) => call.name === "speedSpines")?.input["generatedAt"]).toBe(
+        mapReleaseIdentity?.publishedAt,
+      );
       expect(result.d1.schemaPath).toBe(schemaPath);
       expect(result.studio.mapRouteFactsPath).toBe(mapRouteFactsPath);
+      expect(result.finalManifestKey).toMatch(/^map\/2026-04\/manifest\.[a-f0-9]{64}\.json$/);
+      expect(existsSync(result.finalManifestPath)).toBe(true);
+      expect(await Bun.file(result.registrationPath).text()).toContain(result.finalManifestKey);
+      expect(await Bun.file(result.registrationPath).text()).toContain(
+        result.releaseIdentity.releaseId,
+      );
       expect(calls.filter((call) => call.name === "verifyD1")).toHaveLength(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  test("keeps coverage start null when the built speed-spine evidence is empty", async () => {
+    const observedIdentities: Array<{ coverage: { start: string | null; end: string } }> = [];
+    const dependencies = {
+      async routeBrief() {
+        return { isoMonth: "2026-04" };
+      },
+      async speedSpines() {
+        return { manifestPath: "unused.json", coverageStart: null };
+      },
+      async verifyD1(input: unknown) {
+        observedIdentities.push(
+          (input as { releaseIdentity: { coverage: { start: string | null; end: string } } })
+            .releaseIdentity,
+        );
+        throw new Error("stop after identity capture");
+      },
+    } as unknown as MapReleaseDependencies;
+
+    await expect(
+      runMapRelease(
+        {
+          local: { path: "unused.sqlite" } as OpenLocalPipelineDb,
+          year: 2026,
+          month: 4,
+          contextSourcePath: "unused.csv",
+        },
+        dependencies,
+      ),
+    ).rejects.toThrow("stop after identity capture");
+    expect(observedIdentities[0]?.coverage).toEqual({ start: null, end: "2026-04" });
   });
 });

@@ -107,9 +107,10 @@ describe("domain package shape", () => {
     expect(
       Result.isSuccess(
         decodeEitherStrict(MapManifestResponseSchema)({
-          schemaVersion: 1,
-          generatedAt: "2026-03-01T00:00:00.000Z",
-          baselineMonth: "2026-03",
+          schemaVersion: 2,
+          releaseId: "pub_20260301T000000000Z",
+          publishedAt: "2026-03-01T00:00:00.000Z",
+          coverage: { start: null, end: "2026-03" },
           releaseProfile: "demo",
           buildStatus: "pass",
           verificationStatus: "not_run",

@@ -1,20 +1,31 @@
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import {
+  isSafeArtifactKey,
   MAP_LAYER_CONTRACTS,
   MapBusLaneFeatureCollectionSchema,
   MapContextFeatureCollectionSchema,
   type MapCurrencyEvidence,
   type MapLayerStatus,
+  MapLayerStatusSchema,
   MapNetworkFeatureCollectionSchema,
+  MapRouteFactsReferenceSchema,
   MapRouteSegmentFeatureCollectionSchema,
   type MapRouteUniverse,
+  MapRouteUniverseSchema,
   type MapSourceStatus,
+  MapSourceStatusSchema,
 } from "@bp/domain/maps";
-import { Result } from "effect";
+import {
+  type CoverageWindow,
+  type ReleaseIdentity,
+  ReleaseIdentitySchema,
+  releaseIdFromPublishedAt,
+} from "@bp/domain/studio/shared";
+import { Result, Schema } from "effect";
 import { decodeSchemaEitherStrict } from "../schema-decode.js";
 
-export const MAP_ARTIFACT_SCHEMA_VERSION = 1;
+export const MAP_ARTIFACT_SCHEMA_VERSION = 2;
 export const MAP_ARTIFACT_JSON_CONTENT_TYPE = "application/json" as const;
 export const MAP_ARTIFACT_GEOJSON_CONTENT_TYPE = "application/geo+json" as const;
 
@@ -68,19 +79,31 @@ export function evaluateMaxAgeSnapshotCurrency(input: {
 }
 
 export function evaluateAnalysisPeriodCurrency(input: {
-  baselineMonth: string;
-  releaseMonth: string;
+  coverage: CoverageWindow;
+  releaseCoverage: CoverageWindow;
   coveragePassed: boolean;
 }): MapCurrencyResult {
-  if (input.baselineMonth !== input.releaseMonth) {
+  if (input.coverage.end !== input.releaseCoverage.end) {
     return {
       status: "stale",
-      reason: `Analysis period ${input.baselineMonth} does not match release month ${input.releaseMonth}.`,
+      reason: `Analysis coverage ends ${input.coverage.end}, not the release coverage end ${input.releaseCoverage.end}.`,
     };
   }
   return input.coveragePassed
-    ? { status: "period_aligned", reason: `Analysis evidence covers ${input.releaseMonth}.` }
-    : { status: "unknown", reason: `Analysis coverage for ${input.releaseMonth} did not pass.` };
+    ? {
+        status: "period_aligned",
+        reason: `Analysis evidence is aligned through ${input.releaseCoverage.end}.`,
+      }
+    : {
+        status: "unknown",
+        reason: `Analysis coverage for ${coverageLabel(input.releaseCoverage)} did not pass.`,
+      };
+}
+
+function coverageLabel(coverage: CoverageWindow): string {
+  return coverage.start === null || coverage.start === coverage.end
+    ? coverage.end
+    : `${coverage.start} through ${coverage.end}`;
 }
 
 export function evaluateRevisionPinnedCurrency(input: {
@@ -97,7 +120,7 @@ export function evaluateRevisionPinnedCurrency(input: {
 
 export function evaluateMapCurrencyEvidence(
   evidence: MapCurrencyEvidence,
-  releaseMonth: string,
+  releaseCoverage: CoverageWindow,
 ): MapCurrencyResult {
   switch (evidence.policy) {
     case "max_age_snapshot":
@@ -108,8 +131,8 @@ export function evaluateMapCurrencyEvidence(
       });
     case "analysis_period":
       return evaluateAnalysisPeriodCurrency({
-        baselineMonth: evidence.baselineMonth,
-        releaseMonth,
+        coverage: evidence.coverage,
+        releaseCoverage,
         coveragePassed: evidence.coveragePassed,
       });
     case "revision_pinned":
@@ -158,49 +181,173 @@ export type MapArtifactKind =
   | "map_network_simplified_geojson"
   | "map_route_segments_geojson";
 
-export type MapArtifactEntry = {
-  artifactKind: MapArtifactKind;
-  artifactKey: string;
-  contentType: typeof MAP_ARTIFACT_JSON_CONTENT_TYPE | typeof MAP_ARTIFACT_GEOJSON_CONTENT_TYPE;
-  byteLength: number;
-  gzipByteLength: number;
-  sha256: string;
-  featureCount: number;
-  coordinateCount: number;
-  routeId: string | null;
-};
+const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
+const NonNegativeIntSchema = Schema.Number.check(Schema.isInt()).check(
+  Schema.isGreaterThanOrEqualTo(0),
+);
+const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/));
 
-export type MapArtifactManifest = {
-  schemaVersion: typeof MAP_ARTIFACT_SCHEMA_VERSION;
-  artifactKind: "map_artifact_manifest";
-  analysisPeriod: string;
-  generatedAt: string;
-  releaseProfile: "demo" | "full";
-  buildStatus: "pass" | "fail";
-  verificationStatus: "not_run" | "pass" | "fail";
-  routeFacts:
-    | {
-        status: "available";
-        artifactKey: string;
-        sha256: string;
-        schemaVersion: 1;
-        baselineMonth: string;
-        routeCount: number;
-        byteLength: number;
-        gzipByteLength: number;
+export { isSafeArtifactKey };
+
+const ArtifactKeySchema = Schema.String.check(
+  Schema.makeFilter((value) =>
+    isSafeArtifactKey(value)
+      ? []
+      : [
+          {
+            path: [],
+            issue:
+              "Artifact keys must be relative slash-delimited paths without traversal segments.",
+          },
+        ],
+  ),
+);
+const MapArtifactKindSchema = Schema.Literals([
+  "map_source_snapshot",
+  "map_route_shapes_geojson",
+  "map_timepoint_stops_geojson",
+  "map_borough_context_geojson",
+  "map_bus_lanes_geojson",
+  "map_network_simplified_geojson",
+  "map_route_segments_geojson",
+]);
+
+const MapSourceSnapshotMetadataSchema = Schema.Struct({
+  sourceId: NonEmptyStringSchema,
+  snapshotPath: NonEmptyStringSchema,
+  status: Schema.Literals(["available", "missing"]),
+  fetchedAt: Schema.NullOr(
+    Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/)),
+  ),
+  rowCount: NonNegativeIntSchema,
+  sha256: Schema.NullOr(Sha256Schema),
+}).check(
+  Schema.makeFilter((source) => {
+    if (source.status === "available") {
+      return source.sha256 === null
+        ? [{ path: ["sha256"], issue: "Available snapshots require a content hash." }]
+        : [];
+    }
+    return source.fetchedAt === null && source.rowCount === 0 && source.sha256 === null
+      ? []
+      : [
+          {
+            path: [],
+            issue: "Missing snapshots cannot declare fetch time, rows, or a content hash.",
+          },
+        ];
+  }),
+);
+
+export const MapSourceSnapshotSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(MAP_ARTIFACT_SCHEMA_VERSION),
+  artifactKind: Schema.Literal("map_source_snapshot"),
+  ...ReleaseIdentitySchema.fields,
+  sources: Schema.Array(MapSourceSnapshotMetadataSchema).check(Schema.isMinLength(1)),
+}).check(
+  Schema.makeFilter((snapshot) => {
+    const issues: Schema.FilterIssue[] = [];
+    try {
+      if (snapshot.releaseId !== releaseIdFromPublishedAt(snapshot.publishedAt)) {
+        issues.push({
+          path: ["releaseId"],
+          issue: "Release ID must match the canonical publication timestamp.",
+        });
       }
-    | { status: "unavailable"; reason: string };
-  sources: MapSourceStatus[];
-  layers: MapLayerStatus[];
-  routeUniverse: MapRouteUniverse;
-  status: "pass" | "fail";
-  artifactCount: number;
-  routeSegmentArtifactCount: number;
-  totalFeatureCount: number;
-  totalByteLength: number;
-  issueCount: number;
-  artifacts: MapArtifactEntry[];
-};
+    } catch {
+      issues.push({
+        path: ["publishedAt"],
+        issue: "Publication timestamp must be canonical before deriving a release ID.",
+      });
+    }
+    const sourceIds = snapshot.sources.map((source) => source.sourceId);
+    if (new Set(sourceIds).size !== sourceIds.length) {
+      issues.push({ path: ["sources"], issue: "Snapshot source IDs must be unique." });
+    }
+    return issues;
+  }),
+);
+
+export const MapArtifactEntrySchema = Schema.Struct({
+  artifactKind: MapArtifactKindSchema,
+  artifactKey: ArtifactKeySchema,
+  contentType: Schema.Literals([MAP_ARTIFACT_JSON_CONTENT_TYPE, MAP_ARTIFACT_GEOJSON_CONTENT_TYPE]),
+  byteLength: NonNegativeIntSchema,
+  gzipByteLength: NonNegativeIntSchema,
+  sha256: Sha256Schema,
+  featureCount: NonNegativeIntSchema,
+  coordinateCount: NonNegativeIntSchema,
+  routeId: Schema.NullOr(NonEmptyStringSchema),
+});
+export type MapArtifactEntry = typeof MapArtifactEntrySchema.Type;
+
+export const MapArtifactManifestSchema = Schema.Struct({
+  schemaVersion: Schema.Literal(MAP_ARTIFACT_SCHEMA_VERSION),
+  artifactKind: Schema.Literal("map_artifact_manifest"),
+  ...ReleaseIdentitySchema.fields,
+  releaseProfile: Schema.Literals(["demo", "full"]),
+  buildStatus: Schema.Literals(["pass", "fail"]),
+  verificationStatus: Schema.Literals(["not_run", "pass", "fail"]),
+  routeFacts: MapRouteFactsReferenceSchema,
+  sources: Schema.Array(MapSourceStatusSchema),
+  layers: Schema.Array(MapLayerStatusSchema),
+  routeUniverse: MapRouteUniverseSchema,
+  status: Schema.Literals(["pass", "fail"]),
+  artifactCount: NonNegativeIntSchema,
+  routeSegmentArtifactCount: NonNegativeIntSchema,
+  totalFeatureCount: NonNegativeIntSchema,
+  totalByteLength: NonNegativeIntSchema,
+  issueCount: NonNegativeIntSchema,
+  artifacts: Schema.Array(MapArtifactEntrySchema),
+}).check(
+  Schema.makeFilter((manifest) => {
+    const issues: Schema.FilterIssue[] = [];
+    try {
+      if (manifest.releaseId !== releaseIdFromPublishedAt(manifest.publishedAt)) {
+        issues.push({
+          path: ["releaseId"],
+          issue: "Release ID must match the canonical publication timestamp.",
+        });
+      }
+    } catch {
+      issues.push({
+        path: ["publishedAt"],
+        issue: "Publication timestamp must be canonical before deriving a release ID.",
+      });
+    }
+    if (
+      manifest.routeFacts.status === "available" &&
+      (manifest.routeFacts.releaseId !== manifest.releaseId ||
+        manifest.routeFacts.publishedAt !== manifest.publishedAt ||
+        manifest.routeFacts.coverage.start !== manifest.coverage.start ||
+        manifest.routeFacts.coverage.end !== manifest.coverage.end)
+    ) {
+      issues.push({
+        path: ["routeFacts"],
+        issue: "Available route facts must carry the manifest release identity.",
+      });
+    }
+    if (
+      manifest.routeFacts.status === "available" &&
+      !isSafeArtifactKey(manifest.routeFacts.artifactKey)
+    ) {
+      issues.push({
+        path: ["routeFacts", "artifactKey"],
+        issue: "Available route-facts artifact keys must not escape the artifact root.",
+      });
+    }
+    for (const [index, layer] of manifest.layers.entries()) {
+      if (layer.artifactKey !== null && !isSafeArtifactKey(layer.artifactKey)) {
+        issues.push({
+          path: ["layers", index, "artifactKey"],
+          issue: "Map-layer artifact keys must not escape the artifact root.",
+        });
+      }
+    }
+    return issues;
+  }),
+);
+export type MapArtifactManifest = typeof MapArtifactManifestSchema.Type;
 
 export type MapArtifactIssue = {
   code: string;
@@ -222,27 +369,6 @@ export type MapArtifactVerification = {
 export type MapJsonArtifact = {
   bytes: Uint8Array;
   entry: MapArtifactEntry;
-};
-
-type ManifestCandidate = {
-  schemaVersion?: unknown;
-  artifactKind?: unknown;
-  analysisPeriod?: unknown;
-  generatedAt?: unknown;
-  releaseProfile?: unknown;
-  buildStatus?: unknown;
-  verificationStatus?: unknown;
-  routeFacts?: unknown;
-  sources?: unknown;
-  layers?: unknown;
-  routeUniverse?: unknown;
-  status?: unknown;
-  artifactCount?: unknown;
-  routeSegmentArtifactCount?: unknown;
-  totalFeatureCount?: unknown;
-  totalByteLength?: unknown;
-  issueCount?: unknown;
-  artifacts?: unknown;
 };
 
 export function mapArtifactSha256(bytes: Uint8Array): string {
@@ -291,8 +417,7 @@ export function buildMapJsonArtifact(input: {
 }
 
 export function buildMapArtifactManifest(input: {
-  month: string;
-  generatedAt: string;
+  releaseIdentity: ReleaseIdentity;
   artifacts: readonly MapArtifactEntry[];
   releaseProfile: "demo" | "full";
   routeFacts: MapArtifactManifest["routeFacts"];
@@ -307,8 +432,7 @@ export function buildMapArtifactManifest(input: {
   return {
     schemaVersion: MAP_ARTIFACT_SCHEMA_VERSION,
     artifactKind: "map_artifact_manifest",
-    analysisPeriod: input.month,
-    generatedAt: input.generatedAt,
+    ...input.releaseIdentity,
     releaseProfile: input.releaseProfile,
     buildStatus: "pass",
     verificationStatus: "not_run",
@@ -327,33 +451,7 @@ export function buildMapArtifactManifest(input: {
 }
 
 export function isMapArtifactManifest(value: unknown): value is MapArtifactManifest {
-  if (!isJsonObject(value)) {
-    return false;
-  }
-
-  const candidate = value as ManifestCandidate;
-  return (
-    candidate.schemaVersion === MAP_ARTIFACT_SCHEMA_VERSION &&
-    candidate.artifactKind === "map_artifact_manifest" &&
-    typeof candidate.analysisPeriod === "string" &&
-    typeof candidate.generatedAt === "string" &&
-    (candidate.releaseProfile === "demo" || candidate.releaseProfile === "full") &&
-    (candidate.buildStatus === "pass" || candidate.buildStatus === "fail") &&
-    (candidate.verificationStatus === "not_run" ||
-      candidate.verificationStatus === "pass" ||
-      candidate.verificationStatus === "fail") &&
-    isJsonObject(candidate.routeFacts) &&
-    Array.isArray(candidate.sources) &&
-    Array.isArray(candidate.layers) &&
-    isJsonObject(candidate.routeUniverse) &&
-    (candidate.status === "pass" || candidate.status === "fail") &&
-    typeof candidate.artifactCount === "number" &&
-    typeof candidate.routeSegmentArtifactCount === "number" &&
-    typeof candidate.totalFeatureCount === "number" &&
-    typeof candidate.totalByteLength === "number" &&
-    typeof candidate.issueCount === "number" &&
-    Array.isArray(candidate.artifacts)
-  );
+  return Result.isSuccess(decodeSchemaEitherStrict(MapArtifactManifestSchema, value));
 }
 
 function isJsonObject(value: unknown): value is Record<string, unknown> {
@@ -373,6 +471,7 @@ export function mapArtifactPayloadIssues(input: {
   artifact: MapArtifactEntry;
   payload: unknown;
   month: string;
+  releaseIdentity?: ReleaseIdentity;
 }): MapArtifactIssue[] {
   const issues: MapArtifactIssue[] = [];
   const expectedFeatureCount = featureCountForPayload(input.payload);
@@ -389,6 +488,37 @@ export function mapArtifactPayloadIssues(input: {
       artifactKey: input.artifact.artifactKey,
       message: `Map artifact ${input.artifact.artifactKey} manifest featureCount is ${input.artifact.featureCount}, but payload has ${expectedFeatureCount}.`,
     });
+  }
+  if (input.artifact.artifactKind === "map_source_snapshot") {
+    const result = decodeSchemaEitherStrict(MapSourceSnapshotSchema, input.payload);
+    if (Result.isFailure(result)) {
+      issues.push({
+        code: "map_source_snapshot_payload_invalid",
+        artifactKey: input.artifact.artifactKey,
+        message: `Map source snapshot ${input.artifact.artifactKey} failed its payload contract.`,
+      });
+    } else {
+      if (result.success.sources.length !== input.artifact.featureCount) {
+        issues.push({
+          code: "map_source_snapshot_count_mismatch",
+          artifactKey: input.artifact.artifactKey,
+          message: `Map source snapshot ${input.artifact.artifactKey} declares ${input.artifact.featureCount} sources, but payload has ${result.success.sources.length}.`,
+        });
+      }
+      if (
+        input.releaseIdentity !== undefined &&
+        (result.success.releaseId !== input.releaseIdentity.releaseId ||
+          result.success.publishedAt !== input.releaseIdentity.publishedAt ||
+          result.success.coverage.start !== input.releaseIdentity.coverage.start ||
+          result.success.coverage.end !== input.releaseIdentity.coverage.end)
+      ) {
+        issues.push({
+          code: "map_source_snapshot_identity_mismatch",
+          artifactKey: input.artifact.artifactKey,
+          message: `Map source snapshot ${input.artifact.artifactKey} does not carry the manifest release identity.`,
+        });
+      }
+    }
   }
   if (input.artifact.artifactKind === "map_route_segments_geojson") {
     const result = decodeSchemaEitherStrict(MapRouteSegmentFeatureCollectionSchema, input.payload);
@@ -434,6 +564,19 @@ export function mapArtifactPayloadIssues(input: {
         message: `Map artifact ${input.artifact.artifactKey} failed its domain GeoJSON contract.`,
       });
     } else {
+      if (
+        input.releaseIdentity !== undefined &&
+        (result.success.releaseId !== input.releaseIdentity.releaseId ||
+          result.success.publishedAt !== input.releaseIdentity.publishedAt ||
+          result.success.coverage.start !== input.releaseIdentity.coverage.start ||
+          result.success.coverage.end !== input.releaseIdentity.coverage.end)
+      ) {
+        issues.push({
+          code: "map_network_identity_mismatch",
+          artifactKey: input.artifact.artifactKey,
+          message: `Map network artifact ${input.artifact.artifactKey} does not carry the manifest release identity.`,
+        });
+      }
       const monthMismatches = result.success.features.filter(
         (feature) => feature.properties.month !== input.month,
       );
@@ -528,10 +671,10 @@ export function verifyMapArtifactManifestContents(input: {
       message: `Map artifact manifest profile is ${manifest.releaseProfile}, expected ${input.expectedProfile}.`,
     });
   }
-  if (manifest.analysisPeriod !== input.month) {
+  if (manifest.coverage.end !== input.month) {
     issues.push({
       code: "map_artifact_manifest_month_mismatch",
-      message: `Map artifact manifest is for ${manifest.analysisPeriod}, expected ${input.month}.`,
+      message: `Map artifact manifest coverage ends ${manifest.coverage.end}, expected ${input.month}.`,
     });
   }
 
@@ -568,7 +711,7 @@ export function verifyMapArtifactManifestContents(input: {
         message: `Required ${layerId} layer is ${layer.readiness}/${layer.currencyStatus}: ${layer.reason}`,
       });
     }
-    const evaluatedCurrency = evaluateMapCurrencyEvidence(layer.currency, input.month);
+    const evaluatedCurrency = evaluateMapCurrencyEvidence(layer.currency, manifest.coverage);
     if (layer.currencyStatus !== evaluatedCurrency.status) {
       issues.push({
         code: "map_layer_currency_mismatch",
@@ -590,7 +733,7 @@ export function verifyMapArtifactManifestContents(input: {
     });
   }
   for (const source of manifest.sources) {
-    const evaluatedCurrency = evaluateMapCurrencyEvidence(source.currency, input.month);
+    const evaluatedCurrency = evaluateMapCurrencyEvidence(source.currency, manifest.coverage);
     if (source.currencyStatus !== evaluatedCurrency.status) {
       issues.push({
         code: "map_source_currency_mismatch",
@@ -722,10 +865,15 @@ export function verifyMapArtifactManifestContents(input: {
         code: "map_route_facts_unavailable",
         message: "Full map release lacks the manifest-referenced route-facts projection.",
       });
-    } else if (manifest.routeFacts.baselineMonth !== input.month) {
+    } else if (
+      manifest.routeFacts.releaseId !== manifest.releaseId ||
+      manifest.routeFacts.publishedAt !== manifest.publishedAt ||
+      manifest.routeFacts.coverage.start !== manifest.coverage.start ||
+      manifest.routeFacts.coverage.end !== manifest.coverage.end
+    ) {
       issues.push({
-        code: "map_route_facts_month_mismatch",
-        message: `Map route facts are for ${manifest.routeFacts.baselineMonth}, expected ${input.month}.`,
+        code: "map_route_facts_identity_mismatch",
+        message: "Map route facts do not carry the manifest release identity.",
       });
     }
   }

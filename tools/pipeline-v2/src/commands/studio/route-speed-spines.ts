@@ -84,6 +84,16 @@ function normalizeRouteId(routeId: string): string {
   return routeId.trim().toUpperCase();
 }
 
+export function earliestRouteSpeedSpineCoverageStart(
+  candidates: readonly { startMonth: string }[],
+): string | null {
+  return candidates.reduce<string | null>(
+    (earliest, candidate) =>
+      earliest === null || candidate.startMonth < earliest ? candidate.startMonth : earliest,
+    null,
+  );
+}
+
 function parseRouteList(value: string | undefined): string[] {
   if (value === undefined) return [];
   return value
@@ -140,6 +150,7 @@ export async function runRouteSpeedSpines(input: {
   generatedAt?: string | undefined;
 }): Promise<{
   manifestPath: string;
+  coverageStart: string | null;
   candidateRouteCount: number;
   routeCount: number;
   currentCatalogRouteCount: number;
@@ -174,6 +185,7 @@ export async function runRouteSpeedSpines(input: {
     offset,
     input.limit === undefined ? undefined : offset + input.limit,
   );
+  const coverageStart = earliestRouteSpeedSpineCoverageStart(selectedCandidates);
   const writeRouteArtifacts = input.writeRouteArtifacts ?? true;
   const routes: RouteSpeedSpineManifestRoute[] = [];
   const candidateRouteIds = new Set(
@@ -256,6 +268,7 @@ export async function runRouteSpeedSpines(input: {
 
   return {
     manifestPath: repoDisplayPath(manifestPath),
+    coverageStart,
     candidateRouteCount: manifest.summary.candidateRouteCount,
     routeCount: manifest.summary.routeCount,
     currentCatalogRouteCount: manifest.summary.currentCatalogRouteCount,
@@ -326,6 +339,7 @@ export default defineCommand({
   },
   output: Schema.Struct({
     manifestPath: Schema.String,
+    coverageStart: Schema.NullOr(Schema.String.check(Schema.isPattern(ISO_MONTH_RE))),
     candidateRouteCount: Schema.Number.check(Schema.isInt()).check(
       Schema.isGreaterThanOrEqualTo(0),
     ),

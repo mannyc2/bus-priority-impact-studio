@@ -80,9 +80,8 @@ export function buildMapRouteFactsProjection(release: StudioReleasePayload): Map
     release.routeFactMetadata.map((metadata) => [metadata.routeId, metadata] as const),
   );
   return decodeStrict(MapRouteFactsResponseSchema)({
-    schemaVersion: 1,
-    baselineMonth: release.baselineMonth,
-    generatedAt: release.generatedAt,
+    schemaVersion: 2,
+    ...release.mapRouteFactsMetadata,
     routes: release.routes.map((route) => {
       const metadata = metadataByRouteId.get(route.routeId);
       if (metadata === undefined) {

@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
+import {
+  isMapArtifactManifest,
+  isSafeArtifactKey,
+  mapArtifactSha256,
+} from "@bp/analytics/evaluation";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Glob } from "bun";
 import { Effect } from "effect";
@@ -126,11 +131,32 @@ async function collectPrefixKeys(
   return [...keys];
 }
 
-async function collectCandidates(options: PublishR2Options): Promise<UploadItem[]> {
+async function collectCandidates(
+  options: PublishR2Options,
+  finalMapManifestKey: string | null,
+): Promise<UploadItem[]> {
+  const governedManifestDirs =
+    finalMapManifestKey === null
+      ? options.manifestDirs
+      : [...new Set([...options.manifestDirs, "map"])];
+  const unconstrainedPrefixes =
+    finalMapManifestKey === null
+      ? options.prefixes
+      : options.prefixes.filter(
+          (prefix) =>
+            !governedManifestDirs.some(
+              (manifestDir) => prefix === manifestDir || prefix.startsWith(`${manifestDir}/`),
+            ),
+        );
+  for (const scope of [...governedManifestDirs, ...unconstrainedPrefixes]) {
+    if (!isSafeArtifactKey(scope)) {
+      throw new Error(`Artifact scope ${JSON.stringify(scope)} is not a safe artifact-root path.`);
+    }
+  }
   const [manifestKeys, d1Keys, prefixKeys] = await Promise.all([
     collectManifestArtifactKeys({
       artifactRoot: options.artifactRoot,
-      manifestDirs: options.manifestDirs,
+      manifestDirs: governedManifestDirs,
       month: options.month,
     }),
     collectD1ArtifactKeys({
@@ -138,41 +164,65 @@ async function collectCandidates(options: PublishR2Options): Promise<UploadItem[
       schemaPath: options.d1SchemaPath,
       seedPath: options.d1SeedPath,
     }),
-    collectPrefixKeys(options.artifactRoot, options.prefixes),
+    collectPrefixKeys(options.artifactRoot, unconstrainedPrefixes),
   ]);
-  const merged = new Set<string>([...manifestKeys.keys, ...d1Keys.keys, ...prefixKeys]);
+  const declaredManifestKeys = new Set(manifestKeys.keys);
+  const d1CandidateKeys =
+    finalMapManifestKey === null
+      ? d1Keys.keys
+      : d1Keys.keys.filter(
+          (key) =>
+            !governedManifestDirs.some(
+              (manifestDir) => key === manifestDir || key.startsWith(`${manifestDir}/`),
+            ) || declaredManifestKeys.has(key),
+        );
+  const merged = new Set<string>([
+    ...manifestKeys.keys,
+    ...d1CandidateKeys,
+    ...prefixKeys,
+    ...(finalMapManifestKey === null ? [] : [finalMapManifestKey]),
+  ]);
+  for (const key of merged) {
+    if (!isSafeArtifactKey(key)) {
+      throw new Error(`Artifact key ${JSON.stringify(key)} is not a safe artifact-root path.`);
+    }
+  }
   return [...merged].sort().map((key) => ({ key, localPath: join(options.artifactRoot, key) }));
 }
 
-async function assertPublishableMapManifest(options: PublishR2Options): Promise<void> {
-  if (!options.manifestDirs.includes("map")) return;
+async function assertPublishableMapManifest(options: PublishR2Options): Promise<string | null> {
+  const includesMapScope =
+    options.manifestDirs.includes("map") ||
+    options.prefixes.some((prefix) => prefix === "map" || prefix.startsWith("map/"));
+  if (!includesMapScope) return null;
   const path = join(options.artifactRoot, "map", options.month, "manifest.json");
   const file = Bun.file(path);
-  if (!(await file.exists())) return;
-  let manifest: Record<string, unknown>;
+  if (!(await file.exists())) {
+    throw new Error(`Map manifest ${path} is required for publication.`);
+  }
+  const manifestBytes = new Uint8Array(await file.arrayBuffer());
+  let manifest: unknown;
   try {
-    const value = await file.json();
-    if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error();
-    manifest = value as Record<string, unknown>;
+    manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
   } catch {
     throw new Error(`Map manifest ${path} is invalid JSON.`);
   }
+  if (!isMapArtifactManifest(manifest)) {
+    throw new Error(`Map manifest ${path} does not satisfy the v2 release contract.`);
+  }
   const failures: string[] = [];
-  if (manifest["releaseProfile"] !== "full") failures.push("releaseProfile must be full");
-  if (manifest["buildStatus"] !== "pass") failures.push("buildStatus must be pass");
-  if (manifest["verificationStatus"] !== "pass") failures.push("verificationStatus must be pass");
-  if (manifest["analysisPeriod"] !== options.month)
-    failures.push(`analysisPeriod must equal ${options.month}`);
-  const routeFacts = manifest["routeFacts"] as Record<string, unknown> | undefined;
-  if (routeFacts?.["status"] !== "available") failures.push("routeFacts must be available");
-  const routeUniverse = manifest["routeUniverse"] as Record<string, unknown> | undefined;
-  const expectedRouteIds = Array.isArray(routeUniverse?.["expectedRouteIds"])
-    ? routeUniverse["expectedRouteIds"].filter(
-        (routeId): routeId is string => typeof routeId === "string",
-      )
-    : null;
-  if (expectedRouteIds === null) failures.push("routeUniverse.expectedRouteIds must be declared");
-  else {
+  if (manifest.releaseProfile !== "full") failures.push("releaseProfile must be full");
+  if (manifest.buildStatus !== "pass") failures.push("buildStatus must be pass");
+  if (manifest.verificationStatus !== "pass") failures.push("verificationStatus must be pass");
+  if (manifest.status !== "pass") failures.push("status must be pass");
+  if (manifest.issueCount !== 0) failures.push("issueCount must be zero");
+  if (manifest.coverage.end !== options.month)
+    failures.push(`coverage.end must equal ${options.month}`);
+  if (manifest.routeFacts.status !== "available") failures.push("routeFacts must be available");
+  const expectedRouteIds = manifest.routeUniverse.expectedRouteIds;
+  if (!Array.isArray(expectedRouteIds)) {
+    failures.push("routeUniverse.expectedRouteIds must be declared");
+  } else {
     const verification = await verifyMapArtifactManifest({
       artifactRoot: options.artifactRoot,
       month: options.month,
@@ -191,6 +241,24 @@ async function assertPublishableMapManifest(options: PublishR2Options): Promise<
   if (failures.length > 0) {
     throw new Error(`Map manifest is not publishable: ${failures.join("; ")}.`);
   }
+
+  const manifestSha256 = mapArtifactSha256(manifestBytes);
+  const finalManifestKey = `map/${options.month}/manifest.${manifestSha256}.json`;
+  const finalManifestPath = join(options.artifactRoot, finalManifestKey);
+  const finalManifestFile = Bun.file(finalManifestPath);
+  if (!(await finalManifestFile.exists())) {
+    throw new Error(`Final content-addressed map manifest ${finalManifestPath} is missing.`);
+  }
+  const finalBytes = new Uint8Array(await finalManifestFile.arrayBuffer());
+  if (
+    finalBytes.byteLength !== manifestBytes.byteLength ||
+    mapArtifactSha256(finalBytes) !== manifestSha256
+  ) {
+    throw new Error(
+      `Final content-addressed map manifest ${finalManifestPath} does not match ${path}.`,
+    );
+  }
+  return finalManifestKey;
 }
 
 function makeBunDriver(options: PublishR2Options): S3Driver {
@@ -332,13 +400,13 @@ async function uploadOne(
 }
 
 export async function runPublishR2Artifacts(options: PublishR2Options): Promise<PublishR2Report> {
-  await assertPublishableMapManifest(options);
+  const finalMapManifestKey = await assertPublishableMapManifest(options);
   const driver =
     options.driver ??
     (options.dryRun && (options.accessKeyId.length === 0 || options.secretAccessKey.length === 0)
       ? makeNoopDriver()
       : makeBunDriver(options));
-  const candidates = await collectCandidates(options);
+  const candidates = await collectCandidates(options, finalMapManifestKey);
   const counters: Counters = {
     uploaded: 0,
     skipped: 0,
@@ -463,6 +531,18 @@ export async function runPublishR2Artifacts(options: PublishR2Options): Promise<
   return report;
 }
 
+export async function runPublishR2ArtifactsCommand(
+  options: PublishR2Options,
+): Promise<PublishR2Report> {
+  const report = await runPublishR2Artifacts(options);
+  if (report.status === "fail") {
+    throw new Error(
+      `R2 artifact publication failed for ${report.failedCount} of ${report.candidateCount} candidates; see ${report.outputPath}.`,
+    );
+  }
+  return report;
+}
+
 const monthPattern = /^\d{4}-\d{2}$/;
 
 export default defineCommand({
@@ -558,7 +638,7 @@ export default defineCommand({
       input.options.output === undefined
         ? join(artifactRoot, "audits", `publish-r2-${input.options.month}.json`)
         : fromCliPath(input.options.output);
-    return runPublishR2Artifacts({
+    return runPublishR2ArtifactsCommand({
       month: input.options.month,
       bucket: input.options.bucket,
       endpoint,

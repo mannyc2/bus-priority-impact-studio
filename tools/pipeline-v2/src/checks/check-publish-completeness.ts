@@ -1,5 +1,13 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join } from "node:path";
+import {
+  isMapArtifactManifest,
+  type MapArtifactManifest,
+  mapArtifactSha256,
+} from "@bp/analytics/evaluation";
+import { buildMapReleaseRegistrationSql } from "@bp/db/d1/seed";
+import { decodeStrict } from "@bp/domain/decode";
+import { ReleaseIdentitySchema } from "@bp/domain/studio/shared";
 import { verifyMapArtifactManifest } from "../commands/map/artifacts.ts";
 import {
   collectD1ArtifactKeys,
@@ -75,6 +83,22 @@ const [manifestKeys, d1Keys] = await Promise.all([
 ]);
 const artifactKeys = new Set<string>([...manifestKeys.keys, ...d1Keys.keys]);
 
+const mapManifestPath = join(artifactRoot, "map", month, "manifest.json");
+let mapManifest: MapArtifactManifest | null = null;
+let mapManifestBytes: Uint8Array | null = null;
+try {
+  mapManifestBytes = await readFile(mapManifestPath);
+  const value: unknown = JSON.parse(new TextDecoder().decode(mapManifestBytes));
+  mapManifest = isMapArtifactManifest(value) ? value : null;
+} catch {
+  mapManifest = null;
+  mapManifestBytes = null;
+}
+const finalManifestSha256 = mapManifestBytes === null ? null : mapArtifactSha256(mapManifestBytes);
+const finalManifestKey =
+  finalManifestSha256 === null ? null : `map/${month}/manifest.${finalManifestSha256}.json`;
+if (finalManifestKey !== null) artifactKeys.add(finalManifestKey);
+
 const missing: string[] = [];
 for (const key of artifactKeys) {
   const localPath = join(artifactRoot, key);
@@ -86,38 +110,36 @@ missing.sort();
 
 const conflicts: string[] = [];
 if (!d1Keys.exportUsed) conflicts.push("Verified D1 schema and seed exports are unavailable.");
-const mapManifest = await readJson(join(artifactRoot, "map", month, "manifest.json"));
+const declaredMapKeys = new Set(manifestKeys.keys);
+const undeclaredD1MapKeys = d1Keys.keys.filter(
+  (key) => key.startsWith("map/") && !declaredMapKeys.has(key),
+);
+if (undeclaredD1MapKeys.length > 0) {
+  conflicts.push(
+    `D1 references ${undeclaredD1MapKeys.length} map artifact(s) outside the verified manifest.`,
+  );
+}
 if (mapManifest === null) {
-  conflicts.push(`Map manifest for ${month} is missing or invalid.`);
+  conflicts.push(`Map manifest for ${month} is missing or invalid under the v2 release contract.`);
 } else {
-  if (mapManifest["releaseProfile"] !== "full")
-    conflicts.push("Map manifest is not a full release.");
-  if (mapManifest["buildStatus"] !== "pass")
-    conflicts.push("Map manifest buildStatus is not pass.");
-  if (mapManifest["verificationStatus"] !== "pass")
+  if (mapManifest.releaseProfile !== "full") conflicts.push("Map manifest is not a full release.");
+  if (mapManifest.buildStatus !== "pass") conflicts.push("Map manifest buildStatus is not pass.");
+  if (mapManifest.verificationStatus !== "pass")
     conflicts.push("Map manifest verificationStatus is not pass.");
-  if (mapManifest["analysisPeriod"] !== month)
+  if (mapManifest.status !== "pass") conflicts.push("Map manifest status is not pass.");
+  if (mapManifest.issueCount !== 0) conflicts.push("Map manifest issueCount is not zero.");
+  if (mapManifest.coverage.end !== month)
     conflicts.push(
-      `Map manifest month ${String(mapManifest["analysisPeriod"])} conflicts with ${month}.`,
+      `Map manifest coverage end ${mapManifest.coverage.end} conflicts with ${month}.`,
     );
-  const routeFacts = mapManifest["routeFacts"] as Record<string, unknown> | undefined;
-  if (routeFacts?.["status"] !== "available") conflicts.push("Map route facts are unavailable.");
-  else if (routeFacts["baselineMonth"] !== month)
-    conflicts.push(
-      `Map route-fact month ${String(routeFacts["baselineMonth"])} conflicts with ${month}.`,
-    );
-  const artifacts = Array.isArray(mapManifest["artifacts"])
-    ? (mapManifest["artifacts"] as Array<Record<string, unknown>>)
-    : [];
-  if (!artifacts.some((entry) => entry["artifactKind"] === "map_network_simplified_geojson"))
+  if (mapManifest.routeFacts.status !== "available")
+    conflicts.push("Map route facts are unavailable.");
+  if (
+    !mapManifest.artifacts.some((entry) => entry.artifactKind === "map_network_simplified_geojson")
+  )
     conflicts.push("Map manifest lacks the required network artifact.");
-  const routeUniverse = mapManifest["routeUniverse"] as Record<string, unknown> | undefined;
-  const expectedRouteIds = Array.isArray(routeUniverse?.["expectedRouteIds"])
-    ? routeUniverse["expectedRouteIds"].filter(
-        (routeId): routeId is string => typeof routeId === "string",
-      )
-    : null;
-  if (expectedRouteIds === null) {
+  const expectedRouteIds = mapManifest.routeUniverse.expectedRouteIds;
+  if (!Array.isArray(expectedRouteIds)) {
     conflicts.push("Map manifest lacks its expected route universe.");
   } else {
     const verification = await verifyMapArtifactManifest({
@@ -133,6 +155,52 @@ if (mapManifest === null) {
           .map((issue) => issue.code)
           .join(", ")}.`,
       );
+    }
+  }
+
+  if (finalManifestKey === null || finalManifestSha256 === null || mapManifestBytes === null) {
+    conflicts.push("Content-addressed final map-manifest identity could not be derived.");
+  } else {
+    const finalManifestPath = join(artifactRoot, finalManifestKey);
+    if (await fileExists(finalManifestPath)) {
+      const finalBytes = await readFile(finalManifestPath);
+      if (
+        finalBytes.byteLength !== mapManifestBytes.byteLength ||
+        mapArtifactSha256(finalBytes) !== finalManifestSha256
+      ) {
+        conflicts.push("Content-addressed final map manifest differs from the verified alias.");
+      }
+    }
+
+    const registrationPath = join(dirname(seedPath), "map-release-registration.sql");
+    let registrationSql: string | null = null;
+    try {
+      registrationSql = await readFile(registrationPath, "utf8");
+    } catch {
+      conflicts.push(`Map release registration SQL is missing at ${registrationPath}.`);
+    }
+    if (
+      registrationSql !== null &&
+      mapManifest.releaseProfile === "full" &&
+      mapManifest.verificationStatus === "pass" &&
+      Array.isArray(expectedRouteIds)
+    ) {
+      const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+        releaseId: mapManifest.releaseId,
+        publishedAt: mapManifest.publishedAt,
+        coverage: mapManifest.coverage,
+      });
+      const expectedRegistrationSql = buildMapReleaseRegistrationSql({
+        ...releaseIdentity,
+        manifestKey: finalManifestKey,
+        manifestSha256: finalManifestSha256,
+        releaseProfile: "full",
+        verificationStatus: "pass",
+        routeCount: expectedRouteIds.length,
+      });
+      if (registrationSql !== expectedRegistrationSql) {
+        conflicts.push("Map release registration SQL does not match the final catalog metadata.");
+      }
     }
   }
 }

@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   fetchMapBusLanes,
+  fetchMapManifest,
+  fetchMapRouteFacts,
+  fetchNetworkMapGeo,
   fetchStudioInterventionsEvidence,
   fetchStudioRoute,
   fetchStudioRouteIndex,
@@ -37,6 +40,81 @@ function emptyRouteIndexV3(): StudioRouteIndex3Response {
   };
 }
 
+const mapReleaseIdentity = {
+  releaseId: "pub_20260401T000000123Z",
+  publishedAt: "2026-04-01T00:00:00.123Z",
+  coverage: { start: null, end: "2026-03" },
+} as const;
+
+type MapReleaseIdentityFixture = {
+  readonly releaseId: string;
+  readonly publishedAt: string;
+  readonly coverage: { readonly start: string | null; readonly end: string };
+};
+
+function mapRouteFactsReference(identity: MapReleaseIdentityFixture = mapReleaseIdentity) {
+  return {
+    status: "available" as const,
+    artifactKey: "map/2026-03/map-route-facts.json",
+    sha256: "b".repeat(64),
+    schemaVersion: 2 as const,
+    ...identity,
+    routeCount: 2,
+    byteLength: 1,
+    gzipByteLength: 1,
+  };
+}
+
+function mapManifestFixture(
+  input: {
+    routeFacts?:
+      | ReturnType<typeof mapRouteFactsReference>
+      | { status: "unavailable"; reason: string };
+    artifacts?: unknown[];
+  } = {},
+) {
+  return {
+    schemaVersion: 2 as const,
+    ...mapReleaseIdentity,
+    releaseProfile: "demo" as const,
+    buildStatus: "pass" as const,
+    verificationStatus: "not_run" as const,
+    routeFacts: input.routeFacts ?? {
+      status: "unavailable" as const,
+      reason: "Fixture omits route facts.",
+    },
+    sources: [],
+    layers: [],
+    routeUniverse: {
+      includedRouteTypes: ["Local", "Limited", "SBS"],
+      excludedRouteTypes: ["Express", "School"],
+      expectedRouteIds: [],
+      geometryRouteIds: [],
+      routeSegmentRouteIds: [],
+      routeFactRouteIds: [],
+    },
+    status: "pass" as const,
+    artifactCount: input.artifacts?.length ?? 0,
+    routeSegmentArtifactCount: 0,
+    totalFeatureCount: 0,
+    totalByteLength: 0,
+    issueCount: 0,
+    artifacts: input.artifacts ?? [],
+    quality: {
+      releaseLayer: "baseline_release" as const,
+      completenessStatus: "complete" as const,
+      confidence: "high" as const,
+      caveats: [],
+    },
+  };
+}
+
+async function sha256ForBody(body: string): Promise<string> {
+  return [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body)))]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 describe("Studio API client", () => {
   test("requests and strictly decodes route-index schema v3", async () => {
     let requestedPath = "";
@@ -57,6 +135,24 @@ describe("Studio API client", () => {
       })) as unknown as typeof globalThis.fetch);
 
     await expect(fetchStudioRouteIndex()).rejects.toThrow();
+  });
+
+  test("strictly decodes the v2 map manifest and rejects the legacy root", async () => {
+    mockFetch((async () =>
+      Response.json(mapManifestFixture())) as unknown as typeof globalThis.fetch);
+    await expect(fetchMapManifest()).resolves.toMatchObject({
+      schemaVersion: 2,
+      ...mapReleaseIdentity,
+    });
+
+    mockFetch((async () =>
+      Response.json({
+        ...mapManifestFixture(),
+        schemaVersion: 1,
+        baselineMonth: "2026-03",
+        generatedAt: mapReleaseIdentity.publishedAt,
+      })) as unknown as typeof globalThis.fetch);
+    await expect(fetchMapManifest()).rejects.toThrow();
   });
 
   test("throws StudioApiError with server error details", async () => {
@@ -138,6 +234,59 @@ describe("Studio API client", () => {
     ).resolves.toEqual({ status: "missing", path: "/missing.json" });
   });
 
+  test("strict artifact loaders reject v1 network and route-facts roots", async () => {
+    const legacyNetworkBody = JSON.stringify({
+      schemaVersion: 1,
+      ...mapReleaseIdentity,
+      type: "FeatureCollection",
+      features: [],
+    });
+    const legacyNetworkSha256 = await sha256ForBody(legacyNetworkBody);
+    const manifest = mapManifestFixture({
+      artifacts: [
+        {
+          artifactKind: "map_network_simplified_geojson",
+          artifactKey: "map/2026-03/network.json",
+          contentType: "application/geo+json",
+          byteLength: legacyNetworkBody.length,
+          gzipByteLength: legacyNetworkBody.length,
+          sha256: legacyNetworkSha256,
+          featureCount: 0,
+          coordinateCount: 0,
+          routeId: null,
+          apiPath: "/network.json",
+        },
+      ],
+    });
+    mockFetch((async (input) =>
+      String(input) === "/api/v1/map/manifest"
+        ? Response.json(manifest)
+        : new Response(legacyNetworkBody)) as typeof globalThis.fetch);
+
+    await expect(fetchNetworkMapGeo()).resolves.toMatchObject({
+      network: { status: "invalid_contract" },
+    });
+
+    const legacyFactsBody = JSON.stringify({
+      schemaVersion: 1,
+      baselineMonth: "2026-03",
+      generatedAt: mapReleaseIdentity.publishedAt,
+      routes: [],
+    });
+    const legacyFactsSha256 = await sha256ForBody(legacyFactsBody);
+    mockFetch((async () => new Response(legacyFactsBody)) as unknown as typeof globalThis.fetch);
+    await expect(
+      fetchMapRouteFacts({
+        ...mapManifestFixture(),
+        routeFacts: {
+          ...mapRouteFactsReference(),
+          sha256: legacyFactsSha256,
+          routeCount: 0,
+        },
+      } as never),
+    ).resolves.toMatchObject({ status: "invalid_contract" });
+  });
+
   test("propagates aborts so route loaders can cancel map artifact work", async () => {
     const controller = new AbortController();
     controller.abort();
@@ -153,13 +302,15 @@ describe("Studio API client", () => {
 
   test("retains neutral geometry when route facts are unavailable", () => {
     const result = joinNetworkMapBundle({
-      manifest: { baselineMonth: "2026-03" },
+      manifest: { ...mapReleaseIdentity, routeFacts: { status: "unavailable" } },
       network: {
         status: "ready",
         path: "/network.json",
         expectedSha256: "a".repeat(64),
         actualSha256: "a".repeat(64),
         data: {
+          schemaVersion: 2,
+          ...mapReleaseIdentity,
           type: "FeatureCollection",
           features: [
             {
@@ -191,8 +342,10 @@ describe("Studio API client", () => {
     expect(result.collection?.features).toHaveLength(1);
     expect(result.collection?.features[0]?.properties).toMatchObject({
       routeId: "M1",
+      month: "2026-03",
       currentMph: null,
       dailyRiders: null,
+      delayCoverage: null,
       factsStatus: "unavailable",
     });
     expect(result.delayCoverageEnd).toBeNull();
@@ -233,7 +386,7 @@ describe("Studio API client", () => {
       delayExposure: {
         status: valueRiderHours === null ? "unavailable" : "available",
         valueRiderHours,
-        analysisPeriod: period,
+        coverage: period === null ? null : { start: period, end: period },
       },
       provenance: {
         lane: { status: "unavailable", valuePct: null },
@@ -242,13 +395,18 @@ describe("Studio API client", () => {
     });
     const bundle = (facts: ReturnType<typeof delayFact>[]) =>
       joinNetworkMapBundle({
-        manifest: { baselineMonth: "2026-03" },
+        manifest: {
+          ...mapReleaseIdentity,
+          routeFacts: mapRouteFactsReference(),
+        },
         network: {
           status: "ready",
           path: "/network.json",
           expectedSha256: "a".repeat(64),
           actualSha256: "a".repeat(64),
           data: {
+            schemaVersion: 2,
+            ...mapReleaseIdentity,
             type: "FeatureCollection",
             features: [networkFeature("M1"), networkFeature("M2")],
           },
@@ -259,12 +417,16 @@ describe("Studio API client", () => {
           path: "/facts.json",
           expectedSha256: "b".repeat(64),
           actualSha256: "b".repeat(64),
-          data: { schemaVersion: 1, baselineMonth: "2026-03", generatedAt: "x", routes: facts },
+          data: { schemaVersion: 2, ...mapReleaseIdentity, routes: facts },
         },
       } as never);
 
     const unanimous = bundle([delayFact("M1", 12_000, "2026-03"), delayFact("M2", 800, "2026-03")]);
     expect(unanimous.delayCoverageEnd).toBe("2026-03");
+    expect(unanimous.collection?.features[0]?.properties.delayCoverage).toEqual({
+      start: "2026-03",
+      end: "2026-03",
+    });
 
     const partial = bundle([delayFact("M1", 12_000, "2026-03"), delayFact("M2", null, null)]);
     expect(partial.delayCoverageEnd).toBeNull();
@@ -276,15 +438,24 @@ describe("Studio API client", () => {
     expect(disagreeing.delayCoverageEnd).toBeNull();
   });
 
-  test("refuses cross-month fact joins and reports both months", () => {
+  test("refuses cross-coverage fact joins and reports both windows", () => {
+    const routeFactsIdentity = {
+      ...mapReleaseIdentity,
+      coverage: { start: null, end: "2026-04" },
+    } as const;
     const result = joinNetworkMapBundle({
-      manifest: { baselineMonth: "2026-03" },
+      manifest: { ...mapReleaseIdentity, routeFacts: mapRouteFactsReference() },
       network: {
         status: "ready",
         path: "/network.json",
         expectedSha256: "a".repeat(64),
         actualSha256: "a".repeat(64),
-        data: { type: "FeatureCollection", features: [] },
+        data: {
+          schemaVersion: 2,
+          ...mapReleaseIdentity,
+          type: "FeatureCollection",
+          features: [],
+        },
       },
       context: { status: "unavailable", reason: "fixture" },
       routeFacts: {
@@ -292,12 +463,75 @@ describe("Studio API client", () => {
         path: "/facts.json",
         expectedSha256: "b".repeat(64),
         actualSha256: "b".repeat(64),
-        data: { schemaVersion: 1, baselineMonth: "2026-04", generatedAt: "x", routes: [] },
+        data: { schemaVersion: 2, ...routeFactsIdentity, routes: [] },
       },
     } as never);
-    expect(result.factsStatus).toBe("baseline_mismatch");
+    expect(result.factsStatus).toBe("coverage_mismatch");
+    expect(result.collection).toEqual({ type: "FeatureCollection", features: [] });
     expect(result.message).toContain("2026-03");
     expect(result.message).toContain("2026-04");
+  });
+
+  test("requires exact publication identity for network and manifest reference joins", () => {
+    const shiftedPublication = {
+      ...mapReleaseIdentity,
+      releaseId: "pub_20260401T000000124Z",
+      publishedAt: "2026-04-01T00:00:00.124Z",
+    } as const;
+    const networkMismatch = joinNetworkMapBundle({
+      manifest: {
+        ...mapReleaseIdentity,
+        routeFacts: { status: "unavailable", reason: "Fixture omits facts." },
+      },
+      network: {
+        status: "ready",
+        path: "/network.json",
+        expectedSha256: "a".repeat(64),
+        actualSha256: "a".repeat(64),
+        data: {
+          schemaVersion: 2,
+          ...shiftedPublication,
+          type: "FeatureCollection",
+          features: [],
+        },
+      },
+      context: { status: "unavailable", reason: "fixture" },
+      routeFacts: { status: "unavailable", reason: "fixture" },
+    } as never);
+    expect(networkMismatch.factsStatus).toBe("coverage_mismatch");
+    expect(networkMismatch.collection).toEqual({ type: "FeatureCollection", features: [] });
+    expect(networkMismatch.message).toContain(mapReleaseIdentity.releaseId);
+    expect(networkMismatch.message).toContain(shiftedPublication.releaseId);
+
+    const referenceMismatch = joinNetworkMapBundle({
+      manifest: {
+        ...mapReleaseIdentity,
+        routeFacts: mapRouteFactsReference(shiftedPublication),
+      },
+      network: {
+        status: "ready",
+        path: "/network.json",
+        expectedSha256: "a".repeat(64),
+        actualSha256: "a".repeat(64),
+        data: {
+          schemaVersion: 2,
+          ...mapReleaseIdentity,
+          type: "FeatureCollection",
+          features: [],
+        },
+      },
+      context: { status: "unavailable", reason: "fixture" },
+      routeFacts: {
+        status: "ready",
+        path: "/facts.json",
+        expectedSha256: "b".repeat(64),
+        actualSha256: "b".repeat(64),
+        data: { schemaVersion: 2, ...mapReleaseIdentity, routes: [] },
+      },
+    } as never);
+    expect(referenceMismatch.factsStatus).toBe("coverage_mismatch");
+    expect(referenceMismatch.message).toContain("manifest reference");
+    expect(referenceMismatch.message).toContain(shiftedPublication.releaseId);
   });
 
   test("does not request unavailable lanes and rejects malformed lane payloads", async () => {

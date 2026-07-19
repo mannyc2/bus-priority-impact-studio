@@ -1,5 +1,10 @@
-import { join } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { mapArtifactManifestPath } from "@bp/analytics/artifacts";
+import { mapArtifactSha256 } from "@bp/analytics/evaluation";
 import { ROUTE_SPEED_SPINE_DEFAULT_START_MONTH } from "@bp/analytics/feature-history";
+import { buildMapReleaseRegistrationSql } from "@bp/db/d1/seed";
+import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
@@ -11,11 +16,16 @@ import {
   fromCliPath,
   fromRepoRoot,
 } from "../../lib/paths.ts";
+import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import { runRouteBriefModel } from "../route/brief-model.ts";
 import { runStudioRelease } from "../studio/release.ts";
 import { runRouteSpeedSpines } from "../studio/route-speed-spines.ts";
 import { runVerifyD1Export } from "../verify/d1.ts";
-import { runMapArtifacts, verifyMapArtifactManifest } from "./artifacts.ts";
+import {
+  readMapArtifactManifest,
+  runMapArtifacts,
+  verifyMapArtifactManifest,
+} from "./artifacts.ts";
 import { runMapContext } from "./context.ts";
 
 export type RunMapReleaseInputs = {
@@ -61,6 +71,7 @@ export async function runMapRelease(
   dependencies: MapReleaseDependencies = defaultDependencies,
 ) {
   const month = isoMonth(inputs.year, inputs.month);
+  const publishedAt = new Date().toISOString();
   const artifactRoot = inputs.artifactRoot ?? defaultArtifactRootPath();
   const exportRoot = inputs.exportRoot ?? defaultExportRootPath();
   const routeShapeSnapshotPath =
@@ -83,6 +94,12 @@ export async function runMapRelease(
     startMonth: inputs.spineStartMonth ?? ROUTE_SPEED_SPINE_DEFAULT_START_MONTH,
     endMonth: month,
     artifactRoot,
+    generatedAt: publishedAt,
+  });
+  const releaseIdentity = decodeSchemaStrict(ReleaseIdentitySchema, {
+    releaseId: releaseIdFromPublishedAt(publishedAt),
+    publishedAt,
+    coverage: { start: speedSpines.coverageStart, end: month },
   });
   const d1 = await dependencies.verifyD1({
     local: inputs.local,
@@ -90,12 +107,14 @@ export async function runMapRelease(
     month: inputs.month,
     artifactRoot,
     exportRoot,
+    releaseIdentity,
   });
   const context = await dependencies.context({
     sourcePath: inputs.contextSourcePath,
     artifactRoot,
   });
   const studio = await dependencies.studio({
+    releaseIdentity,
     month,
     outputPath: join(artifactRoot, "studio", "v1", "release.json"),
     schemaPath: d1.schemaPath,
@@ -124,6 +143,7 @@ export async function runMapRelease(
     local: inputs.local,
     year: inputs.year,
     month: inputs.month,
+    releaseIdentity,
     releaseProfile: "full",
     artifactRoot,
     speedSpineRoot: artifactRoot,
@@ -148,8 +168,51 @@ export async function runMapRelease(
     );
   }
 
+  const manifestPath = mapArtifactManifestPath(artifactRoot, month);
+  const manifest = await readMapArtifactManifest({ artifactRoot, month });
+  if (manifest === null) {
+    throw new Error(`Verified map manifest ${manifestPath} is missing or invalid.`);
+  }
+  if (
+    manifest.releaseId !== releaseIdentity.releaseId ||
+    manifest.publishedAt !== releaseIdentity.publishedAt ||
+    manifest.coverage.start !== releaseIdentity.coverage.start ||
+    manifest.coverage.end !== releaseIdentity.coverage.end
+  ) {
+    throw new Error("Verified map manifest does not carry the orchestrated release identity.");
+  }
+  if (
+    manifest.releaseProfile !== "full" ||
+    manifest.buildStatus !== "pass" ||
+    manifest.verificationStatus !== "pass" ||
+    manifest.status !== "pass" ||
+    manifest.issueCount !== 0
+  ) {
+    throw new Error("Only a verified full map manifest can be finalized and cataloged.");
+  }
+
+  const manifestBytes = await readFile(manifestPath);
+  const finalManifestSha256 = mapArtifactSha256(manifestBytes);
+  const finalManifestKey = `map/${month}/manifest.${finalManifestSha256}.json`;
+  const finalManifestPath = join(artifactRoot, finalManifestKey);
+  await mkdir(dirname(finalManifestPath), { recursive: true });
+  await writeFile(finalManifestPath, manifestBytes);
+
+  const registrationPath = join(dirname(d1.seedPath), "map-release-registration.sql");
+  const registrationSql = buildMapReleaseRegistrationSql({
+    ...releaseIdentity,
+    manifestKey: finalManifestKey,
+    manifestSha256: finalManifestSha256,
+    releaseProfile: "full",
+    verificationStatus: "pass",
+    routeCount: manifest.routeUniverse.expectedRouteIds.length,
+  });
+  await mkdir(dirname(registrationPath), { recursive: true });
+  await writeFile(registrationPath, registrationSql);
+
   return {
     month,
+    releaseIdentity,
     artifactRoot,
     exportRoot,
     routeShapeSnapshotPath,
@@ -162,6 +225,10 @@ export async function runMapRelease(
     studio,
     map,
     audit,
+    finalManifestKey,
+    finalManifestPath,
+    finalManifestSha256,
+    registrationPath,
   };
 }
 
