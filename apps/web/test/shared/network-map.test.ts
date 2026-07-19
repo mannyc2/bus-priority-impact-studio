@@ -175,7 +175,10 @@ describe("network map state identity", () => {
     } as unknown as MapManifestResponse;
     expect(selectedRouteEvidenceKey(manifest, "M15+")).not.toBe(
       selectedRouteEvidenceKey(
-        { ...manifest, artifacts: [{ ...artifact, sha256: "b".repeat(64) }] },
+        {
+          ...manifest,
+          artifacts: [{ ...artifact, sha256: "b".repeat(64) }],
+        } as unknown as MapManifestResponse,
         "M15+",
       ),
     );
@@ -678,6 +681,9 @@ describe("selected-route segment context", () => {
     expect(rows.map((row) => row.durableSpineId)).toEqual(["spine-slow", null, null]);
 
     const [slow, duplicateA, duplicateB] = collection.features;
+    if (slow === undefined || duplicateA === undefined || duplicateB === undefined) {
+      throw new Error("Expected three segment fixtures.");
+    }
     const mixedJoinCollection = {
       ...collection,
       features: [

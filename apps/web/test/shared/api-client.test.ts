@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import type { MapManifestResponse } from "@bp/domain/maps";
 import {
   currentMapBusLaneArtifact,
   fetchMapBusLanes,
@@ -884,7 +885,7 @@ describe("Studio API client", () => {
           sha256: "a".repeat(64),
         },
       ],
-    } as never;
+    } as unknown as MapManifestResponse;
     expect(currentMapBusLaneArtifact(manifest)).toBeNull();
     await expect(fetchMapBusLanes(manifest)).resolves.toMatchObject({ status: "unavailable" });
 
@@ -897,7 +898,7 @@ describe("Studio API client", () => {
     const duplicateManifest = {
       ...manifest,
       artifacts: [exact, { ...exact }],
-    } as never;
+    } as unknown as MapManifestResponse;
     expect(currentMapBusLaneArtifact(duplicateManifest)).toBeNull();
     await expect(fetchMapBusLanes(duplicateManifest)).resolves.toMatchObject({
       status: "unavailable",
