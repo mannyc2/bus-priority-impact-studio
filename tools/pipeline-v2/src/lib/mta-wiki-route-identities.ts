@@ -1,4 +1,4 @@
-import { lstat, readFile, realpath } from "node:fs/promises";
+import { lstat, readdir, readFile, realpath } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import {
   STUDIO_CURRENT_BUS_ROUTE_TYPES,
@@ -277,21 +277,42 @@ export type MtaWikiRouteIdentitySnapshot = typeof MtaWikiRouteIdentitySnapshotSc
 export type MtaWikiRouteAnchorV1 = typeof MtaWikiRouteAnchorV1Schema.Type;
 
 export const MTA_WIKI_RELEASE_CANONICAL_FILES = {
-  sources: "sources.jsonl",
-  routes: "routes.jsonl",
-  projects: "projects.jsonl",
+  claims: "claims.jsonl",
+  corridors: "corridors.jsonl",
+  entities: "entities.jsonl",
   events: "events.jsonl",
   metricClaims: "metric_claims.jsonl",
+  projects: "projects.jsonl",
   relations: "relations.jsonl",
-  treatmentComponents: "treatment_components.jsonl",
+  routes: "routes.jsonl",
+  sources: "sources.jsonl",
   sourceGaps: "source_gaps.jsonl",
+  tables: "tables.jsonl",
+  treatmentComponents: "treatment_components.jsonl",
 } as const;
 export type MtaWikiReleaseCanonicalFileName =
   (typeof MTA_WIKI_RELEASE_CANONICAL_FILES)[keyof typeof MTA_WIKI_RELEASE_CANONICAL_FILES];
 
+const MTA_WIKI_RELEASE_CANONICAL_KIND_BY_FILE = {
+  "claims.jsonl": "claim",
+  "corridors.jsonl": "corridor",
+  "entities.jsonl": "entity",
+  "events.jsonl": "event",
+  "metric_claims.jsonl": "metric_claim",
+  "projects.jsonl": "project",
+  "relations.jsonl": "relation",
+  "routes.jsonl": "route",
+  "source_gaps.jsonl": "source_gap",
+  "sources.jsonl": "source",
+  "tables.jsonl": "table",
+  "treatment_components.jsonl": "treatment_component",
+} as const satisfies Record<MtaWikiReleaseCanonicalFileName, string>;
+
 export type LoadedMtaWikiRouteIdentities = {
   releaseDirectory: string;
   manifestSha256: string;
+  addressedManifestFileCount: number;
+  completeReleaseFileCount: number;
   routeIdentitySha256: string;
   routeAnchorSha256: string;
   canonicalFiles: Record<MtaWikiReleaseCanonicalFileName, Uint8Array>;
@@ -363,6 +384,54 @@ async function safeReleaseFile(
     throw new Error(`MTA Wiki release pointer escapes release directory: ${pointer}`);
   }
   return readFile(canonicalPath);
+}
+
+async function regularReleaseFiles(
+  releaseDirectory: string,
+  relativeDirectory = "",
+): Promise<string[]> {
+  const directory = resolve(releaseDirectory, relativeDirectory);
+  const entries = (await readdir(directory, { withFileTypes: true })).toSorted((left, right) =>
+    left.name.localeCompare(right.name),
+  );
+  const files: string[] = [];
+  for (const entry of entries) {
+    const relativePath =
+      relativeDirectory.length === 0 ? entry.name : `${relativeDirectory}/${entry.name}`;
+    if (entry.isSymbolicLink()) {
+      throw new Error(`MTA Wiki release contains a symbolic link: ${relativePath}`);
+    }
+    if (entry.isDirectory()) {
+      files.push(...(await regularReleaseFiles(releaseDirectory, relativePath)));
+      continue;
+    }
+    if (!entry.isFile()) {
+      throw new Error(`MTA Wiki release contains a non-regular entry: ${relativePath}`);
+    }
+    files.push(relativePath);
+  }
+  return files;
+}
+
+async function verifyCompleteReleaseFileSet(
+  releaseDirectory: string,
+  manifestFiles: Readonly<Record<string, unknown>>,
+): Promise<number> {
+  if (manifestFiles["manifest.json"] !== undefined) {
+    throw new Error("MTA Wiki manifest must not address itself");
+  }
+  const expected = ["manifest.json", ...Object.keys(manifestFiles)].toSorted();
+  const actual = (await regularReleaseFiles(releaseDirectory)).toSorted();
+  if (!sameCanonical(actual, expected)) {
+    const expectedSet = new Set(expected);
+    const actualSet = new Set(actual);
+    const missing = expected.filter((path) => !actualSet.has(path));
+    const unexpected = actual.filter((path) => !expectedSet.has(path));
+    throw new Error(
+      `MTA Wiki release file set is incomplete: missing=[${missing.join(",")}] unexpected=[${unexpected.join(",")}]`,
+    );
+  }
+  return actual.length;
 }
 
 function verifyMetadata(
@@ -762,6 +831,33 @@ function canonicalJsonlObjects(bytes: Uint8Array, label: string): Array<Record<s
     });
 }
 
+function validateCanonicalReleaseRecords(
+  canonicalFiles: Record<MtaWikiReleaseCanonicalFileName, Uint8Array>,
+  recordCounts: Readonly<Record<string, number>>,
+): void {
+  const expectedKinds = Object.values(MTA_WIKI_RELEASE_CANONICAL_KIND_BY_FILE).toSorted();
+  const actualKinds = Object.keys(recordCounts).toSorted();
+  if (!sameCanonical(actualKinds, expectedKinds)) {
+    throw new Error("MTA Wiki manifest record_counts canonical kind set mismatch");
+  }
+  for (const [fileName, expectedKind] of Object.entries(
+    MTA_WIKI_RELEASE_CANONICAL_KIND_BY_FILE,
+  ) as Array<[MtaWikiReleaseCanonicalFileName, string]>) {
+    const rows = canonicalJsonlObjects(canonicalFiles[fileName], fileName);
+    for (const [index, row] of rows.entries()) {
+      if (row["record_kind"] !== expectedKind) {
+        throw new Error(`${fileName}:${index + 1}.record_kind: expected ${expectedKind}`);
+      }
+    }
+    const expectedCount = recordCounts[expectedKind];
+    if (expectedCount === undefined || rows.length !== expectedCount) {
+      throw new Error(
+        `${fileName}: row-count mismatch; expected ${String(expectedCount)}, got ${rows.length}`,
+      );
+    }
+  }
+}
+
 function optionalTrimmedText(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
@@ -862,6 +958,7 @@ export async function loadMtaWikiRouteIdentities(input: {
   );
   if (manifest.release_id !== input.wikiRelease)
     throw new Error("MTA Wiki manifest release_id mismatch");
+  const addressedManifestFileCount = Object.keys(manifest.files).length;
 
   const addressedPointers = Object.entries(manifest.pointers).flatMap(([name, pointer]) =>
     pointer === null ? [] : [[name, pointer] as const],
@@ -902,6 +999,10 @@ export async function loadMtaWikiRouteIdentities(input: {
       );
     }
   }
+  const completeReleaseFileCount = await verifyCompleteReleaseFileSet(
+    releaseDirectory,
+    manifest.files,
+  );
 
   const identityMetadata = manifest.files[identityPointer];
   const anchorMetadata = manifest.files[anchorPointer];
@@ -929,6 +1030,7 @@ export async function loadMtaWikiRouteIdentities(input: {
     MtaWikiReleaseCanonicalFileName,
     Uint8Array
   >;
+  validateCanonicalReleaseRecords(canonicalFiles, manifest.record_counts);
   const snapshot = decodeSchemaStrict(
     MtaWikiRouteIdentitySnapshotSchema,
     JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(identityBytes)),
@@ -950,11 +1052,7 @@ export async function loadMtaWikiRouteIdentities(input: {
   validateGtfsSnapshotDescriptor(snapshot);
   assertMtaWikiRouteIdentitySnapshotSelfIntegrity(snapshot);
   const canonicalRouteRecords = bindingRecordIdsFromCanonicalRoutes(canonicalFiles["routes.jsonl"]);
-  if (
-    manifest.record_counts["route"] === undefined ||
-    canonicalRouteRecords.size !== manifest.record_counts["route"] ||
-    canonicalRouteRecords.size !== snapshot.record_binding_count
-  ) {
+  if (canonicalRouteRecords.size !== snapshot.record_binding_count) {
     throw new Error("record_bindings: canonical route denominator mismatch");
   }
   const identities = new Map<string, MtaWikiServiceIdentity>();
@@ -1430,6 +1528,8 @@ export async function loadMtaWikiRouteIdentities(input: {
   return {
     releaseDirectory,
     manifestSha256,
+    addressedManifestFileCount,
+    completeReleaseFileCount,
     routeIdentitySha256: identityMetadata.sha256,
     routeAnchorSha256: anchorMetadata.sha256,
     canonicalFiles,

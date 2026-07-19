@@ -114,11 +114,11 @@ function assertBundleClosure(input: BundleClosureInput): void {
   ) {
     throw new Error(`Route evidence bundle identity or presentation mismatch for ${routeId}`);
   }
-  if (
-    new Set(input.bundle.wikiRouteIds).size !== input.bundle.wikiRouteIds.length ||
-    input.bundle.wikiRouteIds.some((candidate) => candidate !== routeId)
-  ) {
-    throw new Error(`Route evidence bundle contains crossed exact Wiki identities for ${routeId}`);
+  const expectedWikiRouteIds = input.bundle.wikiRouteRecordId === null ? [] : [routeId];
+  if (!sameJson(input.bundle.wikiRouteIds, expectedWikiRouteIds)) {
+    throw new Error(
+      `Route evidence bundle Wiki identity set does not match its exact binding state for ${routeId}`,
+    );
   }
   const expectedCoverage = {
     timelineCount: input.bundle.timeline.length,

@@ -82,6 +82,9 @@ const nyctComponentIds = [
 ] as const;
 const allComponentIds = ["mta-bus-company", ...nyctComponentIds] as const;
 const canonicalFileNames = [
+  "claims.jsonl",
+  "corridors.jsonl",
+  "entities.jsonl",
   "events.jsonl",
   "metric_claims.jsonl",
   "projects.jsonl",
@@ -89,6 +92,7 @@ const canonicalFileNames = [
   "routes.jsonl",
   "source_gaps.jsonl",
   "sources.jsonl",
+  "tables.jsonl",
   "treatment_components.jsonl",
 ] as const;
 const manifestPointerFiles = {
@@ -567,6 +571,9 @@ function makeSnapshot(
 
 function canonicalFiles(routeRecords: readonly CanonicalRouteRecord[]): Record<string, string> {
   return {
+    "claims.jsonl": "",
+    "corridors.jsonl": "",
+    "entities.jsonl": "",
     "events.jsonl": "",
     "metric_claims.jsonl": "",
     "projects.jsonl": "",
@@ -574,6 +581,7 @@ function canonicalFiles(routeRecords: readonly CanonicalRouteRecord[]): Record<s
     "routes.jsonl": canonicalJsonl(routeRecords),
     "source_gaps.jsonl": "",
     "sources.jsonl": "",
+    "tables.jsonl": "",
     "treatment_components.jsonl": "",
   };
 }
@@ -621,6 +629,9 @@ function buildManifest(
       taxonomy: "taxonomy.json",
     },
     record_counts: {
+      claim: 0,
+      corridor: 0,
+      entity: 0,
       event: 0,
       metric_claim: 0,
       project: 0,
@@ -628,6 +639,7 @@ function buildManifest(
       route: routeCount,
       source: 0,
       source_gap: 0,
+      table: 0,
       treatment_component: 0,
     },
   };
@@ -765,6 +777,19 @@ async function rewriteCanonicalRoutes(
   return value.manifestSha;
 }
 
+async function rewriteCanonicalFile(
+  value: Fixture,
+  fileName: string,
+  bytes: string,
+  count?: { kind: string; value: number },
+): Promise<string> {
+  await writeFile(join(value.release, fileName), bytes);
+  value.manifest.files[fileName] = fileMetadata(bytes);
+  if (count !== undefined) value.manifest.record_counts[count.kind] = count.value;
+  value.manifestSha = await writeManifest(value);
+  return value.manifestSha;
+}
+
 function snapshotForAudit(
   identityRow: ServiceIdentity,
   currentBusRoutesSha256: string,
@@ -853,6 +878,8 @@ describe("MTA Wiki manifest-v5 route identities", () => {
       });
       expect(Object.keys(loaded.canonicalFiles).toSorted()).toEqual([...canonicalFileNames]);
       expect(loaded.recordCounts["route"]).toBe(3);
+      expect(loaded.addressedManifestFileCount).toBe(Object.keys(value.manifest.files).length);
+      expect(loaded.completeReleaseFileCount).toBe(Object.keys(value.manifest.files).length + 1);
 
       const deterministic = loaded.snapshot.record_bindings.find(
         (row) => row.route_record_id === "route_b44-local",
@@ -907,6 +934,85 @@ describe("MTA Wiki manifest-v5 route identities", () => {
       ).rejects.toThrow(/routes\.jsonl: (byte count|SHA-256) mismatch/);
     } finally {
       await rm(tamperedCanonical.root, { recursive: true, force: true });
+    }
+  });
+
+  test("fails closed on re-signed non-route canonical byte, kind, and count tampering", async () => {
+    const wrongKind = await fixture();
+    try {
+      const bytes = canonicalJsonl([{ record_id: "event_x", record_kind: "project" }]);
+      const manifestSha = await rewriteCanonicalFile(wrongKind, "events.jsonl", bytes, {
+        kind: "event",
+        value: 1,
+      });
+      await expect(loadFixture(wrongKind, manifestSha)).rejects.toThrow(
+        "events.jsonl:1.record_kind: expected event",
+      );
+    } finally {
+      await rm(wrongKind.root, { recursive: true, force: true });
+    }
+
+    const wrongCount = await fixture();
+    try {
+      const bytes = canonicalJsonl([{ record_id: "claim_x", record_kind: "claim" }]);
+      const manifestSha = await rewriteCanonicalFile(wrongCount, "claims.jsonl", bytes);
+      await expect(loadFixture(wrongCount, manifestSha)).rejects.toThrow(
+        "claims.jsonl: row-count mismatch; expected 0, got 1",
+      );
+    } finally {
+      await rm(wrongCount.root, { recursive: true, force: true });
+    }
+
+    const noncanonicalBytes = await fixture();
+    try {
+      const bytes = '{"record_kind":"entity", "record_id":"entity_x"}\n';
+      const manifestSha = await rewriteCanonicalFile(noncanonicalBytes, "entities.jsonl", bytes, {
+        kind: "entity",
+        value: 1,
+      });
+      await expect(loadFixture(noncanonicalBytes, manifestSha)).rejects.toThrow(
+        "entities.jsonl:1: expected canonical stable JSON",
+      );
+    } finally {
+      await rm(noncanonicalBytes.root, { recursive: true, force: true });
+    }
+
+    const crlfBytes = await fixture();
+    try {
+      const bytes = '{"record_id":"corridor_x","record_kind":"corridor"}\r\n';
+      const manifestSha = await rewriteCanonicalFile(crlfBytes, "corridors.jsonl", bytes, {
+        kind: "corridor",
+        value: 1,
+      });
+      await expect(loadFixture(crlfBytes, manifestSha)).rejects.toThrow(
+        "corridors.jsonl: expected canonical LF-terminated JSONL bytes",
+      );
+    } finally {
+      await rm(crlfBytes.root, { recursive: true, force: true });
+    }
+  });
+
+  test("requires the exact canonical record-count kind set", async () => {
+    const missingKind = await fixture();
+    try {
+      delete missingKind.manifest.record_counts["table"];
+      const manifestSha = await writeManifest(missingKind);
+      await expect(loadFixture(missingKind, manifestSha)).rejects.toThrow(
+        "record_counts canonical kind set mismatch",
+      );
+    } finally {
+      await rm(missingKind.root, { recursive: true, force: true });
+    }
+
+    const futureKind = await fixture();
+    try {
+      futureKind.manifest.record_counts["future_kind"] = 0;
+      const manifestSha = await writeManifest(futureKind);
+      await expect(loadFixture(futureKind, manifestSha)).rejects.toThrow(
+        "record_counts canonical kind set mismatch",
+      );
+    } finally {
+      await rm(futureKind.root, { recursive: true, force: true });
     }
   });
 
@@ -979,6 +1085,16 @@ describe("MTA Wiki manifest-v5 route identities", () => {
       );
     } finally {
       await rm(unconsumedDeclaredFile.root, { recursive: true, force: true });
+    }
+
+    const unaddressedFile = await fixture();
+    try {
+      await writeFile(join(unaddressedFile.release, "unaddressed.json"), "{}\n");
+      await expect(loadFixture(unaddressedFile)).rejects.toThrow(
+        /release file set is incomplete:.*unexpected=\[unaddressed\.json\]/,
+      );
+    } finally {
+      await rm(unaddressedFile.root, { recursive: true, force: true });
     }
   });
 

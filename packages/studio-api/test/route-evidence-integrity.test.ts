@@ -301,4 +301,34 @@ describe("route evidence v2 exact serving closure", () => {
     Object.assign(indexRow, { wikiRouteRecordId: "route_b44-sbs" });
     expect(() => assertBundle(crossedOperational)).toThrow("crossed operational binding");
   });
+
+  it("requires the exact matched and unmatched Wiki route-id sets", () => {
+    const matchedWithoutRouteId = fixture();
+    Object.assign(matchedWithoutRouteId.bundle, { wikiRouteIds: [] });
+    expect(() => assertBundle(matchedWithoutRouteId)).toThrow(
+      "Wiki identity set does not match its exact binding state",
+    );
+
+    const matchedSibling = fixture();
+    Object.assign(matchedSibling.bundle, { wikiRouteIds: ["B44+"] });
+    expect(() => assertBundle(matchedSibling)).toThrow(
+      "Wiki identity set does not match its exact binding state",
+    );
+
+    const unmatched = fixture();
+    const unmatchedIndexRow = unmatched.index.routes[0];
+    if (unmatchedIndexRow === undefined) throw new Error("Missing index row fixture");
+    Object.assign(unmatchedIndexRow, { wikiRouteRecordId: null });
+    Object.assign(unmatched.bundle, {
+      wikiRouteRecordId: null,
+      wikiRouteIds: [],
+      operationalBindings: [],
+    });
+    expect(() => assertBundle(unmatched)).not.toThrow();
+
+    Object.assign(unmatched.bundle, { wikiRouteIds: ["B44"] });
+    expect(() => assertBundle(unmatched)).toThrow(
+      "Wiki identity set does not match its exact binding state",
+    );
+  });
 });

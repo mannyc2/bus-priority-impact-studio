@@ -419,6 +419,7 @@ function routeEvidenceV2Artifacts(
         }
       | undefined;
     forgedSha256?: string | undefined;
+    wikiRouteIds?: string[] | undefined;
   } = {},
 ): { bundle: FakeR2Object; index: FakeR2Object } {
   const source = {
@@ -486,7 +487,7 @@ function routeEvidenceV2Artifacts(
     ],
     contextualBindings: [],
     ...legacy,
-    wikiRouteIds: ["M15+"],
+    wikiRouteIds: input.wikiRouteIds ?? ["M15+"],
   };
   const bundleBytes = `${JSON.stringify(bundle, null, 2)}\n`;
   const bundleSha256 = createHash("sha256").update(bundleBytes).digest("hex");
@@ -1861,6 +1862,30 @@ describe("Studio API facade", () => {
     const response = await fetchApi("/api/v1/studio/routes/m15-sbs/timeline", env);
 
     expect(response.status).toBe(502);
+  });
+
+  it("rejects a re-signed matched route-evidence bundle whose exact Wiki identity set is empty", async () => {
+    const artifacts = routeEvidenceV2Artifacts({ wikiRouteIds: [] });
+    const env = {
+      ...createStudioProjectionEnv({
+        extraArtifacts: {
+          [STUDIO_ROUTE_EVIDENCE_INDEX_KEY]: artifacts.index,
+          "studio/v2/wiki/routes/m15-sbs.json": artifacts.bundle,
+        },
+      }),
+      BASELINE_MONTH: "2026-03",
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+    };
+
+    const timelineResponse = await fetchApi("/api/v1/studio/routes/m15-sbs/timeline", env);
+    const interventionsResponse = await fetchApi("/api/v1/studio/interventions/evidence", env);
+
+    expect(timelineResponse.status).toBe(502);
+    expect(interventionsResponse.status).toBe(200);
+    expect(
+      decodeStrict(StudioInterventionsEvidenceResponseSchema)(await interventionsResponse.json())
+        .routeCount,
+    ).toBe(0);
   });
 
   it("serves compact MTA-wiki route evidence for the interventions page", async () => {

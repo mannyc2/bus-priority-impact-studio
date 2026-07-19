@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { lstat, readFile, realpath } from "node:fs/promises";
+import { dirname, relative, resolve, sep } from "node:path";
 import { routeIdToStudioSlug } from "@bp/domain/studio";
 import { type StudioRoutesResponse, StudioRoutesResponseSchema } from "@bp/domain/studio/routes";
 import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
@@ -16,15 +18,31 @@ import {
   loadMtaWikiRouteIdentities,
   type MtaWikiRouteIdentitySnapshot,
 } from "../../lib/mta-wiki-route-identities.ts";
-import { fromCliPath } from "../../lib/paths.ts";
+import { fromCliPath, repoRoot } from "../../lib/paths.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
 const GitCommitSchema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{40}$/u));
+const NonNegativeIntegerSchema = Schema.Number.check(
+  Schema.isInt(),
+  Schema.isGreaterThanOrEqualTo(0),
+);
 const IsoDateSchema = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/u));
 const IsoInstantSchema = Schema.String.check(
   Schema.isPattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u),
 );
+const PortableRepoRelativePathSchema = Schema.String.check(
+  Schema.isPattern(
+    /^(?![A-Za-z]:)(?!.*\\)(?:[^/.\0][^/\0]*|\.[^./\0][^/\0]*)(?:\/(?:[^/.\0][^/\0]*|\.[^./\0][^/\0]*))*$/u,
+  ),
+);
+
+const GENERATOR_SOURCE_RELATIVE_PATHS = [
+  "packages/domain/src/studio/route-presentation.ts",
+  "packages/domain/src/studio/routes/index.ts",
+  "tools/pipeline-v2/src/commands/studio/build-mta-wiki-route-fixture.ts",
+  "tools/pipeline-v2/src/lib/mta-wiki-route-identities.ts",
+] as const;
 
 const COMPATIBILITY_CAVEAT =
   "Deterministic temporary route-universe fixture derived from the pinned rc24 route identity snapshot; no performance, approval, publication, or deployment claim.";
@@ -51,9 +69,21 @@ export const MtaWikiRouteFixtureReceiptSchema = Schema.Struct({
     routeIdentitySha256: Sha256Schema,
     routeIdentityContractId: Schema.String,
     routeIdentitySchemaVersion: Schema.Number.check(Schema.isInt()),
+    routeAnchorRelativePath: Schema.String,
+    routeAnchorSha256: Sha256Schema,
     currentBusRoutesPath: Schema.Literal("<pinned-current-bus-routes-artifact>"),
     currentBusRoutesSha256: Sha256Schema,
     currentBusRoutesEffectiveAsOfDate: IsoDateSchema,
+  }),
+  releaseVerification: Schema.Struct({
+    addressedManifestFileCount: NonNegativeIntegerSchema,
+    verifiedManifestFileCount: NonNegativeIntegerSchema,
+    completeReleaseFileCount: NonNegativeIntegerSchema,
+    serviceIdentityCount: NonNegativeIntegerSchema,
+    recordBindingCount: NonNegativeIntegerSchema,
+    projectableRecordBindingCount: NonNegativeIntegerSchema,
+    nonProjectableRecordBindingCount: NonNegativeIntegerSchema,
+    routeAnchorCount: NonNegativeIntegerSchema,
   }),
   derivation: Schema.Struct({
     predicate: Schema.Literal("catalog_in_effect=yes"),
@@ -79,7 +109,8 @@ export const MtaWikiRouteFixtureReceiptSchema = Schema.Struct({
     sha256ByRun: Schema.Tuple([Sha256Schema, Sha256Schema]),
   }),
   legacyContrast: Schema.Struct({
-    path: Schema.String,
+    path: PortableRepoRelativePathSchema,
+    bytes: NonNegativeIntegerSchema,
     sha256: Sha256Schema,
     usedAsInput: Schema.Literal(false),
     reason: Schema.Literal(
@@ -121,6 +152,155 @@ function sha256(bytes: Uint8Array): string {
 
 function jsonBytes(value: unknown): Uint8Array {
   return new TextEncoder().encode(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function isMissingPathError(cause: unknown): boolean {
+  return typeof cause === "object" && cause !== null && "code" in cause && cause.code === "ENOENT";
+}
+
+function isInside(root: string, path: string): boolean {
+  const fromRoot = relative(root, path);
+  return fromRoot.length > 0 && fromRoot !== ".." && !fromRoot.startsWith(`..${sep}`);
+}
+
+async function canonicalProspectivePath(path: string): Promise<string> {
+  const target = resolve(path);
+  let ancestor = target;
+  while (true) {
+    try {
+      const canonicalAncestor = await realpath(ancestor);
+      return resolve(canonicalAncestor, relative(ancestor, target));
+    } catch (cause) {
+      if (!isMissingPathError(cause)) throw cause;
+      const parent = dirname(ancestor);
+      if (parent === ancestor) throw cause;
+      ancestor = parent;
+    }
+  }
+}
+
+async function runGit(args: string[]): Promise<{
+  exitCode: number;
+  stdout: Uint8Array;
+  stderr: string;
+}> {
+  const proc = Bun.spawn(["git", "-C", repoRoot, ...args], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).arrayBuffer(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+  return { exitCode, stdout: new Uint8Array(stdout), stderr };
+}
+
+export async function verifyMtaWikiRouteFixtureGeneratorCommit(commit: string): Promise<void> {
+  decodeSchemaStrict(GitCommitSchema, commit);
+  const resolvedCommitResult = await runGit(["rev-parse", "--verify", `${commit}^{commit}`]);
+  const resolvedCommit = new TextDecoder().decode(resolvedCommitResult.stdout).trim();
+  if (resolvedCommitResult.exitCode !== 0 || resolvedCommit !== commit) {
+    throw new Error(`generatorCommit does not resolve to the exact supplied commit: ${commit}`);
+  }
+  const ancestor = await runGit(["merge-base", "--is-ancestor", resolvedCommit, "HEAD"]);
+  if (ancestor.exitCode !== 0) {
+    throw new Error(
+      `generatorCommit must be a commit reachable from current HEAD: ${ancestor.stderr.trim()}`,
+    );
+  }
+  for (const sourcePath of GENERATOR_SOURCE_RELATIVE_PATHS) {
+    const committedSource = await runGit(["show", `${resolvedCommit}:${sourcePath}`]);
+    if (committedSource.exitCode !== 0) {
+      throw new Error(
+        `generatorCommit does not contain ${sourcePath}: ${committedSource.stderr.trim()}`,
+      );
+    }
+    const currentSource = new Uint8Array(await readFile(resolve(repoRoot, sourcePath)));
+    if (
+      committedSource.stdout.length !== currentSource.length ||
+      !currentSource.every((byte, index) => byte === committedSource.stdout[index])
+    ) {
+      throw new Error(`generatorCommit does not contain the current bytes of ${sourcePath}`);
+    }
+  }
+}
+
+export async function verifyLegacyRouteArtifactContrast(input: {
+  relativePath: string;
+  expectedSha256: string;
+}): Promise<{ logicalPath: string; canonicalPath: string; bytes: number; sha256: string }> {
+  const logicalPath = decodeSchemaStrict(PortableRepoRelativePathSchema, input.relativePath);
+  const expectedSha256 = decodeSchemaStrict(Sha256Schema, input.expectedSha256);
+  const target = resolve(repoRoot, logicalPath);
+  if (!isInside(repoRoot, target)) {
+    throw new Error("legacy route artifact path escapes the Tracker repository");
+  }
+  const stat = await lstat(target);
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw new Error("legacy route artifact must be a regular non-symlink file");
+  }
+  const canonicalPath = await realpath(target);
+  if (!isInside(await realpath(repoRoot), canonicalPath)) {
+    throw new Error("legacy route artifact resolves outside the Tracker repository");
+  }
+  const bytes = new Uint8Array(await readFile(canonicalPath));
+  if (sha256(bytes) !== expectedSha256) {
+    throw new Error("legacy route artifact SHA-256 mismatch");
+  }
+  return { logicalPath, canonicalPath, bytes: bytes.byteLength, sha256: expectedSha256 };
+}
+
+async function assertFreshDestination(path: string, label: string): Promise<void> {
+  try {
+    await lstat(path);
+    throw new Error(`${label} destination must not already exist`);
+  } catch (cause) {
+    if (isMissingPathError(cause)) return;
+    throw cause;
+  }
+}
+
+function pathsOverlap(left: string, right: string): boolean {
+  return left === right || isInside(left, right) || isInside(right, left);
+}
+
+export async function assertMtaWikiRouteFixtureDestinationSafety(input: {
+  outputPath: string;
+  receiptPath: string;
+  releaseDirectory: string;
+  currentBusRoutesPath: string;
+  legacyRouteArtifactPath: string;
+}): Promise<void> {
+  const [outputPath, receiptPath, releaseDirectory, currentBusRoutesPath, legacyRouteArtifactPath] =
+    await Promise.all([
+      canonicalProspectivePath(input.outputPath),
+      canonicalProspectivePath(input.receiptPath),
+      realpath(input.releaseDirectory),
+      realpath(input.currentBusRoutesPath),
+      realpath(input.legacyRouteArtifactPath),
+    ]);
+  if (pathsOverlap(outputPath, receiptPath)) {
+    throw new Error("route fixture output and receipt destinations must be distinct and disjoint");
+  }
+  for (const [label, destination] of [
+    ["output", outputPath],
+    ["receipt", receiptPath],
+  ] as const) {
+    if (pathsOverlap(destination, releaseDirectory)) {
+      throw new Error(`${label} must not overwrite the pinned MTA Wiki release`);
+    }
+    if (
+      pathsOverlap(destination, currentBusRoutesPath) ||
+      pathsOverlap(destination, legacyRouteArtifactPath)
+    ) {
+      throw new Error(`${label} must not overwrite a pinned input artifact`);
+    }
+  }
+  await Promise.all([
+    assertFreshDestination(input.outputPath, "output"),
+    assertFreshDestination(input.receiptPath, "receipt"),
+  ]);
 }
 
 function fixedGeneratedAt(value: string): string {
@@ -256,14 +436,20 @@ export async function runBuildMtaWikiRouteFixture(
   decodeSchemaStrict(Sha256Schema, input.currentBusRoutesSha256);
   decodeSchemaStrict(Sha256Schema, input.legacyRouteArtifactSha256Contrast);
   decodeSchemaStrict(GitCommitSchema, input.generatorCommit);
+  decodeSchemaStrict(PortableRepoRelativePathSchema, input.legacyRouteArtifactPath);
   decodeSchemaStrict(IsoDateSchema, input.currentBusRoutesEffectiveAsOfDate);
   fixedGeneratedAt(input.generatedAt);
+  await verifyMtaWikiRouteFixtureGeneratorCommit(input.generatorCommit);
+  const legacyContrast = await verifyLegacyRouteArtifactContrast({
+    relativePath: input.legacyRouteArtifactPath,
+    expectedSha256: input.legacyRouteArtifactSha256Contrast,
+  });
 
   const outputPath = fromCliPath(input.output);
   const receiptPath = fromCliPath(input.receipt);
   const currentBusRoutesPath = fromCliPath(input.currentBusRoutesPath);
   const mtaWikiRoot = resolveMtaWikiRoot(input.mtaWikiRoot);
-  await Effect.runPromise(
+  const resolvedRelease = await Effect.runPromise(
     resolveMtaWikiRelease({
       mtaWikiRoot,
       wikiRelease: input.wikiRelease,
@@ -271,6 +457,21 @@ export async function runBuildMtaWikiRouteFixture(
       output: outputPath,
     }),
   );
+  await Effect.runPromise(
+    resolveMtaWikiRelease({
+      mtaWikiRoot,
+      wikiRelease: input.wikiRelease,
+      wikiManifestSha256: input.wikiManifestSha256,
+      output: receiptPath,
+    }),
+  );
+  await assertMtaWikiRouteFixtureDestinationSafety({
+    outputPath,
+    receiptPath,
+    releaseDirectory: resolvedRelease.releaseDirectory,
+    currentBusRoutesPath,
+    legacyRouteArtifactPath: legacyContrast.canonicalPath,
+  });
   const quarantine = await Effect.runPromise(
     readMtaWikiReleaseQuarantineStatus({
       mtaWikiRoot,
@@ -318,6 +519,17 @@ export async function runBuildMtaWikiRouteFixture(
   ) {
     throw new Error("Route fixture serialization is not deterministic");
   }
+  const projectableRecordBindingCount = routeIdentities.snapshot.record_bindings.filter(
+    (binding) => binding.projectable,
+  ).length;
+  const nonProjectableRecordBindingCount =
+    routeIdentities.snapshot.record_bindings.length - projectableRecordBindingCount;
+  if (
+    routeIdentities.snapshot.service_identity_count + nonProjectableRecordBindingCount !==
+    routeIdentities.anchors.length
+  ) {
+    throw new Error("Route identity, nonprojectable binding, and anchor counts do not reconcile");
+  }
 
   const receipt = decodeSchemaStrict(MtaWikiRouteFixtureReceiptSchema, {
     artifactKind: "bp.studio.mta_wiki_route_fixture_receipt.v1",
@@ -334,9 +546,21 @@ export async function runBuildMtaWikiRouteFixture(
       routeIdentitySha256: routeIdentities.routeIdentitySha256,
       routeIdentityContractId: routeIdentities.snapshot.contract_id,
       routeIdentitySchemaVersion: routeIdentities.snapshot.schema_version,
+      routeAnchorRelativePath: `data/exports/releases/${input.wikiRelease}/route_anchors.jsonl`,
+      routeAnchorSha256: routeIdentities.routeAnchorSha256,
       currentBusRoutesPath: "<pinned-current-bus-routes-artifact>",
       currentBusRoutesSha256: parityResult.parity.currentBusRoutesSha256,
       currentBusRoutesEffectiveAsOfDate: parityResult.parity.effectiveAsOfDate,
+    },
+    releaseVerification: {
+      addressedManifestFileCount: routeIdentities.addressedManifestFileCount,
+      verifiedManifestFileCount: routeIdentities.addressedManifestFileCount,
+      completeReleaseFileCount: routeIdentities.completeReleaseFileCount,
+      serviceIdentityCount: routeIdentities.snapshot.service_identity_count,
+      recordBindingCount: routeIdentities.snapshot.record_binding_count,
+      projectableRecordBindingCount,
+      nonProjectableRecordBindingCount,
+      routeAnchorCount: routeIdentities.anchors.length,
     },
     derivation: {
       predicate: "catalog_in_effect=yes",
@@ -362,8 +586,9 @@ export async function runBuildMtaWikiRouteFixture(
       sha256ByRun: [artifactSha256, repeatedSha256],
     },
     legacyContrast: {
-      path: input.legacyRouteArtifactPath,
-      sha256: input.legacyRouteArtifactSha256Contrast,
+      path: legacyContrast.logicalPath,
+      bytes: legacyContrast.bytes,
+      sha256: legacyContrast.sha256,
       usedAsInput: false,
       reason:
         "Historical analytical route projection is recorded only as contrast; it is not an input to this compatibility fixture.",

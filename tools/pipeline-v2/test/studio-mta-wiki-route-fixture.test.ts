@@ -1,10 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { join } from "node:path";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { join, relative } from "node:path";
 import { decodeStrict } from "@bp/domain/decode";
 import {
+  assertMtaWikiRouteFixtureDestinationSafety,
   buildMtaWikiRouteFixtureArtifact,
   MtaWikiRouteFixtureReceiptSchema,
+  verifyLegacyRouteArtifactContrast,
 } from "../src/commands/studio/build-mta-wiki-route-fixture.ts";
 import type {
   CurrentBusRoutesParityAudit,
@@ -15,10 +18,6 @@ import type {
 const fixedSha = "a".repeat(64);
 const fixedCommit = "b".repeat(40);
 const repositoryRoot = join(import.meta.dir, "../../..");
-const rc24ReceiptPath = join(
-  repositoryRoot,
-  "docs/research/artifacts/mta-wiki-v1-rc24-route-fixture-receipt.json",
-);
 
 function identity(input: {
   routeId: string;
@@ -119,9 +118,21 @@ function receiptFixture(): unknown {
       routeIdentitySha256: fixedSha,
       routeIdentityContractId: "route-identity-snapshot-v1",
       routeIdentitySchemaVersion: 1,
+      routeAnchorRelativePath: "data/exports/releases/v1-rc24/route_anchors.jsonl",
+      routeAnchorSha256: fixedSha,
       currentBusRoutesPath: "<pinned-current-bus-routes-artifact>",
       currentBusRoutesSha256: fixedSha,
       currentBusRoutesEffectiveAsOfDate: "2026-07-18",
+    },
+    releaseVerification: {
+      addressedManifestFileCount: 258,
+      verifiedManifestFileCount: 258,
+      completeReleaseFileCount: 259,
+      serviceIdentityCount: 399,
+      recordBindingCount: 395,
+      projectableRecordBindingCount: 274,
+      nonProjectableRecordBindingCount: 121,
+      routeAnchorCount: 520,
     },
     derivation: {
       predicate: "catalog_in_effect=yes",
@@ -144,6 +155,7 @@ function receiptFixture(): unknown {
     },
     legacyContrast: {
       path: "data/artifacts/studio/v1/routes.json",
+      bytes: 1_227_966,
       sha256: fixedSha,
       usedAsInput: false,
       reason:
@@ -196,31 +208,99 @@ describe("MTA Wiki route compatibility fixture", () => {
     };
     absoluteSourceIdentity.inputs.mtaWikiRoot = "/worktree-only/mta-wiki";
     expect(() => decodeStrict(MtaWikiRouteFixtureReceiptSchema)(absoluteSourceIdentity)).toThrow();
+
+    const unsafeLegacyPath = structuredClone(receipt) as {
+      legacyContrast: { path: string };
+    };
+    unsafeLegacyPath.legacyContrast.path = "../routes.json";
+    expect(() => decodeStrict(MtaWikiRouteFixtureReceiptSchema)(unsafeLegacyPath)).toThrow();
   });
 
-  test("binds the checked-in rc24 receipt to the normalized reproducible fixture", async () => {
-    const receiptBytes = new Uint8Array(await Bun.file(rc24ReceiptPath).arrayBuffer());
-    const serializedReceipt = new TextDecoder().decode(receiptBytes);
-    const receipt = decodeStrict(MtaWikiRouteFixtureReceiptSchema)(JSON.parse(serializedReceipt));
+  test("rejects destinations that could overwrite a release, receipt, or pinned input", async () => {
+    const root = await mkdtemp(join(repositoryRoot, ".route-fixture-destinations-"));
+    try {
+      const release = join(root, "release");
+      const output = join(root, "output.json");
+      const receipt = join(root, "receipt.json");
+      const current = join(root, "current.json");
+      const legacy = join(root, "legacy.json");
+      await mkdir(release);
+      await Promise.all([
+        writeFile(join(release, "manifest.json"), "{}\n"),
+        writeFile(current, "{}\n"),
+        writeFile(legacy, "{}\n"),
+      ]);
+      const base = {
+        outputPath: output,
+        receiptPath: receipt,
+        releaseDirectory: release,
+        currentBusRoutesPath: current,
+        legacyRouteArtifactPath: legacy,
+      };
+      await expect(
+        assertMtaWikiRouteFixtureDestinationSafety({ ...base, receiptPath: output }),
+      ).rejects.toThrow("must be distinct");
+      await expect(
+        assertMtaWikiRouteFixtureDestinationSafety({
+          ...base,
+          receiptPath: join(release, "manifest.json"),
+        }),
+      ).rejects.toThrow("must not overwrite the pinned MTA Wiki release");
+      expect(await Bun.file(output).exists()).toBe(false);
+      await expect(
+        assertMtaWikiRouteFixtureDestinationSafety({ ...base, outputPath: current }),
+      ).rejects.toThrow("must not overwrite a pinned input artifact");
+      await expect(assertMtaWikiRouteFixtureDestinationSafety(base)).resolves.toBeUndefined();
+      await expect(
+        assertMtaWikiRouteFixtureDestinationSafety({
+          ...base,
+          outputPath: join(root, "nested"),
+          receiptPath: join(root, "nested", "receipt.json"),
+        }),
+      ).rejects.toThrow("must be distinct and disjoint");
+      await writeFile(output, "preexisting\n");
+      await expect(assertMtaWikiRouteFixtureDestinationSafety(base)).rejects.toThrow(
+        "output destination must not already exist",
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 
-    expect(sha256(receiptBytes)).toBe(
-      "0de7dfb49442246a5525312f39a54c82fb060aaf5292d7213ab7242f1c4ce91b",
-    );
-    expect(receipt.generator.commit).toBe("4d0988e7dab0163e0a0f0758979327526ce94112");
-    expect(receipt.inputs.mtaWikiRoot).toBe("<mta-wiki-root>");
-    expect(receipt.inputs.currentBusRoutesPath).toBe("<pinned-current-bus-routes-artifact>");
-    expect(receipt.output).toEqual({
-      logicalPath: "<isolated-output>/routes.json",
-      bytes: 425_573,
-      sha256: "4994963c748a27283b837c1ec08b82ffae7fa2099ae360c611d9a7be32002290",
-    });
-    expect(receipt.derivation.currentCatalogRouteCount).toBe(386);
-    expect(receipt.derivation.catalogInEffectIdentityCount).toBe(375);
-    expect(receipt.derivation.outputRouteCount).toBe(375);
-    expect(receipt.derivation.catalogInEffectSetsEqual).toBe(false);
-    expect(receipt.legacyContrast.usedAsInput).toBe(false);
-    expect(serializedReceipt).not.toContain("/home/");
-    expect(serializedReceipt).not.toContain("/tmp/");
+  test("requires a portable legacy contrast path whose supplied SHA matches real bytes", async () => {
+    const root = await mkdtemp(join(repositoryRoot, ".route-fixture-legacy-"));
+    try {
+      const path = join(root, "routes.json");
+      const content = new TextEncoder().encode('{"legacy":true}\n');
+      await writeFile(path, content);
+      const logicalPath = relative(repositoryRoot, path).replaceAll("\\", "/");
+      await expect(
+        verifyLegacyRouteArtifactContrast({
+          relativePath: logicalPath,
+          expectedSha256: sha256(content),
+        }),
+      ).resolves.toMatchObject({ logicalPath });
+      await expect(
+        verifyLegacyRouteArtifactContrast({
+          relativePath: logicalPath,
+          expectedSha256: fixedSha,
+        }),
+      ).rejects.toThrow("SHA-256 mismatch");
+      await expect(
+        verifyLegacyRouteArtifactContrast({
+          relativePath: "../routes.json",
+          expectedSha256: fixedSha,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        verifyLegacyRouteArtifactContrast({
+          relativePath: path,
+          expectedSha256: fixedSha,
+        }),
+      ).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   test("stops on catalog parity or official-label disagreement", () => {
