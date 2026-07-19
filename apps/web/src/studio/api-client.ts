@@ -9,8 +9,10 @@ import {
   type MapRouteFactsResponse,
   MapRouteFactsResponseSchema,
   type MapRouteSegmentFeatureCollection,
+  MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
 import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key";
+import { StudioRouteDetailResponseSchema } from "@bp/domain/studio/routes";
 import { routeStudiesKey, studyIndexKey } from "@bp/domain/studio/study-key";
 import {
   createStudioApiClient,
@@ -384,6 +386,20 @@ function parseRouteFacts(value: unknown): MapRouteFactsResponse | null {
   }
 }
 
+function parseRouteSegmentCollection(
+  value: unknown,
+  sourceRouteId: string,
+): MapRouteSegmentFeatureCollection | null {
+  try {
+    const collection = decodeStrict(MapRouteSegmentFeatureCollectionSchema)(value);
+    return collection.features.every((feature) => feature.properties.routeId === sourceRouteId)
+      ? collection
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchVerifiedMapArtifact<T>(
   path: string,
   expectedSha256: string,
@@ -486,6 +502,95 @@ async function fetchMapContextLoad(
   );
 }
 
+function fetchRouteSegmentsLoad(
+  manifest: MapManifestResponse,
+  sourceRouteId: string,
+  options?: StudioQueryOptions,
+): Promise<ArtifactLoad<MapRouteSegmentFeatureCollection>> {
+  const entry = manifest.artifacts.find(
+    (artifact) =>
+      artifact.artifactKind === "map_route_segments_geojson" && artifact.routeId === sourceRouteId,
+  );
+  return entry === undefined
+    ? Promise.resolve({
+        status: "unavailable",
+        reason: `Manifest does not declare route segments for ${sourceRouteId}.`,
+      })
+    : fetchVerifiedMapArtifact(
+        entry.apiPath,
+        entry.sha256,
+        (value) => parseRouteSegmentCollection(value, sourceRouteId),
+        options,
+      );
+}
+
+export type SelectedRouteDetailLoad =
+  | { status: "ready"; data: StudioRouteDetailResponse; path: string }
+  | { status: "unavailable"; reason: string; path: string }
+  | { status: "invalid_contract"; reason: string; path: string }
+  | { status: "request_failed"; reason: string; path: string; httpStatus: number };
+
+export type SelectedRouteMapEvidence = {
+  routeId: string;
+  routeDetail: SelectedRouteDetailLoad;
+  segments: ArtifactLoad<MapRouteSegmentFeatureCollection>;
+};
+
+async function fetchSelectedRouteDetail(
+  sourceRouteId: string,
+  options: StudioQueryOptions,
+): Promise<SelectedRouteDetailLoad> {
+  const path = studioPath("studio.route", { params: { routeId: sourceRouteId } });
+  let value: unknown | null;
+  try {
+    value = await loadNullableStudioJson<unknown>(path, options);
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    return {
+      status: "request_failed",
+      path,
+      httpStatus: error instanceof StudioApiError ? error.status : 0,
+      reason: error instanceof Error ? error.message : "Route-detail request failed.",
+    };
+  }
+  if (value === null)
+    return {
+      status: "unavailable",
+      path,
+      reason: `Route detail is unavailable for ${sourceRouteId}.`,
+    };
+
+  let data: StudioRouteDetailResponse;
+  try {
+    data = decodeStrict(StudioRouteDetailResponseSchema)(value);
+  } catch {
+    return { status: "invalid_contract", path, reason: "Route detail failed its data contract." };
+  }
+  return data.route.routeId === sourceRouteId
+    ? { status: "ready", data, path }
+    : {
+        status: "invalid_contract",
+        path,
+        reason: `Route detail resolved ${data.route.routeId}, not ${sourceRouteId}.`,
+      };
+}
+
+/**
+ * Lazy evidence for one pinned source route. The caller supplies the already-loaded
+ * citywide manifest so selecting a route never refetches or changes release identity.
+ */
+export async function fetchSelectedRouteMapEvidence(
+  manifest: MapManifestResponse,
+  sourceRouteId: string,
+  options: StudioQueryOptions = {},
+): Promise<SelectedRouteMapEvidence> {
+  const [routeDetail, segments] = await Promise.all([
+    fetchSelectedRouteDetail(sourceRouteId, options),
+    fetchRouteSegmentsLoad(manifest, sourceRouteId, options),
+  ]);
+  return { routeId: sourceRouteId, routeDetail, segments };
+}
+
 /** NYC borough shoreline polygons used as progressive map context. */
 export async function fetchMapContext(options?: StudioQueryOptions) {
   const manifest = await fetchMapManifest(options);
@@ -498,12 +603,8 @@ export async function fetchMapContext(options?: StudioQueryOptions) {
 export async function fetchRouteSegmentsGeo(routeId: string, options?: StudioQueryOptions) {
   const manifest = await fetchMapManifest(options);
   if (manifest === null) return null;
-  const entry = manifest.artifacts.find(
-    (artifact) =>
-      artifact.artifactKind === "map_route_segments_geojson" && artifact.routeId === routeId,
-  );
-  if (entry === undefined) return null;
-  return loadNullableStudioJson<MapRouteSegmentFeatureCollection>(entry.apiPath, options);
+  const segments = await fetchRouteSegmentsLoad(manifest, routeId, options);
+  return segments.status === "ready" ? segments.data : null;
 }
 
 export type NetworkMapBundle = {
