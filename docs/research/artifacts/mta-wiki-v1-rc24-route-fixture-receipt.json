@@ -27,7 +27,7 @@
       "--generated-at",
       "2026-07-18T18:05:27.000Z",
       "--generator-commit",
-      "4d0988e7dab0163e0a0f0758979327526ce94112",
+      "0095126a0558dcafc121d1cc2f4a05c43bff2927",
       "--legacy-route-artifact-path",
       "data/artifacts/studio/v1/routes.json",
       "--legacy-route-artifact-sha256-contrast",
@@ -37,7 +37,7 @@
       "--receipt",
       "<receipt-output>"
     ],
-    "commit": "4d0988e7dab0163e0a0f0758979327526ce94112"
+    "commit": "0095126a0558dcafc121d1cc2f4a05c43bff2927"
   },
   "inputs": {
     "mtaWikiRoot": "<mta-wiki-root>",
@@ -48,9 +48,21 @@
     "routeIdentitySha256": "47d5976ce87cc00069e68909df38a2bfeffa1374edb3991f038b483fb013b586",
     "routeIdentityContractId": "route-identity-snapshot-v1",
     "routeIdentitySchemaVersion": 1,
+    "routeAnchorRelativePath": "data/exports/releases/v1-rc24/route_anchors.jsonl",
+    "routeAnchorSha256": "aaf8bb1532587c2aea188a7f7cc84a358b5a0a49106a07282fd6c5d05cfdc222",
     "currentBusRoutesPath": "<pinned-current-bus-routes-artifact>",
     "currentBusRoutesSha256": "d0147d9bb26dd142fb2cb325c32d30284bc5207853be2638e77723ef695b69d4",
     "currentBusRoutesEffectiveAsOfDate": "2026-07-18"
+  },
+  "releaseVerification": {
+    "addressedManifestFileCount": 258,
+    "verifiedManifestFileCount": 258,
+    "completeReleaseFileCount": 259,
+    "serviceIdentityCount": 399,
+    "recordBindingCount": 395,
+    "projectableRecordBindingCount": 274,
+    "nonProjectableRecordBindingCount": 121,
+    "routeAnchorCount": 520
   },
   "derivation": {
     "predicate": "catalog_in_effect=yes",
@@ -117,6 +129,7 @@
   },
   "legacyContrast": {
     "path": "data/artifacts/studio/v1/routes.json",
+    "bytes": 1227966,
     "sha256": "8fa238d0b5d813244ef1fcf64ade28051d11eb4b3e8c55fec9500ce0a614e56f",
     "usedAsInput": false,
     "reason": "Historical analytical route projection is recorded only as contrast; it is not an input to this compatibility fixture."

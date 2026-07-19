@@ -19,6 +19,10 @@ import type {
 const fixedSha = "a".repeat(64);
 const fixedCommit = "b".repeat(40);
 const repositoryRoot = join(import.meta.dir, "../../..");
+const rc24ReceiptPath = join(
+  repositoryRoot,
+  "docs/research/artifacts/mta-wiki-v1-rc24-route-fixture-receipt.json",
+);
 
 function identity(input: {
   routeId: string;
@@ -326,6 +330,59 @@ describe("MTA Wiki route compatibility fixture", () => {
         trackedStatus: " M tools/pipeline-v2/src/lib/mta-wiki-route-identities.ts\n",
       }),
     ).toThrow("requires a clean tracked index and worktree");
+  });
+
+  test("binds the checked-in rc24 receipt to the normalized reproducible fixture", async () => {
+    const receiptBytes = new Uint8Array(await Bun.file(rc24ReceiptPath).arrayBuffer());
+    const serializedReceipt = new TextDecoder().decode(receiptBytes);
+    const receipt = decodeStrict(MtaWikiRouteFixtureReceiptSchema)(JSON.parse(serializedReceipt));
+
+    expect(sha256(receiptBytes)).toBe(
+      "df0041567fe883e2f2e7ff38dd3e32313a25f266da4d0dfe19a32e5a132c8dde",
+    );
+    expect(receipt.generator.commit).toBe("0095126a0558dcafc121d1cc2f4a05c43bff2927");
+    expect(receipt.inputs).toMatchObject({
+      mtaWikiRoot: "<mta-wiki-root>",
+      currentBusRoutesPath: "<pinned-current-bus-routes-artifact>",
+      routeAnchorRelativePath: "data/exports/releases/v1-rc24/route_anchors.jsonl",
+      routeAnchorSha256: "aaf8bb1532587c2aea188a7f7cc84a358b5a0a49106a07282fd6c5d05cfdc222",
+    });
+    expect(receipt.releaseVerification).toEqual({
+      addressedManifestFileCount: 258,
+      verifiedManifestFileCount: 258,
+      completeReleaseFileCount: 259,
+      serviceIdentityCount: 399,
+      recordBindingCount: 395,
+      projectableRecordBindingCount: 274,
+      nonProjectableRecordBindingCount: 121,
+      routeAnchorCount: 520,
+    });
+    expect(
+      receipt.releaseVerification.projectableRecordBindingCount +
+        receipt.releaseVerification.nonProjectableRecordBindingCount,
+    ).toBe(receipt.releaseVerification.recordBindingCount);
+    expect(
+      receipt.releaseVerification.serviceIdentityCount +
+        receipt.releaseVerification.nonProjectableRecordBindingCount,
+    ).toBe(receipt.releaseVerification.routeAnchorCount);
+    expect(receipt.output).toEqual({
+      logicalPath: "<isolated-output>/routes.json",
+      bytes: 425_573,
+      sha256: "4994963c748a27283b837c1ec08b82ffae7fa2099ae360c611d9a7be32002290",
+    });
+    expect(receipt.derivation).toMatchObject({
+      currentCatalogRouteCount: 386,
+      catalogInEffectIdentityCount: 375,
+      outputRouteCount: 375,
+    });
+    expect(receipt.legacyContrast).toMatchObject({
+      path: "data/artifacts/studio/v1/routes.json",
+      bytes: 1_227_966,
+      sha256: "8fa238d0b5d813244ef1fcf64ade28051d11eb4b3e8c55fec9500ce0a614e56f",
+      usedAsInput: false,
+    });
+    expect(serializedReceipt).not.toContain("/home/");
+    expect(serializedReceipt).not.toContain("/tmp/");
   });
 
   test("stops on catalog parity or official-label disagreement", () => {
