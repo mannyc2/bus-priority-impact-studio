@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
+import { join } from "node:path";
 import { decodeStrict } from "@bp/domain/decode";
 import {
   buildMtaWikiRouteFixtureArtifact,
@@ -13,6 +14,11 @@ import type {
 
 const fixedSha = "a".repeat(64);
 const fixedCommit = "b".repeat(40);
+const repositoryRoot = join(import.meta.dir, "../../..");
+const rc24ReceiptPath = join(
+  repositoryRoot,
+  "docs/research/artifacts/mta-wiki-v1-rc24-route-fixture-receipt.json",
+);
 
 function identity(input: {
   routeId: string;
@@ -190,6 +196,31 @@ describe("MTA Wiki route compatibility fixture", () => {
     };
     absoluteSourceIdentity.inputs.mtaWikiRoot = "/worktree-only/mta-wiki";
     expect(() => decodeStrict(MtaWikiRouteFixtureReceiptSchema)(absoluteSourceIdentity)).toThrow();
+  });
+
+  test("binds the checked-in rc24 receipt to the normalized reproducible fixture", async () => {
+    const receiptBytes = new Uint8Array(await Bun.file(rc24ReceiptPath).arrayBuffer());
+    const serializedReceipt = new TextDecoder().decode(receiptBytes);
+    const receipt = decodeStrict(MtaWikiRouteFixtureReceiptSchema)(JSON.parse(serializedReceipt));
+
+    expect(sha256(receiptBytes)).toBe(
+      "0de7dfb49442246a5525312f39a54c82fb060aaf5292d7213ab7242f1c4ce91b",
+    );
+    expect(receipt.generator.commit).toBe("4d0988e7dab0163e0a0f0758979327526ce94112");
+    expect(receipt.inputs.mtaWikiRoot).toBe("<mta-wiki-root>");
+    expect(receipt.inputs.currentBusRoutesPath).toBe("<pinned-current-bus-routes-artifact>");
+    expect(receipt.output).toEqual({
+      logicalPath: "<isolated-output>/routes.json",
+      bytes: 425_573,
+      sha256: "4994963c748a27283b837c1ec08b82ffae7fa2099ae360c611d9a7be32002290",
+    });
+    expect(receipt.derivation.currentCatalogRouteCount).toBe(386);
+    expect(receipt.derivation.catalogInEffectIdentityCount).toBe(375);
+    expect(receipt.derivation.outputRouteCount).toBe(375);
+    expect(receipt.derivation.catalogInEffectSetsEqual).toBe(false);
+    expect(receipt.legacyContrast.usedAsInput).toBe(false);
+    expect(serializedReceipt).not.toContain("/home/");
+    expect(serializedReceipt).not.toContain("/tmp/");
   });
 
   test("stops on catalog parity or official-label disagreement", () => {
