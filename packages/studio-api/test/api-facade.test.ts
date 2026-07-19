@@ -58,6 +58,15 @@ class FakeStatement<T> {
 
   private filteredRows(): T[] {
     if (
+      this.call.query.includes("route_batch_status") &&
+      this.call.query.includes("where") &&
+      this.call.bound.length > 0
+    ) {
+      const status = this.call.bound[0];
+      return this.rows.filter((row) => (row as { status?: unknown }).status === status);
+    }
+
+    if (
       this.call.query.includes("route_equity_context") &&
       this.call.query.includes("where") &&
       this.call.bound.length >= 2
@@ -86,8 +95,17 @@ class FakeStatement<T> {
       this.call.query.includes("where") &&
       this.call.bound.length > 0
     ) {
-      const routeId = this.call.bound[0];
-      return this.rows.filter((row) => (row as { route_id?: unknown }).route_id === routeId);
+      const selector = this.call.bound[0];
+      const filtersBySpeedPresence =
+        this.call.query.includes("has_speed_trend") &&
+        (typeof selector === "boolean" || selector === 0 || selector === 1);
+      return filtersBySpeedPresence
+        ? this.rows.filter(
+            (row) =>
+              Boolean((row as { has_speed_trend?: unknown }).has_speed_trend) ===
+              (selector === true || selector === 1),
+          )
+        : this.rows.filter((row) => (row as { route_id?: unknown }).route_id === selector);
     }
 
     return this.rows;
@@ -108,7 +126,25 @@ class FakeStatement<T> {
 
   async raw(): Promise<unknown[][]> {
     const columns = selectedColumns(this.call.query);
-    return this.filteredRows().map((row) => {
+    let rows = this.filteredRows();
+    if (this.call.query.includes("min(")) {
+      const months = rows
+        .flatMap((row) => {
+          const month = (row as { month?: unknown }).month;
+          return typeof month === "string" ? [month] : [];
+        })
+        .toSorted();
+      return months.length === 0 ? [[null]] : [[months[0]]];
+    }
+    if (this.call.query.includes("order by") && this.call.query.includes("desc")) {
+      rows = rows.toSorted((left, right) => {
+        const leftMonth = String((left as { month?: unknown }).month ?? "");
+        const rightMonth = String((right as { month?: unknown }).month ?? "");
+        return rightMonth.localeCompare(leftMonth);
+      });
+    }
+    if (this.call.query.includes("limit")) rows = rows.slice(0, 1);
+    return rows.map((row) => {
       const record = row as Record<string, unknown>;
       if (columns.length > 0 && columns.every((column) => column in record)) {
         return columns.map((column) => record[column]);
@@ -121,7 +157,27 @@ class FakeStatement<T> {
 class FakeDb {
   readonly calls: QueryCall[] = [];
 
-  constructor(private readonly rowsByTable: Record<string, unknown[]>) {}
+  constructor(private readonly rowsByTable: Record<string, unknown[]>) {
+    if (
+      rowsByTable["route_batch_status"] === undefined &&
+      (rowsByTable["route_brief_summary"]?.length ?? 0) > 0
+    ) {
+      rowsByTable["route_batch_status"] = [
+        {
+          month: "2026-03",
+          generated_at: "2026-06-10T00:00:00.000Z",
+          status: "pass",
+          route_count: rowsByTable["route_brief_summary"]?.length ?? 0,
+          artifact_count: 1,
+          missing_artifact_count: 0,
+          hash_mismatch_count: 0,
+          byte_length_mismatch_count: 0,
+          total_byte_length: 1024,
+          issue_count: 0,
+        },
+      ];
+    }
+  }
 
   prepare<T = unknown>(query: string): FakeStatement<T> {
     const call = { query, bound: [] };
@@ -175,6 +231,9 @@ class FakeR2Bucket {
 }
 
 const CAPABILITY_MANIFEST_KEY = "studio/v2/routes/route-capability-manifest.json";
+const STUDIO_PUBLISHED_AT = "2026-06-10T00:00:00.000Z";
+const STUDIO_RELEASE_ID = "pub_20260610T000000000Z";
+const STUDIO_COVERAGE = { start: "2023-04", end: "2026-03" } as const;
 
 function capabilitySurface(state: string, reason: string | null = null) {
   return { state, reason, depth: null, dataAsOf: null, freshness: "unknown" };
@@ -191,9 +250,11 @@ function capabilityManifestArtifact(
   return new FakeR2Object(
     JSON.stringify({
       artifactKind: "route_capability_manifest",
-      schemaVersion: 1,
-      generatedAt: "2026-06-10T00:00:00.000Z",
-      releaseMonth: "2026-03",
+      schemaVersion: 2,
+      generatedAt: STUDIO_PUBLISHED_AT,
+      releaseId: STUDIO_RELEASE_ID,
+      publishedAt: STUDIO_PUBLISHED_AT,
+      coverage: STUDIO_COVERAGE,
       routes: routes.map((route) => ({ caveats: [], ...route })),
     }),
     "application/json",
@@ -204,11 +265,13 @@ function dossierSummaryArtifact(routeId: string, routeSlug: string): FakeR2Objec
   return new FakeR2Object(
     JSON.stringify({
       artifactKind: "studio_route_dossier_summary",
-      schemaVersion: 1,
-      generatedAt: "2026-06-10T00:00:00.000Z",
+      schemaVersion: 2,
+      generatedAt: STUDIO_PUBLISHED_AT,
       routeId,
       routeSlug,
-      releaseMonth: "2026-03",
+      releaseId: STUDIO_RELEASE_ID,
+      publishedAt: STUDIO_PUBLISHED_AT,
+      coverage: STUDIO_COVERAGE,
       dataAsOf: "2026-03",
       speed: {
         current: 6.9,
@@ -623,7 +686,7 @@ const route = {
 } as const;
 
 const quality = {
-  releaseLayer: "baseline_release",
+  releaseLayer: "published_release",
   completenessStatus: "complete",
   confidence: "high",
   caveats: [],
@@ -778,7 +841,9 @@ function createStudioProjectionEnv(
         JSON.stringify({
           schemaVersion: 2,
           generatedAt: "2026-06-05T00:00:00.000Z",
-          baselineMonth: "2026-03",
+          releaseId: STUDIO_RELEASE_ID,
+          publishedAt: STUDIO_PUBLISHED_AT,
+          coverage: STUDIO_COVERAGE,
           routes: [route],
           quality,
         }),
@@ -788,7 +853,9 @@ function createStudioProjectionEnv(
         JSON.stringify({
           schemaVersion: 3,
           generatedAt: "2026-06-05T00:00:00.000Z",
-          baselineMonth: "2026-03",
+          releaseId: STUDIO_RELEASE_ID,
+          publishedAt: STUDIO_PUBLISHED_AT,
+          coverage: STUDIO_COVERAGE,
           route,
           segments: [],
           artifactRefs: [],
@@ -883,7 +950,9 @@ function createStudioProjectionEnv(
             artifactKind: "model_artifact_serving_projection",
             schemaVersion: 1,
             generatedAt: "2026-06-07T00:00:00.000Z",
-            releaseMonth: "2026-03",
+            releaseId: STUDIO_RELEASE_ID,
+            publishedAt: STUDIO_PUBLISHED_AT,
+            coverage: STUDIO_COVERAGE,
             historyWindow: { startMonth: "2023-04", endMonth: "2026-03" },
             sourceEvaluationPath:
               "data/artifacts/detector-evaluation/2023-04_to_2026-03/2026-03/detector-evaluation.json",
@@ -898,7 +967,11 @@ function createStudioProjectionEnv(
                 modelId: "segment_speed_residuals_v1",
                 status: "available",
                 panelId: "segment_month_panel_v1",
-                releaseMonth: "2026-03",
+                release: {
+                  releaseId: STUDIO_RELEASE_ID,
+                  publishedAt: STUDIO_PUBLISHED_AT,
+                  coverage: STUDIO_COVERAGE,
+                },
                 modeledReleaseRowCount: 404,
                 routeCount: 2,
                 segmentCount: 12,
@@ -909,7 +982,7 @@ function createStudioProjectionEnv(
                 modelId: "pulse_fingerprint_v1",
                 status: "missing",
                 panelId: "route_hour_of_week_pulse_panel_v1",
-                releaseMonth: "2026-03",
+                release: null,
                 modeledReleaseRowCount: 0,
                 routeCount: 0,
                 segmentCount: 0,
@@ -938,6 +1011,20 @@ function createSparseStudioRouteDb(
         route_id: "M15+",
         month: "2026-03",
         artifact_name: "route_evidence",
+      },
+    ],
+    route_batch_status: [
+      {
+        month: "2026-03",
+        generated_at: STUDIO_PUBLISHED_AT,
+        status: "pass",
+        route_count: 2,
+        artifact_count: 2,
+        missing_artifact_count: 0,
+        hash_mismatch_count: 0,
+        byte_length_mismatch_count: 0,
+        total_byte_length: 1024,
+        issue_count: 0,
       },
     ],
     route_brief_summary: [
@@ -1945,7 +2032,9 @@ describe("Studio API facade", () => {
     expect((await detailResponse.json()) as unknown).toEqual(
       expect.objectContaining({
         schemaVersion: 3,
-        baselineMonth: "2026-03",
+        releaseId: STUDIO_RELEASE_ID,
+        publishedAt: STUDIO_PUBLISHED_AT,
+        coverage: STUDIO_COVERAGE,
         route: expect.objectContaining({ slug: "m15-sbs" }),
         capability: expect.objectContaining({ overallState: "ready" }),
         dossier: expect.objectContaining({
@@ -2024,7 +2113,6 @@ describe("Studio API facade", () => {
   it("serves a D1/R2-backed MTA-wiki route evidence bundle from the timeline endpoint", async () => {
     const env = {
       ...createStudioProjectionEnv(),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
     };
 
@@ -2052,7 +2140,6 @@ describe("Studio API facade", () => {
           "studio/v2/wiki/routes/m15-sbs.json": artifacts.bundle,
         },
       }),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
     };
 
@@ -2086,7 +2173,6 @@ describe("Studio API facade", () => {
           "studio/v2/wiki/routes/m15-sbs.json": artifacts.bundle,
         },
       }),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
     };
 
@@ -2110,7 +2196,6 @@ describe("Studio API facade", () => {
           "studio/v2/wiki/routes/m15-sbs.json": artifacts.bundle,
         },
       }),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
     };
 
@@ -2128,7 +2213,6 @@ describe("Studio API facade", () => {
           "studio/v2/wiki/routes/m15-sbs.json": artifacts.bundle,
         },
       }),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
     };
 
@@ -2146,7 +2230,6 @@ describe("Studio API facade", () => {
   it("serves compact MTA-wiki route evidence for the interventions page", async () => {
     const env = {
       ...createStudioProjectionEnv(),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
     };
 
@@ -2185,7 +2268,6 @@ describe("Studio API facade", () => {
           "studio/v2/wiki/routes/b99.json": new FakeR2Object("not json", "application/json"),
         },
       }),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb({
         routeArtifacts: [
           {
@@ -2218,7 +2300,6 @@ describe("Studio API facade", () => {
   it("serves a typed empty MTA-wiki route evidence bundle for routes without evidence", async () => {
     const env = {
       ...createStudioProjectionEnv(),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
     };
 
@@ -2262,7 +2343,9 @@ describe("Studio API facade", () => {
           JSON.stringify({
             schemaVersion: 3,
             generatedAt: "2026-06-05T00:00:00.000Z",
-            baselineMonth: "2026-03",
+            releaseId: STUDIO_RELEASE_ID,
+            publishedAt: STUDIO_PUBLISHED_AT,
+            coverage: STUDIO_COVERAGE,
             route,
             segments: [],
             artifactRefs: [
@@ -2320,7 +2403,6 @@ describe("Studio API facade", () => {
           "application/json",
         ),
       }) as unknown as R2Bucket,
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
     } satisfies StudioApiEnv;
 
@@ -2378,7 +2460,9 @@ describe("Studio API facade", () => {
           JSON.stringify({
             schemaVersion: 3,
             generatedAt: "2026-06-05T00:00:00.000Z",
-            baselineMonth: "2026-03",
+            releaseId: STUDIO_RELEASE_ID,
+            publishedAt: STUDIO_PUBLISHED_AT,
+            coverage: STUDIO_COVERAGE,
             route: bx12Route,
             segments: [
               {
@@ -2455,7 +2539,6 @@ describe("Studio API facade", () => {
           "application/json",
         ),
       }) as unknown as R2Bucket,
-      BASELINE_MONTH: "2026-03",
       DB: new FakeDb({
         route_artifact: [
           {
@@ -2696,9 +2779,7 @@ describe("Studio API facade", () => {
       ARTIFACTS: new FakeR2Bucket({
         [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact(STANDARD_ROUTE_CAPABILITIES),
       }) as unknown as R2Bucket,
-      BASELINE_MONTH: "2026-03",
       DB: db as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     });
 
     expect(response.status).toBe(200);
@@ -2712,7 +2793,7 @@ describe("Studio API facade", () => {
     expect(sparse?.capability.overallState).toBe("building");
     expect(sparse?.capability.surfaces["detectorFindings"]?.state).toBe("insufficient_data");
     expect(sparse?.caveats).toContain(
-      "A baseline summary exists, but the rich public artifact gate is not satisfied.",
+      "A serving summary exists, but the rich public artifact gate is not satisfied.",
     );
   });
   it("rejects unknown Studio route-index schema versions", async () => {
@@ -2728,9 +2809,7 @@ describe("Studio API facade", () => {
   });
   it("serves strict exact route identity in the D1-backed route index v3", async () => {
     const response = await fetchApi("/api/v1/studio/routes?schema=3", {
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     });
 
     expect(response.status).toBe(200);
@@ -2765,6 +2844,77 @@ describe("Studio API facade", () => {
         }),
       ]),
     );
+  });
+
+  it("fails Studio D1 reads closed without passing publication metadata", async () => {
+    const routeSummary = {
+      route_id: "M15+",
+      month: "2026-03",
+      public_visible: true,
+      route_score: 24,
+      average_speed_mph: 7.2,
+      hotspot_count: 4,
+      total_ridership: 900000,
+      ace_active: true,
+      bus_lane_matched_lane_count: 8,
+    };
+    const absent = await fetchApi("/api/v1/studio/routes?schema=3", {
+      DB: new FakeDb({
+        route_brief_summary: [routeSummary],
+        route_batch_status: [],
+      }) as unknown as D1Database,
+    });
+    const failed = await fetchApi("/api/v1/studio/routes?schema=3", {
+      DB: new FakeDb({
+        route_brief_summary: [routeSummary],
+        route_batch_status: [
+          {
+            month: "2026-03",
+            generated_at: STUDIO_PUBLISHED_AT,
+            status: "fail",
+          },
+        ],
+      }) as unknown as D1Database,
+    });
+
+    for (const response of [absent, failed]) {
+      expect(response.status).toBe(503);
+      expect((await response.json()) as unknown).toEqual({
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "No published serving data is available.",
+        },
+      });
+    }
+  });
+
+  it("recomputes capability freshness against request time", async () => {
+    const response = await fetchApi("/api/v1/studio/routes?schema=3", {
+      ARTIFACTS: new FakeR2Bucket({
+        [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact([
+          {
+            routeId: "M15+",
+            overallState: "ready",
+            surfaces: {
+              condition: {
+                state: "ready",
+                reason: null,
+                depth: null,
+                dataAsOf: "2000-01",
+                freshness: "current",
+              },
+            },
+          },
+        ]),
+      }) as unknown as R2Bucket,
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+    });
+
+    const index = decodeStrict(StudioRouteIndex3ResponseSchema)(await response.json());
+    expect(
+      index.routes.find((route) => route.routeId === "M15+")?.capability.surfaces["condition"]
+        ?.freshness,
+    ).toBe("stale");
   });
 
   it("serves Snapshot 2.0 route sections from deterministic D1 route facts", async () => {
@@ -3023,15 +3173,15 @@ describe("Studio API facade", () => {
       ARTIFACTS: new FakeR2Bucket({
         [CAPABILITY_MANIFEST_KEY]: capabilityManifestArtifact(STANDARD_ROUTE_CAPABILITIES),
       }) as unknown as R2Bucket,
-      BASELINE_MONTH: "2026-03",
       DB: db as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     });
 
     expect(response.status).toBe(200);
     const routeSections = decodeStrict(StudioRouteSectionsResponseSchema)(await response.json());
     // C3: months are resolved internally from D1, and rankings declare their freshness.
-    expect(routeSections.baselineMonth).toBe("2026-03");
+    expect(routeSections.coverage).toEqual(STUDIO_COVERAGE);
+    expect(routeSections.releaseId).toBe(STUDIO_RELEASE_ID);
+    expect(routeSections.publishedAt).toBe(STUDIO_PUBLISHED_AT);
     expect(routeSections.dataAsOf).toBe("2026-03");
     expect(routeSections.sections.map((section) => section.sectionId)).toEqual([
       "needs_attention",
@@ -3112,9 +3262,7 @@ describe("Studio API facade", () => {
       ARTIFACTS: new FakeR2Bucket({
         [STUDIO_ROUTE_EVIDENCE_INDEX_KEY]: routeEvidenceIndexArtifact(),
       }) as unknown as R2Bucket,
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
     const response = await fetchApi("/api/v1/studio/routes/sections", env);
@@ -3159,9 +3307,7 @@ describe("Studio API facade", () => {
   it("resolves sparse catalog routes through list, detail, and history", async () => {
     const env = {
       ...createStudioProjectionEnv(),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
     const [routesResponse, detailResponse, historyResponse] = await Promise.all([
@@ -3247,9 +3393,7 @@ describe("Studio API facade", () => {
   it("keeps Snapshot 2.0 addressability endpoints mutually consistent", async () => {
     const env = {
       ...createStudioProjectionEnv(),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
     const [snapshotResponse, routeIndexResponse, routesResponse] = await Promise.all([
@@ -3361,7 +3505,7 @@ describe("Studio API facade", () => {
           id: "route_speed_history",
           path: "/api/v1/studio/routes/m15-sbs/speed-history",
           status: "partial",
-          months: expect.objectContaining({ end: "2026-03" }),
+          months: expect.objectContaining({ end: "2023-04" }),
         }),
       ]),
     );
@@ -3389,7 +3533,6 @@ describe("Studio API facade", () => {
   it("normalizes legacy display months in Snapshot 2.0 source coverage rows", async () => {
     const env = {
       ...createStudioProjectionEnv(),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb({
         sourceMonthCoverage: [
           {
@@ -3408,7 +3551,6 @@ describe("Studio API facade", () => {
           },
         ],
       }) as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
     const response = await fetchApi("/api/v1/studio/snapshot", env);
@@ -3428,7 +3570,6 @@ describe("Studio API facade", () => {
   it("omits invalid source coverage months from the public Studio snapshot", async () => {
     const env = {
       ...createStudioProjectionEnv(),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb({
         sourceMonthCoverage: [
           {
@@ -3447,7 +3588,6 @@ describe("Studio API facade", () => {
           },
         ],
       }) as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
     const response = await fetchApi("/api/v1/studio/snapshot", env);
@@ -3473,9 +3613,7 @@ describe("Studio API facade", () => {
   it("serves Snapshot 2.0 model projection months when the model artifact is well formed", async () => {
     const env = {
       ...createStudioProjectionEnv(),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
     const response = await fetchApi("/api/v1/studio/snapshot", env);
@@ -3501,7 +3639,9 @@ describe("Studio API facade", () => {
             artifactKind: "model_artifact_serving_projection",
             schemaVersion: 1,
             generatedAt: "2026-06-07T00:00:00.000Z",
-            releaseMonth: "2026-03",
+            releaseId: STUDIO_RELEASE_ID,
+            publishedAt: STUDIO_PUBLISHED_AT,
+            coverage: STUDIO_COVERAGE,
             historyWindow: { startMonth: "not-a-month", endMonth: "2026-03" },
             sourceEvaluationPath:
               "data/artifacts/detector-evaluation/2023-04_to_2026-03/2026-03/detector-evaluation.json",
@@ -3516,9 +3656,7 @@ describe("Studio API facade", () => {
           "application/json",
         ),
       }),
-      BASELINE_MONTH: "2026-03",
       DB: createSparseStudioRouteDb() as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     };
 
     const response = await fetchApi("/api/v1/studio/snapshot", env);
@@ -3691,9 +3829,7 @@ describe("Studio API facade", () => {
       route_readiness_missing_input: [],
     });
     const response = await fetchApi("/api/v1/studio/routes/b46-sbs/history", {
-      BASELINE_MONTH: "2026-03",
       DB: db as unknown as D1Database,
-      LAST_BUILT_SPEED_MONTH: "2026-03",
     });
 
     expect(response.status).toBe(200);

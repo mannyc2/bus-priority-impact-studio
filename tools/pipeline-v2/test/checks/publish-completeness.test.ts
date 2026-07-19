@@ -34,7 +34,7 @@ describe("publish completeness", () => {
     );
     await Bun.write(
       join(artifactRoot, "studio", "v1", "routes.json"),
-      JSON.stringify({ baselineMonth: month }),
+      JSON.stringify({ coverage: { start: null, end: month } }),
     );
     const output = join(root, "report.json");
     const process = Bun.spawn(
@@ -137,7 +137,7 @@ describe("publish completeness", () => {
     await Bun.write(join(artifactRoot, manifestKey), manifestBytes);
     await Bun.write(
       join(artifactRoot, "studio", "v1", "routes.json"),
-      JSON.stringify({ baselineMonth: month }),
+      JSON.stringify({ coverage: { start: null, end: month } }),
     );
     const schemaPath = join(exportDir, "schema.sql");
     const seedPath = join(exportDir, "seed.sql");

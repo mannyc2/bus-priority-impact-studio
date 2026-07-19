@@ -1,6 +1,6 @@
 import {
   createD1ServingDb,
-  findLatestNonBaselineObservedMonth,
+  findLatestObservedMonthExcluding,
   findLatestVerifiedFullMapRelease,
   getRouteBatchStatus,
   getRouteBriefSummary,
@@ -246,7 +246,7 @@ async function buildReleaseStatusResponse(url: URL, env: StudioApiEnv): Promise<
   const [batchStatus, reliability, currentSignalMonth] = await Promise.all([
     getRouteBatchStatus(db, month),
     listRouteObservedReliabilitySummaries(db, month),
-    findLatestNonBaselineObservedMonth(db, month),
+    findLatestObservedMonthExcluding(db, month),
   ]);
 
   if (batchStatus === null) {

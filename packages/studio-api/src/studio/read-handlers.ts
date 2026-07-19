@@ -3,8 +3,9 @@ import {
   type RouteMonthTrend as D1RouteMonthTrend,
   type RouteObservedReliabilitySummary as D1RouteObservedReliabilitySummary,
   type SourceMonthCoverage as D1SourceMonthCoverage,
+  findEarliestSpeedTrendMonth,
+  findLatestPublishedStudioServingRelease,
   findLatestSpeedTrendMonth,
-  findLatestStudioServingMonth,
   findRouteEquityContext,
   listPublicSnapshotSourceMonthCoverage,
   listRouteMonthTrends,
@@ -15,6 +16,8 @@ import {
   type DetectorReadinessServingManifestForInsights,
   DetectorReadinessServingManifestForInsightsSchema,
   emptyStudioRouteEvidenceBundle,
+  freshnessForDataAsOf,
+  freshnessReferenceMonth,
   getStudioRoute,
   type RouteCapabilityManifestForIndex,
   RouteCapabilityManifestForIndexSchema,
@@ -63,6 +66,7 @@ import {
   StudioRoutesResponseSchema,
   type StudioSegment,
 } from "@bp/domain/studio/routes";
+import { CoverageWindowSchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
   STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
   STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY,
@@ -130,8 +134,7 @@ import {
   section,
 } from "./route-sections-read-model.js";
 
-// BASELINE_MONTH / LAST_BUILT_SPEED_MONTH are intentionally absent (hard-cutover C3):
-// public read responses resolve their months internally from D1, never from env.
+// Public release identity and covered months resolve internally from D1, never from env.
 export type StudioReadEnv = Pick<StudioApiEnv, "ARTIFACTS" | "DB" | "STUDIO_RELEASE_KEY">;
 
 const OPENAPI_DOC_METHODS = ["get", "post", "put", "patch", "delete"] as const;
@@ -216,7 +219,9 @@ type BuildStudioRoutesResponseResult =
       ok: true;
       routes: StudioRoute[];
       generatedAt: string;
-      baselineMonth: StudioRoutesResponse["baselineMonth"];
+      releaseId: StudioRoutesResponse["releaseId"];
+      publishedAt: StudioRoutesResponse["publishedAt"];
+      coverage: StudioRoutesResponse["coverage"];
       quality: StudioRoutesResponse["quality"];
       releaseLayer: string;
     }
@@ -264,7 +269,9 @@ const ModelArtifactServingProjectionSchema = Schema.Struct({
   artifactKind: Schema.Literal("model_artifact_serving_projection"),
   schemaVersion: Schema.Literal(1),
   generatedAt: Schema.String,
-  releaseMonth: Schema.String,
+  releaseId: Schema.String,
+  publishedAt: Schema.String,
+  coverage: CoverageWindowSchema,
   historyWindow: Schema.Struct({
     startMonth: IsoMonthStringSchema,
     endMonth: IsoMonthStringSchema,
@@ -284,7 +291,13 @@ const ModelArtifactServingProjectionSchema = Schema.Struct({
       modelId: Schema.String.check(Schema.isMinLength(1)),
       status: Schema.Literals(["available", "missing"]),
       panelId: Schema.NullOr(Schema.String),
-      releaseMonth: Schema.NullOr(Schema.String),
+      release: Schema.NullOr(
+        Schema.Struct({
+          releaseId: Schema.String,
+          publishedAt: Schema.String,
+          coverage: CoverageWindowSchema,
+        }),
+      ),
       modeledReleaseRowCount: Schema.Number.check(Schema.isInt()).check(
         Schema.isGreaterThanOrEqualTo(0),
       ),
@@ -358,26 +371,39 @@ async function listStudioRouteCardsFromD1(
   return limit !== undefined ? routes.slice(0, limit) : routes;
 }
 
-/**
- * The single internal serving-month resolver (hard-cutover C3). Public responses
- * derive their months from D1 data — the latest brief-summary month and the latest
- * speed-trend month — never from env. `env.BASELINE_MONTH` survives only as
- * pipeline/provenance metadata.
- */
-type ResolvedServingMonths = { servingMonth: string; latestSpeedMonth: string | null };
+/** The single internal resolver for the latest published serving release. */
+type ResolvedServingRelease = {
+  releaseId: string;
+  publishedAt: string;
+  coverage: StudioRoutesResponse["coverage"];
+  latestSpeedMonth: string | null;
+};
 
-async function resolveServingMonths(env: StudioReadEnv): Promise<ResolvedServingMonths | null> {
+async function resolveServingRelease(env: StudioReadEnv): Promise<ResolvedServingRelease | null> {
   if (env.DB === undefined) return null;
   const db = createD1ServingDb(env.DB);
-  const [servingMonth, latestSpeedMonth] = await Promise.all([
-    findLatestStudioServingMonth(db),
+  const [publishedRelease, coverageStart, latestSpeedMonth] = await Promise.all([
+    findLatestPublishedStudioServingRelease(db),
+    findEarliestSpeedTrendMonth(db),
     findLatestSpeedTrendMonth(db),
   ]);
-  if (servingMonth === null) return null;
-  return { servingMonth, latestSpeedMonth };
+  if (publishedRelease === null) return null;
+  try {
+    return {
+      releaseId: releaseIdFromPublishedAt(publishedRelease.publishedAt),
+      publishedAt: publishedRelease.publishedAt,
+      coverage: decodeSchemaStrict(CoverageWindowSchema, {
+        start: coverageStart,
+        end: publishedRelease.end,
+      }),
+      latestSpeedMonth,
+    };
+  } catch {
+    return null;
+  }
 }
 
-const NO_SERVING_MONTH_MESSAGE = "No serving month is available in D1.";
+const NO_PUBLISHED_SERVING_DATA_MESSAGE = "No published serving data is available.";
 
 async function buildStudioRouteIndex2Response(
   env: StudioReadEnv,
@@ -388,24 +414,24 @@ async function buildStudioRouteIndex2Response(
       response: dependencyNotConfiguredResponse("DB", "Studio route index v2"),
     };
   }
-  const months = await resolveServingMonths(env);
-  if (months === null) {
-    return { ok: false, response: errorResponse(503, NO_SERVING_MONTH_MESSAGE) };
+  const release = await resolveServingRelease(env);
+  if (release === null) {
+    return { ok: false, response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE) };
   }
 
   const generatedAt = new Date().toISOString();
-  const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
   const [rows, capabilityManifest] = await Promise.all([
-    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
+    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), release.coverage.end),
     loadRouteCapabilityManifest(env),
   ]);
   const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
   const routes = rows.map((row) =>
     buildStudioRouteIndex2Row({
-      releaseId,
-      baselineMonth: months.servingMonth,
+      releaseId: release.releaseId,
+      publishedAt: release.publishedAt,
+      coverage: release.coverage,
       generatedAt,
-      lastBuiltSpeedMonth: months.latestSpeedMonth ?? undefined,
+      lastBuiltSpeedMonth: release.latestSpeedMonth ?? undefined,
       row,
       capability: capabilityByRoute.get(row.routeId) ?? FALLBACK_ROUTE_CAPABILITY,
     }),
@@ -416,13 +442,14 @@ async function buildStudioRouteIndex2Response(
     routeIndex: decodeSchemaStrict(StudioRouteIndex2ResponseSchema, {
       schemaVersion: 2,
       generatedAt,
-      releaseId,
-      baselineMonth: months.servingMonth,
-      dataAsOf: months.latestSpeedMonth ?? months.servingMonth,
+      releaseId: release.releaseId,
+      publishedAt: release.publishedAt,
+      coverage: release.coverage,
+      dataAsOf: release.latestSpeedMonth ?? release.coverage.end,
       routes,
       quality: {
-        releaseLayer: "baseline_release",
-        completenessStatus: routes.length === 0 ? "unavailable" : "partial_public_monthly_only",
+        releaseLayer: "published_release",
+        completenessStatus: routes.length === 0 ? "unavailable" : "partial_public_speed_only",
         confidence: routes.length === 0 ? "low" : "medium",
         caveats: [
           "Route index v2 is the legacy all-route addressability layer; use schema v3 for exact source-backed route identity.",
@@ -442,24 +469,24 @@ async function buildStudioRouteIndex3Response(
       response: dependencyNotConfiguredResponse("DB", "Studio route index v3"),
     };
   }
-  const months = await resolveServingMonths(env);
-  if (months === null) {
-    return { ok: false, response: errorResponse(503, NO_SERVING_MONTH_MESSAGE) };
+  const release = await resolveServingRelease(env);
+  if (release === null) {
+    return { ok: false, response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE) };
   }
 
   const generatedAt = new Date().toISOString();
-  const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
   const [rows, capabilityManifest] = await Promise.all([
-    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
+    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), release.coverage.end),
     loadRouteCapabilityManifest(env),
   ]);
   const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
   const routes = rows.map((row) =>
     buildStudioRouteIndex3Row({
-      releaseId,
-      baselineMonth: months.servingMonth,
+      releaseId: release.releaseId,
+      publishedAt: release.publishedAt,
+      coverage: release.coverage,
       generatedAt,
-      lastBuiltSpeedMonth: months.latestSpeedMonth ?? undefined,
+      lastBuiltSpeedMonth: release.latestSpeedMonth ?? undefined,
       row,
       capability: capabilityByRoute.get(row.routeId) ?? FALLBACK_ROUTE_CAPABILITY,
     }),
@@ -470,13 +497,14 @@ async function buildStudioRouteIndex3Response(
     routeIndex: decodeSchemaStrict(StudioRouteIndex3ResponseSchema, {
       schemaVersion: 3,
       generatedAt,
-      releaseId,
-      baselineMonth: months.servingMonth,
-      dataAsOf: months.latestSpeedMonth ?? months.servingMonth,
+      releaseId: release.releaseId,
+      publishedAt: release.publishedAt,
+      coverage: release.coverage,
+      dataAsOf: release.latestSpeedMonth ?? release.coverage.end,
       routes,
       quality: {
-        releaseLayer: "baseline_release",
-        completenessStatus: routes.length === 0 ? "unavailable" : "partial_public_monthly_only",
+        releaseLayer: "published_release",
+        completenessStatus: routes.length === 0 ? "unavailable" : "partial_public_speed_only",
         confidence: routes.length === 0 ? "low" : "medium",
         caveats: [
           "Route index v3 carries exact source-backed route identity/presentation; rich route artifacts remain per-route surface flags.",
@@ -673,10 +701,19 @@ function routeCapabilityByRouteId(
 ): ReadonlyMap<string, StudioRouteCapability> {
   const byRoute = new Map<string, StudioRouteCapability>();
   if (manifest === null) return byRoute;
+  const referenceMonth = freshnessReferenceMonth(new Date().toISOString());
   for (const route of manifest.routes) {
     byRoute.set(route.routeId, {
       overallState: route.overallState,
-      surfaces: route.surfaces,
+      surfaces: Object.fromEntries(
+        Object.entries(route.surfaces).map(([surfaceId, surface]) => [
+          surfaceId,
+          {
+            ...surface,
+            freshness: freshnessForDataAsOf(surface.dataAsOf, referenceMonth),
+          },
+        ]),
+      ),
       caveats: route.caveats,
     });
   }
@@ -1029,9 +1066,13 @@ function aliasedRouteDetailForD1Row(input: {
   row: NormalizedStudioRouteIndexSourceRow;
   observed: D1RouteObservedReliabilitySummary | undefined;
   richDetail: StudioRouteDetailResponse;
+  release: ResolvedServingRelease;
 }): StudioRouteDetailResponse {
   return decodeSchemaStrict(StudioRouteDetailResponseSchema, {
     ...input.richDetail,
+    releaseId: input.release.releaseId,
+    publishedAt: input.release.publishedAt,
+    coverage: input.release.coverage,
     route: buildStudioRouteCardFromIndexRow(input.row, input.observed, null),
     segments: input.richDetail.segments,
     artifactRefs: input.richDetail.artifactRefs,
@@ -1054,15 +1095,14 @@ export async function buildStudioRouteSectionsResponse(
       response: dependencyNotConfiguredResponse("DB", "Studio route sections"),
     };
   }
-  const months = await resolveServingMonths(env);
-  if (months === null) {
-    return { ok: false, response: errorResponse(503, NO_SERVING_MONTH_MESSAGE) };
+  const release = await resolveServingRelease(env);
+  if (release === null) {
+    return { ok: false, response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE) };
   }
 
   const generatedAt = new Date().toISOString();
-  const releaseId = releaseIdForPrefix(studioProjectionPrefix(env));
   const [rows, rawRouteEvidenceIndex, capabilityManifest] = await Promise.all([
-    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), months.servingMonth),
+    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), release.coverage.end),
     loadStudioRouteEvidenceIndex(env),
     loadRouteCapabilityManifest(env),
   ]);
@@ -1072,10 +1112,11 @@ export async function buildStudioRouteSectionsResponse(
   const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
   const routes = rows.map((row) =>
     buildStudioRouteIndex2Row({
-      releaseId,
-      baselineMonth: months.servingMonth,
+      releaseId: release.releaseId,
+      publishedAt: release.publishedAt,
+      coverage: release.coverage,
       generatedAt,
-      lastBuiltSpeedMonth: months.latestSpeedMonth ?? undefined,
+      lastBuiltSpeedMonth: release.latestSpeedMonth ?? undefined,
       row,
       capability: capabilityByRoute.get(row.routeId) ?? FALLBACK_ROUTE_CAPABILITY,
     }),
@@ -1090,7 +1131,7 @@ export async function buildStudioRouteSectionsResponse(
       status: "available",
       rankMeaning:
         "Higher scores combine lower route scores, slower observed speed, more hotspots, and more riders.",
-      minCoverageRule: "Requires a baseline route summary row.",
+      minCoverageRule: "Requires a route summary row for the latest covered month.",
       rows: buildNeedsAttentionRows({ rows, routeById }),
       caveats: ["This is a transparent triage rank, not a detector finding."],
     }),
@@ -1102,9 +1143,9 @@ export async function buildStudioRouteSectionsResponse(
       rankMeaning:
         "Higher scores mean larger observed speed declines across available route-month history.",
       minCoverageRule:
-        "Requires at least six route-month speed history points and a latest speed point in the baseline speed month.",
+        "Requires at least six route-month speed history points and a latest speed point in the latest covered speed month.",
       rows: buildWorseningFastRows({
-        currentSpeedMonth: months.latestSpeedMonth ?? months.servingMonth,
+        currentSpeedMonth: release.latestSpeedMonth ?? release.coverage.end,
         rows,
         routeById,
       }),
@@ -1121,7 +1162,7 @@ export async function buildStudioRouteSectionsResponse(
       rankMeaning:
         "Higher scores combine ridership, slow speed, and hotspots, then subtract indexed bus-lane and ACE treatment credit.",
       minCoverageRule:
-        "Requires a baseline route summary row; treatment coverage is current serving-summary context.",
+        "Requires a route summary row for the latest covered month; treatment coverage is current serving-summary context.",
       rows: buildTreatmentGapRows({ rows, routeById }),
       caveats: [
         "Bus-lane matches are route-shape overlap context, not audited regulatory lane-mile claims.",
@@ -1185,13 +1226,14 @@ export async function buildStudioRouteSectionsResponse(
     routeSections: decodeSchemaStrict(StudioRouteSectionsResponseSchema, {
       schemaVersion: 1,
       generatedAt,
-      releaseId,
-      baselineMonth: months.servingMonth,
-      dataAsOf: months.latestSpeedMonth ?? months.servingMonth,
+      releaseId: release.releaseId,
+      publishedAt: release.publishedAt,
+      coverage: release.coverage,
+      dataAsOf: release.latestSpeedMonth ?? release.coverage.end,
       sections,
       quality: {
-        releaseLayer: "baseline_release",
-        completenessStatus: rows.length === 0 ? "unavailable" : "partial_public_monthly_only",
+        releaseLayer: "published_release",
+        completenessStatus: rows.length === 0 ? "unavailable" : "partial_public_speed_only",
         confidence: rows.length === 0 ? "low" : "medium",
         caveats: [
           "Route sections are transparent Snapshot 2.0 triage projections, not promoted detector findings.",
@@ -1207,25 +1249,25 @@ export async function buildStudioRouteSectionsResponse(
 async function findStudioRouteIndexSourceRow(input: {
   env: StudioReadEnv;
   slug: string;
-  baselineMonth: string;
+  coverageEnd: string;
 }): Promise<NormalizedStudioRouteIndexSourceRow | null> {
   if (input.env.DB === undefined) return null;
   const rows = await listNormalizedStudioRouteIndexSourceRows(
     createD1ServingDb(input.env.DB),
-    input.baselineMonth,
+    input.coverageEnd,
   );
   return rows.find((row) => routeIdToStudioSlug(row.routeId) === input.slug) ?? null;
 }
 
 async function findObservedReliabilityRow(input: {
   env: StudioReadEnv;
-  baselineMonth: string;
+  coverageEnd: string;
   routeId: string;
 }): Promise<D1RouteObservedReliabilitySummary | undefined> {
   if (input.env.DB === undefined) return undefined;
   const observed = await listRouteObservedReliabilitySummaries(
     createD1ServingDb(input.env.DB),
-    input.baselineMonth,
+    input.coverageEnd,
   );
   return observed.find((row) => row.routeId === input.routeId);
 }
@@ -1238,9 +1280,8 @@ function routeCapabilityForRouteId(
   return byRoute.get(routeId) ?? null;
 }
 
-// De-monthed (hard-cutover C2): the detail path never reads env.BASELINE_MONTH —
-// the serving month for the partial D1 fallback resolves internally from D1, and
-// the rich path is pure R2 projections (detail + capability row + dossier summary).
+// The detail path resolves the serving release from D1 and overlays that exact
+// identity on both rich R2 projections and partial D1 fallbacks.
 async function buildStudioRouteDetailResponseFromD1(
   env: StudioReadEnv,
   slug: string,
@@ -1252,15 +1293,19 @@ async function buildStudioRouteDetailResponseFromD1(
     };
   }
   const servingDb = createD1ServingDb(env.DB);
-  const servingMonth = await findLatestStudioServingMonth(servingDb);
-  if (servingMonth === null) {
+  const release = await resolveServingRelease(env);
+  if (release === null) {
     return {
       ok: false,
-      response: errorResponse(503, "No serving month is available in D1."),
+      response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE),
     };
   }
 
-  const row = await findStudioRouteIndexSourceRow({ env, slug, baselineMonth: servingMonth });
+  const row = await findStudioRouteIndexSourceRow({
+    env,
+    slug,
+    coverageEnd: release.coverage.end,
+  });
   if (row === null) {
     return { ok: false, response: errorResponse(404, "Studio route was not found.") };
   }
@@ -1282,14 +1327,16 @@ async function buildStudioRouteDetailResponseFromD1(
           }),
           loadRouteCapabilityManifest(env),
           loadRouteDossierSummaryForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
-          findRouteEquityContext(servingDb, row.routeId, servingMonth),
+          findRouteEquityContext(servingDb, row.routeId, release.coverage.end),
           loadRouteHourlyProfileForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
         ]);
       const routeDetail = routeDetailWithCapabilityAndDossier({
         routeDetail: routeDetailWithInsights({
           routeDetail: decodeSchemaStrict(StudioRouteDetailResponseSchema, {
             ...richDetail,
-            baselineMonth: servingMonth,
+            releaseId: release.releaseId,
+            publishedAt: release.publishedAt,
+            coverage: release.coverage,
           }),
           manifest,
         }),
@@ -1315,7 +1362,7 @@ async function buildStudioRouteDetailResponseFromD1(
     equityContext,
     hourlyProfile,
   ] = await Promise.all([
-    findObservedReliabilityRow({ env, baselineMonth: servingMonth, routeId: row.routeId }),
+    findObservedReliabilityRow({ env, coverageEnd: release.coverage.end, routeId: row.routeId }),
     loadDetectorReadinessServingManifest(env),
     maybeLoadAliasedStudioRouteDetailProjection({
       env,
@@ -1329,7 +1376,7 @@ async function buildStudioRouteDetailResponseFromD1(
     }),
     loadRouteCapabilityManifest(env),
     loadRouteDossierSummaryForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
-    findRouteEquityContext(servingDb, row.routeId, servingMonth),
+    findRouteEquityContext(servingDb, row.routeId, release.coverage.end),
     loadRouteHourlyProfileForDetail({ env, routeId: row.routeId, requestedSlug: slug }),
   ]);
   const capability = routeCapabilityForRouteId(capabilityManifest, row.routeId);
@@ -1342,6 +1389,7 @@ async function buildStudioRouteDetailResponseFromD1(
           row,
           observed,
           richDetail: aliasedRichDetail,
+          release,
         }),
       }),
       capability,
@@ -1370,7 +1418,9 @@ async function buildStudioRouteDetailResponseFromD1(
     routeDetail: decodeSchemaStrict(StudioRouteDetailResponseSchema, {
       schemaVersion: 3,
       generatedAt: new Date().toISOString(),
-      baselineMonth: servingMonth,
+      releaseId: release.releaseId,
+      publishedAt: release.publishedAt,
+      coverage: release.coverage,
       route: buildStudioRouteCardFromIndexRow(row, observed, null),
       segments: [],
       artifactRefs: [],
@@ -1379,8 +1429,8 @@ async function buildStudioRouteDetailResponseFromD1(
       dossier,
       equityContext: routeEquityContext,
       quality: {
-        releaseLayer: "baseline_release",
-        completenessStatus: row.summary === null ? "unavailable" : "partial_public_monthly_only",
+        releaseLayer: "published_release",
+        completenessStatus: row.summary === null ? "unavailable" : "partial_public_speed_only",
         confidence: row.summary === null ? "low" : "medium",
         caveats,
       },
@@ -1401,29 +1451,31 @@ export async function buildStudioRoutesResponse(
 ): Promise<BuildStudioRoutesResponseResult> {
   // D1-backed listing covers all release routes. Falls back to the R2 projection only when
   // env.DB is unset (dev/test envs); production sets DB so this fallback never fires there.
-  const months = await resolveServingMonths(env);
-  if (env.DB !== undefined && months !== null) {
-    const baselineMonth = months.servingMonth;
-    const routes = await listStudioRouteCardsFromD1(env, baselineMonth);
-    if (routes.length > 0) {
-      return {
-        ok: true,
-        routes,
-        generatedAt: new Date().toISOString(),
-        baselineMonth,
-        quality: {
-          releaseLayer: "baseline_release",
-          completenessStatus: "partial_public_monthly_only",
-          confidence: "medium",
-          caveats: [
-            `Studio route listing is served live from D1 for ${baselineMonth}.`,
-            "Rich per-route artifacts, briefs, and findings remain release-static R2 projections.",
-            "Catalog routes without rich artifacts return partial route detail with surface flags and caveats.",
-          ],
-        },
-        releaseLayer: "baseline_release",
-      };
+  const release = await resolveServingRelease(env);
+  if (env.DB !== undefined) {
+    if (release === null) {
+      return { ok: false, response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE) };
     }
+    const routes = await listStudioRouteCardsFromD1(env, release.coverage.end);
+    return {
+      ok: true,
+      routes,
+      generatedAt: new Date().toISOString(),
+      releaseId: release.releaseId,
+      publishedAt: release.publishedAt,
+      coverage: release.coverage,
+      quality: {
+        releaseLayer: "published_release",
+        completenessStatus: routes.length === 0 ? "unavailable" : "partial_public_speed_only",
+        confidence: routes.length === 0 ? "low" : "medium",
+        caveats: [
+          `Studio route listing is served live from D1 for the latest covered month, ${release.coverage.end}.`,
+          "Rich per-route artifacts, briefs, and findings remain release-static R2 projections.",
+          "Catalog routes without rich artifacts return partial route detail with surface flags and caveats.",
+        ],
+      },
+      releaseLayer: "published_release",
+    };
   }
   const fallback = await loadStudioProjection(env, "routes.json", StudioRoutesResponseSchema);
   if (fallback instanceof Response) {
@@ -1433,7 +1485,9 @@ export async function buildStudioRoutesResponse(
     ok: true,
     routes: [...fallback.routes],
     generatedAt: fallback.generatedAt,
-    baselineMonth: fallback.baselineMonth,
+    releaseId: fallback.releaseId,
+    publishedAt: fallback.publishedAt,
+    coverage: fallback.coverage,
     quality: fallback.quality,
     releaseLayer: fallback.quality.releaseLayer,
   };
@@ -1462,15 +1516,15 @@ export async function buildStudioRouteHistoryResponse(
       response: dependencyNotConfiguredResponse("DB", "Studio route history"),
     };
   }
-  const months = await resolveServingMonths(env);
-  if (months === null) {
-    return { ok: false, response: errorResponse(503, NO_SERVING_MONTH_MESSAGE) };
+  const release = await resolveServingRelease(env);
+  if (release === null) {
+    return { ok: false, response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE) };
   }
 
   const row = await findStudioRouteIndexSourceRow({
     env,
     slug,
-    baselineMonth: months.servingMonth,
+    coverageEnd: release.coverage.end,
   });
   if (row === null) {
     return { ok: false, response: errorResponse(404, "Studio route history was not found.") };
@@ -1478,14 +1532,14 @@ export async function buildStudioRouteHistoryResponse(
 
   const [points, observed] = await Promise.all([
     listRouteMonthTrends(createD1ServingDb(env.DB), row.routeId),
-    findObservedReliabilityRow({ env, baselineMonth: months.servingMonth, routeId: row.routeId }),
+    findObservedReliabilityRow({ env, coverageEnd: release.coverage.end, routeId: row.routeId }),
   ]);
   const route = buildStudioRouteCardFromIndexRow(row, observed, null);
   const coverage = buildRouteHistoryCoverage(points);
   const speedCaveat =
-    months.latestSpeedMonth === null
+    release.latestSpeedMonth === null
       ? "Average speed is present only for months with public MTA route segment speed rows."
-      : `Average speed is present only for months with public MTA route segment speed rows through ${months.latestSpeedMonth}.`;
+      : `Average speed is present only for months with public MTA route segment speed rows through ${release.latestSpeedMonth}.`;
 
   return {
     ok: true,
@@ -1496,9 +1550,8 @@ export async function buildStudioRouteHistoryResponse(
       points,
       coverage,
       quality: {
-        releaseLayer: "baseline_release",
-        completenessStatus:
-          coverage.pointCount === 0 ? "unavailable" : "partial_public_monthly_only",
+        releaseLayer: "published_release",
+        completenessStatus: coverage.pointCount === 0 ? "unavailable" : "partial_public_speed_only",
         confidence: coverage.pointCount === 0 ? "low" : "medium",
         caveats: [
           "Route history is served from D1 route_month_trend rows, not from the single-month R2 detail artifact.",
@@ -1644,15 +1697,14 @@ export async function buildStudioRouteTimelineResponse(
       response: dependencyNotConfiguredResponse("ARTIFACTS", "Studio route timeline"),
     };
   }
-  const months = await resolveServingMonths(env);
-  if (months === null) {
-    return { ok: false, response: errorResponse(503, NO_SERVING_MONTH_MESSAGE) };
+  const release = await resolveServingRelease(env);
+  if (release === null) {
+    return { ok: false, response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE) };
   }
-  const baselineMonth = months.servingMonth;
 
   const rows = await listNormalizedStudioRouteIndexSourceRows(
     createD1ServingDb(env.DB),
-    baselineMonth,
+    release.coverage.end,
   );
   const row = rows.find((candidate) => routeIdToStudioSlug(candidate.routeId) === slug) ?? null;
   if (row === null) {
@@ -1897,10 +1949,6 @@ async function buildStudioInterventionsEvidenceResponse(
   };
 }
 
-function releaseIdForPrefix(prefix: string): string {
-  return prefix.replace(/\/release$/, "");
-}
-
 function projectionPath(
   env: StudioReadEnv,
   path: string,
@@ -1945,7 +1993,7 @@ function sourceMonthStates(input: {
   const routeEvidenceState: StudioSourceMonthState = {
     sourceId: "mta_wiki_route_evidence",
     label: "MTA-wiki route evidence",
-    month: input.routeIndex.baselineMonth,
+    month: input.routeIndex.coverage.end,
     status: input.routeEvidenceIndex === null ? "derived_not_built" : "available",
     rowCount: routeEvidenceRowCount,
     routeCount: input.routeEvidenceIndex?.summary.routeCount ?? null,
@@ -1959,7 +2007,7 @@ function sourceMonthStates(input: {
   const modelArtifactState: StudioSourceMonthState = {
     sourceId: "detector_model_artifact_status",
     label: "Detector model artifact status",
-    month: input.routeIndex.baselineMonth,
+    month: input.routeIndex.coverage.end,
     status: input.modelProjection === null ? "derived_not_built" : "available",
     rowCount: input.modelProjection?.summary.modelCount ?? null,
     routeCount: null,
@@ -2021,7 +2069,7 @@ function sourceMonthStates(input: {
       grain: "route_month",
       reason:
         input.lastBuiltSpeedMonth === undefined
-          ? "LAST_BUILT_SPEED_MONTH is not configured in the serving environment."
+          ? "No published speed data is available in D1."
           : null,
       producerCommand: "export d1",
     },
@@ -2039,7 +2087,7 @@ function sourceMonthStates(input: {
     {
       sourceId: "detector_coverage_ledger",
       label: "Detector coverage ledger",
-      month: input.routeIndex.baselineMonth,
+      month: input.routeIndex.coverage.end,
       status: "derived_not_built",
       rowCount: null,
       routeCount: null,
@@ -2081,8 +2129,8 @@ function buildSnapshot2(input: {
       storage: "worker",
       path: "/api/v1/studio/routes?schema=3",
       months: {
-        start: input.routeIndex.baselineMonth,
-        end: input.routeIndex.baselineMonth,
+        start: input.routeIndex.coverage.start,
+        end: input.routeIndex.coverage.end,
       },
     },
     {
@@ -2160,8 +2208,8 @@ function buildSnapshot2(input: {
       months:
         input.modelProjection === null
           ? {
-              start: input.routeIndex.baselineMonth,
-              end: input.routeIndex.baselineMonth,
+              start: input.routeIndex.coverage.start,
+              end: input.routeIndex.coverage.end,
             }
           : {
               start: input.modelProjection.historyWindow.startMonth,
@@ -2174,7 +2222,8 @@ function buildSnapshot2(input: {
     schemaVersion: 2,
     generatedAt: input.routeIndex.generatedAt,
     releaseId: input.routeIndex.releaseId,
-    baselineMonth: input.routeIndex.baselineMonth,
+    publishedAt: input.routeIndex.publishedAt,
+    coverage: input.routeIndex.coverage,
     currentSignalMonth: null,
     routeUniverse: {
       source: "route_catalog",
@@ -2227,12 +2276,12 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
   if (!routesResult.ok) return routesResult.response;
   let routeEvidenceIndex: StudioRouteEvidenceIndex | null = rawRouteEvidenceIndex;
   if (rawRouteEvidenceIndex?.schemaVersion === 2) {
-    if (env.DB === undefined || routesResult.baselineMonth === null) {
+    if (env.DB === undefined) {
       routeEvidenceIndex = null;
     } else {
       const d1Rows = await listNormalizedStudioRouteIndexSourceRows(
         createD1ServingDb(env.DB),
-        routesResult.baselineMonth,
+        routesResult.coverage.end,
       );
       routeEvidenceIndex = closedRouteEvidenceIndex(rawRouteEvidenceIndex, () =>
         exactRouteEvidenceIdentitiesFromD1(d1Rows),
@@ -2288,8 +2337,8 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
     toleratedCaveats.push(SNAPSHOT_DEGRADE_POLICY.modelProjection.caveat);
   }
 
-  const resolvedMonths = await resolveServingMonths(env);
-  const routesAreD1Backed = env.DB !== undefined && resolvedMonths !== null;
+  const resolvedRelease = await resolveServingRelease(env);
+  const routesAreD1Backed = env.DB !== undefined && resolvedRelease !== null;
   const routeIndex2Result = routesAreD1Backed ? await buildStudioRouteIndex3Response(env) : null;
   let snapshot2: StudioSnapshot2 | undefined;
   if (routeIndex2Result?.ok === true && env.DB !== undefined) {
@@ -2301,7 +2350,7 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
         routeIndex: routeIndex2Result.routeIndex,
         sourceMonthCoverage: publicSourceMonthCoverage.rows,
         skippedSourceMonthCoverageRows: publicSourceMonthCoverage.skippedRowCount,
-        lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? undefined,
+        lastBuiltSpeedMonth: resolvedRelease?.latestSpeedMonth ?? undefined,
         routeEvidenceIndex,
         modelProjection,
       });
@@ -2337,11 +2386,14 @@ async function buildStudioSnapshotResponse(env: StudioReadEnv): Promise<Response
   const baseSnapshot: Omit<StudioSnapshotResponse, "v2"> = {
     schemaVersion: 1,
     generatedAt,
-    releaseId: releaseIdForPrefix(prefix),
     projectionPrefix: prefix,
     releaseKey: studioReleaseKey(env),
-    baselineMonth: resolvedMonths?.servingMonth ?? null,
-    lastBuiltSpeedMonth: resolvedMonths?.latestSpeedMonth ?? null,
+    release: {
+      releaseId: routesResult.releaseId,
+      publishedAt: routesResult.publishedAt,
+      coverage: routesResult.coverage,
+    },
+    lastBuiltSpeedMonth: resolvedRelease?.latestSpeedMonth ?? null,
     counts: {
       routes: routesResult.routes.length,
       methods: methods.datasets.length,
@@ -2390,7 +2442,9 @@ const studioReadHandlers = {
     const response: StudioRoutesResponse = {
       schemaVersion: 2,
       generatedAt: result.generatedAt,
-      baselineMonth: result.baselineMonth,
+      releaseId: result.releaseId,
+      publishedAt: result.publishedAt,
+      coverage: result.coverage,
       routes: result.routes,
       quality: result.quality,
     };

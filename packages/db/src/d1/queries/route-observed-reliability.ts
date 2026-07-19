@@ -114,16 +114,16 @@ export type RouteObservedReliabilitySummaryRow = Awaited<
   ReturnType<typeof selectRouteObservedReliabilitySummaryRows>
 >[number];
 
-export async function findLatestNonBaselineObservedMonth(
+export async function findLatestObservedMonthExcluding(
   db: D1ServingDb,
-  baselineMonth: string,
+  excludedMonth: string,
 ): Promise<string | null> {
   const rows = await db
     .select()
     .from(routeObservedReliabilitySummary)
     .orderBy(desc(routeObservedReliabilitySummary.month));
   for (const row of rows) {
-    if (row.month !== baselineMonth) {
+    if (row.month !== excludedMonth) {
       return row.month;
     }
   }

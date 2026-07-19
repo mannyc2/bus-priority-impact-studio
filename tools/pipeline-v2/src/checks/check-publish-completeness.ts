@@ -207,10 +207,16 @@ if (mapManifest === null) {
 
 const studioRoutes = await readJson(join(artifactRoot, "studio", "v1", "routes.json"));
 if (studioRoutes === null) conflicts.push("Studio route projection is missing or invalid.");
-else if (studioRoutes["baselineMonth"] !== month)
-  conflicts.push(
-    `Studio route month ${String(studioRoutes["baselineMonth"])} conflicts with ${month}.`,
-  );
+else {
+  const coverage = studioRoutes["coverage"];
+  const coverageEnd =
+    typeof coverage === "object" && coverage !== null && "end" in coverage
+      ? coverage.end
+      : undefined;
+  if (coverageEnd !== month) {
+    conflicts.push(`Studio route coverage end ${String(coverageEnd)} conflicts with ${month}.`);
+  }
+}
 
 for (const [label, path] of [
   ["D1 schema", schemaPath],

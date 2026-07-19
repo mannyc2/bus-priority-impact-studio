@@ -194,6 +194,13 @@ describe("MTA Wiki route compatibility fixture", () => {
       true,
     );
     expect(first.routes[1]?.sbs).toBe(true);
+    expect(first).toEqual(
+      expect.objectContaining({
+        releaseId: "pub_20260718T180527000Z",
+        publishedAt: "2026-07-18T18:05:27.000Z",
+        coverage: { start: null, end: "2026-07" },
+      }),
+    );
   });
 
   test("strictly decodes the non-authorizing receipt and rejects false legacy-input claims", () => {

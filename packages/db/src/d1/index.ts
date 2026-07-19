@@ -90,7 +90,7 @@ export type {
   RouteObservedReliabilitySummaryRow,
 } from "./queries/route-observed-reliability.js";
 export {
-  findLatestNonBaselineObservedMonth,
+  findLatestObservedMonthExcluding,
   listRouteObservedReliabilitySummaries,
 } from "./queries/route-observed-reliability.js";
 export type { RouteReadiness, RouteReadinessRow } from "./queries/route-readiness.js";
@@ -127,8 +127,13 @@ export {
 } from "./queries/snapshot-coverage.js";
 export type { StudioActorAuth } from "./queries/studio-auth.js";
 export { getStudioActorAuthByTokenHash, markStudioActorTokenUsed } from "./queries/studio-auth.js";
-export type { StudioRouteIndexSourceRow } from "./queries/studio-route-index.js";
+export type {
+  PublishedStudioServingRelease,
+  StudioRouteIndexSourceRow,
+} from "./queries/studio-route-index.js";
 export {
+  findEarliestSpeedTrendMonth,
+  findLatestPublishedStudioServingRelease,
   findLatestSpeedTrendMonth,
   findLatestStudioServingMonth,
   listStudioRouteIndexSourceRows,
