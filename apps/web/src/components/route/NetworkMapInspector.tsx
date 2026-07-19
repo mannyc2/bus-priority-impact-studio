@@ -21,6 +21,33 @@ export type SelectedEvidenceState =
   | { status: "ready"; evidence: SelectedRouteMapEvidence }
   | { status: "unavailable"; message: string };
 
+type RouteExplorerSearch = { tab: "segments" } | { tab: "segments"; segment: string };
+
+/**
+ * Preserve a network selection only when current route evidence proves it is
+ * one unique stable-spine match. Pending, unavailable, unmatched, and
+ * ambiguous selections open the route explorer without a durable pin.
+ */
+export function routeExplorerSearchForSelection(
+  selectedSegmentId: string | undefined,
+  collection: MapRouteSegmentFeatureCollection | null,
+): RouteExplorerSearch {
+  if (selectedSegmentId === undefined || collection === null) return { tab: "segments" };
+
+  let matches = 0;
+  for (const feature of collection.features) {
+    if (
+      feature.properties.spineJoinStatus === "matched" &&
+      feature.properties.spineSegmentId === selectedSegmentId
+    ) {
+      matches += 1;
+      if (matches > 1) return { tab: "segments" };
+    }
+  }
+
+  return matches === 1 ? { tab: "segments", segment: selectedSegmentId } : { tab: "segments" };
+}
+
 export function slowestCurrentSegments(
   collection: MapRouteSegmentFeatureCollection,
   count = 3,
@@ -288,6 +315,12 @@ export function NetworkMapSelected({
     evidence.status === "ready" && evidence.evidence.segments.status === "ready"
       ? slowestCurrentSegments(evidence.evidence.segments.data)
       : [];
+  const routeExplorerSearch = routeExplorerSearchForSelection(
+    selectedSegmentId,
+    evidence.status === "ready" && evidence.evidence.segments.status === "ready"
+      ? evidence.evidence.segments.data
+      : null,
+  );
   const routeDetailMessage =
     evidence.status === "ready" && evidence.evidence.routeDetail.status !== "ready"
       ? evidence.evidence.routeDetail.reason
@@ -414,7 +447,7 @@ export function NetworkMapSelected({
           <Link
             to="/routes/$routeId"
             params={{ routeId: route.slug }}
-            search={{ tab: "segments" as const }}
+            search={routeExplorerSearch}
             className={buttonVariants({ size: "sm", variant: "primary", className: "ml-auto" })}
           >
             Open route

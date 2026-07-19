@@ -19,6 +19,7 @@ import { SectionCard } from "@/components/SectionCard";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type {
   RouteDossierSummaryForDetail,
   StudioRoute,
@@ -112,13 +113,9 @@ export function OverviewSection({
           title="Route map"
           sub="Observed speed by segment."
           right={
-            <button
-              type="button"
-              onClick={() => onNavigate("map")}
-              className="inline-flex shrink-0 items-center gap-1 rounded-[3px] border border-[var(--bp-color-ink-20)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
-            >
-              Full map →
-            </button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => onNavigate("map")}>
+              Explore route segments
+            </Button>
           }
           bodyClassName="flex min-h-[172px] flex-1 flex-col"
         >

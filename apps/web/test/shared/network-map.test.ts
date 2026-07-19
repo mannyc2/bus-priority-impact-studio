@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { MapManifestResponse, MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
 import { networkMapCitationText } from "../../src/components/route/NetworkMapDataNotes";
-import { slowestCurrentSegments } from "../../src/components/route/NetworkMapInspector";
+import {
+  routeExplorerSearchForSelection,
+  slowestCurrentSegments,
+} from "../../src/components/route/NetworkMapInspector";
 import { PERIOD_HOURS, periodSpeed } from "../../src/components/route/NetworkMapLibre";
 import {
   badgeFeatures,
@@ -588,7 +591,7 @@ describe("popupStatRows", () => {
 });
 
 describe("selected-route segment context", () => {
-  test("ranks all-day speed and only exposes a unique matched spine identity", () => {
+  test("deep-links M15 SBS only with one unique matched stable spine", () => {
     const collection = {
       type: "FeatureCollection",
       features: [
@@ -679,6 +682,15 @@ describe("selected-route segment context", () => {
     const rows = slowestCurrentSegments(collection, 3);
     expect(rows.map((row) => row.feature.id)).toEqual(["slow", "duplicate-a", "duplicate-b"]);
     expect(rows.map((row) => row.durableSpineId)).toEqual(["spine-slow", null, null]);
+    expect(routeExplorerSearchForSelection("spine-slow", collection)).toEqual({
+      tab: "segments",
+      segment: "spine-slow",
+    });
+    expect(routeExplorerSearchForSelection("spine-duplicate", collection)).toEqual({
+      tab: "segments",
+    });
+    expect(routeExplorerSearchForSelection("studio-a", collection)).toEqual({ tab: "segments" });
+    expect(routeExplorerSearchForSelection("spine-slow", null)).toEqual({ tab: "segments" });
 
     const [slow, duplicateA, duplicateB] = collection.features;
     if (slow === undefined || duplicateA === undefined || duplicateB === undefined) {
