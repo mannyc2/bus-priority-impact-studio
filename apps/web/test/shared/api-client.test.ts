@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
+  currentMapBusLaneArtifact,
   fetchMapBusLanes,
   fetchMapManifest,
   fetchMapRouteFacts,
@@ -469,6 +470,27 @@ describe("Studio API client", () => {
     expect(requestedPaths).toEqual(["/api/v1/studio/routes/M15%2B"]);
   });
 
+  test("fails closed when a manifest declares duplicate exact route-segment artifacts", async () => {
+    const routeId = "M15+";
+    const artifact = routeSegmentArtifact("a".repeat(64), routeId);
+    const requestedPaths: string[] = [];
+    mockFetch(((input) => {
+      requestedPaths.push(String(input));
+      return Promise.resolve(Response.json(selectedRouteDetailFixture(routeId)));
+    }) as typeof globalThis.fetch);
+
+    await expect(
+      fetchSelectedRouteMapEvidence(
+        mapManifestFixture({ artifacts: [artifact, { ...artifact }] }) as never,
+        routeId,
+      ),
+    ).resolves.toMatchObject({
+      routeDetail: { status: "ready" },
+      segments: { status: "unavailable", reason: expect.stringContaining("multiple") },
+    });
+    expect(requestedPaths).toEqual(["/api/v1/studio/routes/M15%2B"]);
+  });
+
   test("preserves missing, integrity-mismatch, and request-failed segment states", async () => {
     const routeId = "M15+";
     const body = JSON.stringify(routeSegmentCollectionFixture(routeId));
@@ -834,11 +856,51 @@ describe("Studio API client", () => {
         artifacts: [
           {
             artifactKind: "map_bus_lanes_geojson",
+            artifactKey: "map/bus-lanes/current.geojson",
             apiPath: "/lanes.geojson",
             sha256,
           },
         ],
       } as never),
     ).resolves.toMatchObject({ status: "invalid_contract" });
+  });
+
+  test("requires the current layer and artifact tables to name the same bus-lane object", async () => {
+    const manifest = {
+      layers: [
+        {
+          layerId: "bus_lanes",
+          readiness: "available",
+          currencyStatus: "current",
+          artifactKey: "map/bus-lanes/current.geojson",
+          reason: "Current fixture.",
+        },
+      ],
+      artifacts: [
+        {
+          artifactKind: "map_bus_lanes_geojson",
+          artifactKey: "map/bus-lanes/old.geojson",
+          apiPath: "/old-lanes.geojson",
+          sha256: "a".repeat(64),
+        },
+      ],
+    } as never;
+    expect(currentMapBusLaneArtifact(manifest)).toBeNull();
+    await expect(fetchMapBusLanes(manifest)).resolves.toMatchObject({ status: "unavailable" });
+
+    const exact = {
+      artifactKind: "map_bus_lanes_geojson",
+      artifactKey: "map/bus-lanes/current.geojson",
+      apiPath: "/current-lanes.geojson",
+      sha256: "b".repeat(64),
+    };
+    const duplicateManifest = {
+      ...manifest,
+      artifacts: [exact, { ...exact }],
+    } as never;
+    expect(currentMapBusLaneArtifact(duplicateManifest)).toBeNull();
+    await expect(fetchMapBusLanes(duplicateManifest)).resolves.toMatchObject({
+      status: "unavailable",
+    });
   });
 });

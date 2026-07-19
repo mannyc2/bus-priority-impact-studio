@@ -476,6 +476,22 @@ export function fetchMapBusLanes(
   manifest: MapManifestResponse,
   options?: StudioQueryOptions,
 ): Promise<ArtifactLoad<MapBusLaneFeatureCollection>> {
+  const entry = currentMapBusLaneArtifact(manifest);
+  if (entry === null) {
+    const layer = manifest.layers.find((candidate) => candidate.layerId === "bus_lanes");
+    return Promise.resolve({
+      status: "unavailable",
+      reason:
+        layer === undefined
+          ? "Bus-lane layer is not declared."
+          : "Manifest does not declare exactly one current bus-lane artifact.",
+    });
+  }
+  return fetchVerifiedMapArtifact(entry.apiPath, entry.sha256, parseBusLaneCollection, options);
+}
+
+/** Exact current bus-lane object declared by both the layer and artifact tables. */
+export function currentMapBusLaneArtifact(manifest: MapManifestResponse) {
   const layer = manifest.layers.find((candidate) => candidate.layerId === "bus_lanes");
   if (
     layer === undefined ||
@@ -483,11 +499,13 @@ export function fetchMapBusLanes(
     layer.currencyStatus !== "current" ||
     layer.artifactKey === null
   )
-    return Promise.resolve({
-      status: "unavailable",
-      reason: layer?.reason ?? "Bus-lane layer is not declared.",
-    });
-  return fetchManifestArtifact(manifest, "map_bus_lanes_geojson", parseBusLaneCollection, options);
+    return null;
+  const candidates = manifest.artifacts.filter(
+    (artifact) =>
+      artifact.artifactKind === "map_bus_lanes_geojson" &&
+      artifact.artifactKey === layer.artifactKey,
+  );
+  return candidates.length === 1 ? (candidates[0] ?? null) : null;
 }
 
 async function fetchMapContextLoad(
@@ -507,21 +525,30 @@ function fetchRouteSegmentsLoad(
   sourceRouteId: string,
   options?: StudioQueryOptions,
 ): Promise<ArtifactLoad<MapRouteSegmentFeatureCollection>> {
-  const entry = manifest.artifacts.find(
+  const candidates = manifest.artifacts.filter(
     (artifact) =>
       artifact.artifactKind === "map_route_segments_geojson" && artifact.routeId === sourceRouteId,
   );
-  return entry === undefined
-    ? Promise.resolve({
-        status: "unavailable",
-        reason: `Manifest does not declare route segments for ${sourceRouteId}.`,
-      })
-    : fetchVerifiedMapArtifact(
-        entry.apiPath,
-        entry.sha256,
-        (value) => parseRouteSegmentCollection(value, sourceRouteId),
-        options,
-      );
+  if (candidates.length !== 1)
+    return Promise.resolve({
+      status: "unavailable",
+      reason:
+        candidates.length === 0
+          ? `Manifest does not declare route segments for ${sourceRouteId}.`
+          : `Manifest declares multiple route-segment artifacts for ${sourceRouteId}.`,
+    });
+  const entry = candidates[0];
+  if (entry === undefined)
+    return Promise.resolve({
+      status: "unavailable",
+      reason: `Manifest does not declare route segments for ${sourceRouteId}.`,
+    });
+  return fetchVerifiedMapArtifact(
+    entry.apiPath,
+    entry.sha256,
+    (value) => parseRouteSegmentCollection(value, sourceRouteId),
+    options,
+  );
 }
 
 export type SelectedRouteDetailLoad =
