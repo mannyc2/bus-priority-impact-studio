@@ -14,8 +14,11 @@ const RouteMapLibreMap = lazy(() =>
 function RouteMapSkeleton({ height }: { height: number }) {
   return (
     <div
-      className="animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none"
-      style={{ height }}
+      className={
+        height === 300
+          ? "h-[300px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none"
+          : "h-[460px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none max-md:h-[320px]"
+      }
       aria-hidden
     />
   );
@@ -31,6 +34,8 @@ export type RouteMapLibreProps = {
   pinnedSegmentId: string | null;
   onSegmentSelect: (segmentId: string) => void;
   activeDirection: "all" | "NB" | "SB" | "EB" | "WB";
+  /** Active current/historical value keyed by exact current Studio segment ID. */
+  displaySpeeds: ReadonlyMap<string, number | null>;
   showLanes: boolean;
   busLanes: MapBusLaneFeatureCollection | null;
   compact?: boolean | undefined;
@@ -43,6 +48,7 @@ export function RouteMapLibre(props: RouteMapLibreProps) {
       collection={props.collection}
       context={props.context}
       {...(props.pinnedSegmentId === null ? {} : { highlightId: props.pinnedSegmentId })}
+      displaySpeeds={props.displaySpeeds}
     />
   );
 

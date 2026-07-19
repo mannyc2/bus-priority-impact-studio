@@ -45,6 +45,8 @@ export type RouteMapLibreMapProps = {
   onSegmentSelect: (segmentId: string) => void;
   /** Dims segments outside the active direction filter. */
   activeDirection: "all" | "NB" | "SB" | "EB" | "WB";
+  /** Active current/historical value keyed by exact current Studio segment ID. */
+  displaySpeeds: ReadonlyMap<string, number | null>;
   showLanes: boolean;
   /** Published NYC DOT bus-lane geometry (loaded lazily by the section). */
   busLanes: MapBusLaneFeatureCollection | null;
@@ -60,7 +62,7 @@ type SegmentMapProperties = {
   direction: string;
   from: string;
   to: string;
-  speedMph: number;
+  speedMph: number | null;
   color: string;
   detailJoinStatus: "available" | "unavailable";
 };
@@ -72,6 +74,7 @@ const LANES_SOURCE = "bp-route-lanes";
 const CASING_LAYER = "bp-route-casing";
 const LANES_LAYER = "bp-route-lanes";
 const LINES_LAYER = "bp-route-lines";
+const NO_DATA_LAYER = "bp-route-no-data";
 const PIN_RING_LAYER = "bp-route-pin-ring";
 const HIT_LAYER = "bp-route-hit";
 
@@ -105,8 +108,8 @@ function lineStringGeometry(geometry: MapRouteSegmentFeature["geometry"]): LineS
  * interaction (plan 081 step 3: no hover-time setData). */
 function routeSegmentCollection(input: {
   collection: MapRouteSegmentFeatureCollection;
-  route: StudioRoute;
   segments: readonly StudioSegment[];
+  displaySpeeds: ReadonlyMap<string, number | null>;
 }): FeatureCollection<LineString, SegmentMapProperties> {
   const segmentsById = new Map(input.segments.map((segment) => [segment.id, segment]));
 
@@ -115,10 +118,7 @@ function routeSegmentCollection(input: {
     features: input.collection.features.map((feature) => {
       const studioSegmentId = feature.properties.studioSegmentId;
       const segment = segmentsById.get(studioSegmentId) ?? null;
-      const speedMph =
-        segment === null
-          ? (feature.properties.averageSpeedMph ?? input.route.weightedAvgSpeed)
-          : segment.speedMph;
+      const speedMph = input.displaySpeeds.get(studioSegmentId) ?? null;
       const from = segment?.from ?? feature.properties.startStopName ?? "Segment start";
       const to = segment?.to ?? feature.properties.endStopName ?? "Segment end";
       return {
@@ -206,6 +206,7 @@ export function RouteMapLibreMap({
   pinnedSegmentId,
   onSegmentSelect,
   activeDirection,
+  displaySpeeds,
   showLanes,
   busLanes,
   compact = false,
@@ -218,8 +219,8 @@ export function RouteMapLibreMap({
   const [failure, setFailure] = useState<"runtime" | "unsupported" | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const segmentData = useMemo(
-    () => routeSegmentCollection({ collection, route, segments }),
-    [collection, route, segments],
+    () => routeSegmentCollection({ collection, segments, displaySpeeds }),
+    [collection, displaySpeeds, segments],
   );
   const laneData = useMemo(() => laneFeatureCollection(busLanes), [busLanes]);
   const stopData = useMemo(() => stopCollection(segmentData), [segmentData]);
@@ -245,7 +246,7 @@ export function RouteMapLibreMap({
       ).length,
     [segmentData],
   );
-  const minHeight = compact ? 300 : 460;
+  const minHeight = compact ? 300 : undefined;
 
   // Latest interaction callbacks without re-initializing the map.
   const onSelectRef = useRef(onSegmentSelect);
@@ -361,6 +362,7 @@ export function RouteMapLibreMap({
           id: LINES_LAYER,
           type: "line",
           source: SEGMENT_SOURCE,
+          filter: ["!=", ["get", "speedMph"], null],
           paint: {
             "line-color": ["get", "color"],
             "line-width": [
@@ -374,6 +376,26 @@ export function RouteMapLibreMap({
             "line-opacity": ["case", ["boolean", ["feature-state", "dimmed"], false], 0.25, 1],
           },
           layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: NO_DATA_LAYER,
+          type: "line",
+          source: SEGMENT_SOURCE,
+          filter: ["==", ["get", "speedMph"], null],
+          paint: {
+            "line-color": MAP_COLORS.ink40,
+            "line-width": [
+              "case",
+              ["boolean", ["feature-state", "pinned"], false],
+              10,
+              ["boolean", ["feature-state", "hovered"], false],
+              9,
+              7,
+            ],
+            "line-opacity": ["case", ["boolean", ["feature-state", "dimmed"], false], 0.25, 1],
+            "line-dasharray": [1.4, 1.4],
+          },
+          layout: { "line-cap": "butt", "line-join": "round" },
         });
         map.addSource(STOP_SOURCE, { type: "geojson", data: stopData });
         map.addLayer({
@@ -472,7 +494,12 @@ export function RouteMapLibreMap({
 
   if (failure !== null) {
     return (
-      <div className="relative" style={{ minHeight }}>
+      <div
+        className={
+          compact ? "relative min-h-[300px]" : "relative min-h-[460px] max-md:min-h-[320px]"
+        }
+        style={{ minHeight }}
+      >
         {fallback}
         {failure === "runtime" ? (
           <div className="absolute bottom-3 left-3 flex items-center gap-3 rounded-[3px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-card)] px-3 py-2 text-[12px] text-[var(--bp-color-ink)] shadow-sm">
@@ -494,11 +521,19 @@ export function RouteMapLibreMap({
   }
 
   return (
-    <div className="relative" style={{ minHeight }}>
+    <div
+      className={compact ? "relative min-h-[300px]" : "relative min-h-[460px] max-md:min-h-[320px]"}
+      style={{ minHeight }}
+    >
       <section
         ref={containerRef}
-        className="bp-bus-map overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]"
+        className={
+          compact
+            ? "bp-bus-map min-h-[300px] overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]"
+            : "bp-bus-map min-h-[460px] overflow-hidden rounded-[3px] bg-[var(--bp-color-card)] max-md:min-h-[320px]"
+        }
         style={{ minHeight }}
+        data-period-values={displaySpeeds.size}
         aria-label={`Interactive ${route.label} segment map; the segment list carries the same data`}
       />
       {unavailableDetailCount > 0 ? (

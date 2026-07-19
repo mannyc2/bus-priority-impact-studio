@@ -25,6 +25,7 @@ function feature({
     geometry: { type: "LineString" as const, coordinates },
     properties: {
       segmentId: id,
+      studioSegmentId: id,
       routeId: "M15+",
       directionId,
       month: "2026-03",
@@ -104,6 +105,24 @@ describe("routeGeoMapModel", () => {
     ];
     const model = routeGeoMapModel({ features }, BOX);
     expect(model?.segments.map((s) => s.id)).toEqual(["seg-a", "seg-b"]);
+  });
+
+  test("uses active period values by exact Studio ID and preserves historical nulls", () => {
+    const model = routeGeoMapModel(
+      { features: chain },
+      {
+        ...BOX,
+        displaySpeeds: new Map([
+          ["seg-a", null],
+          ["seg-b", 4.1],
+        ]),
+      },
+    );
+    expect(model?.segments.map(({ id, speedMph }) => ({ id, speedMph }))).toEqual([
+      { id: "seg-a", speedMph: null },
+      { id: "seg-b", speedMph: 4.1 },
+    ]);
+    expect(model?.slowest?.speedMph).toBe(4.1);
   });
 
   test("returns null for an empty collection", () => {

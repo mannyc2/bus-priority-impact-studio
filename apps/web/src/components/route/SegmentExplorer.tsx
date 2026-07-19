@@ -1,7 +1,8 @@
-import type { MapBusLaneFeatureCollection } from "@bp/domain/maps";
-import { useEffect, useMemo, useState } from "react";
+import type { MapBusLaneFeatureCollection, MapManifestResponse } from "@bp/domain/maps";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FilterChips } from "@/components/FilterChips";
 import { HourBars } from "@/components/HourBars";
+import { BUS_LANE_COLOR } from "@/components/route/network-map-model";
 import { RouteMapLibre } from "@/components/route/RouteMapLibre";
 import { averageHourlySpeed } from "@/components/route/route-derived";
 import {
@@ -12,27 +13,34 @@ import {
   useRouteSegmentsGeo,
   useRouteSpeedHistory,
 } from "@/components/route/route-detail-data";
+import type { RouteFactEvidenceState } from "@/components/route/route-fact-evidence";
 import {
+  canonicalizeRouteDetailSearch,
   coverageThroughLabel,
   deltaBarShare,
   directionOptions,
   EXPLORER_COLLAPSED_ROW_COUNT,
+  type ExplorerDaypart,
   type ExplorerDirection,
   laneReadoutLine,
   latestSlowestWindow,
+  type RouteDetailSearch,
   rankSegmentsSlowestFirst,
   resolvePinnedSegment,
+  routeDetailSearchEquals,
   visibleSegments,
 } from "@/components/route/route-segment-explorer";
 import {
   formatMonthLabel,
+  historicalSegmentValues,
   type SegmentHistorySeries,
   segmentHistorySeries,
 } from "@/components/route/segment-history-data";
+import { useRouteFactEvidence } from "@/components/route/use-route-fact-evidence";
 import { SectionCard } from "@/components/SectionCard";
 import { SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { Spark } from "@/components/Spark";
-import { fetchMapBusLanes, fetchMapManifest } from "@/studio/api-client";
+import { currentMapBusLaneArtifact, fetchMapBusLanes, fetchMapManifest } from "@/studio/api-client";
 import type { StudioRouteDetailResponse, StudioSegment } from "@/studio/api-contract";
 
 const SPEED_BAND = (mph: number | null): string =>
@@ -45,99 +53,283 @@ const SPEED_BAND = (mph: number | null): string =>
         : "var(--bp-color-ink)";
 
 type LanesState =
-  | { status: "idle" }
-  | { status: "loading" }
-  | { status: "ready"; collection: MapBusLaneFeatureCollection }
-  | { status: "unavailable" };
+  | { eligibility: "pending"; status: "idle"; reason: null; collection: null }
+  | { eligibility: "ready"; status: "idle" | "loading"; reason: null; collection: null }
+  | {
+      eligibility: "ready";
+      status: "ready";
+      reason: null;
+      collection: MapBusLaneFeatureCollection;
+    }
+  | { eligibility: "unavailable"; status: "unavailable"; reason: string; collection: null };
 
-/** Published DOT lane geometry, fetched once on first toggle-on. */
+/** Check the manifest immediately, then fetch the verified DOT geometry only
+ * after opt-in. The unavailable reason is evidence, not a failed spatial join. */
 function useBusLanes(enabled: boolean): LanesState {
-  const [state, setState] = useState<LanesState>({ status: "idle" });
+  const [manifest, setManifest] = useState<
+    | { status: "pending" }
+    | { status: "ready"; data: MapManifestResponse }
+    | { status: "unavailable"; reason: string }
+  >({ status: "pending" });
+  const [collection, setCollection] = useState<
+    | { status: "idle" }
+    | { status: "loading" }
+    | { status: "ready"; data: MapBusLaneFeatureCollection }
+    | { status: "unavailable"; reason: string }
+  >({ status: "idle" });
+  const laneLoadStarted = useRef(false);
+  const laneCollectionStatus = useRef(collection.status);
+  laneCollectionStatus.current = collection.status;
 
   useEffect(() => {
-    if (!enabled || state.status !== "idle") return;
     const controller = new AbortController();
-    setState({ status: "loading" });
     fetchMapManifest({ signal: controller.signal })
-      .then((manifest) =>
-        manifest === null ? null : fetchMapBusLanes(manifest, { signal: controller.signal }),
-      )
+      .then((loaded) => {
+        if (controller.signal.aborted) return;
+        if (loaded === null) {
+          setManifest({ status: "unavailable", reason: "Map manifest is unavailable." });
+          return;
+        }
+        if (currentMapBusLaneArtifact(loaded) === null) {
+          const layer = loaded.layers.find((candidate) => candidate.layerId === "bus_lanes");
+          setManifest({
+            status: "unavailable",
+            reason:
+              layer === undefined
+                ? "The published bus-lane layer is not declared."
+                : `The published bus-lane layer is ${layer.readiness.replaceAll("_", " ")}.`,
+          });
+          return;
+        }
+        setManifest({ status: "ready", data: loaded });
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setManifest({ status: "unavailable", reason: "Map manifest could not be loaded." });
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (
+      !enabled ||
+      manifest.status !== "ready" ||
+      laneLoadStarted.current ||
+      laneCollectionStatus.current === "ready" ||
+      laneCollectionStatus.current === "unavailable"
+    )
+      return;
+    laneLoadStarted.current = true;
+    const controller = new AbortController();
+    setCollection({ status: "loading" });
+    fetchMapBusLanes(manifest.data, { signal: controller.signal })
       .then((load) => {
         if (controller.signal.aborted) return;
-        setState(
-          load !== null && load.status === "ready"
-            ? { status: "ready", collection: load.data }
-            : { status: "unavailable" },
+        setCollection(
+          load.status === "ready"
+            ? { status: "ready", data: load.data }
+            : {
+                status: "unavailable",
+                reason:
+                  load.status === "unavailable"
+                    ? load.reason
+                    : "Published DOT lane geometry failed its verified artifact check.",
+              },
         );
       })
       .catch(() => {
         if (controller.signal.aborted) return;
-        setState({ status: "unavailable" });
+        setCollection({ status: "unavailable", reason: "Published DOT lane geometry failed." });
       });
-    return () => controller.abort();
-  }, [enabled, state.status]);
+    return () => {
+      controller.abort();
+      laneLoadStarted.current = false;
+    };
+  }, [enabled, manifest]);
 
-  return state;
+  if (manifest.status === "pending") {
+    return { eligibility: "pending", status: "idle", reason: null, collection: null };
+  }
+  if (manifest.status === "unavailable") {
+    return {
+      eligibility: "unavailable",
+      status: "unavailable",
+      reason: manifest.reason,
+      collection: null,
+    };
+  }
+  if (collection.status === "unavailable") {
+    return {
+      eligibility: "unavailable",
+      status: "unavailable",
+      reason: collection.reason,
+      collection: null,
+    };
+  }
+  if (collection.status === "ready") {
+    return {
+      eligibility: "ready",
+      status: "ready",
+      reason: null,
+      collection: collection.data,
+    };
+  }
+  return {
+    eligibility: "ready",
+    status: collection.status,
+    reason: null,
+    collection: null,
+  };
 }
+
+type SegmentDisplayRow = {
+  id: string;
+  direction: StudioSegment["direction"];
+  speedMph: number | null;
+  displayOrder: number;
+  spineSegmentId: string | null;
+  segment: StudioSegment;
+};
 
 export function SegmentExplorerSection({
   data,
-  pinnedSpineId,
-  onPinChange,
+  search,
+  onSearchChange,
   mapOnly = false,
 }: {
   data: StudioRouteDetailResponse;
-  /** Stable spine id from `?segment=`; null when nothing is pinned. */
-  pinnedSpineId: string | null;
-  onPinChange: (spineId: string | null) => void;
+  search: RouteDetailSearch;
+  onSearchChange: (search: RouteDetailSearch, replace: boolean) => void;
   mapOnly?: boolean;
 }) {
   const { route, segments } = data;
-  const [direction, setDirection] = useState<ExplorerDirection>("all");
   const [showAll, setShowAll] = useState(false);
   const [hoverId, setHoverId] = useState<string | null>(null);
   // Segments without a stable spine id pin locally only (no shareable URL).
   const [localPinId, setLocalPinId] = useState<string | null>(null);
-  const [showLanes, setShowLanes] = useState(false);
 
   const speedHistory = useRouteSpeedHistory(route.slug);
   const hourlyProfile = useRouteHourlyProfile(route.slug);
   const geo = useRouteSegmentsGeo(route.routeId);
-  const lanes = useBusLanes(showLanes);
+  const routeFact = useRouteFactEvidence(data);
+  const routeLaneEligibility =
+    routeFact.status === "pending"
+      ? "pending"
+      : routeFact.status === "available" &&
+          routeFact.fact.provenance.lane.status === "available" &&
+          (routeFact.fact.provenance.lane.valuePct ?? 0) > 0
+        ? "ready"
+        : "unavailable";
+  const lanes = useBusLanes(search.lanes === true && routeLaneEligibility === "ready");
+  const laneValidation =
+    routeLaneEligibility === "unavailable" || lanes.eligibility === "unavailable"
+      ? "unavailable"
+      : routeLaneEligibility === "pending" || lanes.eligibility === "pending"
+        ? "pending"
+        : "ready";
+
+  const canonical = canonicalizeRouteDetailSearch(search, {
+    segments,
+    history:
+      speedHistory.status === "loading"
+        ? { status: "pending" }
+        : speedHistory.status === "ready"
+          ? { status: "ready", data: speedHistory.data }
+          : { status: "unavailable" },
+    lanes: laneValidation,
+  });
+  const explorerSearch = canonical.search;
+  const direction: ExplorerDirection = explorerSearch.direction ?? "all";
+  const showLanes = explorerSearch.lanes === true;
+
+  useEffect(() => {
+    if (!routeDetailSearchEquals(search, explorerSearch)) onSearchChange(explorerSearch, true);
+  }, [explorerSearch, onSearchChange, search]);
 
   const historySeries = useMemo(
     () => segmentHistorySeries(speedHistory.data, segments),
     [speedHistory.data, segments],
   );
 
-  const urlPinned = resolvePinnedSegment(segments, pinnedSpineId);
+  const historicalValues = useMemo(() => {
+    if (
+      canonical.historicalState !== "ready" ||
+      speedHistory.status !== "ready" ||
+      explorerSearch.month === undefined
+    )
+      return null;
+    return historicalSegmentValues(speedHistory.data, segments, {
+      month: explorerSearch.month,
+      ...(explorerSearch.daypart === undefined ? {} : { daypart: explorerSearch.daypart }),
+    });
+  }, [
+    canonical.historicalState,
+    explorerSearch.daypart,
+    explorerSearch.month,
+    segments,
+    speedHistory,
+  ]);
+  const historicalActive =
+    historicalValues !== null && historicalValues.readiness !== "unavailable";
+  const displaySpeeds = useMemo(
+    () =>
+      new Map(
+        segments.map((segment) => [
+          segment.id,
+          historicalActive ? (historicalValues.speeds.get(segment.id) ?? null) : segment.speedMph,
+        ]),
+      ),
+    [historicalActive, historicalValues, segments],
+  );
+  const activePeriodLabel =
+    historicalActive && explorerSearch.month !== undefined
+      ? `${formatMonthLabel(explorerSearch.month)} · ${daypartLabel(explorerSearch.daypart)}`
+      : "current all-day";
+
+  const urlPinned = resolvePinnedSegment(segments, explorerSearch.segment ?? null);
   const pinned = urlPinned ?? segments.find((segment) => segment.id === localPinId) ?? null;
   const hovered =
     hoverId === null ? null : (segments.find((segment) => segment.id === hoverId) ?? null);
 
   const directions = useMemo(() => directionOptions(segments), [segments]);
-  const ranked = useMemo(
-    () => rankSegmentsSlowestFirst(segments, direction),
-    [segments, direction],
-  );
+  const ranked = useMemo(() => {
+    const rows: SegmentDisplayRow[] = segments.map((segment, index) => ({
+      id: segment.id,
+      direction: segment.direction,
+      speedMph: displaySpeeds.get(segment.id) ?? null,
+      displayOrder: historicalValues?.displayOrders.get(segment.id) ?? index,
+      spineSegmentId: segment.spineSegmentId,
+      segment,
+    }));
+    return rankSegmentsSlowestFirst(rows, direction);
+  }, [direction, displaySpeeds, historicalValues, segments]);
   const { rows, expanded } = visibleSegments(ranked, showAll, pinned?.id ?? null);
+  const allRankedSpeedsMissing = ranked.length > 0 && ranked.every((row) => row.speedMph === null);
 
   // Any route has some lane-proximate segment iff DOT geometry can be near it;
   // 34/350 routes have none — those never see the toggle (comp r3/D12).
-  const hasLaneEvidence = route.laneCoverage > 0 || segments.some((s) => s.lane !== "none");
+  const hasLaneEvidence = routeLaneEligibility === "ready";
+  const delayEvidenceAvailable =
+    routeFact.status === "available" && routeFact.fact.delayExposure.status === "available";
+  const delayCoverageEnd =
+    routeFact.status === "available" ? routeFact.fact.delayExposure.coverage?.end : undefined;
 
   const pin = (segment: StudioSegment | null) => {
+    const nextSearch = { ...explorerSearch, tab: "segments" as const };
     if (segment === null) {
       setLocalPinId(null);
-      onPinChange(null);
+      delete nextSearch.segment;
+      onSearchChange(nextSearch, false);
       return;
     }
     if (segment.spineSegmentId !== null) {
       setLocalPinId(null);
-      onPinChange(segment.spineSegmentId);
+      nextSearch.segment = segment.spineSegmentId;
+      onSearchChange(nextSearch, false);
     } else {
       setLocalPinId(segment.id);
-      onPinChange(null);
+      delete nextSearch.segment;
+      onSearchChange(nextSearch, false);
     }
   };
   const togglePin = (segment: StudioSegment) => {
@@ -147,18 +339,51 @@ export function SegmentExplorerSection({
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && (pinnedSpineId !== null || localPinId !== null)) pin(null);
+      if (event.key !== "Escape" || (explorerSearch.segment === undefined && localPinId === null))
+        return;
+      setLocalPinId(null);
+      const nextSearch = { ...explorerSearch };
+      delete nextSearch.segment;
+      onSearchChange(nextSearch, false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, [explorerSearch, localPinId, onSearchChange]);
 
   const onDirectionChange = (next: ExplorerDirection) => {
-    // An explicit direction change clears an out-of-direction pin (plan 081
-    // step 1); it never snaps the control back.
-    if (pinned !== null && next !== "all" && pinned.direction !== next) pin(null);
-    setDirection(next);
+    const nextSearch = { ...explorerSearch };
+    delete nextSearch.segment;
+    if (next === "all") delete nextSearch.direction;
+    else nextSearch.direction = next;
+    setLocalPinId(null);
     setShowAll(false);
+    onSearchChange(nextSearch, true);
+  };
+
+  const onMonthChange = (month: string) => {
+    const nextSearch = { ...explorerSearch };
+    if (month === "") {
+      delete nextSearch.month;
+      delete nextSearch.daypart;
+    } else {
+      nextSearch.month = month;
+      delete nextSearch.daypart;
+    }
+    onSearchChange(nextSearch, true);
+  };
+
+  const onDaypartChange = (daypart: string) => {
+    const nextSearch = { ...explorerSearch };
+    if (daypart === "") delete nextSearch.daypart;
+    else nextSearch.daypart = daypart as ExplorerDaypart;
+    onSearchChange(nextSearch, true);
+  };
+
+  const onLanesChange = (enabled: boolean) => {
+    const nextSearch = { ...explorerSearch };
+    if (enabled) nextSearch.lanes = true;
+    else delete nextSearch.lanes;
+    onSearchChange(nextSearch, true);
   };
 
   const coverage = coverageThroughLabel(speedHistory.data, hourlyProfile.data);
@@ -171,10 +396,19 @@ export function SegmentExplorerSection({
           },
         ]
       : []),
-    {
-      label: "Rider-hrs/wkdy = observed-vs-scheduled delay exposure in the current projection.",
-      detail: "It colors nothing and controls no rank.",
-    },
+    ...(delayEvidenceAvailable
+      ? [
+          {
+            label: "Rider-hrs/wkdy = current route-slice observed-vs-scheduled delay exposure.",
+            detail: routeDelayEvidenceNote(routeFact),
+          },
+        ]
+      : [
+          {
+            label: "Route-slice rider-hour delay exposure is unavailable.",
+            detail: routeFactUnavailableReason(routeFact),
+          },
+        ]),
     ...(showLanes
       ? [
           {
@@ -188,8 +422,7 @@ export function SegmentExplorerSection({
   const mapBlock =
     geo.status === "loading" ? (
       <div
-        className="animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none"
-        style={{ height: 460 }}
+        className="h-[460px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none max-md:h-[320px]"
         aria-hidden
       />
     ) : geo.status === "ready" ? (
@@ -206,13 +439,13 @@ export function SegmentExplorerSection({
           if (segment !== undefined) togglePin(segment);
         }}
         activeDirection={direction}
+        displaySpeeds={displaySpeeds}
         showLanes={showLanes && lanes.status === "ready"}
-        busLanes={lanes.status === "ready" ? lanes.collection : null}
+        busLanes={lanes.collection}
       />
     ) : (
       <p className="m-0 px-4 py-6 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
-        Street geometry for this route is not published yet; the segment list below carries the same
-        evidence.
+        {geo.reason} The segment list below carries the same evidence without a geographic claim.
       </p>
     );
 
@@ -220,7 +453,11 @@ export function SegmentExplorerSection({
     <div className="flex flex-col gap-5">
       <SectionCard
         title="Slowest segments"
-        sub={`Ranked slowest first — current all-day${coverage === null ? "" : `, ${coverage}`}`}
+        sub={
+          allRankedSpeedsMissing
+            ? `Route order — no ranked speed evidence · ${activePeriodLabel}`
+            : `Slowest first — ${activePeriodLabel}${coverage === null || historicalActive ? "" : `, ${coverage}`}`
+        }
         right={
           <div className="flex flex-wrap items-center gap-3">
             <FilterChips
@@ -232,12 +469,20 @@ export function SegmentExplorerSection({
                 label: value === "all" ? "All" : value,
               }))}
             />
-            {hasLaneEvidence ? (
+            <PeriodControls
+              history={speedHistory}
+              month={explorerSearch.month}
+              daypart={explorerSearch.daypart}
+              onMonthChange={onMonthChange}
+              onDaypartChange={onDaypartChange}
+            />
+            {hasLaneEvidence && lanes.eligibility !== "unavailable" ? (
               <label className="flex cursor-pointer items-center gap-2 rounded-[3px] px-2.5 py-2 text-[12px] font-semibold shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
                 <input
                   type="checkbox"
                   checked={showLanes}
-                  onChange={(event) => setShowLanes(event.currentTarget.checked)}
+                  disabled={lanes.eligibility === "pending"}
+                  onChange={(event) => onLanesChange(event.currentTarget.checked)}
                   className="size-3.5 accent-[var(--bp-color-ink)]"
                 />
                 <span>Painted bus lanes (DOT)</span>
@@ -247,12 +492,24 @@ export function SegmentExplorerSection({
           </div>
         }
       >
+        <HistoricalStatus
+          state={canonical.historicalState}
+          history={speedHistory}
+          active={historicalActive}
+          month={explorerSearch.month}
+          missingSegmentCount={historicalValues?.missingSegmentCount ?? 0}
+          segmentCount={segments.length}
+        />
         <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(300px,0.8fr)] items-stretch gap-4 max-xl:grid-cols-1">
           <div className="min-w-0 overflow-hidden rounded-[3px] bg-[var(--bp-color-paper-deep)] shadow-[inset_0_0_0_1px_var(--bp-color-rule)]">
             {mapBlock}
-            {showLanes && lanes.status === "unavailable" ? (
+            <p className="m-0 border-t border-[var(--bp-color-rule)] px-3 pt-2 text-[10.5px] text-[var(--bp-color-ink-55)]">
+              Interactive route segment map; use the segment list for the same values and selection.
+            </p>
+            <SegmentSpeedLegend periodLabel={activePeriodLabel} showLanes={showLanes} />
+            {lanes.status === "unavailable" && hasLaneEvidence ? (
               <p className="m-0 px-3 py-2 text-[11px] text-[var(--bp-color-ink-55)]">
-                Published DOT lane geometry is unavailable right now.
+                {lanes.reason}
               </p>
             ) : null}
           </div>
@@ -264,6 +521,10 @@ export function SegmentExplorerSection({
             hovered={hovered}
             historySeries={historySeries}
             historyStatus={speedHistory.status}
+            displaySpeeds={displaySpeeds}
+            periodLabel={activePeriodLabel}
+            historicalActive={historicalActive}
+            routeFact={routeFact}
             onClear={() => pin(null)}
           />
         </div>
@@ -272,6 +533,10 @@ export function SegmentExplorerSection({
           <>
             <SegmentTable
               rows={rows}
+              periodLabel={activePeriodLabel}
+              historicalActive={historicalActive}
+              delayEvidenceAvailable={delayEvidenceAvailable}
+              delayCoverageEnd={delayCoverageEnd}
               pinnedId={pinned?.id ?? null}
               onHover={setHoverId}
               onTogglePin={togglePin}
@@ -294,6 +559,230 @@ export function SegmentExplorerSection({
   );
 }
 
+function daypartLabel(daypart: ExplorerDaypart | undefined): string {
+  switch (daypart) {
+    case "am_peak":
+      return "AM peak";
+    case "midday":
+      return "midday";
+    case "pm_peak":
+      return "PM peak";
+    case "off_peak":
+      return "off-peak";
+    default:
+      return "all day";
+  }
+}
+
+function SegmentSpeedLegend({
+  periodLabel,
+  showLanes,
+}: {
+  periodLabel: string;
+  showLanes: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 font-mono text-[9.5px] text-[var(--bp-color-ink-55)]">
+      <span className="font-sans font-semibold text-[var(--bp-color-ink-70)]">{periodLabel}</span>
+      {[
+        ["under 5 mph", "var(--bp-color-bad)"],
+        ["5–6.5 mph", "var(--bp-color-warn)"],
+        ["over 6.5 mph", "var(--bp-color-good)"],
+      ].map(([label, color]) => (
+        <span key={label} className="inline-flex items-center gap-1">
+          <i className="h-[3px] w-4" style={{ background: color }} aria-hidden />
+          {label}
+        </span>
+      ))}
+      <span className="inline-flex items-center gap-1">
+        <i
+          className="h-[5px] w-4 border-y border-dashed border-[var(--bp-color-ink-40)]"
+          aria-hidden
+        />
+        no data
+      </span>
+      {showLanes ? (
+        <span className="inline-flex items-center gap-1">
+          <i className="h-[4px] w-4" style={{ background: BUS_LANE_COLOR }} aria-hidden />
+          NYC DOT published bus-lane geometry
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function routeFactUnavailableReason(state: RouteFactEvidenceState): string {
+  switch (state.status) {
+    case "pending":
+      return "Verified route facts are loading.";
+    case "available":
+      return (
+        state.fact.delayExposure.unavailableReason ?? "Delay-exposure provenance is unavailable."
+      );
+    case "unavailable":
+    case "error":
+    case "mismatch":
+      return state.reason;
+  }
+}
+
+function routeDelayEvidenceNote(
+  state: Extract<RouteFactEvidenceState, { status: "available" }>,
+): string {
+  const exposure = state.fact.delayExposure;
+  if (exposure.status !== "available" || exposure.coverage === null) {
+    return exposure.unavailableReason ?? "Delay-exposure provenance is unavailable.";
+  }
+  return `Current all-day, ${exposure.coverage.start}–${exposure.coverage.end}; ${exposure.segmentCount} observed timepoint segments; average-service-day route-hourly ridership denominator. It colors nothing and controls no rank.`;
+}
+
+function RouteFactProvenance({ state }: { state: RouteFactEvidenceState }) {
+  if (state.status !== "available") {
+    return (
+      <p className="m-0 mt-2 text-[10.5px] leading-normal text-[var(--bp-color-ink-55)]">
+        Route-level ACE/TSP provenance unavailable: {routeFactUnavailableReason(state)}
+      </p>
+    );
+  }
+  const { ace, tsp } = state.fact.provenance;
+  const laneLine =
+    state.fact.provenance.lane.status === "available"
+      ? `Bus-lane proximity proxy ${state.fact.provenance.lane.valuePct ?? 0}% · route-shape proximity, not exact mapped coverage`
+      : `Bus-lane proximity unavailable · ${state.fact.provenance.lane.unavailableReason ?? "source unavailable"}`;
+  const aceLine =
+    ace.sourceStatus === "available"
+      ? `ACE ${ace.status} · route-month · ${ace.sourceAsOf ?? "source date unavailable"}`
+      : `ACE unavailable · ${ace.unavailableReason ?? "source date unavailable"}`;
+  const tspSnapshot = tsp.sourceId === "nyc_dot_tsp_status_2017" ? " · 2017 status snapshot" : "";
+  const tspLine = `TSP ${tsp.status} · route/corridor${tspSnapshot} · ${tsp.sourceDate ?? "source date unavailable"}`;
+  return (
+    <div className="mt-2 space-y-0.5 text-[10.5px] leading-normal text-[var(--bp-color-ink-55)]">
+      <p className="m-0">{laneLine}</p>
+      <p className="m-0">{aceLine}</p>
+      <p className="m-0">{tspLine}</p>
+    </div>
+  );
+}
+
+function PeriodControls({
+  history,
+  month,
+  daypart,
+  onMonthChange,
+  onDaypartChange,
+}: {
+  history: RouteSpeedHistoryState;
+  month: string | undefined;
+  daypart: ExplorerDaypart | undefined;
+  onMonthChange: (month: string) => void;
+  onDaypartChange: (daypart: string) => void;
+}) {
+  const eligible =
+    history.status === "ready" &&
+    (history.data.spineReadiness === "series_ready" ||
+      history.data.spineReadiness === "series_ready_with_gaps");
+  const months =
+    history.status === "ready"
+      ? [...history.data.dimensions.months].reverse()
+      : month === undefined
+        ? []
+        : [month];
+  const dayparts = history.status === "ready" ? history.data.dimensions.dayparts : [];
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <label className="sr-only" htmlFor="segment-period-month">
+        Segment speed period
+      </label>
+      <select
+        id="segment-period-month"
+        value={month ?? ""}
+        disabled={!eligible}
+        onChange={(event) => onMonthChange(event.currentTarget.value)}
+        className="min-h-9 rounded-[3px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-card)] px-2 text-[11.5px] font-semibold text-[var(--bp-color-ink)] disabled:text-[var(--bp-color-ink-40)]"
+      >
+        <option value="">Current all-day</option>
+        {months.map((value) => (
+          <option key={value} value={value}>
+            {formatMonthLabel(value)}
+          </option>
+        ))}
+      </select>
+      {month === undefined ? null : (
+        <>
+          <label className="sr-only" htmlFor="segment-period-daypart">
+            Segment speed daypart
+          </label>
+          <select
+            id="segment-period-daypart"
+            value={daypart ?? ""}
+            disabled={!eligible}
+            onChange={(event) => onDaypartChange(event.currentTarget.value)}
+            className="min-h-9 rounded-[3px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-card)] px-2 text-[11.5px] font-semibold text-[var(--bp-color-ink)] disabled:text-[var(--bp-color-ink-40)]"
+          >
+            <option value="">All day</option>
+            {dayparts.map((value) => (
+              <option key={value} value={value}>
+                {daypartLabel(value)}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+    </div>
+  );
+}
+
+function HistoricalStatus({
+  state,
+  history,
+  active,
+  month,
+  missingSegmentCount,
+  segmentCount,
+}: {
+  state: ReturnType<typeof canonicalizeRouteDetailSearch>["historicalState"];
+  history: RouteSpeedHistoryState;
+  active: boolean;
+  month: string | undefined;
+  missingSegmentCount: number;
+  segmentCount: number;
+}) {
+  let message: string | null = null;
+  if (month !== undefined && state === "pending") {
+    message = "Loading saved historical view; showing current all-day speed meanwhile.";
+  } else if (month !== undefined && state === "unavailable") {
+    message =
+      "The saved historical selection cannot be validated right now; showing current all-day speed without changing the link.";
+  } else if (
+    history.status === "ready" &&
+    (history.data.spineReadiness === "needs_pattern_review" ||
+      history.data.spineReadiness === "failed")
+  ) {
+    message =
+      "Historical segment coloring is unavailable because this route's geographic speed spine needs review. Current all-day evidence remains available.";
+  } else if (active) {
+    const gap =
+      missingSegmentCount > 0
+        ? ` ${missingSegmentCount} of ${segmentCount} segments have no observation for this selection and remain neutral.`
+        : "";
+    const sourceGap =
+      history.status === "ready" && history.data.spineReadiness === "series_ready_with_gaps"
+        ? ` The published history reports ${history.data.summary.missingExpectedCellCount ?? history.data.summary.missingCellCount} missing expected cells across ${formatMonthLabel(history.data.source.startMonth)}–${formatMonthLabel(history.data.source.endMonth)}.`
+        : "";
+    message = `Current route shape; historical speed is joined by geographic segment spine.${gap}${sourceGap}`;
+  }
+  if (message === null) return null;
+  return (
+    <p
+      className="m-0 mb-3 rounded-[3px] bg-[var(--bp-color-paper-deep)] px-3 py-2 text-[11.5px] leading-normal text-[var(--bp-color-ink-70)]"
+      role={state === "pending" ? "status" : undefined}
+    >
+      {message}
+    </p>
+  );
+}
+
 function SegmentReadout({
   route,
   segments,
@@ -302,6 +791,10 @@ function SegmentReadout({
   hovered,
   historySeries,
   historyStatus,
+  displaySpeeds,
+  periodLabel,
+  historicalActive,
+  routeFact,
   onClear,
 }: {
   route: StudioRouteDetailResponse["route"];
@@ -311,12 +804,20 @@ function SegmentReadout({
   hovered: StudioSegment | null;
   historySeries: ReturnType<typeof segmentHistorySeries>;
   historyStatus: RouteSpeedHistoryState["status"];
+  displaySpeeds: ReadonlyMap<string, number | null>;
+  periodLabel: string;
+  historicalActive: boolean;
+  routeFact: RouteFactEvidenceState;
   onClear: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const active = hovered ?? pinned;
   const isPinned = active !== null && active.id === pinned?.id && hovered === null;
   const totalRiderHours = segments.reduce((sum, segment) => sum + segment.riderHours, 0);
+  const delayEvidenceAvailable =
+    routeFact.status === "available" && routeFact.fact.delayExposure.status === "available";
+  const delayCoverageEnd =
+    routeFact.status === "available" ? routeFact.fact.delayExposure.coverage?.end : undefined;
 
   // Fixed slots (comp D10): identical anatomy for overview / preview / pinned.
   const title =
@@ -331,7 +832,9 @@ function SegmentReadout({
       </>
     );
   const sub = isPinned
-    ? "Pinned — Esc or Clear selection to release."
+    ? pinnedIsShareable
+      ? "Pinned — Esc or Clear selection to release."
+      : "Current segment; stable history/share link unavailable."
     : active !== null
       ? "Previewing — click to pin."
       : "Pin a segment for its month-by-month speed history.";
@@ -340,18 +843,37 @@ function SegmentReadout({
       ? `${segments.length} timepoint segments, all directions`
       : laneReadoutLine(active.lane);
 
-  const mph = active === null ? route.weightedAvgSpeed : active.speedMph;
-  const sched = active === null ? route.scheduledMph : active.scheduledMph;
-  const delta = sched === null ? null : mph - sched;
-  const riderHours = active === null ? route.riderHoursLost : active.riderHours;
-  const riderHoursSub =
+  const availableRouteSpeeds = [...displaySpeeds.values()].filter(
+    (speed): speed is number => speed !== null,
+  );
+  const routeDisplaySpeed =
+    availableRouteSpeeds.length === 0
+      ? null
+      : availableRouteSpeeds.reduce((sum, speed) => sum + speed, 0) / availableRouteSpeeds.length;
+  const mph =
     active === null
-      ? "route total"
-      : active.riderHours === 0
-        ? "beats its schedule"
-        : totalRiderHours > 0
-          ? `${Math.round((active.riderHours / totalRiderHours) * 100)}% of route burden`
-          : "per weekday";
+      ? historicalActive
+        ? routeDisplaySpeed
+        : route.weightedAvgSpeed
+      : (displaySpeeds.get(active.id) ?? null);
+  const sched = active === null ? route.scheduledMph : active.scheduledMph;
+  const delta = sched === null || mph === null ? null : mph - sched;
+  const riderHours = delayEvidenceAvailable
+    ? active === null
+      ? route.riderHoursLost
+      : active.riderHours
+    : null;
+  const riderHoursSub = !delayEvidenceAvailable
+    ? "verified exposure unavailable"
+    : historicalActive
+      ? "current route slice"
+      : active === null
+        ? "route total"
+        : active.riderHours === 0
+          ? "beats its schedule"
+          : totalRiderHours > 0
+            ? `${Math.round((active.riderHours / totalRiderHours) * 100)}% of route burden`
+            : "per weekday";
 
   const hours = active?.hours ?? averageHourlySeverityAcross(segments);
   const series = active === null ? null : (historySeries.series.get(active.id) ?? null);
@@ -364,9 +886,9 @@ function SegmentReadout({
       <div className="mt-3.5 grid grid-cols-3 gap-2.5 border-t border-[var(--bp-color-rule)] pt-3">
         <ReadoutStat
           label="Speed"
-          value={mph.toFixed(1)}
+          value={mph === null ? "—" : mph.toFixed(1)}
           valueColor={SPEED_BAND(mph)}
-          sub="mph, all-day"
+          sub={mph === null ? `no data · ${periodLabel}` : `mph · ${periodLabel}`}
         />
         <ReadoutStat
           label="vs sched"
@@ -374,18 +896,23 @@ function SegmentReadout({
           sub={sched === null ? "no schedule" : `sched ${sched.toFixed(1)}`}
         />
         <ReadoutStat
-          label="Rider-hrs"
+          label={historicalActive ? "Current delay" : "Rider-hrs"}
           value={riderHours === null ? "—" : formatRiderHoursCompact(riderHours)}
-          sub={riderHoursSub}
+          sub={
+            historicalActive && delayCoverageEnd !== undefined
+              ? `rider-hrs · ${delayCoverageEnd}, all-day`
+              : riderHoursSub
+          }
         />
       </div>
 
       <div className="mt-2 min-h-[17px] text-[11px] text-[var(--bp-color-ink-55)]">
         {contextLine}
       </div>
+      <RouteFactProvenance state={routeFact} />
 
       <div className="mt-3 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-40)]">
-        Severity by hour
+        Severity by hour{historicalActive ? " — current" : ""}
       </div>
       <div className="mt-1.5 flex h-[28px] items-end gap-px" title="Taller = slower vs schedule">
         {hours.map((value, hour) => (
@@ -533,11 +1060,19 @@ function SegmentSparkline({
 
 function SegmentTable({
   rows,
+  periodLabel,
+  historicalActive,
+  delayEvidenceAvailable,
+  delayCoverageEnd,
   pinnedId,
   onHover,
   onTogglePin,
 }: {
-  rows: readonly StudioSegment[];
+  rows: readonly SegmentDisplayRow[];
+  periodLabel: string;
+  historicalActive: boolean;
+  delayEvidenceAvailable: boolean;
+  delayCoverageEnd: string | undefined;
   pinnedId: string | null;
   onHover: (segmentId: string | null) => void;
   onTogglePin: (segment: StudioSegment) => void;
@@ -548,13 +1083,27 @@ function SegmentTable({
         <span />
         <span />
         <span className="font-sans">Segment</span>
-        <span className="text-right">MPH</span>
+        <span className="text-right" title={periodLabel}>
+          MPH
+        </span>
         <span>vs sched</span>
-        <span className="text-right">Rider-hrs/wkdy</span>
+        <span
+          className="text-right"
+          title={
+            historicalActive && delayCoverageEnd !== undefined
+              ? `Current route-slice delay exposure — ${delayCoverageEnd}, all-day`
+              : undefined
+          }
+        >
+          {historicalActive ? "Current rider-hrs" : "Rider-hrs/wkdy"}
+        </span>
       </div>
-      {rows.map((segment, index) => {
+      {rows.map((row, index) => {
+        const { segment } = row;
         const delta =
-          segment.scheduledMph === null ? null : segment.speedMph - segment.scheduledMph;
+          segment.scheduledMph === null || row.speedMph === null
+            ? null
+            : row.speedMph - segment.scheduledMph;
         const pinnedRow = segment.id === pinnedId;
         return (
           <button
@@ -587,9 +1136,9 @@ function SegmentTable({
             </span>
             <span
               className="text-right font-mono text-[13.5px] font-bold tabular-nums"
-              style={{ color: SPEED_BAND(segment.speedMph) }}
+              style={{ color: SPEED_BAND(row.speedMph) }}
             >
-              {segment.speedMph.toFixed(1)}
+              {row.speedMph === null ? "—" : row.speedMph.toFixed(1)}
             </span>
             <span className="flex items-center gap-2 max-md:hidden">
               <span className="relative h-[5px] w-[64px] overflow-hidden rounded-[2px] bg-[var(--bp-color-ink-06)]">
@@ -619,12 +1168,16 @@ function SegmentTable({
             </span>
             <span
               className={`text-right font-mono text-[12.5px] tabular-nums ${
-                segment.riderHours === 0
+                !delayEvidenceAvailable || segment.riderHours === 0
                   ? "font-normal text-[var(--bp-color-ink-40)]"
                   : "font-semibold"
               }`}
             >
-              {segment.riderHours === 0 ? "0" : formatRiderHoursCompact(segment.riderHours)}
+              {!delayEvidenceAvailable
+                ? "—"
+                : segment.riderHours === 0
+                  ? "0"
+                  : formatRiderHoursCompact(segment.riderHours)}
             </span>
           </button>
         );

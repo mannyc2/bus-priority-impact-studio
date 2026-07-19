@@ -79,12 +79,14 @@ export function routeGeoMapModel(
     height,
     padding,
     context = null,
+    displaySpeeds,
     marginPct = 0,
   }: {
     width: number;
     height: number;
     padding: number;
     context?: RouteGeoContext | null;
+    displaySpeeds?: ReadonlyMap<string, number | null>;
     marginPct?: number;
   },
 ): RouteGeoMapModel | null {
@@ -148,27 +150,35 @@ export function routeGeoMapModel(
     }
   }
 
+  const featureSpeed = (feature: MapRouteSegmentFeature): number | null => {
+    const studioSegmentId = feature.properties.studioSegmentId;
+    return displaySpeeds === undefined
+      ? feature.properties.averageSpeedMph
+      : (displaySpeeds.get(studioSegmentId) ?? null);
+  };
   const slowestFeature = features.reduce<MapRouteSegmentFeature | null>((acc, feature) => {
-    const speed = feature.properties.averageSpeedMph;
+    const speed = featureSpeed(feature);
     if (speed === null) return acc;
-    if (acc === null || speed < (acc.properties.averageSpeedMph ?? Number.POSITIVE_INFINITY)) {
+    if (acc === null || speed < (featureSpeed(acc) ?? Number.POSITIVE_INFINITY)) {
       return feature;
     }
     return acc;
   }, null);
 
   const segments: RouteGeoSegment[] = features.map((feature) => ({
-    id: feature.id,
+    id: feature.properties.studioSegmentId,
     d: feature.geometry.coordinates
       .map((coordinate, index) => {
         const [x, y] = project(coordinate);
         return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
       })
       .join(" "),
-    speedMph: feature.properties.averageSpeedMph,
+    speedMph: featureSpeed(feature),
     startStopName: cleanStopName(feature.properties.startStopName),
     endStopName: cleanStopName(feature.properties.endStopName),
-    slowest: slowestFeature !== null && feature.id === slowestFeature.id,
+    slowest:
+      slowestFeature !== null &&
+      feature.properties.studioSegmentId === slowestFeature.properties.studioSegmentId,
   }));
 
   // A stop that appears as exactly one segment endpoint is a terminus of the
@@ -220,8 +230,8 @@ export function routeGeoMapModel(
   let slowest: RouteGeoMapModel["slowest"] = null;
   if (
     slowestFeature !== null &&
-    slowestFeature.properties.averageSpeedMph !== null &&
-    slowestFeature.properties.averageSpeedMph < 6.5
+    featureSpeed(slowestFeature) !== null &&
+    (featureSpeed(slowestFeature) ?? Number.POSITIVE_INFINITY) < 6.5
   ) {
     const coordinates = slowestFeature.geometry.coordinates;
     const middle = coordinates[Math.floor(coordinates.length / 2)];
@@ -236,7 +246,7 @@ export function routeGeoMapModel(
         ]
           .filter(Boolean)
           .join(" → "),
-        speedMph: slowestFeature.properties.averageSpeedMph,
+        speedMph: featureSpeed(slowestFeature) ?? 0,
       };
     }
   }

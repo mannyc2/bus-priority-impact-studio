@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
+import {
+  type RouteDetailSearch,
+  validateRouteDetailSearch,
+} from "../../components/route/route-segment-explorer.js";
 import { routeHead } from "../../lib/head.js";
 import {
   fetchStudioRoute,
@@ -13,18 +17,6 @@ const RouteDetailPage = lazy(() =>
     default: module.RouteDetailPage,
   })),
 );
-
-// Public `?tab=` surface. Overview is the default view and carries no param, so
-// only the three non-default tabs are valid search values; anything else is
-// dropped (the page then downgrades to Overview).
-const ROUTE_DETAIL_TAB_SEARCH = ["segments", "riders", "history"] as const;
-type RouteDetailTabSearch = (typeof ROUTE_DETAIL_TAB_SEARCH)[number];
-
-function isTabSearch(value: unknown): value is RouteDetailTabSearch {
-  return (
-    typeof value === "string" && (ROUTE_DETAIL_TAB_SEARCH as readonly string[]).includes(value)
-  );
-}
 
 export const Route = createFileRoute("/routes/$routeId")({
   // Detail and route evidence stay Worker-served; heavy route artifacts remain lazy.
@@ -45,21 +37,8 @@ export const Route = createFileRoute("/routes/$routeId")({
       evidence,
       studies,
     })),
-  validateSearch: (
-    search: Record<string, unknown>,
-  ): { tab?: RouteDetailTabSearch; study?: string; segment?: string } => {
-    const tab = search["tab"];
-    if (!isTabSearch(tab)) return {};
-    // `study` deep-links to a card on the History tab only; dropped elsewhere.
-    const study = search["study"];
-    if (tab === "history" && typeof study === "string" && study.length > 0) return { tab, study };
-    // `segment` pins a stable spine id in the Segments explorer only. This is
-    // the structural check; the page drops ids the loaded route doesn't have.
-    const segment = search["segment"];
-    if (tab === "segments" && typeof segment === "string" && segment.length > 0)
-      return { tab, segment };
-    return { tab };
-  },
+  validateSearch: (search: Record<string, unknown>): RouteDetailSearch =>
+    validateRouteDetailSearch(search),
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: RouteDetailRouteFallback,
   head: ({ params }) => routeHead(`${params.routeId} Route Detail`),
@@ -75,9 +54,7 @@ function RouteDetailRoute() {
         data={data.detail}
         evidence={data.evidence}
         studies={data.studies}
-        tab={search.tab}
-        studyKey={search.study}
-        pinnedSegment={search.segment}
+        search={search}
       />
     </Suspense>
   );

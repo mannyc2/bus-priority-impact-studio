@@ -281,7 +281,7 @@ const LANE_PHRASE: Record<Exclude<StudioSegment["lane"], "none">, string> = {
 
 /** One plain readout line instead of the retired lane column/chips. */
 export function laneReadoutLine(lane: StudioSegment["lane"]): string {
-  if (lane === "none") return "No DOT bus lane along this stretch";
+  if (lane === "none") return "No DOT bus-lane proximity signal for this stretch";
   return `Along a DOT bus-lane street — ${LANE_PHRASE[lane]} (proximity)`;
 }
 

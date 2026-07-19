@@ -10,10 +10,6 @@ import {
   routePerformanceSummary,
 } from "@/components/route/route-derived";
 import { useRouteSegmentsGeo } from "@/components/route/route-detail-data";
-import {
-  insightTargetsSegment,
-  routeInsightPlacements,
-} from "@/components/route/route-insight-placement";
 import type { RouteDetailSectionValue } from "@/components/route/section-registry";
 import { SectionCard } from "@/components/SectionCard";
 import { SpeedTrend } from "@/components/SpeedTrend";
@@ -51,16 +47,6 @@ export function OverviewSection({
     : slowestByRiders
       ? `${slowestByRiders.from} to ${slowestByRiders.to} costs riders the most time`
       : null;
-  // Evidence-backed locator emphasis for the mini map: an insight-targeted
-  // segment, else the flagged one, else the top-burden one. Label only — the
-  // Segments explorer never fabricates a selection from this.
-  const mapInsights = routeInsightPlacements(data.insights).mapSegment;
-  const mapHighlightSegment =
-    segments.find((segment) =>
-      mapInsights.some((insight) => insightTargetsSegment(insight, segment.id)),
-    ) ??
-    segments.find((segment) => segment.flagged) ??
-    slowestByRiders;
   const treatments = routeTreatments(route, segments);
   const geo = useRouteSegmentsGeo(route.routeId);
 
@@ -127,12 +113,7 @@ export function OverviewSection({
               aria-hidden
             />
           ) : (
-            <CorridorMap
-              route={route}
-              segments={segments}
-              highlightId={mapHighlightSegment?.id}
-              mode="mini"
-            />
+            <CorridorMap route={route} segments={segments} mode="mini" />
           )}
         </SectionCard>
       </div>

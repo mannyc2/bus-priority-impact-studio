@@ -214,7 +214,7 @@ describe("deltaBarShare", () => {
 
 describe("laneReadoutLine", () => {
   test("plain phrases, proxy-labeled", () => {
-    expect(laneReadoutLine("none")).toBe("No DOT bus lane along this stretch");
+    expect(laneReadoutLine("none")).toBe("No DOT bus-lane proximity signal for this stretch");
     expect(laneReadoutLine("partial")).toContain("part of this stretch");
     expect(laneReadoutLine("partial")).toContain("(proximity)");
   });
