@@ -10,6 +10,8 @@ tags: [serving, snapshot-2, routes, d1, r2, studio-api, coverage]
 
 # Serving Snapshot 2.0 Full-Route Baseline
 
+> Historical document (work completed/superseded); month-anchored language reflects the doctrine of its time — see ADR-0022.
+
 ## Purpose
 
 Serving Snapshot 2.0 starts with the most basic product promise:

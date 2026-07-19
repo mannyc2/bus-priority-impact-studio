@@ -8499,3 +8499,16 @@ plan remains IN PROGRESS because its recorded Plan 074 operator-anchor
 prerequisite never closed; no rc23 output was activated. Plan 083 remains
 TODO. Their control, physical-scope, spine, approval, and publication gates
 remain independent. See `docs/research/mta-wiki-rc23-migration-report.md`.
+
+## [2026-07-12] architecture | monthly-baseline doctrine retired by ADR-0022
+
+The monthly-baseline doctrine is retired end to end as governing architecture. ADR-0022 defines a
+release as a publication event with `releaseId`, `publishedAt`, and per-dataset coverage windows;
+served and analyzed data uses the full available source history, multi-year wherever supported.
+Months remain valid only as source grain, time-series coordinates, and ingest/storage partitions.
+
+Plan 084 aligns the doctrine and steering docs while keeping descriptions of still-live mechanics
+truthful and dated. Plans 085-087 execute the serving-contract and release-identity cutovers and add
+the freshness ledger; the binding generation-9 amendments make plans 079-081 use the same
+vocabulary. Upstream-latest, ingested-latest, and published-coverage-end state replaces month
+anchors as the project's freshness model.

@@ -169,6 +169,10 @@ Primary batch entrypoint:
 
 ## Export commands
 
+> **De-month status (2026-07-12):** the month-keyed export and promotion mechanics below remain
+> live but are scheduled for removal per ADR-0022 — serving contract in plan 085, release identity
+> in plan 086, and freshness ledger in plan 087. Until those land, this section describes current behavior.
+
 ```bash
 bun run export:d1 -- --year 2026 --month 3
 bun run export:d1 -- --year 2026 --month 3 --network-dir data/working/network
