@@ -8,6 +8,7 @@ import {
 } from "@bp/analytics/evaluation";
 import { decodePreserve } from "@bp/domain/decode";
 import { STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY } from "@bp/domain/studio";
+import type { CoverageWindow } from "@bp/domain/studio/shared";
 import { Effect, Schema } from "effect";
 import type { D1CanonicalInputs } from "./d1-inputs";
 
@@ -213,7 +214,7 @@ export function toRouteCapabilityInputRows(
       routeId,
       hasSummary: summary !== undefined,
       publicVisible: summary?.publicVisible ?? false,
-      baselineMonth: summary?.month ?? null,
+      conditionDataAsOf: summary?.month ?? null,
       hasArtifact: artifactRouteIds.has(routeId),
       history: {
         endMonth: trend?.endMonth ?? null,
@@ -247,13 +248,17 @@ export async function buildAndWriteRouteCapabilityManifest(input: {
   d1Inputs: Parameters<typeof toRouteCapabilityInputRows>[0];
   readinessSummaries: Map<string, DetectorReadinessRouteSummary>;
   artifactRoot: string;
-  releaseMonth: string;
+  releaseId: string;
+  publishedAt: string;
+  coverage: CoverageWindow;
   generatedAt: string;
 }): Promise<{ outputPath: string; routeCount: number; sha256: string; byteLength: number }> {
   const rows = toRouteCapabilityInputRows(input.d1Inputs, input.readinessSummaries);
   const manifest = buildRouteCapabilityManifest({
     generatedAt: input.generatedAt,
-    releaseMonth: input.releaseMonth,
+    releaseId: input.releaseId,
+    publishedAt: input.publishedAt,
+    coverage: input.coverage,
     rows,
   });
   const body = `${JSON.stringify(manifest, null, 2)}\n`;

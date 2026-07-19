@@ -5,7 +5,7 @@ import {
   MapRouteUniverseSchema,
   MapSourceStatusSchema,
 } from "@bp/domain/maps";
-import { RouteCapabilityManifestSchema } from "@bp/domain/studio";
+import { RouteCapabilityManifestSchema, RouteDossierSummarySchema } from "@bp/domain/studio";
 import {
   CoverageWindowSchema,
   type ReleaseIdentity,
@@ -16,6 +16,7 @@ import {
   buildMapArtifactManifest,
   buildMapJsonArtifact,
   buildRouteCapabilityManifest,
+  buildRouteDossierSummaries,
   buildRouteSpeedAvailabilityResult,
   evaluateAnalysisPeriodCurrency,
   evaluateMaxAgeSnapshotCurrency,
@@ -40,7 +41,7 @@ function capabilityRow(overrides: Partial<RouteCapabilityInputRow> = {}): RouteC
     routeId: "M15+",
     hasSummary: true,
     publicVisible: true,
-    baselineMonth: "2026-03",
+    conditionDataAsOf: "2026-03",
     hasArtifact: true,
     history: {
       endMonth: "2026-03",
@@ -354,16 +355,75 @@ describe("evaluation data products", () => {
   });
 
   test("builds schema-valid route capability manifests", () => {
+    const publishedAt = "2026-06-10T00:00:00.000Z";
+    const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+      releaseId: releaseIdFromPublishedAt(publishedAt),
+      publishedAt,
+      coverage: { start: "2025-04", end: "2026-03" },
+    });
     const manifest = buildRouteCapabilityManifest({
-      generatedAt: "2026-06-10T00:00:00.000Z",
-      releaseMonth: "2026-03",
+      generatedAt: publishedAt,
+      ...releaseIdentity,
       rows: [capabilityRow()],
     });
 
     expect(() => decodeStrict(RouteCapabilityManifestSchema)(manifest)).not.toThrow();
+    expect(manifest.schemaVersion).toBe(2);
+    expect(manifest.releaseId).toBe(releaseIdentity.releaseId);
+    expect(manifest.coverage).toEqual(releaseIdentity.coverage);
     expect(manifest.routes[0]?.overallState).toBe("ready");
-    expect(manifest.routes[0]?.surfaces["speedHistory"]?.state).toBe("ready");
-    expect(manifest.routes[0]?.surfaces["reliability"]?.state).toBe("ready");
+    expect(manifest.routes[0]?.surfaces.speedHistory?.state).toBe("ready");
+    expect(manifest.routes[0]?.surfaces.speedHistory?.freshness).toBe("recent");
+    expect(manifest.routes[0]?.surfaces.reliability?.state).toBe("ready");
+    expect(() =>
+      buildRouteCapabilityManifest({
+        generatedAt: publishedAt,
+        ...releaseIdentity,
+        releaseId: "pub_20000101T000000000Z",
+        rows: [capabilityRow()],
+      }),
+    ).toThrow("publishedAt-derived");
+  });
+
+  test("builds schema-valid route dossiers with canonical release identity", () => {
+    const publishedAt = "2026-06-10T00:00:00.000Z";
+    const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+      releaseId: releaseIdFromPublishedAt(publishedAt),
+      publishedAt,
+      coverage: { start: "2025-04", end: "2026-03" },
+    });
+    const input = {
+      generatedAt: publishedAt,
+      ...releaseIdentity,
+      rows: [
+        {
+          routeId: "M15+",
+          routeSlug: "m15-sbs",
+          trend: [{ month: "2026-03", averageSpeedMph: 7, ridership: 42_000 }],
+          worstSegmentByMonth: [],
+          treatment: {
+            aceActive: true,
+            aceSince: "2024-06-01",
+            busLaneMatchedLaneCount: 3,
+            events: [],
+            dataAsOf: "2026-03",
+          },
+        },
+      ],
+    };
+    const dossier = buildRouteDossierSummaries(input)[0];
+
+    expect(dossier).toBeDefined();
+    expect(() => decodeStrict(RouteDossierSummarySchema)(dossier)).not.toThrow();
+    expect(dossier?.schemaVersion).toBe(2);
+    expect(dossier?.releaseId).toBe(releaseIdentity.releaseId);
+    expect(dossier?.coverage).toEqual(releaseIdentity.coverage);
+    expect(() =>
+      buildRouteDossierSummaries({
+        ...input,
+        releaseId: "pub_20000101T000000000Z",
+      }),
+    ).toThrow("publishedAt-derived");
   });
 
   test("validates map manifests from manifest contents and caller-provided artifact checks", () => {

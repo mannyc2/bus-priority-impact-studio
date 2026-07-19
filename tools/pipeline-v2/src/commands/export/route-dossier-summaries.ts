@@ -8,6 +8,7 @@ import {
 } from "@bp/analytics/evaluation";
 import { decodePreserve } from "@bp/domain/decode";
 import { type RouteDossierEvent, routeDossierSummaryKey } from "@bp/domain/studio";
+import type { CoverageWindow } from "@bp/domain/studio/shared";
 import { Schema } from "effect";
 import { routeIdToSlug } from "../studio/_release-routes.ts";
 import type { D1CanonicalInputs } from "./d1-inputs.ts";
@@ -177,7 +178,9 @@ export async function toRouteDossierInputRows(
 export async function buildAndWriteRouteDossierSummaries(input: {
   d1Inputs: Parameters<typeof toRouteDossierInputRows>[0];
   artifactRoot: string;
-  releaseMonth: string;
+  releaseId: string;
+  publishedAt: string;
+  coverage: CoverageWindow;
   generatedAt: string;
 }): Promise<{ routeCount: number }> {
   const rows = await toRouteDossierInputRows(input.d1Inputs, {
@@ -185,7 +188,9 @@ export async function buildAndWriteRouteDossierSummaries(input: {
   });
   const summaries = buildRouteDossierSummaries({
     generatedAt: input.generatedAt,
-    releaseMonth: input.releaseMonth,
+    releaseId: input.releaseId,
+    publishedAt: input.publishedAt,
+    coverage: input.coverage,
     rows,
   });
   for (const summary of summaries) {

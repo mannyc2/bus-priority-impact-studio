@@ -3,7 +3,9 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
+  earliestRouteTrendMonth,
   estimateD1ExportCost,
   runExportD1AppendixSeed,
   runExportD1Seed,
@@ -11,6 +13,15 @@ import {
 import { openLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
 describe("runExportD1Seed", () => {
+  it("derives coverage start from the earliest loaded route trend month", () => {
+    expect(
+      earliestRouteTrendMonth({
+        routeMonthTrends: [{ month: "2026-03" }, { month: "2024-11" }, { month: "2025-06" }],
+      }),
+    ).toBe("2024-11");
+    expect(earliestRouteTrendMonth({ routeMonthTrends: [] })).toBeNull();
+  });
+
   it("estimates D1 seed publish cost from SQL statement counts", () => {
     const estimate = estimateD1ExportCost({
       seedPath: "/tmp/seed.sql",
@@ -41,6 +52,7 @@ describe("runExportD1Seed", () => {
     const tmp = mkdtempSync(join(tmpdir(), "export-d1-"));
     const dbPath = join(tmp, "pipeline.sqlite");
     const exportRoot = join(tmp, "exports");
+    const artifactRoot = join(tmp, "artifacts");
 
     const local = await openLocalPipelineDb(dbPath);
     try {
@@ -49,7 +61,7 @@ describe("runExportD1Seed", () => {
         year: 2026,
         month: 3,
         exportRoot,
-        artifactRoot: join(tmp, "artifacts"),
+        artifactRoot,
       });
 
       expect(result.isoMonth).toBe("2026-03");
@@ -78,6 +90,15 @@ describe("runExportD1Seed", () => {
           }),
         ]),
       );
+
+      const capability = JSON.parse(
+        await Bun.file(
+          join(artifactRoot, "studio", "v2", "routes", "route-capability-manifest.json"),
+        ).text(),
+      );
+      expect(capability.schemaVersion).toBe(2);
+      expect(capability.releaseId).toBe(releaseIdFromPublishedAt(capability.publishedAt));
+      expect(capability.coverage).toEqual({ start: null, end: "2026-03" });
 
       const schemaSql = await Bun.file(result.schemaPath).text();
       expect(schemaSql.length).toBeGreaterThan(0);

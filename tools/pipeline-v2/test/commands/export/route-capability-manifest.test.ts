@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { decodeStrict } from "@bp/domain/decode";
 import { RouteCapabilityManifestSchema } from "@bp/domain/studio";
+import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
   buildAndWriteRouteCapabilityManifest,
   readDetectorReadinessRouteSummaries,
@@ -49,7 +50,7 @@ describe("toRouteCapabilityInputRows", () => {
     const row = byRoute.get("M15+");
     expect(row?.hasSummary).toBe(true);
     expect(row?.publicVisible).toBe(true);
-    expect(row?.baselineMonth).toBe("2026-03");
+    expect(row?.conditionDataAsOf).toBe("2026-03");
     expect(row?.hasArtifact).toBe(true);
     expect(row?.scheduleTimepointCount).toBe(42);
     expect(row?.history).toEqual({
@@ -139,18 +140,27 @@ describe("readDetectorReadinessRouteSummaries", () => {
 describe("buildAndWriteRouteCapabilityManifest", () => {
   test("writes a schema-valid manifest artifact", async () => {
     const artifactRoot = join(tmp, "artifacts");
+    const publishedAt = "2026-06-10T00:00:00.000Z";
+    const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+      releaseId: releaseIdFromPublishedAt(publishedAt),
+      publishedAt,
+      coverage: { start: "2026-02", end: "2026-03" },
+    });
     const result = await buildAndWriteRouteCapabilityManifest({
       d1Inputs,
       readinessSummaries: new Map(),
       artifactRoot,
-      releaseMonth: "2026-03",
-      generatedAt: "2026-06-10T00:00:00.000Z",
+      ...releaseIdentity,
+      generatedAt: publishedAt,
     });
     expect(result.routeCount).toBe(2);
     expect(result.outputPath).toContain("studio/v2/routes/route-capability-manifest.json");
 
     const written = JSON.parse(await Bun.file(result.outputPath).text());
     expect(() => decodeStrict(RouteCapabilityManifestSchema)(written)).not.toThrow();
+    expect(written.schemaVersion).toBe(2);
+    expect(written.releaseId).toBe(releaseIdFromPublishedAt(publishedAt));
+    expect(written.coverage).toEqual({ start: "2026-02", end: "2026-03" });
     const m15 = written.routes.find((route: { routeId: string }) => route.routeId === "M15+");
     expect(m15.surfaces.speedHistory.state).toBe("partial");
     expect(m15.surfaces.ridership.state).toBe("blocked"); // equity_context source blocked
