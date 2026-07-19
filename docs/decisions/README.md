@@ -20,8 +20,9 @@ Create a new ADR before introducing Python, hosted Postgres/PostGIS, a VPS, or a
 - `0014-brief-draft-live-write-serving.md` - D1-backed Studio draft write API, operator authz, idempotency, and projection overlay model.
 - `0015-brief-markdown-and-primitives.md` - Brief markdown plus typed primitive block/ref content model.
 - `0016-studio-brief-author-agent-runtime.md` - Cloudflare Think / Workers AI runtime for queued Studio brief authoring proposals.
-- `0017-mixed-freshness-publication-model.md` - Product/data doctrine replacing the broad "monthly release" slogan with historical corpus, baseline month, current signal, source snapshot, serving projection, and deliberate publication gates.
+- `0017-mixed-freshness-publication-model.md` - Partially superseded by ADR-0022: its deliberate-publication and snapshot-evidence rules survive, while its baseline-month and release-month anchors are retired.
 - `0018-detector-calibration-readiness-loop.md` - Reviewed-gold detector calibration loop, readiness buckets, and publication rules that prevent raw detector candidates from becoming public findings.
 - `0019-effect-runtime-for-pipeline.md` - Effect runtime, layers, services, and typed errors for pipeline commands, with CLI parser migration deferred until the runtime pattern is established.
 - `0020-effect-schema-only.md` - Effect Schema as the only first-party runtime schema layer, superseding the Zod clause of ADR 0001.
 - `0021-native-transit-kit-in-effect-zone.md` - Native nyc-transit-kit APIs/layers in Effect-zone code, with compat limited to Promise-edge packages such as Studio API.
+- `0022-multi-year-corpus-and-freshness-ledger.md` - Publication-event release identity, per-dataset coverage windows, and an upstream-relative freshness ledger replace baseline-month and release-month anchors.

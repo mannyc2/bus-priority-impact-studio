@@ -1,5 +1,7 @@
 # Hard Cutover: De-month the Public Contract (execution plan)
 
+> Historical document (work completed/superseded); month-anchored language, including §1's “Explicitly kept” list, reflects the doctrine of its time and is superseded by ADR-0022.
+
 **For:** the maintainer and implementing agents. Produced 2026-06-10; every current-state claim
 verified against the working tree on that date.
 

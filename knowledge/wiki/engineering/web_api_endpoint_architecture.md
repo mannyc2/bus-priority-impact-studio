@@ -212,6 +212,10 @@ parse request
 
 ## Shared Contract Envelope
 
+> **De-month status (2026-07-12):** the month-keyed API metadata and caching mechanics below remain
+> live but are scheduled for removal per ADR-0022 — serving contract in plan 085, release identity
+> in plan 086, and freshness ledger in plan 087. Until those land, this describes current behavior.
+
 Every Studio response should include:
 
 ```ts

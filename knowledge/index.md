@@ -22,17 +22,16 @@ Reader's map: [analytics-primer.html](../analytics-primer.html) is the visual wa
 ADRs live in `docs/decisions/` (not under `knowledge/wiki/`). Notable: 0007
 adopts spatialite as a loadable SQLite extension in the local pipeline only,
 for route ⇄ LION corridor joins; 0011, 0012, 0014, 0015, and 0016 are superseded
-history after the generation-3 hard cutover and plan 024 cleanup; 0017 retires
-the broad "monthly release" slogan in favor of a multi-year, mixed-freshness model: historical
-corpus, baseline month, current signal, source-capture snapshot, serving projection, and deliberate
-publication gate; public surfaces should use multi-year route/corridor evidence by default where
-source coverage supports it;
+history after the generation-3 hard cutover and plan 024 cleanup; 0017 records the earlier move
+away from a broad "monthly release" slogan, with its deliberate-publication and snapshot-evidence
+rules still active while its baseline-month and release-month anchors are superseded by 0022;
 0018 records the detector calibration/readiness loop: reviewed gold labels, suppress-leakage
 evaluation, deterministic gates, and readiness buckets must separate detector signals from public
 page eligibility; 0019 records the Effect runtime boundary for pipeline code; 0020 records Effect
 Schema as the only first-party runtime schema layer and supersedes the Zod clause of ADR 0001; 0021
 records native `nyc-transit-kit` consumption in the Effect zone, with compat limited to Promise-edge
-packages such as Studio API.
+packages such as Studio API; 0022 establishes publication-event release identity, per-dataset
+coverage windows, multi-year source history, and an upstream-relative freshness ledger.
 
 ## Project pages
 

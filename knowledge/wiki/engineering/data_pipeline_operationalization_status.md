@@ -6,6 +6,10 @@ This status turns the completed 2023-present checkpoint into the next operationa
 
 ## Release decision
 
+> **De-month status (2026-07-12):** production still reports `baselineMonth=2026-03`, about four
+> months behind this status date. ADR-0022 retires that identity; plan 087's freshness ledger will
+> report upstream, ingested, and published coverage lag as first-class source state.
+
 The refreshed March 2026 serving release is **published**.
 
 Evidence already available:

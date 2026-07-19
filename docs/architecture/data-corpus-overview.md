@@ -292,68 +292,78 @@ The word is overloaded. Four distinct meanings live in this corpus:
 
 When clarifying, say which axis you mean.
 
-## Mixed Freshness Doctrine
+## Multi-Year Corpus And Freshness Doctrine
 
-ADR [0017](../decisions/0017-mixed-freshness-publication-model.md) is the canonical doctrine:
+ADR [0022](../decisions/0022-multi-year-corpus-and-freshness-ledger.md) is the canonical doctrine.
+It partially supersedes ADR
+[0017](../decisions/0017-mixed-freshness-publication-model.md) by retiring its baseline-month and
+release-month anchors while preserving deliberate publication and snapshot evidence.
 
-> The product is a multi-year evidence system with versioned baselines, current signals, and audited
-> publication gates.
+The public contract is **multi-year by default**. A route page should show the full available
+history per source, current signals, treatment dates, and document evidence together. A release is
+a publication event with `releaseId`, `publishedAt`, and per-dataset coverage windows; a calendar
+month does not identify the product or release.
 
-Avoid using "monthly release" as a product slogan. The target public contract is **multi-year by
-default**: a route page should show history windows, baselines, current signals, treatment dates,
-and document evidence together. A single baseline month is a provenance/review anchor, not the
-shape of the product. Use the narrower terms instead:
+Use these terms consistently:
 
 | Term | What it answers |
 |---|---|
-| **Historical corpus** | What history do we have for trends, baselines, detector calibration, and route visuals? |
-| **Baseline month** | What reviewed complete public monthly performance month anchors current route cards? |
+| **Historical corpus** | What full available history do we have for trends, comparisons, calibration, and route visuals? |
+| **Coverage window** | What `{ start, end, grain }` range does a dataset in the published release cover? |
 | **Current signal** | What fresher evidence can be shown as an explicitly labeled appendix? |
 | **Source-capture snapshot** | What raw upstream state did we preserve before it changed or expired? |
-| **Pipeline artifact corpus** | What deterministic derived products can be reviewed and promoted? |
+| **Pipeline artifact corpus** | What deterministic derived products can be reviewed and published? |
 | **Serving projection** | What D1/R2 package can the public app read quickly and honestly? |
-| **Publication / promotion** | Which reviewed mutation moved a projection to production? |
+| **Publication event** | Which reviewed mutation, identified by `releaseId` and `publishedAt`, moved a projection to production? |
+| **Freshness ledger** | How do upstream-latest, ingested-latest, and published-coverage-end compare for each source? |
 
-Monthly cadence remains valid for monthly source grains and review/audit keys. It is not the whole
-product model, and new public surfaces should not be designed as single-month slices unless the
-source itself only supports a one-month/latest-status view.
+Months remain valid as source grain, time-series coordinates, and ingest/storage partitions. New
+public surfaces must not use a month as release identity or as a dataset's outer boundary when more
+source history exists.
 
 ## Serving Projection Versus Analysis Corpus
 
-The baseline month is not the analytical universe. It is one anchor inside a larger serving
-projection. Historical local tables and artifacts are allowed to be much larger than the public
-projection because detectors need history for baselines, calibration, near-miss analysis, and
-false-positive review. The frontend goal is to expose more of that multi-year corpus directly,
-not to keep flattening it into the latest month.
+The serving projection is not the analytical universe. Historical local tables and artifacts may
+be much larger because analysis needs history for comparisons, calibration, near-miss analysis, and
+false-positive review. The frontend goal is to expose more of that multi-year corpus directly, not
+to keep flattening it into a single calendar slice.
 
 Current policy:
 
-- Public current-state wording comes from the release month and any explicitly labeled current
-  appendix.
+- Public current-state wording comes from the published coverage windows and any explicitly labeled
+  current appendix.
 - Baselines and detector thresholds come from named historical windows.
 - Fine-grain historical sources must pass coverage audits before detectors use them as default
   baseline substrates.
 - D1/R2 serving outputs should not expand just because the local analytical corpus expands.
-- Public pages and APIs should expose mixed freshness explicitly: baseline month, history window,
-  current signals, source coverage, projection freshness, and section-level support flags.
+- Public pages and APIs should expose `publishedAt`, per-dataset coverage, current signals,
+  upstream-relative freshness, and section-level support flags.
 
 See `knowledge/wiki/engineering/analytics_corpus_profile.md` for the full-history detector-window
 policy and the post-backfill coverage gate.
 
 ## Release labels
 
-The audit release model names four layers (defined in [data_pipeline_v1_completion_plan](../../knowledge/wiki/engineering/data_pipeline_v1_completion_plan.md)):
+ADR-0022 names releases as publication events and separates their identity from dataset coverage:
 
 | Label | What it is |
 |---|---|
-| **Baseline Release** | The published baseline rollup the public site uses as its reference point. |
+| **Published Release** | The reviewed D1/R2 projection identified by `releaseId` and `publishedAt`, with per-dataset coverage windows. |
 | **Current Signal** | The latest available monthly signal stitched in as an appendix; may use self-collected evidence ahead of public publication. |
 | **Pending Publication** | Candidate next release prepared locally, not yet promoted. Promoted by running `publish:serving-release --execute`. |
-| **Observed Release** | The release a user is actually seeing right now. Today: March 2026 with `third_party_recovered` provenance, plus a May 2026 self-collected appendix. |
+| **Observed Release** | The release a user is actually seeing. The current production projection was published from March 2026 performance data with `third_party_recovered` provenance and a May 2026 self-collected appendix. |
+
+> **Month-keyed mechanics scheduled for removal (2026-07-12):** the live API still exposes
+> `baselineMonth` and month-keyed release/completeness values. ADR-0022 and plans 085-087 replace
+> those mechanics with publication identity, coverage windows, and upstream-relative freshness.
 
 > **Caveat on "Current Signal" cadence.** The May 2026 appendix is currently sourced from a single 24-hour GTFS-RT capture (`gtfs-rt-v1-20260517T103607Z-24h`), not a continuously rolling current month. The production Worker cron (`apps/web/wrangler.jsonc` `crons: ["* * * * *", "17 10 * * *"]`) is configured to write GTFS-RT to R2, but the local mirror under `data/raw/r2-mirror/` is pulled on demand and may be stale relative to what's in R2. Treat "Current Signal" as a recent operational sample, not a live feed, until a longer-rolling appendix replaces it.
 
-Every major metric carries a **completeness label** (`complete`, `partial_realtime_only`, `partial_public_monthly_only`, `missing_speed`, `missing_realtime`, `insufficient_samples`, `source_lag_expected`) so the product can answer what is confident vs. directional vs. unavailable.
+The current runtime gives every major metric a **completeness label** (`complete`,
+`partial_realtime_only`, `partial_public_monthly_only`, `missing_speed`, `missing_realtime`,
+`insufficient_samples`, `source_lag_expected`) so the product can answer what is confident versus
+directional versus unavailable. Plan 085 replaces `partial_public_monthly_only` with
+`partial_public_speed_only` when the serving contract changes.
 
 ## Known underserving — what's in the corpus but not on the site
 
