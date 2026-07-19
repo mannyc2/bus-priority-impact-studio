@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { validateNetworkMapSearch } from "../components/route/network-map-search.js";
 import { routeHead } from "../lib/head.js";
 import {
   fetchNetworkMapGeo,
@@ -10,6 +11,7 @@ import {
 import { NetworkMapLoadingPage, NetworkMapPage } from "../studio/pages/network-map.js";
 
 export const Route = createFileRoute("/map")({
+  validateSearch: validateNetworkMapSearch,
   loader: async ({ abortController }) => {
     const options = { signal: abortController.signal };
     const [routes, bundle, studyIndex] = await Promise.all([
