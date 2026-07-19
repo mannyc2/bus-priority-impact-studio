@@ -1,6 +1,15 @@
-import type { MapBusLaneFeatureCollection } from "@bp/domain/maps";
+import type {
+  MapBusLaneFeatureCollection,
+  MapRouteSegmentFeatureCollection,
+} from "@bp/domain/maps";
 import { lazy, type ReactNode, Suspense } from "react";
-import { featureStyle, type NetworkView, periodSpeed } from "@/components/route/network-map-model";
+import { createMapLibrePreloader, loadMapLibre } from "@/components/route/load-maplibre";
+import {
+  featureStyle,
+  type NetworkView,
+  periodSpeed,
+  viewEncoding,
+} from "@/components/route/network-map-model";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { NetworkMapFeature, NetworkMapFeatureCollection } from "@/studio/api-client";
 
@@ -11,9 +20,42 @@ export {
   periodSpeed,
 } from "@/components/route/network-map-model";
 
-const NetworkMapLibreMap = lazy(() =>
-  import("./NetworkMapLibre.map.js").then((module) => ({ default: module.NetworkMapLibreMap })),
-);
+const loadNetworkMapLibreComponent = () =>
+  import("./NetworkMapLibre.map.js").then((module) => ({ default: module.NetworkMapLibreMap }));
+
+const NetworkMapLibreMap = lazy(loadNetworkMapLibreComponent);
+
+const startNetworkMapPreload = createMapLibrePreloader({
+  available: () => typeof window !== "undefined" && typeof document !== "undefined",
+  loadComponent: loadNetworkMapLibreComponent,
+  loadVendor: loadMapLibre,
+});
+
+/** Browser-only performance hint. Callers must not await it as route data. */
+export function preloadNetworkMap(): void {
+  startNetworkMapPreload();
+}
+
+export function networkMapAriaLabel({
+  collection,
+  view,
+  selectedRouteId,
+}: Pick<NetworkMapLibreProps, "collection" | "view" | "selectedRouteId">): string {
+  const encoding = viewEncoding(view);
+  const measure =
+    encoding === "delay"
+      ? "rider-delay exposure"
+      : encoding === "delta"
+        ? `${view.period.toUpperCase()} peak speed compared with all day`
+        : `${view.period === "all" ? "all-day" : `${view.period.toUpperCase()} peak`} speed`;
+  const selected = collection.features.find(
+    (feature) => feature.properties.routeId === selectedRouteId,
+  );
+  const routeCount = collection.features.length;
+  return `NYC bus network ${measure} map showing ${routeCount} ${routeCount === 1 ? "route" : "routes"}${
+    selected === undefined ? "" : `; ${selected.properties.label} highlighted`
+  }.`;
+}
 
 export type NetworkMapPopupState = {
   anchor: readonly [number, number];
@@ -34,41 +76,55 @@ export type NetworkMapLibreProps = {
   badges: readonly NetworkBadge[];
   busLanes: MapBusLaneFeatureCollection | null;
   showLanes: boolean;
+  /** Lazy selected-route segment artifact; null keeps the citywide map usable. */
+  routeSegments?: MapRouteSegmentFeatureCollection | null;
+  /** Exact stable spine identity. Selection emphasis never replaces source data. */
+  selectedSegmentId?: string | null;
   selectedRouteId: string | null;
   // A route without usable geometry has no geographic anchor and cannot be pinned.
   onSelectRoute?: (routeId: string, lngLat: readonly [number, number] | null) => void;
   onClearSelection?: () => void;
   popup: NetworkMapPopupState | null;
+  /** Dynamic map-region label supplied by the page; a truthful fallback is derived if omitted. */
+  ariaLabel?: string;
+  /** IDs for the page's live summary and keyboard-equivalent route list. */
+  ariaDescribedBy?: string;
 };
 
-function NetworkMapSkeleton() {
-  return (
-    <div
-      className="h-full min-h-[320px] animate-pulse bg-[var(--bp-color-ink-06)] motion-reduce:animate-none"
-      aria-hidden
-    />
-  );
-}
-
 export function NetworkMapLibre(props: NetworkMapLibreProps) {
-  const fallback = <NetworkMapStatic {...props} />;
+  const ariaLabel = props.ariaLabel ?? networkMapAriaLabel(props);
+  const resolvedProps = { ...props, ariaLabel };
+  const fallback = <NetworkMapStatic {...resolvedProps} />;
   return (
-    <Suspense fallback={<NetworkMapSkeleton />}>
-      <NetworkMapLibreMap {...props} fallback={fallback} />
+    <Suspense fallback={fallback}>
+      <NetworkMapLibreMap {...resolvedProps} fallback={fallback} />
     </Suspense>
   );
 }
 
-function NetworkMapStatic({ collection, view, selectedRouteId, popup }: NetworkMapLibreProps) {
+function NetworkMapStatic({
+  collection,
+  view,
+  routeSegments = null,
+  selectedSegmentId = null,
+  selectedRouteId,
+  popup,
+  ariaLabel,
+  ariaDescribedBy,
+}: NetworkMapLibreProps) {
   const width = 980;
   const height = 640;
   const padding = 24;
   const bounds = networkBounds(collection);
   if (bounds === null) {
     return (
-      <div className="flex h-full min-h-[320px] items-center justify-center bg-[var(--bp-color-paper-deep)] text-[12.5px] text-[var(--bp-color-ink-55)]">
+      <section
+        className="flex h-full min-h-[320px] items-center justify-center bg-[var(--bp-color-paper-deep)] text-[12.5px] text-[var(--bp-color-ink-55)]"
+        aria-label={ariaLabel ?? networkMapAriaLabel({ collection, view, selectedRouteId })}
+        aria-describedby={ariaDescribedBy}
+      >
         Network geometry is unavailable.
-      </div>
+      </section>
     );
   }
   const project = projector(bounds, { width, height, padding });
@@ -77,18 +133,19 @@ function NetworkMapStatic({ collection, view, selectedRouteId, popup }: NetworkM
     .map((feature) => ({ feature, style: featureStyle(feature, view) }))
     .sort((left, right) => left.style.sortKey - right.style.sortKey);
   return (
-    <div className="relative h-full min-h-[320px]">
+    <section
+      className="relative h-full min-h-[320px]"
+      aria-label={ariaLabel ?? networkMapAriaLabel({ collection, view, selectedRouteId })}
+      aria-describedby={ariaDescribedBy}
+    >
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="block h-full w-full bg-[var(--bp-color-card)]"
         preserveAspectRatio="xMidYMid meet"
-        role="img"
-        aria-label={
-          view.lens === "delay"
-            ? "Citywide bus route rider-delay map"
-            : "Citywide bus route speed map"
-        }
+        aria-hidden
+        focusable="false"
       >
+        <title>{ariaLabel ?? networkMapAriaLabel({ collection, view, selectedRouteId })}</title>
         <rect width={width} height={height} fill="var(--bp-color-card)" />
         {ordered.map(({ feature, style }) => {
           const active = feature.properties.routeId === selectedRouteId;
@@ -116,13 +173,39 @@ function NetworkMapStatic({ collection, view, selectedRouteId, popup }: NetworkM
             </g>
           );
         })}
+        {routeSegments?.features.map((feature) => {
+          const selected =
+            selectedSegmentId !== null && feature.properties.spineSegmentId === selectedSegmentId;
+          const path = linePath(feature.geometry.coordinates, project);
+          return (
+            <g key={feature.id}>
+              <path
+                d={path}
+                fill="none"
+                stroke="var(--bp-color-card)"
+                strokeWidth={selected ? 10 : 7}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d={path}
+                fill="none"
+                stroke={selected ? "var(--bp-color-accent)" : "var(--bp-color-ink)"}
+                strokeWidth={selected ? 6 : 4}
+                strokeOpacity={selected ? 1 : 0.72}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+          );
+        })}
       </svg>
       {popup === null ? null : (
         <div className="absolute bottom-4 right-4 z-10 w-[292px] max-w-[calc(100%-32px)]">
           {popup.content}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 

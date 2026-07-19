@@ -9,6 +9,33 @@ export type MapLibreMapMouseEvent = MapLibre.MapMouseEvent;
 export type MapLibreStyleSpecification = MapLibre.StyleSpecification;
 export type MapLibreExpression = MapLibre.ExpressionSpecification;
 
+export type MapLibrePreloaderAdapter = {
+  available(): boolean;
+  loadComponent(): Promise<unknown>;
+  loadVendor(): Promise<unknown>;
+};
+
+/**
+ * Starts the independently cached map component and vendor loads together.
+ * Preloading is deliberately fire-and-forget: a rejected hint is swallowed
+ * and made retryable so it can never become a route-data dependency.
+ */
+export function createMapLibrePreloader(adapter: MapLibrePreloaderAdapter): () => void {
+  let pending: Promise<void> | null = null;
+
+  return () => {
+    if (!adapter.available() || pending !== null) return;
+    pending = Promise.all([
+      Promise.resolve().then(() => adapter.loadComponent()),
+      Promise.resolve().then(() => adapter.loadVendor()),
+    ])
+      .then(() => undefined)
+      .catch(() => {
+        pending = null;
+      });
+  };
+}
+
 declare global {
   interface Window {
     maplibregl?: MapLibreModule;
