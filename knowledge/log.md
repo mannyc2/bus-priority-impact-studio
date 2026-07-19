@@ -8512,3 +8512,19 @@ truthful and dated. Plans 085-087 execute the serving-contract and release-ident
 the freshness ledger; the binding generation-9 amendments make plans 079-081 use the same
 vocabulary. Upstream-latest, ingested-latest, and published-coverage-end state replaces month
 anchors as the project's freshness model.
+
+## [2026-07-19] architecture | month-identity debt frozen behind a shrink-only gate
+
+Plan 088 adds `check:month-doctrine` to the architecture suite. The scanner
+distinguishes forbidden month-keyed product identity from legal month grain,
+coordinates, coverage windows, ingest partitions, and build selectors. It
+covers retired contract tokens, scoped release and analysis-period identities,
+serialized release cadence, identity phrases, public month selectors, and
+pinned identity-month literals with a comment-aware string lexer.
+
+The initial ratchet records exact file/rule counts for every live violation and
+assigns all of them to Plans 079 and 085-087. Unlisted matches, count growth,
+stale entries, duplicate pairs, malformed metadata, and premature permanent
+exceptions fail the gate. Synthetic tests cover selector variants, scoped
+identity rules, legal-grain cases, URI/date exclusions, and ratchet audit
+failure modes. No production contract changes are part of this checkpoint.
