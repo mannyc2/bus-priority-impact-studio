@@ -8,6 +8,7 @@ import { RidersSection } from "@/components/route/RidersSection";
 import { RouteDetailHeader } from "@/components/route/RouteDetailHeader";
 import { RouteDetailShell } from "@/components/route/RouteDetailShell";
 import { routeSectionBadges } from "@/components/route/route-insight-placement";
+import type { RouteDetailSearch } from "@/components/route/route-segment-explorer";
 import { SegmentExplorerSection } from "@/components/route/SegmentExplorer";
 import {
   type RouteDetailSectionValue,
@@ -37,16 +38,12 @@ export function RouteDetailPage({
   data,
   evidence,
   studies = null,
-  tab,
-  studyKey,
-  pinnedSegment,
+  search,
 }: {
   data: StudioRouteDetailResponse | null;
   evidence: StudioRouteEvidenceBundle | null;
   studies?: RouteStudiesArtifact | null;
-  tab?: RouteDetailTabValue | undefined;
-  studyKey?: string | undefined;
-  pinnedSegment?: string | undefined;
+  search: RouteDetailSearch;
 }) {
   const navigate = useNavigate();
 
@@ -55,7 +52,7 @@ export function RouteDetailPage({
   const { route } = data;
 
   const tabRegistry = routeTabRegistry(data.capability, routeSectionBadges(data.insights));
-  const requestedTab: RouteDetailTabValue = tab ?? "overview";
+  const requestedTab: RouteDetailTabValue = search.tab ?? "overview";
   // Unknown or hidden tab downgrades to Overview (always visible).
   const activeTab: RouteDetailTabValue = tabRegistry.visibleTabs.some(
     (candidate) => candidate.value === requestedTab,
@@ -103,12 +100,12 @@ export function RouteDetailPage({
       // section renders a map-only explorer just when the ranked list can't
       // (its speed-history surface is empty but geometry is ready), so both
       // capability gates keep meaning something.
-      const onPinChange = (spineId: string | null) => {
+      const onSearchChange = (nextSearch: RouteDetailSearch, replace: boolean) => {
         navigate({
           to: "/routes/$routeId",
           params: { routeId: route.slug },
-          search: spineId === null ? { tab: "segments" } : { tab: "segments", segment: spineId },
-          replace: true,
+          search: nextSearch,
+          replace,
         });
       };
       const whereWhenRenders =
@@ -116,19 +113,15 @@ export function RouteDetailPage({
       panel = (
         <>
           {section("where-when", () => (
-            <SegmentExplorerSection
-              data={data}
-              pinnedSpineId={pinnedSegment ?? null}
-              onPinChange={onPinChange}
-            />
+            <SegmentExplorerSection data={data} search={search} onSearchChange={onSearchChange} />
           ))}
           {whereWhenRenders
             ? null
             : section("map", () => (
                 <SegmentExplorerSection
                   data={data}
-                  pinnedSpineId={pinnedSegment ?? null}
-                  onPinChange={onPinChange}
+                  search={search}
+                  onSearchChange={onSearchChange}
                   mapOnly
                 />
               ))}
@@ -164,7 +157,7 @@ export function RouteDetailPage({
           data={data}
           evidence={evidence}
           studies={studies}
-          studyKey={studyKey}
+          studyKey={search.study}
         />
       ));
       break;

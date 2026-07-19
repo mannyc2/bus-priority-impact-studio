@@ -6,6 +6,7 @@ import {
   fetchMapManifest,
   fetchMapRouteFacts,
   fetchNetworkMapGeo,
+  fetchRouteSegmentsGeoLoad,
   fetchSelectedRouteMapEvidence,
   fetchStudioInterventionsEvidence,
   fetchStudioRoute,
@@ -528,6 +529,28 @@ describe("Studio API client", () => {
     await expect(fetchSelectedRouteMapEvidence(manifest as never, routeId)).resolves.toMatchObject({
       routeDetail: { status: "ready" },
       segments: { status: "request_failed", httpStatus: 503 },
+    });
+  });
+
+  test("route-detail geometry fails closed when a mutable artifact body changes", async () => {
+    const routeId = "M15+";
+    const declaredBody = JSON.stringify(routeSegmentCollectionFixture(routeId));
+    const declaredSha256 = await sha256ForBody(declaredBody);
+    const changedBody = JSON.stringify({
+      ...routeSegmentCollectionFixture(routeId),
+      features: [],
+    });
+    const manifest = mapManifestFixture({
+      artifacts: [routeSegmentArtifact(declaredSha256, routeId)],
+    });
+    mockFetch(((input) =>
+      String(input) === "/api/v1/map/manifest"
+        ? Promise.resolve(Response.json(manifest))
+        : Promise.resolve(new Response(changedBody))) as typeof globalThis.fetch);
+
+    await expect(fetchRouteSegmentsGeoLoad(routeId)).resolves.toMatchObject({
+      status: "integrity_mismatch",
+      expectedSha256: declaredSha256,
     });
   });
 

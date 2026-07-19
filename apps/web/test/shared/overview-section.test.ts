@@ -183,6 +183,8 @@ describe("OverviewSection", () => {
     expect(markup).toContain("6 months");
     expect(markup).toContain("Route map");
     expect(markup).toContain("Observed speed by segment.");
+    expect(markup).toContain("Explore route segments");
+    expect(markup).not.toContain("Full map");
     expect(markup).toContain("What stands out");
   });
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import {
   fetchMapContext,
-  fetchRouteSegmentsGeo,
+  fetchRouteSegmentsGeoLoad,
   fetchStudioRouteHourlyProfile,
   fetchStudioRouteSpeedHistory,
 } from "@/studio/api-client";
@@ -77,7 +77,24 @@ export type RouteGeoState =
       collection: MapRouteSegmentFeatureCollection;
       context: RouteGeoContext | null;
     }
-  | { status: "unavailable" };
+  | { status: "unavailable"; reason: string };
+
+function routeGeometryUnavailableReason(
+  load: Exclude<Awaited<ReturnType<typeof fetchRouteSegmentsGeoLoad>>, { status: "ready" }>,
+): string {
+  switch (load.status) {
+    case "integrity_mismatch":
+      return "Route geometry failed its published integrity check.";
+    case "invalid_contract":
+      return "Route geometry failed its data contract.";
+    case "request_failed":
+      return "Route geometry could not be loaded.";
+    case "missing":
+      return "Route geometry is not published yet.";
+    case "unavailable":
+      return load.reason;
+  }
+}
 
 export function useRouteSegmentsGeo(routeId: string): RouteGeoState {
   const [state, setState] = useState<RouteGeoState>({ status: "loading" });
@@ -86,22 +103,28 @@ export function useRouteSegmentsGeo(routeId: string): RouteGeoState {
     const controller = new AbortController();
     setState({ status: "loading" });
     Promise.all([
-      fetchRouteSegmentsGeo(routeId, { signal: controller.signal }),
+      fetchRouteSegmentsGeoLoad(routeId, { signal: controller.signal }),
       // Shoreline context is progressive enhancement — its absence never
       // blocks the route geometry.
       fetchMapContext({ signal: controller.signal }).catch(() => null),
     ])
-      .then(([collection, context]) => {
+      .then(([load, context]) => {
         if (controller.signal.aborted) return;
         setState(
-          collection === null || collection.features.length === 0
-            ? { status: "unavailable" }
-            : { status: "ready", collection, context },
+          load.status !== "ready" || load.data.features.length === 0
+            ? {
+                status: "unavailable",
+                reason:
+                  load.status === "ready"
+                    ? "Route geometry contains no published segments."
+                    : routeGeometryUnavailableReason(load),
+              }
+            : { status: "ready", collection: load.data, context },
         );
       })
       .catch(() => {
         if (controller.signal.aborted) return;
-        setState({ status: "unavailable" });
+        setState({ status: "unavailable", reason: "Route geometry could not be loaded." });
       });
     return () => controller.abort();
   }, [routeId]);

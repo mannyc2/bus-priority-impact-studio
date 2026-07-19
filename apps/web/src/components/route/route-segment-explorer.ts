@@ -9,9 +9,187 @@ import type {
  * Ranking, direction options, collapsed-slice, and pin resolution live here so
  * the table, readout, and map stay one deterministic contract. */
 
-export type ExplorerDirection = "all" | "NB" | "SB" | "EB" | "WB";
+export const ROUTE_DETAIL_TABS = ["segments", "riders", "history"] as const;
+export type RouteDetailTabSearch = (typeof ROUTE_DETAIL_TABS)[number];
 
-const DIRECTION_ORDER: readonly ExplorerDirection[] = ["NB", "SB", "EB", "WB"];
+export const EXPLORER_DIRECTIONS = ["NB", "SB", "EB", "WB"] as const;
+export type SegmentDirection = (typeof EXPLORER_DIRECTIONS)[number];
+export type ExplorerDirection = "all" | SegmentDirection;
+
+export const EXPLORER_DAYPARTS = ["am_peak", "midday", "pm_peak", "off_peak"] as const;
+export type ExplorerDaypart = (typeof EXPLORER_DAYPARTS)[number];
+
+/** Canonical public search surface for the route detail page. Defaults are
+ * omitted so Overview and current all-day remain short, stable URLs. */
+export type RouteDetailSearch = {
+  tab?: RouteDetailTabSearch;
+  study?: string;
+  segment?: string;
+  direction?: SegmentDirection;
+  month?: string;
+  daypart?: ExplorerDaypart;
+  lanes?: true;
+};
+
+const SEARCH_TOKEN_MAX_LENGTH = 256;
+const ISO_MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+function isMember<T extends string>(values: readonly T[], value: unknown): value is T {
+  return typeof value === "string" && (values as readonly string[]).includes(value);
+}
+
+function isBoundedSearchToken(value: unknown): value is string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > SEARCH_TOKEN_MAX_LENGTH ||
+    value.trim() !== value
+  )
+    return false;
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if (code <= 31 || code === 127) return false;
+  }
+  return true;
+}
+
+/** Router-stage validation. Route/history evidence is deliberately handled
+ * later so a loading or transiently unavailable artifact never destroys a
+ * structurally valid shared historical URL. */
+export function validateRouteDetailSearch(search: Record<string, unknown>): RouteDetailSearch {
+  const {
+    tab: rawTab,
+    study: rawStudy,
+    segment: rawSegment,
+    direction: rawDirection,
+    month: rawMonth,
+    daypart: rawDaypart,
+    lanes: rawLanes,
+  } = search;
+  const tab = isMember(ROUTE_DETAIL_TABS, rawTab) ? rawTab : undefined;
+  if (tab === undefined) return {};
+  if (tab === "history") {
+    const study = isBoundedSearchToken(rawStudy) ? rawStudy : undefined;
+    return { tab, ...(study === undefined ? {} : { study }) };
+  }
+  if (tab !== "segments") return { tab };
+
+  const segment = isBoundedSearchToken(rawSegment) ? rawSegment : undefined;
+  const direction = isMember(EXPLORER_DIRECTIONS, rawDirection) ? rawDirection : undefined;
+  const month = typeof rawMonth === "string" && ISO_MONTH.test(rawMonth) ? rawMonth : undefined;
+  const daypart =
+    month !== undefined && isMember(EXPLORER_DAYPARTS, rawDaypart) ? rawDaypart : undefined;
+
+  return {
+    tab,
+    ...(segment === undefined ? {} : { segment }),
+    ...(direction === undefined ? {} : { direction }),
+    ...(month === undefined ? {} : { month }),
+    ...(daypart === undefined ? {} : { daypart }),
+    ...(rawLanes === true ? { lanes: true as const } : {}),
+  };
+}
+
+export type RouteHistoryValidation =
+  | { status: "pending" }
+  | { status: "ready"; data: StudioRouteSpeedHistoryResponse }
+  | { status: "unavailable" };
+
+export type RouteLaneValidation = "pending" | "ready" | "unavailable";
+
+export type RouteDetailCanonicalization = {
+  search: RouteDetailSearch;
+  segmentState: "none" | "valid" | "invalid";
+  historicalState: "current" | "pending" | "ready" | "blocked" | "unavailable";
+};
+
+/** Evidence-stage normalization. A ready response may prove a route-specific
+ * value invalid; pending and request-error states preserve saved URLs. */
+export function canonicalizeRouteDetailSearch(
+  incoming: RouteDetailSearch,
+  evidence: {
+    segments: readonly Pick<StudioSegment, "direction" | "spineSegmentId">[];
+    history: RouteHistoryValidation;
+    lanes?: RouteLaneValidation;
+  },
+): RouteDetailCanonicalization {
+  const search = validateRouteDetailSearch({ ...incoming });
+  if (search.tab !== "segments") {
+    return { search, segmentState: "none", historicalState: "current" };
+  }
+
+  let segmentState: RouteDetailCanonicalization["segmentState"] = "none";
+  if (search.segment !== undefined) {
+    const matches = evidence.segments.filter(
+      (segment) => segment.spineSegmentId === search.segment,
+    );
+    const match = matches.length === 1 ? matches[0] : undefined;
+    if (match === undefined) {
+      delete search.segment;
+      segmentState = "invalid";
+    } else {
+      segmentState = "valid";
+      if (search.direction !== undefined && search.direction !== match.direction) {
+        search.direction = match.direction;
+      }
+    }
+  }
+
+  const availableDirections = directionOptions(evidence.segments).filter(
+    (direction): direction is SegmentDirection => direction !== "all",
+  );
+  if (search.direction !== undefined && !availableDirections.includes(search.direction)) {
+    delete search.direction;
+  }
+
+  let historicalState: RouteDetailCanonicalization["historicalState"] = "current";
+  if (search.month !== undefined) {
+    if (evidence.history.status === "pending") {
+      historicalState = "pending";
+    } else if (evidence.history.status === "unavailable") {
+      historicalState = "unavailable";
+    } else {
+      const history = evidence.history.data;
+      const historicalReady =
+        history.spineReadiness === "series_ready" ||
+        history.spineReadiness === "series_ready_with_gaps";
+      if (!historicalReady) {
+        delete search.month;
+        delete search.daypart;
+        historicalState = "blocked";
+      } else if (!history.dimensions.months.includes(search.month)) {
+        delete search.month;
+        delete search.daypart;
+        historicalState = "current";
+      } else {
+        historicalState = "ready";
+        if (search.daypart !== undefined && !history.dimensions.dayparts.includes(search.daypart)) {
+          delete search.daypart;
+        }
+      }
+    }
+  }
+
+  if (search.lanes === true && evidence.lanes === "unavailable") delete search.lanes;
+  return { search, segmentState, historicalState };
+}
+
+export function routeDetailSearchEquals(
+  left: RouteDetailSearch,
+  right: RouteDetailSearch,
+): boolean {
+  return (
+    left.tab === right.tab &&
+    left.study === right.study &&
+    left.segment === right.segment &&
+    left.direction === right.direction &&
+    left.month === right.month &&
+    left.daypart === right.daypart &&
+    left.lanes === right.lanes
+  );
+}
+
+const DIRECTION_ORDER: readonly SegmentDirection[] = EXPLORER_DIRECTIONS;
 
 /** Direction chips derive from the served segments — never hardcode NB/SB. */
 export function directionOptions(segments: readonly { direction: string }[]): ExplorerDirection[] {
@@ -24,7 +202,13 @@ export function directionOptions(segments: readonly { direction: string }[]): Ex
  * speed ascending; null/unavailable last; then direction, then stable id.
  * Rider-hours never controls rank. */
 export function rankSegmentsSlowestFirst<
-  T extends { id: string; direction: string; speedMph: number | null },
+  T extends {
+    id: string;
+    direction: string;
+    speedMph: number | null;
+    displayOrder?: number;
+    spineSegmentId?: string | null;
+  },
 >(segments: readonly T[], direction: ExplorerDirection): T[] {
   const filtered =
     direction === "all"
@@ -42,11 +226,17 @@ export function rankSegmentsSlowestFirst<
 }
 
 function tieBreak(
-  left: { id: string; direction: string },
-  right: { id: string; direction: string },
+  left: { id: string; direction: string; displayOrder?: number; spineSegmentId?: string | null },
+  right: { id: string; direction: string; displayOrder?: number; spineSegmentId?: string | null },
 ): number {
   if (left.direction !== right.direction) return left.direction < right.direction ? -1 : 1;
-  return left.id < right.id ? -1 : 1;
+  const leftOrder = left.displayOrder ?? Number.MAX_SAFE_INTEGER;
+  const rightOrder = right.displayOrder ?? Number.MAX_SAFE_INTEGER;
+  if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+  const leftStableId = left.spineSegmentId ?? left.id;
+  const rightStableId = right.spineSegmentId ?? right.id;
+  if (leftStableId === rightStableId) return left.id.localeCompare(right.id);
+  return leftStableId.localeCompare(rightStableId);
 }
 
 export const EXPLORER_COLLAPSED_ROW_COUNT = 8;
@@ -92,7 +282,7 @@ const LANE_PHRASE: Record<Exclude<StudioSegment["lane"], "none">, string> = {
 
 /** One plain readout line instead of the retired lane column/chips. */
 export function laneReadoutLine(lane: StudioSegment["lane"]): string {
-  if (lane === "none") return "No DOT bus lane along this stretch";
+  if (lane === "none") return "No DOT bus-lane proximity signal for this stretch";
   return `Along a DOT bus-lane street — ${LANE_PHRASE[lane]} (proximity)`;
 }
 

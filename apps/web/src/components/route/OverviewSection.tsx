@@ -10,15 +10,12 @@ import {
   routePerformanceSummary,
 } from "@/components/route/route-derived";
 import { useRouteSegmentsGeo } from "@/components/route/route-detail-data";
-import {
-  insightTargetsSegment,
-  routeInsightPlacements,
-} from "@/components/route/route-insight-placement";
 import type { RouteDetailSectionValue } from "@/components/route/section-registry";
 import { SectionCard } from "@/components/SectionCard";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type {
   RouteDossierSummaryForDetail,
   StudioRoute,
@@ -50,16 +47,6 @@ export function OverviewSection({
     : slowestByRiders
       ? `${slowestByRiders.from} to ${slowestByRiders.to} costs riders the most time`
       : null;
-  // Evidence-backed locator emphasis for the mini map: an insight-targeted
-  // segment, else the flagged one, else the top-burden one. Label only — the
-  // Segments explorer never fabricates a selection from this.
-  const mapInsights = routeInsightPlacements(data.insights).mapSegment;
-  const mapHighlightSegment =
-    segments.find((segment) =>
-      mapInsights.some((insight) => insightTargetsSegment(insight, segment.id)),
-    ) ??
-    segments.find((segment) => segment.flagged) ??
-    slowestByRiders;
   const treatments = routeTreatments(route, segments);
   const geo = useRouteSegmentsGeo(route.routeId);
 
@@ -112,13 +99,9 @@ export function OverviewSection({
           title="Route map"
           sub="Observed speed by segment."
           right={
-            <button
-              type="button"
-              onClick={() => onNavigate("map")}
-              className="inline-flex shrink-0 items-center gap-1 rounded-[3px] border border-[var(--bp-color-ink-20)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--bp-color-ink)]"
-            >
-              Full map →
-            </button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => onNavigate("map")}>
+              Explore route segments
+            </Button>
           }
           bodyClassName="flex min-h-[172px] flex-1 flex-col"
         >
@@ -130,12 +113,7 @@ export function OverviewSection({
               aria-hidden
             />
           ) : (
-            <CorridorMap
-              route={route}
-              segments={segments}
-              highlightId={mapHighlightSegment?.id}
-              mode="mini"
-            />
+            <CorridorMap route={route} segments={segments} mode="mini" />
           )}
         </SectionCard>
       </div>

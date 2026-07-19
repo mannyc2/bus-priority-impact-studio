@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { MapRouteSegmentFeature } from "@bp/domain/maps";
-import { geoSpeedColor, routeGeoMapModel } from "@/components/route/route-geo-map";
+import {
+  geoSpeedColor,
+  interactiveRouteSegmentId,
+  routeGeoMapModel,
+} from "@/components/route/route-geo-map";
 
 const BOX = { width: 1040, height: 420, padding: 44 };
 
@@ -25,6 +29,7 @@ function feature({
     geometry: { type: "LineString" as const, coordinates },
     properties: {
       segmentId: id,
+      studioSegmentId: id,
       routeId: "M15+",
       directionId,
       month: "2026-03",
@@ -106,6 +111,24 @@ describe("routeGeoMapModel", () => {
     expect(model?.segments.map((s) => s.id)).toEqual(["seg-a", "seg-b"]);
   });
 
+  test("uses active period values by exact Studio ID and preserves historical nulls", () => {
+    const model = routeGeoMapModel(
+      { features: chain },
+      {
+        ...BOX,
+        displaySpeeds: new Map([
+          ["seg-a", null],
+          ["seg-b", 4.1],
+        ]),
+      },
+    );
+    expect(model?.segments.map(({ id, speedMph }) => ({ id, speedMph }))).toEqual([
+      { id: "seg-a", speedMph: null },
+      { id: "seg-b", speedMph: 4.1 },
+    ]);
+    expect(model?.slowest?.speedMph).toBe(4.1);
+  });
+
   test("returns null for an empty collection", () => {
     expect(routeGeoMapModel({ features: [] }, BOX)).toBeNull();
   });
@@ -117,5 +140,22 @@ describe("geoSpeedColor", () => {
     expect(geoSpeedColor(5.5)).toBe("var(--bp-color-warn)");
     expect(geoSpeedColor(8)).toBe("var(--bp-color-good)");
     expect(geoSpeedColor(null)).toBe("var(--bp-color-ink-20)");
+  });
+});
+
+describe("interactiveRouteSegmentId", () => {
+  const overlapping = [
+    { properties: { studioSegmentId: "south", direction: "SB" } },
+    { properties: { studioSegmentId: "north", direction: "NB" } },
+  ];
+
+  test("uses rendered order when every direction is active", () => {
+    expect(interactiveRouteSegmentId(overlapping, "all")).toBe("south");
+  });
+
+  test("uses the direction filter to disambiguate overlapping route lines", () => {
+    expect(interactiveRouteSegmentId(overlapping, "NB")).toBe("north");
+    expect(interactiveRouteSegmentId(overlapping, "SB")).toBe("south");
+    expect(interactiveRouteSegmentId(overlapping, "EB")).toBeNull();
   });
 });

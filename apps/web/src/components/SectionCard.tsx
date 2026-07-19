@@ -18,7 +18,7 @@ export function SectionCard({
 }) {
   return (
     <section className="flex flex-col rounded-[3px] bg-[var(--bp-color-card)] p-[18px] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <div className="mb-3.5 flex items-end justify-between gap-4">
+      <div className="mb-3.5 flex items-end justify-between gap-4 max-md:flex-col max-md:items-stretch">
         <div className="min-w-0">
           <h2 className="m-0 text-[15px] font-semibold leading-tight tracking-[-0.005em]">
             {title}
@@ -29,7 +29,7 @@ export function SectionCard({
             </div>
           ) : null}
         </div>
-        {right ? <div className="shrink-0">{right}</div> : null}
+        {right ? <div className="shrink-0 max-md:w-full">{right}</div> : null}
       </div>
       <div className={bodyClassName ?? "min-w-0"}>{children}</div>
     </section>

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  canonicalizeRouteDetailSearch,
   coverageThroughLabel,
   deltaBarShare,
   directionOptions,
@@ -9,6 +10,8 @@ import {
   latestSlowestWindow,
   rankSegmentsSlowestFirst,
   resolvePinnedSegment,
+  routeDetailSearchEquals,
+  validateRouteDetailSearch,
   visibleSegments,
 } from "../../src/components/route/route-segment-explorer";
 
@@ -42,6 +45,116 @@ describe("rankSegmentsSlowestFirst", () => {
       "NB",
     );
     expect(ranked.map((s) => s.id)).toEqual(["c", "a"]);
+  });
+
+  test("ties use direction, display order, then stable identity", () => {
+    const ranked = rankSegmentsSlowestFirst(
+      [
+        { ...seg("z", "NB", 6, "spine-z"), displayOrder: 4 },
+        { ...seg("a", "NB", 6, "spine-a"), displayOrder: 2 },
+        { ...seg("b", "NB", 6, "spine-b"), displayOrder: 2 },
+      ],
+      "all",
+    );
+    expect(ranked.map((segment) => segment.id)).toEqual(["a", "b", "z"]);
+  });
+});
+
+describe("route detail search", () => {
+  test("keeps bounded segment controls and drops impossible combinations/defaults", () => {
+    expect(
+      validateRouteDetailSearch({
+        tab: "segments",
+        segment: "stable-1",
+        direction: "EB",
+        month: "2026-02",
+        daypart: "pm_peak",
+        lanes: true,
+        study: "wrong-tab",
+      }),
+    ).toEqual({
+      tab: "segments",
+      segment: "stable-1",
+      direction: "EB",
+      month: "2026-02",
+      daypart: "pm_peak",
+      lanes: true,
+    });
+    expect(
+      validateRouteDetailSearch({ tab: "segments", month: "2026-13", daypart: "midday" }),
+    ).toEqual({ tab: "segments" });
+    expect(validateRouteDetailSearch({ tab: "riders", segment: "stable-1", lanes: true })).toEqual({
+      tab: "riders",
+    });
+    expect(validateRouteDetailSearch({ tab: "overview" })).toEqual({});
+  });
+
+  test("a unique incoming pin wins a conflicting direction; an unknown pin is dropped", () => {
+    const history = { status: "pending" } as const;
+    const segments = [
+      { direction: "NB" as const, spineSegmentId: "north" },
+      { direction: "SB" as const, spineSegmentId: "south" },
+    ];
+    expect(
+      canonicalizeRouteDetailSearch(
+        { tab: "segments", segment: "south", direction: "NB", month: "2026-02" },
+        { segments, history },
+      ),
+    ).toMatchObject({
+      search: { tab: "segments", segment: "south", direction: "SB", month: "2026-02" },
+      segmentState: "valid",
+      historicalState: "pending",
+    });
+    expect(
+      canonicalizeRouteDetailSearch(
+        { tab: "segments", segment: "missing", direction: "NB" },
+        { segments, history },
+      ),
+    ).toMatchObject({ search: { tab: "segments", direction: "NB" }, segmentState: "invalid" });
+  });
+
+  test("ready evidence removes only unsupported periods; pending/error preserve shared history", () => {
+    const segments = [
+      { direction: "NB" as const, spineSegmentId: "north" },
+      { direction: "SB" as const, spineSegmentId: "south" },
+    ];
+    const data = {
+      spineReadiness: "series_ready",
+      dimensions: { months: ["2026-01"], dayparts: ["am_peak"] },
+    } as never;
+    const incoming = {
+      tab: "segments" as const,
+      month: "2026-01",
+      daypart: "pm_peak" as const,
+    };
+    expect(
+      canonicalizeRouteDetailSearch(incoming, { segments, history: { status: "ready", data } })
+        .search,
+    ).toEqual({ tab: "segments", month: "2026-01" });
+    expect(
+      canonicalizeRouteDetailSearch(incoming, { segments, history: { status: "pending" } }).search,
+    ).toEqual(incoming);
+    expect(
+      canonicalizeRouteDetailSearch(incoming, { segments, history: { status: "unavailable" } })
+        .search,
+    ).toEqual(incoming);
+  });
+
+  test("pattern-review history cannot activate coloring and unavailable lanes canonicalize off", () => {
+    const result = canonicalizeRouteDetailSearch(
+      { tab: "segments", month: "2026-01", lanes: true },
+      {
+        segments: [],
+        history: {
+          status: "ready",
+          data: { spineReadiness: "needs_pattern_review", dimensions: { months: [] } } as never,
+        },
+        lanes: "unavailable",
+      },
+    );
+    expect(result.search).toEqual({ tab: "segments" });
+    expect(result.historicalState).toBe("blocked");
+    expect(routeDetailSearchEquals(result.search, { tab: "segments" })).toBe(true);
   });
 });
 
@@ -102,7 +215,7 @@ describe("deltaBarShare", () => {
 
 describe("laneReadoutLine", () => {
   test("plain phrases, proxy-labeled", () => {
-    expect(laneReadoutLine("none")).toBe("No DOT bus lane along this stretch");
+    expect(laneReadoutLine("none")).toBe("No DOT bus-lane proximity signal for this stretch");
     expect(laneReadoutLine("partial")).toContain("part of this stretch");
     expect(laneReadoutLine("partial")).toContain("(proximity)");
   });

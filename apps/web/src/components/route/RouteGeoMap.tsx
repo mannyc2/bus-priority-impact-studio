@@ -20,11 +20,13 @@ export function RouteGeoMap({
   collection,
   context = null,
   highlightId,
+  displaySpeeds,
   variant = "full",
 }: {
   collection: Pick<MapRouteSegmentFeatureCollection, "features">;
   context?: RouteGeoContext | null;
   highlightId?: string | undefined;
+  displaySpeeds?: ReadonlyMap<string, number | null> | undefined;
   variant?: "full" | "mini";
 }) {
   const { width: WIDTH, height: HEIGHT, padding: PADDING } = SIZES[variant];
@@ -36,9 +38,10 @@ export function RouteGeoMap({
         height: HEIGHT,
         padding: PADDING,
         context,
+        ...(displaySpeeds === undefined ? {} : { displaySpeeds }),
         marginPct: mini ? 0.12 : 0.18,
       }),
-    [collection, context, WIDTH, HEIGHT, PADDING, mini],
+    [collection, context, displaySpeeds, WIDTH, HEIGHT, PADDING, mini],
   );
 
   if (model === null) {
@@ -80,7 +83,7 @@ export function RouteGeoMap({
       ) : null}
 
       {/* slowest-stretch glow under everything */}
-      {model.slowest !== null ? (
+      {model.slowest !== null && !mini ? (
         <circle
           cx={model.slowest.x}
           cy={model.slowest.y}
@@ -110,7 +113,10 @@ export function RouteGeoMap({
           d={segment.d}
           fill="none"
           stroke={geoSpeedColor(segment.speedMph)}
-          strokeWidth={(segment.id === highlightId || segment.slowest ? 6 : 4) * (mini ? 0.75 : 1)}
+          strokeDasharray={segment.speedMph === null ? "5 4" : undefined}
+          strokeWidth={
+            (segment.id === highlightId || (!mini && segment.slowest) ? 6 : 4) * (mini ? 0.75 : 1)
+          }
           strokeLinecap="round"
           strokeLinejoin="round"
         >

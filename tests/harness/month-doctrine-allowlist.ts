@@ -40,6 +40,13 @@ export const MONTH_DOCTRINE_ALLOWLIST = [
     note: "Plan 085 renames the two legacy serving-quality literals.",
   },
   {
+    file: "apps/web/src/components/route/route-fact-evidence.ts",
+    rule: "retired-identity-token",
+    count: 1,
+    disposition: "retire-085",
+    note: "Plan 085 migrates the isolated Studio detail parity read to coverage identity.",
+  },
+  {
     file: "apps/web/wrangler.jsonc",
     rule: "pinned-identity-month",
     count: 2,

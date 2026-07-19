@@ -112,6 +112,14 @@ function presentationHarness() {
 }
 
 describe("MapLibre loader and runtime", () => {
+  test("shared map CSS does not override each surface's concrete minimum height", async () => {
+    const css = await Bun.file(new URL("../../src/global.css", import.meta.url)).text();
+    const sharedMapRule = css.match(/\.bp-bus-map\s*\{[^}]*\}/)?.[0] ?? "";
+
+    expect(sharedMapRule).toContain("height: 100%");
+    expect(sharedMapRule).not.toContain("min-height");
+  });
+
   test("preload is a guarded, deduplicated hint that retries after rejection", async () => {
     let available = false;
     let componentLoads = 0;

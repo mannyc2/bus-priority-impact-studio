@@ -626,11 +626,18 @@ export async function fetchMapContext(options?: StudioQueryOptions) {
   return load.status === "ready" ? load.data : null;
 }
 
-/** Fetch the precomputed route-segment GeoJSON for one route, via the map manifest. */
-export async function fetchRouteSegmentsGeo(routeId: string, options?: StudioQueryOptions) {
+/** Fetch the precomputed route-segment GeoJSON through the manifest/hash
+ * boundary while preserving integrity and contract failure states. */
+export async function fetchRouteSegmentsGeoLoad(routeId: string, options?: StudioQueryOptions) {
   const manifest = await fetchMapManifest(options);
-  if (manifest === null) return null;
-  const segments = await fetchRouteSegmentsLoad(manifest, routeId, options);
+  if (manifest === null)
+    return { status: "unavailable", reason: "Map manifest is unavailable." } as const;
+  return fetchRouteSegmentsLoad(manifest, routeId, options);
+}
+
+/** Compatibility helper for locator surfaces that need only ready geometry. */
+export async function fetchRouteSegmentsGeo(routeId: string, options?: StudioQueryOptions) {
+  const segments = await fetchRouteSegmentsGeoLoad(routeId, options);
   return segments.status === "ready" ? segments.data : null;
 }
 
