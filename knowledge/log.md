@@ -8662,3 +8662,48 @@ source data, publication pointer, D1/R2 state, deployment, or production endpoin
 Verification passed: 4 focused freshness/registry tests, all 404 pipeline-v2 tests, the
 pipeline-v2 typecheck, knowledge validation, and the month-doctrine gate. A single comprehensive
 repository pre-push pass also passed, including all 284 web and 22 Worker tests.
+
+## [2026-07-20] engineering | Plan 091 exact route intervention inventory complete
+
+Promoted the existing route-treatment materializer into a strict, exact-route
+Studio inventory. The public contract preserves source-backed treatments,
+distinct occurrences, derived current state, lightweight project references,
+source gaps, exact route identity, and stable source lineage in separate lanes.
+The CLI fails closed on unreviewed non-Wiki vocabulary, verifies the immutable
+MTA Wiki release and companion artifacts, accepts producer-reviewed unresolved
+rc25 semantics only as partial source gaps, and writes each artifact atomically
+without replacing sibling route artifacts.
+
+The local real-data preflight used Studio release
+`pub_20260718T180527000Z`, MTA Wiki `v1-rc25`, and manifest SHA-256
+`77e518a5de39e9fc982d09b7677d44059d26de69b04d9fe10841d6c478516f0f`.
+Vocabulary reconciliation was exact over 188 reviewed non-Wiki literals and
+all 2,938 Wiki treatment records. The export produced 375 exact-route bundles,
+2,827 facet rows across 338 routes, 2,244 route-projected treatments (1,232
+stable treatment IDs), and 583 projected occurrences. Source-treatment
+reconciliation closed exactly at 4,590 = 1,980 mapped + 327 explicitly
+`other_documented` + 2,283 producer-unresolved. All 375 bundles honestly report
+partial coverage while rc25 semantics, route evidence, occurrence projection,
+and 172 local-registry source-gap sentinels remain incomplete. Exact Q27, B57,
+and B44+ unresolved scopes stayed on their authorized routes and did not fan
+out through project membership.
+
+Real canonical sizes required the approved budget amendment: the route index
+is 284,236 bytes under a 320 KiB ceiling, the facet index is 1,593,406 bytes
+under a 2 MiB ceiling, and the largest route bundle is B44 at 51,504 bytes
+under 128 KiB. The route bundles total 4,083,418 bytes. SHA-256 receipts are
+`54a2bb6c875ee7da1ed0f706aa518531a76f78f6f032c428dcdd5264b6fb2334`
+for the route index,
+`7dd60674caa5c59c40f22303b33441126088049b5c7bd9c6d6755d5e246fbe81`
+for the facet index, and
+`d6bd66665de268fa42ed891b37e39201819ca63fa2bc6df6425e777fa9e4be07`
+for reconciliation. Two isolated exports were byte-identical.
+
+Verification passed the 45-test exact-route dependency matrix, 112 domain
+tests, 137 analytics tests, all focused materializer/CLI tests, knowledge
+validation, and the comprehensive pre-push pass: root TypeScript, repository
+style, 22 production-boundary tests, 5 design-doctrine tests, 10 month-doctrine
+tests, 876 unit tests, 284 web tests, and 22 Worker tests. The Worker harness
+required its normal localhost bind outside the sandbox. No production release,
+D1/R2 object, source snapshot, deployment, or mutable release pointer was
+changed.
