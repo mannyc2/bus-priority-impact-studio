@@ -1003,10 +1003,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           routes: "public_visible_routes",
           months: "latest_month",
         },
-        requiredInputs: [
-          "studio_route_intervention_inventory",
-          "studio_intervention_facet_index",
-        ],
+        requiredInputs: ["studio_route_intervention_inventory", "studio_intervention_facet_index"],
         downstreamConsumers: ["publication gate", "operator review"],
         freshnessPolicy: { cadence: "manual" },
         checks: [
