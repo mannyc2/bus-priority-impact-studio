@@ -37,6 +37,34 @@
 - **Dependency reconciliation**: commit `ac940967`, 2026-07-18; exact route
   identity plus Plans 091/092 supersede the historical rc23/UI premises
 
+## Approved comp decisions — 2026-07-20
+
+The operator approved the Plan 082 comp at
+`plans/mockups/082-overview-trend-markers/comp.html` with D1-D6 unchanged.
+These decisions are the binding implementation and acceptance target:
+
+- **D1 — marker anatomy**: render a quiet dashed vertical rule with an inline
+  plain-language label from Plan 092's typed presentation helper.
+- **D2 — same-month clustering**: render one marker per month. A cluster label
+  reports the number of distinct occurrences; it does not stack labels.
+- **D3 — marker cap**: retain at most four marker months, keeping the most
+  recent, with no overflow hint. The real v1 corpus has at most two eligible
+  marker months on any route (44 routes have one and 14 have two), so the cap
+  is a latent safety bound rather than active v1 truncation.
+- **D4 — month ticks**: show the first and last displayed months and remove the
+  redundant source-date line.
+- **D5 — missing observations**: preserve explicit null months as visible
+  gaps; never connect or collapse them.
+- **D6 — typed fallback**: when observations are null, unsupported, or have no
+  usable speed binding, show the dossier's calendar series with zero markers
+  and no unavailable-annotation treatment.
+
+The approval used the canonical Plan 090 export (401 events; 72 events with a
+usable metric series). No real route has two eligible occurrences in the same
+month, so the comp's clearly labeled B11 synthetic occurrence exists only to
+exercise D2's latent cluster anatomy. Six events resolve as missing, providing
+real D6 fallback cases.
+
 ## Binding amendment — typed observation bundle (2026-07-18)
 
 This amendment replaces the plan's original event-admission and data-flow
