@@ -39,39 +39,18 @@ export type RouteSpeedTrendModel = {
 type ObservationEvent = StudioRouteInterventionObservationBundle["events"][number];
 type ObservationSeries = ObservationEvent["series"][number];
 
-type SpeedBindingDefinition = {
-  treatmentKind: ObservationEvent["treatmentKind"];
-  analysisFamily: Exclude<ObservationEvent["analysisFamily"], null>;
-  specId: Exclude<ObservationEvent["specId"], null>;
-  presentationPriority: number;
-};
-
 type EligibleEvent = {
   event: ObservationEvent;
   series: ObservationSeries;
-  binding: SpeedBindingDefinition;
 };
 
-const SPEED_BINDINGS = {
-  [ROUTE_SPEED_OBSERVATION_BINDING_ID]: {
-    treatmentKind: "automated_bus_lane_enforcement",
-    analysisFamily: "automated_bus_lane_enforcement",
-    specId: "automated_bus_lane_enforcement_route_observations_v1",
-    presentationPriority: 1,
-  },
-  [BUS_LANE_ROUTE_SPEED_OBSERVATION_BINDING_ID]: {
-    treatmentKind: "bus_lane",
-    analysisFamily: "bus_lane",
-    specId: "bus_lane_route_observations_v1",
-    presentationPriority: 1,
-  },
-  [BUSWAY_ROUTE_SPEED_OBSERVATION_BINDING_ID]: {
-    treatmentKind: "busway",
-    analysisFamily: "busway",
-    specId: "busway_route_observations_v1",
-    presentationPriority: 1,
-  },
-} as const satisfies Partial<Record<ObservationSeries["bindingId"], SpeedBindingDefinition>>;
+const SPEED_TREATMENT_BY_BINDING = {
+  [ROUTE_SPEED_OBSERVATION_BINDING_ID]: "automated_bus_lane_enforcement",
+  [BUS_LANE_ROUTE_SPEED_OBSERVATION_BINDING_ID]: "bus_lane",
+  [BUSWAY_ROUTE_SPEED_OBSERVATION_BINDING_ID]: "busway",
+} as const satisfies Partial<
+  Record<ObservationSeries["bindingId"], ObservationEvent["treatmentKind"]>
+>;
 
 const MONTH_NAMES = [
   "Jan",
@@ -116,17 +95,18 @@ export function routeSpeedInterventionTrend(
   const eligible: EligibleEvent[] = [];
   for (const event of observations.events) {
     for (const series of event.series) {
-      const binding = SPEED_BINDINGS[series.bindingId as keyof typeof SPEED_BINDINGS];
+      const treatmentKind =
+        SPEED_TREATMENT_BY_BINDING[series.bindingId as keyof typeof SPEED_TREATMENT_BY_BINDING];
       if (
-        binding !== undefined &&
-        event.treatmentKind === binding.treatmentKind &&
-        event.analysisFamily === binding.analysisFamily &&
-        event.specId === binding.specId &&
+        treatmentKind !== undefined &&
+        event.treatmentKind === treatmentKind &&
+        event.analysisFamily === treatmentKind &&
+        event.specId === `${treatmentKind}_route_observations_v1` &&
         series.metricId === ROUTE_SPEED_OBSERVATION_METRIC_ID &&
         (series.status === "available" || series.status === "partial") &&
         series.points.some((point) => point.value !== null)
       ) {
-        eligible.push({ event, series, binding });
+        eligible.push({ event, series });
         break;
       }
     }
@@ -140,11 +120,10 @@ export function routeSpeedInterventionTrend(
   const contextual =
     focal.series.role === "context" &&
     (focal.event.geographyScope === "corridor" || focal.event.geographyScope === "segment");
-  const methodLimitation = contextual
-    ? (focal.series.limitations.find(
-        (limitation) => limitation === ROUTE_CONTEXT_METHOD_LIMITATION,
-      ) ?? null)
-    : null;
+  const methodLimitation =
+    contextual && focal.series.limitations.includes(ROUTE_CONTEXT_METHOD_LIMITATION)
+      ? ROUTE_CONTEXT_METHOD_LIMITATION
+      : null;
   if (contextual && methodLimitation === null) {
     return dossierFallback(dossierPoints, [...observations.limitations, "context"]);
   }
@@ -210,8 +189,8 @@ export function routeSpeedInterventionTrend(
 }
 
 function compareFocalEvents(left: EligibleEvent, right: EligibleEvent): number {
+  // All admitted v1 speed bindings have fixed registry priority 1.
   return (
-    left.binding.presentationPriority - right.binding.presentationPriority ||
     right.event.implementationMonth.localeCompare(left.event.implementationMonth) ||
     right.event.eventId.localeCompare(left.event.eventId)
   );
