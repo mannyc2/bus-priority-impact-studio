@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { StudyEventCandidateV3 } from "@bp/domain/studio/study";
+import type { StudyEventCandidateV3, StudyPhysicalScopeBinding } from "@bp/domain/studio/study";
 import { eventRouteExclusions } from "../../src/lib/study-engine/interference.ts";
-import { admitStudyTreatmentScope } from "../../src/lib/study-engine/scope.ts";
+import {
+  admitStudyTreatmentScope,
+  selectExactGeometryFeatures,
+} from "../../src/lib/study-engine/scope.ts";
 
 function registryProvenance(routeId = "M15+"): StudyEventCandidateV3["provenance"][number] {
   return {
@@ -47,6 +50,28 @@ function candidate(overrides: Partial<StudyEventCandidateV3> = {}): StudyEventCa
     treatmentScopeKind: "atomic",
     componentTreatmentFamilies: ["automated_bus_lane_enforcement"],
     provenance: [registryProvenance()],
+    ...overrides,
+  };
+}
+
+function flatbushBinding(
+  overrides: Partial<StudyPhysicalScopeBinding> = {},
+): StudyPhysicalScopeBinding {
+  return {
+    candidateId: "study-event-v2:treated",
+    routeId: "B41",
+    occurrenceId: "occurrence:8c987704152b459014217d44",
+    physicalScopeRecordIds: ["corridor_flatbush-phase1-livingston-state"],
+    geometrySourceId: "nyc_dot_bus_lanes",
+    geometryFeatureIds: ["0022938", "0022942"],
+    selectedGeometryRowsSha256: "f".repeat(64),
+    speedSpineSha256: "1".repeat(64),
+    segmentBindings: [
+      {
+        sourceSegmentId: "B41:2026-03:N:48:303254:901007",
+        spineSegmentId: "b41-n-node-012-node-013",
+      },
+    ],
     ...overrides,
   };
 }
@@ -134,6 +159,47 @@ describe("study treatment-scope admission", () => {
     ).toEqual({ status: "rejected", reason: "bounded_scope_binding_required" });
   });
 
+  test("admits a bounded occurrence only with its exact reviewed binding", () => {
+    const bounded = candidate({
+      routeId: "B41",
+      treatmentFamily: "bus_lane",
+      provenance: [
+        {
+          ...registryProvenance("B41"),
+          sourceKind: "mta_wiki",
+          sourceId: "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+          occurrenceId: "occurrence:8c987704152b459014217d44",
+          releaseId: "v1-rc25",
+          manifestSha256: "a".repeat(64),
+          artifactSha256: "b".repeat(64),
+          physicalScopeRecordIds: ["corridor_flatbush-phase1-livingston-state"],
+          physicalScopeRelationRecordIds: ["relation:flatbush-phase1"],
+          physicalScopeEvidenceBindings: [
+            {
+              role: "physical_scope",
+              record_id: "relation:flatbush-phase1",
+              source_id: "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+              evidence_id: "flatbush#p004_c0002",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(admitStudyTreatmentScope(bounded, flatbushBinding())).toEqual({
+      status: "admitted",
+      scope: "lane_overlap_spines",
+      evidence: "exact_physical_scope_binding",
+      binding: flatbushBinding(),
+    });
+    expect(
+      admitStudyTreatmentScope(
+        bounded,
+        flatbushBinding({ physicalScopeRecordIds: ["corridor:wrong"] }),
+      ),
+    ).toEqual({ status: "rejected", reason: "bounded_scope_binding_mismatch" });
+  });
+
   test("rejects lane families with missing physical-scope evidence", () => {
     expect(
       admitStudyTreatmentScope(
@@ -148,5 +214,22 @@ describe("study treatment-scope admission", () => {
         }),
       ),
     ).toEqual({ status: "rejected", reason: "bounded_scope_evidence_missing" });
+  });
+});
+
+describe("exact geometry selection", () => {
+  test("returns only the reviewed IDs and rejects a missing feature", () => {
+    const features = [
+      { segmentId: "0022938", value: 1 },
+      { segmentId: "other", value: 2 },
+      { segmentId: "0022942", value: 3 },
+    ];
+    expect(selectExactGeometryFeatures(features, new Set(["0022942", "0022938"]))).toEqual([
+      { segmentId: "0022938", value: 1 },
+      { segmentId: "0022942", value: 3 },
+    ]);
+    expect(() => selectExactGeometryFeatures(features, new Set(["missing"]))).toThrow(
+      "Missing exact treatment geometry feature(s): missing",
+    );
   });
 });

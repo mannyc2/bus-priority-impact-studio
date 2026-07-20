@@ -4,7 +4,11 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createLocalPipelineDb } from "@bp/db/local";
-import type { StudyArtifact, StudyEventCandidateV3 } from "@bp/domain/studio/study";
+import type {
+  StudyArtifact,
+  StudyEventCandidateV3,
+  StudyPhysicalScopeBindingsArtifact,
+} from "@bp/domain/studio/study";
 import { runSegmentStudies, writeStudyArtifactSet } from "../../../src/commands/study/run.ts";
 
 const roots: string[] = [];
@@ -189,6 +193,48 @@ function approvedV3EventSet(input: {
   };
 }
 
+function physicalScopeBindings(input: {
+  candidate: StudyEventCandidateV3;
+  candidateSetId?: string;
+}): StudyPhysicalScopeBindingsArtifact {
+  const occurrenceId = input.candidate.occurrenceId;
+  if (occurrenceId === null) throw new Error("Physical-scope fixture requires an occurrence id");
+  return {
+    artifactKind: "bp.studio.study_physical_scope_bindings.v1",
+    schemaVersion: 1,
+    candidateSetId: input.candidateSetId ?? "candidate-set-v3:fixture",
+    analysisMonth: "2026-03",
+    sourceRelease: {
+      releaseId: "v1-rc25",
+      manifestSha256: "a".repeat(64),
+      occurrencesSha256: "b".repeat(64),
+    },
+    inputs: {
+      busLaneSnapshotSha256: "c".repeat(64),
+      routeShapeSnapshotSha256: "d".repeat(64),
+      stopSnapshotSha256: "e".repeat(64),
+    },
+    bindings: [
+      {
+        candidateId: input.candidate.candidateId,
+        routeId: input.candidate.routeId,
+        occurrenceId,
+        physicalScopeRecordIds: ["corridor_flatbush-phase1-livingston-state"],
+        geometrySourceId: "nyc_dot_bus_lanes",
+        geometryFeatureIds: ["0022938"],
+        selectedGeometryRowsSha256: "f".repeat(64),
+        speedSpineSha256: "1".repeat(64),
+        segmentBindings: [
+          {
+            sourceSegmentId: "B41:2026-03:N:48:303254:901007",
+            spineSegmentId: "b41-n-node-012-node-013",
+          },
+        ],
+      },
+    ],
+  };
+}
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -345,6 +391,102 @@ describe("study run artifact writer", () => {
         routeWideEvidenceMissingCount: 1,
         laneFallbackStudyCount: 0,
       });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("admits an exact bounded-scope binding and rejects a stale candidate-set binding", async () => {
+    const root = await mkdtemp(join(tmpdir(), "bp-study-bounded-scope-gate-"));
+    roots.push(root);
+    const artifact = study({ eventKey: "event-flatbush", routeId: "B41", effectMph: 1 });
+    const bounded = v3Candidate(artifact, {
+      treatmentFamily: "bus_lane",
+      occurrenceId: "occurrence:8c987704152b459014217d44",
+      provenance: [
+        {
+          ...v3Provenance(artifact),
+          sourceKind: "mta_wiki",
+          sourceId: "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+          occurrenceId: "occurrence:8c987704152b459014217d44",
+          releaseId: "v1-rc25",
+          manifestSha256: "a".repeat(64),
+          artifactSha256: "b".repeat(64),
+          physicalScopeRecordIds: ["corridor_flatbush-phase1-livingston-state"],
+          physicalScopeRelationRecordIds: ["relation:flatbush-phase1"],
+          physicalScopeEvidenceBindings: [
+            {
+              role: "physical_scope",
+              record_id: "relation:flatbush-phase1",
+              source_id: "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+              evidence_id: "flatbush#p004_c0002",
+            },
+          ],
+        },
+      ],
+    });
+    const eventSetPath = join(root, "approved-events.json");
+    const scopeBindingsPath = join(root, "scope-bindings.json");
+    await writeFile(
+      eventSetPath,
+      `${JSON.stringify(
+        approvedV3EventSet({
+          candidates: [bounded],
+          approvedIds: new Set([bounded.candidateId]),
+        }),
+      )}\n`,
+    );
+    await writeFile(
+      scopeBindingsPath,
+      `${JSON.stringify(physicalScopeBindings({ candidate: bounded }))}\n`,
+    );
+    const sqlite = new Database(":memory:");
+    try {
+      const admittedScopes: string[] = [];
+      const result = await runSegmentStudies({
+        local: {
+          sqlite,
+          db: createLocalPipelineDb(sqlite),
+          path: ":memory:",
+          spatialite: null,
+        },
+        analysisMonth: "2026-03",
+        artifactRoot: root,
+        eventSetPath,
+        scopeBindingsPath,
+        buildStudy: async ({ scopeAdmission }) => {
+          admittedScopes.push(scopeAdmission.scope);
+          return artifact;
+        },
+      });
+      expect(admittedScopes).toEqual(["lane_overlap_spines"]);
+      expect(result).toMatchObject({
+        studyCount: 1,
+        scopeIneligibleStudyCount: 0,
+        boundedScopeBindingMismatchCount: 0,
+      });
+
+      await writeFile(
+        scopeBindingsPath,
+        `${JSON.stringify(
+          physicalScopeBindings({ candidate: bounded, candidateSetId: "candidate-set-v3:stale" }),
+        )}\n`,
+      );
+      await expect(
+        runSegmentStudies({
+          local: {
+            sqlite,
+            db: createLocalPipelineDb(sqlite),
+            path: ":memory:",
+            spatialite: null,
+          },
+          analysisMonth: "2026-03",
+          artifactRoot: root,
+          eventSetPath,
+          scopeBindingsPath,
+          buildStudy: async () => artifact,
+        }),
+      ).rejects.toThrow("Physical-scope binding artifact is stale");
     } finally {
       sqlite.close();
     }

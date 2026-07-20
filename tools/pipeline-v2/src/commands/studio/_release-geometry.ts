@@ -10,6 +10,7 @@ import {
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 import type { SocrataRow } from "../../lib/soda3.ts";
+import { selectExactGeometryFeatures } from "../../lib/study-engine/scope.ts";
 import type {
   BBox,
   BusLanePath,
@@ -804,6 +805,7 @@ export async function segmentLaneOverlapIndex(args: {
   routeShapeSnapshotPath: string;
   stopSnapshotPath: string;
   routeInputs: ReadonlyMap<string, RouteBriefInputArtifact | null>;
+  allowedLaneSegmentIdsByRoute?: ReadonlyMap<string, ReadonlySet<string>> | undefined;
 }): Promise<Map<string, Map<string, SegmentLaneOverlap>>> {
   const routeIds = [...args.routeInputs.keys()].sort();
   const lanes = await runLocalDbCommandBoundary({
@@ -851,6 +853,11 @@ export async function segmentLaneOverlapIndex(args: {
   const lanePaths = busLanePaths(lanes);
 
   for (const [routeId, artifact] of args.routeInputs) {
+    const allowedLaneSegmentIds = args.allowedLaneSegmentIdsByRoute?.get(routeId);
+    const routeLanePaths =
+      allowedLaneSegmentIds === undefined
+        ? lanePaths
+        : selectExactGeometryFeatures(lanePaths, allowedLaneSegmentIds);
     const bySegment = new Map<string, SegmentLaneOverlap>();
     for (const segment of artifact?.segments ?? artifact?.topSegments ?? []) {
       const parsed = parseRouteBriefSegmentId(segment);
@@ -876,7 +883,7 @@ export async function segmentLaneOverlapIndex(args: {
         segment.segmentId,
         segmentCoordinates === null
           ? unavailableLaneOverlap()
-          : laneOverlapForSegment(segmentCoordinates, lanePaths),
+          : laneOverlapForSegment(segmentCoordinates, routeLanePaths),
       );
     }
     output.set(routeId, bySegment);
