@@ -8642,3 +8642,23 @@ tests; CLI help smoke checks; the two fixture-backed publish-completeness cases;
 knowledge validation; and all exact Plan 086 zero-hit grep gates.
 The comprehensive `check:prepush` gate then passed, including all 284 web and
 22 Worker tests.
+
+## [2026-07-20] engineering | Plan 087 freshness ledger complete
+
+Added the offline `audit freshness` operator report for eight serving-source families. The ledger
+compares honest upstream probes, local SQLite coverage, and the newest valid D1/map publication by
+`publishedAt`; it writes one schema-validated artifact and displays rows worst-first. Shared
+`current | recent | stale | unknown` semantics classify the larger ingestion/publication lag, while
+`--strict` fails only verified stale serving-critical rows. Unsupported snapshot probes remain
+explicitly unknown, and legacy summaries never regain publication identity through directory-name
+inference.
+
+The source-refresh copy no longer uses monthly-release language, and the exact Plan 087 retirement
+entry was removed from the shrink-only month-doctrine allowlist. The new runbook defines cadence,
+row semantics, caveats, and the current local evidence gap: the available legacy 2026-05 D1 summary
+lacks post-cutover publication fields and therefore cannot prove current published coverage. No
+source data, publication pointer, D1/R2 state, deployment, or production endpoint was mutated.
+
+Verification passed: 4 focused freshness/registry tests, all 404 pipeline-v2 tests, the
+pipeline-v2 typecheck, knowledge validation, and the month-doctrine gate. A single comprehensive
+repository pre-push pass also passed, including all 284 web and 22 Worker tests.
