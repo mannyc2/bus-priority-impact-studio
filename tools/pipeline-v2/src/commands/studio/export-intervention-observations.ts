@@ -16,8 +16,10 @@ import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { loadInterventionObservationTrendRows } from "@bp/pipeline-v2/local-db-aggregates";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import {
-  buildInterventionObservationArtifacts,
   type InterventionObservationAdmissionSummary,
+  type InterventionObservationResolutionSummary,
+  materializeInterventionObservationArtifacts,
+  prepareInterventionObservationArtifacts,
 } from "../../lib/intervention-observations.ts";
 import { readJsonArtifact, writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -37,7 +39,10 @@ export type ExportInterventionObservationsResult = {
   readonly eventCount: number;
   readonly admittedAnchorCount: number;
   readonly rejectedAnchorCount: number;
+  readonly exactDeduplicationCount: number;
   readonly admissionReasonCounts: InterventionObservationAdmissionSummary["admissionReasonCounts"];
+  readonly relevanceReasonCounts: InterventionObservationAdmissionSummary["relevanceReasonCounts"];
+  readonly resolutionSummary: InterventionObservationResolutionSummary;
   readonly supportedEventCount: number;
   readonly unsupportedEventCount: number;
   readonly availableSeriesCount: number;
@@ -198,16 +203,20 @@ export async function runExportInterventionObservations(input: {
     inventoryIndexPath,
     release,
   });
-  const trendRows = loadInterventionObservationTrendRows({ sqlite: input.local.sqlite });
-  const built = buildInterventionObservationArtifacts({
+  const preparation = prepareInterventionObservationArtifacts({
     inventoryBundles,
-    trendRows,
     releaseId: release.releaseId,
     publishedAt: release.publishedAt,
+    coverage: release.coverage,
   });
-  if (built.admissionSummary.admittedAnchorCount === 0) {
-    throw new Error("No trusted registry occurrence anchors were admitted");
+  if (preparation.admissionSummary.admittedAnchorCount === 0) {
+    throw new Error("No descriptive intervention occurrence anchors were admitted");
   }
+  const trendRows = loadInterventionObservationTrendRows({ sqlite: input.local.sqlite });
+  const built = materializeInterventionObservationArtifacts({
+    preparation,
+    trendRows,
+  });
 
   const bundles = built.bundles.map((bundle) =>
     Schema.decodeUnknownSync(StudioRouteInterventionObservationBundleSchema, {
@@ -228,12 +237,19 @@ export async function runExportInterventionObservations(input: {
     }
   }
 
-  for (const bundle of bundles) {
-    const path = artifactPath(artifactRoot, interventionObservationBundleKey(bundle.routeSlug));
-    await mkdir(dirname(path), { recursive: true });
-    await writeJson(path, bundle);
-  }
   const indexPath = artifactPath(artifactRoot, interventionObservationIndexKey());
+  const bundleOutputs = bundles.map((bundle) => ({
+    bundle,
+    path: artifactPath(artifactRoot, interventionObservationBundleKey(bundle.routeSlug)),
+  }));
+  const outputPaths = [...bundleOutputs.map((output) => output.path), indexPath];
+  if (new Set(outputPaths).size !== outputPaths.length) {
+    throw new Error("Observation output paths must be unique before writing");
+  }
+  for (const output of bundleOutputs) {
+    await mkdir(dirname(output.path), { recursive: true });
+    await writeJson(output.path, output.bundle);
+  }
   await mkdir(dirname(indexPath), { recursive: true });
   await writeJson(indexPath, index);
 
@@ -250,7 +266,10 @@ export async function runExportInterventionObservations(input: {
     eventCount: events.length,
     admittedAnchorCount: built.admissionSummary.admittedAnchorCount,
     rejectedAnchorCount: built.admissionSummary.rejectedAnchorCount,
+    exactDeduplicationCount: built.admissionSummary.exactDeduplicationCount,
     admissionReasonCounts: built.admissionSummary.admissionReasonCounts,
+    relevanceReasonCounts: built.admissionSummary.relevanceReasonCounts,
+    resolutionSummary: built.resolutionSummary,
     supportedEventCount: supportedEvents.length,
     unsupportedEventCount: events.length - supportedEvents.length,
     availableSeriesCount: series.filter((item) => item.status === "available").length,

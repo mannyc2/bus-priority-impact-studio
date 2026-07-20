@@ -2,6 +2,9 @@ import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { decodeStrict } from "@bp/domain/decode";
 import {
+  type StudioInterventionDatePrecision,
+  type StudioInterventionGeographyScope,
+  type StudioInterventionLifecycleState,
   type StudioInterventionTreatmentFamily,
   type StudioInterventionTreatmentKind,
   type StudioRouteInterventionInventoryBundle,
@@ -10,6 +13,7 @@ import {
 import {
   type BuildInterventionObservationArtifactsResult,
   buildInterventionObservationArtifacts,
+  prepareInterventionObservationArtifacts,
 } from "../../src/lib/intervention-observations.ts";
 import {
   type InterventionObservationTrendRow,
@@ -24,14 +28,14 @@ const RELEASE = {
 
 const ACE_TREATMENT_ID = "treatment:v1:aaaaaaaaaaaaaaaaaaaaaaaa";
 const LANE_TREATMENT_ID = "treatment:v1:bbbbbbbbbbbbbbbbbbbbbbbb";
-const SECOND_ACE_TREATMENT_ID = "treatment:v1:cccccccccccccccccccccccc";
+const BUSWAY_TREATMENT_ID = "treatment:v1:cccccccccccccccccccccccc";
 const OCCURRENCE_ID = "occurrence:v1:aaaaaaaaaaaaaaaaaaaaaaaa";
 
 type TreatmentFixture = {
   readonly treatmentId: string;
   readonly treatmentKind: StudioInterventionTreatmentKind;
   readonly treatmentFamily: StudioInterventionTreatmentFamily;
-  readonly geographyScope?: "route" | "corridor";
+  readonly geographyScope?: StudioInterventionGeographyScope;
 };
 
 type OccurrenceFixture = {
@@ -46,9 +50,12 @@ type OccurrenceFixture = {
   readonly implementationMonth?: string;
   readonly occurrenceDate?: string;
   readonly routeId?: string;
-  readonly geographyScope?: "route" | "corridor";
-  readonly program?: string;
+  readonly geographyScope?: StudioInterventionGeographyScope;
+  readonly program?: string | null;
+  readonly datePrecision?: StudioInterventionDatePrecision;
+  readonly lifecycleState?: StudioInterventionLifecycleState;
   readonly registryLineage?: boolean;
+  readonly wikiOccurrenceId?: string | null;
 };
 
 function route(routeId: "B44" | "B44+") {
@@ -165,7 +172,7 @@ function inventoryBundle(
       const implementationMonth = occurrence.implementationMonth ?? "2024-01";
       const sourceId = occurrence.sourceId ?? "mta_ace_routes";
       const rawStatus = occurrence.rawStatus ?? "implemented";
-      const program = occurrence.program ?? "ACE";
+      const program = occurrence.program === undefined ? "ACE" : occurrence.program;
       return {
         occurrenceId: occurrence.occurrenceId,
         sourceNamespace: "local_registry",
@@ -174,16 +181,16 @@ function inventoryBundle(
         producerPhaseOrPosition: `registry:${index}`,
         routeId: occurrence.routeId ?? routeId,
         treatmentIds: occurrence.treatmentIds,
-        lifecycleState: "implemented",
+        lifecycleState: occurrence.lifecycleState ?? "implemented",
         phase: "implementation",
         rawStatus,
         program,
         effectiveDate: occurrence.occurrenceDate ?? "2024-01-15",
-        datePrecision: "day",
+        datePrecision: occurrence.datePrecision ?? "day",
         geographyScope: occurrence.geographyScope ?? "route",
         sourceRefs: [`local_intervention_event:${occurrence.eventId}`],
         projectIds: [],
-        wikiOccurrenceId: null,
+        wikiOccurrenceId: occurrence.wikiOccurrenceId ?? null,
         registryLineage:
           occurrence.registryLineage === false
             ? null
@@ -195,7 +202,7 @@ function inventoryBundle(
                   occurrence.rawInterventionType ?? "automated_bus_lane_enforcement",
                 sourceId,
                 rawStatus,
-                program,
+                program: program ?? "Registry program",
                 implementationDate,
                 implementationMonth,
               },
@@ -245,6 +252,7 @@ function build(
     trendRows: input.trendRows ?? [],
     releaseId: RELEASE.releaseId,
     publishedAt: RELEASE.publishedAt,
+    coverage: RELEASE.coverage,
   });
 }
 
@@ -383,7 +391,7 @@ describe("buildInterventionObservationArtifacts", () => {
     expect(required(missing.index.events[0], "first index event").availableMetricIds).toEqual([]);
   });
 
-  test("counts one admitted anchor before multi-treatment fan-out and keeps unsupported explicit", () => {
+  test("admits each reviewed occurrence-treatment pair with its exact spec", () => {
     const bundle = inventoryBundle({
       treatments: [
         {
@@ -406,18 +414,200 @@ describe("buildInterventionObservationArtifacts", () => {
       ],
     });
     const result = build({ inventoryBundles: [bundle] });
-    expect(result.admissionSummary.admittedAnchorCount).toBe(1);
+    expect(result.admissionSummary.admittedAnchorCount).toBe(2);
     expect(result.admissionSummary.rejectedAnchorCount).toBe(0);
-    expect(result.admissionSummary.admissionReasonCounts.admitted).toBe(1);
+    expect(result.admissionSummary.admissionReasonCounts.admitted).toBe(2);
     expect(firstBundle(result).events).toHaveLength(2);
     expect(firstBundle(result).events.map((event) => event.resolutionStatus)).toEqual([
       "missing",
-      "unsupported_treatment_family",
+      "missing",
     ]);
     expect(result.index.events[1]).toMatchObject({
       treatmentKind: "bus_lane",
-      analysisFamily: null,
+      analysisFamily: "bus_lane",
+      specId: "bus_lane_route_observations_v1",
       availableMetricIds: [],
+    });
+  });
+
+  test("materializes bus-lane and busway specs with scope-true roles and month metadata", () => {
+    const lane = inventoryBundle({
+      routeId: "B44",
+      treatments: [
+        {
+          treatmentId: LANE_TREATMENT_ID,
+          treatmentKind: "bus_lane",
+          treatmentFamily: "bus_priority_lane",
+          geographyScope: "segment",
+        },
+      ],
+      occurrences: [
+        {
+          occurrenceId: OCCURRENCE_ID,
+          treatmentIds: [LANE_TREATMENT_ID],
+          eventId: "lane-segment",
+          rawInterventionType: "bus_lane",
+          geographyScope: "segment",
+          sourceId: "tier2_document_operational_date_assertions",
+        },
+      ],
+    });
+    const busway = inventoryBundle({
+      treatments: [
+        {
+          treatmentId: BUSWAY_TREATMENT_ID,
+          treatmentKind: "busway",
+          treatmentFamily: "bus_priority_lane",
+          geographyScope: "corridor",
+        },
+      ],
+      occurrences: [
+        {
+          occurrenceId: "occurrence:v1:cccccccccccccccccccccccc",
+          treatmentIds: [BUSWAY_TREATMENT_ID],
+          eventId: "busway-month",
+          rawInterventionType: "busway",
+          geographyScope: "corridor",
+          occurrenceDate: "2024-02",
+          datePrecision: "month",
+          implementationMonth: "2024-02",
+          program: null,
+          registryLineage: false,
+          wikiOccurrenceId: "wiki-busway-month",
+          sourceId: "tier2_document_operational_date_assertions",
+        },
+      ],
+    });
+    const result = build({ inventoryBundles: [busway, lane], trendRows: [trendRow("2024-02")] });
+    const events = result.bundles.flatMap((bundle) => bundle.events);
+    const laneEvent = required(
+      events.find((event) => event.treatmentKind === "bus_lane"),
+      "lane event",
+    );
+    const buswayEvent = required(
+      events.find((event) => event.treatmentKind === "busway"),
+      "busway event",
+    );
+    expect(laneEvent).toMatchObject({
+      analysisFamily: "bus_lane",
+      specId: "bus_lane_route_observations_v1",
+      geographyScope: "segment",
+    });
+    expect(laneEvent.series.map((series) => series.role)).toEqual(["context", "context"]);
+    expect(
+      laneEvent.series.every((series) =>
+        series.limitations.includes(
+          "Route-level observations are context for a treatment scoped below the full route.",
+        ),
+      ),
+    ).toBe(true);
+    expect(buswayEvent).toMatchObject({
+      analysisFamily: "busway",
+      specId: "busway_route_observations_v1",
+      program: null,
+      implementationDate: "2024-02",
+      implementationMonth: "2024-02",
+      datePrecision: "month",
+      geographyScope: "corridor",
+    });
+    expect(buswayEvent.series.map((series) => series.bindingId)).toEqual([
+      "busway_route_speed_around_implementation_v1",
+      "busway_route_ridership_around_implementation_v1",
+    ]);
+  });
+
+  test("preserves ACE study admission while descriptive lane admission bypasses its allowlist", () => {
+    const tier2Source = "tier2_document_operational_date_assertions";
+    const ace = inventoryBundle({
+      occurrences: [
+        {
+          occurrenceId: OCCURRENCE_ID,
+          treatmentIds: [ACE_TREATMENT_ID],
+          eventId: "tier2-ace",
+          sourceId: tier2Source,
+        },
+      ],
+    });
+    const lane = inventoryBundle({
+      routeId: "B44",
+      treatments: [
+        {
+          treatmentId: LANE_TREATMENT_ID,
+          treatmentKind: "bus_lane",
+          treatmentFamily: "bus_priority_lane",
+        },
+      ],
+      occurrences: [
+        {
+          occurrenceId: "occurrence:v1:bbbbbbbbbbbbbbbbbbbbbbbb",
+          treatmentIds: [LANE_TREATMENT_ID],
+          eventId: "tier2-lane",
+          rawInterventionType: "bus_lane",
+          sourceId: tier2Source,
+          rawRouteId: "B44",
+          routeId: "B44",
+        },
+      ],
+    });
+    const result = build({ inventoryBundles: [ace, lane] });
+    expect(result.index.events).toHaveLength(1);
+    expect(result.index.events[0]).toMatchObject({
+      routeId: "B44",
+      treatmentKind: "bus_lane",
+      analysisFamily: "bus_lane",
+    });
+    expect(result.admissionSummary.admissionReasonCounts.untrusted_or_retired_registry_source).toBe(
+      1,
+    );
+  });
+
+  test("keeps source-only and unsupported kinds as explicit pre-value rejections", () => {
+    const sourceOnly = inventoryBundle({
+      treatments: [
+        {
+          treatmentId: LANE_TREATMENT_ID,
+          treatmentKind: "bus_lane",
+          treatmentFamily: "bus_priority_lane",
+          geographyScope: "source_only",
+        },
+      ],
+      occurrences: [
+        {
+          occurrenceId: OCCURRENCE_ID,
+          treatmentIds: [LANE_TREATMENT_ID],
+          eventId: "source-only",
+          rawInterventionType: "bus_lane",
+          geographyScope: "source_only",
+        },
+      ],
+    });
+    const unsupported = inventoryBundle({
+      routeId: "B44",
+      treatments: [
+        {
+          treatmentId: LANE_TREATMENT_ID,
+          treatmentKind: "transit_signal_priority",
+          treatmentFamily: "signal_priority",
+        },
+      ],
+      occurrences: [
+        {
+          occurrenceId: "occurrence:v1:bbbbbbbbbbbbbbbbbbbbbbbb",
+          treatmentIds: [LANE_TREATMENT_ID],
+          eventId: "tsp",
+          rawInterventionType: "transit_signal_priority",
+          rawRouteId: "B44",
+          routeId: "B44",
+        },
+      ],
+    });
+    const result = build({ inventoryBundles: [sourceOnly, unsupported] });
+    expect(result.bundles).toEqual([]);
+    expect(result.index.events).toEqual([]);
+    expect(result.admissionSummary.admissionReasonCounts.scope_unresolved).toBe(1);
+    expect(result.admissionSummary.admissionReasonCounts.unsupported_treatment_kind).toBe(1);
+    expect(result.admissionSummary.relevanceReasonCounts).toEqual({
+      signal_inventory_contract_required: 1,
     });
   });
 
@@ -463,12 +653,19 @@ describe("buildInterventionObservationArtifacts", () => {
     expect(result.admissionSummary.rejectedAnchorCount).toBe(7);
     expect(result.admissionSummary.admissionReasonCounts).toEqual({
       admitted: 1,
-      invalid_registry_implementation_date: 2,
-      missing_route_id: 2,
-      registry_event_not_implemented: 2,
+      unsupported_treatment_kind: 0,
+      non_operational_lifecycle: 0,
+      date_precision_insufficient: 0,
+      source_unavailable: 0,
+      scope_unresolved: 0,
+      route_identity_mismatch: 2,
+      occurrence_treatment_mismatch: 0,
+      invalid_registry_implementation_date: 1,
+      missing_route_id: 0,
+      registry_event_not_implemented: 1,
       registry_month_date_mismatch: 1,
-      unsupported_treatment_family: 2,
-      untrusted_or_retired_registry_source: 2,
+      unsupported_treatment_family: 1,
+      untrusted_or_retired_registry_source: 1,
     });
     expect(result.index.events).toHaveLength(1);
     expect(required(result.index.events[0], "first index event").occurrenceId).toBe(
@@ -508,42 +705,61 @@ describe("buildInterventionObservationArtifacts", () => {
     ]);
   });
 
-  test("selects identical bindings and limitations for rising and falling values", () => {
+  test("keeps specs and priorities invariant across direction, magnitude, and null density", () => {
     const months = monthSequence("2024-01");
-    const rising = build({
-      trendRows: months.map((month, index) =>
+    const variants = [
+      months.map((month, index) =>
         trendRow(month, { average_speed_mph: 4 + index, ridership: 500 + index * 100 }),
       ),
-    });
-    const falling = build({
-      trendRows: months.map((month, index) =>
+      months.map((month, index) =>
         trendRow(month, { average_speed_mph: 40 - index, ridership: 5_000 - index * 100 }),
       ),
-    });
+      months.map((month) => trendRow(month, { average_speed_mph: 1_000_000, ridership: 1e9 })),
+      months.map((month) => trendRow(month, { average_speed_mph: 0.001, ridership: 1 })),
+      months.map((month, index) =>
+        trendRow(month, {
+          average_speed_mph: index === 12 ? 7 : Number.NaN,
+          speed_observation_count: index === 12 ? 20 : 0,
+          ridership: index === 12 ? 1_000 : null,
+          has_speed_trend: index === 12,
+          has_ridership_trend: index === 12,
+        }),
+      ),
+    ].map((trendRows) => build({ trendRows }));
     const signature = (result: BuildInterventionObservationArtifactsResult) =>
       firstBundle(result).events.map((event) => ({
         occurrenceId: event.occurrenceId,
         treatmentId: event.treatmentId,
-        resolutionStatus: event.resolutionStatus,
+        specId: event.specId,
         series: event.series.map((series) => ({
           bindingId: series.bindingId,
           role: series.role,
           priority: series.presentationPriority,
-          coverage: series.coverage,
-          limitations: series.limitations,
-          pointShape: series.points.map((point) => ({
-            month: point.month,
-            sampleCount: point.sampleCount,
-            missing: point.value === null,
-          })),
         })),
       }));
-    expect(signature(rising)).toEqual(signature(falling));
-    const risingSeries = required(firstEvent(rising).series[0], "rising speed series");
-    const fallingSeries = required(firstEvent(falling).series[0], "falling speed series");
-    expect(required(risingSeries.points[0], "rising first point").value).not.toBe(
-      required(fallingSeries.points[0], "falling first point").value,
-    );
+    expect(new Set(variants.map((variant) => JSON.stringify(signature(variant)))).size).toBe(1);
+  });
+
+  test("prepares exact release metadata without accepting observation values", () => {
+    const preparation = prepareInterventionObservationArtifacts({
+      inventoryBundles: [inventoryBundle()],
+      releaseId: RELEASE.releaseId,
+      publishedAt: RELEASE.publishedAt,
+      coverage: RELEASE.coverage,
+    });
+    expect(preparation.admissionSummary.admittedAnchorCount).toBe(1);
+    expect(preparation.routes[0]?.anchors[0]).toMatchObject({
+      analysisFamily: "automated_bus_lane_enforcement",
+      specId: "automated_bus_lane_enforcement_route_observations_v1",
+    });
+    expect(() =>
+      prepareInterventionObservationArtifacts({
+        inventoryBundles: [inventoryBundle()],
+        releaseId: RELEASE.releaseId,
+        publishedAt: RELEASE.publishedAt,
+        coverage: { start: "2023-02", end: RELEASE.coverage.end },
+      }),
+    ).toThrow("Inventory release identity mismatch");
   });
 
   test("emits exact live input refs and computes cross-bundle index coverage", () => {
@@ -594,88 +810,41 @@ describe("buildInterventionObservationArtifacts", () => {
     }
   });
 
-  test("fails integrity errors before emitting partial observations", () => {
+  test("uses exact composite identity instead of global registry-lineage uniqueness", () => {
     const secondOccurrence = {
       occurrenceId: "occurrence:v1:ffffffffffffffffffffffff",
       treatmentIds: [ACE_TREATMENT_ID],
       eventId: "registry-event-1",
     } as const;
-    expect(() =>
-      build({
-        inventoryBundles: [
-          inventoryBundle({
-            occurrences: [
-              {
-                occurrenceId: OCCURRENCE_ID,
-                treatmentIds: [ACE_TREATMENT_ID],
-                eventId: "registry-event-1",
-              },
-              secondOccurrence,
-            ],
-          }),
-        ],
-      }),
-    ).toThrow("Duplicate registry lineage event ID");
+    const result = build({
+      inventoryBundles: [
+        inventoryBundle({
+          occurrences: [
+            {
+              occurrenceId: OCCURRENCE_ID,
+              treatmentIds: [ACE_TREATMENT_ID],
+              eventId: "registry-event-1",
+            },
+            secondOccurrence,
+          ],
+        }),
+      ],
+    });
+    expect(firstBundle(result).events).toHaveLength(2);
+    expect(firstBundle(result).events.map((event) => event.occurrenceId)).toEqual([
+      OCCURRENCE_ID,
+      secondOccurrence.occurrenceId,
+    ]);
 
     expect(() =>
       build({
-        inventoryBundles: [
-          inventoryBundle({
-            occurrences: [
-              {
-                occurrenceId: OCCURRENCE_ID,
-                treatmentIds: [LANE_TREATMENT_ID],
-                eventId: "dangling",
-              },
-            ],
-          }),
-        ],
+        inventoryBundles: [inventoryBundle(), inventoryBundle()],
       }),
-    ).toThrow("references missing");
-
+    ).toThrow("Duplicate inventory route");
     expect(() =>
       build({
-        inventoryBundles: [
-          inventoryBundle({
-            occurrences: [
-              {
-                occurrenceId: OCCURRENCE_ID,
-                treatmentIds: [ACE_TREATMENT_ID],
-                eventId: "route-mismatch",
-                routeId: "B44",
-              },
-            ],
-          }),
-        ],
+        trendRows: [trendRow("2024-01"), trendRow("2024-01")],
       }),
-    ).toThrow("route does not match its bundle");
-
-    expect(() =>
-      build({
-        inventoryBundles: [
-          inventoryBundle({
-            treatments: [
-              {
-                treatmentId: ACE_TREATMENT_ID,
-                treatmentKind: "automated_bus_lane_enforcement",
-                treatmentFamily: "enforcement",
-              },
-              {
-                treatmentId: SECOND_ACE_TREATMENT_ID,
-                treatmentKind: "automated_bus_lane_enforcement",
-                treatmentFamily: "enforcement",
-              },
-            ],
-            occurrences: [
-              {
-                occurrenceId: OCCURRENCE_ID,
-                treatmentIds: [SECOND_ACE_TREATMENT_ID, ACE_TREATMENT_ID],
-                eventId: "unsorted",
-              },
-            ],
-          }),
-        ],
-      }),
-    ).toThrow("must be nonempty, sorted, and unique");
+    ).toThrow("Duplicate route trend row");
   });
 });
