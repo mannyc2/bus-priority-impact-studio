@@ -22,6 +22,7 @@ import {
   compactInterventionsSearch,
   filterInterventionRows,
   InterventionsPage,
+  interventionMatchAnnouncement,
   interventionRows,
   interventionsPaginationResetKey,
   recordTargetForRoute,
@@ -39,6 +40,15 @@ async function renderWithRouter(node: ReactNode): Promise<string> {
   await router.load();
   return renderToStaticMarkup(createElement(RouterProvider, { router }));
 }
+
+test("intervention filter announcements use singular grammar", () => {
+  expect(interventionMatchAnnouncement(1)).toBe(
+    "1 intervention record matches the current filters.",
+  );
+  expect(interventionMatchAnnouncement(2)).toBe(
+    "2 intervention records match the current filters.",
+  );
+});
 
 function makeRoute(input: {
   slug: string;

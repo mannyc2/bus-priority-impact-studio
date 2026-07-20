@@ -191,7 +191,7 @@ export function InterventionsPage({
             {`${rows.length} records across ${routeCount} routes. ${totalDatedCount} dated. Newest first.`}
           </p>
           <p aria-live="polite" className="sr-only">
-            {`${filteredRows.length} intervention records match the current filters.`}
+            {interventionMatchAnnouncement(filteredRows.length)}
           </p>
         </header>
 
@@ -1124,6 +1124,12 @@ export function interventionsPaginationResetKey(search: InterventionsSearch): st
     search.route ?? null,
     search.q ?? null,
   ]);
+}
+
+export function interventionMatchAnnouncement(count: number): string {
+  return count === 1
+    ? "1 intervention record matches the current filters."
+    : `${count} intervention records match the current filters.`;
 }
 
 function omitInterventionsSearchKey(
