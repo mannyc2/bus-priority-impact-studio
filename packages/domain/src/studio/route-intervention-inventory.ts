@@ -46,6 +46,20 @@ export const STUDIO_INTERVENTION_TREATMENT_KINDS = [
   "capital_project_milestone",
   "frequency_change",
   "turn_restriction",
+  "bench",
+  "bus_shelter",
+  "bus_stop_adjustment",
+  "curb_extension",
+  "curb_regulation",
+  "fare_machine_installation",
+  "high_visibility_crosswalk",
+  "left_turn_bay",
+  "pedestrian_island",
+  "planting",
+  "real_time_passenger_information",
+  "resurfacing",
+  "truck_loading_zone",
+  "wayfinding_sign",
   "other_documented",
 ] as const;
 
@@ -59,6 +73,8 @@ export const STUDIO_INTERVENTION_TREATMENT_FAMILIES = [
   "service_change",
   "service_package",
   "capital",
+  "curb_management",
+  "customer_information",
   "other",
 ] as const;
 

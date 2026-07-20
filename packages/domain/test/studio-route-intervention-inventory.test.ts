@@ -18,6 +18,23 @@ const treatmentId = "treatment:v1:aaaaaaaaaaaaaaaaaaaaaaaa";
 const secondTreatmentId = "treatment:v1:bbbbbbbbbbbbbbbbbbbbbbbb";
 const occurrenceId = "occurrence:v1:cccccccccccccccccccccccc";
 
+const rc25ReviewedBundleMemberVocabulary = [
+  ["bench", "street_design"],
+  ["bus_shelter", "stop_change"],
+  ["bus_stop_adjustment", "stop_change"],
+  ["curb_extension", "street_design"],
+  ["curb_regulation", "curb_management"],
+  ["fare_machine_installation", "boarding_and_fare"],
+  ["high_visibility_crosswalk", "street_design"],
+  ["left_turn_bay", "street_design"],
+  ["pedestrian_island", "street_design"],
+  ["planting", "street_design"],
+  ["real_time_passenger_information", "customer_information"],
+  ["resurfacing", "capital"],
+  ["truck_loading_zone", "curb_management"],
+  ["wayfinding_sign", "customer_information"],
+] as const;
+
 const releaseIdentity = {
   releaseId: "pub_20260720T120000000Z",
   publishedAt: "2026-07-20T12:00:00.000Z",
@@ -346,6 +363,67 @@ describe("Studio route intervention inventory contracts", () => {
     expect(decodeStrict(StudioRouteInterventionInventoryBundleSchema)(partial) as unknown).toEqual(
       partial,
     );
+  });
+
+  test("preserves every reviewed rc25 bundle-member kind and family without coercion", () => {
+    for (const [treatmentKind, treatmentFamily] of rc25ReviewedBundleMemberVocabulary) {
+      const input = populatedBundle();
+      const currentState = input.currentState[0];
+      if (currentState === undefined) {
+        throw new Error("The populated bundle fixture must include current state.");
+      }
+      input.treatments = [treatment(treatmentId, treatmentKind, treatmentFamily)];
+      input.currentState = [
+        {
+          ...currentState,
+          treatmentKind,
+          treatmentFamily,
+        },
+      ];
+
+      const decoded = decodeStrict(StudioRouteInterventionInventoryBundleSchema)(input);
+      expect(decoded.treatments[0]?.treatmentKind).toBe(treatmentKind);
+      expect(decoded.treatments[0]?.treatmentFamily).toBe(treatmentFamily);
+    }
+  });
+
+  test("keeps unresolved rc25 semantics in source gaps and rejects invented treatment literals", () => {
+    const unresolvedGap = {
+      ...checkedEmptyBundle(),
+      sourceGaps: [
+        {
+          gapId: "mta-wiki:treatment-semantics:unresolved:record-1",
+          sourceKind: "intervention_corpus",
+          sourceId: "mta-wiki:v1-rc25",
+          treatmentKind: null,
+          gapKind: "unresolved_treatment_semantics",
+          sourceRefs: ["mta-wiki:treatment-semantics:record-1"],
+          projectIds: [],
+        },
+      ],
+    };
+    expect(
+      decodeStrict(StudioRouteInterventionInventoryBundleSchema)(unresolvedGap) as unknown,
+    ).toEqual(unresolvedGap);
+
+    expect(() =>
+      decodeStrict(StudioRouteInterventionInventoryBundleSchema)({
+        ...populatedBundle(),
+        treatments: [treatment(treatmentId, "unresolved", "other")],
+      }),
+    ).toThrow();
+    expect(() =>
+      decodeStrict(StudioRouteInterventionInventoryBundleSchema)({
+        ...populatedBundle(),
+        treatments: [treatment(treatmentId, "curb_regulations", "curb_management")],
+      }),
+    ).toThrow();
+    expect(() =>
+      decodeStrict(StudioRouteInterventionInventoryBundleSchema)({
+        ...populatedBundle(),
+        treatments: [treatment(treatmentId, "curb_regulation", "unresolved")],
+      }),
+    ).toThrow();
   });
 
   test("publishes the four exact browser-safe keys", () => {
