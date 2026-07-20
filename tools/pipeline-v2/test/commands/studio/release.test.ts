@@ -47,8 +47,8 @@ describe("studio release D1 replay boundary", () => {
     expect(source).not.toContain("new Database");
     expect(source).not.toContain("createBunSqliteServingDb");
     expect(source).not.toContain('const defaultMonth = "2026-03"');
-    expect(source).not.toContain('data/exports/d1/2026-03/schema.sql');
-    expect(source).not.toContain('data/exports/d1/2026-03/seed.sql');
+    expect(source).not.toContain("data/exports/d1/2026-03/schema.sql");
+    expect(source).not.toContain("data/exports/d1/2026-03/seed.sql");
   });
 
   test("preserves absolute source and snapshot overrides", async () => {

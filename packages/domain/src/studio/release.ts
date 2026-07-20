@@ -10,11 +10,7 @@ import {
   StudioRouteSchema,
   StudioSegmentSchema,
 } from "./routes/index.js";
-import {
-  ReleaseIdentitySchema,
-  releaseIdFromPublishedAt,
-  StudioQualitySchema,
-} from "./shared.js";
+import { ReleaseIdentitySchema, releaseIdFromPublishedAt, StudioQualitySchema } from "./shared.js";
 
 export const StudioSearchSegmentCardSchema = Schema.Struct({
   segment: StudioSegmentSchema,
