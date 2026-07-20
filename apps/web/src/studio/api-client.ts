@@ -12,6 +12,7 @@ import {
   MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
 import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key";
+import { interventionObservationBundleKey } from "@bp/domain/studio/intervention-observations-key";
 import {
   interventionFacetIndexKey,
   routeInterventionInventoryBundleKey,
@@ -36,6 +37,7 @@ import type {
   StudioRouteHourlyProfileResponse,
   StudioRouteIndex3Response,
   StudioRouteInterventionInventoryBundle,
+  StudioRouteInterventionObservationBundle,
   StudioRouteSpeedHistoryResponse,
   StudyIndexArtifact,
 } from "./api-contract.js";
@@ -183,6 +185,16 @@ export function fetchStudioRouteInterventionInventory(
 ) {
   return loadNullableStudioJson<StudioRouteInterventionInventoryBundle>(
     publicArtifactPath(routeInterventionInventoryBundleKey(routeSlug)),
+    options,
+  );
+}
+
+export function fetchStudioRouteInterventionObservations(
+  routeSlug: string,
+  options?: StudioQueryOptions,
+): Promise<StudioRouteInterventionObservationBundle | null> {
+  return loadNullableStudioJson<StudioRouteInterventionObservationBundle>(
+    publicArtifactPath(interventionObservationBundleKey(routeSlug)),
     options,
   );
 }

@@ -9,6 +9,7 @@ import {
   fetchStudioRoute,
   fetchStudioRouteEvidence,
   fetchStudioRouteInterventionInventory,
+  fetchStudioRouteInterventionObservations,
   fetchStudioRouteStudies,
   staticStudioLoaderStaleTimeMs,
 } from "../../studio/api-client.js";
@@ -67,11 +68,22 @@ export const Route = createFileRoute("/routes/$routeId")({
           return null;
         },
       ),
-    ]).then(([detail, evidence, inventory, studies]) => ({
+      fetchStudioRouteInterventionObservations(params.routeId, {
+        signal: abortController.signal,
+      }).catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") throw error;
+        console.warn(
+          "Route intervention observations request failed; rendering without observations.",
+          { error },
+        );
+        return null;
+      }),
+    ]).then(([detail, evidence, inventory, studies, observations]) => ({
       detail,
       evidence,
       inventory,
       studies,
+      observations,
     })),
   validateSearch: (search: Record<string, unknown>): RouteDetailPageSearch =>
     validateRouteDetailPageSearch(search),
@@ -90,6 +102,7 @@ function RouteDetailRoute() {
         data={data.detail}
         evidence={data.evidence}
         inventory={data.inventory}
+        observations={data.observations}
         studies={data.studies}
         search={search}
       />
