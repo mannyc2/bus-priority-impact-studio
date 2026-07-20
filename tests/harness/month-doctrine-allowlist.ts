@@ -14,7 +14,6 @@ export const MONTH_DOCTRINE_DISPOSITIONS = [
   "retire-079",
   "retire-085",
   "retire-086",
-  "retire-087",
   "permanent-frozen-artifact",
 ] as const;
 
@@ -45,12 +44,5 @@ export const MONTH_DOCTRINE_ALLOWLIST = [
     count: 3,
     disposition: "permanent-frozen-artifact",
     note: "The frozen detector-readiness reader preserves its immutable legacy manifest branch.",
-  },
-  {
-    file: "tools/pipeline-v2/src/commands/plan/source-refresh.ts",
-    rule: "identity-phrase",
-    count: 1,
-    disposition: "retire-087",
-    note: "Plan 087 removes the final monthly-release operator prose.",
   },
 ] as const satisfies readonly MonthDoctrineAllowlistEntry[];

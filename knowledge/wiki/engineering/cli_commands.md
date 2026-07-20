@@ -2,7 +2,7 @@
 title: CLI Commands
 type: engineering
 status: active
-last_updated: 2026-07-19
+last_updated: 2026-07-20
 owner: codex
 source_count: 2
 tags: [cli, tools, codex, typescript, bun]
@@ -26,6 +26,22 @@ bun run pipeline <command> <subcommand> [options]
 ```
 
 The package may expose a `bp` binary later, but do not add a global CLI abstraction until the first commands work.
+
+## Freshness audit
+
+```bash
+bun run pipeline audit freshness
+bun run pipeline audit freshness --db data/local/pipeline.sqlite --strict
+```
+
+`audit freshness` compares the latest verifiable upstream period with local SQLite ingestion and
+the newest D1/map publication selected by `publishedAt`. It prints a worst-first table and writes
+`data/artifacts/audits/freshness-ledger.json`; use `--output` to override that path. Status is
+`current`, `recent`, `stale`, or `unknown`. Strict mode exits nonzero only for verified stale
+serving-critical sources; missing probes remain visibly unknown.
+
+See [[wiki/engineering/freshness_ledger|Freshness Ledger]] for row semantics and the ingest/publish
+cadence.
 
 ## Source commands
 

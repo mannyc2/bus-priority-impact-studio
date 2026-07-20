@@ -73,7 +73,7 @@ function buildJobs(input: {
       nextActions: [
         "Deploy a scheduled collector that does not depend on user request traffic.",
         "Store raw protobuf snapshots in durable object storage with run id, timestamp, checksum, feed type, and redacted source URL metadata.",
-        "Run observed monthly promotion checks only after the collected realtime month has matching public speed coverage.",
+        "Run observed-reliability promotion checks only after the collected realtime window has matching public speed coverage.",
       ],
     },
     {
@@ -89,11 +89,11 @@ function buildJobs(input: {
       nextActions: rsa.releaseDecision.shouldRebuild
         ? [
             `Run ingest/build/finalize for ${rsa.releaseDecision.latestCompleteMonth}.`,
-            "Regenerate D1/static exports and run the v1 audit; promote to an observed monthly release only when same-month GTFS-RT evidence exists.",
+            "Regenerate D1/static exports and publish a release only when the same coverage window has GTFS-RT evidence.",
           ]
         : [
             "Persist the source-availability artifact.",
-            "Keep the current build as the latest public-source release.",
+            "Keep the current build as the latest published release.",
             "Poll again on the next scheduled watcher interval.",
           ],
     },
@@ -175,7 +175,7 @@ export async function runSourceRefreshPlan(
 
 export default defineCommand({
   path: ["plan", "source-refresh"],
-  summary: "Write the production source-refresh plan for GTFS-RT and monthly speed data.",
+  summary: "Write the production source-refresh plan for GTFS-RT and public speed data.",
   input: {
     options: Schema.Struct({
       startYear: Schema.optionalKey(arg.positiveInt()).annotate({
