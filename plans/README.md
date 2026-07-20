@@ -616,8 +616,8 @@ decision layer.
 | 071 | Steering-doc truth sweep (README schema claim, /methods SEO, master-plan status) | P2 | S-M | 068 (rec.) | DONE (Effect Schema README claim, retired `/methods` SEO removal, master-plan status block, and knowledge log verified) |
 | 072 | Dependency hygiene: bun update within semver + audit residue log | P3 | S | 068 | DONE (audit reduced 15→13; all residual advisories documented; full tests/build and `/` + `/map` smoke pass) |
 | 073 | Serve the reviewed intervention corpus + reconciliation report | P1 | M-L | 068 | DONE (310 valid; 29 study-date-ready; 11 exact matches; no study-ready corpus-only candidates) |
-| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 + exact-route task before any future run | IN PROGRESS (historical five-study output is immutable; rc23 is route-identity-quarantined; require a fresh manifest-v5 release/candidate set/receipt plus control-contamination and bounded-scope repairs) |
-| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | IN PROGRESS (UI integration landed in PR #59, but remains inactive; rc23 cannot activate it, and fresh exact-route study/publication gates remain open) |
+| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 + exact-route task before any future run | IN PROGRESS (engine boundary repairs and reproducible rc25 exact-route candidate package complete; stopped for a complete 486-decision receipt, then real run and fresh anchor review) |
+| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | IN PROGRESS (UI integration landed in PR #59 but remains inactive; rc25 still needs its complete receipt, Plan 074 run, fresh anchor review, and publication decision) |
 | 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |

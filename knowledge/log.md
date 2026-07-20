@@ -8817,3 +8817,28 @@ web tests and 22 Worker tests. The production web build passed at 138.3 KB gzip
 for the entry chunk and within the unchanged 400 KB total-JavaScript budget.
 No production release, D1/R2 object, source snapshot, deployment, study
 approval, or mutable release pointer was changed.
+
+## [2026-07-20] engineering | Plan 074 rc25 engine boundary repairs complete
+
+Closed the two pre-run defects found during the rc22/rc23 audit. Study control
+screening now excludes all real candidates within the inclusive ±9-month
+window, including rejected and unreviewed rows. Treatment scope now admits
+all-route spines only with affirmative ACE registry provenance and requires a
+candidate-set- and hash-bound exact occurrence→geometry→current-segment→spine
+mapping for bounded treatments. The automatic lane-to-all-route fallback is
+retired.
+
+MTA Wiki v1-rc25 produced byte-identical strict imports and byte-identical
+database-backed candidate builds. The new authorizable set is
+`candidate-set-v3:575ee30a44f2e141e97f6a77`, candidate artifact SHA-256
+`b66c0cd70afdf99a0fa2779d9b0574ba328bcc5f49c7d0177eaa029b0bb2c195`,
+with 486 candidates, zero approvals, 382 source rejections, zero conflicts,
+and 12 exact deduplications. A complete non-authorizing worksheet is tracked.
+
+The sole bounded rc25 occurrence, Flatbush phase 1, now has a pinned exact
+binding for B41 and B67. The production overlap helper reproduced exactly two
+current source-to-spine pairs per route and no extras. B67 is
+`series_ready_with_gaps`; B41 remains `needs_pattern_review`. No receipt,
+estimate, public artifact, release pointer, deployment, or publication was
+created. Plan 074 remains in progress at the complete 486-decision operator
+receipt gate, followed by a real run and fresh anchor review.

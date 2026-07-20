@@ -35,21 +35,30 @@ pipeline command validates the resulting artifact.
 The workflow below applies only to a **new, authorizable** candidate-set id.
 Do not reopen or overwrite the completed receipt above.
 
-The pinned rc22 set `candidate-set-v3:9761a5648df08fbdf6c38bb4` is not
-authorizable: its merge state is `blocked_contract_incompatible`, its approval
-must be null, and supplying any receipt is rejected. Do not prepare a worksheet
-or receipt for it. Wait for a corrected named Wiki release to pass the normal
-strict-compatible import, rebuild the v3 set, and use the new exact ID and
-hash.
+The rc22 set `candidate-set-v3:9761a5648df08fbdf6c38bb4` is contract-blocked,
+and rc23 set `candidate-set-v3:aba25fe4209247be31d43b66` is permanently
+quarantined by the later exact-route audit. Neither can accept a receipt. The
+rc19 v2 set remains unapproved, and its Codex recommendations are not a
+receipt.
 
-The corrected rc23 release produced authorizable set
-`candidate-set-v3:aba25fe4209247be31d43b66`, artifact SHA-256
-`60422e951226b97abe40ae3705469084c5134488e666084284771e1b60ab22b5`.
-It is still `awaiting_approval`, has a null receipt, and contains zero
-approved events. Any operator review must cover all 489 candidates and bind
-the exact candidate-set ID plus recorded inputs; no rc19/rc22 or historical
-403-row receipt applies. The rc19 v2 set remains unapproved and its
-non-authorizing Codex review is not a receipt.
+The current authorizable set is
+`candidate-set-v3:575ee30a44f2e141e97f6a77`, built from exact-route MTA Wiki
+`v1-rc25`. Its tracked candidate artifact has SHA-256
+`b66c0cd70afdf99a0fa2779d9b0574ba328bcc5f49c7d0177eaa029b0bb2c195`,
+is `awaiting_approval`, and contains 486 candidates with zero approved events.
+The worksheet under `reviews/` is deliberately non-authorizing. A valid
+receipt must decide all 486 candidates and bind this exact set; no earlier
+decision transfers.
+
+## Exact physical-scope bindings
+
+`scope-bindings/` contains reviewed occurrence→source geometry→current
+segment→stable spine mappings used by `study run`. These files are not
+approval receipts and do not authorize a candidate. The runner validates the
+candidate-set, analysis month, pinned Wiki release, raw source snapshots,
+route speed-spine hashes, and exact segment mapping before admitting a bounded
+treatment. A missing, stale, incomplete, or drifted binding fails admission;
+it never widens to all route segments.
 
 1. Use a clean, immutable MTA Wiki release and rebuild
    `data/artifacts/studio/v2/studies/study-events.json` without an approval.

@@ -1,0 +1,58 @@
+{
+  "artifactKind": "bp.studio.study_physical_scope_bindings.v1",
+  "schemaVersion": 1,
+  "candidateSetId": "candidate-set-v3:575ee30a44f2e141e97f6a77",
+  "analysisMonth": "2026-03",
+  "sourceRelease": {
+    "releaseId": "v1-rc25",
+    "manifestSha256": "77e518a5de39e9fc982d09b7677d44059d26de69b04d9fe10841d6c478516f0f",
+    "occurrencesSha256": "1650ca9ef02e723c694baaf4685596a36ed0eb9e1447b46313397d92adcd8bcc"
+  },
+  "inputs": {
+    "busLaneSnapshotSha256": "12748ed365ec3eaa064fd579c05cfe434c219f1523869668b3e3858d8b7fcef7",
+    "routeShapeSnapshotSha256": "47653a0f54a33c0d6647294e82b2dd1c05e77a482c56a29bdc6466fafe495779",
+    "stopSnapshotSha256": "403ac2333d17c96bea39a84c770737c994ec12d3effb818b7147554587143ce7"
+  },
+  "bindings": [
+    {
+      "candidateId": "study-event-v2:6b70c52e0eec23eb63cab94f",
+      "routeId": "B41",
+      "occurrenceId": "occurrence:8c987704152b459014217d44",
+      "physicalScopeRecordIds": ["corridor_flatbush-phase1-livingston-state"],
+      "geometrySourceId": "nyc_dot_bus_lanes",
+      "geometryFeatureIds": ["0022938", "0022942", "0028973", "0118635", "0118636"],
+      "selectedGeometryRowsSha256": "fb619e9df5c491de524b9dc2335452d6285be00f593fe8799dc7a951b3992c4e",
+      "speedSpineSha256": "9ee61505691d1f052e8a3c8e53ce7c08b109087b9984f8412d90921e002e2dbf",
+      "segmentBindings": [
+        {
+          "sourceSegmentId": "B41:2026-03:N:48:303254:901007",
+          "spineSegmentId": "b41-n-node-012-node-013"
+        },
+        {
+          "sourceSegmentId": "B41:2026-03:S:1:307403:303295",
+          "spineSegmentId": "b41-s-node-013-node-012"
+        }
+      ]
+    },
+    {
+      "candidateId": "study-event-v2:d70a3ee36eb94ae88732065f",
+      "routeId": "B67",
+      "occurrenceId": "occurrence:8c987704152b459014217d44",
+      "physicalScopeRecordIds": ["corridor_flatbush-phase1-livingston-state"],
+      "geometrySourceId": "nyc_dot_bus_lanes",
+      "geometryFeatureIds": ["0022938", "0022942", "0028973", "0118635", "0118636"],
+      "selectedGeometryRowsSha256": "fb619e9df5c491de524b9dc2335452d6285be00f593fe8799dc7a951b3992c4e",
+      "speedSpineSha256": "1698311cbc30ef9e5759431a4430763c7f61df0bfde091a300916ef3f51df7a8",
+      "segmentBindings": [
+        {
+          "sourceSegmentId": "B67:2026-03:N:26:308641:303259",
+          "spineSegmentId": "b67-n-node-009-node-010"
+        },
+        {
+          "sourceSegmentId": "B67:2026-03:S:14:303290:303296",
+          "spineSegmentId": "b67-s-node-010-node-009"
+        }
+      ]
+    }
+  ]
+}
