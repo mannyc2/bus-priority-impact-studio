@@ -3,15 +3,15 @@ import type {
   RouteStudiesArtifact,
   StudyArtifact,
   StudyEstimateVariant,
-  StudyEventCandidate,
+  StudyEventCandidateV3,
   StudyIndexArtifact,
   StudySensitivityEstimate,
 } from "@bp/domain/studio/study";
 import type { StudyEstimatorResult, StudyEstimatorVariant } from "./estimator.ts";
 
-export const STUDY_ENGINE_VERSION = "segment-matched-did-v1";
+export const STUDY_ENGINE_VERSION = "segment-matched-did-v2";
 
-function artifactEventKey(candidate: StudyEventCandidate): string {
+function artifactEventKey(candidate: StudyEventCandidateV3): string {
   return candidate.candidateId.replaceAll(":", "-").toLowerCase();
 }
 
@@ -54,13 +54,10 @@ function artifactSensitivity(
 }
 
 export function buildStudyArtifact(input: {
-  readonly candidate: StudyEventCandidate;
+  readonly candidate: StudyEventCandidateV3;
   readonly candidateSetId: string;
   readonly analysisMonth: string;
-  readonly treatedSegmentScope:
-    | "all_route_spines"
-    | "lane_overlap_spines"
-    | "all_route_spines_lane_fallback";
+  readonly treatedSegmentScope: "all_route_spines" | "lane_overlap_spines";
   readonly treatedSpineSegmentIds: readonly string[];
   readonly estimator: StudyEstimatorResult;
   readonly allDayUnmatchedSourceRows: number;

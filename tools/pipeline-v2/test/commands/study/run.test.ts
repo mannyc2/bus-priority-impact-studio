@@ -4,7 +4,11 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createLocalPipelineDb } from "@bp/db/local";
-import type { StudyArtifact } from "@bp/domain/studio/study";
+import type {
+  StudyArtifact,
+  StudyEventCandidateV3,
+  StudyPhysicalScopeBindingsArtifact,
+} from "@bp/domain/studio/study";
 import { runSegmentStudies, writeStudyArtifactSet } from "../../../src/commands/study/run.ts";
 
 const roots: string[] = [];
@@ -48,7 +52,7 @@ function study(input: { eventKey: string; routeId: string; effectMph: number }):
     candidateSetId: "candidate-set:fixture",
     routeId: input.routeId,
     routeSlug,
-    treatmentFamily: "select_bus_service",
+    treatmentFamily: "automated_bus_lane_enforcement",
     implementationDate: "2025-01-15",
     implementationMonth: "2025-01",
     treatedSegmentScope: "all_route_spines",
@@ -84,6 +88,150 @@ function study(input: { eventKey: string; routeId: string; effectMph: number }):
       speedSpineArtifactPaths: [`studio/v2/routes/${routeSlug}/speed-spine.json`],
       excludedControlRouteIds: [],
     },
+  };
+}
+
+function v3Candidate(
+  artifact: StudyArtifact,
+  overrides: Partial<StudyEventCandidateV3> = {},
+): StudyEventCandidateV3 {
+  return {
+    candidateId: artifact.candidateId,
+    routeId: artifact.routeId,
+    treatmentFamily: artifact.treatmentFamily,
+    implementationDate: artifact.implementationDate,
+    implementationMonth: artifact.implementationMonth,
+    datePrecision: "day",
+    conflictState: "none",
+    occurrenceId: null,
+    confounderGroupId: null,
+    treatmentScopeKind: "atomic",
+    componentTreatmentFamilies: [artifact.treatmentFamily],
+    provenance: [v3Provenance(artifact)],
+    ...overrides,
+  };
+}
+
+function v3Provenance(artifact: StudyArtifact): StudyEventCandidateV3["provenance"][number] {
+  return {
+    sourceKind: "registry",
+    sourceId: "mta_ace_routes",
+    sourceEventId: `event:${artifact.eventKey}`,
+    releaseId: null,
+    anchorIds: [],
+    occurrenceId: null,
+    occurrenceAliases: [],
+    manifestSha256: null,
+    artifactSha256: null,
+    occurrenceReviewDecisionId: null,
+    wikiRouteRecordId: null,
+    gtfsRouteId: null,
+    analysisRouteId: artifact.routeId,
+    routeEvidenceBindings: [],
+    treatmentEvidenceBindings: [],
+    phaseRecordIds: [],
+    phaseRelationRecordIds: [],
+    phaseRelationEvidenceBindings: [],
+    phaseRelationDisposition: null,
+    physicalScopeRecordIds: [],
+    physicalScopeRelationRecordIds: [],
+    physicalScopeEvidenceBindings: [],
+    relationshipBundleSha256: null,
+    relationshipEnforcementProofCanonicalSha256: null,
+    producerReviewCompatibility: null,
+  };
+}
+
+function approvedV3EventSet(input: {
+  candidates: readonly StudyEventCandidateV3[];
+  approvedIds: ReadonlySet<string>;
+}) {
+  const candidateSetId = "candidate-set-v3:fixture";
+  return {
+    artifactKind: "bp.studio.study_events.v3" as const,
+    schemaVersion: 3 as const,
+    candidateSetId,
+    wikiInput: {
+      mode: "pinned_occurrence_release_v4" as const,
+      releaseId: "v1-rc25",
+      manifestSha256: "a".repeat(64),
+      artifactSha256: "b".repeat(64),
+      relationshipBundleSha256: "c".repeat(64),
+      relationshipEnforcementProofCanonicalSha256: "d".repeat(64),
+      producerReviewCompatibility: "compatible" as const,
+    },
+    summary: {
+      registryInputCount: input.candidates.length,
+      wikiInputCount: 0,
+      candidateCount: input.candidates.length,
+      approvedCount: input.approvedIds.size,
+      rejectedByOperatorCount: input.candidates.length - input.approvedIds.size,
+      sourceRejectionCount: 0,
+      conflictCount: 0,
+      exactDeduplicationCount: 0,
+    },
+    approvalState: "approved" as const,
+    candidates: input.candidates,
+    approvedEvents: input.candidates.filter((candidate) =>
+      input.approvedIds.has(candidate.candidateId),
+    ),
+    rejections: [],
+    conflicts: [],
+    approval: {
+      artifactKind: "bp.studio.study_event_approvals.v3" as const,
+      schemaVersion: 3 as const,
+      candidateSetId,
+      decisions: input.candidates.map((candidate) => ({
+        candidateId: candidate.candidateId,
+        decision: input.approvedIds.has(candidate.candidateId)
+          ? ("approved" as const)
+          : ("rejected" as const),
+        reviewer: "fixture",
+        rationale: "Synthetic exact-route command fixture.",
+      })),
+    },
+  };
+}
+
+function physicalScopeBindings(input: {
+  candidate: StudyEventCandidateV3;
+  candidateSetId?: string;
+}): StudyPhysicalScopeBindingsArtifact {
+  const occurrenceId = input.candidate.occurrenceId;
+  if (occurrenceId === null) throw new Error("Physical-scope fixture requires an occurrence id");
+  return {
+    artifactKind: "bp.studio.study_physical_scope_bindings.v1",
+    schemaVersion: 1,
+    candidateSetId: input.candidateSetId ?? "candidate-set-v3:fixture",
+    analysisMonth: "2026-03",
+    sourceRelease: {
+      releaseId: "v1-rc25",
+      manifestSha256: "a".repeat(64),
+      occurrencesSha256: "b".repeat(64),
+    },
+    inputs: {
+      busLaneSnapshotSha256: "c".repeat(64),
+      routeShapeSnapshotSha256: "d".repeat(64),
+      stopSnapshotSha256: "e".repeat(64),
+    },
+    bindings: [
+      {
+        candidateId: input.candidate.candidateId,
+        routeId: input.candidate.routeId,
+        occurrenceId,
+        physicalScopeRecordIds: ["corridor_flatbush-phase1-livingston-state"],
+        geometrySourceId: "nyc_dot_bus_lanes",
+        geometryFeatureIds: ["0022938"],
+        selectedGeometryRowsSha256: "f".repeat(64),
+        speedSpineSha256: "1".repeat(64),
+        segmentBindings: [
+          {
+            sourceSegmentId: "B41:2026-03:N:48:303254:901007",
+            spineSegmentId: "b41-n-node-012-node-013",
+          },
+        ],
+      },
+    ],
   };
 }
 
@@ -131,58 +279,93 @@ describe("study run artifact writer", () => {
       study({ eventKey: "event-a", routeId: "M15", effectMph: 1 }),
       study({ eventKey: "event-b", routeId: "B41", effectMph: -0.5 }),
     ];
-    const approvedEvents = studies.map((artifact) => ({
-      candidateId: artifact.candidateId,
-      routeId: artifact.routeId,
-      treatmentFamily: artifact.treatmentFamily,
-      implementationDate: artifact.implementationDate,
-      implementationMonth: artifact.implementationMonth,
-      datePrecision: "day" as const,
-      conflictState: "none" as const,
-      provenance: artifact.provenance.event,
-    }));
+    const approvedEvents = studies.map((artifact) => v3Candidate(artifact));
+    const firstStudy = studies[0];
+    if (firstStudy === undefined) throw new Error("Missing first fixture study");
+    const rejectedInterference = v3Candidate(firstStudy, {
+      candidateId: "study-event:rejected-interference",
+      routeId: "M23+",
+      implementationMonth: "2025-02",
+    });
+    const candidates = [...approvedEvents, rejectedInterference];
     const eventSetPath = join(root, "approved-events.json");
     await writeFile(
       eventSetPath,
-      `${JSON.stringify({
-        artifactKind: "bp.studio.study_events.v1",
-        schemaVersion: 1,
-        candidateSetId: "candidate-set:fixture",
-        wikiInput: {
-          mode: "explicit_opt_out",
-          releaseId: null,
-          manifestSha256: null,
-          artifactSha256: null,
-        },
-        summary: {
-          registryInputCount: 2,
-          wikiInputCount: 0,
-          candidateCount: 2,
-          approvedCount: 2,
-          rejectedByOperatorCount: 0,
-          sourceRejectionCount: 0,
-          conflictCount: 0,
-          exactDeduplicationCount: 0,
-        },
-        approvalState: "approved",
-        candidates: approvedEvents,
-        approvedEvents,
-        rejections: [],
-        conflicts: [],
-        approval: {
-          artifactKind: "bp.studio.study_event_approvals.v1",
-          schemaVersion: 1,
-          candidateSetId: "candidate-set:fixture",
-          decisions: approvedEvents.map((candidate) => ({
-            candidateId: candidate.candidateId,
-            decision: "approved",
-            reviewer: "fixture",
-            rationale: "Synthetic command fixture.",
-          })),
-        },
-      })}\n`,
+      `${JSON.stringify(
+        approvedV3EventSet({
+          candidates,
+          approvedIds: new Set(approvedEvents.map((candidate) => candidate.candidateId)),
+        }),
+      )}\n`,
     );
     const sqlite = new Database(":memory:");
+    try {
+      let interferenceRoutes: readonly string[] = [];
+      const result = await runSegmentStudies({
+        local: {
+          sqlite,
+          db: createLocalPipelineDb(sqlite),
+          path: ":memory:",
+          spatialite: null,
+        },
+        analysisMonth: "2026-03",
+        artifactRoot: root,
+        eventSetPath,
+        buildStudy: async ({ candidate, interferenceEvents }) => {
+          interferenceRoutes = interferenceEvents.map((event) => event.routeId);
+          return studies.find((artifact) => artifact.candidateId === candidate.candidateId) ?? null;
+        },
+      });
+
+      expect(result).toMatchObject({
+        studyCount: 2,
+        ineligibleStudyCount: 0,
+        routeRollupCount: 2,
+        gatedEstimateCount: 2,
+        descriptiveCount: 0,
+        noDetectableChangeCount: 0,
+        laneFallbackStudyCount: 0,
+        scopeIneligibleStudyCount: 0,
+      });
+      expect(interferenceRoutes).toContain("M23+");
+      expect(
+        JSON.parse(await readFile(join(root, "studio/v2/studies/index.json"), "utf8")).studies,
+      ).toHaveLength(2);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("rejects unproven scope before invoking the estimator", async () => {
+    const root = await mkdtemp(join(tmpdir(), "bp-study-scope-gate-"));
+    roots.push(root);
+    const artifact = study({ eventKey: "event-redesign", routeId: "Q54", effectMph: 1 });
+    const unproven = v3Candidate(artifact, {
+      treatmentFamily: "route_redesign",
+      provenance: [
+        {
+          ...v3Provenance(artifact),
+          sourceKind: "mta_wiki",
+          sourceId: "queens_bus_network_redesign",
+          occurrenceId: "occurrence:redesign",
+          releaseId: "v1-rc25",
+          manifestSha256: "a".repeat(64),
+          artifactSha256: "b".repeat(64),
+        },
+      ],
+    });
+    const eventSetPath = join(root, "approved-events.json");
+    await writeFile(
+      eventSetPath,
+      `${JSON.stringify(
+        approvedV3EventSet({
+          candidates: [unproven],
+          approvedIds: new Set([unproven.candidateId]),
+        }),
+      )}\n`,
+    );
+    const sqlite = new Database(":memory:");
+    let buildCalls = 0;
     try {
       const result = await runSegmentStudies({
         local: {
@@ -194,22 +377,116 @@ describe("study run artifact writer", () => {
         analysisMonth: "2026-03",
         artifactRoot: root,
         eventSetPath,
-        buildStudy: async ({ candidate }) =>
-          studies.find((artifact) => artifact.candidateId === candidate.candidateId) ?? null,
+        buildStudy: async () => {
+          buildCalls += 1;
+          return artifact;
+        },
       });
 
+      expect(buildCalls).toBe(0);
       expect(result).toMatchObject({
-        studyCount: 2,
-        ineligibleStudyCount: 0,
-        routeRollupCount: 2,
-        gatedEstimateCount: 2,
-        descriptiveCount: 0,
-        noDetectableChangeCount: 0,
+        studyCount: 0,
+        ineligibleStudyCount: 1,
+        scopeIneligibleStudyCount: 1,
+        routeWideEvidenceMissingCount: 1,
         laneFallbackStudyCount: 0,
       });
-      expect(
-        JSON.parse(await readFile(join(root, "studio/v2/studies/index.json"), "utf8")).studies,
-      ).toHaveLength(2);
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  test("admits an exact bounded-scope binding and rejects a stale candidate-set binding", async () => {
+    const root = await mkdtemp(join(tmpdir(), "bp-study-bounded-scope-gate-"));
+    roots.push(root);
+    const artifact = study({ eventKey: "event-flatbush", routeId: "B41", effectMph: 1 });
+    const bounded = v3Candidate(artifact, {
+      treatmentFamily: "bus_lane",
+      occurrenceId: "occurrence:8c987704152b459014217d44",
+      provenance: [
+        {
+          ...v3Provenance(artifact),
+          sourceKind: "mta_wiki",
+          sourceId: "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+          occurrenceId: "occurrence:8c987704152b459014217d44",
+          releaseId: "v1-rc25",
+          manifestSha256: "a".repeat(64),
+          artifactSha256: "b".repeat(64),
+          physicalScopeRecordIds: ["corridor_flatbush-phase1-livingston-state"],
+          physicalScopeRelationRecordIds: ["relation:flatbush-phase1"],
+          physicalScopeEvidenceBindings: [
+            {
+              role: "physical_scope",
+              record_id: "relation:flatbush-phase1",
+              source_id: "flatbush_ave_bus_priority_mtp_briefing_apr2026",
+              evidence_id: "flatbush#p004_c0002",
+            },
+          ],
+        },
+      ],
+    });
+    const eventSetPath = join(root, "approved-events.json");
+    const scopeBindingsPath = join(root, "scope-bindings.json");
+    await writeFile(
+      eventSetPath,
+      `${JSON.stringify(
+        approvedV3EventSet({
+          candidates: [bounded],
+          approvedIds: new Set([bounded.candidateId]),
+        }),
+      )}\n`,
+    );
+    await writeFile(
+      scopeBindingsPath,
+      `${JSON.stringify(physicalScopeBindings({ candidate: bounded }))}\n`,
+    );
+    const sqlite = new Database(":memory:");
+    try {
+      const admittedScopes: string[] = [];
+      const result = await runSegmentStudies({
+        local: {
+          sqlite,
+          db: createLocalPipelineDb(sqlite),
+          path: ":memory:",
+          spatialite: null,
+        },
+        analysisMonth: "2026-03",
+        artifactRoot: root,
+        eventSetPath,
+        scopeBindingsPath,
+        buildStudy: async ({ scopeAdmission }) => {
+          admittedScopes.push(scopeAdmission.scope);
+          return artifact;
+        },
+      });
+      expect(admittedScopes).toEqual(["lane_overlap_spines"]);
+      expect(result).toMatchObject({
+        studyCount: 1,
+        scopeIneligibleStudyCount: 0,
+        boundedScopeBindingMismatchCount: 0,
+      });
+
+      await writeFile(
+        scopeBindingsPath,
+        `${JSON.stringify(
+          physicalScopeBindings({ candidate: bounded, candidateSetId: "candidate-set-v3:stale" }),
+        )}\n`,
+      );
+      await expect(
+        runSegmentStudies({
+          local: {
+            sqlite,
+            db: createLocalPipelineDb(sqlite),
+            path: ":memory:",
+            spatialite: null,
+          },
+          analysisMonth: "2026-03",
+          artifactRoot: root,
+          eventSetPath,
+          scopeBindingsPath,
+          buildStudy: async () => artifact,
+        }),
+      ).rejects.toThrow("Physical-scope binding artifact is stale");
     } finally {
       sqlite.close();
     }

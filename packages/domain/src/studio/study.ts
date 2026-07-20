@@ -210,6 +210,13 @@ export const StudyEventProvenanceV3Schema = Schema.Struct({
 });
 export type StudyEventProvenanceV3 = typeof StudyEventProvenanceV3Schema.Type;
 
+export const StudyEventProvenanceAnySchema = Schema.Union([
+  StudyEventProvenanceSchema,
+  StudyEventProvenanceV2Schema,
+  StudyEventProvenanceV3Schema,
+]);
+export type StudyEventProvenanceAny = typeof StudyEventProvenanceAnySchema.Type;
+
 export const StudyEventCandidateV3Schema = Schema.Struct({
   candidateId: Schema.String,
   routeId: Schema.String,
@@ -323,11 +330,57 @@ export const StudyEventMergeArtifactAnySchema = Schema.Union([
 export type StudyEventMergeArtifactAny = typeof StudyEventMergeArtifactAnySchema.Type;
 
 const StudyMonthSchema = Schema.String.check(Schema.isPattern(/^\d{4}-(?:0[1-9]|1[0-2])$/u));
+const StudySha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
+const NonEmptyStudyStringArraySchema = Schema.Array(
+  Schema.String.check(Schema.isMinLength(1)),
+).check(Schema.isMinLength(1));
 const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
   Schema.isGreaterThanOrEqualTo(0),
 );
 
 export { routeStudiesKey, studyArtifactKey, studyIndexKey } from "./study-key.js";
+
+export const StudyPhysicalScopeSegmentBindingSchema = Schema.Struct({
+  sourceSegmentId: Schema.String.check(Schema.isMinLength(1)),
+  spineSegmentId: Schema.String.check(Schema.isMinLength(1)),
+});
+export type StudyPhysicalScopeSegmentBinding = typeof StudyPhysicalScopeSegmentBindingSchema.Type;
+
+export const StudyPhysicalScopeBindingSchema = Schema.Struct({
+  candidateId: Schema.String.check(Schema.isMinLength(1)),
+  routeId: Schema.String.check(Schema.isMinLength(1)),
+  occurrenceId: Schema.String.check(Schema.isMinLength(1)),
+  physicalScopeRecordIds: NonEmptyStudyStringArraySchema,
+  geometrySourceId: Schema.Literal("nyc_dot_bus_lanes"),
+  geometryFeatureIds: NonEmptyStudyStringArraySchema,
+  selectedGeometryRowsSha256: StudySha256Schema,
+  speedSpineSha256: StudySha256Schema,
+  segmentBindings: Schema.Array(StudyPhysicalScopeSegmentBindingSchema).check(
+    Schema.isMinLength(1),
+    Schema.isMaxLength(1_000),
+  ),
+});
+export type StudyPhysicalScopeBinding = typeof StudyPhysicalScopeBindingSchema.Type;
+
+export const StudyPhysicalScopeBindingsArtifactSchema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.study_physical_scope_bindings.v1"),
+  schemaVersion: Schema.Literal(1),
+  candidateSetId: Schema.String.check(Schema.isMinLength(1)),
+  analysisMonth: StudyMonthSchema,
+  sourceRelease: Schema.Struct({
+    releaseId: Schema.String.check(Schema.isMinLength(1)),
+    manifestSha256: StudySha256Schema,
+    occurrencesSha256: StudySha256Schema,
+  }),
+  inputs: Schema.Struct({
+    busLaneSnapshotSha256: StudySha256Schema,
+    routeShapeSnapshotSha256: StudySha256Schema,
+    stopSnapshotSha256: StudySha256Schema,
+  }),
+  bindings: Schema.Array(StudyPhysicalScopeBindingSchema).check(Schema.isMaxLength(100)),
+});
+export type StudyPhysicalScopeBindingsArtifact =
+  typeof StudyPhysicalScopeBindingsArtifactSchema.Type;
 
 export const StudyGateSchema = Schema.Struct({
   status: Schema.Literals(["pass", "fail", "not_applicable"]),
@@ -422,8 +475,8 @@ export const StudyArtifactSchema = Schema.Struct({
     queensRedesign: Schema.NullOr(StudySensitivityEstimateSchema),
   }),
   provenance: Schema.Struct({
-    engineVersion: Schema.Literal("segment-matched-did-v1"),
-    event: Schema.Array(StudyEventProvenanceSchema).check(Schema.isMinLength(1)),
+    engineVersion: Schema.Literals(["segment-matched-did-v1", "segment-matched-did-v2"]),
+    event: Schema.Array(StudyEventProvenanceAnySchema).check(Schema.isMinLength(1)),
     sourceTable: Schema.Literal("local_route_segment_speed"),
     analysisMonth: StudyMonthSchema,
     dataWindow: Schema.Struct({

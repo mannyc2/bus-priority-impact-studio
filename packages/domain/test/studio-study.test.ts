@@ -9,6 +9,7 @@ import {
   StudyEventCandidateSchema,
   StudyEventMergeArtifactSchema,
   StudyIndexArtifactSchema,
+  StudyPhysicalScopeBindingsArtifactSchema,
   studyArtifactKey,
   studyIndexKey,
 } from "@bp/domain/studio/study";
@@ -118,6 +119,57 @@ describe("study event contracts", () => {
         decodeEitherStrict(OperationalOccurrenceProducerReviewStatusSchema)({
           compatibility: "known_rc22_review_v1_physical_scope_incompatibility",
           promotionEligible: true,
+        }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("study physical-scope binding contracts", () => {
+  test("binds one exact occurrence and geometry set to current segments and stable spines", () => {
+    const artifact = {
+      artifactKind: "bp.studio.study_physical_scope_bindings.v1" as const,
+      schemaVersion: 1 as const,
+      candidateSetId: "candidate-set-v3:fixture",
+      analysisMonth: "2026-03",
+      sourceRelease: {
+        releaseId: "v1-rc25",
+        manifestSha256: "a".repeat(64),
+        occurrencesSha256: "b".repeat(64),
+      },
+      inputs: {
+        busLaneSnapshotSha256: "c".repeat(64),
+        routeShapeSnapshotSha256: "d".repeat(64),
+        stopSnapshotSha256: "e".repeat(64),
+      },
+      bindings: [
+        {
+          candidateId: "study-event-v2:flatbush-b41",
+          routeId: "B41",
+          occurrenceId: "occurrence:flatbush-phase1",
+          physicalScopeRecordIds: ["corridor:flatbush-livingston-state"],
+          geometrySourceId: "nyc_dot_bus_lanes",
+          geometryFeatureIds: ["0022938", "0022942"],
+          selectedGeometryRowsSha256: "f".repeat(64),
+          speedSpineSha256: "1".repeat(64),
+          segmentBindings: [
+            {
+              sourceSegmentId: "B41:2026-03:N:48:303254:901007",
+              spineSegmentId: "b41-n-node-012-node-013",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      Result.isSuccess(decodeEitherStrict(StudyPhysicalScopeBindingsArtifactSchema)(artifact)),
+    ).toBe(true);
+    expect(
+      Result.isFailure(
+        decodeEitherStrict(StudyPhysicalScopeBindingsArtifactSchema)({
+          ...artifact,
+          bindings: [{ ...artifact.bindings[0], geometryFeatureIds: [] }],
         }),
       ),
     ).toBe(true);
