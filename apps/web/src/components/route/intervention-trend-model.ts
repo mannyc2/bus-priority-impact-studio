@@ -6,7 +6,16 @@ import type {
 } from "@/studio/api-contract";
 
 export const ROUTE_SPEED_OBSERVATION_BINDING_ID = "route_speed_around_implementation_v1" as const;
+export const BUS_LANE_ROUTE_SPEED_OBSERVATION_BINDING_ID =
+  "bus_lane_route_speed_around_implementation_v1" as const;
+export const BUSWAY_ROUTE_SPEED_OBSERVATION_BINDING_ID =
+  "busway_route_speed_around_implementation_v1" as const;
 export const ROUTE_SPEED_OBSERVATION_METRIC_ID = "route_average_speed_mph" as const;
+
+const ROUTE_AVERAGE_SPEED_LABEL = "Route average speed";
+const ROUTE_AVERAGE_SPEED_CONTEXT_LABEL = "Route average speed (context)";
+const ROUTE_CONTEXT_METHOD_LIMITATION =
+  "Route-level observations are context for a treatment scoped below the full route.";
 
 export type TrendMarker = {
   month: string;
@@ -22,13 +31,47 @@ export type RouteSpeedTrendModel = {
   points: readonly TrendPoint[];
   markers: readonly TrendMarker[];
   focalEventId: string | null;
+  seriesLabel: string;
+  methodLimitation: string | null;
   limitations: readonly string[];
 };
 
 type ObservationEvent = StudioRouteInterventionObservationBundle["events"][number];
 type ObservationSeries = ObservationEvent["series"][number];
 
-type EligibleEvent = { event: ObservationEvent; series: ObservationSeries };
+type SpeedBindingDefinition = {
+  treatmentKind: ObservationEvent["treatmentKind"];
+  analysisFamily: Exclude<ObservationEvent["analysisFamily"], null>;
+  specId: Exclude<ObservationEvent["specId"], null>;
+  presentationPriority: number;
+};
+
+type EligibleEvent = {
+  event: ObservationEvent;
+  series: ObservationSeries;
+  binding: SpeedBindingDefinition;
+};
+
+const SPEED_BINDINGS = {
+  [ROUTE_SPEED_OBSERVATION_BINDING_ID]: {
+    treatmentKind: "automated_bus_lane_enforcement",
+    analysisFamily: "automated_bus_lane_enforcement",
+    specId: "automated_bus_lane_enforcement_route_observations_v1",
+    presentationPriority: 1,
+  },
+  [BUS_LANE_ROUTE_SPEED_OBSERVATION_BINDING_ID]: {
+    treatmentKind: "bus_lane",
+    analysisFamily: "bus_lane",
+    specId: "bus_lane_route_observations_v1",
+    presentationPriority: 1,
+  },
+  [BUSWAY_ROUTE_SPEED_OBSERVATION_BINDING_ID]: {
+    treatmentKind: "busway",
+    analysisFamily: "busway",
+    specId: "busway_route_observations_v1",
+    presentationPriority: 1,
+  },
+} as const satisfies Partial<Record<ObservationSeries["bindingId"], SpeedBindingDefinition>>;
 
 const MONTH_NAMES = [
   "Jan",
@@ -72,24 +115,38 @@ export function routeSpeedInterventionTrend(
 
   const eligible: EligibleEvent[] = [];
   for (const event of observations.events) {
-    const series = event.series.find(
-      (candidate) =>
-        candidate.bindingId === ROUTE_SPEED_OBSERVATION_BINDING_ID &&
-        candidate.metricId === ROUTE_SPEED_OBSERVATION_METRIC_ID &&
-        (candidate.status === "available" || candidate.status === "partial") &&
-        candidate.points.some((point) => point.value !== null),
-    );
-    if (series !== undefined) eligible.push({ event, series });
+    for (const series of event.series) {
+      const binding = SPEED_BINDINGS[series.bindingId as keyof typeof SPEED_BINDINGS];
+      if (
+        binding !== undefined &&
+        event.treatmentKind === binding.treatmentKind &&
+        event.analysisFamily === binding.analysisFamily &&
+        event.specId === binding.specId &&
+        series.metricId === ROUTE_SPEED_OBSERVATION_METRIC_ID &&
+        (series.status === "available" || series.status === "partial") &&
+        series.points.some((point) => point.value !== null)
+      ) {
+        eligible.push({ event, series, binding });
+        break;
+      }
+    }
   }
-  eligible.sort(
-    (left, right) =>
-      left.event.implementationMonth.localeCompare(right.event.implementationMonth) ||
-      left.event.eventId.localeCompare(right.event.eventId),
-  );
 
-  const focal = eligible.at(-1);
+  const focal = eligible.sort(compareFocalEvents)[0];
   if (focal === undefined) {
     return dossierFallback(dossierPoints, [...observations.limitations, "series"]);
+  }
+
+  const contextual =
+    focal.series.role === "context" &&
+    (focal.event.geographyScope === "corridor" || focal.event.geographyScope === "segment");
+  const methodLimitation = contextual
+    ? (focal.series.limitations.find(
+        (limitation) => limitation === ROUTE_CONTEXT_METHOD_LIMITATION,
+      ) ?? null)
+    : null;
+  if (contextual && methodLimitation === null) {
+    return dossierFallback(dossierPoints, [...observations.limitations, "context"]);
   }
 
   const points = focal.series.points.map(
@@ -97,30 +154,22 @@ export function routeSpeedInterventionTrend(
   );
   const firstMonth = focal.series.coverage.requestedStart;
   const lastMonth = focal.series.coverage.requestedEnd;
-  const occurrenceIds = new Set(inventory.occurrences.map((occurrence) => occurrence.occurrenceId));
+  const occurrenceById = new Map(
+    inventory.occurrences.map((occurrence) => [occurrence.occurrenceId, occurrence]),
+  );
   const treatmentById = new Map(
     inventory.treatments.map((treatment) => [treatment.treatmentId, treatment]),
   );
   const limitations = [...observations.limitations];
   const grouped: Array<{ month: string; annotationStem: string; events: ObservationEvent[] }> = [];
 
-  for (const entry of eligible) {
+  const markerEvents = [...eligible].sort(compareMarkerEvents);
+  for (const entry of markerEvents) {
     const { event } = entry;
     if (event.implementationMonth < firstMonth || event.implementationMonth > lastMonth) continue;
 
-    if (!occurrenceIds.has(event.occurrenceId)) {
-      limitations.push(`occurrence:${event.eventId}`);
-      continue;
-    }
-    const treatment = treatmentById.get(event.treatmentId);
-    if (treatment === undefined) {
-      limitations.push(`treatment:${event.eventId}`);
-      continue;
-    }
-    const annotationStem =
-      interventionPresentationForTreatment(treatment).operationalAnnotationStem;
+    const annotationStem = markerAnnotationStem(event, occurrenceById, treatmentById, limitations);
     if (annotationStem === null) {
-      limitations.push(`annotation:${event.eventId}`);
       continue;
     }
     const group = grouped.at(-1);
@@ -154,8 +203,53 @@ export function routeSpeedInterventionTrend(
     points,
     markers: cap > 0 ? markers.slice(-cap) : [],
     focalEventId: focal.event.eventId,
+    seriesLabel: contextual ? ROUTE_AVERAGE_SPEED_CONTEXT_LABEL : ROUTE_AVERAGE_SPEED_LABEL,
+    methodLimitation,
     limitations,
   };
+}
+
+function compareFocalEvents(left: EligibleEvent, right: EligibleEvent): number {
+  return (
+    left.binding.presentationPriority - right.binding.presentationPriority ||
+    right.event.implementationMonth.localeCompare(left.event.implementationMonth) ||
+    right.event.eventId.localeCompare(left.event.eventId)
+  );
+}
+
+function compareMarkerEvents(left: EligibleEvent, right: EligibleEvent): number {
+  return (
+    left.event.implementationMonth.localeCompare(right.event.implementationMonth) ||
+    left.event.eventId.localeCompare(right.event.eventId)
+  );
+}
+
+function markerAnnotationStem(
+  event: ObservationEvent,
+  occurrenceById: ReadonlyMap<
+    string,
+    StudioRouteInterventionInventoryBundle["occurrences"][number]
+  >,
+  treatmentById: ReadonlyMap<string, StudioRouteInterventionInventoryBundle["treatments"][number]>,
+  limitations: string[],
+): string | null {
+  const occurrence = occurrenceById.get(event.occurrenceId);
+  if (
+    occurrence === undefined ||
+    occurrence.routeId !== event.routeId ||
+    !occurrence.treatmentIds.includes(event.treatmentId)
+  ) {
+    limitations.push(`occurrence:${event.eventId}`);
+    return null;
+  }
+  const treatment = treatmentById.get(event.treatmentId);
+  if (treatment === undefined || treatment.treatmentKind !== event.treatmentKind) {
+    limitations.push(`treatment:${event.eventId}`);
+    return null;
+  }
+  const annotationStem = interventionPresentationForTreatment(treatment).operationalAnnotationStem;
+  if (annotationStem === null) limitations.push(`annotation:${event.eventId}`);
+  return annotationStem;
 }
 
 function dossierFallback(
@@ -167,6 +261,8 @@ function dossierFallback(
     points,
     markers: [],
     focalEventId: null,
+    seriesLabel: ROUTE_AVERAGE_SPEED_LABEL,
+    methodLimitation: null,
     limitations,
   };
 }
