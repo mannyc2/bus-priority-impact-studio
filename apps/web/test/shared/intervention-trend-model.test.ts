@@ -548,14 +548,12 @@ describe("route speed intervention trend model", () => {
 
     expect(result.source).toBe("dossier_fallback");
     expect(result.markers).toEqual([]);
-    expect(result.limitations[0]).toContain("do not share a release");
+    expect(result.limitations[0]).toBe("release");
   });
 
   test("falls back when exact route identities differ", () => {
     const event = observationEvent();
-    const observations = observationBundle([event], {
-      route: { ...routePresentation(), displayLabel: "B44" },
-    });
+    const observations = observationBundle([event], { routeSlug: "b44" });
     const result = routeSpeedInterventionTrend(
       observations,
       inventoryBundle([event]),
@@ -565,7 +563,7 @@ describe("route speed intervention trend model", () => {
 
     expect(result.source).toBe("dossier_fallback");
     expect(result.markers).toEqual([]);
-    expect(result.limitations[0]).toContain("exact route identity");
+    expect(result.limitations[0]).toBe("route");
   });
 
   test("excludes a marker with a dangling occurrence ID", () => {
@@ -580,7 +578,7 @@ describe("route speed intervention trend model", () => {
 
     expect(result.source).toBe("observation_bundle");
     expect(result.markers).toEqual([]);
-    expect(result.limitations[0]).toContain("unknown occurrence");
+    expect(result.limitations[0]).toContain("occurrence:");
   });
 
   test("excludes a marker with a dangling treatment ID", () => {
@@ -595,7 +593,7 @@ describe("route speed intervention trend model", () => {
 
     expect(result.source).toBe("observation_bundle");
     expect(result.markers).toEqual([]);
-    expect(result.limitations[0]).toContain("unknown treatment");
+    expect(result.limitations[0]).toContain("treatment:");
   });
 
   test("excludes a marker when the typed treatment has no annotation stem", () => {
@@ -609,7 +607,7 @@ describe("route speed intervention trend model", () => {
 
     expect(result.source).toBe("observation_bundle");
     expect(result.markers).toEqual([]);
-    expect(result.limitations[0]).toContain("no operational annotation stem");
+    expect(result.limitations[0]).toContain("annotation:");
   });
 
   test("keeps marker labels byte-identical when display copy and numeric values change", () => {

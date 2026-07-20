@@ -155,9 +155,7 @@ describe("SpeedTrend chart structure", () => {
     expect(markup).toContain('aria-label="Monthly observed average speed"');
     expect(descriptionId).toBeDefined();
     expect(markup).toContain(`id="${descriptionId}"`);
-    expect(markup).toContain(
-      "Intervention dates: June 2024, 2 occurrences: 2 enforcement starts, Jun 2024.",
-    );
+    expect(markup).toContain("Marked interventions: 2 enforcement starts, Jun 2024.");
   });
 
   test("renders the honest empty state for an all-null calendar series", () => {

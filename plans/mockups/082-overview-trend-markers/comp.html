@@ -519,7 +519,9 @@
         return `<li><strong>${label}:</strong> ${selected?.value ?? "No selection"}</li>`;
       }).join("");
     }
-    document.querySelectorAll("input[type=radio]").forEach((input) => input.addEventListener("change", updateSummary));
+    document.querySelectorAll("input[type=radio]").forEach((input) => {
+      input.addEventListener("change", updateSummary);
+    });
   </script>
 </body>
 </html>

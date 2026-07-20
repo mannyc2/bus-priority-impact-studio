@@ -28,15 +28,7 @@ export type RouteSpeedTrendModel = {
 type ObservationEvent = StudioRouteInterventionObservationBundle["events"][number];
 type ObservationSeries = ObservationEvent["series"][number];
 
-type EligibleEvent = {
-  event: ObservationEvent;
-  series: ObservationSeries;
-};
-
-type MarkerCandidate = {
-  event: ObservationEvent;
-  annotationStem: string;
-};
+type EligibleEvent = { event: ObservationEvent; series: ObservationSeries };
 
 const MONTH_NAMES = [
   "Jan",
@@ -60,118 +52,107 @@ export function routeSpeedInterventionTrend(
   markerCap: number,
 ): RouteSpeedTrendModel {
   if (observations === null || inventory === null) {
-    return dossierFallback(
-      dossierPoints,
-      "Intervention observations and inventory are not both available.",
-    );
+    return dossierFallback(dossierPoints, ["inputs"]);
   }
 
   if (
     observations.releaseId !== inventory.releaseId ||
     observations.publishedAt !== inventory.publishedAt
   ) {
-    return dossierFallback(
-      dossierPoints,
-      "Intervention observations and inventory do not share a release.",
-    );
+    return dossierFallback(dossierPoints, ["release"]);
   }
 
-  if (!hasExactRouteIdentity(observations, inventory)) {
-    return dossierFallback(
-      dossierPoints,
-      "Intervention observations and inventory do not share an exact route identity.",
-    );
+  if (
+    observations.routeId !== observations.route.routeId ||
+    observations.routeId !== inventory.route.routeId ||
+    observations.routeSlug !== inventory.routeSlug
+  ) {
+    return dossierFallback(dossierPoints, ["route"]);
   }
 
-  const eligible = observations.events
-    .flatMap((event): EligibleEvent[] => {
-      const series = event.series.find(
-        (candidate) =>
-          candidate.bindingId === ROUTE_SPEED_OBSERVATION_BINDING_ID &&
-          candidate.metricId === ROUTE_SPEED_OBSERVATION_METRIC_ID &&
-          (candidate.status === "available" || candidate.status === "partial") &&
-          candidate.points.some((point) => point.value !== null),
-      );
-      return series === undefined ? [] : [{ event, series }];
-    })
-    .sort(
-      (left, right) =>
-        left.event.implementationMonth.localeCompare(right.event.implementationMonth) ||
-        left.event.eventId.localeCompare(right.event.eventId),
+  const eligible: EligibleEvent[] = [];
+  for (const event of observations.events) {
+    const series = event.series.find(
+      (candidate) =>
+        candidate.bindingId === ROUTE_SPEED_OBSERVATION_BINDING_ID &&
+        candidate.metricId === ROUTE_SPEED_OBSERVATION_METRIC_ID &&
+        (candidate.status === "available" || candidate.status === "partial") &&
+        candidate.points.some((point) => point.value !== null),
     );
+    if (series !== undefined) eligible.push({ event, series });
+  }
+  eligible.sort(
+    (left, right) =>
+      left.event.implementationMonth.localeCompare(right.event.implementationMonth) ||
+      left.event.eventId.localeCompare(right.event.eventId),
+  );
 
   const focal = eligible.at(-1);
   if (focal === undefined) {
-    return dossierFallback(dossierPoints, [
-      ...observations.limitations,
-      "No eligible route-speed observation series is available.",
-    ]);
+    return dossierFallback(dossierPoints, [...observations.limitations, "series"]);
   }
 
-  const points = focal.series.points
-    .map((point): TrendPoint => ({ month: point.month, value: point.value }))
-    .sort((left, right) => left.month.localeCompare(right.month));
-  const pointMonths = new Set(points.map((point) => point.month));
-  const occurrenceById = new Map(
-    inventory.occurrences.map((occurrence) => [occurrence.occurrenceId, occurrence]),
+  const points = focal.series.points.map(
+    (point): TrendPoint => ({ month: point.month, value: point.value }),
   );
+  const firstMonth = focal.series.coverage.requestedStart;
+  const lastMonth = focal.series.coverage.requestedEnd;
+  const occurrenceIds = new Set(inventory.occurrences.map((occurrence) => occurrence.occurrenceId));
   const treatmentById = new Map(
     inventory.treatments.map((treatment) => [treatment.treatmentId, treatment]),
   );
   const limitations = [...observations.limitations];
-  const candidates: MarkerCandidate[] = [];
+  const grouped: Array<{ month: string; annotationStem: string; events: ObservationEvent[] }> = [];
 
   for (const entry of eligible) {
     const { event } = entry;
-    if (!pointMonths.has(event.implementationMonth)) continue;
+    if (event.implementationMonth < firstMonth || event.implementationMonth > lastMonth) continue;
 
-    const occurrence = occurrenceById.get(event.occurrenceId);
-    if (occurrence === undefined) {
-      addLimitation(
-        limitations,
-        `Event ${event.eventId} references unknown occurrence ${event.occurrenceId}.`,
-      );
+    if (!occurrenceIds.has(event.occurrenceId)) {
+      limitations.push(`occurrence:${event.eventId}`);
       continue;
     }
     const treatment = treatmentById.get(event.treatmentId);
     if (treatment === undefined) {
-      addLimitation(
-        limitations,
-        `Event ${event.eventId} references unknown treatment ${event.treatmentId}.`,
-      );
+      limitations.push(`treatment:${event.eventId}`);
       continue;
     }
-    if (event.routeId !== observations.routeId || occurrence.routeId !== inventory.route.routeId) {
-      addLimitation(limitations, `Event ${event.eventId} does not resolve to this route.`);
-      continue;
-    }
-    if (
-      !occurrence.treatmentIds.includes(event.treatmentId) ||
-      !treatment.occurrenceIds.includes(event.occurrenceId)
-    ) {
-      addLimitation(
-        limitations,
-        `Event ${event.eventId} occurrence and treatment IDs do not resolve together.`,
-      );
-      continue;
-    }
-
     const annotationStem =
       interventionPresentationForTreatment(treatment).operationalAnnotationStem;
     if (annotationStem === null) {
-      addLimitation(limitations, `Event ${event.eventId} has no operational annotation stem.`);
+      limitations.push(`annotation:${event.eventId}`);
       continue;
     }
-    candidates.push({ event, annotationStem });
+    const group = grouped.at(-1);
+    if (group?.month === event.implementationMonth) {
+      group.events.push(event);
+    } else {
+      grouped.push({ month: event.implementationMonth, annotationStem, events: [event] });
+    }
   }
 
-  const markers = clusterMarkers(candidates);
+  const markers = grouped.map((group): TrendMarker => {
+    const eventIds = sortedUnique(group.events.map((event) => event.eventId));
+    const occurrenceIds = sortedUnique(group.events.map((event) => event.occurrenceId));
+    const treatmentIds = sortedUnique(group.events.map((event) => event.treatmentId));
+    const monthLabel = `${MONTH_NAMES[Number(group.month.slice(5)) - 1]} ${group.month.slice(0, 4)}`;
+    return {
+      month: group.month,
+      label:
+        occurrenceIds.length === 1
+          ? `${group.annotationStem} ${monthLabel}`
+          : `${occurrenceIds.length} ${group.annotationStem.toLowerCase()}, ${monthLabel}`,
+      count: occurrenceIds.length,
+      eventIds,
+      occurrenceIds,
+      treatmentIds,
+    };
+  });
   const cap = Math.max(0, Math.floor(markerCap));
-
   return {
     source: "observation_bundle",
     points,
-    markers: markers.slice(Math.max(0, markers.length - cap)),
+    markers: cap > 0 ? markers.slice(-cap) : [],
     focalEventId: focal.event.eventId,
     limitations,
   };
@@ -179,93 +160,17 @@ export function routeSpeedInterventionTrend(
 
 function dossierFallback(
   points: readonly TrendPoint[],
-  limitation: string | readonly string[],
+  limitations: readonly string[],
 ): RouteSpeedTrendModel {
   return {
     source: "dossier_fallback",
     points,
     markers: [],
     focalEventId: null,
-    limitations: typeof limitation === "string" ? [limitation] : limitation,
+    limitations,
   };
 }
 
-function hasExactRouteIdentity(
-  observations: StudioRouteInterventionObservationBundle,
-  inventory: StudioRouteInterventionInventoryBundle,
-): boolean {
-  const left = observations.route;
-  const right = inventory.route;
-  return (
-    observations.routeId === left.routeId &&
-    observations.routeId === right.routeId &&
-    observations.routeSlug === inventory.routeSlug &&
-    left.routeId === right.routeId &&
-    left.routeFamilyId === right.routeFamilyId &&
-    left.displayLabel === right.displayLabel &&
-    left.officialLongName === right.officialLongName &&
-    sameValues(left.designationLiterals, right.designationLiterals) &&
-    sameValues(left.serviceModes, right.serviceModes) &&
-    sameValues(left.routeTypes, right.routeTypes) &&
-    sameValues(left.tripTypes, right.tripTypes)
-  );
-}
-
-function sameValues(
-  left: readonly (string | number)[],
-  right: readonly (string | number)[],
-): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
-}
-
-function addLimitation(limitations: string[], limitation: string): void {
-  if (!limitations.includes(limitation)) limitations.push(limitation);
-}
-
-function clusterMarkers(candidates: readonly MarkerCandidate[]): TrendMarker[] {
-  const byMonth = new Map<string, MarkerCandidate[]>();
-  for (const candidate of candidates) {
-    const monthCandidates = byMonth.get(candidate.event.implementationMonth) ?? [];
-    monthCandidates.push(candidate);
-    byMonth.set(candidate.event.implementationMonth, monthCandidates);
-  }
-
-  return [...byMonth.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([month, monthCandidates]) => {
-      const ordered = [...monthCandidates].sort(
-        (left, right) =>
-          left.event.eventId.localeCompare(right.event.eventId) ||
-          left.event.occurrenceId.localeCompare(right.event.occurrenceId) ||
-          left.event.treatmentId.localeCompare(right.event.treatmentId),
-      );
-      const eventIds = sortedUnique(ordered.map(({ event }) => event.eventId));
-      const occurrenceIds = sortedUnique(ordered.map(({ event }) => event.occurrenceId));
-      const treatmentIds = sortedUnique(ordered.map(({ event }) => event.treatmentId));
-      const annotationStem = ordered[0]?.annotationStem ?? "";
-      const monthLabel = trendMonthLabel(month);
-      const label =
-        occurrenceIds.length === 1
-          ? `${annotationStem} ${monthLabel}`
-          : `${occurrenceIds.length} ${annotationStem.toLocaleLowerCase("en-US")}, ${monthLabel}`;
-
-      return {
-        month,
-        label,
-        count: occurrenceIds.length,
-        eventIds,
-        occurrenceIds,
-        treatmentIds,
-      };
-    });
-}
-
 function sortedUnique(values: readonly string[]): string[] {
-  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
-}
-
-function trendMonthLabel(month: string): string {
-  const [year, monthPart] = month.split("-");
-  const name = MONTH_NAMES[Number(monthPart) - 1];
-  return year === undefined || name === undefined ? month : `${name} ${year}`;
+  return [...new Set(values)].sort();
 }

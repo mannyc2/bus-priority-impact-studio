@@ -1,5 +1,6 @@
 import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
+import { routeSpeedInterventionTrend } from "@/components/route/intervention-trend-model";
 import { RouteGeoMap } from "@/components/route/RouteGeoMap";
 import { RouteInsightList } from "@/components/route/RouteInsightList";
 import {
@@ -9,7 +10,6 @@ import {
 } from "@/components/route/route-derived";
 import { useRouteSegmentsGeo } from "@/components/route/route-detail-data";
 import { routeInterventionViewModel } from "@/components/route/route-intervention-model";
-import { routeSpeedInterventionTrend } from "@/components/route/intervention-trend-model";
 import type { RouteDetailSectionValue } from "@/components/route/section-registry";
 import { SectionCard } from "@/components/SectionCard";
 import { SpeedTrend } from "@/components/SpeedTrend";
@@ -108,7 +108,6 @@ export function OverviewSection({
               markers={speedTrend.markers}
               {...(route.scheduledMph === null ? {} : { scheduled: route.scheduledMph })}
               height={172}
-              legend
             />
           ) : (
             <div className="flex h-full min-h-[172px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">

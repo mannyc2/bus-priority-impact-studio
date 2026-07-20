@@ -1,20 +1,10 @@
 import { useId } from "react";
-import {
-  Area,
-  CartesianGrid,
-  ComposedChart,
-  ReferenceDot,
-  ReferenceLine,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, CartesianGrid, ComposedChart, ReferenceLine, XAxis, YAxis } from "recharts";
 import type { TrendMarker } from "@/components/route/intervention-trend-model";
 import type { TrendPoint } from "@/components/route/route-derived";
 import {
   type ChartConfig,
   ChartContainer,
-  ChartLegendContent,
-  type ChartLegendItem,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
@@ -36,8 +26,6 @@ type SpeedTrendOptions = {
   /** Label next to the dashed baseline. */
   scheduledLabel?: string;
   tone?: string;
-  /** Show the observed-line + scheduled-baseline key below the chart. */
-  legend?: boolean;
   markers?: readonly TrendMarker[];
 };
 
@@ -67,84 +55,47 @@ export function buildSpeedTrendChartModel(input: SpeedTrendChartModelInput): Spe
   const rows: SpeedTrendChartRow[] = isCalendar
     ? input.points.map((point) => ({ month: point.month, value: point.value }))
     : input.data.map((value, index) => ({ period: index + 1, value }));
-  const observedRows = rows.filter((row) => row.value !== null && Number.isFinite(row.value));
-  const hasObservedData = observedRows.length > 0;
-  const domainValues = observedRows.map((row) => row.value as number);
-
-  if (hasObservedData && input.scheduled !== undefined && Number.isFinite(input.scheduled)) {
-    domainValues.push(input.scheduled);
+  let low = Number.POSITIVE_INFINITY;
+  let high = Number.NEGATIVE_INFINITY;
+  let lastObservedPoint: SpeedTrendChartRow | null = null;
+  for (const row of rows) {
+    if (!Number.isFinite(row.value)) continue;
+    low = Math.min(low, row.value as number);
+    high = Math.max(high, row.value as number);
+    lastObservedPoint = row;
   }
-
+  const hasObservedData = lastObservedPoint !== null;
+  if (hasObservedData && Number.isFinite(input.scheduled)) {
+    low = Math.min(low, input.scheduled as number);
+    high = Math.max(high, input.scheduled as number);
+  }
   const firstMonth = isCalendar ? rows[0]?.month : undefined;
   const lastMonth = isCalendar ? rows.at(-1)?.month : undefined;
   const ticks =
     firstMonth === undefined
       ? []
-      : lastMonth === undefined || lastMonth === firstMonth
+      : firstMonth === lastMonth
         ? [firstMonth]
-        : [firstMonth, lastMonth];
+        : [firstMonth, lastMonth as string];
 
   return {
     rows,
     xAxisDataKey: isCalendar ? "month" : "period",
     ticks,
     hasObservedData,
-    yDomain: hasObservedData
-      ? [Math.floor(Math.min(...domainValues) - 0.5), Math.ceil(Math.max(...domainValues) + 0.5)]
-      : null,
-    lastObservedPoint: observedRows.at(-1) ?? null,
+    yDomain: hasObservedData ? [Math.floor(low - 0.5), Math.ceil(high + 0.5)] : null,
+    lastObservedPoint,
     markers: isCalendar ? (input.markers ?? []) : [],
   };
 }
 
-const SHORT_MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const;
+const MONTH_NAMES = "JanFebMarAprMayJunJulAugSepOctNovDec";
 
-const LONG_MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-] as const;
-
-function monthLabel(value: string | number, monthNames: readonly string[]): string {
+function monthLabel(value: string | number): string {
   if (typeof value !== "string") return String(value);
-  const [year, rawMonth] = value.split("-");
-  const month = Number(rawMonth);
-  const monthName = monthNames[month - 1];
-  return year && monthName ? `${monthName} ${year}` : value;
-}
-
-function markerSummary(markers: readonly TrendMarker[]): string {
-  if (markers.length === 0) return "No intervention dates are marked.";
-
-  const descriptions = markers.map((marker) => {
-    const month = monthLabel(marker.month, LONG_MONTHS);
-    return marker.count > 1
-      ? `${month}, ${marker.count} occurrences: ${marker.label}`
-      : `${month}: ${marker.label}`;
-  });
-  return `Intervention dates: ${descriptions.join("; ")}.`;
+  const month = Number(value.slice(5)) - 1;
+  const name = MONTH_NAMES.slice(month * 3, month * 3 + 3);
+  return month >= 0 && month < 12 ? `${name} ${value.slice(0, 4)}` : value;
 }
 
 export function SpeedTrendChart({
@@ -153,22 +104,21 @@ export function SpeedTrendChart({
   seriesLabel = "Speed (mph)",
   scheduledLabel = "scheduled",
   tone = "var(--bp-color-bad)",
-  legend = false,
   markers,
   ...series
 }: SpeedTrendProps) {
   const componentId = useId().replace(/:/g, "");
-  const descriptionId = `speed-trend-description-${componentId}`;
-  const gradientId = `speed-trend-fill-${componentId}`;
+  const descriptionId = `st-${componentId}`;
+  const gradientId = `stf-${componentId}`;
   const finiteScheduled =
     scheduled !== undefined && Number.isFinite(scheduled) ? scheduled : undefined;
   const model = buildSpeedTrendChartModel({
     ...series,
-    ...(finiteScheduled === undefined ? {} : { scheduled: finiteScheduled }),
-    ...(markers === undefined ? {} : { markers }),
+    scheduled,
+    markers,
   } as SpeedTrendChartModelInput);
 
-  if (!model.hasObservedData || model.yDomain === null) {
+  if (model.yDomain === null) {
     return (
       <div
         className="flex w-full items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]"
@@ -180,22 +130,14 @@ export function SpeedTrendChart({
     );
   }
 
-  const last = model.lastObservedPoint;
-  const lastX =
-    last === null ? undefined : model.xAxisDataKey === "month" ? last.month : last.period;
-  const config = { value: { label: seriesLabel, color: tone } } satisfies ChartConfig;
+  const last = model.lastObservedPoint as SpeedTrendChartRow;
+  const lastIndex = model.rows.indexOf(last);
+  const calendar = model.xAxisDataKey === "month";
 
-  const legendItems: ChartLegendItem[] = [
-    { label: seriesLabel, shape: "line", color: tone },
-    ...(finiteScheduled === undefined
-      ? []
-      : [{ label: scheduledLabel, shape: "dashed" as const, color: "var(--bp-color-ink-40)" }]),
-  ];
-
-  const chart = (
+  return (
     <>
       <ChartContainer
-        config={config}
+        config={{ value: { label: seriesLabel, color: tone } } satisfies ChartConfig}
         className="aspect-auto w-full"
         style={{ height }}
         role="img"
@@ -215,16 +157,14 @@ export function SpeedTrendChart({
             tickLine={false}
             axisLine={false}
             tickMargin={8}
-            {...(model.xAxisDataKey === "month"
-              ? {
-                  ticks: [...model.ticks],
-                  tickFormatter: (value: string | number) => monthLabel(value, SHORT_MONTHS),
-                  interval: "preserveStartEnd" as const,
-                }
-              : { interval: 1 })}
+            ticks={(calendar ? model.ticks : undefined) as (string | number)[]}
+            tickFormatter={
+              (calendar ? monthLabel : undefined) as (value: string | number) => string
+            }
+            interval={calendar ? "preserveStartEnd" : 1}
           />
           <YAxis
-            domain={[...model.yDomain]}
+            domain={model.yDomain as [number, number]}
             width={34}
             tickLine={false}
             axisLine={false}
@@ -233,14 +173,7 @@ export function SpeedTrendChart({
           />
           <ChartTooltip
             cursor={{ stroke: "var(--bp-color-ink-20)" }}
-            content={
-              <ChartTooltipContent
-                hideLabel={model.xAxisDataKey === "period"}
-                labelFormatter={(label) =>
-                  typeof label === "string" ? monthLabel(label, SHORT_MONTHS) : label
-                }
-              />
-            }
+            content={<ChartTooltipContent hideLabel={!calendar} />}
           />
           {finiteScheduled === undefined ? null : (
             <ReferenceLine
@@ -277,34 +210,28 @@ export function SpeedTrendChart({
             stroke={tone}
             strokeWidth={2}
             fill={`url(#${gradientId})`}
-            dot={false}
+            dot={(dot) =>
+              dot.index === lastIndex ? (
+                <circle
+                  cx={dot.cx}
+                  cy={dot.cy}
+                  r={3.5}
+                  fill={tone}
+                  stroke="var(--bp-color-card)"
+                  strokeWidth={1.5}
+                />
+              ) : null
+            }
             connectNulls={false}
             isAnimationActive={false}
           />
-          {last !== null && lastX !== undefined && last.value !== null ? (
-            <ReferenceDot
-              x={lastX}
-              y={last.value}
-              r={3.5}
-              fill={tone}
-              stroke="var(--bp-color-card)"
-              strokeWidth={1.5}
-            />
-          ) : null}
         </ComposedChart>
       </ChartContainer>
       <span id={descriptionId} className="sr-only">
-        {markerSummary(model.markers)}
+        {model.markers.length === 0
+          ? "No intervention dates are marked."
+          : `Marked interventions: ${model.markers.map((marker) => marker.label).join("; ")}.`}
       </span>
     </>
-  );
-
-  if (!legend) return chart;
-
-  return (
-    <div className="flex flex-col gap-1">
-      {chart}
-      <ChartLegendContent className="flex-wrap" items={legendItems} />
-    </div>
   );
 }
