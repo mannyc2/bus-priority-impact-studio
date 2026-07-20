@@ -7,18 +7,25 @@ import {
 } from "@tanstack/react-router";
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { validateInterventionsSearch } from "../../src/routes/interventions";
 import { timelineEvidenceRouteSlugs } from "../../src/studio/api-client";
 import type {
   StudioIntervention,
   StudioInterventionCorpus,
+  StudioInterventionFacetIndex,
   StudioRoute,
   StudioRouteEvidenceBundle,
   StudioRouteIndex3Response,
   StudioRouteIndex3Row,
 } from "../../src/studio/api-contract";
 import {
+  compactInterventionsSearch,
+  filterInterventionRows,
   InterventionsPage,
+  interventionMatchAnnouncement,
   interventionRows,
+  interventionsPaginationResetKey,
+  recordTargetForRoute,
   yearLabel,
 } from "../../src/studio/pages/interventions";
 import { isoMonthFixture } from "./schema-fixtures";
@@ -33,6 +40,15 @@ async function renderWithRouter(node: ReactNode): Promise<string> {
   await router.load();
   return renderToStaticMarkup(createElement(RouterProvider, { router }));
 }
+
+test("intervention filter announcements use singular grammar", () => {
+  expect(interventionMatchAnnouncement(1)).toBe(
+    "1 intervention record matches the current filters.",
+  );
+  expect(interventionMatchAnnouncement(2)).toBe(
+    "2 intervention records match the current filters.",
+  );
+});
 
 function makeRoute(input: {
   slug: string;
@@ -206,9 +222,9 @@ const corpus = {
     {
       recordId: "corpus-b41",
       routes: ["B41"],
-      primaryTreatments: ["busway"],
-      customTreatments: [],
-      title: "Flatbush Avenue — Busway",
+      primaryTreatments: [],
+      customTreatments: ["Limited-to-local conversion"],
+      title: "Flatbush Avenue service project",
       effectiveDate: "2021-10",
       datePrecision: "month",
       recordKind: "implemented",
@@ -241,6 +257,85 @@ const corpus = {
     },
   ],
 } satisfies StudioInterventionCorpus;
+
+const facetIndex = {
+  artifactKind: "bp.studio.intervention_facet_index.v1",
+  schemaVersion: 1,
+  releaseId: "pub_20260720T120000000Z",
+  publishedAt: "2026-07-20T12:00:00.000Z",
+  coverage: { start: isoMonthFixture("2023-04"), end: isoMonthFixture("2026-06") },
+  summary: { rowCount: 4, routeCount: 2, treatmentCount: 4, occurrenceCount: 2 },
+  rows: [
+    {
+      facetId: "facet-registry-m15",
+      sourceNamespace: "local_registry",
+      sourceRecordId: "registry-m15",
+      sourceOccurrenceId: "registry-m15",
+      occurrenceId: "occurrence:v1:000000000000000000000001",
+      routeId: "M15+",
+      routeSlug: "m15-sbs",
+      treatmentIds: ["treatment:v1:000000000000000000000001"],
+      treatmentKinds: ["bus_lane"],
+      treatmentFamilies: ["bus_priority_lane"],
+      lifecycleState: "implemented",
+      effectiveDate: "2024-06",
+      datePrecision: "month",
+      projectIds: [],
+      bundleKey: "studio/interventions/routes/m15-sbs.json",
+    },
+    {
+      facetId: "facet-wiki-b41",
+      sourceNamespace: "route_evidence",
+      sourceRecordId: "tl_b41_1",
+      sourceOccurrenceId: "tl_b41_1",
+      occurrenceId: "occurrence:v1:000000000000000000000002",
+      routeId: "B41",
+      routeSlug: "b41",
+      treatmentIds: ["treatment:v1:000000000000000000000002"],
+      treatmentKinds: ["bus_lane"],
+      treatmentFamilies: ["bus_priority_lane"],
+      lifecycleState: "implemented",
+      effectiveDate: "2019-06",
+      datePrecision: "month",
+      projectIds: [],
+      bundleKey: "studio/interventions/routes/b41.json",
+    },
+    {
+      facetId: "facet-project-b41",
+      sourceNamespace: "route_evidence",
+      sourceRecordId: "pr_b41_1",
+      sourceOccurrenceId: null,
+      occurrenceId: null,
+      routeId: "B41",
+      routeSlug: "b41",
+      treatmentIds: ["treatment:v1:000000000000000000000003"],
+      treatmentKinds: ["busway"],
+      treatmentFamilies: ["bus_priority_lane"],
+      lifecycleState: "planned",
+      effectiveDate: null,
+      datePrecision: "unknown",
+      projectIds: ["pr_b41_1"],
+      bundleKey: "studio/interventions/routes/b41.json",
+    },
+    {
+      facetId: "facet-corpus-b41",
+      sourceNamespace: "reviewed_intervention_corpus",
+      sourceRecordId: "corpus-b41",
+      sourceOccurrenceId: null,
+      occurrenceId: null,
+      routeId: "B41",
+      routeSlug: "b41",
+      treatmentIds: ["treatment:v1:000000000000000000000004"],
+      treatmentKinds: ["other_documented"],
+      treatmentFamilies: ["other"],
+      lifecycleState: "implemented",
+      effectiveDate: "2021-10",
+      datePrecision: "month",
+      projectIds: [],
+      bundleKey: "studio/interventions/routes/b41.json",
+    },
+  ],
+} satisfies StudioInterventionFacetIndex;
 
 function routeIndexRow(input: {
   routeId: string;
@@ -396,6 +491,94 @@ describe("interventionRows", () => {
     ]);
     expect(rows.find((row) => row.key === "corpus:corpus-b44-label-only")?.routes).toEqual([]);
   });
+
+  test("composes typed family, lifecycle, exact-route, and text filters without prose classification", () => {
+    const rows = interventionRows(routes, evidence, corpus, facetIndex);
+
+    expect(
+      filterInterventionRows(rows, { family: "other" }, { facetIndexAvailable: true }).map(
+        (row) => row.key,
+      ),
+    ).toEqual(["corpus:corpus-b41"]);
+    expect(
+      filterInterventionRows(rows, { status: "future" }, { facetIndexAvailable: true }).map(
+        (row) => row.key,
+      ),
+    ).toEqual(expect.arrayContaining(["b41:wiki-project:pr_b41_1", "corpus:corpus-network"]));
+    expect(
+      filterInterventionRows(
+        rows,
+        { route: "b41", q: "flatbush" },
+        {
+          facetIndexAvailable: true,
+        },
+      ).every((row) => row.routes.some((route) => route.slug === "b41")),
+    ).toBe(true);
+
+    const withoutFacets = interventionRows(routes, evidence, corpus, null);
+    expect(
+      filterInterventionRows(
+        withoutFacets,
+        { family: "other" },
+        {
+          facetIndexAvailable: false,
+        },
+      ),
+    ).toHaveLength(withoutFacets.length);
+  });
+
+  test("chooses the exact route occurrence target from stable facet relationships", () => {
+    const rows = interventionRows(routes, evidence, corpus, facetIndex);
+    const row = rows.find((candidate) => candidate.key === "b41:wiki-timeline:tl_b41_1");
+    expect(row).toBeDefined();
+    if (row === undefined) return;
+    expect(recordTargetForRoute(row, "b41")).toBe("occurrence:v1:000000000000000000000002");
+  });
+});
+
+describe("interventions URL contract", () => {
+  test("trims bounded values, omits defaults, and rejects invalid values", () => {
+    expect(
+      validateInterventionsSearch({
+        status: "all",
+        borough: "All boroughs",
+        family: "all",
+        route: "  b44-sbs  ",
+        q: "  busway  ",
+      }),
+    ).toEqual({ route: "b44-sbs", q: "busway" });
+    expect(
+      validateInterventionsSearch({
+        status: "invented",
+        borough: "Atlantis",
+        family: "not-a-family",
+        route: "x".repeat(97),
+        q: `bad${String.fromCharCode(1)}`,
+      }),
+    ).toEqual({});
+    expect(
+      compactInterventionsSearch({
+        status: "all",
+        borough: "All boroughs",
+        family: "all",
+        route: " b41 ",
+        q: " lane ",
+      }),
+    ).toEqual({ route: "b41", q: "lane" });
+  });
+
+  test("every validated filter dimension changes the pagination reset key", () => {
+    const baseline = interventionsPaginationResetKey({});
+    for (const search of [
+      { status: "future" as const },
+      { borough: "Brooklyn" as const },
+      { family: "bus_priority_lane" as const },
+      { route: "b41" },
+      { q: "lane" },
+    ]) {
+      expect(interventionsPaginationResetKey(search)).not.toBe(baseline);
+    }
+  });
 });
 
 describe("InterventionsPage render", () => {
@@ -448,5 +631,47 @@ describe("InterventionsPage render", () => {
     expect(html).toContain("Record 30");
     expect(html).not.toContain("Record 31");
     expect(html).toContain("Show 10 more (10 left)");
+  });
+
+  test("renders typed controls, custom treatments, and durable exact-route History links", async () => {
+    const html = await renderWithRouter(
+      createElement(InterventionsPage, {
+        routes,
+        evidence,
+        corpus,
+        facetIndex,
+        search: { route: "b41", family: "other" },
+      }),
+    );
+
+    expect(html).toContain("Treatment family");
+    expect(html).toContain("Exact route");
+    expect(html).toContain("Search records");
+    expect(html).toContain("Limited-to-local conversion");
+    expect(html).toContain("/routes/b41?");
+    expect(html).toContain("tab=history");
+    expect(html).toContain("record=treatment%3Av1%3A000000000000000000000004");
+    expect(html).toContain('aria-live="polite"');
+  });
+
+  test("keeps records visible without facets and explains unknown exact routes", async () => {
+    const missingFacets = await renderWithRouter(
+      createElement(InterventionsPage, { routes, evidence, corpus, facetIndex: null }),
+    );
+    expect(missingFacets).toContain(
+      "Typed family filters are unavailable; all known records remain visible.",
+    );
+    expect(missingFacets).toContain("Flatbush Avenue service project");
+
+    const unmatched = await renderWithRouter(
+      createElement(InterventionsPage, {
+        routes,
+        evidence,
+        facetIndex,
+        search: { route: "b44-sbs" },
+      }),
+    );
+    expect(unmatched).toContain("Route not found");
+    expect(unmatched).toContain("Clear route filter");
   });
 });

@@ -8,9 +8,11 @@ import {
   fetchNetworkMapGeo,
   fetchRouteSegmentsGeoLoad,
   fetchSelectedRouteMapEvidence,
+  fetchStudioInterventionFacetIndex,
   fetchStudioInterventionsEvidence,
   fetchStudioRoute,
   fetchStudioRouteIndex,
+  fetchStudioRouteInterventionInventory,
   fetchStudioRoutes,
   fetchVerifiedMapArtifact,
   joinNetworkMapBundle,
@@ -335,6 +337,49 @@ describe("Studio API client", () => {
     );
 
     await expect(fetchStudioRoute("M1")).resolves.toBeNull();
+  });
+
+  test("loads nullable intervention inventory artifacts from exact public keys", async () => {
+    const requestedPaths: string[] = [];
+    mockFetch((async (input) => {
+      requestedPaths.push(String(input));
+      return Response.json({ artifactKind: "fixture" });
+    }) as typeof globalThis.fetch);
+
+    await fetchStudioRouteInterventionInventory("b44-sbs");
+    await fetchStudioInterventionFacetIndex();
+
+    expect(requestedPaths).toEqual([
+      "/api/v1/artifacts/studio/v2/routes/b44-sbs/intervention-inventory.json",
+      "/api/v1/artifacts/studio/v2/interventions/facet-index.json",
+    ]);
+
+    mockFetch(
+      (async () => new Response(null, { status: 404 })) as unknown as typeof globalThis.fetch,
+    );
+    await expect(fetchStudioRouteInterventionInventory("b44")).resolves.toBeNull();
+    await expect(fetchStudioInterventionFacetIndex()).resolves.toBeNull();
+  });
+
+  test("inventory artifact loads preserve malformed JSON errors and aborts", async () => {
+    mockFetch(
+      (async () =>
+        new Response("{not-json", { status: 200 })) as unknown as typeof globalThis.fetch,
+    );
+    await expect(fetchStudioRouteInterventionInventory("b44")).rejects.toThrow();
+
+    const controller = new AbortController();
+    mockFetch((async (_input, init) => {
+      if (init?.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new DOMException("Aborted", "AbortError")),
+        );
+      });
+    }) as typeof globalThis.fetch);
+    const load = fetchStudioInterventionFacetIndex({ signal: controller.signal });
+    controller.abort();
+    await expect(load).rejects.toMatchObject({ name: "AbortError" });
   });
 
   test("returns a typed ready artifact only after hash and contract checks", async () => {

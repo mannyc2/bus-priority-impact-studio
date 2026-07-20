@@ -4,7 +4,23 @@ export type {
   RouteSurfaceCapability,
   StudioInterventionCorpus,
   StudioInterventionCorpusRecord,
+  StudioInterventionDatePrecision,
+  StudioInterventionFacetIndex,
+  StudioInterventionFacetIndexRow,
+  StudioInterventionGeographyScope,
+  StudioInterventionLifecycleState,
+  StudioInterventionTreatmentFamily,
+  StudioInterventionTreatmentKind,
   StudioRouteCapability,
+  StudioRouteInterventionCoverageState,
+  StudioRouteInterventionCurrentState,
+  StudioRouteInterventionInventoryBundle,
+  StudioRouteInterventionOccurrence,
+  StudioRouteInterventionProjectRef,
+  StudioRouteInterventionSourceGap,
+  StudioRouteInterventionSourceKind,
+  StudioRouteInterventionSourceState,
+  StudioRouteInterventionTreatment,
 } from "@bp/domain/studio";
 export type { StudioIntervention } from "@bp/domain/studio/interventions";
 export type {

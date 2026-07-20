@@ -1,8 +1,17 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, useId, useState } from "react";
 
+import type { RouteInterventionTreatmentRow } from "@/components/route/route-intervention-model";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  countTreatmentStates,
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   groupTreatments,
   TREATMENT_FAMILIES,
   TREATMENT_META,
@@ -142,67 +151,107 @@ export function TreatmentBadgeRow({
   treatments,
   max = 8,
 }: {
-  treatments: readonly TreatmentItem[];
+  treatments: readonly RouteInterventionTreatmentRow[];
   max?: number;
 }) {
-  const sorted = [...treatments].sort((a, b) => {
-    const familyDelta =
-      TREATMENT_FAMILIES.findIndex((family) => family.id === TREATMENT_META[a.type].family) -
-      TREATMENT_FAMILIES.findIndex((family) => family.id === TREATMENT_META[b.type].family);
-    if (familyDelta !== 0) return familyDelta;
-    return TREATMENT_META[a.type].priority - TREATMENT_META[b.type].priority;
-  });
-  const visible = sorted.slice(0, max);
-  const overflow = sorted.length - visible.length;
+  const [open, setOpen] = useState(false);
+  const hiddenDescriptionId = useId();
+  const visible = treatments.slice(0, max);
+  const hidden = treatments.slice(max);
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      {visible.map((treatment) => (
-        <TreatmentBadge key={`${treatment.type}-${treatment.state}`} treatment={treatment} />
+      {visible.map((row) => (
+        <RouteInventoryBadge key={row.key} row={row} />
       ))}
-      {overflow > 0 ? <Badge variant="neutral">+{overflow}</Badge> : null}
+      {hidden.length > 0 ? (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger
+            render={
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                aria-label={`Show ${hidden.length} more route treatments`}
+                aria-describedby={hiddenDescriptionId}
+                aria-expanded={open}
+              />
+            }
+          >
+            +{hidden.length} more
+          </PopoverTrigger>
+          <span id={hiddenDescriptionId} className="sr-only">
+            {hidden.map((row) => `${row.presentation.label}, ${row.lifecycleLabel}`).join("; ")}
+          </span>
+          <PopoverContent align="start" className="w-80 max-w-[calc(100vw-2rem)]">
+            <PopoverHeader>
+              <PopoverTitle>More route treatments</PopoverTitle>
+              <PopoverDescription>
+                Every treatment hidden from the compact summary.
+              </PopoverDescription>
+            </PopoverHeader>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {hidden.map((row) => (
+                <li key={row.key} className="flex items-start gap-2">
+                  <RouteInventoryBadge row={row} size="xs" />
+                  <span className="min-w-0 text-sm">
+                    <span className="font-medium">{row.presentation.label}</span>
+                    <span className="block text-muted-foreground">{row.lifecycleLabel}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </PopoverContent>
+        </Popover>
+      ) : null}
     </div>
   );
 }
 
 export function TreatmentInventory({
   treatments,
-  compact = false,
 }: {
-  treatments: readonly TreatmentItem[];
-  compact?: boolean;
+  treatments: readonly RouteInterventionTreatmentRow[];
 }) {
-  const groups = groupTreatments(treatments);
-  const counts = countTreatmentStates(treatments);
-  const families = TREATMENT_FAMILIES.filter((family) => (groups.get(family.id)?.length ?? 0) > 0);
-
-  if (families.length === 0) {
-    return (
-      <div className="rounded-[3px] bg-[var(--bp-color-card)] p-4 text-[12.5px] text-[var(--bp-color-ink-55)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-        No route-level priority treatments are available in the current serving data.
-      </div>
-    );
+  const groups = new Map<string, RouteInterventionTreatmentRow[]>();
+  for (const row of treatments) {
+    const rows = groups.get(row.presentation.familyLabel) ?? [];
+    rows.push(row);
+    groups.set(row.presentation.familyLabel, rows);
   }
+  const counts = treatments.reduce(
+    (result, row) => {
+      if (
+        row.treatment.lifecycleState === "current_confirmed" ||
+        row.treatment.lifecycleState === "implemented"
+      ) {
+        result.inPlace += 1;
+      } else if (row.treatment.lifecycleState === "historical_confirmed") {
+        result.historical += 1;
+      } else {
+        result.planned += 1;
+      }
+      return result;
+    },
+    { inPlace: 0, historical: 0, planned: 0 },
+  );
+
+  if (treatments.length === 0) return null;
 
   return (
     <div className="rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      {families.map((family, index) => {
-        const items = groups.get(family.id) ?? [];
+      {[...groups].map(([familyLabel, rows]) => {
         return (
           <div
-            key={family.id}
+            key={familyLabel}
             className="grid grid-cols-[112px_minmax(0,1fr)] items-start gap-4 px-4 py-3 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none max-sm:grid-cols-1"
           >
             <div className="pt-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--bp-color-ink-55)]">
-              {family.label}
+              {familyLabel}
             </div>
-            <div className="flex flex-wrap gap-x-5 gap-y-2">
-              {items.map((treatment) => (
-                <TreatmentChip
-                  key={`${family.id}-${treatment.type}-${treatment.state}-${index}`}
-                  treatment={treatment}
-                  compact={compact}
-                />
+            <div className="flex flex-col gap-2">
+              {rows.map((row) => (
+                <RouteTreatmentChip key={row.key} row={row} />
               ))}
             </div>
           </div>
@@ -216,11 +265,11 @@ export function TreatmentInventory({
         <span>
           <b className="text-[var(--bp-color-warn)]">{counts.planned}</b> planned / proposed
         </span>
-        {counts.gaps > 0 ? (
+        {counts.historical > 0 ? (
           <>
             <span className="h-1 w-1 rounded-full bg-[var(--bp-color-ink-20)]" />
             <span>
-              <b className="text-[var(--bp-color-warn)]">{counts.gaps}</b> source gaps
+              <b>{counts.historical}</b> historical
             </span>
           </>
         ) : null}
@@ -229,27 +278,82 @@ export function TreatmentInventory({
   );
 }
 
-function TreatmentChip({ treatment, compact }: { treatment: TreatmentItem; compact: boolean }) {
-  const meta = TREATMENT_META[treatment.type];
-  const state = TREATMENT_STATE_META[treatment.state];
-  const coverage =
-    treatment.coverage !== undefined && treatment.coverage < 0.995
-      ? `${Math.round(treatment.coverage * 100)}%`
-      : null;
+function RouteInventoryBadge({
+  row,
+  size = "sm",
+}: {
+  row: RouteInterventionTreatmentRow;
+  size?: BadgeSize;
+}) {
+  const code = row.presentation.compactCode;
+  const accessibleName = `${row.presentation.label}, ${row.lifecycleLabel}`;
+  if (code === null) {
+    return (
+      <Badge variant="neutral" title={accessibleName}>
+        {row.presentation.label}
+        <span className="sr-only">, {row.lifecycleLabel}</span>
+      </Badge>
+    );
+  }
+  const badgeSize = BADGE_SIZES[size];
+  const width =
+    code.length <= 2 ? badgeSize.two : code.length === 3 ? badgeSize.three : badgeSize.four;
+  const current =
+    row.treatment.lifecycleState === "current_confirmed" ||
+    row.treatment.lifecycleState === "implemented";
 
   return (
-    <span className="inline-flex min-w-0 items-center gap-2">
-      <TreatmentBadge treatment={treatment} />
-      <span className="text-[12.5px] font-medium text-[var(--bp-color-ink)]">{meta.label}</span>
-      {coverage ? (
-        <span className="font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">{coverage}</span>
-      ) : null}
-      {!compact && treatment.note ? (
-        <span className="text-[11px] text-[var(--bp-color-ink-55)]">{treatment.note}</span>
-      ) : null}
-      {state.present !== true ? (
-        <Badge variant={state.tone === "accent" ? "accent" : "warn"}>{state.short}</Badge>
-      ) : null}
+    <span
+      title={accessibleName}
+      className="inline-flex shrink-0 items-center justify-center rounded-[3px] border font-mono font-bold leading-none tracking-[0.04em] tabular-nums"
+      style={{
+        width,
+        height: badgeSize.height,
+        fontSize: badgeSize.fontSize,
+        background: current ? "var(--bp-color-ink)" : "transparent",
+        color: current ? "var(--bp-color-paper)" : "var(--bp-color-ink-70)",
+        borderColor: current ? "transparent" : "var(--bp-color-ink-40)",
+        borderStyle: current ? "solid" : "dashed",
+      }}
+    >
+      <span aria-hidden="true">{code}</span>
+      <span className="sr-only">{accessibleName}</span>
     </span>
   );
+}
+
+function RouteTreatmentChip({ row }: { row: RouteInterventionTreatmentRow }) {
+  const showRawLabel =
+    row.treatment.treatmentKind === "other_documented" && row.treatment.rawLabel !== null;
+  return (
+    <div
+      id={row.anchorId}
+      tabIndex={-1}
+      className="flex min-w-0 flex-wrap items-center gap-2 rounded-[3px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--bp-color-accent)]"
+    >
+      <RouteInventoryBadge row={row} />
+      {row.presentation.compactCode === null ? null : (
+        <span className="text-[12.5px] font-medium text-[var(--bp-color-ink)]">
+          {row.presentation.label}
+        </span>
+      )}
+      <Badge variant={lifecycleBadgeVariant(row)}>{row.lifecycleLabel}</Badge>
+      {showRawLabel ? (
+        <span className="font-mono text-[10.5px] text-[var(--bp-color-ink-55)]">
+          {row.treatment.rawLabel}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function lifecycleBadgeVariant(row: RouteInterventionTreatmentRow): "accent" | "neutral" | "warn" {
+  if (row.treatment.lifecycleState === "historical_confirmed") return "neutral";
+  if (
+    row.treatment.lifecycleState === "current_confirmed" ||
+    row.treatment.lifecycleState === "implemented"
+  ) {
+    return "accent";
+  }
+  return "warn";
 }

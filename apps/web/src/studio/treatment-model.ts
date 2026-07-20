@@ -1,4 +1,4 @@
-import type { StudioRouteDetailResponse, StudioSegment } from "@/studio/api-contract";
+import type { StudioSegment } from "@/studio/api-contract";
 
 export type TreatmentFamilyId = "street" | "enf" | "sig" | "stop" | "svc" | "curb" | "prog";
 
@@ -121,100 +121,6 @@ export function legacyToTreatments({
   return items;
 }
 
-export function routeTreatments(
-  route: StudioRouteDetailResponse["route"],
-  segments: readonly StudioSegment[],
-): TreatmentItem[] {
-  const items: TreatmentItem[] = [];
-  const routeText = [
-    route.reliability,
-    route.diagnosis,
-    ...route.flags,
-    ...route.interventions.flatMap((event) => [event.title, event.detail]),
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  if (routeText.includes("busway")) {
-    items.push({ type: "busway", state: "active", source: "Route flags / intervention record" });
-  } else if (routeText.includes("concrete lane") || routeText.includes("offset")) {
-    items.push({
-      type: "offset_lane",
-      state: "active",
-      coverage: route.laneCoverage / 100,
-      source: "Route flags / intervention record",
-    });
-  } else if (route.laneCoverage > 0) {
-    items.push({
-      type: "bus_lane",
-      state: "active",
-      coverage: route.laneCoverage / 100,
-      source: "Route lane coverage",
-    });
-  }
-
-  if (route.aceStatus === "active") {
-    items.push({
-      type: "ace",
-      state: "active",
-      source: "Route ACE program record",
-      ...(route.aceSince ? { note: `since ${route.aceSince}` } : {}),
-    });
-  }
-
-  if (route.tspCoverage !== "none") {
-    const tspSegments = segments.filter((segment) => segment.tsp).length;
-    items.push({
-      type: "tsp",
-      state: "active",
-      source: "Route TSP coverage",
-      ...(segments.length ? { coverage: tspSegments / segments.length } : {}),
-      ...(route.tspCoverage === "partial" ? { note: "partial route coverage" } : {}),
-    });
-  }
-
-  if (route.sbs) items.push({ type: "sbs", state: "active", source: "Route service type" });
-  else if (routeText.includes("limited")) {
-    items.push({ type: "limited", state: "active", source: "Route service type" });
-  }
-
-  if (routeText.includes("off-board fare")) {
-    items.push({
-      type: "off_board_fare",
-      state: "implemented",
-      source: "Intervention record",
-    });
-  }
-  if (routeText.includes("all-door")) {
-    items.push({ type: "all_door", state: "implemented", source: "Intervention record" });
-  }
-  if (routeText.includes("stop consolidation")) {
-    items.push({
-      type: "stop_consolidation",
-      state: "implemented",
-      source: "Intervention record",
-    });
-  }
-  if (routeText.includes("signal timing") || routeText.includes("retiming")) {
-    items.push({ type: "signal_retiming", state: "proposed", source: "Route diagnosis" });
-  }
-  if (routeText.includes("loading") || routeText.includes("curb")) {
-    items.push({ type: "curb_management", state: "proposed", source: "Route diagnosis" });
-  }
-  if (routeText.includes("capital")) {
-    items.push({
-      type: "capital_milestone",
-      state: "planned",
-      source: "Intervention record",
-    });
-  }
-  if (routeText.includes("proposal") || routeText.includes("proposed")) {
-    items.push({ type: "proposal", state: "proposed", source: "Intervention record" });
-  }
-
-  return uniqueTreatments(items);
-}
-
 export function groupTreatments(treatments: readonly TreatmentItem[]) {
   const groups = new Map<TreatmentFamilyId, TreatmentItem[]>();
   for (const family of TREATMENT_FAMILIES) groups.set(family.id, []);
@@ -244,13 +150,4 @@ export function countTreatmentStates(treatments: readonly TreatmentItem[]) {
     },
     { inPlace: 0, planned: 0, gaps: 0 },
   );
-}
-
-function uniqueTreatments(items: readonly TreatmentItem[]): TreatmentItem[] {
-  const byKey = new Map<string, TreatmentItem>();
-  for (const item of items) {
-    const key = `${item.type}:${item.state}`;
-    if (!byKey.has(key)) byKey.set(key, item);
-  }
-  return [...byKey.values()];
 }

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterChips } from "@/components/FilterChips";
 import { RouteBadge } from "@/components/RouteBadge";
@@ -15,13 +15,27 @@ import {
 } from "@/components/study/study-display";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import type { InterventionsSearch } from "@/routes/interventions";
 import type {
   StudioIntervention,
   StudioInterventionCorpus,
   StudioInterventionCorpusRecord,
+  StudioInterventionFacetIndex,
+  StudioInterventionFacetIndexRow,
   StudioInterventionsEvidenceBundle,
+  StudioInterventionTreatmentFamily,
   StudioRoute,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceIntervention,
@@ -44,6 +58,7 @@ type InterventionRow = {
   routes: readonly StudioRoute[];
   event: InterventionDisplayEvent;
   evidence: InterventionEvidenceBundle | null;
+  facets: readonly StudioInterventionFacetIndexRow[];
 };
 
 type InterventionDisplayEvent = Pick<
@@ -60,6 +75,9 @@ type InterventionDisplayEvent = Pick<
   sourceEntries?: SourceNoteEntry[];
   filterState?: "future" | "source-gap";
   documented?: boolean;
+  recordId: string;
+  relationshipIds?: readonly string[];
+  searchTerms?: readonly string[];
 };
 
 const filters: readonly { id: InterventionFilter; label: string }[] = [
@@ -69,6 +87,28 @@ const filters: readonly { id: InterventionFilter; label: string }[] = [
   { id: "source-gap", label: "Needs source" },
 ];
 
+const FAMILY_LABELS = {
+  bus_priority_lane: "Bus priority lanes",
+  signal_priority: "Signal priority",
+  stop_change: "Stop changes",
+  street_design: "Street design",
+  boarding_and_fare: "Boarding and fare",
+  enforcement: "Enforcement",
+  service_change: "Service changes",
+  service_package: "Service packages",
+  capital: "Capital work",
+  curb_management: "Curb management",
+  customer_information: "Customer information",
+  other: "Other documented",
+} satisfies Record<StudioInterventionTreatmentFamily, string>;
+
+const FUTURE_LIFECYCLE_STATES = new Set([
+  "planned",
+  "proposed",
+  "under_consideration",
+  "candidate",
+]);
+
 export const INTERVENTIONS_PAGE_SIZE = 30;
 
 export function InterventionsPage({
@@ -76,30 +116,33 @@ export function InterventionsPage({
   evidence,
   corpus = null,
   studiesIndex = null,
+  facetIndex = null,
+  search = {},
+  onSearchChange = () => undefined,
 }: {
   routes: readonly StudioRoute[];
   evidence: readonly (InterventionEvidenceBundle | null)[];
   corpus?: StudioInterventionCorpus | null;
   studiesIndex?: StudyIndexArtifact | null;
+  facetIndex?: StudioInterventionFacetIndex | null;
+  search?: InterventionsSearch;
+  onSearchChange?: (search: InterventionsSearch) => void;
 }) {
-  const [filter, setFilter] = useState<InterventionFilter>("all");
-  const [borough, setBorough] = useState<BoroughFilter>(ROUTE_INDEX_ALL_BOROUGHS);
   const [limit, setLimit] = useState(INTERVENTIONS_PAGE_SIZE);
+  const paginationResetKey = interventionsPaginationResetKey(search);
   const rows = useMemo(
-    () => interventionRows(routes, evidence, corpus),
-    [routes, evidence, corpus],
+    () => interventionRows(routes, evidence, corpus, facetIndex),
+    [routes, evidence, corpus, facetIndex],
   );
   const studyRowsByJoinKey = useMemo(() => studyIndexRowsByJoinKey(studiesIndex), [studiesIndex]);
-  const boroughRows = useMemo(
-    () =>
-      borough === ROUTE_INDEX_ALL_BOROUGHS
-        ? rows
-        : rows.filter((row) => row.routes.some((route) => route.borough.includes(borough))),
-    [borough, rows],
-  );
+  const exactRouteSlugs = useMemo(() => new Set(routes.map((route) => route.slug)), [routes]);
+  const unmatchedRoute = search.route !== undefined && !exactRouteSlugs.has(search.route);
   const filteredRows = useMemo(
-    () => boroughRows.filter((row) => matchesFilter(row.event, filter)),
-    [boroughRows, filter],
+    () =>
+      unmatchedRoute
+        ? []
+        : filterInterventionRows(rows, search, { facetIndexAvailable: facetIndex !== null }),
+    [facetIndex, rows, search, unmatchedRoute],
   );
   const visibleRows = filteredRows.slice(0, limit);
   const remaining = filteredRows.length - visibleRows.length;
@@ -112,15 +155,26 @@ export function InterventionsPage({
     (row) => yearLabel(row.event.year) !== "Undated",
   ).length;
   const filteredUndatedCount = filteredRows.length - filteredDatedCount;
+  const facetGapCount = rows.filter((row) => row.facets.length === 0).length;
+  const familyCountRows = filterInterventionRows(
+    rows,
+    omitInterventionsSearchKey(search, "family"),
+    { facetIndexAvailable: facetIndex !== null },
+  );
+  const statusCountRows = (status: InterventionFilter) =>
+    filterInterventionRows(
+      rows,
+      status === "all" ? omitInterventionsSearchKey(search, "status") : { ...search, status },
+      { facetIndexAvailable: facetIndex !== null },
+    ).length;
+  const updateSearch = (next: InterventionsSearch) => {
+    setLimit(INTERVENTIONS_PAGE_SIZE);
+    onSearchChange(compactInterventionsSearch(next));
+  };
 
-  const selectFilter = (next: InterventionFilter) => {
-    setFilter(next);
+  useEffect(() => {
     setLimit(INTERVENTIONS_PAGE_SIZE);
-  };
-  const selectBorough = (next: BoroughFilter) => {
-    setBorough(next);
-    setLimit(INTERVENTIONS_PAGE_SIZE);
-  };
+  }, [paginationResetKey]);
 
   return (
     <main className="min-h-full bg-[var(--bp-color-paper)]">
@@ -136,6 +190,9 @@ export function InterventionsPage({
           <p className="mt-3 font-mono text-[11px] tabular-nums text-[var(--bp-color-ink-55)]">
             {`${rows.length} records across ${routeCount} routes. ${totalDatedCount} dated. Newest first.`}
           </p>
+          <p aria-live="polite" className="sr-only">
+            {interventionMatchAnnouncement(filteredRows.length)}
+          </p>
         </header>
 
         <div className="grid grid-cols-[238px_minmax(0,1fr)] items-start gap-6 max-lg:grid-cols-1">
@@ -150,12 +207,18 @@ export function InterventionsPage({
                     Status
                   </div>
                   <FilterChips
-                    value={filter}
-                    onChange={selectFilter}
+                    value={search.status ?? "all"}
+                    onChange={(status) =>
+                      updateSearch(
+                        status === "all"
+                          ? omitInterventionsSearchKey(search, "status")
+                          : { ...search, status },
+                      )
+                    }
                     ariaLabel="Filter interventions by status"
                     options={filters.map((item) => ({
                       id: item.id,
-                      label: `${item.label} (${boroughRows.filter((row) => matchesFilter(row.event, item.id)).length})`,
+                      label: `${item.label} (${statusCountRows(item.id)})`,
                     }))}
                   />
                 </div>
@@ -164,8 +227,14 @@ export function InterventionsPage({
                     Borough
                   </div>
                   <FilterChips
-                    value={borough}
-                    onChange={selectBorough}
+                    value={search.borough ?? ROUTE_INDEX_ALL_BOROUGHS}
+                    onChange={(borough) =>
+                      updateSearch(
+                        borough === ROUTE_INDEX_ALL_BOROUGHS
+                          ? omitInterventionsSearchKey(search, "borough")
+                          : { ...search, borough },
+                      )
+                    }
                     ariaLabel="Filter interventions by borough"
                     options={[ROUTE_INDEX_ALL_BOROUGHS, ...ROUTE_INDEX_BOROUGHS].map((item) => ({
                       id: item as BoroughFilter,
@@ -173,11 +242,103 @@ export function InterventionsPage({
                     }))}
                   />
                 </div>
+                <FieldGroup className="gap-3">
+                  <Field>
+                    <FieldLabel htmlFor="intervention-search">Search records</FieldLabel>
+                    <Input
+                      id="intervention-search"
+                      type="search"
+                      value={search.q ?? ""}
+                      placeholder="Route, project, corridor…"
+                      onChange={(event) =>
+                        updateSearch({ ...search, q: event.currentTarget.value })
+                      }
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="intervention-family">Treatment family</FieldLabel>
+                    <Select
+                      value={search.family ?? "all"}
+                      disabled={facetIndex === null}
+                      onValueChange={(family) => {
+                        if (typeof family !== "string") return;
+                        updateSearch(
+                          family === "all"
+                            ? omitInterventionsSearchKey(search, "family")
+                            : {
+                                ...search,
+                                family: family as StudioInterventionTreatmentFamily,
+                              },
+                        );
+                      }}
+                    >
+                      <SelectTrigger id="intervention-family" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent align="start">
+                        <SelectGroup>
+                          <SelectItem value="all">{`All families (${familyCountRows.length})`}</SelectItem>
+                          {Object.entries(FAMILY_LABELS).map(([family, label]) => (
+                            <SelectItem key={family} value={family}>
+                              {`${label} (${familyCountRows.filter((row) => row.facets.some((facet) => facet.treatmentFamilies.includes(family as StudioInterventionTreatmentFamily))).length})`}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {facetIndex === null ? (
+                      <p className="m-0 text-[10.5px] leading-[1.4] text-[var(--bp-color-ink-55)]">
+                        Typed family filters are unavailable; all known records remain visible.
+                      </p>
+                    ) : null}
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="intervention-route">Exact route</FieldLabel>
+                    <Select
+                      value={search.route ?? "all"}
+                      onValueChange={(route) => {
+                        if (typeof route !== "string") return;
+                        updateSearch(
+                          route === "all"
+                            ? omitInterventionsSearchKey(search, "route")
+                            : { ...search, route },
+                        );
+                      }}
+                    >
+                      <SelectTrigger id="intervention-route" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent align="start">
+                        <SelectGroup>
+                          <SelectItem value="all">All routes</SelectItem>
+                          {[...routes]
+                            .sort((left, right) =>
+                              (left.displayLabel ?? left.label).localeCompare(
+                                right.displayLabel ?? right.label,
+                              ),
+                            )
+                            .map((route) => (
+                              <SelectItem key={route.slug} value={route.slug}>
+                                {route.displayLabel ?? route.label}
+                              </SelectItem>
+                            ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </FieldGroup>
                 <Separator />
                 <dl className="m-0 grid grid-cols-2 gap-3">
                   <TimelineCount label="Dated" value={filteredDatedCount} />
                   <TimelineCount label="No date" value={filteredUndatedCount} />
                 </dl>
+                {facetIndex === null ? null : (
+                  <p className="m-0 text-[10.5px] leading-[1.4] text-[var(--bp-color-ink-55)]">
+                    {facetGapCount === 0
+                      ? "Every displayed record has a typed facet join."
+                      : `${facetGapCount} records have no typed facet join and remain visible.`}
+                  </p>
+                )}
               </div>
             </SectionCard>
           </aside>
@@ -186,9 +347,23 @@ export function InterventionsPage({
             {filteredRows.length === 0 ? (
               <SectionCard title="Network timeline" sub="No records match the current filters.">
                 <EmptyState
-                  title="No matching interventions"
-                  body="Choose another status or borough to return records to the timeline."
+                  title={unmatchedRoute ? "Route not found" : "No matching interventions"}
+                  body={
+                    unmatchedRoute
+                      ? `No route has the exact slug “${search.route ?? ""}”. Clear the route filter to see network records.`
+                      : "Choose another status, borough, family, route, or search term to return records to the timeline."
+                  }
                 />
+                {unmatchedRoute ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => updateSearch(omitInterventionsSearchKey(search, "route"))}
+                    className="mt-3"
+                  >
+                    Clear route filter
+                  </Button>
+                ) : null}
               </SectionCard>
             ) : (
               <>
@@ -393,6 +568,10 @@ function InterventionRecord({
                 key={route.slug}
                 to="/routes/$routeId"
                 params={{ routeId: route.slug }}
+                search={{
+                  tab: "history",
+                  record: recordTargetForRoute(row, route.slug),
+                }}
                 viewTransition
                 className="no-underline"
               >
@@ -406,7 +585,7 @@ function InterventionRecord({
             ))
           )}
           <Badge variant="neutral">{humanizeKind(row.event.kind)}</Badge>
-          <EventStatusBadge event={row.event} study={study} />
+          <EventStatusBadge row={row} study={study} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {primaryRoute === null ? (
@@ -417,6 +596,10 @@ function InterventionRecord({
             <Link
               to="/routes/$routeId"
               params={{ routeId: primaryRoute.slug }}
+              search={{
+                tab: "history",
+                record: recordTargetForRoute(row, primaryRoute.slug),
+              }}
               viewTransition
               className="text-[13.5px] font-semibold leading-[1.3] text-[var(--bp-color-ink)] no-underline hover:text-[var(--bp-color-accent)]"
             >
@@ -481,16 +664,17 @@ function StudySummary({ row, study }: { row: InterventionRow; study: StudyIndexR
 }
 
 function EventStatusBadge({
-  event,
+  row,
   study,
 }: {
-  event: InterventionDisplayEvent;
+  row: InterventionRow;
   study: StudyIndexRow | undefined;
 }) {
+  const { event } = row;
   if (event.source === "source_gap" || event.filterState === "source-gap") {
     return <Badge variant="warn">Needs source</Badge>;
   }
-  if (event.filterState === "future") return <Badge variant="accent">Future</Badge>;
+  if (isFutureRow(row)) return <Badge variant="accent">Future</Badge>;
   if (study !== undefined || event.comparisonCohort !== undefined) {
     return <Badge variant={timelineTone(event, study)}>Evaluated</Badge>;
   }
@@ -537,6 +721,7 @@ export function interventionRows(
   routes: readonly StudioRoute[],
   evidence: readonly (InterventionEvidenceBundle | null)[] = [],
   corpus: StudioInterventionCorpus | null = null,
+  facetIndex: StudioInterventionFacetIndex | null = null,
 ): InterventionRow[] {
   const evidenceBySlug = new Map<string, InterventionEvidenceBundle>();
   for (const bundle of evidence) {
@@ -550,8 +735,10 @@ export function interventionRows(
           key: `${route.slug}:serving:${event.year}:${index}`,
           routes: [route],
           evidence: bundle,
+          facets: [],
           event: {
             ...event,
+            recordId: event.eventId ?? `${route.slug}:serving:${event.year}:${index}`,
             sortKey: event.year,
             kind: event.interventionType ?? "program record",
             source: "serving",
@@ -575,10 +762,10 @@ export function interventionRows(
     return { ...row, event: { ...row.event, sourceEntries } };
   });
 
-  return [
-    ...enrichedRegistryRows,
-    ...corpusInterventionRows(routes, corpus, registryEventIds),
-  ].sort(
+  return attachInterventionFacets(
+    [...enrichedRegistryRows, ...corpusInterventionRows(routes, corpus, registryEventIds)],
+    facetIndex,
+  ).sort(
     (left, right) =>
       right.event.sortKey.localeCompare(left.event.sortKey) ||
       (left.routes[0]?.label ?? "").localeCompare(right.routes[0]?.label ?? "") ||
@@ -632,7 +819,16 @@ function corpusInterventionRows(
         key: `corpus:${record.recordId}`,
         routes: matchedRoutes,
         evidence: null,
+        facets: [],
         event: {
+          recordId: record.recordId,
+          relationshipIds: record.matchedRegistryEventIds,
+          searchTerms: [
+            ...record.corridorStreets,
+            ...record.primaryTreatments,
+            ...record.customTreatments,
+            record.sourceLabel,
+          ],
           year: record.effectiveDate ?? "undated",
           sortKey: record.effectiveDate ?? "0000",
           kind: record.primaryTreatments[0] ?? record.customTreatments[0] ?? "intervention",
@@ -689,7 +885,9 @@ function wikiTimelineRow(
     key: `${route.slug}:wiki-timeline:${event.recordId}`,
     routes: [route],
     evidence,
+    facets: [],
     event: {
+      recordId: event.recordId,
       year,
       sortKey: event.dateNormalized ?? event.dateText ?? "0000",
       kind: event.eventKind ?? event.eventFamily ?? "route event",
@@ -711,7 +909,9 @@ function wikiTreatmentRow(
     key: `${route.slug}:wiki-treatment:${intervention.recordId}`,
     routes: [route],
     evidence,
+    facets: [],
     event: {
+      recordId: intervention.recordId,
       year: "undated",
       sortKey: "0000",
       kind: intervention.treatmentKind ?? "treatment",
@@ -739,7 +939,9 @@ function wikiProjectRow(
     key: `${route.slug}:wiki-project:${project.recordId}`,
     routes: [route],
     evidence,
+    facets: [],
     event: {
+      recordId: project.recordId,
       year: "undated",
       sortKey: "0000",
       kind: project.projectType ?? project.status ?? "project",
@@ -761,7 +963,9 @@ function wikiSourceGapRow(
     key: `${route.slug}:wiki-source-gap:${gap.recordId}`,
     routes: [route],
     evidence,
+    facets: [],
     event: {
+      recordId: gap.recordId,
       year: "undated",
       sortKey: "0000",
       kind: "source gap",
@@ -775,18 +979,177 @@ function wikiSourceGapRow(
   };
 }
 
-function matchesFilter(event: InterventionDisplayEvent, filter: InterventionFilter): boolean {
-  if (filter === "evaluated") return event.comparisonCohort !== undefined;
-  if (filter === "future") return isFutureEvent(event);
-  if (filter === "source-gap")
-    return event.source === "source_gap" || event.filterState === "source-gap";
+function attachInterventionFacets(
+  rows: readonly InterventionRow[],
+  facetIndex: StudioInterventionFacetIndex | null,
+): InterventionRow[] {
+  if (facetIndex === null) return [...rows];
+  const facetsByRelationshipId = new Map<string, StudioInterventionFacetIndexRow[]>();
+  for (const facet of facetIndex.rows) {
+    const relationshipIds = new Set([
+      facet.facetId,
+      facet.sourceRecordId,
+      ...(facet.sourceOccurrenceId === null ? [] : [facet.sourceOccurrenceId]),
+      ...(facet.occurrenceId === null ? [] : [facet.occurrenceId]),
+      ...facet.treatmentIds,
+      ...facet.projectIds,
+    ]);
+    for (const relationshipId of relationshipIds) {
+      const related = facetsByRelationshipId.get(relationshipId) ?? [];
+      related.push(facet);
+      facetsByRelationshipId.set(relationshipId, related);
+    }
+  }
+
+  return rows.map((row) => {
+    const rowRouteSlugs = new Set(row.routes.map((route) => route.slug));
+    const relationshipIds = new Set([
+      row.event.recordId,
+      ...(row.event.eventId === undefined ? [] : [row.event.eventId]),
+      ...(row.event.relationshipIds ?? []),
+    ]);
+    const byFacetId = new Map<string, StudioInterventionFacetIndexRow>();
+    for (const relationshipId of relationshipIds) {
+      for (const facet of facetsByRelationshipId.get(relationshipId) ?? []) {
+        if (rowRouteSlugs.size > 0 && !rowRouteSlugs.has(facet.routeSlug)) continue;
+        byFacetId.set(facet.facetId, facet);
+      }
+    }
+    return { ...row, facets: [...byFacetId.values()].sort(compareFacetRows) };
+  });
+}
+
+function compareFacetRows(
+  left: StudioInterventionFacetIndexRow,
+  right: StudioInterventionFacetIndexRow,
+): number {
+  return (
+    left.routeSlug.localeCompare(right.routeSlug) ||
+    (right.effectiveDate ?? "").localeCompare(left.effectiveDate ?? "") ||
+    left.facetId.localeCompare(right.facetId)
+  );
+}
+
+export function filterInterventionRows(
+  rows: readonly InterventionRow[],
+  search: InterventionsSearch,
+  options: { facetIndexAvailable: boolean },
+): InterventionRow[] {
+  const query = search.q?.trim().toLocaleLowerCase();
+  const selectedFamily = search.family;
+  return rows.filter((row) => {
+    if (search.status !== undefined && !matchesFilter(row, search.status)) return false;
+    if (
+      search.borough !== undefined &&
+      !row.routes.some((route) => route.borough === search.borough)
+    ) {
+      return false;
+    }
+    if (
+      search.route !== undefined &&
+      !row.routes.some((route) => route.slug === search.route) &&
+      !row.facets.some((facet) => facet.routeSlug === search.route)
+    ) {
+      return false;
+    }
+    if (
+      options.facetIndexAvailable &&
+      selectedFamily !== undefined &&
+      selectedFamily !== "all" &&
+      !row.facets.some((facet) => facet.treatmentFamilies.includes(selectedFamily))
+    ) {
+      return false;
+    }
+    if (query !== undefined && query.length > 0 && !interventionSearchText(row).includes(query)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+function matchesFilter(row: InterventionRow, filter: InterventionFilter): boolean {
+  if (filter === "evaluated") return row.event.comparisonCohort !== undefined;
+  if (filter === "future") return isFutureRow(row);
+  if (filter === "source-gap") {
+    return row.event.source === "source_gap" || row.event.filterState === "source-gap";
+  }
   return true;
 }
 
-function isFutureEvent(event: InterventionDisplayEvent): boolean {
-  if (event.filterState === "future") return true;
-  const text = `${event.title} ${event.detail}`.toLowerCase();
-  return text.includes("future") || text.includes("scheduled") || text.includes("await");
+function isFutureRow(row: InterventionRow): boolean {
+  return (
+    row.event.filterState === "future" ||
+    row.facets.some((facet) => FUTURE_LIFECYCLE_STATES.has(facet.lifecycleState))
+  );
+}
+
+function interventionSearchText(row: InterventionRow): string {
+  return [
+    row.event.title,
+    row.event.detail,
+    row.event.kind,
+    row.event.sourceLabel,
+    ...(row.event.searchTerms ?? []),
+    ...row.routes.flatMap((route) => [
+      route.routeId,
+      route.displayLabel,
+      route.corridor,
+      route.corridorFull,
+    ]),
+  ]
+    .filter((value): value is string => value !== undefined)
+    .join(" ")
+    .toLocaleLowerCase();
+}
+
+export function compactInterventionsSearch(search: InterventionsSearch): InterventionsSearch {
+  return {
+    ...(search.status === undefined || search.status === "all" ? {} : { status: search.status }),
+    ...(search.borough === undefined || search.borough === ROUTE_INDEX_ALL_BOROUGHS
+      ? {}
+      : { borough: search.borough }),
+    ...(search.family === undefined || search.family === "all" ? {} : { family: search.family }),
+    ...(search.route === undefined || search.route.trim().length === 0
+      ? {}
+      : { route: search.route.trim() }),
+    ...(search.q === undefined || search.q.trim().length === 0 ? {} : { q: search.q.trim() }),
+  };
+}
+
+export function interventionsPaginationResetKey(search: InterventionsSearch): string {
+  return JSON.stringify([
+    search.status ?? null,
+    search.borough ?? null,
+    search.family ?? null,
+    search.route ?? null,
+    search.q ?? null,
+  ]);
+}
+
+export function interventionMatchAnnouncement(count: number): string {
+  return count === 1
+    ? "1 intervention record matches the current filters."
+    : `${count} intervention records match the current filters.`;
+}
+
+function omitInterventionsSearchKey(
+  search: InterventionsSearch,
+  key: keyof InterventionsSearch,
+): InterventionsSearch {
+  const next = { ...search };
+  delete next[key];
+  return next;
+}
+
+export function recordTargetForRoute(row: InterventionRow, routeSlug: string): string {
+  const facet = row.facets.find((candidate) => candidate.routeSlug === routeSlug);
+  return (
+    facet?.occurrenceId ??
+    facet?.treatmentIds[0] ??
+    facet?.projectIds[0] ??
+    facet?.sourceOccurrenceId ??
+    row.event.recordId
+  );
 }
 
 function formatDelta(value: number | null): string {

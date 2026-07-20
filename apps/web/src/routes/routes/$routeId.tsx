@@ -8,6 +8,7 @@ import { routeHead } from "../../lib/head.js";
 import {
   fetchStudioRoute,
   fetchStudioRouteEvidence,
+  fetchStudioRouteInterventionInventory,
   fetchStudioRouteStudies,
   staticStudioLoaderStaleTimeMs,
 } from "../../studio/api-client.js";
@@ -18,12 +19,46 @@ const RouteDetailPage = lazy(() =>
   })),
 );
 
+export type RouteDetailPageSearch = RouteDetailSearch & { record?: string };
+
+export function validateRouteDetailPageSearch(
+  search: Record<string, unknown>,
+): RouteDetailPageSearch {
+  const validated = validateRouteDetailSearch(search);
+  if (validated.tab !== "history") return validated;
+  const { study: studyValue, record: recordValue } = search;
+  const study = boundedHistoryTarget(studyValue);
+  const record = boundedHistoryTarget(recordValue);
+  if (study !== undefined) return { tab: "history", study };
+  return record === undefined ? { tab: "history" } : { tab: "history", record };
+}
+
+function boundedHistoryTarget(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > 160) return undefined;
+  for (const character of trimmed) {
+    const code = character.charCodeAt(0);
+    if (code <= 31 || code === 127) return undefined;
+  }
+  return trimmed;
+}
+
 export const Route = createFileRoute("/routes/$routeId")({
   // Detail and route evidence stay Worker-served; heavy route artifacts remain lazy.
   loader: ({ abortController, params }) =>
     Promise.all([
       fetchStudioRoute(params.routeId, { signal: abortController.signal }),
       fetchStudioRouteEvidence(params.routeId, { signal: abortController.signal }),
+      fetchStudioRouteInterventionInventory(params.routeId, {
+        signal: abortController.signal,
+      }).catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") throw error;
+        console.warn("Route intervention inventory request failed; rendering without inventory.", {
+          error,
+        });
+        return null;
+      }),
       // Studies rollup is small and nullable; a failure never blocks the page.
       fetchStudioRouteStudies(params.routeId, { signal: abortController.signal }).catch(
         (error: unknown) => {
@@ -32,13 +67,14 @@ export const Route = createFileRoute("/routes/$routeId")({
           return null;
         },
       ),
-    ]).then(([detail, evidence, studies]) => ({
+    ]).then(([detail, evidence, inventory, studies]) => ({
       detail,
       evidence,
+      inventory,
       studies,
     })),
-  validateSearch: (search: Record<string, unknown>): RouteDetailSearch =>
-    validateRouteDetailSearch(search),
+  validateSearch: (search: Record<string, unknown>): RouteDetailPageSearch =>
+    validateRouteDetailPageSearch(search),
   staleTime: staticStudioLoaderStaleTimeMs,
   pendingComponent: RouteDetailRouteFallback,
   head: ({ params }) => routeHead(`${params.routeId} Route Detail`),
@@ -53,6 +89,7 @@ function RouteDetailRoute() {
       <RouteDetailPage
         data={data.detail}
         evidence={data.evidence}
+        inventory={data.inventory}
         studies={data.studies}
         search={search}
       />
