@@ -219,15 +219,8 @@ describe("runMapRelease", () => {
       expect(result.d1.coverage.start as string | null).toBe("2024-11");
       expect(result.d1.coverage.end as string).toBe("2026-04");
       expect(result.studio.mapRouteFactsPath).toBe(mapRouteFactsPath);
-      const studioResultIdentity = (
-        result.studio as typeof result.studio & {
-          releaseIdentity: { coverage: { start: string | null; end: string } };
-        }
-      ).releaseIdentity;
-      expect(studioResultIdentity.coverage).toEqual({
-        start: "2025-01",
-        end: "2026-04",
-      });
+      expect(result.studio.releaseIdentity.coverage.start as string | null).toBe("2025-01");
+      expect(result.studio.releaseIdentity.coverage.end as string).toBe("2026-04");
       expect(result.finalManifestKey).toMatch(/^map\/2026-04\/manifest\.[a-f0-9]{64}\.json$/);
       expect(existsSync(result.finalManifestPath)).toBe(true);
       expect(await Bun.file(result.registrationPath).text()).toContain(result.finalManifestKey);
