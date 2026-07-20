@@ -2,6 +2,7 @@ import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
 import { RouteGeoMap } from "@/components/route/RouteGeoMap";
 import { RouteInsightList } from "@/components/route/RouteInsightList";
+import { routeInterventionViewModel } from "@/components/route/route-intervention-model";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
@@ -20,8 +21,8 @@ import type {
   RouteDossierSummaryForDetail,
   StudioRoute,
   StudioRouteDetailResponse,
+  StudioRouteInterventionInventoryBundle,
 } from "@/studio/api-contract";
-import { routeTreatments } from "@/studio/treatment-model";
 
 /**
  * The Overview tab: one plain-language route summary, the route's one plain
@@ -31,9 +32,11 @@ import { routeTreatments } from "@/studio/treatment-model";
  */
 export function OverviewSection({
   data,
+  inventory = null,
   onNavigate,
 }: {
   data: StudioRouteDetailResponse;
+  inventory?: StudioRouteInterventionInventoryBundle | null;
   onNavigate: (section: RouteDetailSectionValue) => void;
 }) {
   const { route, segments } = data;
@@ -47,7 +50,10 @@ export function OverviewSection({
     : slowestByRiders
       ? `${slowestByRiders.from} to ${slowestByRiders.to} costs riders the most time`
       : null;
-  const treatments = routeTreatments(route, segments);
+  const interventionModel = routeInterventionViewModel(inventory);
+  const treatments = interventionModel.treatments.filter(
+    (row) => row.treatment.lifecycleState !== "historical_confirmed",
+  );
   const geo = useRouteSegmentsGeo(route.routeId);
 
   return (
@@ -62,6 +68,11 @@ export function OverviewSection({
             <Badge variant="neutral">{formatCompact(route.dailyRiders)} riders/day</Badge>
           ) : null}
         </div>
+        {interventionModel.coverage.message === null ? null : (
+          <p className="mt-3 text-[11.5px] text-[var(--bp-color-ink-55)]" role="status">
+            {interventionModel.coverage.message}
+          </p>
+        )}
       </SectionCard>
 
       <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(320px,0.8fr)] items-stretch gap-5 max-xl:grid-cols-1">

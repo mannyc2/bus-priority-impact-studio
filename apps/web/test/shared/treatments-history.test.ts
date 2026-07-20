@@ -3,21 +3,18 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   comparisonCardsSubLine,
+  historyTargetScrollBehavior,
   interventionComparisonCards,
   mergedTreatmentTimelineRows,
-  routeCorpusRecords,
   TreatmentsHistorySection,
   timelineDisplayRows,
   timelineYearLabel,
-  treatmentFamilyOfText,
   treatmentHistoryInsightRows,
   treatmentSourceRows,
 } from "../../src/components/route/TreatmentsHistorySection";
 import { citationEntries } from "../../src/components/SourceNote";
 import type {
   StudioIntervention,
-  StudioInterventionCorpus,
-  StudioInterventionCorpusRecord,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceTimelineEvent,
@@ -342,7 +339,7 @@ describe("treatments history helpers", () => {
     expect(rows.map((row) => row.scopeId)).toEqual(["timeline", "treatment"]);
   });
 
-  test("merges wiki timeline rows with citations over matching serving rows", () => {
+  test("does not merge similarly worded timeline rows without a stable relationship ID", () => {
     const rows = mergedTreatmentTimelineRows(
       [
         {
@@ -366,12 +363,10 @@ describe("treatments history helpers", () => {
       ]),
     );
 
-    expect(rows[0]).toEqual(
-      expect.objectContaining({
-        source: "wiki",
-        detail: "Wiki detail.",
-        citationKeys: ["c2"],
-      }),
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.source)).toEqual(["serving", "wiki"]);
+    expect(rows[1]).toEqual(
+      expect.objectContaining({ detail: "Wiki detail.", citationKeys: ["c2"] }),
     );
   });
 
@@ -447,9 +442,9 @@ describe("TreatmentsHistorySection render", () => {
     expect(markup).not.toContain("-&gt;");
   });
 
-  test("documented treatments render as rows with source notes", () => {
-    expect(markup).toContain("Documented treatments");
-    expect(markup).toContain("Offset bus lane");
+  test("related projects remain separate from typed treatments and render source notes", () => {
+    expect(markup).toContain("Related projects");
+    expect(markup).not.toContain("Offset bus lane");
     expect(markup).toContain("First Avenue busway");
     expect(markup).toContain("Sources (");
   });
@@ -483,79 +478,8 @@ describe("study integration", () => {
     expect(comparisonCardsSubLine([])).toBe("Comparison windows promoted by the pipeline.");
   });
 
-  const corpusRecord = (over: Partial<StudioInterventionCorpusRecord>) =>
-    ({
-      recordId: "corpus-1",
-      routes: ["M15"],
-      primaryTreatments: ["bus_lane"],
-      customTreatments: [],
-      title: "First Avenue — Bus Lane",
-      effectiveDate: "2024-06-11",
-      datePrecision: "day",
-      recordKind: "implemented",
-      statusLatest: "complete",
-      corridorStreets: ["First Avenue"],
-      evaluableInWindow: true,
-      sourceId: "source-1",
-      sourceLabel: "DOT press release",
-      sourceUrl: "https://example.test/lane",
-      caveatCount: 0,
-      matchedRegistryEventIds: [],
-      ...over,
-    }) as StudioInterventionCorpusRecord;
-
-  test("corpus rows dedupe against existing rows by year + treatment family", () => {
-    // servingInterventions[1] is "Bus lane repainted" in 2024-06.
-    const merged = mergedTreatmentTimelineRows(servingInterventions, null, [
-      corpusRecord({}),
-      corpusRecord({
-        recordId: "corpus-2",
-        title: "Broadway — Busway",
-        primaryTreatments: ["busway"],
-        effectiveDate: "2021-10",
-        datePrecision: "month",
-      }),
-      corpusRecord({ recordId: "corpus-3", effectiveDate: null }),
-    ]);
-    const baseline = mergedTreatmentTimelineRows(servingInterventions, null);
-    // The bus-lane record merged into the existing 2024 serving row.
-    expect(merged.length).toBe(baseline.length + 1);
-    const lane = merged.find((row) => row.title === "Bus lane repainted");
-    expect(lane?.sourceEntries?.[0]?.label).toBe("DOT press release");
-    // The busway record is new, with month-precision date label.
-    const busway = merged.find((row) => row.key === "corpus:corpus-2");
-    expect(busway?.dateLabel).toBe("2021-10");
-    expect(busway?.kind).toBe("busway");
-    // Undated corpus records stay off the timeline.
-    expect(merged.find((row) => row.key === "corpus:corpus-3")).toBeUndefined();
-  });
-
-  test("treatment family inference is keyword-based and null when unknown", () => {
-    expect(treatmentFamilyOfText("serving_intervention Bus lane repainted")).toBe("bus_lane");
-    expect(treatmentFamilyOfText("ACE enforcement begins")).toBe("automated_bus_lane_enforcement");
-    expect(treatmentFamilyOfText("Ridership dashboard")).toBeNull();
-  });
-
-  test("route corpus selection keeps B44 and B44+ exact and case-sensitive", () => {
-    const exactCorpus = {
-      schemaVersion: 1,
-      generatedAt: "2026-07-18T00:00:00.000Z",
-      sourceCorpus: {
-        path: "fixture.json",
-        version: 3,
-        generatedAt: "2026-07-18T00:00:00.000Z",
-        recordCount: 3,
-        sha256: "a".repeat(64),
-      },
-      records: [
-        corpusRecord({ recordId: "b44-local", routes: ["B44"] }),
-        corpusRecord({ recordId: "b44-plus", routes: ["B44+"] }),
-        corpusRecord({ recordId: "b44-lower", routes: ["b44+"] }),
-      ],
-    } satisfies StudioInterventionCorpus;
-
-    expect(routeCorpusRecords(exactCorpus, "B44+").map((record) => record.recordId)).toEqual([
-      "b44-plus",
-    ]);
+  test("history deep-link motion honors reduced-motion preferences", () => {
+    expect(historyTargetScrollBehavior(false)).toBe("smooth");
+    expect(historyTargetScrollBehavior(true)).toBe("auto");
   });
 });

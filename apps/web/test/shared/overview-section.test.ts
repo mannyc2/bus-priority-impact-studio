@@ -182,7 +182,8 @@ describe("OverviewSection", () => {
     expect(markup).toContain("against a 9.2 mph schedule");
     expect(markup).toContain("Speed is down 4.2% over the past six months.");
     expect(markup).toContain("It is slower than 82% of comparable routes.");
-    expect(markup).toContain("ACE"); // route treatment badge
+    expect(markup).not.toContain("ACE"); // prose/legacy route fields never infer treatment badges
+    expect(markup).toContain("Treatment inventory unavailable");
     expect(markup).toContain("42.0K riders/day");
     expect(markup).toContain("Speed history");
     expect(markup).toContain("6 months");

@@ -1,5 +1,12 @@
+import { Link } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
+import {
+  routeInterventionViewModel,
+  treatmentRecordAnchorId,
+  type RouteInterventionTimelineRow as TypedOccurrenceRow,
+  type RouteInterventionViewModel,
+} from "@/components/route/route-intervention-model";
 import { routeInsightPlacements } from "@/components/route/route-insight-placement";
 import { SectionCard } from "@/components/SectionCard";
 import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
@@ -8,21 +15,17 @@ import { studiesByEventId } from "@/components/study/study-display";
 import { TreatmentInventory } from "@/components/TreatmentBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { fetchStudioInterventionCorpus } from "@/studio/api-client";
 import type {
   RouteStudiesArtifact,
   StudioIntervention,
-  StudioInterventionCorpus,
-  StudioInterventionCorpusRecord,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
-  StudioRouteEvidenceIntervention,
   StudioRouteEvidenceProject,
   StudioRouteEvidenceTimelineEvent,
   StudioRouteInsight,
+  StudioRouteInterventionInventoryBundle,
   StudyArtifact,
 } from "@/studio/api-contract";
-import { countTreatmentStates, routeTreatments } from "@/studio/treatment-model";
 
 type Tone = NonNullable<StudioIntervention["tone"]>;
 type ComparisonCohort = NonNullable<StudioIntervention["comparisonCohort"]>;
@@ -54,11 +57,12 @@ export type TreatmentTimelineRow = {
   kind: string;
   title: string;
   detail: string;
-  source: "serving" | "wiki" | "corpus";
+  source: "serving" | "wiki" | "inventory";
+  recordId: string;
   citationKeys: string[];
   sourceLabel: string | null;
   tone: Tone;
-  /** Extra cited sources (corpus records merged into this row). */
+  /** Extra source labels merged through stable relationship IDs. */
   sourceEntries?: SourceNoteEntry[];
 };
 
@@ -74,46 +78,88 @@ export function treatmentHistoryInsightRows(
 export function TreatmentsHistorySection({
   data,
   evidence,
+  inventory = null,
   studies = null,
   studyKey,
+  recordKey,
 }: {
   data: StudioRouteDetailResponse;
   evidence: StudioRouteEvidenceBundle | null;
+  inventory?: StudioRouteInterventionInventoryBundle | null;
   studies?: RouteStudiesArtifact | null;
   studyKey?: string | undefined;
+  recordKey?: string | undefined;
 }) {
-  const { route, segments } = data;
-  const treatments = routeTreatments(route, segments);
-  const counts = countTreatmentStates(treatments);
+  const { route } = data;
+  const model = routeInterventionViewModel(inventory);
   const comparisonCards = interventionComparisonCards(route.interventions, studies);
   const sourceRows = treatmentSourceRows(route.interventions);
-  const corpus = useInterventionCorpus();
-  const timelineRows = mergedTreatmentTimelineRows(
-    route.interventions,
-    evidence,
-    routeCorpusRecords(corpus, route.routeId),
-  );
+  const timelineRows = mergedTreatmentTimelineRows(route.interventions, evidence, model.timeline);
   const treatmentInsights = treatmentHistoryInsightRows(data.insights);
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+  const targetAnchor =
+    studyKey !== undefined
+      ? treatmentRecordAnchorId(`study:${studyKey}`)
+      : recordKey === undefined
+        ? undefined
+        : treatmentRecordAnchorId(recordKey);
+  useHistoryTarget(targetAnchor, sectionRef);
   const recordEntries: SourceNoteEntry[] = [
     { label: `${timelineRows.length} dated records (${sourceRows.length} with named sources)` },
     ...sourceRows.map((row) => ({ label: row.label, detail: `${row.detail} (${row.year})` })),
   ];
 
   return (
-    <div className="flex flex-col gap-7">
+    <div
+      ref={sectionRef}
+      tabIndex={-1}
+      className="flex flex-col gap-7 outline-none focus-visible:ring-2 focus-visible:ring-[var(--bp-color-accent)]"
+    >
       <SectionCard
         title="What's on this route"
-        sub={`${counts.inPlace} treatments in place, ${counts.planned} planned or proposed.`}
+        sub={`${model.treatments.length} typed treatment records, shown without prose inference.`}
         right={<SourceNote label="About these records" entries={recordEntries} />}
       >
-        <TreatmentInventory treatments={treatments} />
+        {model.coverage.message === null ? null : (
+          <Alert variant={model.coverage.status === "partial" ? "info" : "warn"}>
+            <AlertTitle variant={model.coverage.status === "partial" ? "info" : "warn"}>
+              {model.coverage.status === "partial" ? "Partial coverage" : "Treatment inventory"}
+            </AlertTitle>
+            <AlertDescription>{model.coverage.message}</AlertDescription>
+          </Alert>
+        )}
+        <TreatmentInventory treatments={model.treatments} />
+        {model.routeSlug === null ? null : (
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-[11.5px]">
+            <Link
+              to="/interventions"
+              search={{ route: model.routeSlug }}
+              className="font-semibold text-[var(--bp-color-accent)]"
+            >
+              Browse this route in all interventions →
+            </Link>
+            {[...new Set(model.treatments.map((row) => row.presentation.family))].map((family) => (
+              <Link
+                key={family}
+                to="/interventions"
+                search={{ ...(model.routeSlug === null ? {} : { route: model.routeSlug }), family }}
+                className="text-[var(--bp-color-ink-55)]"
+              >
+                {model.treatments.find((row) => row.presentation.family === family)?.presentation
+                  .familyLabel ?? family}
+              </Link>
+            ))}
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard title="Timeline" sub="Documented changes on this route, newest first.">
         <TimelineList rows={timelineRows} evidence={evidence} insights={treatmentInsights} />
       </SectionCard>
 
-      <DocumentedTreatments evidence={evidence} />
+      <DocumentedTreatments evidence={evidence} model={model} />
+
+      <InventorySourceGaps model={model} />
 
       <SectionCard title="Before & after evaluations" sub={comparisonCardsSubLine(comparisonCards)}>
         <ComparisonCards cards={comparisonCards} studyKey={studyKey} />
@@ -125,12 +171,41 @@ export function TreatmentsHistorySection({
 export function mergedTreatmentTimelineRows(
   interventions: readonly StudioIntervention[],
   evidence: StudioRouteEvidenceBundle | null,
-  corpusRecords: readonly StudioInterventionCorpusRecord[] = [],
+  occurrences: readonly TypedOccurrenceRow[] = [],
 ): TreatmentTimelineRow[] {
   const rows = new Map<string, TreatmentTimelineRow>();
+  const rowKeyByRelationshipId = new Map<string, string>();
+
+  for (const occurrence of occurrences) {
+    const row = typedOccurrenceTimelineRow(occurrence);
+    rows.set(row.key, row);
+    const relationshipIds = [
+      occurrence.occurrence.occurrenceId,
+      occurrence.occurrence.sourceOccurrenceId,
+      occurrence.occurrence.wikiOccurrenceId,
+      occurrence.occurrence.registryLineage?.eventId,
+    ];
+    for (const relationshipId of relationshipIds) {
+      if (relationshipId !== null && relationshipId !== undefined) {
+        rowKeyByRelationshipId.set(relationshipId, row.key);
+      }
+    }
+  }
+
   for (const [index, event] of interventions.entries()) {
+    const relatedKey =
+      event.eventId === undefined ? undefined : rowKeyByRelationshipId.get(event.eventId);
+    if (relatedKey !== undefined) {
+      const related = rows.get(relatedKey);
+      const label = event.sourceLabel ?? event.sourceDetail;
+      if (related !== undefined && label !== undefined) {
+        related.sourceEntries = [...(related.sourceEntries ?? []), { label }];
+      }
+      continue;
+    }
     const row: TreatmentTimelineRow = {
       key: `serving:${event.year}:${index}`,
+      recordId: event.eventId ?? `serving:${event.year}:${index}`,
       dateLabel: event.year,
       sortKey: event.year,
       kind: "serving_intervention",
@@ -141,126 +216,61 @@ export function mergedTreatmentTimelineRows(
       sourceLabel: event.sourceLabel ?? event.sourceDetail ?? null,
       tone: event.tone ?? "accent",
     };
-    rows.set(timelineIdentity(row), row);
+    rows.set(row.key, row);
+    if (event.eventId !== undefined) rowKeyByRelationshipId.set(event.eventId, row.key);
   }
 
   for (const event of evidence?.timeline ?? []) {
     if (event.citationKeys.length === 0) continue;
-    const row = wikiTimelineRow(event);
-    rows.set(timelineIdentity(row), row);
-  }
-
-  // Corpus records dedupe against existing rows by (year + treatment family):
-  // the existing row wins and gains the corpus citation.
-  const byYearFamily = new Map<string, TreatmentTimelineRow>();
-  for (const row of rows.values()) {
-    const family = treatmentFamilyOfText(`${row.kind} ${row.title}`);
-    if (family === null) continue;
-    const yearKey = `${timelineYearLabel(row.dateLabel)}:${family}`;
-    if (!byYearFamily.has(yearKey)) byYearFamily.set(yearKey, row);
-  }
-  for (const record of corpusRecords) {
-    if (record.effectiveDate === null) continue; // undated corpus records live on /interventions
-    const row = corpusTimelineRow(record);
-    const family = record.primaryTreatments[0] ?? treatmentFamilyOfText(`${row.kind} ${row.title}`);
-    const existing =
-      family === null
-        ? undefined
-        : byYearFamily.get(`${timelineYearLabel(row.dateLabel)}:${family}`);
-    if (existing !== undefined) {
-      existing.sourceEntries = [...(existing.sourceEntries ?? []), ...(row.sourceEntries ?? [])];
+    const relatedKey = rowKeyByRelationshipId.get(event.recordId);
+    if (relatedKey !== undefined) {
+      const related = rows.get(relatedKey);
+      if (related !== undefined) {
+        related.citationKeys = [...new Set([...related.citationKeys, ...event.citationKeys])];
+      }
       continue;
     }
-    rows.set(timelineIdentity(row), row);
+    const row = wikiTimelineRow(event);
+    rows.set(row.key, row);
+    rowKeyByRelationshipId.set(event.recordId, row.key);
   }
 
   return [...rows.values()].sort(treatmentTimelineSort);
 }
 
-/** Corpus record → timeline row (dateLabel honors datePrecision). */
-export function corpusTimelineRow(record: StudioInterventionCorpusRecord): TreatmentTimelineRow {
-  const date = record.effectiveDate ?? "undated";
-  const dateLabel = record.datePrecision === "day" ? date : date.slice(0, 7);
-  const corridor = record.corridorStreets.join(", ");
-  const status = record.statusLatest ?? record.recordKind.replaceAll("_", " ");
+function typedOccurrenceTimelineRow(row: TypedOccurrenceRow): TreatmentTimelineRow {
+  const { occurrence } = row;
+  const treatmentLabels = row.treatmentRows.map((item) => item.presentation.label);
+  const kind = treatmentLabels[0] ?? "Documented treatment occurrence";
+  const title = occurrence.program ?? occurrence.phase ?? kind;
+  const relationshipDetail = [
+    treatmentLabels.length === 0 ? null : treatmentLabels.join(", "),
+    occurrence.phase,
+    occurrence.lifecycleState.replaceAll("_", " "),
+  ]
+    .filter((value): value is string => value !== null)
+    .join(" — ");
   return {
-    key: `corpus:${record.recordId}`,
-    dateLabel,
-    sortKey: record.effectiveDate ?? "9999",
-    kind: record.primaryTreatments[0] ?? record.customTreatments[0] ?? "intervention",
-    title: record.title,
-    detail: `${status}${corridor.length > 0 ? ` — ${corridor}` : ""}`,
-    source: "corpus",
+    key: `inventory:${occurrence.occurrenceId}`,
+    recordId: occurrence.occurrenceId,
+    dateLabel: occurrence.effectiveDate ?? "undated",
+    sortKey: occurrence.effectiveDate ?? "0000",
+    kind,
+    title,
+    detail: relationshipDetail,
+    source: "inventory",
     citationKeys: [],
-    // The cited source renders via sourceEntries (label + link + record id).
-    sourceLabel: null,
+    sourceLabel: occurrence.sourceId,
     tone: "accent",
-    sourceEntries: [
-      {
-        label: record.sourceLabel,
-        ...(record.sourceUrl === null ? {} : { href: record.sourceUrl }),
-        detail: `${record.sourceId}; ${record.recordId}`,
-      },
-    ],
+    sourceEntries: occurrence.sourceRefs.map((sourceRef) => ({ label: sourceRef })),
   };
-}
-
-/** Loose treatment-family read of a row's kind + title, for the corpus
- * dedupe heuristic only — never used for study or evidence joins. */
-export function treatmentFamilyOfText(text: string): string | null {
-  const haystack = text.toLowerCase();
-  if (/\bbusway\b/.test(haystack)) return "busway";
-  if (/\b(ace|able|camera|enforcement)\b/.test(haystack)) return "automated_bus_lane_enforcement";
-  if (/\b(sbs|select bus)\b/.test(haystack)) return "select_bus_service";
-  if (/\bsignal\b/.test(haystack)) return "transit_signal_priority";
-  if (/\bredesign\b/.test(haystack)) return "route_redesign";
-  if (/\bqueue jump\b/.test(haystack)) return "queue_jump";
-  if (/\b(all[- ]door|boarding)\b/.test(haystack)) return "all_door_boarding";
-  if (/\bfare\b/.test(haystack)) return "off_board_fare_collection";
-  if (/\bstop\b/.test(haystack)) return "stop_change";
-  if (/\bbus lane|lane\b/.test(haystack)) return "bus_lane";
-  return null;
-}
-
-/** Corpus records explicitly bound to this exact case-sensitive route identity. */
-export function routeCorpusRecords(
-  corpus: StudioInterventionCorpus | null,
-  routeId: string,
-): StudioInterventionCorpusRecord[] {
-  return (corpus?.records ?? []).filter((record) => record.routes.includes(routeId));
-}
-
-/** In-component lazy fetch: the corpus is citywide and must not ride the
- * route loader (matches the route-detail-data artifact-fetch idiom). */
-function useInterventionCorpus(): StudioInterventionCorpus | null {
-  const [corpus, setCorpus] = useState<StudioInterventionCorpus | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchStudioInterventionCorpus({ signal: controller.signal })
-      .then((data) => {
-        if (controller.signal.aborted) return;
-        setCorpus(data);
-      })
-      .catch(() => {
-        if (controller.signal.aborted) return;
-        setCorpus(null);
-      });
-
-    return () => controller.abort();
-  }, []);
-
-  return corpus;
-}
-
-function timelineIdentity(row: TreatmentTimelineRow): string {
-  return `${row.sortKey}:${row.kind}:${row.title}`.toLowerCase();
 }
 
 function wikiTimelineRow(event: StudioRouteEvidenceTimelineEvent): TreatmentTimelineRow {
   const title = event.title ?? event.eventKind ?? "Documented route event";
   return {
     key: `wiki:${event.recordId}`,
+    recordId: event.recordId,
     dateLabel: event.dateNormalized ?? event.dateText ?? "undated",
     sortKey: event.dateNormalized ?? event.dateText ?? "9999",
     kind: event.eventKind ?? event.eventFamily ?? event.recordKind,
@@ -415,7 +425,11 @@ function TimelineRow({
   const entries = [...baseEntries, ...(row.sourceEntries ?? [])];
 
   return (
-    <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-3 py-2.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none">
+    <div
+      id={treatmentRecordAnchorId(row.recordId)}
+      tabIndex={-1}
+      className="grid grid-cols-[92px_minmax(0,1fr)] gap-3 rounded-[3px] py-2.5 outline-none shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--bp-color-accent)]"
+    >
       <div
         className={`pt-0.5 font-mono text-[11px] ${undated ? "text-[var(--bp-color-ink-40)]" : "text-[var(--bp-color-ink-70)]"}`}
       >
@@ -447,58 +461,73 @@ type DocumentedRow = {
   citationKeys: readonly string[];
 };
 
-function documentedTreatmentRows(evidence: StudioRouteEvidenceBundle | null): DocumentedRow[] {
-  const interventions = evidence?.interventions ?? [];
+function documentedTreatmentRows(
+  evidence: StudioRouteEvidenceBundle | null,
+  model: RouteInterventionViewModel,
+): DocumentedRow[] {
   const projects = evidence?.projects ?? [];
+  const evidenceById = new Map(projects.map((project) => [project.recordId, project]));
+  const relatedRows = model.projects.map((relationship): DocumentedRow => {
+    const project = evidenceById.get(relationship.projectId);
+    if (project === undefined) {
+      return {
+        key: relationship.projectId,
+        chips: [{ label: "project relationship", variant: "neutral" }],
+        title: relationship.projectId,
+        detail: `${relationship.treatmentIds.length} treatments and ${relationship.occurrenceIds.length} occurrences linked by the typed inventory.`,
+        citationKeys: relationship.citationKeys,
+      };
+    }
+    return documentedProjectRow(project);
+  });
+  const relatedIds = new Set(model.projects.map((project) => project.projectId));
   return [
-    ...interventions.map((intervention): DocumentedRow => {
-      const chips: DocumentedRow["chips"] = [
-        { label: intervention.treatmentKind ?? "treatment", variant: "accent" },
-      ];
-      if (intervention.treatmentFamily) {
-        chips.push({ label: intervention.treatmentFamily, variant: "neutral" });
-      }
-      return {
-        key: intervention.recordId,
-        chips,
-        title: intervention.title ?? "Documented treatment",
-        detail: wikiTreatmentDescription(intervention),
-        citationKeys: intervention.citationKeys,
-      };
-    }),
-    ...projects.map((project): DocumentedRow => {
-      const chips: DocumentedRow["chips"] = [
-        { label: project.projectType ?? "project", variant: "neutral" },
-      ];
-      if (project.status) chips.push({ label: project.status, variant: "accent" });
-      return {
-        key: project.recordId,
-        chips,
-        title: project.projectName ?? "Documented project",
-        detail: wikiProjectDescription(project),
-        citationKeys: project.citationKeys,
-      };
-    }),
+    ...relatedRows,
+    ...projects
+      .filter((project) => !relatedIds.has(project.recordId))
+      .map((project): DocumentedRow => documentedProjectRow(project)),
   ];
 }
 
-function DocumentedTreatments({ evidence }: { evidence: StudioRouteEvidenceBundle | null }) {
+function documentedProjectRow(project: StudioRouteEvidenceProject): DocumentedRow {
+  const chips: DocumentedRow["chips"] = [
+    { label: project.projectType ?? "project", variant: "neutral" },
+  ];
+  if (project.status) chips.push({ label: project.status, variant: "accent" });
+  return {
+    key: project.recordId,
+    chips,
+    title: project.projectName ?? "Documented project",
+    detail: wikiProjectDescription(project),
+    citationKeys: project.citationKeys,
+  };
+}
+
+function DocumentedTreatments({
+  evidence,
+  model,
+}: {
+  evidence: StudioRouteEvidenceBundle | null;
+  model: RouteInterventionViewModel;
+}) {
   const [showAll, setShowAll] = useState(false);
-  const rows = documentedTreatmentRows(evidence);
+  const rows = documentedTreatmentRows(evidence, model);
   if (rows.length === 0) return null;
   const visible = showAll ? rows : rows.slice(0, DOCUMENTED_LIMIT);
 
   return (
     <SectionCard
-      title="Documented treatments"
-      sub="Treatments and projects extracted from cited source documents."
+      title="Related projects"
+      sub="Project containers remain separate from typed treatments and occurrences."
     >
       <div className="flex flex-col gap-4">
         <div>
           {visible.map((row) => (
             <div
+              id={treatmentRecordAnchorId(row.key)}
+              tabIndex={-1}
               key={row.key}
-              className="py-2.5 shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none"
+              className="rounded-[3px] py-2.5 outline-none shadow-[inset_0_-1px_0_var(--bp-color-rule)] last:shadow-none focus-visible:ring-2 focus-visible:ring-[var(--bp-color-accent)]"
             >
               <div className="flex flex-wrap items-center gap-2">
                 {row.chips.map((chip) => (
@@ -531,10 +560,31 @@ function DocumentedTreatments({ evidence }: { evidence: StudioRouteEvidenceBundl
   );
 }
 
-function wikiTreatmentDescription(intervention: StudioRouteEvidenceIntervention): string {
-  if (intervention.description !== null) return intervention.description;
-  const locations = intervention.locations.join(", ");
-  return locations.length > 0 ? locations : "Source-backed treatment.";
+function InventorySourceGaps({ model }: { model: RouteInterventionViewModel }) {
+  if (model.gaps.length === 0) return null;
+  return (
+    <SectionCard title="Source gaps" sub="Missing evidence stays separate from treatment records.">
+      <div className="flex flex-col gap-2">
+        {model.gaps.map((gap) => (
+          <div
+            key={gap.key}
+            id={gap.anchorId}
+            tabIndex={-1}
+            className="rounded-[3px] bg-[var(--bp-color-paper-deep)] p-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--bp-color-accent)]"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="warn">Source gap</Badge>
+              <span className="text-[13px] font-semibold">{gap.gapKind.replaceAll("_", " ")}</span>
+            </div>
+            <div className="mt-1 text-[11.5px] text-[var(--bp-color-ink-55)]">
+              {gap.sourceId}
+            </div>
+            <SourceNote entries={gap.sourceRefs.map((sourceRef) => ({ label: sourceRef }))} />
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
 }
 
 function wikiProjectDescription(project: StudioRouteEvidenceProject): string {
@@ -623,6 +673,7 @@ function ComparisonCards({
           <ComparisonCardShell
             key={`${card.year}-${card.title}`}
             highlighted={study.eventKey === studyKey}
+            targetId={treatmentRecordAnchorId(`study:${study.eventKey}`)}
           >
             {study.claimTier === "descriptive" ? (
               <DescriptiveStudyCard title={card.title} study={study} />
@@ -646,25 +697,19 @@ function ComparisonCards({
  * accent ring using the existing focus-ring vocabulary. */
 function ComparisonCardShell({
   highlighted,
+  targetId,
   children,
 }: {
   highlighted: boolean;
+  targetId: string;
   children: ReactNode;
 }) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [ringVisible, setRingVisible] = useState(false);
-  useEffect(() => {
-    if (!highlighted || ref.current === null) return;
-    ref.current.scrollIntoView({ block: "center", behavior: "smooth" });
-    setRingVisible(true);
-    const timer = setTimeout(() => setRingVisible(false), 2600);
-    return () => clearTimeout(timer);
-  }, [highlighted]);
   return (
     <div
-      ref={ref}
-      className={`rounded-[3px] bg-[var(--bp-color-card)] p-4 transition-shadow duration-700 ${
-        ringVisible
+      id={targetId}
+      tabIndex={-1}
+      className={`rounded-[3px] bg-[var(--bp-color-card)] p-4 outline-none transition-shadow duration-700 focus-visible:ring-2 focus-visible:ring-[var(--bp-color-accent)] ${
+        highlighted
           ? "shadow-[0_0_0_1px_var(--bp-color-rule),0_0_0_3px_var(--bp-color-accent-bg),0_0_0_4px_var(--bp-color-accent)]"
           : "shadow-[0_0_0_1px_var(--bp-color-rule)]"
       }`}
@@ -672,6 +717,29 @@ function ComparisonCardShell({
       {children}
     </div>
   );
+}
+
+export function historyTargetScrollBehavior(prefersReducedMotion: boolean): ScrollBehavior {
+  return prefersReducedMotion ? "auto" : "smooth";
+}
+
+function useHistoryTarget(
+  targetAnchor: string | undefined,
+  sectionRef: { readonly current: HTMLDivElement | null },
+) {
+  useEffect(() => {
+    if (targetAnchor === undefined || typeof document === "undefined") return;
+    const target = document.getElementById(targetAnchor) ?? sectionRef.current;
+    if (target === null) return;
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({
+      block: target === sectionRef.current ? "start" : "center",
+      behavior: historyTargetScrollBehavior(prefersReducedMotion),
+    });
+  }, [sectionRef, targetAnchor]);
 }
 
 function LegacyComparisonCardBody({ card }: { card: TreatmentComparisonCard }) {

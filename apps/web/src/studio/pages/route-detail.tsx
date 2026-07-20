@@ -23,6 +23,7 @@ import type {
   RouteStudiesArtifact,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
+  StudioRouteInterventionInventoryBundle,
 } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
@@ -37,13 +38,15 @@ function TrackRecentRoute({ slug }: { slug: string }) {
 export function RouteDetailPage({
   data,
   evidence,
+  inventory,
   studies = null,
   search,
 }: {
   data: StudioRouteDetailResponse | null;
   evidence: StudioRouteEvidenceBundle | null;
+  inventory: StudioRouteInterventionInventoryBundle | null;
   studies?: RouteStudiesArtifact | null;
-  search: RouteDetailSearch;
+  search: RouteDetailSearch & { record?: string };
 }) {
   const navigate = useNavigate();
 
@@ -93,7 +96,7 @@ export function RouteDetailPage({
   let panel: ReactNode;
   switch (activeTab) {
     case "overview":
-      panel = <OverviewSection data={data} onNavigate={navigateToTab} />;
+      panel = <OverviewSection data={data} inventory={inventory} onNavigate={navigateToTab} />;
       break;
     case "segments": {
       // One linked explorer owns list + map (plan 081/comp r4). The `map`
@@ -156,8 +159,10 @@ export function RouteDetailPage({
         <TreatmentsHistorySection
           data={data}
           evidence={evidence}
+          inventory={inventory}
           studies={studies}
           studyKey={search.study}
+          recordKey={search.record}
         />
       ));
       break;
