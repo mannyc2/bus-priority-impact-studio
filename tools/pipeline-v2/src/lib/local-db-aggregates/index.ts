@@ -222,7 +222,9 @@ export {
   type RouteSpeedSpineCandidate,
 } from "./route-speed-spine-rows";
 export {
+  loadRouteInterventionInventoryLocalDbRows,
   loadRouteTreatmentSummaryLocalDbRows,
+  type RouteInterventionInventoryLocalDbRows,
   type RouteTreatmentCatalogRow,
   type RouteTreatmentSegmentUniverseRow,
   type RouteTreatmentSummaryLocalDbQuery,

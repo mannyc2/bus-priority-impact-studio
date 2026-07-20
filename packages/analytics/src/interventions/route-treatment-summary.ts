@@ -1,3 +1,20 @@
+import { createHash } from "node:crypto";
+import type { DocumentTreatmentType } from "@bp/domain/documents/candidates";
+import type { StudioRouteIdentityPresentation } from "@bp/domain/studio";
+import {
+  type CanonicalTreatmentKind,
+  DOCUMENT_TREATMENT_DISPOSITIONS,
+  documentTreatmentDisposition,
+  type ExactRouteReconciliationRow,
+  REVIEWED_OPEN_TREATMENT_DISPOSITIONS_V1,
+  type ReviewedOpenTreatmentDispositionV1,
+  resolveExactRouteId,
+  resolveExactRouteIdentity,
+  reviewedOpenTreatmentDisposition,
+  type TreatmentCrosswalkDisposition,
+  type TreatmentPresentationFamily,
+} from "./route-treatment-crosswalk.js";
+
 export const ROUTE_TREATMENT_SUMMARY_SCHEMA_VERSION = 1;
 
 export const ROUTE_TREATMENT_TYPES = [
@@ -256,6 +273,139 @@ export type PublishableInterventionLike = {
   evidenceCandidateIds?: unknown;
   evidencePreviews?: unknown;
   caveats?: unknown;
+  matchedRegistryEventIds?: unknown;
+  projectIds?: unknown;
+};
+
+export const TREATMENT_COMPONENT_COLLECTIONS = ["primary", "custom", "wiki", "registry"] as const;
+export type TreatmentComponentCollection = (typeof TREATMENT_COMPONENT_COLLECTIONS)[number];
+
+export type TreatmentStableIdInput = {
+  sourceNamespace: string;
+  sourceRecordId: string;
+  componentCollection: TreatmentComponentCollection;
+  componentPosition: number;
+  rawKind: string;
+};
+
+export type OccurrenceStableIdInput = {
+  sourceNamespace: string;
+  sourceOccurrenceId: string;
+  producerPhaseOrPosition: string | number;
+  routeId: string;
+  treatmentId: string;
+};
+
+export type StableInterventionIdClaim = {
+  id: string;
+  tuple: readonly (string | number)[];
+};
+
+export type NormalizedRouteTreatmentFact = {
+  treatmentId: string;
+  sourceNamespace: string;
+  sourceRecordId: string;
+  componentCollection: TreatmentComponentCollection;
+  componentPosition: number;
+  routeId: string;
+  rawKind: string;
+  rawLabel: string | null;
+  treatmentKind: CanonicalTreatmentKind;
+  treatmentFamily: TreatmentPresentationFamily;
+  lifecycleState: RouteTreatmentStatus;
+  statusAsOf: string | null;
+  effectiveDate: string | null;
+  datePrecision: DatePrecision;
+  geographyScope: GeographyScope;
+  sourceRefs: string[];
+  occurrenceIds: string[];
+  projectIds: string[];
+  caveats: string[];
+  methodLimitations: string[];
+};
+
+export type NormalizedRouteTreatmentRegistryLineage = {
+  dataProductId: "local_intervention_events_release";
+  eventId: string;
+  rawRouteId: string;
+  rawInterventionType: string;
+  sourceId: string;
+  rawStatus: string;
+  program: string;
+  implementationDate: string;
+  implementationMonth: string;
+};
+
+export type NormalizedRouteTreatmentOccurrenceFact = {
+  occurrenceId: string;
+  sourceNamespace: string;
+  sourceOccurrenceId: string;
+  producerPhaseOrPosition: string | number;
+  routeId: string;
+  treatmentIds: string[];
+  lifecycleState: RouteTreatmentStatus;
+  phase: string | null;
+  rawStatus: string | null;
+  program: string | null;
+  effectiveDate: string | null;
+  datePrecision: DatePrecision;
+  geographyScope: GeographyScope;
+  sourceRefs: string[];
+  projectIds: string[];
+  wikiOccurrenceId: string | null;
+  registryLineage: NormalizedRouteTreatmentRegistryLineage | null;
+};
+
+export type NormalizedRouteTreatmentOccurrenceInput = {
+  sourceNamespace: string;
+  sourceOccurrenceId: string;
+  producerPhaseOrPosition: string | number;
+  routeId: string;
+  treatmentId: string;
+  lifecycleState: RouteTreatmentStatus;
+  phase?: string | null;
+  rawStatus?: string | null;
+  program?: string | null;
+  effectiveDate?: string | null;
+  datePrecision?: DatePrecision | null;
+  geographyScope?: GeographyScope | null;
+  sourceRefs?: readonly string[];
+  projectIds?: readonly string[];
+  wikiOccurrenceId?: string | null;
+  registryLineage?: NormalizedRouteTreatmentRegistryLineage | null;
+};
+
+export type NormalizedRouteTreatmentCurrentState = {
+  routeId: string;
+  treatmentKind: CanonicalTreatmentKind;
+  treatmentFamily: TreatmentPresentationFamily;
+  lifecycleState: RouteTreatmentStatus;
+  treatmentIds: string[];
+  occurrenceIds: string[];
+};
+
+export type TreatmentComponentReconciliation = {
+  treatmentId: string;
+  sourceNamespace: string;
+  sourceRecordId: string;
+  componentCollection: "primary" | "custom";
+  componentPosition: number;
+  rawKind: string;
+  disposition: TreatmentCrosswalkDisposition;
+};
+
+export type NormalizedPublishableInterventionsResult = {
+  facts: NormalizedRouteTreatmentFact[];
+  componentReconciliation: TreatmentComponentReconciliation[];
+  routeReconciliation: ExactRouteReconciliationRow[];
+  summary: {
+    componentCount: number;
+    mappedComponentCount: number;
+    otherDocumentedComponentCount: number;
+    unmappedReviewRequiredComponentCount: number;
+    factCount: number;
+    unresolvedRouteCount: number;
+  };
 };
 
 const TREATMENT_TYPE_ALIASES: Record<string, RouteTreatmentType> = {
@@ -363,22 +513,17 @@ function uniqueSorted(values: readonly string[]): string[] {
 }
 
 function normalizeRouteId(routeId: string): string {
-  return routeId.trim().toUpperCase();
+  return routeId;
 }
 
-function canonicalRouteId(routeId: string, routeUniverse: ReadonlySet<string>): string | null {
-  const normalized = normalizeRouteId(routeId);
-  if (normalized.length === 0) return null;
-  if (routeUniverse.size === 0 || routeUniverse.has(normalized)) return normalized;
-  const withoutPlus = normalized.replace(/\+$/u, "");
-  if (routeUniverse.has(withoutPlus)) return withoutPlus;
-  if (!normalized.endsWith("+") && routeUniverse.has(`${normalized}+`)) return `${normalized}+`;
-  const q20Branch = normalized.match(/^Q20[AB]$/u);
-  if (q20Branch !== null && routeUniverse.has("Q20")) return "Q20";
-  const expressVariant = normalized.match(/^(SIM[0-9]+)X$/u);
-  const expressRoute = expressVariant?.[1];
-  if (expressRoute !== undefined && routeUniverse.has(expressRoute)) return expressRoute;
-  return null;
+function canonicalRouteId(routeId: string, routeUniverse: readonly string[]): string | null {
+  const resolution = resolveExactRouteId({
+    rawRouteId: routeId,
+    routeIds: routeUniverse,
+    sourceNamespace: "legacy_route_treatment_summary",
+    sourceVocabulary: "route_id",
+  });
+  return resolution.resolution === "resolved" ? resolution.routeId : null;
 }
 
 function routeTreatmentKey(
@@ -460,7 +605,7 @@ function segmentLaneMatchMethod(
 function rowFromEvidence(input: {
   evidence: RouteTreatmentEvidenceInput;
   defaultMonth: string;
-  routeUniverse: ReadonlySet<string>;
+  routeUniverse: readonly string[];
 }): RouteTreatmentSummaryRow | null {
   const routeId = canonicalRouteId(input.evidence.routeId, input.routeUniverse);
   if (routeId === null) return null;
@@ -768,6 +913,117 @@ function textValue(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+function canonicalTupleJson(tuple: readonly (string | number)[]): string {
+  return JSON.stringify(tuple);
+}
+
+function stableInterventionId(
+  prefix: "treatment" | "occurrence",
+  tuple: readonly (string | number)[],
+): string {
+  const hash = createHash("sha256").update(canonicalTupleJson(tuple)).digest("hex").slice(0, 24);
+  return `${prefix}:v1:${hash}`;
+}
+
+export function treatmentStableIdTuple(
+  input: TreatmentStableIdInput,
+): readonly [string, string, TreatmentComponentCollection, number, string] {
+  if (!Number.isSafeInteger(input.componentPosition) || input.componentPosition < 0) {
+    throw new Error("Treatment component position must be a non-negative safe integer");
+  }
+  return [
+    input.sourceNamespace,
+    input.sourceRecordId,
+    input.componentCollection,
+    input.componentPosition,
+    input.rawKind,
+  ];
+}
+
+export function occurrenceStableIdTuple(
+  input: OccurrenceStableIdInput,
+): readonly [string, string, string | number, string, string] {
+  if (
+    typeof input.producerPhaseOrPosition === "number" &&
+    (!Number.isSafeInteger(input.producerPhaseOrPosition) || input.producerPhaseOrPosition < 0)
+  ) {
+    throw new Error("Occurrence position must be a non-negative safe integer");
+  }
+  return [
+    input.sourceNamespace,
+    input.sourceOccurrenceId,
+    input.producerPhaseOrPosition,
+    input.routeId,
+    input.treatmentId,
+  ];
+}
+
+export function stableTreatmentId(input: TreatmentStableIdInput): string {
+  return stableInterventionId("treatment", treatmentStableIdTuple(input));
+}
+
+export function stableOccurrenceId(input: OccurrenceStableIdInput): string {
+  return stableInterventionId("occurrence", occurrenceStableIdTuple(input));
+}
+
+export function assertNoStableInterventionIdCollisions(
+  claims: readonly StableInterventionIdClaim[],
+): void {
+  const tuplesById = new Map<string, string>();
+  for (const claim of claims) {
+    const tupleJson = canonicalTupleJson(claim.tuple);
+    const existing = tuplesById.get(claim.id);
+    if (existing !== undefined && existing !== tupleJson) {
+      throw new Error(
+        `Stable intervention ID collision for ${claim.id}: ${existing} !== ${tupleJson}`,
+      );
+    }
+    tuplesById.set(claim.id, tupleJson);
+  }
+}
+
+function isDocumentTreatmentType(value: string): value is DocumentTreatmentType {
+  return Object.hasOwn(DOCUMENT_TREATMENT_DISPOSITIONS, value);
+}
+
+function sourceComponents(row: PublishableInterventionLike): Array<{
+  componentCollection: "primary" | "custom";
+  componentPosition: number;
+  rawKind: string;
+  rawLabel: string | null;
+}> {
+  return [
+    ...stringArray(row.primaryTreatments).map((rawKind, componentPosition) => ({
+      componentCollection: "primary" as const,
+      componentPosition,
+      rawKind,
+      rawLabel: null,
+    })),
+    ...stringArray(row.customTreatments).map((rawKind, componentPosition) => ({
+      componentCollection: "custom" as const,
+      componentPosition,
+      rawKind,
+      rawLabel: rawKind,
+    })),
+  ];
+}
+
+function dispositionForSourceComponent(
+  component: ReturnType<typeof sourceComponents>[number],
+  reviewedOpenDispositions: readonly ReviewedOpenTreatmentDispositionV1[],
+): TreatmentCrosswalkDisposition {
+  if (component.componentCollection === "primary") {
+    return isDocumentTreatmentType(component.rawKind)
+      ? documentTreatmentDisposition(component.rawKind)
+      : {
+          disposition: "unmapped_review_required",
+          rawValue: component.rawKind,
+          reason: component.rawKind.length === 0 ? "empty_raw_value" : "unreviewed_open_value",
+        };
+  }
+  return reviewedOpenTreatmentDisposition(component.rawKind, reviewedOpenDispositions);
+}
+
 export function routeTreatmentSourceRowsFromPublishableInterventions(input: {
   rows: readonly PublishableInterventionLike[];
   month: string;
@@ -775,11 +1031,16 @@ export function routeTreatmentSourceRowsFromPublishableInterventions(input: {
   const output: RouteTreatmentEvidenceInput[] = [];
   for (const row of input.rows) {
     const routes = stringArray(row.routes);
-    const treatmentTypes = [
-      ...stringArray(row.primaryTreatments),
-      ...stringArray(row.customTreatments).map(() => "custom_treatment"),
+    const treatmentInputs = [
+      ...stringArray(row.primaryTreatments).map((rawTreatmentType) => ({
+        treatmentType: rawTreatmentType,
+        rawTreatmentType,
+      })),
+      ...stringArray(row.customTreatments).map((rawTreatmentType) => ({
+        treatmentType: "custom_treatment",
+        rawTreatmentType,
+      })),
     ];
-    const firstTreatment = treatmentTypes[0] ?? "custom_treatment";
     const status = normalizeRouteTreatmentStatus(textValue(row.status) ?? "candidate");
     const sourceId = textValue(row.sourceId) ?? "tier2_publishable";
     const recordId = textValue(row.recordId) ?? "unknown";
@@ -787,29 +1048,270 @@ export function routeTreatmentSourceRowsFromPublishableInterventions(input: {
     const datePrecision = normalizeDatePrecision(row.datePrecision);
     const effectiveDate = textValue(row.effectiveDate);
     for (const routeId of routes) {
-      output.push({
-        routeId,
-        month: input.month,
-        treatmentType: firstTreatment,
-        rawTreatmentType: firstTreatment,
-        status,
-        statusAsOf: input.month,
-        effectiveDate,
-        datePrecision,
-        geographyScope: "route",
-        sourceRefs: [
-          `publishable_intervention:${recordId}`,
-          `source:${sourceId}`,
-          ...evidenceIds.map((id) => `candidate:${id}`),
-        ],
-        evidenceLabel: "reviewed_document",
-        confidence: row.timelineLayer === "canonical_milestone" ? "high" : "medium",
-        caveats: ["Reviewed Tier 2 publishable intervention record."],
-        relatedEventIds: [recordId],
-      });
+      for (const treatment of treatmentInputs) {
+        output.push({
+          routeId,
+          month: input.month,
+          treatmentType: treatment.treatmentType,
+          rawTreatmentType: treatment.rawTreatmentType,
+          status,
+          statusAsOf: input.month,
+          effectiveDate,
+          datePrecision,
+          geographyScope: "route",
+          sourceRefs: [
+            `publishable_intervention:${recordId}`,
+            `source:${sourceId}`,
+            ...evidenceIds.map((id) => `candidate:${id}`),
+          ],
+          evidenceLabel: "reviewed_document",
+          confidence: row.timelineLayer === "canonical_milestone" ? "high" : "medium",
+          caveats: ["Reviewed Tier 2 publishable intervention record."],
+          relatedEventIds: [recordId],
+        });
+      }
     }
   }
   return output;
+}
+
+export function normalizedRouteTreatmentFactsFromPublishableInterventions(input: {
+  rows: readonly PublishableInterventionLike[];
+  routes: readonly StudioRouteIdentityPresentation[];
+  statusAsOf: string;
+  sourceNamespace?: string;
+  reviewedOpenDispositions?: readonly ReviewedOpenTreatmentDispositionV1[];
+}): NormalizedPublishableInterventionsResult {
+  const sourceNamespace = input.sourceNamespace ?? "reviewed_intervention_corpus";
+  const reviewedOpenDispositions =
+    input.reviewedOpenDispositions ?? REVIEWED_OPEN_TREATMENT_DISPOSITIONS_V1;
+  const facts: NormalizedRouteTreatmentFact[] = [];
+  const componentReconciliation: TreatmentComponentReconciliation[] = [];
+  const routeReconciliation: ExactRouteReconciliationRow[] = [];
+  const idClaims: StableInterventionIdClaim[] = [];
+
+  for (const row of input.rows) {
+    const sourceRecordId = textValue(row.recordId);
+    if (sourceRecordId === null) {
+      throw new Error("Reviewed intervention record is missing its immutable recordId");
+    }
+    const sourceId = textValue(row.sourceId) ?? "unknown_source";
+    const routes = stringArray(row.routes);
+    const components = sourceComponents(row);
+    const lifecycleState = normalizeRouteTreatmentStatus(textValue(row.status) ?? "candidate");
+    const effectiveDate = textValue(row.effectiveDate);
+    const datePrecision = normalizeDatePrecision(row.datePrecision);
+    const evidenceIds = stringArray(row.evidenceCandidateIds);
+    const sourceRefs = uniqueSorted([
+      `publishable_intervention:${sourceRecordId}`,
+      `source:${sourceId}`,
+      ...evidenceIds.map((id) => `candidate:${id}`),
+    ]);
+    const projectIds = uniqueSorted(stringArray(row.projectIds));
+    const caveats = uniqueSorted(stringArray(row.caveats));
+
+    const componentsWithDisposition = components.map((component) => {
+      const idInput: TreatmentStableIdInput = {
+        sourceNamespace,
+        sourceRecordId,
+        componentCollection: component.componentCollection,
+        componentPosition: component.componentPosition,
+        rawKind: component.rawKind,
+      };
+      const treatmentId = stableTreatmentId(idInput);
+      const disposition = dispositionForSourceComponent(component, reviewedOpenDispositions);
+      idClaims.push({ id: treatmentId, tuple: treatmentStableIdTuple(idInput) });
+      componentReconciliation.push({
+        treatmentId,
+        sourceNamespace,
+        sourceRecordId,
+        componentCollection: component.componentCollection,
+        componentPosition: component.componentPosition,
+        rawKind: component.rawKind,
+        disposition,
+      });
+      return { component, treatmentId, disposition };
+    });
+
+    const routeResolutions = routes.map((rawRouteId) =>
+      resolveExactRouteIdentity({
+        rawRouteId,
+        routes: input.routes,
+        sourceNamespace,
+        sourceVocabulary: "reviewed_intervention_corpus.routes",
+      }),
+    );
+    for (const resolution of routeResolutions) {
+      if (resolution.resolution === "unresolved") {
+        routeReconciliation.push(resolution.reconciliation);
+        continue;
+      }
+      for (const entry of componentsWithDisposition) {
+        if (entry.disposition.disposition === "unmapped_review_required") continue;
+        facts.push({
+          treatmentId: entry.treatmentId,
+          sourceNamespace,
+          sourceRecordId,
+          componentCollection: entry.component.componentCollection,
+          componentPosition: entry.component.componentPosition,
+          routeId: resolution.route.routeId,
+          rawKind: entry.component.rawKind,
+          rawLabel: entry.component.rawLabel,
+          treatmentKind: entry.disposition.treatmentKind,
+          treatmentFamily: entry.disposition.treatmentFamily,
+          lifecycleState,
+          statusAsOf: input.statusAsOf,
+          effectiveDate,
+          datePrecision,
+          geographyScope: "route",
+          sourceRefs,
+          occurrenceIds: [],
+          projectIds,
+          caveats,
+          methodLimitations: [],
+        });
+      }
+    }
+  }
+
+  assertNoStableInterventionIdCollisions(idClaims);
+  const mappedComponentCount = componentReconciliation.filter(
+    (row) => row.disposition.disposition === "mapped",
+  ).length;
+  const otherDocumentedComponentCount = componentReconciliation.filter(
+    (row) => row.disposition.disposition === "other_documented",
+  ).length;
+  const unmappedReviewRequiredComponentCount = componentReconciliation.filter(
+    (row) => row.disposition.disposition === "unmapped_review_required",
+  ).length;
+  return {
+    facts,
+    componentReconciliation,
+    routeReconciliation,
+    summary: {
+      componentCount: componentReconciliation.length,
+      mappedComponentCount,
+      otherDocumentedComponentCount,
+      unmappedReviewRequiredComponentCount,
+      factCount: facts.length,
+      unresolvedRouteCount: routeReconciliation.length,
+    },
+  };
+}
+
+export function normalizedRouteTreatmentOccurrenceFact(
+  input: NormalizedRouteTreatmentOccurrenceInput,
+): NormalizedRouteTreatmentOccurrenceFact {
+  const idInput: OccurrenceStableIdInput = {
+    sourceNamespace: input.sourceNamespace,
+    sourceOccurrenceId: input.sourceOccurrenceId,
+    producerPhaseOrPosition: input.producerPhaseOrPosition,
+    routeId: input.routeId,
+    treatmentId: input.treatmentId,
+  };
+  return {
+    occurrenceId: stableOccurrenceId(idInput),
+    sourceNamespace: input.sourceNamespace,
+    sourceOccurrenceId: input.sourceOccurrenceId,
+    producerPhaseOrPosition: input.producerPhaseOrPosition,
+    routeId: input.routeId,
+    treatmentIds: [input.treatmentId],
+    lifecycleState: input.lifecycleState,
+    phase: input.phase ?? null,
+    rawStatus: input.rawStatus ?? null,
+    program: input.program ?? null,
+    effectiveDate: input.effectiveDate ?? null,
+    datePrecision: input.datePrecision ?? "unknown",
+    geographyScope: input.geographyScope ?? "route",
+    sourceRefs: uniqueSorted([...(input.sourceRefs ?? [])]),
+    projectIds: uniqueSorted([...(input.projectIds ?? [])]),
+    wikiOccurrenceId: input.wikiOccurrenceId ?? null,
+    registryLineage: input.registryLineage ?? null,
+  };
+}
+
+export function normalizedRouteTreatmentOccurrenceFacts(
+  inputs: readonly NormalizedRouteTreatmentOccurrenceInput[],
+): NormalizedRouteTreatmentOccurrenceFact[] {
+  const facts = inputs.map(normalizedRouteTreatmentOccurrenceFact);
+  assertNoStableInterventionIdCollisions(
+    inputs.map((input, index) => ({
+      id: (facts[index] as NormalizedRouteTreatmentOccurrenceFact).occurrenceId,
+      tuple: occurrenceStableIdTuple({
+        sourceNamespace: input.sourceNamespace,
+        sourceOccurrenceId: input.sourceOccurrenceId,
+        producerPhaseOrPosition: input.producerPhaseOrPosition,
+        routeId: input.routeId,
+        treatmentId: input.treatmentId,
+      }),
+    })),
+  );
+  return facts;
+}
+
+export function deriveNormalizedRouteTreatmentCurrentState(input: {
+  treatments: readonly NormalizedRouteTreatmentFact[];
+  occurrences: readonly NormalizedRouteTreatmentOccurrenceFact[];
+}): NormalizedRouteTreatmentCurrentState[] {
+  const groups = new Map<
+    string,
+    {
+      routeId: string;
+      treatmentKind: CanonicalTreatmentKind;
+      treatmentFamily: TreatmentPresentationFamily;
+      lifecycleState: RouteTreatmentStatus;
+      treatmentIds: Set<string>;
+      occurrenceIds: Set<string>;
+    }
+  >();
+  const groupKeyByRouteAndTreatmentId = new Map<string, string>();
+
+  for (const treatment of input.treatments) {
+    const key = [treatment.routeId, treatment.treatmentKind, treatment.treatmentFamily].join("|");
+    const group = groups.get(key) ?? {
+      routeId: treatment.routeId,
+      treatmentKind: treatment.treatmentKind,
+      treatmentFamily: treatment.treatmentFamily,
+      lifecycleState: treatment.lifecycleState,
+      treatmentIds: new Set<string>(),
+      occurrenceIds: new Set<string>(),
+    };
+    if (STATUS_RANK[treatment.lifecycleState] > STATUS_RANK[group.lifecycleState]) {
+      group.lifecycleState = treatment.lifecycleState;
+    }
+    group.treatmentIds.add(treatment.treatmentId);
+    groupKeyByRouteAndTreatmentId.set(`${treatment.routeId}|${treatment.treatmentId}`, key);
+    groups.set(key, group);
+  }
+
+  for (const occurrence of input.occurrences) {
+    for (const treatmentId of occurrence.treatmentIds) {
+      const key = groupKeyByRouteAndTreatmentId.get(`${occurrence.routeId}|${treatmentId}`);
+      if (key === undefined) continue;
+      const group = groups.get(key);
+      if (group === undefined) continue;
+      group.occurrenceIds.add(occurrence.occurrenceId);
+      if (STATUS_RANK[occurrence.lifecycleState] > STATUS_RANK[group.lifecycleState]) {
+        group.lifecycleState = occurrence.lifecycleState;
+      }
+    }
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      routeId: group.routeId,
+      treatmentKind: group.treatmentKind,
+      treatmentFamily: group.treatmentFamily,
+      lifecycleState: group.lifecycleState,
+      treatmentIds: [...group.treatmentIds].sort(),
+      occurrenceIds: [...group.occurrenceIds].sort(),
+    }))
+    .sort(
+      (left, right) =>
+        left.routeId.localeCompare(right.routeId) ||
+        left.treatmentKind.localeCompare(right.treatmentKind) ||
+        left.treatmentFamily.localeCompare(right.treatmentFamily),
+    );
 }
 
 export function buildRouteTreatmentSummaryArtifact(
@@ -817,7 +1319,7 @@ export function buildRouteTreatmentSummaryArtifact(
 ): RouteTreatmentSummaryArtifact {
   const checkedTreatmentTypes = [...(input.checkedTreatmentTypes ?? DEFAULT_ROUTE_TREATMENT_TYPES)];
   const routeIds = uniqueSorted(input.routeIds.map(normalizeRouteId));
-  const routeUniverse = new Set(routeIds);
+  const routeUniverse = routeIds;
   const sourceGapRows = [...(input.sourceGapRows ?? [])];
   if (input.includeTspCurrentInventorySourceGap !== false) {
     sourceGapRows.push(

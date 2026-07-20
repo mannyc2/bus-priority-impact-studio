@@ -1,411 +1,221 @@
 ---
-title: Route Treatment Summary Materializer Plan
+title: Route Intervention Inventory Operations
 type: engineering
-status: planning
-last_updated: 2026-06-06
+status: active
+last_updated: 2026-07-20
 owner: codex
 source_count: 0
-tags: [snapshot-2, treatments, interventions, tier2, tsp, d1, r2, detectors]
+tags: [studio, interventions, treatments, mta-wiki, r2, reconciliation]
 ---
 
-# Route Treatment Summary Materializer Plan
+# Route Intervention Inventory Operations
 
-## Purpose
+This page keeps the historical materializer filename for stable wiki links. Plan 091 replaces the
+old release-month summary design with a lossless, per-route intervention inventory. The inventory
+is an offline Studio artifact boundary; it is not a Worker endpoint, D1 table, observation store,
+or causal result.
 
-Build the deterministic treatment-state layer that sits between the existing intervention evidence
-and the public route/corridor product.
+`plans/091-route-intervention-inventory.md` remains the executable implementation authority. This
+page describes the operating contract and is not a completion receipt.
 
-This is **not** a new broad extraction pass. The project already has useful intervention evidence:
+## Public artifact keys
 
-- Tier 2 generated intervention/event rows;
-- reviewed document intervention records;
-- publishable per-route intervention projections;
-- ACE/ABLE route-month evidence;
-- DOT bus-lane route-shape overlap;
-- dated TSP source-snapshot evidence;
-- local intervention events and comparison windows.
-
-The missing layer is a normalized read model that answers:
-
-> For this route, month, segment, and treatment family, what do we know is current, historical,
-> planned, candidate, source-gapped, or evaluation-ready?
-
-## Current Inputs
-
-| Input | Current role | Notes |
-|---|---|---|
-| `intervention-publishable-v1.json` | Reviewed, source-backed document interventions. | 70 publishable records across 113 routes in the current artifact. |
-| `intervention-publishable-v1-by-route.json` | Per-route projection of publishable document interventions. | Good route-level starting point for timelines and treatment components. |
-| `tier2-intervention-events-combined.json` | Generated/dispositioned intervention/event rows. | Discovery/backlink layer; not all rows are public interventions. |
-| `local_tier2_intervention_event*` | Local staging tables for promoted Tier 2 events. | Good route/event/source-span shape, but still separate from as-of treatment state. |
-| `local_intervention_event` | Canonical local intervention events. | Already exported to D1 `intervention_event`. |
-| `local_route_intervention_comparison` | Route/month event-study/comparison windows. | Already exported to D1 `route_intervention_comparison`. |
-| ACE/ABLE routes and violations | Deterministic enforcement treatment state. | Route/month state and implementation timing are stronger than prose. |
-| DOT bus-lane geometry overlap | Deterministic route/segment treatment context. | Route-shape overlap, not audited regulatory lane mileage. |
-| `tspEvidenceIndex()` output | Dated 2017 TSP source-snapshot match. | Historical/candidate/unknown posture; current authoritative inventory remains missing. |
-| TSP source-gap research | Current inventory gap and aggregate-count evidence. | Should produce source-gap rows, not current installed rows. |
-
-The existing Studio release builder already preserves the distinction:
+The export writes one bundle per exact current route and three citywide artifacts:
 
 ```text
-Interventions are curated, source-backed changes.
-Treatments are as-of state snapshots, such as DOT bus-lane overlap, ACE route-month coverage, or TSP source status.
+studio/v2/routes/<exact-route-slug>/intervention-inventory.json
+studio/v2/interventions/route-inventory-index.json
+studio/v2/interventions/facet-index.json
+studio/v2/interventions/route-inventory-reconciliation.json
 ```
 
-This plan builds the missing treatment-state snapshot.
+The route index is the discovery surface. It contains route identity, bundle key, exact bundle-byte
+SHA-256, byte size, coverage state, compact family/state counts, and source-state summary. The
+facet index contains citywide record facets, not source excerpts. A consumer must not infer an
+empty inventory from a missing bundle or key.
 
-## Non-Goals
+## Authority and semantic boundaries
 
-- Do not rerun Tier 2 extraction just to create this layer.
-- Do not ask an LLM to decide whether a treatment is current.
-- Do not collapse historical TSP, planned TSP, source-gap TSP, and current-confirmed TSP into one
-  boolean.
-- Do not treat bus-lane route-shape overlap as audited lane mileage.
-- Do not treat missing public TSP evidence as proof there is no TSP.
-- Do not publish raw Tier 2 rows or local artifact paths as public facts.
+The inventory preserves concepts that answer different questions:
 
-## Ownership Decision
-
-This materializer should have a fixed owner, not a conditional one.
-
-Package-owned logic lives in:
-
-```text
-packages/applied-research/src/treatments/
-```
-
-Exported as:
-
-```text
-@bp/applied-research/treatments
-```
-
-That subpath owns the pure, deterministic treatment-state model:
-
-- canonical treatment vocabulary;
-- source-family status mapping;
-- source-strength ordering and merge rules;
-- route/month treatment rows;
-- route/segment treatment rows;
-- explicit source-gap rows;
-- artifact summary construction;
-- validation/audit issue construction.
-
-This is not detector logic. Detectors consume treatment rows after they are materialized. A detector can
-say "this route has high pain and no known current treatment" only after the treatment materializer has
-distinguished `not_found` from `source_gap`, historical evidence, candidate evidence, and not-applicable
-source families.
-
-Boundary:
-
-| Layer | Owns |
+| Concept | Meaning in this boundary |
 |---|---|
-| `@bp/applied-research/treatments` | Pure treatment vocabulary, status policy, merge policy, artifact row construction, validation. |
-| `@bp/applied-research/local-db` | SQLite row loading for ACE/ABLE, bus lanes, route catalog, intervention events, comparison rows, Tier 2 staging tables, and source-status probes. |
-| `@bp/applied-research/artifacts` | Route-treatment artifact path/key conventions. |
-| `tools/pipeline-v2/src/commands/studio/route-treatment-summary.ts` | CLI flags, local DB opening, JSON/Markdown file reads/writes, command output. |
-| `packages/domain/src/studio/` | Public serving schema once the artifact shape stabilizes. |
-| `packages/db` | D1 schema/query/export support once the serving row shape stabilizes. |
-| `packages/analytics` detectors | Read materialized treatment features; never build the treatment inventory. |
+| Project | Lightweight relationship/context refs into the cited route-evidence bundle. Project membership never authorizes a treatment on a route. |
+| Treatment | One lossless source component with stable identity, raw wording, reviewed semantic disposition, scope, dates, lineage, and related IDs. |
+| Occurrence | A distinct producer-approved implementation or lifecycle event. It retains its own date, phase/state, route, treatment membership, and producer/local-registry lineage. |
+| Current state | A derived grouping that references all contributing treatment and occurrence IDs. It never replaces those facts. |
+| Observation | A measured value or before/after input. Observations do not belong in the inventory and are owned by the typed relevance/observation work. |
+| Study | Eligibility, estimator, effect, verdict, or causal claim. Studies consume inventory facts later and never authorize inventory display. |
 
-## Treatment Vocabulary
+The schemas reject observation values, effect estimates, directions, verdicts, and causal language.
+Route evidence remains the authority for full cited projects and citations; the inventory stores
+only stable refs needed to join back to it.
 
-Use a deterministic canonical treatment vocabulary. Unknown source phrases map only through an
-approved alias table or stay as `custom_treatment`.
+## Required inputs
 
-Initial canonical values:
+Normal export requires all of these inputs to decode strictly before any final-path write:
 
-| Treatment type | Sources |
+| CLI input | Authority |
 |---|---|
-| `bus_lane` | DOT bus-lane geometry, Tier 2 records, bus-priority PDFs. |
-| `busway` | DOT busway pages/PDFs, Tier 2 records. |
-| `automated_bus_lane_enforcement` | ACE/ABLE route dataset, MTA ACE pages, comparison rows. |
-| `transit_signal_priority` | TSP source snapshots, TSP acquisition/source-gap records, Tier 2 records. |
-| `select_bus_service` | SBS route pages, launch docs, Tier 2 records. |
-| `queue_jump` | Project PDFs and treatment component records. |
-| `stop_change` | Redesign docs, GTFS validation, Tier 2 records. |
-| `route_redesign` | Borough redesign docs and implementation schedules. |
-| `all_door_boarding` | SBS/fare policy sources. |
-| `off_board_fare_collection` | SBS/fare policy sources. |
-| `capital_project_milestone` | Capital dashboard/board materials where route/corridor link is valid. |
-| `source_gap` | Explicit missing inventory/evaluation/status evidence. |
-| `custom_treatment` | Source-backed treatment not yet in the canonical vocabulary. |
+| `--release-artifact` | Studio `releaseId`, `publishedAt`, and dataset `coverage`. These values are inherited unchanged. |
+| `--intervention-corpus` | Strict reviewed Studio intervention corpus, including every primary and custom treatment component. |
+| `--route-evidence-index` | Route-evidence-v2 index and every referenced exact-route bundle. It is the exact route identity/presentation authority and the pin for the Wiki named release and manifest SHA. |
+| `--wiki-occurrences` | `MtaWikiOperationalOccurrenceImportArtifactV5`. A legacy-looking `operational-occurrences-v3.json` filename is acceptable only when the decoded contract is v5. |
+| `--mta-wiki-root` | Local mta-wiki checkout containing the immutable named release derived from the route-evidence index. The operator does not supply a second release/hash override. |
+| `--artifact-root` | Local artifact root under which the four public key families are written. |
 
-## Status Model
+Under `<mta-wiki-root>/data/exports/releases/<derived-release>/`, the exporter verifies the same
+manifest-v5 pin for these producer artifacts:
 
-Treatment status is not a single yes/no.
+- `treatment_components.jsonl` — lossless treatment records and raw wording;
+- `treatment_semantics.json` — record-scoped `atomic`, `bundle`, or `unresolved` dispositions;
+- `route_treatment_scopes.jsonl` — the only producer-approved treatment-to-exact-route authority;
+- `route_treatment_scope_reconciliation.jsonl` — every treatment without projectable route
+  authority.
 
-| Status | Meaning |
+The current compatible producer candidate is `v1-rc25`, but the exporter derives the named release
+and manifest SHA from the strict route-evidence index. It must not consult `LATEST`, accept a
+neighboring release, or mix route evidence, occurrences, semantics, and scopes from different
+manifests.
+
+`--db` is optional. When supplied, trusted `local_intervention_event` rows add explicit registry
+lineage. When omitted or unavailable, the local-registry source state is explicit and affected
+routes are partial; empty local arrays are not silently treated as a successful check.
+
+## Treatment and exact-route policy
+
+Producer semantics are fail-closed:
+
+- `atomic` supplies a reviewed canonical kind and family;
+- `bundle` preserves every source-backed member rather than flattening to one family;
+- `unresolved` retains the exact literal, record IDs, and review reason as reconciliation/source-gap
+  evidence.
+
+An rc25 `unresolved` disposition is never coerced to `other_documented`, guessed from prose, or
+treated as an atomic kind. Route-relevant unresolved semantics make coverage partial. Unscoped
+treatments remain in producer and Tracker reconciliation; they are not fanned out through a shared
+project or program.
+
+Only `route_treatment_scopes.jsonl` may authorize a treatment on an exact route. Route IDs are
+case-sensitive source identities. Do not strip or manufacture `+`, `-SBS`, zero padding, branch
+letters, or express suffixes. Project refs are context only.
+
+## Coverage states
+
+Every projectable exact current route gets a bundle, including checked-empty routes:
+
+| State | Meaning |
 |---|---|
-| `current_confirmed` | Current authoritative source confirms active treatment as of `statusAsOf`. |
-| `implemented` | Source says treatment was implemented/completed, but current as-of status may be unknown. |
-| `historical_confirmed` | Historical source confirms the treatment existed during a period. |
-| `planned` | Source gives planned future implementation. |
-| `proposed` | Source proposes or recommends treatment without commitment. |
-| `under_consideration` | Source says treatment is being studied or included in toolkit/scoping. |
-| `candidate` | Indirect or partial evidence suggests a candidate needing validation. |
-| `source_gap` | Source or audit proves required treatment data is missing/undisclosed. |
-| `not_found` | The materializer checked the relevant source family and found no positive evidence. |
-| `not_applicable` | Treatment/source family intentionally does not apply to the route/scope. |
+| `available` | Required sources decoded and reconciled, configured source states are usable, and the route has represented positive inventory without a route-relevant unresolved gap. |
+| `partial` | Represented evidence exists but an optional source is unavailable/omitted, a route-relevant producer semantic is unresolved, or another explicit source gap limits coverage. |
+| `checked_no_positive_evidence` | Required and configured optional sources were successfully checked for the exact route and produced no positive inventory or unresolved route-specific gap. |
 
-TSP mapping rules:
+`checked_no_positive_evidence` means “checked and none found,” not “no intervention exists.” A
+missing bundle, failed decode, mismatched manifest, or failed route projection is never this state.
 
-| Evidence | Treatment status |
-|---|---|
-| Current DOT/MTA inventory with active status | `current_confirmed` |
-| 2017 installed/source-snapshot route match | `historical_confirmed` plus `current_status_unknown` caveat |
-| 2017 candidate/planned route match | `planned` or `candidate`, depending on source wording |
-| Streets Plan/MTA aggregate counts without location list | `source_gap` |
-| DOT PMMR/testimony says "studying" | `under_consideration` |
-| Speed anomaly only | `candidate`, never `implemented` |
+## Reconciliation and publication gates
 
-## Output Contracts
+The reconciliation artifact accounts for source records, treatment components, occurrences,
+relationships, exact-route projections, semantic dispositions, source states, and checked-empty
+routes. Every input component is represented in a route bundle/facet or in a typed reconciliation
+reason. Status ranking may produce `currentState`, but it must not delete an underlying fact.
 
-### `route_treatment_summary`
+Publication fails before final-path writes for an invalid required input, manifest/hash mismatch,
+wrong occurrence version, unexplained record loss, new unreviewed consumer vocabulary, unequal
+stable-ID tuples sharing a hash, or an unresolved exact-route projection.
 
-One compact route/month/treatment row for public routing, `/routes` sections, compare, and detector
-admission.
+Size gates are measured on canonical bytes:
 
-```ts
-type RouteTreatmentSummaryRow = {
-  routeId: string;
-  month: string;
-  treatmentType: string;
-  status: string;
-  statusAsOf: string | null;
-  effectiveDate: string | null;
-  datePrecision: "day" | "month" | "season" | "year" | "range" | "unknown";
-  geographyScope: "route" | "corridor" | "segment" | "intersection" | "source_only";
-  sourceRefs: string[];
-  evidenceLabel:
-    | "deterministic_source"
-    | "reviewed_document"
-    | "historical_snapshot"
-    | "aggregate_source_gap"
-    | "candidate_inferred"
-    | "not_found";
-  confidence: "high" | "medium" | "low";
-  caveats: string[];
-  methodLimitations: string[];
-  relatedEventIds: string[];
-};
+| Artifact | Maximum |
+|---|---:|
+| One route bundle | 128 KiB |
+| Route inventory index | 320 KiB |
+| Citywide facet index | 2 MiB |
+
+Do not truncate to meet a budget. Report the failing counts and redesign the compact projection.
+
+Each file is written to a same-directory temporary path, strict-decoded, flushed, and atomically
+renamed. Route bundles are promoted first; their exact bytes determine the route-index hashes.
+Indexes and reconciliation are promoted last. The exporter never replaces
+`studio/v2/routes/` or `studio/v2/interventions/` as directories, because unrelated dossiers,
+evidence, observations, and studies share those prefixes.
+
+## Export and vocabulary preflight
+
+Use the same inputs for review and export:
+
+```bash
+bun run pipeline -- studio export-route-intervention-inventory \
+  --release-artifact <studio-release.json> \
+  --intervention-corpus <studio-intervention-corpus.json> \
+  --route-evidence-index <route-evidence-v2-index.json> \
+  --wiki-occurrences <operational-occurrence-import-v5.json> \
+  --mta-wiki-root <mta-wiki-checkout> \
+  --artifact-root data/artifacts \
+  --check-vocabulary
+
+bun run pipeline -- studio export-route-intervention-inventory \
+  --release-artifact <studio-release.json> \
+  --intervention-corpus <studio-intervention-corpus.json> \
+  --route-evidence-index <route-evidence-v2-index.json> \
+  --wiki-occurrences <operational-occurrence-import-v5.json> \
+  --mta-wiki-root <mta-wiki-checkout> \
+  --artifact-root data/artifacts \
+  --db data/local/pipeline.sqlite
 ```
 
-### `route_segment_treatment_summary`
+`--check-vocabulary` exits before opening output paths. Neither mode accepts `--month`,
+`--release-id`, `--wiki-release`, `--wiki-manifest-sha256`, or `--published-at`; those values come
+from strict pinned artifacts.
 
-Segment-level treatment state for slow-segment rows and treatment-gap ranking.
+## R2 publication and local seeding
 
-```ts
-type RouteSegmentTreatmentSummaryRow = RouteTreatmentSummaryRow & {
-  segmentId: string;
-  directionId: string | null;
-  segmentOrder: number | null;
-  matchMethod:
-    | "route_level"
-    | "route_shape_overlap"
-    | "segment_endpoint_text_match"
-    | "intersection_geometry"
-    | "source_only"
-    | "not_matched";
-  overlapShare: number | null;
-};
+No inventory-specific uploader is needed. The generic R2 publisher recursively walks the entire
+`studio` prefix, so nested per-route bundles and the citywide indexes are included with their public
+keys. Dry-run and review the candidate list before remote mutation:
+
+```bash
+bun run pipeline publish r2-artifacts \
+  --month <coverage-end-YYYY-MM> \
+  --bucket bus-priority-artifacts \
+  --dry-run
 ```
 
-### `route_treatment_source_gap`
+The month selects the already-built release partition for the coordinated publisher; it does not
+become inventory identity. Use the reviewed serving-release flow for execution.
 
-Explicit missing-data rows for Data Notes and source-gap findings.
+For local Worker/R2 development, this command recursively seeds `data/artifacts/studio`:
 
-```ts
-type RouteTreatmentSourceGapRow = {
-  routeId: string | null;
-  month: string;
-  treatmentType: string;
-  gapKind:
-    | "current_inventory_missing"
-    | "implementation_date_missing"
-    | "route_mapping_missing"
-    | "intersection_geometry_missing"
-    | "evaluation_missing"
-    | "status_currentness_unknown";
-  sourceRefs: string[];
-  publicStatement: string;
-  blocksClaims: string[];
-};
+```bash
+bun run seed:local-studio-r2
 ```
 
-## Materializer Design
+## Recovery
 
-Add a new pipeline command:
+### New or unmapped treatment value
 
-```sh
-bun --filter @bp/pipeline-v2 cli -- studio route-treatment-summary \
-  --year 2026 \
-  --month 3 \
-  --tier2-publishable-path data/artifacts/docs/gap-roadmap-docs-2026-05-25/intervention-publishable-v1.json \
-  --tier2-by-route-path data/artifacts/docs/gap-roadmap-docs-2026-05-25/intervention-publishable-v1-by-route.json \
-  --tsp-source-path knowledge/raw/downloads/... \
-  --output data/artifacts/studio/v2/route-treatment-summary/2026-03/route-treatment-summary.json
-```
+1. Stop publication; do not edit generated bundles or add a catch-all mapping.
+2. Run `--check-vocabulary` and inspect the sorted source counts and reconciliation reason.
+3. If the pinned producer marks the record `unresolved`, preserve it as a source gap/partial route
+   until mta-wiki publishes a reviewed atomic or bundle disposition in a new immutable release.
+4. If a trusted consumer source introduced the literal, add an explicit reviewed disposition and
+   fixture; never default it to `other_documented`.
+5. Regenerate the pinned inputs, rerun vocabulary/reconciliation checks, then export again.
 
-Implementation placement:
+### Exact-route projection failure
 
-- pure package logic in `@bp/applied-research/treatments`;
-- local SQLite readers in `@bp/applied-research/local-db`;
-- artifact path helpers in `@bp/applied-research/artifacts`;
-- pipeline command in `tools/pipeline-v2/src/commands/studio/`;
-- domain contracts in `packages/domain/src/studio/` once serving API needs them;
-- D1 export support only after JSON artifact shape stabilizes.
+1. Stop publication and retain the raw source route plus typed failure reason in reconciliation.
+2. Verify the route-evidence-v2 identity and producer route scope are from the same manifest.
+3. Correct the authoritative route identity/scope upstream and produce a new immutable Wiki release
+   or corrected strict Tracker import. Do not family-match or borrow a project member's route.
+4. Reimport route evidence and occurrences from that same release/hash, then rerun the full export.
 
-High-level flow:
+Safe reruns may replace individual inventory files atomically, but must preserve unrelated siblings
+under the shared Studio prefixes.
 
-1. Load route universe for the release month.
-2. Load Tier 2 publishable intervention records and per-route projection.
-3. Load local deterministic treatment state:
-   - ACE/ABLE route status and comparison rows;
-   - DOT bus-lane route/segment overlap already computed for Studio release;
-   - TSP source-snapshot evidence from `tspEvidenceIndex()`;
-   - local `intervention_event` and `route_intervention_comparison` rows.
-4. Normalize treatment types through a fixed map.
-5. Normalize statuses through source-specific status rules.
-6. Emit route-level summary rows.
-7. Emit segment-level rows only where geometry/match method supports the grain.
-8. Emit source-gap rows for known missing layers, especially current TSP inventory and missing
-   implementation dates.
-9. Write artifact, Markdown summary, and validation report.
+## See also
 
-## Deterministic Merge Rules
-
-Use monotonic evidence strength. Stronger evidence can refine weaker evidence, but weaker evidence
-must not overwrite stronger evidence.
-
-Strength order:
-
-1. `current_confirmed` from current authoritative inventory.
-2. deterministic source rows with explicit status/date, such as ACE route records.
-3. reviewed document intervention records.
-4. historical source snapshots.
-5. planned/proposed/under-consideration source statements.
-6. aggregate source-gap records.
-7. candidates.
-8. not-found rows.
-
-Merge keys:
-
-```text
-routeId + month + treatmentType + geographyScope + optional segmentId
-```
-
-Dedup hints:
-
-- preserve all source refs;
-- prefer exact day over month, month over season/year, and dated source over undated source;
-- do not merge planned and implemented rows unless the same source-backed event has a status history
-  connecting them;
-- do not merge route-level and segment-level rows into one fact;
-- do not infer currentness from old implementation evidence.
-
-## Serving Integration
-
-Phase 1: artifact only.
-
-- Produce JSON + Markdown summary.
-- Use it for audits, route evidence packets, and detector input review.
-
-Phase 2: D1 compact rows.
-
-- Add D1 table(s) after artifact shape stabilizes.
-- Export from `export d1`.
-- Verify with `verify d1` and route surface audits.
-
-Phase 3: Worker/API.
-
-- Add route-scoped endpoint or embed in route detail:
-
-```text
-GET /api/v1/studio/routes/:routeId/treatments
-```
-
-- Compare endpoint consumes compact route treatment rows.
-- `/routes` Treatment Gaps section consumes treatment summary counts/scores.
-
-Phase 4: UI.
-
-- Interventions tab reads `route_treatment_summary`.
-- Slow Segments tab uses `route_segment_treatment_summary`.
-- Data Notes shows `route_treatment_source_gap`.
-- Keep current design elements; replace data backing before changing layout.
-
-## Detector Integration
-
-The materialized rows should feed:
-
-| Detector | Use |
-|---|---|
-| `intervention_gap` | High rider pain plus weak/unknown treatment state. |
-| `intervention_underperformance` | Treatment exists but route/segment remains poor. |
-| `intervention_event_study` | Dated implemented rows with enough pre/post history. |
-| `source_gap` | Missing current inventory, dates, route mapping, or evaluations. |
-| `persistent_speed_hotspot` / `delay_concentration` | Add treatment context to slow segment review. |
-
-Admission rule:
-
-> A detector can treat missing treatment data as a source gap only when `route_treatment_source_gap`
-> says the relevant source family was checked or known unavailable.
-
-## Validation And Tests
-
-Unit tests:
-
-- TSP historical snapshot maps to `historical_confirmed`, not `current_confirmed`.
-- TSP aggregate count maps to `source_gap`, not a route/intersection row.
-- Toolkit/study language maps to `under_consideration`, not `implemented`.
-- ACE deterministic route rows outrank weaker document mentions.
-- Bus-lane route-shape overlap emits method caveats and never audited lane-mileage claims.
-- Planned and implemented rows do not collapse unless a source-backed status history connects them.
-- Route-level evidence does not become segment-level evidence unless the match method supports it.
-
-Fixture tests:
-
-- B41/Flatbush: TSP/source-gap and bus-lane treatment posture.
-- B46/Utica: historical TSP/SBS treatment posture.
-- Bx41/Webster and M15/Lower Manhattan: 2017 TSP snapshot posture.
-- B82 or Q66: planned/candidate/source-gap posture.
-
-Command verification:
-
-```sh
-bun test tools/pipeline-v2/test/commands/studio/route-treatment-summary.test.ts
-bun --filter @bp/pipeline-v2 typecheck
-bun --filter @bp/pipeline-v2 cli -- studio route-treatment-summary --year 2026 --month 3
-```
-
-Serving verification once D1 is added:
-
-```sh
-bun --filter @bp/pipeline-v2 cli -- export d1 --year 2026 --month 3 --route-treatment-summary-path ...
-bun --filter @bp/pipeline-v2 cli -- verify d1 --year 2026 --month 3
-bun --filter @bp/studio-api test
-```
-
-## Acceptance Gates
-
-The materializer is usable when:
-
-- every current catalog route has a treatment summary status row or an explicit checked/no-data row
-  for the release month;
-- TSP rows preserve historical/planned/source-gap/current distinctions;
-- every public row has source refs or a deterministic source family/method caveat;
-- segment rows include match method and do not inherit route-level evidence silently;
-- the artifact summary reports counts by treatment type, status, geography scope, source family, and
-  caveat;
-- detector admission can distinguish "no treatment found" from "treatment source unavailable";
-- route evidence packets can consume the artifact without reading raw Tier 2 outputs.
-
-## See Also
-
-- [[wiki/project/opportunity_data_map|Opportunity Data Map]]
-- [[wiki/data/tsp_data_acquisition|Transit Signal Priority Data Acquisition]]
-- [[wiki/data/intervention_source_coverage|Intervention Source Coverage]]
-- [[wiki/engineering/website_surface_data_plan|Website Surface Data Plan]]
-- [[wiki/engineering/serving_snapshot_2_surface_manifest|Serving Snapshot 2.0 Surface Manifest]]
-- [[wiki/analysis/ideal_detector_system|Ideal Detector System]]
+- `plans/091-route-intervention-inventory.md`
+- [[wiki/engineering/cloudflare_operations_runbook|Cloudflare Operations Runbook]]
+- [[wiki/engineering/cli_commands|CLI Commands]]
+- [[wiki/engineering/mta_wiki_rc22_consumer|MTA Wiki Consumer Boundary]]

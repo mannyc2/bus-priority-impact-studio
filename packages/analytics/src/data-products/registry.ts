@@ -917,6 +917,113 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         ],
       },
       {
+        id: "studio_route_intervention_inventory",
+        label: "Studio exact-route intervention inventory",
+        kind: "artifact_family",
+        owner: "tools/pipeline-v2/studio",
+        grain: "exact route x source-backed treatment and occurrence",
+        producerCommand: "studio export-route-intervention-inventory",
+        expectedUniverse: {
+          description:
+            "One strict, hash-addressed intervention inventory bundle for every projectable current route.",
+          routes: "public_visible_routes",
+          months: "latest_month",
+        },
+        requiredInputs: [
+          "Studio release payload",
+          "Studio intervention corpus",
+          "mta_wiki_route_evidence_release",
+          "MTA Wiki operational-occurrence manifest-v5 import",
+        ],
+        downstreamConsumers: ["Studio route History", "intervention discovery"],
+        freshnessPolicy: { cadence: "manual" },
+        checks: [
+          {
+            id: "route_inventory_index",
+            label: "Exact-route intervention inventory index",
+            type: "json_artifact",
+            pathTemplate: "{artifactRoot}/studio/v2/interventions/route-inventory-index.json",
+            requiredJsonValues: [
+              {
+                path: "artifactKind",
+                equals: "bp.studio.route_intervention_inventory_index.v1",
+              },
+              { path: "schemaVersion", equals: 1 },
+            ],
+          },
+          {
+            id: "route_inventory_bundles",
+            label: "Exact-route intervention inventory bundles",
+            type: "artifact_glob",
+            rootTemplate: "{artifactRoot}/studio/v2/routes",
+            pattern: "*/intervention-inventory.json",
+            minFiles: 1,
+          },
+        ],
+      },
+      {
+        id: "studio_intervention_facet_index",
+        label: "Studio intervention facet index",
+        kind: "artifact_family",
+        owner: "tools/pipeline-v2/studio",
+        grain: "source treatment or occurrence x exact route",
+        producerCommand: "studio export-route-intervention-inventory",
+        expectedUniverse: {
+          description:
+            "Compact citywide treatment and lifecycle facets referencing exact route bundles.",
+          routes: "public_visible_routes",
+          months: "latest_month",
+        },
+        requiredInputs: ["studio_route_intervention_inventory"],
+        downstreamConsumers: ["intervention discovery"],
+        freshnessPolicy: { cadence: "manual" },
+        checks: [
+          {
+            id: "facet_index",
+            label: "Studio intervention facet index",
+            type: "json_artifact",
+            pathTemplate: "{artifactRoot}/studio/v2/interventions/facet-index.json",
+            requiredJsonValues: [
+              { path: "artifactKind", equals: "bp.studio.intervention_facet_index.v1" },
+              { path: "schemaVersion", equals: 1 },
+            ],
+          },
+        ],
+      },
+      {
+        id: "studio_intervention_inventory_reconciliation",
+        label: "Studio intervention inventory reconciliation",
+        kind: "artifact_family",
+        owner: "tools/pipeline-v2/studio",
+        grain: "release-wide source and exact-route reconciliation",
+        producerCommand: "studio export-route-intervention-inventory",
+        expectedUniverse: {
+          description:
+            "Losslessness, route projection, source availability, vocabulary, relationship, and byte-budget receipt.",
+          routes: "public_visible_routes",
+          months: "latest_month",
+        },
+        requiredInputs: ["studio_route_intervention_inventory", "studio_intervention_facet_index"],
+        downstreamConsumers: ["publication gate", "operator review"],
+        freshnessPolicy: { cadence: "manual" },
+        checks: [
+          {
+            id: "inventory_reconciliation",
+            label: "Studio intervention inventory reconciliation",
+            type: "json_artifact",
+            pathTemplate:
+              "{artifactRoot}/studio/v2/interventions/route-inventory-reconciliation.json",
+            requiredJsonValues: [
+              {
+                path: "artifactKind",
+                equals: "bp.studio.route_intervention_inventory_reconciliation.v1",
+              },
+              { path: "schemaVersion", equals: 1 },
+            ],
+          },
+        ],
+      },
+      {
         id: "local_gtfs_static_bundle_support",
         label: "Static GTFS bundle support tables",
         kind: "local_table",

@@ -470,7 +470,7 @@ facets described above.
    reason, family/status counts, project/treatment/occurrence relationship
    counts, checked-empty route count, source availability, and the reviewed-
    open vocabulary hash/counts by source (never the raw source excerpts).
-5. Add budgets: route index ≤256 KiB, facet index ≤512 KiB, and each compact
+5. Add budgets: route index ≤320 KiB, facet index ≤2 MiB, and each compact
    route bundle ≤128 KiB. If a real artifact exceeds its cap, STOP and report
    its counts; do not truncate.
 

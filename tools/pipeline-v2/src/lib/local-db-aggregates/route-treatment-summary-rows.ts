@@ -32,6 +32,11 @@ export type RouteTreatmentSummaryLocalDbQuery = {
   month: string;
 };
 
+export type RouteInterventionInventoryLocalDbRows = {
+  interventionEventRows: readonly RouteTreatmentInterventionEventRow[];
+  sourceAvailable: boolean;
+};
+
 const REQUIRED_TABLES = [
   "local_route_catalog",
   "local_ace_route",
@@ -59,6 +64,33 @@ function loadRows<T>(
 ): T[] {
   if (!tableExists(sqlite, tableName)) return [];
   return sqlite.query<T, SQLQueryBindings[]>(sql).all(...params);
+}
+
+export function loadRouteInterventionInventoryLocalDbRows(input: {
+  sqlite: Database;
+}): RouteInterventionInventoryLocalDbRows {
+  const sourceAvailable = tableExists(input.sqlite, "local_intervention_event");
+  return {
+    interventionEventRows: loadRows<RouteTreatmentInterventionEventRow>(
+      input.sqlite,
+      "local_intervention_event",
+      `
+        SELECT
+          event_id,
+          route_id,
+          intervention_type,
+          source_id,
+          program,
+          implementation_date,
+          implementation_month,
+          event_status,
+          description
+        FROM local_intervention_event
+        ORDER BY route_id, implementation_month, event_id
+      `,
+    ),
+    sourceAvailable,
+  };
 }
 
 export function loadRouteTreatmentSummaryLocalDbRows(
