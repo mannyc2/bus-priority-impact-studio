@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
+import { resolve } from "node:path";
 import {
   adaptMtaWikiTreatmentSemanticContractV1,
   assertMtaWikiTreatmentSemanticsPublishableV1,
@@ -9,6 +11,7 @@ import {
   type MtaWikiTreatmentSemanticArtifactDispositionV1,
   type MtaWikiTreatmentSemanticArtifactV1,
   type MtaWikiTreatmentVocabularyScopeV1,
+  REVIEWED_OPEN_TREATMENT_DISPOSITIONS_V1,
   type ReviewedOpenTreatmentDispositionV1,
   reconcileMtaWikiTreatmentSemanticsV1,
   resolveExactRouteId,
@@ -16,6 +19,45 @@ import {
   reviewedOpenTreatmentDisposition,
 } from "@bp/analytics/interventions";
 import type { StudioRouteIdentityPresentation } from "@bp/domain/studio";
+
+type ReviewedInterventionCorpus = {
+  documentInterventionRecords: readonly {
+    customTreatments?: readonly string[] | null;
+  }[];
+};
+
+const REVIEWED_INTERVENTION_CORPUS_PATH = resolve(
+  import.meta.dir,
+  "../../../data/artifacts/docs/gap-roadmap-docs-2026-05-25/intervention-records-corpus-v3-reviewed-2026-05-27.json",
+);
+
+const TRUSTED_LOCAL_RAW_TREATMENT_COUNTS = {
+  automated_bus_lane_enforcement: 79,
+  bus_lane_infrastructure: 547,
+  busway: 3,
+  documented_bus_priority_intervention: 13,
+  queue_jump: 1,
+  select_bus_service: 92,
+  stop_consolidation: 2,
+  transit_signal_priority: 4,
+} as const;
+
+async function reviewedCorpusCustomTreatmentSet(): Promise<string[]> {
+  const corpus = (await Bun.file(
+    REVIEWED_INTERVENTION_CORPUS_PATH,
+  ).json()) as ReviewedInterventionCorpus;
+  return [
+    ...new Set(
+      corpus.documentInterventionRecords.flatMap((record) => record.customTreatments ?? []),
+    ),
+  ].sort();
+}
+
+function trustedLocalRawTreatments(): string[] {
+  return Object.entries(TRUSTED_LOCAL_RAW_TREATMENT_COUNTS).flatMap(([rawValue, count]) =>
+    Array.from({ length: count }, () => rawValue),
+  );
+}
 
 function route(routeId: string): StudioRouteIdentityPresentation {
   return {
@@ -213,6 +255,54 @@ describe("route treatment crosswalk", () => {
     expect(diff.exact).toBe(true);
     expect(diff.missing).toEqual([]);
     expect(diff.extra).toEqual([]);
+  });
+
+  test("freezes the exact reviewed corpus and trusted local vocabulary", async () => {
+    const reviewedCorpusCustomTreatments = await reviewedCorpusCustomTreatmentSet();
+    const localRegistryRawInterventionTypes = trustedLocalRawTreatments();
+    const input = { reviewedCorpusCustomTreatments, localRegistryRawInterventionTypes };
+    const diff = diffReviewedOpenTreatmentVocabulary(input);
+
+    expect(reviewedCorpusCustomTreatments).toHaveLength(182);
+    expect(localRegistryRawInterventionTypes).toHaveLength(741);
+    expect(diff.collected).toHaveLength(188);
+    expect(REVIEWED_OPEN_TREATMENT_DISPOSITIONS_V1).toHaveLength(188);
+    expect(diff.exact).toBe(true);
+    expect(diff.missing).toEqual([]);
+    expect(diff.extra).toEqual([]);
+
+    for (const [rawValue, count] of Object.entries(TRUSTED_LOCAL_RAW_TREATMENT_COUNTS)) {
+      expect(
+        diff.collected.find((row) => row.rawValue === rawValue)?.sourceCounts.local_registry,
+      ).toBe(count);
+    }
+
+    expect(
+      REVIEWED_OPEN_TREATMENT_DISPOSITIONS_V1.filter(
+        (row) => row.disposition === "other_documented",
+      ).every((row) => row.reviewedLabel.length > 0),
+    ).toBe(true);
+    expect(
+      createHash("sha256")
+        .update(JSON.stringify(REVIEWED_OPEN_TREATMENT_DISPOSITIONS_V1))
+        .digest("hex"),
+    ).toBe("a38c1eb0a65bb380e6a610256d3dbe55d543da98e9fa43905b6a8caf38ed806e");
+
+    const addition = diffReviewedOpenTreatmentVocabulary({
+      ...input,
+      reviewedCorpusCustomTreatments: [
+        ...reviewedCorpusCustomTreatments,
+        "future unreviewed treatment",
+      ],
+    });
+    expect(addition.exact).toBe(false);
+    expect(addition.missing.map((row) => row.rawValue)).toEqual(["future unreviewed treatment"]);
+    expect(addition.extra).toEqual([]);
+    expect(reviewedOpenTreatmentDisposition("future unreviewed treatment")).toEqual({
+      disposition: "unmapped_review_required",
+      rawValue: "future unreviewed treatment",
+      reason: "unreviewed_open_value",
+    });
   });
 });
 
