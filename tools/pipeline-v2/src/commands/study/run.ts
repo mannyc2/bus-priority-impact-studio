@@ -1,13 +1,12 @@
 import { join } from "node:path";
-import { serializeStudioSegmentId } from "@bp/analytics/feature-history";
 import { decodeStrict } from "@bp/domain/decode";
 import {
   RouteStudiesArtifactSchema,
   routeStudiesKey,
   type StudyArtifact,
   StudyArtifactSchema,
-  type StudyEventCandidate,
-  StudyEventMergeArtifactSchema,
+  type StudyEventCandidateV3,
+  StudyEventMergeArtifactV3ApprovedSchema,
   StudyIndexArtifactSchema,
   studyArtifactKey,
   studyIndexKey,
@@ -17,27 +16,24 @@ import {
   loadStudyPanelRouteIds,
   loadStudyPanelSourceRows,
 } from "@bp/pipeline-v2/local-db-aggregates";
-import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { readJsonArtifact, writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath } from "../../lib/paths.ts";
 import { loadRouteSpeedSpineCrosswalk } from "../../lib/route-speed-spine-crosswalk.ts";
 import {
+  admitStudyTreatmentScope,
   aggregateStudyPanel,
   buildStudyArtifact,
   buildStudyArtifactCollections,
   estimateStudy,
+  eventRouteExclusions,
   isoMonthFromIndex,
   monthIndex,
   PEAK_HOURS,
 } from "../../lib/study-engine/index.ts";
-import { segmentLaneOverlapIndex } from "../studio/_release-geometry.ts";
-import type { RouteBriefInputArtifact } from "../studio/_release-types.ts";
 
 const DEFAULT_EVENT_SET_PATH = "studio/v2/studies/study-events.json";
-const DEFAULT_ROUTE_SHAPE_SNAPSHOT_PATH = "data/raw/network/current_bus_routes.json";
-const DEFAULT_STOP_SNAPSHOT_PATH = "data/raw/network/current_bus_stops.json";
 const READY_SPINE_STATES = new Set(["series_ready", "series_ready_with_gaps"]);
 
 type LoadedReadySpine = Extract<
@@ -46,7 +42,7 @@ type LoadedReadySpine = Extract<
 >;
 
 function windowBounds(
-  candidate: StudyEventCandidate,
+  candidate: StudyEventCandidateV3,
   analysisMonth: string,
 ): {
   startMonth: string;
@@ -57,20 +53,6 @@ function windowBounds(
     startMonth: isoMonthFromIndex(Math.max(monthIndex("2023-04"), implementation - 18)),
     endMonth: isoMonthFromIndex(Math.min(monthIndex(analysisMonth), implementation + 6)),
   };
-}
-
-function eventRouteExclusions(
-  event: StudyEventCandidate,
-  approvedEvents: readonly StudyEventCandidate[],
-): Set<string> {
-  const implementation = monthIndex(event.implementationMonth);
-  return new Set(
-    approvedEvents.flatMap((candidate) =>
-      Math.abs(monthIndex(candidate.implementationMonth) - implementation) <= 9
-        ? [candidate.routeId]
-        : [],
-    ),
-  );
 }
 
 async function loadReadySpine(input: {
@@ -85,98 +67,13 @@ async function loadReadySpine(input: {
   return loaded;
 }
 
-function currentRouteBriefInput(
-  routeId: string,
-  rows: ReturnType<typeof loadStudyPanelSourceRows>,
-): RouteBriefInputArtifact {
-  const latestMonth = rows
-    .map((row) => row.month)
-    .toSorted()
-    .at(-1);
-  if (latestMonth === undefined) return { segments: [] };
-  const unique = new Map<string, (typeof rows)[number]>();
-  for (const row of rows) {
-    if (row.routeId !== routeId || row.month !== latestMonth) continue;
-    unique.set(
-      serializeStudioSegmentId({
-        routeId: row.routeId,
-        month: row.month,
-        direction: row.direction,
-        stopOrder: row.stopOrder,
-        fromStopId: row.fromStopId,
-        toStopId: row.toStopId,
-      }),
-      row,
-    );
-  }
-  return {
-    analysisPeriod: latestMonth,
-    segments: [...unique.entries()].map(([segmentId, row]) => ({
-      segmentId,
-      direction: row.direction,
-      stopOrder: row.stopOrder,
-    })),
-  };
-}
-
-async function treatedSegments(input: {
-  localPath: string;
-  artifactRoot: string;
-  analysisMonth: string;
-  routeShapeSnapshotPath: string;
-  stopSnapshotPath: string;
-  candidate: StudyEventCandidate;
-  spine: LoadedReadySpine;
-  treatedRows: ReturnType<typeof loadStudyPanelSourceRows>;
-  allowLaneFallback: boolean;
-}): Promise<{
-  scope: "all_route_spines" | "lane_overlap_spines" | "all_route_spines_lane_fallback";
-  ids: ReadonlySet<string>;
-}> {
-  if (
-    input.candidate.treatmentFamily !== "bus_lane" &&
-    input.candidate.treatmentFamily !== "busway"
-  ) {
-    return {
-      scope: "all_route_spines",
-      ids: new Set(input.spine.artifact.segments.map((segment) => segment.segmentId)),
-    };
-  }
-  const routeInputs = new Map<string, RouteBriefInputArtifact | null>([
-    [input.candidate.routeId, currentRouteBriefInput(input.candidate.routeId, input.treatedRows)],
-  ]);
-  const overlaps = await segmentLaneOverlapIndex({
-    localDbPath: input.localPath,
-    isoMonth: input.analysisMonth,
-    routeShapeSnapshotPath: input.routeShapeSnapshotPath,
-    stopSnapshotPath: input.stopSnapshotPath,
-    routeInputs,
-  });
-  const ids = new Set<string>();
-  for (const [sourceId, overlap] of overlaps.get(input.candidate.routeId) ?? []) {
-    if (overlap.laneMatchedCount <= 0 || overlap.laneOverlapShare <= 0) continue;
-    const spineId = input.spine.crosswalk.get(sourceId);
-    if (spineId !== undefined) ids.add(spineId);
-  }
-  if (ids.size === 0 && input.allowLaneFallback) {
-    return {
-      scope: "all_route_spines_lane_fallback",
-      ids: new Set(input.spine.artifact.segments.map((segment) => segment.segmentId)),
-    };
-  }
-  return { scope: "lane_overlap_spines", ids };
-}
-
 async function buildOneStudy(input: {
   local: OpenLocalPipelineDb;
   artifactRoot: string;
   analysisMonth: string;
-  routeShapeSnapshotPath: string;
-  stopSnapshotPath: string;
   candidateSetId: string;
-  candidate: StudyEventCandidate;
-  approvedEvents: readonly StudyEventCandidate[];
-  allowLaneFallback?: boolean | undefined;
+  candidate: StudyEventCandidateV3;
+  interferenceEvents: readonly StudyEventCandidateV3[];
 }): Promise<StudyArtifact | null> {
   const bounds = windowBounds(input.candidate, input.analysisMonth);
   const treatedSpine = await loadReadySpine({
@@ -191,7 +88,7 @@ async function buildOneStudy(input: {
   });
   if (treatedRows.length === 0) return null;
   const boroughs = [...new Set(treatedRows.map((row) => row.borough))].toSorted();
-  const excludedControlRouteIds = eventRouteExclusions(input.candidate, input.approvedEvents);
+  const excludedControlRouteIds = eventRouteExclusions(input.candidate, input.interferenceEvents);
   const candidateRouteIds = loadStudyPanelRouteIds({
     sqlite: input.local.sqlite,
     ...bounds,
@@ -223,23 +120,9 @@ async function buildOneStudy(input: {
     spineSegmentIdBySourceId: crosswalk,
     hours: PEAK_HOURS,
   });
-  const currentTreatedRows = loadStudyPanelSourceRows({
-    sqlite: input.local.sqlite,
-    startMonth: input.analysisMonth,
-    endMonth: input.analysisMonth,
-    routeIds: [input.candidate.routeId],
-  });
-  const treated = await treatedSegments({
-    localPath: input.local.path,
-    artifactRoot: input.artifactRoot,
-    analysisMonth: input.analysisMonth,
-    routeShapeSnapshotPath: input.routeShapeSnapshotPath,
-    stopSnapshotPath: input.stopSnapshotPath,
-    candidate: input.candidate,
-    spine: treatedSpine,
-    treatedRows: currentTreatedRows.length > 0 ? currentTreatedRows : treatedRows,
-    allowLaneFallback: input.allowLaneFallback ?? false,
-  });
+  const treatedSpineSegmentIds = new Set(
+    treatedSpine.artifact.segments.map((segment) => segment.segmentId),
+  );
   const estimator = estimateStudy({
     eventId: input.candidate.candidateId,
     routeId: input.candidate.routeId,
@@ -248,15 +131,15 @@ async function buildOneStudy(input: {
     boroughs,
     cells: allDay.cells,
     peakCells: peak.cells,
-    treatedSegmentIds: treated.ids,
+    treatedSegmentIds: treatedSpineSegmentIds,
     excludedControlRouteIds,
   });
   return buildStudyArtifact({
     candidate: input.candidate,
     candidateSetId: input.candidateSetId,
     analysisMonth: input.analysisMonth,
-    treatedSegmentScope: treated.scope,
-    treatedSpineSegmentIds: [...treated.ids],
+    treatedSegmentScope: "all_route_spines",
+    treatedSpineSegmentIds: [...treatedSpineSegmentIds],
     estimator,
     allDayUnmatchedSourceRows: allDay.unmatchedSourceRowCount,
     peakUnmatchedSourceRows: peak.unmatchedSourceRowCount,
@@ -294,8 +177,6 @@ export async function runSegmentStudies(input: {
   artifactRoot?: string | undefined;
   eventSetPath?: string | undefined;
   event?: string | undefined;
-  routeShapeSnapshotPath?: string | undefined;
-  stopSnapshotPath?: string | undefined;
   buildStudy?:
     | ((input: Parameters<typeof buildOneStudy>[0]) => ReturnType<typeof buildOneStudy>)
     | undefined;
@@ -308,15 +189,21 @@ export async function runSegmentStudies(input: {
   descriptiveCount: number;
   noDetectableChangeCount: number;
   laneFallbackStudyCount: number;
+  scopeIneligibleStudyCount: number;
+  boundedScopeBindingRequiredCount: number;
+  boundedScopeEvidenceMissingCount: number;
+  routeWideEvidenceMissingCount: number;
 }> {
   monthIndex(input.analysisMonth);
   const artifactRoot = input.artifactRoot ?? defaultArtifactRootPath();
   const eventSetPath = input.eventSetPath ?? join(artifactRoot, DEFAULT_EVENT_SET_PATH);
-  const eventSet = await readJsonArtifact(eventSetPath, StudyEventMergeArtifactSchema, "strict");
-  if (eventSet.approvalState !== "approved" || eventSet.approvedEvents.length === 0) {
-    throw new Error(
-      `Study event set ${eventSetPath} is not approved; study run consumes approvedEvents only.`,
-    );
+  const eventSet = await readJsonArtifact(
+    eventSetPath,
+    StudyEventMergeArtifactV3ApprovedSchema,
+    "strict",
+  );
+  if (eventSet.approvedEvents.length === 0) {
+    throw new Error(`Exact-route v3 study event set ${eventSetPath} has no approved events.`);
   }
   const selected = eventSet.approvedEvents.filter(
     (candidate) =>
@@ -330,47 +217,32 @@ export async function runSegmentStudies(input: {
   const studies: StudyArtifact[] = [];
   const buildStudy = input.buildStudy ?? buildOneStudy;
   let ineligibleStudyCount = 0;
+  let boundedScopeBindingRequiredCount = 0;
+  let boundedScopeEvidenceMissingCount = 0;
+  let routeWideEvidenceMissingCount = 0;
   for (const candidate of selected) {
+    const scopeAdmission = admitStudyTreatmentScope(candidate);
+    if (scopeAdmission.status === "rejected") {
+      ineligibleStudyCount += 1;
+      if (scopeAdmission.reason === "bounded_scope_binding_required") {
+        boundedScopeBindingRequiredCount += 1;
+      } else if (scopeAdmission.reason === "bounded_scope_evidence_missing") {
+        boundedScopeEvidenceMissingCount += 1;
+      } else {
+        routeWideEvidenceMissingCount += 1;
+      }
+      continue;
+    }
     const study = await buildStudy({
       local: input.local,
       artifactRoot,
       analysisMonth: input.analysisMonth,
-      routeShapeSnapshotPath: input.routeShapeSnapshotPath ?? DEFAULT_ROUTE_SHAPE_SNAPSHOT_PATH,
-      stopSnapshotPath: input.stopSnapshotPath ?? DEFAULT_STOP_SNAPSHOT_PATH,
       candidateSetId: eventSet.candidateSetId,
       candidate,
-      approvedEvents: eventSet.approvedEvents,
+      interferenceEvents: eventSet.candidates,
     });
     if (study === null) ineligibleStudyCount += 1;
     else studies.push(study);
-  }
-  const laneStudies = studies.filter(
-    (study) => study.treatedSegmentScope === "lane_overlap_spines",
-  );
-  const unmappedLaneStudies = laneStudies.filter(
-    (study) => study.treatedSpineSegmentIds.length === 0,
-  );
-  if (laneStudies.length > 0 && unmappedLaneStudies.length / laneStudies.length > 0.5) {
-    for (const unmapped of unmappedLaneStudies) {
-      const candidate = selected.find(
-        (approvedCandidate) => approvedCandidate.candidateId === unmapped.candidateId,
-      );
-      if (candidate === undefined) continue;
-      const rebuilt = await buildStudy({
-        local: input.local,
-        artifactRoot,
-        analysisMonth: input.analysisMonth,
-        routeShapeSnapshotPath: input.routeShapeSnapshotPath ?? DEFAULT_ROUTE_SHAPE_SNAPSHOT_PATH,
-        stopSnapshotPath: input.stopSnapshotPath ?? DEFAULT_STOP_SNAPSHOT_PATH,
-        candidateSetId: eventSet.candidateSetId,
-        candidate,
-        approvedEvents: eventSet.approvedEvents,
-        allowLaneFallback: true,
-      });
-      if (rebuilt === null) continue;
-      const studyIndex = studies.findIndex((study) => study.candidateId === unmapped.candidateId);
-      if (studyIndex >= 0) studies[studyIndex] = rebuilt;
-    }
   }
   const written = await writeStudyArtifactSet({
     artifactRoot,
@@ -388,6 +260,13 @@ export async function runSegmentStudies(input: {
     laneFallbackStudyCount: studies.filter(
       (study) => study.treatedSegmentScope === "all_route_spines_lane_fallback",
     ).length,
+    scopeIneligibleStudyCount:
+      boundedScopeBindingRequiredCount +
+      boundedScopeEvidenceMissingCount +
+      routeWideEvidenceMissingCount,
+    boundedScopeBindingRequiredCount,
+    boundedScopeEvidenceMissingCount,
+    routeWideEvidenceMissingCount,
   };
 }
 
@@ -407,12 +286,6 @@ export default defineCommand({
       event: Schema.optionalKey(Schema.String).annotate({
         description: "Run only one approved candidate id or event key",
       }),
-      routeShapeSnapshot: Schema.String.pipe(
-        Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_ROUTE_SHAPE_SNAPSHOT_PATH)),
-      ),
-      stopSnapshot: Schema.String.pipe(
-        Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_STOP_SNAPSHOT_PATH)),
-      ),
     }),
   },
   output: Schema.Struct({
@@ -424,6 +297,10 @@ export default defineCommand({
     descriptiveCount: Schema.Number,
     noDetectableChangeCount: Schema.Number,
     laneFallbackStudyCount: Schema.Number,
+    scopeIneligibleStudyCount: Schema.Number,
+    boundedScopeBindingRequiredCount: Schema.Number,
+    boundedScopeEvidenceMissingCount: Schema.Number,
+    routeWideEvidenceMissingCount: Schema.Number,
   }),
   run({ input }) {
     const options = input.options;
@@ -440,8 +317,6 @@ export default defineCommand({
             options.artifactRoot === undefined ? undefined : fromCliPath(options.artifactRoot),
           eventSetPath: options.eventSet === undefined ? undefined : fromCliPath(options.eventSet),
           event: options.event,
-          routeShapeSnapshotPath: fromCliPath(options.routeShapeSnapshot),
-          stopSnapshotPath: fromCliPath(options.stopSnapshot),
         }),
     });
   },

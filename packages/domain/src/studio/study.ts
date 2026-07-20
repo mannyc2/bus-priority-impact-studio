@@ -210,6 +210,13 @@ export const StudyEventProvenanceV3Schema = Schema.Struct({
 });
 export type StudyEventProvenanceV3 = typeof StudyEventProvenanceV3Schema.Type;
 
+export const StudyEventProvenanceAnySchema = Schema.Union([
+  StudyEventProvenanceSchema,
+  StudyEventProvenanceV2Schema,
+  StudyEventProvenanceV3Schema,
+]);
+export type StudyEventProvenanceAny = typeof StudyEventProvenanceAnySchema.Type;
+
 export const StudyEventCandidateV3Schema = Schema.Struct({
   candidateId: Schema.String,
   routeId: Schema.String,
@@ -422,8 +429,8 @@ export const StudyArtifactSchema = Schema.Struct({
     queensRedesign: Schema.NullOr(StudySensitivityEstimateSchema),
   }),
   provenance: Schema.Struct({
-    engineVersion: Schema.Literal("segment-matched-did-v1"),
-    event: Schema.Array(StudyEventProvenanceSchema).check(Schema.isMinLength(1)),
+    engineVersion: Schema.Literals(["segment-matched-did-v1", "segment-matched-did-v2"]),
+    event: Schema.Array(StudyEventProvenanceAnySchema).check(Schema.isMinLength(1)),
     sourceTable: Schema.Literal("local_route_segment_speed"),
     analysisMonth: StudyMonthSchema,
     dataWindow: Schema.Struct({
