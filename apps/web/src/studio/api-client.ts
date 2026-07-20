@@ -28,8 +28,8 @@ import {
 } from "@bp/studio-api/client";
 import type {
   RouteStudiesArtifact,
-  StudioInterventionFacetIndex,
   StudioInterventionCorpus,
+  StudioInterventionFacetIndex,
   StudioInterventionsEvidenceResponse,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,

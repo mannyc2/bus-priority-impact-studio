@@ -2,7 +2,7 @@
 title: Website Surface Data Plan
 type: engineering
 status: planning
-last_updated: 2026-06-06
+last_updated: 2026-07-20
 owner: codex
 source_count: 0
 tags: [website, data, snapshot-2, routes, compare, serving, product-surfaces]
@@ -56,6 +56,29 @@ Principles:
 - Missing data is section-level availability, not a route-level disappearance.
 - Public copy should describe the metric, not the pipeline. Detailed caveats belong in Data Notes
   and `/docs/methodology`.
+
+### Landed route-intervention read model
+
+The public route surfaces use the strict per-route
+`bp.studio.route_intervention_inventory_bundle.v1` artifact as their treatment
+truth boundary. The bundle preserves exact route identity, canonical treatment
+kind/family, lifecycle, raw reviewed labels, occurrences, project
+relationships, source gaps, and source coverage. Overview promotes a bounded
+current/planned summary; History lists the full typed inventory and never
+downloads or re-joins the citywide corpus in the browser.
+
+The `/interventions` ledger uses
+`bp.studio.intervention_facet_index.v1` for typed family and exact-route joins.
+Status, borough, family, route slug, and text search are shareable URL state.
+Ledger-to-History links carry the exact route slug and a stable record ID;
+History-to-ledger links carry the same route slug and optional treatment
+family. Unknown exact route filters and missing facet artifacts are explicit
+availability states, not prompts to normalize a route suffix or parse prose.
+
+The Plan 089 visual comp remains a design-review artifact rather than an
+approved full redesign. Plan 082 is sequenced after this contract: dated trend
+markers may reuse the exhaustive treatment presentation metadata only after
+resolving Plan 090 observation treatment IDs through the route inventory.
 
 ## Surface Contract Pattern
 

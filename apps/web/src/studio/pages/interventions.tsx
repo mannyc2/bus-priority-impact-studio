@@ -34,8 +34,8 @@ import type {
   StudioInterventionCorpusRecord,
   StudioInterventionFacetIndex,
   StudioInterventionFacetIndexRow,
-  StudioInterventionTreatmentFamily,
   StudioInterventionsEvidenceBundle,
+  StudioInterventionTreatmentFamily,
   StudioRoute,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceIntervention,
@@ -129,6 +129,7 @@ export function InterventionsPage({
   onSearchChange?: (search: InterventionsSearch) => void;
 }) {
   const [limit, setLimit] = useState(INTERVENTIONS_PAGE_SIZE);
+  const paginationResetKey = interventionsPaginationResetKey(search);
   const rows = useMemo(
     () => interventionRows(routes, evidence, corpus, facetIndex),
     [routes, evidence, corpus, facetIndex],
@@ -163,9 +164,7 @@ export function InterventionsPage({
   const statusCountRows = (status: InterventionFilter) =>
     filterInterventionRows(
       rows,
-      status === "all"
-        ? omitInterventionsSearchKey(search, "status")
-        : { ...search, status },
+      status === "all" ? omitInterventionsSearchKey(search, "status") : { ...search, status },
       { facetIndexAvailable: facetIndex !== null },
     ).length;
   const updateSearch = (next: InterventionsSearch) => {
@@ -175,7 +174,7 @@ export function InterventionsPage({
 
   useEffect(() => {
     setLimit(INTERVENTIONS_PAGE_SIZE);
-  }, [search.borough, search.family, search.q, search.route, search.status]);
+  }, [paginationResetKey]);
 
   return (
     <main className="min-h-full bg-[var(--bp-color-paper)]">
@@ -251,7 +250,9 @@ export function InterventionsPage({
                       type="search"
                       value={search.q ?? ""}
                       placeholder="Route, project, corridor…"
-                      onChange={(event) => updateSearch({ ...search, q: event.currentTarget.value })}
+                      onChange={(event) =>
+                        updateSearch({ ...search, q: event.currentTarget.value })
+                      }
                     />
                   </Field>
                   <Field>
@@ -761,10 +762,10 @@ export function interventionRows(
     return { ...row, event: { ...row.event, sourceEntries } };
   });
 
-  return attachInterventionFacets([
-    ...enrichedRegistryRows,
-    ...corpusInterventionRows(routes, corpus, registryEventIds),
-  ], facetIndex).sort(
+  return attachInterventionFacets(
+    [...enrichedRegistryRows, ...corpusInterventionRows(routes, corpus, registryEventIds)],
+    facetIndex,
+  ).sort(
     (left, right) =>
       right.event.sortKey.localeCompare(left.event.sortKey) ||
       (left.routes[0]?.label ?? "").localeCompare(right.routes[0]?.label ?? "") ||
@@ -1113,6 +1114,16 @@ export function compactInterventionsSearch(search: InterventionsSearch): Interve
       : { route: search.route.trim() }),
     ...(search.q === undefined || search.q.trim().length === 0 ? {} : { q: search.q.trim() }),
   };
+}
+
+export function interventionsPaginationResetKey(search: InterventionsSearch): string {
+  return JSON.stringify([
+    search.status ?? null,
+    search.borough ?? null,
+    search.family ?? null,
+    search.route ?? null,
+    search.q ?? null,
+  ]);
 }
 
 function omitInterventionsSearchKey(

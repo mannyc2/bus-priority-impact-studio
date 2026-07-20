@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-
-import {
-  routeInterventionViewModel,
-  treatmentRecordAnchorId,
-  type RouteInterventionTimelineRow as TypedOccurrenceRow,
-  type RouteInterventionViewModel,
-} from "@/components/route/route-intervention-model";
 import { routeInsightPlacements } from "@/components/route/route-insight-placement";
+import {
+  type RouteInterventionViewModel,
+  routeInterventionViewModel,
+  type RouteInterventionTimelineRow as TypedOccurrenceRow,
+  treatmentRecordAnchorId,
+} from "@/components/route/route-intervention-model";
 import { SectionCard } from "@/components/SectionCard";
 import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { DescriptiveStudyCard, StudyCard } from "@/components/study/StudyCard";
@@ -576,9 +575,7 @@ function InventorySourceGaps({ model }: { model: RouteInterventionViewModel }) {
               <Badge variant="warn">Source gap</Badge>
               <span className="text-[13px] font-semibold">{gap.gapKind.replaceAll("_", " ")}</span>
             </div>
-            <div className="mt-1 text-[11.5px] text-[var(--bp-color-ink-55)]">
-              {gap.sourceId}
-            </div>
+            <div className="mt-1 text-[11.5px] text-[var(--bp-color-ink-55)]">{gap.sourceId}</div>
             <SourceNote entries={gap.sourceRefs.map((sourceRef) => ({ label: sourceRef }))} />
           </div>
         ))}

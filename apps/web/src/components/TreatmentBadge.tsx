@@ -1,4 +1,4 @@
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, useId, useState } from "react";
 
 import type { RouteInterventionTreatmentRow } from "@/components/route/route-intervention-model";
 import { Badge } from "@/components/ui/badge";
@@ -155,6 +155,7 @@ export function TreatmentBadgeRow({
   max?: number;
 }) {
   const [open, setOpen] = useState(false);
+  const hiddenDescriptionId = useId();
   const visible = treatments.slice(0, max);
   const hidden = treatments.slice(max);
 
@@ -172,16 +173,22 @@ export function TreatmentBadgeRow({
                 size="sm"
                 variant="secondary"
                 aria-label={`Show ${hidden.length} more route treatments`}
+                aria-describedby={hiddenDescriptionId}
                 aria-expanded={open}
               />
             }
           >
             +{hidden.length} more
           </PopoverTrigger>
+          <span id={hiddenDescriptionId} className="sr-only">
+            {hidden.map((row) => `${row.presentation.label}, ${row.lifecycleLabel}`).join("; ")}
+          </span>
           <PopoverContent align="start" className="w-80 max-w-[calc(100vw-2rem)]">
             <PopoverHeader>
               <PopoverTitle>More route treatments</PopoverTitle>
-              <PopoverDescription>Every treatment hidden from the compact summary.</PopoverDescription>
+              <PopoverDescription>
+                Every treatment hidden from the compact summary.
+              </PopoverDescription>
             </PopoverHeader>
             <ul className="m-0 flex list-none flex-col gap-2 p-0">
               {hidden.map((row) => (
@@ -282,8 +289,9 @@ function RouteInventoryBadge({
   const accessibleName = `${row.presentation.label}, ${row.lifecycleLabel}`;
   if (code === null) {
     return (
-      <Badge variant="neutral" aria-label={accessibleName} title={accessibleName}>
+      <Badge variant="neutral" title={accessibleName}>
         {row.presentation.label}
+        <span className="sr-only">, {row.lifecycleLabel}</span>
       </Badge>
     );
   }
@@ -296,7 +304,6 @@ function RouteInventoryBadge({
 
   return (
     <span
-      aria-label={accessibleName}
       title={accessibleName}
       className="inline-flex shrink-0 items-center justify-center rounded-[3px] border font-mono font-bold leading-none tracking-[0.04em] tabular-nums"
       style={{
@@ -309,7 +316,8 @@ function RouteInventoryBadge({
         borderStyle: current ? "solid" : "dashed",
       }}
     >
-      {code}
+      <span aria-hidden="true">{code}</span>
+      <span className="sr-only">{accessibleName}</span>
     </span>
   );
 }
@@ -339,9 +347,7 @@ function RouteTreatmentChip({ row }: { row: RouteInterventionTreatmentRow }) {
   );
 }
 
-function lifecycleBadgeVariant(
-  row: RouteInterventionTreatmentRow,
-): "accent" | "neutral" | "warn" {
+function lifecycleBadgeVariant(row: RouteInterventionTreatmentRow): "accent" | "neutral" | "warn" {
   if (row.treatment.lifecycleState === "historical_confirmed") return "neutral";
   if (
     row.treatment.lifecycleState === "current_confirmed" ||

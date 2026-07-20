@@ -4,9 +4,6 @@ export type {
   RouteSurfaceCapability,
   StudioInterventionCorpus,
   StudioInterventionCorpusRecord,
-  StudioRouteCapability,
-} from "@bp/domain/studio";
-export type {
   StudioInterventionDatePrecision,
   StudioInterventionFacetIndex,
   StudioInterventionFacetIndexRow,
@@ -14,6 +11,7 @@ export type {
   StudioInterventionLifecycleState,
   StudioInterventionTreatmentFamily,
   StudioInterventionTreatmentKind,
+  StudioRouteCapability,
   StudioRouteInterventionCoverageState,
   StudioRouteInterventionCurrentState,
   StudioRouteInterventionInventoryBundle,

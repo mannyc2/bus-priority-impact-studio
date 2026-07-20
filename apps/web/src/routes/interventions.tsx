@@ -1,7 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
-import type { StudioInterventionTreatmentFamily } from "../studio/api-contract.js";
-import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../studio/home-route-index.js";
 import { routeHead } from "../lib/head.js";
 import {
   fetchStudioInterventionCorpus,
@@ -11,6 +9,8 @@ import {
   fetchStudioStudiesIndex,
   staticStudioLoaderStaleTimeMs,
 } from "../studio/api-client.js";
+import type { StudioInterventionTreatmentFamily } from "../studio/api-contract.js";
+import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../studio/home-route-index.js";
 
 // Lazy so the page module (SourceNote popover stack) stays out of the entry bundle.
 const InterventionsPage = lazy(() =>
@@ -48,14 +48,21 @@ export type InterventionsSearch = {
 };
 
 export function validateInterventionsSearch(search: Record<string, unknown>): InterventionsSearch {
-  const status = member(INTERVENTION_STATUSES, search["status"]);
+  const {
+    status: statusValue,
+    borough: boroughValue,
+    family: familyValue,
+    route: routeValue,
+    q: queryValue,
+  } = search;
+  const status = member(INTERVENTION_STATUSES, statusValue);
   const borough = member(
     [ROUTE_INDEX_ALL_BOROUGHS, ...ROUTE_INDEX_BOROUGHS] as const,
-    search["borough"],
+    boroughValue,
   );
-  const family = member(["all", ...INTERVENTION_FAMILIES] as const, search["family"]);
-  const route = boundedTrimmedSearch(search["route"], 96);
-  const q = boundedTrimmedSearch(search["q"], 120);
+  const family = member(["all", ...INTERVENTION_FAMILIES] as const, familyValue);
+  const route = boundedTrimmedSearch(routeValue, 96);
+  const q = boundedTrimmedSearch(queryValue, 120);
   return {
     ...(status === undefined || status === "all" ? {} : { status }),
     ...(borough === undefined || borough === ROUTE_INDEX_ALL_BOROUGHS ? {} : { borough }),

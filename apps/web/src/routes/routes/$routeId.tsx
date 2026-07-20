@@ -26,8 +26,9 @@ export function validateRouteDetailPageSearch(
 ): RouteDetailPageSearch {
   const validated = validateRouteDetailSearch(search);
   if (validated.tab !== "history") return validated;
-  const study = boundedHistoryTarget(search["study"]);
-  const record = boundedHistoryTarget(search["record"]);
+  const { study: studyValue, record: recordValue } = search;
+  const study = boundedHistoryTarget(studyValue);
+  const record = boundedHistoryTarget(recordValue);
   if (study !== undefined) return { tab: "history", study };
   return record === undefined ? { tab: "history" } : { tab: "history", record };
 }

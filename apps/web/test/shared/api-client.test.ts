@@ -8,8 +8,8 @@ import {
   fetchNetworkMapGeo,
   fetchRouteSegmentsGeoLoad,
   fetchSelectedRouteMapEvidence,
-  fetchStudioInterventionsEvidence,
   fetchStudioInterventionFacetIndex,
+  fetchStudioInterventionsEvidence,
   fetchStudioRoute,
   fetchStudioRouteIndex,
   fetchStudioRouteInterventionInventory,
@@ -363,7 +363,8 @@ describe("Studio API client", () => {
 
   test("inventory artifact loads preserve malformed JSON errors and aborts", async () => {
     mockFetch(
-      (async () => new Response("{not-json", { status: 200 })) as unknown as typeof globalThis.fetch,
+      (async () =>
+        new Response("{not-json", { status: 200 })) as unknown as typeof globalThis.fetch,
     );
     await expect(fetchStudioRouteInterventionInventory("b44")).rejects.toThrow();
 
@@ -371,7 +372,9 @@ describe("Studio API client", () => {
     mockFetch((async (_input, init) => {
       if (init?.signal?.aborted) throw new DOMException("Aborted", "AbortError");
       return new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+        init?.signal?.addEventListener("abort", () =>
+          reject(new DOMException("Aborted", "AbortError")),
+        );
       });
     }) as typeof globalThis.fetch);
     const load = fetchStudioInterventionFacetIndex({ signal: controller.signal });

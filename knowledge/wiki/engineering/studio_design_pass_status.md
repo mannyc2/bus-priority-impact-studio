@@ -33,6 +33,28 @@ must remove or reassign its matching entry in the same commit. No permanent
 exception exists at gate landing. Plan 086 may later preserve only the audited
 immutable compatibility readers identified by its binding plan amendment.
 
+## Route intervention source and navigation contract — 2026-07-20
+
+Route Overview and History now recognize treatments only from the strict,
+nullable `bp.studio.route_intervention_inventory_bundle.v1` artifact. Overview
+is a bounded current/planned summary with an accessible overflow disclosure;
+History is the unbounded record view and keeps treatments, dated occurrences,
+related projects, studies, and source gaps separate. Missing, partial, and
+checked-with-no-positive-evidence bundles remain visibly distinct, and route
+prose never substitutes for a missing typed inventory.
+
+The `/interventions` ledger consumes the compact citywide facet index for
+family and exact-route discovery. Its filters live in validated URL search
+state, and ledger links open the exact service's History tab at a stable record
+anchor. B44 and B44+ therefore remain separate in filters, links, and targets.
+
+This is an incremental data/navigation repair in the implemented visual
+language. It does not approve or execute the unresolved D22-D27 choices in the
+Plan 089 interventions comp. Plan 082 follows this work and may reuse the
+exhaustive treatment presentation helper for dated observation markers, but it
+must resolve those markers through typed treatment IDs rather than History
+prose or analysis-family equivalence.
+
 ## Study-card / chart-card rules — 2026-07-10 (approved comp)
 
 The operator approved plan 075's study-card design through three comp review

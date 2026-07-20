@@ -170,13 +170,10 @@ describe("route intervention presentation model", () => {
       "Enforcement starts",
     );
 
-    const custom = treatment(
-      TREATMENT_IDS.proposedOther,
-      "other_documented",
-      "other",
-      "proposed",
-      { rawKind: "limited_to_local_conversion", rawLabel: "Limited-to-local conversion" },
-    );
+    const custom = treatment(TREATMENT_IDS.proposedOther, "other_documented", "other", "proposed", {
+      rawKind: "limited_to_local_conversion",
+      rawLabel: "Limited-to-local conversion",
+    });
     expect(interventionPresentationForTreatment(custom)).toMatchObject({
       label: "Limited-to-local conversion",
       compactCode: null,
@@ -189,13 +186,10 @@ describe("route intervention presentation model", () => {
     const model = routeInterventionViewModel(
       bundle("B44", "b44", {
         treatments: [
-          treatment(
-            TREATMENT_IDS.proposedOther,
-            "other_documented",
-            "other",
-            "proposed",
-            { rawKind: "priority_corridor", rawLabel: "Priority corridor" },
-          ),
+          treatment(TREATMENT_IDS.proposedOther, "other_documented", "other", "proposed", {
+            rawKind: "priority_corridor",
+            rawLabel: "Priority corridor",
+          }),
           treatment(
             TREATMENT_IDS.historicalLane,
             "bus_lane",
@@ -203,13 +197,10 @@ describe("route intervention presentation model", () => {
             "historical_confirmed",
             { effectiveDate: "2019-01", datePrecision: "month" },
           ),
-          treatment(
-            TREATMENT_IDS.implementedLane,
-            "bus_lane",
-            "bus_priority_lane",
-            "implemented",
-            { effectiveDate: "2024-01", datePrecision: "month" },
-          ),
+          treatment(TREATMENT_IDS.implementedLane, "bus_lane", "bus_priority_lane", "implemented", {
+            effectiveDate: "2024-01",
+            datePrecision: "month",
+          }),
         ],
       }),
     );
@@ -223,11 +214,7 @@ describe("route intervention presentation model", () => {
   });
 
   test("keeps same-family occurrences distinct and relates projects by stable IDs", () => {
-    const first = occurrence(
-      OCCURRENCE_IDS.firstLane,
-      TREATMENT_IDS.implementedLane,
-      "2021-01-01",
-    );
+    const first = occurrence(OCCURRENCE_IDS.firstLane, TREATMENT_IDS.implementedLane, "2021-01-01");
     const second = occurrence(
       OCCURRENCE_IDS.secondLane,
       TREATMENT_IDS.historicalLane,
@@ -236,18 +223,8 @@ describe("route intervention presentation model", () => {
     const model = routeInterventionViewModel(
       bundle("B44", "b44", {
         treatments: [
-          treatment(
-            TREATMENT_IDS.implementedLane,
-            "bus_lane",
-            "bus_priority_lane",
-            "implemented",
-          ),
-          treatment(
-            TREATMENT_IDS.historicalLane,
-            "bus_lane",
-            "bus_priority_lane",
-            "implemented",
-          ),
+          treatment(TREATMENT_IDS.implementedLane, "bus_lane", "bus_priority_lane", "implemented"),
+          treatment(TREATMENT_IDS.historicalLane, "bus_lane", "bus_priority_lane", "implemented"),
         ],
         occurrences: [first, second],
         projectRefs: [
@@ -311,9 +288,7 @@ describe("route intervention presentation model", () => {
   });
 
   test("generates stable DOM-safe and collision-resistant record anchors", () => {
-    expect(treatmentRecordAnchorId("treatment:v1:abc")).toBe(
-      "intervention-treatment_3a_v1_3a_abc",
-    );
+    expect(treatmentRecordAnchorId("treatment:v1:abc")).toBe("intervention-treatment_3a_v1_3a_abc");
     expect(treatmentRecordAnchorId("B44+")).not.toBe(treatmentRecordAnchorId("B44_2b_"));
     expect(treatmentRecordAnchorId("gap:B44:tsp")).toMatch(/^[A-Za-z][A-Za-z0-9_-]+$/u);
   });

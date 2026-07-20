@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { createElement } from "react";
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   comparisonCardsSubLine,
@@ -13,15 +19,27 @@ import {
   treatmentSourceRows,
 } from "../../src/components/route/TreatmentsHistorySection";
 import { citationEntries } from "../../src/components/SourceNote";
+import { validateRouteDetailPageSearch } from "../../src/routes/routes/$routeId";
 import type {
   StudioIntervention,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceTimelineEvent,
   StudioRouteInsight,
+  StudioRouteInterventionInventoryBundle,
 } from "../../src/studio/api-contract";
 import { isoMonthFixture } from "./schema-fixtures";
 import { studyFixture } from "./study-fixture";
+
+async function renderWithRouter(node: ReactNode): Promise<string> {
+  const rootRoute = createRootRoute({ component: () => node });
+  const router = createRouter({
+    routeTree: rootRoute,
+    history: createMemoryHistory({ initialEntries: ["/"] }),
+  });
+  await router.load();
+  return renderToStaticMarkup(createElement(RouterProvider, { router }));
+}
 
 function insight(input: Partial<StudioRouteInsight> = {}): StudioRouteInsight {
   const fixture: StudioRouteInsight = {
@@ -261,6 +279,82 @@ const routeDetail = {
   },
 } satisfies StudioRouteDetailResponse;
 
+function inventoryBundle(
+  overrides: Partial<StudioRouteInterventionInventoryBundle> = {},
+): StudioRouteInterventionInventoryBundle {
+  const treatmentId = "treatment:v1:000000000000000000000001";
+  const occurrenceIds = [
+    "occurrence:v1:000000000000000000000001",
+    "occurrence:v1:000000000000000000000002",
+  ];
+  return {
+    artifactKind: "bp.studio.route_intervention_inventory_bundle.v1",
+    schemaVersion: 1,
+    releaseId: "pub_20260718T180527000Z",
+    publishedAt: "2026-07-18T18:05:27.000Z",
+    coverage: { start: null, end: isoMonthFixture("2026-03") },
+    route: {
+      routeId: "M15+",
+      routeFamilyId: "M15",
+      displayLabel: "M15 SBS",
+      officialLongName: null,
+      designationLiterals: ["route_type:SBS"],
+      serviceModes: ["sbs"],
+      routeTypes: ["SBS"],
+      tripTypes: ["14"],
+    },
+    routeSlug: "m15-sbs",
+    coverageState: "available",
+    sourceStates: [],
+    treatments: [
+      {
+        treatmentId,
+        sourceNamespace: "reviewed_intervention_corpus",
+        sourceRecordId: "record-busway",
+        sourceId: "fixture-source",
+        componentCollection: "primary",
+        componentPosition: 0,
+        rawKind: "busway",
+        rawLabel: null,
+        treatmentKind: "busway",
+        treatmentFamily: "bus_priority_lane",
+        lifecycleState: "implemented",
+        statusAsOf: null,
+        effectiveDate: "2024-06",
+        datePrecision: "month",
+        geographyScope: "route",
+        sourceRefs: ["source:fixture"],
+        occurrenceIds,
+        projectIds: [],
+      },
+    ],
+    occurrences: occurrenceIds.map((occurrenceId, index) => ({
+      occurrenceId,
+      sourceNamespace: "operational_occurrences",
+      sourceOccurrenceId: `source-${index}`,
+      sourceId: "fixture-source",
+      producerPhaseOrPosition: String(index),
+      routeId: "M15+",
+      treatmentIds: [treatmentId],
+      lifecycleState: "implemented" as const,
+      phase: index === 0 ? "pilot" : "permanent",
+      rawStatus: "implemented",
+      program: "Typed busway program",
+      effectiveDate: index === 0 ? "2023-06" : "2024-06",
+      datePrecision: "month" as const,
+      geographyScope: "route" as const,
+      sourceRefs: ["source:fixture"],
+      projectIds: [],
+      wikiOccurrenceId: null,
+      registryLineage: null,
+    })),
+    currentState: [],
+    projectRefs: [],
+    sourceGaps: [],
+    ...overrides,
+  };
+}
+
 describe("treatments history helpers", () => {
   test("turns promoted intervention comparisons into public cards", () => {
     const cards = interventionComparisonCards(servingInterventions);
@@ -382,6 +476,25 @@ describe("treatments history helpers", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]?.label).toContain("MTA Board Report");
   });
+
+  test("History URL validation bounds targets and gives study precedence over record", () => {
+    expect(
+      validateRouteDetailPageSearch({
+        tab: "history",
+        study: "  study:event:1  ",
+        record: "occurrence:v1:ignored",
+      }),
+    ).toEqual({ tab: "history", study: "study:event:1" });
+    expect(
+      validateRouteDetailPageSearch({ tab: "history", record: " occurrence:v1:kept " }),
+    ).toEqual({ tab: "history", record: "occurrence:v1:kept" });
+    expect(
+      validateRouteDetailPageSearch({ tab: "overview", record: "occurrence:v1:ignored" }),
+    ).toEqual({});
+    expect(validateRouteDetailPageSearch({ tab: "history", record: "x".repeat(161) })).toEqual({
+      tab: "history",
+    });
+  });
 });
 
 describe("TreatmentsHistorySection render", () => {
@@ -447,6 +560,53 @@ describe("TreatmentsHistorySection render", () => {
     expect(markup).not.toContain("Offset bus lane");
     expect(markup).toContain("First Avenue busway");
     expect(markup).toContain("Sources (");
+  });
+
+  test("renders every typed occurrence with stable anchors and exact ledger back-links", async () => {
+    const inventory = inventoryBundle();
+    const typed = await renderWithRouter(
+      createElement(TreatmentsHistorySection, {
+        data: routeDetail,
+        evidence: bundle,
+        inventory,
+      }),
+    );
+
+    expect(typed).toContain("Busway");
+    for (const treatment of inventory.treatments) {
+      expect(typed).toContain(`intervention-${treatment.treatmentId.replaceAll(":", "_3a_")}`);
+    }
+    for (const occurrence of inventory.occurrences) {
+      expect(typed).toContain(`intervention-${occurrence.occurrenceId.replaceAll(":", "_3a_")}`);
+    }
+    expect(typed).toContain("Browse this route in all interventions");
+    expect(typed).toContain("route=m15-sbs");
+    expect(typed).toContain("family=bus_priority_lane");
+  });
+
+  test("renders partial and checked-empty coverage as distinct text", async () => {
+    const partial = await renderWithRouter(
+      createElement(TreatmentsHistorySection, {
+        data: routeDetail,
+        evidence: null,
+        inventory: inventoryBundle({ coverageState: "partial" }),
+      }),
+    );
+    expect(partial).toContain("Treatment inventory coverage is partial; known records are shown.");
+
+    const checkedEmpty = await renderWithRouter(
+      createElement(TreatmentsHistorySection, {
+        data: routeDetail,
+        evidence: null,
+        inventory: inventoryBundle({
+          coverageState: "checked_no_positive_evidence",
+          treatments: [],
+          occurrences: [],
+        }),
+      }),
+    );
+    expect(checkedEmpty).toContain("No positive treatment evidence was found in checked sources.");
+    expect(checkedEmpty).not.toContain("No interventions");
   });
 });
 

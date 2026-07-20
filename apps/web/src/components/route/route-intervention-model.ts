@@ -168,7 +168,7 @@ export function interventionPresentationForTreatment(
   const metadata = KIND_PRESENTATION[treatment.treatmentKind];
   const label =
     treatment.treatmentKind === "other_documented"
-      ? treatment.rawLabel ?? humanize(treatment.rawKind)
+      ? (treatment.rawLabel ?? humanize(treatment.rawKind))
       : metadata.label;
   return {
     ...metadata,
@@ -209,14 +209,16 @@ export function routeInterventionViewModel(
   }
 
   const treatments = bundle.treatments
-    .map((treatment): RouteInterventionTreatmentRow => ({
-      key: treatment.treatmentId,
-      anchorId: treatmentRecordAnchorId(treatment.treatmentId),
-      treatment,
-      presentation: interventionPresentationForTreatment(treatment),
-      lifecycleLabel: treatmentLifecycleLabel(treatment.lifecycleState),
-      lifecycleOrder: LIFECYCLE_ORDER[treatment.lifecycleState],
-    }))
+    .map(
+      (treatment): RouteInterventionTreatmentRow => ({
+        key: treatment.treatmentId,
+        anchorId: treatmentRecordAnchorId(treatment.treatmentId),
+        treatment,
+        presentation: interventionPresentationForTreatment(treatment),
+        lifecycleLabel: treatmentLifecycleLabel(treatment.lifecycleState),
+        lifecycleOrder: LIFECYCLE_ORDER[treatment.lifecycleState],
+      }),
+    )
     .sort(compareTreatmentRows);
   const treatmentById = new Map(treatments.map((row) => [row.treatment.treatmentId, row]));
   const projectIdsByOccurrenceId = projectOccurrenceRelationships(bundle.projectRefs);

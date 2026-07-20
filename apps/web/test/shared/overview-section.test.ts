@@ -9,6 +9,7 @@ import type {
   StudioRouteCapability,
   StudioRouteDetailResponse,
   StudioRouteInsight,
+  StudioRouteInterventionInventoryBundle,
   StudioSegment,
 } from "../../src/studio/api-contract";
 import { isoMonthFixture } from "./schema-fixtures";
@@ -171,6 +172,55 @@ function detail(overrides: Partial<StudioRouteDetailResponse>): StudioRouteDetai
   };
 }
 
+function buswayInventory(): StudioRouteInterventionInventoryBundle {
+  return {
+    artifactKind: "bp.studio.route_intervention_inventory_bundle.v1",
+    schemaVersion: 1,
+    releaseId: "pub_20260718T180527000Z",
+    publishedAt: "2026-07-18T18:05:27.000Z",
+    coverage: { start: null, end: isoMonthFixture("2026-03") },
+    route: {
+      routeId: "M15+",
+      routeFamilyId: "M15",
+      displayLabel: "M15 SBS",
+      officialLongName: null,
+      designationLiterals: ["route_type:SBS"],
+      serviceModes: ["sbs"],
+      routeTypes: ["SBS"],
+      tripTypes: ["14"],
+    },
+    routeSlug: "m15-sbs",
+    coverageState: "available",
+    sourceStates: [],
+    treatments: [
+      {
+        treatmentId: "treatment:v1:000000000000000000000001",
+        sourceNamespace: "reviewed_intervention_corpus",
+        sourceRecordId: "generic-record",
+        sourceId: "fixture-source",
+        componentCollection: "primary",
+        componentPosition: 0,
+        rawKind: "busway",
+        rawLabel: null,
+        treatmentKind: "busway",
+        treatmentFamily: "bus_priority_lane",
+        lifecycleState: "implemented",
+        statusAsOf: null,
+        effectiveDate: "2024-06",
+        datePrecision: "month",
+        geographyScope: "route",
+        sourceRefs: ["source:fixture"],
+        occurrenceIds: [],
+        projectIds: [],
+      },
+    ],
+    occurrences: [],
+    currentState: [],
+    projectRefs: [],
+    sourceGaps: [],
+  };
+}
+
 describe("OverviewSection", () => {
   test("renders summary, trend chart, mini map, and ranked insights for a full route", () => {
     const markup = renderToStaticMarkup(
@@ -228,5 +278,30 @@ describe("OverviewSection", () => {
     expect(sparse).not.toContain("·");
     expect(sparse).not.toContain("The route right now");
     expect(sparse).not.toContain("tracking-[0.12em]");
+  });
+
+  test("recognizes a typed busway with generic prose and never promotes prose alone", () => {
+    const typed = renderToStaticMarkup(
+      createElement(OverviewSection, {
+        data: detail({ route: { ...baseRoute, diagnosis: "Generic corridor record." } }),
+        inventory: buswayInventory(),
+        onNavigate: () => undefined,
+      }),
+    );
+    expect(typed).toContain("Busway, Implemented");
+    expect(typed).toContain("BWY");
+
+    const proseOnly = renderToStaticMarkup(
+      createElement(OverviewSection, {
+        data: detail({
+          route: { ...baseRoute, diagnosis: "A busway is mentioned only in narrative prose." },
+          dossier: null,
+        }),
+        inventory: null,
+        onNavigate: () => undefined,
+      }),
+    );
+    expect(proseOnly).not.toContain("Busway, Implemented");
+    expect(proseOnly).toContain("Treatment inventory unavailable");
   });
 });

@@ -2,7 +2,6 @@ import { ChartFrame } from "@/components/ChartFrame";
 import { CorridorMap } from "@/components/CorridorMap";
 import { RouteGeoMap } from "@/components/route/RouteGeoMap";
 import { RouteInsightList } from "@/components/route/RouteInsightList";
-import { routeInterventionViewModel } from "@/components/route/route-intervention-model";
 import {
   dossierMetricMonthCount,
   dossierMetricWindow,
@@ -11,6 +10,7 @@ import {
   routePerformanceSummary,
 } from "@/components/route/route-derived";
 import { useRouteSegmentsGeo } from "@/components/route/route-detail-data";
+import { routeInterventionViewModel } from "@/components/route/route-intervention-model";
 import type { RouteDetailSectionValue } from "@/components/route/section-registry";
 import { SectionCard } from "@/components/SectionCard";
 import { SpeedTrend } from "@/components/SpeedTrend";
