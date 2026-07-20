@@ -1,21 +1,26 @@
 # Data Pipeline Operationalization Status
 
-Updated: 2026-07-19
+Updated: 2026-07-20
 
 This status turns the completed 2023-present checkpoint into the next operational steps.
 
-## 2026-07-19 serving-contract addendum
+## 2026-07-20 publication and freshness status
 
-Plan 085 removes month-as-release identity from public serving responses. The Worker now resolves
-the latest published, passing route batch from D1 and reports its canonical `releaseId`, stored
-`publishedAt`, and `coverage: { start, end }`. There is no public `?month=` release selector and no
-`BASELINE_MONTH` or `LAST_BUILT_SPEED_MONTH` environment pin. The historical route-scorecard query
-uses `?asOfMonth=` because that value is evidence grain, not release identity.
+The Worker and pipeline publication contracts now identify releases with canonical `releaseId`,
+`publishedAt`, and dataset coverage. There is no public month-based release selector or pinned
+baseline-month environment variable. Month values remain only where they describe source grain,
+historical coordinates, or storage partitions.
 
-D1 tables keyed by month and fields such as `dataAsOf` remain unchanged where they describe source
-or time-series grain. Plan 086 follows by migrating and republishing the static pipeline release
-artifacts; do not deploy the Plan 085 reader contract alone against older capability or dossier
-objects that still carry the previous schema.
+The newest local D1 export summary available to this status page records the legacy `2026-05`
+source partition and was generated on 2026-06-05. It predates the publication-identity contract and
+does not contain `publishedAt` or `coverage`, so current published coverage is **unknown in the
+checked local evidence**. Regenerate the D1/map artifacts before the next publication; the
+freshness audit intentionally ignores legacy summaries instead of inferring publication from their
+directory names.
+
+Run `bun run pipeline audit freshness` after each ingest wave and before publication for the live,
+per-source upstream/ingested/published lag table. See
+[[wiki/engineering/freshness_ledger|Freshness Ledger]] for the status and strict-gate semantics.
 
 ## Release decision
 
