@@ -89,6 +89,11 @@
       "bun": "./src/studio/intervention-corpus-key.ts",
       "import": "./src/studio/intervention-corpus-key.ts"
     },
+    "./studio/route-intervention-inventory-key": {
+      "types": "./src/studio/route-intervention-inventory-key.ts",
+      "bun": "./src/studio/route-intervention-inventory-key.ts",
+      "import": "./src/studio/route-intervention-inventory-key.ts"
+    },
     "./studio/route-evidence": {
       "types": "./src/studio/route-evidence.ts",
       "bun": "./src/studio/route-evidence.ts",
