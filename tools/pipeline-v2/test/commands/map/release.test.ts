@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import { type MapReleaseDependencies, runMapRelease } from "../../../src/commands/map/release.ts";
 import type { OpenLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
@@ -47,7 +48,22 @@ describe("runMapRelease", () => {
         },
         async verifyD1(input: unknown) {
           record("verifyD1", input);
-          return { schemaPath, seedPath, status: "pass" };
+          const releaseIdentity = (
+            input as {
+              releaseIdentity: {
+                releaseId: string;
+                publishedAt: string;
+                coverage: { start: string | null; end: string };
+              };
+            }
+          ).releaseIdentity;
+          return {
+            schemaPath,
+            seedPath,
+            status: "pass",
+            ...releaseIdentity,
+            coverage: { start: "2024-11", end: releaseIdentity.coverage.end },
+          };
         },
         async context(input: unknown) {
           record("context", input);
@@ -55,9 +71,22 @@ describe("runMapRelease", () => {
         },
         async studio(input: unknown) {
           record("studio", input);
+          const releaseIdentity = (
+            input as {
+              releaseIdentity: {
+                releaseId: string;
+                publishedAt: string;
+                coverage: { start: string | null; end: string };
+              };
+            }
+          ).releaseIdentity;
           return {
             mapRouteFactsPath,
             outputPath: join(artifactRoot, "studio", "v1", "release.json"),
+            releaseIdentity: {
+              ...releaseIdentity,
+              coverage: { start: "2025-01", end: releaseIdentity.coverage.end },
+            },
           };
         },
         async map(input: unknown) {
@@ -187,13 +216,21 @@ describe("runMapRelease", () => {
         mapReleaseIdentity?.publishedAt,
       );
       expect(result.d1.schemaPath).toBe(schemaPath);
+      expect(result.d1.coverage.start as string | null).toBe("2024-11");
+      expect(result.d1.coverage.end as string).toBe("2026-04");
       expect(result.studio.mapRouteFactsPath).toBe(mapRouteFactsPath);
+      expect(result.studio.releaseIdentity.coverage.start as string | null).toBe("2025-01");
+      expect(result.studio.releaseIdentity.coverage.end as string).toBe("2026-04");
       expect(result.finalManifestKey).toMatch(/^map\/2026-04\/manifest\.[a-f0-9]{64}\.json$/);
       expect(existsSync(result.finalManifestPath)).toBe(true);
       expect(await Bun.file(result.registrationPath).text()).toContain(result.finalManifestKey);
       expect(await Bun.file(result.registrationPath).text()).toContain(
         result.releaseIdentity.releaseId,
       );
+      expect(await Bun.file(result.registrationPath).text()).toContain(
+        result.releaseIdentity.publishedAt,
+      );
+      expect(await Bun.file(result.registrationPath).text()).toContain("'2025-02'");
       expect(calls.filter((call) => call.name === "verifyD1")).toHaveLength(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -230,5 +267,49 @@ describe("runMapRelease", () => {
       ),
     ).rejects.toThrow("stop after identity capture");
     expect(observedIdentities[0]?.coverage).toEqual({ start: null, end: "2026-04" });
+  });
+
+  test("rejects a one-millisecond D1 publication identity skew", async () => {
+    const dependencies = {
+      async routeBrief() {
+        return { isoMonth: "2026-04" };
+      },
+      async speedSpines() {
+        return { manifestPath: "unused.json", coverageStart: null };
+      },
+      async verifyD1(input: unknown) {
+        const releaseIdentity = (
+          input as {
+            releaseIdentity: {
+              publishedAt: string;
+              coverage: { start: string | null; end: string };
+            };
+          }
+        ).releaseIdentity;
+        const skewedPublishedAt = new Date(
+          Date.parse(releaseIdentity.publishedAt) + 1,
+        ).toISOString();
+        return {
+          schemaPath: "unused-schema.sql",
+          seedPath: "unused-seed.sql",
+          status: "pass",
+          releaseId: releaseIdFromPublishedAt(skewedPublishedAt),
+          publishedAt: skewedPublishedAt,
+          coverage: releaseIdentity.coverage,
+        };
+      },
+    } as unknown as MapReleaseDependencies;
+
+    await expect(
+      runMapRelease(
+        {
+          local: { path: "unused.sqlite" } as OpenLocalPipelineDb,
+          year: 2026,
+          month: 4,
+          contextSourcePath: "unused.csv",
+        },
+        dependencies,
+      ),
+    ).rejects.toThrow("D1 export publication identity does not match the map release boundary");
   });
 });

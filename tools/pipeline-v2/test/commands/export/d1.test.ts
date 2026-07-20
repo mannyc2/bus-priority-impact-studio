@@ -12,6 +12,8 @@ import {
 } from "../../../src/commands/export/d1.ts";
 import { openLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
+const publishedAt = "2026-07-19T12:34:56.789Z";
+
 describe("runExportD1Seed", () => {
   it("derives coverage start from the earliest loaded route trend month", () => {
     expect(
@@ -60,13 +62,17 @@ describe("runExportD1Seed", () => {
         local,
         year: 2026,
         month: 3,
+        publishedAt,
         exportRoot,
         artifactRoot,
       });
 
-      expect(result.isoMonth).toBe("2026-03");
-      expect(result.analysisPeriod).toBe("2026-03");
-      expect(result.schemaVersion).toBe(1);
+      expect(result.releaseId).toBe(releaseIdFromPublishedAt(publishedAt));
+      expect(result.publishedAt).toBe(publishedAt);
+      expect(result.coverage.start).toBeNull();
+      expect(result.coverage.end as string).toBe("2026-03");
+      expect(result.generatedAt).toBe(publishedAt);
+      expect(result.schemaVersion).toBe(2);
       expect(result.routeCount).toBe(0);
       expect(result.comparisonRowCount).toBe(0);
       expect(result.routeCatalogRowCount).toBe(0);
@@ -74,9 +80,15 @@ describe("runExportD1Seed", () => {
       expect(existsSync(result.schemaPath)).toBe(true);
       expect(existsSync(result.seedPath)).toBe(true);
       expect(existsSync(result.summaryPath)).toBe(true);
+      expect(result.summaryPath).toContain("/d1/2026-03/");
 
       const summary = JSON.parse(await Bun.file(result.summaryPath).text());
-      expect(summary.isoMonth).toBe("2026-03");
+      expect(summary.releaseId).toBe(releaseIdFromPublishedAt(publishedAt));
+      expect(summary.publishedAt).toBe(publishedAt);
+      expect(summary.coverage).toEqual({ start: null, end: "2026-03" });
+      expect(summary.generatedAt).toBe(publishedAt);
+      expect(summary).not.toHaveProperty("isoMonth");
+      expect(summary).not.toHaveProperty("analysisPeriod");
       expect(summary.schemaFile.sha256).toMatch(/^[0-9a-f]{64}$/);
       expect(summary.seedFile.sha256).toMatch(/^[0-9a-f]{64}$/);
       expect(summary.costEstimate.operation).toBe("d1-seed-export");
@@ -183,6 +195,7 @@ describe("runExportD1Seed", () => {
         local,
         year: 2026,
         month: 3,
+        publishedAt,
         exportRoot,
         artifactRoot: join(tmp, "artifacts"),
         routeTimelineProjectionPath: projectionPath,
@@ -302,6 +315,7 @@ describe("runExportD1Seed", () => {
         local,
         year: 2026,
         month: 3,
+        publishedAt,
         exportRoot,
         artifactRoot,
         detectorReadinessManifestPath: manifestPath,
@@ -475,6 +489,7 @@ describe("runExportD1Seed", () => {
         local,
         year: 2026,
         month: 3,
+        publishedAt,
         exportRoot,
         artifactRoot,
         routeEvidenceIndexPath: indexPath,
@@ -527,6 +542,7 @@ describe("runExportD1Seed", () => {
         local,
         year: 2026,
         month: 3,
+        publishedAt,
         exportRoot,
         artifactRoot,
         detectorReadinessManifestPath: missingManifestPath,
@@ -631,6 +647,7 @@ describe("runExportD1Seed", () => {
         local,
         year: 2026,
         month: 3,
+        publishedAt,
         exportRoot,
         artifactRoot: join(tmp, "artifacts"),
       });

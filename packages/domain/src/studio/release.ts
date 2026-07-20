@@ -1,6 +1,5 @@
 import { Effect, Schema } from "effect";
 import { MapRouteFactMetadataSchema } from "../maps/index.js";
-import { IsoMonthSchema } from "../primitives/index.js";
 import {
   StudioDocsEndpointSchema,
   StudioDocsSectionSchema,
@@ -11,7 +10,7 @@ import {
   StudioRouteSchema,
   StudioSegmentSchema,
 } from "./routes/index.js";
-import { ReleaseIdentitySchema, StudioQualitySchema } from "./shared.js";
+import { ReleaseIdentitySchema, releaseIdFromPublishedAt, StudioQualitySchema } from "./shared.js";
 
 export const StudioSearchSegmentCardSchema = Schema.Struct({
   segment: StudioSegmentSchema,
@@ -57,9 +56,9 @@ export const StudioCompareResponseSchema = Schema.Struct({
 });
 
 export const StudioReleasePayloadSchema = Schema.Struct({
-  schemaVersion: Schema.Literal(2),
+  schemaVersion: Schema.Literal(3),
   generatedAt: Schema.String,
-  baselineMonth: IsoMonthSchema,
+  ...ReleaseIdentitySchema.fields,
   quality: StudioQualitySchema,
   routes: Schema.Array(StudioRouteSchema),
   mapRouteFactsMetadata: ReleaseIdentitySchema,
@@ -69,7 +68,22 @@ export const StudioReleasePayloadSchema = Schema.Struct({
   methods: Schema.Array(StudioMethodDatasetSchema),
   docsSections: Schema.Array(StudioDocsSectionSchema),
   docsEndpoints: Schema.Array(StudioDocsEndpointSchema),
-});
+}).check(
+  Schema.makeFilter((release) => {
+    try {
+      return release.releaseId === releaseIdFromPublishedAt(release.publishedAt)
+        ? []
+        : [
+            {
+              path: ["releaseId"],
+              issue: "Release ID must be derived from the canonical publication timestamp.",
+            },
+          ];
+    } catch {
+      return [];
+    }
+  }),
+);
 
 export type StudioSearchSegmentCard = typeof StudioSearchSegmentCardSchema.Type;
 export type StudioSearchNote = typeof StudioSearchNoteSchema.Type;

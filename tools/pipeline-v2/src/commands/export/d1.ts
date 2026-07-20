@@ -3,7 +3,11 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { buildD1AppendixSeedSql, buildD1SeedSql } from "@bp/db/d1/seed";
 import { decodeStrict } from "@bp/domain/decode";
-import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
+import {
+  type ReleaseIdentity,
+  ReleaseIdentitySchema,
+  releaseIdFromPublishedAt,
+} from "@bp/domain/studio/shared";
 import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
@@ -66,8 +70,9 @@ type D1ExportCostEstimate = {
 
 export type D1SeedOutputResult = {
   schemaVersion: number;
-  isoMonth: string;
-  analysisPeriod: string;
+  releaseId: string;
+  publishedAt: string;
+  coverage: ReleaseIdentity["coverage"];
   generatedAt: string;
   summaryPath: string;
   schemaPath: string;
@@ -241,6 +246,7 @@ export type ExportD1Inputs = {
   local: OpenLocalPipelineDb;
   year: number;
   month: number;
+  publishedAt: string;
   exportRoot?: string | undefined;
   artifactRoot?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
@@ -273,11 +279,10 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     }));
   const schemaSql = await readD1MigrationSql();
   const seed = buildD1SeedSql({ month, ...d1Inputs });
-  const generatedAt = new Date().toISOString();
-  const publishedAt = generatedAt;
+  const generatedAt = inputs.publishedAt;
   const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
-    releaseId: releaseIdFromPublishedAt(publishedAt),
-    publishedAt,
+    releaseId: releaseIdFromPublishedAt(inputs.publishedAt),
+    publishedAt: inputs.publishedAt,
     coverage: { start: earliestRouteTrendMonth(d1Inputs), end: month },
   });
 
@@ -300,9 +305,8 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
   });
 
   const result: D1SeedOutputResult = {
-    schemaVersion: 1,
-    isoMonth: month,
-    analysisPeriod: month,
+    schemaVersion: 2,
+    ...releaseIdentity,
     generatedAt,
     summaryPath,
     schemaPath,
@@ -452,6 +456,7 @@ export default defineCommand({
     Schema.Struct({ schemaPath: Schema.String }),
   ]),
   async run({ input }) {
+    const publishedAt = new Date().toISOString();
     const exportRoot =
       input.options.exportRoot === undefined ? undefined : fromCliPath(input.options.exportRoot);
     const artifactRoot =
@@ -492,6 +497,7 @@ export default defineCommand({
           local,
           year: input.options.year,
           month: input.options.month,
+          publishedAt,
           exportRoot,
           artifactRoot,
           routeTimelineProjectionPath,

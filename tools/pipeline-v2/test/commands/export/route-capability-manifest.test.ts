@@ -79,7 +79,7 @@ describe("toRouteCapabilityInputRows", () => {
 });
 
 describe("readDetectorReadinessRouteSummaries", () => {
-  test("sums reliability-family detector counts and validates the release month", async () => {
+  test("accepts an equal detector month without adding a compatibility caveat", async () => {
     const manifestPath = join(tmp, "readiness.json");
     await Bun.write(
       manifestPath,
@@ -116,24 +116,55 @@ describe("readDetectorReadinessRouteSummaries", () => {
     expect(summary?.caveats).toEqual(["geometry approximate"]);
   });
 
+  test("accepts an older detector month with a compatibility caveat", async () => {
+    const manifestPath = join(tmp, "readiness-older-month.json");
+    await Bun.write(
+      manifestPath,
+      JSON.stringify({
+        releaseMonth: "2026-02",
+        routes: [
+          {
+            routeId: "M15+",
+            counts: {
+              public_finding_candidate: 0,
+              route_context: 0,
+              review_queue: 0,
+              suppressed: 0,
+            },
+            caveats: ["geometry approximate"],
+          },
+        ],
+      }),
+    );
+
+    const summaries = await readDetectorReadinessRouteSummaries({
+      manifestPath,
+      month: "2026-03",
+    });
+    expect(summaries.get("M15+")?.caveats).toEqual([
+      "geometry approximate",
+      "Detector readiness data is from 2026-02; release coverage ends 2026-03.",
+    ]);
+  });
+
   test("returns an empty map when no manifest path is given", async () => {
     expect((await readDetectorReadinessRouteSummaries({ month: "2026-03" })).size).toBe(0);
   });
 
-  test("rejects a month mismatch", async () => {
-    const manifestPath = join(tmp, "readiness-wrong-month.json");
+  test("rejects a detector month later than the export month", async () => {
+    const manifestPath = join(tmp, "readiness-newer-month.json");
     await Bun.write(
       manifestPath,
       JSON.stringify({
         artifactKind: "detector_readiness_serving_manifest",
         schemaVersion: 1,
-        releaseMonth: "2026-02",
+        releaseMonth: "2026-04",
         routes: [],
       }),
     );
     await expect(
       readDetectorReadinessRouteSummaries({ manifestPath, month: "2026-03" }),
-    ).rejects.toThrow("does not match export month");
+    ).rejects.toThrow("is later than export month");
   });
 });
 

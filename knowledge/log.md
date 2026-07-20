@@ -8617,3 +8617,28 @@ TypeScript; repository style with only pre-existing informational diagnostics;
 the web build at 137.6 KB gzip entry and 394.5 KB gzip total JavaScript; and the
 five-route web-performance matrix. No serving release, D1/R2 data, deployment,
 or production source snapshot was mutated.
+
+## [2026-07-20] engineering | Plan 086 publication identity cutover complete
+
+Pipeline releases now use one canonical `releaseId` / `publishedAt` identity
+with dataset-specific coverage windows across the D1 export summary, Studio
+release payload, map manifest, and catalog registration. The selected month is
+explicit partition grain; pinned March defaults and the remaining release-month
+identity vocabulary are gone. A one-millisecond timestamp skew fails the
+coordinated map-release path.
+
+The immutable detector-readiness readers accept equal or older snapshots,
+preserve their source month, surface an older-data caveat, and reject future
+snapshots. The legacy route-timeline reader retains exact-partition semantics.
+The month-doctrine ratchet has no Plan 086 retirement entries: only the audited
+seven- and three-token frozen-reader exceptions remain alongside Plan 087's
+single retiring prose entry. Operations documentation now describes publishing
+a release without a Worker redeploy; no `data/**`, deployment, or release
+pointer was mutated.
+
+Focused verification passed: 104 domain, 119 analytics, 402 pipeline, and 76
+Studio API tests; all four package typechecks; 22 architecture/frozen-reader
+tests; CLI help smoke checks; the two fixture-backed publish-completeness cases;
+knowledge validation; and all exact Plan 086 zero-hit grep gates.
+The comprehensive `check:prepush` gate then passed, including all 284 web and
+22 Worker tests.

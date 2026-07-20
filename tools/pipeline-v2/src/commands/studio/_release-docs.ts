@@ -409,7 +409,7 @@ export function methodDatasetsFromDocsSources(
   });
 }
 
-export function docsSections(month: string) {
+export function docsSections(coverageEnd: string) {
   return [
     {
       title: "Quickstart",
@@ -430,7 +430,7 @@ export function docsSections(month: string) {
     {
       title: "Release data",
       body: [
-        `The current generated Studio release is backed by the ${month} D1 serving export, route artifacts, segment evidence, and intervention context.`,
+        `The current generated Studio release covers D1 serving data through ${coverageEnd}, with route artifacts, segment evidence, and intervention context carrying their own coverage provenance.`,
         "Missing sections are represented with quality caveats rather than frontend fallbacks.",
       ],
     },

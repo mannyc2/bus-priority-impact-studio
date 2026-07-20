@@ -133,7 +133,7 @@ describe("data product completeness audit", () => {
             expectedUniverse: { description: "route catalog", routes: "route_catalog" },
             requiredInputs: ["routes"],
             downstreamConsumers: ["route universe"],
-            freshnessPolicy: { cadence: "release_month" },
+            freshnessPolicy: { cadence: "latest_month" },
             checks: [
               {
                 id: "rows",
@@ -154,7 +154,7 @@ describe("data product completeness audit", () => {
             expectedUniverse: {
               description: "run-scoped observed rows",
               routes: "route_catalog",
-              months: "release_month",
+              months: "latest_month",
             },
             requiredInputs: ["headways"],
             downstreamConsumers: ["ewt"],
@@ -182,11 +182,11 @@ describe("data product completeness audit", () => {
             expectedUniverse: {
               description: "all routes",
               routes: "route_catalog",
-              months: "release_month",
+              months: "latest_month",
             },
             requiredInputs: ["route metrics"],
             downstreamConsumers: ["route list"],
-            freshnessPolicy: { cadence: "release_month" },
+            freshnessPolicy: { cadence: "latest_month" },
             checks: [
               {
                 id: "table",
@@ -209,11 +209,11 @@ describe("data product completeness audit", () => {
             expectedUniverse: {
               description: "all routes",
               routes: "route_catalog",
-              months: "release_month",
+              months: "latest_month",
             },
             requiredInputs: ["route model"],
             downstreamConsumers: ["route detail"],
-            freshnessPolicy: { cadence: "release_month" },
+            freshnessPolicy: { cadence: "latest_month" },
             checks: [
               {
                 id: "files",
@@ -231,10 +231,10 @@ describe("data product completeness audit", () => {
             owner: "test",
             grain: "release manifest",
             producerCommand: "test map",
-            expectedUniverse: { description: "one manifest", months: "release_month" },
+            expectedUniverse: { description: "one manifest", months: "latest_month" },
             requiredInputs: ["map layers"],
             downstreamConsumers: ["route map"],
-            freshnessPolicy: { cadence: "release_month", staleAfterDays: 1 },
+            freshnessPolicy: { cadence: "latest_month", staleAfterDays: 1 },
             checks: [
               {
                 id: "file",
@@ -273,7 +273,7 @@ describe("data product completeness audit", () => {
             owner: "test",
             grain: "release manifest",
             producerCommand: "test waived",
-            expectedUniverse: { description: "waived manifest", months: "release_month" },
+            expectedUniverse: { description: "waived manifest", months: "latest_month" },
             requiredInputs: [],
             downstreamConsumers: ["optional page"],
             freshnessPolicy: { cadence: "manual" },
@@ -828,11 +828,11 @@ describe("data product completeness audit", () => {
             expectedUniverse: {
               description: "route catalog",
               routes: "route_catalog",
-              months: "release_month",
+              months: "latest_month",
             },
             requiredInputs: ["local_route_segment_speed"],
             downstreamConsumers: ["route detail"],
-            freshnessPolicy: { cadence: "release_month" },
+            freshnessPolicy: { cadence: "latest_month" },
             checks: [
               {
                 id: "routes",
@@ -855,11 +855,11 @@ describe("data product completeness audit", () => {
             expectedUniverse: {
               description: "speed routes",
               routes: "speed_source_routes",
-              months: "release_month",
+              months: "latest_month",
             },
             requiredInputs: [],
             downstreamConsumers: ["route detail"],
-            freshnessPolicy: { cadence: "release_month" },
+            freshnessPolicy: { cadence: "latest_month" },
             checks: [
               {
                 id: "routes",
@@ -1268,10 +1268,10 @@ describe("data product completeness audit", () => {
             owner: "test",
             grain: "release",
             producerCommand: "test release",
-            expectedUniverse: { description: "release", months: "release_month" },
+            expectedUniverse: { description: "release", months: "latest_month" },
             requiredInputs: [],
             downstreamConsumers: ["release"],
-            freshnessPolicy: { cadence: "release_month" },
+            freshnessPolicy: { cadence: "latest_month" },
             checks: [
               {
                 id: "release_json",
@@ -1325,10 +1325,10 @@ describe("data product completeness audit", () => {
             owner: "test",
             grain: "release",
             producerCommand: "test availability",
-            expectedUniverse: { description: "release", months: "release_month" },
+            expectedUniverse: { description: "release", months: "latest_month" },
             requiredInputs: [],
             downstreamConsumers: ["release"],
-            freshnessPolicy: { cadence: "release_month" },
+            freshnessPolicy: { cadence: "latest_month" },
             checks: [
               {
                 id: "availability_json",

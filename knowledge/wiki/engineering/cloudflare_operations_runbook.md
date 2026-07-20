@@ -2,7 +2,7 @@
 title: Cloudflare Operations Runbook
 type: engineering
 status: active
-last_updated: 2026-05-21
+last_updated: 2026-07-19
 owner: codex
 source_count: 0
 tags: [cloudflare, worker, d1, r2, operations, gtfs-rt]
@@ -12,7 +12,8 @@ tags: [cloudflare, worker, d1, r2, operations, gtfs-rt]
 
 ## Purpose
 
-This runbook turns the local March 2026 v1 serving release into a deployed Cloudflare app and keeps current GTFS-RT capture running after deploy.
+This runbook publishes coordinated D1, Studio, and map releases to the deployed Cloudflare app and
+keeps current GTFS-RT capture running after deploy.
 
 The repo intentionally does not commit fake Cloudflare IDs. Add real IDs only after the resources exist.
 
@@ -31,8 +32,6 @@ Required production vars/secrets:
 | Name | Kind | Value |
 |---|---|---|
 | `MTA_BUS_TIME_API_KEY` | secret | MTA Bus Time key from the local `.env`. |
-| `BASELINE_MONTH` | var | `2026-03` for the current v1 release. |
-| `LAST_BUILT_SPEED_MONTH` | var | `2026-03` until a newer complete public speed month is promoted. |
 | `GTFS_RT_SAMPLES_PER_CRON` | var | `2` for two samples per one-minute cron. |
 | `GTFS_RT_SAMPLE_SECONDS` | var | `30` for strict 30-second GTFS-RT cadence. |
 
@@ -43,8 +42,6 @@ available in `apps/web/wrangler.production.example.jsonc`:
 
 ```jsonc
 "vars": {
-  "BASELINE_MONTH": "2026-03",
-  "LAST_BUILT_SPEED_MONTH": "2026-03",
   "GTFS_RT_SAMPLES_PER_CRON": "2",
   "GTFS_RT_SAMPLE_SECONDS": "30"
 },
@@ -71,17 +68,20 @@ Keep this block out of source control until the project is ready to commit envir
 
 ## One-Time Release Publish
 
-> **De-month status (2026-07-12):** the month-keyed mechanics in this section remain live but are
-> scheduled for removal per ADR-0022 — serving contract in plan 085, release identity in plan 086,
-> and freshness ledger in plan 087. Until those land, this section describes current behavior.
-
-Build and verify local serving outputs first:
+Build one coordinated local D1, Studio, and map release first. `--month` selects the covered data
+partition; it is not the release identity. The orchestrator captures one canonical publication
+timestamp and threads its `releaseId` and `publishedAt` through every output. Each dataset records
+its own coverage window, and every `coverage.end` must equal the selected partition.
 
 ```bash
-bun run check:pipeline-v1 -- --year 2026 --month 3
-bun run export:d1 -- --year 2026 --month 3
-bun run verify:d1 -- --year 2026 --month 3
+bun run pipeline map release --year 2026 --month 3 --context-source <reviewed-borough-boundary.csv>
+bun run check:publish-completeness -- --month 2026-03
 ```
+
+Before any remote mutation, inspect the D1 export summary, Studio release payload, map manifest,
+and map catalog registration. Their `releaseId` and `publishedAt` must match exactly; their coverage
+windows must be valid and end at `2026-03`. The publish script validates these local outputs but
+does not build or repair them.
 
 Dry-run the publish commands:
 
@@ -95,7 +95,7 @@ Publish only after reviewing the generated D1 and R2 commands:
 bun run publish:serving-release -- --month 2026-03 --d1 bus-priority-serving --r2 bus-priority-artifacts --execute
 ```
 
-This is not a cron job. Run it when promoting a baseline month or a corrected release artifact set.
+This is not a cron job. Run it when publishing a reviewed release or corrected artifact set.
 
 ## Automated GitHub Actions Deploy
 
@@ -121,8 +121,8 @@ The workflow skips the Cloudflare deploy step, with a GitHub Actions notice, unt
 Keep `MTA_BUS_TIME_API_KEY` as a Cloudflare Worker secret, not a GitHub Actions secret, unless a
 future workflow intentionally rotates deployed Worker secrets. The CI/CD workflow deploys code and
 the committed Wrangler binding config only; it does not publish D1 seed SQL, upload R2 release
-artifacts, or promote a new baseline month. Use [[#One-Time Release Publish]] for reviewed serving
-data releases.
+artifacts, or register a new release. Use [[#One-Time Release Publish]] for reviewed serving-data
+releases.
 
 ## Worker Deploy
 
@@ -150,14 +150,14 @@ CLOUDFLARE_ACCOUNT_ID=7aa7065a7e971d97435b3f22098d78b0 bunx wrangler deploy --co
 Verify the API against deployed D1/R2:
 
 ```bash
-curl -fsS 'https://<worker-host>/api/v1/status?month=2026-03'
-curl -fsS 'https://<worker-host>/api/v1/routes?month=2026-03&limit=5'
-curl -fsS 'https://<worker-host>/api/v1/map/manifest?month=2026-03'
+curl -fsS 'https://<worker-host>/api/v1/status'
+curl -fsS 'https://<worker-host>/api/v1/routes?limit=5'
+curl -fsS 'https://<worker-host>/api/v1/map/manifest'
 ```
 
 Expected behavior:
 
-- `/api/v1/status` reports `baselineMonth = 2026-03`.
+- `/api/v1/status` reports the latest passing release's `releaseId`, `publishedAt`, and coverage.
 - Recovered March GTFS-RT is labeled `third_party_recovered`.
 - Map manifest returns R2-backed artifact API paths.
 - API responses do not claim official historical GTFS-RT backfill.
@@ -280,18 +280,21 @@ The scheduled Worker writes a compact route-speed availability artifact to `ARTI
 source-availability/route-speed-availability-worker.json
 ```
 
-If that artifact says `shouldRebuild = true`, run the baseline promotion pipeline for the new complete public speed month:
+If that artifact says `shouldRebuild = true`, build a release from the new complete public-speed
+partition:
 
 ```bash
 bun run plan:source-refresh -- --start-year 2026 --end-year 2026 --year <YYYY> --month <M> --last-built-year 2026 --last-built-month 3 --min-speed-routes 300
 bun run finalize:pipeline-v1 -- --year <YYYY> --month <M> --run-id <matching-gtfs-rt-run-id>
 bun run check:pipeline-v1 -- --year <YYYY> --month <M>
+bun run pipeline map release --year <YYYY> --month <M> --context-source <reviewed-borough-boundary.csv>
 bun run publish:serving-release -- --month <YYYY-MM> --d1 bus-priority-serving --r2 bus-priority-artifacts
 ```
 
 Only run the final publish with `--execute` after QA passes and the new month is approved.
 
-After promotion, update `BASELINE_MONTH` and `LAST_BUILT_SPEED_MONTH` in Worker vars and redeploy.
+After publication, confirm `/api/v1/status` reports the new `releaseId`, `publishedAt`, and coverage
+window. Data publication does not require a Worker month variable or a code redeploy.
 
 ## Completion Evidence
 

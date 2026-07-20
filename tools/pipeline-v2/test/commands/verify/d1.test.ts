@@ -1,15 +1,21 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { decodeStrict } from "@bp/domain/decode";
+import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import { type D1SeedOutputResult, estimateD1ExportCost } from "../../../src/commands/export/d1.ts";
+import { runVerifyD1Export } from "../../../src/commands/verify/d1.ts";
 import {
   collectD1TableCounts,
   verifyD1TableCounts,
 } from "../../../src/commands/verify/d1-loaded.ts";
 import { runD1ReplayBoundary } from "../../../src/effect/d1-replay.ts";
+import { openLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
 const commandPath = join(import.meta.dir, "../../../src/commands/verify/d1.ts");
 const loadedHelperPath = join(import.meta.dir, "../../../src/commands/verify/d1-loaded.ts");
+const publishedAt = "2026-07-19T12:34:56.789Z";
 
 const schemaSql = `
   CREATE TABLE route_catalog (route_id TEXT PRIMARY KEY);
@@ -57,11 +63,15 @@ const seedSql = `
 `;
 
 function emptyExportResult(): D1SeedOutputResult {
+  const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+    releaseId: releaseIdFromPublishedAt(publishedAt),
+    publishedAt,
+    coverage: { start: null, end: "2026-03" },
+  });
   return {
-    schemaVersion: 1,
-    isoMonth: "2026-03",
-    analysisPeriod: "2026-03",
-    generatedAt: "2026-05-29T00:00:00.000Z",
+    schemaVersion: 2,
+    ...releaseIdentity,
+    generatedAt: publishedAt,
     summaryPath: "/tmp/summary.json",
     schemaPath: "/tmp/schema.sql",
     seedPath: "/tmp/seed.sql",
@@ -195,5 +205,58 @@ describe("verify d1 helpers", () => {
 
     expect(issues).toEqual([]);
     expect(issues2).toEqual(["route_catalog:expected_99:actual_1"]);
+  });
+
+  it("threads one publication identity into the D1 export while preserving D1 coverage", async () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-d1-release-identity-"));
+    const local = await openLocalPipelineDb(join(root, "pipeline.sqlite"));
+    try {
+      local.sqlite.exec(`
+        INSERT INTO local_route_batch_status (
+          month,
+          generated_at,
+          status,
+          route_count,
+          artifact_count,
+          missing_artifact_count,
+          hash_mismatch_count,
+          byte_length_mismatch_count,
+          total_byte_length,
+          issue_count
+        ) VALUES ('2026-03', '${publishedAt}', 'pass', 0, 0, 0, 0, 0, 0, 0);
+      `);
+      const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
+        releaseId: releaseIdFromPublishedAt(publishedAt),
+        publishedAt,
+        coverage: { start: "2025-02", end: "2026-03" },
+      });
+      const result = await runVerifyD1Export({
+        local,
+        year: 2026,
+        month: 3,
+        releaseIdentity,
+        exportRoot: join(root, "exports"),
+        artifactRoot: join(root, "artifacts"),
+      });
+
+      expect(result.releaseId).toBe(releaseIdentity.releaseId);
+      expect(result.publishedAt).toBe(releaseIdentity.publishedAt);
+      expect(result.coverage.start).toBeNull();
+      expect(result.coverage.end as string).toBe("2026-03");
+
+      const exportSummary = JSON.parse(
+        await Bun.file(join(dirname(result.seedPath), "export-summary.json")).text(),
+      );
+      expect(exportSummary).toMatchObject({
+        schemaVersion: 2,
+        releaseId: releaseIdentity.releaseId,
+        publishedAt: releaseIdentity.publishedAt,
+        coverage: { start: null, end: "2026-03" },
+        generatedAt: releaseIdentity.publishedAt,
+      });
+    } finally {
+      local.sqlite.close();
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

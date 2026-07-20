@@ -66,12 +66,12 @@ export const DataProductLifecycleSchema = Schema.Struct({
 export const DataProductExpectedUniverseSchema = Schema.Struct({
   description: Schema.String.check(Schema.isMinLength(1)),
   routes: Schema.optionalKey(DataProductRouteUniverseSchema),
-  months: Schema.optionalKey(Schema.Literals(["release_month", "history_window"])),
+  months: Schema.optionalKey(Schema.Literals(["latest_month", "history_window"])),
 });
 
 export const DataProductFreshnessPolicySchema = Schema.Struct({
   cadence: Schema.Literals([
-    "release_month",
+    "latest_month",
     "historical_window",
     "run_scoped",
     "manual",
@@ -247,7 +247,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         expectedUniverse: {
           description: "The public route catalog that anchors release route universes.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["source_manifest:current_bus_routes", "source_manifest:current_bus_stops"],
         downstreamConsumers: [
@@ -255,7 +255,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "Studio route listing",
           "map route projections",
         ],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "row_count",
@@ -271,13 +271,13 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Route-month source coverage rows",
         kind: "local_table",
         owner: "tools/pipeline-v2/ingest",
-        grain: "route x release month",
+        grain: "route x latest covered month",
         producerCommand: "ingest route-coverage",
         expectedUniverse: {
           description:
-            "One speed/schedule coverage row for each route with release-month schedule or speed source support.",
+            "One speed/schedule coverage row for each route with schedule or speed source support for the latest covered month.",
           routes: "coverage_source_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "local_route_catalog",
@@ -285,7 +285,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "local_route_schedule_timepoint",
         ],
         downstreamConsumers: ["route readiness", "route build planning", "source coverage notes"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -303,16 +303,16 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Route readiness serving rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/route",
-        grain: "route x release month",
+        grain: "route x latest covered month",
         producerCommand: "route readiness",
         expectedUniverse: {
           description: "One readiness row for each route in the public catalog.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["local_route_month_coverage", "local_route_catalog"],
         downstreamConsumers: ["route build plan", "Studio route availability labels"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -330,16 +330,16 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Route build-plan rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/route",
-        grain: "route x release month",
+        grain: "route x latest covered month",
         producerCommand: "route build-plan",
         expectedUniverse: {
           description: "One build-plan row for each route in the public catalog.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["local_route_readiness", "local_route_artifact"],
         downstreamConsumers: ["route batch rebuilds", "publication readiness audits"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -464,7 +464,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         expectedUniverse: {
           description:
             "Intervention event rows used to date and type route/corridor treatment comparisons.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "source_manifest:intervention_seed_events",
@@ -487,7 +487,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Route intervention comparison history",
         kind: "local_table",
         owner: "tools/pipeline-v2/route",
-        grain: "route x intervention event x release month",
+        grain: "route x intervention event x latest covered month",
         producerCommand: "route intervention-evaluation",
         expectedUniverse: {
           description: "Every month in the website history window with evaluated route panels.",
@@ -521,16 +521,16 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
       },
       {
         id: "local_route_schedule_timepoints_release",
-        label: "Release-month route schedule timepoints",
+        label: "Route schedule timepoints for the latest covered month",
         kind: "local_table",
         owner: "tools/pipeline-v2/ingest",
         grain: "route x month x trip x stop sequence",
         producerCommand: "ingest route-schedules",
         expectedUniverse: {
           description:
-            "Release-month schedule rows for catalog routes present in the source-year schedule feed.",
+            "Schedule rows for catalog routes in the source-year feed covering the latest month.",
           routes: "schedule_source_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["source_manifest:bus_schedules_2023_2026"],
         downstreamConsumers: [
@@ -538,7 +538,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "observed reliability baselines",
           "stop-direction-hour wait feature materialization",
         ],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -596,16 +596,16 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Release route stop rows",
         kind: "local_table",
         owner: "tools/pipeline-v2/ingest",
-        grain: "route x release month x stop x direction",
+        grain: "route x latest covered month x stop x direction",
         producerCommand: "ingest route-catalog",
         expectedUniverse: {
           description: "Route stop rows for every route in the public catalog.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["source_manifest:current_bus_routes", "source_manifest:current_bus_stops"],
         downstreamConsumers: ["map artifacts", "bus-lane matching", "route metrics"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -623,12 +623,12 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Scheduled reliability baseline rows",
         kind: "local_table",
         owner: "tools/pipeline-v2/route",
-        grain: "route x release month",
+        grain: "route x latest covered month",
         producerCommand: "route reliability-baseline",
         expectedUniverse: {
           description: "Scheduled headway baseline rows for every route in the public catalog.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["local_route_schedule_timepoint", "local_route_stop"],
         downstreamConsumers: [
@@ -636,7 +636,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "route reliability panels",
           "schedule comparison notes",
         ],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -659,7 +659,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         expectedUniverse: {
           description: "Observed headway samples for the audited GTFS-RT run.",
           routes: "observed_headway_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["local_gtfs_rt_vehicle_position", "local_gtfs_rt_trip_update"],
         downstreamConsumers: [
@@ -683,13 +683,13 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Observed reliability summary rows",
         kind: "local_table",
         owner: "tools/pipeline-v2/route",
-        grain: "route x release month x observed run",
+        grain: "route x latest covered month x observed run",
         producerCommand: "route observed-reliability; import bus-observatory-reliability-summary",
         expectedUniverse: {
           description:
             "Observed reliability summary rows for routes with observed headway support.",
           routes: "observed_headway_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["local_observed_headway_sample", "local_route_reliability_baseline"],
         downstreamConsumers: [
@@ -721,7 +721,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         expectedUniverse: {
           description: "Routes with catalog, GTFS static, and observed-headway support.",
           routes: "ewt_eligible_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "local_observed_headway_sample",
@@ -841,9 +841,9 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         producerCommand: "studio route-treatment-summary",
         expectedUniverse: {
           description:
-            "Deterministic route treatment, segment overlap, and source-gap summary rows for the release month.",
+            "Deterministic route treatment, segment overlap, and source-gap summary rows for the latest covered month.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "local_intervention_events_release",
@@ -856,7 +856,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "route evidence panels",
           "data notes",
         ],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "summary_json",
@@ -879,7 +879,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           description:
             "Versioned mta-wiki evidence imported into the Studio route-evidence backend for public route pages.",
           routes: "public_visible_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["mta-wiki v1 release", "Studio route catalog"],
         downstreamConsumers: [
@@ -926,7 +926,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         expectedUniverse: {
           description:
             "Current borough and MTA Bus Company GTFS static bundles used for schedule-derived features.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "source_manifest:bus_gtfs_bronx",
@@ -1117,7 +1117,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         producerCommand: "ingest socrata-csv-snapshot --source nyc_borough_boundaries",
         expectedUniverse: {
           description: "Raw five-borough boundary snapshot for clipping and scope checks.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["source_manifest:nyc_borough_boundaries"],
         downstreamConsumers: ["map base artifacts", "NYC scope clipping checks"],
@@ -1518,16 +1518,16 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Studio route scorecard serving rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/studio",
-        grain: "route x release month",
+        grain: "route x latest covered month",
         producerCommand: "studio release",
         expectedUniverse: {
           description: "One scorecard row for each route in the public route catalog.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["route metrics", "local_route_month_trend"],
         downstreamConsumers: ["GET /api/v1/routes", "Studio route cards"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -1545,16 +1545,16 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Studio route summary serving rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/studio",
-        grain: "route x release month",
+        grain: "route x latest covered month",
         producerCommand: "studio release",
         expectedUniverse: {
           description: "One route summary row for each route in the public route catalog.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["route metrics", "local_route_month_trend"],
         downstreamConsumers: ["GET /api/v1/studio/routes", "route detail pages"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -1572,16 +1572,16 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Studio route source-status serving rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/audit",
-        grain: "route x release month x source",
+        grain: "route x latest covered month x source",
         producerCommand: "audit source-coverage",
         expectedUniverse: {
           description: "Source-status rows for each route in the public route catalog.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["source metadata captures", "local_route_month_coverage"],
         downstreamConsumers: ["Studio route detail source coverage", "source coverage notes"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -1633,16 +1633,16 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Studio route hotspot summary rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/route",
-        grain: "route x release month",
+        grain: "route x latest covered month",
         producerCommand: "route brief-model",
         expectedUniverse: {
           description: "Hotspot summary rows for each route in the public route catalog.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["local_route_segment_speed", "local_route_hourly_ridership"],
         downstreamConsumers: ["route detail panels", "map route-segment artifacts"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -1660,17 +1660,17 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Studio route peak-window serving rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/route",
-        grain: "route x release month x window rank",
+        grain: "route x latest covered month x window rank",
         producerCommand: "route brief-model",
         expectedUniverse: {
           description:
-            "Peak ridership/speed window rows for routes with release-month ridership source support.",
+            "Peak ridership/speed window rows for routes with ridership source support for the latest covered month.",
           routes: "ridership_source_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["local_route_hotspot_summary", "local_route_hourly_ridership"],
         downstreamConsumers: ["Studio route detail panels"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -1688,17 +1688,17 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Studio route slowest-window serving rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/route",
-        grain: "route x release month x window rank",
+        grain: "route x latest covered month x window rank",
         producerCommand: "route brief-model",
         expectedUniverse: {
           description:
-            "Slowest observed window rows for routes with release-month segment-speed support.",
+            "Slowest observed window rows for routes with segment-speed support for the latest covered month.",
           routes: "speed_source_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["local_route_hotspot_summary", "local_route_segment_speed"],
         downstreamConsumers: ["Studio route detail panels"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -1716,17 +1716,17 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Studio route comparison rank rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/route",
-        grain: "release month x rank x route",
+        grain: "latest covered month x rank x route",
         producerCommand: "route brief-model",
         expectedUniverse: {
           description:
-            "Comparison ranking rows for routes with release-month segment-speed support.",
+            "Comparison ranking rows for routes with segment-speed support for the latest covered month.",
           routes: "speed_source_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["local_route_brief_summary"],
         downstreamConsumers: ["GET /api/v1/studio/routes", "route peer-context panels"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -1816,7 +1816,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           description:
             "Compact D1/R2 coverage index that lets the app advertise route-speed-history availability without probing R2.",
           routes: "speed_source_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["studio_route_speed_history_artifacts"],
         downstreamConsumers: [
@@ -1824,7 +1824,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "route list surface flags",
           "deferred route-speed-history loader",
         ],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -1842,16 +1842,16 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Studio route artifact index rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/studio",
-        grain: "route x release month x artifact",
+        grain: "route x latest covered month x artifact",
         producerCommand: "export d1",
         expectedUniverse: {
           description: "Route artifact index rows for public-visible release routes.",
           routes: "public_visible_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["route_treatment_summary_artifact", "map_route_segment_geojsons"],
         downstreamConsumers: ["D1 serving export", "publish completeness check"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_table",
@@ -1869,15 +1869,15 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Studio corridor serving rows",
         kind: "serving_projection",
         owner: "tools/pipeline-v2/corridor",
-        grain: "corridor x release month",
+        grain: "corridor x latest covered month",
         producerCommand: "corridor model",
         expectedUniverse: {
           description: "Corridor summary rows for generated corridor pages.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["local_corridor", "local_corridor_route_member", "local_route_hotspot"],
         downstreamConsumers: ["D1 serving export", "Studio corridor panels"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "row_count",
@@ -1893,12 +1893,12 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Route metric input slice artifacts",
         kind: "artifact_family",
         owner: "tools/pipeline-v2/route",
-        grain: "route x release month JSON input slice",
+        grain: "route x latest covered month JSON input slice",
         producerCommand: "route brief-model",
         expectedUniverse: {
           description: "One route metric input slice for each route in the public route catalog.",
           routes: "route_catalog",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "local_route_segment_speed",
@@ -1906,7 +1906,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "local_route_schedule_timepoint",
         ],
         downstreamConsumers: ["Studio release projection", "route detail panels"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_artifacts",
@@ -1923,12 +1923,12 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Map route-segment GeoJSON artifacts",
         kind: "artifact_family",
         owner: "tools/pipeline-v2/map",
-        grain: "route x release month GeoJSON",
+        grain: "route x latest covered month GeoJSON",
         producerCommand: "map artifacts",
         expectedUniverse: {
           description: "One route-segment GeoJSON artifact for each public-visible release route.",
           routes: "public_visible_routes",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "local_route_segment_speed",
@@ -1936,7 +1936,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "current route shape snapshots",
         ],
         downstreamConsumers: ["Studio route maps", "publish R2 artifacts"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "route_artifacts",
@@ -1953,11 +1953,11 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Map base GeoJSON artifacts",
         kind: "artifact_family",
         owner: "tools/pipeline-v2/map",
-        grain: "release month map support artifact",
+        grain: "latest covered month map support artifact",
         producerCommand: "map artifacts",
         expectedUniverse: {
           description: "Shared route-shape, stop, bus-lane, and source-snapshot map artifacts.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "source_manifest:current_bus_routes",
@@ -1965,7 +1965,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "source_manifest:nyc_dot_bus_lanes_local_streets",
         ],
         downstreamConsumers: ["Studio map shell", "publish R2 artifacts"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "source_snapshot",
@@ -1998,15 +1998,15 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Map release manifest",
         kind: "release_manifest",
         owner: "tools/pipeline-v2/map",
-        grain: "release month map artifact manifest",
+        grain: "latest covered month map artifact manifest",
         producerCommand: "map artifacts",
         expectedUniverse: {
-          description: "One map manifest for the release month.",
-          months: "release_month",
+          description: "One map manifest for the latest covered month.",
+          months: "latest_month",
         },
         requiredInputs: ["route geometry", "segment speed artifacts", "bus lane geometry"],
         downstreamConsumers: ["GET /api/v1/map/manifest", "route maps", "publish R2 artifacts"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "manifest_file",
@@ -2024,12 +2024,12 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         grain: "release projection bundle",
         producerCommand: "studio release",
         expectedUniverse: {
-          description: "Canonical Studio release payload for the public release month.",
-          months: "release_month",
+          description: "Canonical Studio release payload for the latest publicly covered month.",
+          months: "latest_month",
         },
         requiredInputs: ["D1 serving export", "route-slices", "route_treatment_summary_artifact"],
         downstreamConsumers: ["public Studio app", "publish R2 artifacts"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "release_json",
@@ -2048,11 +2048,11 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         producerCommand: "studio release",
         expectedUniverse: {
           description: "Static route, method, docs, map, and intervention projection indexes.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["studio_release_projection_manifest"],
         downstreamConsumers: ["public Studio app", "static asset fallback"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "routes",
@@ -2079,11 +2079,11 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Bus Observatory GTFS-RT availability artifact",
         kind: "release_manifest",
         owner: "tools/pipeline-v2/check",
-        grain: "release month source availability JSON",
+        grain: "latest covered month source availability JSON",
         producerCommand: "check bus-observatory-gtfs-rt",
         expectedUniverse: {
           description: "Availability decision artifact for observed GTFS-RT release handoffs.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "source_manifest:bus_time_gtfsrt_alerts",
@@ -2097,7 +2097,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "observed reliability imports",
           "Studio current-signal appendix",
         ],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "availability_json",
@@ -2114,11 +2114,11 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "D1 serving export artifacts",
         kind: "release_manifest",
         owner: "tools/pipeline-v2/export",
-        grain: "release month schema/seed/export summary",
+        grain: "latest covered month schema/seed/export summary",
         producerCommand: "export d1",
         expectedUniverse: {
           description: "D1 schema, seed SQL, replay SQLite, and export summary for the release.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "studio_route_scorecards",
@@ -2126,7 +2126,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "studio_route_artifact_index",
         ],
         downstreamConsumers: ["verify d1", "studio release", "publish R2 artifacts"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "export_summary",
@@ -2159,15 +2159,15 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "D1 serving verification artifact",
         kind: "release_manifest",
         owner: "tools/pipeline-v2/verify",
-        grain: "release month D1 replay verification",
+        grain: "latest covered month D1 replay verification",
         producerCommand: "verify d1",
         expectedUniverse: {
           description: "Verification summary proving the generated D1 seed replays cleanly.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["d1_serving_export_artifacts"],
         downstreamConsumers: ["publish:serving-release", "release promotion checklist"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "verify_summary",
@@ -2187,7 +2187,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         expectedUniverse: {
           description:
             "Redacted per-snapshot R2 manifests for raw GTFS-RT vehicle-position captures.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "source_manifest:bus_time_gtfsrt_vehicle_positions",
@@ -2221,11 +2221,11 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         expectedUniverse: {
           description:
             "Committed SEO manifest module and public sitemap generated from Studio release.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["studio_release_projection_manifest"],
         downstreamConsumers: ["public web worker SEO", "search crawler discovery"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "seo_manifest_module",
@@ -2246,12 +2246,12 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Cloudflare publish upload audit",
         kind: "release_manifest",
         owner: "tools/pipeline-v2/publish",
-        grain: "release month R2 upload report",
+        grain: "latest covered month R2 upload report",
         producerCommand: "publish r2-artifacts",
         expectedUniverse: {
           description:
             "Idempotent R2 upload report with candidate/upload/skip/fail counts and cost estimate.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: [
           "d1_serving_export_artifacts",
@@ -2259,7 +2259,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "map_release_manifest",
         ],
         downstreamConsumers: ["release promotion checklist", "Cloudflare operations runbook"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "publish_r2_json",
@@ -2274,15 +2274,15 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         label: "Publish completeness audit",
         kind: "release_manifest",
         owner: "tools/pipeline-v2/check",
-        grain: "release month publish audit JSON",
+        grain: "latest covered month publish audit JSON",
         producerCommand: "check-publish-completeness",
         expectedUniverse: {
           description: "R2/D1 artifact-key completeness audit before serving publication.",
-          months: "release_month",
+          months: "latest_month",
         },
         requiredInputs: ["map_release_manifest", "studio_route_artifact_index"],
         downstreamConsumers: ["publish:serving-release", "release promotion checklist"],
-        freshnessPolicy: { cadence: "release_month" },
+        freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
             id: "publish_completeness_json",
