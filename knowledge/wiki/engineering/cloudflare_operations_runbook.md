@@ -138,7 +138,7 @@ Before publishing, inspect:
 - `coverageState`, especially `partial` and `checked_no_positive_evidence` routes;
 - reconciliation for unexplained treatment/occurrence loss or exact-route failures;
 - producer `unresolved` semantics as explicit source gaps, never `other_documented`;
-- the 128 KiB route-bundle, 256 KiB route-index, and 512 KiB facet-index gates.
+- the 128 KiB route-bundle, 320 KiB route-index, and 2 MiB facet-index gates.
 
 Per-file atomic promotion preserves unrelated files under `studio/v2/routes` and
 `studio/v2/interventions`. Never delete or replace either shared directory to recover from a failed

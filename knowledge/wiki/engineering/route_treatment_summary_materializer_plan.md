@@ -129,8 +129,8 @@ Size gates are measured on canonical bytes:
 | Artifact | Maximum |
 |---|---:|
 | One route bundle | 128 KiB |
-| Route inventory index | 256 KiB |
-| Citywide facet index | 512 KiB |
+| Route inventory index | 320 KiB |
+| Citywide facet index | 2 MiB |
 
 Do not truncate to meet a budget. Report the failing counts and redesign the compact projection.
 

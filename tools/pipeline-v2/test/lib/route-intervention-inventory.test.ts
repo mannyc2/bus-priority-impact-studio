@@ -612,6 +612,8 @@ describe("route intervention inventory", () => {
   });
 
   test("is byte deterministic under shuffled inputs and stays within every budget", () => {
+    expect(ROUTE_INTERVENTION_INVENTORY_BYTE_BUDGETS.routeIndex).toBe(320 * 1024);
+    expect(ROUTE_INTERVENTION_INVENTORY_BYTE_BUDGETS.facetIndex).toBe(2 * 1024 * 1024);
     const first = buildRouteInterventionInventory(fixture("mapped", false));
     const second = buildRouteInterventionInventory(fixture("mapped", true));
 

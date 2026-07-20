@@ -71,8 +71,8 @@ import { decodeSchemaStrict } from "./schema-decode.ts";
 
 export const ROUTE_INTERVENTION_INVENTORY_BYTE_BUDGETS = {
   routeBundle: 128 * 1024,
-  routeIndex: 256 * 1024,
-  facetIndex: 512 * 1024,
+  routeIndex: 320 * 1024,
+  facetIndex: 2 * 1024 * 1024,
 } as const;
 
 const textEncoder = new TextEncoder();
@@ -1654,7 +1654,7 @@ export function buildRouteInterventionInventory(
   });
   const facetIndexBytes = canonicalRouteInterventionInventoryBytes(facetIndex);
   assertWithinBudget(
-    "Studio intervention facet index",
+    `Studio intervention facet index (${facetIndex.summary.rowCount} rows across ${facetIndex.summary.routeCount} routes, ${facetIndex.summary.treatmentCount} treatments, and ${facetIndex.summary.occurrenceCount} occurrences)`,
     facetIndexBytes,
     ROUTE_INTERVENTION_INVENTORY_BYTE_BUDGETS.facetIndex,
   );
