@@ -13,6 +13,7 @@ import {
   fetchStudioRoute,
   fetchStudioRouteIndex,
   fetchStudioRouteInterventionInventory,
+  fetchStudioRouteInterventionObservations,
   fetchStudioRoutes,
   fetchVerifiedMapArtifact,
   joinNetworkMapBundle,
@@ -378,6 +379,48 @@ describe("Studio API client", () => {
       });
     }) as typeof globalThis.fetch);
     const load = fetchStudioInterventionFacetIndex({ signal: controller.signal });
+    controller.abort();
+    await expect(load).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  test("loads nullable intervention observation bundles from encoded public keys", async () => {
+    const fixture = {
+      schemaVersion: 1,
+      artifactKind: "studio_route_intervention_observations",
+      route: { slug: "m15+sbs" },
+    };
+    let requestedPath = "";
+    mockFetch((async (input) => {
+      requestedPath = String(input);
+      return Response.json(fixture);
+    }) as typeof globalThis.fetch);
+
+    const result: unknown = await fetchStudioRouteInterventionObservations("m15+sbs");
+    expect(result).toEqual(fixture);
+    expect(requestedPath).toBe(
+      "/api/v1/artifacts/studio/v2/routes/m15%2Bsbs/intervention-observations.json",
+    );
+
+    mockFetch(
+      (async () => new Response(null, { status: 404 })) as unknown as typeof globalThis.fetch,
+    );
+    await expect(fetchStudioRouteInterventionObservations("m15-sbs")).resolves.toBeNull();
+  });
+
+  test("observation bundle loads propagate aborts", async () => {
+    const controller = new AbortController();
+    mockFetch((async (_input, init) => {
+      if (init?.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new DOMException("Aborted", "AbortError")),
+        );
+      });
+    }) as typeof globalThis.fetch);
+
+    const load = fetchStudioRouteInterventionObservations("m15-sbs", {
+      signal: controller.signal,
+    });
     controller.abort();
     await expect(load).rejects.toMatchObject({ name: "AbortError" });
   });

@@ -55,6 +55,25 @@ exhaustive treatment presentation helper for dated observation markers, but it
 must resolve those markers through typed treatment IDs rather than History
 prose or analysis-family equivalence.
 
+## Overview trend-marker rules — 2026-07-20 (approved comp)
+
+The operator approved Plan 082's six recommended variants without changes;
+`plans/mockups/082-overview-trend-markers/comp.html` is the binding acceptance
+target. The implementation must use a quiet dashed inline marker; collapse
+same-month occurrences into one count-bearing marker; retain at most the four
+most recent marker months with no overflow hint; show only first/last month
+ticks and no redundant source-date line; preserve null months as visible gaps;
+and fall back to the dossier calendar series with zero markers whenever the
+typed observation bundle is absent or unusable.
+
+The approval was checked against the canonical Plan 090 corpus: 44 routes have
+one eligible marker month, 14 have two, and none have more; no route has two
+eligible occurrences in one month. The comp's labeled synthetic B11 cluster is
+therefore only a latent-path exhibit. Marker eligibility and copy remain typed:
+Plan 090 owns the supported binding and Plan 092 owns the annotation stem.
+History prose, values, study outcomes, and family-name equivalence never admit
+or label a marker.
+
 ## Study-card / chart-card rules — 2026-07-10 (approved comp)
 
 The operator approved plan 075's study-card design through three comp review

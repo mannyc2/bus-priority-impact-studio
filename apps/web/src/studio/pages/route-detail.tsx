@@ -24,6 +24,7 @@ import type {
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteInterventionInventoryBundle,
+  StudioRouteInterventionObservationBundle,
 } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
@@ -39,12 +40,14 @@ export function RouteDetailPage({
   data,
   evidence,
   inventory,
+  observations = null,
   studies = null,
   search,
 }: {
   data: StudioRouteDetailResponse | null;
   evidence: StudioRouteEvidenceBundle | null;
   inventory: StudioRouteInterventionInventoryBundle | null;
+  observations?: StudioRouteInterventionObservationBundle | null;
   studies?: RouteStudiesArtifact | null;
   search: RouteDetailSearch & { record?: string };
 }) {
@@ -96,7 +99,14 @@ export function RouteDetailPage({
   let panel: ReactNode;
   switch (activeTab) {
     case "overview":
-      panel = <OverviewSection data={data} inventory={inventory} onNavigate={navigateToTab} />;
+      panel = (
+        <OverviewSection
+          data={data}
+          inventory={inventory}
+          observations={observations}
+          onNavigate={navigateToTab}
+        />
+      );
       break;
     case "segments": {
       // One linked explorer owns list + map (plan 081/comp r4). The `map`

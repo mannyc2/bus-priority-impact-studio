@@ -22,6 +22,7 @@ export type {
   StudioRouteInterventionSourceState,
   StudioRouteInterventionTreatment,
 } from "@bp/domain/studio";
+export type { StudioRouteInterventionObservationBundle } from "@bp/domain/studio/intervention-observations";
 export type { StudioIntervention } from "@bp/domain/studio/interventions";
 export type {
   StudioInterventionsEvidenceBundle,
