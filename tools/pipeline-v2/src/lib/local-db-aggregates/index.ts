@@ -39,6 +39,10 @@ export {
   latestDataProductGtfsRunId,
 } from "./data-product-route-universes";
 export {
+  type InterventionObservationTrendRow,
+  loadInterventionObservationTrendRows,
+} from "./intervention-observation-rows";
+export {
   INTERVENTION_PANEL_SQL,
   type InterventionComparisonRow,
   InterventionComparisonRowSchema,

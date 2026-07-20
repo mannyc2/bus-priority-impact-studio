@@ -244,6 +244,35 @@ under the `studio/v2` keys documented in
 This documentation records the command contract, not a Plan 091 completion receipt. Command
 discovery plus the Plan 091 fixture/full gates are the implementation proof.
 
+## Route intervention observation export
+
+Materialize Plan 090's value-blind route observation bundles only after the Plan 091 inventory has
+been exported and verified:
+
+```bash
+bun run pipeline -- studio export-intervention-observations --db data/local/pipeline.sqlite --inventory-index data/artifacts/studio/v2/interventions/route-inventory-index.json --release-artifact data/artifacts/studio/v1/release.json --artifact-root data/artifacts
+```
+
+The local database must contain `local_route_month_trend` with the required speed and ridership
+history columns. The inventory index and every referenced Plan 091 route bundle must strictly
+decode, match the release identity and coverage, and pass key/hash verification. The release file
+must strictly decode as a post-Plan-086 `StudioReleasePayload`; its `releaseId` and `publishedAt`
+are the only publication identity accepted by the observation export.
+
+The command writes one observation bundle for each route with at least one admitted registry anchor
+at `studio/v2/routes/<routeSlug>/intervention-observations.json`, then writes the compact citywide
+index at `studio/v2/interventions/observation-index.json`. Rejected anchors remain operational
+counts and are not published. The outputs are ordinary Studio R2 artifacts; no new D1 or Worker
+command is needed.
+
+If a prerequisite is missing or invalid, rebuild it upstream: rerun the route-trend ingest/backfill
+workflow for `local_route_month_trend`, rerun the documented Plan 091 inventory export for the exact
+route bundles and index, or regenerate the coordinated Studio release artifact. Never hand-author
+inventory files, hashes, `releaseId`, `publishedAt`, or coverage metadata to unblock this command.
+
+See [[wiki/engineering/intervention_evidence_relevance|Intervention Evidence Relevance]] for the
+four-lane evidence contract, supported bindings, admission rules, and claim-language ceiling.
+
 ## Export and release commands
 
 ```bash

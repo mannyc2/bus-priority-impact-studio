@@ -89,6 +89,16 @@
       "bun": "./src/studio/intervention-corpus-key.ts",
       "import": "./src/studio/intervention-corpus-key.ts"
     },
+    "./studio/intervention-observations": {
+      "types": "./src/studio/intervention-observations.ts",
+      "bun": "./src/studio/intervention-observations.ts",
+      "import": "./src/studio/intervention-observations.ts"
+    },
+    "./studio/intervention-observations-key": {
+      "types": "./src/studio/intervention-observations-key.ts",
+      "bun": "./src/studio/intervention-observations-key.ts",
+      "import": "./src/studio/intervention-observations-key.ts"
+    },
     "./studio/route-intervention-inventory-key": {
       "types": "./src/studio/route-intervention-inventory-key.ts",
       "bun": "./src/studio/route-intervention-inventory-key.ts",
