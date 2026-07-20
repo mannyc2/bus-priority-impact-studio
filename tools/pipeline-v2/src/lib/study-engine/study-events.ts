@@ -33,6 +33,43 @@ import type {
 
 const trustedRegistrySources = new Set(["mta_ace_routes", "nyc_dot_bus_lanes"]);
 
+export type TrustedRegistryStudyEventInput = {
+  readonly event_id: string;
+  readonly route_id: string;
+  readonly intervention_type: string;
+  readonly source_id: string;
+  readonly program: string;
+  readonly implementation_date: string;
+  readonly implementation_month: string;
+  readonly event_status: string;
+};
+
+export type TrustedRegistryStudyEventRejectionReason =
+  | "invalid_registry_implementation_date"
+  | "missing_route_id"
+  | "registry_event_not_implemented"
+  | "registry_month_date_mismatch"
+  | "unsupported_treatment_family"
+  | "untrusted_or_retired_registry_source";
+
+export type TrustedRegistryStudyEventAdmission =
+  | {
+      readonly status: "admitted";
+      readonly sourceEventId: string;
+      readonly sourceId: string;
+      readonly program: string;
+      readonly routeId: string;
+      readonly treatmentFamily: StudyTreatmentFamily;
+      readonly implementationDate: string;
+      readonly implementationMonth: string;
+    }
+  | {
+      readonly status: "rejected";
+      readonly sourceEventId: string;
+      readonly sourceId: string;
+      readonly reasons: readonly TrustedRegistryStudyEventRejectionReason[];
+    };
+
 const RC22_QUARANTINED_INPUT = {
   releaseId: "v1-rc22",
   manifestSha256: "249ef6be1d927e44d405c11bcff643d18b2133e5407be37dc7612f935a1b53e4",
@@ -151,6 +188,47 @@ function rejection(
   return { sourceKind, sourceId, sourceEventId, reasons: sortedUnique(reasons) };
 }
 
+/**
+ * The single trusted local-registry admission gate shared by study-event
+ * candidate generation and Plan 090 observation materialization.
+ */
+export function admitTrustedRegistryStudyEvent(
+  row: TrustedRegistryStudyEventInput,
+): TrustedRegistryStudyEventAdmission {
+  const reasons: TrustedRegistryStudyEventRejectionReason[] = [];
+  if (!trustedRegistrySources.has(row.source_id)) {
+    reasons.push("untrusted_or_retired_registry_source");
+  }
+  if (row.event_status !== "implemented") reasons.push("registry_event_not_implemented");
+  const family = studyTreatmentFamily(row.intervention_type);
+  if (family === null) reasons.push("unsupported_treatment_family");
+  const day = isoDay(row.implementation_date);
+  if (day === null) reasons.push("invalid_registry_implementation_date");
+  if (day !== null && row.implementation_month !== day.slice(0, 7)) {
+    reasons.push("registry_month_date_mismatch");
+  }
+  const routeId = legacyAliasedRouteId(row.route_id);
+  if (routeId.length === 0) reasons.push("missing_route_id");
+  if (reasons.length > 0 || family === null || day === null) {
+    return {
+      status: "rejected",
+      sourceEventId: row.event_id,
+      sourceId: row.source_id,
+      reasons: sortedUnique(reasons) as TrustedRegistryStudyEventRejectionReason[],
+    };
+  }
+  return {
+    status: "admitted",
+    sourceEventId: row.event_id,
+    sourceId: row.source_id,
+    program: row.program,
+    routeId,
+    treatmentFamily: family,
+    implementationDate: day,
+    implementationMonth: day.slice(0, 7),
+  };
+}
+
 function registryDrafts(rows: readonly RouteTreatmentInterventionEventRow[]): {
   drafts: CandidateDraft[];
   rejections: StudyEventRejection[];
@@ -158,34 +236,24 @@ function registryDrafts(rows: readonly RouteTreatmentInterventionEventRow[]): {
   const drafts: CandidateDraft[] = [];
   const rejections: StudyEventRejection[] = [];
   for (const row of rows) {
-    const reasons: string[] = [];
-    if (!trustedRegistrySources.has(row.source_id))
-      reasons.push("untrusted_or_retired_registry_source");
-    if (row.event_status !== "implemented") reasons.push("registry_event_not_implemented");
-    const family = studyTreatmentFamily(row.intervention_type);
-    if (family === null) reasons.push("unsupported_treatment_family");
-    const day = isoDay(row.implementation_date);
-    if (day === null) reasons.push("invalid_registry_implementation_date");
-    if (day !== null && row.implementation_month !== day.slice(0, 7)) {
-      reasons.push("registry_month_date_mismatch");
-    }
-    const normalizedRouteId = legacyAliasedRouteId(row.route_id);
-    if (normalizedRouteId.length === 0) reasons.push("missing_route_id");
-    if (reasons.length > 0 || family === null || day === null) {
-      rejections.push(rejection("registry", row.source_id, row.event_id, reasons));
+    const admission = admitTrustedRegistryStudyEvent(row);
+    if (admission.status === "rejected") {
+      rejections.push(
+        rejection("registry", admission.sourceId, admission.sourceEventId, admission.reasons),
+      );
       continue;
     }
     drafts.push({
-      routeId: normalizedRouteId,
-      treatmentFamily: family,
-      implementationDate: day,
-      implementationMonth: day.slice(0, 7),
+      routeId: admission.routeId,
+      treatmentFamily: admission.treatmentFamily,
+      implementationDate: admission.implementationDate,
+      implementationMonth: admission.implementationMonth,
       datePrecision: "day",
       provenance: [
         {
           sourceKind: "registry",
-          sourceId: row.source_id,
-          sourceEventId: row.event_id,
+          sourceId: admission.sourceId,
+          sourceEventId: admission.sourceEventId,
           releaseId: null,
           anchorIds: [],
         },
