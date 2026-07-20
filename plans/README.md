@@ -330,7 +330,7 @@ commissioned.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 090, 092; operator comp approval (hard gate in-plan) | TODO (2026-07-18 typed amendment: no History/text-derived marker admission) |
+| 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 090, 092; operator comp approval (hard gate in-plan) | DONE (implementation through `8383e805`; typed observation series, real month/null axis, bounded markers, honest fallback, browser chart smoke) |
 | 083 | Spine pattern-grouping spike: measure honest candidate-coverage gains | P2 | M | 078 (DONE) | DONE (negative spike result; no implementation commissioned) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |

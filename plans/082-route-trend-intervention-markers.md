@@ -635,35 +635,74 @@ not replace visual tick/reference-line verification with static SSR claims.
 - Gates: `check:types`, `test:web`, `check:architecture`, `check:style`, and
   `bun --filter @bp/web build` budget.
 
+## Completion receipt — 2026-07-20
+
+- The approved D1-D6 comp is implemented through `8383e805`. The canonical
+  Plan 090 export produced 323 route bundles and 401 admitted events, with 168
+  rejected inputs. Of the admitted events, 78 are in the reviewed ACE family;
+  72 have a usable metric series. Emitted series statuses were 71 available,
+  73 partial, and 12 missing, spanning 2023-04 through 2026-05.
+- `bun run check` exited 0 after the final source change. This includes types,
+  style, architecture, design/month doctrine, unit tests, 330 web tests, and
+  22 Cloudflare Worker tests. The focused model/chart/Overview run passed 28
+  tests with 89 assertions.
+- `bun --filter @bp/web build` exited 0. The eager entry is 138.3 KB gzip
+  against the 145 KB budget, up about 0.1 KB from the measured 138.2 KB
+  baseline and within the 0.5 KB delta cap. Total JavaScript is 399.6 KB gzip
+  against the 400 KB budget.
+- `bun run seed:local-studio-r2` exited 0 and seeded 1,086 objects. A headless
+  browser harness using the shipped `SpeedTrendChart`, the shipped typed trend
+  model, real Plan 090 observation bundles, real Plan 091 inventories, and the
+  available real route dossiers verified all five chart states: BX28's 25
+  points and Sep 2024 dashed marker; B100 and B1 marker-free dossier fallbacks;
+  B11's eight trailing nulls, visible gap, and empty null-month tooltip; and
+  the role/image name plus marker summaries, including the synthetic clustered
+  occurrence safeguard. The browser rendered first/last month ticks and real
+  Recharts reference lines; these claims do not rely on static SSR markup.
+- The exact route-page smoke cannot run against the available ignored serving
+  inputs. The only full v1 route projections predate Plans 085/086: they still
+  contain retired `baselineMonth`, lack `releaseId`/`publishedAt`/`coverage`,
+  and have null dossiers. A canonical four-route rebuild with the byte-exact
+  Plan 090 release identity failed before output because the available D1
+  export lacks `route_catalog_trip_type`. Regenerating a current D1 export
+  succeeded but truthfully produced zero serving routes from the current local
+  DB. No release identity or route payload was fabricated to bypass this
+  upstream artifact drift. API-client 404/abort tests, loader fail-soft tests,
+  Overview SSR integration tests, and the real-data component browser smoke
+  cover Plan 082's changed boundaries; rebuilding the broader serving inputs
+  remains outside this plan's file scope.
+- The final diff is confined to the declared Plan 082 scope, and every banned
+  History/prose/causal-pattern grep is clean.
+
 ## Done criteria
 
 Machine-checkable. ALL must hold:
 
-- [ ] Operator-approved comp exists at `plans/mockups/082-overview-trend-markers/comp.html` and its resolved decisions are recorded in this file
-- [ ] Plans 090 and 092 are DONE; the app imports Plan 090's public type/key
+- [x] Operator-approved comp exists at `plans/mockups/082-overview-trend-markers/comp.html` and its resolved decisions are recorded in this file
+- [x] Plans 090 and 092 are DONE; the app imports Plan 090's public type/key
       subpaths, resolves observation occurrence/treatment IDs against Plan
       091 inventory, and reuses Plan 092's named presentation helper and
       annotation stem with no private duplicate interface or enum collapse
-- [ ] The exact Step 1 export command exits 0 against
+- [x] The exact Step 1 export command exits 0 against
       `data/local/pipeline.sqlite` and
       `data/artifacts/studio/v1/release.json`, with nonzero
       `routeBundleCount`/`eventCount` and recorded admission counts
-- [ ] `bun run test:web` exits 0, including at least 12 named intervention-model cases, API-client cases, Overview metadata/fallback cases, and `speed-trend-chart.test.ts`
-- [ ] The pure SpeedTrend chart model tests preserve calendar null rows,
+- [x] `bun run test:web` exits 0, including at least 12 named intervention-model cases, API-client cases, Overview metadata/fallback cases, and `speed-trend-chart.test.ts`
+- [x] The pure SpeedTrend chart model tests preserve calendar null rows,
       first/last tick values, finite observed y-domain, and null domain for
       empty/all-null/scheduled-only input; static structure exposes a named
       `role="img"` wrapper associated with the hidden marker summary without
       claiming Recharts SVG output
-- [ ] `rg -n 'mergedTreatmentTimelineRows|TreatmentsHistorySection|StudioRouteEvidenceBundle' apps/web/src/components/route/intervention-trend-model.ts apps/web/src/components/route/OverviewSection.tsx` → no matches
-- [ ] `rg -n 'description|title|citation|evidence' apps/web/src/components/route/intervention-trend-model.ts` → no matches
-- [ ] `test ! -e apps/web/src/components/route/trend-markers.ts` → exit 0
-- [ ] `rg -n 'beforeMean|afterMean|delta|percentChange|effectEstimate|verdict|caused|improved because|thanks to' apps/web/src/components/route/intervention-trend-model.ts apps/web/src/components/SpeedTrend.chart.tsx` → no matches
-- [ ] `rg -n 'fetchStudioRouteInterventionObservations|observations=' apps/web/src/studio/api-client.ts apps/web/src/routes/routes/\$routeId.tsx apps/web/src/studio/pages/route-detail.tsx` finds the fetch, loader result, and prop plumbing
-- [ ] `bun run check:types`, `bun run check:architecture` (no new allowlist entries), `bun run check:style`, and `bun --filter @bp/web build` all exit 0; entry budget delta ≤0.5KB recorded
-- [ ] Five browser/manual smoke states from step 6 verified, including actual
+- [x] `rg -n 'mergedTreatmentTimelineRows|TreatmentsHistorySection|StudioRouteEvidenceBundle' apps/web/src/components/route/intervention-trend-model.ts apps/web/src/components/route/OverviewSection.tsx` → no matches
+- [x] `rg -n 'description|title|citation|evidence' apps/web/src/components/route/intervention-trend-model.ts` → no matches
+- [x] `test ! -e apps/web/src/components/route/trend-markers.ts` → exit 0
+- [x] `rg -n 'beforeMean|afterMean|delta|percentChange|effectEstimate|verdict|caused|improved because|thanks to' apps/web/src/components/route/intervention-trend-model.ts apps/web/src/components/SpeedTrend.chart.tsx` → no matches
+- [x] `rg -n 'fetchStudioRouteInterventionObservations|observations=' apps/web/src/studio/api-client.ts apps/web/src/routes/routes/\$routeId.tsx apps/web/src/studio/pages/route-detail.tsx` finds the fetch, loader result, and prop plumbing
+- [x] `bun run check:types`, `bun run check:architecture` (no new allowlist entries), `bun run check:style`, and `bun --filter @bp/web build` all exit 0; entry budget delta ≤0.5KB recorded
+- [x] Five browser/manual smoke states from step 6 verified, including actual
       month tick/reference placement and the nonvisual marker summary
-- [ ] Only in-scope files modified (`git status --short`)
-- [ ] `plans/README.md` status row updated
+- [x] Only in-scope files modified (`git status --short`)
+- [x] `plans/README.md` status row updated
 
 ## STOP conditions
 
