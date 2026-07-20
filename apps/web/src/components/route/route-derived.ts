@@ -22,6 +22,20 @@ export function dossierSpeedSeries(dossier: RouteDossierSummaryForDetail | null)
   );
 }
 
+export type TrendPoint = {
+  month: string;
+  value: number | null;
+};
+
+export function dossierSpeedPoints(dossier: RouteDossierSummaryForDetail | null): TrendPoint[] {
+  return (
+    dossier?.speed.sparkline.map((point) => ({
+      month: point.month,
+      value: point.value === null ? null : Number(point.value.toFixed(2)),
+    })) ?? []
+  );
+}
+
 export function dossierRidershipSeries(dossier: RouteDossierSummaryForDetail | null): number[] {
   return (
     dossier?.ridership.sparkline.flatMap((point) =>
