@@ -8730,3 +8730,42 @@ typecheck, repository style, architecture/doctrine checks, knowledge
 validation, and the comprehensive 910-test unit suite. No production release,
 D1/R2 object, source snapshot, deployment, or mutable release pointer was
 changed.
+
+## [2026-07-20] engineering | Plan 092 typed intervention recognition complete
+
+Route Overview and History now consume the exact, nullable Plan 091 inventory
+instead of classifying route prose. One exhaustive presentation registry owns
+canonical treatment labels, lifecycle ordering, accessible compact codes, and
+the nullable operational annotation stem needed by Plan 082. Overview keeps a
+bounded keyboard-operable summary; History renders the complete typed
+inventory, distinct occurrences, related projects, studies, source gaps, and
+honest unavailable/partial/checked-empty states without downloading the global
+corpus.
+
+The citywide interventions ledger now consumes the compact facet index and has
+bounded URL-backed status, borough, family, exact-route, and text filters.
+Unmatched rows remain visible without title parsing. Ledger and History links
+carry exact route slugs plus stable record/study targets, preserve B44 and B44+
+as separate identities, apply study-over-record precedence, restore copied and
+Back/Forward URLs, focus the resolved target, and fall back safely when a
+target is absent. Filter result announcements now use correct singular/plural
+grammar.
+
+The integrated comprehensive `bun run check` passed, including all 302 web
+tests and 22 Worker tests. The final browser-found announcement delta passed 22
+focused model/ledger/badge tests, a two-file Biome check, and a production web
+build at 138.2 KB gzip for the entry chunk and 399.3 KB gzip total JavaScript.
+The explicit Chromium checklist passed at 1440×900 and 390×844: keyboard
+overflow open/Escape close returned visible focus; keyboard-activated record
+links, study precedence, Back/Forward, and copied URLs focused stable targets;
+default navigation used smooth scrolling while reduced motion used `auto`; all
+five ledger filters composed without horizontal overflow; and the polite live
+region emitted only count changes, ending with “1 intervention record matches
+the current filters.”
+
+Browser QA used checked, fixture-only migrations of the available real v1
+route projections together with current Plan 091 inventory/facet artifacts,
+the reviewed corpus, and the BX28 study artifact because the local v1 route
+projection predates the strict publication identity fields. Production schema
+validation was not weakened. No release, D1/R2 object, source snapshot,
+deployment, or mutable release pointer was changed.
