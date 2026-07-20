@@ -26,15 +26,19 @@ type LookupInputIsCanonicalKind = Assert<
 >;
 const lookupInputIsCanonicalKind: LookupInputIsCanonicalKind = true;
 
+function required<T>(value: T | undefined, label: string): T {
+  if (value === undefined) throw new Error(`Missing ${label} in test fixture`);
+  return value;
+}
+
+const ACE_SPEC = required(INTERVENTION_EVIDENCE_SPECS[0], "ACE intervention evidence spec");
+
 describe("intervention evidence registry", () => {
   test("strictly decodes the single ACE spec and the expanded product manifest", () => {
     expect(lookupInputIsCanonicalKind).toBe(true);
     expect(INTERVENTION_EVIDENCE_SPECS).toHaveLength(1);
     expect(() =>
-      Schema.decodeUnknownSync(InterventionEvidenceSpecSchema)(
-        INTERVENTION_EVIDENCE_SPECS[0],
-        StrictParseOptions,
-      ),
+      Schema.decodeUnknownSync(InterventionEvidenceSpecSchema)(ACE_SPEC, StrictParseOptions),
     ).not.toThrow();
     expect(() =>
       Schema.decodeUnknownSync(DataProductManifestSchema)(
@@ -46,10 +50,9 @@ describe("intervention evidence registry", () => {
   });
 
   test("fixes value-blind binding order, roles, labels, and route display window", () => {
-    const spec = INTERVENTION_EVIDENCE_SPECS[0];
-    expect(spec.analysisFamily).toBe("automated_bus_lane_enforcement");
-    expect(spec.effectClaimPolicy).toBe("gated_study_artifact_only");
-    expect(spec.bindings).toEqual([
+    expect(ACE_SPEC.analysisFamily).toBe("automated_bus_lane_enforcement");
+    expect(ACE_SPEC.effectClaimPolicy).toBe("gated_study_artifact_only");
+    expect(ACE_SPEC.bindings).toEqual([
       expect.objectContaining({
         bindingId: "route_speed_around_implementation_v1",
         metricId: "route_average_speed_mph",
@@ -78,11 +81,12 @@ describe("intervention evidence registry", () => {
   test("references only live products and the live route metric history resolver", () => {
     const productIds = new Set(DATA_PRODUCT_MANIFEST.products.map((product) => product.id));
     const feature = getFeatureContract(ROUTE_METRIC_HISTORY_FEATURE_GRAIN);
-    expect(feature?.resolverId).toBe("sqlite.local_route_month_trend.history.v1");
+    if (feature === null) throw new Error("Missing route metric history feature contract");
+    expect(feature.resolverId).toBe("sqlite.local_route_month_trend.history.v1");
     for (const binding of INTERVENTION_EVIDENCE_SPECS.flatMap((spec) => spec.bindings)) {
       expect(productIds.has(binding.dataProductId)).toBe(true);
       expect(binding.featureGrain).toBe(ROUTE_METRIC_HISTORY_FEATURE_GRAIN);
-      expect(binding.resolverId).toBe(feature?.resolverId);
+      expect(binding.resolverId).toBe(feature.resolverId);
     }
     expect(productIds.has("studio_intervention_observation_route_bundles")).toBe(true);
     expect(productIds.has("studio_intervention_observation_index")).toBe(true);
@@ -102,7 +106,7 @@ describe("intervention evidence registry", () => {
       status: "supported",
       analysisFamily: "automated_bus_lane_enforcement",
       specId: "automated_bus_lane_enforcement_route_observations_v1",
-      spec: INTERVENTION_EVIDENCE_SPECS[0],
+      spec: ACE_SPEC,
     });
     for (const kind of ["bus_lane", "route_redesign", "other_documented"] as const) {
       expect(interventionEvidenceSpecFor(kind)).toEqual({
