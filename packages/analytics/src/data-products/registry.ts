@@ -991,6 +991,65 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         ],
       },
       {
+        id: "studio_intervention_observation_route_bundles",
+        label: "Studio route intervention observation bundles",
+        kind: "artifact_family",
+        owner: "tools/pipeline-v2/studio",
+        grain: "route x implemented intervention event x metric x month",
+        producerCommand: "studio export-intervention-observations",
+        expectedUniverse: {
+          description:
+            "Value-blind route observation windows for admitted intervention anchors across the retained history window.",
+          routes: "public_visible_routes",
+          months: "history_window",
+        },
+        requiredInputs: ["studio_route_intervention_inventory", "local_route_month_trends_history"],
+        downstreamConsumers: ["Studio route intervention observation charts"],
+        freshnessPolicy: { cadence: "manual" },
+        checks: [
+          {
+            id: "route_observation_bundles",
+            label: "Route intervention observation bundles",
+            type: "artifact_glob",
+            rootTemplate: "{artifactRoot}/studio/v2/routes",
+            pattern: "*/intervention-observations.json",
+            minFiles: 1,
+          },
+        ],
+      },
+      {
+        id: "studio_intervention_observation_index",
+        label: "Studio intervention observation index",
+        kind: "serving_projection",
+        owner: "tools/pipeline-v2/studio",
+        grain: "implemented intervention event",
+        producerCommand: "studio export-intervention-observations",
+        expectedUniverse: {
+          description:
+            "Compact release index for admitted intervention observation availability and route-bundle discovery.",
+          routes: "public_visible_routes",
+          months: "history_window",
+        },
+        requiredInputs: ["studio_intervention_observation_route_bundles"],
+        downstreamConsumers: ["Studio intervention discovery", "route deep links"],
+        freshnessPolicy: { cadence: "manual" },
+        checks: [
+          {
+            id: "observation_index",
+            label: "Studio intervention observation index",
+            type: "json_artifact",
+            pathTemplate: "{artifactRoot}/studio/v2/interventions/observation-index.json",
+            requiredJsonValues: [
+              {
+                path: "artifactKind",
+                equals: "bp.studio.intervention_observation_index.v1",
+              },
+              { path: "schemaVersion", equals: 1 },
+            ],
+          },
+        ],
+      },
+      {
         id: "studio_intervention_inventory_reconciliation",
         label: "Studio intervention inventory reconciliation",
         kind: "artifact_family",
