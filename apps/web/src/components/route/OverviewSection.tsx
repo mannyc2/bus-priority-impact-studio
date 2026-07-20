@@ -3,14 +3,13 @@ import { CorridorMap } from "@/components/CorridorMap";
 import { RouteGeoMap } from "@/components/route/RouteGeoMap";
 import { RouteInsightList } from "@/components/route/RouteInsightList";
 import {
-  dossierMetricMonthCount,
-  dossierMetricWindow,
-  dossierSpeedSeries,
+  dossierSpeedPoints,
   formatCompact,
   routePerformanceSummary,
 } from "@/components/route/route-derived";
 import { useRouteSegmentsGeo } from "@/components/route/route-detail-data";
 import { routeInterventionViewModel } from "@/components/route/route-intervention-model";
+import { routeSpeedInterventionTrend } from "@/components/route/intervention-trend-model";
 import type { RouteDetailSectionValue } from "@/components/route/section-registry";
 import { SectionCard } from "@/components/SectionCard";
 import { SpeedTrend } from "@/components/SpeedTrend";
@@ -22,7 +21,10 @@ import type {
   StudioRoute,
   StudioRouteDetailResponse,
   StudioRouteInterventionInventoryBundle,
+  StudioRouteInterventionObservationBundle,
 } from "@/studio/api-contract";
+
+const OVERVIEW_INTERVENTION_MARKER_CAP = 4;
 
 /**
  * The Overview tab: one plain-language route summary, the route's one plain
@@ -33,16 +35,25 @@ import type {
 export function OverviewSection({
   data,
   inventory = null,
+  observations = null,
   onNavigate,
 }: {
   data: StudioRouteDetailResponse;
   inventory?: StudioRouteInterventionInventoryBundle | null;
+  observations?: StudioRouteInterventionObservationBundle | null;
   onNavigate: (section: RouteDetailSectionValue) => void;
 }) {
   const { route, segments } = data;
-  const historySpeeds = dossierSpeedSeries(data.dossier);
-  const hasSpeedHistory = historySpeeds.length > 0;
-  const speedWindow = dossierMetricWindow(data.dossier?.speed);
+  const dossierPoints = dossierSpeedPoints(data.dossier);
+  const speedTrend = routeSpeedInterventionTrend(
+    observations,
+    inventory,
+    dossierPoints,
+    OVERVIEW_INTERVENTION_MARKER_CAP,
+  );
+  const hasSpeedHistory = speedTrend.points.some(
+    (point) => point.value !== null && Number.isFinite(point.value),
+  );
   const slowestByRiders = [...segments].sort((a, b) => b.riderHours - a.riderHours)[0] ?? null;
   const worst = data.dossier?.worstSegment ?? null;
   const worstLabel = worst
@@ -80,21 +91,21 @@ export function OverviewSection({
           title="Speed history"
           source={
             hasSpeedHistory
-              ? `Observed average speed${speedWindow ? `, ${speedWindow}` : ""}.`
+              ? "Monthly observed average speed."
               : "No route speed history is attached yet."
           }
           height={172}
           right={
             hasSpeedHistory ? (
-              <Badge variant="neutral">
-                {dossierMetricMonthCount(data.dossier?.speed) || historySpeeds.length} months
-              </Badge>
+              <Badge variant="neutral">{speedTrend.points.length} months</Badge>
             ) : undefined
           }
         >
           {hasSpeedHistory ? (
             <SpeedTrend
-              data={historySpeeds}
+              mode="calendar"
+              points={speedTrend.points}
+              markers={speedTrend.markers}
               {...(route.scheduledMph === null ? {} : { scheduled: route.scheduledMph })}
               height={172}
               legend

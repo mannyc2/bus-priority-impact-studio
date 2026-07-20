@@ -10,6 +10,7 @@ import type {
   StudioRouteDetailResponse,
   StudioRouteInsight,
   StudioRouteInterventionInventoryBundle,
+  StudioRouteInterventionObservationBundle,
   StudioSegment,
 } from "../../src/studio/api-contract";
 import { isoMonthFixture } from "./schema-fixtures";
@@ -221,6 +222,139 @@ function buswayInventory(): StudioRouteInterventionInventoryBundle {
   };
 }
 
+const ACE_TREATMENT_ID = "treatment:v1:000000000000000000000082";
+const ACE_OCCURRENCE_ID = "occurrence:v1:000000000000000000000082";
+
+function aceInventory(): StudioRouteInterventionInventoryBundle {
+  return {
+    ...buswayInventory(),
+    treatments: [
+      {
+        treatmentId: ACE_TREATMENT_ID,
+        sourceNamespace: "reviewed_intervention_corpus",
+        sourceRecordId: "ace-record",
+        sourceId: "mta_ace_routes",
+        componentCollection: "primary",
+        componentPosition: 0,
+        rawKind: "automated_bus_lane_enforcement",
+        rawLabel: null,
+        treatmentKind: "automated_bus_lane_enforcement",
+        treatmentFamily: "enforcement",
+        lifecycleState: "implemented",
+        statusAsOf: "2025-11",
+        effectiveDate: "2025-11-01",
+        datePrecision: "day",
+        geographyScope: "route",
+        sourceRefs: ["source:mta_ace_routes"],
+        occurrenceIds: [ACE_OCCURRENCE_ID],
+        projectIds: [],
+      },
+    ],
+    occurrences: [
+      {
+        occurrenceId: ACE_OCCURRENCE_ID,
+        sourceNamespace: "reviewed_intervention_corpus",
+        sourceOccurrenceId: "ace-occurrence",
+        sourceId: "mta_ace_routes",
+        producerPhaseOrPosition: "0",
+        routeId: "M15+",
+        treatmentIds: [ACE_TREATMENT_ID],
+        lifecycleState: "implemented",
+        phase: "opening",
+        rawStatus: "implemented",
+        program: "ABLE",
+        effectiveDate: "2025-11-01",
+        datePrecision: "day",
+        geographyScope: "route",
+        sourceRefs: ["source:mta_ace_routes"],
+        projectIds: [],
+        wikiOccurrenceId: null,
+        registryLineage: null,
+      },
+    ],
+  };
+}
+
+function aceObservations(): StudioRouteInterventionObservationBundle {
+  const points = [
+    { month: isoMonthFixture("2025-10"), value: 6.2, sampleCount: 31 },
+    { month: isoMonthFixture("2025-11"), value: null, sampleCount: null },
+    { month: isoMonthFixture("2025-12"), value: 6, sampleCount: 30 },
+  ];
+
+  return {
+    artifactKind: "bp.studio.route_intervention_observations.v1",
+    schemaVersion: 1,
+    releaseId: "pub_20260718T180527000Z",
+    publishedAt: "2026-07-18T18:05:27.000Z",
+    coverage: { start: isoMonthFixture("2023-04"), end: isoMonthFixture("2026-03") },
+    route: aceInventory().route,
+    routeId: "M15+",
+    routeSlug: "m15-sbs",
+    dataCoverage: {
+      start: isoMonthFixture("2025-10"),
+      end: isoMonthFixture("2025-12"),
+      grain: "month",
+    },
+    inputRefs: [
+      {
+        dataProductId: "studio_route_intervention_inventory",
+        role: "event_anchor",
+        featureGrain: null,
+        resolverId: null,
+      },
+      {
+        dataProductId: "local_route_month_trends_history",
+        role: "observation_source",
+        featureGrain: "route_metric_history",
+        resolverId: "sqlite.local_route_month_trend.history.v1",
+      },
+    ],
+    events: [
+      {
+        eventId: "observation-event:v1:000000000000000000000082",
+        occurrenceId: ACE_OCCURRENCE_ID,
+        treatmentId: ACE_TREATMENT_ID,
+        routeId: "M15+",
+        treatmentKind: "automated_bus_lane_enforcement",
+        analysisFamily: "automated_bus_lane_enforcement",
+        program: "ABLE",
+        sourceId: "mta_ace_routes",
+        implementationDate: "2025-11-01",
+        implementationMonth: isoMonthFixture("2025-11"),
+        resolutionStatus: "partial",
+        series: [
+          {
+            bindingId: "route_speed_around_implementation_v1",
+            metricId: "route_average_speed_mph",
+            label: "Observed average speed",
+            unit: "mph",
+            role: "primary_outcome",
+            grain: "month",
+            dataProductId: "local_route_month_trends_history",
+            resolverId: "sqlite.local_route_month_trend.history.v1",
+            claimCeiling: "descriptive_observation",
+            presentationPriority: 1,
+            status: "partial",
+            coverage: {
+              requestedStart: isoMonthFixture("2025-10"),
+              requestedEnd: isoMonthFixture("2025-12"),
+              expectedPointCount: 3,
+              observedStart: isoMonthFixture("2025-10"),
+              observedEnd: isoMonthFixture("2025-12"),
+              observedPointCount: 2,
+              nullPointCount: 1,
+            },
+            points,
+            limitations: [],
+          },
+        ],
+      },
+    ],
+    limitations: [],
+  };
+}
+
 describe("OverviewSection", () => {
   test("renders summary, trend chart, mini map, and ranked insights for a full route", () => {
     const markup = renderToStaticMarkup(
@@ -236,6 +370,7 @@ describe("OverviewSection", () => {
     expect(markup).toContain("Treatment inventory unavailable");
     expect(markup).toContain("42.0K riders/day");
     expect(markup).toContain("Speed history");
+    expect(markup).toContain("Monthly observed average speed.");
     expect(markup).toContain("6 months");
     expect(markup).toContain("Route map");
     expect(markup).toContain("Observed speed by segment.");
@@ -303,5 +438,21 @@ describe("OverviewSection", () => {
     );
     expect(proseOnly).not.toContain("Busway, Implemented");
     expect(proseOnly).toContain("Treatment inventory unavailable");
+  });
+
+  test("uses typed observation points for speed-card metadata and keeps null months", () => {
+    const markup = renderToStaticMarkup(
+      createElement(OverviewSection, {
+        data: detail({}),
+        inventory: aceInventory(),
+        observations: aceObservations(),
+        onNavigate: () => undefined,
+      }),
+    );
+
+    expect(markup).toContain("Monthly observed average speed.");
+    expect(markup).toContain("3 months");
+    expect(markup).not.toContain(">6 months</span>");
+    expect(markup).not.toContain("2025-10 to 2025-12");
   });
 });
