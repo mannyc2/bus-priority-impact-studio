@@ -224,6 +224,23 @@ export type DataProductCheck = typeof DataProductCheckSchema.Type;
 export type DataProduct = typeof DataProductSchema.Type;
 export type DataProductManifest = typeof DataProductManifestSchema.Type;
 
+export const ROUTE_METRIC_HISTORY_DATA_PRODUCT_ID = "local_route_month_trends_history" as const;
+
+export const ROUTE_METRIC_HISTORY_METRICS = {
+  route_average_speed_mph: {
+    metricId: "route_average_speed_mph",
+    sourceField: "average_speed_mph",
+    label: "Observed average speed",
+    unit: "mph",
+  },
+  route_monthly_ridership: {
+    metricId: "route_monthly_ridership",
+    sourceField: "ridership",
+    label: "Monthly riders",
+    unit: "riders",
+  },
+} as const;
+
 export function parseDataProductManifest(input: unknown): DataProductManifest {
   return decodeSchemaStrict(DataProductManifestSchema, input);
 }
