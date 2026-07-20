@@ -529,9 +529,10 @@ async function readDetectorReadinessManifestRouteArtifacts(input: {
 
   const body = await file.text();
   const manifest = decodePreserve(DetectorReadinessServingManifestSchema)(JSON.parse(body));
-  if (manifest.releaseMonth !== input.month) {
+  const manifestMonth = manifest.releaseMonth;
+  if (manifest.releaseMonth > input.month) {
     throw new Error(
-      `Detector readiness serving manifest month ${manifest.releaseMonth} does not match export month ${input.month}.`,
+      `Detector readiness serving manifest month ${manifestMonth} is later than export month ${input.month}.`,
     );
   }
 
@@ -548,7 +549,7 @@ async function readDetectorReadinessManifestRouteArtifacts(input: {
     .map(
       (route): RouteArtifactLike => ({
         routeId: route.routeId,
-        month: input.month,
+        month: manifestMonth,
         artifactName: "detector_readiness_manifest",
         artifactKey: STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY,
         contentType: "application/json",

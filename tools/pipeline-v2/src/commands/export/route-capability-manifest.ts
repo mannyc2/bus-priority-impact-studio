@@ -70,11 +70,16 @@ export async function readDetectorReadinessRouteSummaries(input: {
   const manifest = decodePreserve(DetectorReadinessRouteSummariesSchema)(
     JSON.parse(await file.text()),
   );
-  if (manifest.releaseMonth !== input.month) {
+  const manifestMonth = manifest.releaseMonth;
+  if (manifest.releaseMonth > input.month) {
     throw new Error(
-      `Detector readiness manifest month ${manifest.releaseMonth} does not match export month ${input.month}.`,
+      `Detector readiness manifest month ${manifestMonth} is later than export month ${input.month}.`,
     );
   }
+  const compatibilityCaveat =
+    manifestMonth < input.month
+      ? `Detector readiness data is from ${manifestMonth}; release coverage ends ${input.month}.`
+      : undefined;
 
   for (const route of manifest.routes) {
     let reliabilityFindingCount = 0;
@@ -93,7 +98,8 @@ export async function readDetectorReadinessRouteSummaries(input: {
       reliabilityFindingCount,
       reliabilityContextCount,
       months: [...new Set(route.sourceMonths.map((entry) => entry.month))].sort(),
-      caveats: route.caveats,
+      caveats:
+        compatibilityCaveat === undefined ? route.caveats : [...route.caveats, compatibilityCaveat],
     });
   }
   return summaries;
