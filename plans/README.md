@@ -62,7 +62,7 @@ claimed on its branch.
 | 091 | Exact, lossless per-route intervention inventory from the existing materializer | P1 | L | exact-route PRs #65/#66 (DONE); 084, 088, 085, 086 | DONE |
 | 090 | Typed intervention-relevance specs + ACE route observation bundles | P1 | L | 091; exact-route PRs #65/#66 (DONE); 084, 088, 085, 086 | DONE |
 | 092 | Complete route intervention recognition + route History ↔ ledger links | P1 | L | 091; 080, 081, 085, 086 | DONE |
-| 093 | Value-blind non-ACE relevance coverage + first bus-lane/busway specs | P2 | L | 091, 090, 092, 082 | TODO |
+| 093 | Value-blind non-ACE relevance coverage + first bus-lane/busway specs | P2 | L | 091, 090, 092, 082 | DONE |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
