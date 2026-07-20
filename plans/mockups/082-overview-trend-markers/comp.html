@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plan 082 — Overview trend-marker decision comp</title>
+  <style>
+    :root {
+      --canvas: #f4f5f7;
+      --paper: #fafbfc;
+      --paper-deep: #eceef1;
+      --card: #ffffff;
+      --ink: #101418;
+      --ink70: rgba(16, 20, 24, 0.72);
+      --ink55: rgba(16, 20, 24, 0.60);
+      --ink40: rgba(16, 20, 24, 0.42);
+      --ink20: rgba(16, 20, 24, 0.20);
+      --ink06: rgba(16, 20, 24, 0.06);
+      --rule: rgba(16, 20, 24, 0.14);
+      --accent: #0039a6;
+      --accent-bg: #e8eef8;
+      --warn: oklch(0.48 0.13 70);
+      --warn-bg: oklch(0.96 0.05 80);
+      --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input { font: inherit; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 22px;
+      background: var(--ink);
+      color: white;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+    .topbar strong { font-size: 13px; }
+    .topbar span { color: rgba(255,255,255,0.66); font-size: 10.5px; }
+    .page { max-width: 1180px; margin: 0 auto; padding: 28px 22px 100px; }
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 22px;
+      padding: 22px;
+      background: var(--card);
+      border-radius: 3px;
+      box-shadow: 0 0 0 1px var(--rule);
+    }
+    h1 { margin: 0; font-size: 21px; line-height: 1.15; letter-spacing: -0.018em; }
+    .lead { margin: 10px 0 0; max-width: 75ch; color: var(--ink70); font-size: 13px; }
+    .truth-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 18px; }
+    .truth {
+      min-width: 0;
+      padding: 10px 11px;
+      background: var(--paper-deep);
+      border-radius: 3px;
+    }
+    .truth b { display: block; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; color: var(--ink55); text-transform: uppercase; }
+    .truth span { display: block; margin-top: 3px; font-size: 12px; color: var(--ink70); }
+    .packet {
+      align-self: start;
+      padding: 14px;
+      background: var(--accent-bg);
+      border-radius: 3px;
+      box-shadow: 0 0 0 1px rgba(0,57,166,0.18);
+    }
+    .packet h2 { margin: 0; font-size: 13px; }
+    .packet p { margin: 5px 0 10px; color: var(--ink70); font-size: 11.5px; }
+    .packet ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; color: var(--ink70); font-size: 11.5px; }
+    .packet strong { color: var(--ink); }
+    .section-head { margin: 38px 0 14px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .section-head .id { padding: 2px 7px; border-radius: 2px; background: var(--accent); color: white; font-family: var(--mono); font-size: 10px; font-weight: 700; }
+    .section-head h2 { margin: 0; font-size: 17px; letter-spacing: -0.01em; }
+    .section-head p { margin: 0; color: var(--ink55); font-size: 12px; }
+    fieldset { margin: 0; padding: 0; border: 0; }
+    legend { width: 100%; }
+    .variants { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .variant {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+      padding: 16px;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: box-shadow 120ms ease, border-color 120ms ease;
+    }
+    .variant:has(input:checked) {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+    .variant input { position: absolute; top: 17px; right: 17px; accent-color: var(--accent); }
+    .variant-head { padding-right: 28px; }
+    .variant-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+    .recommended { padding: 1px 6px; border-radius: 2px; background: var(--accent-bg); color: var(--accent); font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+    .variant-copy { margin-top: 3px; color: var(--ink55); font-size: 11.5px; }
+    .chart-frame {
+      overflow: hidden;
+      background: var(--card);
+      border-radius: 3px;
+      box-shadow: 0 0 0 1px var(--rule);
+      padding: 15px;
+    }
+    .chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+    .chart-head h3 { margin: 0; font-size: 14px; letter-spacing: -0.006em; }
+    .chart-head p { margin: 2px 0 0; color: var(--ink55); font-size: 11.5px; }
+    .route-pill { flex: 0 0 auto; padding: 2px 7px; border-radius: 3px; background: var(--ink); color: white; font-family: var(--mono); font-size: 10px; font-weight: 700; }
+    .chart { width: 100%; margin-top: 12px; }
+    .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .chart svg text { font-family: var(--mono); font-size: 10px; fill: var(--ink55); }
+    .source-line { margin-top: 7px; color: var(--ink55); font-size: 10.5px; }
+    .chart-note { margin-top: 9px; color: var(--ink55); font-size: 11px; }
+    .synthetic {
+      display: inline-flex;
+      align-items: center;
+      align-self: flex-start;
+      gap: 5px;
+      padding: 3px 7px;
+      border-radius: 3px;
+      background: var(--warn-bg);
+      color: var(--warn);
+      font-family: var(--mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .mini-stage {
+      min-height: 146px;
+      padding: 18px;
+      background: var(--card);
+      border-radius: 3px;
+      box-shadow: 0 0 0 1px var(--rule);
+    }
+    .mini-chart { position: relative; height: 76px; margin: 10px 4px 0; border-bottom: 1px solid var(--rule); }
+    .mini-line { position: absolute; left: 0; right: 0; top: 43px; height: 2px; background: linear-gradient(90deg, var(--accent), rgba(0,57,166,0.25)); transform: rotate(-2deg); transform-origin: left; }
+    .mini-marker { position: absolute; top: 3px; bottom: 0; border-left: 1px dashed var(--ink40); }
+    .mini-marker span { position: absolute; top: 0; left: 4px; white-space: nowrap; color: var(--ink55); font-family: var(--mono); font-size: 8.5px; }
+    .mini-marker.is-hidden { opacity: 0.35; }
+    .overflow-hint { margin-top: 7px; text-align: right; color: var(--ink55); font-size: 10px; }
+    .fallback {
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 15px;
+      background: var(--card);
+      border-radius: 3px;
+      box-shadow: 0 0 0 1px var(--rule);
+    }
+    .fallback h3 { margin: 0; font-size: 14px; }
+    .fallback p { margin: 3px 0 0; color: var(--ink55); font-size: 11.5px; }
+    .quiet-line { height: 58px; margin-top: 20px; border-bottom: 1px solid var(--rule); position: relative; }
+    .quiet-line::after { content: ""; position: absolute; left: 0; right: 0; top: 27px; height: 2px; background: var(--accent); transform: rotate(-1deg); transform-origin: left; }
+    .notice { margin-top: 14px; padding: 9px 11px; border-radius: 3px; background: var(--paper-deep); color: var(--ink70); font-size: 11px; }
+    .fixed-note {
+      margin-top: 18px;
+      padding: 13px 15px;
+      border-left: 3px solid var(--accent);
+      background: var(--card);
+      color: var(--ink70);
+      font-size: 12px;
+    }
+    .fixed-note strong { color: var(--ink); }
+    .foot {
+      margin-top: 42px;
+      padding: 16px;
+      background: var(--card);
+      border-radius: 3px;
+      box-shadow: 0 0 0 1px var(--rule);
+      color: var(--ink70);
+      font-size: 11.5px;
+    }
+    .foot strong { color: var(--ink); }
+    @media (max-width: 850px) {
+      .intro, .variants { grid-template-columns: minmax(0, 1fr); }
+      .packet { order: -1; }
+    }
+    @media (max-width: 520px) {
+      .page { padding-inline: 14px; }
+      .truth-grid { grid-template-columns: minmax(0, 1fr); }
+      .topbar { padding-inline: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <strong>Plan 082 trend-marker comp</strong>
+    <span class="mono">operator decision gate / app code unchanged</span>
+  </header>
+
+  <main class="page">
+    <section class="intro">
+      <div>
+        <h1>Dated treatment annotations on real-month speed history</h1>
+        <p class="lead">
+          These variants change only chart annotation and calendar layout. They do not add a
+          comparison number, direction, or causal claim. Marker eligibility comes only from the
+          typed Plan 090 speed binding and exact Plan 091 inventory relationships; copy comes from
+          Plan 092's presentation registry.
+        </p>
+        <div class="truth-grid">
+          <div class="truth"><b>Canonical export</b><span>323 route bundles and 401 admitted events</span></div>
+          <div class="truth"><b>Supported v1</b><span>78 ACE events with 71 available and 73 partial series</span></div>
+          <div class="truth"><b>BX28 exhibit</b><span>25 real monthly points with a Sep 2024 ACE onset</span></div>
+          <div class="truth"><b>Cluster exhibit</b><span>Real B11 series; one extra occurrence is clearly synthetic</span></div>
+        </div>
+      </div>
+      <aside class="packet" aria-live="polite">
+        <h2>Recommended approval packet</h2>
+        <p>The selected radio options update this summary.</p>
+        <ol id="selection-summary">
+          <li><strong>D1:</strong> Inline rule label</li>
+          <li><strong>D2:</strong> One clustered marker</li>
+          <li><strong>D3:</strong> Four markers, no hint</li>
+          <li><strong>D4:</strong> First and last ticks, no source date line</li>
+          <li><strong>D5:</strong> Preserve null gaps</li>
+          <li><strong>D6:</strong> Quiet dossier fallback</li>
+        </ol>
+      </aside>
+    </section>
+
+    <fieldset data-decision="D1">
+      <legend class="section-head">
+        <span class="id">D1</span><h2>Marker anatomy</h2><p>BX28 uses the real Plan 090 speed series and real Sep 2024 onset.</p>
+      </legend>
+      <div class="variants">
+        <label class="variant">
+          <input type="radio" name="d1" value="Inline rule label" checked>
+          <div class="variant-head">
+            <div class="variant-title">Dashed rule with inline label <span class="recommended">recommend</span></div>
+            <div class="variant-copy">Quiet, precise, and consistent with the approved study-card grammar.</div>
+          </div>
+          <article class="chart-frame">
+            <div class="chart-head"><div><h3>Speed history</h3><p>Monthly observed average speed.</p></div><span class="route-pill">BX28</span></div>
+            <div class="chart" data-chart="bx28" data-marker-style="inline" data-ticks="ends"></div>
+          </article>
+        </label>
+        <label class="variant">
+          <input type="radio" name="d1" value="Top label chip">
+          <div class="variant-head">
+            <div class="variant-title">Tick-top label chip</div>
+            <div class="variant-copy">Easier to scan, but competes with the chart header and adds visual weight.</div>
+          </div>
+          <article class="chart-frame">
+            <div class="chart-head"><div><h3>Speed history</h3><p>Monthly observed average speed.</p></div><span class="route-pill">BX28</span></div>
+            <div class="chart" data-chart="bx28" data-marker-style="chip" data-ticks="ends"></div>
+          </article>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset data-decision="D2">
+      <legend class="section-head">
+        <span class="id">D2</span><h2>Same-month clustering</h2><p>No real v1 route has two eligible occurrences in one month.</p>
+      </legend>
+      <div class="variants">
+        <label class="variant">
+          <input type="radio" name="d2" value="One clustered marker" checked>
+          <div class="variant-head">
+            <div class="variant-title">One marker with occurrence count <span class="recommended">recommend</span></div>
+            <div class="variant-copy">Count distinct occurrence IDs once and keep the chart calm.</div>
+          </div>
+          <span class="synthetic">Synthetic cluster anatomy</span>
+          <article class="chart-frame">
+            <div class="chart-head"><div><h3>Speed history</h3><p>Monthly observed average speed.</p></div><span class="route-pill">B11</span></div>
+            <div class="chart" data-chart="b11" data-marker-style="cluster" data-ticks="ends"></div>
+            <div class="chart-note">The B11 series and Nov 2025 ACE onset are real. A second Nov 2025 occurrence is added only to compare the two cluster layouts.</div>
+          </article>
+        </label>
+        <label class="variant">
+          <input type="radio" name="d2" value="Stacked occurrence labels">
+          <div class="variant-head">
+            <div class="variant-title">Stacked labels</div>
+            <div class="variant-copy">Keeps each occurrence visible but creates a dense annotation block.</div>
+          </div>
+          <span class="synthetic">Synthetic cluster anatomy</span>
+          <article class="chart-frame">
+            <div class="chart-head"><div><h3>Speed history</h3><p>Monthly observed average speed.</p></div><span class="route-pill">B11</span></div>
+            <div class="chart" data-chart="b11" data-marker-style="stacked" data-ticks="ends"></div>
+            <div class="chart-note">The pair is not production coverage and will not enter the implementation fixture.</div>
+          </article>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset data-decision="D3">
+      <legend class="section-head">
+        <span class="id">D3</span><h2>Marker cap</h2><p>The pure model keeps the most recent eligible months.</p>
+      </legend>
+      <div class="variants">
+        <label class="variant">
+          <input type="radio" name="d3" value="Four markers, no hint" checked>
+          <div class="variant-head">
+            <div class="variant-title">Maximum four, no overflow hint <span class="recommended">recommend</span></div>
+            <div class="variant-copy">History is already one tab away, so the chart needs no extra navigation copy.</div>
+          </div>
+          <div class="mini-stage"><strong>Four retained months</strong><div class="mini-chart"><i class="mini-line"></i><i class="mini-marker" style="left:18%"><span>Mar 2024</span></i><i class="mini-marker" style="left:42%"><span>Jun 2024</span></i><i class="mini-marker" style="left:65%"><span>Sep 2024</span></i><i class="mini-marker" style="left:86%"><span>Jan 2025</span></i></div></div>
+        </label>
+        <label class="variant">
+          <input type="radio" name="d3" value="Four markers with History hint">
+          <div class="variant-head">
+            <div class="variant-title">Maximum four with quiet overflow text</div>
+            <div class="variant-copy">Explains omitted months but adds copy that does not identify what was omitted.</div>
+          </div>
+          <div class="mini-stage"><strong>Four retained months</strong><div class="mini-chart"><i class="mini-line"></i><i class="mini-marker" style="left:18%"><span>Mar 2024</span></i><i class="mini-marker" style="left:42%"><span>Jun 2024</span></i><i class="mini-marker" style="left:65%"><span>Sep 2024</span></i><i class="mini-marker" style="left:86%"><span>Jan 2025</span></i></div><div class="overflow-hint">+2 more in History</div></div>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset data-decision="D4">
+      <legend class="section-head">
+        <span class="id">D4</span><h2>Month ticks and source line</h2><p>Calendar coordinates replace the anonymous index axis.</p>
+      </legend>
+      <div class="variants">
+        <label class="variant">
+          <input type="radio" name="d4" value="First and last ticks, no source date line" checked>
+          <div class="variant-head">
+            <div class="variant-title">First and last month only <span class="recommended">recommend</span></div>
+            <div class="variant-copy">The marker supplies its own month, and the redundant date line is removed.</div>
+          </div>
+          <article class="chart-frame">
+            <div class="chart-head"><div><h3>Speed history</h3><p>Monthly observed average speed.</p></div><span class="route-pill">BX28</span></div>
+            <div class="chart" data-chart="bx28" data-marker-style="inline" data-ticks="ends"></div>
+          </article>
+        </label>
+        <label class="variant">
+          <input type="radio" name="d4" value="Sparse ticks with source date line">
+          <div class="variant-head">
+            <div class="variant-title">Sparse automatic ticks and retained line</div>
+            <div class="variant-copy">More dates are visible, but the footer repeats the chart window.</div>
+          </div>
+          <article class="chart-frame">
+            <div class="chart-head"><div><h3>Speed history</h3><p>Monthly observed average speed.</p></div><span class="route-pill">BX28</span></div>
+            <div class="chart" data-chart="bx28" data-marker-style="inline" data-ticks="sparse"></div>
+            <div class="source-line">Observed average speed, Sep 2023 to Sep 2025</div>
+          </article>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset data-decision="D5">
+      <legend class="section-head">
+        <span class="id">D5</span><h2>Explicit null months</h2><p>B11 has eight real null months after Mar 2026 in its 25-month series.</p>
+      </legend>
+      <div class="variants">
+        <label class="variant">
+          <input type="radio" name="d5" value="Preserve null gaps" checked>
+          <div class="variant-head">
+            <div class="variant-title">Stop the line at missing observations <span class="recommended">recommend</span></div>
+            <div class="variant-copy">Every calendar row remains present; no value is drawn for a null month.</div>
+          </div>
+          <article class="chart-frame">
+            <div class="chart-head"><div><h3>Speed history</h3><p>Monthly observed average speed.</p></div><span class="route-pill">B11</span></div>
+            <div class="chart" data-chart="b11" data-marker-style="inline" data-ticks="ends" data-null-mode="gap"></div>
+          </article>
+        </label>
+        <label class="variant">
+          <input type="radio" name="d5" value="Collapse null months">
+          <div class="variant-head">
+            <div class="variant-title">Collapse the empty calendar tail</div>
+            <div class="variant-copy">Closer to today's chart, but it hides the requested months and is not recommended.</div>
+          </div>
+          <article class="chart-frame">
+            <div class="chart-head"><div><h3>Speed history</h3><p>Monthly observed average speed.</p></div><span class="route-pill">B11</span></div>
+            <div class="chart" data-chart="b11" data-marker-style="inline" data-ticks="ends" data-null-mode="collapse"></div>
+          </article>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset data-decision="D6">
+      <legend class="section-head">
+        <span class="id">D6</span><h2>Typed bundle has no usable speed series</h2><p>No title, citation, or timeline text is consulted.</p>
+      </legend>
+      <div class="variants">
+        <label class="variant">
+          <input type="radio" name="d6" value="Quiet dossier fallback" checked>
+          <div class="variant-head">
+            <div class="variant-title">Dossier month series with no marker <span class="recommended">recommend</span></div>
+            <div class="variant-copy">The chart remains useful and does not turn missing annotation data into page-level noise.</div>
+          </div>
+          <div class="fallback"><div><h3>Speed history</h3><p>Monthly observed average speed.</p></div><div class="quiet-line" aria-hidden="true"></div><div class="mono" style="display:flex;justify-content:space-between;color:var(--ink55);font-size:10px"><span>Apr 2024</span><span>Mar 2026</span></div></div>
+        </label>
+        <label class="variant">
+          <input type="radio" name="d6" value="Unavailable annotation notice">
+          <div class="variant-head">
+            <div class="variant-title">Dossier series plus annotation notice</div>
+            <div class="variant-copy">Explicit, but it elevates an optional enhancement above the observed speed history.</div>
+          </div>
+          <div class="fallback"><div><h3>Speed history</h3><p>Monthly observed average speed.</p></div><div class="quiet-line" aria-hidden="true"></div><div class="notice">Treatment annotations are unavailable for this route.</div></div>
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="fixed-note">
+      <strong>Fixed truth boundary:</strong> eligible markers require the exact speed binding and
+      metric, available or partial status, at least one observed point, matching release and route
+      identity, a resolved occurrence and treatment, and a non-null typed annotation stem.
+    </div>
+
+    <footer class="foot">
+      <strong>Provenance:</strong> generated from release
+      <span class="mono">pub_20260718T180527000Z</span>. BX28 and B11 point values are copied from
+      the canonical Plan 090 export. The extra B11 Nov 2025 occurrence exists only in this comp to
+      compare cluster anatomy. This file does not alter serving artifacts, app code, or public
+      coverage.
+    </footer>
+  </main>
+
+  <script>
+    const series = {
+      bx28: [
+        ["2023-09",7.8144],["2023-10",7.8748],["2023-11",7.976],["2023-12",7.9989],["2024-01",7.9998],
+        ["2024-02",7.8494],["2024-03",7.9071],["2024-04",7.9194],["2024-05",7.7922],["2024-06",7.8434],
+        ["2024-07",7.7324],["2024-08",7.7228],["2024-09",7.7112],["2024-10",7.7235],["2024-11",7.8524],
+        ["2024-12",7.8411],["2025-01",7.8988],["2025-02",7.8077],["2025-03",7.8657],["2025-04",7.7987],
+        ["2025-05",7.719],["2025-06",7.7239],["2025-07",7.9358],["2025-08",7.9795],["2025-09",7.8415]
+      ],
+      b11: [
+        ["2024-11",6.5774],["2024-12",6.6829],["2025-01",6.7218],["2025-02",6.6129],["2025-03",6.5456],
+        ["2025-04",6.6573],["2025-05",6.6912],["2025-06",6.672],["2025-07",6.9057],["2025-08",6.9213],
+        ["2025-09",6.4447],["2025-10",6.6116],["2025-11",6.6184],["2025-12",6.5761],["2026-01",6.4179],
+        ["2026-02",6.2302],["2026-03",6.4806],["2026-04",null],["2026-05",null],["2026-06",null],
+        ["2026-07",null],["2026-08",null],["2026-09",null],["2026-10",null],["2026-11",null]
+      ]
+    };
+
+    const monthLabel = (month) => {
+      const [year, value] = month.split("-");
+      return `${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(value)-1]} ${year}`;
+    };
+
+    function chartSvg(name, markerStyle, tickMode, nullMode) {
+      const original = series[name];
+      const points = nullMode === "collapse" ? original.filter((point) => point[1] !== null) : original;
+      const observed = points.filter((point) => Number.isFinite(point[1]));
+      const width = 680, height = 226, left = 42, right = 18, top = 35, bottom = 28;
+      const chartWidth = width - left - right, chartHeight = height - top - bottom;
+      const values = observed.map((point) => point[1]);
+      const low = Math.min(...values) - 0.12, high = Math.max(...values) + 0.12;
+      const x = (index) => left + (index / Math.max(1, points.length - 1)) * chartWidth;
+      const y = (value) => top + ((high - value) / (high - low)) * chartHeight;
+      const segments = [];
+      let current = [];
+      points.forEach((point, index) => {
+        if (point[1] === null) {
+          if (current.length) segments.push(current);
+          current = [];
+        } else current.push([x(index), y(point[1])]);
+      });
+      if (current.length) segments.push(current);
+      const linePaths = segments.map((segment) => `<path d="${segment.map((p,i)=>`${i?"L":"M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ")}" fill="none" stroke="#0039a6" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"/>`).join("");
+      const areaPaths = segments.map((segment) => {
+        const d = segment.map((p,i)=>`${i?"L":"M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+        return `<path d="${d} L${segment.at(-1)[0].toFixed(1)},${(top+chartHeight).toFixed(1)} L${segment[0][0].toFixed(1)},${(top+chartHeight).toFixed(1)} Z" fill="url(#area-${name}-${markerStyle}-${tickMode}-${nullMode})"/>`;
+      }).join("");
+      const markerMonth = name === "bx28" ? "2024-09" : "2025-11";
+      const markerIndex = points.findIndex((point) => point[0] === markerMonth);
+      const markerX = markerIndex < 0 ? null : x(markerIndex);
+      let marker = "";
+      if (markerX !== null) {
+        if (markerStyle === "chip") {
+          marker = `<line x1="${markerX}" x2="${markerX}" y1="${top}" y2="${top+chartHeight}" stroke="rgba(16,20,24,.42)" stroke-dasharray="4 4"/><rect x="${Math.max(left,markerX-64)}" y="4" width="128" height="23" rx="3" fill="#e8eef8"/><text x="${Math.max(left+64,markerX)}" y="19" text-anchor="middle" fill="#0039a6">Enforcement starts Sep 2024</text>`;
+        } else if (markerStyle === "cluster") {
+          marker = `<line x1="${markerX}" x2="${markerX}" y1="${top}" y2="${top+chartHeight}" stroke="rgba(16,20,24,.42)" stroke-dasharray="4 4"/><text x="${markerX+5}" y="${top+10}" fill="rgba(16,20,24,.72)">2 enforcement starts, Nov 2025</text>`;
+        } else if (markerStyle === "stacked") {
+          marker = `<line x1="${markerX}" x2="${markerX}" y1="${top}" y2="${top+chartHeight}" stroke="rgba(16,20,24,.42)" stroke-dasharray="4 4"/><rect x="${markerX+4}" y="${top+1}" width="156" height="37" rx="3" fill="#fff" stroke="rgba(16,20,24,.14)"/><text x="${markerX+10}" y="${top+15}">Enforcement starts Nov 2025</text><text x="${markerX+10}" y="${top+29}">Enforcement starts Nov 2025</text>`;
+        } else {
+          const label = name === "bx28" ? "Enforcement starts Sep 2024" : "Enforcement starts Nov 2025";
+          marker = `<line x1="${markerX}" x2="${markerX}" y1="${top}" y2="${top+chartHeight}" stroke="rgba(16,20,24,.42)" stroke-dasharray="4 4"/><text x="${markerX+5}" y="${top+10}" fill="rgba(16,20,24,.72)">${label}</text>`;
+        }
+      }
+      const grid = [0,0.5,1].map((share) => {
+        const gy = top + share * chartHeight;
+        const value = high - share * (high-low);
+        return `<line x1="${left}" x2="${width-right}" y1="${gy}" y2="${gy}" stroke="rgba(16,20,24,.08)"/><text x="${left-7}" y="${gy+3}" text-anchor="end">${value.toFixed(1)}</text>`;
+      }).join("");
+      const tickIndexes = tickMode === "sparse" ? [0,6,12,18,points.length-1] : [0,points.length-1];
+      const ticks = [...new Set(tickIndexes)].map((index) => `<text x="${x(index)}" y="${height-5}" text-anchor="${index===0?"start":index===points.length-1?"end":"middle"}">${monthLabel(points[index][0])}</text>`).join("");
+      const firstNull = points.findIndex((point) => point[1] === null);
+      const missing = firstNull < 0 ? "" : `<rect x="${x(firstNull)}" y="${top}" width="${Math.max(0,width-right-x(firstNull))}" height="${chartHeight}" fill="rgba(16,20,24,.025)"/><text x="${(x(firstNull)+width-right)/2}" y="${top+chartHeight/2}" text-anchor="middle">No observations</text>`;
+      return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${name.toUpperCase()} monthly speed history comp"><defs><linearGradient id="area-${name}-${markerStyle}-${tickMode}-${nullMode}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0039a6" stop-opacity=".20"/><stop offset="1" stop-color="#0039a6" stop-opacity=".01"/></linearGradient></defs>${grid}${missing}${areaPaths}${marker}${linePaths}${ticks}</svg>`;
+    }
+
+    document.querySelectorAll("[data-chart]").forEach((node) => {
+      node.innerHTML = chartSvg(
+        node.dataset.chart,
+        node.dataset.markerStyle || "inline",
+        node.dataset.ticks || "ends",
+        node.dataset.nullMode || "gap",
+      );
+    });
+
+    const decisionLabels = { D1:"D1", D2:"D2", D3:"D3", D4:"D4", D5:"D5", D6:"D6" };
+    const summary = document.querySelector("#selection-summary");
+    function updateSummary() {
+      summary.innerHTML = Object.entries(decisionLabels).map(([key,label]) => {
+        const selected = document.querySelector(`[data-decision="${key}"] input:checked`);
+        return `<li><strong>${label}:</strong> ${selected?.value ?? "No selection"}</li>`;
+      }).join("");
+    }
+    document.querySelectorAll("input[type=radio]").forEach((input) => input.addEventListener("change", updateSummary));
+  </script>
+</body>
+</html>
