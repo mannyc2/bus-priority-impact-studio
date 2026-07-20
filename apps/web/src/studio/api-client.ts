@@ -13,6 +13,10 @@ import {
 } from "@bp/domain/maps";
 import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key";
 import {
+  interventionFacetIndexKey,
+  routeInterventionInventoryBundleKey,
+} from "@bp/domain/studio/route-intervention-inventory-key";
+import {
   StudioRouteDetailResponseSchema,
   StudioRoutesResponseSchema,
 } from "@bp/domain/studio/routes";
@@ -24,12 +28,14 @@ import {
 } from "@bp/studio-api/client";
 import type {
   RouteStudiesArtifact,
+  StudioInterventionFacetIndex,
   StudioInterventionCorpus,
   StudioInterventionsEvidenceResponse,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteHourlyProfileResponse,
   StudioRouteIndex3Response,
+  StudioRouteInterventionInventoryBundle,
   StudioRouteSpeedHistoryResponse,
   StudyIndexArtifact,
 } from "./api-contract.js";
@@ -167,6 +173,23 @@ function publicArtifactPath(key: string): string {
 export function fetchStudioInterventionCorpus(options?: StudioQueryOptions) {
   return loadNullableStudioJson<StudioInterventionCorpus>(
     publicArtifactPath(interventionCorpusKey()),
+    options,
+  );
+}
+
+export function fetchStudioRouteInterventionInventory(
+  routeSlug: string,
+  options?: StudioQueryOptions,
+) {
+  return loadNullableStudioJson<StudioRouteInterventionInventoryBundle>(
+    publicArtifactPath(routeInterventionInventoryBundleKey(routeSlug)),
+    options,
+  );
+}
+
+export function fetchStudioInterventionFacetIndex(options?: StudioQueryOptions) {
+  return loadNullableStudioJson<StudioInterventionFacetIndex>(
+    publicArtifactPath(interventionFacetIndexKey()),
     options,
   );
 }
