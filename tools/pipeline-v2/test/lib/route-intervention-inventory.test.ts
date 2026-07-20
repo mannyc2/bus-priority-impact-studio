@@ -496,6 +496,93 @@ describe("route intervention inventory", () => {
     ]);
   });
 
+  test("preserves a routed treatment with separate nonprojectable route bindings", () => {
+    const input = fixture("mapped");
+    const built = buildRouteInterventionInventory({
+      ...input,
+      wikiTreatmentCompanions: {
+        ...input.wikiTreatmentCompanions,
+        routeTreatmentScopeReconciliation: [
+          {
+            schema_version: 1,
+            contract_id: "route-treatment-scope-v1",
+            treatment_record_id: "treatment-1",
+            raw_treatment_kind: "Bus Lane",
+            reconciliation_state: "documented_unresolved",
+            reason_code: "route_binding_nonprojectable",
+            route_record_ids: ["route-nonprojectable"],
+            relation_record_ids: ["relation-nonprojectable"],
+            project_context_relation_ids: [],
+            source_ids: ["source-1"],
+            evidence_ids: ["evidence-1"],
+          },
+        ],
+      },
+    });
+    const b44 = required(
+      built.bundles.find((bundle) => bundle.value.route.routeId === "B44"),
+      "B44 partially routed bundle",
+    );
+
+    expect(b44.value.treatments).toHaveLength(1);
+    expect(built.reconciliation.projectionFailures).toContainEqual(
+      expect.objectContaining({
+        sourceRecordId: "treatment-1",
+        reason: "route_binding_nonprojectable",
+      }),
+    );
+  });
+
+  test("keeps local source-gap sentinels out of treatment and occurrence projections", () => {
+    const input = fixture("mapped");
+    const built = buildRouteInterventionInventory({
+      ...input,
+      localRegistry: {
+        availability: "available",
+        rows: [
+          {
+            event_id: "local-gap-1",
+            route_id: "B44+",
+            intervention_type: "busway",
+            source_id: "nyc_dot_bus_lanes",
+            program: "NYC DOT Bus Lanes",
+            implementation_date: "2026-05-01T00:00:00.000Z",
+            implementation_month: "2026-05",
+            event_status: "source_gap",
+            description: "Matched geometry lacks a source-backed opening date.",
+          },
+        ],
+      },
+      reviewedOpenDispositions: [
+        {
+          rawValue: "busway",
+          disposition: "mapped",
+          treatmentKind: "busway",
+          treatmentFamily: "bus_priority_lane",
+        },
+      ],
+    });
+    const b44Sbs = required(
+      built.bundles.find((bundle) => bundle.value.route.routeId === "B44+"),
+      "B44+ local-gap bundle",
+    );
+
+    expect(b44Sbs.value.treatments).toEqual([]);
+    expect(b44Sbs.value.occurrences).toEqual([]);
+    expect(b44Sbs.value.coverageState).toBe("partial");
+    expect(b44Sbs.value.sourceGaps).toEqual([
+      expect.objectContaining({
+        gapId: "local_registry:local-gap-1",
+        gapKind: "local_registry_source_gap",
+        treatmentKind: "busway",
+      }),
+    ]);
+    expect(b44Sbs.value.sourceStates).toContainEqual(
+      expect.objectContaining({ sourceKind: "local_registry", availability: "partial" }),
+    );
+    expect(built.reconciliation.summary.mappedTreatmentCount).toBe(2);
+  });
+
   test("fails closed on missing bundles and release or manifest mismatches", () => {
     const missing = fixture("mapped");
     expect(() => buildRouteInterventionInventory({ ...missing, routeEvidenceBundles: [] })).toThrow(

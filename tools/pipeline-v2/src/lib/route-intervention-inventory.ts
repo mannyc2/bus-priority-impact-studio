@@ -711,9 +711,6 @@ function companionSemantics(input: {
     if (unscopedRecordIds.has(row.treatment_record_id)) {
       throw new Error(`Duplicate unscoped treatment reconciliation ${row.treatment_record_id}`);
     }
-    if (routedRecordIds.has(row.treatment_record_id)) {
-      throw new Error(`Treatment ${row.treatment_record_id} is both route-scoped and unscoped`);
-    }
     const rawValue = vocabularyByRecord.get(row.treatment_record_id);
     if (rawValue !== row.raw_treatment_kind) {
       throw new Error(
@@ -727,7 +724,7 @@ function companionSemantics(input: {
     partition.size !== vocabularyByRecord.size ||
     [...vocabularyByRecord.keys()].some((recordId) => !partition.has(recordId))
   ) {
-    throw new Error("Route scopes and explicit unscoped rows do not partition treatment records");
+    throw new Error("Route scopes and explicit reconciliation rows do not cover treatment records");
   }
   const dispositionByRecord = new Map<string, MtaWikiTreatmentSemanticDispositionV1>();
   for (const disposition of contract.dispositions) {
@@ -1102,8 +1099,26 @@ function addLocalRegistryFacts(input: {
     const disposition = dispositionForOpenOrClosed(row.intervention_type, input.reviewed);
     addDispositionClaim(input.claims, { id: treatmentId, disposition });
     if (disposition.disposition === "unmapped_review_required") continue;
+    const normalizedLifecycle = normalizeRouteTreatmentStatus(row.event_status);
+    const sourceRefs = uniqueSorted([
+      `local_intervention_event:${row.event_id}`,
+      `source:${row.source_id}`,
+    ]);
+    if (normalizedLifecycle === "source_gap") {
+      accumulator.sourceGaps.push({
+        gapId: `local_registry:${row.event_id}`,
+        sourceKind: "local_registry",
+        sourceId: row.source_id,
+        treatmentKind: disposition.treatmentKind,
+        gapKind: "local_registry_source_gap",
+        sourceRefs,
+        projectIds: [],
+      });
+      accumulator.localRegistryEventIds.add(row.event_id);
+      continue;
+    }
     const lifecycleState = assertAllowedLifecycle(
-      normalizeRouteTreatmentStatus(row.event_status),
+      normalizedLifecycle,
       `Registry event ${row.event_id}`,
     );
     const treatment: MutableTreatment = {
@@ -1122,10 +1137,7 @@ function addLocalRegistryFacts(input: {
       effectiveDate: row.implementation_date,
       datePrecision: "day",
       geographyScope: "route",
-      sourceRefs: uniqueSorted([
-        `local_intervention_event:${row.event_id}`,
-        `source:${row.source_id}`,
-      ]),
+      sourceRefs,
       occurrenceIds: [],
       projectIds: [],
     };
@@ -1364,7 +1376,11 @@ function sourceStatesForRoute(input: {
       : {
           sourceKind: "local_registry",
           requirement: "optional",
-          availability: input.local.availability,
+          availability: input.accumulator.sourceGaps.some(
+            (gap) => gap.sourceKind === "local_registry",
+          )
+            ? "partial"
+            : input.local.availability,
           checkedCoverage: input.local.checkedCoverage ?? input.release.coverage,
           recordCount: input.accumulator.localRegistryEventIds.size,
         },
@@ -1540,13 +1556,14 @@ export function buildRouteInterventionInventory(
     const requiredSourcePartial = sourceStates.some(
       (state) => state.requirement === "required" && state.availability !== "available",
     );
-    const coverageState = requiredSourcePartial
-      ? "partial"
-      : !hasPositiveEvidence
-        ? "checked_no_positive_evidence"
-        : sourceStates.every((state) => state.availability === "available")
-          ? "available"
-          : "partial";
+    const coverageState =
+      requiredSourcePartial || accumulator.sourceGaps.length > 0
+        ? "partial"
+        : !hasPositiveEvidence
+          ? "checked_no_positive_evidence"
+          : sourceStates.every((state) => state.availability === "available")
+            ? "available"
+            : "partial";
     const value = decodeSchemaStrict(StudioRouteInterventionInventoryBundleSchema, {
       artifactKind: "bp.studio.route_intervention_inventory_bundle.v1",
       schemaVersion: 1,

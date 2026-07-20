@@ -56,7 +56,7 @@ type ScopePartitionReport = {
   readonly duplicateScopeIds: readonly string[];
   readonly duplicateUnscopedRecordIds: readonly string[];
   readonly duplicateVocabularyRecordIds: readonly string[];
-  readonly overlappingRecordIds: readonly string[];
+  readonly partiallyRoutedRecordIds: readonly string[];
   readonly literalMismatches: readonly string[];
 };
 
@@ -201,7 +201,7 @@ export function reconcileRouteTreatmentScopePartition(input: {
   const unknownRecordIds = [...addressedRecordIds]
     .filter((recordId) => !vocabularyByRecord.has(recordId))
     .sort(compareText);
-  const overlappingRecordIds = [...routedRecordIds]
+  const partiallyRoutedRecordIds = [...routedRecordIds]
     .filter((recordId) => unscopedRecordIds.has(recordId))
     .sort(compareText);
   const literalMismatches = [...input.routeScopes, ...input.unscopedRows]
@@ -220,7 +220,6 @@ export function reconcileRouteTreatmentScopePartition(input: {
     duplicateScopeIds.length === 0 &&
     duplicateUnscopedRecordIds.length === 0 &&
     duplicateVocabularyRecordIds.length === 0 &&
-    overlappingRecordIds.length === 0 &&
     literalMismatches.length === 0;
   return {
     exact,
@@ -232,7 +231,7 @@ export function reconcileRouteTreatmentScopePartition(input: {
     duplicateScopeIds,
     duplicateUnscopedRecordIds,
     duplicateVocabularyRecordIds,
-    overlappingRecordIds,
+    partiallyRoutedRecordIds,
     literalMismatches: sortedUnique(literalMismatches),
   };
 }
@@ -473,7 +472,7 @@ export default defineCommand({
       options.db === undefined
         ? await runExportRouteInterventionInventory({ options })
         : await runLocalDbCommandBoundary({
-            dbPath: options.db,
+            dbPath: fromCliPath(options.db),
             localDbOptions: { readonly: true },
             command: "studio.export-route-intervention-inventory",
             operation: "runExportRouteInterventionInventory",

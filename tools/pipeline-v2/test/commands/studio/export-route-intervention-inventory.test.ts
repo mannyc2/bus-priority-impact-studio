@@ -109,7 +109,7 @@ describe("studio export-route-intervention-inventory command", () => {
     expect(frequency?.sourceCounts.local_registry).toBe(1);
   });
 
-  test("fails the route-scope partition for overlap, mismatch, or missing records", () => {
+  test("accepts partial routing while still failing literal mismatches and missing records", () => {
     const report = reconcileRouteTreatmentScopePartition({
       vocabularyScopes: [
         { rawValue: "bus_lane", recordId: "treatment-1" },
@@ -121,8 +121,16 @@ describe("studio export-route-intervention-inventory command", () => {
 
     expect(report.exact).toBe(false);
     expect(report.missingRecordIds).toEqual(["treatment-2"]);
-    expect(report.overlappingRecordIds).toEqual(["treatment-1"]);
+    expect(report.partiallyRoutedRecordIds).toEqual(["treatment-1"]);
     expect(report.literalMismatches).toEqual(["treatment-1"]);
+
+    const partiallyRouted = reconcileRouteTreatmentScopePartition({
+      vocabularyScopes: [{ rawValue: "bus_lane", recordId: "treatment-1" }],
+      routeScopes: [{ scopeId: "scope-1", treatmentRecordId: "treatment-1", rawValue: "bus_lane" }],
+      unscopedRows: [{ treatmentRecordId: "treatment-1", rawValue: "bus_lane" }],
+    });
+    expect(partiallyRouted.exact).toBe(true);
+    expect(partiallyRouted.partiallyRoutedRecordIds).toEqual(["treatment-1"]);
   });
 
   test("returns from vocabulary mode before build promotion and opens an optional DB read-only", () => {
@@ -133,6 +141,7 @@ describe("studio export-route-intervention-inventory command", () => {
     expect(checkBranch).toBeGreaterThan(-1);
     expect(promotion).toBeGreaterThan(checkBranch);
     expect(source.slice(checkBranch, promotion)).toContain("return {");
+    expect(source).toContain("dbPath: fromCliPath(options.db)");
     expect(source).toContain("localDbOptions: { readonly: true }");
     expect(source).toContain("buildRouteInterventionInventory(loaded.buildInput)");
   });
