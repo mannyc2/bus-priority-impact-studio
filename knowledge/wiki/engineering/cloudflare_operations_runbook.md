@@ -97,6 +97,81 @@ bun run publish:serving-release -- --month 2026-03 --d1 bus-priority-serving --r
 
 This is not a cron job. Run it when publishing a reviewed release or corrected artifact set.
 
+## Route intervention inventory export and publish
+
+The Plan 091 inventory is generated locally and served as ordinary Studio R2 objects. It does not
+need an inventory-specific Worker endpoint, D1 migration, uploader, or bucket binding.
+
+First run the vocabulary preflight. Use the same strict inputs for the real export:
+
+```bash
+bun run pipeline -- studio export-route-intervention-inventory \
+  --release-artifact <studio-release.json> \
+  --intervention-corpus <studio-intervention-corpus.json> \
+  --route-evidence-index <route-evidence-v2-index.json> \
+  --wiki-occurrences <operational-occurrence-import-v5.json> \
+  --mta-wiki-root <mta-wiki-checkout> \
+  --artifact-root data/artifacts \
+  --check-vocabulary
+
+bun run pipeline -- studio export-route-intervention-inventory \
+  --release-artifact <studio-release.json> \
+  --intervention-corpus <studio-intervention-corpus.json> \
+  --route-evidence-index <route-evidence-v2-index.json> \
+  --wiki-occurrences <operational-occurrence-import-v5.json> \
+  --mta-wiki-root <mta-wiki-checkout> \
+  --artifact-root data/artifacts \
+  --db data/local/pipeline.sqlite
+```
+
+`--db` is optional. If it is omitted, local-registry lineage is reported unavailable and affected
+coverage is partial rather than silently empty. The required Studio release, reviewed corpus,
+route-evidence-v2 bundles, and occurrence-v5 import must decode strictly. The exporter derives the
+Wiki named release and manifest SHA from the route-evidence index, then verifies the rc25 treatment
+components, semantic contract, route scopes, and scope reconciliation under `--mta-wiki-root`
+against that same manifest. It accepts no month, release-ID, Wiki-release, manifest-SHA, or
+publication-time override.
+
+Before publishing, inspect:
+
+- every route-index key, byte size, and 64-hex SHA against the exact promoted bundle bytes;
+- `coverageState`, especially `partial` and `checked_no_positive_evidence` routes;
+- reconciliation for unexplained treatment/occurrence loss or exact-route failures;
+- producer `unresolved` semantics as explicit source gaps, never `other_documented`;
+- the 128 KiB route-bundle, 256 KiB route-index, and 512 KiB facet-index gates.
+
+Per-file atomic promotion preserves unrelated files under `studio/v2/routes` and
+`studio/v2/interventions`. Never delete or replace either shared directory to recover from a failed
+run.
+
+For local Worker testing, seed the complete Studio tree recursively:
+
+```bash
+bun run seed:local-studio-r2
+```
+
+For remote publication, the generic publisher already walks the full `studio` prefix recursively.
+Dry-run it as part of release review; the month selects the coordinated release partition rather
+than inventory identity:
+
+```bash
+bun run pipeline publish r2-artifacts \
+  --month <coverage-end-YYYY-MM> \
+  --bucket bus-priority-artifacts \
+  --dry-run
+```
+
+Use the normal reviewed `publish:serving-release --execute` flow for the actual coordinated remote
+mutation.
+
+If a new consumer literal is unmapped, stop the publish, run `--check-vocabulary`, and add an
+explicit reviewed disposition plus fixture; never add a catch-all. A producer `unresolved` record
+stays visible as a source gap/partial route until a new immutable mta-wiki release reviews it. If an
+exact-route projection fails, correct the authoritative route identity or producer
+route-treatment scope and reimport route evidence plus occurrences from the same new release/hash.
+Do not repair either case with prose matching, route-family matching, project fan-out, or edits to
+generated bundles.
+
 ## Automated GitHub Actions Deploy
 
 `.github/workflows/ci.yml` runs the knowledge check, type check, architecture check, test suite, and

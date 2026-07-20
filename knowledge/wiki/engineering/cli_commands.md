@@ -184,6 +184,66 @@ Primary batch entrypoint:
 - `build:network` is the preferred monthly “try every build-eligible route” command; it recomputes readiness and the build plan, skips already-built routes by default, writes incremental progress to `data/artifacts/network-builds/<month>/summary.json` after each route attempt, and supports `--no-resume` when a full rebuild is desired.
 - `build:planned-routes` remains available as a compatibility alias for `build:routes -- --planned`.
 
+## Route intervention inventory export
+
+Plan 091 defines one fail-closed export command for the exact per-route treatment inventory:
+
+```bash
+bun run pipeline -- studio export-route-intervention-inventory --help
+```
+
+Required flags are `--release-artifact`, `--intervention-corpus`,
+`--route-evidence-index`, `--wiki-occurrences`, `--mta-wiki-root`, and
+`--artifact-root`. `--db` is optional local-event lineage, and `--check-vocabulary` is an optional
+preflight mode.
+
+Run the vocabulary/reconciliation preflight with the same pinned inputs intended for export:
+
+```bash
+bun run pipeline -- studio export-route-intervention-inventory \
+  --release-artifact <studio-release.json> \
+  --intervention-corpus <studio-intervention-corpus.json> \
+  --route-evidence-index <route-evidence-v2-index.json> \
+  --wiki-occurrences <operational-occurrence-import-v5.json> \
+  --mta-wiki-root <mta-wiki-checkout> \
+  --artifact-root data/artifacts \
+  --check-vocabulary
+```
+
+Normal export uses the same arguments and may add the optional local database:
+
+```bash
+bun run pipeline -- studio export-route-intervention-inventory \
+  --release-artifact <studio-release.json> \
+  --intervention-corpus <studio-intervention-corpus.json> \
+  --route-evidence-index <route-evidence-v2-index.json> \
+  --wiki-occurrences <operational-occurrence-import-v5.json> \
+  --mta-wiki-root <mta-wiki-checkout> \
+  --artifact-root data/artifacts \
+  --db data/local/pipeline.sqlite
+```
+
+The route-evidence-v2 index is the exact-route authority and supplies the Wiki named-release and
+manifest-SHA pin. `--mta-wiki-root` locates that immutable producer release; it does not introduce a
+second operator-selected release. The command requires the occurrence import to decode specifically
+as v5 and verifies the same manifest across rc25 `treatment_components.jsonl`,
+`treatment_semantics.json`, `route_treatment_scopes.jsonl`, and
+`route_treatment_scope_reconciliation.jsonl`.
+
+Producer `unresolved` dispositions remain explicit source gaps and partial coverage. They are never
+coerced to `other_documented`. Only producer route-treatment scopes authorize exact route facts;
+project membership is context, not permission to fan out a treatment.
+
+The export inherits `releaseId`, `publishedAt`, and `coverage` from the strict Studio release. It
+therefore exposes no `--month`, `--release-id`, `--wiki-release`,
+`--wiki-manifest-sha256`, or `--published-at` override. `--check-vocabulary` exits before opening
+output paths; normal export writes exact-route bundles, route/facet indexes, and reconciliation
+under the `studio/v2` keys documented in
+[[wiki/engineering/route_treatment_summary_materializer_plan|Route Intervention Inventory Operations]].
+
+This documentation records the command contract, not a Plan 091 completion receipt. Command
+discovery plus the Plan 091 fixture/full gates are the implementation proof.
+
 ## Export and release commands
 
 ```bash
