@@ -104,6 +104,152 @@ export type ReviewedOpenTreatmentDispositionV1 =
 
 export const REVIEWED_OPEN_TREATMENT_DISPOSITIONS_VERSION = 1 as const;
 
+export const MTA_WIKI_TREATMENT_SEMANTICS_SCHEMA_VERSION = 1 as const;
+
+/**
+ * Producer-reviewed v1 semantics. This vocabulary is deliberately separate
+ * from the smaller Studio presentation taxonomy: bundle members must remain
+ * lossless even when the public contract has not yet adopted their kind.
+ */
+export const MTA_WIKI_TREATMENT_SEMANTIC_KIND_FAMILIES_V1 = {
+  all_door_boarding: "boarding_and_fare",
+  automated_bus_lane_enforcement: "enforcement",
+  bench: "street_design",
+  bus_bulb: "street_design",
+  bus_lane: "bus_priority_lane",
+  bus_shelter: "stop_change",
+  bus_stop_adjustment: "stop_change",
+  busway: "bus_priority_lane",
+  curb_extension: "street_design",
+  curb_regulation: "curb_management",
+  fare_machine_installation: "boarding_and_fare",
+  high_visibility_crosswalk: "street_design",
+  left_turn_bay: "street_design",
+  neckdown: "street_design",
+  off_board_fare_collection: "boarding_and_fare",
+  pedestrian_improvement: "street_design",
+  pedestrian_island: "street_design",
+  planting: "street_design",
+  queue_jump: "signal_priority",
+  real_time_passenger_information: "customer_information",
+  resurfacing: "capital",
+  signal_retiming: "signal_priority",
+  stop_change: "stop_change",
+  stop_consolidation: "stop_change",
+  stop_relocation: "stop_change",
+  transit_signal_priority: "signal_priority",
+  truck_loading_zone: "curb_management",
+  turn_restriction: "street_design",
+  wayfinding_sign: "customer_information",
+} as const;
+
+export type MtaWikiTreatmentSemanticKindV1 =
+  keyof typeof MTA_WIKI_TREATMENT_SEMANTIC_KIND_FAMILIES_V1;
+export type MtaWikiTreatmentSemanticFamilyV1 =
+  (typeof MTA_WIKI_TREATMENT_SEMANTIC_KIND_FAMILIES_V1)[MtaWikiTreatmentSemanticKindV1];
+
+export type MtaWikiTreatmentSemanticArtifactDispositionV1 =
+  | {
+      disposition: "atomic";
+      raw_treatment_kind: string;
+      record_ids: readonly string[];
+      canonical_kind: string;
+      family: string;
+    }
+  | {
+      disposition: "bundle";
+      raw_treatment_kind: string;
+      record_ids: readonly string[];
+      bundle_family: string | null;
+      members: readonly {
+        raw_treatment_kind: string;
+        canonical_kind: string;
+        family: string;
+      }[];
+    }
+  | {
+      disposition: "unresolved";
+      raw_treatment_kind: string;
+      record_ids: readonly string[];
+      review_reason: string;
+    };
+
+export type MtaWikiTreatmentSemanticArtifactV1 = {
+  schema_version: typeof MTA_WIKI_TREATMENT_SEMANTICS_SCHEMA_VERSION;
+  dispositions: readonly MtaWikiTreatmentSemanticArtifactDispositionV1[];
+};
+
+export type MtaWikiTreatmentSemanticBundleMemberV1 = {
+  rawValue: string;
+  canonicalKind: MtaWikiTreatmentSemanticKindV1;
+  family: MtaWikiTreatmentSemanticFamilyV1;
+};
+
+export type MtaWikiTreatmentSemanticDispositionV1 =
+  | {
+      disposition: "atomic";
+      rawValue: string;
+      recordIds: string[];
+      mapping: MappedTreatmentDisposition;
+    }
+  | {
+      disposition: "bundle";
+      rawValue: string;
+      recordIds: string[];
+      bundleFamily: MtaWikiTreatmentSemanticFamilyV1 | null;
+      members: MtaWikiTreatmentSemanticBundleMemberV1[];
+    }
+  | {
+      disposition: "unresolved";
+      rawValue: string;
+      recordIds: string[];
+      reviewReason: string;
+    };
+
+export type MtaWikiTreatmentSemanticContractV1 = {
+  schemaVersion: typeof MTA_WIKI_TREATMENT_SEMANTICS_SCHEMA_VERSION;
+  dispositions: MtaWikiTreatmentSemanticDispositionV1[];
+};
+
+export type MtaWikiTreatmentVocabularyScopeV1 = {
+  rawValue: string;
+  recordId: string;
+};
+
+export type MtaWikiTreatmentSemanticScopeIssueV1 = MtaWikiTreatmentVocabularyScopeV1 & {
+  reason: "record_not_in_vocabulary" | "literal_mismatch";
+};
+
+export type MtaWikiTreatmentSemanticDuplicateScopeV1 = MtaWikiTreatmentVocabularyScopeV1 & {
+  count: number;
+};
+
+export type MtaWikiTreatmentSemanticReconciliationV1 = {
+  schemaVersion: typeof MTA_WIKI_TREATMENT_SEMANTICS_SCHEMA_VERSION;
+  exact: boolean;
+  publishable: boolean;
+  summary: {
+    vocabularyLiteralCount: number;
+    vocabularyRecordScopeCount: number;
+    dispositionCount: number;
+    atomicDispositionCount: number;
+    bundleDispositionCount: number;
+    unresolvedDispositionCount: number;
+    atomicRecordScopeCount: number;
+    bundleRecordScopeCount: number;
+    unresolvedRecordScopeCount: number;
+  };
+  missingLiterals: string[];
+  staleLiterals: string[];
+  missingScopes: MtaWikiTreatmentVocabularyScopeV1[];
+  unknownScopes: MtaWikiTreatmentSemanticScopeIssueV1[];
+  staleScopes: MtaWikiTreatmentSemanticScopeIssueV1[];
+  duplicateDispositionScopes: MtaWikiTreatmentSemanticDuplicateScopeV1[];
+  duplicateVocabularyScopes: MtaWikiTreatmentSemanticDuplicateScopeV1[];
+  ambiguousVocabularyRecordIds: string[];
+  blockingUnresolvedScopes: Array<MtaWikiTreatmentVocabularyScopeV1 & { reviewReason: string }>;
+};
+
 /**
  * Binding seed decisions only. The export gate compares this table with the
  * complete vocabulary collected from its pinned inputs; it must report any
@@ -204,6 +350,157 @@ function reviewedMapped(
   treatmentFamily: Exclude<TreatmentPresentationFamily, "other">,
 ): ReviewedOpenTreatmentDispositionV1 {
   return { rawValue, ...mapped(treatmentKind, treatmentFamily) };
+}
+
+const MTA_WIKI_ATOMIC_TREATMENT_DISPOSITIONS_V1 = {
+  all_door_boarding: mapped("all_door_boarding", "boarding_and_fare"),
+  automated_bus_lane_enforcement: mapped("automated_bus_lane_enforcement", "enforcement"),
+  bus_bulb: mapped("bus_bulb", "street_design"),
+  bus_lane: mapped("bus_lane", "bus_priority_lane"),
+  busway: mapped("busway", "bus_priority_lane"),
+  neckdown: mapped("neckdown", "street_design"),
+  off_board_fare_collection: mapped("off_board_fare_collection", "boarding_and_fare"),
+  pedestrian_improvement: mapped("pedestrian_improvement", "street_design"),
+  queue_jump: mapped("queue_jump", "signal_priority"),
+  signal_retiming: mapped("signal_retiming", "signal_priority"),
+  stop_change: mapped("stop_change", "stop_change"),
+  stop_consolidation: mapped("stop_consolidation", "stop_change"),
+  stop_relocation: mapped("stop_relocation", "stop_change"),
+  transit_signal_priority: mapped("transit_signal_priority", "signal_priority"),
+  turn_restriction: mapped("turn_restriction", "street_design"),
+} as const satisfies Partial<Record<MtaWikiTreatmentSemanticKindV1, MappedTreatmentDisposition>>;
+
+function nonemptyExactValue(value: string, path: string): string {
+  if (value.length === 0) throw new Error(`${path} must be non-empty`);
+  return value;
+}
+
+function nonemptyIdentifier(value: string, path: string): string {
+  if (value.length === 0 || value !== value.trim()) {
+    throw new Error(`${path} must be a non-empty value without surrounding whitespace`);
+  }
+  return value;
+}
+
+function uniqueRecordIds(values: readonly string[], path: string): string[] {
+  if (values.length === 0) throw new Error(`${path} must contain at least one record ID`);
+  const recordIds = values.map((value, index) => nonemptyIdentifier(value, `${path}[${index}]`));
+  if (new Set(recordIds).size !== recordIds.length) {
+    throw new Error(`${path} must not contain duplicate record IDs`);
+  }
+  return recordIds;
+}
+
+function mtaWikiSemanticKind(
+  canonicalKind: string,
+  family: string,
+  path: string,
+): MtaWikiTreatmentSemanticKindV1 {
+  const expectedFamily = (
+    MTA_WIKI_TREATMENT_SEMANTIC_KIND_FAMILIES_V1 as Readonly<Record<string, string>>
+  )[canonicalKind];
+  if (expectedFamily === undefined) {
+    throw new Error(`${path}.canonical_kind is not in the reviewed v1 producer vocabulary`);
+  }
+  if (family !== expectedFamily) {
+    throw new Error(`${path}.family must be ${expectedFamily} for canonical kind ${canonicalKind}`);
+  }
+  return canonicalKind as MtaWikiTreatmentSemanticKindV1;
+}
+
+function mtaWikiSemanticFamily(
+  family: string | null,
+  path: string,
+): MtaWikiTreatmentSemanticFamilyV1 | null {
+  if (family === null) return null;
+  const families = new Set<string>(Object.values(MTA_WIKI_TREATMENT_SEMANTIC_KIND_FAMILIES_V1));
+  if (!families.has(family)) {
+    throw new Error(`${path} is not in the reviewed v1 producer vocabulary`);
+  }
+  return family as MtaWikiTreatmentSemanticFamilyV1;
+}
+
+/**
+ * Adapts a strictly decoded producer artifact into the analytics contract.
+ * Atomic semantics must match the Studio mapping exactly. Bundle members use
+ * the producer's closed v1 vocabulary and are never split or folded into an
+ * `other_documented` row. Unresolved rows remain unresolved.
+ */
+export function adaptMtaWikiTreatmentSemanticContractV1(
+  artifact: MtaWikiTreatmentSemanticArtifactV1,
+): MtaWikiTreatmentSemanticContractV1 {
+  if (artifact.schema_version !== MTA_WIKI_TREATMENT_SEMANTICS_SCHEMA_VERSION) {
+    throw new Error(
+      `MTA Wiki treatment semantics schema must be ${MTA_WIKI_TREATMENT_SEMANTICS_SCHEMA_VERSION}`,
+    );
+  }
+  const dispositions = artifact.dispositions.map(
+    (disposition, dispositionIndex): MtaWikiTreatmentSemanticDispositionV1 => {
+      const path = `treatment_semantics.dispositions[${dispositionIndex}]`;
+      const rawValue = nonemptyExactValue(
+        disposition.raw_treatment_kind,
+        `${path}.raw_treatment_kind`,
+      );
+      const recordIds = uniqueRecordIds(disposition.record_ids, `${path}.record_ids`);
+      if (disposition.disposition === "atomic") {
+        const canonicalKind = mtaWikiSemanticKind(
+          disposition.canonical_kind,
+          disposition.family,
+          path,
+        );
+        const mapping = (
+          MTA_WIKI_ATOMIC_TREATMENT_DISPOSITIONS_V1 as Partial<
+            Record<MtaWikiTreatmentSemanticKindV1, MappedTreatmentDisposition>
+          >
+        )[canonicalKind];
+        if (mapping === undefined) {
+          throw new Error(
+            `${path}.canonical_kind ${canonicalKind} is not an atomic Studio presentation mapping`,
+          );
+        }
+        return { disposition: "atomic", rawValue, recordIds, mapping };
+      }
+      if (disposition.disposition === "bundle") {
+        if (disposition.members.length < 2) {
+          throw new Error(`${path}.members must retain at least two source-backed members`);
+        }
+        const members = disposition.members.map((member, memberIndex) => {
+          const memberPath = `${path}.members[${memberIndex}]`;
+          const memberRawValue = nonemptyExactValue(
+            member.raw_treatment_kind,
+            `${memberPath}.raw_treatment_kind`,
+          );
+          const canonicalKind = mtaWikiSemanticKind(
+            member.canonical_kind,
+            member.family,
+            memberPath,
+          );
+          return {
+            rawValue: memberRawValue,
+            canonicalKind,
+            family: MTA_WIKI_TREATMENT_SEMANTIC_KIND_FAMILIES_V1[canonicalKind],
+          };
+        });
+        if (new Set(members.map((member) => member.rawValue)).size !== members.length) {
+          throw new Error(`${path}.members must not duplicate raw treatment wording`);
+        }
+        return {
+          disposition: "bundle",
+          rawValue,
+          recordIds,
+          bundleFamily: mtaWikiSemanticFamily(disposition.bundle_family, `${path}.bundle_family`),
+          members,
+        };
+      }
+      return {
+        disposition: "unresolved",
+        rawValue,
+        recordIds,
+        reviewReason: nonemptyIdentifier(disposition.review_reason, `${path}.review_reason`),
+      };
+    },
+  );
+  return { schemaVersion: MTA_WIKI_TREATMENT_SEMANTICS_SCHEMA_VERSION, dispositions };
 }
 
 function compareText(left: string, right: string): number {
@@ -342,6 +639,171 @@ export function assertReviewedOpenTreatmentVocabularyExact(
     );
   }
   return diff;
+}
+
+function semanticScopeKey(scope: MtaWikiTreatmentVocabularyScopeV1): string {
+  return `${scope.rawValue}\0${scope.recordId}`;
+}
+
+function sortedSemanticScopes<T extends MtaWikiTreatmentVocabularyScopeV1>(values: T[]): T[] {
+  return values.sort((left, right) => compareText(semanticScopeKey(left), semanticScopeKey(right)));
+}
+
+function duplicateSemanticScopes(
+  scopes: readonly MtaWikiTreatmentVocabularyScopeV1[],
+): MtaWikiTreatmentSemanticDuplicateScopeV1[] {
+  const counts = new Map<string, number>();
+  for (const scope of scopes) {
+    const key = semanticScopeKey(scope);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([key, count]) => {
+      const [rawValue, recordId] = key.split("\0") as [string, string];
+      return { rawValue, recordId, count };
+    })
+    .sort((left, right) => compareText(semanticScopeKey(left), semanticScopeKey(right)));
+}
+
+/**
+ * Reconciles the producer's semantic rows against the exact record-scoped
+ * vocabulary collected by the caller. Coverage can be exact while semantic
+ * publication remains blocked: every explicit `unresolved` row is retained
+ * in `blockingUnresolvedScopes` and keeps `publishable` false.
+ */
+export function reconcileMtaWikiTreatmentSemanticsV1(input: {
+  vocabularyScopes: readonly MtaWikiTreatmentVocabularyScopeV1[];
+  artifact: MtaWikiTreatmentSemanticArtifactV1;
+}): MtaWikiTreatmentSemanticReconciliationV1 {
+  const contract = adaptMtaWikiTreatmentSemanticContractV1(input.artifact);
+  const vocabularyScopes = input.vocabularyScopes.map((scope, index) => ({
+    rawValue: nonemptyExactValue(scope.rawValue, `vocabularyScopes[${index}].rawValue`),
+    recordId: nonemptyIdentifier(scope.recordId, `vocabularyScopes[${index}].recordId`),
+  }));
+  const dispositionScopes = contract.dispositions.flatMap((disposition) =>
+    disposition.recordIds.map((recordId) => ({ rawValue: disposition.rawValue, recordId })),
+  );
+  const vocabularyScopeKeys = new Set(vocabularyScopes.map(semanticScopeKey));
+  const dispositionScopeKeys = new Set(dispositionScopes.map(semanticScopeKey));
+  const vocabularyLiterals = new Set(vocabularyScopes.map((scope) => scope.rawValue));
+  const dispositionLiterals = new Set(contract.dispositions.map((row) => row.rawValue));
+
+  const rawValuesByVocabularyRecordId = new Map<string, Set<string>>();
+  for (const scope of vocabularyScopes) {
+    const rawValues = rawValuesByVocabularyRecordId.get(scope.recordId) ?? new Set<string>();
+    rawValues.add(scope.rawValue);
+    rawValuesByVocabularyRecordId.set(scope.recordId, rawValues);
+  }
+  const ambiguousVocabularyRecordIds = [...rawValuesByVocabularyRecordId.entries()]
+    .filter(([, rawValues]) => rawValues.size > 1)
+    .map(([recordId]) => recordId)
+    .sort(compareText);
+
+  const missingLiterals = [...vocabularyLiterals]
+    .filter((rawValue) => !dispositionLiterals.has(rawValue))
+    .sort(compareText);
+  const staleLiterals = [...dispositionLiterals]
+    .filter((rawValue) => !vocabularyLiterals.has(rawValue))
+    .sort(compareText);
+  const missingScopes = sortedSemanticScopes(
+    vocabularyScopes.filter((scope) => !dispositionScopeKeys.has(semanticScopeKey(scope))),
+  );
+  const unknownScopes: MtaWikiTreatmentSemanticScopeIssueV1[] = [];
+  const staleScopes: MtaWikiTreatmentSemanticScopeIssueV1[] = [];
+  for (const scope of dispositionScopes) {
+    const vocabularyRawValues = rawValuesByVocabularyRecordId.get(scope.recordId);
+    if (vocabularyRawValues === undefined) {
+      unknownScopes.push({ ...scope, reason: "record_not_in_vocabulary" });
+    } else if (!vocabularyRawValues.has(scope.rawValue)) {
+      staleScopes.push({ ...scope, reason: "literal_mismatch" });
+    }
+  }
+  sortedSemanticScopes(unknownScopes);
+  sortedSemanticScopes(staleScopes);
+
+  const duplicateDispositionScopes = duplicateSemanticScopes(dispositionScopes);
+  const duplicateVocabularyScopes = duplicateSemanticScopes(vocabularyScopes);
+  const blockingUnresolvedScopes = sortedSemanticScopes(
+    contract.dispositions.flatMap((disposition) =>
+      disposition.disposition === "unresolved"
+        ? disposition.recordIds.map((recordId) => ({
+            rawValue: disposition.rawValue,
+            recordId,
+            reviewReason: disposition.reviewReason,
+          }))
+        : [],
+    ),
+  );
+  const exact =
+    missingLiterals.length === 0 &&
+    staleLiterals.length === 0 &&
+    missingScopes.length === 0 &&
+    unknownScopes.length === 0 &&
+    staleScopes.length === 0 &&
+    duplicateDispositionScopes.length === 0 &&
+    duplicateVocabularyScopes.length === 0 &&
+    ambiguousVocabularyRecordIds.length === 0;
+  const countScopes = (disposition: MtaWikiTreatmentSemanticDispositionV1["disposition"]) =>
+    contract.dispositions
+      .filter((row) => row.disposition === disposition)
+      .reduce((count, row) => count + row.recordIds.length, 0);
+
+  return {
+    schemaVersion: MTA_WIKI_TREATMENT_SEMANTICS_SCHEMA_VERSION,
+    exact,
+    publishable: exact && blockingUnresolvedScopes.length === 0,
+    summary: {
+      vocabularyLiteralCount: vocabularyLiterals.size,
+      vocabularyRecordScopeCount: vocabularyScopeKeys.size,
+      dispositionCount: contract.dispositions.length,
+      atomicDispositionCount: contract.dispositions.filter((row) => row.disposition === "atomic")
+        .length,
+      bundleDispositionCount: contract.dispositions.filter((row) => row.disposition === "bundle")
+        .length,
+      unresolvedDispositionCount: contract.dispositions.filter(
+        (row) => row.disposition === "unresolved",
+      ).length,
+      atomicRecordScopeCount: countScopes("atomic"),
+      bundleRecordScopeCount: countScopes("bundle"),
+      unresolvedRecordScopeCount: countScopes("unresolved"),
+    },
+    missingLiterals,
+    staleLiterals,
+    missingScopes,
+    unknownScopes,
+    staleScopes,
+    duplicateDispositionScopes,
+    duplicateVocabularyScopes,
+    ambiguousVocabularyRecordIds,
+    blockingUnresolvedScopes,
+  };
+}
+
+export function assertMtaWikiTreatmentSemanticsReconciledV1(input: {
+  vocabularyScopes: readonly MtaWikiTreatmentVocabularyScopeV1[];
+  artifact: MtaWikiTreatmentSemanticArtifactV1;
+}): MtaWikiTreatmentSemanticReconciliationV1 {
+  const reconciliation = reconcileMtaWikiTreatmentSemanticsV1(input);
+  if (!reconciliation.exact) {
+    throw new Error(
+      `MTA Wiki treatment semantic scopes do not reconcile: missing=${reconciliation.missingScopes.length}, unknown=${reconciliation.unknownScopes.length}, stale=${reconciliation.staleScopes.length}, duplicate=${reconciliation.duplicateDispositionScopes.length}`,
+    );
+  }
+  return reconciliation;
+}
+
+export function assertMtaWikiTreatmentSemanticsPublishableV1(input: {
+  vocabularyScopes: readonly MtaWikiTreatmentVocabularyScopeV1[];
+  artifact: MtaWikiTreatmentSemanticArtifactV1;
+}): MtaWikiTreatmentSemanticReconciliationV1 {
+  const reconciliation = assertMtaWikiTreatmentSemanticsReconciledV1(input);
+  if (!reconciliation.publishable) {
+    throw new Error(
+      `MTA Wiki treatment semantics contain ${reconciliation.blockingUnresolvedScopes.length} unresolved record scope(s)`,
+    );
+  }
+  return reconciliation;
 }
 
 export function resolveExactRouteId(input: {
