@@ -318,10 +318,13 @@ function aceObservations(): StudioRouteInterventionObservationBundle {
         routeId: "M15+",
         treatmentKind: "automated_bus_lane_enforcement",
         analysisFamily: "automated_bus_lane_enforcement",
+        specId: "automated_bus_lane_enforcement_route_observations_v1",
         program: "ABLE",
         sourceId: "mta_ace_routes",
         implementationDate: "2025-11-01",
         implementationMonth: isoMonthFixture("2025-11"),
+        datePrecision: "day",
+        geographyScope: "route",
         resolutionStatus: "partial",
         series: [
           {
@@ -352,6 +355,83 @@ function aceObservations(): StudioRouteInterventionObservationBundle {
       },
     ],
     limitations: [],
+  };
+}
+
+const BUS_LANE_TREATMENT_ID = "treatment:v1:000000000000000000000093";
+const BUS_LANE_OCCURRENCE_ID = "occurrence:v1:000000000000000000000093";
+const ROUTE_CONTEXT_METHOD_LIMITATION =
+  "Route-level observations are context for a treatment scoped below the full route.";
+
+function corridorBusLaneInventory(): StudioRouteInterventionInventoryBundle {
+  const inventory = aceInventory();
+  const treatment = inventory.treatments[0];
+  const occurrence = inventory.occurrences[0];
+  if (treatment === undefined || occurrence === undefined) {
+    throw new Error("ACE fixture must include one treatment and occurrence");
+  }
+  return {
+    ...inventory,
+    treatments: [
+      {
+        ...treatment,
+        treatmentId: BUS_LANE_TREATMENT_ID,
+        sourceRecordId: "bus-lane-record",
+        sourceId: "nyc_dot_bus_lanes",
+        rawKind: "bus_lane",
+        treatmentKind: "bus_lane",
+        treatmentFamily: "bus_priority_lane",
+        geographyScope: "corridor",
+        sourceRefs: ["source:nyc_dot_bus_lanes"],
+        occurrenceIds: [BUS_LANE_OCCURRENCE_ID],
+      },
+    ],
+    occurrences: [
+      {
+        ...occurrence,
+        occurrenceId: BUS_LANE_OCCURRENCE_ID,
+        sourceOccurrenceId: "bus-lane-occurrence",
+        sourceId: "nyc_dot_bus_lanes",
+        treatmentIds: [BUS_LANE_TREATMENT_ID],
+        program: null,
+        geographyScope: "corridor",
+        sourceRefs: ["source:nyc_dot_bus_lanes"],
+      },
+    ],
+  };
+}
+
+function corridorBusLaneObservations(): StudioRouteInterventionObservationBundle {
+  const observations = aceObservations();
+  const event = observations.events[0];
+  const series = event?.series[0];
+  if (event === undefined || series === undefined) {
+    throw new Error("ACE observation fixture must include one event and series");
+  }
+  return {
+    ...observations,
+    events: [
+      {
+        ...event,
+        eventId: "observation-event:v1:000000000000000000000093",
+        occurrenceId: BUS_LANE_OCCURRENCE_ID,
+        treatmentId: BUS_LANE_TREATMENT_ID,
+        treatmentKind: "bus_lane",
+        analysisFamily: "bus_lane",
+        specId: "bus_lane_route_observations_v1",
+        program: null,
+        sourceId: "nyc_dot_bus_lanes",
+        geographyScope: "corridor",
+        series: [
+          {
+            ...series,
+            bindingId: "bus_lane_route_speed_around_implementation_v1",
+            role: "context",
+            limitations: [ROUTE_CONTEXT_METHOD_LIMITATION],
+          },
+        ],
+      },
+    ],
   };
 }
 
@@ -454,5 +534,20 @@ describe("OverviewSection", () => {
     expect(markup).toContain("3 months");
     expect(markup).not.toContain(">6 months</span>");
     expect(markup).not.toContain("2025-10 to 2025-12");
+  });
+
+  test("labels corridor-scoped route speed as context and shows the method limitation", () => {
+    const markup = renderToStaticMarkup(
+      createElement(OverviewSection, {
+        data: detail({}),
+        inventory: corridorBusLaneInventory(),
+        observations: corridorBusLaneObservations(),
+        onNavigate: () => undefined,
+      }),
+    );
+
+    expect(markup).toContain("Route average speed (context)");
+    expect(markup).toContain(ROUTE_CONTEXT_METHOD_LIMITATION);
+    expect(markup).not.toContain("occurrence:observation-event");
   });
 });

@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import { IsoMonthSchema } from "../primitives/index.js";
 import {
+  StudioInterventionGeographyScopeSchema,
   StudioInterventionTreatmentKindSchema,
   StudioRouteInterventionOccurrenceSchema,
   StudioRouteInterventionTreatmentSchema,
@@ -28,6 +29,76 @@ const PositiveIntegerSchema = Schema.Number.check(Schema.isInt(), Schema.isGreat
 const FiniteNumberSchema = Schema.Number.check(Schema.isFinite());
 const TreatmentIdSchema = StudioRouteInterventionTreatmentSchema.fields.treatmentId;
 const OccurrenceIdSchema = StudioRouteInterventionOccurrenceSchema.fields.occurrenceId;
+const SCOPE_MISMATCH_LIMITATION =
+  "Route-level observations are context for a treatment scoped below the full route.";
+
+const SUPPORTED_ANALYSIS_FAMILIES = [
+  "automated_bus_lane_enforcement",
+  "bus_lane",
+  "busway",
+] as const;
+
+const SUPPORTED_SPEC_IDS = [
+  "automated_bus_lane_enforcement_route_observations_v1",
+  "bus_lane_route_observations_v1",
+  "busway_route_observations_v1",
+] as const;
+
+export const STUDIO_INTERVENTION_OBSERVATION_BINDING_IDS = [
+  "route_speed_around_implementation_v1",
+  "route_ridership_around_implementation_v1",
+  "bus_lane_route_speed_around_implementation_v1",
+  "bus_lane_route_ridership_around_implementation_v1",
+  "busway_route_speed_around_implementation_v1",
+  "busway_route_ridership_around_implementation_v1",
+] as const;
+
+type SupportedAnalysisFamily = (typeof SUPPORTED_ANALYSIS_FAMILIES)[number];
+
+const ANALYSIS_CONTRACTS = {
+  automated_bus_lane_enforcement: {
+    treatmentKind: "automated_bus_lane_enforcement",
+    specId: "automated_bus_lane_enforcement_route_observations_v1",
+    bindingIds: [
+      "route_speed_around_implementation_v1",
+      "route_ridership_around_implementation_v1",
+    ],
+  },
+  bus_lane: {
+    treatmentKind: "bus_lane",
+    specId: "bus_lane_route_observations_v1",
+    bindingIds: [
+      "bus_lane_route_speed_around_implementation_v1",
+      "bus_lane_route_ridership_around_implementation_v1",
+    ],
+  },
+  busway: {
+    treatmentKind: "busway",
+    specId: "busway_route_observations_v1",
+    bindingIds: [
+      "busway_route_speed_around_implementation_v1",
+      "busway_route_ridership_around_implementation_v1",
+    ],
+  },
+} as const satisfies Record<
+  SupportedAnalysisFamily,
+  {
+    readonly treatmentKind: string;
+    readonly specId: string;
+    readonly bindingIds: readonly [string, string];
+  }
+>;
+
+const SPEED_BINDING_IDS = new Set([
+  "route_speed_around_implementation_v1",
+  "bus_lane_route_speed_around_implementation_v1",
+  "busway_route_speed_around_implementation_v1",
+]);
+const RIDERSHIP_BINDING_IDS = new Set([
+  "route_ridership_around_implementation_v1",
+  "bus_lane_route_ridership_around_implementation_v1",
+  "busway_route_ridership_around_implementation_v1",
+]);
 
 function monthIndex(month: string): number {
   return Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7)) - 1;
@@ -122,10 +193,31 @@ export type StudioInterventionObservationResolutionStatus =
   typeof StudioInterventionObservationResolutionStatusSchema.Type;
 
 export const StudioInterventionObservationAnalysisFamilySchema = Schema.NullOr(
-  Schema.Literal("automated_bus_lane_enforcement"),
+  Schema.Literals(SUPPORTED_ANALYSIS_FAMILIES),
 );
 export type StudioInterventionObservationAnalysisFamily =
   typeof StudioInterventionObservationAnalysisFamilySchema.Type;
+
+export const StudioInterventionObservationSpecIdSchema = Schema.NullOr(
+  Schema.Literals(SUPPORTED_SPEC_IDS),
+);
+export type StudioInterventionObservationSpecId =
+  typeof StudioInterventionObservationSpecIdSchema.Type;
+
+export const StudioInterventionObservationDatePrecisionSchema = Schema.Literals(["day", "month"]);
+export type StudioInterventionObservationDatePrecision =
+  typeof StudioInterventionObservationDatePrecisionSchema.Type;
+
+export const StudioInterventionObservationGeographyScopeSchema =
+  StudioInterventionGeographyScopeSchema;
+export type StudioInterventionObservationGeographyScope =
+  typeof StudioInterventionObservationGeographyScopeSchema.Type;
+
+export const StudioInterventionObservationBindingIdSchema = Schema.Literals(
+  STUDIO_INTERVENTION_OBSERVATION_BINDING_IDS,
+);
+export type StudioInterventionObservationBindingId =
+  typeof StudioInterventionObservationBindingIdSchema.Type;
 
 export const StudioInterventionObservationPointSchema = Schema.Struct({
   month: IsoMonthSchema,
@@ -218,7 +310,7 @@ export type StudioInterventionObservationCoverage =
   typeof StudioInterventionObservationCoverageSchema.Type;
 
 export const StudioInterventionObservationSeriesSchema = Schema.Struct({
-  bindingId: NonEmptyStringSchema,
+  bindingId: StudioInterventionObservationBindingIdSchema,
   metricId: NonEmptyStringSchema,
   label: NonEmptyStringSchema,
   unit: NonEmptyStringSchema,
@@ -309,6 +401,161 @@ export const StudioInterventionObservationSeriesSchema = Schema.Struct({
 export type StudioInterventionObservationSeries =
   typeof StudioInterventionObservationSeriesSchema.Type;
 
+type ObservationIdentity = {
+  readonly treatmentKind: string;
+  readonly analysisFamily: SupportedAnalysisFamily | null;
+  readonly specId: string | null;
+  readonly implementationDate: string;
+  readonly implementationMonth: string;
+  readonly datePrecision: "day" | "month";
+  readonly geographyScope: "route" | "corridor" | "segment" | "intersection" | "source_only";
+  readonly resolutionStatus: string;
+};
+
+type ObservationIssue = {
+  readonly path: Array<string | number>;
+  readonly issue: string;
+};
+
+function hasSupportedResolution(resolutionStatus: string): boolean {
+  return (
+    resolutionStatus === "available" ||
+    resolutionStatus === "partial" ||
+    resolutionStatus === "missing"
+  );
+}
+
+function observationIdentityIssues(event: ObservationIdentity): ObservationIssue[] {
+  const issues: ObservationIssue[] = [];
+  const supportedResolution = hasSupportedResolution(event.resolutionStatus);
+  const reviewedResolution = supportedResolution || event.resolutionStatus === "unsupported_scope";
+  if (reviewedResolution && event.analysisFamily === null) {
+    issues.push({
+      path: ["analysisFamily"],
+      issue: "A supported or scope-rejected resolution requires a reviewed analysis family.",
+    });
+  }
+  if (reviewedResolution && event.specId === null) {
+    issues.push({
+      path: ["specId"],
+      issue: "A supported or scope-rejected resolution requires its exact relevance spec ID.",
+    });
+  }
+  if (event.resolutionStatus === "unsupported_treatment_family" && event.analysisFamily !== null) {
+    issues.push({
+      path: ["analysisFamily"],
+      issue: "An unsupported treatment family must have a null analysis family.",
+    });
+  }
+  if (event.resolutionStatus === "unsupported_treatment_family" && event.specId !== null) {
+    issues.push({
+      path: ["specId"],
+      issue: "An unsupported treatment family must have a null relevance spec ID.",
+    });
+  }
+
+  if (event.analysisFamily !== null) {
+    const contract = ANALYSIS_CONTRACTS[event.analysisFamily];
+    if (event.treatmentKind !== contract.treatmentKind) {
+      issues.push({
+        path: ["treatmentKind"],
+        issue: "Treatment kind must exactly match its reviewed analysis family.",
+      });
+    }
+    if (event.specId !== contract.specId) {
+      issues.push({
+        path: ["specId"],
+        issue: "Relevance spec ID must exactly match its reviewed analysis family.",
+      });
+    }
+    const supportedScope =
+      event.analysisFamily === "automated_bus_lane_enforcement"
+        ? event.geographyScope === "route"
+        : event.geographyScope === "route" ||
+          event.geographyScope === "corridor" ||
+          event.geographyScope === "segment";
+    if (supportedResolution && !supportedScope) {
+      issues.push({
+        path: ["geographyScope"],
+        issue: "A supported resolution requires a scope admitted by its relevance spec.",
+      });
+    }
+  }
+
+  if (
+    (event.datePrecision === "day" && !isCanonicalIsoDay(event.implementationDate)) ||
+    (event.datePrecision === "month" && event.implementationDate !== event.implementationMonth)
+  ) {
+    issues.push({
+      path: ["datePrecision"],
+      issue: "Date precision must agree with the exact implementation date representation.",
+    });
+  }
+  if (event.implementationDate.slice(0, 7) !== event.implementationMonth) {
+    issues.push({
+      path: ["implementationMonth"],
+      issue: "Implementation month must agree with implementation date.",
+    });
+  }
+  return issues;
+}
+
+function observationSeriesIssues(
+  event: ObservationIdentity & {
+    readonly series: readonly {
+      readonly bindingId: (typeof STUDIO_INTERVENTION_OBSERVATION_BINDING_IDS)[number];
+      readonly metricId: string;
+      readonly role: string;
+      readonly limitations: readonly string[];
+    }[];
+  },
+): ObservationIssue[] {
+  if (event.analysisFamily === null) return [];
+  const issues: ObservationIssue[] = [];
+  const allowedBindingIds = new Set(ANALYSIS_CONTRACTS[event.analysisFamily].bindingIds);
+  const contextualScope =
+    event.analysisFamily !== "automated_bus_lane_enforcement" &&
+    (event.geographyScope === "corridor" || event.geographyScope === "segment");
+  for (const [index, series] of event.series.entries()) {
+    if (!allowedBindingIds.has(series.bindingId)) {
+      issues.push({
+        path: ["series", index, "bindingId"],
+        issue: "Binding ID must belong to the event's exact analysis family.",
+      });
+    }
+    const speedBinding = SPEED_BINDING_IDS.has(series.bindingId);
+    const ridershipBinding = RIDERSHIP_BINDING_IDS.has(series.bindingId);
+    const expectedRole = speedBinding && !contextualScope ? "primary_outcome" : "context";
+    if (series.role !== expectedRole) {
+      issues.push({
+        path: ["series", index, "role"],
+        issue: "Series role must match the binding and treatment geography scope.",
+      });
+    }
+    const expectedMetricId = speedBinding
+      ? "route_average_speed_mph"
+      : ridershipBinding
+        ? "route_monthly_ridership"
+        : null;
+    if (expectedMetricId !== null && series.metricId !== expectedMetricId) {
+      issues.push({
+        path: ["series", index, "metricId"],
+        issue: "Metric ID must match the stable observation binding ID.",
+      });
+    }
+    const hasScopeLimitation = series.limitations.includes(SCOPE_MISMATCH_LIMITATION);
+    if (contextualScope !== hasScopeLimitation) {
+      issues.push({
+        path: ["series", index, "limitations"],
+        issue: contextualScope
+          ? "Corridor and segment observations require the route-context limitation."
+          : "Route-scoped observations cannot carry the narrower-scope limitation.",
+      });
+    }
+  }
+  return issues;
+}
+
 export const StudioInterventionObservationEventSchema = Schema.Struct({
   eventId: NonEmptyStringSchema,
   occurrenceId: OccurrenceIdSchema,
@@ -316,10 +563,13 @@ export const StudioInterventionObservationEventSchema = Schema.Struct({
   routeId: NonEmptyStringSchema,
   treatmentKind: StudioInterventionTreatmentKindSchema,
   analysisFamily: StudioInterventionObservationAnalysisFamilySchema,
-  program: NonEmptyStringSchema,
+  specId: StudioInterventionObservationSpecIdSchema,
+  program: Schema.NullOr(NonEmptyStringSchema),
   sourceId: NonEmptyStringSchema,
-  implementationDate: IsoDaySchema,
+  implementationDate: Schema.Union([IsoDaySchema, IsoMonthSchema]),
   implementationMonth: IsoMonthSchema,
+  datePrecision: StudioInterventionObservationDatePrecisionSchema,
+  geographyScope: StudioInterventionObservationGeographyScopeSchema,
   resolutionStatus: StudioInterventionObservationResolutionStatusSchema,
   series: Schema.Array(StudioInterventionObservationSeriesSchema).check(
     Schema.isMaxLength(MAX_EVENT_SERIES),
@@ -327,42 +577,8 @@ export const StudioInterventionObservationEventSchema = Schema.Struct({
 })
   .check(
     Schema.makeFilter((event) => {
-      const issues: Array<{ path: string[]; issue: string }> = [];
-      const supportedResolution =
-        event.resolutionStatus === "available" ||
-        event.resolutionStatus === "partial" ||
-        event.resolutionStatus === "missing";
-
-      if (supportedResolution && event.analysisFamily === null) {
-        issues.push({
-          path: ["analysisFamily"],
-          issue: "A supported resolution requires a reviewed analysis family.",
-        });
-      }
-      if (
-        event.resolutionStatus === "unsupported_treatment_family" &&
-        event.analysisFamily !== null
-      ) {
-        issues.push({
-          path: ["analysisFamily"],
-          issue: "An unsupported treatment family must have a null analysis family.",
-        });
-      }
-      if (
-        event.analysisFamily !== null &&
-        event.treatmentKind !== "automated_bus_lane_enforcement"
-      ) {
-        issues.push({
-          path: ["treatmentKind"],
-          issue: "The v1 reviewed analysis family is valid only for canonical ACE treatments.",
-        });
-      }
-      if (event.implementationDate.slice(0, 7) !== event.implementationMonth) {
-        issues.push({
-          path: ["implementationMonth"],
-          issue: "Implementation month must agree with implementation date.",
-        });
-      }
+      const issues = [...observationIdentityIssues(event), ...observationSeriesIssues(event)];
+      const supportedResolution = hasSupportedResolution(event.resolutionStatus);
       if (!uniqueStrings(event.series.map((series) => series.bindingId))) {
         issues.push({
           path: ["series"],
@@ -538,10 +754,13 @@ export const StudioInterventionObservationIndexEventSchema = Schema.Struct({
   routeSlug: NonEmptyStringSchema,
   treatmentKind: StudioInterventionTreatmentKindSchema,
   analysisFamily: StudioInterventionObservationAnalysisFamilySchema,
-  program: NonEmptyStringSchema,
+  specId: StudioInterventionObservationSpecIdSchema,
+  program: Schema.NullOr(NonEmptyStringSchema),
   sourceId: NonEmptyStringSchema,
-  implementationDate: IsoDaySchema,
+  implementationDate: Schema.Union([IsoDaySchema, IsoMonthSchema]),
   implementationMonth: IsoMonthSchema,
+  datePrecision: StudioInterventionObservationDatePrecisionSchema,
+  geographyScope: StudioInterventionObservationGeographyScopeSchema,
   resolutionStatus: StudioInterventionObservationResolutionStatusSchema,
   availableMetricIds: Schema.Array(NonEmptyStringSchema).check(
     Schema.isMaxLength(MAX_EVENT_SERIES),
@@ -550,41 +769,8 @@ export const StudioInterventionObservationIndexEventSchema = Schema.Struct({
 })
   .check(
     Schema.makeFilter((event) => {
-      const issues: Array<{ path: string[]; issue: string }> = [];
-      const supportedResolution =
-        event.resolutionStatus === "available" ||
-        event.resolutionStatus === "partial" ||
-        event.resolutionStatus === "missing";
-      if (supportedResolution && event.analysisFamily === null) {
-        issues.push({
-          path: ["analysisFamily"],
-          issue: "A supported resolution requires a reviewed analysis family.",
-        });
-      }
-      if (
-        event.resolutionStatus === "unsupported_treatment_family" &&
-        event.analysisFamily !== null
-      ) {
-        issues.push({
-          path: ["analysisFamily"],
-          issue: "An unsupported treatment family must have a null analysis family.",
-        });
-      }
-      if (
-        event.analysisFamily !== null &&
-        event.treatmentKind !== "automated_bus_lane_enforcement"
-      ) {
-        issues.push({
-          path: ["treatmentKind"],
-          issue: "The v1 reviewed analysis family is valid only for canonical ACE treatments.",
-        });
-      }
-      if (event.implementationDate.slice(0, 7) !== event.implementationMonth) {
-        issues.push({
-          path: ["implementationMonth"],
-          issue: "Implementation month must agree with implementation date.",
-        });
-      }
+      const issues = observationIdentityIssues(event);
+      const supportedResolution = hasSupportedResolution(event.resolutionStatus);
       if (!uniqueStrings(event.availableMetricIds) || !sortedStrings(event.availableMetricIds)) {
         issues.push({
           path: ["availableMetricIds"],

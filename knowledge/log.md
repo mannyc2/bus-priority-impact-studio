@@ -8769,3 +8769,51 @@ the reviewed corpus, and the BX28 study artifact because the local v1 route
 projection predates the strict publication identity fields. Production schema
 validation was not weakened. No release, D1/R2 object, source snapshot,
 deployment, or mutable release pointer was changed.
+
+## [2026-07-20] engineering | Plan 093 value-blind intervention relevance expansion complete
+
+Expanded the intervention relevance registry from the ACE-only compatibility
+projection into an exhaustive 35-kind matrix: 3 supported kinds, 22 explicitly
+blocked kinds with concrete unlock contracts, and 10 kinds marked not relevant
+to route-operation observations. ACE, bus-lane, and busway now have distinct
+stable specs and bindings over the registered route-month speed and ridership
+product. Selection remains fixed before values are read, preserves the
+implementation-month ±12 window and null gaps, and never emits deltas, effects,
+directions, or causal copy.
+
+Added a separate pure descriptive observation-anchor gate over exact Plan 091
+occurrence/treatment pairs. It requires operational lifecycle, day/month date
+precision, reviewed usable lineage, admitted scope, and exact route identity;
+deduplicates only the exact route/occurrence/treatment key; and reports every
+tagged rejection. The existing study-event production gate was not changed.
+ACE continues through its legacy trusted-registry compatibility check, while
+reviewed bus-lane/busway observations do not inherit that causal-study
+allowlist.
+
+The isolated real-data export used Studio release
+`pub_20260718T180527000Z`, all 375 strict Plan 091 route inventories, and the
+local route-month trend table. It produced 456 events in 323 route bundles:
+78 ACE, 375 bus-lane, and 3 busway. Admission reconciled to 456 admitted, 127
+rejected (126 unsupported treatment kinds and one untrusted ACE registry
+source), and zero exact deduplications. Event resolution was 54 available,
+208 partial, and 194 missing; the 912 emitted series were 115 available, 405
+partial, and 392 missing over observed coverage from 2023-04 through 2026-05.
+The run wrote only to an isolated `/tmp` artifact copy and did not mutate the
+checked release or publication state.
+
+Route Overview now recognizes the three stable speed bindings, resolves each
+marker through exact occurrence and treatment IDs, and chooses the focal event
+by the fixed v1 priority, newest implementation month, and stable ID without
+inspecting values. It adds the reviewed “Bus lane starts” and “Busway starts”
+annotation stems. Corridor/segment observations are labeled “Route average
+speed (context)” and display the scope limitation beside the chart; unsupported,
+unavailable, project-only, dangling, and all-null cases retain the ordinary
+month-preserving zero-marker fallback.
+
+Verification passed the focused 58-test domain/pipeline compatibility matrix,
+the focused 30-test web matrix, analytics/domain/pipeline/web typechecks,
+knowledge validation, and the comprehensive `bun run check`, including 334
+web tests and 22 Worker tests. The production web build passed at 138.3 KB gzip
+for the entry chunk and within the unchanged 400 KB total-JavaScript budget.
+No production release, D1/R2 object, source snapshot, deployment, study
+approval, or mutable release pointer was changed.

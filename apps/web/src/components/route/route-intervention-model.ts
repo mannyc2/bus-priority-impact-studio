@@ -24,8 +24,8 @@ type KindPresentation = Omit<InterventionPresentation, "family" | "familyLabel" 
 };
 
 const KIND_PRESENTATION = {
-  bus_lane: kind("Bus lane", "BL", 10),
-  busway: kind("Busway", "BWY", 11),
+  bus_lane: kind("Bus lane", "BL", 10, { operationalAnnotationStem: "Bus lane starts" }),
+  busway: kind("Busway", "BWY", 11, { operationalAnnotationStem: "Busway starts" }),
   transit_signal_priority: kind("Transit signal priority", "TSP", 20),
   queue_jump: kind("Queue jump", "QJ", 21),
   stop_consolidation: kind("Stop consolidation", "SC", 30),

@@ -246,8 +246,8 @@ discovery plus the Plan 091 fixture/full gates are the implementation proof.
 
 ## Route intervention observation export
 
-Materialize Plan 090's value-blind route observation bundles only after the Plan 091 inventory has
-been exported and verified:
+Materialize the Plan 090/093 value-blind route observation bundles only after the Plan 091 inventory
+has been exported and verified:
 
 ```bash
 bun run pipeline -- studio export-intervention-observations --db data/local/pipeline.sqlite --inventory-index data/artifacts/studio/v2/interventions/route-inventory-index.json --release-artifact data/artifacts/studio/v1/release.json --artifact-root data/artifacts
@@ -259,11 +259,19 @@ decode, match the release identity and coverage, and pass key/hash verification.
 must strictly decode as a post-Plan-086 `StudioReleasePayload`; its `releaseId` and `publishedAt`
 are the only publication identity accepted by the observation export.
 
-The command writes one observation bundle for each route with at least one admitted registry anchor
-at `studio/v2/routes/<routeSlug>/intervention-observations.json`, then writes the compact citywide
-index at `studio/v2/interventions/observation-index.json`. Rejected anchors remain operational
-counts and are not published. The outputs are ordinary Studio R2 artifacts; no new D1 or Worker
-command is needed.
+Before it opens the trend table, the command resolves the separate descriptive observation gate for
+typed ACE, bus-lane, and busway occurrences. Operational lifecycle, day/month precision, reviewed
+source state, exact route identity, and admitted scope are mandatory. ACE then replays its existing
+trusted-registry gate; bus-lane and busway observation admission does not weaken or reuse the causal
+study gate.
+
+The command writes one observation bundle for each route with at least one admitted descriptive
+anchor at `studio/v2/routes/<routeSlug>/intervention-observations.json`, then writes the compact
+citywide index at `studio/v2/interventions/observation-index.json`. Its result reports admitted,
+rejected, and exact-deduplication counts; all tagged rejection reasons; and per-treatment-kind,
+spec, source, resolution, and series-coverage counts. Rejected or unsupported anchors are counted
+but never receive generic speed/ridership values. The outputs are ordinary Studio R2 artifacts; no
+new D1 or Worker command is needed.
 
 If a prerequisite is missing or invalid, rebuild it upstream: rerun the route-trend ingest/backfill
 workflow for `local_route_month_trend`, rerun the documented Plan 091 inventory export for the exact

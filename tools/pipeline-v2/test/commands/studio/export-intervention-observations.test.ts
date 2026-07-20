@@ -375,16 +375,42 @@ describe("studio export-intervention-observations command", () => {
       expect(first).toMatchObject({
         routeBundleCount: 1,
         eventCount: 3,
-        admittedAnchorCount: 2,
+        admittedAnchorCount: 3,
         rejectedAnchorCount: 1,
-        supportedEventCount: 1,
-        unsupportedEventCount: 2,
+        exactDeduplicationCount: 0,
+        supportedEventCount: 3,
+        unsupportedEventCount: 0,
         availableSeriesCount: 0,
-        partialSeriesCount: 2,
+        partialSeriesCount: 6,
         missingSeriesCount: 0,
+        resolutionSummary: {
+          treatmentKindCounts: [
+            { treatmentKind: "automated_bus_lane_enforcement", count: 1 },
+            { treatmentKind: "bus_lane", count: 2 },
+          ],
+          specCounts: [
+            {
+              specId: "automated_bus_lane_enforcement_route_observations_v1",
+              count: 1,
+            },
+            { specId: "bus_lane_route_observations_v1", count: 2 },
+          ],
+          sourceCounts: [
+            { sourceId: "mta_ace_routes", count: 2 },
+            { sourceId: "nyc_dot_bus_lanes", count: 1 },
+          ],
+          resolutionStatusCounts: [{ resolutionStatus: "partial", count: 3 }],
+        },
       });
       expect(first.admissionReasonCounts).toEqual({
-        admitted: 2,
+        admitted: 3,
+        unsupported_treatment_kind: 0,
+        non_operational_lifecycle: 0,
+        date_precision_insufficient: 0,
+        source_unavailable: 0,
+        scope_unresolved: 0,
+        route_identity_mismatch: 0,
+        occurrence_treatment_mismatch: 0,
         invalid_registry_implementation_date: 0,
         missing_route_id: 0,
         registry_event_not_implemented: 0,
@@ -392,6 +418,7 @@ describe("studio export-intervention-observations command", () => {
         unsupported_treatment_family: 0,
         untrusted_or_retired_registry_source: 1,
       });
+      expect(first.relevanceReasonCounts).toEqual({});
 
       const bundle = decodeStrict(StudioRouteInterventionObservationBundleSchema)(
         JSON.parse(await readFile(value.outputBundlePath, "utf8")) as unknown,
@@ -479,10 +506,16 @@ describe("studio export-intervention-observations command", () => {
     for (const item of cases) {
       const value = await fixture();
       try {
+        const bundleSentinel = Buffer.from("existing bundle sentinel");
+        const indexSentinel = Buffer.from("existing index sentinel");
+        await mkdir(join(value.outputBundlePath, ".."), { recursive: true });
+        await mkdir(join(value.outputIndexPath, ".."), { recursive: true });
+        await writeFile(value.outputBundlePath, bundleSentinel);
+        await writeFile(value.outputIndexPath, indexSentinel);
         await item.mutate(value);
         await expect(run(value)).rejects.toThrow();
-        expect(await exists(value.outputBundlePath), item.label).toBe(false);
-        expect(await exists(value.outputIndexPath), item.label).toBe(false);
+        expect(await readFile(value.outputBundlePath), item.label).toEqual(bundleSentinel);
+        expect(await readFile(value.outputIndexPath), item.label).toEqual(indexSentinel);
       } finally {
         value.sqlite.close();
       }
@@ -500,10 +533,10 @@ describe("studio export-intervention-observations command", () => {
       missingTable.sqlite.close();
     }
 
-    const zeroAdmitted = await fixture({ onlyRejected: true });
+    const zeroAdmitted = await fixture({ onlyRejected: true, withTrendTable: false });
     try {
       await expect(run(zeroAdmitted)).rejects.toThrow(
-        "No trusted registry occurrence anchors were admitted",
+        "No descriptive intervention occurrence anchors were admitted",
       );
       expect(await exists(zeroAdmitted.outputIndexPath)).toBe(false);
     } finally {
@@ -511,12 +544,14 @@ describe("studio export-intervention-observations command", () => {
     }
   });
 
-  test("fails colliding registry lineage before writes", async () => {
+  test("does not impose global registry-lineage uniqueness on descriptive anchors", async () => {
     const value = await fixture({ duplicateRegistryLineage: true });
     try {
-      await expect(run(value)).rejects.toThrow("Duplicate registry lineage event ID");
-      expect(await exists(value.outputBundlePath)).toBe(false);
-      expect(await exists(value.outputIndexPath)).toBe(false);
+      const result = await run(value);
+      expect(result.eventCount).toBe(3);
+      expect(result.admittedAnchorCount).toBe(3);
+      expect(await exists(value.outputBundlePath)).toBe(true);
+      expect(await exists(value.outputIndexPath)).toBe(true);
     } finally {
       value.sqlite.close();
     }

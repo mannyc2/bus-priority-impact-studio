@@ -15,67 +15,113 @@ evidence establishes what happened, relevance metadata selects the allowed data 
 offline pipeline resolves those selections into route observation artifacts. This boundary does not
 estimate an effect or authorize causal language.
 
-## Four separate evidence lanes
+## Separate display, observation, and study gates
 
-| Lane | Authority | What it may assert |
+| Gate | Authority | Admission | What it may assert |
+|---|---|---|---|
+| Inventory display | Strict Plan 091 treatment and occurrence rows | Reviewed source lineage and exact route/treatment/occurrence identity | What was documented, its lifecycle, place, date precision, and source state |
+| Descriptive observation | `@bp/analytics/intervention-evidence` plus the pure Plan 093 observation-anchor gate | Supported canonical kind, operational lifecycle, day/month date, usable reviewed source, admitted scope, and exact route identity | Which predeclared route series may be shown around the occurrence, with null gaps and factual coverage |
+| Causal study | Existing study candidate, approval, overlap, and estimator gates | The unchanged stricter study contract | A reviewed estimate, interval, direction, and study verdict |
+
+The inventory can display more kinds than the observation layer supports, and observation admission
+does not imply study eligibility. The observation gate is deliberately separate from
+`study-events.ts`; Plan 093 neither imports it there nor relaxes its source, treatment, date, or
+approval rules. ACE observations additionally replay the legacy trusted-registry admission so Plan
+090 behavior remains stable.
+
+## Exhaustive treatment coverage
+
+This table is the human-readable form of the sorted
+`serializeInterventionRelevanceCoverageMatrix()` output. Tests require the registry to contain
+exactly one row for every canonical Plan 091 kind.
+
+| Treatment kind | Disposition | Spec or reason |
 |---|---|---|
-| Event anchor | Strictly decoded Plan 091 occurrence and treatment rows, including exact route identity and optional trusted local-registry lineage | What happened, on which route, when, and from which reviewed source |
-| Relevance spec | `@bp/analytics/intervention-evidence` | Which canonical products and metrics are relevant, their role, route-scope policy, display window, and claim ceiling |
-| Observation bundle | `@bp/domain/studio/intervention-observations`, materialized offline by `tools/pipeline-v2` | Actual time-series values, explicit null gaps, coverage, and provenance for the selected bindings |
-| Causal study | Existing gated `StudyArtifact` and route-study artifacts | A reviewed estimate, confidence interval, direction, and study verdict |
+| `all_door_boarding` | blocked | `stop_dwell_boarding_contract_required` |
+| `automated_bus_lane_enforcement` | supported | `automated_bus_lane_enforcement_route_observations_v1` |
+| `bench` | not relevant | `passenger_amenity_not_route_operation` |
+| `bus_bulb` | blocked | `stop_dwell_boarding_contract_required` |
+| `bus_lane` | supported | `bus_lane_route_observations_v1` |
+| `bus_shelter` | not relevant | `passenger_amenity_not_route_operation` |
+| `bus_stop_adjustment` | blocked | `stop_dwell_boarding_contract_required` |
+| `busway` | supported | `busway_route_observations_v1` |
+| `capital_project_milestone` | not relevant | `timeline_only_without_typed_treatment` |
+| `curb_extension` | blocked | `physical_scope_product_required` |
+| `curb_regulation` | blocked | `curb_scope_product_required` |
+| `fare_machine_installation` | blocked | `stop_dwell_boarding_contract_required` |
+| `frequency_change` | blocked | `route_lineage_comparability_required` |
+| `high_visibility_crosswalk` | not relevant | `street_safety_not_route_operation` |
+| `left_turn_bay` | blocked | `physical_scope_product_required` |
+| `neckdown` | blocked | `physical_scope_product_required` |
+| `off_board_fare_collection` | blocked | `stop_dwell_boarding_contract_required` |
+| `other_documented` | blocked | `canonical_treatment_semantics_required` |
+| `pedestrian_improvement` | not relevant | `street_safety_not_route_operation` |
+| `pedestrian_island` | not relevant | `street_safety_not_route_operation` |
+| `planting` | not relevant | `passenger_amenity_not_route_operation` |
+| `queue_jump` | blocked | `signal_inventory_contract_required` |
+| `real_time_passenger_information` | not relevant | `passenger_information_not_route_operation` |
+| `red_paint` | blocked | `dated_operational_occurrence_required` |
+| `resurfacing` | not relevant | `maintenance_activity_not_typed_operational_treatment` |
+| `route_redesign` | blocked | `route_lineage_comparability_required` |
+| `select_bus_service` | blocked | `service_package_decomposition_required` |
+| `signal_retiming` | blocked | `signal_inventory_contract_required` |
+| `stop_change` | blocked | `stop_dwell_boarding_contract_required` |
+| `stop_consolidation` | blocked | `stop_dwell_boarding_contract_required` |
+| `stop_relocation` | blocked | `stop_dwell_boarding_contract_required` |
+| `transit_signal_priority` | blocked | `signal_inventory_contract_required` |
+| `truck_loading_zone` | blocked | `curb_scope_product_required` |
+| `turn_restriction` | blocked | `physical_scope_product_required` |
+| `wayfinding_sign` | not relevant | `passenger_information_not_route_operation` |
 
-These lanes remain distinct. The route intervention inventory does not contain observations, the
-observation bundle does not contain before/after summaries or study verdicts, and a displayed date
-or series is not evidence that an intervention caused a change.
+Blocked reasons name the contract that must exist before another family can be reviewed:
 
-## Value-blind selection
+| Reason | Required unlock |
+|---|---|
+| `canonical_treatment_semantics_required` | Review the preserved raw label into a canonical kind and register that kind's data contract. |
+| `curb_scope_product_required` | Register a dated curb-segment inventory, exact route projection, and matching curb or travel-time history. |
+| `dated_operational_occurrence_required` | Publish a reviewed day- or month-precision occurrence with exact route and source lineage. |
+| `physical_scope_product_required` | Map physical scope to stable served segment or stop IDs and register a matching historical metric product. |
+| `route_lineage_comparability_required` | Prove longitudinal route-lineage comparability across the change. |
+| `service_package_decomposition_required` | Resolve the package to dated typed operational occurrences. |
+| `signal_inventory_contract_required` | Register a current dated signal/queue-jump inventory with exact route/intersection projection and an appropriate metric product. |
+| `stop_dwell_boarding_contract_required` | Register stop-level dwell or boarding history, exact stop identities, and a dated operational occurrence. |
 
-The relevance lookup receives only the canonical Plan 091 treatment kind. It selects bindings from
-reviewed treatment-family metadata, scope, registered product metadata, and coverage requirements
-before any route-month values are read. Magnitude, sign, apparent direction, null result, p-value,
-or study verdict never changes which series is selected, its role, its order, or its limitation
-language.
+## Value-blind first specifications
 
-Version 1 supports only route-scoped `automated_bus_lane_enforcement`. The fixed bindings are:
+The relevance lookup receives only typed occurrence metadata. It fixes the product, feature grain,
+resolver, metric, scope role, window, claim ceiling, and display priority before any route-month
+values are read. Magnitude, sign, apparent direction, completeness beyond the declared minimum,
+p-value, and study result cannot change selection or ordering.
 
-| Binding | Product and resolver | Metric and source field | Role | Public label and unit | Claim ceiling | Priority |
-|---|---|---|---|---|---|---:|
-| `route_speed_around_implementation_v1` | `local_route_month_trends_history` through `sqlite.local_route_month_trend.history.v1` | `route_average_speed_mph` from `average_speed_mph` | `primary_outcome` | Observed average speed (`mph`) | `descriptive_observation` | 1 |
-| `route_ridership_around_implementation_v1` | `local_route_month_trends_history` through `sqlite.local_route_month_trend.history.v1` | `route_monthly_ridership` from `ridership` | `context` | Monthly riders (`riders`) | `descriptive_observation` | 2 |
+| Kind | Speed binding | Ridership binding | Route speed role | Corridor/segment speed role |
+|---|---|---|---|---|
+| ACE | `route_speed_around_implementation_v1` | `route_ridership_around_implementation_v1` | primary outcome | blocked |
+| Bus lane | `bus_lane_route_speed_around_implementation_v1` | `bus_lane_route_ridership_around_implementation_v1` | primary outcome | context, with scope limitation |
+| Busway | `busway_route_speed_around_implementation_v1` | `busway_route_ridership_around_implementation_v1` | primary outcome | context, with scope limitation |
 
-Both bindings use the registered `route_metric_history` feature contract and a 25-month inclusive
-display window: 12 months before the implementation month, the implementation month, and 12 months
-after. Every requested month is present. Missing data stays visible as a null point, and coverage
-determines whether a series is `available`, `partial`, or `missing`.
+All six bindings use `local_route_month_trends_history`, feature grain `route_metric_history`, and
+resolver `sqlite.local_route_month_trend.history.v1`. Speed uses
+`route_average_speed_mph`; ridership uses `route_monthly_ridership`. Each keeps a 25-month inclusive
+window (implementation month ±12), explicit null months, at least one observed month, and the
+`descriptive_observation` claim ceiling. Route-level metrics around corridor/segment work are
+labeled context and carry: “Route-level observations are context for a treatment scoped below the
+full route.” `source_only` and intersection scopes receive no guessed values.
 
-Every other admitted canonical treatment kind is explicit
-`unsupported_treatment_family`, with a null analysis family and no series. There is no generic
-"route interventions use speed" fallback and no inference from titles, descriptions, projects, or
-other prose. A non-route scope is likewise explicit `unsupported_scope`; it is not projected onto a
-route.
+## Descriptive anchor admission
 
-## Trusted event admission
+The pure observation gate works over strictly decoded Plan 091 bundles and resolves one exact
+`(routeId, occurrenceId, treatmentId)` anchor at a time. It admits only supported kinds with
+`current_confirmed`, `implemented`, or `historical_confirmed` lifecycle; canonical day/month dates;
+usable reviewed source refs; route identity equal to the containing bundle; and a scope admitted by
+the selected spec. Exact duplicates are counted and removed, but same-date or same-family events
+remain distinct.
 
-An inventory occurrence may enter observation materialization only when it retains trusted
-`local_intervention_event` registry lineage. The pipeline replays that lineage through the same
-`admitTrustedRegistryStudyEvent` gate used by study-event candidate generation, then cross-checks
-the admitted route and implementation date/month against the exact Plan 091 occurrence.
-
-The shared gate rejects these conditions:
-
-- `untrusted_or_retired_registry_source`
-- `registry_event_not_implemented`
-- `unsupported_treatment_family`
-- `invalid_registry_implementation_date`
-- `registry_month_date_mismatch`
-- `missing_route_id`
-
-Rejected registry anchors are counted in deterministic operational summaries, including every
-applicable reason, but they never appear in a route bundle or the citywide observation index. Gate
-admission occurs once per occurrence before treatment fan-out. An admitted occurrence produces one
-uniquely keyed observation event for each exact `(occurrenceId, treatmentId)` pair. An admitted
-non-ACE study family may become an explicit unsupported relevance entry; a row rejected by the
-shared gate does not.
+Tagged rejections include `unsupported_treatment_kind`, `non_operational_lifecycle`,
+`date_precision_insufficient`, `source_unavailable`, `scope_unresolved`,
+`route_identity_mismatch`, and `occurrence_treatment_mismatch`. ACE then passes through the existing
+trusted-registry admission, retaining its established rejection taxonomy. All rejection reasons
+are reported in deterministic export summaries before observation values are loaded; rejected
+anchors never become generic route-speed events.
 
 ## Artifact contract and ownership
 
@@ -95,7 +141,7 @@ keys, but carries no series values or effect summaries.
 |---|---|
 | `@bp/analytics/intervention-evidence` | Owns the closed treatment-kind dispositions, reviewed binding specs, and product/feature consistency checks. |
 | `@bp/domain/studio/intervention-observations` | Owns strict JSON schemas, caps, identity/coverage invariants, and public artifact keys. It imports no analytics or pipeline code. |
-| `tools/pipeline-v2` | Strictly verifies the release and Plan 091 inventory, replays trusted admission, loads `local_route_month_trend`, resolves the fixed bindings, validates outputs, and writes deterministic JSON. |
+| `tools/pipeline-v2` | Strictly verifies the release and Plan 091 inventory, resolves the descriptive gate and ACE compatibility gate before loading `local_route_month_trend`, validates outputs, and writes deterministic JSON. |
 | `apps/web` and other consumers | Read domain-typed artifacts from the existing generic Studio artifact path. They do not import analytics or pipeline code and do not derive markers from prose. |
 
 Every bundle and the index carry the same two ordered inputs: the Plan 091 route intervention
@@ -116,14 +162,20 @@ direction, verdict, or causal interpretation from this artifact. Only a separate
 
 ## Extension recipe
 
-Add another treatment family only through a reviewed extension:
+Add one treatment family at a time through a reviewed extension:
 
-1. Register the required canonical data product and feature contract first.
-2. Add a treatment-family relevance spec that references only registered product and feature IDs;
-   do not add SQL expressions or arbitrary source-field paths.
-3. Add registry consistency, strict artifact, coverage, admission, and value-invariance tests.
-4. Preserve explicit unsupported behavior for every family that is not reviewed.
-5. Add a renderer only after the contract and deterministic materializer pass their gates.
+1. Name the authoritative typed occurrence source, operational lifecycle states, date precision,
+   exact entity join, and required lineage. Do not infer any of them from project titles or prose.
+2. Register the canonical product, feature grain, resolver, metric, and unit before adding a spec.
+3. Fix admitted physical scopes, route/context role, method limitation, implementation-centered
+   window, minimum coverage, null policy, claim ceiling, and presentation priority before reading
+   values.
+4. Add the stable spec and binding IDs, update exactly one exhaustive disposition row, and keep raw
+   `other_documented` labels blocked until they receive canonical semantics.
+5. Add registry consistency, gate rejection, strict artifact, coverage, exact-identity, and
+   rising/falling/flat/null-heavy value-invariance tests.
+6. Add a typed renderer label and annotation stem only after the deterministic materializer passes;
+   unsupported or unavailable cases must retain the ordinary zero-marker fallback.
 
 Never infer relevance from prose or from the observed effect magnitude. If an upstream release,
 inventory bundle, hash, exact route identity, registry lineage, trend table, or feature contract is

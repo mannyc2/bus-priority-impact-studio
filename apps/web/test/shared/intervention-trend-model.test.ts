@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+  BUS_LANE_ROUTE_SPEED_OBSERVATION_BINDING_ID,
+  BUSWAY_ROUTE_SPEED_OBSERVATION_BINDING_ID,
   ROUTE_SPEED_OBSERVATION_BINDING_ID,
   ROUTE_SPEED_OBSERVATION_METRIC_ID,
   routeSpeedInterventionTrend,
@@ -37,6 +39,29 @@ const DOSSIER_POINTS: readonly TrendPoint[] = [
   { month: "2023-12", value: null },
 ];
 
+const ROUTE_CONTEXT_METHOD_LIMITATION =
+  "Route-level observations are context for a treatment scoped below the full route.";
+
+const EVENT_IDENTITIES = {
+  automated_bus_lane_enforcement: {
+    analysisFamily: "automated_bus_lane_enforcement",
+    specId: "automated_bus_lane_enforcement_route_observations_v1",
+    bindingId: ROUTE_SPEED_OBSERVATION_BINDING_ID,
+  },
+  bus_lane: {
+    analysisFamily: "bus_lane",
+    specId: "bus_lane_route_observations_v1",
+    bindingId: BUS_LANE_ROUTE_SPEED_OBSERVATION_BINDING_ID,
+  },
+  busway: {
+    analysisFamily: "busway",
+    specId: "busway_route_observations_v1",
+    bindingId: BUSWAY_ROUTE_SPEED_OBSERVATION_BINDING_ID,
+  },
+} as const;
+
+type SupportedTreatmentKind = keyof typeof EVENT_IDENTITIES;
+
 function isoMonth(value: string): ObservationMonth {
   return isoMonthFixture(value);
 }
@@ -68,13 +93,16 @@ function monthRange(start: string, count: number): ObservationMonth[] {
 }
 
 type SeriesOptions = {
-  bindingId?: string;
+  bindingId?: ObservationSeries["bindingId"];
   metricId?: string;
   label?: string;
   unit?: string;
   start?: string;
   values?: readonly (number | null)[];
   status?: ObservationSeries["status"];
+  role?: ObservationSeries["role"];
+  limitations?: readonly string[];
+  presentationPriority?: number;
 };
 
 function observationSeries(options: SeriesOptions = {}): ObservationSeries {
@@ -98,12 +126,12 @@ function observationSeries(options: SeriesOptions = {}): ObservationSeries {
     metricId: options.metricId ?? ROUTE_SPEED_OBSERVATION_METRIC_ID,
     label: options.label ?? "Observed average speed",
     unit: options.unit ?? "mph",
-    role: "primary_outcome",
+    role: options.role ?? "primary_outcome",
     grain: "month",
     dataProductId: "local_route_month_trends_history",
     resolverId: "sqlite.local_route_month_trend.history.v1",
     claimCeiling: "descriptive_observation",
-    presentationPriority: 1,
+    presentationPriority: options.presentationPriority ?? 1,
     status,
     coverage: {
       requestedStart: months[0] ?? isoMonth("2024-01"),
@@ -115,7 +143,7 @@ function observationSeries(options: SeriesOptions = {}): ObservationSeries {
       nullPointCount: points.length - observedMonths.length,
     },
     points,
-    limitations: [],
+    limitations: options.limitations ?? [],
   };
 }
 
@@ -123,31 +151,44 @@ type EventOptions = {
   eventId?: string;
   occurrenceId?: string;
   treatmentId?: string;
-  treatmentKind?: ObservationEvent["treatmentKind"];
+  treatmentKind?: SupportedTreatmentKind;
   routeId?: string;
   implementationMonth?: string;
   series?: readonly ObservationSeries[];
-  program?: string;
+  program?: string | null;
   sourceId?: string;
+  geographyScope?: ObservationEvent["geographyScope"];
+  resolutionStatus?: ObservationEvent["resolutionStatus"];
 };
 
 function observationEvent(options: EventOptions = {}): ObservationEvent {
   const implementationMonth = options.implementationMonth ?? "2024-02";
-  const eventSeries = options.series ?? [observationSeries()];
   const treatmentKind = options.treatmentKind ?? "automated_bus_lane_enforcement";
+  const identity = EVENT_IDENTITIES[treatmentKind];
+  const geographyScope = options.geographyScope ?? "route";
+  const contextual = geographyScope === "corridor" || geographyScope === "segment";
+  const eventSeries = options.series ?? [
+    observationSeries({
+      bindingId: identity.bindingId,
+      role: contextual ? "context" : "primary_outcome",
+      limitations: contextual ? [ROUTE_CONTEXT_METHOD_LIMITATION] : [],
+    }),
+  ];
   return {
     eventId: options.eventId ?? "event-b",
     occurrenceId: options.occurrenceId ?? OCCURRENCE_IDS.first,
     treatmentId: options.treatmentId ?? TREATMENT_IDS.first,
     routeId: options.routeId ?? ROUTE_ID,
     treatmentKind,
-    analysisFamily:
-      treatmentKind === "automated_bus_lane_enforcement" ? "automated_bus_lane_enforcement" : null,
-    program: options.program ?? "ABLE",
+    analysisFamily: identity.analysisFamily,
+    specId: identity.specId,
+    program: options.program === undefined ? "ABLE" : options.program,
     sourceId: options.sourceId ?? "mta_ace_routes",
     implementationDate: `${implementationMonth}-01`,
     implementationMonth: isoMonth(implementationMonth),
-    resolutionStatus: eventSeries[0]?.status ?? "missing",
+    datePrecision: "day",
+    geographyScope,
+    resolutionStatus: options.resolutionStatus ?? eventSeries[0]?.status ?? "missing",
     series: eventSeries,
   };
 }
@@ -200,13 +241,14 @@ function observationBundle(
 function inventoryTreatment(
   treatmentId: string,
   occurrenceIds: readonly string[],
-  treatmentKind: InventoryTreatment["treatmentKind"],
+  event: ObservationEvent,
 ): InventoryTreatment {
+  const treatmentKind = event.treatmentKind;
   return {
     treatmentId,
     sourceNamespace: "local_intervention_registry",
     sourceRecordId: `record:${treatmentId}`,
-    sourceId: "mta_ace_routes",
+    sourceId: event.sourceId,
     componentCollection: "primary",
     componentPosition: 0,
     rawKind: treatmentKind,
@@ -216,9 +258,9 @@ function inventoryTreatment(
       treatmentKind === "automated_bus_lane_enforcement" ? "enforcement" : "bus_priority_lane",
     lifecycleState: "implemented",
     statusAsOf: "2026-06",
-    effectiveDate: "2024-02-01",
-    datePrecision: "day",
-    geographyScope: "route",
+    effectiveDate: event.implementationDate,
+    datePrecision: event.datePrecision,
+    geographyScope: event.geographyScope,
     sourceRefs: ["source:mta_ace_routes"],
     occurrenceIds,
     projectIds: [],
@@ -228,22 +270,23 @@ function inventoryTreatment(
 function inventoryOccurrence(
   occurrenceId: string,
   treatmentIds: readonly string[],
+  event: ObservationEvent,
 ): InventoryOccurrence {
   return {
     occurrenceId,
     sourceNamespace: "local_intervention_registry",
     sourceOccurrenceId: `source:${occurrenceId}`,
-    sourceId: "mta_ace_routes",
+    sourceId: event.sourceId,
     producerPhaseOrPosition: "0",
     routeId: ROUTE_ID,
     treatmentIds,
     lifecycleState: "implemented",
     phase: "opening",
     rawStatus: "implemented",
-    program: "ABLE",
-    effectiveDate: "2024-02-01",
-    datePrecision: "day",
-    geographyScope: "route",
+    program: event.program,
+    effectiveDate: event.implementationDate,
+    datePrecision: event.datePrecision,
+    geographyScope: event.geographyScope,
     sourceRefs: ["source:mta_ace_routes"],
     projectIds: [],
     wikiOccurrenceId: null,
@@ -271,13 +314,14 @@ function inventoryBundle(
     inventoryTreatment(
       treatmentId,
       [...new Set(treatmentEvents.map((event) => event.occurrenceId))].sort(),
-      treatmentEvents[0]?.treatmentKind ?? "automated_bus_lane_enforcement",
+      treatmentEvents[0] as ObservationEvent,
     ),
   );
   const occurrences = [...eventsByOccurrence.entries()].map(([occurrenceId, occurrenceEvents]) =>
     inventoryOccurrence(
       occurrenceId,
       [...new Set(occurrenceEvents.map((event) => event.treatmentId))].sort(),
+      occurrenceEvents[0] as ObservationEvent,
     ),
   );
 
@@ -343,7 +387,8 @@ describe("route speed intervention trend model", () => {
     const event = observationEvent({
       series: [
         observationSeries({
-          bindingId: "another_binding",
+          bindingId: "route_ridership_around_implementation_v1",
+          metricId: "route_monthly_ridership",
           label: ROUTE_SPEED_OBSERVATION_BINDING_ID,
         }),
       ],
@@ -404,7 +449,7 @@ describe("route speed intervention trend model", () => {
     expect(result.markers).toEqual([]);
   });
 
-  test("selects the latest month then latest event ID without reading values", () => {
+  test("selects fixed binding priority, latest month, then latest event ID without reading values", () => {
     const earlier = observationEvent({
       eventId: "event-z-earlier",
       implementationMonth: "2024-01",
@@ -422,7 +467,7 @@ describe("route speed intervention trend model", () => {
       occurrenceId: OCCURRENCE_IDS.third,
       treatmentId: TREATMENT_IDS.third,
       implementationMonth: "2024-02",
-      series: [observationSeries({ values: [1, 2, 3] })],
+      series: [observationSeries({ values: [1, 2, 3], presentationPriority: 99 })],
     });
     const events = [tieZ, earlier, tieA];
     const result = routeSpeedInterventionTrend(
@@ -581,6 +626,27 @@ describe("route speed intervention trend model", () => {
     expect(result.limitations[0]).toContain("occurrence:");
   });
 
+  test("requires the exact occurrence to reference the event treatment", () => {
+    const event = observationEvent();
+    const inventory = inventoryBundle([event]);
+    const result = routeSpeedInterventionTrend(
+      observationBundle([event]),
+      {
+        ...inventory,
+        occurrences: inventory.occurrences.map((occurrence) => ({
+          ...occurrence,
+          treatmentIds: [TREATMENT_IDS.second],
+        })),
+      },
+      DOSSIER_POINTS,
+      4,
+    );
+
+    expect(result.source).toBe("observation_bundle");
+    expect(result.markers).toEqual([]);
+    expect(result.limitations[0]).toContain("occurrence:");
+  });
+
   test("excludes a marker with a dangling treatment ID", () => {
     const event = observationEvent();
     const inventory = inventoryBundle([event], { treatments: [] });
@@ -596,8 +662,39 @@ describe("route speed intervention trend model", () => {
     expect(result.limitations[0]).toContain("treatment:");
   });
 
-  test("excludes a marker when the typed treatment has no annotation stem", () => {
-    const event = observationEvent({ treatmentKind: "bus_lane" });
+  test("renders bus-lane and busway markers from their stable bindings", () => {
+    const busLane = observationEvent({
+      eventId: "event-lane",
+      treatmentKind: "bus_lane",
+    });
+    const busway = observationEvent({
+      eventId: "event-busway",
+      occurrenceId: OCCURRENCE_IDS.second,
+      treatmentId: TREATMENT_IDS.second,
+      treatmentKind: "busway",
+      implementationMonth: "2024-03",
+    });
+    const events = [busway, busLane];
+    const result = routeSpeedInterventionTrend(
+      observationBundle(events),
+      inventoryBundle(events),
+      DOSSIER_POINTS,
+      4,
+    );
+
+    expect(result.source).toBe("observation_bundle");
+    expect(result.focalEventId).toBe("event-busway");
+    expect(result.markers.map((marker) => marker.label)).toEqual([
+      "Bus lane starts Feb 2024",
+      "Busway starts Mar 2024",
+    ]);
+  });
+
+  test("labels narrower bus-lane scope as route context and exposes its method limitation", () => {
+    const event = observationEvent({
+      treatmentKind: "bus_lane",
+      geographyScope: "corridor",
+    });
     const result = routeSpeedInterventionTrend(
       observationBundle([event]),
       inventoryBundle([event]),
@@ -605,9 +702,50 @@ describe("route speed intervention trend model", () => {
       4,
     );
 
-    expect(result.source).toBe("observation_bundle");
-    expect(result.markers).toEqual([]);
-    expect(result.limitations[0]).toContain("annotation:");
+    expect(result).toMatchObject({
+      source: "observation_bundle",
+      seriesLabel: "Route average speed (context)",
+      methodLimitation: ROUTE_CONTEXT_METHOD_LIMITATION,
+    });
+    expect(result.markers[0]?.label).toBe("Bus lane starts Feb 2024");
+  });
+
+  test("keeps unsupported scope and project-only metadata on the zero-marker dossier fallback", () => {
+    const unsupported = observationEvent({
+      treatmentKind: "bus_lane",
+      geographyScope: "source_only",
+      series: [],
+      resolutionStatus: "unsupported_scope",
+    });
+    const unsupportedResult = routeSpeedInterventionTrend(
+      observationBundle([unsupported]),
+      inventoryBundle([unsupported]),
+      DOSSIER_POINTS,
+      4,
+    );
+    expect(unsupportedResult).toMatchObject({
+      source: "dossier_fallback",
+      points: DOSSIER_POINTS,
+      markers: [],
+      methodLimitation: null,
+    });
+
+    const projectOnlyResult = routeSpeedInterventionTrend(
+      observationBundle([]),
+      inventoryBundle([], {
+        projectRefs: [
+          {
+            projectId: "project:Busway starts 2024-02",
+            treatmentIds: [],
+            occurrenceIds: [],
+            citationKeys: ["source#project"],
+          },
+        ],
+      }),
+      DOSSIER_POINTS,
+      4,
+    );
+    expect(projectOnlyResult).toMatchObject({ source: "dossier_fallback", markers: [] });
   });
 
   test("keeps marker labels byte-identical when display copy and numeric values change", () => {

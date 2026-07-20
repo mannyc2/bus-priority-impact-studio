@@ -91,7 +91,9 @@ export function OverviewSection({
           title="Speed history"
           source={
             hasSpeedHistory
-              ? "Monthly observed average speed."
+              ? speedTrend.methodLimitation === null
+                ? "Monthly observed average speed."
+                : speedTrend.seriesLabel
               : "No route speed history is attached yet."
           }
           height={172}
@@ -102,13 +104,21 @@ export function OverviewSection({
           }
         >
           {hasSpeedHistory ? (
-            <SpeedTrend
-              mode="calendar"
-              points={speedTrend.points}
-              markers={speedTrend.markers}
-              {...(route.scheduledMph === null ? {} : { scheduled: route.scheduledMph })}
-              height={172}
-            />
+            <>
+              <SpeedTrend
+                mode="calendar"
+                points={speedTrend.points}
+                markers={speedTrend.markers}
+                {...(route.scheduledMph === null ? {} : { scheduled: route.scheduledMph })}
+                height={172}
+                seriesLabel={speedTrend.seriesLabel}
+              />
+              {speedTrend.methodLimitation === null ? null : (
+                <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--bp-color-ink-55)]">
+                  {speedTrend.methodLimitation}
+                </p>
+              )}
+            </>
           ) : (
             <div className="flex h-full min-h-[172px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
               No route speed history is attached yet.

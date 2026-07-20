@@ -102,11 +102,14 @@ export {
 } from "./intervention-corpus-key.js";
 export type {
   StudioInterventionObservationAnalysisFamily,
+  StudioInterventionObservationBindingId,
   StudioInterventionObservationBindingRole,
   StudioInterventionObservationClaimCeiling,
   StudioInterventionObservationCoverage,
   StudioInterventionObservationDataCoverage,
+  StudioInterventionObservationDatePrecision,
   StudioInterventionObservationEvent,
+  StudioInterventionObservationGeographyScope,
   StudioInterventionObservationIndex,
   StudioInterventionObservationIndexEvent,
   StudioInterventionObservationInputRef,
@@ -115,16 +118,21 @@ export type {
   StudioInterventionObservationResolutionStatus,
   StudioInterventionObservationSeries,
   StudioInterventionObservationSeriesStatus,
+  StudioInterventionObservationSpecId,
   StudioRouteInterventionObservationBundle,
 } from "./intervention-observations.js";
 export {
+  STUDIO_INTERVENTION_OBSERVATION_BINDING_IDS,
   StudioInterventionObservationAnalysisFamilySchema,
+  StudioInterventionObservationBindingIdSchema,
   StudioInterventionObservationBindingRoleSchema,
   StudioInterventionObservationClaimCeilingSchema,
   StudioInterventionObservationCoverageSchema,
   StudioInterventionObservationDataCoverageSchema,
+  StudioInterventionObservationDatePrecisionSchema,
   StudioInterventionObservationEventAnchorInputRefSchema,
   StudioInterventionObservationEventSchema,
+  StudioInterventionObservationGeographyScopeSchema,
   StudioInterventionObservationIndexEventSchema,
   StudioInterventionObservationIndexSchema,
   StudioInterventionObservationInputRefSchema,
@@ -134,6 +142,7 @@ export {
   StudioInterventionObservationSeriesSchema,
   StudioInterventionObservationSeriesStatusSchema,
   StudioInterventionObservationSourceInputRefSchema,
+  StudioInterventionObservationSpecIdSchema,
   StudioRouteInterventionObservationBundleSchema,
 } from "./intervention-observations.js";
 export {

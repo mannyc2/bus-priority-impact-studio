@@ -157,11 +157,21 @@ describe("route intervention presentation model", () => {
       label: "Busway",
       compactCode: "BWY",
       family: "bus_priority_lane",
-      operationalAnnotationStem: null,
+      operationalAnnotationStem: "Busway starts",
     });
 
-    const enforcement = treatment(
+    const busLane = treatment(
       TREATMENT_IDS.historicalLane,
+      "bus_lane",
+      "bus_priority_lane",
+      "implemented",
+    );
+    expect(interventionPresentationForTreatment(busLane).operationalAnnotationStem).toBe(
+      "Bus lane starts",
+    );
+
+    const enforcement = treatment(
+      TREATMENT_IDS.proposedOther,
       "automated_bus_lane_enforcement",
       "enforcement",
       "implemented",
