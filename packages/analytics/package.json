@@ -12,6 +12,7 @@
     "./feature-history": "./src/feature-history/index.ts",
     "./features": "./src/features/index.ts",
     "./hotspots": "./src/hotspots.ts",
+    "./intervention-evidence": "./src/intervention-evidence/index.ts",
     "./interventions": "./src/interventions/index.ts",
     "./public-route-visibility": "./src/public-route-visibility.ts",
     "./route-score": "./src/route-score.ts"

@@ -2,7 +2,7 @@
 title: Cloudflare Operations Runbook
 type: engineering
 status: active
-last_updated: 2026-07-19
+last_updated: 2026-07-20
 owner: codex
 source_count: 0
 tags: [cloudflare, worker, d1, r2, operations, gtfs-rt]
@@ -143,6 +143,40 @@ Before publishing, inspect:
 Per-file atomic promotion preserves unrelated files under `studio/v2/routes` and
 `studio/v2/interventions`. Never delete or replace either shared directory to recover from a failed
 run.
+
+### Materialize route intervention observations
+
+After the Plan 091 route inventory is verified, materialize the Plan 090 route observation bundles
+and compact index locally:
+
+```bash
+bun run pipeline -- studio export-intervention-observations --db data/local/pipeline.sqlite --inventory-index data/artifacts/studio/v2/interventions/route-inventory-index.json --release-artifact data/artifacts/studio/v1/release.json --artifact-root data/artifacts
+```
+
+The database must contain the required `local_route_month_trend` table and columns. The inventory
+index and every referenced Plan 091 bundle must strictly decode and pass release, coverage, key, and
+hash checks. `data/artifacts/studio/v1/release.json` must strictly decode as a post-Plan-086
+`StudioReleasePayload`; the command inherits its `releaseId` and `publishedAt` and accepts no
+identity override.
+
+A missing or invalid prerequisite is a failed local build, not an instruction to fabricate a
+release. Rebuild route trends through the documented ingest/backfill workflow, rebuild the exact
+Plan 091 inventory from its pinned source artifacts, or regenerate the coordinated Studio release,
+then rerun the observation export. Never hand-author inventory bundles, hashes, release metadata,
+or coverage to unblock publication.
+
+Review the returned admitted/rejected anchor counts and series status counts, verify that rejected
+anchors do not appear in either artifact family, and inspect the generated keys:
+
+```text
+studio/v2/routes/<exact-route-slug>/intervention-observations.json
+studio/v2/interventions/observation-index.json
+```
+
+These files share the existing `studio` prefix, so the normal recursive local seed and generic R2
+publisher include them. No observation-specific endpoint, migration, uploader, or bucket binding is
+needed. See [[wiki/engineering/intervention_evidence_relevance|Intervention Evidence Relevance]]
+for the evidence and claim-language boundaries.
 
 For local Worker testing, seed the complete Studio tree recursively:
 

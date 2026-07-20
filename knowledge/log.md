@@ -8707,3 +8707,26 @@ tests, 876 unit tests, 284 web tests, and 22 Worker tests. The Worker harness
 required its normal localhost bind outside the sandbox. No production release,
 D1/R2 object, source snapshot, deployment, or mutable release pointer was
 changed.
+
+## [2026-07-20] engineering | Plan 090 typed intervention observations complete
+
+Added a closed, value-blind intervention relevance registry and strict
+per-route observation bundles without merging event anchors, descriptive
+observations, or causal studies. Version 1 admits only trusted, implemented
+ACE occurrences from the exact Plan 091 inventory, binds route speed and
+monthly riders before reading values, preserves null months and provenance,
+and emits explicit unsupported/rejected outcomes for every other event.
+
+The real-data export used the amended Plan 091 inventory and local trend
+database. It produced 323 route bundles with 401 admitted event anchors and
+168 rejected untrusted rows. Of the admitted events, 78 use the supported ACE
+spec and 323 remain explicitly unsupported. Series status reconciled to 71
+available, 73 partial, and 12 missing bindings over coverage from 2023-04
+through 2026-05. The export reported no separate Plan 090 byte-budget failure.
+
+Verification passed the 45-test exact-route dependency matrix, 142 analytics
+tests, 125 domain tests, 432 pipeline tests, command discovery/help, strict
+typecheck, repository style, architecture/doctrine checks, knowledge
+validation, and the comprehensive 910-test unit suite. No production release,
+D1/R2 object, source snapshot, deployment, or mutable release pointer was
+changed.

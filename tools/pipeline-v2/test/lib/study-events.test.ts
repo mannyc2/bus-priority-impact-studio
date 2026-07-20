@@ -5,6 +5,7 @@ import type { WikiOperationalDateAssertion } from "@bp/domain/documents/operatio
 import type { StudyEventApprovalArtifact } from "@bp/domain/studio/study";
 import { loadStudyEventRegistryRows } from "../../src/lib/local-db-aggregates/study-event-rows.ts";
 import {
+  admitTrustedRegistryStudyEvent,
   type BuildStudyEventMergeInput,
   buildStudyEventMergeArtifact,
   type PinnedWikiStudyInput,
@@ -136,6 +137,158 @@ function build(input: Partial<BuildStudyEventMergeInput> = {}) {
     ...input,
   });
 }
+
+describe("trusted registry study-event admission", () => {
+  test("returns admitted normalized facts for a trusted implemented event", () => {
+    expect(
+      admitTrustedRegistryStudyEvent(
+        registryEvent({
+          event_id: "ace-m15",
+          route_id: "m15-sbs",
+          intervention_type: "automated_bus_lane_enforcement",
+          source_id: "mta_ace_routes",
+          program: "ACE",
+          implementation_date: "2022-08-01",
+          implementation_month: "2022-08",
+        }),
+      ),
+    ).toEqual({
+      status: "admitted",
+      sourceEventId: "ace-m15",
+      sourceId: "mta_ace_routes",
+      program: "ACE",
+      routeId: "M15+",
+      treatmentFamily: "automated_bus_lane_enforcement",
+      implementationDate: "2022-08-01",
+      implementationMonth: "2022-08",
+    });
+  });
+
+  test("emits each exact rejection reason and sorts simultaneous failures", () => {
+    const cases = [
+      [{ source_id: "retired" }, "untrusted_or_retired_registry_source"],
+      [{ event_status: "proposed" }, "registry_event_not_implemented"],
+      [{ intervention_type: "custom_treatment" }, "unsupported_treatment_family"],
+      [{ implementation_date: "2022-02-30" }, "invalid_registry_implementation_date"],
+      [{ implementation_month: "2022-09" }, "registry_month_date_mismatch"],
+      [{ route_id: " " }, "missing_route_id"],
+    ] as const;
+    for (const [override, reason] of cases) {
+      const result = admitTrustedRegistryStudyEvent(registryEvent(override));
+      expect(result.status).toBe("rejected");
+      if (result.status === "rejected") expect(result.reasons).toEqual([reason]);
+    }
+
+    const multiple = admitTrustedRegistryStudyEvent(
+      registryEvent({
+        event_id: "many-failures",
+        route_id: "",
+        intervention_type: "custom_treatment",
+        source_id: "retired",
+        implementation_date: "bad",
+        implementation_month: "2022-07",
+        event_status: "proposed",
+      }),
+    );
+    expect(multiple).toEqual({
+      status: "rejected",
+      sourceEventId: "many-failures",
+      sourceId: "retired",
+      reasons: [
+        "invalid_registry_implementation_date",
+        "missing_route_id",
+        "registry_event_not_implemented",
+        "unsupported_treatment_family",
+        "untrusted_or_retired_registry_source",
+      ],
+    });
+  });
+
+  test("preserves the existing merge artifact exactly after delegating to the shared gate", () => {
+    expect(
+      build({
+        registryEvents: [
+          registryEvent({
+            event_id: "admitted",
+            intervention_type: "automated_bus_lane_enforcement",
+            source_id: "mta_ace_routes",
+            program: "ACE",
+            implementation_date: "2022-08-01",
+            implementation_month: "2022-08",
+          }),
+          registryEvent({
+            event_id: "rejected",
+            route_id: "",
+            intervention_type: "unknown",
+            source_id: "retired",
+            program: "Old",
+            implementation_date: "bad",
+            implementation_month: "2022-07",
+            event_status: "proposed",
+          }),
+        ],
+      }),
+    ).toEqual({
+      artifactKind: "bp.studio.study_events.v1",
+      schemaVersion: 1,
+      candidateSetId: "candidate-set:0c65450130f44e253665931c",
+      wikiInput: {
+        mode: "explicit_opt_out",
+        releaseId: null,
+        manifestSha256: null,
+        artifactSha256: null,
+      },
+      summary: {
+        registryInputCount: 2,
+        wikiInputCount: 0,
+        candidateCount: 1,
+        approvedCount: 0,
+        rejectedByOperatorCount: 0,
+        sourceRejectionCount: 1,
+        conflictCount: 0,
+        exactDeduplicationCount: 0,
+      },
+      approvalState: "awaiting_approval",
+      candidates: [
+        {
+          routeId: "M15",
+          treatmentFamily: "automated_bus_lane_enforcement",
+          implementationDate: "2022-08-01",
+          implementationMonth: "2022-08",
+          datePrecision: "day",
+          provenance: [
+            {
+              sourceKind: "registry",
+              sourceId: "mta_ace_routes",
+              sourceEventId: "admitted",
+              releaseId: null,
+              anchorIds: [],
+            },
+          ],
+          candidateId: "study-event:0e0fa5e4e08ae7e6c6791962",
+          conflictState: "none",
+        },
+      ],
+      approvedEvents: [],
+      rejections: [
+        {
+          sourceKind: "registry",
+          sourceId: "retired",
+          sourceEventId: "rejected",
+          reasons: [
+            "invalid_registry_implementation_date",
+            "missing_route_id",
+            "registry_event_not_implemented",
+            "unsupported_treatment_family",
+            "untrusted_or_retired_registry_source",
+          ],
+        },
+      ],
+      conflicts: [],
+      approval: null,
+    });
+  });
+});
 
 describe("study-event candidate merge", () => {
   test("fails loudly when the local registry table is absent and loads all rows deterministically", () => {
