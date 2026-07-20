@@ -485,6 +485,8 @@ describe("buildInterventionObservationArtifacts", () => {
           treatmentIds: [ACE_TREATMENT_ID],
           eventId: "local-event",
           rawRouteId: "B44",
+          implementationDate: "2024-01-15T00:00:00.000Z",
+          occurrenceDate: "2024-01-15T00:00:00.000Z",
         },
       ],
     });

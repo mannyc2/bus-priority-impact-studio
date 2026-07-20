@@ -360,9 +360,10 @@ export function buildInterventionObservationArtifacts(
       if (admission.routeId !== inventoryBundle.route.routeId) {
         throw new Error(`Registry route mismatch for occurrence ${occurrence.occurrenceId}`);
       }
+      const occurrenceDay = occurrence.effectiveDate?.slice(0, 10) ?? null;
       if (
-        occurrence.effectiveDate !== admission.implementationDate ||
-        occurrence.effectiveDate.slice(0, 7) !== admission.implementationMonth
+        occurrenceDay !== admission.implementationDate ||
+        occurrenceDay?.slice(0, 7) !== admission.implementationMonth
       ) {
         throw new Error(`Registry date mismatch for occurrence ${occurrence.occurrenceId}`);
       }
