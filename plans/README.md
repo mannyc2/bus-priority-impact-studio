@@ -360,11 +360,10 @@ REJECTED (with one-line rationale)
   profiles lack documentation that distinguishes service patterns from
   repeated missingness or data loss. Nothing in 083 changes production
   artifacts, thresholds, candidate sets, receipts, studies, or publication.
-- 076 (opportunity layer) stays deferred beyond its current gating: its
-  effect-transfer input today is 3 gated estimates, all
-  `no_detectable_change`, in a single treatment family — transferring null
-  effects ranks nothing. Revisit only after batch-2 studies produce
-  directional gated estimates.
+- 076 (opportunity layer) is blocked by its explicit evidence floor: the rc26
+  run has only 2 gated estimates total, both in the ACE family, so no treatment
+  family reaches the required minimum of 3. Revisit after another qualifying
+  gated study lands; do not weaken the transfer gate to manufacture a ranking.
 
 ## Findings considered and rejected (gen 10 — do not re-audit)
 

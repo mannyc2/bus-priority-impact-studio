@@ -23,7 +23,7 @@ claims.
 | B82+ | 2024-09-30 | -0.207 | [-0.504, -0.038] | descriptive | worsened | pre-trend and minimum-sample gates failed | TBD |
 | BX38 | 2024-09-16 | -0.002 | [-0.098, 0.084] | gated estimate | no detectable change | all gates pass | TBD |
 | M96 | 2025-10-13 | -0.068 | [-0.134, 0.017] | descriptive | no detectable change | placebo failed; congestion-pricing overlap flagged | TBD |
-| B67 | 2025-10-02 | +0.139 | [0.121, 0.156] | descriptive | improved | placebo and minimum-sample gates failed | TBD |
+| B67 | 2025-10-02 | +0.139 | [0.121, 0.156] | descriptive | improved | placebo and minimum-sample gates failed | No comparable official B67 result found (checked 2026-07-21) |
 | BX9 | 2025-11-10 | +0.137 | [0.019, 0.306] | gated estimate | improved | all gates pass; exactly four post months | TBD |
 
 Four intervals cover zero and are represented as `no_detectable_change`. B82+ is not promoted even
@@ -63,15 +63,29 @@ causal Flatbush claim.
 ## Published-evidence check
 
 The prior review found only a non-comparable systemwide ACE speed benchmark, not route-specific
-results for the historical routes. The new B67 treatment also requires a comparable official outcome
-claim with the same operational phase, Livingston-to-State scope, window, and speed measure. The
-`Published claim` cells therefore remain `TBD`; aggregate or construction-phase statements are
-context, not benchmarks for these estimates.
+results for the six historical routes. Their `Published claim` cells therefore remain `TBD`;
+aggregate statements are context, not benchmarks for these estimates.
+
+A fresh official-source search on 2026-07-21 completed the B67 check with a negative finding. NYC
+DOT's [September 2025 installation announcement](https://www.nyc.gov/html/dot/html/pr2025/nyc-dot-flatbush-ave.shtml)
+reports a pre-project rush-hour baseline for the entire Flatbush corridor and 12 routes, not a B67
+post-opening result for the two-block phase. Its
+[October 2025 CB6 presentation](https://www.nyc.gov/html/dot/downloads/pdf/flatbush-ave-bus-priority-cb6-oct2025.pdf)
+uses 20% only as a hypothetical B41 scenario. The
+[April 2026 construction update](https://www.nyc.gov/html/dot/downloads/pdf/flatbush-ave-bus-priority-mtp-briefing-apr2026.pdf)
+and [April 2026 press release](https://www.nyc.gov/html/dot/html/pr2026/nyc-dot-begins-reconstruction-of-flatbush-avenue.shtml)
+confirm that Livingston-to-State was installed in fall 2025 but publish no post-opening B67
+measurement; the cited 43% speed gain belongs to 161st Street in the Bronx. MTA's
+[route-level](https://data.ny.gov/Transportation/MTA-Bus-Speeds-Beginning-2015/cudb-vcni) and
+[segment-level](https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds-Beginning-2025/kufs-yh3x)
+speed datasets are measurement inputs, not an official project-attributed evaluation. The B67 cell
+therefore records that no comparable official result was found; +0.139 mph remains this Tracker's
+descriptive association, not an external benchmark.
 
 ## Operator anchor check
 
-1. Fill or explicitly accept `TBD` for each published-claim cell after checking comparable official
-   evidence.
+1. Accept the completed negative B67 evidence finding and fill or explicitly accept `TBD` for the
+   six historical published-claim cells after checking comparable official evidence.
 2. Sanity-check direction and magnitude, especially B67's descriptive improvement, BX9's gated
    improvement, and B82+'s descriptive worsening. Do not promote a descriptive row or reinterpret
    an interval covering zero.
