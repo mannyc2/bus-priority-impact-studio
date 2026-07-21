@@ -8842,3 +8842,41 @@ current source-to-spine pairs per route and no extras. B67 is
 estimate, public artifact, release pointer, deployment, or publication was
 created. Plan 074 remains in progress at the complete 486-decision operator
 receipt gate, followed by a real run and fresh anchor review.
+
+## [2026-07-21] engineering | Plan 074 rc25 delegated receipt and deterministic run complete
+
+The owner explicitly delegated the complete rc25 candidate decision set to
+three independent, non-overlapping Codex shards: 161 non-bus-lane rows and two
+bus-lane shards of 162 and 163 rows. A deterministic preparation step pinned
+the candidate, scope-binding, current speed-spine, historical-context, and
+shard hashes. A fail-closed reconciler proved exact 486/486 unique coverage,
+then wrote a v3 receipt with six ACE approvals and 480 rejections. The strict
+production merge accepted the exact receipt and reproduced the approved event
+set byte-for-byte.
+
+Every approved event-route pair produced one real study: BX28, M79+, B82+,
+BX38, M96, and BX9. The complete run wrote six route rollups, two gated
+estimates, four descriptive comparisons, four `no_detectable_change` results,
+zero ineligible studies, and zero lane or scope fallbacks. A same-root repeat
+reproduced all 13 JSON outputs byte-for-byte, and all six studies, the index,
+and six rollups passed the native Effect schemas. No estimate exceeded 0.34
+mph in absolute value, so the implausibility STOP did not fire.
+
+Both Flatbush projections remained rejected. B41 failed the current spine gate
+and retained installation/opening ambiguity. B67 had exact physical scope and
+a ready-with-gaps spine, but September was only installation commencement and
+the set retained a competing B67 lane onset dated 2025-10-02. M96 became the
+sixth admitted ACE event because its nearby lane row lacks exact bounded-scope
+admission; its resulting study is descriptive because the placebo and
+congestion-pricing-overlap gates fail.
+
+Verification passed root and pipeline typechecks, architecture checks, 937
+unit tests, 334 web tests, 22 Worker tests (outside the localhost-restricted
+sandbox), knowledge validation, strict JSON parsing, focused Biome checks on
+both new scripts, and deterministic artifact checks. The repository-wide
+style command remains red on unrelated existing `analytics-primer.html` and
+`apps/web/src/routes/routes/index.tsx` diagnostics; those files were preserved
+unchanged. No public artifact, release pointer, D1/R2 object, deployment, or
+publication state changed. Plan 074 is stopped only for the fresh anchor
+review recorded in `docs/research/reviews/rc25/anchors-report.md`; Plan 075
+remains inactive.

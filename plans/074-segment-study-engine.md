@@ -13,10 +13,9 @@
 
 ## Status
 
-- **Plan status**: IN PROGRESS (the control-contamination and bounded-scope
-  engine defects are closed, and a reproducible exact-route rc25 candidate
-  package is ready; execution is stopped for a complete 486-decision operator
-  receipt, after which the real run and a fresh anchor review remain required)
+- **Plan status**: IN PROGRESS (the complete owner-delegated rc25 receipt and
+  deterministic six-study run are complete; execution is stopped at the fresh
+  anchor sanity check before Plan 075 activation or publication)
 - **Priority**: P1 (core of the business-problem arc)
 - **Effort**: L
 - **Risk**: MED (new numeric machinery destined for public claims — mitigated by synthetic-fixture tests with known answers, gates, and an operator-review STOP before anything ships)
@@ -143,6 +142,29 @@ that pass only the calendar-plus-spine structural checks; this makes the
 original ten-study floor possible but does not guarantee it, because operator,
 scope, sample/control, estimator, and claim-tier gates remain binding. Full
 evidence is in `docs/research/mta-wiki-rc25-plan074-readiness.md`.
+
+### Binding rc25 delegated-review and run amendment — 2026-07-21
+
+The owner explicitly delegated all 486 candidate decisions to three disjoint
+Codex review shards. Deterministic reconciliation proved exact unique coverage
+and produced a v3 receipt with six approvals and 480 rejections. The production
+strict merge accepted the receipt and reproduced its approved event set
+byte-for-byte.
+
+Every approved event-route pair produced one study: BX28, M79+, B82+, BX38,
+M96, and BX9. The complete run has two gated estimates, four descriptive
+comparisons, four `no_detectable_change` results, zero ineligible studies, and
+zero scope fallbacks. A same-root repeat reproduced all 13 JSON outputs
+byte-for-byte. The earlier ≥10 row-count floor is replaced by the already
+recorded rule that every approved event-route pair must be studied; this run is
+complete at 6/6 without readmitting rejected candidates.
+
+Both Flatbush projections remain rejected. B41 fails the spine gate and has
+unresolved phase/onset identity. B67 passes exact scope, spine, and calendar
+checks, but September is installation commencement rather than a clean opening
+and conflicts with the nearby 2025-10-02 B67 lane onset. The fresh anchor
+handoff is `docs/research/reviews/rc25/anchors-report.md`. Plan 075 remains
+inactive pending an operator `approve`, `revise`, or `defer` decision.
 
 ## Why this matters
 
@@ -419,9 +441,10 @@ column, with instructions for the operator to fill from MTA/DOT publications.
 operator has sanity-checked anchors and the candidate-set-bound approval
 contents.
 
-**Review stop (2026-07-12)**: `anchors-report.md` contains all five approved
+**Fresh review stop (2026-07-21)**:
+`docs/research/reviews/rc25/anchors-report.md` contains all six approved
 studies, full gate caveats, reproducibility evidence, and `published_claim:
-TBD` placeholders. Plan 075 has not started.
+TBD` placeholders. Plan 075 remains inactive.
 
 ## Test plan
 
@@ -433,12 +456,13 @@ structure on `tools/pipeline-v2/test/commands/export/route-dossier-summaries.tes
 ## Done criteria
 
 - [x] `bun --filter @bp/pipeline-v2 test` exits 0, including the 4 synthetic known-answer tests
-- [ ] `bun run pipeline study run --analysis-month 2026-03` writes ≥10 study artifacts + per-route rollups + index that validate against `study.ts` schemas
+- [x] `bun run pipeline study run --analysis-month 2026-03` writes one study
+  for every approved event-route pair (6/6), plus per-route rollups and an
+  index that validate against `study.ts` schemas
 - [x] Identical re-run produces byte-identical artifacts (seeded bootstrap)
 - [x] At least one real study reports `no_detectable_change` OR the report explains why none did (suspicious otherwise — say so)
-- [x] `anchors-report.md` exists; execution STOPPED for operator review (the
-  historical engine/pilot milestone is complete, but the overall plan remains
-  IN PROGRESS until the recorded operator and engine-boundary decisions close)
+- [x] The fresh rc25 `anchors-report.md` exists; execution is STOPPED for
+  operator review, and the plan remains IN PROGRESS only until that decision
 - [x] `bun run check:types` exits 0; only in-scope files modified
 - [x] `plans/README.md` status row updated (status: IN PROGRESS, with the
   remaining gates named explicitly)
