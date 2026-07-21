@@ -616,9 +616,9 @@ decision layer.
 | 071 | Steering-doc truth sweep (README schema claim, /methods SEO, master-plan status) | P2 | S-M | 068 (rec.) | DONE (Effect Schema README claim, retired `/methods` SEO removal, master-plan status block, and knowledge log verified) |
 | 072 | Dependency hygiene: bun update within semver + audit residue log | P3 | S | 068 | DONE (audit reduced 15→13; all residual advisories documented; full tests/build and `/` + `/map` smoke pass) |
 | 073 | Serve the reviewed intervention corpus + reconciliation report | P1 | M-L | 068 | DONE (310 valid; 29 study-date-ready; 11 exact matches; no study-ready corpus-only candidates) |
-| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 + exact-route task before any future run | IN PROGRESS (complete 486-decision rc25 receipt and deterministic 6/6 study run landed; stopped only for the fresh anchor sanity check before activation/publication) |
-| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | IN PROGRESS (UI integration landed in PR #59 but remains inactive; the rc25 receipt/run are complete and the fresh Plan 074 anchor decision plus publication decision remain) |
-| 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | TODO |
+| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 + exact-route task before any future run | IN PROGRESS (complete 484-decision rc26 receipt and deterministic 7/7 study run landed; stopped only for the fresh rc26 anchor sanity check before activation/publication) |
+| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | IN PROGRESS (UI integration landed in PR #59 but remains inactive; the rc26 receipt/run are complete and the fresh Plan 074 anchor decision plus publication decision remain) |
+| 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | BLOCKED (rc26 has only 2 gated estimates total, so no treatment family reaches the required ≥3; revisit after another qualifying gated study lands) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)

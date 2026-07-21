@@ -8880,3 +8880,38 @@ unchanged. No public artifact, release pointer, D1/R2 object, deployment, or
 publication state changed. Plan 074 is stopped only for the fresh anchor
 review recorded in `docs/research/reviews/rc25/anchors-report.md`; Plan 075
 remains inactive.
+
+## [2026-07-21] engineering | Plan 074 resumes on MTA Wiki rc26 and adds Flatbush B67
+
+Imported manifest-pinned MTA Wiki `v1-rc26` through the strict occurrence-v2
+path. Tracker now accepts multiple evidence bindings for one reviewed phase
+relation without treating repeated relation IDs as duplicate relations, and
+reconciles the producer phase-audit count against unique phase-event plus
+event-event candidate-relation records. Regression coverage keeps both paths
+fail closed. Repeated imports and database-backed candidate builds were
+byte-identical.
+
+The rc26 cut preserves Flatbush occurrence
+`occurrence:8c987704152b459014217d44` and proves that September installation
+preceded the 2025-10-02 operational opening. Exact deduplication removes only
+the two separate B41/B67 registry rows, yielding
+`candidate-set-v3:80050ed598f3b2ab0d0a1e99` with 484 candidates, 382 source
+rejections, zero conflicts, and 14 exact deduplications. A fail-closed
+reconciler proved unchanged admission semantics for 482 surviving decisions,
+then freshly rejected B41 for `needs_pattern_review` and approved B67 for
+estimator admission. The complete receipt has seven approvals and 477
+rejections; strict merge accepted it.
+
+The complete rc26 run produced seven studies and seven route rollups: two
+gated estimates, five descriptive comparisons, four
+`no_detectable_change` results, zero ineligible studies, and zero scope
+fallbacks. B67 uses its exact two-segment bounded scope and reports +0.139 mph
+all-day with a [+0.121, +0.156] bootstrap interval, but remains descriptive
+because placebo and minimum-sample gates fail. A same-root repeat reproduced
+all 15 JSON outputs byte-for-byte. No publication or deployment state changed;
+Plan 074 remains stopped only for the fresh rc26 anchor review in
+`docs/research/reviews/rc26/anchors-report.md`, and Plan 075 remains inactive.
+Plan 076 is also blocked by its explicit evidence STOP: rc26 has only two
+gated estimates, both automated bus-lane enforcement, so no treatment family
+reaches the required minimum of three. Revisit it only after another
+qualifying gated study lands.
