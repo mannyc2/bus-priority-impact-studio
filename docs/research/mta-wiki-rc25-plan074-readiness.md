@@ -7,6 +7,13 @@ run and freezes the next exact-route review package. It does not approve a
 candidate, run an estimate, replace the immutable historical five-study
 output, or authorize publication.
 
+**2026-07-21 closure:** the owner subsequently delegated the complete review
+to three disjoint Codex shards. The reconciled 486-decision receipt approved
+six ACE candidates, the strict merge accepted it, and all six produced studies
+in a byte-deterministic real run. Publication remains unauthorized. The fresh
+operator handoff is
+`docs/research/reviews/rc25/anchors-report.md`.
+
 ## Pinned release and deterministic cut
 
 The source is MTA Wiki `v1-rc25`:
@@ -96,7 +103,7 @@ The binding pins these input hashes:
 B67 is `series_ready_with_gaps`; B41 remains `needs_pattern_review`. Exact
 scope proof does not override that independent spine gate.
 
-## Remaining operator gate
+## Operator gate at the readiness cut
 
 The non-authorizing worksheet contains all 486 candidates with
 `REVIEW_REQUIRED`, blank reviewer, and blank rationale fields. The operator
@@ -115,6 +122,12 @@ After receipt validation, run Plan 074 once with focused diagnostics, then one
 comprehensive verification pass. Any resulting studies require a fresh
 anchors report and operator sanity check before Plan 075 activation or any
 publication.
+
+This receipt/run portion closed on 2026-07-21: 486 exact decisions reconciled
+to six approvals and 480 rejections; the run wrote six studies, two gated and
+four descriptive, with zero ineligible studies or scope fallbacks. The only
+remaining gate is the fresh anchor sanity check. The original worksheet stays
+tracked as the immutable blank starting point rather than being rewritten.
 
 ## Tracked artifacts
 
