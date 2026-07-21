@@ -8937,3 +8937,24 @@ serving artifact regeneration, remote publication, and public verification
 remain, and no remote write, deployment, or live publication is claimed by
 this decision record. Plan 075 remains IN PROGRESS until those steps are
 evidenced. Plan 076 remains blocked on its separate three-gated-study floor.
+
+## [2026-07-21] release | Plan 075 rc26 study artifacts published and verified
+
+After explicit destination-specific authorization, pushed the activation
+branch, merged GitHub PR #88 at `d61a3af81745e79460b76d33e2e36d3748913f5a`,
+and promoted the exact approved rc26 cut to Cloudflare R2 bucket
+`bus-priority-artifacts`. The fail-safe publication order uploaded nine
+non-pointer payloads before eight activation objects. Both executions passed
+with zero failures.
+
+Cache-busted production reads returned HTTP 200 and the staged SHA-256 digest
+for all 17 objects. The public index now contains exactly seven studies: B67,
+B82+, BX28, BX38, BX9, M79+, and M96. B67 resolves to the approved event,
+remains `descriptive`, reports the +0.13899495728934547 mph all-day
+association, and still fails the minimum-sample and placebo-in-time gates.
+The B67 History deep link and `/interventions` both returned HTTP 200. This
+was a scoped R2 artifact promotion, so the coordinated release intentionally
+remains `pub_20260605T183601689Z` with 2023-04 through 2026-03 coverage; no D1
+seed or Worker deployment occurred. The exact receipt is
+`docs/research/reviews/rc26/publication-report.md`. Plan 075 is DONE. Plan 076
+remains independently blocked on its three-gated-study floor.

@@ -86,8 +86,9 @@ claim.
 
 No effect exceeded 0.34 mph in absolute value, so Plan 074's implausibility STOP did not fire. The
 fresh operator sanity check in `docs/research/reviews/rc26/anchors-report.md` was approved on
-2026-07-21. Plan 074 is DONE. Plan 075 is activated and publication-authorized, while serving
-regeneration, remote publication, and public verification remain pending.
+2026-07-21. Plan 074 is DONE. Plan 075 subsequently published and publicly verified the exact
+17-object rc26 cut; its completion receipt is
+`docs/research/reviews/rc26/publication-report.md`.
 
 Plan 076 cannot start from this cut. Only BX38 and BX9 are `gated_estimate` studies, both in the
 automated-bus-lane-enforcement family, so no treatment family reaches its required minimum of three.
@@ -101,9 +102,11 @@ The operator issued this exact token on 2026-07-21:
 > approve Plan 074 rc26 anchors; accept the six historical published-claim TBD cells and the completed B67 negative finding; keep B67 descriptive; approve Plan 075 activation and authorize publication of the rc26 study artifacts.
 
 The six historical published-claim cells therefore remain accepted `TBD` values, the completed B67
-negative finding is accepted, and B67 remains descriptive. The token authorizes Plan 075 to publish
-the exact reviewed rc26 artifacts; it is not evidence that serving artifacts were regenerated,
-written remotely, deployed, or verified publicly.
+negative finding is accepted, and B67 remains descriptive. A second explicit operator instruction
+authorized the concrete GitHub and Cloudflare operation. PR #88 merged and all 17 exact objects were
+then written to `bus-priority-artifacts` and verified through production. No D1 seed, Worker
+deployment, or coordinated-release pointer change was needed for the scoped R2 promotion. See
+`docs/research/reviews/rc26/publication-report.md`.
 
 ## Tracked artifacts
 
@@ -113,3 +116,4 @@ written remotely, deployed, or verified publicly.
 - `data/study-event-approvals/receipts/candidate-set-v3-80050ed598f3b2ab0d0a1e99.approval.json`
 - `data/study-event-approvals/scope-bindings/candidate-set-v3-80050ed598f3b2ab0d0a1e99.scope-bindings.json`
 - `docs/research/reviews/rc26/rc26-review-reconciliation.json`
+- `docs/research/reviews/rc26/publication-report.md`
