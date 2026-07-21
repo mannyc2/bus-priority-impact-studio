@@ -13,9 +13,9 @@
 
 ## Status
 
-- **Plan status**: IN PROGRESS (the complete owner-delegated rc25 receipt and
-  deterministic six-study run are complete; execution is stopped at the fresh
-  anchor sanity check before Plan 075 activation or publication)
+- **Plan status**: IN PROGRESS (the manifest-pinned rc26 receipt and
+  deterministic seven-study run are complete; execution is stopped at the
+  fresh rc26 anchor sanity check before Plan 075 activation or publication)
 - **Priority**: P1 (core of the business-problem arc)
 - **Effort**: L
 - **Risk**: MED (new numeric machinery destined for public claims — mitigated by synthetic-fixture tests with known answers, gates, and an operator-review STOP before anything ships)
@@ -165,6 +165,36 @@ checks, but September is installation commencement rather than a clean opening
 and conflicts with the nearby 2025-10-02 B67 lane onset. The fresh anchor
 handoff is `docs/research/reviews/rc25/anchors-report.md`. Plan 075 remains
 inactive pending an operator `approve`, `revise`, or `defer` decision.
+
+### Binding rc26 Flatbush resumption amendment — 2026-07-21
+
+The owner explicitly directed Plan 074 to use the reviewed Flatbush event-route
+operational onset. MTA Wiki `v1-rc26` preserves occurrence
+`occurrence:8c987704152b459014217d44` while proving that September 2025
+installation preceded the 2025-10-02 operational opening on the same bounded
+Livingston-to-State corridor. Tracker pins manifest SHA-256
+`c1792d1cbfdf498ea0481fa2374202b634dc2deea532f87a600390c6da382dc0`
+and occurrence artifact SHA-256
+`6cb8654efee370d7444405ce3a0cdb8ce6fa394e6ada2347982cbec49df701ef`.
+
+The deterministic candidate transition is narrow: rc26 contains every rc25
+candidate except the two registry-only B41/B67 rows now exact-deduplicated into
+the stable Wiki projections, and adds no candidate IDs. The reconciler proved
+unchanged admission semantics before replaying 482 surviving non-Flatbush
+decisions, then freshly rejected B41 for its independent
+`needs_pattern_review` spine gate and approved B67 for estimator admission at
+the corrected 2025-10-02 day onset. The resulting candidate set is
+`candidate-set-v3:80050ed598f3b2ab0d0a1e99`; its complete receipt contains
+seven approvals and 477 rejections.
+
+Every approved event-route pair produced one study. The rc26 run has two gated
+estimates, five descriptive comparisons, four `no_detectable_change` results,
+zero ineligible studies, and zero lane/scope fallbacks. B67 uses exactly two
+bounded stable spine segments and reports +0.139 mph all-day, but remains
+descriptive because its placebo and minimum-sample gates fail. A same-root
+repeat reproduced all 15 JSON outputs byte-for-byte. The fresh anchor handoff
+is `docs/research/reviews/rc26/anchors-report.md`; Plan 075 and publication
+remain inactive pending an operator `approve`, `revise`, or `defer` decision.
 
 ## Why this matters
 
@@ -442,7 +472,7 @@ operator has sanity-checked anchors and the candidate-set-bound approval
 contents.
 
 **Fresh review stop (2026-07-21)**:
-`docs/research/reviews/rc25/anchors-report.md` contains all six approved
+`docs/research/reviews/rc26/anchors-report.md` contains all seven approved
 studies, full gate caveats, reproducibility evidence, and `published_claim:
 TBD` placeholders. Plan 075 remains inactive.
 
@@ -457,11 +487,11 @@ structure on `tools/pipeline-v2/test/commands/export/route-dossier-summaries.tes
 
 - [x] `bun --filter @bp/pipeline-v2 test` exits 0, including the 4 synthetic known-answer tests
 - [x] `bun run pipeline study run --analysis-month 2026-03` writes one study
-  for every approved event-route pair (6/6), plus per-route rollups and an
+  for every approved event-route pair (7/7), plus per-route rollups and an
   index that validate against `study.ts` schemas
 - [x] Identical re-run produces byte-identical artifacts (seeded bootstrap)
 - [x] At least one real study reports `no_detectable_change` OR the report explains why none did (suspicious otherwise — say so)
-- [x] The fresh rc25 `anchors-report.md` exists; execution is STOPPED for
+- [x] The fresh rc26 `anchors-report.md` exists; execution is STOPPED for
   operator review, and the plan remains IN PROGRESS only until that decision
 - [x] `bun run check:types` exits 0; only in-scope files modified
 - [x] `plans/README.md` status row updated (status: IN PROGRESS, with the

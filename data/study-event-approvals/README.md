@@ -41,14 +41,16 @@ quarantined by the later exact-route audit. Neither can accept a receipt. The
 rc19 v2 set remains unapproved, and its Codex recommendations are not a
 receipt.
 
-The current authorizable set is
-`candidate-set-v3:575ee30a44f2e141e97f6a77`, built from exact-route MTA Wiki
-`v1-rc25`. Its tracked candidate artifact has SHA-256
-`b66c0cd70afdf99a0fa2779d9b0574ba328bcc5f49c7d0177eaa029b0bb2c195`,
-is `awaiting_approval`, and contains 486 candidates with zero approved events.
-The worksheet under `reviews/` is deliberately non-authorizing. A valid
-receipt must decide all 486 candidates and bind this exact set; no earlier
-decision transfers.
+The current completed set is
+`candidate-set-v3:80050ed598f3b2ab0d0a1e99`, built from exact-route MTA Wiki
+`v1-rc26`. Its tracked pre-approval candidate artifact has SHA-256
+`fe4d3ce9fa9f73f660256034afa497a8a8935f3471c083358a171f5f719e5363`
+and contains 484 candidates. The validated complete receipt under `receipts/`
+has seven approvals and 477 rejections. Deterministic reconciliation proved
+that 482 rc25 decisions retained identical admission semantics before replay;
+B41 and B67 were freshly adjudicated against the corrected Flatbush chronology.
+The worksheet under `reviews/` remains the immutable non-authorizing starting
+point. Estimator gates, anchor review, and publication remain independent.
 
 ## Exact physical-scope bindings
 
