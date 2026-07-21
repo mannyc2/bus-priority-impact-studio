@@ -1130,7 +1130,7 @@ async function writeReleaseFixtureV4(
       canonical_record_count: canonicalRecordCount,
       operational_occurrence_count: 1,
       operational_occurrences_sha256: occurrenceCanonicalSha256,
-      relevant_canonical_record_count: 1,
+      relevant_canonical_record_count: new Set(row.phase_record_ids).size + phaseRelationIds.length,
       canonical_phase_projection_sha256: phaseProjectionSha256,
     },
     outputs: {
@@ -3319,6 +3319,48 @@ describe("manifest-v4 occurrence-v2 and relationship-integrity import", () => {
           },
         ],
       });
+    });
+  });
+
+  test("accepts multiple evidence bindings for one phase or physical-scope relation", async () => {
+    const row = occurrenceRowV2({ exactPhysicalScope: true, relatedPhases: true });
+    const phaseBinding = row.phase_relation_evidence_bindings[0];
+    const physicalBinding = row.physical_scope_evidence_bindings[0];
+    if (phaseBinding === undefined || physicalBinding === undefined) {
+      throw new Error("multi-evidence fixture needs phase and physical-scope bindings");
+    }
+    const corroboratingPhaseBinding = {
+      ...phaseBinding,
+      source_id: "source:secondary",
+      evidence_id: "source:secondary#phase-1-precedes-phase-2",
+    };
+    const corroboratingPhysicalBinding = {
+      ...physicalBinding,
+      source_id: "source:secondary",
+      evidence_id: "source:secondary#physical-scope",
+    };
+    const multiEvidenceRow: OperationalOccurrenceRowV2 = {
+      ...row,
+      source_ids: sortedStrings([...row.source_ids, "source:secondary"]),
+      evidence_bindings: sortedBindings([
+        ...row.evidence_bindings,
+        corroboratingPhaseBinding,
+        corroboratingPhysicalBinding,
+      ]),
+      phase_relation_evidence_bindings: sortedBindings([
+        ...row.phase_relation_evidence_bindings,
+        corroboratingPhaseBinding,
+      ]),
+      physical_scope_evidence_bindings: sortedBindings([
+        ...row.physical_scope_evidence_bindings,
+        corroboratingPhysicalBinding,
+      ]),
+    };
+
+    await withFixtureV4({ row: multiEvidenceRow }, async (fixture) => {
+      const imported = await importFixtureV4(fixture);
+      expect(imported.occurrences[0]?.phase_relation_evidence_bindings).toHaveLength(2);
+      expect(imported.occurrences[0]?.physical_scope_evidence_bindings).toHaveLength(2);
     });
   });
 

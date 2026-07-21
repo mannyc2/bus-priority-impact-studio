@@ -1599,8 +1599,9 @@ function validateOccurrenceRowV2(
     return fail("phase relation evidence must be sorted, unique, and use phase_relation");
   }
   if (
-    canonicalJson(row.phase_relation_evidence_bindings.map((binding) => binding.record_id)) !==
-    canonicalJson(row.phase_relation_record_ids)
+    canonicalJson(
+      uniqueSorted(row.phase_relation_evidence_bindings.map((binding) => binding.record_id)),
+    ) !== canonicalJson(row.phase_relation_record_ids)
   ) {
     return fail("phase relation evidence must exactly cover phase_relation_record_ids");
   }
@@ -1644,8 +1645,9 @@ function validateOccurrenceRowV2(
     return fail("physical scope evidence must be sorted, unique, and use physical_scope");
   }
   if (
-    canonicalJson(row.physical_scope_evidence_bindings.map((binding) => binding.record_id)) !==
-    canonicalJson(row.physical_scope_relation_record_ids)
+    canonicalJson(
+      uniqueSorted(row.physical_scope_evidence_bindings.map((binding) => binding.record_id)),
+    ) !== canonicalJson(row.physical_scope_relation_record_ids)
   ) {
     return fail("physical scope evidence must exactly cover physical_scope_relation_record_ids");
   }
@@ -2353,6 +2355,41 @@ const validateRelationshipArtifactSyntax = Effect.fn(
   }
 });
 
+const decodePhaseCandidateRelationIds = Effect.fn(
+  "MtaWikiOperationalOccurrences.decodePhaseCandidateRelationIds",
+)(function* (file: VerifiedMtaWikiReleaseFile) {
+  const text = yield* decodeMtaWikiReleaseUtf8(file.bytes, {
+    operation: "decodePhaseCandidateRelationIds",
+    path: file.path,
+  }).pipe(Effect.mapError(fromReleaseError));
+  if (text.length === 0) return [];
+  const lines = text.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  const relationIds: string[] = [];
+  for (const [index, line] of lines.entries()) {
+    const value = yield* parseJson(line, {
+      operation: "decodePhaseCandidateRelationIds",
+      path: file.path,
+      line: index + 1,
+    });
+    const relationId =
+      value !== null && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, unknown>)["relation_record_id"]
+        : undefined;
+    if (typeof relationId !== "string" || relationId.trim().length === 0) {
+      return yield* importError({
+        code: "semantic_mismatch",
+        operation: "decodePhaseCandidateRelationIds",
+        path: file.path,
+        line: index + 1,
+        detail: "phase candidate relation_record_id must be a non-empty string",
+      });
+    }
+    relationIds.push(relationId);
+  }
+  return uniqueSorted(relationIds);
+});
+
 export function recomputeOperationalOccurrenceSummary(
   rows: readonly OperationalOccurrenceRow[],
 ): OperationalOccurrenceSummary {
@@ -2849,6 +2886,9 @@ const verifyRelationshipIntegrity = Effect.fn(
   const phaseSummaryArtifact = yield* requiredSource(
     "data/quality/relationship-integrity/operational-occurrence-phases/summary.json",
   );
+  const phaseCandidatesArtifact = yield* requiredSource(
+    "data/quality/relationship-integrity/operational-occurrence-phases/event-event-candidates.jsonl",
+  );
   const contract: RelationshipContract = yield* decodeJsonFile(
     contractArtifact.file,
     RelationshipContractSchema,
@@ -2898,6 +2938,9 @@ const verifyRelationshipIntegrity = Effect.fn(
     phaseSummaryArtifact.file,
     OperationalOccurrencePhaseAuditSummarySchema,
     "decodeOperationalOccurrencePhaseAuditSummary",
+  );
+  const phaseCandidateRelationIds = yield* decodePhaseCandidateRelationIds(
+    phaseCandidatesArtifact.file,
   );
 
   const proofCanonicalSha256 = canonicalDigest(proof);
@@ -3289,6 +3332,23 @@ const verifyRelationshipIntegrity = Effect.fn(
     return yield* fail("physical audit denominators do not reconcile to imported occurrences");
   }
 
+  const occurrencePhaseEventIds = new Set(
+    input.occurrenceRows.flatMap((row) => row.phase_record_ids),
+  );
+  const occurrencePhaseRelationIds = new Set(
+    input.occurrenceRows.flatMap((row) => row.phase_relation_record_ids),
+  );
+  if (
+    [...occurrencePhaseRelationIds].some(
+      (relationId) => !phaseCandidateRelationIds.includes(relationId),
+    )
+  ) {
+    return yield* fail("phase candidate inventory omits a projected occurrence relation");
+  }
+  const phaseRelevantCanonicalRecordCount = new Set([
+    ...occurrencePhaseEventIds,
+    ...phaseCandidateRelationIds,
+  ]).size;
   const phaseOccurrencePin = phaseManifest.route_anchor_release.operational_occurrences;
   const phaseReleaseManifestPin = phaseManifest.route_anchor_release.manifest;
   const phaseSummaryPath = `${phaseOutputRoot}/summary.json`;
@@ -3323,7 +3383,8 @@ const verifyRelationshipIntegrity = Effect.fn(
     phaseManifest.derived_inputs.canonical_record_count !==
       Object.values(input.manifest.record_counts).reduce((sum, count) => sum + count, 0) ||
     phaseManifest.derived_inputs.operational_occurrence_count !== input.occurrenceRows.length ||
-    phaseManifest.derived_inputs.relevant_canonical_record_count !== input.occurrenceRows.length ||
+    phaseManifest.derived_inputs.relevant_canonical_record_count !==
+      phaseRelevantCanonicalRecordCount ||
     phaseSummary.content_hashes.review_ledger_sha256 !== phaseLedgerPin.sha256 ||
     phaseSummary.content_hashes.event_event_candidates_sha256 !== phaseCandidatesPin.sha256 ||
     phaseSummary.content_hashes.findings_sha256 !== phaseFindingsPin.sha256 ||
