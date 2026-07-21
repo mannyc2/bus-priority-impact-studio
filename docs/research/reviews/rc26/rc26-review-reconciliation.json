@@ -1,0 +1,60 @@
+{
+  "artifactKind": "bp.studio.plan074_rc26_review_reconciliation.v1",
+  "authorization": "owner_directed_flatbush_operational_onset_resumption",
+  "authorizesStudyRun": true,
+  "authorizesPublication": false,
+  "priorCandidateSet": {
+    "candidateSetId": "candidate-set-v3:575ee30a44f2e141e97f6a77",
+    "candidateSha256": "b66c0cd70afdf99a0fa2779d9b0574ba328bcc5f49c7d0177eaa029b0bb2c195",
+    "decisionCount": 486
+  },
+  "candidateSetId": "candidate-set-v3:80050ed598f3b2ab0d0a1e99",
+  "candidateSha256": "fe4d3ce9fa9f73f660256034afa497a8a8935f3471c083358a171f5f719e5363",
+  "worksheetSha256": "b0577fc4d9eb44e62edfdd378eea2205884c5c5232e6edb3c649c5507f66aec5",
+  "sourceRelease": {
+    "releaseId": "v1-rc26",
+    "manifestSha256": "c1792d1cbfdf498ea0481fa2374202b634dc2deea532f87a600390c6da382dc0",
+    "occurrencesSha256": "6cb8654efee370d7444405ce3a0cdb8ce6fa394e6ada2347982cbec49df701ef",
+    "trackerImportSha256": "b9c41aafb499b3cf3c8b5e74192be64b1615393d50c5d2cf4edc66260857d6cd"
+  },
+  "summary": {
+    "candidateCount": 484,
+    "preservedDecisionCount": 482,
+    "revisedDecisionCount": 2,
+    "approvedCount": 7,
+    "rejectedCount": 477,
+    "removedExactDuplicateCount": 2
+  },
+  "removedExactDuplicateCandidateIds": [
+    "study-event-v2:bc870a23ee602a9ea28d9160",
+    "study-event-v2:e1d437f15fa4caee51760675"
+  ],
+  "revisedDecisions": [
+    {
+      "candidateId": "study-event-v2:6b70c52e0eec23eb63cab94f",
+      "decision": "rejected",
+      "reviewer": "Codex Plan 074 rc26 delegated resumption, 2026-07-21",
+      "rationale": "Rejected for rc26: the producer evidence now cleanly resolves Flatbush Phase 1 operational opening as 2025-10-02 and exact-deduplicates the NYC DOT registry lane row into the stable occurrence, but the current B41 speed spine remains needs_pattern_review (partial_months_require_pattern_grouping), a dispositive admission failure. The corrected date and retained exact scope do not override the independent spine gate."
+    },
+    {
+      "candidateId": "study-event-v2:d70a3ee36eb94ae88732065f",
+      "decision": "approved",
+      "reviewer": "Codex Plan 074 rc26 delegated resumption, 2026-07-21",
+      "rationale": "Approved for estimator admission only: v1-rc26 preserves the stable Flatbush Phase 1 occurrence and proves that September installation precedes the 2025-10-02 operational opening on the same Livingston-to-State bounded corridor. Exact deduplication with the NYC DOT registry row removes the competing-onset ambiguity. The candidate-bound scope mapping, series_ready_with_gaps B67 spine, 6-pre/5-post nominal calendar, and conflict checks pass; sample, controls, estimator gates, anchor review, and publication remain independent."
+    }
+  ],
+  "approvedCandidateIds": [
+    "study-event-v2:0cbbed3260f58eceb20275c7",
+    "study-event-v2:4c9efea0d35e2912037d99c2",
+    "study-event-v2:4d0530b77a63ac21ae95229b",
+    "study-event-v2:5f0d2e20b6fcecbefe91966a",
+    "study-event-v2:6afced32d375c2933f5344f9",
+    "study-event-v2:bff2030b147ab90027f3e748",
+    "study-event-v2:d70a3ee36eb94ae88732065f"
+  ],
+  "outputs": {
+    "receiptSha256": "00f2fb5e97969a986c9b07a30c9e9b3920066c80356404cfddbdcefba14d89de",
+    "scopeBindingsSha256": "b9cfcf9e048e32b8080138debaa6c876bd5e21a0340b4894ec13454f169faf25"
+  },
+  "notice": "The rc25 decisions were explicitly replayed only for surviving candidates whose admission semantics are unchanged. B41 and B67 were re-adjudicated against rc26; estimator, anchor-review, and publication gates remain independent."
+}
