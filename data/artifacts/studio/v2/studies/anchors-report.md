@@ -1,121 +1,146 @@
-# Plan 074 segment-study anchors report
+# Plan 074 rc26 segment-study anchors report
 
-Status: **STOPPED for operator review**. Do not begin Plan 075 or publish these
-results until the operator completes the checklist below.
+Status: **APPROVED 2026-07-21; Plan 074 DONE**. Plan 075 is activated and publication-authorized for
+this exact rc26 cut. Serving artifact regeneration, remote publication, and public verification
+have not yet occurred.
 
 - Analysis month: `2026-03`
-- Candidate set: `candidate-set:49af8c8721457fa7532a7345`
-- Approval outcome: 5 approved, 398 rejected
-- Engine: `segment-matched-did-v1`
+- Candidate set: `candidate-set-v3:80050ed598f3b2ab0d0a1e99`
+- Approval outcome: 7 approved, 477 rejected
+- Engine: `segment-matched-did-v2`
+- Complete run: 7 studies, 2 gated estimates, 5 descriptive comparisons
 
-## What this report contains
+## Current results
 
-The five rows below are every event approved by the candidate-set-bound
-receipt. Each estimate is a trip-weighted, segment-grain matched-control
-before/after difference with a deterministic 1,000-iteration bootstrap
-interval. The implementation month is excluded. These are gated estimates or
-descriptive comparisons, not causal claims.
+Every approved event-route pair produced one study. Values below are trip-weighted segment-grain
+matched-control before/after estimates with deterministic 1,000-iteration bootstrap intervals. The
+implementation month is excluded. They are gated estimates or descriptive comparisons, not causal
+claims.
 
-| Route | ACE onset | All-day estimate (mph) | 95% bootstrap interval (mph) | Claim tier | Direction | Important gates | Published claim |
+| Route | Operational onset | All-day estimate (mph) | 95% bootstrap interval (mph) | Claim tier | Direction | Important gates | Published claim |
 | --- | --- | ---: | ---: | --- | --- | --- | --- |
-| BX28 | 2024-09-16 | -0.042 | [-0.138, 0.037] | gated estimate | no detectable change | all pass | No route-specific official result found; systemwide +5% is non-comparable |
-| M79+ | 2024-09-30 | +0.357 | [-0.192, 1.334] | descriptive | no detectable change | pre-trend failed; congestion-pricing overlap flagged | No route-specific official result found; systemwide +5% is non-comparable |
-| B82+ | 2024-09-30 | -0.245 | [-0.504, -0.038] | descriptive | worsened | pre-trend and minimum-sample gates failed | No route-specific official result found; systemwide +5% is non-comparable |
-| BX38 | 2024-09-16 | +0.005 | [-0.080, 0.097] | gated estimate | no detectable change | all pass | No route-specific official result found; systemwide +5% is non-comparable |
-| BX9 | 2025-11-10 | +0.115 | [-0.011, 0.283] | gated estimate | no detectable change | all pass; exactly four post months | MTA confirms the onset but publishes no BX9 outcome; systemwide +5% is non-comparable |
+| BX28 | 2024-09-16 | -0.061 | [-0.142, 0.007] | descriptive | no detectable change | pre-trend failed | TBD |
+| M79+ | 2024-09-30 | +0.336 | [-0.235, 1.386] | descriptive | no detectable change | pre-trend failed; congestion-pricing overlap flagged | TBD |
+| B82+ | 2024-09-30 | -0.207 | [-0.504, -0.038] | descriptive | worsened | pre-trend and minimum-sample gates failed | TBD |
+| BX38 | 2024-09-16 | -0.002 | [-0.098, 0.084] | gated estimate | no detectable change | all gates pass | TBD |
+| M96 | 2025-10-13 | -0.068 | [-0.134, 0.017] | descriptive | no detectable change | placebo failed; congestion-pricing overlap flagged | TBD |
+| B67 | 2025-10-02 | +0.139 | [0.121, 0.156] | descriptive | improved | placebo and minimum-sample gates failed | No comparable official B67 result found (checked 2026-07-21) |
+| BX9 | 2025-11-10 | +0.137 | [0.019, 0.306] | gated estimate | improved | all gates pass; exactly four post months | TBD |
 
-Four of five intervals cover zero and are represented as
-`no_detectable_change`. B82+ is not promoted despite its interval excluding
-zero: only three treated segments survived, eight failed the window rule, and
-the pre-trend gate failed. M79+ is also descriptive because its pre-trend gate
-failed and the post window overlaps congestion pricing. Its required
-congestion-pricing sensitivity is stored, but becomes null after excluding
-2025-01 onward because only three post months remain.
+Four intervals cover zero and are represented as `no_detectable_change`. B82+ is not promoted even
+though its interval excludes zero: only three treated segments survived and its pre-trend gate
+failed. B67 is also not promoted despite its interval excluding zero: its exact bounded scope yields
+only two treated spine segments, and its 0.240 mph placebo effect is much larger than the all-day
+interval half-width. M96 remains descriptive because its placebo and congestion-pricing-overlap
+gates fail. BX9 is the sole gated estimate whose interval excludes zero; its short four-month post
+window remains an important limitation.
 
-No all-day estimate exceeds 0.36 mph in absolute value. The Plan 074
-implausibility STOP threshold (more than 25% of studies above 3 mph in absolute
-value) did not fire.
+No all-day estimate exceeds 0.34 mph in absolute value. Zero of seven studies exceed the Plan 074
+implausibility threshold of 3 mph, so the real-result STOP condition did not fire.
 
-## Published evidence check
+## Downstream Plan 076 gate
 
-Official MTA and NYC DOT material consistently reports an approximately 5%
-average speed increase across ACE-equipped routes, on top of bus-lane or busway
-gains. The MTA's March 2025 special feature names larger corridor results for
-Bx19 (12%), Q69 (22%), and M101 (25%), but none of those is one of the five
-approved study routes:
+The complete run contains only two `gated_estimate` studies, BX38 and BX9, both in the automated
+bus-lane-enforcement family. Plan 076 requires at least three gated estimates in one treatment family
+before transferring an effect into opportunity rankings. Its explicit STOP therefore remains
+triggered: do not implement or publish a ranking. Revisit Plan 076 only after another qualifying
+gated study lands so that at least one family reaches three.
 
-- [MTA March 2025 New York City Transit Committee materials](https://www.mta.info/document/167241)
-- [NYC DOT bus-lane and ACE overview](https://www.nyc.gov/html/brt/html/about/bus-lanes.shtml)
+## What changed from rc25
 
-The MTA's November 2025 committee materials confirm that ACE activated on BX9
-on November 10, 2025. The same document repeats the 5% ACE-equipped-route
-average and an up-to-30% corridor range, but it cannot be a post-activation BX9
-result because it announces the BX9 activation in that report:
+The six rc25 ACE admissions and their numeric study results are unchanged. The rc26 release changes
+only the Flatbush chronology and exact-deduplication boundary: it proves that September installation
+preceded the 2025-10-02 operational opening on the same bounded corridor. B41 still fails
+`needs_pattern_review`. B67 now has clean phase identity, exact physical scope, a
+`series_ready_with_gaps` spine, and sufficient nominal calendar coverage, so it becomes the seventh
+admitted event.
 
-- [MTA November 2025 New York City Transit Committee materials](https://www.mta.info/document/192116)
+The B67 study uses exactly two stable treated segments:
+`b67-n-node-009-node-010` and `b67-s-node-010-node-009`. It reports +0.139 mph all-day and +0.151 mph
+at peak hours, but remains descriptive because the minimum-sample and placebo gates fail. The
+correct reading is a bounded before/after association for these two segments, not a route-wide or
+causal Flatbush claim.
 
-No official route-specific post-activation speed estimate was found for BX28,
-M79+, B82+, BX38, or BX9. The published 5% figure does not disclose a matching
-route population, event window, segment definition, control construction, or
-uncertainty interval, so it is not directly comparable to these matched-control
-studies.
+## Published-evidence check
 
-For context, the study point estimates are -0.57% (BX28), +5.77% (M79+),
--2.73% (B82+), +0.07% (BX38), and +1.74% (BX9). M79+'s point estimate is near
-the published systemwide average, but its interval covers zero and its
-pre-trend and congestion-pricing gates fail. The other apparent differences
-likewise do not validate or contradict the aggregate MTA claim because the
-estimands and populations differ.
+The prior review found only a non-comparable systemwide ACE speed benchmark, not route-specific
+results for the six historical routes. Their `Published claim` cells therefore remain `TBD`;
+aggregate statements are context, not benchmarks for these estimates.
 
-Recommendation: accept the five outputs as a bounded pilot of the engine, not
-as a systemwide evaluation of ACE. Any public presentation must retain each
-study's claim tier, interval, and gate caveats and must not summarize these five
-routes as evidence that ACE generally works or does not work.
+A fresh official-source search on 2026-07-21 completed the B67 check with a negative finding. NYC
+DOT's [September 2025 installation announcement](https://www.nyc.gov/html/dot/html/pr2025/nyc-dot-flatbush-ave.shtml)
+reports a pre-project rush-hour baseline for the entire Flatbush corridor and 12 routes, not a B67
+post-opening result for the two-block phase. Its
+[October 2025 CB6 presentation](https://www.nyc.gov/html/dot/downloads/pdf/flatbush-ave-bus-priority-cb6-oct2025.pdf)
+uses 20% only as a hypothetical B41 scenario. The
+[April 2026 construction update](https://www.nyc.gov/html/dot/downloads/pdf/flatbush-ave-bus-priority-mtp-briefing-apr2026.pdf)
+and [April 2026 press release](https://www.nyc.gov/html/dot/html/pr2026/nyc-dot-begins-reconstruction-of-flatbush-avenue.shtml)
+confirm that Livingston-to-State was installed in fall 2025 but publish no post-opening B67
+measurement; the cited 43% speed gain belongs to 161st Street in the Bronx. MTA's
+[route-level](https://data.ny.gov/Transportation/MTA-Bus-Speeds-Beginning-2015/cudb-vcni) and
+[segment-level](https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds-Beginning-2025/kufs-yh3x)
+speed datasets are measurement inputs, not an official project-attributed evaluation. The B67 cell
+therefore records that no comparable official result was found; +0.139 mph remains this Tracker's
+descriptive association, not an external benchmark.
 
 ## Operator anchor check
 
-The source-research portion of this check is complete. The operator still must:
+Completed 2026-07-21 with this exact approval token:
 
-1. Accept or revise the conclusion that the available official 5% benchmark is
-   non-comparable to all five route studies.
-2. Sanity-check direction and magnitude. Do not reinterpret a confidence
-   interval covering zero as evidence of improvement or worsening, and do not
-   promote either descriptive row to a gated estimate.
-3. Confirm whether the conservative five-event approval set is accepted as the
-   terminal Plan 074 real-data scope. The original plan expected at least ten
-   studies, but the completed review approved only five valid event-route
-   onsets. Reaching ten would require a new operator decision, not an engine
-   workaround.
-4. Record an explicit `approve`, `revise`, or `defer` decision for Plan 075.
+> approve Plan 074 rc26 anchors; accept the six historical published-claim TBD cells and the completed B67 negative finding; keep B67 descriptive; approve Plan 075 activation and authorize publication of the rc26 study artifacts.
+
+Binding interpretation: the six historical `TBD` cells are accepted as reviewed unknowns, not
+silently replaced by non-comparable aggregate claims. The completed B67 negative finding is
+accepted, and B67 remains a descriptive two-segment association. Plan 075 may regenerate and publish
+the exact reviewed rc26 artifacts, but this report does not claim that remote publication or public
+verification has happened.
+
+Historical checklist satisfied by that token:
+
+1. Accept the completed negative B67 evidence finding and fill or explicitly accept `TBD` for the
+   six historical published-claim cells after checking comparable official evidence.
+2. Sanity-check direction and magnitude, especially B67's descriptive improvement, BX9's gated
+   improvement, and B82+'s descriptive worsening. Do not promote a descriptive row or reinterpret
+   an interval covering zero.
+3. Confirm that B67 should remain admitted as a two-segment descriptive study at the corrected
+   2025-10-02 operational onset. Rejection requires a candidate-level rationale and a fresh complete
+   receipt; do not patch only the approved subset.
+4. Record `approve`, `revise`, or `defer` for Plan 075 activation. Publication remains a separate
+   decision even if the anchors are approved.
 
 ## Verification evidence
 
-- Strict merge: 403 decisions, 5 approved events, 398 operator rejections.
-- Real run: 5 studies, 5 route rollups, 0 ineligible studies, 3 gated estimates,
-  2 descriptive comparisons, 4 no-detectable-change results, and 0 lane
-  fallbacks.
-- Schema validation: all five study artifacts, the index, and all five route
-  rollups decode against the native Effect schemas in
-  `packages/domain/src/studio/study.ts`.
-- Determinism: a second real run produced byte-identical hashes for all five
-  studies, the index, and all five rollups.
-- Limits: index length 5 (cap 500); every rollup length 1 (cap 20).
-- Tests: 287 pipeline tests passed, 0 failed, with 1,823 assertions.
-- Gates: root typecheck and repository style checks exited 0.
+- Review reconciliation: 484 unique decisions, 7 approved, 477 rejected, no omissions or duplicates;
+  482 unchanged decisions replayed only after exact semantic comparison and two Flatbush decisions
+  freshly adjudicated.
+- Strict merge: 484 candidates, 7 approved events, 382 retained source rejections, zero conflicts.
+- Real run: 7 studies, 7 route rollups, zero ineligible studies, 2 gated estimates, 5 descriptive
+  comparisons, 4 no-detectable-change results, and zero lane or scope fallbacks.
+- Schema validation: all seven studies, the index, and all seven route rollups decode against the
+  native Effect schemas in `packages/domain/src/studio/study.ts`.
+- Determinism: a same-root repeat reproduced all 15 JSON outputs byte-for-byte. Independent roots
+  also agree after normalizing their intentionally embedded absolute speed-spine paths.
+- Limits: index length 7 (cap 500); every route rollup contains one study (cap 20).
 
 ## Reproducibility hashes
 
 | Artifact | SHA-256 |
 | --- | --- |
-| Approval receipt | `6c17f106dd394b70848bd401283ee1fb7d5b1b8123c4cb2ea8dd8c36a959b6a2` |
-| Approved event set | `63da356a9ace61e2755b41540567b4a79a6d8c4a4b5c045df85f79b7b687bb84` |
-| Study index | `b1b57de29ab005c22333628a9b4b73c4c79964b2846b76b307d6bab14d242fdb` |
-| BX28 study | `5ef27e83fea2fc6e7ef78cee9a4388aec8228764dd1d79d40bc57e1c21c08eff` |
-| M79+ study | `32415e7c441837519cddf030facc9da1e0a4bb2852d34abfe4e6a729a2a0fede` |
-| B82+ study | `e78554d783bff96c6bf3f14bc3db9f5711379af39179836034c674500aee3037` |
-| BX38 study | `2851f866b5a754dc2dd2d6a2d6accf30f5783200a7f9ef04ac4955ac26a5091c` |
-| BX9 study | `88ee641a3ef2d6eae3c96bb5b843d00078ae4d6051f8b827e31e6ac7fd333348` |
+| rc26 strict import | `b9c41aafb499b3cf3c8b5e74192be64b1615393d50c5d2cf4edc66260857d6cd` |
+| rc26 candidate artifact | `fe4d3ce9fa9f73f660256034afa497a8a8935f3471c083358a171f5f719e5363` |
+| Review worksheet | `b0577fc4d9eb44e62edfdd378eea2205884c5c5232e6edb3c649c5507f66aec5` |
+| Review reconciliation | `171696a8f6ccb5e9be1c8f936067e5b6706fd8c2d14d647e48f6cbf01e1bef7e` |
+| Approval receipt | `00f2fb5e97969a986c9b07a30c9e9b3920066c80356404cfddbdcefba14d89de` |
+| Scope bindings | `b9cfcf9e048e32b8080138debaa6c876bd5e21a0340b4894ec13454f169faf25` |
+| Approved event set | `7923d0ea4e86a07d70a354f22ae8d732ee8cc198612dffe25bdae6bdaf30c18f` |
+| Study index | `081a994624f503c13b404c7596505f3a86c497c05bbc9c10aa63aab5e488eccf` |
+| BX28 study | `15a4cb2a22f917816adb66b63e1e9b00c3e0bd3b21de6dd4df58e0378e2092c4` |
+| M79+ study | `68d0009d55c8d32ba7c87a3d683e913a5b10d4218940153887deef0a3feb66b8` |
+| M96 study | `3621229a104070e84339b4f1534904af4c650ef261a44fde8314a6c175593fe1` |
+| B82+ study | `ae7d75d00b7e110f9aaf2fb4d5c59e15851fdc576760024f36b4623b6ce4265f` |
+| BX38 study | `4161a6869c6cf475aa6910b79bf0d0b8623a8b89148fd9f9d8a16e122dee8469` |
+| BX9 study | `2a7a2c51941cb74f30a4423c03036f48c5c56b43a050f8a8dc6b56bdbfa3f8fc` |
+| B67 study | `a6b1ce3fa1e4e7ccbda4137a57b7c7f3f56681581430bc696e14c5bdf342457d` |
 
-The full-precision values and gate reasons remain authoritative in the JSON
-artifacts under `data/artifacts/studio/v2/studies/`; this report rounds values
-for review only.
+Full-precision values and gate reasons remain authoritative in the isolated rc26 run artifacts at
+`/tmp/bp-plan074-rc26-run-a/studio/v2/studies/`. This report rounds values for review only.

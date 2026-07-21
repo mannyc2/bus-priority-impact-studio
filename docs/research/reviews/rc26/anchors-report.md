@@ -1,7 +1,8 @@
 # Plan 074 rc26 segment-study anchors report
 
-Status: **STOPPED for operator review**. Do not activate Plan 075 or publish these results until the
-operator completes the checklist below.
+Status: **APPROVED 2026-07-21; Plan 074 DONE**. Plan 075 is activated and publication-authorized for
+this exact rc26 cut. Serving artifact regeneration, remote publication, and public verification
+have not yet occurred.
 
 - Analysis month: `2026-03`
 - Candidate set: `candidate-set-v3:80050ed598f3b2ab0d0a1e99`
@@ -83,6 +84,18 @@ therefore records that no comparable official result was found; +0.139 mph remai
 descriptive association, not an external benchmark.
 
 ## Operator anchor check
+
+Completed 2026-07-21 with this exact approval token:
+
+> approve Plan 074 rc26 anchors; accept the six historical published-claim TBD cells and the completed B67 negative finding; keep B67 descriptive; approve Plan 075 activation and authorize publication of the rc26 study artifacts.
+
+Binding interpretation: the six historical `TBD` cells are accepted as reviewed unknowns, not
+silently replaced by non-comparable aggregate claims. The completed B67 negative finding is
+accepted, and B67 remains a descriptive two-segment association. Plan 075 may regenerate and publish
+the exact reviewed rc26 artifacts, but this report does not claim that remote publication or public
+verification has happened.
+
+Historical checklist satisfied by that token:
 
 1. Accept the completed negative B67 evidence finding and fill or explicitly accept `TBD` for the
    six historical published-claim cells after checking comparable official evidence.

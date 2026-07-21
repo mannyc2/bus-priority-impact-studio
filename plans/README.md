@@ -97,9 +97,14 @@ REJECTED (with one-line rationale)
 - Plan 093 separates a descriptive observation-anchor gate from the causal
   study gate and proves study outputs unchanged. Inventory display coverage
   may be broad while observation and study coverage remain narrower.
-- Plan 075's UI code has landed, but activation/publication remains blocked by
-  its recorded Plan 074/anchor gates. Nothing here treats it as active or
-  promotes quarantined/unapproved candidate data.
+- Plan 075's UI code has landed, and the 2026-07-21 operator token closed the
+  Plan 074/rc26 anchor gate, activated Plan 075, and authorized publication of
+  the exact reviewed rc26 artifacts. Serving regeneration, remote publication,
+  and public verification remain; nothing promotes quarantined/unapproved data.
+- Exact operator token: “approve Plan 074 rc26 anchors; accept the six
+  historical published-claim TBD cells and the completed B67 negative finding;
+  keep B67 descriptive; approve Plan 075 activation and authorize publication
+  of the rc26 study artifacts.”
 
 ## Verified audit evidence (gen 12)
 
@@ -338,17 +343,15 @@ REJECTED (with one-line rationale)
 
 ## Dependency notes (gen 10)
 
-- **Two operator items precede execution**: (1) the plan 074 anchor review
-  (`data/artifacts/studio/v2/studies/anchors-report.md`, fill
-  `published_claim`) gates plan 075; (2) 074's original "≥10 studies" done
-  criterion needs explicit resolution — recommended resolution, recorded
-  2026-07-12: amend to "every approved event-route pair studied" (satisfied
-  at 5/5); rejected candidates are never silently readmitted, and the path
-  to more studies now requires a new data-completeness proposal; plan 083
-  found no production-safe grouping unlock and commissioned no batch-2
-  candidate rebuild or review.
-- Plan 075's UI integration has landed but remains inactive behind its
-  recorded study gates. Plan 082 does not depend on activation. Its original
+- **The two Plan 074 operator items are closed**: the 2026-07-21 token accepts
+  the six historical published-claim TBD cells and completed B67 negative
+  finding, keeps B67 descriptive, and activates/authorizes Plan 075 for the
+  exact rc26 cut; the earlier row-count criterion is re-anchored to every
+  approved event-route pair studied, satisfied at 7/7. Rejected candidates
+  remain excluded.
+- Plan 075's UI integration has landed and is active for rc26 publication
+  work, but serving regeneration, remote publication, and public verification
+  remain. Plan 082 does not depend on activation. Its original
   `mergedTreatmentTimelineRows`/History-text admission is superseded by the
   Generation 12 amendment: execute 091 → 090 → 092 before 082, then consume
   the typed observation bundle, resolve its IDs against the same-release
@@ -373,8 +376,8 @@ REJECTED (with one-line rationale)
   carry dates and plain-language labels, never numbers; numbers come only
   from plan 074/075 study artifacts.
 - **Readmitting rejected candidates or softening gates/spine thresholds to
-  reach the original "≥10 studies" floor** — rejected; re-anchor the
-  criterion instead (operator confirmation pending on 074's row).
+  reach the original "≥10 studies" floor** — rejected; the operator accepted
+  the complete 7/7 approved-pair run and Plan 074 is DONE.
 - **A standalone /studies page or new tab** — already rejected by the
   binding 2026-07-09 operator direction; 075 integrates into existing
   surfaces.
@@ -615,8 +618,8 @@ decision layer.
 | 071 | Steering-doc truth sweep (README schema claim, /methods SEO, master-plan status) | P2 | S-M | 068 (rec.) | DONE (Effect Schema README claim, retired `/methods` SEO removal, master-plan status block, and knowledge log verified) |
 | 072 | Dependency hygiene: bun update within semver + audit residue log | P3 | S | 068 | DONE (audit reduced 15→13; all residual advisories documented; full tests/build and `/` + `/map` smoke pass) |
 | 073 | Serve the reviewed intervention corpus + reconciliation report | P1 | M-L | 068 | DONE (310 valid; 29 study-date-ready; 11 exact matches; no study-ready corpus-only candidates) |
-| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 + exact-route task before any future run | IN PROGRESS (complete 484-decision rc26 receipt and deterministic 7/7 study run landed; stopped only for the fresh rc26 anchor sanity check before activation/publication) |
-| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | IN PROGRESS (UI integration landed in PR #59 but remains inactive; the rc26 receipt/run are complete and the fresh Plan 074 anchor decision plus publication decision remain) |
+| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 + exact-route task before any future run | DONE (484-decision rc26 receipt, deterministic 7/7 run, published-evidence check, and 2026-07-21 operator anchor approval complete; B67 remains descriptive) |
+| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | IN PROGRESS (activated and publication-authorized for rc26; serving artifact regeneration, remote publication, and public verification remain) |
 | 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | BLOCKED (rc26 has only 2 gated estimates total, so no treatment family reaches the required ≥3; revisit after another qualifying gated study lands) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
@@ -627,12 +630,14 @@ REJECTED (with one-line rationale)
 - 068 first, always: it makes `check:types` and the pre-push gate actually
   runnable; every other plan uses them as verification gates.
 - 069-072 are independent of each other and parallel-safe (isolated worktrees).
-- The business arc is ordered 073 + gen-9 identity plan 078 → 074 → 075 → 076,
-  with two human gates baked in: 074 STOPs after writing its anchors report
-  (operator sanity-checks effects against published numbers before anything ships), and
-  074's trusted-registry plus manifest-pinned Wiki candidate set enters studies only
-  through a candidate-set-bound operator approval. Plan 073's corpus remains
-  documentation/source-coverage input and never supplies causal onset dates.
+- The business arc is ordered 073 + gen-9 identity plan 078 → 074 → 075 → 076.
+  Both Plan 074 human gates are closed for the exact rc26 cut: the candidate
+  set has its bound receipt and the 2026-07-21 operator token accepts the
+  anchor report, six historical TBD cells, and completed B67 negative finding
+  while keeping B67 descriptive. Plan 075 is activated and
+  publication-authorized, but still must regenerate, publish remotely, and
+  verify the public surfaces. Plan 073's corpus remains documentation/source-
+  coverage input and never supplies causal onset dates.
 - Operator direction (2026-07-09, binding on 075/076 and any successor): NO
   new top-level pages, tabs, or nav items. Studies integrate into the route
   History tab (upgraded comparison cards) and /interventions (real numbers on

@@ -13,14 +13,14 @@
 
 ## Status
 
-- **Plan status**: IN PROGRESS (the UI integration landed in PR #59, but the
-  recorded Plan 074 operator-anchor prerequisite was never closed; public
-  activation remains blocked and no rc23 study output may be served)
+- **Plan status**: IN PROGRESS (activated and publication-authorized for the
+  rc26 study artifacts; serving artifact regeneration, remote publication,
+  and public verification remain, so no live publication is claimed)
 - **Priority**: P2
 - **Effort**: M
 - **Risk**: MED (public claims surface — mitigated by claim-language rules and the 074 operator-review gate)
-- **Depends on**: plans/074-segment-study-engine.md (must be DONE with
-  operator anchor review passed; currently unmet),
+- **Depends on**: plans/074-segment-study-engine.md (DONE; operator anchor
+  review passed 2026-07-21),
   plans/073-intervention-corpus-serving.md (corpus artifact, for step 5), and
   exact-route task `019f7640-fd5c-7be2-8a40-a7c264284c0f` before activation
 - **Category**: direction
@@ -86,6 +86,28 @@ records a STOP. The code's existence is not evidence that the prerequisite
 passed. Treat the integration as an implemented but inactive milestone:
 operator anchor review, exact-set approval, a separately authorized study run,
 serving regeneration, and publication authorization remain open.
+
+### Binding rc26 activation and publication authorization — 2026-07-21
+
+The operator issued this exact approval token:
+
+> approve Plan 074 rc26 anchors; accept the six historical published-claim TBD cells and the completed B67 negative finding; keep B67 descriptive; approve Plan 075 activation and authorize publication of the rc26 study artifacts.
+
+This closes Plan 075's Plan 074 anchor prerequisite and activates Plan 075 for
+the exact rc26 study cut bound to
+`candidate-set-v3:80050ed598f3b2ab0d0a1e99`. The six historical
+`published_claim: TBD` cells remain explicit reviewed unknowns. The completed
+B67 official-evidence search remains a negative finding, and B67 must render
+only as a descriptive two-segment before/after association: no controlled,
+route-wide, gated, or causal promotion is authorized.
+
+Publication is authorized but has not happened. The remaining Plan 075 work
+is to regenerate the serving artifacts from the reviewed rc26 outputs,
+publish those exact artifacts to the remote serving target, and verify the
+public History and `/interventions` surfaces against the approved card and
+claim-language contracts. Plan 075 remains IN PROGRESS until all three steps
+are evidenced. Any changed candidate set, study output, or claim tier requires
+a fresh review rather than inheriting this authorization.
 
 ## Why this matters
 
@@ -390,7 +412,8 @@ corpus artifact absent, the tab renders as today.
   pattern instead of adding it.
 - Step 4's dedupe leaves rampant near-duplicates (>20% of merged rows) —
   report examples; the heuristic needs operator input.
-- Operator anchor review (074's gate) has not happened — do not start.
+- A later candidate set, changed study output, or changed claim tier lacks a
+  fresh operator review — do not inherit the rc26 authorization.
 
 ## Maintenance notes
 

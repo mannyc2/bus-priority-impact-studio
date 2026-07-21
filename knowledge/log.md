@@ -8918,3 +8918,22 @@ Plan 076 is also blocked by its explicit evidence STOP: rc26 has only two
 gated estimates, both automated bus-lane enforcement, so no treatment family
 reaches the required minimum of three. Revisit it only after another
 qualifying gated study lands.
+
+## [2026-07-21] direction | Plan 074 rc26 anchors approved; Plan 075 activated
+
+The operator closed the fresh rc26 anchor gate with the exact token:
+
+> approve Plan 074 rc26 anchors; accept the six historical published-claim TBD cells and the completed B67 negative finding; keep B67 descriptive; approve Plan 075 activation and authorize publication of the rc26 study artifacts.
+
+The six historical published-claim cells remain explicit, reviewed `TBD`
+values; no non-comparable aggregate claim is substituted. The completed B67
+official-evidence check remains a negative finding, and B67 remains a
+descriptive two-segment association rather than a gated, route-wide, or causal
+claim. Plan 074 is DONE.
+
+Plan 075 is activated and authorized to publish the exact rc26 cut bound to
+`candidate-set-v3:80050ed598f3b2ab0d0a1e99`. Authorization is not completion:
+serving artifact regeneration, remote publication, and public verification
+remain, and no remote write, deployment, or live publication is claimed by
+this decision record. Plan 075 remains IN PROGRESS until those steps are
+evidenced. Plan 076 remains blocked on its separate three-gated-study floor.

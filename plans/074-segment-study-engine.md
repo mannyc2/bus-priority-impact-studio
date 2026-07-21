@@ -13,9 +13,9 @@
 
 ## Status
 
-- **Plan status**: IN PROGRESS (the manifest-pinned rc26 receipt and
-  deterministic seven-study run are complete; execution is stopped at the
-  fresh rc26 anchor sanity check before Plan 075 activation or publication)
+- **Plan status**: DONE (the manifest-pinned rc26 receipt, deterministic
+  seven-study run, published-evidence check, and operator anchor review are
+  complete; Plan 075 is separately activated and publication-authorized)
 - **Priority**: P1 (core of the business-problem arc)
 - **Effort**: L
 - **Risk**: MED (new numeric machinery destined for public claims — mitigated by synthetic-fixture tests with known answers, gates, and an operator-review STOP before anything ships)
@@ -193,8 +193,24 @@ zero ineligible studies, and zero lane/scope fallbacks. B67 uses exactly two
 bounded stable spine segments and reports +0.139 mph all-day, but remains
 descriptive because its placebo and minimum-sample gates fail. A same-root
 repeat reproduced all 15 JSON outputs byte-for-byte. The fresh anchor handoff
-is `docs/research/reviews/rc26/anchors-report.md`; Plan 075 and publication
-remain inactive pending an operator `approve`, `revise`, or `defer` decision.
+is `docs/research/reviews/rc26/anchors-report.md`. At run completion, Plan 075
+and publication remained inactive pending an operator `approve`, `revise`, or
+`defer` decision; the following amendment records that later decision.
+
+### Binding rc26 anchor approval and Plan 074 completion — 2026-07-21
+
+The operator closed the fresh rc26 anchor gate with this exact approval token:
+
+> approve Plan 074 rc26 anchors; accept the six historical published-claim TBD cells and the completed B67 negative finding; keep B67 descriptive; approve Plan 075 activation and authorize publication of the rc26 study artifacts.
+
+This accepts the six historical `published_claim: TBD` cells as reviewed
+unknowns rather than filling them with non-comparable aggregate evidence. It
+accepts the completed B67 negative finding and preserves B67 as a descriptive
+two-segment association; it does not promote B67 to a gated or causal claim.
+All Plan 074 implementation, receipt, run, reproducibility, evidence-check,
+and operator-review criteria are therefore complete. Plan 075 owns the
+separate serving regeneration, remote publication, and public verification
+work authorized by this token.
 
 ## Why this matters
 
@@ -471,10 +487,13 @@ column, with instructions for the operator to fill from MTA/DOT publications.
 operator has sanity-checked anchors and the candidate-set-bound approval
 contents.
 
-**Fresh review stop (2026-07-21)**:
+**Review closure (2026-07-21)**:
 `docs/research/reviews/rc26/anchors-report.md` contains all seven approved
 studies, full gate caveats, reproducibility evidence, and `published_claim:
-TBD` placeholders. Plan 075 remains inactive.
+TBD` placeholders. The operator accepted those six historical unknowns and
+the completed B67 negative finding, kept B67 descriptive, and authorized Plan
+075 activation and publication. Plan 074 is DONE; this authorization does not
+claim that serving regeneration or remote publication has occurred.
 
 ## Test plan
 
@@ -491,11 +510,11 @@ structure on `tools/pipeline-v2/test/commands/export/route-dossier-summaries.tes
   index that validate against `study.ts` schemas
 - [x] Identical re-run produces byte-identical artifacts (seeded bootstrap)
 - [x] At least one real study reports `no_detectable_change` OR the report explains why none did (suspicious otherwise — say so)
-- [x] The fresh rc26 `anchors-report.md` exists; execution is STOPPED for
-  operator review, and the plan remains IN PROGRESS only until that decision
+- [x] The fresh rc26 `anchors-report.md` exists; the operator accepted its six
+  historical TBD cells and completed B67 negative finding, kept B67
+  descriptive, and closed the anchor gate
 - [x] `bun run check:types` exits 0; only in-scope files modified
-- [x] `plans/README.md` status row updated (status: IN PROGRESS, with the
-  remaining gates named explicitly)
+- [x] `plans/README.md` status row updated (status: DONE)
 
 ## STOP conditions
 
