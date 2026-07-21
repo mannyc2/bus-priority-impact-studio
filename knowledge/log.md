@@ -8908,7 +8908,10 @@ gated estimates, five descriptive comparisons, four
 fallbacks. B67 uses its exact two-segment bounded scope and reports +0.139 mph
 all-day with a [+0.121, +0.156] bootstrap interval, but remains descriptive
 because placebo and minimum-sample gates fail. A same-root repeat reproduced
-all 15 JSON outputs byte-for-byte. No publication or deployment state changed;
+all 15 JSON outputs byte-for-byte. A timeboxed official-source check found no
+comparable published B67 post-opening result: NYC DOT confirms the bounded
+phase was installed but publishes only broader baselines, hypothetical gains,
+or results from other corridors. No publication or deployment state changed;
 Plan 074 remains stopped only for the fresh rc26 anchor review in
 `docs/research/reviews/rc26/anchors-report.md`, and Plan 075 remains inactive.
 Plan 076 is also blocked by its explicit evidence STOP: rc26 has only two
