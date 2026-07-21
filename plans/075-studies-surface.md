@@ -13,9 +13,9 @@
 
 ## Status
 
-- **Plan status**: IN PROGRESS (activated and publication-authorized for the
-  rc26 study artifacts; serving artifact regeneration, remote publication,
-  and public verification remain, so no live publication is claimed)
+- **Plan status**: DONE (the exact 17-object rc26 cut was published to
+  `bus-priority-artifacts` and verified publicly on 2026-07-21; see
+  `docs/research/reviews/rc26/publication-report.md`)
 - **Priority**: P2
 - **Effort**: M
 - **Risk**: MED (public claims surface — mitigated by claim-language rules and the 074 operator-review gate)
@@ -101,13 +101,17 @@ B67 official-evidence search remains a negative finding, and B67 must render
 only as a descriptive two-segment before/after association: no controlled,
 route-wide, gated, or causal promotion is authorized.
 
-Publication is authorized but has not happened. The remaining Plan 075 work
-is to regenerate the serving artifacts from the reviewed rc26 outputs,
-publish those exact artifacts to the remote serving target, and verify the
-public History and `/interventions` surfaces against the approved card and
-claim-language contracts. Plan 075 remains IN PROGRESS until all three steps
-are evidenced. Any changed candidate set, study output, or claim tier requires
-a fresh review rather than inheriting this authorization.
+Publication completed on 2026-07-21. GitHub PR #88 merged the activation
+record, then the exact validated cut was uploaded to the production
+`bus-priority-artifacts` R2 bucket in two phases: nine payload objects before
+eight activation objects. All 17 public responses matched their staged
+SHA-256 digests, the seven-study index and B67 descriptive semantics passed
+production checks, and both the History deep link and `/interventions`
+returned HTTP 200. The scoped R2 promotion intentionally left the coordinated
+release identity unchanged. See
+`docs/research/reviews/rc26/publication-report.md` for the receipt. Plan 075 is
+DONE. Any changed candidate set, study output, or claim tier still requires a
+fresh review rather than inheriting this authorization.
 
 ## Why this matters
 
@@ -391,15 +395,15 @@ corpus artifact absent, the tab renders as today.
 
 ## Done criteria
 
-- [ ] History tab renders all four card variants correctly (gated / no-change / descriptive / no-study), each matching the approved comp `plans/mockups/075-history-tab/study-cards-comp.html`, and byte-identical to today when artifacts are absent
-- [ ] `/no detectable change/i` added to `BANNED_PHRASES`; all display copy uses "No clear change"
-- [ ] `/interventions` studied rows show effect + CI and deep-link to the highlighted card; unchanged otherwise
-- [ ] `?tab=history&study=<key>` scrolls to and highlights the right card
-- [ ] NO new route files, nav items, tabs, or section cards (`git status` + review)
-- [ ] Claim-language grep clean: `grep -rniE "caused|thanks to|improved because" apps/web/src/components/study apps/web/src/components/route/TreatmentsHistorySection.tsx` → no hits
-- [ ] Entry bundle budget unchanged within 2KB (`bun --filter @bp/web build`)
-- [ ] `bun run check:types`, `check:architecture`, `test:web` all exit 0
-- [ ] Only in-scope files modified; `plans/README.md` status row updated
+- [x] History tab renders all four card variants correctly (gated / no-change / descriptive / no-study), each matching the approved comp `plans/mockups/075-history-tab/study-cards-comp.html`, and byte-identical to today when artifacts are absent
+- [x] `/no detectable change/i` added to `BANNED_PHRASES`; all display copy uses "No clear change"
+- [x] `/interventions` studied rows show effect + CI and deep-link to the highlighted card; unchanged otherwise
+- [x] `?tab=history&study=<key>` scrolls to and highlights the right card
+- [x] NO new route files, nav items, tabs, or section cards (`git status` + review)
+- [x] Claim-language grep clean: `grep -rniE "caused|thanks to|improved because" apps/web/src/components/study apps/web/src/components/route/TreatmentsHistorySection.tsx` → no hits
+- [x] Entry bundle budget unchanged within 2KB (`bun --filter @bp/web build`)
+- [x] `bun run check:types`, `check:architecture`, `test:web` all exit 0
+- [x] Only in-scope files modified; `plans/README.md` status row updated
 
 ## STOP conditions
 

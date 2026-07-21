@@ -619,7 +619,7 @@ decision layer.
 | 072 | Dependency hygiene: bun update within semver + audit residue log | P3 | S | 068 | DONE (audit reduced 15→13; all residual advisories documented; full tests/build and `/` + `/map` smoke pass) |
 | 073 | Serve the reviewed intervention corpus + reconciliation report | P1 | M-L | 068 | DONE (310 valid; 29 study-date-ready; 11 exact matches; no study-ready corpus-only candidates) |
 | 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 + exact-route task before any future run | DONE (484-decision rc26 receipt, deterministic 7/7 run, published-evidence check, and 2026-07-21 operator anchor approval complete; B67 remains descriptive) |
-| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | IN PROGRESS (activated and publication-authorized for rc26; serving artifact regeneration, remote publication, and public verification remain) |
+| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | DONE (PR #59 UI; PR #88 activation; 17/17 exact rc26 R2 objects and both public surfaces verified 2026-07-21) |
 | 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | BLOCKED (rc26 has only 2 gated estimates total, so no treatment family reaches the required ≥3; revisit after another qualifying gated study lands) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
