@@ -5,7 +5,8 @@ Date: 2026-07-21
 This record closes the MTA Wiki release dependency that prevented the reviewed Flatbush Phase 1
 event-route onset from entering Plan 074. It pins the rc26 import, proves the narrow candidate-set
 transition, records the complete candidate decision receipt, and summarizes the resulting seven-study
-run. It does not authorize Plan 075 activation or publication.
+run. At creation it did not authorize Plan 075 activation or publication; the operator's binding
+2026-07-21 approval recorded below now closes that gate for this exact rc26 cut.
 
 ## Pinned producer release
 
@@ -84,13 +85,25 @@ five-segment minimum, and the placebo gate fails. The result is not promoted to 
 claim.
 
 No effect exceeded 0.34 mph in absolute value, so Plan 074's implausibility STOP did not fire. The
-remaining gate is the fresh operator sanity check in
-`docs/research/reviews/rc26/anchors-report.md`; Plan 075 and publication remain inactive.
+fresh operator sanity check in `docs/research/reviews/rc26/anchors-report.md` was approved on
+2026-07-21. Plan 074 is DONE. Plan 075 is activated and publication-authorized, while serving
+regeneration, remote publication, and public verification remain pending.
 
 Plan 076 cannot start from this cut. Only BX38 and BX9 are `gated_estimate` studies, both in the
 automated-bus-lane-enforcement family, so no treatment family reaches its required minimum of three.
 The Plan 076 STOP remains binding; revisit opportunity ranking only after another qualifying gated
 study lands.
+
+## Operator approval and downstream boundary
+
+The operator issued this exact token on 2026-07-21:
+
+> approve Plan 074 rc26 anchors; accept the six historical published-claim TBD cells and the completed B67 negative finding; keep B67 descriptive; approve Plan 075 activation and authorize publication of the rc26 study artifacts.
+
+The six historical published-claim cells therefore remain accepted `TBD` values, the completed B67
+negative finding is accepted, and B67 remains descriptive. The token authorizes Plan 075 to publish
+the exact reviewed rc26 artifacts; it is not evidence that serving artifacts were regenerated,
+written remotely, deployed, or verified publicly.
 
 ## Tracked artifacts
 

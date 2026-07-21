@@ -1,6 +1,7 @@
 # Plan 074 rc26 Flatbush resumption
 
-Status: **complete review and estimator execution; stopped for fresh operator anchor review**.
+Status: **Plan 074 review approved and complete; Plan 075 activated and publication-authorized,
+with serving regeneration, remote publication, and public verification still pending**.
 
 MTA Wiki `v1-rc26` resolves the Flatbush Phase 1 chronology while preserving occurrence
 `occurrence:8c987704152b459014217d44`: installation began in September 2025 and the bounded
@@ -23,6 +24,13 @@ Authoritative records:
 - [Candidate-set-bound scope mapping](../../../../data/study-event-approvals/scope-bindings/candidate-set-v3-80050ed598f3b2ab0d0a1e99.scope-bindings.json)
 
 The strict production merge accepted the receipt. Every approved event-route pair produced a study:
-the six prior ACE studies plus the new B67 Flatbush study. Nothing in this directory authorizes
-publication. Plan 075 remains inactive until the operator records `approve`, `revise`, or `defer`
-against the fresh anchor report.
+the six prior ACE studies plus the new B67 Flatbush study.
+
+On 2026-07-21 the operator closed the review with this exact token:
+
+> approve Plan 074 rc26 anchors; accept the six historical published-claim TBD cells and the completed B67 negative finding; keep B67 descriptive; approve Plan 075 activation and authorize publication of the rc26 study artifacts.
+
+Plan 074 is therefore DONE. Plan 075 is activated and authorized to publish this exact rc26 cut,
+but no serving regeneration, remote write, deployment, or public verification is claimed by this
+review record. B67 remains descriptive and the six historical published-claim cells remain explicit
+operator-accepted `TBD` values.
