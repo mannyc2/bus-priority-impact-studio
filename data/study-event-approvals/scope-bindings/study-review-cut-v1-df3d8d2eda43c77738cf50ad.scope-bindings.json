@@ -1,0 +1,92 @@
+{
+  "artifactKind": "bp.studio.study_physical_scope_bindings.v2",
+  "schemaVersion": 2,
+  "candidateSetId": "candidate-set-v4:3373f95c88d08ffef608581d",
+  "analysisMonth": "2026-05",
+  "sourceRelease": {
+    "releaseId": "v1-rc27",
+    "manifestSha256": "ed2332e653c7c9b5e37faee52198ff9f4c17d725c539831a4010471be5de622a",
+    "occurrencesSha256": "6cb8654efee370d7444405ce3a0cdb8ce6fa394e6ada2347982cbec49df701ef",
+    "memberExtentManifestSha256": "46f7ad9a3ec5cc470ff0d041c18d0ce75fe628890999516ad1b43efe26fefa68",
+    "memberExtentProjectionSha256": "da1af6ef9b96c5b92dce22d7708bad5b661c6761ac4562bd9d3fe46f7bd735dc"
+  },
+  "inputs": {
+    "busLaneSnapshotSha256": "12748ed365ec3eaa064fd579c05cfe434c219f1523869668b3e3858d8b7fcef7",
+    "routeShapeSnapshotSha256": "47653a0f54a33c0d6647294e82b2dd1c05e77a482c56a29bdc6466fafe495779",
+    "stopSnapshotSha256": "403ac2333d17c96bea39a84c770737c994ec12d3effb818b7147554587143ce7"
+  },
+  "bindings": [
+    {
+      "candidateId": "study-event-v2:6b70c52e0eec23eb63cab94f",
+      "routeId": "B41",
+      "occurrenceId": "occurrence:8c987704152b459014217d44",
+      "physicalScopeRecordIds": [
+        "corridor_flatbush-phase1-livingston-state"
+      ],
+      "geometrySourceId": "nyc_dot_bus_lanes",
+      "geometryFeatureIds": [
+        "0022938",
+        "0022942",
+        "0028973",
+        "0118635",
+        "0118636"
+      ],
+      "selectedGeometryRowsSha256": "fb619e9df5c491de524b9dc2335452d6285be00f593fe8799dc7a951b3992c4e",
+      "speedSpineSha256": "aa5ee9b792550c24e5c2b8bb44378ab8a0ffc8ae2fdcc4ee15dc077453437409",
+      "segmentBindings": [
+        {
+          "sourceSegmentId": "B41:2026-05:N:48:303254:901007",
+          "spineSegmentId": "b41-n-node-012-node-013"
+        },
+        {
+          "sourceSegmentId": "B41:2026-05:S:1:307403:303295",
+          "spineSegmentId": "b41-s-node-013-node-012"
+        }
+      ],
+      "routeRecordId": "route_b41-ace",
+      "treatmentRecordId": "treatment_flatbush-phase1-center-running-bus-lanes-livingston-state",
+      "memberExtentId": "member-extent:e4b38d1da0dd59dedd324af6",
+      "memberExtentKind": "bounded_segment",
+      "memberExtentProjectionSha256": "da1af6ef9b96c5b92dce22d7708bad5b661c6761ac4562bd9d3fe46f7bd735dc",
+      "producerComponentIds": [
+        "corridor_flatbush-phase1-livingston-state"
+      ]
+    },
+    {
+      "candidateId": "study-event-v2:d70a3ee36eb94ae88732065f",
+      "routeId": "B67",
+      "occurrenceId": "occurrence:8c987704152b459014217d44",
+      "physicalScopeRecordIds": [
+        "corridor_flatbush-phase1-livingston-state"
+      ],
+      "geometrySourceId": "nyc_dot_bus_lanes",
+      "geometryFeatureIds": [
+        "0022938",
+        "0022942",
+        "0028973",
+        "0118635",
+        "0118636"
+      ],
+      "selectedGeometryRowsSha256": "fb619e9df5c491de524b9dc2335452d6285be00f593fe8799dc7a951b3992c4e",
+      "speedSpineSha256": "8e0a409cf872d235b43906a52cc46e7a818ce5d93697f03009ca762ea91c3604",
+      "segmentBindings": [
+        {
+          "sourceSegmentId": "B67:2026-05:N:26:308641:303259",
+          "spineSegmentId": "b67-n-node-009-node-010"
+        },
+        {
+          "sourceSegmentId": "B67:2026-05:S:14:303290:303296",
+          "spineSegmentId": "b67-s-node-010-node-009"
+        }
+      ],
+      "routeRecordId": "route_b67-flatbush-ave-apr2026",
+      "treatmentRecordId": "treatment_flatbush-phase1-center-running-bus-lanes-livingston-state",
+      "memberExtentId": "member-extent:8552b7444dcec24b0005c30b",
+      "memberExtentKind": "bounded_segment",
+      "memberExtentProjectionSha256": "da1af6ef9b96c5b92dce22d7708bad5b661c6761ac4562bd9d3fe46f7bd735dc",
+      "producerComponentIds": [
+        "corridor_flatbush-phase1-livingston-state"
+      ]
+    }
+  ]
+}

@@ -10,11 +10,15 @@ import {
   type StudyArtifact,
   StudyArtifactSchema,
   type StudyEventCandidateV3,
+  type StudyEventCandidateV4,
   StudyEventMergeArtifactV3ApprovedSchema,
   StudyEventMergeArtifactV4ApprovedSchema,
+  StudyEventMergeArtifactV5ApprovedSchema,
   StudyIndexArtifactSchema,
   type StudyPhysicalScopeBindingsArtifact,
   StudyPhysicalScopeBindingsArtifactSchema,
+  type StudyPhysicalScopeBindingsArtifactV2,
+  StudyPhysicalScopeBindingsArtifactV2Schema,
   StudyReviewInputsArtifactV1Schema,
   studyArtifactKey,
   studyIndexKey,
@@ -31,6 +35,7 @@ import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import { loadRouteSpeedSpineCrosswalk } from "../../lib/route-speed-spine-crosswalk.ts";
 import {
+  admitStudyMemberTreatmentScope,
   admitStudyTreatmentScope,
   aggregateStudyPanel,
   buildStudyArtifact,
@@ -40,9 +45,14 @@ import {
   isoMonthFromIndex,
   monthIndex,
   PEAK_HOURS,
+  type StudyMemberTreatmentScopeAdmission,
   type StudyTreatmentScopeAdmission,
 } from "../../lib/study-engine/index.ts";
-import { validateStudyEventMergeArtifactV4 } from "../../lib/study-engine/study-events.ts";
+import { validateStudyPhysicalScopeBindingsArtifactV2 } from "../../lib/study-engine/scope.ts";
+import {
+  validateStudyEventMergeArtifactV4,
+  validateStudyEventMergeArtifactV5,
+} from "../../lib/study-engine/study-events.ts";
 import { segmentLaneOverlapIndex } from "../studio/_release-geometry.ts";
 import type { RouteBriefInputArtifact } from "../studio/_release-types.ts";
 import { buildStudyReviewInputsArtifact } from "./snapshot-review-inputs.ts";
@@ -57,9 +67,13 @@ type LoadedReadySpine = Extract<
   Awaited<ReturnType<typeof loadRouteSpeedSpineCrosswalk>>,
   { status: "ready" }
 >;
+type StudyRunCandidate = StudyEventCandidateV3 | StudyEventCandidateV4;
+type AdmittedStudyScope =
+  | Extract<StudyTreatmentScopeAdmission, { status: "admitted" }>
+  | Extract<StudyMemberTreatmentScopeAdmission, { status: "admitted" }>;
 
 function windowBounds(
-  candidate: StudyEventCandidateV3,
+  candidate: StudyRunCandidate,
   analysisMonth: string,
 ): {
   startMonth: string;
@@ -140,11 +154,14 @@ async function treatedSegments(input: {
   busLaneSnapshotPath: string;
   routeShapeSnapshotPath: string;
   stopSnapshotPath: string;
-  candidate: StudyEventCandidateV3;
+  candidate: StudyRunCandidate;
   spine: LoadedReadySpine;
   treatedRows: ReturnType<typeof loadStudyPanelSourceRows>;
-  scopeAdmission: Extract<StudyTreatmentScopeAdmission, { status: "admitted" }>;
-  scopeBindingArtifact: StudyPhysicalScopeBindingsArtifact | null;
+  scopeAdmission: AdmittedStudyScope;
+  scopeBindingArtifact:
+    | StudyPhysicalScopeBindingsArtifact
+    | StudyPhysicalScopeBindingsArtifactV2
+    | null;
 }): Promise<{
   scope: "all_route_spines" | "lane_overlap_spines";
   ids: ReadonlySet<string>;
@@ -159,7 +176,15 @@ async function treatedSegments(input: {
   if (bindingArtifact === null) {
     throw new Error(`Missing physical-scope binding artifact for ${input.candidate.candidateId}`);
   }
-  const binding = input.scopeAdmission.binding;
+  const bindings =
+    "binding" in input.scopeAdmission
+      ? [input.scopeAdmission.binding]
+      : "bindings" in input.scopeAdmission
+        ? input.scopeAdmission.bindings
+        : [];
+  if (bindings.length === 0) {
+    throw new Error(`Missing exact member binding for ${input.candidate.candidateId}`);
+  }
   await Promise.all([
     assertFileSha256(
       input.busLaneSnapshotPath,
@@ -176,7 +201,9 @@ async function treatedSegments(input: {
       bindingArtifact.inputs.stopSnapshotSha256,
       "Stop source snapshot",
     ),
-    assertFileSha256(input.spine.path, binding.speedSpineSha256, "Route speed-spine artifact"),
+    ...bindings.map((binding) =>
+      assertFileSha256(input.spine.path, binding.speedSpineSha256, "Route speed-spine artifact"),
+    ),
   ]);
   const routeInputs = new Map<string, RouteBriefInputArtifact | null>([
     [input.candidate.routeId, currentRouteBriefInput(input.candidate.routeId, input.treatedRows)],
@@ -188,7 +215,7 @@ async function treatedSegments(input: {
     stopSnapshotPath: input.stopSnapshotPath,
     routeInputs,
     allowedLaneSegmentIdsByRoute: new Map([
-      [input.candidate.routeId, new Set(binding.geometryFeatureIds)],
+      [input.candidate.routeId, new Set(bindings.flatMap((binding) => binding.geometryFeatureIds))],
     ]),
   });
   const actualBindings: Array<{ sourceSegmentId: string; spineSegmentId: string }> = [];
@@ -198,7 +225,9 @@ async function treatedSegments(input: {
     if (spineSegmentId !== undefined) actualBindings.push({ sourceSegmentId, spineSegmentId });
   }
   const actualKeys = actualBindings.map(segmentBindingKey).toSorted();
-  const expectedKeys = binding.segmentBindings.map(segmentBindingKey).toSorted();
+  const expectedKeys = [
+    ...new Set(bindings.flatMap((binding) => binding.segmentBindings.map(segmentBindingKey))),
+  ].toSorted();
   if (JSON.stringify(actualKeys) !== JSON.stringify(expectedKeys)) {
     throw new Error(
       `Exact physical-scope mapping drift for ${input.candidate.candidateId}: expected ${expectedKeys.join(", ") || "none"}; received ${actualKeys.join(", ") || "none"}`,
@@ -219,10 +248,13 @@ async function buildOneStudy(input: {
   stopSnapshotPath: string;
   candidateSetId: string;
   reviewCutId?: string | undefined;
-  candidate: StudyEventCandidateV3;
-  interferenceEvents: readonly StudyEventCandidateV3[];
-  scopeAdmission: Extract<StudyTreatmentScopeAdmission, { status: "admitted" }>;
-  scopeBindingArtifact: StudyPhysicalScopeBindingsArtifact | null;
+  candidate: StudyRunCandidate;
+  interferenceEvents: readonly StudyRunCandidate[];
+  scopeAdmission: AdmittedStudyScope;
+  scopeBindingArtifact:
+    | StudyPhysicalScopeBindingsArtifact
+    | StudyPhysicalScopeBindingsArtifactV2
+    | null;
 }): Promise<StudyArtifact | null> {
   const bounds = windowBounds(input.candidate, input.analysisMonth);
   const treatedSpine = await loadReadySpine({
@@ -338,11 +370,12 @@ export async function writeStudyArtifactSet(input: {
 
 type ApprovedV3EventSet = typeof StudyEventMergeArtifactV3ApprovedSchema.Type;
 type ApprovedV4EventSet = typeof StudyEventMergeArtifactV4ApprovedSchema.Type;
-type ApprovedEventSet = ApprovedV3EventSet | ApprovedV4EventSet;
+type ApprovedV5EventSet = typeof StudyEventMergeArtifactV5ApprovedSchema.Type;
+type ApprovedEventSet = ApprovedV3EventSet | ApprovedV4EventSet | ApprovedV5EventSet;
 
 function scopeBindingIndex(input: {
   artifact: StudyPhysicalScopeBindingsArtifact;
-  eventSet: ApprovedEventSet;
+  eventSet: ApprovedV3EventSet | ApprovedV4EventSet;
   analysisMonth: string;
 }): ReadonlyMap<string, StudyPhysicalScopeBindingsArtifact["bindings"][number]> {
   if (input.artifact.candidateSetId !== input.eventSet.candidateSetId) {
@@ -408,6 +441,8 @@ export async function runSegmentStudies(input: {
   boundedScopeBindingMismatchCount: number;
   boundedScopeEvidenceMissingCount: number;
   routeWideEvidenceMissingCount: number;
+  memberExtentIneligibleCount: number;
+  unsupportedMemberScopeCount: number;
 }> {
   monthIndex(input.analysisMonth);
   const completeArtifactRoot = input.artifactRoot ?? defaultArtifactRootPath();
@@ -422,13 +457,23 @@ export async function runSegmentStudies(input: {
     : await (async () => {
         const loaded = await readJsonArtifact(
           eventSetPath,
-          StudyEventMergeArtifactV4ApprovedSchema,
+          Schema.Union([
+            StudyEventMergeArtifactV4ApprovedSchema,
+            StudyEventMergeArtifactV5ApprovedSchema,
+          ]),
           "strict",
         );
-        validateStudyEventMergeArtifactV4(loaded);
+        if (loaded.artifactKind === "bp.studio.study_events.v4") {
+          validateStudyEventMergeArtifactV4(loaded);
+        } else {
+          validateStudyEventMergeArtifactV5(loaded);
+        }
         return loaded;
       })();
-  if (eventSet.artifactKind === "bp.studio.study_events.v4") {
+  if (
+    eventSet.artifactKind === "bp.studio.study_events.v4" ||
+    eventSet.artifactKind === "bp.studio.study_events.v5"
+  ) {
     if (
       input.reviewInputsPath === undefined ||
       input.availabilityPath === undefined ||
@@ -436,7 +481,7 @@ export async function runSegmentStudies(input: {
       input.scopeBindingsPath === undefined
     ) {
       throw new Error(
-        "v4 study runs require --review-inputs, --availability, --spine-manifest, and --scope-bindings",
+        "v4/v5 study runs require --review-inputs, --availability, --spine-manifest, and --scope-bindings",
       );
     }
     if (input.analysisMonth !== eventSet.reviewInputs.analysisMonth) {
@@ -473,17 +518,46 @@ export async function runSegmentStudies(input: {
       ? null
       : await readJsonArtifact(
           input.scopeBindingsPath,
-          StudyPhysicalScopeBindingsArtifactSchema,
+          eventSet.artifactKind === "bp.studio.study_events.v5"
+            ? StudyPhysicalScopeBindingsArtifactV2Schema
+            : StudyPhysicalScopeBindingsArtifactSchema,
           "strict",
         );
-  const scopeBindings =
-    scopeBindingArtifact === null
+  const legacyScopeBindings =
+    scopeBindingArtifact === null ||
+    scopeBindingArtifact.artifactKind !== "bp.studio.study_physical_scope_bindings.v1"
       ? new Map<string, StudyPhysicalScopeBindingsArtifact["bindings"][number]>()
       : scopeBindingIndex({
           artifact: scopeBindingArtifact,
-          eventSet,
+          eventSet: eventSet as ApprovedV3EventSet | ApprovedV4EventSet,
           analysisMonth: input.analysisMonth,
         });
+  const memberScopeBindingArtifact =
+    scopeBindingArtifact?.artifactKind === "bp.studio.study_physical_scope_bindings.v2"
+      ? scopeBindingArtifact
+      : null;
+  if (eventSet.artifactKind === "bp.studio.study_events.v5") {
+    if (memberScopeBindingArtifact === null) {
+      throw new Error("Member-grain v5 study runs require v2 physical-scope bindings");
+    }
+    if (memberScopeBindingArtifact.analysisMonth !== input.analysisMonth) {
+      throw new Error(
+        `Member scope-binding analysis month mismatch: expected ${input.analysisMonth}, received ${memberScopeBindingArtifact.analysisMonth}`,
+      );
+    }
+    validateStudyPhysicalScopeBindingsArtifactV2({
+      artifact: memberScopeBindingArtifact,
+      candidateSetId: eventSet.candidateSetId,
+      candidates: eventSet.candidates,
+      sourceRelease: {
+        releaseId: eventSet.wikiInput.releaseId,
+        manifestSha256: eventSet.wikiInput.manifestSha256,
+        occurrencesSha256: eventSet.wikiInput.artifactSha256,
+        memberExtentManifestSha256: eventSet.wikiInput.memberExtent.manifestSha256,
+        memberExtentProjectionSha256: eventSet.wikiInput.memberExtent.projectionSha256,
+      },
+    });
+  }
   const selected = eventSet.approvedEvents.filter(
     (candidate) =>
       input.event === undefined ||
@@ -500,11 +574,19 @@ export async function runSegmentStudies(input: {
   let boundedScopeBindingMismatchCount = 0;
   let boundedScopeEvidenceMissingCount = 0;
   let routeWideEvidenceMissingCount = 0;
+  let memberExtentIneligibleCount = 0;
+  let unsupportedMemberScopeCount = 0;
   for (const candidate of selected) {
-    const scopeAdmission = admitStudyTreatmentScope(
-      candidate,
-      scopeBindings.get(candidate.candidateId),
-    );
+    const scopeAdmission =
+      eventSet.artifactKind === "bp.studio.study_events.v5"
+        ? admitStudyMemberTreatmentScope(candidate as StudyEventCandidateV4, {
+            artifact: memberScopeBindingArtifact as StudyPhysicalScopeBindingsArtifactV2,
+            candidateSetId: eventSet.candidateSetId,
+          })
+        : admitStudyTreatmentScope(
+            candidate as StudyEventCandidateV3,
+            legacyScopeBindings.get(candidate.candidateId),
+          );
     if (scopeAdmission.status === "rejected") {
       ineligibleStudyCount += 1;
       if (scopeAdmission.reason === "bounded_scope_binding_required") {
@@ -513,8 +595,23 @@ export async function runSegmentStudies(input: {
         boundedScopeBindingMismatchCount += 1;
       } else if (scopeAdmission.reason === "bounded_scope_evidence_missing") {
         boundedScopeEvidenceMissingCount += 1;
-      } else {
+      } else if (scopeAdmission.reason === "route_wide_evidence_missing") {
         routeWideEvidenceMissingCount += 1;
+      } else if (
+        scopeAdmission.reason === "bounded_member_scope_binding_required" ||
+        scopeAdmission.reason === "bounded_member_scope_binding_duplicate" ||
+        scopeAdmission.reason === "bounded_member_scope_binding_mismatch" ||
+        scopeAdmission.reason === "member_scope_binding_candidate_set_mismatch"
+      ) {
+        boundedScopeBindingMismatchCount += 1;
+      } else if (
+        scopeAdmission.reason === "member_extent_stop_set_unsupported" ||
+        scopeAdmission.reason === "member_extent_mixed_unsupported" ||
+        scopeAdmission.reason === "heterogeneous_member_scope_unsupported"
+      ) {
+        unsupportedMemberScopeCount += 1;
+      } else {
+        memberExtentIneligibleCount += 1;
       }
       continue;
     }
@@ -529,7 +626,10 @@ export async function runSegmentStudies(input: {
       stopSnapshotPath: input.stopSnapshotPath ?? fromRepoRoot(DEFAULT_STOP_SNAPSHOT_PATH),
       candidateSetId: eventSet.candidateSetId,
       reviewCutId:
-        eventSet.artifactKind === "bp.studio.study_events.v4" ? eventSet.reviewCutId : undefined,
+        eventSet.artifactKind === "bp.studio.study_events.v4" ||
+        eventSet.artifactKind === "bp.studio.study_events.v5"
+          ? eventSet.reviewCutId
+          : undefined,
       candidate,
       interferenceEvents: eventSet.candidates,
       scopeAdmission,
@@ -558,11 +658,15 @@ export async function runSegmentStudies(input: {
       boundedScopeBindingRequiredCount +
       boundedScopeBindingMismatchCount +
       boundedScopeEvidenceMissingCount +
-      routeWideEvidenceMissingCount,
+      routeWideEvidenceMissingCount +
+      memberExtentIneligibleCount +
+      unsupportedMemberScopeCount,
     boundedScopeBindingRequiredCount,
     boundedScopeBindingMismatchCount,
     boundedScopeEvidenceMissingCount,
     routeWideEvidenceMissingCount,
+    memberExtentIneligibleCount,
+    unsupportedMemberScopeCount,
   };
 }
 
@@ -628,6 +732,8 @@ export default defineCommand({
     boundedScopeBindingMismatchCount: Schema.Number,
     boundedScopeEvidenceMissingCount: Schema.Number,
     routeWideEvidenceMissingCount: Schema.Number,
+    memberExtentIneligibleCount: Schema.Number,
+    unsupportedMemberScopeCount: Schema.Number,
   }),
   run({ input }) {
     const options = input.options;

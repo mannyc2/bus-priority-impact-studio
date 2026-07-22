@@ -3569,6 +3569,62 @@ describe("manifest-v4 occurrence-v2 and relationship-integrity import", () => {
 });
 
 describe("manifest-v5 occurrence review-v2 retirement replay", () => {
+  test("strictly imports an addressed member-extent companion while ignoring quality provenance", async () => {
+    await withFixtureV5(async (fixture) => {
+      const manifest = JSON.parse(
+        await readFile(fixture.manifestPath, "utf8"),
+      ) as FixtureManifestJson;
+      const memberPointer =
+        "member-extent/data/contracts/operational-occurrence-member-extent/v1/manifest.json";
+      const qualityPointer = "quality-provenance/manifest.json";
+      const memberText = "{}\n";
+      const qualityText = "{}\n";
+      for (const [pointer, text] of [
+        [memberPointer, memberText],
+        [qualityPointer, qualityText],
+      ] as const) {
+        const path = join(fixture.releaseDirectory, pointer);
+        await mkdir(dirname(path), { recursive: true });
+        await writeFile(path, text, "utf8");
+        manifest.files[pointer] = {
+          bytes: Buffer.byteLength(text),
+          sha256: sha256(text),
+        };
+      }
+      manifest.contract_versions["operational_occurrence_member_extents"] = 1;
+      manifest.pointers["operational_occurrence_member_extents"] = memberPointer;
+      manifest.pointers["quality_provenance"] = qualityPointer;
+      const manifestText = `${JSON.stringify(manifest)}\n`;
+      await writeFile(fixture.manifestPath, manifestText, "utf8");
+      fixture.manifestSha256 = sha256(manifestText);
+
+      const imported = await importFixtureV5(fixture);
+      expect(imported.sourceRelease.memberExtentCompanion).toEqual({
+        contractVersion: 1,
+        manifest: {
+          pointer: memberPointer,
+          path: `data/exports/releases/${fixture.releaseId}/${memberPointer}`,
+          bytes: Buffer.byteLength(memberText),
+          sha256: sha256(memberText),
+        },
+      });
+      expect(JSON.stringify(imported)).not.toContain("quality_provenance");
+    });
+  });
+
+  test("rejects an unpaired member-extent contract discriminator or pointer", async () => {
+    await withFixtureV5(async (fixture) => {
+      const manifest = JSON.parse(
+        await readFile(fixture.manifestPath, "utf8"),
+      ) as FixtureManifestJson;
+      manifest.contract_versions["operational_occurrence_member_extents"] = 1;
+      const manifestText = `${JSON.stringify(manifest)}\n`;
+      await writeFile(fixture.manifestPath, manifestText, "utf8");
+      fixture.manifestSha256 = sha256(manifestText);
+      await expect(importFixtureV5(fixture)).rejects.toBeDefined();
+    });
+  });
+
   test("deterministically imports active decisions and preserves exact retirement closure", async () => {
     await withFixtureV5(async (fixture) => {
       const first = await importFixtureV5(fixture, "import-v5-first.json");

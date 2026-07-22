@@ -11,6 +11,7 @@ import type {
   MtaWikiOperationalOccurrenceImportArtifactV3,
   MtaWikiOperationalOccurrenceImportArtifactV4,
   MtaWikiOperationalOccurrenceImportArtifactV5,
+  MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1,
   OperationalOccurrenceEvidenceBinding,
   OperationalOccurrenceRow,
   OperationalOccurrenceRowV2,
@@ -20,19 +21,28 @@ import type {
   StudyEventApprovalArtifactV2,
   StudyEventApprovalArtifactV3,
   StudyEventApprovalArtifactV4,
+  StudyEventApprovalArtifactV5,
   StudyEventCandidate,
+  StudyEventCandidateSetArtifactV4,
   StudyEventCandidateV2,
   StudyEventCandidateV3,
+  StudyEventCandidateV4,
   StudyEventConflict,
   StudyEventMergeArtifact,
   StudyEventMergeArtifactV2,
   StudyEventMergeArtifactV3,
   StudyEventMergeArtifactV4,
+  StudyEventMergeArtifactV5,
   StudyEventProvenance,
   StudyEventRejection,
   StudyReviewInputsArtifactV1,
   StudyTreatmentFamily,
 } from "@bp/domain/studio/study";
+import {
+  occurrenceRouteMemberKey,
+  type StudyMemberExtentLineage,
+  validateOperationalOccurrenceMemberExtents,
+} from "./member-extents.ts";
 
 const trustedRegistrySources = new Set(["mta_ace_routes", "nyc_dot_bus_lanes"]);
 
@@ -1139,6 +1149,23 @@ export type BuildStudyEventMergeV4Input = {
   approval?: StudyEventApprovalArtifactV4 | undefined;
 };
 
+export type PinnedWikiOccurrenceMemberExtentStudyInput = PinnedWikiOccurrenceStudyInputV4 & {
+  readonly generatorCommit: string;
+  readonly memberExtentLineage: StudyMemberExtentLineage;
+  readonly memberExtents: MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1["memberExtents"];
+};
+
+export type BuildStudyEventCandidateSetV4Input = {
+  readonly registryEvents: readonly RouteTreatmentInterventionEventRow[];
+  readonly wiki: PinnedWikiOccurrenceMemberExtentStudyInput;
+  readonly availableAnalysisRouteIds: ReadonlySet<string>;
+};
+
+export type BuildStudyEventMergeV5Input = BuildStudyEventCandidateSetV4Input & {
+  readonly reviewInputs: StudyReviewInputsArtifactV1;
+  readonly approval?: StudyEventApprovalArtifactV5 | undefined;
+};
+
 function validateV4ProducerReviewProfile(input: PinnedWikiOccurrenceStudyInputV4): void {
   const isPinnedRc22 = input.manifestSha256 === RC22_QUARANTINED_INPUT.manifestSha256;
   const usesRc22Exception =
@@ -1665,6 +1692,458 @@ export function buildStudyEventMergeArtifactV4(
   return validateStudyEventMergeArtifactV4(artifact);
 }
 
+function candidateUniverseIdentityFacts(input: {
+  readonly candidates: readonly StudyEventCandidateV4[];
+  readonly rejections: readonly StudyEventRejection[];
+  readonly conflicts: readonly StudyEventConflict[];
+  readonly wikiInput: StudyEventCandidateSetArtifactV4["wikiInput"];
+  readonly registryEvents: readonly RouteTreatmentInterventionEventRow[];
+  readonly availableAnalysisRouteIds: ReadonlySet<string>;
+  readonly memberExtentLineage: StudyMemberExtentLineage;
+}) {
+  const registryEvents = [...input.registryEvents].toSorted((left, right) =>
+    stableJson(left).localeCompare(stableJson(right)),
+  );
+  const availableAnalysisRouteIds = [...input.availableAnalysisRouteIds].toSorted();
+  return {
+    candidates: input.candidates,
+    rejections: input.rejections,
+    conflicts: input.conflicts,
+    wikiInput: input.wikiInput,
+    registryInputCount: registryEvents.length,
+    registryInputSha256: sha256(registryEvents),
+    availableAnalysisRouteCount: availableAnalysisRouteIds.length,
+    availableAnalysisRouteIdsSha256: sha256(availableAnalysisRouteIds),
+    memberExtentLineage: input.memberExtentLineage,
+  };
+}
+
+function candidateUniverseV5(input: {
+  readonly candidateSetId: string;
+  readonly facts: ReturnType<typeof candidateUniverseIdentityFacts>;
+}) {
+  const facts = {
+    identityVersion: "tracker-study-candidate-universe-v2" as const,
+    candidateSetId: input.candidateSetId,
+    ...input.facts,
+  };
+  return {
+    identityVersion: facts.identityVersion,
+    candidateSetId: facts.candidateSetId,
+    logicalSha256: sha256(facts),
+    registryInputCount: facts.registryInputCount,
+    registryInputSha256: facts.registryInputSha256,
+    availableAnalysisRouteCount: facts.availableAnalysisRouteCount,
+    availableAnalysisRouteIdsSha256: facts.availableAnalysisRouteIdsSha256,
+    memberExtentLineage: facts.memberExtentLineage,
+  };
+}
+
+function candidateUniverseV5LogicalSha256(input: {
+  readonly candidateSetId: string;
+  readonly candidates: readonly StudyEventCandidateV4[];
+  readonly rejections: readonly StudyEventRejection[];
+  readonly conflicts: readonly StudyEventConflict[];
+  readonly wikiInput: StudyEventCandidateSetArtifactV4["wikiInput"];
+  readonly candidateUniverse: StudyEventCandidateSetArtifactV4["candidateUniverse"];
+}): string {
+  return sha256({
+    identityVersion: input.candidateUniverse.identityVersion,
+    candidateSetId: input.candidateSetId,
+    candidates: input.candidates,
+    rejections: input.rejections,
+    conflicts: input.conflicts,
+    wikiInput: input.wikiInput,
+    registryInputCount: input.candidateUniverse.registryInputCount,
+    registryInputSha256: input.candidateUniverse.registryInputSha256,
+    availableAnalysisRouteCount: input.candidateUniverse.availableAnalysisRouteCount,
+    availableAnalysisRouteIdsSha256: input.candidateUniverse.availableAnalysisRouteIdsSha256,
+    memberExtentLineage: input.candidateUniverse.memberExtentLineage,
+  });
+}
+
+function validateCandidateMemberExtents(candidate: StudyEventCandidateV4): void {
+  const wikiKeys = new Set(
+    candidate.provenance.flatMap((provenance) =>
+      provenance.sourceKind === "mta_wiki" &&
+      provenance.occurrenceId !== null &&
+      provenance.wikiRouteRecordId !== null
+        ? [`${provenance.occurrenceId}\u0000${provenance.wikiRouteRecordId}`]
+        : [],
+    ),
+  );
+  if (wikiKeys.size === 0) {
+    if (candidate.memberExtents.length !== 0) {
+      throw new Error(
+        `Registry-only candidate ${candidate.candidateId} cannot carry member extent`,
+      );
+    }
+    return;
+  }
+  if (wikiKeys.size !== 1) {
+    throw new Error(
+      `Candidate ${candidate.candidateId} must resolve one exact occurrence-route member context`,
+    );
+  }
+  const prefix = [...wikiKeys][0];
+  if (
+    prefix === undefined ||
+    candidate.memberExtents.length === 0 ||
+    candidate.memberExtents.some(
+      (row) => `${row.occurrence_id}\u0000${row.route_record_id}` !== prefix,
+    )
+  ) {
+    throw new Error(
+      `Candidate ${candidate.candidateId} member extents do not match its exact route`,
+    );
+  }
+  const memberIds = candidate.memberExtents.map((row) => row.treatment_record_id);
+  assertStrictlySortedUnique(memberIds, `${candidate.candidateId} treatment member ids`);
+}
+
+function assertStrictlySortedUnique(values: readonly string[], label: string): void {
+  if (values.some((value, index) => index > 0 && value <= (values[index - 1] ?? ""))) {
+    throw new Error(`${label} must be sorted and unique`);
+  }
+}
+
+export function validateStudyEventCandidateSetArtifactV4(
+  artifact: StudyEventCandidateSetArtifactV4,
+): StudyEventCandidateSetArtifactV4 {
+  const expectedCandidateSetId = digest("candidate-set-v4", {
+    candidates: artifact.candidates,
+    rejections: artifact.rejections,
+    conflicts: artifact.conflicts,
+    wikiInput: artifact.wikiInput,
+    registryInputCount: artifact.candidateUniverse.registryInputCount,
+    registryInputSha256: artifact.candidateUniverse.registryInputSha256,
+    availableAnalysisRouteCount: artifact.candidateUniverse.availableAnalysisRouteCount,
+    availableAnalysisRouteIdsSha256: artifact.candidateUniverse.availableAnalysisRouteIdsSha256,
+    memberExtentLineage: artifact.candidateUniverse.memberExtentLineage,
+  });
+  if (
+    artifact.candidateSetId !== expectedCandidateSetId ||
+    artifact.candidateUniverse.candidateSetId !== expectedCandidateSetId
+  ) {
+    throw new Error(`Member-grain candidate-set identity mismatch: ${expectedCandidateSetId}`);
+  }
+  if (
+    artifact.wikiInput.memberExtent.manifestSha256 !==
+      artifact.candidateUniverse.memberExtentLineage.manifestSha256 ||
+    artifact.wikiInput.memberExtent.projectionSha256 !==
+      artifact.candidateUniverse.memberExtentLineage.projectionSha256 ||
+    artifact.wikiInput.memberExtent.rowCount !==
+      artifact.candidateUniverse.memberExtentLineage.rowCount ||
+    artifact.wikiInput.memberExtent.eligibleRowCount !==
+      artifact.candidateUniverse.memberExtentLineage.eligibleRowCount
+  ) {
+    throw new Error("Member-grain candidate universe does not match its producer lineage");
+  }
+  const expectedLogicalSha256 = candidateUniverseV5LogicalSha256({
+    candidateSetId: artifact.candidateSetId,
+    candidates: artifact.candidates,
+    rejections: artifact.rejections,
+    conflicts: artifact.conflicts,
+    wikiInput: artifact.wikiInput,
+    candidateUniverse: artifact.candidateUniverse,
+  });
+  if (artifact.candidateUniverse.logicalSha256 !== expectedLogicalSha256) {
+    throw new Error("Member-grain candidate-universe logical hash mismatch");
+  }
+  for (const candidate of artifact.candidates) validateCandidateMemberExtents(candidate);
+  if (
+    artifact.summary.candidateCount !== artifact.candidates.length ||
+    artifact.summary.sourceRejectionCount !== artifact.rejections.length ||
+    artifact.summary.conflictCount !== artifact.conflicts.length ||
+    artifact.summary.approvedCount !== 0 ||
+    artifact.summary.rejectedByOperatorCount !== 0 ||
+    artifact.approvedEvents.length !== 0 ||
+    artifact.approval !== null
+  ) {
+    throw new Error("Member-grain candidate-set summary or review state is inconsistent");
+  }
+  return artifact;
+}
+
+export function buildStudyEventCandidateSetArtifactV4(
+  input: BuildStudyEventCandidateSetV4Input,
+): StudyEventCandidateSetArtifactV4 {
+  if (input.wiki.producerReviewCompatibility !== "compatible") {
+    throw new Error("Member-grain candidate sets require a compatible producer review profile");
+  }
+  const extents = validateOperationalOccurrenceMemberExtents({
+    occurrences: input.wiki.occurrences,
+    rows: input.wiki.memberExtents,
+    lineage: input.wiki.memberExtentLineage,
+  });
+  const base = buildStudyEventMergeArtifactV3({
+    registryEvents: input.registryEvents,
+    wiki: input.wiki,
+    availableAnalysisRouteIds: input.availableAnalysisRouteIds,
+  });
+  if (base.approvalState !== "awaiting_approval") {
+    throw new Error("Member-grain candidate sets require an authorizable occurrence input");
+  }
+  const occurrences = new Map(
+    input.wiki.occurrences.map((occurrence) => [occurrence.occurrence_id, occurrence]),
+  );
+  const candidates: StudyEventCandidateV4[] = base.candidates.map((candidate) => {
+    const wikiRoutes = new Map(
+      candidate.provenance.flatMap((provenance) =>
+        provenance.sourceKind === "mta_wiki" &&
+        provenance.occurrenceId !== null &&
+        provenance.wikiRouteRecordId !== null
+          ? [
+              [
+                `${provenance.occurrenceId}\u0000${provenance.wikiRouteRecordId}`,
+                {
+                  occurrenceId: provenance.occurrenceId,
+                  routeRecordId: provenance.wikiRouteRecordId,
+                },
+              ] as const,
+            ]
+          : [],
+      ),
+    );
+    if (wikiRoutes.size === 0) return { ...candidate, memberExtents: [] };
+    if (wikiRoutes.size !== 1) {
+      throw new Error(`Candidate ${candidate.candidateId} resolves multiple occurrence-route keys`);
+    }
+    const route = [...wikiRoutes.values()][0];
+    if (route === undefined) throw new Error("unreachable member route resolution failure");
+    const occurrence = occurrences.get(route.occurrenceId);
+    if (occurrence === undefined) {
+      throw new Error(`Missing member-grain occurrence ${route.occurrenceId}`);
+    }
+    const members =
+      occurrence.treatment.kind === "atomic"
+        ? [occurrence.treatment.member]
+        : occurrence.treatment.members;
+    const memberExtents = members
+      .map((member) => {
+        const key = occurrenceRouteMemberKey({
+          occurrence_id: occurrence.occurrence_id,
+          route_record_id: route.routeRecordId,
+          treatment_record_id: member.treatment_record_id,
+        });
+        const extent = extents.get(key);
+        if (extent === undefined) throw new Error(`Missing candidate member extent ${key}`);
+        return extent;
+      })
+      .toSorted((left, right) => left.treatment_record_id.localeCompare(right.treatment_record_id));
+    return { ...candidate, memberExtents };
+  });
+  const wikiInput = {
+    mode: "pinned_occurrence_release_with_member_extents_v1" as const,
+    releaseId: input.wiki.releaseId,
+    generatorCommit: input.wiki.generatorCommit,
+    manifestSha256: input.wiki.manifestSha256,
+    artifactSha256: input.wiki.artifactSha256,
+    relationshipBundleSha256: input.wiki.relationshipBundleSha256,
+    relationshipEnforcementProofCanonicalSha256:
+      input.wiki.relationshipEnforcementProofCanonicalSha256,
+    producerReviewCompatibility: "compatible" as const,
+    memberExtent: {
+      contractId: "operational-occurrence-member-extent-v1" as const,
+      sourceOccurrenceReleaseId: input.wiki.memberExtentLineage.sourceOccurrenceReleaseId,
+      manifestSha256: input.wiki.memberExtentLineage.manifestSha256,
+      projectionSha256: input.wiki.memberExtentLineage.projectionSha256,
+      rowCount: input.wiki.memberExtentLineage.rowCount,
+      eligibleRowCount: input.wiki.memberExtentLineage.eligibleRowCount,
+    },
+  };
+  const universeFacts = candidateUniverseIdentityFacts({
+    candidates,
+    rejections: base.rejections,
+    conflicts: base.conflicts,
+    wikiInput,
+    registryEvents: input.registryEvents,
+    availableAnalysisRouteIds: input.availableAnalysisRouteIds,
+    memberExtentLineage: input.wiki.memberExtentLineage,
+  });
+  const candidateSetId = digest("candidate-set-v4", universeFacts);
+  const candidateUniverse = candidateUniverseV5({
+    candidateSetId,
+    facts: universeFacts,
+  });
+  return validateStudyEventCandidateSetArtifactV4({
+    artifactKind: "bp.studio.study_event_candidates.v4",
+    schemaVersion: 4,
+    candidateSetId,
+    candidateUniverse,
+    wikiInput,
+    summary: {
+      ...base.summary,
+      approvedCount: 0,
+      rejectedByOperatorCount: 0,
+    },
+    candidates,
+    approvedEvents: [],
+    rejections: base.rejections,
+    conflicts: base.conflicts,
+    approvalState: "awaiting_review_cut",
+    approval: null,
+  });
+}
+
+function validateApprovalV5(
+  candidateSetId: string,
+  reviewCutId: string,
+  candidates: readonly StudyEventCandidateV4[],
+  conflicts: readonly StudyEventConflict[],
+  approval: StudyEventApprovalArtifactV5,
+): void {
+  if (
+    approval.artifactKind !== "bp.studio.study_event_approvals.v5" ||
+    approval.schemaVersion !== 5
+  ) {
+    throw new Error("Member-grain study review cuts require a fresh v5 approval artifact");
+  }
+  if (approval.candidateSetId !== candidateSetId || approval.reviewCutId !== reviewCutId) {
+    throw new Error(
+      `Study-event v5 approval is stale: expected ${candidateSetId} at ${reviewCutId}, received ${approval.candidateSetId} at ${approval.reviewCutId}`,
+    );
+  }
+  validateApprovalV3(candidateSetId, candidates, conflicts, {
+    artifactKind: "bp.studio.study_event_approvals.v3",
+    schemaVersion: 3,
+    candidateSetId,
+    decisions: approval.decisions,
+  });
+}
+
+export function validateStudyEventMergeArtifactV5(
+  artifact: StudyEventMergeArtifactV5,
+): StudyEventMergeArtifactV5 {
+  const candidateSet = validateStudyEventCandidateSetArtifactV4({
+    artifactKind: "bp.studio.study_event_candidates.v4",
+    schemaVersion: 4,
+    candidateSetId: artifact.candidateSetId,
+    candidateUniverse: artifact.candidateUniverse,
+    wikiInput: artifact.wikiInput,
+    summary: {
+      ...artifact.summary,
+      approvedCount: 0,
+      rejectedByOperatorCount: 0,
+    },
+    candidates: artifact.candidates,
+    approvedEvents: [],
+    rejections: artifact.rejections,
+    conflicts: artifact.conflicts,
+    approvalState: "awaiting_review_cut",
+    approval: null,
+  });
+  assertReviewInputs(artifact.reviewInputs, candidateSet.candidateSetId);
+  const expectedReviewCutId = digest("study-review-cut-v1", {
+    candidateUniverse: candidateSet.candidateUniverse,
+    reviewInputs: artifact.reviewInputs,
+  });
+  if (artifact.reviewCutId !== expectedReviewCutId) {
+    throw new Error(
+      `Study review-cut identity mismatch: expected ${expectedReviewCutId}, received ${artifact.reviewCutId}`,
+    );
+  }
+  if (artifact.approvalState === "awaiting_approval") {
+    if (
+      artifact.approval !== null ||
+      artifact.approvedEvents.length !== 0 ||
+      artifact.summary.approvedCount !== 0 ||
+      artifact.summary.rejectedByOperatorCount !== 0
+    ) {
+      throw new Error("Awaiting member-grain study review cuts cannot contain decisions");
+    }
+    return artifact;
+  }
+  validateApprovalV5(
+    artifact.candidateSetId,
+    artifact.reviewCutId,
+    artifact.candidates,
+    artifact.conflicts,
+    artifact.approval,
+  );
+  const approvedIds = new Set(
+    artifact.approval.decisions
+      .filter((decision) => decision.decision === "approved")
+      .map((decision) => decision.candidateId),
+  );
+  const expectedApproved = artifact.candidates.filter((candidate) =>
+    approvedIds.has(candidate.candidateId),
+  );
+  if (stableJson(artifact.approvedEvents) !== stableJson(expectedApproved)) {
+    throw new Error("Member-grain approvedEvents do not match the bound v5 receipt");
+  }
+  if (
+    artifact.summary.approvedCount !== expectedApproved.length ||
+    artifact.summary.rejectedByOperatorCount !==
+      artifact.approval.decisions.filter((decision) => decision.decision === "rejected").length
+  ) {
+    throw new Error("Approved member-grain review summary does not match its receipt");
+  }
+  return artifact;
+}
+
+export function buildStudyEventMergeArtifactV5(
+  input: BuildStudyEventMergeV5Input,
+): StudyEventMergeArtifactV5 {
+  const candidateSet = buildStudyEventCandidateSetArtifactV4(input);
+  assertReviewInputs(input.reviewInputs, candidateSet.candidateSetId);
+  const reviewCutId = digest("study-review-cut-v1", {
+    candidateUniverse: candidateSet.candidateUniverse,
+    reviewInputs: input.reviewInputs,
+  });
+  if (input.approval !== undefined) {
+    validateApprovalV5(
+      candidateSet.candidateSetId,
+      reviewCutId,
+      candidateSet.candidates,
+      candidateSet.conflicts,
+      input.approval,
+    );
+  }
+  const approvedIds = new Set(
+    input.approval?.decisions
+      .filter((decision) => decision.decision === "approved")
+      .map((decision) => decision.candidateId) ?? [],
+  );
+  const approvedEvents = candidateSet.candidates.filter((candidate) =>
+    approvedIds.has(candidate.candidateId),
+  );
+  const common = {
+    artifactKind: "bp.studio.study_events.v5",
+    schemaVersion: 5,
+    candidateSetId: candidateSet.candidateSetId,
+    reviewCutId,
+    candidateUniverse: candidateSet.candidateUniverse,
+    reviewInputs: input.reviewInputs,
+    wikiInput: candidateSet.wikiInput,
+    summary: {
+      ...candidateSet.summary,
+      approvedCount: approvedEvents.length,
+      rejectedByOperatorCount:
+        input.approval?.decisions.filter((decision) => decision.decision === "rejected").length ??
+        0,
+    },
+    candidates: candidateSet.candidates,
+    approvedEvents,
+    rejections: candidateSet.rejections,
+    conflicts: candidateSet.conflicts,
+  } as const;
+  const artifact: StudyEventMergeArtifactV5 =
+    input.approval === undefined
+      ? {
+          ...common,
+          approvalState: "awaiting_approval",
+          approvedEvents: [],
+          approval: null,
+        }
+      : {
+          ...common,
+          approvalState: "approved",
+          approval: input.approval,
+        };
+  return validateStudyEventMergeArtifactV5(artifact);
+}
+
 export function pinnedOccurrenceStudyInput(
   artifact: MtaWikiOperationalOccurrenceImportArtifactV3,
 ): PinnedWikiOccurrenceStudyInput {
@@ -1690,5 +2169,41 @@ export function pinnedOccurrenceStudyInputV4(
       artifact.sourceRelease.relationshipIntegrity.enforcementProof.canonicalSha256,
     producerReviewCompatibility: artifact.sourceRelease.producerReviewStatus.compatibility,
     occurrences: artifact.occurrences,
+  };
+}
+
+export function pinnedOccurrenceMemberExtentStudyInput(input: {
+  readonly occurrences:
+    | MtaWikiOperationalOccurrenceImportArtifactV4
+    | MtaWikiOperationalOccurrenceImportArtifactV5;
+  readonly memberExtents: MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1;
+}): PinnedWikiOccurrenceMemberExtentStudyInput {
+  const occurrences = pinnedOccurrenceStudyInputV4(input.occurrences);
+  const memberExtents = input.memberExtents;
+  if (
+    memberExtents.sourceRelease.releaseId !== occurrences.releaseId ||
+    memberExtents.sourceRelease.manifestSha256 !== occurrences.manifestSha256 ||
+    memberExtents.sourceRelease.occurrencesSha256 !== occurrences.artifactSha256 ||
+    memberExtents.sourceRelease.memberExtent.sourceOccurrenceReleaseId !==
+      memberExtents.producerSummary.release_id
+  ) {
+    throw new Error("Member-extent import does not match the exact occurrence release");
+  }
+  const projection = memberExtents.sourceRelease.memberExtent.projection;
+  if (projection.row_count !== memberExtents.memberExtents.length) {
+    throw new Error("Member-extent import projection receipt count is incomplete");
+  }
+  return {
+    ...occurrences,
+    generatorCommit: memberExtents.sourceRelease.generatorCommit,
+    memberExtentLineage: {
+      identityGrain: "occurrence_route_member",
+      sourceOccurrenceReleaseId: memberExtents.sourceRelease.memberExtent.sourceOccurrenceReleaseId,
+      manifestSha256: memberExtents.sourceRelease.memberExtent.manifest.sha256,
+      projectionSha256: projection.sha256,
+      rowCount: memberExtents.summary.memberExtentRowCount,
+      eligibleRowCount: memberExtents.summary.eligibleMemberExtentRowCount,
+    },
+    memberExtents: memberExtents.memberExtents,
   };
 }

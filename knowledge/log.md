@@ -9141,3 +9141,22 @@ The failure is isolated to the exact route-index v3/D1 serving boundary. Plan
 094 remains BLOCKED in production rather than projecting the legacy route JSON
 and silently weakening the Plan 091/092 identity contract. No D1/R2 artifact,
 evidence object, estimator, study, receipt, or publication pointer changed.
+
+## [2026-07-22] implementation | Plan 096 member-grain review cut complete
+
+Plan 096 pins unpromoted MTA Wiki `v1-rc27` at merged producer commit
+`fcab0d181b2ab4195f7467cc8b792a9daea911f6`. All 355 manifest-addressed
+files verified before import. The exact 308-row occurrence × route × treatment
+member companion is now preserved through candidate construction, and the new
+candidate universe `candidate-set-v4:3373f95c88d08ffef608581d` binds its
+manifest/projection lineage separately from the May outcome review boundary.
+
+The new review cut `study-review-cut-v1:df3d8d2eda43c77738cf50ad` reuses the
+byte-identical May 2026 outcome, spine, engine, and policy inputs, with a fresh
+member-grain scope receipt. All 484 candidates were reconciled exactly once:
+97 fresh adjudications, 387 exact transfers, 9 approvals, 475 rejections, and
+zero decision delta. Q45/Q86/Q87 gain bounded member identity only and still
+lack exact scope bindings; B41 and M57 remain pattern-failed; all 20 later ACE
+phases remain quarantined. The v5 receipt authorizes estimator admission only.
+No study, publication, D1/R2 mutation, production pointer, release promotion,
+or deploy occurred.

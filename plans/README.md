@@ -11,7 +11,8 @@ intervention inventory; typed relevance; complete UI recognition; and the
 first non-ACE observation expansion), 13 (Plan 089: the approved typed
 `/interventions` network-ledger redesign), 14 (Plan 094: the route-detail
 Treatments & History redesign), and 15 (Plan 095: exact route-index v3 serving
-recovery — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
+recovery), and 16 (Plan 096: exact member-grain study consumer and fresh
+reviewed universe — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
 overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
 `packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
 business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
@@ -22,6 +23,23 @@ notes. Generations 4 (030-035) and 5 (036-047) are DONE; generation 3
 complete or superseded; older sections are kept further down as history and
 rationale. Each executor: read your plan fully before starting, honor its STOP
 conditions, and update your row when done.
+
+---
+
+# Generation 16 — member-grain study consumer (2026-07-22)
+
+Plan 096 consumes the versioned MTA Wiki occurrence × route × treatment-member
+extent companion without mixing producer identity with the May 2026 outcome
+review boundary. It preserves rc26 and stable event IDs, creates a fresh
+candidate universe and receipt, and does not authorize estimator execution or
+publication.
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 096 | Member-grain study consumer and fresh reviewed universe | P0 | L | 074, 075; pinned MTA Wiki member-extent release | DONE |
+
+See `plans/096-member-grain-study-consumer.md` for the exact lineage,
+scope-binding, reconciliation, and STOP contracts.
 
 ---
 
