@@ -297,6 +297,51 @@ describe("exact route-index v3 recovery", () => {
     });
     expect(post.projectionSha256).toBe(receipt.projectionSha256);
   });
+
+  it("keeps the deploy gate valid for a later independently registered release", () => {
+    const result = build();
+    const futureRelease = {
+      releaseId: "pub_20260801T120000000Z",
+      publishedAt: "2026-08-01T12:00:00.000Z",
+      coverage: { start: "2023-04", end: "2026-05" },
+    } as const;
+    const common = {
+      mode: "pre" as const,
+      receipt: result.receipt,
+      servingRelease: futureRelease,
+      catalogRows: buildInput().catalogRows,
+      routeTypeRows: buildInput().routeTypeRows,
+      tripTypeTablePresent: true,
+      tripTypeRows: result.tripTypeRows,
+      registryTablePresent: true,
+    };
+    expect(() => auditExactRouteIndexRecovery({ ...common, registryRows: [] })).toThrow(
+      "lacks an exact route identity registry row",
+    );
+    const audit = auditExactRouteIndexRecovery({
+      ...common,
+      registryRows: [
+        {
+          releaseId: futureRelease.releaseId,
+          publishedAt: futureRelease.publishedAt,
+          coverageStart: futureRelease.coverage.start,
+          coverageEnd: futureRelease.coverage.end,
+          sourceWikiRelease: "v1-future",
+          sourceManifestSha256: "1".repeat(64),
+          sourceRouteIdentitySha256: "2".repeat(64),
+          sourceCurrentBusRoutesSha256: "3".repeat(64),
+          sourceIndexSha256: "4".repeat(64),
+          catalogSnapshotSha256: result.receipt.catalogSnapshotSha256,
+          projectionSha256: result.receipt.projectionSha256,
+          exactRouteCount: 2,
+          routeTypeCount: 2,
+          tripTypeCount: 2,
+        },
+      ],
+    });
+    expect(audit.recoveryId).toBe(`registered-exact-route-release:${futureRelease.releaseId}`);
+    expect(audit.actions.applyRecoveryProjection).toBe(false);
+  });
 });
 
 function buildInput(): Parameters<typeof buildExactRouteIndexRecovery>[0] {

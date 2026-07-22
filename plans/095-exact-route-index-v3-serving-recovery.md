@@ -73,13 +73,18 @@ schema v3.
    state, exact/legacy route counts, type/trip-type counts, missing/orphan rows,
    release metadata, and representative `B44`/`B44+` identity rows before any
    write.
-4. Apply only the verified `0032` table migration and generated idempotent
-   projection through Wrangler. Re-run the same integrity query and require
-   375 complete exact routes, 394 route types, 394 trip types, zero orphans,
-   and exact `B44`/`B44+` separation before deploying.
-5. Add a post-deploy smoke gate for schema-v3 list, rich/sparse routes, B44,
+4. Deploy the compatibility-preserving Worker first, then apply only the
+   verified `0032`/`0034` table migrations and generated idempotent projection
+   through Wrangler. This ordering keeps schema v2 usable while the exact
+   projection is absent and prevents the old global table-presence behavior
+   from observing a partially populated table. Re-run the integrity query and
+   require 375 complete exact routes, 394 route types, 394 trip types, zero
+   orphans, and exact `B44`/`B44+` separation.
+5. Add a post-recovery smoke gate for schema-v3 list, rich/sparse routes, B44,
    B44+, route History dependencies, and exact response decoding. A 500,
    identity collapse, release mismatch, or non-200 detail fails the workflow.
+   Later releases must carry their own exact registry row and projection hash;
+   the one-time Plan 095 receipt cannot authorize a different release.
 6. Run focused tests, full repo verification, merge after CI, execute the
    authorized recovery, deploy, and verify the live Plan 094 History page on
    desktop and mobile.

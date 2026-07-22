@@ -11,6 +11,20 @@ import { decodeSchemaStrict } from "./schema-decode.ts";
 
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
 const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
+const ExactRouteCountsSchema = Schema.Struct({
+  catalogRouteCount: Schema.Number.check(Schema.isInt()).check(
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
+  catalogRouteTypeCount: Schema.Number.check(Schema.isInt()).check(
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
+  exactRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  exactRouteTypeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  exactTripTypeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  excludedRouteCount: Schema.Number.check(Schema.isInt()).check(
+    Schema.isGreaterThanOrEqualTo(0),
+  ),
+});
 
 export const ExactRouteIndexRecoveryReceiptSchema = Schema.Struct({
   artifactKind: Schema.Literal("bp.ops.exact_route_index_v3_recovery.v1"),
@@ -29,20 +43,7 @@ export const ExactRouteIndexRecoveryReceiptSchema = Schema.Struct({
     routeEvidenceIndexGeneratedAt: Schema.String,
   }),
   servingRelease: ReleaseIdentitySchema,
-  counts: Schema.Struct({
-    catalogRouteCount: Schema.Number.check(Schema.isInt()).check(
-      Schema.isGreaterThanOrEqualTo(0),
-    ),
-    catalogRouteTypeCount: Schema.Number.check(Schema.isInt()).check(
-      Schema.isGreaterThanOrEqualTo(0),
-    ),
-    exactRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
-    exactRouteTypeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
-    exactTripTypeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
-    excludedRouteCount: Schema.Number.check(Schema.isInt()).check(
-      Schema.isGreaterThanOrEqualTo(0),
-    ),
-  }),
+  counts: ExactRouteCountsSchema,
   excludedRouteIds: Schema.Array(NonEmptyStringSchema),
   catalogSnapshotSha256: Sha256Schema,
   projectionSha256: Sha256Schema,
@@ -395,22 +396,101 @@ export function exactRouteCatalogSnapshotSha256(input: {
   return catalogSnapshotSha256(input);
 }
 
-export type ExactRouteIndexRecoveryAudit = {
-  artifactKind: "bp.ops.exact_route_index_v3_recovery_audit.v1";
-  schemaVersion: 1;
+export const ExactRouteIndexRecoveryAuditSchema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.ops.exact_route_index_v3_recovery_audit.v1"),
+  schemaVersion: Schema.Literal(1),
+  mode: Schema.Literals(["pre", "post"]),
+  recoveryId: NonEmptyStringSchema,
+  status: Schema.Literal("pass"),
+  servingRelease: ReleaseIdentitySchema,
+  counts: ExactRouteCountsSchema,
+  catalogSnapshotSha256: Sha256Schema,
+  projectionSha256: Schema.NullOr(Sha256Schema),
+  actions: Schema.Struct({
+    applyTripTypeMigration: Schema.Boolean,
+    applyRegistryMigration: Schema.Boolean,
+    applyRecoveryProjection: Schema.Boolean,
+  }),
+});
+
+export type ExactRouteIndexRecoveryAudit = typeof ExactRouteIndexRecoveryAuditSchema.Type;
+
+function auditRegisteredExactRouteProjection(input: {
   mode: "pre" | "post";
-  recoveryId: string;
-  status: "pass";
   servingRelease: typeof ReleaseIdentitySchema.Type;
-  counts: ExactRouteIndexRecoveryReceipt["counts"];
-  catalogSnapshotSha256: string;
-  projectionSha256: string | null;
-  actions: {
-    applyTripTypeMigration: boolean;
-    applyRegistryMigration: boolean;
-    applyRecoveryProjection: boolean;
+  catalogRows: readonly RouteCatalogRecoveryRow[];
+  routeTypeRows: readonly RouteCatalogTypeRecoveryRow[];
+  tripTypeTablePresent: boolean;
+  tripTypeRows: readonly RouteCatalogTripTypeRecoveryRow[];
+  registryTablePresent: boolean;
+  registryRows: readonly ExactRouteIdentityReleaseRecoveryRow[];
+}): ExactRouteIndexRecoveryAudit {
+  if (!input.tripTypeTablePresent || !input.registryTablePresent) {
+    throw new Error("Current D1 release lacks the exact route serving tables");
+  }
+  const registry = input.registryRows.find(
+    (row) => row.releaseId === input.servingRelease.releaseId,
+  );
+  if (registry === undefined) {
+    throw new Error("Current D1 release lacks an exact route identity registry row");
+  }
+  const projection = projectionFromServingRows({
+    catalogRows: input.catalogRows,
+    routeTypeRows: input.routeTypeRows,
+    tripTypeRows: input.tripTypeRows,
+  });
+  const catalogSha256 = catalogSnapshotSha256({
+    catalogRows: input.catalogRows,
+    routeTypeRows: input.routeTypeRows,
+  });
+  const projectionSha256 = canonicalSha256(projection);
+  const exactRouteTypeCount = projection.reduce((sum, row) => sum + row.routeTypes.length, 0);
+  const sha256Pattern = /^[0-9a-f]{64}$/u;
+  const metadataMatches =
+    registry.publishedAt === input.servingRelease.publishedAt &&
+    registry.coverageStart === input.servingRelease.coverage.start &&
+    registry.coverageEnd === input.servingRelease.coverage.end &&
+    registry.catalogSnapshotSha256 === catalogSha256 &&
+    registry.projectionSha256 === projectionSha256 &&
+    registry.exactRouteCount === projection.length &&
+    registry.routeTypeCount === exactRouteTypeCount &&
+    registry.tripTypeCount === input.tripTypeRows.length &&
+    registry.sourceWikiRelease.length > 0 &&
+    [
+      registry.sourceManifestSha256,
+      registry.sourceRouteIdentitySha256,
+      registry.sourceCurrentBusRoutesSha256,
+      registry.sourceIndexSha256,
+      registry.catalogSnapshotSha256,
+      registry.projectionSha256,
+    ].every((value) => sha256Pattern.test(value));
+  if (!metadataMatches) {
+    throw new Error("Current D1 exact route projection does not match its registered release");
+  }
+  return {
+    artifactKind: "bp.ops.exact_route_index_v3_recovery_audit.v1",
+    schemaVersion: 1,
+    mode: input.mode,
+    recoveryId: `registered-exact-route-release:${input.servingRelease.releaseId}`,
+    status: "pass",
+    servingRelease: input.servingRelease,
+    counts: {
+      catalogRouteCount: input.catalogRows.length,
+      catalogRouteTypeCount: input.routeTypeRows.length,
+      exactRouteCount: projection.length,
+      exactRouteTypeCount,
+      exactTripTypeCount: input.tripTypeRows.length,
+      excludedRouteCount: input.catalogRows.length - projection.length,
+    },
+    catalogSnapshotSha256: catalogSha256,
+    projectionSha256,
+    actions: {
+      applyTripTypeMigration: false,
+      applyRegistryMigration: false,
+      applyRecoveryProjection: false,
+    },
   };
-};
+}
 
 function registryMatchesReceipt(
   registry: ExactRouteIdentityReleaseRecoveryRow,
@@ -448,7 +528,16 @@ export function auditExactRouteIndexRecovery(input: {
   const receipt = decodeSchemaStrict(ExactRouteIndexRecoveryReceiptSchema, input.receipt);
   const servingRelease = decodeSchemaStrict(ReleaseIdentitySchema, input.servingRelease);
   if (canonicalJson(servingRelease) !== canonicalJson(receipt.servingRelease)) {
-    throw new Error("Published D1 serving release does not match the recovery receipt");
+    return auditRegisteredExactRouteProjection({
+      mode: input.mode,
+      servingRelease,
+      catalogRows: input.catalogRows,
+      routeTypeRows: input.routeTypeRows,
+      tripTypeTablePresent: input.tripTypeTablePresent,
+      tripTypeRows: input.tripTypeRows,
+      registryTablePresent: input.registryTablePresent,
+      registryRows: input.registryRows,
+    });
   }
   const catalogSha256 = catalogSnapshotSha256({
     catalogRows: input.catalogRows,

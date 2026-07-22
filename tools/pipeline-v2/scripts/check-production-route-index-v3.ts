@@ -11,7 +11,7 @@ import {
 import { StudioRouteIndex3ResponseSchema } from "@bp/domain/studio/snapshots";
 import type { Schema } from "effect";
 import { decodeSchemaStrict } from "../src/lib/schema-decode.ts";
-import { ExactRouteIndexRecoveryReceiptSchema } from "../src/lib/route-index-v3-recovery.ts";
+import { ExactRouteIndexRecoveryAuditSchema } from "../src/lib/route-index-v3-recovery.ts";
 
 type Arguments = ReadonlyMap<string, string>;
 type RequestReceipt = { path: string; status: number; requestId: string | null; cfRay: string | null };
@@ -68,12 +68,12 @@ async function getJson<A, I>(input: {
 async function run(argv: readonly string[]): Promise<void> {
   const args = parseArguments(argv);
   const baseUrl = required(args, "base-url");
-  const receipt = decodeSchemaStrict(
-    ExactRouteIndexRecoveryReceiptSchema,
-    JSON.parse(await Bun.file(required(args, "receipt")).text()) as unknown,
+  const audit = decodeSchemaStrict(
+    ExactRouteIndexRecoveryAuditSchema,
+    JSON.parse(await Bun.file(required(args, "audit")).text()) as unknown,
   );
   const requests: RequestReceipt[] = [];
-  const nonce = receipt.recoveryId.split(":").at(-1) ?? "plan095";
+  const nonce = audit.recoveryId.split(":").at(-1) ?? "plan095";
   const status = await getJson({
     baseUrl,
     path: `/api/v1/status?plan095=${nonce}`,
@@ -81,10 +81,10 @@ async function run(argv: readonly string[]): Promise<void> {
     receipts: requests,
   });
   if (
-    status.releaseId !== receipt.servingRelease.releaseId ||
-    status.publishedAt !== receipt.servingRelease.publishedAt ||
-    status.coverage.start !== receipt.servingRelease.coverage.start ||
-    status.coverage.end !== receipt.servingRelease.coverage.end
+    status.releaseId !== audit.servingRelease.releaseId ||
+    status.publishedAt !== audit.servingRelease.publishedAt ||
+    status.coverage.start !== audit.servingRelease.coverage.start ||
+    status.coverage.end !== audit.servingRelease.coverage.end
   ) {
     throw new Error("Production release status does not match the Plan 095 receipt");
   }
@@ -94,9 +94,9 @@ async function run(argv: readonly string[]): Promise<void> {
     schema: StudioRouteIndex3ResponseSchema,
     receipts: requests,
   });
-  if (index.routes.length !== receipt.counts.exactRouteCount) {
+  if (index.routes.length !== audit.counts.exactRouteCount) {
     throw new Error(
-      `Schema-v3 route count ${index.routes.length} != ${receipt.counts.exactRouteCount}`,
+      `Schema-v3 route count ${index.routes.length} != ${audit.counts.exactRouteCount}`,
     );
   }
   const expectedExactRoutes = [
@@ -163,8 +163,8 @@ async function run(argv: readonly string[]): Promise<void> {
     schemaVersion: 1,
     checkedAt: new Date().toISOString(),
     baseUrl,
-    recoveryId: receipt.recoveryId,
-    servingRelease: receipt.servingRelease,
+    recoveryId: audit.recoveryId,
+    servingRelease: audit.servingRelease,
     exactRouteCount: index.routes.length,
     requests,
   };
