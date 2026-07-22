@@ -6,6 +6,12 @@ import { mapArtifactSha256 } from "@bp/analytics/evaluation";
 import { ROUTE_SPEED_SPINE_DEFAULT_START_MONTH } from "@bp/analytics/feature-history";
 import { buildMapReleaseRegistrationSql } from "@bp/db/d1/seed";
 import {
+  canonicalPlan097Json,
+  Plan097ActivationBundleReceiptSchema,
+  Plan097ActivationBundleSchema,
+  type Plan097BatchStatement,
+} from "@bp/db/recovery/plan097";
+import {
   type ReleaseIdentity,
   ReleaseIdentitySchema,
   releaseIdFromPublishedAt,
@@ -21,13 +27,7 @@ import {
   fromCliPath,
   fromRepoRoot,
 } from "../../lib/paths.ts";
-import {
-  buildPlan097CompactedBatch,
-  canonicalPlan097Json,
-  Plan097ActivationBundleReceiptSchema,
-  Plan097ActivationBundleSchema,
-  type Plan097BatchStatement,
-} from "../../lib/plan097-recovery-batch.ts";
+import { buildPlan097CompactedBatch } from "../../lib/plan097-recovery-batch.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import { runRouteBriefModel } from "../route/brief-model.ts";
 import { runStudioRelease } from "../studio/release.ts";

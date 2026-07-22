@@ -238,6 +238,27 @@ export {
   type Plan097RecoveryArtifactManifest,
   Plan097RecoveryArtifactManifestSchema,
 } from "./artifacts.js";
+export {
+  canonicalPlan097Json,
+  type Plan097ActivationBundle,
+  Plan097ActivationBundleReceiptSchema,
+  Plan097ActivationBundleSchema,
+  type Plan097BatchStatement,
+  Plan097BatchStatementSchema,
+  type Plan097CompactedBatch,
+  Plan097CompactedBatchSchema,
+  plan097RecoveryMutationTables,
+} from "./batches.js";
+export {
+  type Plan097ProtectedFingerprint,
+  Plan097ProtectedFingerprintSchema,
+  type Plan097RestoreBundle,
+  Plan097RestoreBundleSchema,
+  type Plan097SelectiveSnapshot,
+  Plan097SelectiveSnapshotSchema,
+  type Plan097ServingTableSnapshot,
+  Plan097ServingTableSnapshotSchema,
+} from "./snapshot.js";
 
 const Plan097HttpEndpointEvidenceSchema = Schema.Struct({
   path: Schema.String.check(Schema.isPattern(/^\//u)),
