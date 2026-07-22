@@ -565,7 +565,7 @@ export type StudyEstimateVariant = typeof StudyEstimateVariantSchema.Type;
 
 export const StudySensitivityEstimateSchema = Schema.Struct({
   reason: Schema.String.check(Schema.isMinLength(1)),
-  excludedMonths: Schema.Array(StudyMonthSchema).check(Schema.isMaxLength(12)),
+  excludedMonths: Schema.Array(StudyMonthSchema).check(Schema.isMaxLength(13)),
   effectMph: Schema.NullOr(Schema.Number),
   effectPercent: Schema.NullOr(Schema.Number),
   confidenceInterval: Schema.NullOr(StudyConfidenceIntervalSchema),

@@ -240,6 +240,42 @@ describe("segment study artifact contracts", () => {
     expect(routeStudiesKey("m15")).toBe("studio/v2/routes/m15/studies.json");
   });
 
+  test("allows the complete 6+event+6 month sensitivity exclusion audit", () => {
+    const excludedMonths = Array.from({ length: 13 }, (_, index) => {
+      const absolute = 2025 * 12 + 3 + index;
+      return `${Math.floor(absolute / 12)}-${String((absolute % 12) + 1).padStart(2, "0")}`;
+    });
+    const sensitivity = {
+      reason: "Fixture sensitivity exclusion.",
+      excludedMonths,
+      effectMph: null,
+      effectPercent: null,
+      confidenceInterval: null,
+    };
+    expect(
+      Result.isSuccess(
+        decodeEitherStrict(StudyArtifactSchema)({
+          ...study,
+          sensitivityEstimates: { congestionPricing: sensitivity, queensRedesign: null },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      Result.isFailure(
+        decodeEitherStrict(StudyArtifactSchema)({
+          ...study,
+          sensitivityEstimates: {
+            congestionPricing: {
+              ...sensitivity,
+              excludedMonths: [...excludedMonths, "2026-05"],
+            },
+            queensRedesign: null,
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
+
   test("caps the study index at 500 rows", () => {
     const row = {
       eventKey: study.eventKey,
