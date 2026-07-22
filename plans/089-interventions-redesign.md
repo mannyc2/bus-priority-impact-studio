@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State**: IN PROGRESS
+- **State**: DONE
 - **Priority**: P1
 - **Effort**: M
 - **Depends on**: Plans 090, 091, 092, and 093 (DONE)
@@ -12,10 +12,18 @@
 ## Implementation receipt
 
 The executable plan landed in `d6c87026`; the typed ledger implementation and
-focused regression suite landed in `25bb9c71`. The implementation changes only
-the `/interventions` route, page, and focused shared tests. It does not change
-schemas, Worker handlers, D1/R2 contents, study artifacts, or publication
-authority.
+focused regression suite landed in `25bb9c71`. [PR #92](https://github.com/mannyc2/bus-priority-impact-studio/pull/92)
+merged the accepted surface at `e7ec1fca37e674e5d53d4cedbcf43ac968b5ac76`.
+Production verification then found that the published D1 schema predated the
+exact route-trip table and that D1 route cards did not carry the already-public
+route annotations. [PR #93](https://github.com/mannyc2/bus-priority-impact-studio/pull/93)
+added a narrow legacy-schema availability state at merge
+`1f781d9700eae09968fa696b8f8247cf3cd70d4c`; [PR #94](https://github.com/mannyc2/bus-priority-impact-studio/pull/94)
+then joined only the published `interventions` arrays by exact, case-sensitive
+route ID at merge `9accf147c8b9672fbb764a773f3c63f417be4861`.
+D1 remains authoritative for current route identity and operating data. No
+schema, D1/R2 object, study artifact, evidence gate, or publication authority
+changed.
 
 Browser verification used the canonical read-only schema-v2 route projection,
 reviewed intervention corpus, and published study index. Their SHA-256 values
@@ -36,6 +44,19 @@ Worker, bundle, SEO, performance, and scoped Biome checks pass. The complete
 `bun run check` reaches only a pre-existing repository-wide Biome 2.5.3
 failure in `analytics-primer.html` and `apps/web/src/routes/routes/index.tsx`;
 the same four errors reproduce on an untouched `origin/main` snapshot.
+
+The final main workflow `29919113313` passed verification and deployed the
+merged Worker. Production returned HTTP 200 for `/interventions`, the route
+API, the reviewed corpus, and the published study index. The route API served
+389 exact route cards and 569 public annotations; B44 remained `b44` and B44+
+remained `b44-sbs`. The live ledger derived 631 documented, 248 planned, and
+six studied rows, exposed exactly two tabs and one Studied checkbox, preserved
+an exact History target, and had no horizontal overflow at either viewport.
+The optional post-093 facet artifact is still absent (HTTP 404), so Kind stays
+disabled, and the legacy release cannot satisfy the strict v3 evidence-bundle
+closure (HTTP 500), so that optional contribution remains fail-closed. Both
+states are handled without losing approved public route/corpus records or
+substituting prose inference.
 
 ## Binding design decisions
 
@@ -135,11 +156,11 @@ record the implementation receipt in project documentation.
       pagination reset/load-more, and responsive/accessibility behavior pass.
 - [x] No evidence contract, study gate, publication authority, or serving
       artifact changes.
-- [ ] Focused tests, repository verification, `bun run check:web-release`,
+- [x] Focused tests, repository verification, `bun run check:web-release`,
       `bun run check:knowledge`, and the recorded browser pass succeed. All
       Plan 089 gates pass; the repository-wide style baseline remains as
       recorded above.
-- [ ] The ready PR merges, the normal production deploy succeeds, and the live
+- [x] The ready PR merges, the normal production deploy succeeds, and the live
       `/interventions` route is verified.
 
 ## STOP conditions

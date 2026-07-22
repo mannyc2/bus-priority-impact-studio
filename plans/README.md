@@ -25,7 +25,7 @@ conditions, and update your row when done.
 
 # Generation 13 — approved `/interventions` network ledger (2026-07-22)
 
-Plan 089 is now executable under the operator's explicit approval of D22-D27
+Plan 089 is complete under the operator's explicit approval of D22-D27
 exactly as shown in the round-4 comp. Previously resolved design choices remain
 binding and the rejected forest plot, Studied tab, and labeled year-divider
 rows remain rejected. The implementation consumes the already-merged typed
@@ -34,7 +34,7 @@ or extend their evidence contracts.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 089 | Approved typed `/interventions` network-ledger redesign | P1 | M | 090, 091, 092, 093 (DONE) | IN PROGRESS |
+| 089 | Approved typed `/interventions` network-ledger redesign | P1 | M | 090, 091, 092, 093 (DONE) | DONE |
 
 See `plans/089-interventions-redesign.md` for the binding decisions, evidence
 boundary, verification ladder, and production handoff.
