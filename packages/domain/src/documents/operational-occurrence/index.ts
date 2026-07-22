@@ -239,6 +239,173 @@ export const OperationalOccurrenceRowAnySchema = Schema.Union([
 ]);
 export type OperationalOccurrenceRowAny = typeof OperationalOccurrenceRowAnySchema.Type;
 
+export const OperationalOccurrenceMemberExtentKindSchema = Schema.Literals([
+  "route_wide",
+  "bounded_segment",
+  "stop_set",
+  "mixed",
+  "unresolved",
+]);
+export type OperationalOccurrenceMemberExtentKind =
+  typeof OperationalOccurrenceMemberExtentKindSchema.Type;
+
+export const OperationalOccurrenceMemberExtentMissingRoleSchema = Schema.Literals([
+  "reviewed_extent_decision",
+  "affirmative_extent",
+  "route_member_binding",
+  "bounded_scope_identity",
+  "bounded_scope_relation",
+  "stop_identity",
+  "scope_evidence",
+  "scope_modality",
+]);
+export type OperationalOccurrenceMemberExtentMissingRole =
+  typeof OperationalOccurrenceMemberExtentMissingRoleSchema.Type;
+
+export const OperationalOccurrenceMemberExtentEvidenceBindingSchema = Schema.Struct({
+  role: NonEmptyStringSchema,
+  record_id: NonEmptyStringSchema,
+  source_id: NonEmptyStringSchema,
+  evidence_id: NonEmptyStringSchema,
+});
+export type OperationalOccurrenceMemberExtentEvidenceBinding =
+  typeof OperationalOccurrenceMemberExtentEvidenceBindingSchema.Type;
+
+export const OperationalOccurrenceMemberExtentComponentSchema = Schema.Struct({
+  component_kind: Schema.Literals(["route", "corridor", "segment", "stop"]),
+  identity_namespace: Schema.Literals(["canonical_record", "source_literal_v1"]),
+  identifiers: Schema.Array(NonEmptyStringSchema).check(Schema.isMinLength(1)),
+  description: NonEmptyStringSchema,
+});
+export type OperationalOccurrenceMemberExtentComponent =
+  typeof OperationalOccurrenceMemberExtentComponentSchema.Type;
+
+export const OperationalOccurrenceMemberExtentRowV1Schema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  contract_id: Schema.Literal("operational-occurrence-member-extent-v1"),
+  extent_id: SafeIdSchema,
+  occurrence_id: SafeIdSchema,
+  occurrence_review_decision_id: SafeIdSchema,
+  route_record_id: SafeIdSchema,
+  gtfs_route_id: NonEmptyStringSchema,
+  treatment_record_id: SafeIdSchema,
+  treatment_family: NonEmptyStringSchema,
+  extent: OperationalOccurrenceMemberExtentKindSchema,
+  components: Schema.Array(OperationalOccurrenceMemberExtentComponentSchema),
+  evidence_bindings: Schema.Array(OperationalOccurrenceMemberExtentEvidenceBindingSchema),
+  missing_roles: Schema.Array(OperationalOccurrenceMemberExtentMissingRoleSchema),
+  decision_id: Schema.NullOr(SafeIdSchema),
+  rationale: NonEmptyStringSchema,
+  authorizes_study: Schema.Literal(false),
+  authorizes_cross_product: Schema.Literal(false),
+});
+export type OperationalOccurrenceMemberExtentRowV1 =
+  typeof OperationalOccurrenceMemberExtentRowV1Schema.Type;
+
+export const OperationalOccurrenceMemberExtentReviewDecisionV1Schema = Schema.Struct({
+  decision_id: SafeIdSchema,
+  occurrence_id: SafeIdSchema,
+  route_record_id: SafeIdSchema,
+  treatment_record_id: SafeIdSchema,
+  resolution: OperationalOccurrenceMemberExtentKindSchema,
+  components: Schema.Array(OperationalOccurrenceMemberExtentComponentSchema),
+  evidence_bindings: Schema.Array(OperationalOccurrenceMemberExtentEvidenceBindingSchema),
+  missing_roles: Schema.Array(OperationalOccurrenceMemberExtentMissingRoleSchema),
+  rationale: NonEmptyStringSchema,
+  reviewed_by: NonEmptyStringSchema,
+  reviewed_at: NonEmptyStringSchema,
+});
+export type OperationalOccurrenceMemberExtentReviewDecisionV1 =
+  typeof OperationalOccurrenceMemberExtentReviewDecisionV1Schema.Type;
+
+export const OperationalOccurrenceMemberExtentFileReceiptSchema = Schema.Struct({
+  path: NonEmptyStringSchema,
+  bytes: NonNegativeIntegerSchema,
+  sha256: Sha256Schema,
+  row_count: Schema.optionalKey(NonNegativeIntegerSchema),
+});
+export type OperationalOccurrenceMemberExtentFileReceipt =
+  typeof OperationalOccurrenceMemberExtentFileReceiptSchema.Type;
+
+export const OperationalOccurrenceMemberExtentManifestV1Schema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  contract_id: Schema.Literal("operational-occurrence-member-extent-v1"),
+  input_pins: Schema.Array(OperationalOccurrenceMemberExtentFileReceiptSchema).check(
+    Schema.isMinLength(1),
+  ),
+  files: Schema.Array(OperationalOccurrenceMemberExtentFileReceiptSchema).check(
+    Schema.isMinLength(1),
+  ),
+});
+export type OperationalOccurrenceMemberExtentManifestV1 =
+  typeof OperationalOccurrenceMemberExtentManifestV1Schema.Type;
+
+export const OperationalOccurrenceMemberExtentSummaryV1Schema = Schema.Struct({
+  schema_version: Schema.Literal(1),
+  contract_id: Schema.Literal("operational-occurrence-member-extent-v1"),
+  release_id: NonEmptyStringSchema,
+  occurrence_count: NonNegativeIntegerSchema,
+  member_extent_row_count: NonNegativeIntegerSchema,
+  eligible_member_extent_row_count: NonNegativeIntegerSchema,
+  reviewed_decision_count: NonNegativeIntegerSchema,
+  extent_counts: Schema.Struct({
+    route_wide: NonNegativeIntegerSchema,
+    bounded_segment: NonNegativeIntegerSchema,
+    stop_set: NonNegativeIntegerSchema,
+    mixed: NonNegativeIntegerSchema,
+    unresolved: NonNegativeIntegerSchema,
+  }),
+  evidence_complete_row_count: NonNegativeIntegerSchema,
+  unresolved_row_count: NonNegativeIntegerSchema,
+  doctrine: Schema.Struct({
+    empty_scope_is_unresolved: Schema.Literal(true),
+    route_membership_is_not_route_wide_evidence: Schema.Literal(true),
+    physicality_not_applicable_is_not_route_wide_evidence: Schema.Literal(true),
+    authorizes_study: Schema.Literal(false),
+    authorizes_cross_product: Schema.Literal(false),
+  }),
+});
+export type OperationalOccurrenceMemberExtentSummaryV1 =
+  typeof OperationalOccurrenceMemberExtentSummaryV1Schema.Type;
+
+export const MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1Schema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.mta_wiki_member_extents.v1"),
+  schemaVersion: Schema.Literal(1),
+  sourceRelease: Schema.Struct({
+    releaseId: NonEmptyStringSchema,
+    generatorCommit: GitCommitSchema,
+    manifestPath: NonEmptyStringSchema,
+    manifestSha256: Sha256Schema,
+    occurrencesSha256: Sha256Schema,
+    memberExtent: Schema.Struct({
+      contractId: Schema.Literal("operational-occurrence-member-extent-v1"),
+      identityGrain: Schema.Literal("occurrence_route_member"),
+      manifest: OperationalOccurrenceMemberExtentFileReceiptSchema,
+      projection: OperationalOccurrenceMemberExtentFileReceiptSchema,
+      reviewLedger: OperationalOccurrenceMemberExtentFileReceiptSchema,
+      summary: OperationalOccurrenceMemberExtentFileReceiptSchema,
+    }),
+  }),
+  producerManifest: OperationalOccurrenceMemberExtentManifestV1Schema,
+  producerSummary: OperationalOccurrenceMemberExtentSummaryV1Schema,
+  producerReviewLedger: Schema.Array(OperationalOccurrenceMemberExtentReviewDecisionV1Schema),
+  summary: Schema.Struct({
+    occurrenceCount: NonNegativeIntegerSchema,
+    memberExtentRowCount: NonNegativeIntegerSchema,
+    eligibleMemberExtentRowCount: NonNegativeIntegerSchema,
+    countsByExtent: Schema.Struct({
+      route_wide: NonNegativeIntegerSchema,
+      bounded_segment: NonNegativeIntegerSchema,
+      stop_set: NonNegativeIntegerSchema,
+      mixed: NonNegativeIntegerSchema,
+      unresolved: NonNegativeIntegerSchema,
+    }),
+  }),
+  memberExtents: Schema.Array(OperationalOccurrenceMemberExtentRowV1Schema),
+});
+export type MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1 =
+  typeof MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1Schema.Type;
+
 export const OperationalOccurrenceSummaryV1Schema = Schema.Struct({
   schema_version: Schema.Literal(1),
   occurrence_count: NonNegativeIntegerSchema,

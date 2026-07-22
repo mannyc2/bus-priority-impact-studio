@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import {
   OperationalOccurrenceEvidenceBindingSchema,
   OperationalOccurrenceEvidenceBindingV2Schema,
+  OperationalOccurrenceMemberExtentRowV1Schema,
   OperationalOccurrencePhaseRelationDispositionSchema,
   OperationalOccurrenceProducerReviewCompatibilitySchema,
 } from "../documents/operational-occurrence/index.js";
@@ -233,6 +234,12 @@ export const StudyEventCandidateV3Schema = Schema.Struct({
 });
 export type StudyEventCandidateV3 = typeof StudyEventCandidateV3Schema.Type;
 
+export const StudyEventCandidateV4Schema = Schema.Struct({
+  ...StudyEventCandidateV3Schema.fields,
+  memberExtents: Schema.Array(OperationalOccurrenceMemberExtentRowV1Schema),
+});
+export type StudyEventCandidateV4 = typeof StudyEventCandidateV4Schema.Type;
+
 export const StudyEventApprovalArtifactV3Schema = Schema.Struct({
   artifactKind: Schema.Literal("bp.studio.study_event_approvals.v3"),
   schemaVersion: Schema.Literal(3),
@@ -457,11 +464,112 @@ export const StudyEventMergeArtifactV4Schema = Schema.Union([
 ]);
 export type StudyEventMergeArtifactV4 = typeof StudyEventMergeArtifactV4Schema.Type;
 
+export const StudyEventCandidateUniverseV5Schema = Schema.Struct({
+  identityVersion: Schema.Literal("tracker-study-candidate-universe-v2"),
+  candidateSetId: Schema.String.check(Schema.isPattern(/^candidate-set-v4:[a-f0-9]{24}$/u)),
+  logicalSha256: StudySha256Schema,
+  registryInputCount: NonNegativeIntegerSchema,
+  registryInputSha256: StudySha256Schema,
+  availableAnalysisRouteCount: NonNegativeIntegerSchema,
+  availableAnalysisRouteIdsSha256: StudySha256Schema,
+  memberExtentLineage: Schema.Struct({
+    identityGrain: Schema.Literal("occurrence_route_member"),
+    manifestSha256: StudySha256Schema,
+    projectionSha256: StudySha256Schema,
+    rowCount: NonNegativeIntegerSchema,
+    eligibleRowCount: NonNegativeIntegerSchema,
+  }),
+});
+export type StudyEventCandidateUniverseV5 = typeof StudyEventCandidateUniverseV5Schema.Type;
+
+export const StudyEventWikiInputV5Schema = Schema.Struct({
+  mode: Schema.Literal("pinned_occurrence_release_with_member_extents_v1"),
+  releaseId: Schema.String.check(Schema.isMinLength(1)),
+  generatorCommit: Schema.String.check(Schema.isPattern(/^[a-f0-9]{40}$/u)),
+  manifestSha256: StudySha256Schema,
+  artifactSha256: StudySha256Schema,
+  relationshipBundleSha256: StudySha256Schema,
+  relationshipEnforcementProofCanonicalSha256: StudySha256Schema,
+  producerReviewCompatibility: Schema.Literal("compatible"),
+  memberExtent: Schema.Struct({
+    contractId: Schema.Literal("operational-occurrence-member-extent-v1"),
+    manifestSha256: StudySha256Schema,
+    projectionSha256: StudySha256Schema,
+    rowCount: NonNegativeIntegerSchema,
+    eligibleRowCount: NonNegativeIntegerSchema,
+  }),
+});
+export type StudyEventWikiInputV5 = typeof StudyEventWikiInputV5Schema.Type;
+
+const StudyEventCandidateSetArtifactV4Fields = {
+  artifactKind: Schema.Literal("bp.studio.study_event_candidates.v4"),
+  schemaVersion: Schema.Literal(4),
+  candidateSetId: StudyEventCandidateUniverseV5Schema.fields.candidateSetId,
+  candidateUniverse: StudyEventCandidateUniverseV5Schema,
+  wikiInput: StudyEventWikiInputV5Schema,
+  summary: StudyEventMergeArtifactV3AwaitingSchema.fields.summary,
+  candidates: Schema.Array(StudyEventCandidateV4Schema),
+  rejections: Schema.Array(StudyEventRejectionSchema),
+  conflicts: Schema.Array(StudyEventConflictSchema),
+} as const;
+
+export const StudyEventCandidateSetArtifactV4Schema = Schema.Struct({
+  ...StudyEventCandidateSetArtifactV4Fields,
+  approvalState: Schema.Literal("awaiting_review_cut"),
+  approvedEvents: Schema.Array(StudyEventCandidateV4Schema).check(Schema.isMaxLength(0)),
+  approval: Schema.Null,
+});
+export type StudyEventCandidateSetArtifactV4 = typeof StudyEventCandidateSetArtifactV4Schema.Type;
+
+export const StudyEventApprovalArtifactV5Schema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.study_event_approvals.v5"),
+  schemaVersion: Schema.Literal(5),
+  candidateSetId: StudyEventCandidateUniverseV5Schema.fields.candidateSetId,
+  reviewCutId: Schema.String.check(Schema.isPattern(/^study-review-cut-v1:[a-f0-9]{24}$/u)),
+  decisions: Schema.Array(StudyEventApprovalDecisionSchema),
+});
+export type StudyEventApprovalArtifactV5 = typeof StudyEventApprovalArtifactV5Schema.Type;
+
+const StudyEventMergeArtifactV5BaseFields = {
+  artifactKind: Schema.Literal("bp.studio.study_events.v5"),
+  schemaVersion: Schema.Literal(5),
+  candidateSetId: StudyEventCandidateUniverseV5Schema.fields.candidateSetId,
+  reviewCutId: Schema.String.check(Schema.isPattern(/^study-review-cut-v1:[a-f0-9]{24}$/u)),
+  candidateUniverse: StudyEventCandidateUniverseV5Schema,
+  reviewInputs: StudyReviewInputsArtifactV1Schema,
+  wikiInput: StudyEventWikiInputV5Schema,
+  summary: StudyEventMergeArtifactV3AwaitingSchema.fields.summary,
+  candidates: Schema.Array(StudyEventCandidateV4Schema),
+  rejections: Schema.Array(StudyEventRejectionSchema),
+  conflicts: Schema.Array(StudyEventConflictSchema),
+} as const;
+
+export const StudyEventMergeArtifactV5AwaitingSchema = Schema.Struct({
+  ...StudyEventMergeArtifactV5BaseFields,
+  approvalState: Schema.Literal("awaiting_approval"),
+  approvedEvents: Schema.Array(StudyEventCandidateV4Schema).check(Schema.isMaxLength(0)),
+  approval: Schema.Null,
+});
+
+export const StudyEventMergeArtifactV5ApprovedSchema = Schema.Struct({
+  ...StudyEventMergeArtifactV5BaseFields,
+  approvalState: Schema.Literal("approved"),
+  approvedEvents: Schema.Array(StudyEventCandidateV4Schema),
+  approval: StudyEventApprovalArtifactV5Schema,
+});
+
+export const StudyEventMergeArtifactV5Schema = Schema.Union([
+  StudyEventMergeArtifactV5AwaitingSchema,
+  StudyEventMergeArtifactV5ApprovedSchema,
+]);
+export type StudyEventMergeArtifactV5 = typeof StudyEventMergeArtifactV5Schema.Type;
+
 export const StudyEventApprovalArtifactAnySchema = Schema.Union([
   StudyEventApprovalArtifactSchema,
   StudyEventApprovalArtifactV2Schema,
   StudyEventApprovalArtifactV3Schema,
   StudyEventApprovalArtifactV4Schema,
+  StudyEventApprovalArtifactV5Schema,
 ]);
 export type StudyEventApprovalArtifactAny = typeof StudyEventApprovalArtifactAnySchema.Type;
 
@@ -470,6 +578,7 @@ export const StudyEventMergeArtifactAnySchema = Schema.Union([
   StudyEventMergeArtifactV2Schema,
   StudyEventMergeArtifactV3Schema,
   StudyEventMergeArtifactV4Schema,
+  StudyEventMergeArtifactV5Schema,
 ]);
 export type StudyEventMergeArtifactAny = typeof StudyEventMergeArtifactAnySchema.Type;
 
@@ -516,6 +625,35 @@ export const StudyPhysicalScopeBindingsArtifactSchema = Schema.Struct({
 });
 export type StudyPhysicalScopeBindingsArtifact =
   typeof StudyPhysicalScopeBindingsArtifactSchema.Type;
+
+export const StudyMemberPhysicalScopeBindingV2Schema = Schema.Struct({
+  ...StudyPhysicalScopeBindingSchema.fields,
+  routeRecordId: Schema.String.check(Schema.isMinLength(1)),
+  treatmentRecordId: Schema.String.check(Schema.isMinLength(1)),
+  memberExtentId: Schema.String.check(Schema.isMinLength(1)),
+  memberExtentKind: Schema.Literal("bounded_segment"),
+  memberExtentProjectionSha256: StudySha256Schema,
+  producerComponentIds: NonEmptyStudyStringArraySchema,
+});
+export type StudyMemberPhysicalScopeBindingV2 = typeof StudyMemberPhysicalScopeBindingV2Schema.Type;
+
+export const StudyPhysicalScopeBindingsArtifactV2Schema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.study_physical_scope_bindings.v2"),
+  schemaVersion: Schema.Literal(2),
+  candidateSetId: StudyEventCandidateUniverseV5Schema.fields.candidateSetId,
+  analysisMonth: StudyMonthSchema,
+  sourceRelease: Schema.Struct({
+    releaseId: Schema.String.check(Schema.isMinLength(1)),
+    manifestSha256: StudySha256Schema,
+    occurrencesSha256: StudySha256Schema,
+    memberExtentManifestSha256: StudySha256Schema,
+    memberExtentProjectionSha256: StudySha256Schema,
+  }),
+  inputs: StudyPhysicalScopeBindingsArtifactSchema.fields.inputs,
+  bindings: Schema.Array(StudyMemberPhysicalScopeBindingV2Schema).check(Schema.isMaxLength(1_000)),
+});
+export type StudyPhysicalScopeBindingsArtifactV2 =
+  typeof StudyPhysicalScopeBindingsArtifactV2Schema.Type;
 
 export const StudyGateSchema = Schema.Struct({
   status: Schema.Literals(["pass", "fail", "not_applicable"]),

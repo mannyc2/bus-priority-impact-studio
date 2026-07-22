@@ -1,13 +1,19 @@
-import { MtaWikiOperationalOccurrenceImportArtifactSchema } from "@bp/domain/documents/operational-occurrence";
+import {
+  MtaWikiOperationalOccurrenceImportArtifactSchema,
+  MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1Schema,
+} from "@bp/domain/documents/operational-occurrence";
 import {
   StudyEventApprovalArtifactSchema,
   StudyEventApprovalArtifactV2Schema,
   StudyEventApprovalArtifactV3Schema,
   StudyEventApprovalArtifactV4Schema,
+  StudyEventApprovalArtifactV5Schema,
+  type StudyEventCandidateSetArtifactV4,
   type StudyEventMergeArtifact,
   type StudyEventMergeArtifactV2,
   type StudyEventMergeArtifactV3,
   type StudyEventMergeArtifactV4,
+  type StudyEventMergeArtifactV5,
   StudyReviewInputsArtifactV1Schema,
 } from "@bp/domain/studio/study";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
@@ -19,10 +25,13 @@ import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { MtaWikiOperationalAnchorImportArtifactSchema } from "../../lib/mta-wiki-operational-anchors.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import {
+  buildStudyEventCandidateSetArtifactV4,
   buildStudyEventMergeArtifact,
   buildStudyEventMergeArtifactV2,
   buildStudyEventMergeArtifactV3,
   buildStudyEventMergeArtifactV4,
+  buildStudyEventMergeArtifactV5,
+  pinnedOccurrenceMemberExtentStudyInput,
   pinnedOccurrenceStudyInput,
   pinnedOccurrenceStudyInputV4,
 } from "../../lib/study-engine/study-events.ts";
@@ -32,6 +41,7 @@ const DEFAULT_OUTPUT_PATH = fromRepoRoot("data/artifacts/studio/v2/studies/study
 export type RunStudyEventMergeInput = {
   readonly local: OpenLocalPipelineDb;
   readonly wikiImportPath?: string | undefined;
+  readonly memberExtentImportPath?: string | undefined;
   readonly withoutWikiAnchors: boolean;
   readonly approvalPath?: string | undefined;
   readonly reviewInputsPath?: string | undefined;
@@ -44,6 +54,8 @@ export async function runStudyEventMerge(input: RunStudyEventMergeInput): Promis
     | StudyEventMergeArtifactV2
     | StudyEventMergeArtifactV3
     | StudyEventMergeArtifactV4
+    | StudyEventMergeArtifactV5
+    | StudyEventCandidateSetArtifactV4
   ) & {
     outputPath: string;
   }
@@ -55,6 +67,16 @@ export async function runStudyEventMerge(input: RunStudyEventMergeInput): Promis
     throw new Error(
       "--wiki-import is required unless --without-wiki-anchors is explicitly supplied",
     );
+  }
+  if (input.memberExtentImportPath !== undefined && input.wikiImportPath === undefined) {
+    throw new Error("--member-extent-import requires --wiki-import");
+  }
+  if (
+    input.memberExtentImportPath !== undefined &&
+    input.approvalPath !== undefined &&
+    input.reviewInputsPath === undefined
+  ) {
+    throw new Error("Member-grain approvals require --review-inputs and a complete review cut");
   }
 
   const wikiImport =
@@ -69,6 +91,14 @@ export async function runStudyEventMerge(input: RunStudyEventMergeInput): Promis
           "strict",
         );
   const registryEvents = loadStudyEventRegistryRows({ sqlite: input.local.sqlite });
+  const memberExtentImport =
+    input.memberExtentImportPath === undefined
+      ? null
+      : await readJsonArtifact(
+          input.memberExtentImportPath,
+          MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1Schema,
+          "strict",
+        );
   if (
     input.reviewInputsPath !== undefined &&
     wikiImport?.artifactKind !== "bp.studio.mta_wiki_operational_occurrences.v4" &&
@@ -76,26 +106,32 @@ export async function runStudyEventMerge(input: RunStudyEventMergeInput): Promis
   ) {
     throw new Error("--review-inputs requires a compatible v4/v5 pinned occurrence import");
   }
+  if (
+    memberExtentImport !== null &&
+    wikiImport?.artifactKind !== "bp.studio.mta_wiki_operational_occurrences.v4" &&
+    wikiImport?.artifactKind !== "bp.studio.mta_wiki_operational_occurrences.v5"
+  ) {
+    throw new Error("--member-extent-import requires a compatible v4/v5 occurrence import");
+  }
   const artifact =
-    wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v4" ||
-    wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v5"
+    memberExtentImport !== null &&
+    (wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v4" ||
+      wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v5")
       ? input.reviewInputsPath === undefined
-        ? buildStudyEventMergeArtifactV3({
+        ? buildStudyEventCandidateSetArtifactV4({
             registryEvents,
-            wiki: pinnedOccurrenceStudyInputV4(wikiImport),
+            wiki: pinnedOccurrenceMemberExtentStudyInput({
+              occurrences: wikiImport,
+              memberExtents: memberExtentImport,
+            }),
             availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
-            approval:
-              input.approvalPath === undefined
-                ? undefined
-                : await readJsonArtifact(
-                    input.approvalPath,
-                    StudyEventApprovalArtifactV3Schema,
-                    "strict",
-                  ),
           })
-        : buildStudyEventMergeArtifactV4({
+        : buildStudyEventMergeArtifactV5({
             registryEvents,
-            wiki: pinnedOccurrenceStudyInputV4(wikiImport),
+            wiki: pinnedOccurrenceMemberExtentStudyInput({
+              occurrences: wikiImport,
+              memberExtents: memberExtentImport,
+            }),
             availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
             reviewInputs: await readJsonArtifact(
               input.reviewInputsPath,
@@ -107,46 +143,80 @@ export async function runStudyEventMerge(input: RunStudyEventMergeInput): Promis
                 ? undefined
                 : await readJsonArtifact(
                     input.approvalPath,
-                    StudyEventApprovalArtifactV4Schema,
+                    StudyEventApprovalArtifactV5Schema,
                     "strict",
                   ),
           })
-      : wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v3"
-        ? buildStudyEventMergeArtifactV2({
-            registryEvents,
-            wiki: pinnedOccurrenceStudyInput(wikiImport),
-            withoutWikiAnchors: false,
-            availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
-            approval:
-              input.approvalPath === undefined
-                ? undefined
-                : await readJsonArtifact(
-                    input.approvalPath,
-                    StudyEventApprovalArtifactV2Schema,
-                    "strict",
-                  ),
-          })
-        : buildStudyEventMergeArtifact({
-            registryEvents,
-            wiki:
-              wikiImport === null
-                ? null
-                : {
-                    releaseId: wikiImport.sourceRelease.releaseId,
-                    manifestSha256: wikiImport.sourceRelease.manifestSha256,
-                    artifactSha256: wikiImport.sourceRelease.anchors.sha256,
-                    assertions: wikiImport.assertions,
-                  },
-            withoutWikiAnchors: input.withoutWikiAnchors,
-            approval:
-              input.approvalPath === undefined
-                ? undefined
-                : await readJsonArtifact(
-                    input.approvalPath,
-                    StudyEventApprovalArtifactSchema,
-                    "strict",
-                  ),
-          });
+      : wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v4" ||
+          wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v5"
+        ? input.reviewInputsPath === undefined
+          ? buildStudyEventMergeArtifactV3({
+              registryEvents,
+              wiki: pinnedOccurrenceStudyInputV4(wikiImport),
+              availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
+              approval:
+                input.approvalPath === undefined
+                  ? undefined
+                  : await readJsonArtifact(
+                      input.approvalPath,
+                      StudyEventApprovalArtifactV3Schema,
+                      "strict",
+                    ),
+            })
+          : buildStudyEventMergeArtifactV4({
+              registryEvents,
+              wiki: pinnedOccurrenceStudyInputV4(wikiImport),
+              availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
+              reviewInputs: await readJsonArtifact(
+                input.reviewInputsPath,
+                StudyReviewInputsArtifactV1Schema,
+                "strict",
+              ),
+              approval:
+                input.approvalPath === undefined
+                  ? undefined
+                  : await readJsonArtifact(
+                      input.approvalPath,
+                      StudyEventApprovalArtifactV4Schema,
+                      "strict",
+                    ),
+            })
+        : wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v3"
+          ? buildStudyEventMergeArtifactV2({
+              registryEvents,
+              wiki: pinnedOccurrenceStudyInput(wikiImport),
+              withoutWikiAnchors: false,
+              availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
+              approval:
+                input.approvalPath === undefined
+                  ? undefined
+                  : await readJsonArtifact(
+                      input.approvalPath,
+                      StudyEventApprovalArtifactV2Schema,
+                      "strict",
+                    ),
+            })
+          : buildStudyEventMergeArtifact({
+              registryEvents,
+              wiki:
+                wikiImport === null
+                  ? null
+                  : {
+                      releaseId: wikiImport.sourceRelease.releaseId,
+                      manifestSha256: wikiImport.sourceRelease.manifestSha256,
+                      artifactSha256: wikiImport.sourceRelease.anchors.sha256,
+                      assertions: wikiImport.assertions,
+                    },
+              withoutWikiAnchors: input.withoutWikiAnchors,
+              approval:
+                input.approvalPath === undefined
+                  ? undefined
+                  : await readJsonArtifact(
+                      input.approvalPath,
+                      StudyEventApprovalArtifactSchema,
+                      "strict",
+                    ),
+            });
   const outputPath = input.outputPath ?? DEFAULT_OUTPUT_PATH;
   await writeJson(outputPath, artifact);
   return { ...artifact, outputPath };
@@ -187,6 +257,9 @@ export default defineCommand({
         wikiImport: Schema.optionalKey(Schema.String).annotate({
           description: "Pinned MTA Wiki operational-anchor import artifact",
         }),
+        memberExtentImport: Schema.optionalKey(Schema.String).annotate({
+          description: "Pinned occurrence × route × treatment-member extent import artifact",
+        }),
         withoutWikiAnchors: arg
           .boolean()
           .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
@@ -212,6 +285,7 @@ export default defineCommand({
     reviewCutId: Schema.optionalKey(Schema.String),
     approvalState: Schema.Literals([
       "awaiting_approval",
+      "awaiting_review_cut",
       "approved",
       "blocked_contract_incompatible",
     ]),
@@ -232,6 +306,10 @@ export default defineCommand({
           local,
           wikiImportPath:
             options.wikiImport === undefined ? undefined : fromCliPath(options.wikiImport),
+          memberExtentImportPath:
+            options.memberExtentImport === undefined
+              ? undefined
+              : fromCliPath(options.memberExtentImport),
           withoutWikiAnchors: options.withoutWikiAnchors,
           approvalPath: options.approval === undefined ? undefined : fromCliPath(options.approval),
           reviewInputsPath:
@@ -241,7 +319,8 @@ export default defineCommand({
         return {
           outputPath: artifact.outputPath,
           candidateSetId: artifact.candidateSetId,
-          ...(artifact.artifactKind === "bp.studio.study_events.v4"
+          ...(artifact.artifactKind === "bp.studio.study_events.v4" ||
+          artifact.artifactKind === "bp.studio.study_events.v5"
             ? { reviewCutId: artifact.reviewCutId }
             : {}),
           approvalState: artifact.approvalState,

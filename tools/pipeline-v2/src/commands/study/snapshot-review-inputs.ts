@@ -3,6 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import {
   StudyPhysicalScopeBindingsArtifactSchema,
+  StudyPhysicalScopeBindingsArtifactV2Schema,
   type StudyReviewFileReceipt,
   type StudyReviewInputsArtifactV1,
   StudyReviewInputsArtifactV1Schema,
@@ -129,7 +130,14 @@ export async function buildStudyReviewInputsArtifact(input: {
   const [availabilityBytes, manifestBytes, scopeBindings] = await Promise.all([
     readFile(input.availabilityPath),
     readFile(input.spineManifestPath),
-    readJsonArtifact(input.scopeBindingsPath, StudyPhysicalScopeBindingsArtifactSchema, "strict"),
+    readJsonArtifact(
+      input.scopeBindingsPath,
+      Schema.Union([
+        StudyPhysicalScopeBindingsArtifactSchema,
+        StudyPhysicalScopeBindingsArtifactV2Schema,
+      ]),
+      "strict",
+    ),
   ]);
   const availability = decodeJson<AvailabilityArtifact>(availabilityBytes, input.availabilityPath);
   const manifest = decodeJson<SpineManifest>(manifestBytes, input.spineManifestPath);
