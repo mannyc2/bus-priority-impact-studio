@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { and, eq, inArray, type SQLWrapper } from "drizzle-orm";
+import { and, eq, inArray, not, type SQLWrapper } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import type {
@@ -724,10 +724,21 @@ function validateRouteMonthSourceStatusSeedRow(row: LocalRouteMonthSourceStatus)
   });
 }
 
-export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
+function isPlan097ProtectedReliabilityStatus(row: LocalRouteMonthSourceStatus): boolean {
+  return row.sourceScope === "reliability" && observedReliabilitySourceIds.includes(row.sourceId);
+}
+
+function buildD1SeedSqlWithMode(
+  input: D1SeedInput,
+  mode: "standard" | "plan097-recovery",
+): D1SeedSqlResult {
   validateD1SeedRows(input);
 
   const { month } = input;
+  const plan097Recovery = mode === "plan097-recovery";
+  const routeMonthSourceStatuses = plan097Recovery
+    ? input.routeMonthSourceStatuses.filter((row) => !isPlan097ProtectedReliabilityStatus(row))
+    : input.routeMonthSourceStatuses;
   const statements: string[] = [
     renderQuery(seedDb.delete(routeCatalogType)),
     renderQuery(seedDb.delete(routeCatalogTripType)),
@@ -742,11 +753,15 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     renderQuery(
       seedDb.delete(routeReliabilityGapWindow).where(eq(routeReliabilityGapWindow.month, month)),
     ),
-    renderQuery(
-      seedDb
-        .delete(routeObservedReliabilitySummary)
-        .where(eq(routeObservedReliabilitySummary.month, month)),
-    ),
+    ...(plan097Recovery
+      ? []
+      : [
+          renderQuery(
+            seedDb
+              .delete(routeObservedReliabilitySummary)
+              .where(eq(routeObservedReliabilitySummary.month, month)),
+          ),
+        ]),
     renderQuery(seedDb.delete(interventionEvent)),
     renderQuery(
       seedDb
@@ -765,7 +780,21 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     renderQuery(seedDb.delete(corridorRouteMember).where(eq(corridorRouteMember.month, month))),
     renderQuery(seedDb.delete(corridor)),
     renderQuery(
-      seedDb.delete(routeMonthSourceStatus).where(eq(routeMonthSourceStatus.month, month)),
+      seedDb
+        .delete(routeMonthSourceStatus)
+        .where(
+          plan097Recovery
+            ? and(
+                eq(routeMonthSourceStatus.month, month),
+                not(
+                  and(
+                    eq(routeMonthSourceStatus.sourceScope, "reliability"),
+                    inArray(routeMonthSourceStatus.sourceId, observedReliabilitySourceIds),
+                  )!,
+                ),
+              )
+            : eq(routeMonthSourceStatus.month, month),
+        ),
     ),
     renderQuery(
       seedDb.delete(routeReliabilityBaseline).where(eq(routeReliabilityBaseline.month, month)),
@@ -779,9 +808,13 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     ),
     renderQuery(seedDb.delete(sourceMonthCoverage)),
     renderQuery(seedDb.delete(routeEquityContext).where(eq(routeEquityContext.month, month))),
-    renderQuery(
-      seedDb.delete(routeScorecardCitation).where(eq(routeScorecardCitation.month, month)),
-    ),
+    ...(plan097Recovery
+      ? []
+      : [
+          renderQuery(
+            seedDb.delete(routeScorecardCitation).where(eq(routeScorecardCitation.month, month)),
+          ),
+        ]),
     renderQuery(seedDb.delete(routeScorecard).where(eq(routeScorecard.month, month))),
     renderQuery(seedDb.delete(routeBriefPeakWindow).where(eq(routeBriefPeakWindow.month, month))),
     renderQuery(
@@ -985,7 +1018,7 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     );
   }
 
-  for (const row of input.routeObservedReliabilitySummaries) {
+  for (const row of plan097Recovery ? [] : input.routeObservedReliabilitySummaries) {
     statements.push(
       renderQuery(
         seedDb.insert(routeObservedReliabilitySummary).values({
@@ -1211,7 +1244,7 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     );
   }
 
-  for (const row of input.routeMonthSourceStatuses) {
+  for (const row of routeMonthSourceStatuses) {
     routeMonthSourceStatusRowCount += 1;
     statements.push(
       renderQuery(
@@ -1448,25 +1481,6 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     );
   }
 
-  if (input.routeBatchStatus !== null) {
-    statements.push(
-      renderQuery(
-        seedDb.insert(routeBatchStatus).values({
-          month: input.routeBatchStatus.month,
-          generatedAt: input.routeBatchStatus.generatedAt,
-          status: input.routeBatchStatus.status,
-          routeCount: input.routeBatchStatus.routeCount,
-          artifactCount: input.routeBatchStatus.artifactCount,
-          missingArtifactCount: input.routeBatchStatus.missingArtifactCount,
-          hashMismatchCount: input.routeBatchStatus.hashMismatchCount,
-          byteLengthMismatchCount: input.routeBatchStatus.byteLengthMismatchCount,
-          totalByteLength: input.routeBatchStatus.totalByteLength,
-          issueCount: input.routeBatchStatus.issueCount,
-        }),
-      ),
-    );
-  }
-
   for (const route of input.routeBatchBuiltRoutes) {
     routeBatchBuiltRouteRowCount += 1;
     statements.push(
@@ -1498,6 +1512,25 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     );
   }
 
+  if (input.routeBatchStatus !== null) {
+    statements.push(
+      renderQuery(
+        seedDb.insert(routeBatchStatus).values({
+          month: input.routeBatchStatus.month,
+          generatedAt: input.routeBatchStatus.generatedAt,
+          status: input.routeBatchStatus.status,
+          routeCount: input.routeBatchStatus.routeCount,
+          artifactCount: input.routeBatchStatus.artifactCount,
+          missingArtifactCount: input.routeBatchStatus.missingArtifactCount,
+          hashMismatchCount: input.routeBatchStatus.hashMismatchCount,
+          byteLengthMismatchCount: input.routeBatchStatus.byteLengthMismatchCount,
+          totalByteLength: input.routeBatchStatus.totalByteLength,
+          issueCount: input.routeBatchStatus.issueCount,
+        }),
+      ),
+    );
+  }
+
   return {
     seedSql: `${statements.join("\n")}\n`,
     routeCount: input.routeScorecards.length,
@@ -1512,7 +1545,9 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     routeBuildPlanRowCount: input.routeBuildPlan.length,
     routeReliabilityBaselineRowCount: input.routeReliabilityBaseline.length,
     routeReliabilityGapWindowRowCount,
-    routeObservedReliabilitySummaryRowCount: input.routeObservedReliabilitySummaries.length,
+    routeObservedReliabilitySummaryRowCount: plan097Recovery
+      ? 0
+      : input.routeObservedReliabilitySummaries.length,
     interventionEventRowCount: input.interventionEvents.length,
     routeInterventionComparisonRowCount: input.routeInterventionComparisons.length,
     routeArtifactRowCount: input.routeArtifacts.length,
@@ -1535,6 +1570,14 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
     routeSpeedHistoryCoverageRowCount: input.routeSpeedHistoryCoverage.length,
     sourceMonthCoverageRowCount: input.sourceMonthCoverage.length,
   };
+}
+
+export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
+  return buildD1SeedSqlWithMode(input, "standard");
+}
+
+export function buildPlan097RecoverySeedSql(input: D1SeedInput): D1SeedSqlResult {
+  return buildD1SeedSqlWithMode(input, "plan097-recovery");
 }
 
 const observedReliabilitySourceIds = ["observedHeadways", "bunching", "waitTimeReliability"];

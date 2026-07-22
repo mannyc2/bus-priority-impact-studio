@@ -5,7 +5,11 @@ export type {
   D1SeedInput,
   D1SeedSqlResult,
 } from "./build-seed-sql.js";
-export { buildD1AppendixSeedSql, buildD1SeedSql } from "./build-seed-sql.js";
+export {
+  buildD1AppendixSeedSql,
+  buildD1SeedSql,
+  buildPlan097RecoverySeedSql,
+} from "./build-seed-sql.js";
 export type { ExactRouteIdentityRegistrationInput } from "./exact-route-identity-registration.js";
 export {
   buildExactRouteIdentityRegistrationSql,
