@@ -162,6 +162,7 @@ function wiki(
   options: {
     manifestSha256?: string;
     projectionSha256?: string;
+    sourceOccurrenceReleaseId?: string;
     memberExtents?: OperationalOccurrenceMemberExtentRowV1[];
   } = {},
 ): PinnedWikiOccurrenceMemberExtentStudyInput {
@@ -177,7 +178,7 @@ function wiki(
     occurrences: [occurrence()],
     memberExtentLineage: {
       identityGrain: "occurrence_route_member",
-      sourceOccurrenceReleaseId: "v1-rc26",
+      sourceOccurrenceReleaseId: options.sourceOccurrenceReleaseId ?? "v1-rc26",
       manifestSha256: options.manifestSha256 ?? HASH_E,
       projectionSha256: options.projectionSha256 ?? HASH_F,
       rowCount: memberExtents.length,
@@ -351,11 +352,17 @@ describe("member-grain study candidate universe and review cut", () => {
     const baseline = awaiting();
     const changedManifest = awaiting(wiki({ manifestSha256: HASH_D }));
     const changedProjection = awaiting(wiki({ projectionSha256: HASH_E }));
+    const changedSourceRelease = awaiting(wiki({ sourceOccurrenceReleaseId: "v1-rc25" }));
     const changedMember = awaiting(
       wiki({ memberExtents: [memberExtent({ projectionDetail: "Reviewed revised extent." })] }),
     );
 
-    for (const changed of [changedManifest, changedProjection, changedMember]) {
+    for (const changed of [
+      changedManifest,
+      changedProjection,
+      changedSourceRelease,
+      changedMember,
+    ]) {
       expect(changed.candidateSetId).not.toBe(baseline.candidateSetId);
       expect(changed.candidateUniverse.logicalSha256).not.toBe(
         baseline.candidateUniverse.logicalSha256,
