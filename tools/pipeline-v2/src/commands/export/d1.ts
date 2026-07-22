@@ -3,6 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { buildD1AppendixSeedSql, buildD1SeedSql } from "@bp/db/d1/seed";
 import { decodeStrict } from "@bp/domain/decode";
+import { StudioRouteEvidenceIndexV2Schema } from "@bp/domain/studio";
 import {
   type ReleaseIdentity,
   ReleaseIdentitySchema,
@@ -16,6 +17,7 @@ import { type CloudflareCostSummary, estimateD1PaidCost } from "../../lib/cloudf
 import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, defaultExportRootPath, fromCliPath } from "../../lib/paths.ts";
+import { buildExactRouteIndexRecovery } from "../../lib/route-index-v3-recovery.ts";
 import {
   type D1AppendixInputs,
   type D1CanonicalInputs,
@@ -33,6 +35,17 @@ type D1FileContract = {
   path: string;
   byteLength: number;
   sha256: string;
+};
+
+export type D1ExactRouteIdentityOutput = {
+  registrationFile: D1FileContract;
+  receiptFile: D1FileContract;
+  exactRouteCount: number;
+  routeTypeCount: number;
+  tripTypeCount: number;
+  catalogSnapshotSha256: string;
+  projectionSha256: string;
+  sourceIndexSha256: string;
 };
 
 type D1SqlFileCostFacts = {
@@ -117,6 +130,7 @@ export type D1SeedOutputResult = {
   detectorReadinessManifestAvailable: boolean;
   routeCapabilityManifestRouteCount: number;
   routeDossierSummaryRouteCount: number;
+  exactRouteIdentity: D1ExactRouteIdentityOutput | null;
 };
 
 export function earliestRouteTrendMonth(d1Inputs: {
@@ -285,6 +299,78 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     publishedAt: inputs.publishedAt,
     coverage: { start: earliestRouteTrendMonth(d1Inputs), end: month },
   });
+  const routeEvidenceIndexPath =
+    inputs.routeEvidenceIndexPath ?? join(artifactRoot, "studio", "v2", "wiki", "index.json");
+  const routeEvidenceIndexFile = Bun.file(routeEvidenceIndexPath);
+  let exactRouteIdentity: {
+    output: D1ExactRouteIdentityOutput;
+    registrationSql: string;
+    receiptText: string;
+  } | null = null;
+  if (await routeEvidenceIndexFile.exists()) {
+    const routeEvidenceIndexBytes = new Uint8Array(await routeEvidenceIndexFile.arrayBuffer());
+    const routeEvidenceIndexValue: unknown = JSON.parse(
+      new TextDecoder().decode(routeEvidenceIndexBytes),
+    );
+    const routeEvidenceIndexRecord =
+      typeof routeEvidenceIndexValue === "object" && routeEvidenceIndexValue !== null
+        ? (routeEvidenceIndexValue as Record<string, unknown>)
+        : null;
+    const isExactIndex =
+      routeEvidenceIndexRecord?.["artifactKind"] === "bp.studio.route_evidence_index.v2" &&
+      routeEvidenceIndexRecord["schemaVersion"] === 2;
+    if (!isExactIndex) {
+      exactRouteIdentity = null;
+    } else {
+      const routeEvidenceIndex = decodeStrict(StudioRouteEvidenceIndexV2Schema)(
+        routeEvidenceIndexValue,
+      );
+      const sourceIndexSha256 = createHash("sha256").update(routeEvidenceIndexBytes).digest("hex");
+      const exact = buildExactRouteIndexRecovery({
+        routeEvidenceIndex,
+        routeEvidenceIndexSha256: sourceIndexSha256,
+        routeEvidenceIndexBytes: routeEvidenceIndexBytes.byteLength,
+        catalogRows: d1Inputs.routeCatalog.map((route) => ({
+          routeId: route.routeId,
+          routeShortName: route.routeShortName,
+          routeLongName: route.routeLongName,
+        })),
+        routeTypeRows: d1Inputs.routeCatalog.flatMap((route) =>
+          route.routeTypes.map((routeType, index) => ({
+            routeId: route.routeId,
+            typeRank: index + 1,
+            routeType,
+          })),
+        ),
+        servingRelease: releaseIdentity,
+        preparedAt: generatedAt,
+        expectedSource: {
+          wikiRelease: routeEvidenceIndex.source.wikiRelease,
+          manifestSha256: routeEvidenceIndex.source.manifestSha256,
+          routeIdentitySha256: routeEvidenceIndex.source.routeIdentitySha256,
+          currentBusRoutesSha256: routeEvidenceIndex.source.catalogParity.currentBusRoutesSha256,
+          routeEvidenceIndexSha256: sourceIndexSha256,
+          routeEvidenceIndexBytes: routeEvidenceIndexBytes.byteLength,
+        },
+      });
+      const registrationPath = join(exportDir, "exact-route-identity-registration.sql");
+      const receiptPath = join(exportDir, "exact-route-identity-receipt.json");
+      exactRouteIdentity = {
+        output: {
+          registrationFile: fileContract(registrationPath, exact.registrationSql),
+          receiptFile: fileContract(receiptPath, exact.receiptText),
+          exactRouteCount: exact.receipt.counts.exactRouteCount,
+          routeTypeCount: exact.receipt.counts.exactRouteTypeCount,
+          tripTypeCount: exact.receipt.counts.exactTripTypeCount,
+          catalogSnapshotSha256: exact.receipt.catalogSnapshotSha256,
+          projectionSha256: exact.receipt.projectionSha256,
+          sourceIndexSha256,
+        },
+        registrationSql: exact.registrationSql,
+        receiptText: exact.receiptText,
+      };
+    }
+  }
 
   const readinessSummaries = await readDetectorReadinessRouteSummaries({
     manifestPath: inputs.detectorReadinessManifestPath,
@@ -356,6 +442,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     detectorReadinessManifestAvailable: d1Inputs.detectorReadinessManifestAvailable,
     routeCapabilityManifestRouteCount: capabilityManifest.routeCount,
     routeDossierSummaryRouteCount: dossierSummaries.routeCount,
+    exactRouteIdentity: exactRouteIdentity?.output ?? null,
   };
 
   await mkdir(exportDir, { recursive: true });
@@ -363,6 +450,15 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     Bun.write(schemaPath, schemaSql),
     Bun.write(seedPath, seed.seedSql),
     Bun.write(summaryPath, `${JSON.stringify(result, null, 2)}\n`),
+    ...(exactRouteIdentity === null
+      ? []
+      : [
+          Bun.write(
+            exactRouteIdentity.output.registrationFile.path,
+            exactRouteIdentity.registrationSql,
+          ),
+          Bun.write(exactRouteIdentity.output.receiptFile.path, exactRouteIdentity.receiptText),
+        ]),
   ]);
   return result;
 }

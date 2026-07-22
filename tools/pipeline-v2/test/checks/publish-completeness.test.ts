@@ -61,6 +61,7 @@ describe("publish completeness", () => {
       expect.arrayContaining([
         `Map manifest for ${month} is missing or invalid under the v2 release contract.`,
         "Verified D1 schema and seed exports are unavailable.",
+        "Exact-route identity registration, strict receipt, or immutable v2 evidence index is missing.",
       ]),
     );
   });
@@ -158,6 +159,10 @@ CREATE TABLE corridor_artifact (corridor_id TEXT, month TEXT, artifact_name TEXT
         routeCount: 1,
       }),
     );
+    await Bun.write(join(exportDir, "exact-route-identity-registration.sql"), "SELECT 1;\n");
+    await Bun.write(join(exportDir, "exact-route-identity-receipt.json"), '{"bad":true}\n');
+    await mkdir(join(artifactRoot, "studio", "v2", "wiki"), { recursive: true });
+    await Bun.write(join(artifactRoot, "studio", "v2", "wiki", "index.json"), '{"bad":true}\n');
 
     const output = join(root, "report.json");
     const process = Bun.spawn(
@@ -185,5 +190,10 @@ CREATE TABLE corridor_artifact (corridor_id TEXT, month TEXT, artifact_name TEXT
     expect(report.conflicts).toContain(
       "Map release registration SQL does not match the final catalog metadata.",
     );
+    expect(
+      report.conflicts.some((conflict) =>
+        conflict.startsWith("Exact-route identity verification failed:"),
+      ),
+    ).toBe(true);
   });
 });

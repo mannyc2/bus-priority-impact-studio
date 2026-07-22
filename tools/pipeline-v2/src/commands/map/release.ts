@@ -144,6 +144,11 @@ export async function runMapRelease(
     expected: releaseIdentity,
     month,
   });
+  if (d1.exactRouteIdentity === null) {
+    throw new Error(
+      "D1 export did not emit the candidate exact-route identity registration and receipt.",
+    );
+  }
   const context = await dependencies.context({
     sourcePath: inputs.contextSourcePath,
     artifactRoot,

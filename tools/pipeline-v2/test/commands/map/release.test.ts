@@ -63,6 +63,24 @@ describe("runMapRelease", () => {
             status: "pass",
             ...releaseIdentity,
             coverage: { start: "2024-11", end: releaseIdentity.coverage.end },
+            exactRouteIdentity: {
+              registrationFile: {
+                path: join(exportRoot, "d1", "2026-04", "exact-registration.sql"),
+                byteLength: 1,
+                sha256: "1".repeat(64),
+              },
+              receiptFile: {
+                path: join(exportRoot, "d1", "2026-04", "exact-receipt.json"),
+                byteLength: 1,
+                sha256: "2".repeat(64),
+              },
+              exactRouteCount: 1,
+              routeTypeCount: 1,
+              tripTypeCount: 1,
+              catalogSnapshotSha256: "3".repeat(64),
+              projectionSha256: "4".repeat(64),
+              sourceIndexSha256: "5".repeat(64),
+            },
           };
         },
         async context(input: unknown) {
@@ -218,6 +236,7 @@ describe("runMapRelease", () => {
       expect(result.d1.schemaPath).toBe(schemaPath);
       expect(result.d1.coverage.start as string | null).toBe("2024-11");
       expect(result.d1.coverage.end as string).toBe("2026-04");
+      expect(result.d1.exactRouteIdentity?.exactRouteCount).toBe(1);
       expect(result.studio.mapRouteFactsPath).toBe(mapRouteFactsPath);
       expect(result.studio.releaseIdentity.coverage.start as string | null).toBe("2025-01");
       expect(result.studio.releaseIdentity.coverage.end as string).toBe("2026-04");
@@ -267,6 +286,47 @@ describe("runMapRelease", () => {
       ),
     ).rejects.toThrow("stop after identity capture");
     expect(observedIdentities[0]?.coverage).toEqual({ start: null, end: "2026-04" });
+  });
+
+  test("rejects a candidate whose D1 export lacks exact-route identity", async () => {
+    const dependencies = {
+      async routeBrief() {
+        return { isoMonth: "2026-04" };
+      },
+      async speedSpines() {
+        return { manifestPath: "unused.json", coverageStart: null };
+      },
+      async verifyD1(input: unknown) {
+        const releaseIdentity = (
+          input as {
+            releaseIdentity: {
+              releaseId: string;
+              publishedAt: string;
+              coverage: { start: string | null; end: string };
+            };
+          }
+        ).releaseIdentity;
+        return {
+          schemaPath: "unused-schema.sql",
+          seedPath: "unused-seed.sql",
+          status: "pass",
+          ...releaseIdentity,
+          exactRouteIdentity: null,
+        };
+      },
+    } as unknown as MapReleaseDependencies;
+
+    await expect(
+      runMapRelease(
+        {
+          local: { path: "unused.sqlite" } as OpenLocalPipelineDb,
+          year: 2026,
+          month: 4,
+          contextSourcePath: "unused.csv",
+        },
+        dependencies,
+      ),
+    ).rejects.toThrow("did not emit the candidate exact-route identity");
   });
 
   test("rejects a one-millisecond D1 publication identity skew", async () => {

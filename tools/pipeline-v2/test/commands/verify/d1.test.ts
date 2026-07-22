@@ -120,6 +120,7 @@ function emptyExportResult(): D1SeedOutputResult {
     detectorReadinessManifestAvailable: false,
     routeCapabilityManifestRouteCount: 0,
     routeDossierSummaryRouteCount: 0,
+    exactRouteIdentity: null,
   };
 }
 

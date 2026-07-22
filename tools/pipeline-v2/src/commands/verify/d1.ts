@@ -13,7 +13,11 @@ import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
-import { type D1SeedOutputResult, runExportD1Seed } from "../export/d1.ts";
+import {
+  type D1ExactRouteIdentityOutput,
+  type D1SeedOutputResult,
+  runExportD1Seed,
+} from "../export/d1.ts";
 import {
   collectD1TableCounts,
   type RepositoryCheckResult,
@@ -35,6 +39,7 @@ export type D1VerifyResult = {
   tableCounts: Record<string, number>;
   expectedCounts: Record<string, number>;
   repositoryChecks: RepositoryCheckResult;
+  exactRouteIdentity: D1ExactRouteIdentityOutput | null;
 };
 
 function expectedTableCounts(exportResult: D1SeedOutputResult): Record<string, number> {
@@ -201,6 +206,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     tableCounts,
     expectedCounts: expectedTableCounts(exportResult),
     repositoryChecks: checks,
+    exactRouteIdentity: exportResult.exactRouteIdentity,
   };
   await writeD1VerifySummary(result);
   return result;
@@ -253,6 +259,7 @@ export default defineCommand({
     tableCounts: Schema.Record(Schema.String, Schema.Number),
     expectedCounts: Schema.Record(Schema.String, Schema.Number),
     repositoryChecks: Schema.Unknown,
+    exactRouteIdentity: Schema.Unknown,
   }),
   async run({ input }) {
     const month = isoMonth(input.options.year, input.options.month);
