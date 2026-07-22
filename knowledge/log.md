@@ -9076,3 +9076,30 @@ complete `bun run check` reaches four unrelated Biome 2.5.3 errors in
 `analytics-primer.html` and `apps/web/src/routes/routes/index.tsx`; an untouched
 `origin/main` snapshot reproduces the same failure. No D1, R2, evidence,
 estimator, approval, or publication object changed.
+
+## [2026-07-22] release | Plan 089 merged, deployed, and production-verified
+
+[PR #92](https://github.com/mannyc2/bus-priority-impact-studio/pull/92)
+merged the accepted ledger at `e7ec1fca37e674e5d53d4cedbcf43ac968b5ac76`.
+The first production pass exposed two legacy serving seams rather than a UI
+defect: the published D1 schema predates the exact route-trip table, and its
+route cards do not embed the already-public route annotations. PRs
+[#93](https://github.com/mannyc2/bus-priority-impact-studio/pull/93) and
+[#94](https://github.com/mannyc2/bus-priority-impact-studio/pull/94) merged
+narrow compatibility fixes at `1f781d9700eae09968fa696b8f8247cf3cd70d4c` and
+`9accf147c8b9672fbb764a773f3c63f417be4861`. D1 remains authoritative for
+current route identity and operating data; only published intervention arrays
+are joined from R2 by exact, case-sensitive route ID. Missing, invalid, or
+duplicate compatibility inputs contribute no annotations.
+
+Main workflow `29919113313` passed and deployed. Production now returns HTTP
+200 for `/interventions`, the route API, the reviewed corpus, and the study
+index. It serves 389 routes and 569 public route annotations, preserving B44
+as `b44` and B44+ as `b44-sbs`. The browser derives 631 documented, 248
+planned, and six studied rows, with two tabs, one accessible Studied filter,
+an exact History target, and no horizontal overflow at 1440 px or 390 px.
+The unbuilt facet index remains an explicit 404/disabled Kind state. The
+legacy release also remains unable to satisfy strict v3 evidence-bundle
+closure, so that optional endpoint fails closed; the page retains all approved
+route/corpus records without prose inference. No D1, R2, estimator, study,
+receipt, or other publication artifact was mutated.
