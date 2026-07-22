@@ -10,6 +10,7 @@
     "./d1/schema": "./src/d1/schema.ts",
     "./d1/seed": "./src/d1/seed/index.ts",
     "./recovery/plan097": "./recovery/plan097/index.ts",
+    "./recovery/plan097/artifacts": "./recovery/plan097/artifacts.ts",
     "./local": "./src/local/index.ts",
     "./local/schema": "./src/local/schema.ts",
     "./shared": "./src/shared/index.ts"

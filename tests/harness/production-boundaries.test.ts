@@ -204,6 +204,19 @@ describe("production boundary harness", () => {
     }
   });
 
+  test("Plan 097 centralizes Studio R2 reads and leaves only the verified map loader direct", async () => {
+    const publicApi = await Bun.file("packages/studio-api/src/public-api.ts").text();
+    const projections = await Bun.file("packages/studio-api/src/studio/projections.ts").text();
+    const readHandlers = await Bun.file("packages/studio-api/src/studio/read-handlers.ts").text();
+    const directGetPattern = /ARTIFACTS\.get\(/g;
+
+    expect(projections.match(directGetPattern) ?? []).toHaveLength(0);
+    expect(readHandlers.match(directGetPattern) ?? []).toHaveLength(0);
+    expect(publicApi.match(directGetPattern) ?? []).toHaveLength(1);
+    expect(publicApi).toContain("env.ARTIFACTS.get(catalog.manifestKey)");
+    expect(publicApi).toContain("PLAN097_RECOVERY_NAMESPACE");
+  });
+
   test("domain package remains infrastructure-free", async () => {
     const files = await readFiles("packages/domain/src");
     const forbiddenImports = [

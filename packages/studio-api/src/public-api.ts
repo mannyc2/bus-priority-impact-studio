@@ -27,6 +27,7 @@ import {
   releaseIdFromPublishedAt,
 } from "@bp/domain/studio/shared";
 import { Result } from "effect";
+import { loadReleaseArtifact, PLAN097_RECOVERY_NAMESPACE } from "./artifact-resolver.js";
 import type { StudioApiEnv } from "./env.js";
 import { errorResponse as errorJson } from "./http/errors.js";
 import { jsonResponse as json } from "./http/json.js";
@@ -575,14 +576,22 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
   }
 
   let catalog: Awaited<ReturnType<typeof findLatestVerifiedFullMapRelease>>;
+  let studioRelease: ReleaseIdentity | null;
   try {
-    catalog = await findLatestVerifiedFullMapRelease(createD1ServingDb(env.DB));
+    const db = createD1ServingDb(env.DB);
+    [catalog, studioRelease] = await Promise.all([
+      findLatestVerifiedFullMapRelease(db),
+      resolvePublicServingRelease(db),
+    ]);
   } catch (error) {
     console.error("Map release catalog query failed.", { error });
     return errorJson(503, "The verified map release catalog is unavailable.");
   }
   if (catalog === null) {
     return errorJson(503, "No verified full map release is registered.");
+  }
+  if (studioRelease === null || catalog.releaseId !== studioRelease.releaseId) {
+    return errorJson(503, "The verified map release does not match the active Studio release.");
   }
 
   let object: R2ObjectBody | null;
@@ -761,8 +770,11 @@ async function buildArtifactResponse(url: URL, env: StudioApiEnv): Promise<Respo
   if (key === null || !isValidArtifactKey(key)) {
     return errorJson(400, "Artifact key is invalid.");
   }
+  if (key.startsWith(PLAN097_RECOVERY_NAMESPACE)) {
+    return errorJson(404, "Artifact was not found.");
+  }
 
-  const object = await env.ARTIFACTS.get(key);
+  const object = await loadReleaseArtifact(env, key);
   if (object === null) {
     return errorJson(404, "Artifact was not found.");
   }

@@ -187,6 +187,36 @@ class FakeDb {
         },
       ];
     }
+    const mapRelease = rowsByTable["map_release_catalog"]?.[0] as
+      | {
+          published_at?: unknown;
+          coverage_start?: unknown;
+          coverage_end?: unknown;
+          route_count?: unknown;
+        }
+      | undefined;
+    if (rowsByTable["route_batch_status"] === undefined && mapRelease !== undefined) {
+      rowsByTable["route_batch_status"] = [
+        {
+          month: mapRelease.coverage_end,
+          generated_at: mapRelease.published_at,
+          status: "pass",
+          route_count: mapRelease.route_count,
+          artifact_count: 1,
+          missing_artifact_count: 0,
+          hash_mismatch_count: 0,
+          byte_length_mismatch_count: 0,
+          total_byte_length: 1024,
+          issue_count: 0,
+        },
+      ];
+    }
+    if (
+      rowsByTable["route_month_trend"] === undefined &&
+      typeof mapRelease?.coverage_start === "string"
+    ) {
+      rowsByTable["route_month_trend"] = [{ month: mapRelease.coverage_start }];
+    }
   }
 
   prepare<T = unknown>(query: string): FakeStatement<T> {
@@ -1849,6 +1879,10 @@ describe("Studio API facade", () => {
       "/api/v1/artifacts/map/%252e%252e/private.json",
       env,
     );
+    const recoveryArtifactResponse = await fetchApi(
+      "/api/v1/artifacts/operations/plan097/blobs/sha256/aa/private.json",
+      env,
+    );
     const immutableArtifactResponse = await fetchApi(
       `/api/v1/artifacts/map/route-segments/b46-sbs/2026-03/all-day.${"b".repeat(64)}.geojson`,
       env,
@@ -1873,6 +1907,7 @@ describe("Studio API facade", () => {
       "public, max-age=60, stale-while-revalidate=86400",
     );
     expect(artifactResponse.headers.get("Content-Type")).toBe("application/geo+json");
+    expect(recoveryArtifactResponse.status).toBe(404);
     expect(artifactResponse.headers.get("Cache-Control")).toBe(
       "public, max-age=300, stale-while-revalidate=3600",
     );
@@ -1880,6 +1915,21 @@ describe("Studio API facade", () => {
     expect(immutableArtifactResponse.headers.get("Cache-Control")).toBe(
       "public, max-age=31536000, immutable",
     );
+    const recoveryModeArtifactResponse = await fetchApi(
+      "/api/v1/artifacts/map/route-segments/b46-sbs/2026-03/all-day.geojson",
+      {
+        ...env,
+        ARTIFACTS: new FakeR2Bucket({
+          "map/route-segments/b46-sbs/2026-03/all-day.geojson": new FakeR2Object(
+            '{"type":"FeatureCollection","features":[]}',
+            "application/geo+json",
+          ),
+        }) as unknown as R2Bucket,
+        PLAN097_RECOVERY_ENABLED: "true",
+        PLAN097_PREVIOUS_RELEASE_ID: releaseId,
+      },
+    );
+    expect(recoveryModeArtifactResponse.headers.get("Cache-Control")).toBe("no-store");
     expect(await artifactResponse.text()).toBe('{"type":"FeatureCollection","features":[]}');
     expect(invalidArtifactResponse.status).toBe(400);
     expect((await invalidArtifactResponse.json()) as unknown).toEqual({
@@ -1900,6 +1950,35 @@ describe("Studio API facade", () => {
       error: {
         code: "BAD_GATEWAY",
         message: "The registered map manifest does not match its catalog record.",
+      },
+    });
+
+    const independentlyNewestMap = await fetchApi("/api/v1/map/manifest", {
+      ARTIFACTS: bucket as unknown as R2Bucket,
+      DB: new FakeDb({
+        map_release_catalog: [catalogRow],
+        route_batch_status: [
+          {
+            month: coverage.end,
+            generated_at: "2026-07-20T00:00:00.000Z",
+            status: "pass",
+            route_count: 1,
+            artifact_count: 1,
+            missing_artifact_count: 0,
+            hash_mismatch_count: 0,
+            byte_length_mismatch_count: 0,
+            total_byte_length: 1024,
+            issue_count: 0,
+          },
+        ],
+        route_month_trend: [{ month: coverage.start }],
+      }) as unknown as D1Database,
+    });
+    expect(independentlyNewestMap.status).toBe(503);
+    expect((await independentlyNewestMap.json()) as unknown).toEqual({
+      error: {
+        code: "SERVICE_UNAVAILABLE",
+        message: "The verified map release does not match the active Studio release.",
       },
     });
 
