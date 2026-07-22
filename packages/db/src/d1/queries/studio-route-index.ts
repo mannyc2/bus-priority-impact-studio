@@ -27,9 +27,9 @@ type RouteSpeedHistoryCoverageIndexRow = Awaited<
   ReturnType<typeof listOptionalRouteSpeedHistoryCoverageRows>
 >[number];
 
-function isMissingRouteSpeedHistoryCoverageTable(error: unknown): boolean {
+function isMissingTable(error: unknown, table: string): boolean {
   const message = errorMessageWithCauses(error);
-  return message.includes("no such table") && message.includes("route_speed_history_coverage");
+  return message.includes("no such table") && message.includes(table);
 }
 
 function errorMessageWithCauses(error: unknown): string {
@@ -43,6 +43,7 @@ export type StudioRouteIndexSourceRow = {
   routeShortName: string;
   routeLongName: string | null;
   routeTypes: string[];
+  tripTypeCatalogAvailable?: boolean;
   shapeCount: number;
   tripTypes: string[];
   stopCount: number;
@@ -394,6 +395,17 @@ async function selectRouteCatalogTripTypeIndexRows(db: D1ServingDb) {
     .orderBy(asc(routeCatalogTripType.routeId), asc(routeCatalogTripType.tripTypeRank));
 }
 
+async function listOptionalRouteCatalogTripTypeIndexRows(db: D1ServingDb) {
+  try {
+    return { available: true, rows: await selectRouteCatalogTripTypeIndexRows(db) } as const;
+  } catch (error) {
+    if (isMissingTable(error, "route_catalog_trip_type")) {
+      return { available: false, rows: [] } as const;
+    }
+    throw error;
+  }
+}
+
 async function selectRouteReadinessIndexRows(db: D1ServingDb, month: string) {
   return db
     .select({
@@ -525,7 +537,7 @@ export async function listStudioRouteIndexSourceRows(
   const [
     catalogRows,
     typeRows,
-    tripTypeRows,
+    tripTypeCatalog,
     readinessRows,
     summaryRows,
     artifactRows,
@@ -534,7 +546,7 @@ export async function listStudioRouteIndexSourceRows(
   ] = await Promise.all([
     selectRouteCatalogIndexRows(db),
     selectRouteCatalogTypeIndexRows(db),
-    selectRouteCatalogTripTypeIndexRows(db),
+    listOptionalRouteCatalogTripTypeIndexRows(db),
     selectRouteReadinessIndexRows(db, month),
     selectRouteBriefSummaryIndexRows(db, month),
     selectRouteArtifactIndexRows(db, month),
@@ -543,7 +555,7 @@ export async function listStudioRouteIndexSourceRows(
   ]);
 
   const routeTypes = groupRouteTypes(typeRows);
-  const tripTypes = groupTripTypes(tripTypeRows);
+  const tripTypes = groupTripTypes(tripTypeCatalog.rows);
   const readiness = new Map(
     readinessRows.map((row) => {
       return [row.route_id, toReadiness(row)] as const;
@@ -565,6 +577,7 @@ export async function listStudioRouteIndexSourceRows(
       routeShortName: row.route_short_name,
       routeLongName: row.route_long_name,
       routeTypes: routeTypes.get(row.route_id) ?? [],
+      tripTypeCatalogAvailable: tripTypeCatalog.available,
       shapeCount: row.shape_count,
       stopCount: row.stop_count,
       timepointStopCount: row.timepoint_stop_count,
@@ -604,7 +617,7 @@ async function listOptionalRouteSpeedHistoryCoverageRows(db: D1ServingDb, month:
       .where(eq(routeSpeedHistoryCoverage.month, month))
       .orderBy(asc(routeSpeedHistoryCoverage.routeId));
   } catch (error) {
-    if (isMissingRouteSpeedHistoryCoverageTable(error)) return [];
+    if (isMissingTable(error, "route_speed_history_coverage")) return [];
     throw error;
   }
 }

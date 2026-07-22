@@ -84,4 +84,25 @@ describe("Studio API exact route identity presentation", () => {
       ),
     ).toThrow();
   });
+
+  test("keeps exact route ID and slug but omits unverified type metadata for legacy D1", () => {
+    const source = schoolRouteSource([]);
+    source.tripTypeCatalogAvailable = false;
+
+    const route = buildStudioRouteCardFromIndexRow(
+      normalizeStudioRouteIndexSourceRow(source),
+      undefined,
+      null,
+    );
+
+    expect(route).toMatchObject({
+      routeId: "B70",
+      slug: "b70",
+      label: "B70",
+      sbs: false,
+    });
+    expect(route).not.toHaveProperty("routeSchemaVersion");
+    expect(route).not.toHaveProperty("tripTypes");
+    expect(route.flags).toContain("Official trip types unavailable for this release");
+  });
 });
