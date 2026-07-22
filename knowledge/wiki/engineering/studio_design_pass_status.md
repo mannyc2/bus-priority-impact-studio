@@ -48,12 +48,18 @@ family and exact-route discovery. Its filters live in validated URL search
 state, and ledger links open the exact service's History tab at a stable record
 anchor. B44 and B44+ therefore remain separate in filters, links, and targets.
 
-This is an incremental data/navigation repair in the implemented visual
-language. It does not approve or execute the unresolved D22-D27 choices in the
-Plan 089 interventions comp. Plan 082 follows this work and may reuse the
-exhaustive treatment presentation helper for dated observation markers, but it
-must resolve those markers through typed treatment IDs rather than History
-prose or analysis-family equivalence.
+The operator approved D22-D27 on 2026-07-22, making the round-4 Plan 089 comp
+binding. `/interventions` is now a text-led network ledger: Documented and
+Planned are its only tabs, Studied is a composable toolbar filter, the year
+distribution and every count derive from current rows, documented records group
+by year, and planned records group by structured source plan. Compact study
+register labels link only published studies; peer-adjusted comparisons remain
+muted and unlinked. Missing typed facets still fail closed without prose
+classification.
+
+Plan 082 may reuse the exhaustive treatment presentation helper for dated
+observation markers, but it must resolve those markers through typed treatment
+IDs rather than History prose or analysis-family equivalence.
 
 ## Overview trend-marker rules — 2026-07-20 (approved comp)
 

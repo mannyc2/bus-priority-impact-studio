@@ -9045,3 +9045,34 @@ the coordinated release still covers 2023-04 through 2026-03. No D1 seed,
 Worker deployment, serving pointer, stable study object, or Plan 076 artifact
 was written. The exact receipt is
 `docs/research/reviews/review-cut-5298f37aac8780666c742f7d/publication-report.md`.
+
+## [2026-07-22] implementation | Plan 089 typed interventions ledger verified
+
+The operator approved D22-D27 exactly as shown in the round-4 comp. Plan 089
+formalized that authority and rebuilt only `/interventions`: a text-only hero
+and dynamic summary, Documented/Planned tabs, a composable Studied checkbox,
+search/typed-family/borough controls, a data-derived in-card year histogram,
+year-grouped documented rows, source-plan-grouped planned rows, compact study
+outcomes, honest undated rollups, exact History links, and 30-row load-more.
+No count, treatment state, plan membership, or study status is inferred from
+the comp or source prose.
+
+The real-data browser pass used the canonical read-only route, reviewed corpus,
+and published study artifacts with SHA-256 values
+`8fa238d0b5d813244ef1fcf64ade28051d11eb4b3e8c55fec9500ce0a614e56f`,
+`e03bac5f07fd2fbe64264d7132050e28f073c79943c451bdb5da4d8988100ab7`, and
+`8569856cd4ab2e7bd31d362a37d783696b8a0acb9dea425f519fcaaba5ce5487`.
+It rendered 631 documented, 248 planned, and five studied rows. The canonical
+root lacks the post-093 facet index, so Kind correctly rendered unavailable and
+all known rows remained visible; no prose classification was substituted.
+Desktop and 390 px checks passed keyboard tab switching, checkbox focus, URL
+history restoration, exact record links, and zero page-level overflow.
+
+Focused tests passed 18/18, the adjacent interventions/History/study-display
+set passed 42/42, and types, architecture, root unit, web, Worker, bundle, SEO,
+performance, and scoped Biome checks passed. The bundle remains within the
+unchanged caps at 138.4 KB entry gzip and 400.0 KB total JavaScript gzip. The
+complete `bun run check` reaches four unrelated Biome 2.5.3 errors in
+`analytics-primer.html` and `apps/web/src/routes/routes/index.tsx`; an untouched
+`origin/main` snapshot reproduces the same failure. No D1, R2, evidence,
+estimator, approval, or publication object changed.

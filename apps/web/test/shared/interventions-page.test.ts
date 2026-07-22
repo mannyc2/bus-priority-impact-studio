@@ -17,6 +17,7 @@ import type {
   StudioRouteEvidenceBundle,
   StudioRouteIndex3Response,
   StudioRouteIndex3Row,
+  StudyIndexArtifact,
 } from "../../src/studio/api-contract";
 import {
   compactInterventionsSearch,
@@ -25,7 +26,10 @@ import {
   interventionMatchAnnouncement,
   interventionRows,
   interventionsPaginationResetKey,
+  planGroups,
   recordTargetForRoute,
+  studyRegisterLabel,
+  yearDistribution,
   yearLabel,
 } from "../../src/studio/pages/interventions";
 import { isoMonthFixture } from "./schema-fixtures";
@@ -189,6 +193,44 @@ const wikiEvidence = {
 
 const routes = [servingRoute, wikiRoute, emptyRoute];
 const evidence = [wikiEvidence];
+
+const publishedStudies = {
+  artifactKind: "bp.studio.segment_study_index.v1",
+  schemaVersion: 1,
+  analysisMonth: isoMonthFixture("2026-05"),
+  reviewCutId: "study-review-cut-v1:5298f37aac8780666c742f7d",
+  studies: [
+    {
+      eventKey: "study-event-v2:test-m15",
+      routeId: "M15+",
+      routeSlug: "m15-sbs",
+      treatmentFamily: "automated_bus_lane_enforcement",
+      implementationMonth: isoMonthFixture("2024-06"),
+      effectMph: 0.22,
+      confidenceInterval: {
+        lowerMph: 0.06,
+        upperMph: 0.39,
+        iterationCount: 1_000,
+        seed: 7,
+      },
+      evaluationLevel: "segment_matched_did",
+      claimTier: "gated_estimate",
+      direction: "improved",
+    },
+  ],
+} satisfies StudyIndexArtifact;
+
+const studiedRoute = makeRoute({
+  slug: "m15-sbs",
+  label: "M15 SBS",
+  interventions: [
+    {
+      ...evaluatedIntervention,
+      eventId: "ace:M15+:ACE:2024-06-01",
+      title: "ACE camera enforcement begins",
+    },
+  ],
+});
 
 const corpus = {
   schemaVersion: 1,
@@ -445,6 +487,27 @@ describe("interventionRows", () => {
     expect(yearLabel("2024-06")).toBe("2024");
   });
 
+  test("derives honest year bins and source-plan groups from the current rows", () => {
+    const rows = interventionRows(routes, evidence, corpus, facetIndex);
+    const documented = filterInterventionRows(rows, {}, { facetIndexAvailable: true });
+    const planned = filterInterventionRows(
+      rows,
+      { view: "planned" },
+      { facetIndexAvailable: true },
+    );
+
+    expect(yearDistribution(documented)).toEqual([
+      { label: "2019", count: 1 },
+      { label: "2021", count: 1 },
+      { label: "2022", count: 1 },
+      { label: "2024", count: 1 },
+    ]);
+    expect(planGroups(planned).map((group) => [group.label, group.count])).toEqual([
+      ["Flatbush Progress Report", 1],
+      ["Network source", 1],
+    ]);
+  });
+
   test("deduplicates exact registry matches, appends corpus citations, and keeps route-less records", () => {
     const rows = interventionRows(routes, evidence, corpus);
     expect(rows).toHaveLength(6);
@@ -516,15 +579,21 @@ describe("interventionRows", () => {
     ).toBe(true);
 
     const withoutFacets = interventionRows(routes, evidence, corpus, null);
-    expect(
-      filterInterventionRows(
-        withoutFacets,
-        { family: "other" },
-        {
-          facetIndexAvailable: false,
-        },
-      ),
-    ).toHaveLength(withoutFacets.length);
+    const withoutFacetDocumented = filterInterventionRows(
+      withoutFacets,
+      { family: "other" },
+      {
+        facetIndexAvailable: false,
+      },
+    );
+    const withoutFacetPlanned = filterInterventionRows(
+      withoutFacets,
+      { family: "other", view: "planned" },
+      { facetIndexAvailable: false },
+    );
+    expect(withoutFacetDocumented).toHaveLength(4);
+    expect(withoutFacetPlanned).toHaveLength(2);
+    expect(withoutFacetDocumented.length + withoutFacetPlanned.length).toBe(withoutFacets.length);
   });
 
   test("chooses the exact route occurrence target from stable facet relationships", () => {
@@ -565,6 +634,19 @@ describe("interventions URL contract", () => {
         q: " lane ",
       }),
     ).toEqual({ route: "b41", q: "lane" });
+    expect(validateInterventionsSearch({ view: "documented", studied: "true" })).toEqual({
+      studied: true,
+    });
+    expect(validateInterventionsSearch({ view: "planned", studied: true })).toEqual({
+      view: "planned",
+      studied: true,
+    });
+    expect(validateInterventionsSearch({ view: "invented", studied: "yes" })).toEqual({});
+    expect(validateInterventionsSearch({ status: "evaluated" })).toEqual({ studied: true });
+    expect(validateInterventionsSearch({ status: "future" })).toEqual({ view: "planned" });
+    expect(validateInterventionsSearch({ status: "source-gap" })).toEqual({
+      status: "source-gap",
+    });
   });
 
   test("every validated filter dimension changes the pagination reset key", () => {
@@ -575,6 +657,8 @@ describe("interventions URL contract", () => {
       { family: "bus_priority_lane" as const },
       { route: "b41" },
       { q: "lane" },
+      { view: "planned" as const },
+      { studied: true as const },
     ]) {
       expect(interventionsPaginationResetKey(search)).not.toBe(baseline);
     }
@@ -582,32 +666,75 @@ describe("interventions URL contract", () => {
 });
 
 describe("InterventionsPage render", () => {
-  test("groups by year with Undated last and a delta readout on evaluated rows", async () => {
+  test("renders the approved text hero, two tabs, dynamic histogram, and documented ledger", async () => {
     const html = await renderWithRouter(createElement(InterventionsPage, { routes, evidence }));
 
+    expect(html).toContain("What the city built for buses — and what it changed.");
+    expect(html).toContain(
+      "Every documented bus lane, busway, camera corridor, and service change",
+    );
     expect(html).toContain("2024");
     expect(html).toContain("2019");
-    expect(html).toContain("Undated");
-    expect(html.indexOf("2019")).toBeLessThan(html.indexOf("Undated"));
-    // Status renders as a chip, never a group header or date cell.
-    expect(html).toContain("planned");
-    expect(html).not.toContain(">planned</div>");
-    // Evaluated delta readout.
+    expect(html).toContain('role="tablist"');
+    expect(html).toContain('aria-label="Intervention record status"');
+    expect(html).toContain('for="intervention-studied"');
+    expect(html).toContain('aria-label="Intervention records by year:');
+    expect(html).toContain("Documented");
+    expect(html).toContain("Planned");
+    expect(html).toContain("Network ledger");
+    // Existing route comparison stays visibly descriptive and unlinked.
     expect(html).toContain("+0.30 mph");
-    expect(html).toContain("3 comparison routes");
+    expect(html).toContain("peer-adjusted");
+    expect(html).not.toContain("View study");
     // Citations only via SourceNote popovers.
     expect(html).toContain("Sources (1)");
-    // Filter counts in chip labels.
-    expect(html).toContain("Evaluated (1)");
-    expect(html).toContain("All (4)");
-    // The page is structured as a navigable timeline, not a flat table of records.
-    expect(html).toContain('aria-label="Network intervention timeline"');
-    expect(html).toContain('aria-label="Filter interventions by status"');
+    expect(html).toContain('aria-label="Network intervention ledger"');
     expect(html).toContain('dateTime="2024-06"');
-    expect(html).toContain("Newest first");
-    // Doctrine: no interpunct, no old editorial hero title.
+    expect(html).not.toContain("bus lane infrastructure");
+    // Doctrine: no interpunct and no rejected forest plot / Studied tab.
     expect(html).not.toContain("·");
-    expect(html).not.toContain("What changed on the street");
+    expect(html).not.toContain("forest plot");
+    expect(html).not.toContain('role="tab">Studied');
+  });
+
+  test("groups the planned partition by structured source plan and keeps meaningful status", async () => {
+    const html = await renderWithRouter(
+      createElement(InterventionsPage, {
+        routes,
+        evidence,
+        corpus,
+        facetIndex,
+        search: { view: "planned" },
+      }),
+    );
+
+    expect(html).toContain("Flatbush Progress Report");
+    expect(html).toContain("Network source");
+    expect(html).toContain("Planned");
+    expect(html).toContain("proposed");
+    expect(html).not.toContain("Offset bus lane installed");
+  });
+
+  test("uses the published index for studied filtering and compact register labels", async () => {
+    const html = await renderWithRouter(
+      createElement(InterventionsPage, {
+        routes: [studiedRoute],
+        evidence: [],
+        studiesIndex: publishedStudies,
+        search: { studied: true },
+      }),
+    );
+
+    expect(html).toContain("1 documented, 0 planned, 1 studied");
+    expect(html).toContain("+0.22 mph");
+    expect(html).toContain("95% CI +0.06 to +0.39");
+    expect(html).toContain("matched-segment study →");
+    expect(html).not.toContain("View study");
+    const publishedStudy = publishedStudies.studies[0];
+    if (publishedStudy === undefined) throw new Error("published study fixture is required");
+    expect(studyRegisterLabel({ ...publishedStudy, claimTier: "descriptive" })).toBe(
+      "descriptive study",
+    );
   });
 
   test("bounds the initial list to 30 rows with a show-more control", async () => {
@@ -633,6 +760,28 @@ describe("InterventionsPage render", () => {
     expect(html).toContain("Show 10 more (10 left)");
   });
 
+  test("keeps documented records without dates as honest route rollups", async () => {
+    const undatedRoute = makeRoute({
+      slug: "b41",
+      label: "B41",
+      borough: "Brooklyn",
+      interventions: [
+        {
+          year: "undated",
+          title: "Documented treatment without a defensible date",
+          detail: "Source confirms the treatment but not its implementation date.",
+        },
+      ],
+    });
+    const html = await renderWithRouter(
+      createElement(InterventionsPage, { routes: [undatedRoute], evidence: [] }),
+    );
+
+    expect(html).toContain('aria-label="Undated intervention rollups"');
+    expect(html).toContain("Records without a defensible date: 1");
+    expect(html).toContain("Route History →");
+  });
+
   test("renders typed controls, custom treatments, and durable exact-route History links", async () => {
     const html = await renderWithRouter(
       createElement(InterventionsPage, {
@@ -644,8 +793,7 @@ describe("InterventionsPage render", () => {
       }),
     );
 
-    expect(html).toContain("Treatment family");
-    expect(html).toContain("Exact route");
+    expect(html).toContain("Kind:");
     expect(html).toContain("Search records");
     expect(html).toContain("Limited-to-local conversion");
     expect(html).toContain("/routes/b41?");

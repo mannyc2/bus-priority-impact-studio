@@ -24,6 +24,7 @@ function isAbortError(error: unknown): boolean {
 }
 
 const INTERVENTION_STATUSES = ["all", "evaluated", "future", "source-gap"] as const;
+const INTERVENTION_VIEWS = ["documented", "planned"] as const;
 const INTERVENTION_FAMILIES = [
   "bus_priority_lane",
   "signal_priority",
@@ -41,6 +42,8 @@ const INTERVENTION_FAMILIES = [
 
 export type InterventionsSearch = {
   status?: (typeof INTERVENTION_STATUSES)[number];
+  view?: (typeof INTERVENTION_VIEWS)[number];
+  studied?: true;
   borough?: (typeof ROUTE_INDEX_BOROUGHS)[number] | typeof ROUTE_INDEX_ALL_BOROUGHS;
   family?: StudioInterventionTreatmentFamily | "all";
   route?: string;
@@ -50,12 +53,16 @@ export type InterventionsSearch = {
 export function validateInterventionsSearch(search: Record<string, unknown>): InterventionsSearch {
   const {
     status: statusValue,
+    view: viewValue,
+    studied: studiedValue,
     borough: boroughValue,
     family: familyValue,
     route: routeValue,
     q: queryValue,
   } = search;
   const status = member(INTERVENTION_STATUSES, statusValue);
+  const view = member(INTERVENTION_VIEWS, viewValue);
+  const studied = studiedValue === true || studiedValue === "true" ? true : undefined;
   const borough = member(
     [ROUTE_INDEX_ALL_BOROUGHS, ...ROUTE_INDEX_BOROUGHS] as const,
     boroughValue,
@@ -64,7 +71,13 @@ export function validateInterventionsSearch(search: Record<string, unknown>): In
   const route = boundedTrimmedSearch(routeValue, 96);
   const q = boundedTrimmedSearch(queryValue, 120);
   return {
-    ...(status === undefined || status === "all" ? {} : { status }),
+    ...(view === "planned" || (view === undefined && status === "future")
+      ? { view: "planned" as const }
+      : {}),
+    ...(studied === true || (studied === undefined && status === "evaluated")
+      ? { studied: true as const }
+      : {}),
+    ...(status === "source-gap" ? { status } : {}),
     ...(borough === undefined || borough === ROUTE_INDEX_ALL_BOROUGHS ? {} : { borough }),
     ...(family === undefined || family === "all" ? {} : { family }),
     ...(route === undefined ? {} : { route }),

@@ -69,16 +69,24 @@ downloads or re-joins the citywide corpus in the browser.
 
 The `/interventions` ledger uses
 `bp.studio.intervention_facet_index.v1` for typed family and exact-route joins.
-Status, borough, family, route slug, and text search are shareable URL state.
+Documented/Planned view, studied coverage, borough, family, route slug, and
+text search are shareable URL state.
 Ledger-to-History links carry the exact route slug and a stable record ID;
 History-to-ledger links carry the same route slug and optional treatment
 family. Unknown exact route filters and missing facet artifacts are explicit
 availability states, not prompts to normalize a route suffix or parse prose.
 
-The Plan 089 visual comp remains a design-review artifact rather than an
-approved full redesign. Plan 082 is sequenced after this contract: dated trend
-markers may reuse the exhaustive treatment presentation metadata only after
-resolving Plan 090 observation treatment IDs through the route inventory.
+The approved Plan 089 surface keeps one text hero and one responsive ledger
+card. Documented records group by year and planned records by a structured
+source-plan label; undated/unnamed records remain explicit rollups. The
+in-card histogram, summary, tab counts, and group counts all derive from the
+same filtered record universe. Only published study-index rows create linked
+`matched-segment study` or `descriptive study` labels, while legacy
+peer-adjusted comparisons remain descriptive and unlinked.
+
+Plan 082 remains sequenced after the typed contract: dated trend markers may
+reuse the exhaustive treatment presentation metadata only after resolving Plan
+090 observation treatment IDs through the route inventory.
 
 ## Surface Contract Pattern
 
