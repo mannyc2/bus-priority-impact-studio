@@ -159,9 +159,11 @@ transferable benefit.
 
 The complete result-specific review and exact rc26 deltas are in
 `docs/research/reviews/review-cut-5298f37aac8780666c742f7d/anchors-report.md`. The operator's latest
-authorization closes the anchor stop for this immutable cut. Existing stable production study keys
-remain rc26 because overwriting any published object is forbidden; only new review-cut-versioned
-objects may be published.
+authorization closes the anchor stop for this immutable cut. The 21 study, rollup,
+approved-event-set, index, and anchor objects were subsequently published under the new immutable
+review-cut prefix and verified byte-for-byte. Existing stable production study keys remain rc26
+because overwriting any published object is forbidden. The exact release receipt is
+`docs/research/reviews/review-cut-5298f37aac8780666c742f7d/publication-report.md`.
 
 ## Queued producer member-extent follow-on
 

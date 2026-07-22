@@ -9026,3 +9026,22 @@ still reports only the pre-existing `analytics-primer.html` and route-index
 diagnostics. Immutable generated approval data is now excluded from Biome,
 matching the existing generated-artifact policy rather than changing its
 hash-bound bytes.
+
+## [2026-07-22] release | May review cut archived under an immutable versioned prefix
+
+Merged [PR #90](https://github.com/mannyc2/bus-priority-impact-studio/pull/90)
+at `1542925df82b81f0e060146a2737ade450721938` after its `ci-cd` workflow
+passed. A cache-busted preflight proved all 21 destination keys absent. The
+credentialed dry run then reported exactly 21 new candidates, zero skips, and
+zero failures before the execute pass uploaded all 2,047,522 bytes with zero
+skips or failures.
+
+Every new object lives below
+`studio/v2/review-cuts/study-review-cut-v1-5298f37aac8780666c742f7d/`.
+All 21 returned HTTP 200 and matched their staged SHA-256 digests. A separate
+verification rehashed all 17 stable rc26 study objects with no changes, kept
+the stable index at seven studies and analysis month 2026-03, and confirmed
+the coordinated release still covers 2023-04 through 2026-03. No D1 seed,
+Worker deployment, serving pointer, stable study object, or Plan 076 artifact
+was written. The exact receipt is
+`docs/research/reviews/review-cut-5298f37aac8780666c742f7d/publication-report.md`.
