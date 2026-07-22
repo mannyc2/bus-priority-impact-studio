@@ -16,7 +16,7 @@ creates a new candidate universe even when stable study-event IDs do not move.
 
 | Artifact | Identity or role | Authorizing? |
 |---|---|---|
-| `bp.studio.mta_wiki_member_extents.v1` | Strict import of one explicit producer member-extent manifest and its full occurrence × route × treatment-member denominator | No |
+| `bp.studio.mta_wiki_member_extents.v1` | Strict import of one release-addressed producer member-extent manifest and its full occurrence × route × treatment-member denominator; records both the containing release and the companion's source occurrence release | No |
 | `bp.studio.study_event_candidates.v4` | `candidate-set-v4:*`; binds registry rows, exact available route universe, producer release/occurrence/relationship lineage, full member rows, and `memberExtentLineage` manifest/projection receipts | No; `awaiting_review_cut` |
 | `bp.studio.study_physical_scope_bindings.v2` | Exact candidate + occurrence + analysis route + producer route record + treatment member + extent ID geometry/spine binding | No; supplies one review input |
 | `bp.studio.study_events.v5` | `study-review-cut-v1:*`; binds candidate universe plus analysis month, outcome snapshot, full spine manifest, scope binding receipt, engine, and review policy | Only with a complete matching v5 receipt |
@@ -28,8 +28,12 @@ authorize a receipt.
 
 ## Monthly lifecycle
 
-1. Import an explicitly named producer release and member-extent manifest by
-   exact SHA-256. Do not follow a mutable `LATEST` pointer.
+1. Import an explicitly named producer release and its addressed member-extent
+   manifest by exact SHA-256. Verify the manifest and every listed companion
+   file from the immutable release copy. Record the companion's source
+   occurrence release separately; require its occurrence input pin to match
+   the containing release's exact occurrence bytes. Do not follow a mutable
+   `LATEST` pointer.
 2. Build the complete candidate-set v4 artifact. Identical inputs produce
    identical JSON bytes and IDs. Any producer release, occurrence payload,
    relationship proof, member manifest/projection, member row, registry row,

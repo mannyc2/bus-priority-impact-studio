@@ -24,9 +24,11 @@ a study run, publication, D1 mutation, production pointer change, or deploy.
 
 ## Contract boundary
 
-1. Import the explicitly named member-extent manifest and verify every listed
-   byte count and SHA-256. Require exact parity with the pinned operational
-   occurrence payload. Never read `LATEST` or the forecast-realized overlay.
+1. Import only the release-addressed member-extent manifest and verify its
+   discriminator plus every listed release-copy byte count and SHA-256.
+   Preserve the companion's source occurrence release ID separately and
+   require its occurrence input pin to equal the containing release payload.
+   Never read `LATEST` or the forecast-realized overlay.
 2. Preserve treatment-member IDs and attach the exact producer member rows to
    each Wiki candidate. Candidate IDs remain stable; the new
    `candidate-set-v4` identity includes the full rows and reserved
