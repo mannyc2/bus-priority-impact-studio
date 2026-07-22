@@ -120,24 +120,57 @@ after,” “timeline,” “documented treatments,” and “related projects�
 
 ## Acceptance criteria
 
-- [ ] Explicit typed current state is visibly separate from chronological
+- [x] Explicit typed current state is visibly separate from chronological
       History; unavailable/partial/checked-empty/available-empty states remain
       distinct.
-- [ ] One History ledger retains every typed occurrence, treatment, evidence
+- [x] One History ledger retains every typed occurrence, treatment, evidence
       timeline/intervention/project, service record, and source gap exactly
       once by stable relationships; Undated remains last.
-- [ ] Dense routes receive accessible local search/filter and pagination;
+- [x] Dense routes receive accessible local search/filter and pagination;
       sparse routes do not receive unnecessary controls.
-- [ ] Published matched-control, descriptive, and peer-adjusted outcomes are
+- [x] Published matched-control, descriptive, and peer-adjusted outcomes are
       visibly distinct; no candidate/unapproved data or new claim enters.
-- [ ] Original source URLs remain external; PDF page fragments are added only
+- [x] Original source URLs remain external; PDF page fragments are added only
       from typed page numbers.
-- [ ] Existing History study/record links, keyboard focus, reduced motion,
+- [x] Existing History study/record links, keyboard focus, reduced motion,
       responsive layout, public failure behavior, and design budgets pass.
-- [ ] BX38, B67, B44, B44+, and B1 prove rich/sparse, matched/descriptive/none,
+- [x] BX38, B67, B44, B44+, and B1 prove rich/sparse, matched/descriptive/none,
       and exact B44/B44+ behavior.
 - [ ] Focused and comprehensive verification pass; the ready PR merges and the
       normal production deployment is verified.
+
+## Pre-merge verification receipt
+
+Implementation commits `3df7ad34` and `1a39a7d7` replace the overlapping
+History cards with the accepted composition. The exact aggregate JavaScript
+bundle is 409,576 gzip bytes, 24 bytes below the unchanged 400 KiB cap; the
+entry remains 138.4 KiB gzip under its unchanged 145 KiB cap.
+
+Focused verification passed 26 route-history/presentation tests, typecheck,
+production-boundary checks, and design doctrine. Comprehensive root unit and
+web tests passed (including 341 web tests); the Cloudflare harness passed 22
+Worker tests. Architecture, month doctrine, knowledge, build, SEO, and web
+performance passed. Plan 094's complete file set passes scoped Biome. The
+repository-wide style command stops at the same four pre-existing diagnostics
+on untouched `analytics-primer.html` and `apps/web/src/routes/routes/index.tsx`
+as an `origin/main` baseline.
+
+The browser pass used immutable public route artifacts plus the canonical
+read-only `wiki-v1-rc25` route-evidence artifact (SHA-256
+`c41e4d0dc88316494434a441f64e82b525ca5e712431bce8f3fca1ad92de8bec`).
+Because the legacy route JSON predates the current release wrapper, a temporary
+smoke server added only the required release identity/coverage metadata; it did
+not alter route, treatment, study, or citation content. BX38, B67, B44, B44+,
+and B1 passed desktop and 390 px checks for exact identity, matched/descriptive/
+peer-adjusted/no-outcome tiers, dense and empty states, keyboard focus, opened
+source popovers, local search/filter behavior, and zero horizontal overflow.
+The checked-in PDF-link helper is separately fixture-tested because the pinned
+route-evidence citations provide typed page numbers but no source URLs.
+
+At receipt time the live route-detail API returns its existing HTTP 500 while
+the immutable legacy artifact remains readable. The ready PR and normal main
+deployment are therefore the final production audit; no artifact or evidence
+contract is weakened to conceal that failure.
 
 ## STOP conditions
 

@@ -9103,3 +9103,24 @@ legacy release also remains unable to satisfy strict v3 evidence-bundle
 closure, so that optional endpoint fails closed; the page retains all approved
 route/corpus records without prose inference. No D1, R2, estimator, study,
 receipt, or other publication artifact was mutated.
+
+## [2026-07-22] implementation | Plan 094 route History redesign verified
+
+Plan 094 replaces five overlapping route History cards with an explicit typed
+Current state summary, one chronological ledger, and tier-separated Outcomes.
+The ledger preserves stable occurrence/treatment/project/source-gap anchors,
+keeps Undated last, adds local search/type controls above 12 records, and pages
+in complete 20-row batches. Current state comes only from `currentState[]`;
+missing inventory remains visibly unavailable. Original citation URLs remain
+external, typed PDF pages use URL fragments, and B44/B44+ stay distinct.
+
+Focused tests passed 26/26. Root unit and web suites, 22 Worker tests,
+typecheck, architecture, doctrine, knowledge, build, SEO, performance, and
+scoped style checks passed. The exact JavaScript total is 409,576 gzip bytes,
+24 bytes below the unchanged limit. Repository-wide style retains only the
+same four unrelated baseline failures. A headless Chromium matrix against
+canonical read-only `wiki-v1-rc25` evidence passed BX38, B67, B44, B44+, and
+B1 at 1440 px and 390 px for identity, keyboard focus, dense/sparse behavior,
+source popovers, study-tier distinctions, empty states, and overflow. The live
+route-detail API's pre-existing 500 remains the final post-deployment audit;
+the redesign does not weaken strict serving failure behavior to hide it.
