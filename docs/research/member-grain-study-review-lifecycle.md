@@ -50,6 +50,9 @@ authorize a receipt.
 ## Scope semantics
 
 - `route_wide`: admits the scope gate without manufacturing geometry.
+- exact `mta_ace_routes` registry evidence remains independently route-wide,
+  including for registry-only candidates; an unresolved producer companion
+  row neither upgrades nor revokes that separate source fact.
 - `bounded_segment`: satisfies bounded-scope identity only. It also requires
   one exact v2 geometry-to-spine binding per treatment member.
 - `unresolved`: fails the member-extent gate with the producer missing roles.

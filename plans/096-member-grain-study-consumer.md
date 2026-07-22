@@ -41,6 +41,9 @@ a study run, publication, D1 mutation, production pointer change, or deploy.
 5. A route-wide producer extent needs no geometry binding. A bounded extent
    resolves only bounded-scope identity and still needs exact geometry/spine.
    Unresolved, stop-set, mixed, or heterogeneous members remain ineligible.
+   Independent affirmative route-grain `mta_ace_routes` registry evidence is
+   preserved; the companion may add producer evidence but cannot revoke or
+   impersonate that separately pinned registry fact.
 6. Require a fresh v5 receipt with exactly one decision per candidate. Legacy
    v3/v4 receipts never authorize this universe; historical v3 artifacts and
    bytes remain unchanged.
