@@ -9,8 +9,9 @@ baselines/releases retired for coverage windows, a freshness ledger, and a
 harness gate), 12 (plans 090-093 plus amended 082: exact, lossless route
 intervention inventory; typed relevance; complete UI recognition; and the
 first non-ACE observation expansion), 13 (Plan 089: the approved typed
-`/interventions` network-ledger redesign), and 14 (Plan 094: the route-detail
-Treatments & History redesign — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
+`/interventions` network-ledger redesign), 14 (Plan 094: the route-detail
+Treatments & History redesign), and 15 (Plan 095: exact route-index v3 serving
+recovery — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
 overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
 `packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
 business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
@@ -24,6 +25,21 @@ conditions, and update your row when done.
 
 ---
 
+# Generation 15 — exact route serving recovery (2026-07-22)
+
+Plan 095 restores the strict exact route-index v3/D1 projection required by
+the deployed Plan 094 UI. It preserves the legacy schema-v2 compatibility
+surface but never uses it to authorize exact identity.
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 095 | Exact route-index v3 serving recovery | P0 | S-M | 085, 086, 092; 094 implementation merged | IN PROGRESS |
+
+See `plans/095-exact-route-index-v3-serving-recovery.md` for the production
+failure envelope, pinned exact identity, recovery checks, and mutation gate.
+
+---
+
 # Generation 14 — route-detail Treatments & History (2026-07-22)
 
 Plan 094 consolidates the route History tab after the exact, lossless typed
@@ -34,7 +50,7 @@ the recommended design after validation against real route artifacts.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 094 | Route-detail Treatments & History redesign | P1 | M | 074, 075, 082, 089, 090, 091, 092, 093 (DONE) | IN PROGRESS |
+| 094 | Route-detail Treatments & History redesign | P1 | M | 074, 075, 082, 089, 090, 091, 092, 093 (DONE) | BLOCKED — deployed UI; exact route-index v3/D1 reads return 500 |
 
 See `plans/094-route-history-redesign.md` and the accepted design receipt in
 `plans/mockups/094-route-history-redesign/route-history-comp.html`.

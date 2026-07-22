@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State**: IN PROGRESS
+- **State**: BLOCKED — UI merged/deployed; production exact route-index v3 and
+  route-detail reads return HTTP 500 before the History surface can render
 - **Priority**: P1
 - **Effort**: M
 - **Depends on**: Plans 074, 075, 082, 089, 090, 091, 092, and 093 (DONE)
@@ -171,6 +172,25 @@ At receipt time the live route-detail API returns its existing HTTP 500 while
 the immutable legacy artifact remains readable. The ready PR and normal main
 deployment are therefore the final production audit; no artifact or evidence
 contract is weakened to conceal that failure.
+
+## Production audit and blocker
+
+[PR #96](https://github.com/mannyc2/bus-priority-impact-studio/pull/96)
+merged at `061fdfd5de8fc06d1e6fa9294a50911ca340bfc7`. Main workflow
+[`29925161824`](https://github.com/mannyc2/bus-priority-impact-studio/actions/runs/29925161824)
+passed verification and deployed the Worker. The public HTML route returns 200,
+but both `/api/v1/studio/routes?schema=3` and every representative
+`/api/v1/studio/routes/:slug` request return 500. The schema-v2 route listing,
+route history, route speed history, route hourly profile, and immutable route
+artifacts return 200.
+
+This isolates the blocker to the exact route-index v3/D1 serving boundary that
+Plan 094 must consume. The browser implementation itself is verified against
+the same immutable route content and canonical typed evidence, but production
+cannot render it until that upstream contract is satisfied. A fallback to the
+legacy route projection would silently discard the Plan 091/092 exact identity
+contract and is therefore rejected. No D1/R2 data or publication object was
+changed during this audit.
 
 ## STOP conditions
 
