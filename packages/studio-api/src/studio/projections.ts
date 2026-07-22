@@ -3,10 +3,11 @@ import {
   type StudioRoute,
   type StudioRouteDetailResponse,
   StudioRouteDetailResponseSchema,
+  StudioRouteSchema,
   type StudioRoutesResponse,
   StudioRoutesResponseSchema,
 } from "@bp/domain/studio/routes";
-import { Result, type Schema } from "effect";
+import { Result, Schema } from "effect";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 import {
@@ -103,6 +104,41 @@ export async function loadStudioProjection<TSchema extends Schema.Constraint>(
   }
 
   return projection.success;
+}
+
+const PublishedRouteInterventionsProjectionSchema = Schema.Struct({
+  routes: Schema.Array(StudioRouteSchema),
+});
+
+/**
+ * Reads intervention annotations from the already-public route projection while D1 remains the
+ * authority for current route identity and operating data. The join is deliberately exact and
+ * case-sensitive: legacy slugs and route families must never move evidence between routes.
+ *
+ * A missing or contract-invalid compatibility projection contributes no annotations. It cannot
+ * replace D1 route cards or make the route listing unavailable.
+ */
+export async function maybeLoadPublishedRouteInterventions(
+  env: Pick<StudioApiEnv, "ARTIFACTS" | "STUDIO_RELEASE_KEY">,
+): Promise<ReadonlyMap<string, StudioRoute["interventions"]>> {
+  const projection = await loadStudioProjection(
+    env,
+    "routes.json",
+    PublishedRouteInterventionsProjectionSchema,
+  );
+  if (projection instanceof Response) return new Map();
+
+  const interventionsByRouteId = new Map<string, StudioRoute["interventions"]>();
+  for (const route of projection.routes) {
+    if (interventionsByRouteId.has(route.routeId)) {
+      console.error("Published route projection contains a duplicate exact route identity.", {
+        routeId: route.routeId,
+      });
+      return new Map();
+    }
+    interventionsByRouteId.set(route.routeId, route.interventions);
+  }
+  return interventionsByRouteId;
 }
 
 export async function loadStudioRouteProjection(
