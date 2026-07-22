@@ -249,16 +249,7 @@ export const OperationalOccurrenceMemberExtentKindSchema = Schema.Literals([
 export type OperationalOccurrenceMemberExtentKind =
   typeof OperationalOccurrenceMemberExtentKindSchema.Type;
 
-export const OperationalOccurrenceMemberExtentMissingRoleSchema = Schema.Literals([
-  "reviewed_extent_decision",
-  "affirmative_extent",
-  "route_member_binding",
-  "bounded_scope_identity",
-  "bounded_scope_relation",
-  "stop_identity",
-  "scope_evidence",
-  "scope_modality",
-]);
+export const OperationalOccurrenceMemberExtentMissingRoleSchema = NonEmptyStringSchema;
 export type OperationalOccurrenceMemberExtentMissingRole =
   typeof OperationalOccurrenceMemberExtentMissingRoleSchema.Type;
 
@@ -272,8 +263,8 @@ export type OperationalOccurrenceMemberExtentEvidenceBinding =
   typeof OperationalOccurrenceMemberExtentEvidenceBindingSchema.Type;
 
 export const OperationalOccurrenceMemberExtentComponentSchema = Schema.Struct({
-  component_kind: Schema.Literals(["route", "corridor", "segment", "stop"]),
-  identity_namespace: Schema.Literals(["canonical_record", "source_literal_v1"]),
+  component_kind: NonEmptyStringSchema,
+  identity_namespace: NonEmptyStringSchema,
   identifiers: Schema.Array(NonEmptyStringSchema).check(Schema.isMinLength(1)),
   description: NonEmptyStringSchema,
 });
@@ -382,6 +373,7 @@ export const MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1Schema = Sc
       identityGrain: Schema.Literal("occurrence_route_member"),
       sourceOccurrenceReleaseId: NonEmptyStringSchema,
       manifest: OperationalOccurrenceMemberExtentFileReceiptSchema,
+      contract: OperationalOccurrenceMemberExtentFileReceiptSchema,
       projection: OperationalOccurrenceMemberExtentFileReceiptSchema,
       reviewLedger: OperationalOccurrenceMemberExtentFileReceiptSchema,
       summary: OperationalOccurrenceMemberExtentFileReceiptSchema,

@@ -4,10 +4,12 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { MtaWikiOperationalOccurrenceImportArtifactV5 } from "@bp/domain/documents/operational-occurrence";
+import { OperationalOccurrenceMemberExtentRowV1Schema } from "@bp/domain/documents/operational-occurrence";
 import {
   runMtaWikiMemberExtentImport,
   validateMtaWikiMemberExtentImportArtifact,
 } from "../../src/lib/mta-wiki-member-extents.ts";
+import { decodeSchemaStrict } from "../../src/lib/schema-decode.ts";
 
 function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
@@ -174,10 +176,46 @@ describe("MTA Wiki member-extent import", () => {
       output: secondOutput,
     });
     expect(first.sourceRelease.memberExtent.identityGrain).toBe("occurrence_route_member");
+    expect(first.sourceRelease.memberExtent.contract.path).toEndWith("/contract.json");
     expect(first.memberExtents[0]?.treatment_record_id).toBe("treatment:test");
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
     expect(await readFile(firstOutput, "utf8")).toBe(await readFile(secondOutput, "utf8"));
     expect(() => validateMtaWikiMemberExtentImportArtifact(first, occurrence)).not.toThrow();
+  });
+
+  test("decodes the exact non-authorizing row shape and fails closed on authority", () => {
+    const row = {
+      schema_version: 1,
+      contract_id: "operational-occurrence-member-extent-v1",
+      extent_id: "member-extent:test",
+      occurrence_id: "occurrence:test",
+      occurrence_review_decision_id: "decision:test",
+      route_record_id: "route:test",
+      gtfs_route_id: "Q1",
+      treatment_record_id: "treatment:test",
+      treatment_family: "bus_lane",
+      extent: "unresolved",
+      components: [],
+      evidence_bindings: [],
+      missing_roles: ["producer_defined_missing_role"],
+      decision_id: null,
+      rationale: "No reviewed exact member extent exists.",
+      authorizes_study: false,
+      authorizes_cross_product: false,
+    } as const;
+    expect(decodeSchemaStrict(OperationalOccurrenceMemberExtentRowV1Schema, row)).toEqual(row);
+    expect(() =>
+      decodeSchemaStrict(OperationalOccurrenceMemberExtentRowV1Schema, {
+        ...row,
+        authorizes_study: true,
+      }),
+    ).toThrow();
+    expect(() =>
+      decodeSchemaStrict(OperationalOccurrenceMemberExtentRowV1Schema, {
+        ...row,
+        unexpected_authority: false,
+      }),
+    ).toThrow();
   });
 
   test("rejects a file changed after the immutable manifest was pinned", async () => {

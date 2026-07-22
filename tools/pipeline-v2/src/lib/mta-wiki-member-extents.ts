@@ -176,6 +176,7 @@ export function validateMtaWikiMemberExtentImportArtifact(
     );
   }
   const projection = artifact.sourceRelease.memberExtent.projection;
+  const contract = artifact.sourceRelease.memberExtent.contract;
   const reviewLedger = artifact.sourceRelease.memberExtent.reviewLedger;
   const summary = artifact.sourceRelease.memberExtent.summary;
   if (
@@ -204,6 +205,9 @@ export function validateMtaWikiMemberExtentImportArtifact(
     throw new Error("Member-extent artifact summary does not match its exact rows");
   }
   if (
+    !artifact.producerManifest.files.some(
+      (file) => file.path === contract.path && file.sha256 === contract.sha256,
+    ) ||
     !artifact.producerManifest.files.some(
       (file) => file.path === projection.path && file.sha256 === projection.sha256,
     ) ||
@@ -244,8 +248,7 @@ export function validateMtaWikiMemberExtentImportArtifact(
     rows: artifact.memberExtents,
     lineage: {
       identityGrain: "occurrence_route_member",
-      sourceOccurrenceReleaseId:
-        artifact.sourceRelease.memberExtent.sourceOccurrenceReleaseId,
+      sourceOccurrenceReleaseId: artifact.sourceRelease.memberExtent.sourceOccurrenceReleaseId,
       manifestSha256: artifact.sourceRelease.memberExtent.manifest.sha256,
       projectionSha256: projection.sha256,
       rowCount: artifact.summary.memberExtentRowCount,
@@ -319,6 +322,7 @@ export async function runMtaWikiMemberExtentImport(
     producerManifest.files,
     "/operational_occurrence_member_extents.jsonl",
   );
+  const contractReceipt = uniqueManifestFile(producerManifest.files, "/contract.json");
   if (projectionReceipt.row_count === undefined) {
     throw new Error("Member-extent projection receipt must include row_count");
   }
@@ -385,6 +389,7 @@ export async function runMtaWikiMemberExtentImport(
             bytes: manifestBytes.byteLength,
             sha256: manifestSha256,
           },
+          contract: contractReceipt,
           projection: projectionReceipt,
           reviewLedger: reviewLedgerReceipt,
           summary: summaryReceipt,
