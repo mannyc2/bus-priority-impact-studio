@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>076 — Opportunity layer decision comp</title>
+    <style>
+      :root {
+        --canvas: #f4f5f7;
+        --paper: #fafbfc;
+        --card: #ffffff;
+        --ink: #101418;
+        --ink70: rgba(16, 20, 24, 0.72);
+        --ink55: rgba(16, 20, 24, 0.6);
+        --ink40: rgba(16, 20, 24, 0.42);
+        --ink20: rgba(16, 20, 24, 0.2);
+        --ink06: rgba(16, 20, 24, 0.06);
+        --rule: rgba(16, 20, 24, 0.14);
+        --accent: #0039a6;
+        --accent-bg: #e8eef8;
+        --warn: #7a4b00;
+        --warn-bg: #fff1cd;
+        --good: #12633a;
+        --good-bg: #e2f3e9;
+        --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--canvas); color: var(--ink); font: 14px/1.5 var(--sans); }
+      button { font: inherit; }
+      .topbar { display: flex; justify-content: space-between; gap: 16px; padding: 10px 20px; background: var(--ink); color: white; font-weight: 600; }
+      .topbar span { color: rgba(255, 255, 255, 0.66); font: 11px var(--mono); }
+      .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 72px; }
+      .intro, .surface, .note { background: var(--card); border-radius: 3px; box-shadow: 0 0 0 1px var(--rule); }
+      .intro { display: grid; grid-template-columns: 1fr auto; gap: 20px; padding: 20px; }
+      h1, h2, h3, p { margin-top: 0; }
+      h1 { margin-bottom: 6px; font-size: 20px; letter-spacing: -0.01em; }
+      h2 { font-size: 16px; }
+      h3 { font-size: 14px; }
+      .intro p { max-width: 72ch; margin-bottom: 0; color: var(--ink70); }
+      .decision { align-self: start; border-radius: 3px; padding: 7px 10px; background: var(--warn-bg); color: var(--warn); font: 700 11px var(--mono); letter-spacing: 0.05em; text-transform: uppercase; }
+      .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+      .kpi { padding: 12px; border-radius: 3px; background: var(--ink06); }
+      .kpi b { display: block; font: 600 20px var(--mono); }
+      .kpi span { color: var(--ink55); font-size: 11.5px; }
+      .exhibit { display: grid; grid-template-columns: minmax(0, 1fr) 286px; gap: 18px; margin-top: 28px; }
+      .surface { min-height: 590px; overflow: hidden; }
+      .maphead { display: flex; justify-content: space-between; align-items: baseline; padding: 15px 18px; border-bottom: 1px solid var(--rule); }
+      .maphead h2 { margin: 0; }
+      .maphead span { color: var(--ink55); font: 11px var(--mono); }
+      .map { position: relative; min-height: 540px; background: linear-gradient(145deg, #edf1ed, #dce7e9); overflow: hidden; }
+      .water { position: absolute; inset: -70px -40px auto 58%; width: 48%; height: 680px; transform: rotate(11deg); border-radius: 50%; background: #b8d4df; }
+      .land { position: absolute; inset: 70px 25% 60px 6%; border: 1px solid rgba(16, 20, 24, 0.14); border-radius: 44% 54% 38% 60%; background: rgba(255, 255, 255, 0.42); }
+      .route { position: absolute; height: 5px; border-radius: 9px; background: var(--ink20); transform-origin: left center; }
+      .r1 { left: 14%; top: 38%; width: 48%; transform: rotate(-18deg); }
+      .r2 { left: 22%; top: 52%; width: 42%; transform: rotate(15deg); }
+      .r3 { left: 32%; top: 27%; width: 34%; transform: rotate(56deg); }
+      .r4 { left: 12%; top: 67%; width: 55%; transform: rotate(-8deg); }
+      .controls { position: absolute; z-index: 2; top: 14px; left: 14px; right: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .control { display: inline-flex; gap: 2px; padding: 3px; border-radius: 3px; background: rgba(255, 255, 255, 0.96); box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14); }
+      .control button { border: 0; border-radius: 2px; padding: 6px 9px; background: transparent; color: var(--ink55); font-size: 11.5px; }
+      .control .on { background: var(--ink); color: white; }
+      .control .disabled { color: var(--ink40); text-decoration: line-through; cursor: not-allowed; }
+      .lanes { display: inline-flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 3px; background: rgba(255, 255, 255, 0.96); box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14); color: var(--ink70); font-size: 11.5px; }
+      .switch { width: 28px; height: 16px; padding: 2px; border-radius: 20px; background: var(--ink20); }
+      .switch::before { content: ""; display: block; width: 12px; height: 12px; border-radius: 50%; background: white; }
+      .panel { position: absolute; z-index: 2; top: 86px; right: 14px; width: 310px; padding: 16px; border-radius: 3px; background: rgba(255, 255, 255, 0.97); box-shadow: 0 1px 10px rgba(0, 0, 0, 0.18); }
+      .badge { display: inline-flex; padding: 3px 7px; border-radius: 3px; background: var(--warn-bg); color: var(--warn); font: 700 10px var(--mono); letter-spacing: 0.05em; text-transform: uppercase; }
+      .panel h3 { margin: 10px 0 5px; font-size: 16px; }
+      .panel p { margin-bottom: 14px; color: var(--ink70); font-size: 12px; }
+      .gate { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: start; padding: 9px 0; border-top: 1px solid var(--rule); font-size: 11.5px; }
+      .gate i { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--good-bg); color: var(--good); font-style: normal; font-weight: 700; }
+      .gate.block i { background: var(--warn-bg); color: var(--warn); }
+      .gate b { display: block; font-weight: 600; }
+      .gate span { color: var(--ink55); }
+      .gate code { color: var(--ink70); font: 10.5px var(--mono); }
+      .panel .action { width: 100%; margin-top: 12px; border: 0; border-radius: 3px; padding: 9px 12px; background: var(--ink06); color: var(--ink40); font-weight: 600; cursor: not-allowed; }
+      .notes { display: flex; flex-direction: column; gap: 12px; }
+      .note { padding: 15px; }
+      .note h3 { margin-bottom: 6px; }
+      .note p, .note li { color: var(--ink70); font-size: 12px; }
+      .note p:last-child { margin-bottom: 0; }
+      .note ol, .note ul { margin: 0; padding-left: 18px; }
+      .note code { font: 10.5px var(--mono); }
+      .callout { border-left: 3px solid var(--warn); }
+      @media (max-width: 900px) {
+        .intro, .exhibit { grid-template-columns: 1fr; }
+        .kpis { grid-template-columns: 1fr; }
+        .surface { min-height: 680px; }
+        .map { min-height: 630px; }
+        .panel { top: 150px; left: 14px; right: 14px; width: auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div>Plan 076 decision comp</div>
+      <span>NON-PUBLIC · 2026-05 REVIEW CUT</span>
+    </div>
+    <main class="wrap">
+      <section class="intro">
+        <div>
+          <h1>Opportunity layer: honest unavailable state</h1>
+          <p>
+            The spike clears the three-study evidence floor but cannot identify a single confirmed
+            untreated segment. This comp shows the recommended future map-lens location and the
+            truthful state it would render today. It is a decision artifact, not an approved feature.
+          </p>
+          <div class="kpis">
+            <div class="kpi"><b>3</b><span>gated ACE event-route studies</span></div>
+            <div class="kpi"><b>-0.030%</b><span>signed median relative effect</span></div>
+            <div class="kpi"><b>0</b><span>segments safe to rank</span></div>
+          </div>
+        </div>
+        <div class="decision">Do not ship ranking</div>
+      </section>
+
+      <div class="exhibit">
+        <section class="surface">
+          <div class="maphead">
+            <h2>Network map</h2>
+            <span>future-state location · current-result content</span>
+          </div>
+          <div class="map">
+            <div class="water"></div><div class="land"></div>
+            <div class="route r1"></div><div class="route r2"></div>
+            <div class="route r3"></div><div class="route r4"></div>
+            <div class="controls">
+              <div class="control">
+                <button type="button" class="on">Speed</button>
+                <button type="button">Rider delay</button>
+                <button type="button" class="disabled" disabled>Opportunity</button>
+              </div>
+              <div class="control"><button type="button" class="on">All boroughs</button></div>
+              <div class="lanes">DOT bus lanes <span class="switch" aria-hidden="true"></span></div>
+            </div>
+            <aside class="panel">
+              <span class="badge">Ranking unavailable</span>
+              <h3>Evidence is not ready for “where next”</h3>
+              <p>
+                The map keeps its existing speed and rider-delay lenses. No opportunity colors or
+                ordered list appear until every gate below is satisfied.
+              </p>
+              <div class="gate">
+                <i>✓</i><div><b>Transfer evidence</b><span>Three gated ACE studies</span></div><code>PASS</code>
+              </div>
+              <div class="gate block">
+                <i>!</i><div><b>Effect strength</b><span>Mixed signs; median nearly zero</span></div><code>WEAK</code>
+              </div>
+              <div class="gate block">
+                <i>!</i><div><b>Treatment absence</b><span>No confirmed untreated segments</span></div><code>BLOCK</code>
+              </div>
+              <button type="button" class="action" disabled>No ranking to show</button>
+            </aside>
+          </div>
+        </section>
+
+        <aside class="notes">
+          <section class="note callout">
+            <h3>Decision</h3>
+            <p>
+              Defer every public surface. Revisit only after an audited current ACE absence inventory
+              and stronger same-family transfer evidence exist. Do not reinterpret <code>not_found</code>
+              as untreated.
+            </p>
+          </section>
+          <section class="note">
+            <h3>Why this location</h3>
+            <p>
+              If evidence later supports it, “Opportunity” belongs beside the current Speed and Rider
+              delay metric lenses. DOT lanes remain a separate source-geometry overlay, matching the
+              live map rather than the plan’s obsolete three-way toggle description.
+            </p>
+          </section>
+          <section class="note">
+            <h3>Other reviewed surfaces</h3>
+            <ol>
+              <li>A ranked block on <code>/interventions</code>: clearer ordering, weaker geography.</li>
+              <li>A route-page module: strongest context, poor network comparison.</li>
+            </ol>
+          </section>
+          <section class="note">
+            <h3>Current exclusions</h3>
+            <ul>
+              <li>135 already-treated source segments</li>
+              <li>818 unknown treatment-state segments</li>
+              <li>3,190 segments on non-ready spines</li>
+              <li>10 segments without usable May exposure</li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </body>
+</html>

@@ -11,6 +11,7 @@
 
 ## Status
 
+- **Status**: DONE — spike delivered, decision pending; no public surface recommended
 - **Priority**: P3
 - **Effort**: M (spike)
 - **Risk**: LOW (nothing serves publicly from this plan)
@@ -54,7 +55,7 @@ it must be decided by looking at real output, not argued in the abstract.
 |---|---|---|
 | Pipeline tests | `bun --filter @bp/pipeline-v2 test` | all pass |
 | Typecheck | `bun run check:types` | exit 0 |
-| Run prototype | `bun run pipeline study opportunity-prototype --analysis-month 2026-03` | writes prototype artifact + NOTE |
+| Run prototype | `bun run pipeline study opportunity-prototype --analysis-month 2026-05 ...` | writes prototype artifact + report |
 
 ## Scope
 
@@ -116,12 +117,13 @@ synthetic 3-route fixture where the correct ranking is known by construction.
 
 ## Done criteria
 
-- [ ] Prototype artifact + distribution report written under `data/artifacts/studio/v2/studies/opportunity-prototype/`
-- [ ] Every score finite; `insufficient_evidence` families excluded, counted, and reported
-- [ ] `docs/research/opportunity-layer-decision.md` exists with top-20 commentary and a recommendation
-- [ ] `bun --filter @bp/pipeline-v2 test` and `bun run check:types` exit 0
-- [ ] Nothing under `apps/web/` or `packages/` modified (`git status`)
-- [ ] `plans/README.md` status row updated (DONE = spike delivered, decision pending)
+- [x] Prototype artifact + distribution report written under `data/artifacts/studio/v2/studies/opportunity-prototype/`
+- [x] Every score finite; `insufficient_evidence` families excluded, counted, and reported
+- [x] `docs/research/opportunity-layer-decision.md` exists; zero rows pass the gates, so it records
+  why no top-20 exists and makes an explicit no-ship recommendation
+- [x] `bun --filter @bp/pipeline-v2 test` and `bun run check:types` exit 0
+- [x] Nothing under `apps/web/` or `packages/` modified (`git status`)
+- [x] `plans/README.md` status row updated (DONE = spike delivered, decision pending)
 
 ## STOP conditions
 
@@ -140,3 +142,20 @@ synthetic 3-route fixture where the correct ranking is known by construction.
 - Score components are deliberately separable so future refinements (stop-level
   ridership from master-plan Track A6, CBD geometry) slot in without reshaping
   the artifact.
+
+## Execution result (2026-07-22)
+
+The May Plan 074 cut unblocked this spike with three gated ACE event-route
+studies. Their signed median all-day effect is -0.030008758194421996%. The
+complete corpus-bound prototype then produced zero scoreable segments: 135
+were affirmatively treated and 818 had unknown treatment state. The remaining
+exclusions were 3,190 non-ready-spine rows, 10 missing-ridership rows, and 963
+insufficient-family segment pairs, with zero spine mismatches, invalid values,
+or manufactured untreated rows.
+
+Repeated outputs were byte-identical (`opportunities.json`
+`5b9c11080973443deb2ed7ad5610130e21af9e259e2f976f7738007931da5612`;
+`report.md` `7c520cc8c9ab4cdfd64793231d2f60087381610945654127c14647dbaa8c386a`).
+The decision document rejects a public surface until an audited current
+segment-level treatment-absence inventory and stronger same-family transfer
+evidence exist. No threshold, estimator, anchor, or claim tier changed.
