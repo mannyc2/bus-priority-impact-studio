@@ -280,6 +280,8 @@ describe("study run artifact writer", () => {
       study({ eventKey: "event-b", routeId: "B41", effectMph: -0.5 }),
     ];
     const approvedEvents = studies.map((artifact) => v3Candidate(artifact));
+    const focusCandidate = approvedEvents[0];
+    if (focusCandidate === undefined) throw new Error("Missing focus fixture candidate");
     const firstStudy = studies[0];
     if (firstStudy === undefined) throw new Error("Missing first fixture study");
     const rejectedInterference = v3Candidate(firstStudy, {
@@ -331,6 +333,48 @@ describe("study run artifact writer", () => {
       expect(
         JSON.parse(await readFile(join(root, "studio/v2/studies/index.json"), "utf8")).studies,
       ).toHaveLength(2);
+
+      await expect(
+        runSegmentStudies({
+          local: {
+            sqlite,
+            db: createLocalPipelineDb(sqlite),
+            path: ":memory:",
+            spatialite: null,
+          },
+          analysisMonth: "2026-03",
+          artifactRoot: root,
+          eventSetPath,
+          event: focusCandidate.candidateId,
+          buildStudy: async ({ candidate }) =>
+            studies.find((artifact) => artifact.candidateId === candidate.candidateId) ?? null,
+        }),
+      ).rejects.toThrow("Focused study runs require --focused-artifact-root");
+
+      const focusedRoot = join(root, "focused");
+      const focused = await runSegmentStudies({
+        local: {
+          sqlite,
+          db: createLocalPipelineDb(sqlite),
+          path: ":memory:",
+          spatialite: null,
+        },
+        analysisMonth: "2026-03",
+        artifactRoot: root,
+        focusedArtifactRoot: focusedRoot,
+        eventSetPath,
+        event: focusCandidate.candidateId,
+        buildStudy: async ({ candidate }) =>
+          studies.find((artifact) => artifact.candidateId === candidate.candidateId) ?? null,
+      });
+      expect(focused.studyCount).toBe(1);
+      expect(
+        JSON.parse(await readFile(join(root, "studio/v2/studies/index.json"), "utf8")).studies,
+      ).toHaveLength(2);
+      expect(
+        JSON.parse(await readFile(join(focusedRoot, "studio/v2/studies/index.json"), "utf8"))
+          .studies,
+      ).toHaveLength(1);
     } finally {
       sqlite.close();
     }

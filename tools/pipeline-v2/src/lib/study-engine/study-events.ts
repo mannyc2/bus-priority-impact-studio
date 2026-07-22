@@ -19,6 +19,7 @@ import type {
   StudyEventApprovalArtifact,
   StudyEventApprovalArtifactV2,
   StudyEventApprovalArtifactV3,
+  StudyEventApprovalArtifactV4,
   StudyEventCandidate,
   StudyEventCandidateV2,
   StudyEventCandidateV3,
@@ -26,8 +27,10 @@ import type {
   StudyEventMergeArtifact,
   StudyEventMergeArtifactV2,
   StudyEventMergeArtifactV3,
+  StudyEventMergeArtifactV4,
   StudyEventProvenance,
   StudyEventRejection,
+  StudyReviewInputsArtifactV1,
   StudyTreatmentFamily,
 } from "@bp/domain/studio/study";
 
@@ -112,6 +115,10 @@ function stableJson(value: unknown): string {
 
 function digest(prefix: string, value: unknown): string {
   return `${prefix}:${createHash("sha256").update(stableJson(value)).digest("hex").slice(0, 24)}`;
+}
+
+function sha256(value: unknown): string {
+  return createHash("sha256").update(stableJson(value)).digest("hex");
 }
 
 function legacyAliasedRouteId(value: string): string {
@@ -1124,6 +1131,14 @@ export type BuildStudyEventMergeV3Input = {
   approval?: StudyEventApprovalArtifactV3 | undefined;
 };
 
+export type BuildStudyEventMergeV4Input = {
+  registryEvents: readonly RouteTreatmentInterventionEventRow[];
+  wiki: PinnedWikiOccurrenceStudyInputV4;
+  availableAnalysisRouteIds: ReadonlySet<string>;
+  reviewInputs: StudyReviewInputsArtifactV1;
+  approval?: StudyEventApprovalArtifactV4 | undefined;
+};
+
 function validateV4ProducerReviewProfile(input: PinnedWikiOccurrenceStudyInputV4): void {
   const isPinnedRc22 = input.manifestSha256 === RC22_QUARANTINED_INPUT.manifestSha256;
   const usesRc22Exception =
@@ -1193,6 +1208,103 @@ function validateApprovalV3(
       );
     }
   }
+}
+
+function validateApprovalV4(
+  candidateSetId: string,
+  reviewCutId: string,
+  candidates: readonly StudyEventCandidateV3[],
+  conflicts: readonly StudyEventConflict[],
+  approval: StudyEventApprovalArtifactV4,
+): void {
+  if (
+    approval.artifactKind !== "bp.studio.study_event_approvals.v4" ||
+    approval.schemaVersion !== 4
+  ) {
+    throw new Error("Study-event review cuts require a fresh v4 approval artifact");
+  }
+  if (approval.candidateSetId !== candidateSetId || approval.reviewCutId !== reviewCutId) {
+    throw new Error(
+      `Study-event v4 approval is stale: expected ${candidateSetId} at ${reviewCutId}, received ${approval.candidateSetId} at ${approval.reviewCutId}`,
+    );
+  }
+  validateApprovalV3(candidateSetId, candidates, conflicts, {
+    artifactKind: "bp.studio.study_event_approvals.v3",
+    schemaVersion: 3,
+    candidateSetId,
+    decisions: approval.decisions,
+  });
+}
+
+function assertReviewInputs(input: StudyReviewInputsArtifactV1, candidateSetId: string): void {
+  const months = input.outcomeSnapshot.months.map((month) => month.month);
+  if (
+    input.analysisMonth !== input.outcomeSnapshot.coverageEndMonth ||
+    input.analysisMonth !== input.outcomeSnapshot.availability.latestCompleteMonth ||
+    input.analysisMonth !== input.speedSpineSnapshot.endMonth ||
+    input.analysisMonth !== input.physicalScopeSnapshot.analysisMonth
+  ) {
+    throw new Error("Study review inputs must bind one exact analysis month across all snapshots");
+  }
+  if (
+    months.length !== new Set(months).size ||
+    months.some((month, index) => index > 0 && month <= (months[index - 1] ?? "")) ||
+    months[0] !== input.outcomeSnapshot.coverageStartMonth ||
+    months.at(-1) !== input.outcomeSnapshot.coverageEndMonth
+  ) {
+    throw new Error("Study outcome coverage months must be unique, ordered, and match the bounds");
+  }
+  const routes = input.speedSpineSnapshot.routes.map((route) => route.routeId);
+  if (
+    routes.length !== input.speedSpineSnapshot.routeCount ||
+    routes.length !== new Set(routes).size ||
+    routes.some((route, index) => index > 0 && route <= (routes[index - 1] ?? ""))
+  ) {
+    throw new Error("Study speed-spine routes must be complete, unique, and ordered");
+  }
+  if (input.physicalScopeSnapshot.candidateSetId !== candidateSetId) {
+    throw new Error(
+      `Physical-scope review input is stale: expected ${candidateSetId}, received ${input.physicalScopeSnapshot.candidateSetId}`,
+    );
+  }
+}
+
+function candidateUniverseV4(input: {
+  candidateSetId: string;
+  candidates: readonly StudyEventCandidateV3[];
+  rejections: readonly StudyEventRejection[];
+  conflicts: readonly StudyEventConflict[];
+  wikiInput: StudyEventMergeArtifactV3["wikiInput"];
+  registryEvents: readonly RouteTreatmentInterventionEventRow[];
+  availableAnalysisRouteIds: ReadonlySet<string>;
+}) {
+  const registryEvents = [...input.registryEvents].toSorted((left, right) =>
+    stableJson(left).localeCompare(stableJson(right)),
+  );
+  const availableAnalysisRouteIds = [...input.availableAnalysisRouteIds].toSorted();
+  const facts = {
+    identityVersion: "tracker-study-candidate-universe-v1" as const,
+    candidateSetId: input.candidateSetId,
+    candidates: input.candidates,
+    rejections: input.rejections,
+    conflicts: input.conflicts,
+    wikiInput: input.wikiInput,
+    registryInputCount: registryEvents.length,
+    registryInputSha256: sha256(registryEvents),
+    availableAnalysisRouteCount: availableAnalysisRouteIds.length,
+    availableAnalysisRouteIdsSha256: sha256(availableAnalysisRouteIds),
+    memberExtentLineage: null,
+  };
+  return {
+    identityVersion: facts.identityVersion,
+    candidateSetId: facts.candidateSetId,
+    logicalSha256: sha256(facts),
+    registryInputCount: facts.registryInputCount,
+    registryInputSha256: facts.registryInputSha256,
+    availableAnalysisRouteCount: facts.availableAnalysisRouteCount,
+    availableAnalysisRouteIdsSha256: facts.availableAnalysisRouteIdsSha256,
+    memberExtentLineage: facts.memberExtentLineage,
+  };
 }
 
 function occurrenceRouteForProvenance(
@@ -1364,6 +1476,193 @@ export function buildStudyEventMergeArtifactV3(
         approvalState: "approved",
         approval: input.approval,
       };
+}
+
+function candidateUniverseLogicalSha256(input: {
+  identityVersion: "tracker-study-candidate-universe-v1";
+  candidateSetId: string;
+  candidates: readonly StudyEventCandidateV3[];
+  rejections: readonly StudyEventRejection[];
+  conflicts: readonly StudyEventConflict[];
+  wikiInput: StudyEventMergeArtifactV3["wikiInput"];
+  registryInputCount: number;
+  registryInputSha256: string;
+  availableAnalysisRouteCount: number;
+  availableAnalysisRouteIdsSha256: string;
+  memberExtentLineage: null | {
+    identityGrain: "occurrence_route_member";
+    manifestSha256: string;
+    projectionSha256: string;
+    rowCount: number;
+    eligibleRowCount: number;
+  };
+}): string {
+  return sha256(input);
+}
+
+export function validateStudyEventMergeArtifactV4(
+  artifact: StudyEventMergeArtifactV4,
+): StudyEventMergeArtifactV4 {
+  const expectedCandidateSetId = digest("candidate-set-v3", {
+    candidates: artifact.candidates,
+    conflicts: artifact.conflicts,
+    wikiInput: artifact.wikiInput,
+  });
+  if (
+    artifact.candidateSetId !== expectedCandidateSetId ||
+    artifact.candidateUniverse.candidateSetId !== expectedCandidateSetId
+  ) {
+    throw new Error(`Study review cut candidate-set identity mismatch: ${expectedCandidateSetId}`);
+  }
+  const expectedUniverseSha256 = candidateUniverseLogicalSha256({
+    identityVersion: artifact.candidateUniverse.identityVersion,
+    candidateSetId: artifact.candidateSetId,
+    candidates: artifact.candidates,
+    rejections: artifact.rejections,
+    conflicts: artifact.conflicts,
+    wikiInput: artifact.wikiInput,
+    registryInputCount: artifact.candidateUniverse.registryInputCount,
+    registryInputSha256: artifact.candidateUniverse.registryInputSha256,
+    availableAnalysisRouteCount: artifact.candidateUniverse.availableAnalysisRouteCount,
+    availableAnalysisRouteIdsSha256: artifact.candidateUniverse.availableAnalysisRouteIdsSha256,
+    memberExtentLineage: artifact.candidateUniverse.memberExtentLineage,
+  });
+  if (artifact.candidateUniverse.logicalSha256 !== expectedUniverseSha256) {
+    throw new Error("Study review cut candidate-universe logical hash mismatch");
+  }
+  assertReviewInputs(artifact.reviewInputs, artifact.candidateSetId);
+  const expectedReviewCutId = digest("study-review-cut-v1", {
+    candidateUniverse: artifact.candidateUniverse,
+    reviewInputs: artifact.reviewInputs,
+  });
+  if (artifact.reviewCutId !== expectedReviewCutId) {
+    throw new Error(
+      `Study review-cut identity mismatch: expected ${expectedReviewCutId}, received ${artifact.reviewCutId}`,
+    );
+  }
+  if (
+    artifact.summary.candidateCount !== artifact.candidates.length ||
+    artifact.summary.sourceRejectionCount !== artifact.rejections.length ||
+    artifact.summary.conflictCount !== artifact.conflicts.length
+  ) {
+    throw new Error("Study review-cut summary does not match its exact artifact rows");
+  }
+  if (artifact.approvalState === "awaiting_approval") {
+    if (
+      artifact.approval !== null ||
+      artifact.approvedEvents.length !== 0 ||
+      artifact.summary.approvedCount !== 0 ||
+      artifact.summary.rejectedByOperatorCount !== 0
+    ) {
+      throw new Error("Awaiting study review cuts cannot contain operator decisions");
+    }
+    return artifact;
+  }
+  validateApprovalV4(
+    artifact.candidateSetId,
+    artifact.reviewCutId,
+    artifact.candidates,
+    artifact.conflicts,
+    artifact.approval,
+  );
+  const approvedIds = new Set(
+    artifact.approval.decisions
+      .filter((decision) => decision.decision === "approved")
+      .map((decision) => decision.candidateId),
+  );
+  const expectedApproved = artifact.candidates.filter((candidate) =>
+    approvedIds.has(candidate.candidateId),
+  );
+  if (stableJson(artifact.approvedEvents) !== stableJson(expectedApproved)) {
+    throw new Error("Study review cut approvedEvents do not match the bound v4 receipt");
+  }
+  if (
+    artifact.summary.approvedCount !== expectedApproved.length ||
+    artifact.summary.rejectedByOperatorCount !==
+      artifact.approval.decisions.filter((decision) => decision.decision === "rejected").length
+  ) {
+    throw new Error("Approved study review-cut summary does not match the bound v4 receipt");
+  }
+  return artifact;
+}
+
+export function buildStudyEventMergeArtifactV4(
+  input: BuildStudyEventMergeV4Input,
+): StudyEventMergeArtifactV4 {
+  const base = buildStudyEventMergeArtifactV3({
+    registryEvents: input.registryEvents,
+    wiki: input.wiki,
+    availableAnalysisRouteIds: input.availableAnalysisRouteIds,
+  });
+  if (base.approvalState !== "awaiting_approval") {
+    throw new Error("Study review cuts require a compatible pinned occurrence release");
+  }
+  assertReviewInputs(input.reviewInputs, base.candidateSetId);
+  const candidateUniverse = candidateUniverseV4({
+    candidateSetId: base.candidateSetId,
+    candidates: base.candidates,
+    rejections: base.rejections,
+    conflicts: base.conflicts,
+    wikiInput: base.wikiInput,
+    registryEvents: input.registryEvents,
+    availableAnalysisRouteIds: input.availableAnalysisRouteIds,
+  });
+  const reviewCutId = digest("study-review-cut-v1", {
+    candidateUniverse,
+    reviewInputs: input.reviewInputs,
+  });
+  if (input.approval !== undefined) {
+    validateApprovalV4(
+      base.candidateSetId,
+      reviewCutId,
+      base.candidates,
+      base.conflicts,
+      input.approval,
+    );
+  }
+  const approvedIds = new Set(
+    input.approval?.decisions
+      .filter((decision) => decision.decision === "approved")
+      .map((decision) => decision.candidateId) ?? [],
+  );
+  const approvedEvents = base.candidates.filter((candidate) =>
+    approvedIds.has(candidate.candidateId),
+  );
+  const common = {
+    artifactKind: "bp.studio.study_events.v4",
+    schemaVersion: 4,
+    candidateSetId: base.candidateSetId,
+    reviewCutId,
+    candidateUniverse,
+    reviewInputs: input.reviewInputs,
+    wikiInput: base.wikiInput,
+    summary: {
+      ...base.summary,
+      approvedCount: approvedEvents.length,
+      rejectedByOperatorCount:
+        input.approval?.decisions.filter((decision) => decision.decision === "rejected").length ??
+        0,
+    },
+    candidates: base.candidates,
+    approvedEvents,
+    rejections: base.rejections,
+    conflicts: base.conflicts,
+  } as const;
+  const artifact: StudyEventMergeArtifactV4 =
+    input.approval === undefined
+      ? {
+          ...common,
+          approvalState: "awaiting_approval",
+          approvedEvents: [],
+          approval: null,
+        }
+      : {
+          ...common,
+          approvalState: "approved",
+          approvedEvents,
+          approval: input.approval,
+        };
+  return validateStudyEventMergeArtifactV4(artifact);
 }
 
 export function pinnedOccurrenceStudyInput(

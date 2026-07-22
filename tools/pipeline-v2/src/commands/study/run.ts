@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { serializeStudioSegmentId } from "@bp/analytics/feature-history";
 import { decodeStrict } from "@bp/domain/decode";
 import {
@@ -10,17 +11,20 @@ import {
   StudyArtifactSchema,
   type StudyEventCandidateV3,
   StudyEventMergeArtifactV3ApprovedSchema,
+  StudyEventMergeArtifactV4ApprovedSchema,
   StudyIndexArtifactSchema,
   type StudyPhysicalScopeBindingsArtifact,
   StudyPhysicalScopeBindingsArtifactSchema,
+  StudyReviewInputsArtifactV1Schema,
   studyArtifactKey,
   studyIndexKey,
 } from "@bp/domain/studio/study";
-import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import {
   loadStudyPanelRouteIds,
   loadStudyPanelSourceRows,
 } from "@bp/pipeline-v2/local-db-aggregates";
+import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { readJsonArtifact, writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
@@ -38,8 +42,10 @@ import {
   PEAK_HOURS,
   type StudyTreatmentScopeAdmission,
 } from "../../lib/study-engine/index.ts";
+import { validateStudyEventMergeArtifactV4 } from "../../lib/study-engine/study-events.ts";
 import { segmentLaneOverlapIndex } from "../studio/_release-geometry.ts";
 import type { RouteBriefInputArtifact } from "../studio/_release-types.ts";
+import { buildStudyReviewInputsArtifact } from "./snapshot-review-inputs.ts";
 
 const DEFAULT_EVENT_SET_PATH = "studio/v2/studies/study-events.json";
 const DEFAULT_BUS_LANE_SNAPSHOT_PATH = "data/raw/interventions/bus-lanes-local-streets.json";
@@ -212,6 +218,7 @@ async function buildOneStudy(input: {
   routeShapeSnapshotPath: string;
   stopSnapshotPath: string;
   candidateSetId: string;
+  reviewCutId?: string | undefined;
   candidate: StudyEventCandidateV3;
   interferenceEvents: readonly StudyEventCandidateV3[];
   scopeAdmission: Extract<StudyTreatmentScopeAdmission, { status: "admitted" }>;
@@ -294,6 +301,7 @@ async function buildOneStudy(input: {
   return buildStudyArtifact({
     candidate: input.candidate,
     candidateSetId: input.candidateSetId,
+    reviewCutId: input.reviewCutId,
     analysisMonth: input.analysisMonth,
     treatedSegmentScope: treated.scope,
     treatedSpineSegmentIds: [...treated.ids],
@@ -329,10 +337,12 @@ export async function writeStudyArtifactSet(input: {
 }
 
 type ApprovedV3EventSet = typeof StudyEventMergeArtifactV3ApprovedSchema.Type;
+type ApprovedV4EventSet = typeof StudyEventMergeArtifactV4ApprovedSchema.Type;
+type ApprovedEventSet = ApprovedV3EventSet | ApprovedV4EventSet;
 
 function scopeBindingIndex(input: {
   artifact: StudyPhysicalScopeBindingsArtifact;
-  eventSet: ApprovedV3EventSet;
+  eventSet: ApprovedEventSet;
   analysisMonth: string;
 }): ReadonlyMap<string, StudyPhysicalScopeBindingsArtifact["bindings"][number]> {
   if (input.artifact.candidateSetId !== input.eventSet.candidateSetId) {
@@ -370,8 +380,13 @@ export async function runSegmentStudies(input: {
   local: OpenLocalPipelineDb;
   analysisMonth: string;
   artifactRoot?: string | undefined;
+  focusedArtifactRoot?: string | undefined;
   eventSetPath?: string | undefined;
+  reviewInputsPath?: string | undefined;
+  availabilityPath?: string | undefined;
+  spineManifestPath?: string | undefined;
   scopeBindingsPath?: string | undefined;
+  legacyV3EventSet?: boolean | undefined;
   event?: string | undefined;
   busLaneSnapshotPath?: string | undefined;
   routeShapeSnapshotPath?: string | undefined;
@@ -395,15 +410,63 @@ export async function runSegmentStudies(input: {
   routeWideEvidenceMissingCount: number;
 }> {
   monthIndex(input.analysisMonth);
-  const artifactRoot = input.artifactRoot ?? defaultArtifactRootPath();
-  const eventSetPath = input.eventSetPath ?? join(artifactRoot, DEFAULT_EVENT_SET_PATH);
-  const eventSet = await readJsonArtifact(
-    eventSetPath,
-    StudyEventMergeArtifactV3ApprovedSchema,
-    "strict",
-  );
+  const completeArtifactRoot = input.artifactRoot ?? defaultArtifactRootPath();
+  if (input.event !== undefined && input.focusedArtifactRoot === undefined) {
+    throw new Error("Focused study runs require --focused-artifact-root");
+  }
+  const outputArtifactRoot = input.focusedArtifactRoot ?? completeArtifactRoot;
+  const eventSetPath = input.eventSetPath ?? join(completeArtifactRoot, DEFAULT_EVENT_SET_PATH);
+  const useLegacyV3 = input.legacyV3EventSet === true || input.reviewInputsPath === undefined;
+  const eventSet: ApprovedEventSet = useLegacyV3
+    ? await readJsonArtifact(eventSetPath, StudyEventMergeArtifactV3ApprovedSchema, "strict")
+    : await (async () => {
+        const loaded = await readJsonArtifact(
+          eventSetPath,
+          StudyEventMergeArtifactV4ApprovedSchema,
+          "strict",
+        );
+        validateStudyEventMergeArtifactV4(loaded);
+        return loaded;
+      })();
+  if (eventSet.artifactKind === "bp.studio.study_events.v4") {
+    if (
+      input.reviewInputsPath === undefined ||
+      input.availabilityPath === undefined ||
+      input.spineManifestPath === undefined ||
+      input.scopeBindingsPath === undefined
+    ) {
+      throw new Error(
+        "v4 study runs require --review-inputs, --availability, --spine-manifest, and --scope-bindings",
+      );
+    }
+    if (input.analysisMonth !== eventSet.reviewInputs.analysisMonth) {
+      throw new Error(
+        `Study analysis month is outside the approved review cut: expected ${eventSet.reviewInputs.analysisMonth}, received ${input.analysisMonth}`,
+      );
+    }
+    const pinnedReviewInputs = await readJsonArtifact(
+      input.reviewInputsPath,
+      StudyReviewInputsArtifactV1Schema,
+      "strict",
+    );
+    if (!isDeepStrictEqual(pinnedReviewInputs, eventSet.reviewInputs)) {
+      throw new Error("External review-input receipt does not match the approved review cut");
+    }
+    const currentReviewInputs = await buildStudyReviewInputsArtifact({
+      local: input.local,
+      analysisMonth: input.analysisMonth,
+      availabilityPath: input.availabilityPath,
+      spineManifestPath: input.spineManifestPath,
+      scopeBindingsPath: input.scopeBindingsPath,
+    });
+    if (!isDeepStrictEqual(currentReviewInputs, eventSet.reviewInputs)) {
+      throw new Error(
+        "Current outcome, spine, scope, or engine inputs do not match the approved review cut",
+      );
+    }
+  }
   if (eventSet.approvedEvents.length === 0) {
-    throw new Error(`Exact-route v3 study event set ${eventSetPath} has no approved events.`);
+    throw new Error(`Exact-route approved study event set ${eventSetPath} has no approved events.`);
   }
   const scopeBindingArtifact =
     input.scopeBindingsPath === undefined
@@ -457,7 +520,7 @@ export async function runSegmentStudies(input: {
     }
     const study = await buildStudy({
       local: input.local,
-      artifactRoot,
+      artifactRoot: completeArtifactRoot,
       analysisMonth: input.analysisMonth,
       busLaneSnapshotPath:
         input.busLaneSnapshotPath ?? fromRepoRoot(DEFAULT_BUS_LANE_SNAPSHOT_PATH),
@@ -465,6 +528,8 @@ export async function runSegmentStudies(input: {
         input.routeShapeSnapshotPath ?? fromRepoRoot(DEFAULT_ROUTE_SHAPE_SNAPSHOT_PATH),
       stopSnapshotPath: input.stopSnapshotPath ?? fromRepoRoot(DEFAULT_STOP_SNAPSHOT_PATH),
       candidateSetId: eventSet.candidateSetId,
+      reviewCutId:
+        eventSet.artifactKind === "bp.studio.study_events.v4" ? eventSet.reviewCutId : undefined,
       candidate,
       interferenceEvents: eventSet.candidates,
       scopeAdmission,
@@ -474,7 +539,7 @@ export async function runSegmentStudies(input: {
     else studies.push(study);
   }
   const written = await writeStudyArtifactSet({
-    artifactRoot,
+    artifactRoot: outputArtifactRoot,
     analysisMonth: input.analysisMonth,
     studies,
   });
@@ -511,8 +576,20 @@ export default defineCommand({
       artifactRoot: Schema.optionalKey(Schema.String).annotate({
         description: "Artifact root containing speed spines and receiving study outputs",
       }),
+      focusedArtifactRoot: Schema.optionalKey(Schema.String).annotate({
+        description: "Required isolated output root for a focused --event run",
+      }),
       eventSet: Schema.optionalKey(Schema.String).annotate({
         description: "Approved study-event merge artifact",
+      }),
+      reviewInputs: Schema.optionalKey(Schema.String).annotate({
+        description: "Exact review-input receipt embedded in the approved v4 review cut",
+      }),
+      availability: Schema.optionalKey(Schema.String).annotate({
+        description: "Pinned official route-speed availability artifact",
+      }),
+      spineManifest: Schema.optionalKey(Schema.String).annotate({
+        description: "Full route-speed-spine manifest bound by the review cut",
       }),
       scopeBindings: Schema.optionalKey(Schema.String).annotate({
         description: "Candidate-set-bound exact physical-scope binding artifact",
@@ -520,6 +597,12 @@ export default defineCommand({
       event: Schema.optionalKey(Schema.String).annotate({
         description: "Run only one approved candidate id or event key",
       }),
+      legacyV3EventSet: arg
+        .boolean()
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
+        .annotate({
+          description: "Explicit historical replay mode for approved v3 event sets",
+        }),
       busLaneSnapshot: Schema.optionalKey(Schema.String).annotate({
         description: "Hash-pinned NYC DOT bus-lane source snapshot",
       }),
@@ -559,10 +642,21 @@ export default defineCommand({
           analysisMonth: options.analysisMonth,
           artifactRoot:
             options.artifactRoot === undefined ? undefined : fromCliPath(options.artifactRoot),
+          focusedArtifactRoot:
+            options.focusedArtifactRoot === undefined
+              ? undefined
+              : fromCliPath(options.focusedArtifactRoot),
           eventSetPath: options.eventSet === undefined ? undefined : fromCliPath(options.eventSet),
+          reviewInputsPath:
+            options.reviewInputs === undefined ? undefined : fromCliPath(options.reviewInputs),
+          availabilityPath:
+            options.availability === undefined ? undefined : fromCliPath(options.availability),
+          spineManifestPath:
+            options.spineManifest === undefined ? undefined : fromCliPath(options.spineManifest),
           scopeBindingsPath:
             options.scopeBindings === undefined ? undefined : fromCliPath(options.scopeBindings),
           event: options.event,
+          legacyV3EventSet: options.legacyV3EventSet,
           busLaneSnapshotPath:
             options.busLaneSnapshot === undefined
               ? undefined

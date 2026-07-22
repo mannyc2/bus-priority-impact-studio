@@ -334,6 +334,9 @@ export default defineCommand({
         output: Schema.optionalKey(Schema.String).annotate({
           description: "Override manifest output path",
         }),
+        generatedAt: Schema.optionalKey(Schema.String).annotate({
+          description: "Pinned ISO timestamp for deterministic artifact regeneration",
+        }),
       },
     }),
   },
@@ -396,6 +399,7 @@ export default defineCommand({
               : fromCliPath(input.options.artifactRoot),
           output:
             input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+          generatedAt: input.options.generatedAt,
         }),
     });
   },

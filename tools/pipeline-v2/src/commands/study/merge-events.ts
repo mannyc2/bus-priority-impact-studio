@@ -3,9 +3,12 @@ import {
   StudyEventApprovalArtifactSchema,
   StudyEventApprovalArtifactV2Schema,
   StudyEventApprovalArtifactV3Schema,
+  StudyEventApprovalArtifactV4Schema,
   type StudyEventMergeArtifact,
   type StudyEventMergeArtifactV2,
   type StudyEventMergeArtifactV3,
+  type StudyEventMergeArtifactV4,
+  StudyReviewInputsArtifactV1Schema,
 } from "@bp/domain/studio/study";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { loadStudyEventRegistryRows } from "@bp/pipeline-v2/local-db-aggregates";
@@ -19,6 +22,7 @@ import {
   buildStudyEventMergeArtifact,
   buildStudyEventMergeArtifactV2,
   buildStudyEventMergeArtifactV3,
+  buildStudyEventMergeArtifactV4,
   pinnedOccurrenceStudyInput,
   pinnedOccurrenceStudyInputV4,
 } from "../../lib/study-engine/study-events.ts";
@@ -30,11 +34,17 @@ export type RunStudyEventMergeInput = {
   readonly wikiImportPath?: string | undefined;
   readonly withoutWikiAnchors: boolean;
   readonly approvalPath?: string | undefined;
+  readonly reviewInputsPath?: string | undefined;
   readonly outputPath?: string | undefined;
 };
 
 export async function runStudyEventMerge(input: RunStudyEventMergeInput): Promise<
-  (StudyEventMergeArtifact | StudyEventMergeArtifactV2 | StudyEventMergeArtifactV3) & {
+  (
+    | StudyEventMergeArtifact
+    | StudyEventMergeArtifactV2
+    | StudyEventMergeArtifactV3
+    | StudyEventMergeArtifactV4
+  ) & {
     outputPath: string;
   }
 > {
@@ -59,22 +69,48 @@ export async function runStudyEventMerge(input: RunStudyEventMergeInput): Promis
           "strict",
         );
   const registryEvents = loadStudyEventRegistryRows({ sqlite: input.local.sqlite });
+  if (
+    input.reviewInputsPath !== undefined &&
+    wikiImport?.artifactKind !== "bp.studio.mta_wiki_operational_occurrences.v4" &&
+    wikiImport?.artifactKind !== "bp.studio.mta_wiki_operational_occurrences.v5"
+  ) {
+    throw new Error("--review-inputs requires a compatible v4/v5 pinned occurrence import");
+  }
   const artifact =
     wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v4" ||
     wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v5"
-      ? buildStudyEventMergeArtifactV3({
-          registryEvents,
-          wiki: pinnedOccurrenceStudyInputV4(wikiImport),
-          availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
-          approval:
-            input.approvalPath === undefined
-              ? undefined
-              : await readJsonArtifact(
-                  input.approvalPath,
-                  StudyEventApprovalArtifactV3Schema,
-                  "strict",
-                ),
-        })
+      ? input.reviewInputsPath === undefined
+        ? buildStudyEventMergeArtifactV3({
+            registryEvents,
+            wiki: pinnedOccurrenceStudyInputV4(wikiImport),
+            availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
+            approval:
+              input.approvalPath === undefined
+                ? undefined
+                : await readJsonArtifact(
+                    input.approvalPath,
+                    StudyEventApprovalArtifactV3Schema,
+                    "strict",
+                  ),
+          })
+        : buildStudyEventMergeArtifactV4({
+            registryEvents,
+            wiki: pinnedOccurrenceStudyInputV4(wikiImport),
+            availableAnalysisRouteIds: loadAvailableAnalysisRouteIds(input.local),
+            reviewInputs: await readJsonArtifact(
+              input.reviewInputsPath,
+              StudyReviewInputsArtifactV1Schema,
+              "strict",
+            ),
+            approval:
+              input.approvalPath === undefined
+                ? undefined
+                : await readJsonArtifact(
+                    input.approvalPath,
+                    StudyEventApprovalArtifactV4Schema,
+                    "strict",
+                  ),
+          })
       : wikiImport?.artifactKind === "bp.studio.mta_wiki_operational_occurrences.v3"
         ? buildStudyEventMergeArtifactV2({
             registryEvents,
@@ -158,7 +194,11 @@ export default defineCommand({
             description: "Explicitly record that the candidate build omits MTA Wiki anchors",
           }),
         approval: Schema.optionalKey(Schema.String).annotate({
-          description: "Operator approval artifact bound to the complete candidate-set id",
+          description:
+            "Operator approval artifact bound to the complete candidate set or review cut",
+        }),
+        reviewInputs: Schema.optionalKey(Schema.String).annotate({
+          description: "Versioned outcome, spine, scope, and engine inputs for a v4 review cut",
         }),
         output: Schema.optionalKey(Schema.String).annotate({
           description: "Study-event merge artifact output path",
@@ -169,6 +209,7 @@ export default defineCommand({
   output: Schema.Struct({
     outputPath: Schema.String,
     candidateSetId: Schema.String,
+    reviewCutId: Schema.optionalKey(Schema.String),
     approvalState: Schema.Literals([
       "awaiting_approval",
       "approved",
@@ -193,11 +234,16 @@ export default defineCommand({
             options.wikiImport === undefined ? undefined : fromCliPath(options.wikiImport),
           withoutWikiAnchors: options.withoutWikiAnchors,
           approvalPath: options.approval === undefined ? undefined : fromCliPath(options.approval),
+          reviewInputsPath:
+            options.reviewInputs === undefined ? undefined : fromCliPath(options.reviewInputs),
           outputPath: options.output === undefined ? undefined : fromCliPath(options.output),
         });
         return {
           outputPath: artifact.outputPath,
           candidateSetId: artifact.candidateSetId,
+          ...(artifact.artifactKind === "bp.studio.study_events.v4"
+            ? { reviewCutId: artifact.reviewCutId }
+            : {}),
           approvalState: artifact.approvalState,
           candidateCount: artifact.summary.candidateCount,
           approvedCount: artifact.summary.approvedCount,

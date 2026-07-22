@@ -315,20 +315,6 @@ export const StudyEventMergeArtifactV3Schema = Schema.Union([
 ]);
 export type StudyEventMergeArtifactV3 = typeof StudyEventMergeArtifactV3Schema.Type;
 
-export const StudyEventApprovalArtifactAnySchema = Schema.Union([
-  StudyEventApprovalArtifactSchema,
-  StudyEventApprovalArtifactV2Schema,
-  StudyEventApprovalArtifactV3Schema,
-]);
-export type StudyEventApprovalArtifactAny = typeof StudyEventApprovalArtifactAnySchema.Type;
-
-export const StudyEventMergeArtifactAnySchema = Schema.Union([
-  StudyEventMergeArtifactSchema,
-  StudyEventMergeArtifactV2Schema,
-  StudyEventMergeArtifactV3Schema,
-]);
-export type StudyEventMergeArtifactAny = typeof StudyEventMergeArtifactAnySchema.Type;
-
 const StudyMonthSchema = Schema.String.check(Schema.isPattern(/^\d{4}-(?:0[1-9]|1[0-2])$/u));
 const StudySha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
 const NonEmptyStudyStringArraySchema = Schema.Array(
@@ -337,6 +323,155 @@ const NonEmptyStudyStringArraySchema = Schema.Array(
 const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
   Schema.isGreaterThanOrEqualTo(0),
 );
+
+export const StudyReviewFileReceiptSchema = Schema.Struct({
+  sha256: StudySha256Schema,
+  byteCount: NonNegativeIntegerSchema,
+});
+export type StudyReviewFileReceipt = typeof StudyReviewFileReceiptSchema.Type;
+
+export const StudyReviewOutcomeMonthSchema = Schema.Struct({
+  month: StudyMonthSchema,
+  rowCount: NonNegativeIntegerSchema,
+  routeCount: NonNegativeIntegerSchema,
+  busTripCount: NonNegativeIntegerSchema,
+});
+export type StudyReviewOutcomeMonth = typeof StudyReviewOutcomeMonthSchema.Type;
+
+export const StudyReviewSpeedSpineRouteSchema = Schema.Struct({
+  routeId: Schema.String.check(Schema.isMinLength(1)),
+  readiness: Schema.Literals([
+    "series_ready",
+    "series_ready_with_gaps",
+    "needs_pattern_review",
+    "failed",
+  ]),
+  artifactKey: Schema.String.check(Schema.isMinLength(1)),
+  artifact: StudyReviewFileReceiptSchema,
+});
+export type StudyReviewSpeedSpineRoute = typeof StudyReviewSpeedSpineRouteSchema.Type;
+
+export const StudyReviewInputsArtifactV1Schema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.study_review_inputs.v1"),
+  schemaVersion: Schema.Literal(1),
+  analysisMonth: StudyMonthSchema,
+  outcomeSnapshot: Schema.Struct({
+    sourceId: Schema.Literal("bus_segment_speeds_2025"),
+    sourceTable: Schema.Literal("local_route_segment_speed"),
+    projectionVersion: Schema.Literal("study-outcome-projection-v1"),
+    coverageStartMonth: StudyMonthSchema,
+    coverageEndMonth: StudyMonthSchema,
+    rowCount: NonNegativeIntegerSchema,
+    routeCount: NonNegativeIntegerSchema,
+    busTripCount: NonNegativeIntegerSchema,
+    months: Schema.Array(StudyReviewOutcomeMonthSchema).check(Schema.isMinLength(1)),
+    logicalSha256: StudySha256Schema,
+    availability: Schema.Struct({
+      latestCompleteMonth: StudyMonthSchema,
+      artifact: StudyReviewFileReceiptSchema,
+    }),
+  }),
+  speedSpineSnapshot: Schema.Struct({
+    startMonth: StudyMonthSchema,
+    endMonth: StudyMonthSchema,
+    toleranceMeters: Schema.Number.check(Schema.isGreaterThan(0)),
+    routeCount: NonNegativeIntegerSchema,
+    logicalSha256: StudySha256Schema,
+    manifest: StudyReviewFileReceiptSchema,
+    routes: Schema.Array(StudyReviewSpeedSpineRouteSchema).check(Schema.isMinLength(1)),
+  }),
+  physicalScopeSnapshot: Schema.Struct({
+    bindings: StudyReviewFileReceiptSchema,
+    candidateSetId: Schema.String.check(Schema.isMinLength(1)),
+    analysisMonth: StudyMonthSchema,
+    localBusLaneSha256: StudySha256Schema,
+    localBusLaneCoordinateSha256: StudySha256Schema,
+  }),
+  engineVersion: Schema.Literal("segment-matched-did-v2"),
+  reviewPolicyVersion: Schema.Literal("plan074-admission-v1"),
+});
+export type StudyReviewInputsArtifactV1 = typeof StudyReviewInputsArtifactV1Schema.Type;
+
+export const StudyEventCandidateUniverseV4Schema = Schema.Struct({
+  identityVersion: Schema.Literal("tracker-study-candidate-universe-v1"),
+  candidateSetId: Schema.String.check(
+    Schema.isPattern(/^candidate-set-v[3-9][0-9]*:[a-f0-9]{24}$/u),
+  ),
+  logicalSha256: StudySha256Schema,
+  registryInputCount: NonNegativeIntegerSchema,
+  registryInputSha256: StudySha256Schema,
+  availableAnalysisRouteCount: NonNegativeIntegerSchema,
+  availableAnalysisRouteIdsSha256: StudySha256Schema,
+  memberExtentLineage: Schema.NullOr(
+    Schema.Struct({
+      identityGrain: Schema.Literal("occurrence_route_member"),
+      manifestSha256: StudySha256Schema,
+      projectionSha256: StudySha256Schema,
+      rowCount: NonNegativeIntegerSchema,
+      eligibleRowCount: NonNegativeIntegerSchema,
+    }),
+  ),
+});
+export type StudyEventCandidateUniverseV4 = typeof StudyEventCandidateUniverseV4Schema.Type;
+
+export const StudyEventApprovalArtifactV4Schema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.studio.study_event_approvals.v4"),
+  schemaVersion: Schema.Literal(4),
+  candidateSetId: StudyEventCandidateUniverseV4Schema.fields.candidateSetId,
+  reviewCutId: Schema.String.check(Schema.isPattern(/^study-review-cut-v1:[a-f0-9]{24}$/u)),
+  decisions: Schema.Array(StudyEventApprovalDecisionSchema),
+});
+export type StudyEventApprovalArtifactV4 = typeof StudyEventApprovalArtifactV4Schema.Type;
+
+const StudyEventMergeArtifactV4BaseFields = {
+  artifactKind: Schema.Literal("bp.studio.study_events.v4"),
+  schemaVersion: Schema.Literal(4),
+  candidateSetId: StudyEventCandidateUniverseV4Schema.fields.candidateSetId,
+  reviewCutId: Schema.String.check(Schema.isPattern(/^study-review-cut-v1:[a-f0-9]{24}$/u)),
+  candidateUniverse: StudyEventCandidateUniverseV4Schema,
+  reviewInputs: StudyReviewInputsArtifactV1Schema,
+  wikiInput: StudyEventMergeArtifactV3AwaitingSchema.fields.wikiInput,
+  summary: StudyEventMergeArtifactV3AwaitingSchema.fields.summary,
+  candidates: Schema.Array(StudyEventCandidateV3Schema),
+  rejections: Schema.Array(StudyEventRejectionSchema),
+  conflicts: Schema.Array(StudyEventConflictSchema),
+} as const;
+
+export const StudyEventMergeArtifactV4AwaitingSchema = Schema.Struct({
+  ...StudyEventMergeArtifactV4BaseFields,
+  approvalState: Schema.Literal("awaiting_approval"),
+  approvedEvents: Schema.Array(StudyEventCandidateV3Schema).check(Schema.isMaxLength(0)),
+  approval: Schema.Null,
+});
+
+export const StudyEventMergeArtifactV4ApprovedSchema = Schema.Struct({
+  ...StudyEventMergeArtifactV4BaseFields,
+  approvalState: Schema.Literal("approved"),
+  approvedEvents: Schema.Array(StudyEventCandidateV3Schema),
+  approval: StudyEventApprovalArtifactV4Schema,
+});
+
+export const StudyEventMergeArtifactV4Schema = Schema.Union([
+  StudyEventMergeArtifactV4AwaitingSchema,
+  StudyEventMergeArtifactV4ApprovedSchema,
+]);
+export type StudyEventMergeArtifactV4 = typeof StudyEventMergeArtifactV4Schema.Type;
+
+export const StudyEventApprovalArtifactAnySchema = Schema.Union([
+  StudyEventApprovalArtifactSchema,
+  StudyEventApprovalArtifactV2Schema,
+  StudyEventApprovalArtifactV3Schema,
+  StudyEventApprovalArtifactV4Schema,
+]);
+export type StudyEventApprovalArtifactAny = typeof StudyEventApprovalArtifactAnySchema.Type;
+
+export const StudyEventMergeArtifactAnySchema = Schema.Union([
+  StudyEventMergeArtifactSchema,
+  StudyEventMergeArtifactV2Schema,
+  StudyEventMergeArtifactV3Schema,
+  StudyEventMergeArtifactV4Schema,
+]);
+export type StudyEventMergeArtifactAny = typeof StudyEventMergeArtifactAnySchema.Type;
 
 export { routeStudiesKey, studyArtifactKey, studyIndexKey } from "./study-key.js";
 
@@ -443,6 +578,9 @@ export const StudyArtifactSchema = Schema.Struct({
   eventKey: Schema.String.check(Schema.isMinLength(1)),
   candidateId: Schema.String.check(Schema.isMinLength(1)),
   candidateSetId: Schema.String.check(Schema.isMinLength(1)),
+  reviewCutId: Schema.optionalKey(
+    Schema.String.check(Schema.isPattern(/^study-review-cut-v1:[a-f0-9]{24}$/u)),
+  ),
   routeId: Schema.String.check(Schema.isMinLength(1)),
   routeSlug: Schema.String.check(Schema.isMinLength(1)),
   treatmentFamily: StudyTreatmentFamilySchema,
@@ -507,6 +645,9 @@ export const StudyIndexArtifactSchema = Schema.Struct({
   artifactKind: Schema.Literal("bp.studio.segment_study_index.v1"),
   schemaVersion: Schema.Literal(1),
   analysisMonth: StudyMonthSchema,
+  reviewCutId: Schema.optionalKey(
+    Schema.String.check(Schema.isPattern(/^study-review-cut-v1:[a-f0-9]{24}$/u)),
+  ),
   studies: Schema.Array(StudyIndexRowSchema).check(Schema.isMaxLength(500)),
 });
 export type StudyIndexArtifact = typeof StudyIndexArtifactSchema.Type;

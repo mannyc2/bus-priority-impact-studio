@@ -56,6 +56,7 @@ function artifactSensitivity(
 export function buildStudyArtifact(input: {
   readonly candidate: StudyEventCandidateV3;
   readonly candidateSetId: string;
+  readonly reviewCutId?: string | undefined;
   readonly analysisMonth: string;
   readonly treatedSegmentScope: "all_route_spines" | "lane_overlap_spines";
   readonly treatedSpineSegmentIds: readonly string[];
@@ -73,6 +74,7 @@ export function buildStudyArtifact(input: {
     eventKey: artifactEventKey(input.candidate),
     candidateId: input.candidate.candidateId,
     candidateSetId: input.candidateSetId,
+    ...(input.reviewCutId === undefined ? {} : { reviewCutId: input.reviewCutId }),
     routeId: input.candidate.routeId,
     routeSlug,
     treatmentFamily: input.candidate.treatmentFamily,
@@ -120,10 +122,22 @@ export function buildStudyArtifactCollections(input: {
       left.eventKey.localeCompare(right.eventKey),
   );
   if (studies.length > 500) throw new Error(`Study index cap exceeded: ${studies.length} > 500`);
+  const reviewCutStudyCount = studies.filter((study) => study.reviewCutId !== undefined).length;
+  const reviewCutIds = new Set(
+    studies.flatMap((study) => (study.reviewCutId === undefined ? [] : [study.reviewCutId])),
+  );
+  if (
+    reviewCutIds.size > 1 ||
+    (reviewCutStudyCount > 0 && reviewCutStudyCount !== studies.length)
+  ) {
+    throw new Error("Study artifact collection cannot mix review cuts");
+  }
+  const reviewCutId = [...reviewCutIds][0];
   const index: StudyIndexArtifact = {
     artifactKind: "bp.studio.segment_study_index.v1",
     schemaVersion: 1,
     analysisMonth: input.analysisMonth,
+    ...(reviewCutId === undefined ? {} : { reviewCutId }),
     studies: studies.map((study) => ({
       eventKey: study.eventKey,
       routeId: study.routeId,
