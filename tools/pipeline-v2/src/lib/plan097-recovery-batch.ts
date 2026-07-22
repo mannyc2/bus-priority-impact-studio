@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { decodeStrict } from "@bp/domain/decode";
+import { ReleaseIdentitySchema } from "@bp/domain/studio/shared";
 import { Schema } from "effect";
 
 const PLAN097_D1_STATEMENT_BYTE_LIMIT = 100_000;
@@ -44,6 +45,7 @@ export const plan097RecoveryMutationTables = [
 ] as const;
 
 const allowedMutationTables = new Set<string>(plan097RecoveryMutationTables);
+const allowedRegistrationTables = new Set(["exact_route_identity_release", "map_release_catalog"]);
 
 const BatchStatementSchema = Schema.Struct({
   sql: Schema.String.check(Schema.isMinLength(1)),
@@ -51,6 +53,18 @@ const BatchStatementSchema = Schema.Struct({
   table: Schema.String.check(Schema.isMinLength(1)),
   kind: Schema.Literals(["delete", "insert", "registration", "activation"]),
   rowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+});
+
+const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
+const Plan097BundleSourceSchema = Schema.Struct({
+  kind: Schema.Literals([
+    "canonical-schema",
+    "recovery-seed",
+    "exact-route-registration",
+    "map-release-registration",
+  ]),
+  sha256: Sha256Schema,
+  byteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
 });
 
 export const Plan097CompactedBatchSchema = Schema.Struct({
@@ -72,8 +86,47 @@ export const Plan097CompactedBatchSchema = Schema.Struct({
   }),
 });
 
+export const Plan097ActivationBundleSchema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.ops.plan097.activation-bundle.v1"),
+  schemaVersion: Schema.Literal(1),
+  operationId: Schema.String.check(Schema.isPattern(/^plan097:pub_[0-9TZ]+$/u)),
+  candidate: ReleaseIdentitySchema,
+  sources: Schema.Array(Plan097BundleSourceSchema).check(Schema.isLengthBetween(4, 4)),
+  batch: Plan097CompactedBatchSchema,
+});
+
+export const Plan097ActivationBundleReceiptSchema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.ops.plan097.activation-bundle-receipt.v1"),
+  schemaVersion: Schema.Literal(1),
+  operationId: Schema.String.check(Schema.isPattern(/^plan097:pub_[0-9TZ]+$/u)),
+  candidate: ReleaseIdentitySchema,
+  bundle: Schema.Struct({
+    key: Schema.String.check(
+      Schema.isPattern(
+        /^operations\/plan097\/bundles\/pub_[0-9TZ]+\/activation\.[a-f0-9]{64}\.json$/u,
+      ),
+    ),
+    sha256: Sha256Schema,
+    byteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  }),
+  metrics: Plan097CompactedBatchSchema.fields.metrics,
+});
+
 export type Plan097BatchStatement = typeof BatchStatementSchema.Type;
 export type Plan097CompactedBatch = typeof Plan097CompactedBatchSchema.Type;
+export type Plan097ActivationBundle = typeof Plan097ActivationBundleSchema.Type;
+export type Plan097ActivationBundleReceipt = typeof Plan097ActivationBundleReceiptSchema.Type;
+
+export function canonicalPlan097Json(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalPlan097Json).join(",")}]`;
+  const entries = Object.entries(value as Record<string, unknown>).toSorted(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  return `{${entries
+    .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalPlan097Json(entry)}`)
+    .join(",")}}`;
+}
 
 function quoteIdentifier(value: string): string {
   if (!/^[a-z][a-z0-9_]*$/u.test(value)) {
@@ -180,6 +233,16 @@ export function buildPlan097CompactedBatch(input: {
       tableInsertStatements({ sqlite, table, kind: "insert", maximumParameterBytes }),
     );
     const registrations = [...(input.registrations ?? [])];
+    for (const registration of registrations) {
+      const target = registration.sql.match(/\binsert\s+into\s+[`"]?([a-z0-9_]+)/iu)?.[1];
+      if (
+        registration.kind !== "registration" ||
+        !allowedRegistrationTables.has(registration.table) ||
+        target !== registration.table
+      ) {
+        throw new Error(`Unclassified Plan 097 registration target ${registration.table}`);
+      }
+    }
     const activation = tableInsertStatements({
       sqlite,
       table: "route_batch_status",
@@ -198,7 +261,7 @@ export function buildPlan097CompactedBatch(input: {
     if (statements.length > PLAN097_D1_QUERY_LIMIT) {
       throw new Error("Plan 097 compacted batch exceeds the D1 query-per-invocation limit");
     }
-    return decodeStrict(Plan097CompactedBatchSchema)({
+    const batch = decodeStrict(Plan097CompactedBatchSchema)({
       schemaVersion: 1,
       statements,
       metrics: {
@@ -217,6 +280,8 @@ export function buildPlan097CompactedBatch(input: {
         ),
       },
     });
+    applyPlan097CompactedBatch({ sqlite, batch });
+    return batch;
   } finally {
     sqlite.close();
   }

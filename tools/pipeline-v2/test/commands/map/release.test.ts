@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -28,11 +29,22 @@ describe("runMapRelease", () => {
       const busLaneSnapshotPath = join(root, "sources", "lanes.json");
       const schemaPath = join(exportRoot, "d1", "2026-04", "schema.sql");
       const seedPath = join(exportRoot, "d1", "2026-04", "seed.sql");
+      const plan097RecoverySeedPath = join(
+        exportRoot,
+        "d1",
+        "2026-04",
+        "seed.plan097-recovery.sql",
+      );
+      const exactRegistrationPath = join(exportRoot, "d1", "2026-04", "exact-registration.sql");
       const contextPath = join(artifactRoot, "map", "context", "nyc-boroughs.min.geojson");
       const mapRouteFactsPath = join(artifactRoot, "studio", "v1", "map-route-facts.json");
-      const calls: Array<{ name: string; input: Record<string, unknown> }> = [];
+      type RecordedInput = Record<string, unknown> & {
+        releaseIdentity?: unknown;
+        generatedAt?: unknown;
+      };
+      const calls: Array<{ name: string; input: RecordedInput }> = [];
       const record = (name: string, input: unknown) => {
-        calls.push({ name, input: input as Record<string, unknown> });
+        calls.push({ name, input: input as RecordedInput });
       };
       const dependencies = {
         async routeBrief(input: unknown) {
@@ -57,17 +69,47 @@ describe("runMapRelease", () => {
               };
             }
           ).releaseIdentity;
+          const schemaSql = `
+            CREATE TABLE route_catalog (route_id TEXT PRIMARY KEY, route_short_name TEXT NOT NULL);
+            CREATE TABLE route_batch_status (month TEXT PRIMARY KEY, generated_at TEXT NOT NULL, status TEXT NOT NULL);
+            CREATE TABLE exact_route_identity_release (release_id TEXT PRIMARY KEY);
+            CREATE TABLE map_release_catalog (
+              release_id TEXT PRIMARY KEY,
+              published_at TEXT NOT NULL,
+              coverage_start TEXT,
+              coverage_end TEXT NOT NULL,
+              manifest_key TEXT NOT NULL UNIQUE,
+              manifest_sha256 TEXT NOT NULL,
+              release_profile TEXT NOT NULL,
+              verification_status TEXT NOT NULL,
+              route_count INTEGER NOT NULL
+            );
+          `;
+          const recoverySeedSql = `
+            DELETE FROM "route_catalog";
+            DELETE FROM "route_batch_status" WHERE "month" = '2026-04';
+            INSERT INTO "route_catalog" VALUES ('M1', 'M1');
+            INSERT INTO "route_batch_status" VALUES ('2026-04', '${releaseIdentity.publishedAt}', 'pass');
+          `;
+          const exactRegistrationSql = `INSERT INTO exact_route_identity_release (release_id) VALUES ('${releaseIdentity.releaseId}');\n`;
+          mkdirSync(join(exportRoot, "d1", "2026-04"), { recursive: true });
+          await Promise.all([
+            Bun.write(schemaPath, schemaSql),
+            Bun.write(plan097RecoverySeedPath, recoverySeedSql),
+            Bun.write(exactRegistrationPath, exactRegistrationSql),
+          ]);
+          const exactRegistrationBytes = new TextEncoder().encode(exactRegistrationSql);
           return {
             schemaPath,
             seedPath,
+            plan097RecoverySeedPath,
             status: "pass",
             ...releaseIdentity,
-            coverage: { start: "2024-11", end: releaseIdentity.coverage.end },
             exactRouteIdentity: {
               registrationFile: {
-                path: join(exportRoot, "d1", "2026-04", "exact-registration.sql"),
-                byteLength: 1,
-                sha256: "1".repeat(64),
+                path: exactRegistrationPath,
+                byteLength: exactRegistrationBytes.byteLength,
+                sha256: createHash("sha256").update(exactRegistrationBytes).digest("hex"),
               },
               receiptFile: {
                 path: join(exportRoot, "d1", "2026-04", "exact-receipt.json"),
@@ -103,7 +145,6 @@ describe("runMapRelease", () => {
             outputPath: join(artifactRoot, "studio", "v1", "release.json"),
             releaseIdentity: {
               ...releaseIdentity,
-              coverage: { start: "2025-01", end: releaseIdentity.coverage.end },
             },
           };
         },
@@ -224,21 +265,21 @@ describe("runMapRelease", () => {
         routeFactsPath: mapRouteFactsPath,
         releaseProfile: "full",
       });
-      const mapReleaseIdentity = map?.["releaseIdentity"] as
+      const mapReleaseIdentity = map?.releaseIdentity as
         | { publishedAt: string; coverage: { start: string | null; end: string } }
         | undefined;
-      expect(d1?.["releaseIdentity"]).toEqual(studio?.["releaseIdentity"]);
-      expect(studio?.["releaseIdentity"]).toEqual(mapReleaseIdentity);
+      expect(d1?.releaseIdentity).toEqual(studio?.releaseIdentity);
+      expect(studio?.releaseIdentity).toEqual(mapReleaseIdentity);
       expect(mapReleaseIdentity?.coverage).toEqual({ start: "2025-02", end: "2026-04" });
-      expect(calls.find((call) => call.name === "speedSpines")?.input["generatedAt"]).toBe(
+      expect(calls.find((call) => call.name === "speedSpines")?.input.generatedAt).toBe(
         mapReleaseIdentity?.publishedAt,
       );
       expect(result.d1.schemaPath).toBe(schemaPath);
-      expect(result.d1.coverage.start as string | null).toBe("2024-11");
+      expect(result.d1.coverage.start as string | null).toBe("2025-02");
       expect(result.d1.coverage.end as string).toBe("2026-04");
       expect(result.d1.exactRouteIdentity?.exactRouteCount).toBe(1);
       expect(result.studio.mapRouteFactsPath).toBe(mapRouteFactsPath);
-      expect(result.studio.releaseIdentity.coverage.start as string | null).toBe("2025-01");
+      expect(result.studio.releaseIdentity.coverage.start as string | null).toBe("2025-02");
       expect(result.studio.releaseIdentity.coverage.end as string).toBe("2026-04");
       expect(result.finalManifestKey).toMatch(/^map\/2026-04\/manifest\.[a-f0-9]{64}\.json$/);
       expect(existsSync(result.finalManifestPath)).toBe(true);
@@ -250,6 +291,17 @@ describe("runMapRelease", () => {
         result.releaseIdentity.publishedAt,
       );
       expect(await Bun.file(result.registrationPath).text()).toContain("'2025-02'");
+      expect(existsSync(result.activationBundlePath)).toBe(true);
+      expect(existsSync(result.activationBundleReceiptPath)).toBe(true);
+      const activationBundle = JSON.parse(await Bun.file(result.activationBundlePath).text()) as {
+        operationId: string;
+        batch: { statements: Array<{ kind: string; table: string }> };
+      };
+      expect(activationBundle.operationId).toBe(`plan097:${result.releaseIdentity.releaseId}`);
+      expect(activationBundle.batch.statements.at(-1)).toEqual(
+        expect.objectContaining({ kind: "activation", table: "route_batch_status" }),
+      );
+      expect(result.activationBundleKey).toContain(result.activationBundleSha256);
       expect(calls.filter((call) => call.name === "verifyD1")).toHaveLength(1);
     } finally {
       rmSync(root, { recursive: true, force: true });

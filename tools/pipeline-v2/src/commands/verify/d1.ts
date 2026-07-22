@@ -34,6 +34,7 @@ export type D1VerifyResult = {
   summaryPath: string;
   schemaPath: string;
   seedPath: string;
+  plan097RecoverySeedPath: string;
   status: "pass" | "fail";
   issueCount: number;
   tableCounts: Record<string, number>;
@@ -148,6 +149,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     year: inputs.year,
     month: inputs.month,
     publishedAt: releaseIdentity.publishedAt,
+    releaseIdentity,
     exportRoot: inputs.exportRoot,
     artifactRoot: inputs.artifactRoot,
     routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
@@ -201,6 +203,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     summaryPath: join(dirname(exportResult.seedPath), "verify-summary.json"),
     schemaPath: exportResult.schemaPath,
     seedPath: exportResult.seedPath,
+    plan097RecoverySeedPath: exportResult.plan097RecoverySeedPath,
     status: "pass",
     issueCount: 0,
     tableCounts,

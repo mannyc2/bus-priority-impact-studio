@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { buildD1AppendixSeedSql, buildD1SeedSql } from "@bp/db/d1/seed";
+import {
+  buildD1AppendixSeedSql,
+  buildD1SeedSql,
+  buildPlan097RecoverySeedSql,
+} from "@bp/db/d1/seed";
 import { decodeStrict } from "@bp/domain/decode";
 import { StudioRouteEvidenceIndexV2Schema } from "@bp/domain/studio";
 import {
@@ -90,8 +94,10 @@ export type D1SeedOutputResult = {
   summaryPath: string;
   schemaPath: string;
   seedPath: string;
+  plan097RecoverySeedPath: string;
   schemaFile: D1FileContract;
   seedFile: D1FileContract;
+  plan097RecoverySeedFile: D1FileContract;
   costEstimate: D1ExportCostEstimate;
   routeCount: number;
   comparisonRowCount: number;
@@ -261,6 +267,7 @@ export type ExportD1Inputs = {
   year: number;
   month: number;
   publishedAt: string;
+  releaseIdentity?: ReleaseIdentity | undefined;
   exportRoot?: string | undefined;
   artifactRoot?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
@@ -275,6 +282,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
   const summaryPath = join(exportDir, "export-summary.json");
   const schemaPath = join(exportDir, "schema.sql");
   const seedPath = join(exportDir, "seed.sql");
+  const plan097RecoverySeedPath = join(exportDir, "seed.plan097-recovery.sql");
   const artifactRoot = inputs.artifactRoot ?? defaultArtifactRootPath();
 
   await stageDetectorReadinessManifest({
@@ -293,12 +301,21 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     }));
   const schemaSql = await readD1MigrationSql();
   const seed = buildD1SeedSql({ month, ...d1Inputs });
+  const plan097RecoverySeed = buildPlan097RecoverySeedSql({ month, ...d1Inputs });
   const generatedAt = inputs.publishedAt;
-  const releaseIdentity = decodeStrict(ReleaseIdentitySchema)({
-    releaseId: releaseIdFromPublishedAt(inputs.publishedAt),
-    publishedAt: inputs.publishedAt,
-    coverage: { start: earliestRouteTrendMonth(d1Inputs), end: month },
-  });
+  const releaseIdentity = decodeStrict(ReleaseIdentitySchema)(
+    inputs.releaseIdentity ?? {
+      releaseId: releaseIdFromPublishedAt(inputs.publishedAt),
+      publishedAt: inputs.publishedAt,
+      coverage: { start: earliestRouteTrendMonth(d1Inputs), end: month },
+    },
+  );
+  if (
+    releaseIdentity.publishedAt !== inputs.publishedAt ||
+    releaseIdentity.coverage.end !== month
+  ) {
+    throw new Error("D1 export release identity does not match its publication inputs");
+  }
   const routeEvidenceIndexPath =
     inputs.routeEvidenceIndexPath ?? join(artifactRoot, "studio", "v2", "wiki", "index.json");
   const routeEvidenceIndexFile = Bun.file(routeEvidenceIndexPath);
@@ -314,11 +331,14 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     );
     const routeEvidenceIndexRecord =
       typeof routeEvidenceIndexValue === "object" && routeEvidenceIndexValue !== null
-        ? (routeEvidenceIndexValue as Record<string, unknown>)
+        ? (routeEvidenceIndexValue as {
+            artifactKind?: unknown;
+            schemaVersion?: unknown;
+          })
         : null;
     const isExactIndex =
-      routeEvidenceIndexRecord?.["artifactKind"] === "bp.studio.route_evidence_index.v2" &&
-      routeEvidenceIndexRecord["schemaVersion"] === 2;
+      routeEvidenceIndexRecord?.artifactKind === "bp.studio.route_evidence_index.v2" &&
+      routeEvidenceIndexRecord.schemaVersion === 2;
     if (!isExactIndex) {
       exactRouteIdentity = null;
     } else {
@@ -397,8 +417,10 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     summaryPath,
     schemaPath,
     seedPath,
+    plan097RecoverySeedPath,
     schemaFile: fileContract(schemaPath, schemaSql),
     seedFile: fileContract(seedPath, seed.seedSql),
+    plan097RecoverySeedFile: fileContract(plan097RecoverySeedPath, plan097RecoverySeed.seedSql),
     costEstimate: estimateD1ExportCost({
       seedPath,
       seedSql: seed.seedSql,
@@ -449,6 +471,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
   await Promise.all([
     Bun.write(schemaPath, schemaSql),
     Bun.write(seedPath, seed.seedSql),
+    Bun.write(plan097RecoverySeedPath, plan097RecoverySeed.seedSql),
     Bun.write(summaryPath, `${JSON.stringify(result, null, 2)}\n`),
     ...(exactRouteIdentity === null
       ? []

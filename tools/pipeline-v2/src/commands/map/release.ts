@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { mapArtifactManifestPath } from "@bp/analytics/artifacts";
@@ -20,6 +21,13 @@ import {
   fromCliPath,
   fromRepoRoot,
 } from "../../lib/paths.ts";
+import {
+  buildPlan097CompactedBatch,
+  canonicalPlan097Json,
+  Plan097ActivationBundleReceiptSchema,
+  Plan097ActivationBundleSchema,
+  type Plan097BatchStatement,
+} from "../../lib/plan097-recovery-batch.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import { runRouteBriefModel } from "../route/brief-model.ts";
 import { runStudioRelease } from "../studio/release.ts";
@@ -79,7 +87,9 @@ function assertReleaseIdentityOutput(input: {
   const identity = decodeSchemaStrict(ReleaseIdentitySchema, input.identity);
   if (
     identity.releaseId !== input.expected.releaseId ||
-    identity.publishedAt !== input.expected.publishedAt
+    identity.publishedAt !== input.expected.publishedAt ||
+    identity.coverage.start !== input.expected.coverage.start ||
+    identity.coverage.end !== input.expected.coverage.end
   ) {
     throw new Error(`${input.label} publication identity does not match the map release boundary.`);
   }
@@ -89,6 +99,21 @@ function assertReleaseIdentityOutput(input: {
     );
   }
   return identity;
+}
+
+function sha256(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+function sourceContract(
+  kind:
+    | "canonical-schema"
+    | "recovery-seed"
+    | "exact-route-registration"
+    | "map-release-registration",
+  bytes: Uint8Array,
+) {
+  return { kind, sha256: sha256(bytes), byteLength: bytes.byteLength };
 }
 
 export async function runMapRelease(
@@ -269,6 +294,76 @@ export async function runMapRelease(
   await mkdir(dirname(registrationPath), { recursive: true });
   await writeFile(registrationPath, registrationSql);
 
+  const [schemaBytes, recoverySeedBytes, exactRegistrationBytes] = await Promise.all([
+    readFile(d1.schemaPath),
+    readFile(d1.plan097RecoverySeedPath),
+    readFile(d1.exactRouteIdentity.registrationFile.path),
+  ]);
+  if (sha256(exactRegistrationBytes) !== d1.exactRouteIdentity.registrationFile.sha256) {
+    throw new Error("Candidate exact-route registration bytes do not match the D1 receipt");
+  }
+  const mapRegistrationBytes = new TextEncoder().encode(registrationSql);
+  const registrations: Plan097BatchStatement[] = [
+    {
+      sql: new TextDecoder().decode(exactRegistrationBytes).trim(),
+      params: [],
+      table: "exact_route_identity_release",
+      kind: "registration",
+      rowCount: 1,
+    },
+    {
+      sql: registrationSql.trim(),
+      params: [],
+      table: "map_release_catalog",
+      kind: "registration",
+      rowCount: 1,
+    },
+  ];
+  const batch = buildPlan097CompactedBatch({
+    schemaSql: new TextDecoder().decode(schemaBytes),
+    recoverySeedSql: new TextDecoder().decode(recoverySeedBytes),
+    registrations,
+  });
+  const operationId = `plan097:${releaseIdentity.releaseId}`;
+  const activationBundle = decodeSchemaStrict(Plan097ActivationBundleSchema, {
+    artifactKind: "bp.ops.plan097.activation-bundle.v1",
+    schemaVersion: 1,
+    operationId,
+    candidate: releaseIdentity,
+    sources: [
+      sourceContract("canonical-schema", schemaBytes),
+      sourceContract("recovery-seed", recoverySeedBytes),
+      sourceContract("exact-route-registration", exactRegistrationBytes),
+      sourceContract("map-release-registration", mapRegistrationBytes),
+    ],
+    batch,
+  });
+  const activationBundleText = `${canonicalPlan097Json(activationBundle)}\n`;
+  const activationBundleBytes = new TextEncoder().encode(activationBundleText);
+  const activationBundleSha256 = sha256(activationBundleBytes);
+  const activationBundlePath = join(dirname(d1.seedPath), "plan097-activation-bundle.json");
+  const activationBundleKey = `operations/plan097/bundles/${releaseIdentity.releaseId}/activation.${activationBundleSha256}.json`;
+  const activationBundleReceipt = decodeSchemaStrict(Plan097ActivationBundleReceiptSchema, {
+    artifactKind: "bp.ops.plan097.activation-bundle-receipt.v1",
+    schemaVersion: 1,
+    operationId,
+    candidate: releaseIdentity,
+    bundle: {
+      key: activationBundleKey,
+      sha256: activationBundleSha256,
+      byteLength: activationBundleBytes.byteLength,
+    },
+    metrics: batch.metrics,
+  });
+  const activationBundleReceiptPath = join(
+    dirname(d1.seedPath),
+    "plan097-activation-bundle-receipt.json",
+  );
+  await Promise.all([
+    writeFile(activationBundlePath, activationBundleBytes),
+    writeFile(activationBundleReceiptPath, `${canonicalPlan097Json(activationBundleReceipt)}\n`),
+  ]);
+
   return {
     month,
     releaseIdentity,
@@ -288,6 +383,11 @@ export async function runMapRelease(
     finalManifestPath,
     finalManifestSha256,
     registrationPath,
+    activationBundlePath,
+    activationBundleReceiptPath,
+    activationBundleKey,
+    activationBundleSha256,
+    activationBatchMetrics: batch.metrics,
   };
 }
 
