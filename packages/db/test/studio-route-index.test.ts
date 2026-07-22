@@ -4,6 +4,7 @@ import { readdir } from "node:fs/promises";
 import { createBunSqliteServingDb } from "../src/d1/bun-sqlite.js";
 import {
   findEarliestSpeedTrendMonth,
+  findExactRouteIdentityRelease,
   findLatestPublishedStudioServingRelease,
   findLatestSpeedTrendMonth,
   listStudioRouteIndexSourceRows,
@@ -193,6 +194,53 @@ describe("Studio route index D1 read model", () => {
       routeTypes: ["SBS"],
       tripTypeCatalogAvailable: false,
       tripTypes: [],
+    });
+  });
+
+  test("marks exact identity availability per route instead of per table", async () => {
+    const sqlite = await createDrizzleTestDb();
+    sqlite.exec(`
+      INSERT INTO route_catalog
+        (route_id, route_short_name, route_long_name, shape_count, stop_count, timepoint_stop_count)
+      VALUES
+        ('B44', 'B44', 'Sheepshead Bay - Williamsburg', 1, 1, 1),
+        ('Q999', 'Q999', 'Legacy only', 1, 1, 1);
+      INSERT INTO route_catalog_type (route_id, type_rank, route_type)
+      VALUES ('B44', 1, 'Local'), ('Q999', 1, 'Local');
+      INSERT INTO route_catalog_trip_type (route_id, trip_type_rank, trip_type)
+      VALUES ('B44', 1, '1');
+    `);
+
+    const rows = await listStudioRouteIndexSourceRows(createBunSqliteServingDb(sqlite), "2026-03");
+    expect(rows.map((row) => [row.routeId, row.tripTypeCatalogAvailable])).toEqual([
+      ["B44", true],
+      ["Q999", false],
+    ]);
+  });
+
+  test("reads the exact route identity registry bound to a serving release", async () => {
+    const sqlite = await createDrizzleTestDb();
+    sqlite.exec(`
+      INSERT INTO exact_route_identity_release (
+        release_id, published_at, coverage_start, coverage_end, source_wiki_release,
+        source_manifest_sha256, source_route_identity_sha256,
+        source_current_bus_routes_sha256, source_index_sha256, catalog_snapshot_sha256,
+        projection_sha256, exact_route_count, route_type_count, trip_type_count
+      ) VALUES (
+        'pub_20260605T183601689Z', '2026-06-05T18:36:01.689Z', '2023-04', '2026-03',
+        'v1-rc25', '${"1".repeat(64)}', '${"2".repeat(64)}', '${"3".repeat(64)}',
+        '${"4".repeat(64)}', '${"5".repeat(64)}', '${"6".repeat(64)}', 375, 394, 394
+      );
+    `);
+    const db = createBunSqliteServingDb(sqlite);
+    await expect(findExactRouteIdentityRelease(db, "missing")).resolves.toBeNull();
+    await expect(
+      findExactRouteIdentityRelease(db, "pub_20260605T183601689Z"),
+    ).resolves.toMatchObject({
+      sourceWikiRelease: "v1-rc25",
+      exactRouteCount: 375,
+      routeTypeCount: 394,
+      tripTypeCount: 394,
     });
   });
 });

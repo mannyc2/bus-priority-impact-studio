@@ -9124,3 +9124,20 @@ B1 at 1440 px and 390 px for identity, keyboard focus, dense/sparse behavior,
 source popovers, study-tier distinctions, empty states, and overflow. The live
 route-detail API's pre-existing 500 remains the final post-deployment audit;
 the redesign does not weaken strict serving failure behavior to hide it.
+
+## [2026-07-22] release | Plan 094 merged and deployed; production exact-route read blocked
+
+[PR #96](https://github.com/mannyc2/bus-priority-impact-studio/pull/96)
+merged Plan 094 at `061fdfd5de8fc06d1e6fa9294a50911ca340bfc7`.
+Main workflow
+[`29925161824`](https://github.com/mannyc2/bus-priority-impact-studio/actions/runs/29925161824)
+passed all verification and deployed. The HTML shell returns 200, but the
+production exact route index (`?schema=3`) and every representative route-detail
+API return 500 before the redesigned History tab can render. Schema-v2 route
+listing, route history, speed history, hourly profile, and immutable route
+artifacts remain 200.
+
+The failure is isolated to the exact route-index v3/D1 serving boundary. Plan
+094 remains BLOCKED in production rather than projecting the legacy route JSON
+and silently weakening the Plan 091/092 identity contract. No D1/R2 artifact,
+evidence object, estimator, study, receipt, or publication pointer changed.

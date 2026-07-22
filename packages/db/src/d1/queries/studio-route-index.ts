@@ -1,6 +1,7 @@
 import { asc, desc, eq, min } from "drizzle-orm";
 import type { D1ServingDb } from "../client.js";
 import {
+  exactRouteIdentityRelease,
   routeArtifact,
   routeBatchStatus,
   routeBriefSummary,
@@ -510,6 +511,56 @@ export type PublishedStudioServingRelease = {
   publishedAt: string;
 };
 
+export type ExactRouteIdentityRelease = {
+  releaseId: string;
+  publishedAt: string;
+  coverageStart: string | null;
+  coverageEnd: string;
+  sourceWikiRelease: string;
+  sourceManifestSha256: string;
+  sourceRouteIdentitySha256: string;
+  sourceCurrentBusRoutesSha256: string;
+  sourceIndexSha256: string;
+  catalogSnapshotSha256: string;
+  projectionSha256: string;
+  exactRouteCount: number;
+  routeTypeCount: number;
+  tripTypeCount: number;
+};
+
+/** Exact route identity projection registered for one published serving release. */
+export async function findExactRouteIdentityRelease(
+  db: D1ServingDb,
+  releaseId: string,
+): Promise<ExactRouteIdentityRelease | null> {
+  try {
+    const rows = await db
+      .select({
+        releaseId: exactRouteIdentityRelease.releaseId,
+        publishedAt: exactRouteIdentityRelease.publishedAt,
+        coverageStart: exactRouteIdentityRelease.coverageStart,
+        coverageEnd: exactRouteIdentityRelease.coverageEnd,
+        sourceWikiRelease: exactRouteIdentityRelease.sourceWikiRelease,
+        sourceManifestSha256: exactRouteIdentityRelease.sourceManifestSha256,
+        sourceRouteIdentitySha256: exactRouteIdentityRelease.sourceRouteIdentitySha256,
+        sourceCurrentBusRoutesSha256: exactRouteIdentityRelease.sourceCurrentBusRoutesSha256,
+        sourceIndexSha256: exactRouteIdentityRelease.sourceIndexSha256,
+        catalogSnapshotSha256: exactRouteIdentityRelease.catalogSnapshotSha256,
+        projectionSha256: exactRouteIdentityRelease.projectionSha256,
+        exactRouteCount: exactRouteIdentityRelease.exactRouteCount,
+        routeTypeCount: exactRouteIdentityRelease.routeTypeCount,
+        tripTypeCount: exactRouteIdentityRelease.tripTypeCount,
+      })
+      .from(exactRouteIdentityRelease)
+      .where(eq(exactRouteIdentityRelease.releaseId, releaseId))
+      .limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    if (isMissingTable(error, "exact_route_identity_release")) return null;
+    throw error;
+  }
+}
+
 /** Latest passing route batch that has route-summary serving rows. */
 export async function findLatestPublishedStudioServingRelease(
   db: D1ServingDb,
@@ -577,7 +628,8 @@ export async function listStudioRouteIndexSourceRows(
       routeShortName: row.route_short_name,
       routeLongName: row.route_long_name,
       routeTypes: routeTypes.get(row.route_id) ?? [],
-      tripTypeCatalogAvailable: tripTypeCatalog.available,
+      tripTypeCatalogAvailable:
+        tripTypeCatalog.available && (tripTypes.get(row.route_id)?.length ?? 0) > 0,
       shapeCount: row.shape_count,
       stopCount: row.stop_count,
       timepointStopCount: row.timepoint_stop_count,

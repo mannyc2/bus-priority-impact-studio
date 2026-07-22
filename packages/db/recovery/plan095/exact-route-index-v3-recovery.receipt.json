@@ -1,0 +1,50 @@
+{
+  "artifactKind": "bp.ops.exact_route_index_v3_recovery.v1",
+  "schemaVersion": 1,
+  "recoveryId": "exact-route-index-v3-recovery-v1:d99b97d40e9c6b62430765c9",
+  "preparedAt": "2026-07-22T13:58:55.000Z",
+  "source": {
+    "wikiRelease": "v1-rc25",
+    "manifestSha256": "77e518a5de39e9fc982d09b7677d44059d26de69b04d9fe10841d6c478516f0f",
+    "routeIdentitySha256": "47d5976ce87cc00069e68909df38a2bfeffa1374edb3991f038b483fb013b586",
+    "currentBusRoutesSha256": "d0147d9bb26dd142fb2cb325c32d30284bc5207853be2638e77723ef695b69d4",
+    "routeEvidenceIndexSha256": "fd07c9991b3d7c56905b95a2e387eaee182e314eb84a2cb26de68e06b5cf0807",
+    "routeEvidenceIndexBytes": 392566,
+    "routeEvidenceIndexGeneratedAt": "2026-07-18T18:05:27.000Z"
+  },
+  "servingRelease": {
+    "releaseId": "pub_20260605T183601689Z",
+    "publishedAt": "2026-06-05T18:36:01.689Z",
+    "coverage": {
+      "start": "2023-04",
+      "end": "2026-03"
+    }
+  },
+  "counts": {
+    "catalogRouteCount": 389,
+    "catalogRouteTypeCount": 406,
+    "exactRouteCount": 375,
+    "exactRouteTypeCount": 394,
+    "exactTripTypeCount": 394,
+    "excludedRouteCount": 14
+  },
+  "excludedRouteIds": [
+    "CPAS",
+    "ECAS",
+    "Q6",
+    "Q7",
+    "Q8",
+    "Q9",
+    "T102",
+    "T103",
+    "T204",
+    "T300",
+    "T340",
+    "T410",
+    "T434",
+    "YOAS"
+  ],
+  "catalogSnapshotSha256": "c31ee2a2de424ace986578faa29b3b5d5f5cbd0310d16ac42e841631e03ce219",
+  "projectionSha256": "620f02ced782735ffec4ad27ce39f2683f0a51715178457b30750ac8e78cd48a",
+  "sqlSha256": "0efc576c55fa4b6d52cac1e04567ff70529af2b330bae459031c11246a0b46cc"
+}

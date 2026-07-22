@@ -68,6 +68,29 @@ jobs:
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Audit exact route serving D1 before deploy
+        id: exact-route-pre
+        if: steps.cloudflare.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/plan095
+          bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('route_catalog', 'route_catalog_type', 'route_catalog_trip_type', 'exact_route_identity_release') ORDER BY name" > /tmp/plan095/tables-pre.json
+          bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT route_id AS 'routeId', route_short_name AS 'routeShortName', route_long_name AS 'routeLongName' FROM route_catalog ORDER BY route_id" > /tmp/plan095/catalog-pre.json
+          bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT route_id AS 'routeId', type_rank AS 'typeRank', route_type AS 'routeType' FROM route_catalog_type ORDER BY route_id, type_rank" > /tmp/plan095/route-types-pre.json
+          bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT batch.generated_at AS 'publishedAt', (SELECT MIN(month) FROM route_month_trend WHERE has_speed_trend = 1) AS 'coverageStart', batch.month AS 'coverageEnd' FROM route_batch_status AS batch WHERE batch.status = 'pass' AND EXISTS (SELECT 1 FROM route_brief_summary AS summary WHERE summary.month = batch.month) ORDER BY batch.month DESC LIMIT 1" > /tmp/plan095/release-pre.json
+          if grep -q 'route_catalog_trip_type' /tmp/plan095/tables-pre.json; then
+            bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT route_id AS 'routeId', trip_type_rank AS 'tripTypeRank', trip_type AS 'tripType' FROM route_catalog_trip_type ORDER BY route_id, trip_type_rank" > /tmp/plan095/trip-types-pre.json
+          else
+            printf '[]\n' > /tmp/plan095/trip-types-pre.json
+          fi
+          if grep -q 'exact_route_identity_release' /tmp/plan095/tables-pre.json; then
+            bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT release_id AS 'releaseId', published_at AS 'publishedAt', coverage_start AS 'coverageStart', coverage_end AS 'coverageEnd', source_wiki_release AS 'sourceWikiRelease', source_manifest_sha256 AS 'sourceManifestSha256', source_route_identity_sha256 AS 'sourceRouteIdentitySha256', source_current_bus_routes_sha256 AS 'sourceCurrentBusRoutesSha256', source_index_sha256 AS 'sourceIndexSha256', catalog_snapshot_sha256 AS 'catalogSnapshotSha256', projection_sha256 AS 'projectionSha256', exact_route_count AS 'exactRouteCount', route_type_count AS 'routeTypeCount', trip_type_count AS 'tripTypeCount' FROM exact_route_identity_release ORDER BY release_id" > /tmp/plan095/registry-pre.json
+          else
+            printf '[]\n' > /tmp/plan095/registry-pre.json
+          fi
+          bun tools/pipeline-v2/scripts/audit-route-index-v3-d1.ts --mode pre --receipt packages/db/recovery/plan095/exact-route-index-v3-recovery.receipt.json --tables /tmp/plan095/tables-pre.json --catalog /tmp/plan095/catalog-pre.json --route-types /tmp/plan095/route-types-pre.json --trip-types /tmp/plan095/trip-types-pre.json --registry /tmp/plan095/registry-pre.json --release /tmp/plan095/release-pre.json --output /tmp/plan095/audit-pre.json --github-output "$GITHUB_OUTPUT"
+
       - name: Build web release
         if: steps.cloudflare.outputs.deploy == 'true'
         run: bun --filter @bp/web build
@@ -77,3 +100,49 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: bun --filter @bp/web deploy
+
+      - name: Create exact route trip-type table
+        if: steps.cloudflare.outputs.deploy == 'true' && steps.exact-route-pre.outputs.apply_trip_type_migration == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --yes --file packages/db/migrations/d1/0032_route_catalog_trip_type.sql
+
+      - name: Create exact route release registry
+        if: steps.cloudflare.outputs.deploy == 'true' && steps.exact-route-pre.outputs.apply_registry_migration == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --yes --file packages/db/migrations/d1/0034_exact_route_identity_release.sql
+
+      - name: Apply exact route serving projection
+        if: steps.cloudflare.outputs.deploy == 'true' && steps.exact-route-pre.outputs.apply_recovery_projection == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --yes --file packages/db/recovery/plan095/exact-route-index-v3-recovery.sql
+
+      - name: Verify exact route serving D1 after recovery
+        if: steps.cloudflare.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('route_catalog', 'route_catalog_type', 'route_catalog_trip_type', 'exact_route_identity_release') ORDER BY name" > /tmp/plan095/tables-post.json
+          bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT route_id AS 'routeId', route_short_name AS 'routeShortName', route_long_name AS 'routeLongName' FROM route_catalog ORDER BY route_id" > /tmp/plan095/catalog-post.json
+          bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT route_id AS 'routeId', type_rank AS 'typeRank', route_type AS 'routeType' FROM route_catalog_type ORDER BY route_id, type_rank" > /tmp/plan095/route-types-post.json
+          bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT route_id AS 'routeId', trip_type_rank AS 'tripTypeRank', trip_type AS 'tripType' FROM route_catalog_trip_type ORDER BY route_id, trip_type_rank" > /tmp/plan095/trip-types-post.json
+          bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT release_id AS 'releaseId', published_at AS 'publishedAt', coverage_start AS 'coverageStart', coverage_end AS 'coverageEnd', source_wiki_release AS 'sourceWikiRelease', source_manifest_sha256 AS 'sourceManifestSha256', source_route_identity_sha256 AS 'sourceRouteIdentitySha256', source_current_bus_routes_sha256 AS 'sourceCurrentBusRoutesSha256', source_index_sha256 AS 'sourceIndexSha256', catalog_snapshot_sha256 AS 'catalogSnapshotSha256', projection_sha256 AS 'projectionSha256', exact_route_count AS 'exactRouteCount', route_type_count AS 'routeTypeCount', trip_type_count AS 'tripTypeCount' FROM exact_route_identity_release ORDER BY release_id" > /tmp/plan095/registry-post.json
+          bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --json --command "SELECT batch.generated_at AS 'publishedAt', (SELECT MIN(month) FROM route_month_trend WHERE has_speed_trend = 1) AS 'coverageStart', batch.month AS 'coverageEnd' FROM route_batch_status AS batch WHERE batch.status = 'pass' AND EXISTS (SELECT 1 FROM route_brief_summary AS summary WHERE summary.month = batch.month) ORDER BY batch.month DESC LIMIT 1" > /tmp/plan095/release-post.json
+          bun tools/pipeline-v2/scripts/audit-route-index-v3-d1.ts --mode post --receipt packages/db/recovery/plan095/exact-route-index-v3-recovery.receipt.json --tables /tmp/plan095/tables-post.json --catalog /tmp/plan095/catalog-post.json --route-types /tmp/plan095/route-types-post.json --trip-types /tmp/plan095/trip-types-post.json --registry /tmp/plan095/registry-post.json --release /tmp/plan095/release-post.json --output /tmp/plan095/audit-post.json
+
+      - name: Smoke exact route production endpoints
+        if: steps.cloudflare.outputs.deploy == 'true'
+        run: bun tools/pipeline-v2/scripts/check-production-route-index-v3.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --audit /tmp/plan095/audit-post.json --output /tmp/plan095/production-smoke.json
+
+      - name: Upload exact route recovery receipts
+        if: steps.cloudflare.outputs.deploy == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan095-exact-route-recovery
+          path: |
+            /tmp/plan095/audit-pre.json
+            /tmp/plan095/audit-post.json
+            /tmp/plan095/production-smoke.json
+            packages/db/recovery/plan095/exact-route-index-v3-recovery.receipt.json

@@ -4,6 +4,7 @@ import {
   type RouteObservedReliabilitySummary as D1RouteObservedReliabilitySummary,
   type SourceMonthCoverage as D1SourceMonthCoverage,
   findEarliestSpeedTrendMonth,
+  findExactRouteIdentityRelease,
   findLatestPublishedStudioServingRelease,
   findLatestSpeedTrendMonth,
   findRouteEquityContext,
@@ -405,6 +406,86 @@ async function resolveServingRelease(env: StudioReadEnv): Promise<ResolvedServin
 }
 
 const NO_PUBLISHED_SERVING_DATA_MESSAGE = "No published serving data is available.";
+const NO_EXACT_ROUTE_IDENTITY_MESSAGE = "Exact route identity serving data is unavailable.";
+
+type ExactRouteRowsResult =
+  | { ok: true; rows: NormalizedStudioRouteIndexSourceRow[] }
+  | { ok: false; response: Response };
+
+async function resolveExactRouteRows(
+  env: StudioReadEnv,
+  release: ResolvedServingRelease,
+): Promise<ExactRouteRowsResult> {
+  if (env.DB === undefined) {
+    return {
+      ok: false,
+      response: dependencyNotConfiguredResponse("DB", "Exact Studio route identity"),
+    };
+  }
+  const db = createD1ServingDb(env.DB);
+  const [rows, identityRelease] = await Promise.all([
+    listNormalizedStudioRouteIndexSourceRows(db, release.coverage.end),
+    findExactRouteIdentityRelease(db, release.releaseId),
+  ]);
+  if (identityRelease === null) {
+    return { ok: false, response: errorResponse(503, NO_EXACT_ROUTE_IDENTITY_MESSAGE) };
+  }
+  const exactRows = rows.filter((row) => row.tripTypeCatalogAvailable);
+  const routeTypeCount = exactRows.reduce((sum, row) => sum + row.routeTypes.length, 0);
+  const tripTypeCount = exactRows.reduce((sum, row) => sum + row.tripTypes.length, 0);
+  const sha256Pattern = /^[0-9a-f]{64}$/u;
+  const releaseMatches =
+    identityRelease.publishedAt === release.publishedAt &&
+    identityRelease.coverageStart === release.coverage.start &&
+    identityRelease.coverageEnd === release.coverage.end;
+  const countsMatch =
+    exactRows.length === identityRelease.exactRouteCount &&
+    routeTypeCount === identityRelease.routeTypeCount &&
+    tripTypeCount === identityRelease.tripTypeCount;
+  const hashesValid = [
+    identityRelease.sourceManifestSha256,
+    identityRelease.sourceRouteIdentitySha256,
+    identityRelease.sourceCurrentBusRoutesSha256,
+    identityRelease.sourceIndexSha256,
+    identityRelease.catalogSnapshotSha256,
+    identityRelease.projectionSha256,
+  ].every((value) => sha256Pattern.test(value));
+  try {
+    if (
+      !releaseMatches ||
+      !countsMatch ||
+      !hashesValid ||
+      identityRelease.sourceWikiRelease.length === 0 ||
+      exactRows.length === 0
+    ) {
+      throw new Error("registered release metadata or counts do not match D1 rows");
+    }
+    for (const row of exactRows) exactRoutePresentationForIndexRow(row);
+  } catch (error) {
+    console.error("Exact Studio route identity projection failed integrity checks.", {
+      reason: error instanceof Error ? error.message : String(error),
+      releaseId: release.releaseId,
+      expected: {
+        publishedAt: identityRelease.publishedAt,
+        coverageStart: identityRelease.coverageStart,
+        coverageEnd: identityRelease.coverageEnd,
+        exactRouteCount: identityRelease.exactRouteCount,
+        routeTypeCount: identityRelease.routeTypeCount,
+        tripTypeCount: identityRelease.tripTypeCount,
+      },
+      actual: {
+        publishedAt: release.publishedAt,
+        coverageStart: release.coverage.start,
+        coverageEnd: release.coverage.end,
+        exactRouteCount: exactRows.length,
+        routeTypeCount,
+        tripTypeCount,
+      },
+    });
+    return { ok: false, response: errorResponse(503, NO_EXACT_ROUTE_IDENTITY_MESSAGE) };
+  }
+  return { ok: true, rows: exactRows };
+}
 
 async function buildStudioRouteIndex2Response(
   env: StudioReadEnv,
@@ -475,13 +556,12 @@ async function buildStudioRouteIndex3Response(
     return { ok: false, response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE) };
   }
 
+  const exactRows = await resolveExactRouteRows(env, release);
+  if (!exactRows.ok) return exactRows;
   const generatedAt = new Date().toISOString();
-  const [rows, capabilityManifest] = await Promise.all([
-    listNormalizedStudioRouteIndexSourceRows(createD1ServingDb(env.DB), release.coverage.end),
-    loadRouteCapabilityManifest(env),
-  ]);
+  const capabilityManifest = await loadRouteCapabilityManifest(env);
   const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
-  const routes = rows.map((row) =>
+  const routes = exactRows.rows.map((row) =>
     buildStudioRouteIndex3Row({
       releaseId: release.releaseId,
       publishedAt: release.publishedAt,
@@ -1108,7 +1188,7 @@ export async function buildStudioRouteSectionsResponse(
     loadRouteCapabilityManifest(env),
   ]);
   const routeEvidenceIndex = closedRouteEvidenceIndex(rawRouteEvidenceIndex, () =>
-    exactRouteEvidenceIdentitiesFromD1(rows),
+    exactRouteEvidenceIdentitiesFromD1(rows.filter((row) => row.tripTypeCatalogAvailable)),
   );
   const capabilityByRoute = routeCapabilityByRouteId(capabilityManifest);
   const routes = rows.map((row) =>
@@ -1247,19 +1327,6 @@ export async function buildStudioRouteSectionsResponse(
   };
 }
 
-async function findStudioRouteIndexSourceRow(input: {
-  env: StudioReadEnv;
-  slug: string;
-  coverageEnd: string;
-}): Promise<NormalizedStudioRouteIndexSourceRow | null> {
-  if (input.env.DB === undefined) return null;
-  const rows = await listNormalizedStudioRouteIndexSourceRows(
-    createD1ServingDb(input.env.DB),
-    input.coverageEnd,
-  );
-  return rows.find((row) => routeIdToStudioSlug(row.routeId) === input.slug) ?? null;
-}
-
 async function findObservedReliabilityRow(input: {
   env: StudioReadEnv;
   coverageEnd: string;
@@ -1302,11 +1369,10 @@ async function buildStudioRouteDetailResponseFromD1(
     };
   }
 
-  const row = await findStudioRouteIndexSourceRow({
-    env,
-    slug,
-    coverageEnd: release.coverage.end,
-  });
+  const exactRows = await resolveExactRouteRows(env, release);
+  if (!exactRows.ok) return exactRows;
+  const row =
+    exactRows.rows.find((candidate) => routeIdToStudioSlug(candidate.routeId) === slug) ?? null;
   if (row === null) {
     return { ok: false, response: errorResponse(404, "Studio route was not found.") };
   }
@@ -1530,11 +1596,10 @@ export async function buildStudioRouteHistoryResponse(
     return { ok: false, response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE) };
   }
 
-  const row = await findStudioRouteIndexSourceRow({
-    env,
-    slug,
-    coverageEnd: release.coverage.end,
-  });
+  const exactRows = await resolveExactRouteRows(env, release);
+  if (!exactRows.ok) return exactRows;
+  const row =
+    exactRows.rows.find((candidate) => routeIdToStudioSlug(candidate.routeId) === slug) ?? null;
   if (row === null) {
     return { ok: false, response: errorResponse(404, "Studio route history was not found.") };
   }
@@ -1711,11 +1776,10 @@ export async function buildStudioRouteTimelineResponse(
     return { ok: false, response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE) };
   }
 
-  const rows = await listNormalizedStudioRouteIndexSourceRows(
-    createD1ServingDb(env.DB),
-    release.coverage.end,
-  );
-  const row = rows.find((candidate) => routeIdToStudioSlug(candidate.routeId) === slug) ?? null;
+  const exactRows = await resolveExactRouteRows(env, release);
+  if (!exactRows.ok) return exactRows;
+  const row =
+    exactRows.rows.find((candidate) => routeIdToStudioSlug(candidate.routeId) === slug) ?? null;
   if (row === null) {
     return { ok: false, response: errorResponse(404, "Studio route timeline was not found.") };
   }
@@ -1727,7 +1791,7 @@ export async function buildStudioRouteTimelineResponse(
   }
 
   const routeEvidenceIndex = closedRouteEvidenceIndex(await loadStudioRouteEvidenceIndex(env), () =>
-    exactRouteEvidenceIdentitiesFromD1(rows),
+    exactRouteEvidenceIdentitiesFromD1(exactRows.rows),
   );
 
   const key = studioRouteEvidenceBundleKey(routeIdToStudioSlug(row.routeId));
