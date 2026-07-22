@@ -1692,8 +1692,7 @@ export function buildStudyEventMergeArtifactV4(
   return validateStudyEventMergeArtifactV4(artifact);
 }
 
-function candidateUniverseV5(input: {
-  readonly candidateSetId: string;
+function candidateUniverseIdentityFacts(input: {
   readonly candidates: readonly StudyEventCandidateV4[];
   readonly rejections: readonly StudyEventRejection[];
   readonly conflicts: readonly StudyEventConflict[];
@@ -1706,9 +1705,7 @@ function candidateUniverseV5(input: {
     stableJson(left).localeCompare(stableJson(right)),
   );
   const availableAnalysisRouteIds = [...input.availableAnalysisRouteIds].toSorted();
-  const facts = {
-    identityVersion: "tracker-study-candidate-universe-v2" as const,
-    candidateSetId: input.candidateSetId,
+  return {
     candidates: input.candidates,
     rejections: input.rejections,
     conflicts: input.conflicts,
@@ -1718,6 +1715,17 @@ function candidateUniverseV5(input: {
     availableAnalysisRouteCount: availableAnalysisRouteIds.length,
     availableAnalysisRouteIdsSha256: sha256(availableAnalysisRouteIds),
     memberExtentLineage: input.memberExtentLineage,
+  };
+}
+
+function candidateUniverseV5(input: {
+  readonly candidateSetId: string;
+  readonly facts: ReturnType<typeof candidateUniverseIdentityFacts>;
+}) {
+  const facts = {
+    identityVersion: "tracker-study-candidate-universe-v2" as const,
+    candidateSetId: input.candidateSetId,
+    ...input.facts,
   };
   return {
     identityVersion: facts.identityVersion,
@@ -1804,8 +1812,14 @@ export function validateStudyEventCandidateSetArtifactV4(
 ): StudyEventCandidateSetArtifactV4 {
   const expectedCandidateSetId = digest("candidate-set-v4", {
     candidates: artifact.candidates,
+    rejections: artifact.rejections,
     conflicts: artifact.conflicts,
     wikiInput: artifact.wikiInput,
+    registryInputCount: artifact.candidateUniverse.registryInputCount,
+    registryInputSha256: artifact.candidateUniverse.registryInputSha256,
+    availableAnalysisRouteCount: artifact.candidateUniverse.availableAnalysisRouteCount,
+    availableAnalysisRouteIdsSha256: artifact.candidateUniverse.availableAnalysisRouteIdsSha256,
+    memberExtentLineage: artifact.candidateUniverse.memberExtentLineage,
   });
   if (
     artifact.candidateSetId !== expectedCandidateSetId ||
@@ -1937,13 +1951,7 @@ export function buildStudyEventCandidateSetArtifactV4(
       eligibleRowCount: input.wiki.memberExtentLineage.eligibleRowCount,
     },
   };
-  const candidateSetId = digest("candidate-set-v4", {
-    candidates,
-    conflicts: base.conflicts,
-    wikiInput,
-  });
-  const candidateUniverse = candidateUniverseV5({
-    candidateSetId,
+  const universeFacts = candidateUniverseIdentityFacts({
     candidates,
     rejections: base.rejections,
     conflicts: base.conflicts,
@@ -1951,6 +1959,11 @@ export function buildStudyEventCandidateSetArtifactV4(
     registryEvents: input.registryEvents,
     availableAnalysisRouteIds: input.availableAnalysisRouteIds,
     memberExtentLineage: input.wiki.memberExtentLineage,
+  });
+  const candidateSetId = digest("candidate-set-v4", universeFacts);
+  const candidateUniverse = candidateUniverseV5({
+    candidateSetId,
+    facts: universeFacts,
   });
   return validateStudyEventCandidateSetArtifactV4({
     artifactKind: "bp.studio.study_event_candidates.v4",

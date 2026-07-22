@@ -363,6 +363,29 @@ describe("member-grain study candidate universe and review cut", () => {
     }
   });
 
+  test("raw registry and available-route universe changes re-identify the candidate set", () => {
+    const baseline = candidateSet();
+    const changedRegistry = buildStudyEventCandidateSetArtifactV4({
+      registryEvents: [{ ...registryEvent(), description: "Same candidate, revised source row." }],
+      wiki: wiki(),
+      availableAnalysisRouteIds: new Set(["B60"]),
+    });
+    const changedRoutes = buildStudyEventCandidateSetArtifactV4({
+      registryEvents: [registryEvent()],
+      wiki: wiki(),
+      availableAnalysisRouteIds: new Set(["B60", "M57"]),
+    });
+
+    expect(changedRegistry.candidates).toEqual(baseline.candidates);
+    expect(changedRoutes.candidates).toEqual(baseline.candidates);
+    for (const changed of [changedRegistry, changedRoutes]) {
+      expect(changed.candidateSetId).not.toBe(baseline.candidateSetId);
+      expect(changed.candidateUniverse.logicalSha256).not.toBe(
+        baseline.candidateUniverse.logicalSha256,
+      );
+    }
+  });
+
   test("analysis month, outcome, and spine changes produce distinct cuts", () => {
     const set = candidateSet();
     const baseline = awaiting(wiki(), reviewInputs(set.candidateSetId));
