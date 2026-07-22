@@ -165,4 +165,34 @@ describe("Studio route index D1 read model", () => {
       speedHistoryCoverage: null,
     });
   });
+
+  test("treats route catalog trip types as optional for the published legacy schema", async () => {
+    const sqlite = await createDrizzleTestDb();
+    sqlite.exec("DROP TABLE route_catalog_trip_type");
+    sqlite
+      .query(
+        `INSERT INTO route_catalog (
+          route_id,
+          route_short_name,
+          route_long_name,
+          shape_count,
+          stop_count,
+          timepoint_stop_count
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run("B44+", "B44+", "Select Bus Service", 8, 64, 12);
+    sqlite.exec(
+      "INSERT INTO route_catalog_type (route_id, type_rank, route_type) VALUES ('B44+', 1, 'SBS')",
+    );
+
+    const rows = await listStudioRouteIndexSourceRows(createBunSqliteServingDb(sqlite), "2026-03");
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      routeId: "B44+",
+      routeTypes: ["SBS"],
+      tripTypeCatalogAvailable: false,
+      tripTypes: [],
+    });
+  });
 });

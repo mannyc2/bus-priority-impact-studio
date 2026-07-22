@@ -48,7 +48,11 @@ export function boroughForRouteId(routeId: string): StudioRouteIndex2Row["boroug
   return "Manhattan";
 }
 
-export type NormalizedStudioRouteIndexSourceRow = StudioRouteIndexSourceRow & {
+export type NormalizedStudioRouteIndexSourceRow = Omit<
+  StudioRouteIndexSourceRow,
+  "tripTypeCatalogAvailable"
+> & {
+  tripTypeCatalogAvailable: boolean;
   averageSpeedMph: number;
   busLaneMatchedLaneCount: number;
   effectiveStopCount: number;
@@ -65,6 +69,7 @@ export function normalizeStudioRouteIndexSourceRow(
 ): NormalizedStudioRouteIndexSourceRow {
   return {
     ...row,
+    tripTypeCatalogAvailable: row.tripTypeCatalogAvailable ?? true,
     averageSpeedMph: row.summary?.averageSpeedMph ?? row.readiness?.averageSpeedMph ?? 0,
     busLaneMatchedLaneCount: row.summary?.busLaneMatchedLaneCount ?? 0,
     effectiveStopCount: row.readiness?.stopCount ?? row.stopCount,
@@ -450,6 +455,9 @@ export function routeDiagnosisForIndexRow(
 
 export function routeFlagsForIndexRow(row: NormalizedStudioRouteIndexSourceRow): string[] {
   return [
+    row.tripTypeCatalogAvailable
+      ? "Official trip types available"
+      : "Official trip types unavailable for this release",
     row.aceActive ? "ACE active" : "ACE inactive",
     row.artifactNames.length > 0 ? "Rich artifact indexed" : "No rich artifact",
     row.summary === null
@@ -472,24 +480,29 @@ export function buildStudioRouteCardFromIndexRow(
   const slug = routeIdToStudioSlug(row.routeId);
   const speedMph = routeSpeedMphForIndexRow(row);
   const coverage = routeLaneCoverageForIndexRow(row);
-  const presentation = exactRoutePresentationForIndexRow(row);
-  const corridor = presentation.officialLongName ?? presentation.displayLabel;
+  const presentation = row.tripTypeCatalogAvailable ? exactRoutePresentationForIndexRow(row) : null;
+  const displayLabel = presentation?.displayLabel ?? row.routeShortName;
+  const corridor = (presentation?.officialLongName ?? row.routeLongName) || displayLabel;
   return {
     slug,
-    routeId: presentation.routeId,
-    label: presentation.displayLabel,
-    routeSchemaVersion: 2,
-    routeFamilyId: presentation.routeFamilyId,
-    displayLabel: presentation.displayLabel,
-    officialLongName: presentation.officialLongName,
-    designationLiterals: presentation.designationLiterals,
-    serviceModes: presentation.serviceModes,
-    routeTypes: presentation.routeTypes,
-    tripTypes: presentation.tripTypes,
+    routeId: row.routeId,
+    label: displayLabel,
+    ...(presentation === null
+      ? {}
+      : {
+          routeSchemaVersion: 2 as const,
+          routeFamilyId: presentation.routeFamilyId,
+          displayLabel: presentation.displayLabel,
+          officialLongName: presentation.officialLongName,
+          designationLiterals: presentation.designationLiterals,
+          serviceModes: presentation.serviceModes,
+          routeTypes: presentation.routeTypes,
+          tripTypes: presentation.tripTypes,
+        }),
     corridor,
     corridorFull: corridor,
     borough: boroughForRouteId(row.routeId),
-    sbs: presentation.serviceModes.includes("sbs"),
+    sbs: presentation?.serviceModes.includes("sbs") ?? row.routeTypes.includes("SBS"),
     speedMph,
     scheduledMph: null,
     weightedAvgSpeed: speedMph,
