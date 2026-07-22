@@ -28,11 +28,11 @@
   <h1><span id="route-label">BX38</span> treatments &amp; history</h1>
   <p class="lede" id="summary">27 documented History records. One published matched-control outcome.</p>
   <nav class="routes" aria-label="Test representative route">
-    <button data-route="bx38" aria-pressed="true">BX38 · matched</button>
-    <button data-route="b67" aria-pressed="false">B67 · descriptive</button>
-    <button data-route="b44" aria-pressed="false">B44 · exact</button>
-    <button data-route="b44-sbs" aria-pressed="false">B44+ · exact</button>
-    <button data-route="b1" aria-pressed="false">B1 · sparse</button>
+    <button type="button" data-route="bx38" aria-pressed="true">BX38 · matched</button>
+    <button type="button" data-route="b67" aria-pressed="false">B67 · descriptive</button>
+    <button type="button" data-route="b44" aria-pressed="false">B44 · exact</button>
+    <button type="button" data-route="b44-sbs" aria-pressed="false">B44+ · exact</button>
+    <button type="button" data-route="b1" aria-pressed="false">B1 · sparse</button>
   </nav>
   <nav class="jumps" aria-label="On this page"><a href="#current">Current state</a><a href="#history">History</a><a href="#outcomes">Outcomes</a><a href="#sources">Sources &amp; coverage</a></nav>
   <div class="grid">
@@ -72,7 +72,7 @@
 </main>
 <script>
 const routes={bx38:{label:'BX38',rows:27,outcome:'matched-control',kind:'Matched-control study'},b67:{label:'B67',rows:111,outcome:'descriptive',kind:'Descriptive study'},b44:{label:'B44',rows:166,outcome:'no published study',kind:'No published study'},'b44-sbs':{label:'B44+',rows:210,outcome:'no published study',kind:'No published study'},b1:{label:'B1',rows:0,outcome:'no published study',kind:'No published study'}};
-document.querySelectorAll('[data-route]').forEach(button=>button.addEventListener('click',()=>{const row=routes[button.dataset.route];document.querySelectorAll('[data-route]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));document.querySelector('#route-label').textContent=row.label;document.querySelector('#summary').textContent=`${row.rows} documented History records. ${row.outcome==='no published study'?'No published study outcome.':`One published ${row.outcome} outcome.`}`;document.querySelector('#history-title').textContent=row.rows===0?'No documented History records':`${row.rows} documented records`;document.querySelector('#toolbar').hidden=row.rows<=12;document.querySelector('#primary-outcome').innerHTML=`<span class="mono">${row.kind}</span><strong>${row.outcome==='no published study'?'No published outcome':'Published outcome'}</strong><span class="meta">${row.outcome==='no published study'?'No candidate or unapproved result appears here.':'Evidence tier and method remain explicit.'}</span>`;}));
+document.querySelectorAll('[data-route]').forEach(button=>{button.addEventListener('click',()=>{const row=routes[button.dataset.route];document.querySelectorAll('[data-route]').forEach(item=>{item.setAttribute('aria-pressed',String(item===button));});document.querySelector('#route-label').textContent=row.label;document.querySelector('#summary').textContent=`${row.rows} documented History records. ${row.outcome==='no published study'?'No published study outcome.':`One published ${row.outcome} outcome.`}`;document.querySelector('#history-title').textContent=row.rows===0?'No documented History records':`${row.rows} documented records`;document.querySelector('#toolbar').hidden=row.rows<=12;document.querySelector('#primary-outcome').innerHTML=`<span class="mono">${row.kind}</span><strong>${row.outcome==='no published study'?'No published outcome':'Published outcome'}</strong><span class="meta">${row.outcome==='no published study'?'No candidate or unapproved result appears here.':'Evidence tier and method remain explicit.'}</span>`;});});
 </script>
 </body>
 </html>
