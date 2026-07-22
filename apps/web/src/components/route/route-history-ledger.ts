@@ -58,7 +58,7 @@ export function buildRouteHistoryLedger({
       relatedRecordIds: availableAliases,
       kind: input.kind,
       dateLabel,
-      sortKey: input.sortKey ?? (dateLabel === "Undated" ? "" : dateLabel),
+      sortKey: input.sortKey ?? historyYearLabel(dateLabel) + dateLabel,
       title: input.title,
       detail: input.detail ?? "No structured description provided.",
       statusLabel: input.statusLabel ?? null,
