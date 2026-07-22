@@ -135,3 +135,11 @@ null for the rc26-pinned May 2026 outcome cycle. A later producer-member-extent
 consumer migration must preserve those member IDs, populate that lineage,
 generalize physical-scope bindings, and issue a fresh candidate universe and
 complete receipt; it must not replay rc26 authorization.
+
+The completed May 2026 cycle is bound to
+`study-review-cut-v1:5298f37aac8780666c742f7d`. Its immutable v4 receipt is
+`receipts/study-review-cut-v1-5298f37aac8780666c742f7d.approval.json` and has 484 complete
+decisions: 9 approved and 475 rejected. The matching complete worksheet and scope bindings use the
+same review-cut filename under `reviews/` and `scope-bindings/`. The source candidate universe is
+still the immutable rc26 `candidate-set-v3:80050ed598f3b2ab0d0a1e99`; this new receipt neither
+overwrites nor reauthorizes the historical v3 receipt.

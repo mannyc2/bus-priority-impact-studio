@@ -2,10 +2,11 @@
 
 Date: 2026-07-21
 
-Status: **awaiting explicit operator approval**. This record, its worksheet, and its recommendations
-do not authorize a receipt, study run, causal claim, publication, deployment, or external write.
-Plan 076 remains blocked until a complete approved run produces at least three `gated_estimate`
-studies in one treatment family.
+Status: **approved and executed**. The operator approved all 484 decisions for
+`study-review-cut-v1:5298f37aac8780666c742f7d`, authorized the strict v4 receipt and complete run,
+and closed the fresh result-specific anchor gate. The complete run produces three
+`gated_estimate` studies in the automated-bus-lane-enforcement family, so Plan 076 is unblocked and
+its non-public design spike is in progress. No result is a causal claim.
 
 ## Immutable boundary
 
@@ -127,10 +128,39 @@ decision was silently transferred. The non-authorizing reconciliation SHA-256 is
 - the seven rc26-approved rows remain recommend-approved after fresh scope, spine, and calendar
   review.
 
-No v4 approval receipt has been created. The rc26/v3 receipt cannot decode as v4 and cannot bind
-this `reviewCutId`. After explicit approval only, the complete nine-study cut may run. B60/B68
-admission still does not imply a gated estimate; all sample, control, pre-trend, placebo, overlap,
-claim-tier, anchor-review, and publication gates remain binding.
+The strict v4 receipt has SHA-256
+`13be429629a0eeea241a841ed3a7362ed85fa88b9108fc4b53363bd1570a297c`. It contains exactly 484
+unique, non-blank decisions: 9 approvals and 475 rejections. The rc26/v3 receipt remains immutable,
+cannot decode as v4, and cannot bind this `reviewCutId`. The approved event set has SHA-256
+`89e1d58d06a57034eddb77f926040d88731120acc86d7e819427068acb037aab`.
+
+## Approved estimator result
+
+Isolated B60 and B68 runs were followed by one complete nine-study run and an exact same-root
+repeat. Both complete manifests contain 19 JSON outputs and hash to
+`de8e9eecc32ff924aa0c7e5c01a094de7d90ff2ca3e49287937881677559c0ef`; the focused and complete B60
+and B68 files are also byte-identical.
+
+- B60 is a `gated_estimate`, `no_detectable_change`: -0.0360 mph (-0.5024%), 95% interval
+  [-0.1098, +0.0462], 16 treated segments, 135 controls, and all gates pass.
+- B68 is `descriptive`, `no_detectable_change`: -0.0087 mph (-0.1116%), 95% interval
+  [-0.1018, +0.0727], 12 treated segments, 135 controls. Its sole failing gate is the placebo:
+  -0.1269 mph exceeds the 0.0872 mph interval half-width.
+- M57 remains rejected solely because the unchanged fresh spine is `needs_pattern_review`.
+- The complete index contains nine studies, three gated estimates, six descriptive comparisons,
+  and six no-detectable-change results. Every ineligibility, lane fallback, and scope-error counter
+  is zero.
+
+The three gated automated-bus-lane-enforcement studies are BX38, BX9, and B60. Their signed relative
+effects are -0.0300%, +2.1014%, and -0.5024%; Plan 076's prescribed median transfer is therefore
+-0.0300087582%. This meets the written count floor but is explicitly not evidence of a positive
+transferable benefit.
+
+The complete result-specific review and exact rc26 deltas are in
+`docs/research/reviews/review-cut-5298f37aac8780666c742f7d/anchors-report.md`. The operator's latest
+authorization closes the anchor stop for this immutable cut. Existing stable production study keys
+remain rc26 because overwriting any published object is forbidden; only new review-cut-versioned
+objects may be published.
 
 ## Queued producer member-extent follow-on
 

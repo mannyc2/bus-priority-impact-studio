@@ -515,6 +515,17 @@ the completed B67 negative finding, kept B67 descriptive, and authorized Plan
 075 activation and publication. Plan 074 is DONE; this authorization does not
 claim that serving regeneration or remote publication has occurred.
 
+**Versioned monthly review closure (2026-07-22)**: the backward-compatible v4 boundary separates
+the immutable rc26 candidate universe from outcome review cut
+`study-review-cut-v1:5298f37aac8780666c742f7d`, which binds the 2026-05 outcome projection, full
+393-route spine receipt, scope bindings, engine, and admission policy. The operator approved its
+complete 9/475 decision set. A complete deterministic nine-study run produced three gated ACE
+estimates (BX38, BX9, and B60), six descriptive comparisons, and zero eligibility/scope fallbacks.
+B68 remains descriptive on placebo and M57 remains rejected on pattern readiness. The fresh anchor
+review is recorded at
+`docs/research/reviews/review-cut-5298f37aac8780666c742f7d/anchors-report.md`; rc26 artifacts and
+receipts remain immutable.
+
 ## Test plan
 
 Summarized in steps 2-4: unit tests for every pure module; four
