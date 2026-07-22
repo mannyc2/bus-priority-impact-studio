@@ -128,11 +128,13 @@ export {
 export type { StudioActorAuth } from "./queries/studio-auth.js";
 export { getStudioActorAuthByTokenHash, markStudioActorTokenUsed } from "./queries/studio-auth.js";
 export type {
+  ExactRouteIdentityRelease,
   PublishedStudioServingRelease,
   StudioRouteIndexSourceRow,
 } from "./queries/studio-route-index.js";
 export {
   findEarliestSpeedTrendMonth,
+  findExactRouteIdentityRelease,
   findLatestPublishedStudioServingRelease,
   findLatestSpeedTrendMonth,
   findLatestStudioServingMonth,

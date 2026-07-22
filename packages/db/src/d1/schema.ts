@@ -98,6 +98,23 @@ export const routeCatalogTripType = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.tripTypeRank] })],
 );
 
+export const exactRouteIdentityRelease = sqliteTable("exact_route_identity_release", {
+  releaseId: text("release_id").primaryKey(),
+  publishedAt: text("published_at").notNull(),
+  coverageStart: text("coverage_start"),
+  coverageEnd: text("coverage_end").notNull(),
+  sourceWikiRelease: text("source_wiki_release").notNull(),
+  sourceManifestSha256: text("source_manifest_sha256").notNull(),
+  sourceRouteIdentitySha256: text("source_route_identity_sha256").notNull(),
+  sourceCurrentBusRoutesSha256: text("source_current_bus_routes_sha256").notNull(),
+  sourceIndexSha256: text("source_index_sha256").notNull(),
+  catalogSnapshotSha256: text("catalog_snapshot_sha256").notNull(),
+  projectionSha256: text("projection_sha256").notNull(),
+  exactRouteCount: integer("exact_route_count").notNull(),
+  routeTypeCount: integer("route_type_count").notNull(),
+  tripTypeCount: integer("trip_type_count").notNull(),
+});
+
 export const routeDirection = sqliteTable(
   "route_direction",
   {

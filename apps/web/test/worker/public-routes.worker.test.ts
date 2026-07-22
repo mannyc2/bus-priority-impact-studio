@@ -28,6 +28,10 @@ const testEnv = env as unknown as PublicRouteTestEnv;
 const sha256 = "a".repeat(64);
 
 const fixtureTables = [
+  "exact_route_identity_release",
+  "route_catalog_trip_type",
+  "route_catalog_type",
+  "route_catalog",
   "route_scorecard_citation",
   "route_scorecard",
   "route_artifact",
@@ -126,6 +130,25 @@ async function resetFixtureTables(db: D1Database): Promise<void> {
   }
 }
 
+async function seedExactRouteRegistry(db: D1Database): Promise<void> {
+  await insertRow(db, "exact_route_identity_release", {
+    release_id: "pub_20260427T144559462Z",
+    published_at: "2026-04-27T14:45:59.462Z",
+    coverage_start: null,
+    coverage_end: "2026-03",
+    source_wiki_release: "v1-worker-fixture",
+    source_manifest_sha256: "1".repeat(64),
+    source_route_identity_sha256: "2".repeat(64),
+    source_current_bus_routes_sha256: "3".repeat(64),
+    source_index_sha256: "4".repeat(64),
+    catalog_snapshot_sha256: "5".repeat(64),
+    projection_sha256: "6".repeat(64),
+    exact_route_count: 4,
+    route_type_count: 4,
+    trip_type_count: 4,
+  });
+}
+
 async function seedD1Fixture(): Promise<void> {
   const db = requireDb();
   await resetFixtureTables(db);
@@ -142,6 +165,56 @@ async function seedD1Fixture(): Promise<void> {
     total_byte_length: 512,
     issue_count: 0,
   });
+  for (const route of [
+    {
+      routeId: "M57",
+      shortName: "M57",
+      longName: "East Side - West Side",
+      routeType: "Local",
+      tripType: "1",
+    },
+    {
+      routeId: "M15-SBS",
+      shortName: "M15-SBS",
+      longName: "East Harlem - South Ferry",
+      routeType: "SBS",
+      tripType: "14",
+    },
+    {
+      routeId: "B44",
+      shortName: "B44",
+      longName: "Sheepshead Bay - Williamsburg",
+      routeType: "Local",
+      tripType: "1",
+    },
+    {
+      routeId: "B44+",
+      shortName: "B44-SBS",
+      longName: "Sheepshead Bay - Williamsburg",
+      routeType: "SBS",
+      tripType: "14",
+    },
+  ]) {
+    await insertRow(db, "route_catalog", {
+      route_id: route.routeId,
+      route_short_name: route.shortName,
+      route_long_name: route.longName,
+      shape_count: 1,
+      stop_count: 1,
+      timepoint_stop_count: 1,
+    });
+    await insertRow(db, "route_catalog_type", {
+      route_id: route.routeId,
+      type_rank: 1,
+      route_type: route.routeType,
+    });
+    await insertRow(db, "route_catalog_trip_type", {
+      route_id: route.routeId,
+      trip_type_rank: 1,
+      trip_type: route.tripType,
+    });
+  }
+  await seedExactRouteRegistry(db);
   await insertRow(db, "route_batch_built_route", {
     month: "2026-03",
     route_rank: 1,
@@ -463,6 +536,43 @@ describe("Worker public route API smoke", () => {
 
       expect(studioRoutesResponse.status).toBe(200);
       expect(studioRoutes.schemaVersion).toBe(3);
+      expect(studioRoutes.routes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            routeId: "B44",
+            slug: "b44",
+            displayLabel: "B44",
+            tripTypes: ["1"],
+          }),
+          expect.objectContaining({
+            routeId: "B44+",
+            slug: "b44-sbs",
+            displayLabel: "B44-SBS",
+            tripTypes: ["14"],
+          }),
+        ]),
+      );
+    }
+  });
+
+  it("reproduces the production failure boundary when the exact release registry is absent", async () => {
+    const db = requireDb();
+    await db.prepare("DELETE FROM exact_route_identity_release").run();
+    try {
+      const [legacy, exact] = await Promise.all([
+        SELF.fetch("https://example.test/api/v1/studio/routes?schema=2"),
+        SELF.fetch("https://example.test/api/v1/studio/routes?schema=3"),
+      ]);
+      expect(legacy.status).toBe(200);
+      expect(exact.status).toBe(503);
+      expect(await exact.json()).toEqual({
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Exact route identity serving data is unavailable.",
+        },
+      });
+    } finally {
+      await seedExactRouteRegistry(db);
     }
   });
 

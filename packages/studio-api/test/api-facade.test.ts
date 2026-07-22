@@ -245,6 +245,30 @@ const STUDIO_PUBLISHED_AT = "2026-06-10T00:00:00.000Z";
 const STUDIO_RELEASE_ID = "pub_20260610T000000000Z";
 const STUDIO_COVERAGE = { start: "2023-04", end: "2026-03" } as const;
 
+function exactRouteIdentityReleaseFixture(input: {
+  exactRouteCount: number;
+  routeTypeCount: number;
+  tripTypeCount: number;
+  coverageStart?: string | null;
+}) {
+  return {
+    release_id: STUDIO_RELEASE_ID,
+    published_at: STUDIO_PUBLISHED_AT,
+    coverage_start: input.coverageStart === undefined ? STUDIO_COVERAGE.start : input.coverageStart,
+    coverage_end: STUDIO_COVERAGE.end,
+    source_wiki_release: "v1-rc25",
+    source_manifest_sha256: "1".repeat(64),
+    source_route_identity_sha256: "2".repeat(64),
+    source_current_bus_routes_sha256: "3".repeat(64),
+    source_index_sha256: "4".repeat(64),
+    catalog_snapshot_sha256: "5".repeat(64),
+    projection_sha256: "6".repeat(64),
+    exact_route_count: input.exactRouteCount,
+    route_type_count: input.routeTypeCount,
+    trip_type_count: input.tripTypeCount,
+  };
+}
+
 function capabilitySurface(state: string, reason: string | null = null) {
   return { state, reason, depth: null, dataAsOf: null, freshness: "unknown" };
 }
@@ -1008,9 +1032,23 @@ function createStudioProjectionEnv(
 }
 
 function createSparseStudioRouteDb(
-  input: { sourceMonthCoverage?: unknown[]; routeArtifacts?: unknown[] } = {},
+  input: {
+    sourceMonthCoverage?: unknown[];
+    routeArtifacts?: unknown[];
+    tripTypes?: unknown[];
+    exactRouteIdentityReleases?: unknown[];
+  } = {},
 ): FakeDb {
   return new FakeDb({
+    exact_route_identity_release:
+      input.exactRouteIdentityReleases ??
+      [
+        exactRouteIdentityReleaseFixture({
+          exactRouteCount: 2,
+          routeTypeCount: 2,
+          tripTypeCount: 2,
+        }),
+      ],
     route_artifact: input.routeArtifacts ?? [
       {
         route_id: "M15+",
@@ -1099,7 +1137,7 @@ function createSparseStudioRouteDb(
         route_type: "Local",
       },
     ],
-    route_catalog_trip_type: [
+    route_catalog_trip_type: input.tripTypes ?? [
       {
         route_id: "M15+",
         trip_type_rank: 1,
@@ -2587,6 +2625,14 @@ describe("Studio API facade", () => {
         ),
       }) as unknown as R2Bucket,
       DB: new FakeDb({
+        exact_route_identity_release: [
+          exactRouteIdentityReleaseFixture({
+            exactRouteCount: 1,
+            routeTypeCount: 1,
+            tripTypeCount: 1,
+            coverageStart: null,
+          }),
+        ],
         route_artifact: [
           {
             route_id: "BX12",
@@ -2891,6 +2937,54 @@ describe("Studio API facade", () => {
         }),
       ]),
     );
+  });
+
+  it("keeps schema v2 available while exact schema v3 fails closed without its registry", async () => {
+    const db = createSparseStudioRouteDb({ exactRouteIdentityReleases: [] });
+    const [legacy, exact] = await Promise.all([
+      fetchApi("/api/v1/studio/routes?schema=2", { DB: db as unknown as D1Database }),
+      fetchApi("/api/v1/studio/routes?schema=3", { DB: db as unknown as D1Database }),
+    ]);
+    expect(legacy.status).toBe(200);
+    expect(exact.status).toBe(503);
+    expect((await exact.json()) as unknown).toEqual({
+      error: {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Exact route identity serving data is unavailable.",
+      },
+    });
+  });
+
+  it("excludes unresolved legacy catalog routes from exact index and detail addressability", async () => {
+    const db = createSparseStudioRouteDb({
+      tripTypes: [{ route_id: "M15+", trip_type_rank: 1, trip_type: "14" }],
+      exactRouteIdentityReleases: [
+        exactRouteIdentityReleaseFixture({
+          exactRouteCount: 1,
+          routeTypeCount: 1,
+          tripTypeCount: 1,
+        }),
+      ],
+    });
+    const [legacyResponse, exactResponse, unresolvedDetail] = await Promise.all([
+      fetchApi("/api/v1/studio/routes?schema=2", { DB: db as unknown as D1Database }),
+      fetchApi("/api/v1/studio/routes?schema=3", { DB: db as unknown as D1Database }),
+      fetchApi("/api/v1/studio/routes/b99", { DB: db as unknown as D1Database }),
+    ]);
+    const legacy = decodeStrict(StudioRouteIndex2ResponseSchema)(await legacyResponse.json());
+    const exact = decodeStrict(StudioRouteIndex3ResponseSchema)(await exactResponse.json());
+    expect(legacy.routes.map((route) => route.routeId)).toEqual(["M15+", "B99"]);
+    expect(exact.routes.map((route) => route.routeId)).toEqual(["M15+"]);
+    expect(unresolvedDetail.status).toBe(404);
+  });
+
+  it("rejects a registry whose counts do not match the exact D1 projection", async () => {
+    const response = await fetchApi("/api/v1/studio/routes?schema=3", {
+      DB: createSparseStudioRouteDb({
+        tripTypes: [{ route_id: "M15+", trip_type_rank: 1, trip_type: "14" }],
+      }) as unknown as D1Database,
+    });
+    expect(response.status).toBe(503);
   });
 
   it("fails Studio D1 reads closed without passing publication metadata", async () => {
@@ -3835,6 +3929,13 @@ describe("Studio API facade", () => {
 
   it("serves D1-backed Studio route month history", async () => {
     const db = new FakeDb({
+      exact_route_identity_release: [
+        exactRouteIdentityReleaseFixture({
+          exactRouteCount: 1,
+          routeTypeCount: 1,
+          tripTypeCount: 1,
+        }),
+      ],
       route_artifact: [],
       route_brief_peak_window: [],
       route_brief_slowest_window: [],
