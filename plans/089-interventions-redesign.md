@@ -9,6 +9,34 @@
 - **Authority**: operator approval on 2026-07-22 for D22-D27 exactly as shown
   in `plans/mockups/089-interventions-redesign/interventions-comp.html`
 
+## Implementation receipt
+
+The executable plan landed in `d6c87026`; the typed ledger implementation and
+focused regression suite landed in `25bb9c71`. The implementation changes only
+the `/interventions` route, page, and focused shared tests. It does not change
+schemas, Worker handlers, D1/R2 contents, study artifacts, or publication
+authority.
+
+Browser verification used the canonical read-only schema-v2 route projection,
+reviewed intervention corpus, and published study index. Their SHA-256 values
+were respectively `8fa238d0b5d813244ef1fcf64ade28051d11eb4b3e8c55fec9500ce0a614e56f`,
+`e03bac5f07fd2fbe64264d7132050e28f073c79943c451bdb5da4d8988100ab7`,
+and `8569856cd4ab2e7bd31d362a37d783696b8a0acb9dea425f519fcaaba5ce5487`.
+That real-data pass rendered 631 documented, 248 planned, and five studied
+records without hard-coded counts. The canonical read-only root does not yet
+contain the post-093 facet-index artifact, so the Kind control correctly
+rendered unavailable and retained all rows; no prose fallback was introduced.
+
+At 1440 px and 390 px, the browser pass verified two tabs, one accessible
+Studied checkbox, keyboard tab movement, visible focus, URL back/forward
+restoration, exact History targets, plan/year groups, and zero page-level
+horizontal overflow. Focused tests pass 18/18; the adjacent interventions,
+History, and study-display set passes 42/42. Types, architecture, unit/web,
+Worker, bundle, SEO, performance, and scoped Biome checks pass. The complete
+`bun run check` reaches only a pre-existing repository-wide Biome 2.5.3
+failure in `analytics-primer.html` and `apps/web/src/routes/routes/index.tsx`;
+the same four errors reproduce on an untouched `origin/main` snapshot.
+
 ## Binding design decisions
 
 The approved round-4 comp is the visual and copy authority for this plan.
@@ -91,24 +119,26 @@ record the implementation receipt in project documentation.
 
 ## Acceptance criteria
 
-- [ ] D22-D27 and every preserved resolved/rejected comp decision are visible
+- [x] D22-D27 and every preserved resolved/rejected comp decision are visible
       in the implementation, with no hard-coded artifact counts.
-- [ ] Only Documented and Planned are tabs; studied is a composable,
+- [x] Only Documented and Planned are tabs; studied is a composable,
       accessible URL-backed filter.
-- [ ] The histogram and all tab/group/summary counts derive from current
+- [x] The histogram and all tab/group/summary counts derive from current
       rows, typed facets, and the published study index.
-- [ ] Documented rows group by margin year; planned rows group by structured
+- [x] Documented rows group by margin year; planned rows group by structured
       plan/source label; undated and unnamed-plan states remain honest.
-- [ ] Documented rows have no redundant kind/status badges; planned/source-gap
+- [x] Documented rows have no redundant kind/status badges; planned/source-gap
       rows retain only meaningful state badges.
-- [ ] Study rows show the approved compact register labels and confidence
+- [x] Study rows show the approved compact register labels and confidence
       intervals; peer-adjusted rows are muted, unlinked, and descriptive.
-- [ ] Plan 092 URL bounds, exact identity, History links, announcements,
+- [x] Plan 092 URL bounds, exact identity, History links, announcements,
       pagination reset/load-more, and responsive/accessibility behavior pass.
-- [ ] No evidence contract, study gate, publication authority, or serving
+- [x] No evidence contract, study gate, publication authority, or serving
       artifact changes.
-- [ ] Focused tests, `bun run check`, `bun run check:web-release`,
-      `bun run check:knowledge`, and the recorded browser pass succeed.
+- [ ] Focused tests, repository verification, `bun run check:web-release`,
+      `bun run check:knowledge`, and the recorded browser pass succeed. All
+      Plan 089 gates pass; the repository-wide style baseline remains as
+      recorded above.
 - [ ] The ready PR merges, the normal production deploy succeeds, and the live
       `/interventions` route is verified.
 
