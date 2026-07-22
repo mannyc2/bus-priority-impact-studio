@@ -33,6 +33,11 @@ export type StudyMemberTreatmentScopeAdmission =
   | {
       readonly status: "admitted";
       readonly scope: "all_route_spines";
+      readonly evidence: "mta_ace_route_registry";
+    }
+  | {
+      readonly status: "admitted";
+      readonly scope: "all_route_spines";
       readonly evidence: "exact_member_route_wide";
       readonly memberExtentIds: readonly string[];
     }
@@ -472,6 +477,17 @@ export function admitStudyMemberTreatmentScope(
       }
     | undefined,
 ): StudyMemberTreatmentScopeAdmission {
+  // The member-extent companion adds producer evidence; it does not revoke
+  // independent affirmative route-grain evidence from the exact ACE registry.
+  // This branch also preserves registry-only ACE candidates, which correctly
+  // have no producer treatment members to bind.
+  if (hasAffirmativeAceRouteEvidence(candidate)) {
+    return {
+      status: "admitted",
+      scope: "all_route_spines",
+      evidence: "mta_ace_route_registry",
+    };
+  }
   if (candidate.memberExtents.length === 0) {
     return { status: "rejected", reason: "member_extent_required" };
   }

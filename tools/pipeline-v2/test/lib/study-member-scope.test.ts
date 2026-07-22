@@ -176,6 +176,46 @@ function validateStudyPhysicalScopeBindingsArtifactV2(input: {
 }
 
 describe("member-grain study treatment-scope admission", () => {
+  test("preserves independent exact ACE registry scope for registry-only and unresolved producer candidates", () => {
+    const registryProvenance: StudyEventCandidateV4["provenance"][number] = {
+      ...candidateProvenance(),
+      sourceKind: "registry",
+      sourceId: "mta_ace_routes",
+      releaseId: null,
+      occurrenceId: null,
+      wikiRouteRecordId: null,
+      gtfsRouteId: null,
+    };
+    const registryOnly = candidate({
+      treatmentFamily: "automated_bus_lane_enforcement",
+      occurrenceId: null,
+      provenance: [registryProvenance],
+      memberExtents: [],
+    });
+    expect(admitStudyMemberTreatmentScope(registryOnly)).toEqual({
+      status: "admitted",
+      scope: "all_route_spines",
+      evidence: "mta_ace_route_registry",
+    });
+
+    const unresolved = candidate({
+      treatmentFamily: "automated_bus_lane_enforcement",
+      memberExtents: [
+        memberExtent({
+          extent: "unresolved",
+          components: [],
+          missing_roles: ["bounded_scope_identity"],
+        }),
+      ],
+      provenance: [candidateProvenance(), registryProvenance],
+    });
+    expect(admitStudyMemberTreatmentScope(unresolved)).toEqual({
+      status: "admitted",
+      scope: "all_route_spines",
+      evidence: "mta_ace_route_registry",
+    });
+  });
+
   test("admits route-wide members without manufacturing a geometry binding", () => {
     const routeWide = candidate({
       memberExtents: [
