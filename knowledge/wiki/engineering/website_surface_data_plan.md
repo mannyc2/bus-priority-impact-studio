@@ -84,6 +84,16 @@ same filtered record universe. Only published study-index rows create linked
 `matched-segment study` or `descriptive study` labels, while legacy
 peer-adjusted comparisons remain descriptive and unlinked.
 
+Route detail reconciles the same evidence into three explicit sections.
+`Current state` reads only the inventory bundle's typed `currentState[]` and
+never promotes a historical implementation date. `History` is one lossless,
+newest-first ledger with stable relationship anchors, Undated last, and local
+search/type controls only when cardinality exceeds 12. `Outcomes` keeps
+published matched-control, published descriptive, and legacy peer-adjusted
+evidence visually and semantically distinct. Citation popovers preserve
+original URLs; a typed PDF page adds only `#page=N`. B44 and B44+ remain exact,
+separate route identities throughout.
+
 Plan 082 remains sequenced after the typed contract: dated trend markers may
 reuse the exhaustive treatment presentation metadata only after resolving Plan
 090 observation treatment IDs through the route inventory.

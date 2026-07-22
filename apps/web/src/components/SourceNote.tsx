@@ -20,13 +20,23 @@ export function citationEntries(
     const citation = byKey.get(key);
     if (citation === undefined) continue;
     const label = citationLabel(citation);
-    const dedupe = citation.key || label;
-    if (seen.has(dedupe) || seen.has(label)) continue;
-    seen.add(dedupe);
+    if (seen.has(label)) continue;
     seen.add(label);
-    entries.push({ label, ...(citation.sourceUrl ? { href: citation.sourceUrl } : {}) });
+    const href = citationHref(citation);
+    entries.push({ label, ...(href === undefined ? {} : { href }) });
   }
   return entries;
+}
+
+export function citationHref(citation: {
+  sourceUrl?: string | undefined;
+  pageNumber?: number | undefined;
+}): string | undefined {
+  if (citation.sourceUrl === undefined || citation.pageNumber === undefined) {
+    return citation.sourceUrl;
+  }
+  if (!/\.pdf(?:[?#]|$)/iu.test(citation.sourceUrl)) return citation.sourceUrl;
+  return `${citation.sourceUrl.split("#", 1)[0]}#page=${citation.pageNumber}`;
 }
 
 export function SourceNote({

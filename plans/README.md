@@ -8,8 +8,9 @@ study-coverage spike), 11 (plans 084-088, the de-month cutover: monthly
 baselines/releases retired for coverage windows, a freshness ledger, and a
 harness gate), 12 (plans 090-093 plus amended 082: exact, lossless route
 intervention inventory; typed relevance; complete UI recognition; and the
-first non-ACE observation expansion), and 13 (Plan 089: the approved typed
-`/interventions` network-ledger redesign — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
+first non-ACE observation expansion), 13 (Plan 089: the approved typed
+`/interventions` network-ledger redesign), and 14 (Plan 094: the route-detail
+Treatments & History redesign — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
 overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
 `packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
 business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
@@ -20,6 +21,23 @@ notes. Generations 4 (030-035) and 5 (036-047) are DONE; generation 3
 complete or superseded; older sections are kept further down as history and
 rationale. Each executor: read your plan fully before starting, honor its STOP
 conditions, and update your row when done.
+
+---
+
+# Generation 14 — route-detail Treatments & History (2026-07-22)
+
+Plan 094 consolidates the route History tab after the exact, lossless typed
+inventory and evidence contracts landed. It consumes Plans 074/075 and
+090–093; it does not create evidence, reinterpret prose, or broaden study
+publication authority. The operator's 2026-07-22 execution token authorizes
+the recommended design after validation against real route artifacts.
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 094 | Route-detail Treatments & History redesign | P1 | M | 074, 075, 082, 089, 090, 091, 092, 093 (DONE) | IN PROGRESS |
+
+See `plans/094-route-history-redesign.md` and the accepted design receipt in
+`plans/mockups/094-route-history-redesign/route-history-comp.html`.
 
 ---
 
