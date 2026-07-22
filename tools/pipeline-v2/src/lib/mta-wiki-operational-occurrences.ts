@@ -435,6 +435,7 @@ const ReleaseManifestV5Schema = Schema.Struct({
     relationship_integrity_bundle: Schema.Literal(RELATIONSHIP_INTEGRITY_BUNDLE_CONTRACT_VERSION),
     route_anchors: Schema.Literal(ROUTE_ANCHOR_CONTRACT_VERSION),
     route_identity_snapshot: Schema.Literal(ROUTE_IDENTITY_CONTRACT_VERSION),
+    operational_occurrence_member_extents: Schema.optionalKey(Schema.Literal(1)),
   }),
   record_counts: StringCountSchema,
   files: Schema.Record(Schema.String, ReleaseFileSchema),
@@ -446,6 +447,8 @@ const ReleaseManifestV5Schema = Schema.Struct({
     operational_occurrence_summary: Schema.String,
     operational_occurrence_review_decisions: Schema.String,
     relationship_integrity_bundle: Schema.String,
+    operational_occurrence_member_extents: Schema.optionalKey(Schema.String),
+    quality_provenance: Schema.optionalKey(Schema.String),
     route_anchors: Schema.Literal("route_anchors.jsonl"),
     route_identity_snapshot: Schema.Literal("route_identity_snapshot.json"),
     taxonomy: Schema.String,
@@ -3962,6 +3965,7 @@ const buildImportArtifactV5 = Effect.fn("MtaWikiOperationalOccurrences.buildArti
     rows: readonly OperationalOccurrenceRowV2[];
     relationshipIntegrity: unknown;
     retirementClosure: VerifiedManifestV5OccurrenceRetirements;
+    memberExtentManifestFile?: VerifiedMtaWikiReleaseFile | undefined;
   }) {
     const projectionRejections = input.rows
       .filter((row) => !row.study_projection_eligible)
@@ -3995,6 +3999,14 @@ const buildImportArtifactV5 = Effect.fn("MtaWikiOperationalOccurrences.buildArti
         reviewRetirementCount: input.retirementClosure.retirementCount,
         reviewRetirements: input.retirementClosure.retirements,
         routeIdentitySnapshot: importedFile(input.routeIdentityFile, input.manifest.release_id),
+        ...(input.memberExtentManifestFile === undefined
+          ? {}
+          : {
+              memberExtentCompanion: {
+                contractVersion: 1,
+                manifest: importedFile(input.memberExtentManifestFile, input.manifest.release_id),
+              },
+            }),
         relationshipIntegrity: input.relationshipIntegrity,
       },
       producerSummary: input.summary,
@@ -4141,6 +4153,19 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         detail: `manifest pointers contains an unsafe release-relative path: ${unsafePointer}`,
       });
     }
+    if (
+      manifest.manifest_version === MANIFEST_VERSION_V5 &&
+      (manifest.contract_versions.operational_occurrence_member_extents === undefined) !==
+        (manifest.pointers.operational_occurrence_member_extents === undefined)
+    ) {
+      return yield* importError({
+        code: "contract_incompatible",
+        operation: "verifyManifest",
+        path: manifestPath,
+        detail:
+          "manifest-v5 member-extent contract version and addressed pointer must be present together",
+      });
+    }
 
     const addressed = [
       {
@@ -4186,6 +4211,14 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
               pointer: manifest.pointers.route_identity_snapshot,
               operation: "verifyRouteIdentitySnapshot",
             },
+            ...(manifest.pointers.operational_occurrence_member_extents === undefined
+              ? []
+              : [
+                  {
+                    pointer: manifest.pointers.operational_occurrence_member_extents,
+                    operation: "verifyOperationalOccurrenceMemberExtents",
+                  },
+                ]),
           ]
         : []),
     ] as const;
@@ -4349,6 +4382,7 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
       const bundleFile = verifiedFiles[6];
       const routeAnchorFile = verifiedFiles[7];
       const routeIdentityFile = verifiedFiles[8];
+      const memberExtentManifestFile = verifiedFiles[9];
       if (
         bundleFile === undefined ||
         routeAnchorFile === undefined ||
@@ -4449,6 +4483,7 @@ export const importMtaWikiOperationalOccurrences = Effect.fn("importMtaWikiOpera
         rows,
         relationshipIntegrity,
         retirementClosure,
+        memberExtentManifestFile,
       });
     }
 

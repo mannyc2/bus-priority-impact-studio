@@ -154,13 +154,22 @@ export function validateMtaWikiMemberExtentImportArtifact(
     | MtaWikiOperationalOccurrenceImportArtifactV4
     | MtaWikiOperationalOccurrenceImportArtifactV5,
 ): MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1 {
+  const addressedCompanion =
+    "memberExtentCompanion" in occurrences.sourceRelease
+      ? occurrences.sourceRelease.memberExtentCompanion
+      : undefined;
   if (
+    addressedCompanion === undefined ||
     artifact.sourceRelease.releaseId !== occurrences.sourceRelease.releaseId ||
     artifact.sourceRelease.generatorCommit !== occurrences.sourceRelease.generatorCommit ||
     artifact.sourceRelease.manifestPath !== occurrences.sourceRelease.manifestPath ||
     artifact.sourceRelease.manifestSha256 !== occurrences.sourceRelease.manifestSha256 ||
     artifact.sourceRelease.occurrencesSha256 !== occurrences.sourceRelease.occurrences.sha256 ||
-    artifact.producerSummary.release_id !== occurrences.sourceRelease.releaseId
+    artifact.sourceRelease.memberExtent.sourceOccurrenceReleaseId !==
+      artifact.producerSummary.release_id ||
+    artifact.sourceRelease.memberExtent.manifest.path !== addressedCompanion.manifest.path ||
+    artifact.sourceRelease.memberExtent.manifest.bytes !== addressedCompanion.manifest.bytes ||
+    artifact.sourceRelease.memberExtent.manifest.sha256 !== addressedCompanion.manifest.sha256
   ) {
     throw new Error(
       "Member-extent artifact does not bind the exact operational-occurrence release",
@@ -235,6 +244,8 @@ export function validateMtaWikiMemberExtentImportArtifact(
     rows: artifact.memberExtents,
     lineage: {
       identityGrain: "occurrence_route_member",
+      sourceOccurrenceReleaseId:
+        artifact.sourceRelease.memberExtent.sourceOccurrenceReleaseId,
       manifestSha256: artifact.sourceRelease.memberExtent.manifest.sha256,
       projectionSha256: projection.sha256,
       rowCount: artifact.summary.memberExtentRowCount,
@@ -248,6 +259,21 @@ export function validateMtaWikiMemberExtentImportArtifact(
 export async function runMtaWikiMemberExtentImport(
   input: ImportMtaWikiMemberExtentsInput,
 ): Promise<MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1> {
+  const addressedCompanion =
+    "memberExtentCompanion" in input.occurrenceImport.sourceRelease
+      ? input.occurrenceImport.sourceRelease.memberExtentCompanion
+      : undefined;
+  if (addressedCompanion === undefined || addressedCompanion.contractVersion !== 1) {
+    throw new Error(
+      "Pinned occurrence release does not address operational-occurrence-member-extent-v1",
+    );
+  }
+  if (
+    input.memberExtentManifestPath !== addressedCompanion.manifest.path ||
+    input.memberExtentManifestSha256 !== addressedCompanion.manifest.sha256
+  ) {
+    throw new Error("Member-extent input does not match the release-addressed companion manifest");
+  }
   if (!isSafeMtaWikiReleaseRelativePath(input.memberExtentManifestPath)) {
     throw new Error(`Unsafe member-extent manifest path: ${input.memberExtentManifestPath}`);
   }
@@ -260,6 +286,11 @@ export async function runMtaWikiMemberExtentImport(
     );
   }
   const manifestBytes = await readFile(canonicalManifest);
+  if (manifestBytes.byteLength !== addressedCompanion.manifest.bytes) {
+    throw new Error(
+      `Member-extent manifest byte-count mismatch: expected ${addressedCompanion.manifest.bytes}, received ${manifestBytes.byteLength}`,
+    );
+  }
   const manifestSha256 = sha256Bytes(manifestBytes);
   if (manifestSha256 !== input.memberExtentManifestSha256) {
     throw new Error(
@@ -273,9 +304,15 @@ export async function runMtaWikiMemberExtentImport(
   });
   const verifiedFiles = new Map<string, Uint8Array>();
   for (const receipt of producerManifest.files) {
+    const addressedPath = `data/exports/releases/${input.occurrenceImport.sourceRelease.releaseId}/member-extent/${receipt.path}`;
     verifiedFiles.set(
       receipt.path,
-      await readPinnedFile({ root: input.mtaWikiRoot, relativePath: receipt.path, ...receipt }),
+      await readPinnedFile({
+        root: input.mtaWikiRoot,
+        relativePath: addressedPath,
+        bytes: receipt.bytes,
+        sha256: receipt.sha256,
+      }),
     );
   }
   const projectionReceipt = uniqueManifestFile(
@@ -342,6 +379,7 @@ export async function runMtaWikiMemberExtentImport(
         memberExtent: {
           contractId: "operational-occurrence-member-extent-v1",
           identityGrain: "occurrence_route_member",
+          sourceOccurrenceReleaseId: producerSummary.release_id,
           manifest: {
             path: input.memberExtentManifestPath,
             bytes: manifestBytes.byteLength,

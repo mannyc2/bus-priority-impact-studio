@@ -474,6 +474,7 @@ export const StudyEventCandidateUniverseV5Schema = Schema.Struct({
   availableAnalysisRouteIdsSha256: StudySha256Schema,
   memberExtentLineage: Schema.Struct({
     identityGrain: Schema.Literal("occurrence_route_member"),
+    sourceOccurrenceReleaseId: Schema.String.check(Schema.isMinLength(1)),
     manifestSha256: StudySha256Schema,
     projectionSha256: StudySha256Schema,
     rowCount: NonNegativeIntegerSchema,
@@ -493,6 +494,7 @@ export const StudyEventWikiInputV5Schema = Schema.Struct({
   producerReviewCompatibility: Schema.Literal("compatible"),
   memberExtent: Schema.Struct({
     contractId: Schema.Literal("operational-occurrence-member-extent-v1"),
+    sourceOccurrenceReleaseId: Schema.String.check(Schema.isMinLength(1)),
     manifestSha256: StudySha256Schema,
     projectionSha256: StudySha256Schema,
     rowCount: NonNegativeIntegerSchema,

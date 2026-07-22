@@ -6,6 +6,7 @@ import type {
 
 export type StudyMemberExtentLineage = {
   readonly identityGrain: "occurrence_route_member";
+  readonly sourceOccurrenceReleaseId: string;
   readonly manifestSha256: string;
   readonly projectionSha256: string;
   readonly rowCount: number;

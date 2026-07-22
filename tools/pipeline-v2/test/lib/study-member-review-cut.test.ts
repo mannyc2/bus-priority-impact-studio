@@ -177,6 +177,7 @@ function wiki(
     occurrences: [occurrence()],
     memberExtentLineage: {
       identityGrain: "occurrence_route_member",
+      sourceOccurrenceReleaseId: "v1-rc26",
       manifestSha256: options.manifestSha256 ?? HASH_E,
       projectionSha256: options.projectionSha256 ?? HASH_F,
       rowCount: memberExtents.length,

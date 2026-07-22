@@ -380,6 +380,7 @@ export const MtaWikiOperationalOccurrenceMemberExtentImportArtifactV1Schema = Sc
     memberExtent: Schema.Struct({
       contractId: Schema.Literal("operational-occurrence-member-extent-v1"),
       identityGrain: Schema.Literal("occurrence_route_member"),
+      sourceOccurrenceReleaseId: NonEmptyStringSchema,
       manifest: OperationalOccurrenceMemberExtentFileReceiptSchema,
       projection: OperationalOccurrenceMemberExtentFileReceiptSchema,
       reviewLedger: OperationalOccurrenceMemberExtentFileReceiptSchema,
@@ -787,6 +788,12 @@ export const MtaWikiOperationalOccurrenceImportArtifactV5Schema = Schema.Struct(
     reviewRetirementCount: NonNegativeIntegerSchema,
     reviewRetirements: Schema.Array(OperationalOccurrenceReviewRetirementProjectionSchema),
     routeIdentitySnapshot: OperationalOccurrenceImportedReleaseFileSchema,
+    memberExtentCompanion: Schema.optionalKey(
+      Schema.Struct({
+        contractVersion: Schema.Literal(1),
+        manifest: OperationalOccurrenceImportedReleaseFileSchema,
+      }),
+    ),
     relationshipIntegrity: OperationalOccurrenceRelationshipIntegritySchema,
   }),
   producerSummary: OperationalOccurrenceSummaryV2Schema,

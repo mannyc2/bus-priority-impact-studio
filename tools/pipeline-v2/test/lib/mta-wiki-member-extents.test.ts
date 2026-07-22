@@ -24,7 +24,11 @@ const occurrenceRow = {
   study_projection_eligible: true,
 };
 
-function occurrenceImport(): MtaWikiOperationalOccurrenceImportArtifactV5 {
+function occurrenceImport(companion: {
+  readonly path: string;
+  readonly bytes: number;
+  readonly sha256: string;
+}): MtaWikiOperationalOccurrenceImportArtifactV5 {
   return {
     sourceRelease: {
       releaseId: "v1-rc-fixture",
@@ -32,6 +36,15 @@ function occurrenceImport(): MtaWikiOperationalOccurrenceImportArtifactV5 {
       manifestPath: "data/exports/releases/v1-rc-fixture/manifest.json",
       manifestSha256: "a".repeat(64),
       occurrences: { bytes: 123, sha256: "b".repeat(64) },
+      memberExtentCompanion: {
+        contractVersion: 1,
+        manifest: {
+          pointer: companion.path.replace("data/exports/releases/v1-rc-fixture/", ""),
+          path: companion.path,
+          bytes: companion.bytes,
+          sha256: companion.sha256,
+        },
+      },
     },
     occurrences: [occurrenceRow],
   } as unknown as MtaWikiOperationalOccurrenceImportArtifactV5;
@@ -39,7 +52,12 @@ function occurrenceImport(): MtaWikiOperationalOccurrenceImportArtifactV5 {
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "bp-member-extents-test-"));
-  const directory = join(root, "data/contracts/operational-occurrence-member-extent/v1");
+  const releasePrefix = "data/exports/releases/v1-rc-fixture/member-extent";
+  const directory = join(
+    root,
+    releasePrefix,
+    "data/contracts/operational-occurrence-member-extent/v1",
+  );
   await mkdir(directory, { recursive: true });
   const row = {
     schema_version: 1,
@@ -99,7 +117,7 @@ async function fixture() {
     },
     { path: "data/contracts/operational-occurrence-member-extent/v1/summary.json", text: summary },
   ];
-  for (const file of files) await writeFile(join(root, file.path), file.text);
+  for (const file of files) await writeFile(join(root, releasePrefix, file.path), file.text);
   const manifest = `${JSON.stringify({
     schema_version: 1,
     contract_id: "operational-occurrence-member-extent-v1",
@@ -118,7 +136,7 @@ async function fixture() {
       ...(file.row_count === undefined ? {} : { row_count: file.row_count }),
     })),
   })}\n`;
-  const manifestPath = "data/contracts/operational-occurrence-member-extent/v1/manifest.json";
+  const manifestPath = `${releasePrefix}/data/contracts/operational-occurrence-member-extent/v1/manifest.json`;
   await writeFile(join(root, manifestPath), manifest);
   const projectionFile = files[1];
   if (projectionFile === undefined) throw new Error("fixture projection is missing");
@@ -126,7 +144,8 @@ async function fixture() {
     root,
     manifestPath,
     manifestSha256: sha256(manifest),
-    projectionPath: projectionFile.path,
+    manifestBytes: new TextEncoder().encode(manifest).byteLength,
+    projectionPath: join(releasePrefix, projectionFile.path),
   };
 }
 
@@ -135,15 +154,20 @@ describe("MTA Wiki member-extent import", () => {
     const source = await fixture();
     const firstOutput = join(source.root, "first.json");
     const secondOutput = join(source.root, "second.json");
+    const occurrence = occurrenceImport({
+      path: source.manifestPath,
+      bytes: source.manifestBytes,
+      sha256: source.manifestSha256,
+    });
     const first = await runMtaWikiMemberExtentImport({
-      occurrenceImport: occurrenceImport(),
+      occurrenceImport: occurrence,
       mtaWikiRoot: source.root,
       memberExtentManifestPath: source.manifestPath,
       memberExtentManifestSha256: source.manifestSha256,
       output: firstOutput,
     });
     const second = await runMtaWikiMemberExtentImport({
-      occurrenceImport: occurrenceImport(),
+      occurrenceImport: occurrence,
       mtaWikiRoot: source.root,
       memberExtentManifestPath: source.manifestPath,
       memberExtentManifestSha256: source.manifestSha256,
@@ -153,17 +177,20 @@ describe("MTA Wiki member-extent import", () => {
     expect(first.memberExtents[0]?.treatment_record_id).toBe("treatment:test");
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
     expect(await readFile(firstOutput, "utf8")).toBe(await readFile(secondOutput, "utf8"));
-    expect(() =>
-      validateMtaWikiMemberExtentImportArtifact(first, occurrenceImport()),
-    ).not.toThrow();
+    expect(() => validateMtaWikiMemberExtentImportArtifact(first, occurrence)).not.toThrow();
   });
 
   test("rejects a file changed after the immutable manifest was pinned", async () => {
     const source = await fixture();
     await writeFile(join(source.root, source.projectionPath), "{}\n");
+    const occurrence = occurrenceImport({
+      path: source.manifestPath,
+      bytes: source.manifestBytes,
+      sha256: source.manifestSha256,
+    });
     await expect(
       runMtaWikiMemberExtentImport({
-        occurrenceImport: occurrenceImport(),
+        occurrenceImport: occurrence,
         mtaWikiRoot: source.root,
         memberExtentManifestPath: source.manifestPath,
         memberExtentManifestSha256: source.manifestSha256,
@@ -173,7 +200,11 @@ describe("MTA Wiki member-extent import", () => {
 
   test("rejects an occurrence release or denominator mismatch", async () => {
     const source = await fixture();
-    const stale = occurrenceImport();
+    const stale = occurrenceImport({
+      path: source.manifestPath,
+      bytes: source.manifestBytes,
+      sha256: source.manifestSha256,
+    });
     (stale.sourceRelease.occurrences as { sha256: string }).sha256 = "c".repeat(64);
     await expect(
       runMtaWikiMemberExtentImport({

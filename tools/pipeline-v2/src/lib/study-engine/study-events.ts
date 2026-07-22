@@ -1945,6 +1945,7 @@ export function buildStudyEventCandidateSetArtifactV4(
     producerReviewCompatibility: "compatible" as const,
     memberExtent: {
       contractId: "operational-occurrence-member-extent-v1" as const,
+      sourceOccurrenceReleaseId: input.wiki.memberExtentLineage.sourceOccurrenceReleaseId,
       manifestSha256: input.wiki.memberExtentLineage.manifestSha256,
       projectionSha256: input.wiki.memberExtentLineage.projectionSha256,
       rowCount: input.wiki.memberExtentLineage.rowCount,
@@ -2183,7 +2184,8 @@ export function pinnedOccurrenceMemberExtentStudyInput(input: {
     memberExtents.sourceRelease.releaseId !== occurrences.releaseId ||
     memberExtents.sourceRelease.manifestSha256 !== occurrences.manifestSha256 ||
     memberExtents.sourceRelease.occurrencesSha256 !== occurrences.artifactSha256 ||
-    memberExtents.producerSummary.release_id !== occurrences.releaseId
+    memberExtents.sourceRelease.memberExtent.sourceOccurrenceReleaseId !==
+      memberExtents.producerSummary.release_id
   ) {
     throw new Error("Member-extent import does not match the exact occurrence release");
   }
@@ -2196,6 +2198,7 @@ export function pinnedOccurrenceMemberExtentStudyInput(input: {
     generatorCommit: memberExtents.sourceRelease.generatorCommit,
     memberExtentLineage: {
       identityGrain: "occurrence_route_member",
+      sourceOccurrenceReleaseId: memberExtents.sourceRelease.memberExtent.sourceOccurrenceReleaseId,
       manifestSha256: memberExtents.sourceRelease.memberExtent.manifest.sha256,
       projectionSha256: projection.sha256,
       rowCount: memberExtents.summary.memberExtentRowCount,
