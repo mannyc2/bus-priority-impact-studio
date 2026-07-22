@@ -6,9 +6,10 @@ business-problem arc), 9 (plans 077-081, the truthful interactive-map
 overhaul), 10 (plans 082-083, the route-detail annotation layer +
 study-coverage spike), 11 (plans 084-088, the de-month cutover: monthly
 baselines/releases retired for coverage windows, a freshness ledger, and a
-harness gate), and 12 (plans 090-093 plus amended 082: exact, lossless route
+harness gate), 12 (plans 090-093 plus amended 082: exact, lossless route
 intervention inventory; typed relevance; complete UI recognition; and the
-first non-ACE observation expansion — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
+first non-ACE observation expansion), and 13 (Plan 089: the approved typed
+`/interventions` network-ledger redesign — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
 overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
 `packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
 business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
@@ -19,6 +20,24 @@ notes. Generations 4 (030-035) and 5 (036-047) are DONE; generation 3
 complete or superseded; older sections are kept further down as history and
 rationale. Each executor: read your plan fully before starting, honor its STOP
 conditions, and update your row when done.
+
+---
+
+# Generation 13 — approved `/interventions` network ledger (2026-07-22)
+
+Plan 089 is now executable under the operator's explicit approval of D22-D27
+exactly as shown in the round-4 comp. Previously resolved design choices remain
+binding and the rejected forest plot, Studied tab, and labeled year-divider
+rows remain rejected. The implementation consumes the already-merged typed
+inventory, relevance, URL/accessibility, and non-ACE work; it does not reopen
+or extend their evidence contracts.
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 089 | Approved typed `/interventions` network-ledger redesign | P1 | M | 090, 091, 092, 093 (DONE) | IN PROGRESS |
+
+See `plans/089-interventions-redesign.md` for the binding decisions, evidence
+boundary, verification ladder, and production handoff.
 
 ---
 
@@ -48,10 +67,10 @@ route identity, official labels, and B44/B44+ separation. These plans consume
 that merged contract and its green exact-identity fixtures; they do not
 duplicate route naming or await another identity approval.
 
-Numbering note: 089 remains claimed by the tracked
-`plans/mockups/089-interventions-redesign/` design-review comp, which is not an
-executable or approved full redesign plan. Plan 092 adds typed discovery and
-cross-links within the current page; it does not silently approve D22-D27.
+Numbering note: Plan 089 is now the executable, operator-approved implementation
+of the tracked `plans/mockups/089-interventions-redesign/` round-4 comp. Plan
+092's typed discovery, URL/accessibility, and cross-links remain hard
+dependencies rather than being replaced by the redesign.
 Plan 091 runs before the earlier-numbered Plan 090 because 090 was already
 claimed on its branch.
 
@@ -157,9 +176,10 @@ REJECTED (with one-line rationale)
 - **A bespoke badge on every `/interventions` row** — rejected. Typed family
   filters/search make all kinds discoverable; the ledger stays text-led and
   the full route inventory lives in History.
-- **Silently execute the full 089 comp** — rejected. Its design decisions are
-  unresolved; Plan 092 preserves the current visual surface while adding
-  typed data, URL state, accessibility, and cross-links.
+- **Silently execute the full 089 comp** — still rejected as a process. The
+  comp is executable only because the 2026-07-22 operator token explicitly
+  approved D22-D27; Plan 089 must preserve Plan 092's typed data, URL state,
+  accessibility, and cross-links.
 
 ---
 
