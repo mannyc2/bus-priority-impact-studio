@@ -2,7 +2,6 @@ import { appendFile, mkdir, rename } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import { Schema } from "effect";
-import { decodeSchemaStrict } from "../src/lib/schema-decode.ts";
 import {
   auditExactRouteIndexRecovery,
   type ExactRouteIdentityReleaseRecoveryRow,
@@ -10,6 +9,7 @@ import {
   type RouteCatalogTripTypeRecoveryRow,
   type RouteCatalogTypeRecoveryRow,
 } from "../src/lib/route-index-v3-recovery.ts";
+import { decodeSchemaStrict } from "../src/lib/schema-decode.ts";
 
 const CatalogRowSchema = Schema.Struct({
   routeId: Schema.String,
@@ -104,16 +104,23 @@ async function run(argv: readonly string[]): Promise<void> {
   const args = parseArguments(argv);
   const modeValue = required(args, "mode");
   if (modeValue !== "pre" && modeValue !== "post") throw new Error("--mode must be pre or post");
-  const [receipt, tableInput, catalogInput, routeTypeInput, tripTypeInput, registryInput, releaseInput] =
-    await Promise.all([
-      readJson(required(args, "receipt")),
-      readJson(required(args, "tables")),
-      readJson(required(args, "catalog")),
-      readJson(required(args, "route-types")),
-      readJson(required(args, "trip-types")),
-      readJson(required(args, "registry")),
-      readJson(required(args, "release")),
-    ]);
+  const [
+    receipt,
+    tableInput,
+    catalogInput,
+    routeTypeInput,
+    tripTypeInput,
+    registryInput,
+    releaseInput,
+  ] = await Promise.all([
+    readJson(required(args, "receipt")),
+    readJson(required(args, "tables")),
+    readJson(required(args, "catalog")),
+    readJson(required(args, "route-types")),
+    readJson(required(args, "trip-types")),
+    readJson(required(args, "registry")),
+    readJson(required(args, "release")),
+  ]);
   const tables = decodeSchemaStrict(Schema.Array(TableRowSchema), wranglerRows(tableInput));
   const tableNames = new Set(tables.map((row) => row.name));
   const catalogRows = decodeSchemaStrict(

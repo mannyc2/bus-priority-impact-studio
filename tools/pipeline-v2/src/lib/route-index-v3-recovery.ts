@@ -12,18 +12,14 @@ import { decodeSchemaStrict } from "./schema-decode.ts";
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
 const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
 const ExactRouteCountsSchema = Schema.Struct({
-  catalogRouteCount: Schema.Number.check(Schema.isInt()).check(
-    Schema.isGreaterThanOrEqualTo(0),
-  ),
+  catalogRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   catalogRouteTypeCount: Schema.Number.check(Schema.isInt()).check(
     Schema.isGreaterThanOrEqualTo(0),
   ),
   exactRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
   exactRouteTypeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
   exactTripTypeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
-  excludedRouteCount: Schema.Number.check(Schema.isInt()).check(
-    Schema.isGreaterThanOrEqualTo(0),
-  ),
+  excludedRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
 });
 
 export const ExactRouteIndexRecoveryReceiptSchema = Schema.Struct({
@@ -50,8 +46,7 @@ export const ExactRouteIndexRecoveryReceiptSchema = Schema.Struct({
   sqlSha256: Sha256Schema,
 });
 
-export type ExactRouteIndexRecoveryReceipt =
-  typeof ExactRouteIndexRecoveryReceiptSchema.Type;
+export type ExactRouteIndexRecoveryReceipt = typeof ExactRouteIndexRecoveryReceiptSchema.Type;
 
 export type RouteCatalogRecoveryRow = {
   routeId: string;
@@ -139,8 +134,7 @@ function normalizedCatalog(input: {
     left.routeId.localeCompare(right.routeId),
   );
   const routeTypeRows = [...input.routeTypeRows].toSorted(
-    (left, right) =>
-      left.routeId.localeCompare(right.routeId) || left.typeRank - right.typeRank,
+    (left, right) => left.routeId.localeCompare(right.routeId) || left.typeRank - right.typeRank,
   );
   const routeIds = new Set<string>();
   for (const row of catalogRows) {
@@ -184,7 +178,8 @@ function projectionFromServingRows(input: {
   const tripKeys = new Set<string>();
   for (const row of sortedTripTypes) {
     const key = `${row.routeId}\0${row.tripTypeRank}`;
-    if (tripKeys.has(key)) throw new Error(`Duplicate route trip type ${row.routeId}/${row.tripTypeRank}`);
+    if (tripKeys.has(key))
+      throw new Error(`Duplicate route trip type ${row.routeId}/${row.tripTypeRank}`);
     tripKeys.add(key);
     const catalog = catalogByRoute.get(row.routeId);
     if (catalog === undefined) throw new Error(`Route trip type ${row.routeId} has no catalog row`);
@@ -271,7 +266,9 @@ export function buildExactRouteIndexRecovery(input: {
   }
   const exactRouteIds = new Set<string>();
   const tripTypeRows: RouteCatalogTripTypeRecoveryRow[] = [];
-  for (const row of [...index.routes].toSorted((left, right) => left.routeId.localeCompare(right.routeId))) {
+  for (const row of [...index.routes].toSorted((left, right) =>
+    left.routeId.localeCompare(right.routeId),
+  )) {
     const identity = row.routeIdentity;
     if (
       row.routeId !== identity.routeId ||
@@ -279,10 +276,12 @@ export function buildExactRouteIndexRecovery(input: {
     ) {
       throw new Error(`Route-evidence identity mismatch for ${row.routeId}`);
     }
-    if (exactRouteIds.has(identity.routeId)) throw new Error(`Duplicate exact route ${identity.routeId}`);
+    if (exactRouteIds.has(identity.routeId))
+      throw new Error(`Duplicate exact route ${identity.routeId}`);
     exactRouteIds.add(identity.routeId);
     const catalog = catalogByRoute.get(identity.routeId);
-    if (catalog === undefined) throw new Error(`Exact route ${identity.routeId} is absent from D1 catalog`);
+    if (catalog === undefined)
+      throw new Error(`Exact route ${identity.routeId} is absent from D1 catalog`);
     if (
       catalog.routeShortName !== identity.displayLabel ||
       catalog.routeLongName !== identity.officialLongName

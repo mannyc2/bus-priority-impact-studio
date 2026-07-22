@@ -1040,15 +1040,13 @@ function createSparseStudioRouteDb(
   } = {},
 ): FakeDb {
   return new FakeDb({
-    exact_route_identity_release:
-      input.exactRouteIdentityReleases ??
-      [
-        exactRouteIdentityReleaseFixture({
-          exactRouteCount: 2,
-          routeTypeCount: 2,
-          tripTypeCount: 2,
-        }),
-      ],
+    exact_route_identity_release: input.exactRouteIdentityReleases ?? [
+      exactRouteIdentityReleaseFixture({
+        exactRouteCount: 2,
+        routeTypeCount: 2,
+        tripTypeCount: 2,
+      }),
+    ],
     route_artifact: input.routeArtifacts ?? [
       {
         route_id: "M15+",

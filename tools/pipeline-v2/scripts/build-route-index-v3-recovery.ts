@@ -3,21 +3,19 @@ import { createHash } from "node:crypto";
 import { mkdir, rename } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { ReleaseStatusResponseSchema } from "@bp/domain/routes";
-import { decodeSchemaStrict } from "../src/lib/schema-decode.ts";
 import {
   buildExactRouteIndexRecovery,
   type RouteCatalogRecoveryRow,
   type RouteCatalogTypeRecoveryRow,
 } from "../src/lib/route-index-v3-recovery.ts";
+import { decodeSchemaStrict } from "../src/lib/schema-decode.ts";
 
 const EXPECTED_SOURCE = {
   wikiRelease: "v1-rc25",
   manifestSha256: "77e518a5de39e9fc982d09b7677d44059d26de69b04d9fe10841d6c478516f0f",
   routeIdentitySha256: "47d5976ce87cc00069e68909df38a2bfeffa1374edb3991f038b483fb013b586",
-  currentBusRoutesSha256:
-    "d0147d9bb26dd142fb2cb325c32d30284bc5207853be2638e77723ef695b69d4",
-  routeEvidenceIndexSha256:
-    "fd07c9991b3d7c56905b95a2e387eaee182e314eb84a2cb26de68e06b5cf0807",
+  currentBusRoutesSha256: "d0147d9bb26dd142fb2cb325c32d30284bc5207853be2638e77723ef695b69d4",
+  routeEvidenceIndexSha256: "fd07c9991b3d7c56905b95a2e387eaee182e314eb84a2cb26de68e06b5cf0807",
   routeEvidenceIndexBytes: 392_566,
 } as const;
 

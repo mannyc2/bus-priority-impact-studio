@@ -10,11 +10,16 @@ import {
 } from "@bp/domain/studio/routes";
 import { StudioRouteIndex3ResponseSchema } from "@bp/domain/studio/snapshots";
 import type { Schema } from "effect";
-import { decodeSchemaStrict } from "../src/lib/schema-decode.ts";
 import { ExactRouteIndexRecoveryAuditSchema } from "../src/lib/route-index-v3-recovery.ts";
+import { decodeSchemaStrict } from "../src/lib/schema-decode.ts";
 
 type Arguments = ReadonlyMap<string, string>;
-type RequestReceipt = { path: string; status: number; requestId: string | null; cfRay: string | null };
+type RequestReceipt = {
+  path: string;
+  status: number;
+  requestId: string | null;
+  cfRay: string | null;
+};
 
 function parseArguments(argv: readonly string[]): Arguments {
   const values = new Map<string, string>();
@@ -43,10 +48,10 @@ async function writeAtomic(path: string, text: string): Promise<void> {
   await rename(temporary, output);
 }
 
-async function getJson<A, I>(input: {
+async function getJson<A>(input: {
   baseUrl: string;
   path: string;
-  schema: Schema.Schema<A, I>;
+  schema: Schema.Schema<A>;
   receipts: RequestReceipt[];
 }): Promise<A> {
   const response = await fetch(new URL(input.path, input.baseUrl), {
