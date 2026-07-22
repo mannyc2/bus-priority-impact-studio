@@ -582,6 +582,27 @@ describe("TreatmentsHistorySection render", () => {
     expect(groups.at(-1)?.year).toBe("Undated");
   });
 
+  test("orders year groups newest-first when a typed date label is not ISO-formatted", () => {
+    const rows = buildRouteHistoryLedger({
+      interventions: [],
+      evidence: evidenceBundle([
+        wikiEvent({
+          recordId: "free_form_2010",
+          dateText: "March 18 and 24, 2010",
+        }),
+        wikiEvent({
+          recordId: "iso_2025",
+          dateText: "2025-05-05",
+          dateNormalized: "2025-05-05",
+        }),
+      ]),
+      model: routeInterventionViewModel(null),
+    }).filter((row) => row.recordId === "free_form_2010" || row.recordId === "iso_2025");
+
+    expect(rows.map((row) => row.recordId)).toEqual(["iso_2025", "free_form_2010"]);
+    expect(groupRouteHistoryLedger(rows).map((group) => group.year)).toEqual(["2025", "2010"]);
+  });
+
   test("dense ledgers paginate in complete, announced batches", async () => {
     const denseEvidence = evidenceBundle(
       Array.from({ length: 25 }, (_, index) =>
