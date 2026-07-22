@@ -3437,6 +3437,55 @@ describe("Studio API facade", () => {
     });
   });
 
+  it("joins public intervention annotations onto D1 cards by exact route ID", async () => {
+    const publishedIntervention = {
+      eventId: "event:m15-ace",
+      interventionType: "automated_bus_lane_enforcement",
+      year: "2024",
+      title: "ACE enforcement begins",
+      detail: "Approved public treatment record.",
+      sourceLabel: "MTA Wiki",
+    } as const;
+    const env = {
+      ...createStudioProjectionEnv({
+        extraArtifacts: {
+          "studio/v1/routes.json": new FakeR2Object(
+            JSON.stringify({ routes: [{ ...route, interventions: [publishedIntervention] }] }),
+            "application/json",
+          ),
+        },
+      }),
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+    };
+
+    const response = await fetchApi("/api/v1/studio/routes", env);
+
+    expect(response.status).toBe(200);
+    const routes = decodeStrict(StudioRoutesResponseSchema)(await response.json()).routes;
+    expect(routes.find((candidate) => candidate.routeId === "M15+")?.interventions).toEqual([
+      publishedIntervention,
+    ]);
+    expect(routes.find((candidate) => candidate.routeId === "B99")?.interventions).toEqual([]);
+  });
+
+  it("keeps D1 route cards available when the optional intervention projection is invalid", async () => {
+    const env = {
+      ...createStudioProjectionEnv({
+        extraArtifacts: {
+          "studio/v1/routes.json": new FakeR2Object("{not-json", "application/json"),
+        },
+      }),
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+    };
+
+    const response = await fetchApi("/api/v1/studio/routes", env);
+
+    expect(response.status).toBe(200);
+    const routes = decodeStrict(StudioRoutesResponseSchema)(await response.json()).routes;
+    expect(routes).toHaveLength(2);
+    expect(routes.every((candidate) => candidate.interventions.length === 0)).toBe(true);
+  });
+
   it("keeps Snapshot 2.0 addressability endpoints mutually consistent", async () => {
     const env = {
       ...createStudioProjectionEnv(),

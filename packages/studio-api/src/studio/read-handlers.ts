@@ -100,6 +100,7 @@ import {
 } from "../schema-decode.js";
 import {
   loadStudioProjection,
+  maybeLoadPublishedRouteInterventions,
   maybeLoadStudioRouteDetailProjection,
   studioJsonResponse,
   studioProjectionKey,
@@ -1456,10 +1457,17 @@ export async function buildStudioRoutesResponse(
     if (release === null) {
       return { ok: false, response: errorResponse(503, NO_PUBLISHED_SERVING_DATA_MESSAGE) };
     }
-    const routes = await listStudioRouteCardsFromD1(env, release.coverage.end);
+    const [routes, publishedInterventions] = await Promise.all([
+      listStudioRouteCardsFromD1(env, release.coverage.end),
+      maybeLoadPublishedRouteInterventions(env),
+    ]);
+    const routesWithPublishedInterventions = routes.map((route) => ({
+      ...route,
+      interventions: publishedInterventions.get(route.routeId) ?? route.interventions,
+    }));
     return {
       ok: true,
-      routes,
+      routes: routesWithPublishedInterventions,
       generatedAt: new Date().toISOString(),
       releaseId: release.releaseId,
       publishedAt: release.publishedAt,
@@ -1470,6 +1478,7 @@ export async function buildStudioRoutesResponse(
         confidence: routes.length === 0 ? "low" : "medium",
         caveats: [
           `Studio route listing is served live from D1 for the latest covered month, ${release.coverage.end}.`,
+          "Published intervention annotations are joined from the public route projection by exact route ID.",
           "Rich per-route artifacts, briefs, and findings remain release-static R2 projections.",
           "Catalog routes without rich artifacts return partial route detail with surface flags and caveats.",
         ],
