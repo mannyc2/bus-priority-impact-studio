@@ -33,7 +33,7 @@ surface but never uses it to authorize exact identity.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 095 | Exact route-index v3 serving recovery | P0 | S-M | 085, 086, 092; 094 implementation merged | IN PROGRESS |
+| 095 | Exact route-index v3 serving recovery | P0 | S-M | 085, 086, 092; 094 implementation merged | DONE |
 
 See `plans/095-exact-route-index-v3-serving-recovery.md` for the production
 failure envelope, pinned exact identity, recovery checks, and mutation gate.
@@ -50,7 +50,7 @@ the recommended design after validation against real route artifacts.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 094 | Route-detail Treatments & History redesign | P1 | M | 074, 075, 082, 089, 090, 091, 092, 093 (DONE) | BLOCKED — deployed UI; exact route-index v3/D1 reads return 500 |
+| 094 | Route-detail Treatments & History redesign | P1 | M | 074, 075, 082, 089, 090, 091, 092, 093 (DONE) | DONE |
 
 See `plans/094-route-history-redesign.md` and the accepted design receipt in
 `plans/mockups/094-route-history-redesign/route-history-comp.html`.
