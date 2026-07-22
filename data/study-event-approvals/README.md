@@ -13,11 +13,13 @@ five events through `approvedEvents`.
 The runtime contracts are
 `packages/domain/src/studio/study.ts` (`StudyEventApprovalArtifactSchema`,
 `StudyEventApprovalArtifactV2Schema`, and
-`StudyEventApprovalArtifactV3Schema`). The versioned JSON Schemas mirror those
+`StudyEventApprovalArtifactV3Schema`, and `StudyEventApprovalArtifactV4Schema`).
+The versioned JSON Schemas mirror those
 wire shapes for operator tools: `study-event-approval.schema.json` is the
 immutable historical v1 shape, and `study-event-approval-v2.schema.json` plus
 `study-event-approval-v3.schema.json` cover occurrence-v1 and occurrence-v2
-candidate sets respectively.
+candidate sets respectively. `study-event-approval-v4.schema.json` adds the
+exact `reviewCutId` binding.
 The stricter semantic checks live in `study merge-events`: a receipt must bind
 to the current `candidateSetId`, contain exactly one decision for every
 candidate, have non-blank reviewer and rationale values, contain no duplicate
@@ -93,3 +95,51 @@ Receipts are immutable. Never overwrite or repurpose a receipt after its
 candidate set changes; rebuild and review a new candidate set under a new
 filename. A receipt records completion of the operator decision boundary, not
 a causal claim or permission to publish.
+
+## Versioned outcome review cuts
+
+Schema v4 separates two immutable identities that v3 combined incompletely:
+
+- `candidateSetId` identifies the source candidate universe and remains the
+  deterministic v3 candidate identity for this compatibility cycle;
+- `reviewCutId` identifies one analysis review cut and binds the candidate
+  universe receipt, analysis month, verified outcome snapshot, complete speed
+  spine manifest and route-artifact receipts, physical-scope binding, study
+  engine, and admission policy.
+
+Adding a later complete outcome month therefore creates a new `reviewCutId`
+without rewriting either the source candidate universe or an earlier receipt.
+The v4 receipt binds both identifiers and must contain exactly one strict,
+non-duplicate decision for every candidate. A v3 receipt cannot authorize a
+v4 cut. `study run` also regenerates the review-input snapshot from the actual
+database and artifact paths before estimation; month, outcome, spine, scope,
+engine, candidate-universe, or receipt drift fails closed.
+
+After explicit operator approval, project the complete v4 worksheet without
+changing its decisions:
+
+```sh
+jq '{artifactKind:"bp.studio.study_event_approvals.v4",schemaVersion:4,candidateSetId,reviewCutId,decisions:[.decisions[]|{candidateId,decision,reviewer,rationale}]}' \
+  study-review-cut-v1-NEW_ID.review-worksheet.json \
+  > /tmp/study-review-cut-v1-NEW_ID.approval.json
+```
+
+Focused estimator iterations must provide a separate
+`--focused-artifact-root`; they never replace the complete cut index with a
+subset. Approval remains estimator admission only. Study gates, anchor review,
+and publication authorization are separate boundaries.
+
+The candidate-universe receipt reserves a nullable, hashed
+`memberExtentLineage` at occurrence + route + treatment-member grain. It is
+null for the rc26-pinned May 2026 outcome cycle. A later producer-member-extent
+consumer migration must preserve those member IDs, populate that lineage,
+generalize physical-scope bindings, and issue a fresh candidate universe and
+complete receipt; it must not replay rc26 authorization.
+
+The completed May 2026 cycle is bound to
+`study-review-cut-v1:5298f37aac8780666c742f7d`. Its immutable v4 receipt is
+`receipts/study-review-cut-v1-5298f37aac8780666c742f7d.approval.json` and has 484 complete
+decisions: 9 approved and 475 rejected. The matching complete worksheet and scope bindings use the
+same review-cut filename under `reviews/` and `scope-bindings/`. The source candidate universe is
+still the immutable rc26 `candidate-set-v3:80050ed598f3b2ab0d0a1e99`; this new receipt neither
+overwrites nor reauthorizes the historical v3 receipt.

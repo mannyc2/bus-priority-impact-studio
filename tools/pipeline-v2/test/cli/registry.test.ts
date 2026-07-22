@@ -101,7 +101,14 @@ const expectedRegistry = {
     "reliability-baseline",
   ],
   sources: ["catalog-search", "list", "probe", "soda3-range-probe"],
-  study: ["merge-events", "prepare-review-worksheet", "run"],
+  study: [
+    "merge-events",
+    "opportunity-prototype",
+    "prepare-review-worksheet",
+    "refresh-scope-bindings",
+    "run",
+    "snapshot-review-inputs",
+  ],
   studio: [
     "build-mta-wiki-route-fixture",
     "export-intervention-corpus",
@@ -123,7 +130,7 @@ const expectedRegistry = {
 describe("Effect CLI registry", () => {
   test("loads every pipeline command descriptor loudly", async () => {
     const commands = await discoverCommandDescriptors();
-    expect(commands).toHaveLength(107);
+    expect(commands).toHaveLength(110);
     expect(buildCommandRegistrySnapshot(commands)).toEqual(expectedRegistry);
   });
 

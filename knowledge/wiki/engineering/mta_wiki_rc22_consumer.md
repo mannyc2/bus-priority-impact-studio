@@ -101,3 +101,21 @@ An operator may review promotion of `LATEST` from `v1-rc5` to `v1-rc23`, but
 Tracker itself continues to consume only explicit release/hash pins. Release
 promotion authorizes no candidate, study, publication, deployment, or D1/R2
 write.
+
+## Candidate-universe and outcome-review identities
+
+Tracker now keeps producer/candidate lineage separate from an analysis review
+cut. The candidate-universe receipt binds the exact registry and Wiki release,
+manifest, occurrence import, candidate population, and available route
+universe. It also reserves a nullable hashed `memberExtentLineage` at
+occurrence + route + treatment-member grain. The review-cut receipt separately
+binds that universe to an analysis month, verified route-speed outcome
+snapshot, complete speed-spine manifest and route receipts, physical-scope
+bindings, study engine, and admission policy.
+
+The May 2026 outcome-only review stays pinned to MTA Wiki `v1-rc26`; it does
+not consume the completed producer readiness/member-extent companion. That
+companion requires a later, fresh candidate universe that preserves
+`treatment_record_id`, verifies its manifest and projection hashes,
+generalizes scope bindings to candidate + occurrence + route + member, and
+receives a complete new approval receipt. It cannot inherit rc26 approval.

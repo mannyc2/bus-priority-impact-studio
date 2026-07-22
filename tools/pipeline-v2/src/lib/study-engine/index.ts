@@ -5,6 +5,7 @@ export * from "./estimator.ts";
 export * from "./gates.ts";
 export * from "./interference.ts";
 export * from "./matching.ts";
+export * from "./opportunity.ts";
 export * from "./panel.ts";
 export * from "./scope.ts";
 export * from "./study-events.ts";

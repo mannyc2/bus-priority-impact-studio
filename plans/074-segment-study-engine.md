@@ -212,6 +212,26 @@ and operator-review criteria are therefore complete. Plan 075 owns the
 separate serving regeneration, remote publication, and public verification
 work authorized by this token.
 
+### Binding May 2026 outcome-review amendment — 2026-07-21
+
+A later outcome-only maintenance cycle extends the isolated route-speed
+horizon through the latest verified complete month, 2026-05, while remaining
+pinned to MTA Wiki `v1-rc26`. Historical rc26 artifacts and its v3 receipt stay
+immutable. Schema v4 introduces a distinct review-cut identity so a new month,
+outcome snapshot, full spine universe, scope binding, engine, admission policy,
+or candidate universe cannot reuse that authorization.
+
+The complete non-authorizing May cut is
+`study-review-cut-v1:5298f37aac8780666c742f7d`, still over source universe
+`candidate-set-v3:80050ed598f3b2ab0d0a1e99`. All 484 candidates were reviewed
+exactly once. The only recommended decision delta is to admit B60 and B68 to
+the estimator now that each has 6 pre/5 post months and a ready spine; M57
+still fails unchanged pattern readiness. The recommendation is not a receipt,
+run authority, causal claim, anchor approval, or publication authority. The
+operator must explicitly approve the complete 9/475 decision cut before any
+receipt or estimator run. Full evidence is in
+`docs/research/plan074-2026-05-review-cut.md`.
+
 ## Why this matters
 
 The product is named Bus Priority **Impact** Studio, but impact is currently
@@ -494,6 +514,17 @@ TBD` placeholders. The operator accepted those six historical unknowns and
 the completed B67 negative finding, kept B67 descriptive, and authorized Plan
 075 activation and publication. Plan 074 is DONE; this authorization does not
 claim that serving regeneration or remote publication has occurred.
+
+**Versioned monthly review closure (2026-07-22)**: the backward-compatible v4 boundary separates
+the immutable rc26 candidate universe from outcome review cut
+`study-review-cut-v1:5298f37aac8780666c742f7d`, which binds the 2026-05 outcome projection, full
+393-route spine receipt, scope bindings, engine, and admission policy. The operator approved its
+complete 9/475 decision set. A complete deterministic nine-study run produced three gated ACE
+estimates (BX38, BX9, and B60), six descriptive comparisons, and zero eligibility/scope fallbacks.
+B68 remains descriptive on placebo and M57 remains rejected on pattern readiness. The fresh anchor
+review is recorded at
+`docs/research/reviews/review-cut-5298f37aac8780666c742f7d/anchors-report.md`; rc26 artifacts and
+receipts remain immutable.
 
 ## Test plan
 

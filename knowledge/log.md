@@ -8958,3 +8958,71 @@ remains `pub_20260605T183601689Z` with 2023-04 through 2026-03 coverage; no D1
 seed or Worker deployment occurred. The exact receipt is
 `docs/research/reviews/rc26/publication-report.md`. Plan 075 is DONE. Plan 076
 remains independently blocked on its three-gated-study floor.
+
+## [2026-07-21] analysis | Plan 074 May outcome cut awaits approval
+
+Built an isolated 2023-04 through 2026-05 route-speed refresh without
+modifying the canonical 181.8 GB SQLite database or any published rc26
+artifact. Official availability confirms April and May complete and June
+empty. The full scratch build wrote 393/393 speed spines; B60 is
+`series_ready_with_gaps`, B68 is `series_ready`, and M57 remains
+`needs_pattern_review`.
+
+Added the backward-compatible v4 approval boundary: the source candidate
+universe remains distinct from a review cut that binds analysis month, exact
+outcome snapshot, all spine receipts, scope, engine, and admission policy.
+The resulting non-authorizing cut is
+`study-review-cut-v1:5298f37aac8780666c742f7d`. Its complete reconciliation
+recommends 9 approvals and 475 rejections; only B60 and B68 differ from rc26.
+No receipt or study run exists yet. Plan 076 remains blocked pending explicit
+operator approval and the complete freshly bound estimator run. See
+`docs/research/plan074-2026-05-review-cut.md`.
+
+## [2026-07-22] analysis | Plan 074 May review cut approved and executed
+
+The operator approved the complete 484-row May cut exactly as reconciled: nine
+estimator admissions and 475 rejections. The strict v4 receipt binds
+`study-review-cut-v1:5298f37aac8780666c742f7d` and has SHA-256
+`13be429629a0eeea241a841ed3a7362ed85fa88b9108fc4b53363bd1570a297c`.
+The immutable rc26 candidate universe and v3 receipt remain unchanged and
+cannot authorize this analysis-month, outcome, spine, scope, and engine cut.
+
+Focused B60/B68 runs and the complete nine-study run were repeated
+byte-identically. B60 is a gated no-detectable-change estimate at -0.0360 mph
+(-0.5024%), interval [-0.1098, +0.0462], with 16 treated segments and 135
+controls. All gates pass. B68 is descriptive at -0.0087 mph (-0.1116%),
+interval [-0.1018, +0.0727], with 12 treated segments and 135 controls; only
+its placebo gate fails. M57 remains rejected for `needs_pattern_review`. The
+complete index has three gated and six descriptive studies, with zero scope
+fallbacks or unexplained ineligible approvals. This result closes Plan 074's
+May review cycle without changing any stable rc26 serving object.
+
+## [2026-07-22] direction | Plan 076 spike delivered with zero publishable opportunities
+
+BX38, BX9, and B60 clear Plan 076's three-distinct-event-route ACE floor. Their
+signed relative effects are -0.0300%, +2.1014%, and -0.5024%; the prescribed
+median transfer is -0.030008758194421996%. The non-public prototype binds the
+complete May study index, review inputs, all 393 spine receipts, the May
+treatment summary, and the reviewed Plan 073 corpus. Descriptive studies,
+including B68, never enter the transfer.
+
+The corpus-bound run scores zero segments. Of 4,153 May source segments, 3,190
+are on non-ready spines, 10 lack usable ridership, 135 have affirmative
+treatment evidence, and 818 have unknown treatment state. There are zero
+spine mismatches or invalid values. Corpus silence, `source_gap`, and
+`not_found` remain unknown rather than being manufactured into untreated
+evidence. Repeated outputs are byte-identical: prototype SHA-256
+`5b9c11080973443deb2ed7ad5610130e21af9e259e2f976f7738007931da5612`
+and report SHA-256
+`7c520cc8c9ab4cdfd64793231d2f60087381610945654127c14647dbaa8c386a`.
+
+The decision rejects every public opportunity surface until an audited
+current segment-level ACE absence inventory and stronger same-family transfer
+evidence exist. The comp shows the truthful unavailable state only; no app or
+package code changed. Verification passed 466 pipeline tests, 950 root unit
+tests, 334 web tests, 22 Worker tests, root typecheck, architecture, knowledge,
+focused Biome, and deterministic artifact comparison. Repository-wide style
+still reports only the pre-existing `analytics-primer.html` and route-index
+diagnostics. Immutable generated approval data is now excluded from Biome,
+matching the existing generated-artifact policy rather than changing its
+hash-bound bytes.

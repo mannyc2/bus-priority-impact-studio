@@ -1,0 +1,80 @@
+{
+  "sourceId": "bus_segment_speeds_2025",
+  "checkedAt": "2026-07-21T23:51:28.244Z",
+  "startYear": 2026,
+  "endYear": 2026,
+  "minSpeedRoutes": 300,
+  "latestSpeedMonth": {
+    "isoMonth": "2026-05",
+    "year": 2026,
+    "month": 5,
+    "routeCount": 359,
+    "rowCount": 476481,
+    "busTripCount": 7096970,
+    "status": "complete"
+  },
+  "requestedMonth": {
+    "isoMonth": "2026-05",
+    "year": 2026,
+    "month": 5,
+    "routeCount": 359,
+    "rowCount": 476481,
+    "busTripCount": 7096970,
+    "status": "complete"
+  },
+  "releaseDecision": {
+    "status": "new_complete_month_available",
+    "latestCompleteMonth": "2026-05",
+    "lastBuiltMonth": "2026-03",
+    "shouldRebuild": true,
+    "reason": "Latest complete speed month 2026-05 is newer than last built month 2026-03."
+  },
+  "months": [
+    {
+      "isoMonth": "2026-05",
+      "year": 2026,
+      "month": 5,
+      "routeCount": 359,
+      "rowCount": 476481,
+      "busTripCount": 7096970,
+      "status": "complete"
+    },
+    {
+      "isoMonth": "2026-04",
+      "year": 2026,
+      "month": 4,
+      "routeCount": 360,
+      "rowCount": 535184,
+      "busTripCount": 7148423,
+      "status": "complete"
+    },
+    {
+      "isoMonth": "2026-03",
+      "year": 2026,
+      "month": 3,
+      "routeCount": 353,
+      "rowCount": 472361,
+      "busTripCount": 7249761,
+      "status": "complete"
+    },
+    {
+      "isoMonth": "2026-02",
+      "year": 2026,
+      "month": 2,
+      "routeCount": 353,
+      "rowCount": 494938,
+      "busTripCount": 6070355,
+      "status": "complete"
+    },
+    {
+      "isoMonth": "2026-01",
+      "year": 2026,
+      "month": 1,
+      "routeCount": 356,
+      "rowCount": 507420,
+      "busTripCount": 6907249,
+      "status": "complete"
+    }
+  ],
+  "artifactPath": "/tmp/bp-plan074-source-availability-BxZbXY/route-speed-availability.json"
+}

@@ -8,18 +8,24 @@ import {
   StudyEventMergeArtifactV2Schema,
   type StudyEventMergeArtifactV3,
   StudyEventMergeArtifactV3Schema,
+  type StudyEventMergeArtifactV4,
+  StudyEventMergeArtifactV4Schema,
 } from "@bp/domain/studio/study";
 import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Result } from "effect";
 import { writeJson } from "../../lib/json.ts";
 import { fromCliPath, repoRoot } from "../../lib/paths.ts";
 import { decodeSchemaEitherStrict } from "../../lib/schema-decode.ts";
+import { validateStudyEventMergeArtifactV4 } from "../../lib/study-engine/study-events.ts";
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const CANDIDATE_SET_V2_PATTERN = /^candidate-set-v2:[a-f0-9]{24}$/u;
 const CANDIDATE_SET_V3_PATTERN = /^candidate-set-v3:[a-f0-9]{24}$/u;
 
-type SupportedStudyEventMergeArtifact = StudyEventMergeArtifactV2 | StudyEventMergeArtifactV3;
+type SupportedStudyEventMergeArtifact =
+  | StudyEventMergeArtifactV2
+  | StudyEventMergeArtifactV3
+  | StudyEventMergeArtifactV4;
 type SupportedStudyEventCandidate = StudyEventCandidateV2 | StudyEventCandidateV3;
 
 type ReviewWorksheetDecision = SupportedStudyEventCandidate & {
@@ -42,6 +48,16 @@ type ReviewWorksheetSourceArtifact =
       readonly approvalState: "awaiting_approval";
       readonly wikiInput: StudyEventMergeArtifactV3["wikiInput"];
       readonly summary: StudyEventMergeArtifactV3["summary"];
+    }
+  | {
+      readonly artifactKind: "bp.studio.study_events.v4";
+      readonly schemaVersion: 4;
+      readonly approvalState: "awaiting_approval";
+      readonly reviewCutId: string;
+      readonly candidateUniverse: StudyEventMergeArtifactV4["candidateUniverse"];
+      readonly reviewInputs: StudyEventMergeArtifactV4["reviewInputs"];
+      readonly wikiInput: StudyEventMergeArtifactV4["wikiInput"];
+      readonly summary: StudyEventMergeArtifactV4["summary"];
     };
 
 export type StudyEventReviewWorksheet = {
@@ -51,6 +67,7 @@ export type StudyEventReviewWorksheet = {
   readonly reviewState: "awaiting_review";
   readonly approval: null;
   readonly candidateSetId: string;
+  readonly reviewCutId?: string;
   readonly generatedFrom: string;
   readonly generatedFromSha256: string;
   readonly sourceArtifact: ReviewWorksheetSourceArtifact;
@@ -111,7 +128,8 @@ function nonBlank(value: string | null): value is string {
 
 function assertPinnedWikiInput(artifact: SupportedStudyEventMergeArtifact): void {
   const expectedMode =
-    artifact.artifactKind === "bp.studio.study_events.v3"
+    artifact.artifactKind === "bp.studio.study_events.v3" ||
+    artifact.artifactKind === "bp.studio.study_events.v4"
       ? "pinned_occurrence_release_v4"
       : "pinned_occurrence_release";
   if (artifact.wikiInput.mode !== expectedMode) {
@@ -132,7 +150,10 @@ function assertPinnedWikiInput(artifact: SupportedStudyEventMergeArtifact): void
   ) {
     throw new Error("Pinned occurrence release is missing a valid artifactSha256");
   }
-  if (artifact.artifactKind === "bp.studio.study_events.v3") {
+  if (
+    artifact.artifactKind === "bp.studio.study_events.v3" ||
+    artifact.artifactKind === "bp.studio.study_events.v4"
+  ) {
     if (!SHA256_PATTERN.test(artifact.wikiInput.relationshipBundleSha256)) {
       throw new Error("Pinned occurrence release is missing a valid relationshipBundleSha256");
     }
@@ -214,7 +235,10 @@ function assertFocusCandidate(
     ) {
       throw new Error("Focus provenance is incomplete or does not match the pinned release");
     }
-    if (artifact.artifactKind === "bp.studio.study_events.v3") {
+    if (
+      artifact.artifactKind === "bp.studio.study_events.v3" ||
+      artifact.artifactKind === "bp.studio.study_events.v4"
+    ) {
       if (!("wikiRouteRecordId" in item)) {
         throw new Error("Focus v3 provenance is missing exact Wiki route identity lineage");
       }
@@ -255,7 +279,8 @@ export function buildStudyEventReviewWorksheet(input: {
   readonly focusRouteId: string;
 }): StudyEventReviewWorksheet {
   const candidateSetPattern =
-    input.artifact.artifactKind === "bp.studio.study_events.v3"
+    input.artifact.artifactKind === "bp.studio.study_events.v3" ||
+    input.artifact.artifactKind === "bp.studio.study_events.v4"
       ? CANDIDATE_SET_V3_PATTERN
       : CANDIDATE_SET_V2_PATTERN;
   if (!candidateSetPattern.test(input.artifact.candidateSetId)) {
@@ -310,31 +335,44 @@ export function buildStudyEventReviewWorksheet(input: {
     manifestSha256,
     occurrenceArtifactSha256,
     relationshipBundleSha256:
-      input.artifact.artifactKind === "bp.studio.study_events.v3"
+      input.artifact.artifactKind === "bp.studio.study_events.v3" ||
+      input.artifact.artifactKind === "bp.studio.study_events.v4"
         ? input.artifact.wikiInput.relationshipBundleSha256
         : null,
     relationshipEnforcementProofCanonicalSha256:
-      input.artifact.artifactKind === "bp.studio.study_events.v3"
+      input.artifact.artifactKind === "bp.studio.study_events.v3" ||
+      input.artifact.artifactKind === "bp.studio.study_events.v4"
         ? input.artifact.wikiInput.relationshipEnforcementProofCanonicalSha256
         : null,
   };
 
   const sourceArtifact: ReviewWorksheetSourceArtifact =
-    input.artifact.artifactKind === "bp.studio.study_events.v3"
+    input.artifact.artifactKind === "bp.studio.study_events.v4"
       ? {
           artifactKind: input.artifact.artifactKind,
           schemaVersion: input.artifact.schemaVersion,
           approvalState: "awaiting_approval",
+          reviewCutId: input.artifact.reviewCutId,
+          candidateUniverse: structuredClone(input.artifact.candidateUniverse),
+          reviewInputs: structuredClone(input.artifact.reviewInputs),
           wikiInput: { ...input.artifact.wikiInput },
           summary: { ...input.artifact.summary },
         }
-      : {
-          artifactKind: input.artifact.artifactKind,
-          schemaVersion: input.artifact.schemaVersion,
-          approvalState: "awaiting_approval",
-          wikiInput: { ...input.artifact.wikiInput },
-          summary: { ...input.artifact.summary },
-        };
+      : input.artifact.artifactKind === "bp.studio.study_events.v3"
+        ? {
+            artifactKind: input.artifact.artifactKind,
+            schemaVersion: input.artifact.schemaVersion,
+            approvalState: "awaiting_approval",
+            wikiInput: { ...input.artifact.wikiInput },
+            summary: { ...input.artifact.summary },
+          }
+        : {
+            artifactKind: input.artifact.artifactKind,
+            schemaVersion: input.artifact.schemaVersion,
+            approvalState: "awaiting_approval",
+            wikiInput: { ...input.artifact.wikiInput },
+            summary: { ...input.artifact.summary },
+          };
 
   return {
     _notice:
@@ -344,6 +382,9 @@ export function buildStudyEventReviewWorksheet(input: {
     reviewState: "awaiting_review",
     approval: null,
     candidateSetId: input.artifact.candidateSetId,
+    ...(input.artifact.artifactKind === "bp.studio.study_events.v4"
+      ? { reviewCutId: input.artifact.reviewCutId }
+      : {}),
     generatedFrom: input.generatedFrom,
     generatedFromSha256: input.generatedFromSha256,
     sourceArtifact,
@@ -406,7 +447,10 @@ function decodeSupportedStudyEventArtifact(raw: unknown): SupportedStudyEventMer
       : discriminator.artifactKind === "bp.studio.study_events.v3" &&
           discriminator.schemaVersion === 3
         ? StudyEventMergeArtifactV3Schema
-        : null;
+        : discriminator.artifactKind === "bp.studio.study_events.v4" &&
+            discriminator.schemaVersion === 4
+          ? StudyEventMergeArtifactV4Schema
+          : null;
   if (schema === null) {
     throw new Error(
       `Unsupported study-event artifact kind/version: ${String(discriminator.artifactKind)}@${String(discriminator.schemaVersion)}`,
@@ -418,7 +462,9 @@ function decodeSupportedStudyEventArtifact(raw: unknown): SupportedStudyEventMer
       `Failed to strict-decode study-event v${String(discriminator.schemaVersion)} artifact: ${String(decoded.failure)}`,
     );
   }
-  return decoded.success;
+  return decoded.success.artifactKind === "bp.studio.study_events.v4"
+    ? validateStudyEventMergeArtifactV4(decoded.success)
+    : decoded.success;
 }
 
 export async function runPrepareStudyEventReviewWorksheet(input: {
@@ -446,7 +492,11 @@ export async function runPrepareStudyEventReviewWorksheet(input: {
     throw new Error(`Failed to parse study-event artifact at ${inputPath}: ${String(cause)}`);
   }
   const decoded = decodeSupportedStudyEventArtifact(raw);
-  const expectedFilename = `${decoded.candidateSetId.replace(":", "-")}.review-worksheet.json`;
+  const worksheetIdentity =
+    decoded.artifactKind === "bp.studio.study_events.v4"
+      ? decoded.reviewCutId
+      : decoded.candidateSetId;
+  const expectedFilename = `${worksheetIdentity.replace(":", "-")}.review-worksheet.json`;
   if (basename(outputPath) !== expectedFilename) {
     throw new Error(`Review worksheet filename must be ${expectedFilename}`);
   }
@@ -467,11 +517,11 @@ export async function runPrepareStudyEventReviewWorksheet(input: {
 
 export default defineCommand({
   path: ["study", "prepare-review-worksheet"],
-  summary: "Prepare a deterministic, non-approval v2/v3 study-event review worksheet.",
+  summary: "Prepare a deterministic, non-approval v2/v3/v4 study-event review worksheet.",
   input: {
     options: Schema.Struct({
       input: Schema.String.annotate({
-        description: "Awaiting-approval bp.studio.study_events.v2 or v3 artifact.",
+        description: "Awaiting-approval bp.studio.study_events.v2, v3, or v4 artifact.",
       }),
       output: Schema.String.annotate({
         description: "New candidate-set review worksheet path outside receipts/.",

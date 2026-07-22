@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bus-priority-impact-studio.local/schemas/study-event-approval.v4.json",
+  "title": "Bus Priority Impact Studio study-event approval receipt v4",
+  "description": "Strict wire-shape mirror for one complete candidate universe at one immutable outcome review cut.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["artifactKind", "schemaVersion", "candidateSetId", "reviewCutId", "decisions"],
+  "properties": {
+    "artifactKind": { "const": "bp.studio.study_event_approvals.v4" },
+    "schemaVersion": { "const": 4 },
+    "candidateSetId": {
+      "type": "string",
+      "pattern": "^candidate-set-v[3-9][0-9]*:[a-f0-9]{24}$"
+    },
+    "reviewCutId": {
+      "type": "string",
+      "pattern": "^study-review-cut-v1:[a-f0-9]{24}$"
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["candidateId", "decision", "reviewer", "rationale"],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "pattern": "^study-event-v2:[a-f0-9]{24}$"
+          },
+          "decision": { "enum": ["approved", "rejected"] },
+          "reviewer": { "type": "string", "pattern": "\\S" },
+          "rationale": { "type": "string", "pattern": "\\S" }
+        }
+      }
+    }
+  }
+}
