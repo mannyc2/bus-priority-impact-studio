@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State**: IN PROGRESS
+- **State**: DONE
 - **Priority**: P0
 - **Effort**: S-M
 - **Depends on**: Plans 085, 086, 092, and 094 (implementation merged)
@@ -91,21 +91,87 @@ schema v3.
 
 ## Acceptance criteria
 
-- [ ] Read-only production audit and Worker logs or explicit credential limit
+- [x] Read-only production audit and Worker logs or explicit credential limit
       are recorded before mutation.
-- [ ] Recovery SQL and receipt are deterministic and bound to exact source,
+- [x] Recovery SQL and receipt are deterministic and bound to exact source,
       route universe, release metadata, byte count, and SHA-256.
-- [ ] Schema-v3 and route detail fail closed on incomplete/duplicate/mismatched
+- [x] Schema-v3 and route detail fail closed on incomplete/duplicate/mismatched
       exact identity; schema v2 compatibility remains unchanged.
-- [ ] Production D1 has exactly the verified complete exact projection, zero
+- [x] Production D1 has exactly the verified complete exact projection, zero
       orphan rows, and distinct B44/B44+ identities.
-- [ ] Schema-v3 list and rich/sparse/B44/B44+ detail endpoints return 200 and
+- [x] Schema-v3 list and rich/sparse/B44/B44+ detail endpoints return 200 and
       strict-decode after deployment.
-- [ ] The live Plan 094 History UI passes desktop/mobile exact-identity,
+- [x] The live Plan 094 History UI passes desktop/mobile exact-identity,
       keyboard, source-link, empty-state, and overflow checks.
-- [ ] Focused and comprehensive verification pass; commits, PR, workflow,
+- [x] Focused and comprehensive verification pass; commits, PR, workflow,
       D1 operation hashes/counts, deployment, and production requests are
       recorded in the completion receipt.
+
+## Completion receipt
+
+[PR #97](https://github.com/mannyc2/bus-priority-impact-studio/pull/97)
+merged at `764f73449cda7424db4d90af3b7b10c02cd8cf56` after the required CI
+check passed. Its implementation commits are `d542d30a`, `c8bc17a5`,
+`5558e21d`, and `023a67d6`. Main workflow
+[`29929242989`](https://github.com/mannyc2/bus-priority-impact-studio/actions/runs/29929242989)
+deployed the compatibility-preserving Worker first, applied migrations 0032
+and 0034 plus the deterministic projection, passed the post-mutation D1 audit,
+and passed the production endpoint smoke.
+
+The immutable recovery identity is
+`exact-route-index-v3-recovery-v1:d99b97d40e9c6b62430765c9`. Its SQL SHA-256
+is `0efc576c55fa4b6d52cac1e04567ff70529af2b330bae459031c11246a0b46cc`;
+the receipt SHA-256 is
+`d6046cff2f4cc63d8a1842914b5f3d95144b99a7f88ed09033b5be42bfe5a2ef`.
+The receipt binds `wiki-v1-rc25`, the exact route-evidence index at 392,566
+bytes and SHA-256
+`fd07c9991b3d7c56905b95a2e387eaee182e314eb84a2cb26de68e06b5cf0807`,
+the active serving release `pub_20260605T183601689Z`, catalog snapshot
+`c31ee2a2de424ace986578faa29b3b5d5f5cbd0310d16ac42e841631e03ce219`,
+and exact projection
+`620f02ced782735ffec4ad27ce39f2683f0a51715178457b30750ac8e78cd48a`.
+
+The pre-audit receipt (SHA-256
+`f0ebb1cf87e23658a5dbfded26d86a7f93ecbdc28c3ae7809d23f4c37c0d7d1c`)
+authorized only the three expected actions. The post-audit receipt (SHA-256
+`de453779c0953139efa89ba7696786d84dd97a7c992927cf424678f3c8d8607a`)
+records 389 catalog routes, 406 catalog route types, 375 exact routes, 394
+exact route types, 394 exact trip types, 14 explicitly excluded unresolved
+legacy routes, the exact projection hash above, and no remaining action.
+No canonical local DB, published rc26 object, schema-v2 identity, or R2 object
+was changed by the recovery.
+
+The production smoke receipt (SHA-256
+`6e5fd2dfc2a4b38b53150cfa937c2104b384d99c2bc7cb0f2ae6f2c5e318eb53`)
+strict-decoded 375 schema-v3 routes and returned 200 for all 14 reads. The
+schema-v3 list request ID was `81bf67c4-8a37-40bb-90ff-6d35bac77532`;
+representative detail request IDs were
+`7e67f01e-215e-4775-8896-832c22da14b4` (BX38),
+`ba0149da-87f3-4b76-a241-e39d2f03a49e` (B1),
+`b4e4f832-0b44-492a-8540-3b592070accc` (B44), and
+`0279d574-e6e0-4d75-b7f1-8493de74e6ba` (B44+). Route history, hourly,
+speed-history, and timeline reads also returned 200 for rich and sparse routes.
+
+The first live rich-route pass exposed one bounded Plan 094 bug: a typed
+human-readable 2010 date label sorted ahead of ISO 2025. Commit `23582f5e`
+prefixes only the internal deterministic sort key with the already-extracted
+typed year; it does not classify prose. [PR #98](https://github.com/mannyc2/bus-priority-impact-studio/pull/98)
+merged at `217ac1ee6795be10a098a638d8d6a4cf8170b54b`, and main workflow
+[`29930802937`](https://github.com/mannyc2/bus-priority-impact-studio/actions/runs/29930802937)
+passed CI, skipped every already-satisfied D1 mutation, redeployed, re-audited,
+and repeated the endpoint smoke.
+
+The final headless-Chrome production receipt has SHA-256
+`d3b8ded6b557cbcffc972f6b587915ccc9b1d772417530e9593495af0f06f09d`.
+It verifies 1440 px and 390 px views, zero horizontal overflow, no unlabeled
+controls or runtime/core-request failures, sparse empty states, distinct B44
+and B44-SBS/B44+ headers, dense M15+ search/filter behavior, descending live
+year groups (`2025`, `2024`, `2023`, `2022`, `2019`, `2017`), and keyboard
+focus on the typed NYC DOT PDF link ending in `#page=4`. Optional unpublished
+inventory/observation/study objects remain honest nullable 404s; they were not
+fabricated to make the page look complete. Focused tests, 342 web tests,
+types, architecture/doctrine, Worker/D1 harness (23 tests), build, SEO,
+performance, and the unchanged entry/total bundle budgets passed.
 
 ## STOP conditions
 

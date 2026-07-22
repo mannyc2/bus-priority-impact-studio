@@ -2,8 +2,7 @@
 
 ## Status
 
-- **State**: BLOCKED — UI merged/deployed; production exact route-index v3 and
-  route-detail reads return HTTP 500 before the History surface can render
+- **State**: DONE
 - **Priority**: P1
 - **Effort**: M
 - **Depends on**: Plans 074, 075, 082, 089, 090, 091, 092, and 093 (DONE)
@@ -137,7 +136,7 @@ after,” “timeline,” “documented treatments,” and “related projects�
       responsive layout, public failure behavior, and design budgets pass.
 - [x] BX38, B67, B44, B44+, and B1 prove rich/sparse, matched/descriptive/none,
       and exact B44/B44+ behavior.
-- [ ] Focused and comprehensive verification pass; the ready PR merges and the
+- [x] Focused and comprehensive verification pass; the ready PR merges and the
       normal production deployment is verified.
 
 ## Pre-merge verification receipt
@@ -191,6 +190,31 @@ cannot render it until that upstream contract is satisfied. A fallback to the
 legacy route projection would silently discard the Plan 091/092 exact identity
 contract and is therefore rejected. No D1/R2 data or publication object was
 changed during this audit.
+
+## Production completion
+
+Plan 095 closed the serving blocker in
+[PR #97](https://github.com/mannyc2/bus-priority-impact-studio/pull/97) and
+main workflow
+[`29929242989`](https://github.com/mannyc2/bus-priority-impact-studio/actions/runs/29929242989).
+Production now strict-decodes 375 exact schema-v3 routes and serves rich,
+sparse, B44, and B44+ detail plus all route-detail dependencies with the exact
+registered projection. The follow-up production browser pass found and fixed
+the one non-ISO typed-date year ordering defect in
+[PR #98](https://github.com/mannyc2/bus-priority-impact-studio/pull/98);
+workflow
+[`29930802937`](https://github.com/mannyc2/bus-priority-impact-studio/actions/runs/29930802937)
+redeployed without another D1 mutation and repeated the full integrity smoke.
+
+The final browser receipt SHA-256 is
+`d3b8ded6b557cbcffc972f6b587915ccc9b1d772417530e9593495af0f06f09d`.
+Desktop and 390 px production checks cover rich M15+, BX38, descriptive B67,
+sparse B1, B44, and B44+. They prove descending year groups, dense
+search/filter, keyboard source-popover activation, the original NYC DOT PDF
+with typed `#page=4`, honest missing inventory/observation/study fallbacks,
+distinct exact route headers, no unlabeled controls, and no horizontal
+overflow. Plan 094 is therefore complete; no candidate evidence, route alias,
+fabricated current state, or new claim entered production.
 
 ## STOP conditions
 
