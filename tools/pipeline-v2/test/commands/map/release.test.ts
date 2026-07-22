@@ -154,48 +154,55 @@ describe("runMapRelease", () => {
             .releaseIdentity;
           const manifestPath = join(artifactRoot, "map", "2026-04", "manifest.json");
           mkdirSync(join(artifactRoot, "map", "2026-04"), { recursive: true });
-          await Bun.write(
-            manifestPath,
-            `${JSON.stringify(
-              {
-                schemaVersion: 2,
-                artifactKind: "map_artifact_manifest",
-                ...releaseIdentity,
-                releaseProfile: "full",
-                buildStatus: "pass",
-                verificationStatus: "pass",
-                routeFacts: {
-                  status: "available",
-                  artifactKey: "studio/v1/map-route-facts.json",
-                  sha256: "a".repeat(64),
+          mkdirSync(join(artifactRoot, "studio", "v1"), { recursive: true });
+          await Promise.all([
+            Bun.write(
+              mapRouteFactsPath,
+              `${JSON.stringify({ artifactKind: "bp.studio.map_route_facts.v2" })}\n`,
+            ),
+            Bun.write(
+              manifestPath,
+              `${JSON.stringify(
+                {
                   schemaVersion: 2,
+                  artifactKind: "map_artifact_manifest",
                   ...releaseIdentity,
-                  routeCount: 1,
-                  byteLength: 1,
-                  gzipByteLength: 1,
+                  releaseProfile: "full",
+                  buildStatus: "pass",
+                  verificationStatus: "pass",
+                  routeFacts: {
+                    status: "available",
+                    artifactKey: "studio/v1/map-route-facts.json",
+                    sha256: "a".repeat(64),
+                    schemaVersion: 2,
+                    ...releaseIdentity,
+                    routeCount: 1,
+                    byteLength: 1,
+                    gzipByteLength: 1,
+                  },
+                  sources: [],
+                  layers: [],
+                  routeUniverse: {
+                    includedRouteTypes: ["Local", "Limited", "SBS"],
+                    excludedRouteTypes: ["Express", "School"],
+                    expectedRouteIds: ["M1"],
+                    geometryRouteIds: ["M1"],
+                    routeSegmentRouteIds: ["M1"],
+                    routeFactRouteIds: ["M1"],
+                  },
+                  status: "pass",
+                  artifactCount: 0,
+                  routeSegmentArtifactCount: 0,
+                  totalFeatureCount: 0,
+                  totalByteLength: 0,
+                  issueCount: 0,
+                  artifacts: [],
                 },
-                sources: [],
-                layers: [],
-                routeUniverse: {
-                  includedRouteTypes: ["Local", "Limited", "SBS"],
-                  excludedRouteTypes: ["Express", "School"],
-                  expectedRouteIds: ["M1"],
-                  geometryRouteIds: ["M1"],
-                  routeSegmentRouteIds: ["M1"],
-                  routeFactRouteIds: ["M1"],
-                },
-                status: "pass",
-                artifactCount: 0,
-                routeSegmentArtifactCount: 0,
-                totalFeatureCount: 0,
-                totalByteLength: 0,
-                issueCount: 0,
-                artifacts: [],
-              },
-              null,
-              2,
-            )}\n`,
-          );
+                null,
+                2,
+              )}\n`,
+            ),
+          ]);
           return {
             manifestPath,
           };
@@ -283,7 +290,9 @@ describe("runMapRelease", () => {
       expect(result.studio.releaseIdentity.coverage.end as string).toBe("2026-04");
       expect(result.finalManifestKey).toMatch(/^map\/2026-04\/manifest\.[a-f0-9]{64}\.json$/);
       expect(existsSync(result.finalManifestPath)).toBe(true);
-      expect(await Bun.file(result.registrationPath).text()).toContain(result.finalManifestKey);
+      expect(await Bun.file(result.registrationPath).text()).toContain(
+        "operations/plan097/blobs/sha256/",
+      );
       expect(await Bun.file(result.registrationPath).text()).toContain(
         result.releaseIdentity.releaseId,
       );
@@ -291,6 +300,12 @@ describe("runMapRelease", () => {
         result.releaseIdentity.publishedAt,
       );
       expect(await Bun.file(result.registrationPath).text()).toContain("'2025-02'");
+      expect(existsSync(result.recoveryArtifactManifestPath)).toBe(true);
+      expect(
+        result.recoveryArtifacts.manifest.entries.some(
+          (entry) => entry.logicalKey === result.finalManifestKey,
+        ),
+      ).toBe(true);
       expect(existsSync(result.activationBundlePath)).toBe(true);
       expect(existsSync(result.activationBundleReceiptPath)).toBe(true);
       const activationBundle = JSON.parse(await Bun.file(result.activationBundlePath).text()) as {

@@ -250,6 +250,12 @@ export {
   plan097RecoveryMutationTables,
 } from "./batches.js";
 export {
+  type Plan097OperationRequest,
+  Plan097OperationRequestSchema,
+  type Plan097OperationResponse,
+  Plan097OperationResponseSchema,
+} from "./operation.js";
+export {
   type Plan097ProtectedFingerprint,
   Plan097ProtectedFingerprintSchema,
   type Plan097RestoreBundle,

@@ -6,6 +6,8 @@ import {
   assertPlan097SafeRemoteCommand,
   buildPlan097CanonicalSchemaSnapshot,
   decidePlan097MapReleaseCatalogRecovery,
+  Plan097CompactedBatchSchema,
+  Plan097OperationRequestSchema,
   Plan097PreflightReceiptSchema,
   Plan097RecoveryArtifactManifestSchema,
   type Plan097SchemaAuditInput,
@@ -362,6 +364,64 @@ describe("Plan 097 recovery contracts", () => {
         entries: [...manifest.entries, { ...manifest.entries[0] }],
       }),
     ).toThrow(/logical/i);
+  });
+
+  test("rejects out-of-scope batch targets and caller-selected resources", () => {
+    const activation = {
+      sql: 'INSERT INTO "route_batch_status" ("month", "status") VALUES (?, ?)',
+      params: ["2026-03", "pass"],
+      table: "route_batch_status",
+      kind: "activation",
+      rowCount: 1,
+    } as const;
+    const batch = {
+      schemaVersion: 1,
+      statements: [activation],
+      metrics: {
+        originalStatementCount: 1,
+        compactedStatementCount: 1,
+        sqlBytes: new TextEncoder().encode(activation.sql).byteLength,
+        parameterBytes: new TextEncoder().encode(activation.params.join("")).byteLength,
+        rowCount: 1,
+        maxParametersPerStatement: 2,
+      },
+    };
+    expect(decodeStrict(Plan097CompactedBatchSchema)(batch)).toEqual(batch);
+    expect(() =>
+      decodeStrict(Plan097CompactedBatchSchema)({
+        ...batch,
+        statements: [
+          {
+            ...activation,
+            sql: "DELETE FROM d1_migrations",
+            table: "d1_migrations",
+            kind: "delete",
+          },
+          activation,
+        ],
+        metrics: {
+          ...batch.metrics,
+          compactedStatementCount: 2,
+          sqlBytes:
+            new TextEncoder().encode("DELETE FROM d1_migrations").byteLength +
+            batch.metrics.sqlBytes,
+          rowCount: 2,
+        },
+      }),
+    ).toThrow(/allowlist/i);
+
+    const operation = {
+      operationId: "plan097:pub_20260722T120000000Z",
+      activationBundleSha256: sha("a"),
+      action: "activate",
+    };
+    expect(decodeStrict(Plan097OperationRequestSchema)(operation)).toEqual(operation);
+    expect(() =>
+      decodeStrict(Plan097OperationRequestSchema)({
+        ...operation,
+        database: "user-selected-production",
+      }),
+    ).toThrow();
   });
 
   test("preflight receipt binds baseline, rollback, cost, and immutable candidate evidence", () => {

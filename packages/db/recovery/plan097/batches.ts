@@ -66,7 +66,83 @@ export const Plan097CompactedBatchSchema = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   statements: Schema.Array(Plan097BatchStatementSchema),
   metrics: Plan097BatchMetricsSchema,
-});
+}).check(
+  Schema.makeFilter((batch) => {
+    const issues: Array<{ path: ReadonlyArray<string | number>; issue: string }> = [];
+    const mutationTables = new Set<string>(plan097RecoveryMutationTables);
+    const registrationTables = new Set(["exact_route_identity_release", "map_release_catalog"]);
+    if (batch.statements.length === 0 || batch.statements.length > 1_000) {
+      issues.push({ path: ["statements"], issue: "Batch must contain 1-1,000 statements" });
+    }
+    let activationStarted = false;
+    for (const [index, statement] of batch.statements.entries()) {
+      const target = statement.sql.match(
+        /\b(?:delete\s+from|insert\s+into)\s+[`"]?([a-z0-9_]+)/iu,
+      )?.[1];
+      const allowedKind =
+        (statement.kind === "delete" &&
+          (mutationTables.has(statement.table) || registrationTables.has(statement.table))) ||
+        (statement.kind === "insert" && mutationTables.has(statement.table)) ||
+        (statement.kind === "registration" && registrationTables.has(statement.table)) ||
+        (statement.kind === "activation" && statement.table === "route_batch_status");
+      if (!allowedKind || target !== statement.table) {
+        issues.push({
+          path: ["statements", index],
+          issue: "Statement target or kind is outside the Plan 097 allowlist",
+        });
+      }
+      if (statement.kind === "activation") activationStarted = true;
+      else if (activationStarted) {
+        issues.push({
+          path: ["statements", index],
+          issue: "Only activation statements may follow the first activation statement",
+        });
+      }
+      if (statement.params.length > 100) {
+        issues.push({ path: ["statements", index, "params"], issue: "Too many bound parameters" });
+      }
+      if (new TextEncoder().encode(statement.sql).byteLength > 100_000) {
+        issues.push({ path: ["statements", index, "sql"], issue: "Statement exceeds 100 KB" });
+      }
+    }
+    const finalStatement = batch.statements.at(-1);
+    if (finalStatement?.kind !== "activation" || finalStatement.table !== "route_batch_status") {
+      issues.push({
+        path: ["statements"],
+        issue: "The absolute final statement must activate route_batch_status",
+      });
+    }
+    const sqlBytes = batch.statements.reduce(
+      (sum, statement) => sum + new TextEncoder().encode(statement.sql).byteLength,
+      0,
+    );
+    const parameterBytes = batch.statements.reduce(
+      (sum, statement) =>
+        sum +
+        statement.params.reduce(
+          (parameterSum, parameter) =>
+            parameterSum + new TextEncoder().encode(parameter).byteLength,
+          0,
+        ),
+      0,
+    );
+    const rowCount = batch.statements.reduce((sum, statement) => sum + statement.rowCount, 0);
+    const maxParametersPerStatement = Math.max(
+      0,
+      ...batch.statements.map((statement) => statement.params.length),
+    );
+    if (
+      batch.metrics.compactedStatementCount !== batch.statements.length ||
+      batch.metrics.sqlBytes !== sqlBytes ||
+      batch.metrics.parameterBytes !== parameterBytes ||
+      batch.metrics.rowCount !== rowCount ||
+      batch.metrics.maxParametersPerStatement !== maxParametersPerStatement
+    ) {
+      issues.push({ path: ["metrics"], issue: "Batch metrics do not match structured statements" });
+    }
+    return issues;
+  }),
+);
 
 const Plan097BundleSourceSchema = Schema.Struct({
   kind: Schema.Literals([
@@ -84,6 +160,14 @@ export const Plan097ActivationBundleSchema = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   operationId: Schema.String.check(Schema.isPattern(/^plan097:pub_[0-9TZ]+$/u)),
   candidate: ReleaseIdentitySchema,
+  artifactManifest: Schema.Struct({
+    key: Schema.String.check(
+      Schema.isPattern(/^operations\/plan097\/releases\/pub_[0-9TZ]+\/artifact-manifest\.json$/u),
+    ),
+    sha256: Sha256Schema,
+    byteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+    entryCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  }),
   sources: Schema.Array(Plan097BundleSourceSchema).check(Schema.isLengthBetween(4, 4)),
   batch: Plan097CompactedBatchSchema,
 });

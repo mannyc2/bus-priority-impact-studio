@@ -101,24 +101,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: bun --filter @bp/web deploy
 
-      - name: Create exact route trip-type table
-        if: steps.cloudflare.outputs.deploy == 'true' && steps.exact-route-pre.outputs.apply_trip_type_migration == 'true'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --yes --file packages/db/migrations/d1/0032_route_catalog_trip_type.sql
-
-      - name: Create exact route release registry
-        if: steps.cloudflare.outputs.deploy == 'true' && steps.exact-route-pre.outputs.apply_registry_migration == 'true'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --yes --file packages/db/migrations/d1/0034_exact_route_identity_release.sql
-
-      - name: Apply exact route serving projection
-        if: steps.cloudflare.outputs.deploy == 'true' && steps.exact-route-pre.outputs.apply_recovery_projection == 'true'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: bunx wrangler d1 execute bus-priority-serving --remote --config packages/db/wrangler.d1.jsonc --yes --file packages/db/recovery/plan095/exact-route-index-v3-recovery.sql
-
       - name: Verify exact route serving D1 after recovery
         if: steps.cloudflare.outputs.deploy == 'true'
         env:

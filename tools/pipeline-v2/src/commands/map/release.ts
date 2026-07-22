@@ -27,6 +27,7 @@ import {
   fromCliPath,
   fromRepoRoot,
 } from "../../lib/paths.ts";
+import { buildPlan097RecoveryArtifactInventory } from "../../lib/plan097-recovery-artifacts.ts";
 import { buildPlan097CompactedBatch } from "../../lib/plan097-recovery-batch.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import { runRouteBriefModel } from "../route/brief-model.ts";
@@ -276,6 +277,23 @@ export async function runMapRelease(
   await mkdir(dirname(finalManifestPath), { recursive: true });
   await writeFile(finalManifestPath, manifestBytes);
 
+  const recoveryArtifacts = await buildPlan097RecoveryArtifactInventory({
+    artifactRoot,
+    month,
+    schemaPath: d1.schemaPath,
+    seedPath: d1.seedPath,
+    finalMapManifestKey: finalManifestKey,
+    releaseIdentity,
+  });
+  const recoveryMapManifest = recoveryArtifacts.manifest.entries.find(
+    (entry) => entry.logicalKey === finalManifestKey,
+  );
+  if (recoveryMapManifest === undefined) {
+    throw new Error("Plan 097 recovery inventory omitted the verified map manifest");
+  }
+  const recoveryArtifactManifestPath = join(dirname(d1.seedPath), "plan097-artifact-manifest.json");
+  await writeFile(recoveryArtifactManifestPath, recoveryArtifacts.manifestText);
+
   const registrationPath = join(dirname(d1.seedPath), "map-release-registration.sql");
   const catalogReleaseIdentity = assertReleaseIdentityOutput({
     label: "Map catalog registration",
@@ -285,7 +303,7 @@ export async function runMapRelease(
   });
   const registrationSql = buildMapReleaseRegistrationSql({
     ...catalogReleaseIdentity,
-    manifestKey: finalManifestKey,
+    manifestKey: recoveryMapManifest.key,
     manifestSha256: finalManifestSha256,
     releaseProfile: "full",
     verificationStatus: "pass",
@@ -330,6 +348,12 @@ export async function runMapRelease(
     schemaVersion: 1,
     operationId,
     candidate: releaseIdentity,
+    artifactManifest: {
+      key: recoveryArtifacts.manifestKey,
+      sha256: recoveryArtifacts.manifestSha256,
+      byteLength: recoveryArtifacts.manifestBytes,
+      entryCount: recoveryArtifacts.manifest.entries.length,
+    },
     sources: [
       sourceContract("canonical-schema", schemaBytes),
       sourceContract("recovery-seed", recoverySeedBytes),
@@ -383,6 +407,8 @@ export async function runMapRelease(
     finalManifestPath,
     finalManifestSha256,
     registrationPath,
+    recoveryArtifactManifestPath,
+    recoveryArtifacts,
     activationBundlePath,
     activationBundleReceiptPath,
     activationBundleKey,

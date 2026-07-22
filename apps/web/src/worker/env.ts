@@ -2,4 +2,14 @@ import type { StudioApiEnv } from "@bp/studio-api/server";
 
 export type Env = StudioApiEnv & {
   ASSETS?: Fetcher;
+  PLAN097_OPERATIONS?: R2Bucket;
+  PLAN097_PROOF_BUNDLES?: R2Bucket;
+  PLAN097_RECOVERY_OPERATION_ENABLED?: string;
+  PLAN097_OPERATION_ID?: string;
+  PLAN097_ACTIVATION_BUNDLE_SHA256?: string;
+  PLAN097_RESTORE_BUNDLE_SHA256?: string;
+  PLAN097_SERVICE_TOKEN_ID?: string;
+  PLAN097_SERVICE_TOKEN_SECRET?: string;
+  PLAN097_EXECUTION_TOKEN?: string;
+  PLAN097_PROOF_MODE?: string;
 };

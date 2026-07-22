@@ -217,6 +217,34 @@ describe("production boundary harness", () => {
     expect(publicApi).toContain("PLAN097_RECOVERY_NAMESPACE");
   });
 
+  test("Plan 097 keeps production mutation behind the protected atomic transport", async () => {
+    const workflow = await Bun.file(".github/workflows/ci.yml").text();
+    const productionWrangler = await Bun.file("apps/web/wrangler.jsonc").text();
+    const legacyPublisher = await Bun.file("scripts/publish-serving-release.sh").text();
+    const recoveryCli = await Bun.file("tools/pipeline-v2/src/commands/publish/recovery.ts").text();
+    const operationHandler = await Bun.file(
+      "apps/web/src/worker/operations/plan097-recovery.ts",
+    ).text();
+    const workerFiles = await readFiles("apps/web/src/worker");
+
+    expect(workflow).not.toMatch(/wrangler d1 execute[^\n]*--file/);
+    expect(productionWrangler).not.toContain("PLAN097_RECOVERY_OPERATION_ENABLED");
+    expect(productionWrangler).not.toContain("PLAN097_OPERATIONS");
+    expect(legacyPublisher).toContain("Remote execution is disabled during Plan 097");
+    expect(recoveryCli).not.toContain("wrangler");
+    expect(recoveryCli).not.toContain("d1 execute");
+    expect(operationHandler.match(/\.batch\(/g) ?? []).toHaveLength(1);
+
+    for (const file of workerFiles) {
+      if (file.path.endsWith("/operations/plan097-recovery.ts")) {
+        continue;
+      }
+      expect(file.text.includes(".batch("), `${file.path} bypasses the Plan 097 batch owner`).toBe(
+        false,
+      );
+    }
+  });
+
   test("domain package remains infrastructure-free", async () => {
     const files = await readFiles("packages/domain/src");
     const forbiddenImports = [
