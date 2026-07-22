@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State**: IN PROGRESS
+- **State**: DONE
 - **Priority**: P0
 - **Effort**: L
 - **Depends on**: Plans 074 and 075; MTA Wiki member-extent bridge and its
@@ -75,19 +75,51 @@ a study run, publication, D1 mutation, production pointer change, or deploy.
 
 ## Acceptance criteria
 
-- [ ] Strict import verifies exact producer release and every member companion
+- [x] Strict import verifies exact producer release and every member companion
       file; mutable pointers and forecast overlays are absent from inputs.
-- [ ] Candidate-set v4 is deterministic, retains exact treatment-member IDs,
+- [x] Candidate-set v4 is deterministic, retains exact treatment-member IDs,
       includes member-extent lineage, and preserves stable event IDs.
-- [ ] Member scope v2 rejects every under-specified or stale binding and admits
+- [x] Member scope v2 rejects every under-specified or stale binding and admits
       only exact route-wide or exact bounded evidence at member grain.
-- [ ] Review-cut v5 binds outcome, spine, scope, engine, and complete candidate
+- [x] Review-cut v5 binds outcome, spine, scope, engine, and complete candidate
       universe; legacy receipts and incomplete/duplicate decisions fail.
-- [ ] Existing rc26/v3 bytes and tests remain unchanged.
-- [ ] Fresh complete reconciliation records exact decision deltas and explicit
+- [x] Existing rc26/v3 bytes and tests remain unchanged.
+- [x] Fresh complete reconciliation records exact decision deltas and explicit
       Q45/Q86/Q87, B41, M57, and later-ACE outcomes.
-- [ ] Deterministic rerun and comprehensive verification pass; PR merges
+- [x] Deterministic rerun and comprehensive verification pass; PR merges
       without study execution, artifact publication, D1 mutation, or deploy.
+
+## Completed cut
+
+Plan 096 pins unpromoted MTA Wiki `v1-rc27` at merged producer commit
+`fcab0d181b2ab4195f7467cc8b792a9daea911f6`, generator commit
+`939b66078b2faec2b5edbf87ead8df3d967bda82`, and release-manifest SHA-256
+`ed2332e653c7c9b5e37faee52198ff9f4c17d725c539831a4010471be5de622a`.
+All 355 addressed release files (343,304,720 bytes) verified before import.
+The member manifest/projection are pinned at `46f7ad9a…` / `da1af6ef…` and
+decode to 308 exact-grain rows: 2 route-wide, 12 bounded, 294 unresolved.
+The quality-provenance and forecast overlays were never read by candidate
+construction and grant no authority.
+
+The deterministic outputs are:
+
+- candidate universe `candidate-set-v4:3373f95c88d08ffef608581d`;
+- review cut `study-review-cut-v1:df3d8d2eda43c77738cf50ad`;
+- 484 complete decisions: 9 approvals and 475 rejections;
+- 97 fresh Wiki/member adjudications and 387 exact transfers;
+- zero decision changes from the approved May cut;
+- 20 later ACE phases still quarantined.
+
+Q45, Q86, and Q87 now have exact bounded member identities, but no matching
+member-grain geometry/spine binding, so all remain rejected. Q63 and Q80 are
+the same. B41 retains its exact migrated bounded binding but remains
+`needs_pattern_review`; M57 retains independent exact ACE route-wide evidence
+but also remains `needs_pattern_review`. B60 and B68 remain admitted through
+the independent exact ACE registry with 6 pre / 5 post months and ready
+spines. This receipt does not authorize any estimator run.
+
+The full execution receipt and hashes are in
+`docs/research/reviews/rc27-member-grain/plan-096-execution-receipt.md`.
 
 ## STOP conditions
 

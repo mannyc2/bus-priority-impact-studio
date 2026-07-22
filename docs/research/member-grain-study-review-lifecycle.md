@@ -98,3 +98,20 @@ bun --filter @bp/pipeline-v2 cli -- study migrate-member-scope-bindings \
 # Snapshot review inputs with the v2 scope file, then rebuild merge-events
 # with --review-inputs and, only after complete review, a fresh v5 --approval.
 ```
+
+## Plan 096 immutable cut
+
+The first member-grain universe is
+`candidate-set-v4:3373f95c88d08ffef608581d`, built from the explicit
+unpromoted MTA Wiki `v1-rc27` release. Its review boundary is
+`study-review-cut-v1:df3d8d2eda43c77738cf50ad`, reusing the byte-identical
+May 2026 outcome/spine/engine inputs while replacing only the candidate-bound
+scope receipt with v2 member-grain bindings.
+
+The complete receipt has 484 decisions: 9 estimator-admission approvals and
+475 rejections. No decision changed from the prior May cut. The 97 Wiki-backed
+candidates were freshly adjudicated because their immutable container lineage
+and member facts changed; 387 registry-only candidates transferred only after
+exact admission-fact comparison. The committed reconciliation records every
+candidate once and preserves all independent scope, readiness, calendar,
+phase, conflict, estimator, and publication gates.

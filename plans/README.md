@@ -36,7 +36,7 @@ publication.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 096 | Member-grain study consumer and fresh reviewed universe | P0 | L | 074, 075; pinned MTA Wiki member-extent release | IN PROGRESS |
+| 096 | Member-grain study consumer and fresh reviewed universe | P0 | L | 074, 075; pinned MTA Wiki member-extent release | DONE |
 
 See `plans/096-member-grain-study-consumer.md` for the exact lineage,
 scope-binding, reconciliation, and STOP contracts.
