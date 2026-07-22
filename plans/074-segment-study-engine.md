@@ -212,6 +212,26 @@ and operator-review criteria are therefore complete. Plan 075 owns the
 separate serving regeneration, remote publication, and public verification
 work authorized by this token.
 
+### Binding May 2026 outcome-review amendment — 2026-07-21
+
+A later outcome-only maintenance cycle extends the isolated route-speed
+horizon through the latest verified complete month, 2026-05, while remaining
+pinned to MTA Wiki `v1-rc26`. Historical rc26 artifacts and its v3 receipt stay
+immutable. Schema v4 introduces a distinct review-cut identity so a new month,
+outcome snapshot, full spine universe, scope binding, engine, admission policy,
+or candidate universe cannot reuse that authorization.
+
+The complete non-authorizing May cut is
+`study-review-cut-v1:5298f37aac8780666c742f7d`, still over source universe
+`candidate-set-v3:80050ed598f3b2ab0d0a1e99`. All 484 candidates were reviewed
+exactly once. The only recommended decision delta is to admit B60 and B68 to
+the estimator now that each has 6 pre/5 post months and a ready spine; M57
+still fails unchanged pattern readiness. The recommendation is not a receipt,
+run authority, causal claim, anchor approval, or publication authority. The
+operator must explicitly approve the complete 9/475 decision cut before any
+receipt or estimator run. Full evidence is in
+`docs/research/plan074-2026-05-review-cut.md`.
+
 ## Why this matters
 
 The product is named Bus Priority **Impact** Studio, but impact is currently

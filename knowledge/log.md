@@ -8958,3 +8958,22 @@ remains `pub_20260605T183601689Z` with 2023-04 through 2026-03 coverage; no D1
 seed or Worker deployment occurred. The exact receipt is
 `docs/research/reviews/rc26/publication-report.md`. Plan 075 is DONE. Plan 076
 remains independently blocked on its three-gated-study floor.
+
+## [2026-07-21] analysis | Plan 074 May outcome cut awaits approval
+
+Built an isolated 2023-04 through 2026-05 route-speed refresh without
+modifying the canonical 181.8 GB SQLite database or any published rc26
+artifact. Official availability confirms April and May complete and June
+empty. The full scratch build wrote 393/393 speed spines; B60 is
+`series_ready_with_gaps`, B68 is `series_ready`, and M57 remains
+`needs_pattern_review`.
+
+Added the backward-compatible v4 approval boundary: the source candidate
+universe remains distinct from a review cut that binds analysis month, exact
+outcome snapshot, all spine receipts, scope, engine, and admission policy.
+The resulting non-authorizing cut is
+`study-review-cut-v1:5298f37aac8780666c742f7d`. Its complete reconciliation
+recommends 9 approvals and 475 rejections; only B60 and B68 differ from rc26.
+No receipt or study run exists yet. Plan 076 remains blocked pending explicit
+operator approval and the complete freshly bound estimator run. See
+`docs/research/plan074-2026-05-review-cut.md`.
