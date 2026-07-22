@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 import {
   createMemoryHistory,
   createRootRoute,
@@ -8,24 +8,25 @@ import {
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
-  comparisonCardsSubLine,
+  buildRouteHistoryLedger,
+  filterRouteHistoryLedger,
+  groupRouteHistoryLedger,
+  historyYearLabel,
+} from "../../src/components/route/route-history-ledger";
+import { routeInterventionViewModel } from "../../src/components/route/route-intervention-model";
+import {
+  currentStateStatus,
   historyTargetScrollBehavior,
   interventionComparisonCards,
-  mergedTreatmentTimelineRows,
   TreatmentsHistorySection,
-  timelineDisplayRows,
-  timelineYearLabel,
-  treatmentHistoryInsightRows,
-  treatmentSourceRows,
 } from "../../src/components/route/TreatmentsHistorySection";
-import { citationEntries } from "../../src/components/SourceNote";
+import { citationEntries, citationHref } from "../../src/components/SourceNote";
 import { validateRouteDetailPageSearch } from "../../src/routes/routes/$routeId";
 import type {
   StudioIntervention,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteEvidenceTimelineEvent,
-  StudioRouteInsight,
   StudioRouteInterventionInventoryBundle,
 } from "../../src/studio/api-contract";
 import { isoMonthFixture } from "./schema-fixtures";
@@ -39,20 +40,6 @@ async function renderWithRouter(node: ReactNode): Promise<string> {
   });
   await router.load();
   return renderToStaticMarkup(createElement(RouterProvider, { router }));
-}
-
-function insight(input: Partial<StudioRouteInsight> = {}): StudioRouteInsight {
-  const fixture: StudioRouteInsight = {
-    routeId: "M14A",
-    detectorId: "fixture_detector",
-    title: "Fixture insight",
-    shortText: "Fixture text.",
-    severity: "medium",
-    kind: "performance_annotation",
-    placement: "overview",
-    refs: [],
-  };
-  return { ...fixture, ...input, routeId: input.routeId ?? fixture.routeId };
 }
 
 const servingInterventions = [
@@ -362,80 +349,16 @@ describe("treatments history helpers", () => {
     expect(cards).toEqual([
       {
         title: "ACE enforcement begins",
-        year: "2025-01",
-        tone: "good",
         routeDeltaLabel: "+0.55 mph",
         adjustedDeltaLabel: "+0.41 mph",
-        comparisonLabel: "12 routes",
-        windowLabel: "2024-07 to 2024-12 → 2025-02 to 2025-07",
         caveat: "Comparison-adjusted, not causal proof.",
       },
     ]);
   });
 
-  test("deduplicates source-labeled treatment rows", () => {
-    const rows = treatmentSourceRows([
-      {
-        year: "2025",
-        title: "Bus lane opening evidence",
-        detail: "Documented intervention.",
-        sourceLabel: "NYC DOT",
-        sourceDetail: "Structured intervention source",
-      },
-      {
-        year: "2025",
-        title: "Bus lane opening evidence",
-        detail: "Documented intervention.",
-        sourceLabel: "NYC DOT",
-        sourceDetail: "Structured intervention source",
-      },
-      {
-        year: "2026",
-        title: "No source label",
-        detail: "Not listed.",
-      },
-    ] satisfies StudioIntervention[]);
-
-    expect(rows).toEqual([
-      {
-        key: "NYC DOT:Structured intervention source",
-        label: "NYC DOT",
-        detail: "Structured intervention source",
-        year: "2025",
-      },
-    ]);
-  });
-
-  test("selects sorted timeline-placement insights for the treatment section", () => {
-    const rows = treatmentHistoryInsightRows([
-      insight({ detectorId: "other", placement: "overview", severity: "high", scopeId: "skip" }),
-      insight({
-        detectorId: "treatment_scope_gap",
-        placement: "timeline",
-        severity: "medium",
-        scopeId: "treatment",
-      }),
-      insight({
-        detectorId: "timeline_event",
-        placement: "timeline",
-        severity: "high",
-        scopeId: "timeline",
-      }),
-      insight({
-        detectorId: "timeline_annotation",
-        kind: "timeline_annotation",
-        placement: "overview",
-        severity: "low",
-        scopeId: "skip-kind",
-      }),
-    ]);
-
-    expect(rows.map((row) => row.scopeId)).toEqual(["timeline", "treatment"]);
-  });
-
-  test("does not merge similarly worded timeline rows without a stable relationship ID", () => {
-    const rows = mergedTreatmentTimelineRows(
-      [
+  test("does not merge similarly worded records without a stable relationship ID", () => {
+    const rows = buildRouteHistoryLedger({
+      interventions: [
         {
           year: "2025-01",
           title: "Bus lane begins",
@@ -443,7 +366,7 @@ describe("treatments history helpers", () => {
           sourceLabel: "Serving",
         },
       ],
-      evidenceBundle([
+      evidence: evidenceBundle([
         wikiEvent({
           recordId: "event_bus_lane_begins",
           eventKind: "serving_intervention",
@@ -455,19 +378,19 @@ describe("treatments history helpers", () => {
           citationKeys: ["c2"],
         }),
       ]),
-    );
+      model: routeInterventionViewModel(null),
+    });
 
-    expect(rows).toHaveLength(2);
-    expect(rows.map((row) => row.source)).toEqual(["serving", "wiki"]);
-    expect(rows[1]).toEqual(
+    expect(rows.filter((row) => row.title === "Bus lane begins")).toHaveLength(2);
+    expect(rows.find((row) => row.recordId === "event_bus_lane_begins")).toEqual(
       expect.objectContaining({ detail: "Wiki detail.", citationKeys: ["c2"] }),
     );
   });
 
-  test("timelineYearLabel never leaks a truncated year", () => {
-    expect(timelineYearLabel("2024-03-01")).toBe("2024");
-    expect(timelineYearLabel("undated")).toBe("Undated");
-    expect(timelineYearLabel("circa 2019")).toBe("2019");
+  test("historyYearLabel keeps undated records explicit", () => {
+    expect(historyYearLabel("2024-03-01")).toBe("2024");
+    expect(historyYearLabel("undated")).toBe("Undated");
+    expect(historyYearLabel("circa 2019")).toBe("2019");
   });
 
   test("duplicate citation keys resolve to a single deduped source entry", () => {
@@ -475,6 +398,18 @@ describe("treatments history helpers", () => {
     const entries = citationEntries(bundle, ["c1", "c1"]);
     expect(entries).toHaveLength(1);
     expect(entries[0]?.label).toContain("MTA Board Report");
+  });
+
+  test("adds page fragments only to typed PDF citations", () => {
+    expect(citationHref({ sourceUrl: "https://example.com/report.pdf", pageNumber: 7 })).toBe(
+      "https://example.com/report.pdf#page=7",
+    );
+    expect(citationHref({ sourceUrl: "https://example.com/report", pageNumber: 7 })).toBe(
+      "https://example.com/report",
+    );
+    expect(citationHref({ sourceUrl: "https://example.com/report.pdf" })).toBe(
+      "https://example.com/report.pdf",
+    );
   });
 
   test("History URL validation bounds targets and gives study precedence over record", () => {
@@ -499,67 +434,63 @@ describe("treatments history helpers", () => {
 
 describe("TreatmentsHistorySection render", () => {
   const bundle = evidenceBundle(largeTimeline);
-  const markup = renderToStaticMarkup(
-    createElement(TreatmentsHistorySection, { data: routeDetail, evidence: bundle }),
-  );
-
-  test("bounds the timeline to 10 rows with a show-all toggle", () => {
-    const rows = timelineDisplayRows(mergedTreatmentTimelineRows(servingInterventions, bundle));
-    expect(rows.length).toBeGreaterThanOrEqual(12);
-    const eleventh = rows[10];
-    expect(eleventh).toBeDefined();
-    if (eleventh) expect(markup).not.toContain(eleventh.title);
-    expect(markup).toContain(`Show all ${rows.length} records`);
+  let markup = "";
+  beforeAll(async () => {
+    markup = await renderWithRouter(
+      createElement(TreatmentsHistorySection, { data: routeDetail, evidence: bundle }),
+    );
   });
 
-  test("groups the timeline by year with dated groups first", () => {
+  test("shows search and a typed filter only when real cardinality is dense", () => {
+    expect(markup).toContain("Search History records");
+    expect(markup).toContain("Filter History by record type");
+    expect(markup).toContain("Offset bus lane");
+    expect(markup).toContain("First Avenue busway");
+  });
+
+  test("groups the ledger by year with dated groups first", () => {
     expect(markup).toContain("2024");
     expect(markup).toContain("2018");
+    expect(markup.indexOf("Undated")).toBeGreaterThan(markup.indexOf("2024"));
   });
 
-  test("renders undated rows as Undated, never unda, when visible", () => {
-    const short = renderToStaticMarkup(
+  test("sparse routes omit dense controls and keep an explicit empty state", async () => {
+    const sparse = await renderWithRouter(
       createElement(TreatmentsHistorySection, {
-        data: routeDetail,
-        evidence: evidenceBundle([
-          wikiEvent({ recordId: "ev_2024", dateNormalized: "2024-03", dateText: "2024-03" }),
-          wikiEvent({ recordId: "ev_nodate_a" }),
-        ]),
+        data: { ...routeDetail, route: { ...routeDetail.route, interventions: [] } },
+        evidence: null,
       }),
     );
-    expect(short).toContain("Undated");
-    expect(short).not.toContain("unda");
-    expect(short.indexOf("Undated")).toBeGreaterThan(short.indexOf("2024"));
+    expect(sparse).not.toContain("route-history-search");
+    expect(sparse).toContain("No documented History records are available for this exact route.");
+    expect(sparse).toContain("0 documented records for M15+.");
   });
 
-  test("meta-metrics and old headers are gone", () => {
+  test("the overlapping legacy sections and prose classification surface are gone", () => {
     for (const phrase of [
-      "unda",
-      "Families",
-      "with source labels",
-      "Document refs",
+      "What&#x27;s on this route",
+      "Related projects",
+      "Before &amp; after evaluations",
       "Dated history",
-      "Use before reading speed",
-      "Wiki treatments",
-      "In the record",
-      "·",
     ]) {
       expect(markup).not.toContain(phrase);
     }
+    expect(markup).toContain("Treatments &amp; history");
+    expect(markup).toContain("Current state");
   });
 
-  test("evaluations keep real deltas and use an arrow window label", () => {
+  test("peer-adjusted outcomes stay muted, descriptive, and unlinked", () => {
+    expect(markup).toContain("Peer-adjusted comparison");
+    expect(markup).toContain("Descriptive only");
     expect(markup).toContain("+0.41 mph");
     expect(markup).toContain("+0.55 mph");
-    expect(markup).toContain("→");
-    expect(markup).not.toContain("-&gt;");
   });
 
-  test("related projects remain separate from typed treatments and render source notes", () => {
-    expect(markup).toContain("Related projects");
-    expect(markup).not.toContain("Offset bus lane");
+  test("one ledger preserves treatments, projects, and source access", () => {
+    expect(markup).toContain("Offset bus lane");
     expect(markup).toContain("First Avenue busway");
     expect(markup).toContain("Sources (");
+    expect(markup).toContain("Source link unavailable");
   });
 
   test("renders every typed occurrence with stable anchors and exact ledger back-links", async () => {
@@ -575,13 +506,13 @@ describe("TreatmentsHistorySection render", () => {
     expect(typed).toContain("Busway");
     for (const treatment of inventory.treatments) {
       expect(typed).toContain(`intervention-${treatment.treatmentId.replaceAll(":", "_3a_")}`);
+      expect(typed).toContain(`intervention-${treatment.sourceRecordId.replaceAll(":", "_3a_")}`);
     }
     for (const occurrence of inventory.occurrences) {
       expect(typed).toContain(`intervention-${occurrence.occurrenceId.replaceAll(":", "_3a_")}`);
     }
-    expect(typed).toContain("Browse this route in all interventions");
+    expect(typed).toContain("Browse this exact route in all interventions");
     expect(typed).toContain("route=m15-sbs");
-    expect(typed).toContain("family=bus_priority_lane");
   });
 
   test("renders partial and checked-empty coverage as distinct text", async () => {
@@ -608,6 +539,70 @@ describe("TreatmentsHistorySection render", () => {
     expect(checkedEmpty).toContain("No positive treatment evidence was found in checked sources.");
     expect(checkedEmpty).not.toContain("No interventions");
   });
+
+  test("current state comes only from the explicit inventory summary", async () => {
+    const inventory = inventoryBundle({
+      currentState: [
+        {
+          treatmentKind: "busway",
+          treatmentFamily: "bus_priority_lane",
+          lifecycleState: "current_confirmed",
+          effectiveDate: "2024-06",
+          datePrecision: "month",
+          treatmentIds: ["treatment:v1:000000000000000000000001"],
+          occurrenceIds: ["occurrence:v1:000000000000000000000002"],
+        },
+      ],
+    });
+    const typed = await renderWithRouter(
+      createElement(TreatmentsHistorySection, {
+        data: routeDetail,
+        evidence: null,
+        inventory,
+      }),
+    );
+    expect(typed).toContain("1 documented current state");
+    expect(currentStateStatus(routeInterventionViewModel(inventory), 1).title).toBe(
+      "1 documented current state",
+    );
+    expect(currentStateStatus(routeInterventionViewModel(inventoryBundle()), 0).title).toBe(
+      "No current-confirmed state",
+    );
+  });
+
+  test("pure ledger filtering is typed and keeps undated last", () => {
+    const rows = buildRouteHistoryLedger({
+      interventions: servingInterventions,
+      evidence: bundle,
+      model: routeInterventionViewModel(null),
+    });
+    const projects = filterRouteHistoryLedger(rows, { query: "avenue", kind: "project" });
+    expect(projects.map((row) => row.kind)).toEqual(["project", "project"]);
+    const groups = groupRouteHistoryLedger(rows);
+    expect(groups.at(-1)?.year).toBe("Undated");
+  });
+
+  test("dense ledgers paginate in complete, announced batches", async () => {
+    const denseEvidence = evidenceBundle(
+      Array.from({ length: 25 }, (_, index) =>
+        wikiEvent({
+          recordId: `dense_${index}`,
+          dateNormalized: `${2025 - index}-01`,
+          dateText: `${2025 - index}-01`,
+        }),
+      ),
+    );
+    const rows = buildRouteHistoryLedger({
+      interventions: servingInterventions,
+      evidence: denseEvidence,
+      model: routeInterventionViewModel(null),
+    });
+    const dense = await renderWithRouter(
+      createElement(TreatmentsHistorySection, { data: routeDetail, evidence: denseEvidence }),
+    );
+    expect(rows.length).toBeGreaterThan(20);
+    expect(dense).toContain(`(${rows.length - 20} left)`);
+  });
 });
 
 describe("study integration", () => {
@@ -631,15 +626,38 @@ describe("study integration", () => {
     expect(cards[0]?.study?.eventKey).toBe("study-event-abc");
     // The same title without an eventId stays unstudied.
     expect(cards[1]?.study).toBeUndefined();
-    expect(comparisonCardsSubLine(cards)).toBe("2 evaluations, 1 with matched-segment study.");
-    expect(comparisonCardsSubLine(interventionComparisonCards(servingInterventions))).toBe(
-      "1 promoted comparison windows.",
-    );
-    expect(comparisonCardsSubLine([])).toBe("Comparison windows promoted by the pipeline.");
   });
 
   test("history deep-link motion honors reduced-motion preferences", () => {
     expect(historyTargetScrollBehavior(false)).toBe("smooth");
     expect(historyTargetScrollBehavior(true)).toBe("auto");
+  });
+
+  test("published matched and descriptive studies keep distinct register labels", async () => {
+    const matched = await renderWithRouter(
+      createElement(TreatmentsHistorySection, {
+        data: routeDetail,
+        evidence: null,
+        studies: rollup,
+      }),
+    );
+    expect(matched).toContain("Matched-control study");
+    expect(matched).not.toContain("Descriptive study");
+
+    const descriptiveStudy = studyFixture({
+      eventKey: "study-event-descriptive",
+      claimTier: "descriptive",
+      evaluationLevel: "descriptive_before_after",
+      direction: "improved",
+    });
+    const descriptive = await renderWithRouter(
+      createElement(TreatmentsHistorySection, {
+        data: routeDetail,
+        evidence: null,
+        studies: { ...rollup, studies: [descriptiveStudy] },
+      }),
+    );
+    expect(descriptive).toContain("Descriptive study");
+    expect(descriptive).toContain("Not a controlled comparison.");
   });
 });

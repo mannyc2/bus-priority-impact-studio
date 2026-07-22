@@ -262,6 +262,10 @@ export function routeInterventionViewModel(
   };
 }
 
+export function interventionLabelForKind(kind: StudioInterventionTreatmentKind): string {
+  return KIND_PRESENTATION[kind].label;
+}
+
 function coveragePresentation(
   bundle: StudioRouteInterventionInventoryBundle,
 ): RouteInterventionCoveragePresentation {

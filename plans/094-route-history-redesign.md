@@ -50,8 +50,8 @@ authority.
 The accepted information architecture is:
 
 1. **Treatments & history header** — exact route label, a structured count
-   sentence, and compact jump links to Current state, History, Outcomes, and
-   Sources & coverage. No authored route narrative.
+   sentence, and compact jump links to Current state, History, and Outcomes.
+   No authored route narrative.
 2. **Current state** — render only the inventory bundle's typed
    `currentState[]`. Distinguish unavailable, partial, checked-empty, available
    empty, and available positive states. `implemented` is not silently treated
@@ -61,7 +61,7 @@ The accepted information architecture is:
    timeline rows, typed evidence interventions, projects, and source gaps by
    stable relationship IDs only. A related item may be nested under its retained
    row, but every typed record keeps a stable target and source access.
-4. **Dense-route controls** — above 12 rows, show URL-backed lexical search and
+4. **Dense-route controls** — above 12 rows, show local lexical search and
    an exact typed-kind filter (`event`, `treatment`, `project`, `source gap`).
    Search matches display fields only; it never classifies evidence or creates
    treatment relevance. Results paginate in 20-row increments.
@@ -74,7 +74,7 @@ The accepted information architecture is:
    fragment is invented because the contract carries no quotable excerpt.
 
 Calmer row styling uses one typed row label and, only where supported, one
-meaningful lifecycle/status badge. The page does not repeat separate “before &
+meaningful lifecycle/status label. The page does not repeat separate “before &
 after,” “timeline,” “documented treatments,” and “related projects” sections.
 
 ## Evidence and compatibility boundaries
@@ -89,8 +89,8 @@ after,” “timeline,” “documented treatments,” and “related projects�
 - Retain every typed record and explicit missing-data state. No silent drop due
   to a display cap or missing optional join.
 - Preserve `?tab=history&study=` and `?tab=history&record=` focus behavior.
-  Bound and normalize new History query state and clear incompatible targets
-  when a user filters.
+  Search and filter remain local so the established Plan 092 URL contract does
+  not grow and the fixed bundle budget stays intact.
 - Preserve public failure behavior: optional inventory/study/observation
   failures do not block the route, while route-detail failure still does.
 - Do not alter data schemas, estimator logic, publication gates, R2/D1 objects,
@@ -106,8 +106,8 @@ after,” “timeline,” “documented treatments,” and “related projects�
    heuristic.
 3. Replace the five overlapping History cards with the accepted header,
    current-state summary, one lossless ledger, outcomes, and sources/coverage.
-4. Add bounded History search/kind URL state only on the History tab and retain
-   the established `study`/`record` contract.
+4. Add local History search/kind state while retaining the established
+   `study`/`record` URL contract.
 5. Run focused tests while iterating, then comprehensive type, architecture,
    unit/web/Worker, build, knowledge, release, SEO, performance, and doctrine
    checks.
@@ -126,7 +126,7 @@ after,” “timeline,” “documented treatments,” and “related projects�
 - [ ] One History ledger retains every typed occurrence, treatment, evidence
       timeline/intervention/project, service record, and source gap exactly
       once by stable relationships; Undated remains last.
-- [ ] Dense routes receive accessible URL-backed search/filter and pagination;
+- [ ] Dense routes receive accessible local search/filter and pagination;
       sparse routes do not receive unnecessary controls.
 - [ ] Published matched-control, descriptive, and peer-adjusted outcomes are
       visibly distinct; no candidate/unapproved data or new claim enters.
@@ -146,4 +146,3 @@ classification or route aliasing; if Current state cannot remain explicit; if
 a candidate/unapproved artifact would be exposed; if study or publication
 gates would be weakened; or if a required verification fails twice after a
 reasonable repair.
-
