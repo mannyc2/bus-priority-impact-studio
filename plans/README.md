@@ -61,7 +61,7 @@ and makes one pointer select D1, exact identity, maps, and every R2 artifact.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | TODO |
+| 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | IN PROGRESS |
 | 098 | Atomic serving releases with immutable artifacts | P1 | XL | 097 production completion or signed atomic-limit STOP handoff | TODO |
 | 099 | Full dataset history and a one-period freshness SLO | P1 | XL | 098 | TODO |
 | 100 | Resumable publication control plane and drift alarms | P1 | L | 098 active; 099 built candidate + `activation_ready` receipt | TODO |

@@ -6,5 +6,10 @@ export type {
   D1SeedSqlResult,
 } from "./build-seed-sql.js";
 export { buildD1AppendixSeedSql, buildD1SeedSql } from "./build-seed-sql.js";
+export type { ExactRouteIdentityRegistrationInput } from "./exact-route-identity-registration.js";
+export {
+  buildExactRouteIdentityRegistrationSql,
+  ExactRouteIdentityRegistrationSchema,
+} from "./exact-route-identity-registration.js";
 export type { MapReleaseRegistrationInput } from "./map-release-registration.js";
 export { buildMapReleaseRegistrationSql } from "./map-release-registration.js";

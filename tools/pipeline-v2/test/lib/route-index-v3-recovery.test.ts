@@ -232,6 +232,43 @@ describe("exact route-index v3 recovery", () => {
     sqlite.close(false);
   });
 
+  it("fails closed when an existing release ID has drifted metadata", () => {
+    const result = build();
+    const sqlite = new Database(":memory:");
+    sqlite.exec(`
+      CREATE TABLE route_catalog_trip_type (
+        route_id TEXT NOT NULL,
+        trip_type_rank INTEGER NOT NULL,
+        trip_type TEXT NOT NULL,
+        PRIMARY KEY (route_id, trip_type_rank)
+      );
+      CREATE TABLE exact_route_identity_release (
+        release_id TEXT PRIMARY KEY NOT NULL,
+        published_at TEXT NOT NULL,
+        coverage_start TEXT,
+        coverage_end TEXT NOT NULL,
+        source_wiki_release TEXT NOT NULL,
+        source_manifest_sha256 TEXT NOT NULL,
+        source_route_identity_sha256 TEXT NOT NULL,
+        source_current_bus_routes_sha256 TEXT NOT NULL,
+        source_index_sha256 TEXT NOT NULL,
+        catalog_snapshot_sha256 TEXT NOT NULL,
+        projection_sha256 TEXT NOT NULL,
+        exact_route_count INTEGER NOT NULL,
+        route_type_count INTEGER NOT NULL,
+        trip_type_count INTEGER NOT NULL
+      );
+    `);
+    sqlite.exec(result.sql);
+    sqlite.exec(`UPDATE exact_route_identity_release SET projection_sha256 = '${"f".repeat(64)}'`);
+    const exactRegistrationSql = result.sql.slice(result.sql.indexOf("WITH `candidate`"));
+    expect(() => sqlite.query(exactRegistrationSql).run()).toThrow();
+    expect(
+      sqlite.query("SELECT projection_sha256 FROM exact_route_identity_release").get(),
+    ).toEqual({ projection_sha256: "f".repeat(64) });
+    sqlite.close(false);
+  });
+
   it("permits only an empty pre-recovery state or the exact registered projection", () => {
     const result = build();
     const common = {

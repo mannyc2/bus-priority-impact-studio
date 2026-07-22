@@ -68,6 +68,7 @@
       "dependencies": {
         "@bp/domain": "workspace:*",
         "drizzle-orm": "file:../../vendor/npm/drizzle-orm-1.0.0-rc.3-no-zod.tgz",
+        "effect": "catalog:",
       },
       "devDependencies": {
         "@cloudflare/workers-types": "catalog:",

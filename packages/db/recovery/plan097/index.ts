@@ -1,0 +1,349 @@
+import { createHash } from "node:crypto";
+import { CanonicalPublishedAtSchema, ReleaseIdSchema } from "@bp/domain/studio/shared";
+import { Schema } from "effect";
+
+const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
+const Sha256Schema = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
+const GitShaSchema = Schema.String.check(Schema.isPattern(/^[0-9a-f]{40}$/u));
+const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
+  Schema.isGreaterThanOrEqualTo(0),
+);
+const PositiveIntegerSchema = Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0));
+const D1DatabaseIdSchema = Schema.String.check(
+  Schema.isPattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u),
+);
+
+export const Plan097SqliteMasterRowSchema = Schema.Struct({
+  type: Schema.Literals(["table", "index", "trigger", "view"]),
+  name: NonEmptyStringSchema,
+  tableName: NonEmptyStringSchema,
+  sql: Schema.NullOr(Schema.String),
+});
+
+export const Plan097TableColumnSchema = Schema.Struct({
+  cid: NonNegativeIntegerSchema,
+  name: NonEmptyStringSchema,
+  type: Schema.String,
+  notNull: Schema.Boolean,
+  defaultValue: Schema.NullOr(Schema.String),
+  primaryKey: NonNegativeIntegerSchema,
+});
+
+export const Plan097TableInfoSchema = Schema.Struct({
+  tableName: NonEmptyStringSchema,
+  columns: Schema.Array(Plan097TableColumnSchema),
+});
+
+export const Plan097IndexColumnSchema = Schema.Struct({
+  sequence: NonNegativeIntegerSchema,
+  cid: Schema.Number.check(Schema.isInt()),
+  name: Schema.NullOr(Schema.String),
+});
+
+export const Plan097IndexInfoSchema = Schema.Struct({
+  tableName: NonEmptyStringSchema,
+  name: NonEmptyStringSchema,
+  unique: Schema.Boolean,
+  origin: NonEmptyStringSchema,
+  partial: Schema.Boolean,
+  columns: Schema.Array(Plan097IndexColumnSchema),
+});
+
+export const Plan097MigrationLedgerSchema = Schema.Struct({
+  present: Schema.Boolean,
+  rows: Schema.Array(
+    Schema.Struct({
+      id: NonNegativeIntegerSchema,
+      name: NonEmptyStringSchema,
+      appliedAt: Schema.NullOr(Schema.String),
+    }),
+  ),
+});
+
+export type Plan097SchemaAuditInput = {
+  sqliteMaster: Array<typeof Plan097SqliteMasterRowSchema.Type>;
+  tables: Array<{
+    tableName: string;
+    columns: Array<typeof Plan097TableColumnSchema.Type>;
+  }>;
+  indexes: Array<{
+    tableName: string;
+    name: string;
+    unique: boolean;
+    origin: string;
+    partial: boolean;
+    columns: Array<typeof Plan097IndexColumnSchema.Type>;
+  }>;
+  migrationLedger: {
+    present: boolean;
+    rows: Array<{ id: number; name: string; appliedAt: string | null }>;
+  };
+};
+
+export const Plan097CanonicalSchemaSnapshotSchema = Schema.Struct({
+  sqliteMaster: Schema.Array(Plan097SqliteMasterRowSchema),
+  tables: Schema.Array(Plan097TableInfoSchema),
+  indexes: Schema.Array(Plan097IndexInfoSchema),
+  migrationLedger: Plan097MigrationLedgerSchema,
+  sha256: Sha256Schema,
+});
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  return `{${Object.entries(value)
+    .toSorted(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
+    .join(",")}}`;
+}
+
+function sha256Text(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+export function buildPlan097CanonicalSchemaSnapshot(input: Plan097SchemaAuditInput) {
+  const snapshot = {
+    sqliteMaster: [...input.sqliteMaster].toSorted(
+      (left, right) =>
+        left.type.localeCompare(right.type) ||
+        left.name.localeCompare(right.name) ||
+        left.tableName.localeCompare(right.tableName),
+    ),
+    tables: input.tables
+      .map((table) => ({
+        ...table,
+        columns: [...table.columns].toSorted((left, right) => left.cid - right.cid),
+      }))
+      .toSorted((left, right) => left.tableName.localeCompare(right.tableName)),
+    indexes: input.indexes
+      .map((index) => ({
+        ...index,
+        columns: [...index.columns].toSorted((left, right) => left.sequence - right.sequence),
+      }))
+      .toSorted(
+        (left, right) =>
+          left.tableName.localeCompare(right.tableName) || left.name.localeCompare(right.name),
+      ),
+    migrationLedger: {
+      present: input.migrationLedger.present,
+      rows: [...input.migrationLedger.rows].toSorted(
+        (left, right) => left.id - right.id || left.name.localeCompare(right.name),
+      ),
+    },
+  };
+  return {
+    ...snapshot,
+    sha256: sha256Text(`${canonicalJson(snapshot)}\n`),
+  };
+}
+
+const expectedMapReleaseColumns = [
+  ["release_id", "TEXT", false, 1],
+  ["published_at", "TEXT", true, 0],
+  ["coverage_start", "TEXT", false, 0],
+  ["coverage_end", "TEXT", true, 0],
+  ["manifest_key", "TEXT", true, 0],
+  ["manifest_sha256", "TEXT", true, 0],
+  ["release_profile", "TEXT", true, 0],
+  ["verification_status", "TEXT", true, 0],
+  ["route_count", "INTEGER", true, 0],
+] as const;
+
+export function decidePlan097MapReleaseCatalogRecovery(input: Plan097SchemaAuditInput): {
+  state: "absent" | "exact";
+  applyRecoverySql: boolean;
+} {
+  const scopedObjects = input.sqliteMaster.filter(
+    (entry) => entry.tableName === "map_release_catalog" || entry.name === "map_release_catalog",
+  );
+  const table = input.tables.find((entry) => entry.tableName === "map_release_catalog");
+  const index = input.indexes.find(
+    (entry) => entry.name === "map_release_catalog_manifest_key_idx",
+  );
+  if (scopedObjects.length === 0 && table === undefined && index === undefined) {
+    return { state: "absent", applyRecoverySql: true };
+  }
+  if (table === undefined) throw new Error("Partial map_release_catalog state: table is absent");
+  if (table.columns.length !== expectedMapReleaseColumns.length) {
+    throw new Error("map_release_catalog column count differs from migration 0033");
+  }
+  for (const [position, expected] of expectedMapReleaseColumns.entries()) {
+    const column = table.columns[position];
+    if (
+      column === undefined ||
+      column.cid !== position ||
+      column.name !== expected[0] ||
+      column.type.toUpperCase() !== expected[1] ||
+      column.notNull !== expected[2] ||
+      column.defaultValue !== null ||
+      column.primaryKey !== expected[3]
+    ) {
+      throw new Error(
+        `map_release_catalog column ${String(expected[0])} differs from migration 0033`,
+      );
+    }
+  }
+  if (
+    index === undefined ||
+    !index.unique ||
+    index.partial ||
+    index.columns.length !== 1 ||
+    index.columns[0]?.name !== "manifest_key"
+  ) {
+    throw new Error("map_release_catalog unique index differs from migration 0033");
+  }
+  const unexpectedScopedObject = scopedObjects.find(
+    (entry) =>
+      entry.name !== "map_release_catalog" &&
+      entry.name !== "map_release_catalog_manifest_key_idx" &&
+      !entry.name.startsWith("sqlite_autoindex_map_release_catalog_"),
+  );
+  if (unexpectedScopedObject !== undefined) {
+    throw new Error(`Unexpected map_release_catalog schema object ${unexpectedScopedObject.name}`);
+  }
+  return { state: "exact", applyRecoverySql: false };
+}
+
+export function assertPlan097SafeRemoteCommand(argv: readonly string[]): void {
+  const command = argv.join(" ");
+  const normalized = command.toLowerCase();
+  const safe0033Path = "packages/db/recovery/plan097/0033_map_release_catalog_idempotent.sql";
+  const safe0033 = normalized.includes(safe0033Path);
+  const ledgerMutation =
+    normalized.includes("d1_migrations") && /\b(insert|update|delete)\b/u.test(normalized);
+  if (ledgerMutation) throw new Error("Plan 097 forbids migration-ledger mutation");
+  if (normalized.includes("schema.sql")) {
+    throw new Error("Plan 097 forbids remote aggregate schema execution");
+  }
+  if (
+    /packages\/db\/migrations\/d1\/(?:00(?:0[0-9]|[12][0-9]|3[0-4]))_[^\s]+\.sql/u.test(normalized)
+  ) {
+    throw new Error("Plan 097 forbids direct remote execution of canonical migrations 0000-0034");
+  }
+  const remoteD1Execute =
+    normalized.includes("wrangler d1 execute") && normalized.includes("--remote");
+  const fileFlags = argv.filter((value) => value === "--file").length;
+  if (
+    remoteD1Execute &&
+    (!safe0033 ||
+      fileFlags !== 1 ||
+      normalized.includes("--command") ||
+      !normalized.includes("--config"))
+  ) {
+    throw new Error("Plan 097 permits only the exact idempotent 0033 remote D1 execute shape");
+  }
+}
+
+const Plan097ArtifactEntrySchema = Schema.Struct({
+  logicalId: NonEmptyStringSchema,
+  logicalKey: Schema.String.check(Schema.isPattern(/^(?:studio|map)\/[a-z0-9][a-z0-9+._/-]*$/u)),
+  key: Schema.String.check(
+    Schema.isPattern(/^operations\/plan097\/blobs\/sha256\/[0-9a-f]{2}\/[0-9a-f]{64}\.[a-z0-9]+$/u),
+  ),
+  sha256: Sha256Schema,
+  bytes: PositiveIntegerSchema,
+  mediaType: NonEmptyStringSchema,
+  schemaId: NonEmptyStringSchema,
+});
+
+export const Plan097RecoveryArtifactManifestSchema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.ops.plan097.recovery_artifact_manifest.v1"),
+  schemaVersion: Schema.Literal(1),
+  releaseId: ReleaseIdSchema,
+  createdAt: CanonicalPublishedAtSchema,
+  entries: Schema.Array(Plan097ArtifactEntrySchema),
+}).check(
+  Schema.makeFilter((manifest) => {
+    const issues: Array<{ path: ReadonlyArray<string | number>; issue: string }> = [];
+    const logicalIds = new Set<string>();
+    const logicalKeys = new Set<string>();
+    const physicalKeys = new Set<string>();
+    for (const [index, entry] of manifest.entries.entries()) {
+      if (logicalIds.has(entry.logicalId)) {
+        issues.push({
+          path: ["entries", index, "logicalId"],
+          issue: "Duplicate logical artifact ID",
+        });
+      }
+      logicalIds.add(entry.logicalId);
+      if (logicalKeys.has(entry.logicalKey)) {
+        issues.push({
+          path: ["entries", index, "logicalKey"],
+          issue: "Duplicate logical artifact key",
+        });
+      }
+      logicalKeys.add(entry.logicalKey);
+      if (physicalKeys.has(entry.key)) {
+        issues.push({ path: ["entries", index, "key"], issue: "Duplicate physical artifact key" });
+      }
+      physicalKeys.add(entry.key);
+      const expectedPrefix = entry.sha256.slice(0, 2);
+      if (!entry.key.includes(`/sha256/${expectedPrefix}/${entry.sha256}.`)) {
+        issues.push({
+          path: ["entries", index, "key"],
+          issue: "Physical key does not match SHA-256",
+        });
+      }
+    }
+    return issues;
+  }),
+);
+
+const Plan097HttpEndpointEvidenceSchema = Schema.Struct({
+  path: Schema.String.check(Schema.isPattern(/^\//u)),
+  status: NonNegativeIntegerSchema,
+  schemaId: NonEmptyStringSchema,
+  safeBodySha256: Sha256Schema,
+  requestId: Schema.NullOr(Schema.String),
+  cfRay: Schema.NullOr(Schema.String),
+});
+
+export const Plan097HttpBaselineSchema = Schema.Struct({
+  checkedAt: CanonicalPublishedAtSchema,
+  activeReleaseId: ReleaseIdSchema,
+  endpoints: Schema.Array(Plan097HttpEndpointEvidenceSchema),
+});
+
+const Plan097ImmutableBundleRefSchema = Schema.Struct({
+  key: NonEmptyStringSchema,
+  sha256: Sha256Schema,
+  bytes: PositiveIntegerSchema,
+});
+
+export const Plan097PreflightReceiptSchema = Schema.Struct({
+  artifactKind: Schema.Literal("bp.ops.plan097.preflight.v1"),
+  schemaVersion: Schema.Literal(1),
+  outcome: Schema.Literals(["ready", "stop"]),
+  preparedAt: CanonicalPublishedAtSchema,
+  repoSha: GitShaSchema,
+  commandVersion: NonEmptyStringSchema,
+  resources: Schema.Struct({
+    d1DatabaseName: NonEmptyStringSchema,
+    d1DatabaseId: D1DatabaseIdSchema,
+    r2Bucket: NonEmptyStringSchema,
+  }),
+  candidate: Schema.Struct({
+    releaseId: ReleaseIdSchema,
+    manifestKey: Schema.String.check(
+      Schema.isPattern(/^operations\/plan097\/releases\/pub_[0-9TZ]+\/artifact-manifest\.json$/u),
+    ),
+    manifestSha256: Sha256Schema,
+  }),
+  schemaSnapshot: Plan097CanonicalSchemaSnapshotSchema,
+  httpBaseline: Plan097HttpBaselineSchema,
+  rollbackPackage: Plan097ImmutableBundleRefSchema,
+  costPreview: Schema.Struct({
+    d1Statements: NonNegativeIntegerSchema,
+    d1Bytes: NonNegativeIntegerSchema,
+    r2Puts: NonNegativeIntegerSchema,
+    r2Bytes: NonNegativeIntegerSchema,
+  }),
+  signature: Schema.Struct({
+    algorithm: Schema.Literal("sha256"),
+    signedPayloadSha256: Sha256Schema,
+  }),
+});
+
+export type Plan097CanonicalSchemaSnapshot = typeof Plan097CanonicalSchemaSnapshotSchema.Type;
+export type Plan097RecoveryArtifactManifest = typeof Plan097RecoveryArtifactManifestSchema.Type;
+export type Plan097PreflightReceipt = typeof Plan097PreflightReceiptSchema.Type;

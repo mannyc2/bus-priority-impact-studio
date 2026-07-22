@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State**: TODO
+- **State**: IN PROGRESS
 - **Priority**: P0
 - **Effort**: M-L
 - **Depends on**: Plans 085-087 and 095 (DONE); Plan 096 is unrelated
@@ -77,6 +77,51 @@ Plan 097 DONE.
 | Mutable artifact aliases | `packages/domain/src/studio/route-dossier.ts:21-23`, `packages/analytics/src/artifacts/index.ts:61-115`, and `read-handlers.ts:695-925,1640-1978` construct/read stable R2 keys | Uploading candidate bytes “first” to those keys would expose them to the old D1 release; R2-first is safe only with release-addressed keys and a predeployed resolver. |
 | D1 batch feasibility | The ignored local 2026-05 export observed during this audit is 5,619,870 bytes and 19,739 semicolon-terminated statements | It cannot be submitted unchanged under D1's 1,000-query/invocation and 30-second batch limits; recovery needs measured set-based compaction or must defer to Plan 098. |
 | Completeness | `tools/pipeline-v2/src/checks/check-publish-completeness.ts` does not strict-decode every dossier, history, hourly, and capability body | File presence is insufficient evidence for a safe catch-up. |
+
+### Source-audit reconciliation (2026-07-22)
+
+The implementation-base audit found additional release-safety surfaces that
+are binding on this plan:
+
+- Direct R2 reads also exist in `packages/studio-api/src/public-api.ts` and
+  `packages/studio-api/src/studio/projections.ts`, not only
+  `studio/read-handlers.ts`. The resolver/architecture gate must inventory all
+  three files and permit direct reads only in the central resolver, the
+  verified map loader, and the protected recovery-bundle loader.
+- The anonymous `/api/v1/artifacts/*` route currently admits generically safe
+  keys, including `operations/plan097/**`. Both recovery manifest and blob
+  namespaces must be denied, including encoded forms, before staging begins.
+- Existing Studio/map/artifact cache policies include stale-while-revalidate
+  windows. Before production activation, the disposable and production
+  runbooks must prove a release-safe cache-key transition or a bounded
+  no-store/purge/drain procedure; a pointer/resolver flip alone is not enough.
+- Map catalog election must equal the active Studio release. Independent
+  newest-map/latest-batch results are a STOP even when each row is valid.
+- Candidate manifests must inventory aliases explicitly. Missing candidate
+  logical IDs and corrupt manifests fail closed; they cannot reuse legacy
+  "try another stable key" absence semantics.
+- The push-on-main CI path must be unable to run direct recovery/migration SQL
+  or any Plan 097 data mutation before the protected transport is eligible.
+  Code deploy and separately authorized recovery remain distinct gates.
+- Canonical migration replay plus PRAGMA results, not the Drizzle mirror alone,
+  define the production schema envelope. The canonical stream contains
+  historical alter/drop drift that the current mirror does not fully express.
+- The current full seed deletes `route_scorecard_citation` without a matching
+  input projection, and it writes `route_batch_status` before built-route/issue
+  children. Recovery must preserve or strictly rebuild citations and must emit
+  the activation status as the absolute final statement; otherwise STOP.
+- D1 compaction must respect the 100-bound-parameter limit as well as statement
+  bytes, query count, and the 30-second whole-batch deadline. A set-based
+  renderer that cannot prove all four limits takes the signed STOP handoff to
+  Plan 098.
+- Candidate artifact bytes cannot appear in the production bucket before the
+  fresh mutation token. The protected recovery Worker must therefore support
+  an allowlisted staged-object action: the CLI streams a logical ID and bytes
+  already bound by the signed operation bundle, the Worker verifies the
+  declared hash/length/media type, derives the content-addressed key itself,
+  and performs GET/hash/no-op-or-PUT/GET/hash. It never accepts a caller-chosen
+  bucket or physical key. Manifest bytes are staged only after every member is
+  verified, through the same action and with identical-write-only semantics.
 
 The production D1 is therefore **not** disposable serving-only state. D1 Time
 Travel remains disaster recovery because an in-place restore rewinds unrelated
@@ -170,6 +215,13 @@ exact production schema/live-surface fingerprint instead of depending on a
 receipt that only a successful Plan 097 execution could create. Immediately
 before any eventual production mutation, repeat the audit/baseline and require
 an exact match or an explicitly declared expected candidate difference.
+The pre-authorization canonical receipt is stored in the isolated proof
+environment's immutable operations bucket, and its SHA-256/signature/key are
+committed and pushed as a redacted attestation. This is the durable authority
+before production approval; a gitignored local copy is only a cache. After
+authorization, the exact same bytes are mirrored to the production operations
+prefix through the protected staged-object action. No production R2 write is
+hidden inside the read-only preflight.
 
 Add a harness assertion that rejects any Plan 097 command containing:
 
@@ -223,6 +275,12 @@ Before publication, deploy a compatibility reader that:
 5. fails closed for a new/candidate release with a missing, invalid, or
    incomplete manifest and emits structured release/logical-ID telemetry.
 
+The resolver inventory includes every direct read in `public-api.ts`,
+`studio/projections.ts`, and `studio/read-handlers.ts`. Alias candidates are
+declared logical entries in the manifest rather than inferred from a missing
+object. Add an architecture test that rejects unregistered direct
+`ARTIFACTS.get()` calls.
+
 Update every direct R2 load in `packages/studio-api` in the same change; a
 half-migrated reader is forbidden. The map endpoint retains its verified map
 catalog/manifest path, but its candidate registration joins the same D1
@@ -237,8 +295,20 @@ namespace and any staged physical key; only the internal resolver may fetch a
 manifest member after that release becomes active. Add a leaked-key test that
 returns 404/403 before activation and succeeds only through the active
 release's logical artifact URL afterward. Direct bucket access stays private.
+Before activation, also prove the selected cache transition prevents a prior
+stable response from surviving under the candidate's release-safe cache key;
+record purge/no-store/drain evidence and the applicable cache headers in the
+disposable and production HTTP receipts.
 Plan 098 replaces this recovery manifest lookup with its canonical D1-backed
 candidate artifact locator; Plan 101 deletes the stable fallback.
+
+For production, "write" above means render and hash the local candidate
+inventory before authorization, then stream its bytes through the protected
+operation after authorization. The Worker accepts no arbitrary object key:
+each logical ID/hash must be present in the signed operation bundle, and the
+physical key is derived from that hash. An already-present object is accepted
+only after a full GET/hash match; an existing mismatch is a STOP and is never
+overwritten.
 
 ### 4. Build an exact schema reconciliation, not a baseline fiction
 
@@ -271,6 +341,13 @@ restore statements that remove the failed candidate map/exact rows, restore
 replaced rows, and put the former `route_batch_status` activation rows last
 inside one atomic restore batch. After rollback, both Studio and map “latest”
 queries must elect the old release.
+
+The recovery renderer must also prove that every deleted
+`route_scorecard_citation` row is either reproduced from a strict candidate
+input or preserved byte-identically. The current seed's zero citation insert
+count is not eligible for production. Candidate `route_batch_status` is
+rendered only after all built-route and issue children and is the absolute last
+activation statement.
 
 Explicitly exclude and assert untouched:
 
@@ -332,6 +409,16 @@ authentication/Cloudflare Access, a dedicated one-time operations binding,
 and structured statements/parameters rather than shell SQL interpolation.
 Disable the operation route/binding after the recovery closes.
 
+The production bundle need not pre-exist in production R2. Before activation,
+the same operation exposes only two additional closed actions: stage one
+manifest-declared content body and finalize the manifest after all members
+verify. The request carries the operation ID, logical ID, declared hash, and
+body bytes; the Worker resolves those fields against the signed bundle and
+derives the R2 key. It rejects unknown logical IDs, duplicate logical mappings,
+caller-supplied physical keys/buckets, hash or length drift, and a manifest
+finalization with any missing member. Disposable proof exercises these exact
+actions in the isolated proof bucket.
+
 Cloudflare documents that binding batches are transactions and roll back on a
 failed statement in the
 [D1 database API](https://developers.cloudflare.com/d1/worker-api/d1-database/).
@@ -339,7 +426,8 @@ The current row-at-a-time seed is ineligible. Add a recovery-only set-based
 renderer that enforces the current-signal exclusions above, groups remaining
 rows into deterministic multi-row INSERT/UPSERT statements below D1's 100 KB
 statement limit, keeps total statements below the account's
-query-per-invocation limit, and preserves exact per-table count/hash checks.
+query-per-invocation limit and every statement at or below D1's bound-parameter
+limit, and preserves exact per-table count/hash checks.
 Do not concatenate unsanitized values or weaken the existing SQL escaping.
 
 Prove the exact production-sized compacted activation and restore bundles
@@ -385,15 +473,20 @@ The state machine uses this order:
 2. build and verify the atomic selective D1 rollback package;
 3. apply only the eligible idempotent 0033 recovery SQL, if needed, then
    repeat the schema audit;
-4. upload the write-once recovery manifest and all immutable R2 bodies without
-   touching stable aliases; GET/hash-verify every object and prove the active
-   old release still returns identical bytes;
+4. stream every signed-bundle member through the protected staged-object
+   action, finalize the write-once recovery manifest only after all members
+   verify, and prove the active old release still returns identical bytes;
 5. submit **one** transactional D1 activation batch containing all candidate
    serving-row replacement, its exact-route registry row, its verified map
    catalog row, and `route_batch_status` as the final statement;
 6. require every batch statement result to succeed and verify the resulting
    D1 bookmark/state before considering activation complete;
 7. run post-audit and production smoke.
+
+Before step 4, prove anonymous recovery-namespace denial in the deployed
+reader. Before step 5, prove the map release selected for the candidate equals
+the Studio release and that the legacy push-on-main workflow has no recovery
+mutation capability.
 
 Do not use the legacy shell command for production data mutation; it cannot
 prove the transactional/release-addressed contract. A failure before step 5
