@@ -1,10 +1,13 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import { decodeStrict } from "@bp/domain/decode";
 import {
   assertPlan097SafeRemoteCommand,
+  assertPlan097SchemaEnvelope,
   buildPlan097CanonicalSchemaSnapshot,
+  canonicalPlan097Json,
   decidePlan097MapReleaseCatalogRecovery,
   Plan097CompactedBatchSchema,
   Plan097OperationRequestSchema,
@@ -202,6 +205,59 @@ describe("Plan 097 recovery contracts", () => {
     expect(() => decidePlan097MapReleaseCatalogRecovery(unexpectedMapObject)).toThrow(
       /unexpected map_release_catalog schema object/i,
     );
+  });
+
+  test("accepts only canonical schema plus an absent-or-exact 0033 and an independent ledger", () => {
+    const expected = buildPlan097CanonicalSchemaSnapshot(exactMapCatalogAudit());
+    const ledgerDivergent = buildPlan097CanonicalSchemaSnapshot({
+      ...exactMapCatalogAudit(),
+      migrationLedger: {
+        present: true,
+        rows: [{ id: 32, name: "0032_route_catalog_trip_type.sql", appliedAt: null }],
+      },
+    });
+    expect(assertPlan097SchemaEnvelope({ actual: ledgerDivergent, expected })).toEqual({
+      mapReleaseCatalog: { state: "exact", applyRecoverySql: false },
+    });
+
+    const absentMap = mapCatalogAudit({
+      sqliteMaster: [],
+      tables: [],
+      indexes: [],
+    });
+    expect(
+      assertPlan097SchemaEnvelope({
+        actual: buildPlan097CanonicalSchemaSnapshot(absentMap),
+        expected,
+      }),
+    ).toEqual({ mapReleaseCatalog: { state: "absent", applyRecoverySql: true } });
+
+    const unexpected = exactMapCatalogAudit();
+    unexpected.sqliteMaster.push({
+      type: "table",
+      name: "unreviewed_table",
+      tableName: "unreviewed_table",
+      sql: "CREATE TABLE unreviewed_table (id TEXT)",
+    });
+    unexpected.tables.push({
+      tableName: "unreviewed_table",
+      columns: [
+        {
+          cid: 0,
+          name: "id",
+          type: "TEXT",
+          notNull: false,
+          defaultValue: null,
+          primaryKey: 0,
+        },
+      ],
+    });
+    expect(() =>
+      assertPlan097SchemaEnvelope({
+        actual: buildPlan097CanonicalSchemaSnapshot(unexpected),
+        expected,
+      }),
+    ).toThrow(/schema envelope/i);
   });
 
   test("the idempotent 0033 recovery creates the exact table and is a no-op on retry", async () => {
@@ -426,7 +482,7 @@ describe("Plan 097 recovery contracts", () => {
 
   test("preflight receipt binds baseline, rollback, cost, and immutable candidate evidence", () => {
     const schemaSnapshot = buildPlan097CanonicalSchemaSnapshot(exactMapCatalogAudit());
-    const receipt = {
+    const unsignedReceipt = {
       artifactKind: "bp.ops.plan097.preflight.v1",
       schemaVersion: 1,
       outcome: "ready",
@@ -444,6 +500,12 @@ describe("Plan 097 recovery contracts", () => {
         manifestSha256: sha("b"),
       },
       schemaSnapshot,
+      schemaReconciliation: {
+        expectedStructuralSha256: sha("f"),
+        actualStructuralSha256: sha("f"),
+        mapReleaseCatalogState: "exact",
+        applyRecoverySql: false,
+      },
       httpBaseline: {
         checkedAt: "2026-07-22T12:00:00.000Z",
         activeReleaseId: "pub_20260721T120000000Z",
@@ -455,8 +517,15 @@ describe("Plan 097 recovery contracts", () => {
             safeBodySha256: sha("c"),
             requestId: "request-1",
             cfRay: null,
+            cacheControl: "no-store",
+            etag: null,
           },
         ],
+      },
+      selectiveSnapshot: {
+        key: "operations/plan097/snapshots/snapshot.json",
+        sha256: sha("a"),
+        bytes: 10,
       },
       rollbackPackage: {
         key: "operations/plan097/rollback/rollback.json",
@@ -464,7 +533,15 @@ describe("Plan 097 recovery contracts", () => {
         bytes: 10,
       },
       costPreview: { d1Statements: 100, d1Bytes: 10_000, r2Puts: 2, r2Bytes: 200 },
-      signature: { algorithm: "sha256", signedPayloadSha256: sha("e") },
+    };
+    const receipt = {
+      ...unsignedReceipt,
+      signature: {
+        algorithm: "sha256",
+        signedPayloadSha256: createHash("sha256")
+          .update(`${canonicalPlan097Json(unsignedReceipt)}\n`)
+          .digest("hex"),
+      },
     };
     expect(decodeStrict(Plan097PreflightReceiptSchema)(receipt)).toEqual(receipt);
   });

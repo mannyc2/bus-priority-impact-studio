@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   type Plan097ActivationBundle,
   Plan097ActivationBundleSchema,
+  Plan097HttpBaselineSchema,
   type Plan097OperationRequest,
   type Plan097OperationResponse,
   Plan097OperationResponseSchema,
@@ -12,6 +13,7 @@ import {
 import { decodeStrict } from "@bp/domain/decode";
 import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
+import { comparePlan097HttpBaselines, runPlan097HttpCheck } from "../../lib/plan097-http-check.ts";
 
 type RecoveryAction = "dry-run" | "prove" | "activate" | "resume" | "rollback";
 
@@ -22,6 +24,8 @@ export type PublishRecoveryInputs = {
   artifactManifestPath: string;
   artifactRoot: string;
   restoreBundlePath?: string | undefined;
+  httpBaselinePath?: string | undefined;
+  publicBaseUrl?: string | undefined;
   serviceTokenId: string;
   serviceTokenSecret: string;
   executionToken?: string | undefined;
@@ -33,12 +37,13 @@ export type PublishRecoveryResult = {
   operationId: string;
   activationBundleSha256: string;
   restoreBundleSha256: string | null;
-  outcome: "pass";
+  outcome: "pass" | "rolled_back";
   remoteReceipts: string[];
 };
 
 type PublishRecoveryDependencies = {
   fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+  httpCheck?: typeof runPlan097HttpCheck | undefined;
 };
 
 const defaultDependencies: PublishRecoveryDependencies = {
@@ -80,6 +85,56 @@ async function readOptionalRestoreSha256(
     throw new Error("Plan 097 restore bundle identity does not match the activation bundle");
   }
   return sha256(bytes);
+}
+
+async function readHttpBaseline(path: string | undefined) {
+  if (path === undefined) {
+    throw new Error("Plan 097 dry-run requires --http-baseline from the release-aware checker");
+  }
+  return decodeStrict(Plan097HttpBaselineSchema)(await Bun.file(path).json());
+}
+
+async function resolveHttpBaseline(input: {
+  inputs: PublishRecoveryInputs;
+  dependencies: PublishRecoveryDependencies;
+}) {
+  if (input.inputs.httpBaselinePath !== undefined) {
+    return readHttpBaseline(input.inputs.httpBaselinePath);
+  }
+  if (input.inputs.publicBaseUrl === undefined) {
+    throw new Error(
+      "Plan 097 dry-run requires --base-url or --http-baseline from the release-aware checker",
+    );
+  }
+  return (
+    await (input.dependencies.httpCheck ?? runPlan097HttpCheck)({
+      baseUrl: input.inputs.publicBaseUrl,
+      fetch: input.dependencies.fetch,
+    })
+  ).baseline;
+}
+
+async function revalidateProductionBaseline(input: {
+  inputs: PublishRecoveryInputs;
+  dependencies: PublishRecoveryDependencies;
+}) {
+  if (input.inputs.publicBaseUrl === undefined || input.inputs.httpBaselinePath === undefined) {
+    throw new Error("Plan 097 activation requires --base-url and the signed --http-baseline");
+  }
+  const expected = await readHttpBaseline(input.inputs.httpBaselinePath);
+  const actual = (
+    await (input.dependencies.httpCheck ?? runPlan097HttpCheck)({
+      baseUrl: input.inputs.publicBaseUrl,
+      fetch: input.dependencies.fetch,
+      expectedReleaseId: expected.activeReleaseId,
+    })
+  ).baseline;
+  comparePlan097HttpBaselines({ expected, actual });
+  return expected;
+}
+
+function collectResponseReceipts(response: Plan097OperationResponse, receipts: string[]): void {
+  receipts.push(response.receiptKey, ...(response.evidence?.map((entry) => entry.key) ?? []));
 }
 
 function requireExecutionToken(inputs: PublishRecoveryInputs): string {
@@ -195,13 +250,14 @@ export async function runPublishRecovery(
 
   switch (inputs.action) {
     case "dry-run": {
+      const httpBaseline = await resolveHttpBaseline({ inputs, dependencies });
       const response = await remoteCall({
         inputs,
         dependencies,
-        request: { ...base, action: "dry-run" },
+        request: { ...base, action: "preflight", httpBaseline },
         execute: false,
       });
-      receipts.push(response.receiptKey);
+      collectResponseReceipts(response, receipts);
       break;
     }
     case "resume": {
@@ -247,20 +303,62 @@ export async function runPublishRecovery(
       break;
     }
     case "activate": {
+      requireExecutionToken(inputs);
+      if (restoreBundleSha256 === null) {
+        throw new Error("Plan 097 activation requires --restore-bundle for contingency rollback");
+      }
+      const productionBaseline = await revalidateProductionBaseline({ inputs, dependencies });
       const ready = await remoteCall({
         inputs,
         dependencies,
         request: { ...base, action: "dry-run" },
         execute: false,
       });
-      receipts.push(ready.receiptKey);
+      collectResponseReceipts(ready, receipts);
       const response = await remoteCall({
         inputs,
         dependencies,
         request: { ...base, action: "activate" },
         execute: true,
       });
-      receipts.push(response.receiptKey);
+      collectResponseReceipts(response, receipts);
+      try {
+        if (inputs.publicBaseUrl === undefined) {
+          throw new Error("Plan 097 activation is missing the production base URL");
+        }
+        await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+          baseUrl: inputs.publicBaseUrl,
+          fetch: dependencies.fetch,
+          expectedReleaseId: bundle.candidate.releaseId,
+          expectedExactRouteCount: bundle.expectedExactRouteCount,
+        });
+      } catch (postActivationFailure) {
+        const rollback = await remoteCall({
+          inputs,
+          dependencies,
+          request: { ...base, action: "rollback", restoreBundleSha256 },
+          execute: true,
+        });
+        collectResponseReceipts(rollback, receipts);
+        if (inputs.publicBaseUrl === undefined) throw postActivationFailure;
+        const restored = (
+          await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+            baseUrl: inputs.publicBaseUrl,
+            fetch: dependencies.fetch,
+            expectedReleaseId: productionBaseline.activeReleaseId,
+          })
+        ).baseline;
+        comparePlan097HttpBaselines({ expected: productionBaseline, actual: restored });
+        return {
+          schemaVersion: 1,
+          action: inputs.action,
+          operationId: bundle.operationId,
+          activationBundleSha256,
+          restoreBundleSha256,
+          outcome: "rolled_back",
+          remoteReceipts: receipts,
+        };
+      }
       break;
     }
     case "rollback": {
@@ -299,6 +397,8 @@ export default defineCommand({
       artifactManifest: Schema.String.check(Schema.isMinLength(1)),
       artifactRoot: Schema.optionalKey(Schema.String),
       restoreBundle: Schema.optionalKey(Schema.String),
+      httpBaseline: Schema.optionalKey(Schema.String),
+      baseUrl: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^https:\/\//u))),
     }),
   },
   output: Schema.Unknown,
@@ -323,6 +423,11 @@ export default defineCommand({
         input.options.restoreBundle === undefined
           ? undefined
           : fromCliPath(input.options.restoreBundle),
+      httpBaselinePath:
+        input.options.httpBaseline === undefined
+          ? undefined
+          : fromCliPath(input.options.httpBaseline),
+      publicBaseUrl: input.options.baseUrl,
       serviceTokenId,
       serviceTokenSecret,
       // biome-ignore lint/complexity/useLiteralKeys: process.env is index-signature typed.

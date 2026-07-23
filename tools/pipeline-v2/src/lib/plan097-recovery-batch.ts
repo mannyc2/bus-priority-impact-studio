@@ -1,9 +1,13 @@
 import { Database } from "bun:sqlite";
 import {
+  buildPlan097CanonicalSchemaSnapshot,
   type Plan097BatchStatement,
+  type Plan097CanonicalSchemaSnapshot,
   type Plan097CompactedBatch,
   Plan097CompactedBatchSchema,
+  type Plan097SchemaAuditInput,
   plan097RecoveryMutationTables,
+  plan097StructuralSchemaEnvelopeSha256,
 } from "@bp/db/recovery/plan097";
 import { decodeStrict } from "@bp/domain/decode";
 
@@ -20,6 +24,114 @@ function quoteIdentifier(value: string): string {
     throw new Error(`Unsafe SQLite identifier ${value}`);
   }
   return `"${value}"`;
+}
+
+export function capturePlan097SqliteCanonicalSchema(
+  sqlite: Database,
+): Plan097CanonicalSchemaSnapshot {
+  const sqliteMaster = (
+    sqlite
+      .query(
+        `SELECT type, name, tbl_name AS tableName, sql
+         FROM sqlite_master
+         WHERE name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'
+         ORDER BY type, name, tbl_name`,
+      )
+      .all() as Array<{
+      type: "table" | "index" | "trigger" | "view";
+      name: string;
+      tableName: string;
+      sql: string | null;
+    }>
+  ).map((row) => ({ ...row }));
+  const tableNames = sqliteMaster
+    .filter((row) => row.type === "table")
+    .map((row) => row.name)
+    .toSorted();
+  const tables: Plan097SchemaAuditInput["tables"] = tableNames.map((tableName) => ({
+    tableName,
+    columns: (
+      sqlite.query(`PRAGMA table_info(${quoteIdentifier(tableName)})`).all() as Array<{
+        cid: number;
+        name: string;
+        type: string;
+        notnull: number;
+        dflt_value: string | null;
+        pk: number;
+      }>
+    ).map((column) => ({
+      cid: Number(column.cid),
+      name: String(column.name),
+      type: String(column.type),
+      notNull: Boolean(column.notnull),
+      defaultValue: column.dflt_value === null ? null : String(column.dflt_value),
+      primaryKey: Number(column.pk),
+    })),
+  }));
+  const indexes: Plan097SchemaAuditInput["indexes"] = tableNames.flatMap((tableName) =>
+    (
+      sqlite.query(`PRAGMA index_list(${quoteIdentifier(tableName)})`).all() as Array<{
+        name: string;
+        unique: number;
+        origin: string;
+        partial: number;
+      }>
+    ).map((index) => ({
+      tableName,
+      name: String(index.name),
+      unique: Boolean(index.unique),
+      origin: String(index.origin),
+      partial: Boolean(index.partial),
+      columns: (
+        sqlite.query(`PRAGMA index_info(${quoteIdentifier(index.name)})`).all() as Array<{
+          seqno: number;
+          cid: number;
+          name: string | null;
+        }>
+      ).map((column) => ({
+        sequence: Number(column.seqno),
+        cid: Number(column.cid),
+        name: column.name === null ? null : String(column.name),
+      })),
+    })),
+  );
+  const migrationLedger = tableNames.includes("d1_migrations")
+    ? {
+        present: true,
+        rows: (
+          sqlite
+            .query("SELECT id, name, applied_at AS appliedAt FROM d1_migrations ORDER BY id, name")
+            .all() as Array<{ id: number; name: string; appliedAt: string | null }>
+        ).map((row) => ({
+          id: Number(row.id),
+          name: String(row.name),
+          appliedAt: row.appliedAt === null ? null : String(row.appliedAt),
+        })),
+      }
+    : { present: false, rows: [] };
+  return buildPlan097CanonicalSchemaSnapshot({
+    sqliteMaster,
+    tables,
+    indexes,
+    migrationLedger,
+  });
+}
+
+export function buildPlan097ExpectedSchemaEnvelope(schemaSql: string): {
+  canonicalSnapshotSha256: string;
+  structuralSha256: string;
+} {
+  const sqlite = new Database(":memory:");
+  try {
+    sqlite.exec(schemaSql);
+    const snapshot = capturePlan097SqliteCanonicalSchema(sqlite);
+    return {
+      canonicalSnapshotSha256: snapshot.sha256,
+      structuralSha256: plan097StructuralSchemaEnvelopeSha256(snapshot),
+    };
+  } finally {
+    sqlite.close();
+  }
 }
 
 function statementBytes(sql: string): number {

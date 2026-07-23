@@ -160,6 +160,11 @@ export const Plan097ActivationBundleSchema = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   operationId: Schema.String.check(Schema.isPattern(/^plan097:pub_[0-9TZ]+$/u)),
   candidate: ReleaseIdentitySchema,
+  expectedExactRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  schemaEnvelope: Schema.Struct({
+    canonicalSnapshotSha256: Sha256Schema,
+    structuralSha256: Sha256Schema,
+  }),
   artifactManifest: Schema.Struct({
     key: Schema.String.check(
       Schema.isPattern(/^operations\/plan097\/releases\/pub_[0-9TZ]+\/artifact-manifest\.json$/u),

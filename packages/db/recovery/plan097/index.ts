@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { CanonicalPublishedAtSchema, ReleaseIdSchema } from "@bp/domain/studio/shared";
 import { Schema } from "effect";
+import { Plan097HttpBaselineSchema } from "./operation.js";
 
 const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
@@ -204,6 +205,78 @@ export function decidePlan097MapReleaseCatalogRecovery(input: Plan097SchemaAudit
   return { state: "exact", applyRecoverySql: false };
 }
 
+function schemaAuditInputFromSnapshot(
+  snapshot: Plan097CanonicalSchemaSnapshot,
+): Plan097SchemaAuditInput {
+  return {
+    sqliteMaster: snapshot.sqliteMaster.map((entry) => ({ ...entry })),
+    tables: snapshot.tables.map((table) => ({
+      ...table,
+      columns: table.columns.map((column) => ({ ...column })),
+    })),
+    indexes: snapshot.indexes.map((index) => ({
+      ...index,
+      columns: index.columns.map((column) => ({ ...column })),
+    })),
+    migrationLedger: {
+      present: snapshot.migrationLedger.present,
+      rows: snapshot.migrationLedger.rows.map((row) => ({ ...row })),
+    },
+  };
+}
+
+function verifyCanonicalSchemaSnapshot(snapshot: Plan097CanonicalSchemaSnapshot): void {
+  const rebuilt = buildPlan097CanonicalSchemaSnapshot(schemaAuditInputFromSnapshot(snapshot));
+  if (rebuilt.sha256 !== snapshot.sha256) {
+    throw new Error("Plan 097 canonical schema snapshot hash does not match its contents");
+  }
+}
+
+function normalizedSchemaEnvelope(snapshot: Plan097CanonicalSchemaSnapshot): string {
+  const excludedTable = (tableName: string) =>
+    tableName === "d1_migrations" || tableName === "map_release_catalog";
+  return canonicalJson({
+    sqliteMaster: snapshot.sqliteMaster.filter(
+      (entry) => !excludedTable(entry.tableName) && !excludedTable(entry.name),
+    ),
+    tables: snapshot.tables.filter((table) => !excludedTable(table.tableName)),
+    indexes: snapshot.indexes.filter((index) => !excludedTable(index.tableName)),
+  });
+}
+
+export function plan097StructuralSchemaEnvelopeSha256(
+  snapshot: Plan097CanonicalSchemaSnapshot,
+): string {
+  verifyCanonicalSchemaSnapshot(snapshot);
+  return sha256Text(`${normalizedSchemaEnvelope(snapshot)}\n`);
+}
+
+export function assertPlan097SchemaEnvelope(input: {
+  actual: Plan097CanonicalSchemaSnapshot;
+  expected: Plan097CanonicalSchemaSnapshot;
+}): {
+  mapReleaseCatalog: ReturnType<typeof decidePlan097MapReleaseCatalogRecovery>;
+} {
+  verifyCanonicalSchemaSnapshot(input.actual);
+  verifyCanonicalSchemaSnapshot(input.expected);
+  const expectedMap = decidePlan097MapReleaseCatalogRecovery(
+    schemaAuditInputFromSnapshot(input.expected),
+  );
+  if (expectedMap.state !== "exact") {
+    throw new Error("Plan 097 expected schema envelope must include canonical migration 0033");
+  }
+  const actualMap = decidePlan097MapReleaseCatalogRecovery(
+    schemaAuditInputFromSnapshot(input.actual),
+  );
+  if (
+    plan097StructuralSchemaEnvelopeSha256(input.actual) !==
+    plan097StructuralSchemaEnvelopeSha256(input.expected)
+  ) {
+    throw new Error("Production schema differs from the Plan 097 canonical schema envelope");
+  }
+  return { mapReleaseCatalog: actualMap };
+}
+
 export function assertPlan097SafeRemoteCommand(argv: readonly string[]): void {
   const command = argv.join(" ");
   const normalized = command.toLowerCase();
@@ -250,11 +323,15 @@ export {
   plan097RecoveryMutationTables,
 } from "./batches.js";
 export {
+  type Plan097HttpBaseline,
+  Plan097HttpBaselineSchema,
+  Plan097HttpEndpointEvidenceSchema,
   type Plan097OperationRequest,
   Plan097OperationRequestSchema,
   type Plan097OperationResponse,
   Plan097OperationResponseSchema,
 } from "./operation.js";
+export { buildPlan097RestoreBatchFromVerifiedSnapshot } from "./restore.js";
 export {
   type Plan097ProtectedFingerprint,
   Plan097ProtectedFingerprintSchema,
@@ -265,21 +342,6 @@ export {
   type Plan097ServingTableSnapshot,
   Plan097ServingTableSnapshotSchema,
 } from "./snapshot.js";
-
-const Plan097HttpEndpointEvidenceSchema = Schema.Struct({
-  path: Schema.String.check(Schema.isPattern(/^\//u)),
-  status: NonNegativeIntegerSchema,
-  schemaId: NonEmptyStringSchema,
-  safeBodySha256: Sha256Schema,
-  requestId: Schema.NullOr(Schema.String),
-  cfRay: Schema.NullOr(Schema.String),
-});
-
-export const Plan097HttpBaselineSchema = Schema.Struct({
-  checkedAt: CanonicalPublishedAtSchema,
-  activeReleaseId: ReleaseIdSchema,
-  endpoints: Schema.Array(Plan097HttpEndpointEvidenceSchema),
-});
 
 const Plan097ImmutableBundleRefSchema = Schema.Struct({
   key: NonEmptyStringSchema,
@@ -307,7 +369,14 @@ export const Plan097PreflightReceiptSchema = Schema.Struct({
     manifestSha256: Sha256Schema,
   }),
   schemaSnapshot: Plan097CanonicalSchemaSnapshotSchema,
+  schemaReconciliation: Schema.Struct({
+    expectedStructuralSha256: Sha256Schema,
+    actualStructuralSha256: Sha256Schema,
+    mapReleaseCatalogState: Schema.Literals(["absent", "exact"]),
+    applyRecoverySql: Schema.Boolean,
+  }),
   httpBaseline: Plan097HttpBaselineSchema,
+  selectiveSnapshot: Plan097ImmutableBundleRefSchema,
   rollbackPackage: Plan097ImmutableBundleRefSchema,
   costPreview: Schema.Struct({
     d1Statements: NonNegativeIntegerSchema,
@@ -319,7 +388,15 @@ export const Plan097PreflightReceiptSchema = Schema.Struct({
     algorithm: Schema.Literal("sha256"),
     signedPayloadSha256: Sha256Schema,
   }),
-});
+}).check(
+  Schema.makeFilter((receipt) => {
+    const { signature, ...unsigned } = receipt;
+    const expected = sha256Text(`${canonicalJson(unsigned)}\n`);
+    return signature.signedPayloadSha256 === expected
+      ? []
+      : [{ path: ["signature"], issue: "Preflight signature does not match canonical payload" }];
+  }),
+);
 
 export type Plan097CanonicalSchemaSnapshot = typeof Plan097CanonicalSchemaSnapshotSchema.Type;
 export type Plan097PreflightReceipt = typeof Plan097PreflightReceiptSchema.Type;

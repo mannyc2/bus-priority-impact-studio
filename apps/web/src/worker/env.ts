@@ -12,4 +12,9 @@ export type Env = StudioApiEnv & {
   PLAN097_SERVICE_TOKEN_SECRET?: string;
   PLAN097_EXECUTION_TOKEN?: string;
   PLAN097_PROOF_MODE?: string;
+  PLAN097_REPO_SHA?: string;
+  PLAN097_COMMAND_VERSION?: string;
+  PLAN097_D1_DATABASE_NAME?: string;
+  PLAN097_D1_DATABASE_ID?: string;
+  PLAN097_ARTIFACTS_BUCKET_NAME?: string;
 };

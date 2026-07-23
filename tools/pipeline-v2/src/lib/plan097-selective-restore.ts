@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import {
+  buildPlan097RestoreBatchFromVerifiedSnapshot,
   canonicalPlan097Json,
   type Plan097BatchStatement,
   type Plan097CompactedBatch,
@@ -14,11 +15,6 @@ import {
 import { decodeStrict } from "@bp/domain/decode";
 import { type ReleaseIdentity, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import { applyPlan097CompactedBatch } from "./plan097-recovery-batch.ts";
-
-const textEncoder = new TextEncoder();
-const MAX_JSON_PARAMETER_BYTES = 80_000;
-const MAX_STATEMENTS = 1_000;
-const MAX_STATEMENT_BYTES = 100_000;
 
 const protectedWholeTables = [
   "identity",
@@ -101,7 +97,9 @@ function deleteSelect(statement: Plan097BatchStatement): {
   predicate?: string;
   selectSql: string;
 } {
-  const match = statement.sql.match(/^delete\s+from\s+"([a-z0-9_]+)"(?:\s+where\s+([\s\S]+))?$/iu);
+  const match = statement.sql.match(
+    /^delete\s+from\s+[`"]?([a-z0-9_]+)[`"]?(?:\s+where\s+([\s\S]+))?$/iu,
+  );
   if (match?.[1] !== statement.table) {
     throw new Error(`Plan 097 snapshot cannot classify delete for ${statement.table}`);
   }
@@ -233,76 +231,6 @@ export function capturePlan097SelectiveSnapshot(input: {
   });
 }
 
-function chunkRows(rows: readonly (readonly (string | number | null)[])[]) {
-  const chunks: Array<{ json: string; rowCount: number }> = [];
-  let current: ReadonlyArray<ReadonlyArray<string | number | null>> = [];
-  for (const row of rows) {
-    const candidate = [...current, row];
-    const json = JSON.stringify(candidate);
-    if (textEncoder.encode(json).byteLength > MAX_JSON_PARAMETER_BYTES && current.length > 0) {
-      chunks.push({ json: JSON.stringify(current), rowCount: current.length });
-      current = [row];
-    } else {
-      current = candidate;
-    }
-    if (textEncoder.encode(JSON.stringify(current)).byteLength > MAX_JSON_PARAMETER_BYTES) {
-      throw new Error("A single Plan 097 restore row exceeds the JSON parameter limit");
-    }
-  }
-  if (current.length > 0) chunks.push({ json: JSON.stringify(current), rowCount: current.length });
-  return chunks;
-}
-
-function restoreInserts(snapshot: Plan097ServingTableSnapshot): Plan097BatchStatement[] {
-  if (
-    snapshot.rowCount !== snapshot.rows.length ||
-    snapshot.rowsSha256 !== rowsSha256(snapshot.rows)
-  ) {
-    throw new Error(`Plan 097 snapshot row receipt drift for ${snapshot.table}`);
-  }
-  const table = quoteIdentifier(snapshot.table);
-  const columns = snapshot.columns.map(quoteIdentifier).join(", ");
-  const projection = snapshot.columns
-    .map((_, index) => `json_extract(value, '$[${index}]')`)
-    .join(", ");
-  const sql = `INSERT INTO ${table} (${columns}) SELECT ${projection} FROM json_each(?)`;
-  return chunkRows(snapshot.rows).map((chunk) => ({
-    sql,
-    params: [chunk.json],
-    table: snapshot.table,
-    kind: snapshot.table === "route_batch_status" ? ("activation" as const) : ("insert" as const),
-    rowCount: chunk.rowCount,
-  }));
-}
-
-function batchMetrics(input: {
-  statements: Plan097BatchStatement[];
-  originalStatementCount: number;
-}): Plan097CompactedBatch["metrics"] {
-  return {
-    originalStatementCount: input.originalStatementCount,
-    compactedStatementCount: input.statements.length,
-    sqlBytes: input.statements.reduce(
-      (sum, statement) => sum + textEncoder.encode(statement.sql).byteLength,
-      0,
-    ),
-    parameterBytes: input.statements.reduce(
-      (sum, statement) =>
-        sum +
-        statement.params.reduce(
-          (parameterSum, parameter) => parameterSum + textEncoder.encode(parameter).byteLength,
-          0,
-        ),
-      0,
-    ),
-    rowCount: input.statements.reduce((sum, statement) => sum + statement.rowCount, 0),
-    maxParametersPerStatement: Math.max(
-      0,
-      ...input.statements.map((statement) => statement.params.length),
-    ),
-  };
-}
-
 export function buildPlan097SelectiveRestoreBatch(input: {
   snapshot: Plan097SelectiveSnapshot;
   snapshotSha256: string;
@@ -312,65 +240,12 @@ export function buildPlan097SelectiveRestoreBatch(input: {
   if (sha256Text(snapshotText) !== input.snapshotSha256) {
     throw new Error("Plan 097 selective snapshot hash does not match its immutable receipt");
   }
-  const registrationDeletes: Plan097BatchStatement[] = [
-    {
-      sql: 'DELETE FROM "map_release_catalog" WHERE "release_id" = ?',
-      params: [snapshot.candidate.releaseId],
-      table: "map_release_catalog",
-      kind: "delete",
-      rowCount: 0,
-    },
-    {
-      sql: 'DELETE FROM "exact_route_identity_release" WHERE "release_id" = ?',
-      params: [snapshot.candidate.releaseId],
-      table: "exact_route_identity_release",
-      kind: "delete",
-      rowCount: 0,
-    },
-  ];
-  const status = snapshot.tables.find((table) => table.table === "route_batch_status");
-  const nonStatus = snapshot.tables.filter((table) => table.table !== "route_batch_status");
-  const servingDeletes: Plan097BatchStatement[] = nonStatus.map((table) => ({
-    ...table.deleteStatement,
-    table: table.table,
-    kind: "delete" as const,
-    rowCount: 0,
-  }));
-  const inserts = nonStatus.toReversed().flatMap(restoreInserts);
-  const activation =
-    status === undefined
-      ? []
-      : [
-          {
-            ...status.deleteStatement,
-            table: status.table,
-            kind: "activation" as const,
-            rowCount: 0,
-          },
-          ...restoreInserts(status),
-        ];
-  const statements = [...registrationDeletes, ...servingDeletes, ...inserts, ...activation];
-  if (statements.length > MAX_STATEMENTS)
-    throw new Error("Plan 097 restore exceeds 1,000 statements");
-  for (const statement of statements) {
-    if (textEncoder.encode(statement.sql).byteLength > MAX_STATEMENT_BYTES) {
-      throw new Error(`Plan 097 restore statement for ${statement.table} exceeds 100 KB`);
-    }
-    if (statement.params.length > 100) {
-      throw new Error(`Plan 097 restore statement for ${statement.table} exceeds 100 parameters`);
+  for (const table of snapshot.tables) {
+    if (table.rowsSha256 !== rowsSha256(table.rows)) {
+      throw new Error(`Plan 097 snapshot row receipt drift for ${table.table}`);
     }
   }
-  return decodeStrict(Plan097CompactedBatchSchema)({
-    schemaVersion: 1,
-    statements,
-    metrics: batchMetrics({
-      statements,
-      originalStatementCount:
-        registrationDeletes.length +
-        snapshot.tables.length +
-        snapshot.tables.reduce((sum, table) => sum + table.rowCount, 0),
-    }),
-  });
+  return buildPlan097RestoreBatchFromVerifiedSnapshot(snapshot);
 }
 
 export function assertPlan097ProtectedFingerprints(input: {

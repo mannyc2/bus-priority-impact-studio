@@ -8,19 +8,24 @@ import {
   type Plan097CompactedBatch,
   type Plan097OperationResponse,
   Plan097OperationResponseSchema,
+  Plan097PreflightReceiptSchema,
   type Plan097RecoveryArtifactManifest,
   type Plan097RestoreBundle,
+  plan097StructuralSchemaEnvelopeSha256,
 } from "@bp/db/recovery/plan097";
 import { decodeStrict } from "@bp/domain/decode";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Env } from "../../src/worker/env.js";
 import {
+  capturePlan097D1CanonicalSchema,
   handlePlan097RecoveryRequest,
   PLAN097_OPERATION_PATH,
 } from "../../src/worker/operations/plan097-recovery.js";
 
 const publishedAt = "2026-07-22T12:00:00.000Z";
+const previousPublishedAt = "2026-07-21T12:00:00.000Z";
 const releaseId = "pub_20260722T120000000Z";
+const previousReleaseId = "pub_20260721T120000000Z";
 const operationId = `plan097:${releaseId}`;
 const serviceTokenId = "plan097-worker-test-id";
 const serviceTokenSecret = "plan097-worker-test-secret";
@@ -99,6 +104,13 @@ function activationBatch(): Plan097CompactedBatch {
       rowCount: 1,
     },
     {
+      sql: "DELETE FROM route_batch_status WHERE month = '1900-01'",
+      params: [],
+      table: "route_batch_status",
+      kind: "delete",
+      rowCount: 0,
+    },
+    {
       sql: `INSERT INTO route_batch_status (month, generated_at, status, route_count, artifact_count,
               missing_artifact_count, hash_mismatch_count, byte_length_mismatch_count,
               total_byte_length, issue_count)
@@ -167,6 +179,41 @@ async function cleanD1(): Promise<void> {
   await testEnv.DB.batch([
     testEnv.DB.prepare("DELETE FROM source_month_coverage WHERE source_id = 'plan097-worker-test'"),
     testEnv.DB.prepare("DELETE FROM route_batch_status WHERE month = '1900-01'"),
+    testEnv.DB.prepare("DELETE FROM route_batch_status WHERE month = '1899-12'"),
+    testEnv.DB.prepare("DELETE FROM route_brief_summary WHERE month = '1899-12'"),
+    testEnv.DB.prepare("DELETE FROM map_release_catalog WHERE release_id = ?").bind(
+      previousReleaseId,
+    ),
+    testEnv.DB.prepare("DELETE FROM exact_route_identity_release WHERE release_id = ?").bind(
+      previousReleaseId,
+    ),
+  ]);
+}
+
+async function seedPreviousElection(): Promise<void> {
+  await testEnv.DB.batch([
+    testEnv.DB.prepare(
+      `INSERT INTO route_batch_status VALUES (?, ?, 'pass', 1, 1, 0, 0, 0, 1, 0)`,
+    ).bind("1899-12", previousPublishedAt),
+    testEnv.DB.prepare(
+      `INSERT INTO route_brief_summary VALUES (?, ?, 1, 1, 'fixture', 1, 0, 1, 0, 0, 0, 0, 1)`,
+    ).bind("B44", "1899-12"),
+    testEnv.DB.prepare(
+      `INSERT INTO map_release_catalog VALUES (?, ?, '1899-01', '1899-12', ?, ?, 'full', 'pass', 1)`,
+    ).bind(previousReleaseId, previousPublishedAt, "map/1899-12/manifest.json", "c".repeat(64)),
+    testEnv.DB.prepare(
+      `INSERT INTO exact_route_identity_release VALUES (?, ?, '1899-01', '1899-12', ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)`,
+    ).bind(
+      previousReleaseId,
+      previousPublishedAt,
+      "fixture-wiki",
+      "1".repeat(64),
+      "2".repeat(64),
+      "3".repeat(64),
+      "4".repeat(64),
+      "5".repeat(64),
+      "6".repeat(64),
+    ),
   ]);
 }
 
@@ -178,6 +225,8 @@ describe("Plan 097 protected Worker operation", () => {
 
   beforeEach(async () => {
     await cleanD1();
+    await seedPreviousElection();
+    const canonicalSchema = await capturePlan097D1CanonicalSchema(testEnv.DB);
     const bodySha256 = sha256(artifactBody);
     artifactManifest = {
       artifactKind: "bp.ops.plan097.recovery_artifact_manifest.v1",
@@ -206,6 +255,11 @@ describe("Plan 097 protected Worker operation", () => {
         releaseId,
         publishedAt,
         coverage: { start: "2025-02", end: "2026-12" },
+      },
+      expectedExactRouteCount: 1,
+      schemaEnvelope: {
+        canonicalSnapshotSha256: canonicalSchema.sha256,
+        structuralSha256: plan097StructuralSchemaEnvelopeSha256(canonicalSchema),
       },
       artifactManifest: {
         key: `operations/plan097/releases/${releaseId}/artifact-manifest.json`,
@@ -262,6 +316,11 @@ describe("Plan 097 protected Worker operation", () => {
       PLAN097_SERVICE_TOKEN_SECRET: serviceTokenSecret,
       PLAN097_EXECUTION_TOKEN: executionToken,
       PLAN097_PROOF_MODE: "true",
+      PLAN097_REPO_SHA: "a".repeat(40),
+      PLAN097_COMMAND_VERSION: "plan097-recovery-v1",
+      PLAN097_D1_DATABASE_NAME: "bus-priority-serving-test",
+      PLAN097_D1_DATABASE_ID: "11111111-1111-4111-8111-111111111111",
+      PLAN097_ARTIFACTS_BUCKET_NAME: "bus-priority-artifacts-test",
     };
   });
 
@@ -379,5 +438,53 @@ describe("Plan 097 protected Worker operation", () => {
         "SELECT COUNT(*) AS count FROM route_batch_status WHERE month = '1900-01'",
       ).first("count"),
     ).toBe(0);
+  });
+
+  it("captures a signed read-only schema, selective rollback, and protected-surface preflight", async () => {
+    const response = await operationRequest({
+      body: {
+        operationId,
+        activationBundleSha256,
+        action: "preflight",
+        httpBaseline: {
+          checkedAt: "2026-07-22T11:59:00.000Z",
+          activeReleaseId: previousReleaseId,
+          endpoints: [
+            {
+              path: "/api/v1/status",
+              status: 200,
+              schemaId: "bp.api.release_status.v1",
+              safeBodySha256: "9".repeat(64),
+              requestId: "request-1",
+              cfRay: null,
+              cacheControl: "no-store",
+              etag: null,
+            },
+          ],
+        },
+      },
+      env: operationEnv,
+    });
+    expect(response.status).toBe(200);
+    const result = decodeStrict(Plan097OperationResponseSchema)(await response.json());
+    expect(result.action).toBe("preflight");
+    expect(result.evidence?.map((entry) => entry.kind)).toEqual([
+      "selective-snapshot",
+      "restore-bundle",
+      "preflight",
+    ]);
+    const preflightRef = result.evidence?.find((entry) => entry.kind === "preflight");
+    if (preflightRef === undefined) throw new Error("missing preflight evidence");
+    const object = await testEnv.PLAN097_OPERATIONS.get(preflightRef.key);
+    expect(object).not.toBeNull();
+    if (object === null) throw new Error("missing persisted preflight receipt");
+    const receipt = decodeStrict(Plan097PreflightReceiptSchema)(JSON.parse(await object.text()));
+    expect(receipt.outcome).toBe("ready");
+    expect(receipt.httpBaseline.activeReleaseId).toBe(previousReleaseId);
+    expect(receipt.schemaReconciliation.actualStructuralSha256).toBe(
+      receipt.schemaReconciliation.expectedStructuralSha256,
+    );
+    expect(receipt.selectiveSnapshot.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(receipt.rollbackPackage.sha256).toMatch(/^[a-f0-9]{64}$/);
   });
 });

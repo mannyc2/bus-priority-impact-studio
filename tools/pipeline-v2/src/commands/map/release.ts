@@ -28,7 +28,10 @@ import {
   fromRepoRoot,
 } from "../../lib/paths.ts";
 import { buildPlan097RecoveryArtifactInventory } from "../../lib/plan097-recovery-artifacts.ts";
-import { buildPlan097CompactedBatch } from "../../lib/plan097-recovery-batch.ts";
+import {
+  buildPlan097CompactedBatch,
+  buildPlan097ExpectedSchemaEnvelope,
+} from "../../lib/plan097-recovery-batch.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
 import { runRouteBriefModel } from "../route/brief-model.ts";
 import { runStudioRelease } from "../studio/release.ts";
@@ -320,6 +323,7 @@ export async function runMapRelease(
   if (sha256(exactRegistrationBytes) !== d1.exactRouteIdentity.registrationFile.sha256) {
     throw new Error("Candidate exact-route registration bytes do not match the D1 receipt");
   }
+  const schemaSql = new TextDecoder().decode(schemaBytes);
   const mapRegistrationBytes = new TextEncoder().encode(registrationSql);
   const registrations: Plan097BatchStatement[] = [
     {
@@ -338,7 +342,7 @@ export async function runMapRelease(
     },
   ];
   const batch = buildPlan097CompactedBatch({
-    schemaSql: new TextDecoder().decode(schemaBytes),
+    schemaSql,
     recoverySeedSql: new TextDecoder().decode(recoverySeedBytes),
     registrations,
   });
@@ -348,6 +352,8 @@ export async function runMapRelease(
     schemaVersion: 1,
     operationId,
     candidate: releaseIdentity,
+    expectedExactRouteCount: d1.exactRouteIdentity.exactRouteCount,
+    schemaEnvelope: buildPlan097ExpectedSchemaEnvelope(schemaSql),
     artifactManifest: {
       key: recoveryArtifacts.manifestKey,
       sha256: recoveryArtifacts.manifestSha256,
