@@ -552,6 +552,7 @@ async function buildRelease(
   releaseIdentity: ReleaseIdentity,
 ): Promise<{
   release: StudioReleasePayload;
+  mapRouteFactRoutes: StudioRoute[];
   scheduleEvidence: StudioScheduleEvidenceSummary;
 }> {
   const {
@@ -695,9 +696,9 @@ async function buildRelease(
     }
   }
 
-  const builtRoutes: StudioRoute[] = selectedSummaries.flatMap((summary) => {
+  const mapRouteFactRoutes: StudioRoute[] = selectedSummaries.flatMap((summary) => {
     const readiness = readinessByRoute.get(summary.routeId);
-    if (readiness === undefined || scheduleExcludedRouteIds.has(summary.routeId)) {
+    if (readiness === undefined) {
       return [];
     }
     const routePresentation = routePresentationByRoute.get(summary.routeId);
@@ -722,11 +723,14 @@ async function buildRelease(
         },
         routeTrends.get(summary.routeId) ?? [],
         tspEvidenceByRoute.get(summary.routeId) ?? unknownTspEvidence(),
+        scheduleExcludedRouteIds.has(summary.routeId) ? "incomplete" : "complete",
         buildRouteInterventions,
       ),
     ];
   });
-  const routes = normalizeStudioRoutePeers(builtRoutes);
+  const routes = normalizeStudioRoutePeers(
+    mapRouteFactRoutes.filter((route) => !scheduleExcludedRouteIds.has(route.routeId)),
+  );
 
   const deterministicSegments = routes.flatMap((route) => {
     const speedSpine = speedSpinesByRoute.get(route.routeId);
@@ -831,10 +835,11 @@ async function buildRelease(
       ],
     },
     routes,
-    routeFactMetadata: routes.map((route) => {
+    routeFactMetadata: mapRouteFactRoutes.map((route) => {
       const input = routeInputs.get(route.routeId) ?? null;
       const universe = input?.segmentUniverse;
       const delayAvailable =
+        !scheduleExcludedRouteIds.has(route.routeId) &&
         route.riderHoursLost !== null &&
         input?.analysisPeriod === options.month &&
         universe?.grain === "all_observed_timepoint_segments" &&
@@ -914,7 +919,7 @@ async function buildRelease(
     docsSections: docsSections(options.month),
     docsEndpoints: [],
   });
-  return { release, scheduleEvidence };
+  return { release, mapRouteFactRoutes, scheduleEvidence };
 }
 
 function buildSegmentAnalystNotesArtifact(
@@ -959,10 +964,15 @@ export function studioProjectionOutputDirectory(outputPath: string): string {
   return outputDir;
 }
 
-async function writeProjections(outputPath: string, release: StudioReleasePayload): Promise<void> {
+async function writeProjections(
+  outputPath: string,
+  release: StudioReleasePayload,
+  mapRouteFactRoutes: readonly StudioRoute[],
+): Promise<void> {
   const outputDir = studioProjectionOutputDirectory(outputPath);
 
   assertInjectiveStudioRouteIdentityUniverse(release.routes, "Static Studio release routes");
+  assertInjectiveStudioRouteIdentityUniverse(mapRouteFactRoutes, "Static map route-fact routes");
 
   await rm(outputDir, { recursive: true, force: true });
   await writeJson(outputPath, release);
@@ -970,7 +980,7 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
   await writeJson(resolve(outputDir, "routes.json"), buildStudioRoutesProjection(release));
   await writeJson(
     resolve(outputDir, "map-route-facts.json"),
-    buildMapRouteFactsProjection(release),
+    buildMapRouteFactsProjection(release, mapRouteFactRoutes),
   );
   await writeJson(resolve(outputDir, "segments.json"), buildStudioSegmentsProjection(release));
   // methods.json is still loaded by the serving snapshot; its deletion is owned by plan 063.
@@ -1012,6 +1022,7 @@ export type RunStudioReleaseResult = {
   mapRouteFactsPath: string;
   releaseIdentity: ReleaseIdentity;
   routeCount: number;
+  mapRouteFactCount: number;
   segmentCount: number;
   source: {
     schemaPath: string;
@@ -1076,10 +1087,13 @@ export async function runStudioRelease(
   };
 
   const outputPath = fromCliPath(options.outputPath);
-  const { release, scheduleEvidence } = await buildRelease(options, inputs.releaseIdentity);
+  const { release, mapRouteFactRoutes, scheduleEvidence } = await buildRelease(
+    options,
+    inputs.releaseIdentity,
+  );
   const publicNoteCount = release.segments.filter((segment) => segment.aiNote !== undefined).length;
 
-  await writeProjections(outputPath, release);
+  await writeProjections(outputPath, release, mapRouteFactRoutes);
 
   return {
     outputPath,
@@ -1090,6 +1104,7 @@ export async function runStudioRelease(
       coverage: release.coverage,
     }),
     routeCount: release.routes.length,
+    mapRouteFactCount: mapRouteFactRoutes.length,
     segmentCount: release.segments.length,
     source: {
       schemaPath: options.schemaPath,
@@ -1169,6 +1184,7 @@ export default defineCommand({
   output: Schema.Struct({
     outputPath: Schema.String,
     routeCount: Schema.Number,
+    mapRouteFactCount: Schema.Number,
     segmentCount: Schema.Number,
     releaseIdentity: ReleaseIdentitySchema,
     source: Schema.Struct({

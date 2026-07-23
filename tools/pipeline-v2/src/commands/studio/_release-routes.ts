@@ -18,7 +18,10 @@ import {
 import type { StudioSpeedPercentileContext } from "@bp/domain/studio/docs";
 import type { StudioObservedReliability, StudioRouteArtifactRef } from "@bp/domain/studio/routes";
 import { longNameEndpoints } from "./_release-geometry.ts";
-import { routeRiderDelayHours, routeScheduledSpeedMph } from "./_release-segments.ts";
+import {
+  routeRiderDelayHoursForProjection,
+  routeScheduledSpeedMphForProjection,
+} from "./_release-segments.ts";
 import type {
   RouteBriefInputArtifact,
   RouteBriefTopStopBoardings,
@@ -405,6 +408,7 @@ export function buildRoute(
   speedPercentile: SpeedPercentileResult,
   routeTrends: readonly RouteMonthTrend[],
   tspEvidence: TspEvidence,
+  scheduleEvidenceStatus: "complete" | "incomplete",
   buildInterventions: (
     comparisons: readonly RouteInterventionComparison[],
     manual: readonly StudioIntervention[],
@@ -412,7 +416,11 @@ export function buildRoute(
 ): StudioRoute {
   const slug = routeIdToSlug(readiness.routeId);
   const speedMph = routeObservedSpeed(summary, readiness);
-  const scheduledMph = routeScheduledSpeedMph(readiness.routeId, artifact);
+  const scheduledMph = routeScheduledSpeedMphForProjection(
+    readiness.routeId,
+    artifact,
+    scheduleEvidenceStatus,
+  );
   if (routePresentation.routeId !== readiness.routeId) {
     throw new Error("Static release route presentation identity mismatch");
   }
@@ -452,7 +460,11 @@ export function buildRoute(
     ridershipSpark: ridershipSpark.values,
     ridershipSparkMonths: ridershipSpark.months,
     ridershipProfile: routeRidershipProfile(artifact),
-    riderHoursLost: routeRiderDelayHours(readiness.routeId, artifact),
+    riderHoursLost: routeRiderDelayHoursForProjection(
+      readiness.routeId,
+      artifact,
+      scheduleEvidenceStatus,
+    ),
     laneCoverage: coverage,
     laneCoverageSource: coverageSource,
     laneTypes: geometry?.laneTypes ?? [],

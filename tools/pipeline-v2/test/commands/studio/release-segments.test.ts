@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { routeScheduleEvidenceCoverage } from "../../../src/commands/studio/_release-segments.ts";
+import {
+  routeRiderDelayHoursForProjection,
+  routeScheduleEvidenceCoverage,
+  routeScheduledSpeedMphForProjection,
+} from "../../../src/commands/studio/_release-segments.ts";
 import type { RouteBriefInputArtifact } from "../../../src/commands/studio/_release-types.ts";
 
 describe("Studio release segment evidence", () => {
@@ -37,5 +41,13 @@ describe("Studio release segment evidence", () => {
       matchedSegmentCount: 1,
       missingSegmentIds: ["M104:2026-05:S:1:840115:403152"],
     });
+    expect(routeScheduledSpeedMphForProjection("M104", artifact, "incomplete")).toBeNull();
+    expect(() => routeScheduledSpeedMphForProjection("M104", artifact, "complete")).toThrow(
+      "Missing complete scheduled travel-time evidence",
+    );
+    expect(routeRiderDelayHoursForProjection("M104", artifact, "incomplete")).toBeNull();
+    expect(() => routeRiderDelayHoursForProjection("M104", artifact, "complete")).toThrow(
+      "Missing observed-minus-scheduled travel-time evidence",
+    );
   });
 });

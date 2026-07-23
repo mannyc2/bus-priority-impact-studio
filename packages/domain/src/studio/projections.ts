@@ -36,6 +36,20 @@ function routeArtifactRefs(release: StudioReleasePayload, routeId: string) {
   return release.routeArtifacts.filter((artifact) => artifact.routeId === routeId);
 }
 
+export type MapRouteFactSourceRoute = Pick<
+  StudioRoute,
+  | "routeId"
+  | "slug"
+  | "label"
+  | "corridor"
+  | "borough"
+  | "sbs"
+  | "speedMph"
+  | "dailyRiders"
+  | "reliability"
+  | "movement6mPct"
+>;
+
 export function buildStudioRoutesProjection(release: StudioReleasePayload): StudioRoutesResponse {
   return decodeStrict(StudioRoutesResponseSchema)({
     schemaVersion: 2,
@@ -79,14 +93,17 @@ export function buildStudioRouteProjection(
   });
 }
 
-export function buildMapRouteFactsProjection(release: StudioReleasePayload): MapRouteFactsResponse {
+export function buildMapRouteFactsProjection(
+  release: StudioReleasePayload,
+  routes: readonly MapRouteFactSourceRoute[] = release.routes,
+): MapRouteFactsResponse {
   const metadataByRouteId = new Map<string, StudioReleasePayload["routeFactMetadata"][number]>(
     release.routeFactMetadata.map((metadata) => [metadata.routeId, metadata] as const),
   );
   return decodeStrict(MapRouteFactsResponseSchema)({
     schemaVersion: 2,
     ...release.mapRouteFactsMetadata,
-    routes: release.routes.map((route) => {
+    routes: routes.map((route) => {
       const metadata = metadataByRouteId.get(route.routeId);
       if (metadata === undefined) {
         throw new Error(`Missing map route-fact metadata for ${route.routeId}.`);
