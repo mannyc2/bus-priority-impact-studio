@@ -8,6 +8,7 @@ import {
   StudioRoutesResponseSchema,
 } from "@bp/domain/studio/routes";
 import { Result, Schema } from "effect";
+import { loadReleaseArtifact } from "../artifact-resolver.js";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 import {
@@ -67,7 +68,14 @@ export function studioJsonResponse(
 }
 
 export async function loadStudioProjection<TSchema extends Schema.Constraint>(
-  env: Pick<StudioApiEnv, "ARTIFACTS" | "STUDIO_RELEASE_KEY">,
+  env: Pick<
+    StudioApiEnv,
+    | "ARTIFACTS"
+    | "DB"
+    | "PLAN097_PREVIOUS_RELEASE_ID"
+    | "PLAN097_RECOVERY_ENABLED"
+    | "STUDIO_RELEASE_KEY"
+  >,
   path: string,
   schema: TSchema,
 ): Promise<Response | SchemaOutput<TSchema>> {
@@ -80,7 +88,7 @@ export async function loadStudioProjection<TSchema extends Schema.Constraint>(
   }
 
   const key = studioProjectionKey(env, path);
-  const object = await env.ARTIFACTS.get(key);
+  const object = await loadReleaseArtifact(env, key);
   if (object === null) {
     console.error("Studio API projection artifact was not found.", { key });
     return errorResponse(503, ARTIFACT_NOT_AVAILABLE_MESSAGE);

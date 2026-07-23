@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { replaceRouteCatalog } from "@bp/db/local";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
   earliestRouteTrendMonth,
@@ -522,6 +523,145 @@ describe("runExportD1Seed", () => {
         ]);
       } finally {
         db.close();
+      }
+    } finally {
+      local.sqlite.close();
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("emits and replays a collision-guarded exact-route identity registration from v2 evidence", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "export-d1-exact-route-identity-"));
+    const dbPath = join(tmp, "pipeline.sqlite");
+    const exportRoot = join(tmp, "exports");
+    const artifactRoot = join(tmp, "artifacts");
+    const indexPath = join(artifactRoot, "studio", "v2", "wiki", "index.json");
+    const index = {
+      artifactKind: "bp.studio.route_evidence_index.v2",
+      schemaVersion: 2,
+      generatedAt: "2026-07-18T18:05:27.000Z",
+      sourceArtifactKey: "studio/v2/wiki/index.json",
+      source: {
+        kind: "mta-wiki-immutable-release",
+        wikiRelease: "v1-test",
+        manifestSha256: "1".repeat(64),
+        routeIdentitySha256: "2".repeat(64),
+        routeAnchorSha256: "3".repeat(64),
+        trackerRouteInputSha256: "4".repeat(64),
+        catalogParity: {
+          currentBusRoutesSha256: "5".repeat(64),
+          effectiveAsOfDate: "2026-07-18",
+          currentCatalogRouteCount: 1,
+          catalogInEffectIdentityCount: 1,
+          gtfsRouteCount: 1,
+          descriptorReconciled: true,
+          catalogInEffectSetsEqual: true,
+          catalogOnlyRouteIds: [],
+          gtfsOnlyRouteIds: [],
+          rawRouteTypeCounts: { "3": 1 },
+          scheduledInWindowCounts: { yes: 1 },
+          reliabilityStatusCounts: { reliable: 1 },
+          nonBusOrUnknownExtendedRouteTypeCount: 0,
+          externalOnlyRouteRecordCount: 0,
+        },
+      },
+      summary: {
+        routeCount: 1,
+        matchedBusRouteCount: 1,
+        citationCount: 0,
+        totalByteLength: 100,
+      },
+      routes: [
+        {
+          routeId: "M15+",
+          routeSlug: "m15-sbs",
+          wikiRouteRecordId: "route-m15-sbs",
+          artifactName: "route_evidence",
+          artifactKey: "studio/v2/wiki/routes/m15-sbs.json",
+          contentType: "application/json",
+          byteLength: 100,
+          sha256: "6".repeat(64),
+          coverage: {
+            timelineCount: 0,
+            interventionCount: 0,
+            metricClaimCount: 0,
+            projectCount: 0,
+            sourceGapCount: 0,
+            citationCount: 0,
+          },
+          bundleSchemaVersion: 2,
+          routeIdentity: {
+            routeId: "M15+",
+            routeFamilyId: "M15",
+            displayLabel: "M15-SBS",
+            officialLongName: "East Harlem - South Ferry",
+            designationLiterals: ["route_type:SBS", "trip_type:14"],
+            serviceModes: ["sbs"],
+            routeTypes: ["SBS"],
+            tripTypes: ["14"],
+          },
+        },
+      ],
+    };
+    await Bun.write(indexPath, `${JSON.stringify(index, null, 2)}\n`);
+
+    const local = await openLocalPipelineDb(dbPath);
+    try {
+      replaceRouteCatalog(local.db, [
+        {
+          routeId: "M15+",
+          routeShortName: "M15-SBS",
+          routeLongName: "East Harlem - South Ferry",
+          routeTypes: ["SBS"],
+          tripTypes: [],
+          directions: ["Northbound", "Southbound"],
+          shapeCount: 1,
+          stopCount: 2,
+          timepointStopCount: 2,
+          latitudeMin: null,
+          latitudeMax: null,
+          longitudeMin: null,
+          longitudeMax: null,
+        },
+      ]);
+      const result = await runExportD1Seed({
+        local,
+        year: 2026,
+        month: 3,
+        publishedAt,
+        exportRoot,
+        artifactRoot,
+        routeEvidenceIndexPath: indexPath,
+      });
+
+      expect(result.exactRouteIdentity).not.toBeNull();
+      const exact = result.exactRouteIdentity;
+      if (exact === null) throw new Error("Missing exact-route identity output");
+      expect(existsSync(exact.registrationFile.path)).toBe(true);
+      expect(existsSync(exact.receiptFile.path)).toBe(true);
+      expect(exact.exactRouteCount).toBe(1);
+      expect(result.routeCatalogTripTypeRowCount).toBe(1);
+      const registrationSql = await Bun.file(exact.registrationFile.path).text();
+      expect(registrationSql).not.toContain("INSERT OR REPLACE");
+      expect(registrationSql).toContain("metadata_collision");
+
+      const replay = new Database(":memory:");
+      try {
+        replay.exec(await Bun.file(result.schemaPath).text());
+        replay.exec(await Bun.file(result.seedPath).text());
+        replay.query(registrationSql).run();
+        expect(
+          replay
+            .query("SELECT release_id, exact_route_count FROM exact_route_identity_release")
+            .get(),
+        ).toEqual({ release_id: result.releaseId, exact_route_count: 1 });
+        expect(
+          replay
+            .query("SELECT route_id, trip_type_rank, trip_type FROM route_catalog_trip_type")
+            .all(),
+        ).toEqual([{ route_id: "M15+", trip_type_rank: 1, trip_type: "14" }]);
+      } finally {
+        replay.close();
       }
     } finally {
       local.sqlite.close();

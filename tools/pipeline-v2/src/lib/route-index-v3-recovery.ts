@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { buildExactRouteIdentityRegistrationSql } from "@bp/db/d1/seed";
 import {
   assertInjectiveStudioRouteIdentityUniverse,
   routeIdToStudioSlug,
@@ -220,6 +221,7 @@ export function buildExactRouteIndexRecovery(input: {
 }): {
   receipt: ExactRouteIndexRecoveryReceipt;
   receiptText: string;
+  registrationSql: string;
   sql: string;
   tripTypeRows: RouteCatalogTripTypeRecoveryRow[];
 } {
@@ -331,6 +333,21 @@ export function buildExactRouteIndexRecovery(input: {
     exactRouteCount: projection.length,
   };
   const recoveryId = `exact-route-index-v3-recovery-v1:${canonicalSha256(recoveryDescriptor).slice(0, 24)}`;
+  const registrationSql = buildExactRouteIdentityRegistrationSql({
+    releaseId: servingRelease.releaseId,
+    publishedAt: servingRelease.publishedAt,
+    coverage: servingRelease.coverage,
+    sourceWikiRelease: index.source.wikiRelease,
+    sourceManifestSha256: index.source.manifestSha256,
+    sourceRouteIdentitySha256: index.source.routeIdentitySha256,
+    sourceCurrentBusRoutesSha256: index.source.catalogParity.currentBusRoutesSha256,
+    sourceIndexSha256: input.routeEvidenceIndexSha256,
+    catalogSnapshotSha256: catalogSha256,
+    projectionSha256,
+    exactRouteCount: projection.length,
+    routeTypeCount: exactRouteTypeCount,
+    tripTypeCount: exactTripTypeCount,
+  });
 
   const sqlLines = [
     `-- ${recoveryId}`,
@@ -340,7 +357,7 @@ export function buildExactRouteIndexRecovery(input: {
       (row) =>
         `INSERT OR IGNORE INTO \`route_catalog_trip_type\` (\`route_id\`, \`trip_type_rank\`, \`trip_type\`) VALUES (${sqlText(row.routeId)}, ${row.tripTypeRank}, ${sqlText(row.tripType)});`,
     ),
-    `INSERT OR REPLACE INTO \`exact_route_identity_release\` (\`release_id\`, \`published_at\`, \`coverage_start\`, \`coverage_end\`, \`source_wiki_release\`, \`source_manifest_sha256\`, \`source_route_identity_sha256\`, \`source_current_bus_routes_sha256\`, \`source_index_sha256\`, \`catalog_snapshot_sha256\`, \`projection_sha256\`, \`exact_route_count\`, \`route_type_count\`, \`trip_type_count\`) VALUES (${sqlText(servingRelease.releaseId)}, ${sqlText(servingRelease.publishedAt)}, ${sqlText(servingRelease.coverage.start)}, ${sqlText(servingRelease.coverage.end)}, ${sqlText(index.source.wikiRelease)}, ${sqlText(index.source.manifestSha256)}, ${sqlText(index.source.routeIdentitySha256)}, ${sqlText(index.source.catalogParity.currentBusRoutesSha256)}, ${sqlText(input.routeEvidenceIndexSha256)}, ${sqlText(catalogSha256)}, ${sqlText(projectionSha256)}, ${projection.length}, ${exactRouteTypeCount}, ${exactTripTypeCount});`,
+    registrationSql.trimEnd(),
     "",
   ];
   const sql = sqlLines.join("\n");
@@ -375,6 +392,7 @@ export function buildExactRouteIndexRecovery(input: {
   return {
     receipt,
     receiptText: `${JSON.stringify(receipt, null, 2)}\n`,
+    registrationSql,
     sql,
     tripTypeRows,
   };

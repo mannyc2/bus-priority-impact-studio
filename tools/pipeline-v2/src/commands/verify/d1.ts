@@ -13,7 +13,12 @@ import { isoMonth } from "../../lib/dates.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath } from "../../lib/paths.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
-import { type D1SeedOutputResult, runExportD1Seed } from "../export/d1.ts";
+import {
+  type D1ExactRouteIdentityOutput,
+  type D1SeedOutputResult,
+  runExportD1Seed,
+} from "../export/d1.ts";
+import type { D1CanonicalInputs } from "../export/d1-inputs.ts";
 import {
   collectD1TableCounts,
   type RepositoryCheckResult,
@@ -30,11 +35,13 @@ export type D1VerifyResult = {
   summaryPath: string;
   schemaPath: string;
   seedPath: string;
+  plan097RecoverySeedPath: string;
   status: "pass" | "fail";
   issueCount: number;
   tableCounts: Record<string, number>;
   expectedCounts: Record<string, number>;
   repositoryChecks: RepositoryCheckResult;
+  exactRouteIdentity: D1ExactRouteIdentityOutput | null;
 };
 
 function expectedTableCounts(exportResult: D1SeedOutputResult): Record<string, number> {
@@ -86,6 +93,7 @@ export type VerifyD1Inputs = {
   artifactRoot?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
   routeEvidenceIndexPath?: string | undefined;
+  inputs?: D1CanonicalInputs | undefined;
 };
 
 async function readD1ReplaySql(input: {
@@ -143,10 +151,12 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     year: inputs.year,
     month: inputs.month,
     publishedAt: releaseIdentity.publishedAt,
+    releaseIdentity,
     exportRoot: inputs.exportRoot,
     artifactRoot: inputs.artifactRoot,
     routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
     routeEvidenceIndexPath: inputs.routeEvidenceIndexPath,
+    inputs: inputs.inputs,
   });
   const exportIdentity = decodeSchemaStrict(ReleaseIdentitySchema, {
     releaseId: exportResult.releaseId,
@@ -196,11 +206,13 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     summaryPath: join(dirname(exportResult.seedPath), "verify-summary.json"),
     schemaPath: exportResult.schemaPath,
     seedPath: exportResult.seedPath,
+    plan097RecoverySeedPath: exportResult.plan097RecoverySeedPath,
     status: "pass",
     issueCount: 0,
     tableCounts,
     expectedCounts: expectedTableCounts(exportResult),
     repositoryChecks: checks,
+    exactRouteIdentity: exportResult.exactRouteIdentity,
   };
   await writeD1VerifySummary(result);
   return result;
@@ -253,6 +265,7 @@ export default defineCommand({
     tableCounts: Schema.Record(Schema.String, Schema.Number),
     expectedCounts: Schema.Record(Schema.String, Schema.Number),
     repositoryChecks: Schema.Unknown,
+    exactRouteIdentity: Schema.Unknown,
   }),
   async run({ input }) {
     const month = isoMonth(input.options.year, input.options.month);

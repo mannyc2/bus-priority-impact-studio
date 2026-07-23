@@ -69,15 +69,18 @@ import {
   buildRoute,
   buildRouteArtifactRef,
   descriptivePeerSlugsForSummaries,
+  normalizeStudioRoutePeers,
   qualityCaveats,
   routeKey,
   speedPercentileContext,
   speedPercentilesForSummaries,
 } from "./_release-routes.ts";
+import { refreshRouteBriefScheduleEvidence } from "./_release-schedule-evidence.ts";
 import {
   buildSegmentAnalystNote,
   buildSegments,
   enhanceSegmentAiNotesWithLlm,
+  routeScheduleEvidenceCoverage,
   withSparsePublicSegmentNotes,
 } from "./_release-segments.ts";
 import type {
@@ -279,7 +282,9 @@ async function augmentRouteBriefInputFromRaw(
     (currentRidershipRows.length === 0 && snapshotRidershipRows === null) ||
     (currentScheduleRows.length === 0 && snapshotScheduleRows === null)
   ) {
-    return artifact;
+    return currentScheduleRows.length === 0
+      ? artifact
+      : refreshRouteBriefScheduleEvidence(artifact, currentScheduleRows);
   }
 
   const [yearText, monthText] = month.split("-");
@@ -534,10 +539,85 @@ async function currentMonthScheduleRowsByRoute(
   });
 }
 
+export type StudioScheduleSourceCoverage = {
+  sourceId: "bus_schedules_2026";
+  datasetId: "4fnn-qsea";
+  scheduleDateStart: string;
+  scheduleDateEnd: string;
+  rowCount: number;
+  routeCount: number;
+};
+
+async function scheduleSourceCoverage(
+  localDbPath: string,
+  sourceYear: number,
+): Promise<StudioScheduleSourceCoverage | null> {
+  return runLocalDbCommandBoundary({
+    dbPath: localDbPath,
+    command: "studio release schedule source coverage",
+    operation: "loadScheduleSourceCoverage",
+    run: async (local) => {
+      const table = local.sqlite
+        .query(
+          "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'local_route_schedule_stop'",
+        )
+        .get();
+      if (table === null) return null;
+      const row = local.sqlite
+        .query(
+          `
+            SELECT MIN(schedule_date) AS schedule_date_start,
+                   MAX(schedule_date) AS schedule_date_end,
+                   COUNT(*) AS row_count,
+                   COUNT(DISTINCT route_id) AS route_count
+            FROM local_route_schedule_stop
+            WHERE source_year = ?
+          `,
+        )
+        .get(sourceYear) as {
+        schedule_date_start: string | null;
+        schedule_date_end: string | null;
+        row_count: number;
+        route_count: number;
+      };
+      if (
+        row.schedule_date_start === null ||
+        row.schedule_date_end === null ||
+        row.row_count <= 0 ||
+        row.route_count <= 0
+      ) {
+        return null;
+      }
+      return {
+        sourceId: "bus_schedules_2026" as const,
+        datasetId: "4fnn-qsea" as const,
+        scheduleDateStart: row.schedule_date_start,
+        scheduleDateEnd: row.schedule_date_end,
+        rowCount: row.row_count,
+        routeCount: row.route_count,
+      };
+    },
+  });
+}
+
+export type StudioScheduleEvidenceSummary = {
+  analysisPeriod: string;
+  sourceCoverage: StudioScheduleSourceCoverage | null;
+  selectedRouteCount: number;
+  completeRouteCount: number;
+  excludedRouteCount: number;
+  missingSegmentCount: number;
+  excludedRoutes: Array<{ routeId: string; missingSegmentIds: string[] }>;
+};
+
 async function buildRelease(
   options: CliOptions,
   releaseIdentity: ReleaseIdentity,
-): Promise<StudioReleasePayload> {
+): Promise<{
+  release: StudioReleasePayload;
+  mapRouteFactRoutes: StudioRoute[];
+  scheduleEvidence: StudioScheduleEvidenceSummary;
+}> {
   const {
     routePresentationByRoute,
     readinessByRoute,
@@ -622,6 +702,39 @@ async function buildRelease(
       }),
     );
   }
+  const scheduleEvidenceExclusions = selectedSummaries
+    .flatMap((summary) => {
+      if (!readinessByRoute.has(summary.routeId)) return [];
+      const coverage = routeScheduleEvidenceCoverage(
+        summary.routeId,
+        routeInputs.get(summary.routeId) ?? null,
+      );
+      return coverage.status === "complete"
+        ? []
+        : [{ routeId: summary.routeId, missingSegmentIds: coverage.missingSegmentIds }];
+    })
+    .toSorted((left, right) => left.routeId.localeCompare(right.routeId));
+  const scheduleExcludedRouteIds = new Set(
+    scheduleEvidenceExclusions.map((entry) => entry.routeId),
+  );
+  const selectedRouteCount = selectedSummaries.filter((summary) =>
+    readinessByRoute.has(summary.routeId),
+  ).length;
+  const scheduleEvidence: StudioScheduleEvidenceSummary = {
+    analysisPeriod: releaseIdentity.coverage.end,
+    sourceCoverage: await scheduleSourceCoverage(
+      options.localDbPath,
+      Number(options.month.slice(0, 4)),
+    ),
+    selectedRouteCount,
+    completeRouteCount: selectedRouteCount - scheduleEvidenceExclusions.length,
+    excludedRouteCount: scheduleEvidenceExclusions.length,
+    missingSegmentCount: scheduleEvidenceExclusions.reduce(
+      (sum, entry) => sum + entry.missingSegmentIds.length,
+      0,
+    ),
+    excludedRoutes: scheduleEvidenceExclusions,
+  };
   const segmentLaneOverlaps = await segmentLaneOverlapIndex({
     localDbPath: options.localDbPath,
     isoMonth: options.month,
@@ -653,7 +766,7 @@ async function buildRelease(
     }
   }
 
-  const routes: StudioRoute[] = selectedSummaries.flatMap((summary) => {
+  const mapRouteFactRoutes: StudioRoute[] = selectedSummaries.flatMap((summary) => {
     const readiness = readinessByRoute.get(summary.routeId);
     if (readiness === undefined) {
       return [];
@@ -680,10 +793,14 @@ async function buildRelease(
         },
         routeTrends.get(summary.routeId) ?? [],
         tspEvidenceByRoute.get(summary.routeId) ?? unknownTspEvidence(),
+        scheduleExcludedRouteIds.has(summary.routeId) ? "incomplete" : "complete",
         buildRouteInterventions,
       ),
     ];
   });
+  const routes = normalizeStudioRoutePeers(
+    mapRouteFactRoutes.filter((route) => !scheduleExcludedRouteIds.has(route.routeId)),
+  );
 
   const deterministicSegments = routes.flatMap((route) => {
     const speedSpine = speedSpinesByRoute.get(route.routeId);
@@ -769,7 +886,7 @@ async function buildRelease(
     }),
   ];
 
-  return decodeSchemaStrict(StudioReleasePayloadSchema, {
+  const release = decodeSchemaStrict(StudioReleasePayloadSchema, {
     schemaVersion: 3,
     generatedAt: releaseGeneratedAt,
     ...studioReleaseIdentity,
@@ -778,13 +895,21 @@ async function buildRelease(
       releaseLayer: "published_release",
       completenessStatus: "partial_public_speed_only",
       confidence: "medium",
-      caveats: qualityCaveats(options.month),
+      caveats: [
+        ...qualityCaveats(options.month),
+        ...(scheduleEvidence.excludedRouteCount === 0
+          ? []
+          : [
+              `${scheduleEvidence.excludedRouteCount} route operational projections are omitted because one or more observed segments lack same-segment scheduled travel-time evidence; D1 continues to serve those routes as partial detail without synthesized scheduled speeds.`,
+            ]),
+      ],
     },
     routes,
-    routeFactMetadata: routes.map((route) => {
+    routeFactMetadata: mapRouteFactRoutes.map((route) => {
       const input = routeInputs.get(route.routeId) ?? null;
       const universe = input?.segmentUniverse;
       const delayAvailable =
+        !scheduleExcludedRouteIds.has(route.routeId) &&
         route.riderHoursLost !== null &&
         input?.analysisPeriod === options.month &&
         universe?.grain === "all_observed_timepoint_segments" &&
@@ -864,6 +989,7 @@ async function buildRelease(
     docsSections: docsSections(options.month),
     docsEndpoints: [],
   });
+  return { release, mapRouteFactRoutes, scheduleEvidence };
 }
 
 function buildSegmentAnalystNotesArtifact(
@@ -893,10 +1019,30 @@ function isLlmGeneratedSegmentNote(value: unknown): boolean {
   );
 }
 
-async function writeProjections(outputPath: string, release: StudioReleasePayload): Promise<void> {
-  const outputDir = dirname(resolve(outputPath));
+export function studioProjectionOutputDirectory(outputPath: string): string {
+  const resolvedOutputPath = resolve(outputPath);
+  const outputDir = dirname(resolvedOutputPath);
+  if (
+    basename(resolvedOutputPath) !== "release.json" ||
+    !/^v\d+$/.test(basename(outputDir)) ||
+    basename(dirname(outputDir)) !== "studio"
+  ) {
+    throw new Error(
+      `Studio release output must be a versioned studio/<version>/release.json path; refusing to clean ${outputDir}.`,
+    );
+  }
+  return outputDir;
+}
+
+async function writeProjections(
+  outputPath: string,
+  release: StudioReleasePayload,
+  mapRouteFactRoutes: readonly StudioRoute[],
+): Promise<void> {
+  const outputDir = studioProjectionOutputDirectory(outputPath);
 
   assertInjectiveStudioRouteIdentityUniverse(release.routes, "Static Studio release routes");
+  assertInjectiveStudioRouteIdentityUniverse(mapRouteFactRoutes, "Static map route-fact routes");
 
   await rm(outputDir, { recursive: true, force: true });
   await writeJson(outputPath, release);
@@ -904,7 +1050,7 @@ async function writeProjections(outputPath: string, release: StudioReleasePayloa
   await writeJson(resolve(outputDir, "routes.json"), buildStudioRoutesProjection(release));
   await writeJson(
     resolve(outputDir, "map-route-facts.json"),
-    buildMapRouteFactsProjection(release),
+    buildMapRouteFactsProjection(release, mapRouteFactRoutes),
   );
   await writeJson(resolve(outputDir, "segments.json"), buildStudioSegmentsProjection(release));
   // methods.json is still loaded by the serving snapshot; its deletion is owned by plan 063.
@@ -946,6 +1092,7 @@ export type RunStudioReleaseResult = {
   mapRouteFactsPath: string;
   releaseIdentity: ReleaseIdentity;
   routeCount: number;
+  mapRouteFactCount: number;
   segmentCount: number;
   source: {
     schemaPath: string;
@@ -958,6 +1105,7 @@ export type RunStudioReleaseResult = {
     requestedCount: number;
     generatedCount: number;
   };
+  scheduleEvidence: StudioScheduleEvidenceSummary;
 };
 
 export async function runStudioRelease(
@@ -1009,10 +1157,13 @@ export async function runStudioRelease(
   };
 
   const outputPath = fromCliPath(options.outputPath);
-  const release = await buildRelease(options, inputs.releaseIdentity);
+  const { release, mapRouteFactRoutes, scheduleEvidence } = await buildRelease(
+    options,
+    inputs.releaseIdentity,
+  );
   const publicNoteCount = release.segments.filter((segment) => segment.aiNote !== undefined).length;
 
-  await writeProjections(outputPath, release);
+  await writeProjections(outputPath, release, mapRouteFactRoutes);
 
   return {
     outputPath,
@@ -1023,6 +1174,7 @@ export async function runStudioRelease(
       coverage: release.coverage,
     }),
     routeCount: release.routes.length,
+    mapRouteFactCount: mapRouteFactRoutes.length,
     segmentCount: release.segments.length,
     source: {
       schemaPath: options.schemaPath,
@@ -1042,6 +1194,7 @@ export async function runStudioRelease(
         isLlmGeneratedSegmentNote(segment.aiNote),
       ).length,
     },
+    scheduleEvidence,
   };
 }
 
@@ -1101,6 +1254,7 @@ export default defineCommand({
   output: Schema.Struct({
     outputPath: Schema.String,
     routeCount: Schema.Number,
+    mapRouteFactCount: Schema.Number,
     segmentCount: Schema.Number,
     releaseIdentity: ReleaseIdentitySchema,
     source: Schema.Struct({
@@ -1113,6 +1267,29 @@ export default defineCommand({
       model: Schema.NullOr(Schema.String),
       requestedCount: Schema.Number,
       generatedCount: Schema.Number,
+    }),
+    scheduleEvidence: Schema.Struct({
+      analysisPeriod: Schema.String,
+      sourceCoverage: Schema.NullOr(
+        Schema.Struct({
+          sourceId: Schema.Literal("bus_schedules_2026"),
+          datasetId: Schema.Literal("4fnn-qsea"),
+          scheduleDateStart: Schema.String,
+          scheduleDateEnd: Schema.String,
+          rowCount: Schema.Number,
+          routeCount: Schema.Number,
+        }),
+      ),
+      selectedRouteCount: Schema.Number,
+      completeRouteCount: Schema.Number,
+      excludedRouteCount: Schema.Number,
+      missingSegmentCount: Schema.Number,
+      excludedRoutes: Schema.Array(
+        Schema.Struct({
+          routeId: Schema.String,
+          missingSegmentIds: Schema.Array(Schema.String),
+        }),
+      ),
     }),
   }),
   async run({ input }) {

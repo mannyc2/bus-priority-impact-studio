@@ -113,6 +113,14 @@ export function routeRiderDelayHours(
   );
 }
 
+export function routeRiderDelayHoursForProjection(
+  routeId: string,
+  artifact: RouteBriefInputArtifact | null,
+  scheduleEvidenceStatus: "complete" | "incomplete",
+): number | null {
+  return scheduleEvidenceStatus === "complete" ? routeRiderDelayHours(routeId, artifact) : null;
+}
+
 export function routeScheduledSpeedMph(
   routeId: string,
   artifact: RouteBriefInputArtifact | null,
@@ -142,6 +150,42 @@ export function routeScheduledSpeedMph(
   throw new Error(
     `Missing scheduled travel-time evidence for ${routeId}; route scheduled speed cannot be synthesized.`,
   );
+}
+
+export function routeScheduledSpeedMphForProjection(
+  routeId: string,
+  artifact: RouteBriefInputArtifact | null,
+  scheduleEvidenceStatus: "complete" | "incomplete",
+): number | null {
+  return scheduleEvidenceStatus === "complete" ? routeScheduledSpeedMph(routeId, artifact) : null;
+}
+
+export function routeScheduleEvidenceCoverage(
+  routeId: string,
+  artifact: RouteBriefInputArtifact | null,
+): {
+  status: "complete" | "incomplete";
+  segmentCount: number;
+  matchedSegmentCount: number;
+  missingSegmentIds: string[];
+} {
+  const segments = segmentsForRoute(routeId, artifact);
+  const comparisons = comparisonBySegmentId(artifact);
+  const missingSegmentIds = segments
+    .flatMap((segment) => {
+      const distance = segment.averageRoadDistanceMiles;
+      const scheduled = comparisons.get(segment.segmentId)?.scheduledMedianTravelTimeMinutes;
+      return isPositiveFiniteNumber(distance) && isPositiveFiniteNumber(scheduled)
+        ? []
+        : [segment.segmentId];
+    })
+    .toSorted();
+  return {
+    status: missingSegmentIds.length === 0 ? "complete" : "incomplete",
+    segmentCount: segments.length,
+    matchedSegmentCount: segments.length - missingSegmentIds.length,
+    missingSegmentIds,
+  };
 }
 
 export function normalizedHourlyBins(bins: number[] | undefined): number[] {

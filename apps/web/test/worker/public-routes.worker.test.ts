@@ -132,8 +132,8 @@ async function resetFixtureTables(db: D1Database): Promise<void> {
 
 async function seedExactRouteRegistry(db: D1Database): Promise<void> {
   await insertRow(db, "exact_route_identity_release", {
-    release_id: "pub_20260427T144559462Z",
-    published_at: "2026-04-27T14:45:59.462Z",
+    release_id: mapReleaseId,
+    published_at: mapPublishedAt,
     coverage_start: null,
     coverage_end: "2026-03",
     source_wiki_release: "v1-worker-fixture",
@@ -155,7 +155,7 @@ async function seedD1Fixture(): Promise<void> {
 
   await insertRow(db, "route_batch_status", {
     month: "2026-03",
-    generated_at: "2026-04-27T14:45:59.462Z",
+    generated_at: mapPublishedAt,
     status: "pass",
     route_count: 2,
     artifact_count: 4,

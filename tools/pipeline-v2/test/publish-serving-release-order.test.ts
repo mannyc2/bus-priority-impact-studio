@@ -31,7 +31,7 @@ describe("publish serving release ordering", () => {
     ).toBeGreaterThan(0);
   });
 
-  test("does not register a release when the executable R2 step exits nonzero", async () => {
+  test("refuses every legacy direct remote execution during Plan 097", async () => {
     const root = await mkdtemp(join(tmpdir(), "publish-serving-order-"));
     roots.push(root);
     const bin = join(root, "bin");
@@ -72,6 +72,7 @@ exit 0
         cwd: root,
         env: {
           ...processEnv(),
+          // biome-ignore lint/complexity/useLiteralKeys: process.env is index-signature typed.
           PATH: `${bin}:${globalThis.process.env["PATH"] ?? ""}`,
           PUBLISH_TEST_LOG: logPath,
         },
@@ -79,12 +80,11 @@ exit 0
         stderr: "pipe",
       },
     );
-    expect(await child.exited).toBe(42);
-    const commands = await readFile(logPath, "utf8");
-    expect(commands).toContain("--file data/exports/d1/2026-03/schema.sql");
-    expect(commands).toContain("--file data/exports/d1/2026-03/seed.sql");
-    expect(commands).toContain("publish r2-artifacts");
-    expect(commands).not.toContain("map-release-registration.sql");
+    expect(await child.exited).toBe(2);
+    expect(await new Response(child.stderr).text()).toContain(
+      "Use the protected `publish recovery` Worker transport",
+    );
+    expect(await Bun.file(logPath).exists()).toBe(false);
   });
 });
 

@@ -2,6 +2,10 @@ import { isApiPath } from "@bp/studio-api/contracts";
 import { handleStudioScheduled } from "@bp/studio-api/server/scheduled";
 import { buildHealthResponse, handleStudioFetch } from "@bp/studio-api/server/worker";
 import type { Env } from "./env.js";
+import {
+  handlePlan097RecoveryRequest,
+  PLAN097_OPERATION_PATH,
+} from "./operations/plan097-recovery.js";
 import { withSecurityHeaders } from "./security-headers.js";
 import {
   canServeSpaFallback,
@@ -31,6 +35,9 @@ async function handleRequest(
   env: Env,
   ctx?: ExecutionContext,
 ): Promise<Response> {
+  if (url.pathname === PLAN097_OPERATION_PATH) {
+    return handlePlan097RecoveryRequest(request, env);
+  }
   if (isApiPath(url.pathname)) {
     return (
       (await handleStudioFetch(request, env, ctx)) ?? new Response("Not found", { status: 404 })

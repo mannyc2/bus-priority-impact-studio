@@ -42,11 +42,24 @@ function preflightRouteRequest(request: Request, route: RouteSpec | null): Respo
   return null;
 }
 
-function applyRouteCachePolicy(route: RouteSpec | null, response: Response): Response {
-  if (route === null || response.status >= 500 || response.headers.has("Cache-Control")) {
+function applyRouteCachePolicy(
+  route: RouteSpec | null,
+  response: Response,
+  env: StudioApiEnv,
+): Response {
+  if (route === null || response.status >= 500) {
     return response;
   }
 
+  if (
+    route.cache.kind === "public" &&
+    env.PLAN097_RECOVERY_ENABLED?.trim().toLowerCase() === "true"
+  ) {
+    const next = new Response(response.body, response);
+    next.headers.set("Cache-Control", "no-store");
+    return next;
+  }
+  if (response.headers.has("Cache-Control")) return response;
   const next = new Response(response.body, response);
   next.headers.set("Cache-Control", cacheControlForRoute(route));
   return next;
@@ -94,24 +107,24 @@ export async function handleStudioApiRequest(
 
     const observabilityResponse = await handleObservabilityRoutes(request, url);
     if (observabilityResponse !== null) {
-      return withRequestId(applyRouteCachePolicy(routeSpec, observabilityResponse), requestId);
+      return withRequestId(applyRouteCachePolicy(routeSpec, observabilityResponse, env), requestId);
     }
 
     const schemaResponse = handleSchemaRoutes(url);
     if (schemaResponse !== null) {
-      return withRequestId(applyRouteCachePolicy(routeSpec, schemaResponse), requestId);
+      return withRequestId(applyRouteCachePolicy(routeSpec, schemaResponse, env), requestId);
     }
 
     if (isStudioApiPath(url.pathname)) {
       const response = await withServerTiming("studio", () =>
         handleStudioReadRequest(request, url, env),
       );
-      return withRequestId(applyRouteCachePolicy(routeSpec, response), requestId);
+      return withRequestId(applyRouteCachePolicy(routeSpec, response, env), requestId);
     }
 
     const publicApiResponse = await handlePublicApiRoutes(url, env);
     if (publicApiResponse !== null) {
-      return withRequestId(applyRouteCachePolicy(routeSpec, publicApiResponse), requestId);
+      return withRequestId(applyRouteCachePolicy(routeSpec, publicApiResponse, env), requestId);
     }
 
     return withRequestId(errorResponse(404, "API route was not found.", "NOT_FOUND"), requestId);

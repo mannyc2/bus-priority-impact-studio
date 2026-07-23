@@ -1,0 +1,48 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bus-priority-plan097-proof",
+  "main": "./src/worker/index.ts",
+  "workers_dev": true,
+  "preview_urls": false,
+  "compatibility_date": "2026-04-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "PLAN097_RECOVERY_OPERATION_ENABLED": "true",
+    "PLAN097_PROOF_MODE": "true",
+    "PLAN097_RECOVERY_ENABLED": "true",
+    "PLAN097_PREVIOUS_RELEASE_ID": "<previous-release-id>",
+    "PLAN097_ACCESS_TEAM_DOMAIN": "https://<team-name>.cloudflareaccess.com",
+    "PLAN097_ACCESS_AUD": "<access-application-audience>",
+    "PLAN097_ACCESS_SERVICE_TOKEN_ID": "<service-token-client-id>.access",
+    "PLAN097_OPERATION_ID": "plan097:<candidate-release-id>",
+    "PLAN097_ACTIVATION_BUNDLE_SHA256": "<64-hex-activation-bundle-sha256>",
+    "PLAN097_RESTORE_BUNDLE_SHA256": "<64-hex-restore-bundle-sha256>",
+    "PLAN097_PREFLIGHT_RECEIPT_SHA256": "<64-hex-signed-preflight-sha256>",
+    "PLAN097_REPO_SHA": "<40-hex-pushed-repo-sha>",
+    "PLAN097_COMMAND_VERSION": "plan097-recovery-v1",
+    "PLAN097_D1_DATABASE_NAME": "bus-priority-plan097-proof",
+    "PLAN097_D1_DATABASE_ID": "<disposable-proof-d1-database-id>",
+    "PLAN097_ARTIFACTS_BUCKET_NAME": "bus-priority-plan097-proof-artifacts"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bus-priority-plan097-proof",
+      "database_id": "<disposable-proof-d1-database-id>"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ARTIFACTS",
+      "bucket_name": "bus-priority-plan097-proof-artifacts"
+    },
+    {
+      "binding": "PLAN097_OPERATIONS",
+      "bucket_name": "bus-priority-plan097-proof-runtime"
+    },
+    {
+      "binding": "PLAN097_PROOF_BUNDLES",
+      "bucket_name": "bus-priority-plan097-preflight-operations"
+    }
+  ]
+}

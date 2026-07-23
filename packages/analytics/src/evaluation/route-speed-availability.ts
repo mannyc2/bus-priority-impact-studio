@@ -40,6 +40,49 @@ export type RouteSpeedAvailabilityResult = {
   artifactPath: string;
 };
 
+const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
+  Schema.isGreaterThanOrEqualTo(0),
+);
+const PositiveIntegerSchema = Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0));
+const IsoMonthSchema = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/u));
+const RouteSpeedAvailabilityMonthSchema = Schema.Struct({
+  isoMonth: IsoMonthSchema,
+  year: PositiveIntegerSchema,
+  month: PositiveIntegerSchema.check(Schema.isLessThanOrEqualTo(12)),
+  routeCount: NonNegativeIntegerSchema,
+  rowCount: NonNegativeIntegerSchema,
+  busTripCount: NonNegativeIntegerSchema,
+  status: Schema.Literals(["complete", "insufficient_speed_routes"]),
+});
+
+export const RouteSpeedAvailabilityResultSchema = Schema.Struct({
+  sourceId: Schema.Literal(ROUTE_SPEED_AVAILABILITY_SOURCE_ID),
+  checkedAt: Schema.String,
+  startYear: PositiveIntegerSchema,
+  endYear: PositiveIntegerSchema,
+  minSpeedRoutes: PositiveIntegerSchema,
+  latestSpeedMonth: Schema.NullOr(RouteSpeedAvailabilityMonthSchema),
+  requestedMonth: Schema.NullOr(
+    Schema.Struct({
+      ...RouteSpeedAvailabilityMonthSchema.fields,
+      status: Schema.Literals(["complete", "insufficient_speed_routes", "missing_speed"]),
+    }),
+  ),
+  releaseDecision: Schema.Struct({
+    status: Schema.Literals([
+      "new_complete_month_available",
+      "no_new_complete_month",
+      "no_complete_speed_month",
+    ]),
+    latestCompleteMonth: Schema.NullOr(IsoMonthSchema),
+    lastBuiltMonth: Schema.NullOr(IsoMonthSchema),
+    shouldRebuild: Schema.Boolean,
+    reason: Schema.String,
+  }),
+  months: Schema.Array(RouteSpeedAvailabilityMonthSchema),
+  artifactPath: Schema.String,
+});
+
 export type BuildRouteSpeedAvailabilityInput = {
   rows: readonly unknown[];
   checkedAt: string;

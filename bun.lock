@@ -29,6 +29,7 @@
         "class-variance-authority": "catalog:",
         "clsx": "catalog:",
         "es-toolkit": "catalog:",
+        "jose": "catalog:",
         "lucide-react": "catalog:",
         "maplibre-gl": "catalog:",
         "react": "catalog:",
@@ -68,6 +69,7 @@
       "dependencies": {
         "@bp/domain": "workspace:*",
         "drizzle-orm": "file:../../vendor/npm/drizzle-orm-1.0.0-rc.3-no-zod.tgz",
+        "effect": "catalog:",
       },
       "devDependencies": {
         "@cloudflare/workers-types": "catalog:",
@@ -158,6 +160,7 @@
     "drizzle-kit": "1.0.0-rc.3",
     "effect": "4.0.0-beta.92",
     "es-toolkit": "^1.47.0",
+    "jose": "6.2.3",
     "lucide-react": "^1.16.0",
     "maplibre-gl": "^5.24.0",
     "react": "^19.0.0",
@@ -767,6 +770,8 @@
     "isbot": ["isbot@5.1.40", "", {}, "sha512-yNeeynhhtIVRBk12tBV4eHNxwB42HzR4Q3Ea7vCOiJhImGaAIdIMrbJtacQlBizGLjUPw+akkFI5Dn9T70XoVQ=="],
 
     "jiti": ["jiti@2.7.0", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ=="],
+
+    "jose": ["jose@6.2.3", "", {}, "sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw=="],
 
     "js-tokens": ["js-tokens@4.0.0", "", {}, "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="],
 

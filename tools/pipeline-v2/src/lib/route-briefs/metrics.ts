@@ -261,6 +261,17 @@ function schedulePairKey(direction: string, fromStopId: string, toStopId: string
   return `${direction}:${fromStopId}:${toStopId}`;
 }
 
+function scheduleNamePairKey(
+  direction: string,
+  fromStopName: string | undefined,
+  toStopName: string | undefined,
+): string | null {
+  if (fromStopName === undefined || toStopName === undefined) {
+    return null;
+  }
+  return `${direction}:${normalizeStreetName(fromStopName)}:${normalizeStreetName(toStopName)}`;
+}
+
 function scheduleGroupKey(row: LocalRouteScheduleTimepoint): string {
   return [row.scheduleDate, row.dayType, row.direction, row.shapeId, row.blockId].join(":");
 }
@@ -283,9 +294,13 @@ type SchedulePair = {
   scheduledTravelTimes: number[];
 };
 
-function buildScheduledPairs(
-  rows: readonly LocalRouteScheduleTimepoint[],
-): Map<string, SchedulePair> {
+type ScheduledPairs = {
+  byStopId: Map<string, SchedulePair>;
+  byStopName: Map<string, SchedulePair>;
+  stopIdPairsByName: Map<string, Set<string>>;
+};
+
+function buildScheduledPairs(rows: readonly LocalRouteScheduleTimepoint[]): ScheduledPairs {
   const groups = new Map<string, LocalRouteScheduleTimepoint[]>();
   for (const row of rows) {
     if (row.tripHeadsign?.toUpperCase() === "NOT IN SERVICE") {
@@ -297,7 +312,11 @@ function buildScheduledPairs(
     groups.set(key, group);
   }
 
-  const pairs = new Map<string, SchedulePair>();
+  const pairs: ScheduledPairs = {
+    byStopId: new Map(),
+    byStopName: new Map(),
+    stopIdPairsByName: new Map(),
+  };
 
   for (const groupRows of groups.values()) {
     groupRows.sort((left, right) => {
@@ -327,10 +346,7 @@ function buildScheduledPairs(
   return pairs;
 }
 
-function addTripPairs(
-  tripRows: LocalRouteScheduleTimepoint[],
-  pairs: Map<string, SchedulePair>,
-): void {
+function addTripPairs(tripRows: LocalRouteScheduleTimepoint[], pairs: ScheduledPairs): void {
   for (let index = 0; index < tripRows.length - 1; index += 1) {
     const from = tripRows[index];
     const to = tripRows[index + 1];
@@ -345,9 +361,19 @@ function addTripPairs(
     }
 
     const key = schedulePairKey(from.direction, from.stopId, to.stopId);
-    const pair = pairs.get(key) ?? { scheduledTravelTimes: [] };
+    const pair = pairs.byStopId.get(key) ?? { scheduledTravelTimes: [] };
     pair.scheduledTravelTimes.push(travelTimeMinutes);
-    pairs.set(key, pair);
+    pairs.byStopId.set(key, pair);
+
+    const nameKey = scheduleNamePairKey(from.direction, from.stopName, to.stopName);
+    if (nameKey !== null) {
+      const namePair = pairs.byStopName.get(nameKey) ?? { scheduledTravelTimes: [] };
+      namePair.scheduledTravelTimes.push(travelTimeMinutes);
+      pairs.byStopName.set(nameKey, namePair);
+      const stopIdPairs = pairs.stopIdPairsByName.get(nameKey) ?? new Set<string>();
+      stopIdPairs.add(key);
+      pairs.stopIdPairsByName.set(nameKey, stopIdPairs);
+    }
   }
 }
 
@@ -357,9 +383,19 @@ export function scheduleComparisons(
 ) {
   const pairs = buildScheduledPairs(schedules);
   const hotspotComparisons = hotspots.map((hotspot) => {
-    const pair = pairs.get(
+    const exactPair = pairs.byStopId.get(
       schedulePairKey(hotspot.direction, hotspot.timepointStopId, hotspot.nextTimepointStopId),
     );
+    const nameKey = scheduleNamePairKey(
+      hotspot.direction,
+      hotspot.timepointStopName,
+      hotspot.nextTimepointStopName,
+    );
+    const namePairIsUnambiguous =
+      nameKey !== null && (pairs.stopIdPairsByName.get(nameKey)?.size ?? 0) === 1;
+    const pair =
+      exactPair ??
+      (nameKey !== null && namePairIsUnambiguous ? pairs.byStopName.get(nameKey) : undefined);
     const scheduledMedianTravelTimeMinutes =
       pair === undefined ? null : median(pair.scheduledTravelTimes);
     return {
@@ -382,7 +418,7 @@ export function scheduleComparisons(
   });
 
   return {
-    scheduledPairCount: pairs.size,
+    scheduledPairCount: pairs.byStopId.size,
     matchedHotspotCount: hotspotComparisons.filter(
       (comparison) => comparison.scheduledMedianTravelTimeMinutes !== null,
     ).length,

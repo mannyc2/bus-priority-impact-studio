@@ -75,8 +75,14 @@ function emptyExportResult(): D1SeedOutputResult {
     summaryPath: "/tmp/summary.json",
     schemaPath: "/tmp/schema.sql",
     seedPath: "/tmp/seed.sql",
+    plan097RecoverySeedPath: "/tmp/seed.plan097-recovery.sql",
     schemaFile: { path: "/tmp/schema.sql", byteLength: 0, sha256: "x" },
     seedFile: { path: "/tmp/seed.sql", byteLength: 0, sha256: "x" },
+    plan097RecoverySeedFile: {
+      path: "/tmp/seed.plan097-recovery.sql",
+      byteLength: 0,
+      sha256: "x",
+    },
     costEstimate: estimateD1ExportCost({
       schemaPath: "/tmp/schema.sql",
       schemaSql,
@@ -120,6 +126,7 @@ function emptyExportResult(): D1SeedOutputResult {
     detectorReadinessManifestAvailable: false,
     routeCapabilityManifestRouteCount: 0,
     routeDossierSummaryRouteCount: 0,
+    exactRouteIdentity: null,
   };
 }
 
@@ -207,7 +214,7 @@ describe("verify d1 helpers", () => {
     expect(issues2).toEqual(["route_catalog:expected_99:actual_1"]);
   });
 
-  it("threads one publication identity into the D1 export while preserving D1 coverage", async () => {
+  it("threads one exact publication identity into the D1 export", async () => {
     const root = mkdtempSync(join(tmpdir(), "verify-d1-release-identity-"));
     const local = await openLocalPipelineDb(join(root, "pipeline.sqlite"));
     try {
@@ -241,7 +248,7 @@ describe("verify d1 helpers", () => {
 
       expect(result.releaseId).toBe(releaseIdentity.releaseId);
       expect(result.publishedAt).toBe(releaseIdentity.publishedAt);
-      expect(result.coverage.start).toBeNull();
+      expect(String(result.coverage.start)).toBe("2025-02");
       expect(result.coverage.end as string).toBe("2026-03");
 
       const exportSummary = JSON.parse(
@@ -251,7 +258,7 @@ describe("verify d1 helpers", () => {
         schemaVersion: 2,
         releaseId: releaseIdentity.releaseId,
         publishedAt: releaseIdentity.publishedAt,
-        coverage: { start: null, end: "2026-03" },
+        coverage: { start: "2025-02", end: "2026-03" },
         generatedAt: releaseIdentity.publishedAt,
       });
     } finally {

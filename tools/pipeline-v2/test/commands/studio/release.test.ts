@@ -1,8 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { routeKey } from "../../../src/commands/studio/_release-routes.ts";
+import {
+  normalizeStudioRoutePeers,
+  routeKey,
+} from "../../../src/commands/studio/_release-routes.ts";
 import {
   earliestStudioTrendMonth,
   requireStudioReleaseMonth,
+  studioProjectionOutputDirectory,
 } from "../../../src/commands/studio/release.ts";
 
 describe("studio release D1 replay boundary", () => {
@@ -25,6 +29,35 @@ describe("studio release D1 replay boundary", () => {
     expect(routeKey("B44+")).toBe("B44+");
     expect(routeKey("b44")).toBe("b44");
     expect(() => routeKey(" B44 ")).toThrow("exact non-empty route identity");
+  });
+
+  test("clears peer links when evidence filtering removes the peer route", () => {
+    expect(
+      normalizeStudioRoutePeers([
+        { slug: "bx32", peerSlug: "m104", marker: "filtered peer" },
+        { slug: "q58", peerSlug: "q59", marker: "available peer" },
+        { slug: "q59", peerSlug: null, marker: "available peer target" },
+      ]),
+    ).toEqual([
+      { slug: "bx32", peerSlug: null, marker: "filtered peer" },
+      { slug: "q58", peerSlug: "q59", marker: "available peer" },
+      { slug: "q59", peerSlug: null, marker: "available peer target" },
+    ]);
+  });
+
+  test("only cleans a versioned Studio projection directory", () => {
+    expect(studioProjectionOutputDirectory("/tmp/candidate/studio/v1/release.json")).toBe(
+      "/tmp/candidate/studio/v1",
+    );
+    expect(() => studioProjectionOutputDirectory("/tmp/release.json")).toThrow(
+      "versioned studio/<version>/release.json",
+    );
+    expect(() => studioProjectionOutputDirectory("/tmp/v1/release.json")).toThrow(
+      "versioned studio/<version>/release.json",
+    );
+    expect(() => studioProjectionOutputDirectory("/tmp/candidate/studio/v1/custom.json")).toThrow(
+      "versioned studio/<version>/release.json",
+    );
   });
 
   test("loads serving export rows through the Effect D1 replay boundary", async () => {

@@ -79,6 +79,7 @@ export {
   ROUTE_SPEED_SPINE_DEFAULT_START_MONTH,
   ROUTE_SPEED_SPINE_DEFAULT_TOLERANCE_METERS,
   type RouteSpeedSpineArtifact,
+  RouteSpeedSpineArtifactSchema,
   type RouteSpeedSpineIssue,
   type RouteSpeedSpineMonthCoverage,
   type RouteSpeedSpineNode,

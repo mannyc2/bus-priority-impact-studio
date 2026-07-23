@@ -2,7 +2,7 @@
 title: Cloudflare Operations Runbook
 type: engineering
 status: active
-last_updated: 2026-07-20
+last_updated: 2026-07-23
 owner: codex
 source_count: 0
 tags: [cloudflare, worker, d1, r2, operations, gtfs-rt]
@@ -66,7 +66,205 @@ available in `apps/web/wrangler.production.example.jsonc`:
 
 Keep this block out of source control until the project is ready to commit environment-specific deployment config. If committed, use only real non-secret resource IDs; never commit `MTA_BUS_TIME_API_KEY`.
 
+## Plan 097 bounded recovery
+
+This is the only eligible path for the Generation 17 catch-up against the populated production D1.
+The legacy serving-release script is disabled during Plan 097 because it replays aggregate schema
+and cannot preserve the migration ledger or prove one atomic serving cut.
+
+The recovery uses three separate, gitignored Wrangler configs copied from the tracked examples:
+
+| Phase | Tracked template | Binding rule |
+|---|---|---|
+| signed preflight | `apps/web/wrangler.plan097-preflight.example.jsonc` | Production D1 is read-only; both R2 bindings are isolated Plan 097 buckets. |
+| disposable proof | `apps/web/wrangler.plan097-proof.example.jsonc` | Disposable D1 and proof R2 only; no production route or resource binding. |
+| authorized activation | `apps/web/wrangler.plan097-activation.example.jsonc` | Exact production D1/R2 plus immutable preflight source bucket; deploy only after the fresh token gate. |
+
+Copy each required template to the same name without `.example`, fill only the explicit placeholders,
+and keep the copy untracked. Before each deploy, inspect the rendered config and stop if the proof
+config contains `bus-priority-serving`, the production D1 ID, or the exact production artifacts
+bucket name. None of the operation Workers receives a custom production route. Every template keeps
+the intentional `workers.dev` endpoint but sets `preview_urls: false`; Cloudflare otherwise defaults
+preview availability to `workers_dev`, creating an unreviewed version URL. See the
+[Workers preview-URL configuration](https://developers.cloudflare.com/workers/versions-and-deployments/preview-urls/).
+
+Protect the exact `__operations/plan097` path on each Worker host with a Cloudflare Access Service
+Auth policy for the dedicated one-time service token. The CLI keeps the service-token client ID and
+secret only in its operator environment and sends the standard Access headers. The Worker validates
+the resulting `Cf-Access-Jwt-Assertion` signature through the team JWKS, exact issuer, exact
+application audience, RS256 algorithm, and service-token `common_name`; the client secret is not a
+Worker binding. Fill `PLAN097_ACCESS_TEAM_DOMAIN`, `PLAN097_ACCESS_AUD`, and
+`PLAN097_ACCESS_SERVICE_TOKEN_ID` in each gitignored config. Cloudflare documents both the
+[service-token request headers](https://developers.cloudflare.com/cloudflare-one/access-controls/service-credentials/service-tokens/)
+and the requirement for a Worker origin to
+[validate the Access JWT](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/).
+Prove that a request without Access returns 401/403 and that the Worker rejects a missing, wrong-
+issuer, wrong-audience, or wrong-service-token JWT. The bootstrap/execution tokens and Ed25519
+signing material are Wrangler secrets, never vars or command arguments.
+
+### Recovery reader predeploy and cache drain
+
+The tracked production config enables `PLAN097_RECOVERY_ENABLED` and pins
+`PLAN097_PREVIOUS_RELEASE_ID=pub_20260605T183601689Z`. With that release still active, the resolver
+continues to read the existing stable objects while every public API response becomes `no-store`;
+the operation route remains absent because production has no operation bindings. Before approving
+the protected production-environment deployment, re-run the anonymous release-aware checker and
+stop if the active release differs from that pin.
+
+Deploy the pushed commit through the protected GitHub `production` environment before the signed
+preflight. Record the Worker version, deployment instant, old-release safe-body hashes, anonymous
+recovery-namespace 404, and `Cache-Control: no-store` for every checker endpoint. Cloudflare treats
+`no-store` as a cache bypass, but responses emitted before this deploy carried up to 86,400 seconds
+of `stale-while-revalidate`; see the
+[Workers cache configuration](https://developers.cloudflare.com/workers/cache/configuration/).
+Do not activate the candidate until either:
+
+1. 86,400 seconds have elapsed since every endpoint first proved `no-store`, with the checker
+   repeated after the drain; or
+2. an authoritative cache purge for every affected key has been executed and recorded.
+
+No purge is assumed by this runbook. The signed preflight must use the post-drain responses. This
+predeploy is a protected production-Worker gate, but it does not authorize the later serving-data,
+schema, or artifact mutation token.
+
+The production workflow refuses to start from split Worker traffic, captures the one stable prior
+version, and records the postdeploy version before verification. Its strict Plan 097 checker binds
+the pinned release, safe-body hashes, `no-store` headers, exact-route count, anonymous operation
+namespace 404, deployed Git SHA, and workflow run to
+`plan097-reader-deploy.receipt.json`. The pre/post deployment JSON and receipt are covered by the
+adjacent SHA-256 file and uploaded as the `plan097-reader-predeploy-<git-sha>` Actions artifact. If
+any postdeploy D1 audit or HTTP check fails, the workflow rolls the Worker back to the captured
+version and uploads the rollback deployment state; that failed run does not start the cache-drain
+clock.
+
+### Closed command configuration
+
+The exact reviewed command shapes resolve paths and endpoints from these environment variables. A
+local value is only a locator/cache; the signed preflight, restore package, and operation receipts
+under the immutable R2 prefix are authoritative.
+
+| Name | Use |
+|---|---|
+| `PLAN097_CANDIDATE_DIR` | Directory containing `plan097-activation-bundle.json` and `plan097-artifact-manifest.json`. |
+| `PLAN097_ARTIFACT_ROOT` | Verified candidate artifact root. |
+| `PLAN097_RECOVERY_ENDPOINT` | Signed-preflight or authorized-production operation URL, according to phase. |
+| `PLAN097_PUBLIC_BASE_URL` | Existing public production URL used by the release-aware checker. |
+| `PLAN097_PROOF_ENDPOINT` | Disposable operation URL. |
+| `PLAN097_PROOF_BASE_URL` | Disposable public API URL; it must not route to production. |
+| `PLAN097_PREFLIGHT_PUBLIC_KEY` | Trusted Ed25519 public key file used for independent receipt verification. |
+| `PLAN097_PREFLIGHT_RECEIPT_SHA256` | Exact signed preflight hash returned by `dry-run`. |
+| `PLAN097_RESTORE_BUNDLE_SHA256` | Exact selective restore hash returned by `dry-run`. |
+| `PLAN097_PROOF_SUMMARY_KEY`, `PLAN097_PROOF_SUMMARY_SHA256`, `PLAN097_PROOF_SUMMARY_BYTES` | Exact durable proof-summary reference returned by `prove`. |
+| `PLAN097_SERVICE_TOKEN_ID`, `PLAN097_SERVICE_TOKEN_SECRET` | Dedicated Cloudflare Access credentials kept only in the operator environment; the Worker validates the resulting JWT. |
+| `PLAN097_BOOTSTRAP_TOKEN` | Isolated preflight-bucket seed token; it is not the production mutation token. |
+| `PLAN097_EXECUTION_TOKEN` | Proof token in the disposable phase, then a newly issued production token only after approval. |
+
+The command validates `--candidate` against the bundle release and `--operation` against the bundle
+operation ID. It rejects a proof unless `--proof-env plan097-proof` is present. Explicit path options
+remain available for fixture/debug runs, but an approval packet uses only the shapes below.
+
+### Signed read-only preflight
+
+First confirm the release-aware checker is already deployed and the pushed repo SHA matches the
+candidate. Configure the preflight Worker with `PLAN097_SEED_MODE=true`, production D1, isolated
+Plan 097 R2, and no production artifact binding. The closed `seed-bundle` action accepts only the
+allowlisted activation hash and its self-declared manifest; it cannot accept SQL, a physical key, a
+bucket, or a database selector.
+
+Set the preflight signing key ID/private/public material with `wrangler secret put` against the
+gitignored preflight config. Set its Worker-side `PLAN097_EXECUTION_TOKEN` secret to the same random
+value held locally as `PLAN097_BOOTSTRAP_TOKEN`; this token can seed only the allowlisted isolated
+preflight bucket and is not the later production token. Keep the Access client ID/secret only in the
+local operator environment. Deploy the preflight Worker only after its Access application/policy is
+active and the unauthenticated/JWT-negative checks pass, then run exactly:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- publish recovery --action dry-run --candidate <candidate-id>
+```
+
+The result must include the signed preflight receipt SHA/key fingerprint, selective snapshot and
+restore hashes, exact schema/migration-ledger fingerprint, public HTTP baseline, cost preview, and
+measured read/R2 receipt metrics. Persist its redacted attestation on the pushed branch. Stop if the
+active release is unknown, the Studio/map/exact election disagrees, 0033 is partial, any other
+schema object drifts, a protected fingerprint is missing, or the candidate is not newer.
+
+### Disposable A-to-B-to-A proof
+
+Apply canonical migrations normally to the empty disposable D1; never run them against production.
+The proof config binds that D1, proof artifact/runtime buckets, and the immutable preflight bucket as
+`PLAN097_PROOF_BUNDLES`. Its D1 ID and every bucket name must differ from production.
+
+The proof command mirrors the signed bundle, seeds proof-only stable aliases with the same verified
+candidate bytes, applies the exact selective restore batch once to initialize serving state A, and
+then runs failed-B, B, and restored-A. Protected fingerprints are captured in the disposable D1
+before each exact batch and must be byte-identical after it; production identity/session rows are
+never copied. Each A surface is strict-checked, B must pass candidate dossier/map/exact-route checks,
+and restored A must match its own complete HTTP baseline.
+
+Run exactly:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- publish recovery --action prove --operation <operation-id> --proof-env plan097-proof
+```
+
+Stop if either exact batch exceeds 30 seconds, any statement result fails unexpectedly, injected
+failure changes A, candidate Studio/map/exact elections differ, protected fingerprints change, an
+R2 object is non-identical at an existing key, or restored HTTP evidence differs from the proof
+baseline. Keep every immutable proof receipt and measured D1/R2/duration metric.
+The command also writes a canonical `proof-summary` receipt whose receipt-set hash and aggregate
+usage cover every strict-decoded Worker response without requiring one Worker invocation to read
+thousands of per-object receipts.
+
+### Fresh production approval packet
+
+Do not deploy the activation config, set its execution token, stage production artifacts, reconcile
+0033, or mutate production D1 until one compact packet contains:
+
+1. pushed repo SHA and immutable candidate/bundle/manifest identities, counts, bytes, and freshness matrix;
+2. signed preflight key fingerprint, receipt/snapshot/restore hashes, exact resource IDs, schema envelope, migration ledger, and HTTP baseline;
+3. estimated D1/R2 usage and the proof's actual rows read/written, request counts, bytes, and durations;
+4. failed-B, B, and restored-A election/fingerprint/HTTP receipts with both exact batches under 30 seconds;
+5. the exact activation, resume, and rollback commands below plus the STOP behavior;
+6. confirmation that the compatibility reader is deployed, anonymous recovery keys remain denied, the legacy workflow cannot mutate recovery data, and no audited input drifted.
+
+Ask for a fresh production mutation token only after all six items exist. The campaign authorization
+that created Plan 097 is not that token.
+
+### Authorized activation and contingency
+
+After fresh approval, configure the activation Worker from the exact signed hashes and resource IDs,
+set a newly issued `PLAN097_EXECUTION_TOKEN`, re-run the baseline check, and run exactly:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- publish recovery --action activate --operation <operation-id> --receipt-sha256 <sha256>
+```
+
+The command mirrors the preflight/restore package, applies eligible 0033 recovery only after the
+signed audit, stages and verifies immutable candidate bodies, finalizes the manifest, verifies the
+old public release, and submits one D1 activation batch with `route_batch_status` last. It then runs
+the candidate HTTP checker. An interrupted pre-activation staging pass may be retried idempotently:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- publish recovery --action resume --operation <operation-id>
+```
+
+If candidate smoke fails, the command immediately applies the atomic selective restore and compares
+the restored public API with the signed production baseline. That ends Plan 097 as
+`rolled_back`/STOP; do not reactivate. The explicit operator contingency command is:
+
+```sh
+bun --filter @bp/pipeline-v2 cli -- publish recovery --action rollback --operation <operation-id> --receipt-sha256 <sha256>
+```
+
+On success, leave the freshness-derived candidate active, persist the canonical completion receipt,
+disable the one-time operation route/bindings, and record its immutable key/hash in Plan 097. Never
+use this recovery path for a later artifact/schema cutover; Plan 098's pointer must be active first.
+
 ## One-Time Release Publish
+
+This legacy section is retained for historical/disposable empty-database workflows. Do not use it
+against the populated production database while Plan 097 or any successor control-plane recovery is
+in force; use [[#Plan 097 bounded recovery]].
 
 Build one coordinated local D1, Studio, and map release first. `--month` selects the covered data
 partition; it is not the release identity. The orchestrator captures one canonical publication

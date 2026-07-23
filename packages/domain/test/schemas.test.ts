@@ -573,6 +573,7 @@ describe("domain schemas", () => {
     );
     const routes = buildStudioRoutesProjection(release);
     const mapRouteFacts = buildMapRouteFactsProjection(release);
+    const emptyMapRouteFacts = buildMapRouteFactsProjection(release, []);
 
     expect(routes).toMatchObject({
       releaseId: "pub_20260518T000000000Z",
@@ -598,6 +599,7 @@ describe("domain schemas", () => {
     });
     expect(mapRouteFacts).not.toHaveProperty("baselineMonth");
     expect(mapRouteFacts).not.toHaveProperty("generatedAt");
+    expect(emptyMapRouteFacts.routes).toEqual([]);
     expect(() =>
       decodeStrict(StudioReleasePayloadSchema)({
         ...release,

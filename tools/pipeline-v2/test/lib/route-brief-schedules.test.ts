@@ -12,6 +12,7 @@ function scheduleRow(input: {
   shapeId: string;
   stopSequence: number;
   stopId: string;
+  stopName?: string;
   scheduleTime: string;
 }): LocalRouteScheduleTimepoint {
   return {
@@ -79,6 +80,100 @@ describe("route brief schedule comparisons", () => {
       segmentId: hotspot.segmentId,
       scheduledMedianTravelTimeMinutes: 4,
       scheduledSampleCount: 1,
+    });
+  });
+
+  test("matches a scheduled stop-id alias when the physical stop names agree", () => {
+    const schedules = [
+      scheduleRow({
+        shapeId: "Q580617",
+        stopSequence: 26,
+        stopId: "504107",
+        stopName: "PUTNAM AV/FRESH POND RD",
+        scheduleTime: "2026-03-02T08:00:00.000",
+      }),
+      scheduleRow({
+        shapeId: "Q580617",
+        stopSequence: 30,
+        stopId: "804230",
+        stopName: "PALMETTO ST/MYRTLE AV",
+        scheduleTime: "2026-03-02T08:10:00.000",
+      }),
+    ];
+    const hotspot = {
+      routeId: "Q58",
+      isoMonth: "2026-03",
+      segmentId: "Q58:2026-03:N:26:504107:505034",
+      direction: "N",
+      stopOrder: 26,
+      timepointStopId: "504107",
+      timepointStopName: "PUTNAM AV/FRESH POND RD",
+      nextTimepointStopId: "505034",
+      nextTimepointStopName: "PALMETTO ST/MYRTLE AV",
+      observationCount: 5,
+      busTripCount: 40,
+      weightedAverageSpeedMph: 7.8,
+      weightedAverageTravelTimeMinutes: 10.3,
+      averageRoadDistanceMiles: 1.32,
+      slowWindowShare: 0.5,
+      speedSeverity: 1,
+      hotspotScore: 20,
+    } satisfies LocalRouteHotspot;
+
+    const result = scheduleComparisons(schedules, [hotspot]);
+
+    expect(result.hotspotComparisons[0]).toMatchObject({
+      segmentId: hotspot.segmentId,
+      scheduledMedianTravelTimeMinutes: 10,
+      scheduledSampleCount: 1,
+    });
+  });
+
+  test("does not name-match an ambiguous scheduled stop pair", () => {
+    const schedules = [
+      ["scheduled-from-a", "scheduled-to-a", "2026-03-02T08:00:00.000"],
+      ["scheduled-from-b", "scheduled-to-b", "2026-03-02T09:00:00.000"],
+    ].flatMap(([fromStopId, toStopId, scheduleTime], index) => [
+      scheduleRow({
+        shapeId: `shape-${index}`,
+        stopSequence: 1,
+        stopId: fromStopId ?? "",
+        stopName: "SAME ORIGIN",
+        scheduleTime: scheduleTime ?? "",
+      }),
+      scheduleRow({
+        shapeId: `shape-${index}`,
+        stopSequence: 2,
+        stopId: toStopId ?? "",
+        stopName: "SAME DESTINATION",
+        scheduleTime: new Date(Date.parse(scheduleTime ?? "") + 5 * 60_000).toISOString(),
+      }),
+    ]);
+    const hotspot = {
+      routeId: "B67",
+      isoMonth: "2026-03",
+      segmentId: "B67:2026-03:N:1:observed-from:observed-to",
+      direction: "N",
+      stopOrder: 1,
+      timepointStopId: "observed-from",
+      timepointStopName: "SAME ORIGIN",
+      nextTimepointStopId: "observed-to",
+      nextTimepointStopName: "SAME DESTINATION",
+      observationCount: 5,
+      busTripCount: 40,
+      weightedAverageSpeedMph: 6,
+      weightedAverageTravelTimeMinutes: 5,
+      averageRoadDistanceMiles: 0.5,
+      slowWindowShare: 1,
+      speedSeverity: 1,
+      hotspotScore: 30,
+    } satisfies LocalRouteHotspot;
+
+    const result = scheduleComparisons(schedules, [hotspot]);
+
+    expect(result.hotspotComparisons[0]).toMatchObject({
+      scheduledMedianTravelTimeMinutes: null,
+      scheduledSampleCount: 0,
     });
   });
 

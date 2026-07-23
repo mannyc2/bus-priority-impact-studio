@@ -86,6 +86,12 @@ case "$month" in
     ;;
 esac
 
+if [ "$execute" -eq 1 ]; then
+  printf '%s\n' \
+    'Remote execution is disabled during Plan 097. Use the protected `publish recovery` Worker transport.' >&2
+  exit 2
+fi
+
 if [ -n "$appendix_month" ]; then
   case "$appendix_month" in
     ????-??) ;;

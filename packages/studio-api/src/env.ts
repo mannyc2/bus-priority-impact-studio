@@ -8,6 +8,8 @@ export type StudioApiEnv = {
   GTFS_RT_SAMPLES_PER_CRON?: string;
   GTFS_RT_SAMPLE_SECONDS?: string;
   ENVIRONMENT?: string;
+  PLAN097_RECOVERY_ENABLED?: string;
+  PLAN097_PREVIOUS_RELEASE_ID?: string;
 };
 
 export type StudioApiRequestContext = {

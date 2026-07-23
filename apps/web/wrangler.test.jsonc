@@ -25,6 +25,10 @@
     {
       "binding": "GTFS_RT_RAW",
       "bucket_name": "bus-priority-gtfs-rt-raw-test"
+    },
+    {
+      "binding": "PLAN097_OPERATIONS",
+      "bucket_name": "bus-priority-plan097-operations-test"
     }
   ]
 }

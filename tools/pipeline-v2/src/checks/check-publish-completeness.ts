@@ -1,3 +1,5 @@
+import { Database } from "bun:sqlite";
+import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join } from "node:path";
 import {
@@ -5,14 +7,26 @@ import {
   type MapArtifactManifest,
   mapArtifactSha256,
 } from "@bp/analytics/evaluation";
-import { buildMapReleaseRegistrationSql } from "@bp/db/d1/seed";
+import {
+  buildExactRouteIdentityRegistrationSql,
+  buildMapReleaseRegistrationSql,
+} from "@bp/db/d1/seed";
 import { decodeStrict } from "@bp/domain/decode";
+import { StudioRouteEvidenceIndexV2Schema } from "@bp/domain/studio";
 import { ReleaseIdentitySchema } from "@bp/domain/studio/shared";
 import { verifyMapArtifactManifest } from "../commands/map/artifacts.ts";
 import {
   collectD1ArtifactKeys,
   collectManifestArtifactKeys,
 } from "../commands/publish/publish-artifact-keys.ts";
+import {
+  auditExactRouteIndexRecovery,
+  type ExactRouteIdentityReleaseRecoveryRow,
+  ExactRouteIndexRecoveryReceiptSchema,
+  type RouteCatalogRecoveryRow,
+  type RouteCatalogTripTypeRecoveryRow,
+  type RouteCatalogTypeRecoveryRow,
+} from "../lib/route-index-v3-recovery.ts";
 
 const repoRoot = new URL("../../../../", import.meta.url).pathname.replace(/\/$/, "");
 const defaultArtifactRoot = join(repoRoot, "data", "artifacts");
@@ -59,6 +73,165 @@ async function readJson(path: string): Promise<Record<string, unknown> | null> {
       : null;
   } catch {
     return null;
+  }
+}
+
+async function verifyExactRouteIdentity(input: {
+  artifactRoot: string;
+  schemaPath: string;
+  seedPath: string;
+  mapManifest: MapArtifactManifest | null;
+  conflicts: string[];
+}): Promise<void> {
+  const exportDir = dirname(input.seedPath);
+  const registrationPath = join(exportDir, "exact-route-identity-registration.sql");
+  const receiptPath = join(exportDir, "exact-route-identity-receipt.json");
+  const indexPath = join(input.artifactRoot, "studio", "v2", "wiki", "index.json");
+  let registrationSql: string;
+  let receiptText: string;
+  let indexBytes: Uint8Array;
+  try {
+    [registrationSql, receiptText, indexBytes] = await Promise.all([
+      readFile(registrationPath, "utf8"),
+      readFile(receiptPath, "utf8"),
+      readFile(indexPath),
+    ]);
+  } catch {
+    input.conflicts.push(
+      "Exact-route identity registration, strict receipt, or immutable v2 evidence index is missing.",
+    );
+    return;
+  }
+
+  try {
+    const receipt = decodeStrict(ExactRouteIndexRecoveryReceiptSchema)(JSON.parse(receiptText));
+    const routeEvidenceIndex = decodeStrict(StudioRouteEvidenceIndexV2Schema)(
+      JSON.parse(new TextDecoder().decode(indexBytes)),
+    );
+    const sourceIndexSha256 = createHash("sha256").update(indexBytes).digest("hex");
+    if (
+      sourceIndexSha256 !== receipt.source.routeEvidenceIndexSha256 ||
+      indexBytes.byteLength !== receipt.source.routeEvidenceIndexBytes
+    ) {
+      throw new Error("immutable v2 evidence index bytes do not match the receipt");
+    }
+    const expectedRegistrationSql = buildExactRouteIdentityRegistrationSql({
+      releaseId: receipt.servingRelease.releaseId,
+      publishedAt: receipt.servingRelease.publishedAt,
+      coverage: receipt.servingRelease.coverage,
+      sourceWikiRelease: receipt.source.wikiRelease,
+      sourceManifestSha256: receipt.source.manifestSha256,
+      sourceRouteIdentitySha256: receipt.source.routeIdentitySha256,
+      sourceCurrentBusRoutesSha256: receipt.source.currentBusRoutesSha256,
+      sourceIndexSha256: receipt.source.routeEvidenceIndexSha256,
+      catalogSnapshotSha256: receipt.catalogSnapshotSha256,
+      projectionSha256: receipt.projectionSha256,
+      exactRouteCount: receipt.counts.exactRouteCount,
+      routeTypeCount: receipt.counts.exactRouteTypeCount,
+      tripTypeCount: receipt.counts.exactTripTypeCount,
+    });
+    if (registrationSql !== expectedRegistrationSql) {
+      throw new Error("registration SQL differs from its strict receipt");
+    }
+    if (
+      input.mapManifest !== null &&
+      (receipt.servingRelease.releaseId !== input.mapManifest.releaseId ||
+        receipt.servingRelease.publishedAt !== input.mapManifest.publishedAt ||
+        receipt.servingRelease.coverage.start !== input.mapManifest.coverage.start ||
+        receipt.servingRelease.coverage.end !== input.mapManifest.coverage.end)
+    ) {
+      throw new Error("exact-route receipt release differs from the verified map release");
+    }
+
+    const sqlite = new Database(":memory:");
+    try {
+      sqlite.exec(await readFile(input.schemaPath, "utf8"));
+      sqlite.exec(await readFile(input.seedPath, "utf8"));
+      sqlite.query(registrationSql).run();
+      const catalogRows = sqlite
+        .query(
+          "SELECT route_id, route_short_name, route_long_name FROM route_catalog ORDER BY route_id",
+        )
+        .all()
+        .map(
+          (row): RouteCatalogRecoveryRow => ({
+            routeId: String((row as Record<string, unknown>)["route_id"]),
+            routeShortName: String((row as Record<string, unknown>)["route_short_name"]),
+            routeLongName:
+              (row as Record<string, unknown>)["route_long_name"] === null
+                ? null
+                : String((row as Record<string, unknown>)["route_long_name"]),
+          }),
+        );
+      const routeTypeRows = sqlite
+        .query(
+          "SELECT route_id, type_rank, route_type FROM route_catalog_type ORDER BY route_id, type_rank",
+        )
+        .all()
+        .map(
+          (row): RouteCatalogTypeRecoveryRow => ({
+            routeId: String((row as Record<string, unknown>)["route_id"]),
+            typeRank: Number((row as Record<string, unknown>)["type_rank"]),
+            routeType: String((row as Record<string, unknown>)["route_type"]),
+          }),
+        );
+      const exactRouteIds = new Set(routeEvidenceIndex.routes.map((route) => route.routeId));
+      const tripTypeRows = sqlite
+        .query(
+          "SELECT route_id, trip_type_rank, trip_type FROM route_catalog_trip_type ORDER BY route_id, trip_type_rank",
+        )
+        .all()
+        .map(
+          (row): RouteCatalogTripTypeRecoveryRow => ({
+            routeId: String((row as Record<string, unknown>)["route_id"]),
+            tripTypeRank: Number((row as Record<string, unknown>)["trip_type_rank"]),
+            tripType: String((row as Record<string, unknown>)["trip_type"]),
+          }),
+        )
+        .filter((row) => exactRouteIds.has(row.routeId));
+      const registryRows = sqlite
+        .query(
+          "SELECT release_id, published_at, coverage_start, coverage_end, source_wiki_release, source_manifest_sha256, source_route_identity_sha256, source_current_bus_routes_sha256, source_index_sha256, catalog_snapshot_sha256, projection_sha256, exact_route_count, route_type_count, trip_type_count FROM exact_route_identity_release",
+        )
+        .all()
+        .map((row): ExactRouteIdentityReleaseRecoveryRow => {
+          const value = row as Record<string, unknown>;
+          return {
+            releaseId: String(value["release_id"]),
+            publishedAt: String(value["published_at"]),
+            coverageStart:
+              value["coverage_start"] === null ? null : String(value["coverage_start"]),
+            coverageEnd: String(value["coverage_end"]),
+            sourceWikiRelease: String(value["source_wiki_release"]),
+            sourceManifestSha256: String(value["source_manifest_sha256"]),
+            sourceRouteIdentitySha256: String(value["source_route_identity_sha256"]),
+            sourceCurrentBusRoutesSha256: String(value["source_current_bus_routes_sha256"]),
+            sourceIndexSha256: String(value["source_index_sha256"]),
+            catalogSnapshotSha256: String(value["catalog_snapshot_sha256"]),
+            projectionSha256: String(value["projection_sha256"]),
+            exactRouteCount: Number(value["exact_route_count"]),
+            routeTypeCount: Number(value["route_type_count"]),
+            tripTypeCount: Number(value["trip_type_count"]),
+          };
+        });
+      auditExactRouteIndexRecovery({
+        mode: "post",
+        receipt,
+        servingRelease: receipt.servingRelease,
+        catalogRows,
+        routeTypeRows,
+        tripTypeTablePresent: true,
+        tripTypeRows,
+        registryTablePresent: true,
+        registryRows,
+      });
+    } finally {
+      sqlite.close();
+    }
+  } catch (error) {
+    input.conflicts.push(
+      `Exact-route identity verification failed: ${error instanceof Error ? error.message : String(error)}.`,
+    );
   }
 }
 
@@ -204,6 +377,14 @@ if (mapManifest === null) {
     }
   }
 }
+
+await verifyExactRouteIdentity({
+  artifactRoot,
+  schemaPath,
+  seedPath,
+  mapManifest,
+  conflicts,
+});
 
 const studioRoutes = await readJson(join(artifactRoot, "studio", "v1", "routes.json"));
 if (studioRoutes === null) conflicts.push("Studio route projection is missing or invalid.");

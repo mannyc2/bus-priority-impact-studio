@@ -1,5 +1,6 @@
 import {
   type LocalRouteHourlyRidership,
+  listRouteCatalogIds,
   listRouteMonthTrends,
   replaceRouteHourlyRidership,
 } from "@bp/db/local";
@@ -136,10 +137,29 @@ async function routeIdsForMonth(input: {
   providedRoutes: readonly string[];
 }): Promise<string[]> {
   if (input.providedRoutes.length > 0) return [...new Set(input.providedRoutes)].sort();
-  const trendRows = await listRouteMonthTrends(input.local.db);
-  return [
-    ...new Set(trendRows.filter((row) => row.month === input.month).map((row) => row.routeId)),
-  ].sort();
+  const [trendRows, catalogRouteIds] = await Promise.all([
+    listRouteMonthTrends(input.local.db),
+    listRouteCatalogIds(input.local.db),
+  ]);
+  return routeHourlyRidershipRouteIds({
+    month: input.month,
+    providedRoutes: input.providedRoutes,
+    trendRows,
+    catalogRouteIds,
+  });
+}
+
+export function routeHourlyRidershipRouteIds(input: {
+  month: string;
+  providedRoutes: readonly string[];
+  trendRows: readonly { month: string; routeId: string }[];
+  catalogRouteIds: readonly string[];
+}): string[] {
+  if (input.providedRoutes.length > 0) return [...new Set(input.providedRoutes)].sort();
+  const monthly = input.trendRows
+    .filter((row) => row.month === input.month)
+    .map((row) => row.routeId);
+  return [...new Set(monthly.length > 0 ? monthly : input.catalogRouteIds)].sort();
 }
 
 export async function runRouteHourlyRidershipIngest(

@@ -3,6 +3,7 @@ import {
   canonicalHourlyRidershipRouteId,
   hourlyRidershipSourceRouteId,
   normalizeRouteHourlyRidershipRows,
+  routeHourlyRidershipRouteIds,
 } from "../../../src/commands/ingest/route-hourly-ridership.ts";
 import { normalizeRouteSegmentSpeedRows } from "../../../src/commands/ingest/route-segment-speeds.ts";
 
@@ -148,5 +149,27 @@ describe("release-only route backfill normalizers", () => {
     });
     expect(hourlyRidershipSourceRouteId("M1")).toBe("M1");
     expect(canonicalHourlyRidershipRouteId("M1")).toBe("M1");
+  });
+
+  it("falls back to the current catalog when the newly closed month has no trend rows yet", () => {
+    expect(
+      routeHourlyRidershipRouteIds({
+        month: "2026-06",
+        providedRoutes: [],
+        trendRows: [{ month: "2026-05", routeId: "M1" }],
+        catalogRouteIds: ["Q1", "B1", "Q1"],
+      }),
+    ).toEqual(["B1", "Q1"]);
+    expect(
+      routeHourlyRidershipRouteIds({
+        month: "2026-05",
+        providedRoutes: [],
+        trendRows: [
+          { month: "2026-05", routeId: "M1" },
+          { month: "2026-05", routeId: "B1" },
+        ],
+        catalogRouteIds: ["Q1"],
+      }),
+    ).toEqual(["B1", "M1"]);
   });
 });

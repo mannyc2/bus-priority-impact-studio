@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { buildD1AppendixSeedSql, buildD1SeedSql, type D1SeedInput } from "../src/d1/seed";
+import {
+  buildD1AppendixSeedSql,
+  buildD1SeedSql,
+  buildPlan097RecoverySeedSql,
+  type D1SeedInput,
+} from "../src/d1/seed";
 
 function emptySeedInput(): D1SeedInput {
   return {
@@ -142,5 +147,109 @@ describe("D1 seed validation", () => {
     if (coverage === undefined) throw new Error("Missing coverage fixture.");
     coverage.spineReadiness = "series_ready";
     expect(() => buildD1SeedSql(input)).toThrow(/spineReasonJson: Expected string array/);
+  });
+
+  test("Plan 097 recovery seed preserves appendix signals and citations and activates last", () => {
+    const input = emptySeedInput();
+    input.routeObservedReliabilitySummaries = [
+      {
+        routeId: "M1",
+        month: "2026-03",
+        runId: "live-run",
+        reliabilityStatus: "observed",
+        minSampleThreshold: 100,
+        sampleCount: 1000,
+        stopCount: 50,
+        directionCount: 2,
+        averageObservedHeadwayMinutes: 5,
+        medianObservedHeadwayMinutes: 5,
+        p90ObservedHeadwayMinutes: 10,
+        maxObservedHeadwayMinutes: 15,
+        scheduledMedianHeadwayMinutes: 5,
+        bunchingThresholdMinutes: 2,
+        longGapThresholdMinutes: 10,
+        observedBunchingShare: 0.1,
+        observedLongGapShare: 0.05,
+        expectedWaitMinutes: 3,
+        scheduledExpectedWaitMinutes: 2.5,
+        excessWaitMinutes: 0.5,
+        waitReliabilityRatio: 1.2,
+      },
+    ];
+    input.routeMonthSourceStatuses = [
+      {
+        routeId: "M1",
+        month: "2026-03",
+        sourceScope: "reliability",
+        sourceId: "observedHeadways",
+        status: "ok",
+        rowCount: 10,
+        snapshotId: "live",
+        note: null,
+      },
+      {
+        routeId: "M1",
+        month: "2026-03",
+        sourceScope: "speed",
+        sourceId: "routeSpeeds",
+        status: "ok",
+        rowCount: 20,
+        snapshotId: "candidate",
+        note: null,
+      },
+    ];
+    input.routeBatchBuiltRoutes = [
+      {
+        month: "2026-03",
+        routeRank: 1,
+        routeId: "M1",
+        artifactCount: 1,
+        status: "pass",
+      },
+    ];
+    input.routeBatchIssues = [
+      {
+        month: "2026-03",
+        issueRank: 1,
+        routeId: "M1",
+        severity: "warning",
+        issueCode: "fixture",
+        message: "fixture warning",
+      },
+    ];
+    input.routeBatchStatus = {
+      month: "2026-03",
+      generatedAt: "2026-07-22T12:00:00.000Z",
+      status: "pass",
+      routeCount: 1,
+      artifactCount: 1,
+      missingArtifactCount: 0,
+      hashMismatchCount: 0,
+      byteLengthMismatchCount: 0,
+      totalByteLength: 100,
+      issueCount: 1,
+    };
+
+    const result = buildPlan097RecoverySeedSql(input);
+    expect(result.seedSql).not.toContain('delete from "route_observed_reliability_summary"');
+    expect(result.seedSql).not.toContain('insert into "route_observed_reliability_summary"');
+    expect(result.seedSql).not.toContain('delete from "route_scorecard_citation"');
+    expect(
+      result.seedSql
+        .split("\n")
+        .filter((line) => line.startsWith('insert into "route_month_source_status"')),
+    ).not.toEqual(expect.arrayContaining([expect.stringContaining("'observedHeadways'")]));
+    expect(result.seedSql).toContain("'routeSpeeds'");
+    expect(result.routeObservedReliabilitySummaryRowCount).toBe(0);
+    expect(result.routeMonthSourceStatusRowCount).toBe(1);
+    expect(result.seedSql.trimEnd().split("\n").at(-1)).toContain(
+      'insert into "route_batch_status"',
+    );
+    expect(result.seedSql.indexOf('insert into "route_batch_built_route"')).toBeLessThan(
+      result.seedSql.indexOf('insert into "route_batch_status"'),
+    );
+    expect(result.seedSql.indexOf('insert into "route_batch_issue"')).toBeLessThan(
+      result.seedSql.indexOf('insert into "route_batch_status"'),
+    );
   });
 });

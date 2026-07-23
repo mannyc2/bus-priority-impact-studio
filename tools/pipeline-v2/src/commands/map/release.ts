@@ -1,9 +1,20 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { mapArtifactManifestPath } from "@bp/analytics/artifacts";
 import { mapArtifactSha256 } from "@bp/analytics/evaluation";
 import { ROUTE_SPEED_SPINE_DEFAULT_START_MONTH } from "@bp/analytics/feature-history";
 import { buildMapReleaseRegistrationSql } from "@bp/db/d1/seed";
+import { replaceRouteBatch } from "@bp/db/local";
+import {
+  canonicalPlan097Json,
+  Plan097ActivationBundleReceiptSchema,
+  Plan097ActivationBundleSchema,
+  type Plan097BatchStatement,
+  type Plan097FreshnessMatrix,
+  Plan097FreshnessMatrixSchema,
+  Plan097StudioScheduleEvidenceSchema,
+} from "@bp/db/recovery/plan097";
 import {
   type ReleaseIdentity,
   ReleaseIdentitySchema,
@@ -20,7 +31,14 @@ import {
   fromCliPath,
   fromRepoRoot,
 } from "../../lib/paths.ts";
+import { buildPlan097RecoveryArtifactInventory } from "../../lib/plan097-recovery-artifacts.ts";
+import {
+  buildPlan097CompactedBatch,
+  buildPlan097ExpectedSchemaEnvelope,
+} from "../../lib/plan097-recovery-batch.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
+import { runExportD1Seed } from "../export/d1.ts";
+import { type D1CanonicalInputs, readLocalD1Inputs } from "../export/d1-inputs.ts";
 import { runRouteBriefModel } from "../route/brief-model.ts";
 import { runStudioRelease } from "../studio/release.ts";
 import { runRouteSpeedSpines } from "../studio/route-speed-spines.ts";
@@ -37,6 +55,7 @@ export type RunMapReleaseInputs = {
   year: number;
   month: number;
   contextSourcePath: string;
+  freshnessMatrix: Plan097FreshnessMatrix;
   artifactRoot?: string | undefined;
   exportRoot?: string | undefined;
   spineStartMonth?: string | undefined;
@@ -53,22 +72,92 @@ export type RunMapReleaseInputs = {
 export type MapReleaseDependencies = {
   routeBrief: typeof runRouteBriefModel;
   speedSpines: typeof runRouteSpeedSpines;
+  exportD1: typeof runExportD1Seed;
+  readD1Inputs: typeof readLocalD1Inputs;
   verifyD1: typeof runVerifyD1Export;
   context: typeof runMapContext;
   studio: typeof runStudioRelease;
   map: typeof runMapArtifacts;
   audit: typeof verifyMapArtifactManifest;
+  commitBatch: typeof commitVerifiedMapRouteBatch;
 };
 
 const defaultDependencies: MapReleaseDependencies = {
   routeBrief: runRouteBriefModel,
   speedSpines: runRouteSpeedSpines,
+  exportD1: runExportD1Seed,
+  readD1Inputs: readLocalD1Inputs,
   verifyD1: runVerifyD1Export,
   context: runMapContext,
   studio: runStudioRelease,
   map: runMapArtifacts,
   audit: verifyMapArtifactManifest,
+  commitBatch: commitVerifiedMapRouteBatch,
 };
+
+export type VerifiedMapRouteBatchProjection = Pick<
+  D1CanonicalInputs,
+  "routeBatchStatus" | "routeBatchBuiltRoutes" | "routeBatchIssues"
+>;
+
+export function buildVerifiedMapRouteBatchProjection(input: {
+  month: string;
+  generatedAt: string;
+  routeIds: readonly string[];
+  artifactEntries: readonly { bytes: number }[];
+}): VerifiedMapRouteBatchProjection {
+  const routeIds = [...input.routeIds].toSorted();
+  if (
+    routeIds.length === 0 ||
+    routeIds.some((routeId) => routeId.length === 0) ||
+    new Set(routeIds).size !== routeIds.length
+  ) {
+    throw new Error("Verified map route batch requires a non-empty, unique route universe");
+  }
+  if (input.artifactEntries.length === 0) {
+    throw new Error("Verified map route batch requires a non-empty artifact inventory");
+  }
+  const totalByteLength = input.artifactEntries.reduce((sum, entry) => sum + entry.bytes, 0);
+  if (!Number.isSafeInteger(totalByteLength) || totalByteLength <= 0) {
+    throw new Error("Verified map route batch artifact bytes must be a positive safe integer");
+  }
+  return {
+    routeBatchStatus: {
+      month: input.month,
+      generatedAt: input.generatedAt,
+      status: "pass",
+      routeCount: routeIds.length,
+      artifactCount: input.artifactEntries.length,
+      missingArtifactCount: 0,
+      hashMismatchCount: 0,
+      byteLengthMismatchCount: 0,
+      totalByteLength,
+      issueCount: 0,
+    },
+    routeBatchBuiltRoutes: routeIds.map((routeId, index) => ({
+      month: input.month,
+      routeRank: index + 1,
+      routeId,
+      artifactCount: null,
+      status: "pass",
+    })),
+    routeBatchIssues: [],
+  };
+}
+
+async function commitVerifiedMapRouteBatch(
+  local: OpenLocalPipelineDb,
+  projection: VerifiedMapRouteBatchProjection,
+): Promise<void> {
+  if (projection.routeBatchStatus === null) {
+    throw new Error("Verified map route batch projection omitted its status");
+  }
+  replaceRouteBatch(local.db, {
+    status: projection.routeBatchStatus,
+    builtRoutes: projection.routeBatchBuiltRoutes,
+    issues: projection.routeBatchIssues,
+  });
+}
 
 function assertReleaseIdentityOutput(input: {
   label: string;
@@ -79,7 +168,9 @@ function assertReleaseIdentityOutput(input: {
   const identity = decodeSchemaStrict(ReleaseIdentitySchema, input.identity);
   if (
     identity.releaseId !== input.expected.releaseId ||
-    identity.publishedAt !== input.expected.publishedAt
+    identity.publishedAt !== input.expected.publishedAt ||
+    identity.coverage.start !== input.expected.coverage.start ||
+    identity.coverage.end !== input.expected.coverage.end
   ) {
     throw new Error(`${input.label} publication identity does not match the map release boundary.`);
   }
@@ -91,11 +182,34 @@ function assertReleaseIdentityOutput(input: {
   return identity;
 }
 
+function sha256(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+function sourceContract(
+  kind:
+    | "canonical-schema"
+    | "recovery-seed"
+    | "exact-route-registration"
+    | "map-release-registration",
+  bytes: Uint8Array,
+) {
+  return { kind, sha256: sha256(bytes), byteLength: bytes.byteLength };
+}
+
 export async function runMapRelease(
   inputs: RunMapReleaseInputs,
   dependencies: MapReleaseDependencies = defaultDependencies,
 ) {
   const month = isoMonth(inputs.year, inputs.month);
+  if (
+    inputs.freshnessMatrix.status !== "ready" ||
+    inputs.freshnessMatrix.candidateCompatibilityCoverageEnd !== month
+  ) {
+    throw new Error(
+      `Map release ${month} requires a ready Plan 097 freshness matrix with matching compatibility coverage`,
+    );
+  }
   const publishedAt = new Date().toISOString();
   const artifactRoot = inputs.artifactRoot ?? defaultArtifactRootPath();
   const exportRoot = inputs.exportRoot ?? defaultExportRootPath();
@@ -126,24 +240,30 @@ export async function runMapRelease(
     publishedAt,
     coverage: { start: speedSpines.coverageStart, end: month },
   });
-  const d1 = await dependencies.verifyD1({
+  const preliminaryD1 = await dependencies.exportD1({
     local: inputs.local,
     year: inputs.year,
     month: inputs.month,
     artifactRoot,
     exportRoot,
+    publishedAt: releaseIdentity.publishedAt,
     releaseIdentity,
   });
   assertReleaseIdentityOutput({
-    label: "D1 export",
+    label: "Preliminary D1 export",
     identity: {
-      releaseId: d1.releaseId,
-      publishedAt: d1.publishedAt,
-      coverage: d1.coverage,
+      releaseId: preliminaryD1.releaseId,
+      publishedAt: preliminaryD1.publishedAt,
+      coverage: preliminaryD1.coverage,
     },
     expected: releaseIdentity,
     month,
   });
+  if (preliminaryD1.exactRouteIdentity === null) {
+    throw new Error(
+      "D1 export did not emit the candidate exact-route identity registration and receipt.",
+    );
+  }
   const context = await dependencies.context({
     sourcePath: inputs.contextSourcePath,
     artifactRoot,
@@ -152,8 +272,8 @@ export async function runMapRelease(
     releaseIdentity,
     month,
     outputPath: join(artifactRoot, "studio", "v1", "release.json"),
-    schemaPath: d1.schemaPath,
-    seedPath: d1.seedPath,
+    schemaPath: preliminaryD1.schemaPath,
+    seedPath: preliminaryD1.seedPath,
     routeSliceArtifactsRoot: join(artifactRoot, "route-slices"),
     speedSpineRoot: artifactRoot,
     routeShapeSnapshotPath,
@@ -185,6 +305,13 @@ export async function runMapRelease(
     expected: releaseIdentity,
     month,
   });
+  const studioScheduleEvidence = decodeSchemaStrict(Plan097StudioScheduleEvidenceSchema, {
+    ...studio.scheduleEvidence,
+    publicationPolicy: "omit_schedule_incomplete_studio_routes",
+  });
+  if (studioScheduleEvidence.analysisPeriod !== month) {
+    throw new Error("Studio schedule evidence does not match the map release analysis period.");
+  }
   const map = await dependencies.map({
     local: inputs.local,
     year: inputs.year,
@@ -246,6 +373,81 @@ export async function runMapRelease(
   await mkdir(dirname(finalManifestPath), { recursive: true });
   await writeFile(finalManifestPath, manifestBytes);
 
+  const preliminaryRecoveryArtifacts = await buildPlan097RecoveryArtifactInventory({
+    artifactRoot,
+    month,
+    schemaPath: preliminaryD1.schemaPath,
+    seedPath: preliminaryD1.seedPath,
+    finalMapManifestKey: finalManifestKey,
+    releaseIdentity,
+  });
+  const routeBatchProjection = buildVerifiedMapRouteBatchProjection({
+    month,
+    generatedAt: releaseIdentity.publishedAt,
+    routeIds: manifest.routeUniverse.expectedRouteIds,
+    artifactEntries: preliminaryRecoveryArtifacts.manifest.entries,
+  });
+  const canonicalInputs = await dependencies.readD1Inputs(inputs.local.db, month, {
+    sqlite: inputs.local.sqlite,
+    artifactRoot,
+  });
+  const d1 = await dependencies.verifyD1({
+    local: inputs.local,
+    year: inputs.year,
+    month: inputs.month,
+    artifactRoot,
+    exportRoot,
+    releaseIdentity,
+    inputs: {
+      ...canonicalInputs,
+      ...routeBatchProjection,
+    },
+  });
+  assertReleaseIdentityOutput({
+    label: "D1 export",
+    identity: {
+      releaseId: d1.releaseId,
+      publishedAt: d1.publishedAt,
+      coverage: d1.coverage,
+    },
+    expected: releaseIdentity,
+    month,
+  });
+  if (d1.exactRouteIdentity === null) {
+    throw new Error(
+      "D1 export did not emit the candidate exact-route identity registration and receipt.",
+    );
+  }
+
+  const recoveryArtifacts = await buildPlan097RecoveryArtifactInventory({
+    artifactRoot,
+    month,
+    schemaPath: d1.schemaPath,
+    seedPath: d1.seedPath,
+    finalMapManifestKey: finalManifestKey,
+    releaseIdentity,
+  });
+  const finalArtifactBytes = recoveryArtifacts.manifest.entries.reduce(
+    (sum, entry) => sum + entry.bytes,
+    0,
+  );
+  if (
+    routeBatchProjection.routeBatchStatus === null ||
+    routeBatchProjection.routeBatchStatus.artifactCount !==
+      recoveryArtifacts.manifest.entries.length ||
+    routeBatchProjection.routeBatchStatus.totalByteLength !== finalArtifactBytes
+  ) {
+    throw new Error("Final recovery inventory drifted after verified route-batch projection");
+  }
+  const recoveryMapManifest = recoveryArtifacts.manifest.entries.find(
+    (entry) => entry.logicalKey === finalManifestKey,
+  );
+  if (recoveryMapManifest === undefined) {
+    throw new Error("Plan 097 recovery inventory omitted the verified map manifest");
+  }
+  const recoveryArtifactManifestPath = join(dirname(d1.seedPath), "plan097-artifact-manifest.json");
+  await writeFile(recoveryArtifactManifestPath, recoveryArtifacts.manifestText);
+
   const registrationPath = join(dirname(d1.seedPath), "map-release-registration.sql");
   const catalogReleaseIdentity = assertReleaseIdentityOutput({
     label: "Map catalog registration",
@@ -255,7 +457,7 @@ export async function runMapRelease(
   });
   const registrationSql = buildMapReleaseRegistrationSql({
     ...catalogReleaseIdentity,
-    manifestKey: finalManifestKey,
+    manifestKey: recoveryMapManifest.key,
     manifestSha256: finalManifestSha256,
     releaseProfile: "full",
     verificationStatus: "pass",
@@ -263,6 +465,90 @@ export async function runMapRelease(
   });
   await mkdir(dirname(registrationPath), { recursive: true });
   await writeFile(registrationPath, registrationSql);
+
+  const [schemaBytes, recoverySeedBytes, exactRegistrationBytes] = await Promise.all([
+    readFile(d1.schemaPath),
+    readFile(d1.plan097RecoverySeedPath),
+    readFile(d1.exactRouteIdentity.registrationFile.path),
+  ]);
+  if (sha256(exactRegistrationBytes) !== d1.exactRouteIdentity.registrationFile.sha256) {
+    throw new Error("Candidate exact-route registration bytes do not match the D1 receipt");
+  }
+  const schemaSql = new TextDecoder().decode(schemaBytes);
+  const mapRegistrationBytes = new TextEncoder().encode(registrationSql);
+  const registrations: Plan097BatchStatement[] = [
+    {
+      sql: new TextDecoder().decode(exactRegistrationBytes).trim(),
+      params: [],
+      table: "exact_route_identity_release",
+      kind: "registration",
+      rowCount: 1,
+    },
+    {
+      sql: registrationSql.trim(),
+      params: [],
+      table: "map_release_catalog",
+      kind: "registration",
+      rowCount: 1,
+    },
+  ];
+  const batch = buildPlan097CompactedBatch({
+    schemaSql,
+    recoverySeedSql: new TextDecoder().decode(recoverySeedBytes),
+    registrations,
+  });
+  const operationId = `plan097:${releaseIdentity.releaseId}`;
+  const activationBundle = decodeSchemaStrict(Plan097ActivationBundleSchema, {
+    artifactKind: "bp.ops.plan097.activation-bundle.v1",
+    schemaVersion: 1,
+    operationId,
+    candidate: releaseIdentity,
+    freshnessMatrix: inputs.freshnessMatrix,
+    studioScheduleEvidence,
+    expectedExactRouteCount: d1.exactRouteIdentity.exactRouteCount,
+    schemaEnvelope: buildPlan097ExpectedSchemaEnvelope(schemaSql),
+    artifactManifest: {
+      key: recoveryArtifacts.manifestKey,
+      sha256: recoveryArtifacts.manifestSha256,
+      byteLength: recoveryArtifacts.manifestBytes,
+      entryCount: recoveryArtifacts.manifest.entries.length,
+    },
+    sources: [
+      sourceContract("canonical-schema", schemaBytes),
+      sourceContract("recovery-seed", recoverySeedBytes),
+      sourceContract("exact-route-registration", exactRegistrationBytes),
+      sourceContract("map-release-registration", mapRegistrationBytes),
+    ],
+    batch,
+  });
+  const activationBundleText = `${canonicalPlan097Json(activationBundle)}\n`;
+  const activationBundleBytes = new TextEncoder().encode(activationBundleText);
+  const activationBundleSha256 = sha256(activationBundleBytes);
+  const activationBundlePath = join(dirname(d1.seedPath), "plan097-activation-bundle.json");
+  const activationBundleKey = `operations/plan097/bundles/${releaseIdentity.releaseId}/activation.${activationBundleSha256}.json`;
+  const activationBundleReceipt = decodeSchemaStrict(Plan097ActivationBundleReceiptSchema, {
+    artifactKind: "bp.ops.plan097.activation-bundle-receipt.v1",
+    schemaVersion: 1,
+    operationId,
+    candidate: releaseIdentity,
+    freshnessMatrix: inputs.freshnessMatrix,
+    studioScheduleEvidence,
+    bundle: {
+      key: activationBundleKey,
+      sha256: activationBundleSha256,
+      byteLength: activationBundleBytes.byteLength,
+    },
+    metrics: batch.metrics,
+  });
+  const activationBundleReceiptPath = join(
+    dirname(d1.seedPath),
+    "plan097-activation-bundle-receipt.json",
+  );
+  await Promise.all([
+    writeFile(activationBundlePath, activationBundleBytes),
+    writeFile(activationBundleReceiptPath, `${canonicalPlan097Json(activationBundleReceipt)}\n`),
+  ]);
+  await dependencies.commitBatch(inputs.local, routeBatchProjection);
 
   return {
     month,
@@ -274,6 +560,7 @@ export async function runMapRelease(
     busLaneSnapshotPath,
     routeBrief,
     speedSpines,
+    preliminaryD1,
     d1,
     context,
     studio,
@@ -283,6 +570,15 @@ export async function runMapRelease(
     finalManifestPath,
     finalManifestSha256,
     registrationPath,
+    recoveryArtifactManifestPath,
+    preliminaryRecoveryArtifacts,
+    recoveryArtifacts,
+    routeBatchProjection,
+    activationBundlePath,
+    activationBundleReceiptPath,
+    activationBundleKey,
+    activationBundleSha256,
+    activationBatchMetrics: batch.metrics,
   };
 }
 
@@ -297,6 +593,9 @@ export default defineCommand({
         month: arg.positiveInt().pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3))),
         contextSource: Schema.String.annotate({
           description: "Required raw borough-boundary CSV used to build context",
+        }),
+        freshnessMatrix: Schema.String.annotate({
+          description: "Required ready Plan 097 per-dataset freshness matrix",
         }),
         artifactRoot: Schema.optionalKey(Schema.String),
         exportRoot: Schema.optionalKey(Schema.String),
@@ -316,6 +615,10 @@ export default defineCommand({
   async run({ input }) {
     const path = (value: string | undefined) =>
       value === undefined ? undefined : fromCliPath(value);
+    const freshnessMatrix = decodeSchemaStrict(
+      Plan097FreshnessMatrixSchema,
+      await Bun.file(fromCliPath(input.options.freshnessMatrix)).json(),
+    );
     return runLocalDbCommandBoundary({
       dbPath: path(input.options.db),
       command: "map.release",
@@ -326,6 +629,7 @@ export default defineCommand({
           year: input.options.year,
           month: input.options.month,
           contextSourcePath: fromCliPath(input.options.contextSource),
+          freshnessMatrix,
           artifactRoot: path(input.options.artifactRoot),
           exportRoot: path(input.options.exportRoot),
           spineStartMonth: input.options.spineStartMonth,

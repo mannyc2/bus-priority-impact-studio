@@ -84,6 +84,7 @@ import {
   type StudioSourceMonthState,
 } from "@bp/domain/studio/snapshots";
 import { Result, Schema } from "effect";
+import { loadReleaseArtifact } from "../artifact-resolver.js";
 import { studioOpenApiDocument } from "../contracts/openapi.js";
 import type { StudioApiRouteId } from "../contracts/registry.js";
 import { matchRouteSpec } from "../contracts/routing.js";
@@ -137,7 +138,14 @@ import {
 } from "./route-sections-read-model.js";
 
 // Public release identity and covered months resolve internally from D1, never from env.
-export type StudioReadEnv = Pick<StudioApiEnv, "ARTIFACTS" | "DB" | "STUDIO_RELEASE_KEY">;
+export type StudioReadEnv = Pick<
+  StudioApiEnv,
+  | "ARTIFACTS"
+  | "DB"
+  | "PLAN097_PREVIOUS_RELEASE_ID"
+  | "PLAN097_RECOVERY_ENABLED"
+  | "STUDIO_RELEASE_KEY"
+>;
 
 const OPENAPI_DOC_METHODS = ["get", "post", "put", "patch", "delete"] as const;
 const SNAPSHOT_2_OMITTED_CAVEAT =
@@ -696,7 +704,7 @@ async function loadStudioRouteEvidenceIndex(
   env: StudioReadEnv,
 ): Promise<StudioRouteEvidenceIndex | null> {
   if (env.ARTIFACTS === undefined) return null;
-  const object = await env.ARTIFACTS.get(STUDIO_ROUTE_EVIDENCE_INDEX_KEY);
+  const object = await loadReleaseArtifact(env, STUDIO_ROUTE_EVIDENCE_INDEX_KEY);
   if (object === null) return null;
 
   let payload: unknown;
@@ -714,7 +722,7 @@ async function loadModelArtifactServingProjection(
   env: StudioReadEnv,
 ): Promise<ModelArtifactServingProjection | null> {
   if (env.ARTIFACTS === undefined) return null;
-  const object = await env.ARTIFACTS.get(STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY);
+  const object = await loadReleaseArtifact(env, STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY);
   if (object === null) return null;
 
   let payload: unknown;
@@ -742,7 +750,7 @@ async function loadDetectorReadinessServingManifest(
   env: StudioReadEnv,
 ): Promise<DetectorReadinessServingManifestForInsights | null> {
   if (env.ARTIFACTS === undefined) return null;
-  const object = await env.ARTIFACTS.get(STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY);
+  const object = await loadReleaseArtifact(env, STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY);
   if (object === null) return null;
 
   let payload: unknown;
@@ -763,7 +771,7 @@ async function loadRouteCapabilityManifest(
   env: StudioReadEnv,
 ): Promise<RouteCapabilityManifestForIndex | null> {
   if (env.ARTIFACTS === undefined) return null;
-  const object = await env.ARTIFACTS.get(STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY);
+  const object = await loadReleaseArtifact(env, STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY);
   if (object === null) return null;
 
   let payload: unknown;
@@ -808,7 +816,7 @@ async function loadRouteDossierSummaryForDetail(input: {
 }): Promise<RouteDossierSummaryForDetail | null> {
   if (input.env.ARTIFACTS === undefined) return null;
   for (const slug of routeDetailSlugCandidates(input.routeId, input.requestedSlug)) {
-    const object = await input.env.ARTIFACTS.get(routeDossierSummaryKey(slug));
+    const object = await loadReleaseArtifact(input.env, routeDossierSummaryKey(slug));
     if (object === null) continue;
 
     let payload: unknown;
@@ -840,7 +848,7 @@ async function loadRouteHourlyProfileForDetail(input: {
 }): Promise<HourlyProfileDetailFields | null> {
   if (input.env.ARTIFACTS === undefined) return null;
   for (const slug of routeDetailSlugCandidates(input.routeId, input.requestedSlug)) {
-    const object = await input.env.ARTIFACTS.get(routeHourlyProfileArtifactKey(slug));
+    const object = await loadReleaseArtifact(input.env, routeHourlyProfileArtifactKey(slug));
     if (object === null) continue;
 
     let payload: unknown;
@@ -910,7 +918,7 @@ async function loadRouteSpeedSpineForSegments(
   routeSlug: string,
 ): Promise<RouteSpeedSpineArtifactForSegments | null> {
   if (env.ARTIFACTS === undefined) return null;
-  const object = await env.ARTIFACTS.get(`studio/v2/routes/${routeSlug}/speed-spine.json`);
+  const object = await loadReleaseArtifact(env, `studio/v2/routes/${routeSlug}/speed-spine.json`);
   if (object === null) return null;
 
   let payload: unknown;
@@ -1653,7 +1661,7 @@ export async function buildStudioRouteHourlyProfileResponse(
   }
 
   const key = routeHourlyProfileArtifactKey(slug);
-  const object = await env.ARTIFACTS.get(key);
+  const object = await loadReleaseArtifact(env, key);
   if (object === null) {
     return {
       ok: false,
@@ -1712,7 +1720,7 @@ export async function buildStudioRouteSpeedHistoryResponse(
   }
 
   const key = routeSpeedHistoryArtifactKey(slug);
-  const object = await env.ARTIFACTS.get(key);
+  const object = await loadReleaseArtifact(env, key);
   if (object === null) {
     return {
       ok: false,
@@ -1795,7 +1803,7 @@ export async function buildStudioRouteTimelineResponse(
   );
 
   const key = studioRouteEvidenceBundleKey(routeIdToStudioSlug(row.routeId));
-  const object = await env.ARTIFACTS.get(key);
+  const object = await loadReleaseArtifact(env, key);
   if (object === null) {
     return {
       ok: true,
@@ -1925,7 +1933,7 @@ async function loadCompactInterventionsEvidenceBundle(
   routeEvidenceIndex: StudioRouteEvidenceIndex | null,
 ): Promise<{ ok: true; bundle: StudioInterventionsEvidenceBundle | null }> {
   const key = studioRouteEvidenceBundleKey(route.slug);
-  const object = await env.ARTIFACTS.get(key);
+  const object = await loadReleaseArtifact(env, key);
   if (object === null) return { ok: true, bundle: null };
 
   let objectPayload: Awaited<ReturnType<typeof routeEvidenceObjectPayload>>;

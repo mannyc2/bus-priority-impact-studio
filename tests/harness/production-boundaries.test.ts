@@ -204,6 +204,105 @@ describe("production boundary harness", () => {
     }
   });
 
+  test("Plan 097 centralizes Studio R2 reads and leaves only the verified map loader direct", async () => {
+    const publicApi = await Bun.file("packages/studio-api/src/public-api.ts").text();
+    const projections = await Bun.file("packages/studio-api/src/studio/projections.ts").text();
+    const readHandlers = await Bun.file("packages/studio-api/src/studio/read-handlers.ts").text();
+    const directGetPattern = /ARTIFACTS\.get\(/g;
+
+    expect(projections.match(directGetPattern) ?? []).toHaveLength(0);
+    expect(readHandlers.match(directGetPattern) ?? []).toHaveLength(0);
+    expect(publicApi.match(directGetPattern) ?? []).toHaveLength(1);
+    expect(publicApi).toContain("env.ARTIFACTS.get(catalog.manifestKey)");
+    expect(publicApi).toContain("PLAN097_RECOVERY_NAMESPACE");
+  });
+
+  test("Plan 097 keeps production mutation behind the protected atomic transport", async () => {
+    const workflow = await Bun.file(".github/workflows/ci.yml").text();
+    const productionWrangler = await Bun.file("apps/web/wrangler.jsonc").text();
+    const legacyPublisher = await Bun.file("scripts/publish-serving-release.sh").text();
+    const recoveryCli = await Bun.file("tools/pipeline-v2/src/commands/publish/recovery.ts").text();
+    const operationHandler = await Bun.file(
+      "apps/web/src/worker/operations/plan097-recovery.ts",
+    ).text();
+    const workerFiles = await readFiles("apps/web/src/worker");
+
+    expect(workflow).not.toMatch(/wrangler d1 execute[^\n]*--file/);
+    expect(productionWrangler).toContain('"PLAN097_RECOVERY_ENABLED": "true"');
+    expect(productionWrangler).toContain(
+      '"PLAN097_PREVIOUS_RELEASE_ID": "pub_20260605T183601689Z"',
+    );
+    expect(productionWrangler).not.toContain("PLAN097_RECOVERY_OPERATION_ENABLED");
+    expect(productionWrangler).not.toContain("PLAN097_OPERATIONS");
+    expect(legacyPublisher).toContain("Remote execution is disabled during Plan 097");
+    expect(recoveryCli).not.toContain("wrangler");
+    expect(recoveryCli).not.toContain("d1 execute");
+    expect(operationHandler.match(/\.batch\(/g) ?? []).toHaveLength(1);
+
+    for (const file of workerFiles) {
+      if (file.path.endsWith("/operations/plan097-recovery.ts")) {
+        continue;
+      }
+      expect(file.text.includes(".batch("), `${file.path} bypasses the Plan 097 batch owner`).toBe(
+        false,
+      );
+    }
+  });
+
+  test("Plan 097 proof template cannot bind or route to production", async () => {
+    const proofConfig = await Bun.file("apps/web/wrangler.plan097-proof.example.jsonc").text();
+    const productionConfig = await Bun.file("apps/web/wrangler.jsonc").text();
+    const productionD1Id = productionConfig.match(/"database_id":\s*"([0-9a-f-]{36})"/u)?.[1];
+
+    expect(productionD1Id).toBeDefined();
+    expect(proofConfig).not.toContain(productionD1Id);
+    expect(proofConfig).not.toMatch(/"database_name":\s*"bus-priority-serving"/u);
+    expect(proofConfig).not.toMatch(/"bucket_name":\s*"bus-priority-artifacts"/u);
+    expect(proofConfig).not.toMatch(/"routes"\s*:/u);
+    expect(proofConfig).not.toMatch(/"triggers"\s*:/u);
+    expect(proofConfig).toContain('"workers_dev": true');
+    expect(proofConfig).toContain('"preview_urls": false');
+    expect(proofConfig).toContain('"PLAN097_PROOF_MODE": "true"');
+    expect(proofConfig).toContain('"PLAN097_RECOVERY_ENABLED": "true"');
+    expect(proofConfig).toContain('"PLAN097_PREVIOUS_RELEASE_ID": "<previous-release-id>"');
+  });
+
+  test("Plan 097 operation templates disable preview-URL bypass", async () => {
+    for (const path of [
+      "apps/web/wrangler.plan097-preflight.example.jsonc",
+      "apps/web/wrangler.plan097-proof.example.jsonc",
+      "apps/web/wrangler.plan097-activation.example.jsonc",
+    ]) {
+      const config = await Bun.file(path).text();
+      expect(config).toContain('"workers_dev": true');
+      expect(config).toContain('"preview_urls": false');
+      expect(config).toContain('"PLAN097_ACCESS_TEAM_DOMAIN"');
+      expect(config).toContain('"PLAN097_ACCESS_AUD"');
+      expect(config).toContain('"PLAN097_ACCESS_SERVICE_TOKEN_ID"');
+      expect(config).not.toContain("PLAN097_SERVICE_TOKEN_SECRET");
+      expect(config).not.toMatch(/"routes"\s*:/u);
+      expect(config).not.toMatch(/"triggers"\s*:/u);
+    }
+  });
+
+  test("Plan 097 reader predeploy is receipt-backed and rolls the Worker back on failure", async () => {
+    const workflow = await Bun.file(".github/workflows/ci.yml").text();
+
+    expect(workflow).toContain("wrangler deployments status --json");
+    expect(workflow).toContain("prior_version_id");
+    expect(workflow).toContain("check-plan097-recovery-reader.ts");
+    expect(workflow).toContain("plan097-reader-deploy.receipt.json");
+    expect(workflow).toContain("plan097-reader-deploy.receipt.sha256");
+    expect(workflow).toContain("Roll back Worker on postdeploy failure");
+    expect(workflow).toContain("wrangler rollback");
+    expect(workflow).toContain("if: failure()");
+    expect(workflow).toContain("Upload Plan 097 rollback evidence");
+    expect(workflow).toContain("if-no-files-found: error");
+    expect(workflow.indexOf("Upload Plan 097 reader predeploy receipts")).toBeLessThan(
+      workflow.indexOf("Roll back Worker on postdeploy failure"),
+    );
+  });
+
   test("domain package remains infrastructure-free", async () => {
     const files = await readFiles("packages/domain/src");
     const forbiddenImports = [

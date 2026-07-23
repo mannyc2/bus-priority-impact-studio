@@ -10,9 +10,11 @@ harness gate), 12 (plans 090-093 plus amended 082: exact, lossless route
 intervention inventory; typed relevance; complete UI recognition; and the
 first non-ACE observation expansion), 13 (Plan 089: the approved typed
 `/interventions` network-ledger redesign), 14 (Plan 094: the route-detail
-Treatments & History redesign), and 15 (Plan 095: exact route-index v3 serving
-recovery), and 16 (Plan 096: exact member-grain study consumer and fresh
-reviewed universe — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
+Treatments & History redesign), 15 (Plan 095: exact route-index v3 serving
+recovery), 16 (Plan 096: exact member-grain study consumer), and 17 (Plans
+097-101: safe catch-up, atomic releases, full-history freshness, publication
+control plane, and deterministic incremental de-month completion — all
+below).** Generation 6 (048-060, the MTA-visual-language UI/UX
 overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
 `packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
 business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
@@ -23,6 +25,114 @@ notes. Generations 4 (030-035) and 5 (036-047) are DONE; generation 3
 complete or superseded; older sections are kept further down as history and
 rationale. Each executor: read your plan fully before starting, honor its STOP
 conditions, and update your row when done.
+
+---
+
+# Generation 17 — production currency + atomic incremental publication (2026-07-22)
+
+Planned against `origin/main@ecf556a79e23b4b9374d08210a380754756f357b`
+by an `improve` read-only audit. Only `plans/**` changed. The audit replaced
+four untracked, stale drafts whose numbering collided with landed Plan 096 and
+whose proposed D1 ledger baseline was unsafe.
+
+Operator decisions (2026-07-22, binding): remove month as release identity but
+retain it as source grain/coordinate/partition; run detection daily; publish a
+new complete critical-source partition within seven days and never remain more
+than one source period behind; serve each dataset's full trustworthy range
+without forcing a global intersection; optimize Cloudflare cost, local build
+time, upload bytes, and request latency together; require zero-downtime staging
+and one-pointer rollback for future cutovers; keep publication reviewed rather
+than automatic; and make a semantic no-change run a non-release.
+
+The approved sequence has one bounded bootstrap exception because production
+does not yet have a pointer: Plan 097 may perform the same-schema catch-up with
+one proven atomic D1 activation batch and one proven selective restore batch.
+It may not change a public artifact/schema contract, overwrite active objects,
+or proceed if either batch misses its remote proof. Plan 098 then establishes
+the pointer; every subsequent activation/rollback must use it.
+
+The audit also found that production D1 holds mutable auth/session/user state.
+Plan 097 therefore preserves it and uses a selective serving-data recovery;
+replacing the whole database or routinely using Time Travel would risk losing
+concurrent writes. Plan 098 then versions only generated serving projections
+and makes one pointer select D1, exact identity, maps, and every R2 artifact.
+
+## Execution order & status (gen 17)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | IN PROGRESS |
+| 098 | Atomic serving releases with immutable artifacts | P1 | XL | 097 production completion or signed atomic-limit STOP handoff | TODO |
+| 099 | Full dataset history and a one-period freshness SLO | P1 | XL | 098 | TODO |
+| 100 | Resumable publication control plane and drift alarms | P1 | L | 098 active; 099 built candidate + `activation_ready` receipt | TODO |
+| 101 | Deterministic incremental publication and final de-month cleanup | P2 | L-XL | 098-100 active + rollback drill | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+Current Plan 097 checkpoint (2026-07-23): local candidate, transport, exact
+command/runbook, measured receipts, and Worker-harness proof/completion paths
+are implemented on draft PR #101. A continuation audit added the missing
+production recovery/no-store predeploy config, Access-JWT origin validation,
+preview-URL denial, resolver-enabled proof config, and a version-captured,
+receipt-backed predeploy with automatic Worker rollback; these corrections are
+not deployed yet. The signed Cloudflare preflight, disposable remote A→B→A
+evidence, fresh production token, and live completion receipt do not exist;
+097 therefore remains IN PROGRESS and 098 has not started.
+
+## Dependency and safety notes (gen 17)
+
+- Execute in order when Plan 097's compacted D1 activation proves it fits one
+  transaction. If that exact remote proof fails, its signed STOP receipt hands
+  catch-up to Plan 098; this is a safe branch, not a dependency deadlock. No
+  later artifact-contract cutover is allowed until Plan 098 has activated and
+  completed its A→B→A→B rollback drill.
+- Plan 097 must not insert migration-ledger rows, execute aggregate
+  `schema.sql`, replace production D1, or reuse the Plan 095 exact-identity row
+  for a new release. Its Cloudflare mutations require a separate operator token.
+- Plan 098 separates content-derived candidate identity from activation-time
+  release identity, versions only generated D1 data, and preserves auth/user/
+  current-signal rows. One request resolves one release/candidate.
+- Plan 099 owns dataset-specific full history and SLO semantics. Plan 100 owns
+  the daily scheduled GitHub issue and the reviewed remote state machine; the
+  schedule detects drift but never publishes. Plan 099 hands its built full-
+  history candidate to Plan 100; their first successful activation receipt
+  jointly completes Plan 099's production criterion and Plan 100's end-to-end
+  proof, avoiding a dependency cycle.
+- Plan 101 removes compatibility only after a live pointer activation and
+  rollback drill. History chunking may be rejected if Cloudflare request cost
+  or latency outweighs upload/build savings.
+- Months remain legal observation and source-partition values under ADR-0022.
+  The ratchet targets selectors, defaults, config, and release paths—not the
+  word `month` or monthly data.
+
+## Principal corrections to the superseded drafts
+
+- Origin main already contains `plans/096-member-grain-study-consumer.md`; the
+  proposed production Plan 096 collided and is replaced by Plan 097.
+- Migration history starts at 0000 and includes schema/data/index changes.
+  Table existence cannot authorize invented `d1_migrations` rows, and current
+  CI's direct 0032/0034 recovery skipped 0033.
+- The production D1 also holds non-reconstructible live writes, so a seeded
+  shadow D1 is not a safe default. Selective serving rollback is required.
+- Studio derives “latest” from `route_batch_status`, maps elect their own
+  latest catalog row, and most R2 reads use mutable stable keys. Atomicity
+  requires candidate-scoped D1 rows plus one active pointer and artifact map.
+- Post-audit amendments require a durable pre-mutation HTTP baseline, an
+  explicit fail-closed decode policy, separate operator/machine-time cost
+  evidence, and a fenced verified-object catalog fast path that removes routine
+  HEADs without treating receipts, ETags, filenames, or size as content proof.
+- A fresh release currently lacks a canonical exact-route registry row and
+  would regress schema-v3/detail/history despite Plan 095's successful repair.
+- The current freshness ledger permits three periods of lag and lets critical
+  unknowns pass strict mode; it also maps sources to one global publication
+  range. Plan 099 replaces those semantics rather than relabeling them.
+- R2 hash skipping is unsafe when ETag is empty, and builders mix wall-clock
+  `generatedAt` with reusable payloads or reuse any decodable file without an
+  input fingerprint. Plan 101 fixes both correctness and cost.
+
+See the five plan files for exact evidence, implementation seams, verification,
+acceptance criteria, and STOP conditions.
 
 ---
 
