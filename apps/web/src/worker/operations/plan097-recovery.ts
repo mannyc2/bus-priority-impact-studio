@@ -6,6 +6,7 @@ import {
   type Plan097ActivationBundle,
   Plan097ActivationBundleSchema,
   type Plan097CompactedBatch,
+  Plan097CompletionReceiptSchema,
   type Plan097OperationMetrics,
   type Plan097OperationRequest,
   Plan097OperationRequestSchema,
@@ -13,6 +14,7 @@ import {
   Plan097OperationResponseSchema,
   type Plan097PreflightReceipt,
   Plan097PreflightReceiptSchema,
+  Plan097ProofSummarySchema,
   type Plan097ProtectedFingerprint,
   Plan097RecoveryArtifactManifestSchema,
   type Plan097RestoreBundle,
@@ -20,6 +22,8 @@ import {
   type Plan097SchemaAuditInput,
   type Plan097SelectiveSnapshot,
   Plan097SelectiveSnapshotSchema,
+  type Plan097WorkerReceipt,
+  Plan097WorkerReceiptSchema,
   plan097MapReleaseCatalogRecoveryStatements,
   plan097PreflightSignedPayloadBytes,
   plan097RecoveryMutationTables,
@@ -451,6 +455,60 @@ async function loadActivationBundle(input: {
     throw new Error("Plan 097 activation bundle identity does not match the operation");
   }
   return bundle;
+}
+
+async function seedOperationBundle(input: {
+  env: Env & { PLAN097_OPERATIONS: R2Bucket };
+  request: Extract<Plan097OperationRequest, { action: "seed-bundle" }>;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
+}): Promise<{ releaseId: string; objectCount: number }> {
+  const releaseId = releaseIdFromOperationId(input.request.operationId);
+  const activationBytes = decodeBase64Bytes(input.request.activationBundleBase64);
+  if ((await sha256(activationBytes)) !== input.request.activationBundleSha256) {
+    throw new Error("Plan 097 seed activation bytes do not match the allowlisted SHA-256");
+  }
+  const bundle = decodeStrict(Plan097ActivationBundleSchema)(
+    JSON.parse(new TextDecoder().decode(activationBytes)),
+  );
+  if (
+    bundle.operationId !== input.request.operationId ||
+    bundle.candidate.releaseId !== releaseId
+  ) {
+    throw new Error("Plan 097 seed activation bundle identity does not match the operation");
+  }
+  const manifestBytes = decodeBase64Bytes(input.request.artifactManifestBase64);
+  if (
+    manifestBytes.byteLength !== bundle.artifactManifest.byteLength ||
+    (await sha256(manifestBytes)) !== bundle.artifactManifest.sha256
+  ) {
+    throw new Error("Plan 097 seed manifest bytes do not match the activation bundle");
+  }
+  const manifest = decodeStrict(Plan097RecoveryArtifactManifestSchema)(
+    JSON.parse(new TextDecoder().decode(manifestBytes)),
+  );
+  if (
+    manifest.releaseId !== releaseId ||
+    manifest.entries.length !== bundle.artifactManifest.entryCount
+  ) {
+    throw new Error("Plan 097 seed manifest identity does not match the activation bundle");
+  }
+  await putIdentical({
+    bucket: input.env.PLAN097_OPERATIONS,
+    key: activationBundleKey(releaseId, input.request.activationBundleSha256),
+    body: activationBytes,
+    sha256: input.request.activationBundleSha256,
+    mediaType: "application/json",
+    metrics: input.metrics,
+  });
+  await putIdentical({
+    bucket: input.env.PLAN097_OPERATIONS,
+    key: bundle.artifactManifest.key,
+    body: manifestBytes,
+    sha256: bundle.artifactManifest.sha256,
+    mediaType: "application/json",
+    metrics: input.metrics,
+  });
+  return { releaseId, objectCount: 2 };
 }
 
 async function mirrorOperationBundle(input: {
@@ -992,6 +1050,231 @@ async function putCanonicalEvidence(input: {
   return { kind: input.kind, key, sha256: digest, bytes: bytes.byteLength };
 }
 
+function receiptSha256FromKey(key: string): string {
+  const match = key.match(/\.([a-f0-9]{64})\.json$/u);
+  if (match?.[1] === undefined) throw new Error("Plan 097 receipt key has no SHA-256 suffix");
+  return match[1];
+}
+
+async function loadWorkerReceipts(input: {
+  bucket: R2Bucket;
+  keys: readonly string[];
+  operationId: string;
+  releaseId: string;
+  activationBundleSha256: string;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
+}): Promise<Plan097WorkerReceipt[]> {
+  if (new Set(input.keys).size !== input.keys.length) {
+    throw new Error("Plan 097 receipt keys must be unique");
+  }
+  const receipts: Plan097WorkerReceipt[] = [];
+  for (const key of input.keys) {
+    const bytes = await readVerifiedObject({
+      bucket: input.bucket,
+      key,
+      expectedSha256: receiptSha256FromKey(key),
+      metrics: input.metrics,
+    });
+    const receipt = decodeStrict(Plan097WorkerReceiptSchema)(
+      JSON.parse(new TextDecoder().decode(bytes)),
+    );
+    if (
+      receipt.operationId !== input.operationId ||
+      receipt.releaseId !== input.releaseId ||
+      receipt.activationBundleSha256 !== input.activationBundleSha256
+    ) {
+      throw new Error("Plan 097 worker receipt identity does not match the operation");
+    }
+    receipts.push(receipt);
+  }
+  return receipts;
+}
+
+function requireExactPhases(actual: readonly string[], expected: readonly string[]): void {
+  if (canonicalPlan097Json(actual) !== canonicalPlan097Json(expected)) {
+    throw new Error("Plan 097 HTTP comparison phases are incomplete or out of order");
+  }
+}
+
+async function recordProofSummary(input: {
+  env: Env & { PLAN097_OPERATIONS: R2Bucket };
+  bundle: Plan097ActivationBundle;
+  request: Extract<Plan097OperationRequest, { action: "record-proof" }>;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
+}): Promise<EvidenceRef> {
+  requireExactPhases(
+    input.request.httpComparisons.map((comparison) => comparison.phase),
+    ["proof-baseline", "injected-failure", "candidate-active", "baseline-restored"],
+  );
+  const [baseline, failed, active, restored] = input.request.httpComparisons;
+  if (
+    baseline === undefined ||
+    failed === undefined ||
+    active === undefined ||
+    restored === undefined ||
+    baseline.baseline.activeReleaseId !== failed.baseline.activeReleaseId ||
+    baseline.baseline.activeReleaseId !== restored.baseline.activeReleaseId ||
+    active.baseline.activeReleaseId !== input.bundle.candidate.releaseId
+  ) {
+    throw new Error("Plan 097 proof HTTP elections do not show A-to-B-to-A");
+  }
+  const receipts = await loadWorkerReceipts({
+    bucket: input.env.PLAN097_OPERATIONS,
+    keys: input.request.receiptKeys,
+    operationId: input.bundle.operationId,
+    releaseId: input.bundle.candidate.releaseId,
+    activationBundleSha256: input.request.activationBundleSha256,
+    metrics: input.metrics,
+  });
+  if (
+    input.request.receiptSet.receiptCount < receipts.length ||
+    input.request.receiptSet.usage.operationCount !== input.request.receiptSet.receiptCount
+  ) {
+    throw new Error("Plan 097 proof receipt-set aggregate is inconsistent");
+  }
+  const proofPhases = receipts.flatMap((receipt) =>
+    receipt.action === "prove" && receipt.proofState !== undefined
+      ? [receipt.proofState.phase]
+      : [],
+  );
+  for (const phase of ["injected-failure", "candidate-active", "baseline-restored"] as const) {
+    if (!proofPhases.includes(phase)) {
+      throw new Error(`Plan 097 proof receipts omit ${phase}`);
+    }
+  }
+  const summary = decodeStrict(Plan097ProofSummarySchema)({
+    artifactKind: "bp.ops.plan097.proof-summary.v1",
+    schemaVersion: 1,
+    operationId: input.bundle.operationId,
+    completedAt: new Date().toISOString(),
+    candidateReleaseId: input.bundle.candidate.releaseId,
+    previousReleaseId: baseline.baseline.activeReleaseId,
+    activationBundleSha256: input.request.activationBundleSha256,
+    restoreBundleSha256: input.request.restoreBundleSha256,
+    criticalReceiptKeys: input.request.receiptKeys,
+    receiptSet: input.request.receiptSet,
+    httpComparisons: input.request.httpComparisons,
+  });
+  return putCanonicalEvidence({
+    bucket: input.env.PLAN097_OPERATIONS,
+    keyForSha: (digest) =>
+      `operations/plan097/proof/${input.bundle.candidate.releaseId}/proof-summary.${digest}.json`,
+    value: summary,
+    kind: "proof-summary",
+    metrics: input.metrics,
+  });
+}
+
+async function recordCompletionReceipt(input: {
+  env: Env & { PLAN097_OPERATIONS: R2Bucket; PLAN097_PROOF_RECEIPTS: R2Bucket };
+  bundle: Plan097ActivationBundle;
+  request: Extract<Plan097OperationRequest, { action: "record-completion" }>;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
+}): Promise<EvidenceRef> {
+  if (
+    input.request.preflightReceiptSha256 !== input.env.PLAN097_PREFLIGHT_RECEIPT_SHA256 ||
+    input.request.restoreBundleSha256 !== input.env.PLAN097_RESTORE_BUNDLE_SHA256 ||
+    input.request.proofSummary.kind !== "proof-summary"
+  ) {
+    throw new Error("Plan 097 completion references are not allowlisted by the deployment");
+  }
+  requireExactPhases(
+    input.request.httpComparisons.map((comparison) => comparison.phase),
+    input.request.outcome === "active"
+      ? ["production-baseline", "production-active"]
+      : ["production-baseline", "baseline-restored"],
+  );
+  const releaseId = input.bundle.candidate.releaseId;
+  const [proofBytes, preflightBytes, receipts] = await Promise.all([
+    readVerifiedObject({
+      bucket: input.env.PLAN097_PROOF_RECEIPTS,
+      key: input.request.proofSummary.key,
+      expectedSha256: input.request.proofSummary.sha256,
+      expectedBytes: input.request.proofSummary.bytes,
+      metrics: input.metrics,
+    }),
+    readVerifiedObject({
+      bucket: input.env.PLAN097_OPERATIONS,
+      key: preflightReceiptKey(releaseId, input.request.preflightReceiptSha256),
+      expectedSha256: input.request.preflightReceiptSha256,
+      metrics: input.metrics,
+    }),
+    loadWorkerReceipts({
+      bucket: input.env.PLAN097_OPERATIONS,
+      keys: input.request.receiptKeys,
+      operationId: input.bundle.operationId,
+      releaseId,
+      activationBundleSha256: input.request.activationBundleSha256,
+      metrics: input.metrics,
+    }),
+  ]);
+  const proof = decodeStrict(Plan097ProofSummarySchema)(
+    JSON.parse(new TextDecoder().decode(proofBytes)),
+  );
+  const preflight = decodeStrict(Plan097PreflightReceiptSchema)(
+    JSON.parse(new TextDecoder().decode(preflightBytes)),
+  );
+  await verifyPlan097PreflightReceiptSignature(input.env, preflight);
+  if (
+    proof.operationId !== input.bundle.operationId ||
+    proof.candidateReleaseId !== releaseId ||
+    proof.activationBundleSha256 !== input.request.activationBundleSha256 ||
+    proof.restoreBundleSha256 !== input.request.restoreBundleSha256 ||
+    preflight.candidate.releaseId !== releaseId ||
+    preflight.candidate.activationBundleSha256 !== input.request.activationBundleSha256 ||
+    preflight.rollbackPackage.sha256 !== input.request.restoreBundleSha256 ||
+    input.request.receiptSet.receiptCount < receipts.length ||
+    input.request.receiptSet.usage.operationCount !== input.request.receiptSet.receiptCount
+  ) {
+    throw new Error("Plan 097 completion evidence identity or aggregate is inconsistent");
+  }
+  const actions = receipts.map((receipt) => receipt.action);
+  if (
+    !actions.includes("activate") ||
+    (input.request.outcome === "rolled_back" && !actions.includes("rollback"))
+  ) {
+    throw new Error("Plan 097 completion receipts omit the terminal production mutation");
+  }
+  const baseline = input.request.httpComparisons[0];
+  const terminal = input.request.httpComparisons[1];
+  if (
+    baseline === undefined ||
+    terminal === undefined ||
+    baseline.baseline.activeReleaseId !== proof.previousReleaseId ||
+    terminal.baseline.activeReleaseId !==
+      (input.request.outcome === "active" ? releaseId : proof.previousReleaseId)
+  ) {
+    throw new Error("Plan 097 completion HTTP elections do not match the terminal outcome");
+  }
+  const completion = decodeStrict(Plan097CompletionReceiptSchema)({
+    artifactKind: "bp.ops.plan097.completion.v1",
+    schemaVersion: 1,
+    operationId: input.bundle.operationId,
+    completedAt: new Date().toISOString(),
+    outcome: input.request.outcome,
+    candidateReleaseId: releaseId,
+    previousReleaseId: proof.previousReleaseId,
+    activationBundleSha256: input.request.activationBundleSha256,
+    preflightReceiptSha256: input.request.preflightReceiptSha256,
+    restoreBundleSha256: input.request.restoreBundleSha256,
+    proofSummary: input.request.proofSummary,
+    criticalProductionReceiptKeys: input.request.receiptKeys,
+    productionReceiptSet: input.request.receiptSet,
+    httpComparisons: input.request.httpComparisons,
+    costComparison: {
+      preview: preflight.costPreview,
+      actualUsage: input.request.receiptSet.usage,
+    },
+  });
+  return putCanonicalEvidence({
+    bucket: input.env.PLAN097_OPERATIONS,
+    keyForSha: (digest) => `operations/plan097/completion/${releaseId}/completion.${digest}.json`,
+    value: completion,
+    kind: "completion",
+    metrics: input.metrics,
+  });
+}
+
 async function runPreflight(input: {
   env: Env & { DB: D1Database; PLAN097_OPERATIONS: R2Bucket };
   bundle: Plan097ActivationBundle;
@@ -1186,6 +1469,7 @@ async function verifyPlan097ProofState(input: {
   db: D1Database;
   restore: Plan097RestoreBundle;
   phase: Plan097ProofState["phase"];
+  protectedFingerprints: Plan097ProtectedFingerprint[];
   metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<Plan097ProofState> {
   const expectedElection =
@@ -1209,8 +1493,7 @@ async function verifyPlan097ProofState(input: {
     throw new Error(`Plan 097 ${input.phase} election verification failed`);
   }
   if (
-    canonicalPlan097Json(actualFingerprints) !==
-    canonicalPlan097Json(input.restore.protectedFingerprints)
+    canonicalPlan097Json(actualFingerprints) !== canonicalPlan097Json(input.protectedFingerprints)
   ) {
     throw new Error(`Plan 097 ${input.phase} protected fingerprint verification failed`);
   }
@@ -1234,7 +1517,7 @@ async function writeReceipt(input: {
   proofState?: Plan097ProofState | undefined;
 }): Promise<Plan097OperationResponse> {
   const operationMetrics = snapshotOperationMetrics(input.metrics);
-  const receipt = {
+  const receipt = decodeStrict(Plan097WorkerReceiptSchema)({
     artifactKind: "bp.ops.plan097.worker-receipt.v1",
     schemaVersion: 1,
     operationId: input.request.operationId,
@@ -1251,7 +1534,7 @@ async function writeReceipt(input: {
       ? {}
       : { preflightReceiptBase64: input.preflightReceiptBase64 }),
     ...(input.proofState === undefined ? {} : { proofState: input.proofState }),
-  };
+  });
   const receiptBytes = textEncoder.encode(`${canonicalPlan097Json(receipt)}\n`);
   const receiptSha256 = await sha256(receiptBytes);
   const receiptKey = `operations/plan097/receipts/${input.releaseId}/${input.request.action}.${receiptSha256}.json`;
@@ -1313,7 +1596,16 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
     ) {
       return new Response("Forbidden", { status: 403 });
     }
-    if (operationRequest.action === "prove" && env.PLAN097_PROOF_MODE !== "true") {
+    if (
+      (operationRequest.action === "prove" || operationRequest.action === "record-proof") &&
+      env.PLAN097_PROOF_MODE !== "true"
+    ) {
+      return new Response("Forbidden", { status: 403 });
+    }
+    if (operationRequest.action === "seed-proof-alias" && env.PLAN097_PROOF_MODE !== "true") {
+      return new Response("Forbidden", { status: 403 });
+    }
+    if (operationRequest.action === "seed-bundle" && env.PLAN097_SEED_MODE !== "true") {
       return new Response("Forbidden", { status: 403 });
     }
     const boundEnv = env as Env & {
@@ -1321,6 +1613,23 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
       DB: D1Database;
       ARTIFACTS: R2Bucket;
     };
+    if (operationRequest.action === "seed-bundle") {
+      const seeded = await seedOperationBundle({
+        env: boundEnv,
+        request: operationRequest,
+        metrics,
+      });
+      const response = await writeReceipt({
+        env: boundEnv,
+        request: operationRequest,
+        releaseId: seeded.releaseId,
+        outcome: "pass",
+        statementCount: 0,
+        objectCount: seeded.objectCount,
+        metrics,
+      });
+      return jsonResponse(response);
+    }
     if (operationRequest.action === "mirror-bundle") {
       if (env.PLAN097_PROOF_BUNDLES === undefined) {
         return jsonResponse({ error: "Plan 097 proof-bundle binding is missing" }, 503);
@@ -1387,7 +1696,8 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         });
         break;
       }
-      case "stage-body": {
+      case "stage-body":
+      case "seed-proof-alias": {
         const { manifest } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
         const entry = manifest.entries.find(
           (candidate) => candidate.logicalId === operationRequest.logicalId,
@@ -1406,7 +1716,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         }
         await putIdentical({
           bucket: boundEnv.ARTIFACTS,
-          key: entry.key,
+          key: operationRequest.action === "seed-proof-alias" ? entry.logicalKey : entry.key,
           body,
           sha256: entry.sha256,
           mediaType: entry.mediaType,
@@ -1459,6 +1769,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         });
         const batch = operationRequest.bundle === "activation" ? bundle.batch : restore.batch;
         statementCount = batch.statements.length;
+        const protectedFingerprints = await protectedD1Fingerprints(boundEnv.DB, metrics);
         let failure: unknown;
         try {
           await runD1Batch({
@@ -1484,6 +1795,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         proofState = await verifyPlan097ProofState({
           db: boundEnv.DB,
           restore,
+          protectedFingerprints,
           metrics,
           phase:
             operationRequest.failBeforeStatement !== undefined
@@ -1502,6 +1814,33 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         });
         await runD1Batch({ db: boundEnv.DB, batch: restore.batch, metrics });
         statementCount = restore.batch.statements.length;
+        break;
+      }
+      case "record-proof": {
+        evidence = [
+          await recordProofSummary({
+            env: boundEnv,
+            bundle,
+            request: operationRequest,
+            metrics,
+          }),
+        ];
+        objectCount = 1;
+        break;
+      }
+      case "record-completion": {
+        if (env.PLAN097_PROOF_RECEIPTS === undefined) {
+          throw new Error("Plan 097 proof-receipt binding is missing");
+        }
+        evidence = [
+          await recordCompletionReceipt({
+            env: boundEnv as typeof boundEnv & { PLAN097_PROOF_RECEIPTS: R2Bucket },
+            bundle,
+            request: operationRequest,
+            metrics,
+          }),
+        ];
+        objectCount = 1;
         break;
       }
     }

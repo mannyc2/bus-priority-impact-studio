@@ -4,6 +4,7 @@ export type Env = StudioApiEnv & {
   ASSETS?: Fetcher;
   PLAN097_OPERATIONS?: R2Bucket;
   PLAN097_PROOF_BUNDLES?: R2Bucket;
+  PLAN097_PROOF_RECEIPTS?: R2Bucket;
   PLAN097_RECOVERY_OPERATION_ENABLED?: string;
   PLAN097_OPERATION_ID?: string;
   PLAN097_ACTIVATION_BUNDLE_SHA256?: string;
@@ -13,6 +14,7 @@ export type Env = StudioApiEnv & {
   PLAN097_SERVICE_TOKEN_SECRET?: string;
   PLAN097_EXECUTION_TOKEN?: string;
   PLAN097_PROOF_MODE?: string;
+  PLAN097_SEED_MODE?: string;
   PLAN097_REPO_SHA?: string;
   PLAN097_COMMAND_VERSION?: string;
   PLAN097_D1_DATABASE_NAME?: string;

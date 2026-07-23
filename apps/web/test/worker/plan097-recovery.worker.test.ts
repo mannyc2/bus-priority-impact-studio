@@ -51,6 +51,34 @@ function sha256(bytes: Uint8Array | string): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
+function operationReceiptSet(responses: readonly Plan097OperationResponse[]) {
+  const keys = responses.map((response) => response.receiptKey).toSorted();
+  const sum = (select: (response: Plan097OperationResponse) => number) =>
+    responses.reduce((total, response) => total + select(response), 0);
+  return {
+    receiptCount: keys.length,
+    sortedKeysSha256: sha256(`${keys.join("\n")}\n`),
+    usage: {
+      scope: "aggregate-of-operation-before-receipt-persistence" as const,
+      operationCount: responses.length,
+      durationMs: sum((response) => response.metrics.durationMs),
+      d1: {
+        statementCount: sum((response) => response.metrics.d1.statementCount),
+        rowsRead: sum((response) => response.metrics.d1.rowsRead),
+        rowsWritten: sum((response) => response.metrics.d1.rowsWritten),
+        queryDurationMs: sum((response) => response.metrics.d1.queryDurationMs),
+      },
+      r2: {
+        headRequests: sum((response) => response.metrics.r2.headRequests),
+        getRequests: sum((response) => response.metrics.r2.getRequests),
+        putRequests: sum((response) => response.metrics.r2.putRequests),
+        bytesRead: sum((response) => response.metrics.r2.bytesRead),
+        bytesWritten: sum((response) => response.metrics.r2.bytesWritten),
+      },
+    },
+  };
+}
+
 function readyFreshnessMatrix(): Plan097FreshnessMatrix {
   const sources = [
     ["bus_segment_speeds_2025", "month", "source_complete_probe", "2026-12"],
@@ -345,6 +373,8 @@ describe("Plan 097 protected Worker operation", () => {
   let activationBundleSha256: string;
   let restoreBundleSha256: string;
   let artifactManifest: Plan097RecoveryArtifactManifest;
+  let activationText: string;
+  let manifestText: string;
 
   beforeEach(async () => {
     await cleanD1();
@@ -368,7 +398,7 @@ describe("Plan 097 protected Worker operation", () => {
         },
       ],
     };
-    const manifestText = `${canonicalPlan097Json(artifactManifest)}\n`;
+    manifestText = `${canonicalPlan097Json(artifactManifest)}\n`;
     const manifestSha256 = sha256(manifestText);
     const bundle: Plan097ActivationBundle = {
       artifactKind: "bp.ops.plan097.activation-bundle.v1",
@@ -400,7 +430,7 @@ describe("Plan 097 protected Worker operation", () => {
       ],
       batch: activationBatch(),
     };
-    const activationText = `${canonicalPlan097Json(bundle)}\n`;
+    activationText = `${canonicalPlan097Json(bundle)}\n`;
     activationBundleSha256 = sha256(activationText);
     const protectedFingerprints = await capturePlan097D1ProtectedFingerprints(testEnv.DB);
     const restore: Plan097RestoreBundle = {
@@ -423,8 +453,15 @@ describe("Plan 097 protected Worker operation", () => {
       testEnv.PLAN097_OPERATIONS.put(
         `operations/plan097/bundles/${releaseId}/activation.${activationBundleSha256}.json`,
         activationText,
+        {
+          httpMetadata: { contentType: "application/json" },
+          customMetadata: { sha256: activationBundleSha256 },
+        },
       ),
-      testEnv.PLAN097_OPERATIONS.put(bundle.artifactManifest.key, manifestText),
+      testEnv.PLAN097_OPERATIONS.put(bundle.artifactManifest.key, manifestText, {
+        httpMetadata: { contentType: "application/json" },
+        customMetadata: { sha256: manifestSha256 },
+      }),
       testEnv.PLAN097_OPERATIONS.put(
         `operations/plan097/bundles/${releaseId}/restore.${restoreBundleSha256}.json`,
         restoreText,
@@ -442,6 +479,7 @@ describe("Plan 097 protected Worker operation", () => {
       PLAN097_SERVICE_TOKEN_SECRET: serviceTokenSecret,
       PLAN097_EXECUTION_TOKEN: executionToken,
       PLAN097_PROOF_MODE: "true",
+      PLAN097_SEED_MODE: "true",
       PLAN097_REPO_SHA: "a".repeat(40),
       PLAN097_COMMAND_VERSION: "plan097-recovery-v1",
       PLAN097_D1_DATABASE_NAME: "bus-priority-serving-test",
@@ -464,6 +502,65 @@ describe("Plan 097 protected Worker operation", () => {
 
   it("stages only signed bodies, proves rollback on failure, activates, and rolls back", async () => {
     const base = { operationId, activationBundleSha256 };
+    const seedBody = {
+      ...base,
+      action: "seed-bundle",
+      activationBundleBase64: Buffer.from(activationText).toString("base64"),
+      artifactManifestBase64: Buffer.from(manifestText).toString("base64"),
+    };
+    const seedDisabledEnv = { ...operationEnv };
+    delete seedDisabledEnv.PLAN097_SEED_MODE;
+    const seedDenied = await operationRequest({
+      body: seedBody,
+      env: seedDisabledEnv,
+      execute: true,
+    });
+    expect(seedDenied.status).toBe(403);
+    const seed = await operationRequest({ body: seedBody, env: operationEnv, execute: true });
+    expect(seed.status).toBe(200);
+    const seedResponse = decodeStrict(Plan097OperationResponseSchema)(await seed.json());
+    expect(seedResponse.action).toBe("seed-bundle");
+    expect(seedResponse.metrics.r2.headRequests).toBe(2);
+
+    const baseline = {
+      checkedAt: "2026-07-22T11:59:00.000Z",
+      activeReleaseId: previousReleaseId,
+      endpoints: [
+        {
+          path: "/api/v1/status",
+          status: 200,
+          schemaId: "bp.api.release_status.v1",
+          safeBodySha256: "9".repeat(64),
+          requestId: "request-1",
+          cfRay: null,
+          cacheControl: "no-store",
+          etag: null,
+        },
+      ],
+    } as const;
+    const preflight = await operationRequest({
+      body: { ...base, action: "preflight", httpBaseline: baseline },
+      env: operationEnv,
+    });
+    expect(preflight.status).toBe(200);
+    const preflightResponse = decodeStrict(Plan097OperationResponseSchema)(await preflight.json());
+    const generatedRestore = preflightResponse.evidence?.find(
+      (entry) => entry.kind === "restore-bundle",
+    );
+    const generatedPreflight = preflightResponse.evidence?.find(
+      (entry) => entry.kind === "preflight",
+    );
+    if (generatedRestore === undefined || generatedPreflight === undefined) {
+      throw new Error("missing generated recovery evidence");
+    }
+    restoreBundleSha256 = generatedRestore.sha256;
+    operationEnv = {
+      ...operationEnv,
+      PLAN097_RESTORE_BUNDLE_SHA256: restoreBundleSha256,
+      PLAN097_PREFLIGHT_RECEIPT_SHA256: generatedPreflight.sha256,
+      PLAN097_PROOF_RECEIPTS: testEnv.PLAN097_OPERATIONS,
+    };
+
     const dryRun = await operationRequest({
       body: { ...base, action: "dry-run" },
       env: operationEnv,
@@ -507,6 +604,27 @@ describe("Plan 097 protected Worker operation", () => {
     expect(stageResponse.metrics.r2.putRequests).toBe(1);
     expect(stageResponse.metrics.r2.bytesWritten).toBe(artifactBody.byteLength);
     expect(await testEnv.ARTIFACTS.get(entry.key)).not.toBeNull();
+
+    const aliasBody = {
+      ...base,
+      action: "seed-proof-alias",
+      logicalId: entry.logicalId,
+      declaredSha256: entry.sha256,
+      declaredBytes: entry.bytes,
+      mediaType: entry.mediaType,
+      bodyBase64: btoa(String.fromCharCode(...artifactBody)),
+    };
+    const proofDisabledEnv = { ...operationEnv };
+    delete proofDisabledEnv.PLAN097_PROOF_MODE;
+    const aliasDenied = await operationRequest({
+      body: aliasBody,
+      env: proofDisabledEnv,
+      execute: true,
+    });
+    expect(aliasDenied.status).toBe(403);
+    const alias = await operationRequest({ body: aliasBody, env: operationEnv, execute: true });
+    expect(alias.status).toBe(200);
+    expect(await testEnv.ARTIFACTS.get(entry.logicalKey)).not.toBeNull();
 
     const finalize = await operationRequest({
       body: { ...base, action: "finalize-manifest" },
@@ -552,9 +670,10 @@ describe("Plan 097 protected Worker operation", () => {
       env: operationEnv,
     });
     expect(candidateProof.status).toBe(200);
-    expect(
-      decodeStrict(Plan097OperationResponseSchema)(await candidateProof.json()).proofState,
-    ).toMatchObject({
+    const candidateResponse = decodeStrict(Plan097OperationResponseSchema)(
+      await candidateProof.json(),
+    );
+    expect(candidateResponse.proofState).toMatchObject({
       phase: "candidate-active",
       election: {
         studioReleaseId: releaseId,
@@ -573,9 +692,8 @@ describe("Plan 097 protected Worker operation", () => {
       env: operationEnv,
     });
     expect(restoreProof.status).toBe(200);
-    expect(
-      decodeStrict(Plan097OperationResponseSchema)(await restoreProof.json()).proofState,
-    ).toMatchObject({
+    const restoreResponse = decodeStrict(Plan097OperationResponseSchema)(await restoreProof.json());
+    expect(restoreResponse.proofState).toMatchObject({
       phase: "baseline-restored",
       election: {
         studioReleaseId: previousReleaseId,
@@ -583,6 +701,37 @@ describe("Plan 097 protected Worker operation", () => {
         exactRouteReleaseId: previousReleaseId,
       },
     });
+
+    const proofResponses = [failureResponse, candidateResponse, restoreResponse];
+    const proofSummaryRequest = await operationRequest({
+      body: {
+        ...base,
+        action: "record-proof",
+        restoreBundleSha256,
+        receiptKeys: proofResponses.map((response) => response.receiptKey),
+        receiptSet: operationReceiptSet(proofResponses),
+        httpComparisons: [
+          { phase: "proof-baseline", baseline },
+          { phase: "injected-failure", baseline },
+          {
+            phase: "candidate-active",
+            baseline: { ...baseline, activeReleaseId: releaseId },
+          },
+          { phase: "baseline-restored", baseline },
+        ],
+      },
+      env: operationEnv,
+      execute: true,
+    });
+    expect(proofSummaryRequest.status).toBe(200);
+    const proofSummaryResponse = decodeStrict(Plan097OperationResponseSchema)(
+      await proofSummaryRequest.json(),
+    );
+    const proofSummary = proofSummaryResponse.evidence?.find(
+      (entry) => entry.kind === "proof-summary",
+    );
+    expect(proofSummary).toBeDefined();
+    if (proofSummary === undefined) throw new Error("missing proof summary");
 
     const unauthorized = await operationRequest({
       body: { ...base, action: "activate" },
@@ -612,6 +761,35 @@ describe("Plan 097 protected Worker operation", () => {
     expect((await activationReceipt.json<{ metrics: unknown }>()).metrics).toEqual(
       activationResponse.metrics,
     );
+    const completionRequest = await operationRequest({
+      body: {
+        ...base,
+        action: "record-completion",
+        outcome: "active",
+        preflightReceiptSha256: generatedPreflight.sha256,
+        restoreBundleSha256,
+        proofSummary,
+        receiptKeys: [activationResponse.receiptKey],
+        receiptSet: operationReceiptSet([activationResponse]),
+        httpComparisons: [
+          { phase: "production-baseline", baseline },
+          {
+            phase: "production-active",
+            baseline: { ...baseline, activeReleaseId: releaseId },
+          },
+        ],
+      },
+      env: operationEnv,
+      execute: true,
+    });
+    expect(completionRequest.status).toBe(200);
+    const completionResponse = decodeStrict(Plan097OperationResponseSchema)(
+      await completionRequest.json(),
+    );
+    const completion = completionResponse.evidence?.find((entry) => entry.kind === "completion");
+    expect(completion).toBeDefined();
+    if (completion === undefined) throw new Error("missing completion receipt");
+    expect(await testEnv.PLAN097_OPERATIONS.get(completion.key)).not.toBeNull();
     expect(
       await testEnv.DB.prepare(
         "SELECT COUNT(*) AS count FROM source_month_coverage WHERE source_id = 'plan097-worker-test'",

@@ -245,6 +245,21 @@ describe("production boundary harness", () => {
     }
   });
 
+  test("Plan 097 proof template cannot bind or route to production", async () => {
+    const proofConfig = await Bun.file("apps/web/wrangler.plan097-proof.example.jsonc").text();
+    const productionConfig = await Bun.file("apps/web/wrangler.jsonc").text();
+    const productionD1Id = productionConfig.match(/"database_id":\s*"([0-9a-f-]{36})"/u)?.[1];
+
+    expect(productionD1Id).toBeDefined();
+    expect(proofConfig).not.toContain(productionD1Id);
+    expect(proofConfig).not.toMatch(/"database_name":\s*"bus-priority-serving"/u);
+    expect(proofConfig).not.toMatch(/"bucket_name":\s*"bus-priority-artifacts"/u);
+    expect(proofConfig).not.toMatch(/"routes"\s*:/u);
+    expect(proofConfig).not.toMatch(/"triggers"\s*:/u);
+    expect(proofConfig).toContain('"workers_dev": true');
+    expect(proofConfig).toContain('"PLAN097_PROOF_MODE": "true"');
+  });
+
   test("domain package remains infrastructure-free", async () => {
     const files = await readFiles("packages/domain/src");
     const forbiddenImports = [

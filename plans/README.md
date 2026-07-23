@@ -70,6 +70,13 @@ and makes one pointer select D1, exact identity, maps, and every R2 artifact.
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
 
+Current Plan 097 checkpoint (2026-07-23): local candidate, transport, exact
+command/runbook, measured receipts, and Worker-harness proof/completion paths
+are implemented on the pushed Generation 17 branch. The signed Cloudflare
+preflight, disposable remote A→B→A evidence, fresh production token, and live
+completion receipt do not exist because Cloudflare credentials are currently
+unavailable; 097 therefore remains IN PROGRESS and 098 has not started.
+
 ## Dependency and safety notes (gen 17)
 
 - Execute in order when Plan 097's compacted D1 activation proves it fits one

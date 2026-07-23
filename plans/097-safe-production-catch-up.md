@@ -537,6 +537,41 @@ non-DONE for the Plan 098 continuation. Add
 an explicit gate to the runbook: no later artifact-contract/schema cutover may
 use the recovery path; Plan 098 must land and activate first.
 
+## Implementation checkpoint (2026-07-23; not completion evidence)
+
+The pushed Generation 17 branch now contains the local recovery contract,
+release-aware reader/checker, exact 0033 reconciliation, selective restore,
+compacted atomic batches, protected Worker transport, measured per-operation
+receipts, closed proof bootstrap, proof-only stable aliases, exact CLI command
+shapes, isolated Wrangler templates, durable proof-summary receipt, and
+terminal completion-receipt implementation. Worker-harness coverage exercises
+signed preflight, failed activation atomicity, B election, selective A restore,
+protected fingerprints, proof summary, successful completion, and rollback.
+
+The immutable local candidate remains
+`pub_20260723T030155231Z` (`2023-04` through `2026-05`), with activation bundle
+SHA-256
+`ce3f84ffb9072dc99ee84125dc1d4911a7e37979c6ecb897bfd131fed8068ad7`,
+artifact-manifest SHA-256
+`163495fead214c35f42fa3183b224ca1ea20431eed28447e2e9129021d5611e9`,
+1,837 strict-verified immutable bodies totaling 253,918,871 bytes, and 121
+compacted activation statements representing 24,996 rows. Its exact route
+universe is 375; the schedule-backed Studio selection is 348 routes, with 315
+complete and 33 explicitly excluded under the candidate policy.
+
+A read-only anonymous production check identified active release
+`pub_20260605T183601689Z`, exact route count 375, and one pre-existing legacy
+map-manifest 503. That local observation is not the required signed/durable
+preflight and is not production authorization.
+
+The remote gates remain deliberately open. The current Wrangler login is
+expired and the Cloudflare API/service/bootstrap/signing/proof credentials are
+unavailable, so no signed D1 preflight, disposable remote proof, production
+mutation, or canonical completion receipt has been fabricated. GitHub CLI
+authentication is also invalid, so the pushed branch has no new draft PR.
+Plan 097 remains **IN PROGRESS**, all acceptance boxes remain unchecked, and
+the fresh production mutation token has not been requested.
+
 ## Acceptance criteria
 
 - [ ] The production database is preserved; protected live-write/current-signal

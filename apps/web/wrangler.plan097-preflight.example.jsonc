@@ -1,0 +1,36 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bus-priority-plan097-preflight",
+  "main": "./src/worker/index.ts",
+  "workers_dev": true,
+  "compatibility_date": "2026-04-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "PLAN097_RECOVERY_OPERATION_ENABLED": "true",
+    "PLAN097_SEED_MODE": "true",
+    "PLAN097_OPERATION_ID": "plan097:<candidate-release-id>",
+    "PLAN097_ACTIVATION_BUNDLE_SHA256": "<64-hex-activation-bundle-sha256>",
+    "PLAN097_REPO_SHA": "<40-hex-pushed-repo-sha>",
+    "PLAN097_COMMAND_VERSION": "plan097-recovery-v1",
+    "PLAN097_D1_DATABASE_NAME": "bus-priority-serving",
+    "PLAN097_D1_DATABASE_ID": "<production-d1-database-id>",
+    "PLAN097_ARTIFACTS_BUCKET_NAME": "bus-priority-artifacts"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bus-priority-serving",
+      "database_id": "<production-d1-database-id>"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ARTIFACTS",
+      "bucket_name": "bus-priority-plan097-preflight-artifacts"
+    },
+    {
+      "binding": "PLAN097_OPERATIONS",
+      "bucket_name": "bus-priority-plan097-preflight-operations"
+    }
+  ]
+}

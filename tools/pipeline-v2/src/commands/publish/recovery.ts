@@ -7,6 +7,7 @@ import {
   type Plan097OperationRequest,
   type Plan097OperationResponse,
   Plan097OperationResponseSchema,
+  type Plan097OperationUsage,
   type Plan097PreflightReceipt,
   Plan097PreflightReceiptSchema,
   Plan097RecoveryArtifactManifestSchema,
@@ -27,13 +28,41 @@ export type PublishRecoveryInputs = {
   artifactManifestPath: string;
   artifactRoot: string;
   restoreBundlePath?: string | undefined;
+  restoreBundleSha256?: string | undefined;
   httpBaselinePath?: string | undefined;
   publicBaseUrl?: string | undefined;
   serviceTokenId: string;
   serviceTokenSecret: string;
+  bootstrapToken?: string | undefined;
   executionToken?: string | undefined;
   preflightReceiptSha256?: string | undefined;
   preflightPublicKeyPath?: string | undefined;
+  expectedCandidateId?: string | undefined;
+  expectedOperationId?: string | undefined;
+  proofSummaryRef?:
+    | {
+        kind: "proof-summary";
+        key: string;
+        sha256: string;
+        bytes: number;
+      }
+    | undefined;
+};
+
+export type PublishRecoveryCliOptions = {
+  action: RecoveryAction;
+  candidate?: string | undefined;
+  operation?: string | undefined;
+  proofEnv?: "plan097-proof" | undefined;
+  endpoint?: string | undefined;
+  activationBundle?: string | undefined;
+  artifactManifest?: string | undefined;
+  artifactRoot?: string | undefined;
+  restoreBundle?: string | undefined;
+  httpBaseline?: string | undefined;
+  baseUrl?: string | undefined;
+  preflightPublicKey?: string | undefined;
+  receiptSha256?: string | undefined;
 };
 
 export type PublishRecoveryResult = {
@@ -49,6 +78,19 @@ export type PublishRecoveryResult = {
     keyId: string;
     publicKeySpkiSha256: string;
   } | null;
+  httpComparisons: Array<{
+    phase:
+      | "preflight-baseline"
+      | "proof-baseline"
+      | "injected-failure"
+      | "candidate-active"
+      | "baseline-restored"
+      | "production-baseline"
+      | "production-active";
+    baseline: typeof Plan097HttpBaselineSchema.Type;
+  }>;
+  proofSummary: NonNullable<Plan097OperationResponse["evidence"]>[number] | null;
+  completion: NonNullable<Plan097OperationResponse["evidence"]>[number] | null;
 };
 
 type PublishRecoveryDependencies = {
@@ -56,6 +98,8 @@ type PublishRecoveryDependencies = {
   httpCheck?: typeof runPlan097HttpCheck | undefined;
   verifyPreflightReceipt?: typeof verifyReturnedPlan097Preflight | undefined;
 };
+
+type RemoteResponseTracker = Plan097OperationResponse[];
 
 const defaultDependencies: PublishRecoveryDependencies = {
   fetch: (input, init) => fetch(input, init),
@@ -146,9 +190,10 @@ async function readStrictActivationBundle(path: string): Promise<{
 
 async function readOptionalRestoreSha256(
   path: string | undefined,
+  declaredSha256: string | undefined,
   activation: Plan097ActivationBundle,
 ): Promise<string | null> {
-  if (path === undefined) return null;
+  if (path === undefined) return declaredSha256 ?? null;
   const bytes = new Uint8Array(await Bun.file(path).arrayBuffer());
   const restore = decodeStrict(Plan097RestoreBundleSchema)(
     JSON.parse(new TextDecoder().decode(bytes)),
@@ -159,7 +204,11 @@ async function readOptionalRestoreSha256(
   ) {
     throw new Error("Plan 097 restore bundle identity does not match the activation bundle");
   }
-  return sha256(bytes);
+  const actualSha256 = sha256(bytes);
+  if (declaredSha256 !== undefined && declaredSha256 !== actualSha256) {
+    throw new Error("Plan 097 restore bundle SHA-256 differs from its configured allowlist");
+  }
+  return actualSha256;
 }
 
 async function readHttpBaseline(path: string | undefined) {
@@ -214,13 +263,19 @@ function collectResponseReceipts(response: Plan097OperationResponse, receipts: s
   receipts.push(response.receiptKey, ...(response.evidence?.map((entry) => entry.key) ?? []));
 }
 
-function requireExecutionToken(inputs: PublishRecoveryInputs): string {
-  if (inputs.executionToken === undefined || inputs.executionToken.length === 0) {
+function requireOperationToken(
+  inputs: PublishRecoveryInputs,
+  kind: "bootstrap" | "execution",
+): string {
+  const token = kind === "bootstrap" ? inputs.bootstrapToken : inputs.executionToken;
+  if (token === undefined || token.length === 0) {
     throw new Error(
-      `Plan 097 ${inputs.action} requires the fresh PLAN097_EXECUTION_TOKEN authorization`,
+      kind === "bootstrap"
+        ? "Plan 097 dry-run requires the isolated PLAN097_BOOTSTRAP_TOKEN"
+        : `Plan 097 ${inputs.action} requires the fresh PLAN097_EXECUTION_TOKEN authorization`,
     );
   }
-  return inputs.executionToken;
+  return token;
 }
 
 async function remoteCall(input: {
@@ -228,6 +283,8 @@ async function remoteCall(input: {
   dependencies: PublishRecoveryDependencies;
   request: Plan097OperationRequest;
   execute: boolean;
+  tokenKind?: "bootstrap" | "execution" | undefined;
+  tracker?: RemoteResponseTracker | undefined;
 }): Promise<Plan097OperationResponse> {
   const headers = new Headers({
     "Content-Type": "application/json",
@@ -235,7 +292,10 @@ async function remoteCall(input: {
     "CF-Access-Client-Secret": input.inputs.serviceTokenSecret,
   });
   if (input.execute) {
-    headers.set("X-Plan097-Execution-Token", requireExecutionToken(input.inputs));
+    headers.set(
+      "X-Plan097-Execution-Token",
+      requireOperationToken(input.inputs, input.tokenKind ?? "execution"),
+    );
   }
   const response = await input.dependencies.fetch(input.inputs.endpoint, {
     method: "POST",
@@ -246,7 +306,78 @@ async function remoteCall(input: {
   if (!response.ok) {
     throw new Error(`Plan 097 Worker ${input.request.action} failed with HTTP ${response.status}`);
   }
-  return decodeStrict(Plan097OperationResponseSchema)(body);
+  const decoded = decodeStrict(Plan097OperationResponseSchema)(body);
+  input.tracker?.push(decoded);
+  return decoded;
+}
+
+function buildOperationReceiptSet(responses: readonly Plan097OperationResponse[]) {
+  const keys = responses.map((response) => response.receiptKey).toSorted();
+  const sum = (select: (response: Plan097OperationResponse) => number) =>
+    responses.reduce((total, response) => total + select(response), 0);
+  const usage: Plan097OperationUsage = {
+    scope: "aggregate-of-operation-before-receipt-persistence",
+    operationCount: responses.length,
+    durationMs: sum((response) => response.metrics.durationMs),
+    d1: {
+      statementCount: sum((response) => response.metrics.d1.statementCount),
+      rowsRead: sum((response) => response.metrics.d1.rowsRead),
+      rowsWritten: sum((response) => response.metrics.d1.rowsWritten),
+      queryDurationMs: sum((response) => response.metrics.d1.queryDurationMs),
+    },
+    r2: {
+      headRequests: sum((response) => response.metrics.r2.headRequests),
+      getRequests: sum((response) => response.metrics.r2.getRequests),
+      putRequests: sum((response) => response.metrics.r2.putRequests),
+      bytesRead: sum((response) => response.metrics.r2.bytesRead),
+      bytesWritten: sum((response) => response.metrics.r2.bytesWritten),
+    },
+  };
+  return {
+    receiptCount: keys.length,
+    sortedKeysSha256: sha256(new TextEncoder().encode(`${keys.join("\n")}\n`)),
+    usage,
+  };
+}
+
+async function seedCandidateBundle(input: {
+  inputs: PublishRecoveryInputs;
+  dependencies: PublishRecoveryDependencies;
+  bundle: Plan097ActivationBundle;
+  activationBundleSha256: string;
+  receipts: string[];
+  tracker: RemoteResponseTracker;
+}): Promise<void> {
+  const [activationBytes, manifestBytes] = await Promise.all([
+    Bun.file(input.inputs.activationBundlePath)
+      .arrayBuffer()
+      .then((body) => new Uint8Array(body)),
+    Bun.file(input.inputs.artifactManifestPath)
+      .arrayBuffer()
+      .then((body) => new Uint8Array(body)),
+  ]);
+  if (
+    sha256(activationBytes) !== input.activationBundleSha256 ||
+    manifestBytes.byteLength !== input.bundle.artifactManifest.byteLength ||
+    sha256(manifestBytes) !== input.bundle.artifactManifest.sha256
+  ) {
+    throw new Error("Plan 097 local seed bundle bytes drifted before isolated upload");
+  }
+  const response = await remoteCall({
+    inputs: input.inputs,
+    dependencies: input.dependencies,
+    request: {
+      operationId: input.bundle.operationId,
+      activationBundleSha256: input.activationBundleSha256,
+      action: "seed-bundle",
+      activationBundleBase64: base64(activationBytes),
+      artifactManifestBase64: base64(manifestBytes),
+    },
+    execute: true,
+    tokenKind: "bootstrap",
+    tracker: input.tracker,
+  });
+  input.receipts.push(response.receiptKey);
 }
 
 async function stageCandidate(input: {
@@ -255,6 +386,8 @@ async function stageCandidate(input: {
   bundle: Plan097ActivationBundle;
   activationBundleSha256: string;
   receipts: string[];
+  seedProofAliases?: boolean | undefined;
+  tracker: RemoteResponseTracker;
 }): Promise<void> {
   const base = {
     operationId: input.bundle.operationId,
@@ -265,6 +398,7 @@ async function stageCandidate(input: {
     dependencies: input.dependencies,
     request: { ...base, action: "mirror-bundle" },
     execute: true,
+    tracker: input.tracker,
   });
   input.receipts.push(mirrored.receiptKey);
   if (input.inputs.preflightReceiptSha256 !== undefined) {
@@ -277,6 +411,7 @@ async function stageCandidate(input: {
         preflightReceiptSha256: input.inputs.preflightReceiptSha256,
       },
       execute: true,
+      tracker: input.tracker,
     });
     input.receipts.push(reconciled.receiptKey);
   }
@@ -312,14 +447,34 @@ async function stageCandidate(input: {
         bodyBase64: base64(body),
       },
       execute: true,
+      tracker: input.tracker,
     });
     input.receipts.push(staged.receiptKey);
+    if (input.seedProofAliases) {
+      const alias = await remoteCall({
+        inputs: input.inputs,
+        dependencies: input.dependencies,
+        request: {
+          ...base,
+          action: "seed-proof-alias",
+          logicalId: entry.logicalId,
+          declaredSha256: entry.sha256,
+          declaredBytes: entry.bytes,
+          mediaType: entry.mediaType,
+          bodyBase64: base64(body),
+        },
+        execute: true,
+        tracker: input.tracker,
+      });
+      input.receipts.push(alias.receiptKey);
+    }
   }
   const finalized = await remoteCall({
     inputs: input.inputs,
     dependencies: input.dependencies,
     request: { ...base, action: "finalize-manifest" },
     execute: true,
+    tracker: input.tracker,
   });
   input.receipts.push(finalized.receiptKey);
 }
@@ -334,21 +489,105 @@ export async function runPublishRecovery(
   const { bundle, sha256: activationBundleSha256 } = await readStrictActivationBundle(
     inputs.activationBundlePath,
   );
-  const restoreBundleSha256 = await readOptionalRestoreSha256(inputs.restoreBundlePath, bundle);
+  if (
+    inputs.expectedCandidateId !== undefined &&
+    bundle.candidate.releaseId !== inputs.expectedCandidateId
+  ) {
+    throw new Error("Plan 097 --candidate does not identify the configured activation bundle");
+  }
+  if (
+    inputs.expectedOperationId !== undefined &&
+    bundle.operationId !== inputs.expectedOperationId
+  ) {
+    throw new Error("Plan 097 --operation does not identify the configured activation bundle");
+  }
+  let restoreBundleSha256 = await readOptionalRestoreSha256(
+    inputs.restoreBundlePath,
+    inputs.restoreBundleSha256,
+    bundle,
+  );
   const receipts: string[] = [];
+  const responseTracker: RemoteResponseTracker = [];
+  const httpComparisons: PublishRecoveryResult["httpComparisons"] = [];
   let preflightAttestation: PublishRecoveryResult["preflightAttestation"] = null;
+  let proofSummary: PublishRecoveryResult["proofSummary"] = null;
+  let completion: PublishRecoveryResult["completion"] = null;
   const base = { operationId: bundle.operationId, activationBundleSha256 } as const;
+  const recordTerminalCompletion = async (outcome: "active" | "rolled_back") => {
+    if (
+      inputs.proofSummaryRef === undefined ||
+      inputs.preflightReceiptSha256 === undefined ||
+      restoreBundleSha256 === null
+    ) {
+      throw new Error(
+        "Plan 097 terminal receipt requires proof, preflight, and restore references",
+      );
+    }
+    const criticalReceiptKeys = [
+      ...new Set(
+        responseTracker
+          .filter(
+            (response) =>
+              response.action === "activate" ||
+              response.action === "rollback" ||
+              response.action === "finalize-manifest",
+          )
+          .map((response) => response.receiptKey),
+      ),
+    ];
+    const request = {
+      ...base,
+      action: "record-completion" as const,
+      outcome,
+      preflightReceiptSha256: inputs.preflightReceiptSha256,
+      restoreBundleSha256,
+      proofSummary: inputs.proofSummaryRef,
+      receiptKeys: criticalReceiptKeys,
+      receiptSet: buildOperationReceiptSet(responseTracker),
+      httpComparisons: httpComparisons as Extract<
+        Plan097OperationRequest,
+        { action: "record-completion" }
+      >["httpComparisons"],
+    };
+    const response = await remoteCall({
+      inputs,
+      dependencies,
+      request,
+      execute: true,
+      tracker: responseTracker,
+    });
+    collectResponseReceipts(response, receipts);
+    completion = response.evidence?.find((entry) => entry.kind === "completion") ?? null;
+    if (completion === null) {
+      throw new Error("Plan 097 terminal operation did not return a completion receipt");
+    }
+  };
 
   switch (inputs.action) {
     case "dry-run": {
       const httpBaseline = await resolveHttpBaseline({ inputs, dependencies });
+      httpComparisons.push({ phase: "preflight-baseline", baseline: httpBaseline });
+      await seedCandidateBundle({
+        inputs,
+        dependencies,
+        bundle,
+        activationBundleSha256,
+        receipts,
+        tracker: responseTracker,
+      });
       const response = await remoteCall({
         inputs,
         dependencies,
         request: { ...base, action: "preflight", httpBaseline },
         execute: false,
+        tracker: responseTracker,
       });
       collectResponseReceipts(response, receipts);
+      const restoreEvidence = response.evidence?.find((entry) => entry.kind === "restore-bundle");
+      if (restoreEvidence === undefined) {
+        throw new Error("Plan 097 preflight did not return the durable restore bundle reference");
+      }
+      restoreBundleSha256 = restoreEvidence.sha256;
       preflightAttestation = await (
         dependencies.verifyPreflightReceipt ?? verifyReturnedPlan097Preflight
       )(response, inputs.preflightPublicKeyPath);
@@ -364,6 +603,7 @@ export async function runPublishRecovery(
         bundle,
         activationBundleSha256,
         receipts,
+        tracker: responseTracker,
       });
       break;
     }
@@ -371,15 +611,41 @@ export async function runPublishRecovery(
       if (restoreBundleSha256 === null) {
         throw new Error("Plan 097 prove requires --restore-bundle for the A→B→A proof");
       }
+      if (inputs.publicBaseUrl === undefined) {
+        throw new Error("Plan 097 prove requires the disposable proof --base-url");
+      }
       await stageCandidate({
         inputs,
         dependencies,
         bundle,
         activationBundleSha256,
         receipts,
+        seedProofAliases: true,
+        tracker: responseTracker,
       });
+      const initialized = await remoteCall({
+        inputs,
+        dependencies,
+        request: {
+          ...base,
+          action: "prove",
+          bundle: "restore",
+          restoreBundleSha256,
+        },
+        execute: false,
+        tracker: responseTracker,
+      });
+      receipts.push(initialized.receiptKey);
+      const proofBaseline = (
+        await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+          baseUrl: inputs.publicBaseUrl,
+          fetch: dependencies.fetch,
+          mode: "baseline",
+        })
+      ).baseline;
+      httpComparisons.push({ phase: "proof-baseline", baseline: proofBaseline });
       const failBeforeStatement = Math.max(0, bundle.batch.statements.length - 1);
-      for (const request of [
+      const proofRequests = [
         {
           ...base,
           action: "prove" as const,
@@ -399,18 +665,82 @@ export async function runPublishRecovery(
           bundle: "restore" as const,
           restoreBundleSha256,
         },
-      ]) {
-        const response = await remoteCall({ inputs, dependencies, request, execute: false });
+      ] as const;
+      for (const [index, request] of proofRequests.entries()) {
+        const response = await remoteCall({
+          inputs,
+          dependencies,
+          request,
+          execute: false,
+          tracker: responseTracker,
+        });
         receipts.push(response.receiptKey);
+        if (index === 1) {
+          const candidate = (
+            await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+              baseUrl: inputs.publicBaseUrl,
+              fetch: dependencies.fetch,
+              mode: "candidate",
+              expectedReleaseId: bundle.candidate.releaseId,
+              expectedExactRouteCount: bundle.expectedExactRouteCount,
+            })
+          ).baseline;
+          httpComparisons.push({ phase: "candidate-active", baseline: candidate });
+          continue;
+        }
+        const restored = (
+          await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+            baseUrl: inputs.publicBaseUrl,
+            fetch: dependencies.fetch,
+            mode: "baseline",
+            expectedReleaseId: proofBaseline.activeReleaseId,
+          })
+        ).baseline;
+        comparePlan097HttpBaselines({ expected: proofBaseline, actual: restored });
+        httpComparisons.push({
+          phase: index === 0 ? "injected-failure" : "baseline-restored",
+          baseline: restored,
+        });
+      }
+      const proofReceiptKeys = [
+        ...new Set(
+          responseTracker
+            .filter((response) => response.action === "prove")
+            .map((response) => response.receiptKey),
+        ),
+      ];
+      const summaryResponse = await remoteCall({
+        inputs,
+        dependencies,
+        request: {
+          ...base,
+          action: "record-proof",
+          restoreBundleSha256,
+          receiptKeys: proofReceiptKeys,
+          receiptSet: buildOperationReceiptSet(responseTracker),
+          httpComparisons: httpComparisons as Extract<
+            Plan097OperationRequest,
+            { action: "record-proof" }
+          >["httpComparisons"],
+        },
+        execute: true,
+        tracker: responseTracker,
+      });
+      collectResponseReceipts(summaryResponse, receipts);
+      proofSummary =
+        summaryResponse.evidence?.find((entry) => entry.kind === "proof-summary") ?? null;
+      if (proofSummary === null) {
+        throw new Error("Plan 097 proof did not return its durable summary receipt");
       }
       break;
     }
     case "activate": {
-      requireExecutionToken(inputs);
+      requireOperationToken(inputs, "execution");
       if (restoreBundleSha256 === null) {
         throw new Error("Plan 097 activation requires --restore-bundle for contingency rollback");
       }
       const productionBaseline = await revalidateProductionBaseline({ inputs, dependencies });
+      httpComparisons.push({ phase: "production-baseline", baseline: productionBaseline });
       if (inputs.preflightReceiptSha256 === undefined) {
         throw new Error("Plan 097 activation requires --receipt-sha256 from the signed preflight");
       }
@@ -420,12 +750,14 @@ export async function runPublishRecovery(
         bundle,
         activationBundleSha256,
         receipts,
+        tracker: responseTracker,
       });
       const ready = await remoteCall({
         inputs,
         dependencies,
         request: { ...base, action: "dry-run" },
         execute: false,
+        tracker: responseTracker,
       });
       collectResponseReceipts(ready, receipts);
       const response = await remoteCall({
@@ -433,25 +765,28 @@ export async function runPublishRecovery(
         dependencies,
         request: { ...base, action: "activate" },
         execute: true,
+        tracker: responseTracker,
       });
       collectResponseReceipts(response, receipts);
       try {
         if (inputs.publicBaseUrl === undefined) {
           throw new Error("Plan 097 activation is missing the production base URL");
         }
-        await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+        const active = await (dependencies.httpCheck ?? runPlan097HttpCheck)({
           baseUrl: inputs.publicBaseUrl,
           fetch: dependencies.fetch,
           mode: "candidate",
           expectedReleaseId: bundle.candidate.releaseId,
           expectedExactRouteCount: bundle.expectedExactRouteCount,
         });
+        httpComparisons.push({ phase: "production-active", baseline: active.baseline });
       } catch (postActivationFailure) {
         const rollback = await remoteCall({
           inputs,
           dependencies,
           request: { ...base, action: "rollback", restoreBundleSha256 },
           execute: true,
+          tracker: responseTracker,
         });
         collectResponseReceipts(rollback, receipts);
         if (inputs.publicBaseUrl === undefined) throw postActivationFailure;
@@ -464,6 +799,8 @@ export async function runPublishRecovery(
           })
         ).baseline;
         comparePlan097HttpBaselines({ expected: productionBaseline, actual: restored });
+        httpComparisons.push({ phase: "baseline-restored", baseline: restored });
+        await recordTerminalCompletion("rolled_back");
         return {
           schemaVersion: 1,
           action: inputs.action,
@@ -473,8 +810,12 @@ export async function runPublishRecovery(
           outcome: "rolled_back",
           remoteReceipts: receipts,
           preflightAttestation,
+          httpComparisons,
+          proofSummary,
+          completion,
         };
       }
+      await recordTerminalCompletion("active");
       break;
     }
     case "rollback": {
@@ -486,6 +827,7 @@ export async function runPublishRecovery(
         dependencies,
         request: { ...base, action: "rollback", restoreBundleSha256 },
         execute: true,
+        tracker: responseTracker,
       });
       receipts.push(response.receiptKey);
       break;
@@ -500,6 +842,164 @@ export async function runPublishRecovery(
     outcome: "pass",
     remoteReceipts: receipts,
     preflightAttestation,
+    httpComparisons,
+    proofSummary,
+    completion,
+  };
+}
+
+function configuredValue(
+  explicit: string | undefined,
+  environment: Readonly<Record<string, string | undefined>>,
+  key: string,
+): string | undefined {
+  const value = explicit ?? environment[key];
+  return value === undefined || value.length === 0 ? undefined : value;
+}
+
+function requireConfigured(value: string | undefined, label: string): string {
+  if (value === undefined) throw new Error(`Plan 097 requires ${label}`);
+  return value;
+}
+
+export function resolvePublishRecoveryCliInputs(
+  options: PublishRecoveryCliOptions,
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): PublishRecoveryInputs {
+  if (options.action === "dry-run") {
+    if (options.candidate === undefined || !/^pub_[0-9TZ]+$/u.test(options.candidate)) {
+      throw new Error("Plan 097 dry-run requires --candidate <candidate-id>");
+    }
+  } else if (
+    options.operation === undefined ||
+    !/^plan097:pub_[0-9TZ]+$/u.test(options.operation)
+  ) {
+    throw new Error(`Plan 097 ${options.action} requires --operation <operation-id>`);
+  }
+  if (options.action === "prove" && options.proofEnv !== "plan097-proof") {
+    throw new Error("Plan 097 prove requires --proof-env plan097-proof");
+  }
+  if (options.action !== "prove" && options.proofEnv !== undefined) {
+    throw new Error("Plan 097 --proof-env is valid only for the prove action");
+  }
+
+  const candidateDirValue = configuredValue(undefined, environment, "PLAN097_CANDIDATE_DIR");
+  const candidateDir = candidateDirValue === undefined ? undefined : fromCliPath(candidateDirValue);
+  const candidateFile = (explicit: string | undefined, key: string, leaf: string): string => {
+    const configured = configuredValue(explicit, environment, key);
+    if (configured !== undefined) return fromCliPath(configured);
+    if (candidateDir !== undefined) return join(candidateDir, leaf);
+    throw new Error(`Plan 097 requires --${leaf} or PLAN097_CANDIDATE_DIR`);
+  };
+  const proof = options.action === "prove";
+  const endpoint = requireConfigured(
+    configuredValue(
+      options.endpoint,
+      environment,
+      proof ? "PLAN097_PROOF_ENDPOINT" : "PLAN097_RECOVERY_ENDPOINT",
+    ),
+    proof ? "PLAN097_PROOF_ENDPOINT" : "PLAN097_RECOVERY_ENDPOINT",
+  );
+  const serviceTokenId = requireConfigured(
+    configuredValue(undefined, environment, "PLAN097_SERVICE_TOKEN_ID"),
+    "PLAN097_SERVICE_TOKEN_ID",
+  );
+  const serviceTokenSecret = requireConfigured(
+    configuredValue(undefined, environment, "PLAN097_SERVICE_TOKEN_SECRET"),
+    "PLAN097_SERVICE_TOKEN_SECRET",
+  );
+  const artifactRoot = configuredValue(options.artifactRoot, environment, "PLAN097_ARTIFACT_ROOT");
+  const restoreBundle = configuredValue(
+    options.restoreBundle,
+    environment,
+    "PLAN097_RESTORE_BUNDLE_PATH",
+  );
+  const httpBaseline = configuredValue(
+    options.httpBaseline,
+    environment,
+    "PLAN097_HTTP_BASELINE_PATH",
+  );
+  const preflightPublicKey = configuredValue(
+    options.preflightPublicKey,
+    environment,
+    "PLAN097_PREFLIGHT_PUBLIC_KEY",
+  );
+  const proofSummaryKey = configuredValue(undefined, environment, "PLAN097_PROOF_SUMMARY_KEY");
+  const proofSummarySha256 = configuredValue(
+    undefined,
+    environment,
+    "PLAN097_PROOF_SUMMARY_SHA256",
+  );
+  const proofSummaryBytesText = configuredValue(
+    undefined,
+    environment,
+    "PLAN097_PROOF_SUMMARY_BYTES",
+  );
+  const proofSummaryValues = [proofSummaryKey, proofSummarySha256, proofSummaryBytesText];
+  if (
+    proofSummaryValues.some((value) => value !== undefined) &&
+    proofSummaryValues.includes(undefined)
+  ) {
+    throw new Error(
+      "Plan 097 proof summary key, SHA-256, and byte length must be configured together",
+    );
+  }
+  const proofSummaryBytes =
+    proofSummaryBytesText === undefined ? undefined : Number(proofSummaryBytesText);
+  if (
+    proofSummaryBytes !== undefined &&
+    (!Number.isSafeInteger(proofSummaryBytes) || proofSummaryBytes <= 0)
+  ) {
+    throw new Error("PLAN097_PROOF_SUMMARY_BYTES must be a positive safe integer");
+  }
+
+  return {
+    action: options.action,
+    endpoint,
+    activationBundlePath: candidateFile(
+      options.activationBundle,
+      "PLAN097_ACTIVATION_BUNDLE_PATH",
+      "plan097-activation-bundle.json",
+    ),
+    artifactManifestPath: candidateFile(
+      options.artifactManifest,
+      "PLAN097_ARTIFACT_MANIFEST_PATH",
+      "plan097-artifact-manifest.json",
+    ),
+    artifactRoot:
+      artifactRoot === undefined ? fromRepoRoot("data/artifacts") : fromCliPath(artifactRoot),
+    restoreBundlePath: restoreBundle === undefined ? undefined : fromCliPath(restoreBundle),
+    restoreBundleSha256: configuredValue(undefined, environment, "PLAN097_RESTORE_BUNDLE_SHA256"),
+    httpBaselinePath: httpBaseline === undefined ? undefined : fromCliPath(httpBaseline),
+    publicBaseUrl: configuredValue(
+      options.baseUrl,
+      environment,
+      proof ? "PLAN097_PROOF_BASE_URL" : "PLAN097_PUBLIC_BASE_URL",
+    ),
+    preflightPublicKeyPath:
+      preflightPublicKey === undefined ? undefined : fromCliPath(preflightPublicKey),
+    serviceTokenId,
+    serviceTokenSecret,
+    bootstrapToken: configuredValue(undefined, environment, "PLAN097_BOOTSTRAP_TOKEN"),
+    executionToken: configuredValue(undefined, environment, "PLAN097_EXECUTION_TOKEN"),
+    preflightReceiptSha256: configuredValue(
+      options.receiptSha256,
+      environment,
+      "PLAN097_PREFLIGHT_RECEIPT_SHA256",
+    ),
+    expectedCandidateId: options.candidate,
+    expectedOperationId: options.operation,
+    proofSummaryRef:
+      proofSummaryKey === undefined ||
+      proofSummarySha256 === undefined ||
+      proofSummaryBytes === undefined
+        ? undefined
+        : {
+            kind: "proof-summary",
+            key: proofSummaryKey,
+            sha256: proofSummarySha256,
+            bytes: proofSummaryBytes,
+          },
   };
 }
 
@@ -509,9 +1009,14 @@ export default defineCommand({
   input: {
     options: Schema.Struct({
       action: Schema.Literals(["dry-run", "prove", "activate", "resume", "rollback"]),
-      endpoint: Schema.String.check(Schema.isPattern(/^https:\/\//u)),
-      activationBundle: Schema.String.check(Schema.isMinLength(1)),
-      artifactManifest: Schema.String.check(Schema.isMinLength(1)),
+      candidate: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^pub_[0-9TZ]+$/u))),
+      operation: Schema.optionalKey(
+        Schema.String.check(Schema.isPattern(/^plan097:pub_[0-9TZ]+$/u)),
+      ),
+      proofEnv: Schema.optionalKey(Schema.Literal("plan097-proof")),
+      endpoint: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^https:\/\//u))),
+      activationBundle: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+      artifactManifest: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
       artifactRoot: Schema.optionalKey(Schema.String),
       restoreBundle: Schema.optionalKey(Schema.String),
       httpBaseline: Schema.optionalKey(Schema.String),
@@ -522,40 +1027,6 @@ export default defineCommand({
   },
   output: Schema.Unknown,
   run({ input }) {
-    // biome-ignore lint/complexity/useLiteralKeys: process.env is index-signature typed.
-    const serviceTokenId = process.env["PLAN097_SERVICE_TOKEN_ID"] ?? "";
-    // biome-ignore lint/complexity/useLiteralKeys: process.env is index-signature typed.
-    const serviceTokenSecret = process.env["PLAN097_SERVICE_TOKEN_SECRET"] ?? "";
-    if (serviceTokenId.length === 0 || serviceTokenSecret.length === 0) {
-      throw new Error("PLAN097_SERVICE_TOKEN_ID and PLAN097_SERVICE_TOKEN_SECRET are required");
-    }
-    return runPublishRecovery({
-      action: input.options.action,
-      endpoint: input.options.endpoint,
-      activationBundlePath: fromCliPath(input.options.activationBundle),
-      artifactManifestPath: fromCliPath(input.options.artifactManifest),
-      artifactRoot:
-        input.options.artifactRoot === undefined
-          ? fromRepoRoot("data/artifacts")
-          : fromCliPath(input.options.artifactRoot),
-      restoreBundlePath:
-        input.options.restoreBundle === undefined
-          ? undefined
-          : fromCliPath(input.options.restoreBundle),
-      httpBaselinePath:
-        input.options.httpBaseline === undefined
-          ? undefined
-          : fromCliPath(input.options.httpBaseline),
-      publicBaseUrl: input.options.baseUrl,
-      preflightPublicKeyPath:
-        input.options.preflightPublicKey === undefined
-          ? undefined
-          : fromCliPath(input.options.preflightPublicKey),
-      serviceTokenId,
-      serviceTokenSecret,
-      // biome-ignore lint/complexity/useLiteralKeys: process.env is index-signature typed.
-      executionToken: process.env["PLAN097_EXECUTION_TOKEN"],
-      preflightReceiptSha256: input.options.receiptSha256,
-    });
+    return runPublishRecovery(resolvePublishRecoveryCliInputs(input.options));
   },
 });

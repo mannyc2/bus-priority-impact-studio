@@ -18,6 +18,7 @@ import {
 import { decodeStrict } from "@bp/domain/decode";
 import { ReleaseIdentitySchema } from "@bp/domain/studio/shared";
 import {
+  resolvePublishRecoveryCliInputs,
   runPublishRecovery,
   verifyReturnedPlan097Preflight,
 } from "../../../src/commands/publish/recovery.ts";
@@ -359,6 +360,68 @@ async function signedPreflightFixture(root: string): Promise<{
 }
 
 describe("publish recovery command", () => {
+  test("resolves the plan's exact candidate and operation command shapes from closed environment configuration", () => {
+    const candidateDir = "/tmp/plan097-candidate/d1/2026-05";
+    const commonEnvironment = {
+      PLAN097_CANDIDATE_DIR: candidateDir,
+      PLAN097_ARTIFACT_ROOT: "/tmp/plan097-candidate/artifacts",
+      PLAN097_SERVICE_TOKEN_ID: "id",
+      PLAN097_SERVICE_TOKEN_SECRET: "secret",
+      PLAN097_BOOTSTRAP_TOKEN: "bootstrap-token",
+      PLAN097_RESTORE_BUNDLE_SHA256: "a".repeat(64),
+      PLAN097_PREFLIGHT_RECEIPT_SHA256: "b".repeat(64),
+      PLAN097_PREFLIGHT_PUBLIC_KEY: "/tmp/plan097-preflight.pem",
+    };
+    const dryRun = resolvePublishRecoveryCliInputs(
+      { action: "dry-run", candidate: releaseId },
+      {
+        ...commonEnvironment,
+        PLAN097_RECOVERY_ENDPOINT: "https://production.test/__operations/plan097",
+        PLAN097_PUBLIC_BASE_URL: "https://production.test/",
+      },
+    );
+    expect(dryRun).toMatchObject({
+      expectedCandidateId: releaseId,
+      activationBundlePath: `${candidateDir}/plan097-activation-bundle.json`,
+      artifactManifestPath: `${candidateDir}/plan097-artifact-manifest.json`,
+    });
+
+    const proof = resolvePublishRecoveryCliInputs(
+      { action: "prove", operation: operationId, proofEnv: "plan097-proof" },
+      {
+        ...commonEnvironment,
+        PLAN097_PROOF_ENDPOINT: "https://proof-worker.test/__operations/plan097",
+        PLAN097_PROOF_BASE_URL: "https://proof-public.test/",
+        PLAN097_EXECUTION_TOKEN: "proof-token",
+      },
+    );
+    expect(proof).toMatchObject({
+      expectedOperationId: operationId,
+      endpoint: "https://proof-worker.test/__operations/plan097",
+      publicBaseUrl: "https://proof-public.test/",
+      restoreBundleSha256: "a".repeat(64),
+    });
+
+    const activation = resolvePublishRecoveryCliInputs(
+      { action: "activate", operation: operationId, receiptSha256: "b".repeat(64) },
+      {
+        ...commonEnvironment,
+        PLAN097_RECOVERY_ENDPOINT: "https://activation.test/__operations/plan097",
+        PLAN097_PUBLIC_BASE_URL: "https://production.test/",
+        PLAN097_EXECUTION_TOKEN: "fresh-production-token",
+        PLAN097_PROOF_SUMMARY_KEY: `operations/plan097/proof/${releaseId}/proof-summary.${"c".repeat(64)}.json`,
+        PLAN097_PROOF_SUMMARY_SHA256: "c".repeat(64),
+        PLAN097_PROOF_SUMMARY_BYTES: "100",
+      },
+    );
+    expect(activation.proofSummaryRef).toEqual({
+      kind: "proof-summary",
+      key: `operations/plan097/proof/${releaseId}/proof-summary.${"c".repeat(64)}.json`,
+      sha256: "c".repeat(64),
+      bytes: 100,
+    });
+  });
+
   test("independently verifies the exact returned preflight bytes with the trusted Ed25519 key", async () => {
     const root = mkdtempSync(join(tmpdir(), "plan097-preflight-verification-"));
     try {
@@ -387,6 +450,21 @@ describe("publish recovery command", () => {
   test("runs the exact staged A→B→A proof without accepting resource or SQL selectors", async () => {
     const files = await fixture();
     const calls: Array<{ action: string; executionToken: string | null }> = [];
+    const httpModes: string[] = [];
+    const baseline = JSON.parse(await Bun.file(files.httpBaselinePath).text()) as {
+      checkedAt: string;
+      activeReleaseId: string;
+      endpoints: Array<{
+        path: string;
+        status: number;
+        schemaId: string;
+        safeBodySha256: string;
+        requestId: string | null;
+        cfRay: string | null;
+        cacheControl: string | null;
+        etag: string | null;
+      }>;
+    };
     try {
       const result = await runPublishRecovery(
         {
@@ -396,6 +474,7 @@ describe("publish recovery command", () => {
           artifactManifestPath: files.manifestPath,
           artifactRoot: files.artifactRoot,
           restoreBundlePath: files.restoreBundlePath,
+          publicBaseUrl: "https://proof.test/",
           serviceTokenId: "id",
           serviceTokenSecret: "secret",
           executionToken: "fresh-token",
@@ -424,7 +503,34 @@ describe("publish recovery command", () => {
               statementCount: 1,
               objectCount: 1,
               metrics: operationMetrics(),
+              ...(request.action === "record-proof"
+                ? {
+                    evidence: [
+                      {
+                        kind: "proof-summary",
+                        key: `operations/plan097/proof/${releaseId}/proof-summary.${"c".repeat(64)}.json`,
+                        sha256: "c".repeat(64),
+                        bytes: 100,
+                      },
+                    ],
+                  }
+                : {}),
             });
+          },
+          httpCheck: async (input) => {
+            httpModes.push(input.mode ?? "candidate");
+            return {
+              baseline: {
+                ...baseline,
+                activeReleaseId: input.mode === "candidate" ? releaseId : baseline.activeReleaseId,
+              },
+              exactRouteCount: 2,
+              representativeGeometry: {
+                path: "/api/v1/artifacts/map.geojson",
+                sha256: "a".repeat(64),
+                featureCount: 1,
+              },
+            };
           },
         },
       );
@@ -432,13 +538,32 @@ describe("publish recovery command", () => {
       expect(calls.map((call) => call.action)).toEqual([
         "mirror-bundle",
         "stage-body",
+        "seed-proof-alias",
         "finalize-manifest",
         "prove",
         "prove",
         "prove",
+        "prove",
+        "record-proof",
       ]);
-      expect(calls.slice(0, 3).every((call) => call.executionToken === "fresh-token")).toBe(true);
-      expect(calls.slice(3).every((call) => call.executionToken === null)).toBe(true);
+      expect(
+        calls
+          .filter((call) => call.action !== "prove")
+          .every((call) => call.executionToken === "fresh-token"),
+      ).toBe(true);
+      expect(
+        calls
+          .filter((call) => call.action === "prove")
+          .every((call) => call.executionToken === null),
+      ).toBe(true);
+      expect(httpModes).toEqual(["baseline", "baseline", "candidate", "baseline"]);
+      expect(result.httpComparisons.map((comparison) => comparison.phase)).toEqual([
+        "proof-baseline",
+        "injected-failure",
+        "candidate-active",
+        "baseline-restored",
+      ]);
+      expect(result.proofSummary?.kind).toBe("proof-summary");
     } finally {
       rmSync(files.root, { recursive: true, force: true });
     }
@@ -496,6 +621,7 @@ describe("publish recovery command", () => {
           httpBaselinePath: files.httpBaselinePath,
           serviceTokenId: "id",
           serviceTokenSecret: "secret",
+          bootstrapToken: "bootstrap-token",
         },
         {
           fetch: async (_input, init) => {
@@ -503,8 +629,14 @@ describe("publish recovery command", () => {
               action: string;
               httpBaseline?: { activeReleaseId: string };
             };
-            expect(request.action).toBe("preflight");
-            expect(request.httpBaseline?.activeReleaseId).toBe("pub_20260721T120000000Z");
+            if (request.action === "seed-bundle") {
+              expect(new Headers(init?.headers).get("X-Plan097-Execution-Token")).toBe(
+                "bootstrap-token",
+              );
+            } else {
+              expect(request.action).toBe("preflight");
+              expect(request.httpBaseline?.activeReleaseId).toBe("pub_20260721T120000000Z");
+            }
             return Response.json({
               artifactKind: "bp.ops.plan097.worker-response.v1",
               schemaVersion: 1,
@@ -517,15 +649,25 @@ describe("publish recovery command", () => {
               statementCount: 1,
               objectCount: 3,
               metrics: operationMetrics(),
-              evidence: [
-                {
-                  kind: "preflight",
-                  key: `operations/plan097/preflight/${releaseId}/preflight.${"c".repeat(64)}.json`,
-                  sha256: "c".repeat(64),
-                  bytes: 100,
-                },
-              ],
-              preflightReceiptBase64: "e30K",
+              ...(request.action === "preflight"
+                ? {
+                    evidence: [
+                      {
+                        kind: "restore-bundle",
+                        key: `operations/plan097/bundles/${releaseId}/restore.${"d".repeat(64)}.json`,
+                        sha256: "d".repeat(64),
+                        bytes: 200,
+                      },
+                      {
+                        kind: "preflight",
+                        key: `operations/plan097/preflight/${releaseId}/preflight.${"c".repeat(64)}.json`,
+                        sha256: "c".repeat(64),
+                        bytes: 100,
+                      },
+                    ],
+                    preflightReceiptBase64: "e30K",
+                  }
+                : {}),
             });
           },
           verifyPreflightReceipt: async (response) => {
@@ -538,8 +680,9 @@ describe("publish recovery command", () => {
           },
         },
       );
-      expect(result.remoteReceipts).toHaveLength(2);
-      expect(result.remoteReceipts[1]).toContain("/preflight/");
+      expect(result.remoteReceipts).toHaveLength(4);
+      expect(result.remoteReceipts[3]).toContain("/preflight/");
+      expect(result.restoreBundleSha256).toBe("d".repeat(64));
       expect(result.preflightAttestation).toEqual({
         receiptSha256: "c".repeat(64),
         keyId: "plan097-test-20260722",
@@ -583,6 +726,12 @@ describe("publish recovery command", () => {
           serviceTokenSecret: "secret",
           executionToken: "fresh-token",
           preflightReceiptSha256: "c".repeat(64),
+          proofSummaryRef: {
+            kind: "proof-summary",
+            key: `operations/plan097/proof/${releaseId}/proof-summary.${"d".repeat(64)}.json`,
+            sha256: "d".repeat(64),
+            bytes: 100,
+          },
         },
         {
           fetch: async (_input, init) => {
@@ -600,6 +749,18 @@ describe("publish recovery command", () => {
               statementCount: 1,
               objectCount: 1,
               metrics: operationMetrics(),
+              ...(request.action === "record-completion"
+                ? {
+                    evidence: [
+                      {
+                        kind: "completion",
+                        key: `operations/plan097/completion/${releaseId}/completion.${"e".repeat(64)}.json`,
+                        sha256: "e".repeat(64),
+                        bytes: 100,
+                      },
+                    ],
+                  }
+                : {}),
             });
           },
           httpCheck: async () => {
@@ -626,8 +787,10 @@ describe("publish recovery command", () => {
         "dry-run",
         "activate",
         "rollback",
+        "record-completion",
       ]);
       expect(httpCheckCount).toBe(3);
+      expect(result.completion?.kind).toBe("completion");
     } finally {
       rmSync(files.root, { recursive: true, force: true });
     }

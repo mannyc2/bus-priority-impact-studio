@@ -350,6 +350,9 @@ export {
   plan097FreshnessSourceIds,
 } from "./freshness.js";
 export {
+  type Plan097CompletionReceipt,
+  Plan097CompletionReceiptSchema,
+  Plan097EvidenceRefSchema,
   type Plan097HttpBaseline,
   Plan097HttpBaselineSchema,
   Plan097HttpEndpointEvidenceSchema,
@@ -359,6 +362,14 @@ export {
   Plan097OperationRequestSchema,
   type Plan097OperationResponse,
   Plan097OperationResponseSchema,
+  type Plan097OperationUsage,
+  Plan097OperationUsageSchema,
+  Plan097ProductionHttpComparisonSchema,
+  Plan097ProofHttpComparisonSchema,
+  type Plan097ProofSummary,
+  Plan097ProofSummarySchema,
+  type Plan097WorkerReceipt,
+  Plan097WorkerReceiptSchema,
 } from "./operation.js";
 export { buildPlan097RestoreBatchFromVerifiedSnapshot } from "./restore.js";
 export {
