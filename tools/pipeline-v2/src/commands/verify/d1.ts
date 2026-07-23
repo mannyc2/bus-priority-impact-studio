@@ -18,6 +18,7 @@ import {
   type D1SeedOutputResult,
   runExportD1Seed,
 } from "../export/d1.ts";
+import type { D1CanonicalInputs } from "../export/d1-inputs.ts";
 import {
   collectD1TableCounts,
   type RepositoryCheckResult,
@@ -92,6 +93,7 @@ export type VerifyD1Inputs = {
   artifactRoot?: string | undefined;
   routeTimelineProjectionPath?: string | undefined;
   routeEvidenceIndexPath?: string | undefined;
+  inputs?: D1CanonicalInputs | undefined;
 };
 
 async function readD1ReplaySql(input: {
@@ -154,6 +156,7 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     artifactRoot: inputs.artifactRoot,
     routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
     routeEvidenceIndexPath: inputs.routeEvidenceIndexPath,
+    inputs: inputs.inputs,
   });
   const exportIdentity = decodeSchemaStrict(ReleaseIdentitySchema, {
     releaseId: exportResult.releaseId,

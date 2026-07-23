@@ -5,6 +5,7 @@ import { mapArtifactManifestPath } from "@bp/analytics/artifacts";
 import { mapArtifactSha256 } from "@bp/analytics/evaluation";
 import { ROUTE_SPEED_SPINE_DEFAULT_START_MONTH } from "@bp/analytics/feature-history";
 import { buildMapReleaseRegistrationSql } from "@bp/db/d1/seed";
+import { replaceRouteBatch } from "@bp/db/local";
 import {
   canonicalPlan097Json,
   Plan097ActivationBundleReceiptSchema,
@@ -35,6 +36,8 @@ import {
   buildPlan097ExpectedSchemaEnvelope,
 } from "../../lib/plan097-recovery-batch.ts";
 import { decodeSchemaStrict } from "../../lib/schema-decode.ts";
+import { runExportD1Seed } from "../export/d1.ts";
+import { type D1CanonicalInputs, readLocalD1Inputs } from "../export/d1-inputs.ts";
 import { runRouteBriefModel } from "../route/brief-model.ts";
 import { runStudioRelease } from "../studio/release.ts";
 import { runRouteSpeedSpines } from "../studio/route-speed-spines.ts";
@@ -68,22 +71,92 @@ export type RunMapReleaseInputs = {
 export type MapReleaseDependencies = {
   routeBrief: typeof runRouteBriefModel;
   speedSpines: typeof runRouteSpeedSpines;
+  exportD1: typeof runExportD1Seed;
+  readD1Inputs: typeof readLocalD1Inputs;
   verifyD1: typeof runVerifyD1Export;
   context: typeof runMapContext;
   studio: typeof runStudioRelease;
   map: typeof runMapArtifacts;
   audit: typeof verifyMapArtifactManifest;
+  commitBatch: typeof commitVerifiedMapRouteBatch;
 };
 
 const defaultDependencies: MapReleaseDependencies = {
   routeBrief: runRouteBriefModel,
   speedSpines: runRouteSpeedSpines,
+  exportD1: runExportD1Seed,
+  readD1Inputs: readLocalD1Inputs,
   verifyD1: runVerifyD1Export,
   context: runMapContext,
   studio: runStudioRelease,
   map: runMapArtifacts,
   audit: verifyMapArtifactManifest,
+  commitBatch: commitVerifiedMapRouteBatch,
 };
+
+export type VerifiedMapRouteBatchProjection = Pick<
+  D1CanonicalInputs,
+  "routeBatchStatus" | "routeBatchBuiltRoutes" | "routeBatchIssues"
+>;
+
+export function buildVerifiedMapRouteBatchProjection(input: {
+  month: string;
+  generatedAt: string;
+  routeIds: readonly string[];
+  artifactEntries: readonly { bytes: number }[];
+}): VerifiedMapRouteBatchProjection {
+  const routeIds = [...input.routeIds].toSorted();
+  if (
+    routeIds.length === 0 ||
+    routeIds.some((routeId) => routeId.length === 0) ||
+    new Set(routeIds).size !== routeIds.length
+  ) {
+    throw new Error("Verified map route batch requires a non-empty, unique route universe");
+  }
+  if (input.artifactEntries.length === 0) {
+    throw new Error("Verified map route batch requires a non-empty artifact inventory");
+  }
+  const totalByteLength = input.artifactEntries.reduce((sum, entry) => sum + entry.bytes, 0);
+  if (!Number.isSafeInteger(totalByteLength) || totalByteLength <= 0) {
+    throw new Error("Verified map route batch artifact bytes must be a positive safe integer");
+  }
+  return {
+    routeBatchStatus: {
+      month: input.month,
+      generatedAt: input.generatedAt,
+      status: "pass",
+      routeCount: routeIds.length,
+      artifactCount: input.artifactEntries.length,
+      missingArtifactCount: 0,
+      hashMismatchCount: 0,
+      byteLengthMismatchCount: 0,
+      totalByteLength,
+      issueCount: 0,
+    },
+    routeBatchBuiltRoutes: routeIds.map((routeId, index) => ({
+      month: input.month,
+      routeRank: index + 1,
+      routeId,
+      artifactCount: null,
+      status: "pass",
+    })),
+    routeBatchIssues: [],
+  };
+}
+
+async function commitVerifiedMapRouteBatch(
+  local: OpenLocalPipelineDb,
+  projection: VerifiedMapRouteBatchProjection,
+): Promise<void> {
+  if (projection.routeBatchStatus === null) {
+    throw new Error("Verified map route batch projection omitted its status");
+  }
+  replaceRouteBatch(local.db, {
+    status: projection.routeBatchStatus,
+    builtRoutes: projection.routeBatchBuiltRoutes,
+    issues: projection.routeBatchIssues,
+  });
+}
 
 function assertReleaseIdentityOutput(input: {
   label: string;
@@ -166,25 +239,26 @@ export async function runMapRelease(
     publishedAt,
     coverage: { start: speedSpines.coverageStart, end: month },
   });
-  const d1 = await dependencies.verifyD1({
+  const preliminaryD1 = await dependencies.exportD1({
     local: inputs.local,
     year: inputs.year,
     month: inputs.month,
     artifactRoot,
     exportRoot,
+    publishedAt: releaseIdentity.publishedAt,
     releaseIdentity,
   });
   assertReleaseIdentityOutput({
-    label: "D1 export",
+    label: "Preliminary D1 export",
     identity: {
-      releaseId: d1.releaseId,
-      publishedAt: d1.publishedAt,
-      coverage: d1.coverage,
+      releaseId: preliminaryD1.releaseId,
+      publishedAt: preliminaryD1.publishedAt,
+      coverage: preliminaryD1.coverage,
     },
     expected: releaseIdentity,
     month,
   });
-  if (d1.exactRouteIdentity === null) {
+  if (preliminaryD1.exactRouteIdentity === null) {
     throw new Error(
       "D1 export did not emit the candidate exact-route identity registration and receipt.",
     );
@@ -197,8 +271,8 @@ export async function runMapRelease(
     releaseIdentity,
     month,
     outputPath: join(artifactRoot, "studio", "v1", "release.json"),
-    schemaPath: d1.schemaPath,
-    seedPath: d1.seedPath,
+    schemaPath: preliminaryD1.schemaPath,
+    seedPath: preliminaryD1.seedPath,
     routeSliceArtifactsRoot: join(artifactRoot, "route-slices"),
     speedSpineRoot: artifactRoot,
     routeShapeSnapshotPath,
@@ -291,6 +365,52 @@ export async function runMapRelease(
   await mkdir(dirname(finalManifestPath), { recursive: true });
   await writeFile(finalManifestPath, manifestBytes);
 
+  const preliminaryRecoveryArtifacts = await buildPlan097RecoveryArtifactInventory({
+    artifactRoot,
+    month,
+    schemaPath: preliminaryD1.schemaPath,
+    seedPath: preliminaryD1.seedPath,
+    finalMapManifestKey: finalManifestKey,
+    releaseIdentity,
+  });
+  const routeBatchProjection = buildVerifiedMapRouteBatchProjection({
+    month,
+    generatedAt: releaseIdentity.publishedAt,
+    routeIds: manifest.routeUniverse.expectedRouteIds,
+    artifactEntries: preliminaryRecoveryArtifacts.manifest.entries,
+  });
+  const canonicalInputs = await dependencies.readD1Inputs(inputs.local.db, month, {
+    sqlite: inputs.local.sqlite,
+    artifactRoot,
+  });
+  const d1 = await dependencies.verifyD1({
+    local: inputs.local,
+    year: inputs.year,
+    month: inputs.month,
+    artifactRoot,
+    exportRoot,
+    releaseIdentity,
+    inputs: {
+      ...canonicalInputs,
+      ...routeBatchProjection,
+    },
+  });
+  assertReleaseIdentityOutput({
+    label: "D1 export",
+    identity: {
+      releaseId: d1.releaseId,
+      publishedAt: d1.publishedAt,
+      coverage: d1.coverage,
+    },
+    expected: releaseIdentity,
+    month,
+  });
+  if (d1.exactRouteIdentity === null) {
+    throw new Error(
+      "D1 export did not emit the candidate exact-route identity registration and receipt.",
+    );
+  }
+
   const recoveryArtifacts = await buildPlan097RecoveryArtifactInventory({
     artifactRoot,
     month,
@@ -299,6 +419,18 @@ export async function runMapRelease(
     finalMapManifestKey: finalManifestKey,
     releaseIdentity,
   });
+  const finalArtifactBytes = recoveryArtifacts.manifest.entries.reduce(
+    (sum, entry) => sum + entry.bytes,
+    0,
+  );
+  if (
+    routeBatchProjection.routeBatchStatus === null ||
+    routeBatchProjection.routeBatchStatus.artifactCount !==
+      recoveryArtifacts.manifest.entries.length ||
+    routeBatchProjection.routeBatchStatus.totalByteLength !== finalArtifactBytes
+  ) {
+    throw new Error("Final recovery inventory drifted after verified route-batch projection");
+  }
   const recoveryMapManifest = recoveryArtifacts.manifest.entries.find(
     (entry) => entry.logicalKey === finalManifestKey,
   );
@@ -406,6 +538,7 @@ export async function runMapRelease(
     writeFile(activationBundlePath, activationBundleBytes),
     writeFile(activationBundleReceiptPath, `${canonicalPlan097Json(activationBundleReceipt)}\n`),
   ]);
+  await dependencies.commitBatch(inputs.local, routeBatchProjection);
 
   return {
     month,
@@ -417,6 +550,7 @@ export async function runMapRelease(
     busLaneSnapshotPath,
     routeBrief,
     speedSpines,
+    preliminaryD1,
     d1,
     context,
     studio,
@@ -427,7 +561,9 @@ export async function runMapRelease(
     finalManifestSha256,
     registrationPath,
     recoveryArtifactManifestPath,
+    preliminaryRecoveryArtifacts,
     recoveryArtifacts,
+    routeBatchProjection,
     activationBundlePath,
     activationBundleReceiptPath,
     activationBundleKey,

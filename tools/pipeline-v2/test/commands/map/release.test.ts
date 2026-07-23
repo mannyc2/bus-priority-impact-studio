@@ -5,7 +5,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Plan097FreshnessMatrix } from "@bp/db/recovery/plan097";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
-import { type MapReleaseDependencies, runMapRelease } from "../../../src/commands/map/release.ts";
+import {
+  buildVerifiedMapRouteBatchProjection,
+  type MapReleaseDependencies,
+  runMapRelease,
+} from "../../../src/commands/map/release.ts";
 import type { OpenLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
 function readyFreshnessMatrix(month: string): Plan097FreshnessMatrix {
@@ -51,6 +55,44 @@ function readyFreshnessMatrix(month: string): Plan097FreshnessMatrix {
 }
 
 describe("runMapRelease", () => {
+  test("derives deterministic pass rows only from a verified non-empty universe", () => {
+    const projection = buildVerifiedMapRouteBatchProjection({
+      month: "2026-04",
+      generatedAt: "2026-07-22T12:00:00.000Z",
+      routeIds: ["M2", "M1"],
+      artifactEntries: [{ bytes: 20 }, { bytes: 30 }],
+    });
+
+    expect(projection.routeBatchStatus).toMatchObject({
+      status: "pass",
+      routeCount: 2,
+      artifactCount: 2,
+      totalByteLength: 50,
+      issueCount: 0,
+    });
+    expect(projection.routeBatchBuiltRoutes.map((route) => route.routeId)).toEqual(["M1", "M2"]);
+    expect(projection.routeBatchIssues).toEqual([]);
+  });
+
+  test("refuses to mint a pass from duplicate routes or an empty inventory", () => {
+    expect(() =>
+      buildVerifiedMapRouteBatchProjection({
+        month: "2026-04",
+        generatedAt: "2026-07-22T12:00:00.000Z",
+        routeIds: ["M1", "M1"],
+        artifactEntries: [{ bytes: 1 }],
+      }),
+    ).toThrow("non-empty, unique route universe");
+    expect(() =>
+      buildVerifiedMapRouteBatchProjection({
+        month: "2026-04",
+        generatedAt: "2026-07-22T12:00:00.000Z",
+        routeIds: ["M1"],
+        artifactEntries: [],
+      }),
+    ).toThrow("non-empty artifact inventory");
+  });
+
   test("resolves an explicit local database path from the repository root", async () => {
     const source = await Bun.file(
       new URL("../../../src/commands/map/release.ts", import.meta.url),
@@ -60,7 +102,7 @@ describe("runMapRelease", () => {
     expect(source).not.toContain("dbPath: input.options.db");
   });
 
-  test("uses one custom root and orders D1 before Studio before map", async () => {
+  test("verifies artifacts before injecting and committing the route-batch pass", async () => {
     const root = mkdtempSync(join(tmpdir(), "map-release-"));
     try {
       const artifactRoot = join(root, "artifacts");
@@ -89,6 +131,72 @@ describe("runMapRelease", () => {
       const record = (name: string, input: unknown) => {
         calls.push({ name, input: input as RecordedInput });
       };
+      const writeD1Output = async (input: unknown) => {
+        const releaseIdentity = (
+          input as {
+            releaseIdentity: {
+              releaseId: string;
+              publishedAt: string;
+              coverage: { start: string | null; end: string };
+            };
+          }
+        ).releaseIdentity;
+        const schemaSql = `
+          CREATE TABLE route_catalog (route_id TEXT PRIMARY KEY, route_short_name TEXT NOT NULL);
+          CREATE TABLE route_batch_status (month TEXT PRIMARY KEY, generated_at TEXT NOT NULL, status TEXT NOT NULL);
+          CREATE TABLE exact_route_identity_release (release_id TEXT PRIMARY KEY);
+          CREATE TABLE map_release_catalog (
+            release_id TEXT PRIMARY KEY,
+            published_at TEXT NOT NULL,
+            coverage_start TEXT,
+            coverage_end TEXT NOT NULL,
+            manifest_key TEXT NOT NULL UNIQUE,
+            manifest_sha256 TEXT NOT NULL,
+            release_profile TEXT NOT NULL,
+            verification_status TEXT NOT NULL,
+            route_count INTEGER NOT NULL
+          );
+        `;
+        const recoverySeedSql = `
+          DELETE FROM "route_catalog";
+          DELETE FROM "route_batch_status" WHERE "month" = '2026-04';
+          INSERT INTO "route_catalog" VALUES ('M1', 'M1');
+          INSERT INTO "route_batch_status" VALUES ('2026-04', '${releaseIdentity.publishedAt}', 'pass');
+        `;
+        const exactRegistrationSql = `INSERT INTO exact_route_identity_release (release_id) VALUES ('${releaseIdentity.releaseId}');\n`;
+        mkdirSync(join(exportRoot, "d1", "2026-04"), { recursive: true });
+        await Promise.all([
+          Bun.write(schemaPath, schemaSql),
+          Bun.write(plan097RecoverySeedPath, recoverySeedSql),
+          Bun.write(exactRegistrationPath, exactRegistrationSql),
+        ]);
+        const exactRegistrationBytes = new TextEncoder().encode(exactRegistrationSql);
+        return {
+          schemaPath,
+          seedPath,
+          plan097RecoverySeedPath,
+          status: "pass",
+          ...releaseIdentity,
+          exactRouteIdentity: {
+            registrationFile: {
+              path: exactRegistrationPath,
+              byteLength: exactRegistrationBytes.byteLength,
+              sha256: createHash("sha256").update(exactRegistrationBytes).digest("hex"),
+            },
+            receiptFile: {
+              path: join(exportRoot, "d1", "2026-04", "exact-receipt.json"),
+              byteLength: 1,
+              sha256: "2".repeat(64),
+            },
+            exactRouteCount: 1,
+            routeTypeCount: 1,
+            tripTypeCount: 1,
+            catalogSnapshotSha256: "3".repeat(64),
+            projectionSha256: "4".repeat(64),
+            sourceIndexSha256: "5".repeat(64),
+          },
+        };
+      };
       const dependencies = {
         async routeBrief(input: unknown) {
           record("routeBrief", input);
@@ -101,72 +209,21 @@ describe("runMapRelease", () => {
             coverageStart: "2025-02",
           };
         },
+        async exportD1(input: unknown) {
+          record("exportD1", input);
+          return writeD1Output(input);
+        },
+        async readD1Inputs(_db: unknown, _month: string, options: unknown) {
+          record("readD1Inputs", options);
+          return {
+            routeBatchStatus: null,
+            routeBatchBuiltRoutes: [],
+            routeBatchIssues: [],
+          };
+        },
         async verifyD1(input: unknown) {
           record("verifyD1", input);
-          const releaseIdentity = (
-            input as {
-              releaseIdentity: {
-                releaseId: string;
-                publishedAt: string;
-                coverage: { start: string | null; end: string };
-              };
-            }
-          ).releaseIdentity;
-          const schemaSql = `
-            CREATE TABLE route_catalog (route_id TEXT PRIMARY KEY, route_short_name TEXT NOT NULL);
-            CREATE TABLE route_batch_status (month TEXT PRIMARY KEY, generated_at TEXT NOT NULL, status TEXT NOT NULL);
-            CREATE TABLE exact_route_identity_release (release_id TEXT PRIMARY KEY);
-            CREATE TABLE map_release_catalog (
-              release_id TEXT PRIMARY KEY,
-              published_at TEXT NOT NULL,
-              coverage_start TEXT,
-              coverage_end TEXT NOT NULL,
-              manifest_key TEXT NOT NULL UNIQUE,
-              manifest_sha256 TEXT NOT NULL,
-              release_profile TEXT NOT NULL,
-              verification_status TEXT NOT NULL,
-              route_count INTEGER NOT NULL
-            );
-          `;
-          const recoverySeedSql = `
-            DELETE FROM "route_catalog";
-            DELETE FROM "route_batch_status" WHERE "month" = '2026-04';
-            INSERT INTO "route_catalog" VALUES ('M1', 'M1');
-            INSERT INTO "route_batch_status" VALUES ('2026-04', '${releaseIdentity.publishedAt}', 'pass');
-          `;
-          const exactRegistrationSql = `INSERT INTO exact_route_identity_release (release_id) VALUES ('${releaseIdentity.releaseId}');\n`;
-          mkdirSync(join(exportRoot, "d1", "2026-04"), { recursive: true });
-          await Promise.all([
-            Bun.write(schemaPath, schemaSql),
-            Bun.write(plan097RecoverySeedPath, recoverySeedSql),
-            Bun.write(exactRegistrationPath, exactRegistrationSql),
-          ]);
-          const exactRegistrationBytes = new TextEncoder().encode(exactRegistrationSql);
-          return {
-            schemaPath,
-            seedPath,
-            plan097RecoverySeedPath,
-            status: "pass",
-            ...releaseIdentity,
-            exactRouteIdentity: {
-              registrationFile: {
-                path: exactRegistrationPath,
-                byteLength: exactRegistrationBytes.byteLength,
-                sha256: createHash("sha256").update(exactRegistrationBytes).digest("hex"),
-              },
-              receiptFile: {
-                path: join(exportRoot, "d1", "2026-04", "exact-receipt.json"),
-                byteLength: 1,
-                sha256: "2".repeat(64),
-              },
-              exactRouteCount: 1,
-              routeTypeCount: 1,
-              tripTypeCount: 1,
-              catalogSnapshotSha256: "3".repeat(64),
-              projectionSha256: "4".repeat(64),
-              sourceIndexSha256: "5".repeat(64),
-            },
-          };
+          return writeD1Output(input);
         },
         async context(input: unknown) {
           record("context", input);
@@ -259,6 +316,9 @@ describe("runMapRelease", () => {
           ).toEqual([]);
           return { status: "pass", issueCount: 0, issues: [] };
         },
+        async commitBatch(_local: unknown, projection: unknown) {
+          record("commitBatch", projection);
+        },
       } as unknown as MapReleaseDependencies;
 
       const result = await runMapRelease(
@@ -285,11 +345,14 @@ describe("runMapRelease", () => {
       expect(calls.map((call) => call.name)).toEqual([
         "routeBrief",
         "speedSpines",
-        "verifyD1",
+        "exportD1",
         "context",
         "studio",
         "map",
         "audit",
+        "readD1Inputs",
+        "verifyD1",
+        "commitBatch",
       ]);
       const d1 = calls.find((call) => call.name === "verifyD1")?.input;
       const studio = calls.find((call) => call.name === "studio")?.input;
@@ -364,6 +427,25 @@ describe("runMapRelease", () => {
       );
       expect(result.activationBundleKey).toContain(result.activationBundleSha256);
       expect(calls.filter((call) => call.name === "verifyD1")).toHaveLength(1);
+      const verifyInput = calls.find((call) => call.name === "verifyD1")?.input as {
+        inputs?: {
+          routeBatchStatus?: { status: string; routeCount: number; artifactCount: number };
+          routeBatchBuiltRoutes?: Array<{ routeId: string; status: string }>;
+          routeBatchIssues?: unknown[];
+        };
+      };
+      expect(verifyInput.inputs?.routeBatchStatus).toMatchObject({
+        status: "pass",
+        routeCount: 1,
+        artifactCount: result.recoveryArtifacts.manifest.entries.length,
+      });
+      expect(verifyInput.inputs?.routeBatchBuiltRoutes).toEqual([
+        expect.objectContaining({ routeId: "M1", status: "pass" }),
+      ]);
+      expect(verifyInput.inputs?.routeBatchIssues).toEqual([]);
+      expect(calls.find((call) => call.name === "commitBatch")?.input).toEqual(
+        result.routeBatchProjection,
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -378,7 +460,7 @@ describe("runMapRelease", () => {
       async speedSpines() {
         return { manifestPath: "unused.json", coverageStart: null };
       },
-      async verifyD1(input: unknown) {
+      async exportD1(input: unknown) {
         observedIdentities.push(
           (input as { releaseIdentity: { coverage: { start: string | null; end: string } } })
             .releaseIdentity,
@@ -410,7 +492,7 @@ describe("runMapRelease", () => {
       async speedSpines() {
         return { manifestPath: "unused.json", coverageStart: null };
       },
-      async verifyD1(input: unknown) {
+      async exportD1(input: unknown) {
         const releaseIdentity = (
           input as {
             releaseIdentity: {
@@ -452,7 +534,7 @@ describe("runMapRelease", () => {
       async speedSpines() {
         return { manifestPath: "unused.json", coverageStart: null };
       },
-      async verifyD1(input: unknown) {
+      async exportD1(input: unknown) {
         const releaseIdentity = (
           input as {
             releaseIdentity: {
@@ -486,6 +568,8 @@ describe("runMapRelease", () => {
         },
         dependencies,
       ),
-    ).rejects.toThrow("D1 export publication identity does not match the map release boundary");
+    ).rejects.toThrow(
+      "Preliminary D1 export publication identity does not match the map release boundary",
+    );
   });
 });
