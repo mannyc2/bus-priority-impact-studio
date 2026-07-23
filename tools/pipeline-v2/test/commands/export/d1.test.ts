@@ -613,7 +613,7 @@ describe("runExportD1Seed", () => {
           routeShortName: "M15-SBS",
           routeLongName: "East Harlem - South Ferry",
           routeTypes: ["SBS"],
-          tripTypes: ["14"],
+          tripTypes: [],
           directions: ["Northbound", "Southbound"],
           shapeCount: 1,
           stopCount: 2,
@@ -640,6 +640,7 @@ describe("runExportD1Seed", () => {
       expect(existsSync(exact.registrationFile.path)).toBe(true);
       expect(existsSync(exact.receiptFile.path)).toBe(true);
       expect(exact.exactRouteCount).toBe(1);
+      expect(result.routeCatalogTripTypeRowCount).toBe(1);
       const registrationSql = await Bun.file(exact.registrationFile.path).text();
       expect(registrationSql).not.toContain("INSERT OR REPLACE");
       expect(registrationSql).toContain("metadata_collision");
@@ -654,6 +655,11 @@ describe("runExportD1Seed", () => {
             .query("SELECT release_id, exact_route_count FROM exact_route_identity_release")
             .get(),
         ).toEqual({ release_id: result.releaseId, exact_route_count: 1 });
+        expect(
+          replay
+            .query("SELECT route_id, trip_type_rank, trip_type FROM route_catalog_trip_type")
+            .all(),
+        ).toEqual([{ route_id: "M15+", trip_type_rank: 1, trip_type: "14" }]);
       } finally {
         replay.close();
       }

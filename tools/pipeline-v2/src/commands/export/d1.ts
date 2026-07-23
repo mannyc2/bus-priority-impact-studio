@@ -290,7 +290,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
     artifactRoot,
   });
 
-  const d1Inputs =
+  let d1Inputs =
     inputs.inputs ??
     (await readLocalD1Inputs(inputs.local.db, month, {
       sqlite: inputs.local.sqlite,
@@ -299,9 +299,6 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
       detectorReadinessManifestPath: inputs.detectorReadinessManifestPath,
       routeEvidenceIndexPath: inputs.routeEvidenceIndexPath,
     }));
-  const schemaSql = await readD1MigrationSql();
-  const seed = buildD1SeedSql({ month, ...d1Inputs });
-  const plan097RecoverySeed = buildPlan097RecoverySeedSql({ month, ...d1Inputs });
   const generatedAt = inputs.publishedAt;
   const releaseIdentity = decodeStrict(ReleaseIdentitySchema)(
     inputs.releaseIdentity ?? {
@@ -389,8 +386,25 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
         registrationSql: exact.registrationSql,
         receiptText: exact.receiptText,
       };
+      const tripTypesByRouteId = new Map<string, string[]>();
+      for (const row of exact.tripTypeRows) {
+        const tripTypes = tripTypesByRouteId.get(row.routeId) ?? [];
+        tripTypes.push(row.tripType);
+        tripTypesByRouteId.set(row.routeId, tripTypes);
+      }
+      d1Inputs = {
+        ...d1Inputs,
+        routeCatalog: d1Inputs.routeCatalog.map((route) => ({
+          ...route,
+          tripTypes: tripTypesByRouteId.get(route.routeId) ?? [],
+        })),
+      };
     }
   }
+
+  const schemaSql = await readD1MigrationSql();
+  const seed = buildD1SeedSql({ month, ...d1Inputs });
+  const plan097RecoverySeed = buildPlan097RecoverySeedSql({ month, ...d1Inputs });
 
   const readinessSummaries = await readDetectorReadinessRouteSummaries({
     manifestPath: inputs.detectorReadinessManifestPath,
