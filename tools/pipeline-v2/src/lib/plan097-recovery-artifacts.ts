@@ -1,12 +1,23 @@
 import { createHash } from "node:crypto";
 import { stat } from "node:fs/promises";
 import { extname, join, sep } from "node:path";
+import { MapArtifactManifestSchema } from "@bp/analytics/evaluation";
+import { RouteSpeedSpineArtifactSchema } from "@bp/analytics/feature-history";
 import {
   canonicalPlan097Json,
   type Plan097RecoveryArtifactManifest,
   Plan097RecoveryArtifactManifestSchema,
 } from "@bp/db/recovery/plan097";
 import { decodeStrict } from "@bp/domain/decode";
+import {
+  RouteCapabilityManifestSchema,
+  RouteDossierSummarySchema,
+  StudioRouteEvidenceBundleSchema,
+} from "@bp/domain/studio";
+import {
+  StudioRouteHourlyProfileResponseSchema,
+  StudioRouteSpeedHistoryResponseSchema,
+} from "@bp/domain/studio/routes";
 import type { ReleaseIdentity } from "@bp/domain/studio/shared";
 import { Glob } from "bun";
 import {
@@ -30,6 +41,40 @@ function mediaType(key: string): string {
   return "application/octet-stream";
 }
 
+export function strictDecodePlan097PublishableArtifact(key: string, value: unknown): string | null {
+  if (/^studio\/v2\/routes\/[^/]+\/dossier\.json$/u.test(key)) {
+    decodeStrict(RouteDossierSummarySchema)(value);
+    return "studio_route_dossier_summary.v2";
+  }
+  if (key === "studio/v2/routes/route-capability-manifest.json") {
+    decodeStrict(RouteCapabilityManifestSchema)(value);
+    return "route_capability_manifest.v2";
+  }
+  if (/^studio\/v2\/routes\/[^/]+\/speed-history\.json$/u.test(key)) {
+    decodeStrict(StudioRouteSpeedHistoryResponseSchema)(value);
+    return "studio_route_speed_history.v1";
+  }
+  if (/^studio\/v2\/routes\/[^/]+\/hourly-profile\.json$/u.test(key)) {
+    decodeStrict(StudioRouteHourlyProfileResponseSchema)(value);
+    return "studio_route_hourly_profile.v1";
+  }
+  if (/^studio\/v2\/routes\/[^/]+\/speed-spine\.json$/u.test(key)) {
+    decodeStrict(RouteSpeedSpineArtifactSchema)(value);
+    return "studio_route_speed_spine.v1";
+  }
+  if (/^studio\/v2\/wiki(?:-[^/]+)?\/routes\/[^/]+\.json$/u.test(key)) {
+    const decoded = decodeStrict(StudioRouteEvidenceBundleSchema)(value);
+    return "artifactKind" in decoded
+      ? "bp.studio.route_evidence_bundle.v2"
+      : "bp.studio.route_evidence_bundle.v1";
+  }
+  if (/^map\/[^/]+\/manifest\.json$/u.test(key)) {
+    decodeStrict(MapArtifactManifestSchema)(value);
+    return "map_artifact_manifest.v1";
+  }
+  return null;
+}
+
 function schemaId(key: string, body: Uint8Array, contentType: string): string {
   if (contentType === "application/json" || contentType === "application/geo+json") {
     let value: unknown;
@@ -38,6 +83,8 @@ function schemaId(key: string, body: Uint8Array, contentType: string): string {
     } catch {
       throw new Error(`Plan 097 candidate artifact ${key} is invalid JSON`);
     }
+    const strictSchemaId = strictDecodePlan097PublishableArtifact(key, value);
+    if (strictSchemaId !== null) return strictSchemaId;
     if (typeof value === "object" && value !== null) {
       const record = value as Record<string, unknown> & { type?: unknown };
       for (const field of ["artifactKind", "schemaId", "$schema"] as const) {

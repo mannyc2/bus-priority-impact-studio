@@ -1,3 +1,4 @@
+import { Schema } from "effect";
 import {
   type ClassifiedRouteSegmentSourceKey,
   classifyRouteSegmentSourceKey,
@@ -134,6 +135,148 @@ export type RouteSpeedSpineArtifact = {
     issues: RouteSpeedSpineIssue[];
   };
 };
+
+const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
+  Schema.isGreaterThanOrEqualTo(0),
+);
+const NullableStringSchema = Schema.NullOr(Schema.String);
+const MonthSchema = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/u));
+const ObservedSourceKeySchema = Schema.Struct({
+  routeId: Schema.String,
+  month: MonthSchema,
+  direction: Schema.String,
+  stopOrder: Schema.Number.check(Schema.isInt()),
+  fromStopId: NullableStringSchema,
+  toStopId: NullableStringSchema,
+});
+const ClassifiedSourceKeySchema = Schema.Union([
+  Schema.Struct({
+    status: Schema.Literal("keyed"),
+    key: Schema.Struct({
+      routeId: Schema.String,
+      month: MonthSchema,
+      direction: Schema.String,
+      stopOrder: Schema.Number.check(Schema.isInt()),
+      fromStopId: Schema.String,
+      toStopId: Schema.String,
+    }),
+  }),
+  Schema.Struct({
+    status: Schema.Literal("unkeyable_missing_stop_pair"),
+    observed: ObservedSourceKeySchema,
+  }),
+]);
+
+/** Closed persisted-artifact boundary used by publication and serving. */
+export const RouteSpeedSpineArtifactSchema = Schema.Struct({
+  artifactKind: Schema.Literal("studio_route_speed_spine"),
+  schemaVersion: Schema.Literal(1),
+  generatedAt: Schema.String,
+  routeId: Schema.String,
+  routeSlug: Schema.String,
+  source: Schema.Struct({
+    table: Schema.Literal("local_route_segment_speed"),
+    dbPath: Schema.String,
+    startMonth: MonthSchema,
+    endMonth: Schema.NullOr(MonthSchema),
+    toleranceMeters: Schema.Number,
+    artifactPath: Schema.String,
+  }),
+  summary: Schema.Struct({
+    monthCount: NonNegativeIntegerSchema,
+    sourceRowCount: NonNegativeIntegerSchema,
+    busTripCount: NonNegativeIntegerSchema,
+    nodeCount: NonNegativeIntegerSchema,
+    spineSegmentCount: NonNegativeIntegerSchema,
+    rawSegmentKeyCount: NonNegativeIntegerSchema,
+    rawStopPairCount: NonNegativeIntegerSchema,
+    monthsWithRawKeyDriftCount: NonNegativeIntegerSchema,
+    monthsWithPartialSpineCoverageCount: NonNegativeIntegerSchema,
+    mergedNodeCount: NonNegativeIntegerSchema,
+    segmentWithRawVariantCount: NonNegativeIntegerSchema,
+    issueCount: NonNegativeIntegerSchema,
+    keyedSourceKeyCount: Schema.optionalKey(NonNegativeIntegerSchema),
+    unkeyableSourceKeyCount: Schema.optionalKey(NonNegativeIntegerSchema),
+  }),
+  sourceKeys: Schema.optionalKey(
+    Schema.Struct({ observed: Schema.Array(ClassifiedSourceKeySchema) }),
+  ),
+  nodes: Schema.Array(
+    Schema.Struct({
+      nodeId: Schema.String,
+      stableKey: Schema.String,
+      label: Schema.String,
+      latitude: Schema.Number,
+      longitude: Schema.Number,
+      observationCount: NonNegativeIntegerSchema,
+      months: Schema.Array(MonthSchema),
+      sourceStopIds: Schema.Array(Schema.String),
+      sourceStopNames: Schema.Array(Schema.String),
+      maxSourceSeparationMeters: Schema.Number,
+    }),
+  ),
+  segments: Schema.Array(
+    Schema.Struct({
+      segmentId: Schema.String,
+      direction: Schema.String,
+      displayOrder: Schema.Number,
+      fromNodeId: Schema.String,
+      toNodeId: Schema.String,
+      label: Schema.String,
+      months: Schema.Array(MonthSchema),
+      monthCount: NonNegativeIntegerSchema,
+      sourceRowCount: NonNegativeIntegerSchema,
+      busTripCount: NonNegativeIntegerSchema,
+      averageRoadDistanceMiles: Schema.NullOr(Schema.Number),
+      averageSpeedMph: Schema.NullOr(Schema.Number),
+      stopOrder: Schema.Struct({
+        min: Schema.Number,
+        median: Schema.Number,
+        max: Schema.Number,
+        values: Schema.Array(Schema.Number),
+        changed: Schema.Boolean,
+      }),
+      raw: Schema.Struct({
+        rawSegmentKeyCount: NonNegativeIntegerSchema,
+        rawStopPairCount: NonNegativeIntegerSchema,
+        sourceStopPairs: Schema.Array(
+          Schema.Struct({
+            fromStopId: NullableStringSchema,
+            fromStopName: NullableStringSchema,
+            toStopId: NullableStringSchema,
+            toStopName: NullableStringSchema,
+            stopOrders: Schema.Array(Schema.Number),
+            months: Schema.Array(MonthSchema),
+            sourceRowCount: NonNegativeIntegerSchema,
+          }),
+        ),
+        sourceKeys: Schema.optionalKey(Schema.Array(ClassifiedSourceKeySchema)),
+      }),
+    }),
+  ),
+  monthCoverage: Schema.Array(
+    Schema.Struct({
+      month: MonthSchema,
+      sourceRowCount: NonNegativeIntegerSchema,
+      busTripCount: NonNegativeIntegerSchema,
+      rawSegmentKeyCount: NonNegativeIntegerSchema,
+      rawStopPairCount: NonNegativeIntegerSchema,
+      spineSegmentCount: NonNegativeIntegerSchema,
+      coverageShare: Schema.Number,
+    }),
+  ),
+  validation: Schema.Struct({
+    status: Schema.Literals(["pass", "warn", "fail"]),
+    issues: Schema.Array(
+      Schema.Struct({
+        severity: Schema.Literals(["info", "warn", "error"]),
+        code: Schema.String,
+        message: Schema.String,
+        context: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+      }),
+    ),
+  }),
+});
 
 export type RouteSpeedSpineReadiness =
   | "series_ready"

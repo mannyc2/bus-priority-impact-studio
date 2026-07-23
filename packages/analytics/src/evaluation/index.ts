@@ -30,6 +30,7 @@ export {
   type MapArtifactIssue,
   type MapArtifactKind,
   type MapArtifactManifest,
+  MapArtifactManifestSchema,
   type MapArtifactVerification,
   type MapCurrencyResult,
   type MapCurrencyStatus,
