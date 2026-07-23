@@ -114,6 +114,7 @@ export const Plan097OperationResponseSchema = Schema.Struct({
       }),
     ),
   ),
+  preflightReceiptBase64: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
 });
 
 export type Plan097OperationRequest = typeof Plan097OperationRequestSchema.Type;

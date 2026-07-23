@@ -846,7 +846,12 @@ async function runPreflight(input: {
   manifestEntryCount: number;
   manifestBytes: number;
   manifestBodyBytes: number;
-}): Promise<{ evidence: EvidenceRef[]; statementCount: number; objectCount: number }> {
+}): Promise<{
+  evidence: EvidenceRef[];
+  statementCount: number;
+  objectCount: number;
+  preflightReceiptBase64: string;
+}> {
   const requireMetadata = (value: string | undefined): string => {
     if (value === undefined || value.length === 0) {
       throw new Error("Plan 097 preflight deployment metadata is incomplete");
@@ -958,6 +963,9 @@ async function runPreflight(input: {
     evidence: [snapshotRef, restoreRef, preflightRef],
     statementCount: input.bundle.batch.statements.length,
     objectCount: 3,
+    preflightReceiptBase64: encodeBase64Bytes(
+      textEncoder.encode(`${canonicalPlan097Json(receipt)}\n`),
+    ),
   };
 }
 
@@ -1016,6 +1024,7 @@ async function writeReceipt(input: {
   statementCount: number;
   objectCount: number;
   evidence?: EvidenceRef[] | undefined;
+  preflightReceiptBase64?: string | undefined;
 }): Promise<Plan097OperationResponse> {
   const receipt = {
     artifactKind: "bp.ops.plan097.worker-receipt.v1",
@@ -1029,6 +1038,9 @@ async function writeReceipt(input: {
     statementCount: input.statementCount,
     objectCount: input.objectCount,
     ...(input.evidence === undefined ? {} : { evidence: input.evidence }),
+    ...(input.preflightReceiptBase64 === undefined
+      ? {}
+      : { preflightReceiptBase64: input.preflightReceiptBase64 }),
   };
   const receiptBytes = textEncoder.encode(`${canonicalPlan097Json(receipt)}\n`);
   const receiptSha256 = await sha256(receiptBytes);
@@ -1052,6 +1064,9 @@ async function writeReceipt(input: {
     statementCount: input.statementCount,
     objectCount: input.objectCount,
     ...(input.evidence === undefined ? {} : { evidence: input.evidence }),
+    ...(input.preflightReceiptBase64 === undefined
+      ? {}
+      : { preflightReceiptBase64: input.preflightReceiptBase64 }),
   });
 }
 
@@ -1117,6 +1132,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
     let objectCount = 0;
     let outcome: "pass" | "failed_as_expected" = "pass";
     let evidence: EvidenceRef[] | undefined;
+    let preflightReceiptBase64: string | undefined;
 
     switch (operationRequest.action) {
       case "dry-run": {
@@ -1138,6 +1154,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         statementCount = result.statementCount;
         objectCount = result.objectCount;
         evidence = result.evidence;
+        preflightReceiptBase64 = result.preflightReceiptBase64;
         break;
       }
       case "reconcile-schema": {
@@ -1246,6 +1263,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
       statementCount,
       objectCount,
       evidence,
+      preflightReceiptBase64,
     });
     return jsonResponse(response);
   } catch (error) {

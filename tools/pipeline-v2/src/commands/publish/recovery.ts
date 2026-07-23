@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createPublicKey, verify as verifySignature } from "node:crypto";
 import { join } from "node:path";
 import {
   type Plan097ActivationBundle,
@@ -7,8 +7,11 @@ import {
   type Plan097OperationRequest,
   type Plan097OperationResponse,
   Plan097OperationResponseSchema,
+  type Plan097PreflightReceipt,
+  Plan097PreflightReceiptSchema,
   Plan097RecoveryArtifactManifestSchema,
   Plan097RestoreBundleSchema,
+  plan097PreflightSignedPayloadBytes,
 } from "@bp/db/recovery/plan097";
 import { decodeStrict } from "@bp/domain/decode";
 import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
@@ -30,6 +33,7 @@ export type PublishRecoveryInputs = {
   serviceTokenSecret: string;
   executionToken?: string | undefined;
   preflightReceiptSha256?: string | undefined;
+  preflightPublicKeyPath?: string | undefined;
 };
 
 export type PublishRecoveryResult = {
@@ -40,11 +44,17 @@ export type PublishRecoveryResult = {
   restoreBundleSha256: string | null;
   outcome: "pass" | "rolled_back";
   remoteReceipts: string[];
+  preflightAttestation: {
+    receiptSha256: string;
+    keyId: string;
+    publicKeySpkiSha256: string;
+  } | null;
 };
 
 type PublishRecoveryDependencies = {
   fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
   httpCheck?: typeof runPlan097HttpCheck | undefined;
+  verifyPreflightReceipt?: typeof verifyReturnedPlan097Preflight | undefined;
 };
 
 const defaultDependencies: PublishRecoveryDependencies = {
@@ -57,6 +67,70 @@ function sha256(bytes: Uint8Array): string {
 
 function base64(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("base64");
+}
+
+export async function verifyReturnedPlan097Preflight(
+  response: Plan097OperationResponse,
+  publicKeyPath: string | undefined,
+): Promise<{
+  receiptSha256: string;
+  keyId: string;
+  publicKeySpkiSha256: string;
+}> {
+  if (response.action !== "preflight" || response.preflightReceiptBase64 === undefined) {
+    throw new Error("Plan 097 preflight response did not return the signed receipt bytes");
+  }
+  if (publicKeyPath === undefined) {
+    throw new Error(
+      "Plan 097 dry-run requires --preflight-public-key for independent verification",
+    );
+  }
+  const receiptBytes = Buffer.from(response.preflightReceiptBase64, "base64");
+  if (
+    receiptBytes.byteLength === 0 ||
+    receiptBytes.toString("base64") !== response.preflightReceiptBase64
+  ) {
+    throw new Error("Plan 097 preflight response contains invalid base64 receipt bytes");
+  }
+  const receiptSha256 = sha256(receiptBytes);
+  const evidence = response.evidence?.find((entry) => entry.kind === "preflight");
+  if (
+    evidence === undefined ||
+    evidence.sha256 !== receiptSha256 ||
+    evidence.bytes !== receiptBytes.byteLength
+  ) {
+    throw new Error("Plan 097 preflight response bytes do not match durable R2 evidence");
+  }
+  const receipt = decodeStrict(Plan097PreflightReceiptSchema)(
+    JSON.parse(receiptBytes.toString("utf8")),
+  );
+  const keyBytes = Buffer.from(await Bun.file(publicKeyPath).arrayBuffer());
+  const keyText = keyBytes.toString("utf8");
+  const publicKey = keyText.includes("-----BEGIN PUBLIC KEY-----")
+    ? createPublicKey(keyText)
+    : createPublicKey({ key: keyBytes, format: "der", type: "spki" });
+  const publicKeySpki = publicKey.export({ format: "der", type: "spki" });
+  const publicKeySpkiSha256 = sha256(publicKeySpki);
+  if (publicKeySpkiSha256 !== receipt.signature.publicKeySpkiSha256) {
+    throw new Error("Plan 097 preflight signing key fingerprint does not match the trusted key");
+  }
+  const { signature, ...unsignedReceipt } = receipt;
+  const verified = verifySignature(
+    null,
+    plan097PreflightSignedPayloadBytes(
+      unsignedReceipt as Omit<Plan097PreflightReceipt, "signature">,
+    ),
+    publicKey,
+    Buffer.from(signature.signatureBase64, "base64"),
+  );
+  if (!verified) {
+    throw new Error("Plan 097 preflight Ed25519 signature verification failed");
+  }
+  return {
+    receiptSha256,
+    keyId: signature.keyId,
+    publicKeySpkiSha256,
+  };
 }
 
 async function readStrictActivationBundle(path: string): Promise<{
@@ -260,6 +334,7 @@ export async function runPublishRecovery(
   );
   const restoreBundleSha256 = await readOptionalRestoreSha256(inputs.restoreBundlePath, bundle);
   const receipts: string[] = [];
+  let preflightAttestation: PublishRecoveryResult["preflightAttestation"] = null;
   const base = { operationId: bundle.operationId, activationBundleSha256 } as const;
 
   switch (inputs.action) {
@@ -272,6 +347,9 @@ export async function runPublishRecovery(
         execute: false,
       });
       collectResponseReceipts(response, receipts);
+      preflightAttestation = await (
+        dependencies.verifyPreflightReceipt ?? verifyReturnedPlan097Preflight
+      )(response, inputs.preflightPublicKeyPath);
       break;
     }
     case "resume": {
@@ -384,6 +462,7 @@ export async function runPublishRecovery(
           restoreBundleSha256,
           outcome: "rolled_back",
           remoteReceipts: receipts,
+          preflightAttestation,
         };
       }
       break;
@@ -410,6 +489,7 @@ export async function runPublishRecovery(
     restoreBundleSha256,
     outcome: "pass",
     remoteReceipts: receipts,
+    preflightAttestation,
   };
 }
 
@@ -426,6 +506,7 @@ export default defineCommand({
       restoreBundle: Schema.optionalKey(Schema.String),
       httpBaseline: Schema.optionalKey(Schema.String),
       baseUrl: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^https:\/\//u))),
+      preflightPublicKey: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
       receiptSha256: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u))),
     }),
   },
@@ -456,6 +537,10 @@ export default defineCommand({
           ? undefined
           : fromCliPath(input.options.httpBaseline),
       publicBaseUrl: input.options.baseUrl,
+      preflightPublicKeyPath:
+        input.options.preflightPublicKey === undefined
+          ? undefined
+          : fromCliPath(input.options.preflightPublicKey),
       serviceTokenId,
       serviceTokenSecret,
       // biome-ignore lint/complexity/useLiteralKeys: process.env is index-signature typed.

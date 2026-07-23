@@ -485,7 +485,15 @@ describe("Plan 097 protected Worker operation", () => {
     const object = await testEnv.PLAN097_OPERATIONS.get(preflightRef.key);
     expect(object).not.toBeNull();
     if (object === null) throw new Error("missing persisted preflight receipt");
-    const receipt = decodeStrict(Plan097PreflightReceiptSchema)(JSON.parse(await object.text()));
+    const persistedReceiptText = await object.text();
+    expect(result.preflightReceiptBase64).toBeDefined();
+    if (result.preflightReceiptBase64 === undefined) {
+      throw new Error("missing returned preflight receipt bytes");
+    }
+    expect(Buffer.from(result.preflightReceiptBase64, "base64").toString("utf8")).toBe(
+      persistedReceiptText,
+    );
+    const receipt = decodeStrict(Plan097PreflightReceiptSchema)(JSON.parse(persistedReceiptText));
     expect(receipt.outcome).toBe("ready");
     expect(receipt.httpBaseline.activeReleaseId).toBe(previousReleaseId);
     expect(receipt.schemaReconciliation.actualStructuralSha256).toBe(

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -6,12 +7,19 @@ import {
   canonicalPlan097Json,
   type Plan097ActivationBundle,
   type Plan097CompactedBatch,
+  type Plan097OperationResponse,
+  type Plan097PreflightReceipt,
+  Plan097PreflightReceiptSchema,
   type Plan097RecoveryArtifactManifest,
   type Plan097RestoreBundle,
+  plan097PreflightSignedPayloadBytes,
 } from "@bp/db/recovery/plan097";
 import { decodeStrict } from "@bp/domain/decode";
 import { ReleaseIdentitySchema } from "@bp/domain/studio/shared";
-import { runPublishRecovery } from "../../../src/commands/publish/recovery.ts";
+import {
+  runPublishRecovery,
+  verifyReturnedPlan097Preflight,
+} from "../../../src/commands/publish/recovery.ts";
 
 const publishedAt = "2026-07-22T12:00:00.000Z";
 const releaseId = "pub_20260722T120000000Z";
@@ -165,7 +173,135 @@ async function fixture() {
   };
 }
 
+async function signedPreflightFixture(root: string): Promise<{
+  response: Plan097OperationResponse;
+  publicKeyPath: string;
+  publicKeySpkiSha256: string;
+  receiptSha256: string;
+}> {
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const publicKeySpki = publicKey.export({ format: "der", type: "spki" });
+  const publicKeySpkiSha256 = createHash("sha256").update(publicKeySpki).digest("hex");
+  const unsignedReceipt: Omit<Plan097PreflightReceipt, "signature"> = {
+    artifactKind: "bp.ops.plan097.preflight.v1",
+    schemaVersion: 1,
+    outcome: "ready",
+    preparedAt: publishedAt,
+    repoSha: "f".repeat(40),
+    commandVersion: "plan097-test",
+    resources: {
+      d1DatabaseName: "plan097-test-db",
+      d1DatabaseId: "12345678-1234-4123-8123-123456789abc",
+      r2Bucket: "plan097-test-bucket",
+    },
+    candidate: {
+      releaseId,
+      activationBundleSha256: "a".repeat(64),
+      manifestKey: `operations/plan097/releases/${releaseId}/artifact-manifest.json`,
+      manifestSha256: "b".repeat(64),
+    },
+    schemaSnapshot: {
+      sqliteMaster: [],
+      tables: [],
+      indexes: [],
+      migrationLedger: { present: false, rows: [] },
+      sha256: "c".repeat(64),
+    },
+    schemaReconciliation: {
+      expectedStructuralSha256: "d".repeat(64),
+      actualStructuralSha256: "d".repeat(64),
+      mapReleaseCatalogState: "exact",
+      applyRecoverySql: false,
+    },
+    httpBaseline: {
+      checkedAt: "2026-07-22T11:59:00.000Z",
+      activeReleaseId: "pub_20260721T120000000Z",
+      endpoints: [
+        {
+          path: "/api/v1/status",
+          status: 200,
+          schemaId: "bp.release_status_response.v1",
+          safeBodySha256: "e".repeat(64),
+          requestId: null,
+          cfRay: null,
+          cacheControl: "no-store",
+          etag: null,
+        },
+      ],
+    },
+    selectiveSnapshot: { key: "snapshot.json", sha256: "1".repeat(64), bytes: 1 },
+    rollbackPackage: { key: "rollback.json", sha256: "2".repeat(64), bytes: 1 },
+    costPreview: { d1Statements: 1, d1Bytes: 1, r2Puts: 1, r2Bytes: 1 },
+  };
+  const signedPayload = plan097PreflightSignedPayloadBytes(unsignedReceipt);
+  const receipt = decodeStrict(Plan097PreflightReceiptSchema)({
+    ...unsignedReceipt,
+    signature: {
+      algorithm: "Ed25519",
+      keyId: "plan097-test-20260722",
+      publicKeySpkiSha256,
+      signedPayloadSha256: createHash("sha256").update(signedPayload).digest("hex"),
+      signatureBase64: sign(null, signedPayload, privateKey).toString("base64"),
+    },
+  });
+  const receiptBytes = Buffer.from(`${canonicalPlan097Json(receipt)}\n`);
+  const receiptSha256 = createHash("sha256").update(receiptBytes).digest("hex");
+  const publicKeyPath = join(root, "preflight-public-key.pem");
+  await Bun.write(publicKeyPath, publicKey.export({ format: "pem", type: "spki" }));
+  return {
+    publicKeyPath,
+    publicKeySpkiSha256,
+    receiptSha256,
+    response: {
+      artifactKind: "bp.ops.plan097.worker-response.v1",
+      schemaVersion: 1,
+      operationId,
+      action: "preflight",
+      outcome: "pass",
+      releaseId,
+      activationBundleSha256: "a".repeat(64),
+      receiptKey: `operations/plan097/receipts/${releaseId}/preflight.${"3".repeat(64)}.json`,
+      statementCount: 1,
+      objectCount: 3,
+      evidence: [
+        {
+          kind: "preflight",
+          key: `operations/plan097/preflight/${releaseId}/preflight.${receiptSha256}.json`,
+          sha256: receiptSha256,
+          bytes: receiptBytes.byteLength,
+        },
+      ],
+      preflightReceiptBase64: receiptBytes.toString("base64"),
+    },
+  };
+}
+
 describe("publish recovery command", () => {
+  test("independently verifies the exact returned preflight bytes with the trusted Ed25519 key", async () => {
+    const root = mkdtempSync(join(tmpdir(), "plan097-preflight-verification-"));
+    try {
+      const fixture = await signedPreflightFixture(root);
+      await expect(
+        verifyReturnedPlan097Preflight(fixture.response, fixture.publicKeyPath),
+      ).resolves.toEqual({
+        receiptSha256: fixture.receiptSha256,
+        keyId: "plan097-test-20260722",
+        publicKeySpkiSha256: fixture.publicKeySpkiSha256,
+      });
+      const otherKey = generateKeyPairSync("ed25519").publicKey.export({
+        format: "pem",
+        type: "spki",
+      });
+      const otherKeyPath = join(root, "other-public-key.pem");
+      await Bun.write(otherKeyPath, otherKey);
+      await expect(verifyReturnedPlan097Preflight(fixture.response, otherKeyPath)).rejects.toThrow(
+        "fingerprint",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test("runs the exact staged A→B→A proof without accepting resource or SQL selectors", async () => {
     const files = await fixture();
     const calls: Array<{ action: string; executionToken: string | null }> = [];
@@ -304,12 +440,26 @@ describe("publish recovery command", () => {
                   bytes: 100,
                 },
               ],
+              preflightReceiptBase64: "e30K",
             });
+          },
+          verifyPreflightReceipt: async (response) => {
+            expect(response.preflightReceiptBase64).toBe("e30K");
+            return {
+              receiptSha256: "c".repeat(64),
+              keyId: "plan097-test-20260722",
+              publicKeySpkiSha256: "d".repeat(64),
+            };
           },
         },
       );
       expect(result.remoteReceipts).toHaveLength(2);
       expect(result.remoteReceipts[1]).toContain("/preflight/");
+      expect(result.preflightAttestation).toEqual({
+        receiptSha256: "c".repeat(64),
+        keyId: "plan097-test-20260722",
+        publicKeySpkiSha256: "d".repeat(64),
+      });
     } finally {
       rmSync(files.root, { recursive: true, force: true });
     }
