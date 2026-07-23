@@ -29,6 +29,7 @@ export type PublishRecoveryInputs = {
   serviceTokenId: string;
   serviceTokenSecret: string;
   executionToken?: string | undefined;
+  preflightReceiptSha256?: string | undefined;
 };
 
 export type PublishRecoveryResult = {
@@ -190,6 +191,19 @@ async function stageCandidate(input: {
     execute: true,
   });
   input.receipts.push(mirrored.receiptKey);
+  if (input.inputs.preflightReceiptSha256 !== undefined) {
+    const reconciled = await remoteCall({
+      inputs: input.inputs,
+      dependencies: input.dependencies,
+      request: {
+        ...base,
+        action: "reconcile-schema",
+        preflightReceiptSha256: input.inputs.preflightReceiptSha256,
+      },
+      execute: true,
+    });
+    input.receipts.push(reconciled.receiptKey);
+  }
   const manifestBytes = new Uint8Array(
     await Bun.file(input.inputs.artifactManifestPath).arrayBuffer(),
   );
@@ -261,6 +275,9 @@ export async function runPublishRecovery(
       break;
     }
     case "resume": {
+      if (inputs.preflightReceiptSha256 === undefined) {
+        throw new Error("Plan 097 resume requires --receipt-sha256 from the signed preflight");
+      }
       await stageCandidate({
         inputs,
         dependencies,
@@ -308,6 +325,16 @@ export async function runPublishRecovery(
         throw new Error("Plan 097 activation requires --restore-bundle for contingency rollback");
       }
       const productionBaseline = await revalidateProductionBaseline({ inputs, dependencies });
+      if (inputs.preflightReceiptSha256 === undefined) {
+        throw new Error("Plan 097 activation requires --receipt-sha256 from the signed preflight");
+      }
+      await stageCandidate({
+        inputs,
+        dependencies,
+        bundle,
+        activationBundleSha256,
+        receipts,
+      });
       const ready = await remoteCall({
         inputs,
         dependencies,
@@ -399,6 +426,7 @@ export default defineCommand({
       restoreBundle: Schema.optionalKey(Schema.String),
       httpBaseline: Schema.optionalKey(Schema.String),
       baseUrl: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^https:\/\//u))),
+      receiptSha256: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u))),
     }),
   },
   output: Schema.Unknown,
@@ -432,6 +460,7 @@ export default defineCommand({
       serviceTokenSecret,
       // biome-ignore lint/complexity/useLiteralKeys: process.env is index-signature typed.
       executionToken: process.env["PLAN097_EXECUTION_TOKEN"],
+      preflightReceiptSha256: input.options.receiptSha256,
     });
   },
 });

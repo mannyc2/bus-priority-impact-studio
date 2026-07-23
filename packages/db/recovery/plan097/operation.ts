@@ -51,6 +51,11 @@ export const Plan097OperationRequestSchema = Schema.Union([
   Schema.Struct({ ...BaseFields, action: Schema.Literal("mirror-bundle") }),
   Schema.Struct({
     ...BaseFields,
+    action: Schema.Literal("reconcile-schema"),
+    preflightReceiptSha256: Sha256Schema,
+  }),
+  Schema.Struct({
+    ...BaseFields,
     action: Schema.Literal("stage-body"),
     logicalId: Schema.String.check(Schema.isMinLength(1)),
     declaredSha256: Sha256Schema,
@@ -84,6 +89,7 @@ export const Plan097OperationResponseSchema = Schema.Struct({
     "dry-run",
     "preflight",
     "mirror-bundle",
+    "reconcile-schema",
     "stage-body",
     "finalize-manifest",
     "activate",

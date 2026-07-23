@@ -13,6 +13,7 @@ import {
   Plan097OperationRequestSchema,
   Plan097PreflightReceiptSchema,
   Plan097RecoveryArtifactManifestSchema,
+  plan097MapReleaseCatalogRecoveryStatements,
   type Plan097SchemaAuditInput,
 } from "../recovery/plan097/index.js";
 
@@ -266,6 +267,13 @@ describe("Plan 097 recovery contracts", () => {
       new URL("../recovery/plan097/0033_map_release_catalog_idempotent.sql", import.meta.url),
     ).text();
     expect(recoverySql).not.toMatch(/d1_migrations|INSERT|UPDATE|DELETE/i);
+    const normalized = (value: string) => value.replace(/\s+/gu, " ").trim();
+    expect(
+      recoverySql
+        .split(";")
+        .map(normalized)
+        .filter((statement) => statement.length > 0),
+    ).toEqual(plan097MapReleaseCatalogRecoveryStatements.map(normalized));
     sqlite.exec(recoverySql);
     sqlite.exec(recoverySql);
     expect(
@@ -496,6 +504,7 @@ describe("Plan 097 recovery contracts", () => {
       },
       candidate: {
         releaseId: "pub_20260722T120000000Z",
+        activationBundleSha256: sha("9"),
         manifestKey: "operations/plan097/releases/pub_20260722T120000000Z/artifact-manifest.json",
         manifestSha256: sha("b"),
       },

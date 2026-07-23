@@ -347,6 +347,7 @@ describe("publish recovery command", () => {
           serviceTokenId: "id",
           serviceTokenSecret: "secret",
           executionToken: "fresh-token",
+          preflightReceiptSha256: "c".repeat(64),
         },
         {
           fetch: async (_input, init) => {
@@ -381,7 +382,15 @@ describe("publish recovery command", () => {
         },
       );
       expect(result.outcome).toBe("rolled_back");
-      expect(actions).toEqual(["dry-run", "activate", "rollback"]);
+      expect(actions).toEqual([
+        "mirror-bundle",
+        "reconcile-schema",
+        "stage-body",
+        "finalize-manifest",
+        "dry-run",
+        "activate",
+        "rollback",
+      ]);
       expect(httpCheckCount).toBe(3);
     } finally {
       rmSync(files.root, { recursive: true, force: true });

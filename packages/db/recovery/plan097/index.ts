@@ -14,6 +14,21 @@ const D1DatabaseIdSchema = Schema.String.check(
   Schema.isPattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u),
 );
 
+export const plan097MapReleaseCatalogRecoveryStatements = [
+  `CREATE TABLE IF NOT EXISTS \`map_release_catalog\` (
+    \`release_id\` text PRIMARY KEY,
+    \`published_at\` text NOT NULL,
+    \`coverage_start\` text,
+    \`coverage_end\` text NOT NULL,
+    \`manifest_key\` text NOT NULL,
+    \`manifest_sha256\` text NOT NULL,
+    \`release_profile\` text NOT NULL,
+    \`verification_status\` text NOT NULL,
+    \`route_count\` integer NOT NULL
+  )`,
+  "CREATE UNIQUE INDEX IF NOT EXISTS `map_release_catalog_manifest_key_idx` ON `map_release_catalog` (`manifest_key`)",
+] as const;
+
 export const Plan097SqliteMasterRowSchema = Schema.Struct({
   type: Schema.Literals(["table", "index", "trigger", "view"]),
   name: NonEmptyStringSchema,
@@ -363,6 +378,7 @@ export const Plan097PreflightReceiptSchema = Schema.Struct({
   }),
   candidate: Schema.Struct({
     releaseId: ReleaseIdSchema,
+    activationBundleSha256: Sha256Schema,
     manifestKey: Schema.String.check(
       Schema.isPattern(/^operations\/plan097\/releases\/pub_[0-9TZ]+\/artifact-manifest\.json$/u),
     ),

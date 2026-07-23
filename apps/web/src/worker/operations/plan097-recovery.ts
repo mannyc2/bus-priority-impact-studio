@@ -18,6 +18,7 @@ import {
   type Plan097SchemaAuditInput,
   type Plan097SelectiveSnapshot,
   Plan097SelectiveSnapshotSchema,
+  plan097MapReleaseCatalogRecoveryStatements,
   plan097PreflightSignedPayloadBytes,
   plan097RecoveryMutationTables,
   plan097StructuralSchemaEnvelopeSha256,
@@ -99,6 +100,43 @@ async function signPlan097PreflightReceipt(
     signedPayloadSha256: await sha256(payload),
     signatureBase64: encodeBase64Bytes(signature),
   };
+}
+
+async function verifyPlan097PreflightReceiptSignature(
+  env: Env,
+  receipt: Plan097PreflightReceipt,
+): Promise<void> {
+  const keyId = env.PLAN097_PREFLIGHT_SIGNING_KEY_ID;
+  const publicKeyBase64 = env.PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64;
+  if (keyId === undefined || publicKeyBase64 === undefined) {
+    throw new Error("Plan 097 preflight verification configuration is incomplete");
+  }
+  const publicKeyBytes = decodeBase64Bytes(publicKeyBase64);
+  if (
+    receipt.signature.keyId !== keyId ||
+    receipt.signature.publicKeySpkiSha256 !== (await sha256(publicKeyBytes))
+  ) {
+    throw new Error("Plan 097 preflight receipt is signed by an untrusted key");
+  }
+  const { signature, ...unsigned } = receipt;
+  const payload = plan097PreflightSignedPayloadBytes(unsigned);
+  const publicKey = await crypto.subtle.importKey(
+    "spki",
+    publicKeyBytes,
+    { name: "Ed25519" },
+    false,
+    ["verify"],
+  );
+  if (
+    !(await crypto.subtle.verify(
+      "Ed25519",
+      publicKey,
+      decodeBase64Bytes(signature.signatureBase64),
+      payload,
+    ))
+  ) {
+    throw new Error("Plan 097 preflight receipt signature is invalid");
+  }
 }
 
 function quoteIdentifier(value: string): string {
@@ -271,6 +309,10 @@ function restoreBundleKey(releaseId: string, sha: string): string {
   return `operations/plan097/bundles/${releaseId}/restore.${sha}.json`;
 }
 
+function preflightReceiptKey(releaseId: string, sha: string): string {
+  return `operations/plan097/preflight/${releaseId}/preflight.${sha}.json`;
+}
+
 async function readVerifiedObject(input: {
   bucket: R2Bucket;
   key: string;
@@ -356,6 +398,33 @@ async function mirrorOperationBundle(input: {
     mediaType: "application/json",
   });
   let objectCount = 2;
+  if (input.env.PLAN097_PREFLIGHT_RECEIPT_SHA256 !== undefined) {
+    const preflightKey = preflightReceiptKey(releaseId, input.env.PLAN097_PREFLIGHT_RECEIPT_SHA256);
+    const preflightBytes = await readVerifiedObject({
+      bucket: input.env.PLAN097_PROOF_BUNDLES,
+      key: preflightKey,
+      expectedSha256: input.env.PLAN097_PREFLIGHT_RECEIPT_SHA256,
+    });
+    const preflight = decodeStrict(Plan097PreflightReceiptSchema)(
+      JSON.parse(new TextDecoder().decode(preflightBytes)),
+    );
+    await verifyPlan097PreflightReceiptSignature(input.env, preflight);
+    if (
+      preflight.candidate.releaseId !== releaseId ||
+      preflight.candidate.activationBundleSha256 !== input.request.activationBundleSha256 ||
+      preflight.candidate.manifestSha256 !== bundle.artifactManifest.sha256
+    ) {
+      throw new Error("Plan 097 proof preflight receipt does not match the operation bundle");
+    }
+    await putIdentical({
+      bucket: input.env.PLAN097_OPERATIONS,
+      key: preflightKey,
+      body: preflightBytes,
+      sha256: input.env.PLAN097_PREFLIGHT_RECEIPT_SHA256,
+      mediaType: "application/json",
+    });
+    objectCount += 1;
+  }
   if (input.env.PLAN097_RESTORE_BUNDLE_SHA256 !== undefined) {
     const restoreKey = restoreBundleKey(releaseId, input.env.PLAN097_RESTORE_BUNDLE_SHA256);
     const restoreBytes = await readVerifiedObject({
@@ -396,6 +465,81 @@ async function loadArtifactManifest(input: {
     throw new Error("Plan 097 artifact manifest does not match the activation bundle");
   }
   return { manifest, bytes };
+}
+
+async function runSchemaReconciliation(input: {
+  env: Env & { DB: D1Database; PLAN097_OPERATIONS: R2Bucket };
+  bundle: Plan097ActivationBundle;
+  request: Extract<Plan097OperationRequest, { action: "reconcile-schema" }>;
+}): Promise<number> {
+  const releaseId = input.bundle.candidate.releaseId;
+  const bytes = await readVerifiedObject({
+    bucket: input.env.PLAN097_OPERATIONS,
+    key: preflightReceiptKey(releaseId, input.request.preflightReceiptSha256),
+    expectedSha256: input.request.preflightReceiptSha256,
+  });
+  const receipt = decodeStrict(Plan097PreflightReceiptSchema)(
+    JSON.parse(new TextDecoder().decode(bytes)),
+  );
+  await verifyPlan097PreflightReceiptSignature(input.env, receipt);
+  if (
+    receipt.outcome !== "ready" ||
+    receipt.candidate.releaseId !== releaseId ||
+    receipt.candidate.activationBundleSha256 !== input.request.activationBundleSha256 ||
+    receipt.candidate.manifestSha256 !== input.bundle.artifactManifest.sha256
+  ) {
+    throw new Error("Plan 097 preflight receipt does not authorize schema confirmation");
+  }
+  const before = await capturePlan097D1CanonicalSchema(input.env.DB);
+  const beforeDecision = decidePlan097MapReleaseCatalogRecovery(before);
+  const ledgerMatches =
+    canonicalPlan097Json(before.migrationLedger) ===
+    canonicalPlan097Json(receipt.schemaSnapshot.migrationLedger);
+  const structureMatches =
+    plan097StructuralSchemaEnvelopeSha256(before) ===
+    receipt.schemaReconciliation.expectedStructuralSha256;
+  if (!ledgerMatches || !structureMatches) {
+    throw new Error("Plan 097 production schema or migration ledger drifted after preflight");
+  }
+  if (
+    receipt.schemaReconciliation.mapReleaseCatalogState === "exact" &&
+    !receipt.schemaReconciliation.applyRecoverySql
+  ) {
+    if (beforeDecision.state !== "exact" || before.sha256 !== receipt.schemaSnapshot.sha256) {
+      throw new Error("Plan 097 exact 0033 preflight snapshot no longer matches production");
+    }
+    return 0;
+  }
+  if (
+    receipt.schemaReconciliation.mapReleaseCatalogState !== "absent" ||
+    !receipt.schemaReconciliation.applyRecoverySql
+  ) {
+    throw new Error("Plan 097 preflight contains an invalid 0033 reconciliation decision");
+  }
+  if (beforeDecision.state === "exact") {
+    return 0;
+  }
+  if (before.sha256 !== receipt.schemaSnapshot.sha256) {
+    throw new Error("Plan 097 absent 0033 preflight snapshot no longer matches production");
+  }
+  const statements = plan097MapReleaseCatalogRecoveryStatements.map((sql) =>
+    input.env.DB.prepare(sql),
+  );
+  const results = await input.env.DB.batch(statements);
+  if (results.length !== statements.length || results.some((result) => !result.success)) {
+    throw new Error("Plan 097 exact 0033 reconciliation batch failed");
+  }
+  const after = await capturePlan097D1CanonicalSchema(input.env.DB);
+  if (
+    decidePlan097MapReleaseCatalogRecovery(after).state !== "exact" ||
+    plan097StructuralSchemaEnvelopeSha256(after) !==
+      receipt.schemaReconciliation.expectedStructuralSha256 ||
+    canonicalPlan097Json(after.migrationLedger) !==
+      canonicalPlan097Json(receipt.schemaSnapshot.migrationLedger)
+  ) {
+    throw new Error("Plan 097 exact 0033 reconciliation post-audit failed");
+  }
+  return statements.length;
 }
 
 async function putIdentical(input: {
@@ -542,14 +686,21 @@ async function activeD1Election(db: D1Database) {
   );
   const studioReleaseId =
     studio === null ? null : releaseIdFromPublishedAt(String(studio.generatedAt));
-  const map = await d1First<{ releaseId: string }>(
-    db,
-    `SELECT release_id AS releaseId
-     FROM map_release_catalog
-     WHERE release_profile = 'full' AND verification_status = 'pass'
-     ORDER BY published_at DESC, release_id DESC
-     LIMIT 1`,
-  );
+  const mapTablePresent =
+    (await d1First(
+      db,
+      "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'map_release_catalog'",
+    )) !== null;
+  const map = mapTablePresent
+    ? await d1First<{ releaseId: string }>(
+        db,
+        `SELECT release_id AS releaseId
+         FROM map_release_catalog
+         WHERE release_profile = 'full' AND verification_status = 'pass'
+         ORDER BY published_at DESC, release_id DESC
+         LIMIT 1`,
+      )
+    : null;
   const exact =
     studioReleaseId === null
       ? null
@@ -562,6 +713,7 @@ async function activeD1Election(db: D1Database) {
     studioReleaseId,
     mapReleaseId: map === null ? null : String(map.releaseId),
     exactRouteReleaseId: exact === null ? null : String(exact.releaseId),
+    mapCatalogPresent: mapTablePresent,
   };
 }
 
@@ -600,6 +752,7 @@ async function captureSelectiveSnapshot(input: {
   db: D1Database;
   bundle: Plan097ActivationBundle;
   capturedAt: string;
+  baselineReleaseId: string;
 }): Promise<Plan097SelectiveSnapshot> {
   const deletes = input.bundle.batch.statements.filter(
     (statement) =>
@@ -611,6 +764,16 @@ async function captureSelectiveSnapshot(input: {
   }
   const tables: Array<Plan097SelectiveSnapshot["tables"][number]> = [];
   for (const statement of deletes) {
+    const tablePresent =
+      (await d1First(
+        input.db,
+        "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = ?",
+        [statement.table],
+      )) !== null;
+    if (!tablePresent && statement.table === "map_release_catalog") continue;
+    if (!tablePresent) {
+      throw new Error(`Required Plan 097 serving table ${statement.table} is absent`);
+    }
     const predicate = deletePredicate(statement);
     const ordered = await orderedD1Rows({
       db: input.db,
@@ -630,9 +793,12 @@ async function captureSelectiveSnapshot(input: {
     });
   }
   const previousElection = await activeD1Election(input.db);
+  const previousMapReleaseId = previousElection.mapCatalogPresent
+    ? previousElection.mapReleaseId
+    : input.baselineReleaseId;
   if (
     previousElection.studioReleaseId === null ||
-    previousElection.studioReleaseId !== previousElection.mapReleaseId ||
+    previousElection.studioReleaseId !== previousMapReleaseId ||
     previousElection.studioReleaseId !== previousElection.exactRouteReleaseId
   ) {
     throw new Error("Plan 097 pre-cut Studio/map/exact election is missing or inconsistent");
@@ -642,7 +808,11 @@ async function captureSelectiveSnapshot(input: {
     schemaVersion: 1,
     capturedAt: input.capturedAt,
     candidate: input.bundle.candidate,
-    previousElection,
+    previousElection: {
+      studioReleaseId: previousElection.studioReleaseId,
+      mapReleaseId: previousMapReleaseId,
+      exactRouteReleaseId: previousElection.exactRouteReleaseId,
+    },
     tables,
     protectedFingerprints: await protectedD1Fingerprints(input.db),
   });
@@ -699,6 +869,7 @@ async function runPreflight(input: {
     db: input.env.DB,
     bundle: input.bundle,
     capturedAt,
+    baselineReleaseId: input.request.httpBaseline.activeReleaseId,
   });
   if (
     snapshot.previousElection.studioReleaseId !== input.request.httpBaseline.activeReleaseId ||
@@ -743,6 +914,7 @@ async function runPreflight(input: {
     },
     candidate: {
       releaseId,
+      activationBundleSha256: input.request.activationBundleSha256,
       manifestKey: input.bundle.artifactManifest.key,
       manifestSha256: input.bundle.artifactManifest.sha256,
     },
@@ -966,6 +1138,14 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         statementCount = result.statementCount;
         objectCount = result.objectCount;
         evidence = result.evidence;
+        break;
+      }
+      case "reconcile-schema": {
+        statementCount = await runSchemaReconciliation({
+          env: boundEnv,
+          bundle,
+          request: operationRequest,
+        });
         break;
       }
       case "stage-body": {

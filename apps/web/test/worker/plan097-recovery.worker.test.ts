@@ -11,6 +11,7 @@ import {
   Plan097PreflightReceiptSchema,
   type Plan097RecoveryArtifactManifest,
   type Plan097RestoreBundle,
+  plan097MapReleaseCatalogRecoveryStatements,
   plan097StructuralSchemaEnvelopeSha256,
 } from "@bp/db/recovery/plan097";
 import { decodeStrict } from "@bp/domain/decode";
@@ -497,5 +498,91 @@ describe("Plan 097 protected Worker operation", () => {
       keyId: "plan097-test-20260722",
       publicKeySpkiSha256: "3f20deeccb7c358fcb07f5804a31ef573bbb1c9dc7af5efbfc79a5c8d2e7e61a",
     });
+  });
+
+  it("reconciles an absent exact 0033 only from the signed preflight and is retry-safe", async () => {
+    const ledgerBefore = (
+      await testEnv.DB.prepare(
+        "SELECT id, name, applied_at AS appliedAt FROM d1_migrations ORDER BY id, name",
+      ).all()
+    ).results;
+    await testEnv.DB.prepare("DROP TABLE map_release_catalog").run();
+    try {
+      const base = { operationId, activationBundleSha256 };
+      const preflight = await operationRequest({
+        body: {
+          ...base,
+          action: "preflight",
+          httpBaseline: {
+            checkedAt: "2026-07-22T11:59:00.000Z",
+            activeReleaseId: previousReleaseId,
+            endpoints: [
+              {
+                path: "/api/v1/status",
+                status: 200,
+                schemaId: "bp.api.release_status.v1",
+                safeBodySha256: "9".repeat(64),
+                requestId: "request-absent-0033",
+                cfRay: null,
+                cacheControl: "no-store",
+                etag: null,
+              },
+            ],
+          },
+        },
+        env: operationEnv,
+      });
+      expect(preflight.status).toBe(200);
+      const preflightResponse = decodeStrict(Plan097OperationResponseSchema)(
+        await preflight.json(),
+      );
+      const preflightRef = preflightResponse.evidence?.find((entry) => entry.kind === "preflight");
+      if (preflightRef === undefined) throw new Error("missing absent-0033 preflight receipt");
+
+      const unauthorized = await operationRequest({
+        body: {
+          ...base,
+          action: "reconcile-schema",
+          preflightReceiptSha256: preflightRef.sha256,
+        },
+        env: operationEnv,
+      });
+      expect(unauthorized.status).toBe(403);
+
+      const reconcile = () =>
+        operationRequest({
+          body: {
+            ...base,
+            action: "reconcile-schema",
+            preflightReceiptSha256: preflightRef.sha256,
+          },
+          env: operationEnv,
+          execute: true,
+        });
+      const first = await reconcile();
+      expect(first.status).toBe(200);
+      expect(decodeStrict(Plan097OperationResponseSchema)(await first.json()).statementCount).toBe(
+        2,
+      );
+      const retry = await reconcile();
+      expect(retry.status).toBe(200);
+      expect(decodeStrict(Plan097OperationResponseSchema)(await retry.json()).statementCount).toBe(
+        0,
+      );
+      expect(
+        (await testEnv.DB.prepare("PRAGMA table_info(map_release_catalog)").all()).results,
+      ).toHaveLength(9);
+      expect(
+        (
+          await testEnv.DB.prepare(
+            "SELECT id, name, applied_at AS appliedAt FROM d1_migrations ORDER BY id, name",
+          ).all()
+        ).results,
+      ).toEqual(ledgerBefore);
+    } finally {
+      await testEnv.DB.batch(
+        plan097MapReleaseCatalogRecoveryStatements.map((sql) => testEnv.DB.prepare(sql)),
+      );
+    }
   });
 });
