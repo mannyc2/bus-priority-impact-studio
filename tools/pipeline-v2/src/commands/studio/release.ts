@@ -74,6 +74,7 @@ import {
   speedPercentileContext,
   speedPercentilesForSummaries,
 } from "./_release-routes.ts";
+import { refreshRouteBriefScheduleEvidence } from "./_release-schedule-evidence.ts";
 import {
   buildSegmentAnalystNote,
   buildSegments,
@@ -279,7 +280,9 @@ async function augmentRouteBriefInputFromRaw(
     (currentRidershipRows.length === 0 && snapshotRidershipRows === null) ||
     (currentScheduleRows.length === 0 && snapshotScheduleRows === null)
   ) {
-    return artifact;
+    return currentScheduleRows.length === 0
+      ? artifact
+      : refreshRouteBriefScheduleEvidence(artifact, currentScheduleRows);
   }
 
   const [yearText, monthText] = month.split("-");
@@ -893,8 +896,23 @@ function isLlmGeneratedSegmentNote(value: unknown): boolean {
   );
 }
 
+export function studioProjectionOutputDirectory(outputPath: string): string {
+  const resolvedOutputPath = resolve(outputPath);
+  const outputDir = dirname(resolvedOutputPath);
+  if (
+    basename(resolvedOutputPath) !== "release.json" ||
+    !/^v\d+$/.test(basename(outputDir)) ||
+    basename(dirname(outputDir)) !== "studio"
+  ) {
+    throw new Error(
+      `Studio release output must be a versioned studio/<version>/release.json path; refusing to clean ${outputDir}.`,
+    );
+  }
+  return outputDir;
+}
+
 async function writeProjections(outputPath: string, release: StudioReleasePayload): Promise<void> {
-  const outputDir = dirname(resolve(outputPath));
+  const outputDir = studioProjectionOutputDirectory(outputPath);
 
   assertInjectiveStudioRouteIdentityUniverse(release.routes, "Static Studio release routes");
 
