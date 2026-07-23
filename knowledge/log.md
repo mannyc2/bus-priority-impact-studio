@@ -9192,3 +9192,26 @@ exact prior@100%/candidate@0% staged state and prior@100% rollback state,
 captures rollback state even after an ambiguous rollback-client failure, and
 bounds every post-mutation command inside a larger job timeout with cleanup
 reserve.
+
+## [2026-07-23] operations | Plan 097 reader predeploy succeeded and drain started
+
+Approved PR #102 head `33f5f59db2db984c1b77d423566eeef2cd61b2ca`
+merged as `b25542b0a735636e7051be8fb70893499671366f`. Protected
+[Actions run 334](https://github.com/mannyc2/bus-priority-impact-studio/actions/runs/30028518714)
+passed verification, staged prior Worker
+`f2067a1d-6c4f-4e00-abd4-43fea7469f4e` at 100% with candidate
+`8c117bac-3813-4cfc-9d19-c94c4987a165` at 0%, passed the exact-version
+override proof, promoted only the candidate to 100%, and passed the ordinary
+proof at `2026-07-23T17:16:05.839Z`. Read-only D1 parity and production smoke
+passed; rollback was not invoked. No D1/R2 application data, serving schema,
+release pointer, recovery manifest, or candidate artifact changed.
+
+Artifact `8572360112` has archive SHA-256
+`56410e4a85f8228c17367e5463ef6eeee294549413d553f9943b594da4b3b7d5`
+and expires `2026-10-21T17:13:47Z`. The adjacent manifest independently
+verified all six allowlisted JSON members. A separate anonymous check at
+`2026-07-23T17:18:16Z` reconfirmed the pinned release, exact active Worker,
+`no-store`, and operation-namespace 404. No purge was authorized, so the
+86,400-second drain completes no earlier than
+`2026-07-24T17:16:05.839Z`. Signed preflight and disposable proof remain
+closed until the post-drain checker passes; Plan 097 remains in progress.

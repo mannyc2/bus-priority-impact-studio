@@ -166,6 +166,25 @@ not establish a `first proved no-store` instant, and did not start the cache-
 drain clock. A repaired reader deployment is a new protected production
 Worker gate against its exact pushed SHA.
 
+Protected run 334 (`30028518714`) on 2026-07-23 used approved PR #102 head
+`33f5f59db2db984c1b77d423566eeef2cd61b2ca`, merged as
+`b25542b0a735636e7051be8fb70893499671366f`. It proved candidate Worker
+`8c117bac-3813-4cfc-9d19-c94c4987a165` first at 0% through an exact version
+override, then promoted it alone to 100% and passed the ordinary-traffic proof
+at `2026-07-23T17:16:05.839Z`. All successful public checks returned
+`no-store`; the pinned release and known baseline map-manifest 503 were
+unchanged. Read-only D1 parity and production smoke passed, rollback stayed
+skipped, and no D1/R2 application data, schema, release pointer, or candidate
+artifact changed.
+
+The evidence artifact is ID `8572360112`, archive SHA-256
+`56410e4a85f8228c17367e5463ef6eeee294549413d553f9943b594da4b3b7d5`,
+expiring `2026-10-21T17:13:47Z`; its adjacent manifest independently verified
+all six JSON members. No purge was authorized. Do not run the signed preflight
+or disposable proof before the 86,400-second drain completes at
+`2026-07-24T17:16:05.839Z` and a new anonymous checker confirms the same
+release, Worker version, `no-store` posture, and operation-namespace 404.
+
 ### Closed command configuration
 
 The exact reviewed command shapes resolve paths and endpoints from these environment variables. A

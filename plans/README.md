@@ -70,19 +70,23 @@ and makes one pointer select D1, exact identity, maps, and every R2 artifact.
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
 
-Current Plan 097 checkpoint (2026-07-23): PR #101 merged as
-`14fb1472ea210bb66ace7bbe3348ee7202ee35ec`. Protected production run 332
-deployed the recovery-reader candidate but failed closed when the strict
-checker did not observe `Cache-Control: no-store`; automatic rollback restored
-the prior Worker version at 100%. Hash-bound pre/post and rollback Actions
-artifacts exist, but no valid reader-deploy receipt was created and the
-cache-drain clock did not start. No production serving data, schema, or
-candidate artifacts changed. A follow-up now binds every response to exact
-Worker version metadata and stages new code at 0% for override proof before
-promotion; it remains undeployed pending a fresh protected-reader approval.
-The signed Cloudflare preflight, disposable A→B→A evidence, fresh production
-token, and live completion receipt do not exist; 097 remains IN PROGRESS and
-098 has not started.
+Current Plan 097 checkpoint (2026-07-23): approved PR #102 head
+`33f5f59db2db984c1b77d423566eeef2cd61b2ca` merged as
+`b25542b0a735636e7051be8fb70893499671366f`. Protected production run 334
+(`30028518714`) proved Worker version
+`8c117bac-3813-4cfc-9d19-c94c4987a165` first at 0% through an exact version
+override and then at 100% over ordinary traffic. The ordinary receipt at
+`2026-07-23T17:16:05.839Z` binds the pinned release, exact Worker version,
+14 successful `no-store` public responses, the known baseline map-manifest
+503, and the anonymous operation-namespace 404. Read-only D1 parity and
+production smoke passed; no production D1/R2 application data, schema, release
+pointer, or candidate artifact changed. The hash-bound Actions artifact is
+`8572360112` with archive SHA-256
+`56410e4a85f8228c17367e5463ef6eeee294549413d553f9943b594da4b3b7d5`.
+No purge was authorized, so the conservative 86,400-second drain runs through
+`2026-07-24T17:16:05.839Z`. The signed Cloudflare preflight, disposable A→B→A
+evidence, fresh production mutation token, and live completion receipt do not
+exist; 097 remains IN PROGRESS and 098 has not started.
 
 ## Dependency and safety notes (gen 17)
 
