@@ -576,7 +576,10 @@ at `2026-07-23T04:37:19Z` still elected the pinned release and observed the
 pre-existing map-catalog 503. None of these production-config changes has been
 deployed. The protected reader predeploy and its 86,400-second prior-cache
 drain (or an evidenced authoritative purge) are now explicit gates before the
-signed preflight.
+signed preflight. The protected workflow now captures the prior and deployed
+Worker versions, writes a strict hash-covered reader receipt, uploads it as a
+GitHub Actions artifact, and automatically restores the captured stable
+version if any postdeploy D1 audit or HTTP proof fails.
 
 The remote gates remain deliberately open. The current Wrangler login is
 expired and the Cloudflare API/service/bootstrap/signing/proof credentials are

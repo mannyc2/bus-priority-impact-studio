@@ -91,15 +91,33 @@ jobs:
           fi
           bun tools/pipeline-v2/scripts/audit-route-index-v3-d1.ts --mode pre --receipt packages/db/recovery/plan095/exact-route-index-v3-recovery.receipt.json --tables /tmp/plan095/tables-pre.json --catalog /tmp/plan095/catalog-pre.json --route-types /tmp/plan095/route-types-pre.json --trip-types /tmp/plan095/trip-types-pre.json --registry /tmp/plan095/registry-pre.json --release /tmp/plan095/release-pre.json --output /tmp/plan095/audit-pre.json --github-output "$GITHUB_OUTPUT"
 
+      - name: Capture current Worker deployment
+        id: plan097-reader-pre
+        if: steps.cloudflare.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          mkdir -p /tmp/plan097
+          bunx wrangler deployments status --json --config apps/web/wrangler.jsonc > /tmp/plan097/worker-deployment-pre.json
+          PLAN097_PRIOR_VERSION_ID="$(jq -er 'if (.versions | length) == 1 and .versions[0].percentage == 100 then .versions[0].version_id else error("production is not on one stable Worker version") end' /tmp/plan097/worker-deployment-pre.json)"
+          echo "prior_version_id=$PLAN097_PRIOR_VERSION_ID" >> "$GITHUB_OUTPUT"
+
       - name: Build web release
         if: steps.cloudflare.outputs.deploy == 'true'
         run: bun --filter @bp/web build
 
       - name: Deploy Worker
+        id: deploy-worker
         if: steps.cloudflare.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: bun --filter @bp/web deploy
+
+      - name: Capture deployed Worker version
+        if: steps.cloudflare.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: bunx wrangler deployments status --json --config apps/web/wrangler.jsonc > /tmp/plan097/worker-deployment-post.json
 
       - name: Verify exact route serving D1 after recovery
         if: steps.cloudflare.outputs.deploy == 'true'
@@ -118,6 +136,13 @@ jobs:
         if: steps.cloudflare.outputs.deploy == 'true'
         run: bun tools/pipeline-v2/scripts/check-production-route-index-v3.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --audit /tmp/plan095/audit-post.json --output /tmp/plan095/production-smoke.json
 
+      - name: Prove Plan 097 recovery reader predeploy
+        if: steps.cloudflare.outputs.deploy == 'true'
+        run: |
+          bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release pub_20260605T183601689Z --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --output /tmp/plan097/plan097-reader-deploy.receipt.json
+          cd /tmp/plan097
+          sha256sum worker-deployment-pre.json worker-deployment-post.json plan097-reader-deploy.receipt.json > plan097-reader-deploy.receipt.sha256
+
       - name: Upload exact route recovery receipts
         if: steps.cloudflare.outputs.deploy == 'true'
         uses: actions/upload-artifact@v4
@@ -128,3 +153,29 @@ jobs:
             /tmp/plan095/audit-post.json
             /tmp/plan095/production-smoke.json
             packages/db/recovery/plan095/exact-route-index-v3-recovery.receipt.json
+
+      - name: Upload Plan 097 reader predeploy receipts
+        if: always() && steps.cloudflare.outputs.deploy == 'true' && steps.deploy-worker.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan097-reader-predeploy-${{ github.sha }}
+          path: /tmp/plan097/
+          if-no-files-found: error
+
+      - name: Roll back Worker on postdeploy failure
+        id: rollback-worker
+        if: failure() && steps.cloudflare.outputs.deploy == 'true' && steps.deploy-worker.outcome == 'success'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PLAN097_PRIOR_VERSION_ID: ${{ steps.plan097-reader-pre.outputs.prior_version_id }}
+        run: |
+          bunx wrangler rollback "$PLAN097_PRIOR_VERSION_ID" --config apps/web/wrangler.jsonc --yes --message "Plan 097 reader predeploy verification failed"
+          bunx wrangler deployments status --json --config apps/web/wrangler.jsonc > /tmp/plan097/worker-deployment-rollback.json
+
+      - name: Upload Plan 097 rollback evidence
+        if: failure() && steps.rollback-worker.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan097-reader-predeploy-rollback-${{ github.sha }}
+          path: /tmp/plan097/worker-deployment-rollback.json
+          if-no-files-found: error

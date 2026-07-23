@@ -74,11 +74,11 @@ Current Plan 097 checkpoint (2026-07-23): local candidate, transport, exact
 command/runbook, measured receipts, and Worker-harness proof/completion paths
 are implemented on draft PR #101. A continuation audit added the missing
 production recovery/no-store predeploy config, Access-JWT origin validation,
-preview-URL denial, and resolver-enabled proof config; these corrections are
+preview-URL denial, resolver-enabled proof config, and a version-captured,
+receipt-backed predeploy with automatic Worker rollback; these corrections are
 not deployed yet. The signed Cloudflare preflight, disposable remote A→B→A
-evidence, fresh production token, and live completion receipt do not exist
-because Cloudflare credentials are currently unavailable; 097 therefore
-remains IN PROGRESS and 098 has not started.
+evidence, fresh production token, and live completion receipt do not exist;
+097 therefore remains IN PROGRESS and 098 has not started.
 
 ## Dependency and safety notes (gen 17)
 

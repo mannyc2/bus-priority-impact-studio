@@ -285,6 +285,24 @@ describe("production boundary harness", () => {
     }
   });
 
+  test("Plan 097 reader predeploy is receipt-backed and rolls the Worker back on failure", async () => {
+    const workflow = await Bun.file(".github/workflows/ci.yml").text();
+
+    expect(workflow).toContain("wrangler deployments status --json");
+    expect(workflow).toContain("prior_version_id");
+    expect(workflow).toContain("check-plan097-recovery-reader.ts");
+    expect(workflow).toContain("plan097-reader-deploy.receipt.json");
+    expect(workflow).toContain("plan097-reader-deploy.receipt.sha256");
+    expect(workflow).toContain("Roll back Worker on postdeploy failure");
+    expect(workflow).toContain("wrangler rollback");
+    expect(workflow).toContain("if: failure()");
+    expect(workflow).toContain("Upload Plan 097 rollback evidence");
+    expect(workflow).toContain("if-no-files-found: error");
+    expect(workflow.indexOf("Upload Plan 097 reader predeploy receipts")).toBeLessThan(
+      workflow.indexOf("Roll back Worker on postdeploy failure"),
+    );
+  });
+
   test("domain package remains infrastructure-free", async () => {
     const files = await readFiles("packages/domain/src");
     const forbiddenImports = [

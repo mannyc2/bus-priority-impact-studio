@@ -127,6 +127,16 @@ No purge is assumed by this runbook. The signed preflight must use the post-drai
 predeploy is a protected production-Worker gate, but it does not authorize the later serving-data,
 schema, or artifact mutation token.
 
+The production workflow refuses to start from split Worker traffic, captures the one stable prior
+version, and records the postdeploy version before verification. Its strict Plan 097 checker binds
+the pinned release, safe-body hashes, `no-store` headers, exact-route count, anonymous operation
+namespace 404, deployed Git SHA, and workflow run to
+`plan097-reader-deploy.receipt.json`. The pre/post deployment JSON and receipt are covered by the
+adjacent SHA-256 file and uploaded as the `plan097-reader-predeploy-<git-sha>` Actions artifact. If
+any postdeploy D1 audit or HTTP check fails, the workflow rolls the Worker back to the captured
+version and uploads the rollback deployment state; that failed run does not start the cache-drain
+clock.
+
 ### Closed command configuration
 
 The exact reviewed command shapes resolve paths and endpoints from these environment variables. A
