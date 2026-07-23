@@ -6,6 +6,9 @@ const OperationIdSchema = Schema.String.check(Schema.isPattern(/^plan097:pub_[0-
 const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
   Schema.isGreaterThanOrEqualTo(0),
 );
+const NonNegativeFiniteSchema = Schema.Number.check(Schema.isFinite()).check(
+  Schema.isGreaterThanOrEqualTo(0),
+);
 const BaseFields = {
   operationId: OperationIdSchema,
   activationBundleSha256: Sha256Schema,
@@ -44,6 +47,24 @@ export const Plan097HttpBaselineSchema = Schema.Struct({
     return [];
   }),
 );
+
+export const Plan097OperationMetricsSchema = Schema.Struct({
+  scope: Schema.Literal("operation-before-receipt-persistence"),
+  durationMs: NonNegativeFiniteSchema,
+  d1: Schema.Struct({
+    statementCount: NonNegativeIntegerSchema,
+    rowsRead: NonNegativeIntegerSchema,
+    rowsWritten: NonNegativeIntegerSchema,
+    queryDurationMs: NonNegativeFiniteSchema,
+  }),
+  r2: Schema.Struct({
+    headRequests: NonNegativeIntegerSchema,
+    getRequests: NonNegativeIntegerSchema,
+    putRequests: NonNegativeIntegerSchema,
+    bytesRead: NonNegativeIntegerSchema,
+    bytesWritten: NonNegativeIntegerSchema,
+  }),
+});
 
 export const Plan097OperationRequestSchema = Schema.Union([
   Schema.Struct({ ...BaseFields, action: Schema.Literal("dry-run") }),
@@ -108,6 +129,7 @@ export const Plan097OperationResponseSchema = Schema.Struct({
   ),
   statementCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   objectCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  metrics: Plan097OperationMetricsSchema,
   evidence: Schema.optionalKey(
     Schema.Array(
       Schema.Struct({
@@ -134,4 +156,5 @@ export const Plan097OperationResponseSchema = Schema.Struct({
 
 export type Plan097OperationRequest = typeof Plan097OperationRequestSchema.Type;
 export type Plan097OperationResponse = typeof Plan097OperationResponseSchema.Type;
+export type Plan097OperationMetrics = typeof Plan097OperationMetricsSchema.Type;
 export type Plan097HttpBaseline = typeof Plan097HttpBaselineSchema.Type;

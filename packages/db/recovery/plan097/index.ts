@@ -353,6 +353,8 @@ export {
   type Plan097HttpBaseline,
   Plan097HttpBaselineSchema,
   Plan097HttpEndpointEvidenceSchema,
+  type Plan097OperationMetrics,
+  Plan097OperationMetricsSchema,
   type Plan097OperationRequest,
   Plan097OperationRequestSchema,
   type Plan097OperationResponse,

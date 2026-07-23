@@ -502,6 +502,10 @@ describe("Plan 097 protected Worker operation", () => {
       execute: true,
     });
     expect(stage.status).toBe(200);
+    const stageResponse = decodeStrict(Plan097OperationResponseSchema)(await stage.json());
+    expect(stageResponse.metrics.r2.headRequests).toBeGreaterThan(0);
+    expect(stageResponse.metrics.r2.putRequests).toBe(1);
+    expect(stageResponse.metrics.r2.bytesWritten).toBe(artifactBody.byteLength);
     expect(await testEnv.ARTIFACTS.get(entry.key)).not.toBeNull();
 
     const finalize = await operationRequest({
@@ -595,7 +599,19 @@ describe("Plan 097 protected Worker operation", () => {
     const activationResponse = decodeStrict(Plan097OperationResponseSchema)(
       await activate.json(),
     ) as Plan097OperationResponse;
-    expect(await testEnv.PLAN097_OPERATIONS.get(activationResponse.receiptKey)).not.toBeNull();
+    expect(activationResponse.metrics).toMatchObject({
+      scope: "operation-before-receipt-persistence",
+      d1: { statementCount: activationBatch().statements.length },
+    });
+    expect(activationResponse.metrics.d1.rowsWritten).toBeGreaterThan(0);
+    expect(activationResponse.metrics.r2.getRequests).toBeGreaterThan(0);
+    expect(activationResponse.metrics.r2.bytesRead).toBeGreaterThan(0);
+    const activationReceipt = await testEnv.PLAN097_OPERATIONS.get(activationResponse.receiptKey);
+    expect(activationReceipt).not.toBeNull();
+    if (activationReceipt === null) throw new Error("missing activation receipt");
+    expect((await activationReceipt.json<{ metrics: unknown }>()).metrics).toEqual(
+      activationResponse.metrics,
+    );
     expect(
       await testEnv.DB.prepare(
         "SELECT COUNT(*) AS count FROM source_month_coverage WHERE source_id = 'plan097-worker-test'",
@@ -675,6 +691,9 @@ describe("Plan 097 protected Worker operation", () => {
     );
     expect(receipt.selectiveSnapshot.sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(receipt.rollbackPackage.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.metrics.d1.rowsRead).toBeGreaterThan(0);
+    expect(result.metrics.r2.headRequests).toBeGreaterThanOrEqual(3);
+    expect(result.metrics.r2.putRequests).toBeLessThanOrEqual(3);
     expect(receipt.signature).toMatchObject({
       algorithm: "Ed25519",
       keyId: "plan097-test-20260722",

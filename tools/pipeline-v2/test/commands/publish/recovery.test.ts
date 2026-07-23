@@ -26,6 +26,21 @@ const publishedAt = "2026-07-22T12:00:00.000Z";
 const releaseId = "pub_20260722T120000000Z";
 const operationId = `plan097:${releaseId}`;
 
+function operationMetrics() {
+  return {
+    scope: "operation-before-receipt-persistence" as const,
+    durationMs: 1,
+    d1: { statementCount: 1, rowsRead: 0, rowsWritten: 1, queryDurationMs: 0.5 },
+    r2: {
+      headRequests: 1,
+      getRequests: 1,
+      putRequests: 1,
+      bytesRead: 1,
+      bytesWritten: 1,
+    },
+  };
+}
+
 function readyFreshnessMatrix(): Plan097FreshnessMatrix {
   const sources = [
     ["bus_segment_speeds_2025", "month", "source_complete_probe", "2026-05"],
@@ -329,6 +344,7 @@ async function signedPreflightFixture(root: string): Promise<{
       receiptKey: `operations/plan097/receipts/${releaseId}/preflight.${"3".repeat(64)}.json`,
       statementCount: 1,
       objectCount: 3,
+      metrics: operationMetrics(),
       evidence: [
         {
           kind: "preflight",
@@ -407,6 +423,7 @@ describe("publish recovery command", () => {
               receiptKey: `operations/plan097/receipts/${releaseId}/${request.action}.${"b".repeat(64)}.json`,
               statementCount: 1,
               objectCount: 1,
+              metrics: operationMetrics(),
             });
           },
         },
@@ -455,6 +472,7 @@ describe("publish recovery command", () => {
                 receiptKey: `operations/plan097/receipts/${releaseId}/${request.action}.${"b".repeat(64)}.json`,
                 statementCount: 1,
                 objectCount: 1,
+                metrics: operationMetrics(),
               });
             },
           },
@@ -498,6 +516,7 @@ describe("publish recovery command", () => {
               receiptKey: `operations/plan097/receipts/${releaseId}/preflight.${"b".repeat(64)}.json`,
               statementCount: 1,
               objectCount: 3,
+              metrics: operationMetrics(),
               evidence: [
                 {
                   kind: "preflight",
@@ -580,6 +599,7 @@ describe("publish recovery command", () => {
               receiptKey: `operations/plan097/receipts/${releaseId}/${request.action}.${"b".repeat(64)}.json`,
               statementCount: 1,
               objectCount: 1,
+              metrics: operationMetrics(),
             });
           },
           httpCheck: async () => {

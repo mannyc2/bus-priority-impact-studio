@@ -6,6 +6,7 @@ import {
   type Plan097ActivationBundle,
   Plan097ActivationBundleSchema,
   type Plan097CompactedBatch,
+  type Plan097OperationMetrics,
   type Plan097OperationRequest,
   Plan097OperationRequestSchema,
   type Plan097OperationResponse,
@@ -31,6 +32,69 @@ import type { Env } from "../env.js";
 export const PLAN097_OPERATION_PATH = "/__operations/plan097";
 
 const textEncoder = new TextEncoder();
+
+type Plan097OperationMetricsAccumulator = {
+  startedAtMs: number;
+  d1StatementCount: number;
+  d1RowsRead: number;
+  d1RowsWritten: number;
+  d1QueryDurationMs: number;
+  r2HeadRequests: number;
+  r2GetRequests: number;
+  r2PutRequests: number;
+  r2BytesRead: number;
+  r2BytesWritten: number;
+};
+
+function createOperationMetrics(): Plan097OperationMetricsAccumulator {
+  return {
+    startedAtMs: performance.now(),
+    d1StatementCount: 0,
+    d1RowsRead: 0,
+    d1RowsWritten: 0,
+    d1QueryDurationMs: 0,
+    r2HeadRequests: 0,
+    r2GetRequests: 0,
+    r2PutRequests: 0,
+    r2BytesRead: 0,
+    r2BytesWritten: 0,
+  };
+}
+
+function recordD1Results(
+  metrics: Plan097OperationMetricsAccumulator | undefined,
+  results: readonly D1Result<unknown>[],
+): void {
+  if (metrics === undefined) return;
+  metrics.d1StatementCount += results.length;
+  for (const result of results) {
+    metrics.d1RowsRead += Number(result.meta.rows_read);
+    metrics.d1RowsWritten += Number(result.meta.rows_written);
+    metrics.d1QueryDurationMs += Number(result.meta.duration);
+  }
+}
+
+function snapshotOperationMetrics(
+  metrics: Plan097OperationMetricsAccumulator,
+): Plan097OperationMetrics {
+  return {
+    scope: "operation-before-receipt-persistence",
+    durationMs: Math.max(0, performance.now() - metrics.startedAtMs),
+    d1: {
+      statementCount: metrics.d1StatementCount,
+      rowsRead: metrics.d1RowsRead,
+      rowsWritten: metrics.d1RowsWritten,
+      queryDurationMs: metrics.d1QueryDurationMs,
+    },
+    r2: {
+      headRequests: metrics.r2HeadRequests,
+      getRequests: metrics.r2GetRequests,
+      putRequests: metrics.r2PutRequests,
+      bytesRead: metrics.r2BytesRead,
+      bytesWritten: metrics.r2BytesWritten,
+    },
+  };
+}
 
 function jsonResponse(value: unknown, status = 200): Response {
   return new Response(`${JSON.stringify(value)}\n`, {
@@ -151,9 +215,11 @@ async function d1All<Row extends Record<string, unknown> = Record<string, unknow
   db: D1Database,
   sql: string,
   params: readonly string[] = [],
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
 ): Promise<Row[]> {
   const prepared = db.prepare(sql);
   const result = await (params.length === 0 ? prepared : prepared.bind(...params)).all();
+  recordD1Results(metrics, [result]);
   return result.results as Row[];
 }
 
@@ -161,22 +227,29 @@ async function d1First<Row extends Record<string, unknown> = Record<string, unkn
   db: D1Database,
   sql: string,
   params: readonly string[] = [],
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
 ): Promise<Row | null> {
-  return (await d1All<Row>(db, sql, params))[0] ?? null;
+  return (await d1All<Row>(db, sql, params, metrics))[0] ?? null;
 }
 
 async function runPlan097D1StatementBatch(input: {
   db: D1Database;
   statements: D1PreparedStatement[];
   failureMessage: string;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<void> {
   const results = await input.db.batch(input.statements);
+  recordD1Results(input.metrics, results);
   if (results.length !== input.statements.length || results.some((result) => !result.success)) {
     throw new Error(input.failureMessage);
   }
 }
 
-async function d1TableInfo(db: D1Database, tableName: string) {
+async function d1TableInfo(
+  db: D1Database,
+  tableName: string,
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
+) {
   const rows = await d1All<{
     cid: number;
     name: string;
@@ -184,7 +257,7 @@ async function d1TableInfo(db: D1Database, tableName: string) {
     notnull: number;
     dflt_value: string | null;
     pk: number;
-  }>(db, `PRAGMA table_info(${quoteIdentifier(tableName)})`);
+  }>(db, `PRAGMA table_info(${quoteIdentifier(tableName)})`, [], metrics);
   if (rows.length === 0) throw new Error(`Required Plan 097 table ${tableName} is absent`);
   return rows.map((column) => ({
     cid: Number(column.cid),
@@ -196,7 +269,10 @@ async function d1TableInfo(db: D1Database, tableName: string) {
   }));
 }
 
-export async function capturePlan097D1CanonicalSchema(db: D1Database) {
+export async function capturePlan097D1CanonicalSchema(
+  db: D1Database,
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
+) {
   const rawMaster = await d1All<{
     type: string;
     name: string;
@@ -208,6 +284,8 @@ export async function capturePlan097D1CanonicalSchema(db: D1Database) {
      FROM sqlite_master
      WHERE name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'
      ORDER BY type, name, tbl_name`,
+    [],
+    metrics,
   );
   const sqliteMaster: Plan097SchemaAuditInput["sqliteMaster"] = rawMaster.map((row) => {
     const type = String(row.type);
@@ -228,13 +306,13 @@ export async function capturePlan097D1CanonicalSchema(db: D1Database) {
   const tables: Plan097SchemaAuditInput["tables"] = [];
   const indexes: Plan097SchemaAuditInput["indexes"] = [];
   for (const tableName of tableNames) {
-    tables.push({ tableName, columns: await d1TableInfo(db, tableName) });
+    tables.push({ tableName, columns: await d1TableInfo(db, tableName, metrics) });
     const tableIndexes = await d1All<{
       name: string;
       unique: number;
       origin: string;
       partial: number;
-    }>(db, `PRAGMA index_list(${quoteIdentifier(tableName)})`);
+    }>(db, `PRAGMA index_list(${quoteIdentifier(tableName)})`, [], metrics);
     for (const index of tableIndexes) {
       const name = String(index.name);
       indexes.push({
@@ -247,6 +325,8 @@ export async function capturePlan097D1CanonicalSchema(db: D1Database) {
           await d1All<{ seqno: number; cid: number; name: string | null }>(
             db,
             `PRAGMA index_info(${quoteIdentifier(name)})`,
+            [],
+            metrics,
           )
         ).map((column) => ({
           sequence: Number(column.seqno),
@@ -263,6 +343,8 @@ export async function capturePlan097D1CanonicalSchema(db: D1Database) {
           await d1All<{ id: number; name: string; appliedAt: string | null }>(
             db,
             "SELECT id, name, applied_at AS appliedAt FROM d1_migrations ORDER BY id, name",
+            [],
+            metrics,
           )
         ).map((row) => ({
           id: Number(row.id),
@@ -330,10 +412,13 @@ async function readVerifiedObject(input: {
   key: string;
   expectedSha256: string;
   expectedBytes?: number | undefined;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<Uint8Array> {
+  if (input.metrics !== undefined) input.metrics.r2GetRequests += 1;
   const object = await input.bucket.get(input.key);
   if (object === null) throw new Error(`Required Plan 097 object ${input.key} is missing`);
   const bytes = new Uint8Array(await object.arrayBuffer());
+  if (input.metrics !== undefined) input.metrics.r2BytesRead += bytes.byteLength;
   if (input.expectedBytes !== undefined && bytes.byteLength !== input.expectedBytes) {
     throw new Error(`Plan 097 object ${input.key} has an unexpected length`);
   }
@@ -346,6 +431,7 @@ async function readVerifiedObject(input: {
 async function loadActivationBundle(input: {
   env: Env & { PLAN097_OPERATIONS: R2Bucket };
   request: Plan097OperationRequest;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<Plan097ActivationBundle> {
   const releaseId = releaseIdFromOperationId(input.request.operationId);
   const key = activationBundleKey(releaseId, input.request.activationBundleSha256);
@@ -353,6 +439,7 @@ async function loadActivationBundle(input: {
     bucket: input.env.PLAN097_OPERATIONS,
     key,
     expectedSha256: input.request.activationBundleSha256,
+    metrics: input.metrics,
   });
   const bundle = decodeStrict(Plan097ActivationBundleSchema)(
     JSON.parse(new TextDecoder().decode(bytes)),
@@ -369,6 +456,7 @@ async function loadActivationBundle(input: {
 async function mirrorOperationBundle(input: {
   env: Env & { PLAN097_OPERATIONS: R2Bucket; PLAN097_PROOF_BUNDLES: R2Bucket };
   request: Extract<Plan097OperationRequest, { action: "mirror-bundle" }>;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<{ releaseId: string; objectCount: number }> {
   const releaseId = releaseIdFromOperationId(input.request.operationId);
   const activationKey = activationBundleKey(releaseId, input.request.activationBundleSha256);
@@ -376,6 +464,7 @@ async function mirrorOperationBundle(input: {
     bucket: input.env.PLAN097_PROOF_BUNDLES,
     key: activationKey,
     expectedSha256: input.request.activationBundleSha256,
+    metrics: input.metrics,
   });
   const bundle = decodeStrict(Plan097ActivationBundleSchema)(
     JSON.parse(new TextDecoder().decode(activationBytes)),
@@ -392,12 +481,14 @@ async function mirrorOperationBundle(input: {
     body: activationBytes,
     sha256: input.request.activationBundleSha256,
     mediaType: "application/json",
+    metrics: input.metrics,
   });
   const manifestBytes = await readVerifiedObject({
     bucket: input.env.PLAN097_PROOF_BUNDLES,
     key: bundle.artifactManifest.key,
     expectedSha256: bundle.artifactManifest.sha256,
     expectedBytes: bundle.artifactManifest.byteLength,
+    metrics: input.metrics,
   });
   decodeStrict(Plan097RecoveryArtifactManifestSchema)(
     JSON.parse(new TextDecoder().decode(manifestBytes)),
@@ -408,6 +499,7 @@ async function mirrorOperationBundle(input: {
     body: manifestBytes,
     sha256: bundle.artifactManifest.sha256,
     mediaType: "application/json",
+    metrics: input.metrics,
   });
   let objectCount = 2;
   if (input.env.PLAN097_PREFLIGHT_RECEIPT_SHA256 !== undefined) {
@@ -416,6 +508,7 @@ async function mirrorOperationBundle(input: {
       bucket: input.env.PLAN097_PROOF_BUNDLES,
       key: preflightKey,
       expectedSha256: input.env.PLAN097_PREFLIGHT_RECEIPT_SHA256,
+      metrics: input.metrics,
     });
     const preflight = decodeStrict(Plan097PreflightReceiptSchema)(
       JSON.parse(new TextDecoder().decode(preflightBytes)),
@@ -434,6 +527,7 @@ async function mirrorOperationBundle(input: {
       body: preflightBytes,
       sha256: input.env.PLAN097_PREFLIGHT_RECEIPT_SHA256,
       mediaType: "application/json",
+      metrics: input.metrics,
     });
     objectCount += 1;
   }
@@ -443,6 +537,7 @@ async function mirrorOperationBundle(input: {
       bucket: input.env.PLAN097_PROOF_BUNDLES,
       key: restoreKey,
       expectedSha256: input.env.PLAN097_RESTORE_BUNDLE_SHA256,
+      metrics: input.metrics,
     });
     decodeStrict(Plan097RestoreBundleSchema)(JSON.parse(new TextDecoder().decode(restoreBytes)));
     await putIdentical({
@@ -451,6 +546,7 @@ async function mirrorOperationBundle(input: {
       body: restoreBytes,
       sha256: input.env.PLAN097_RESTORE_BUNDLE_SHA256,
       mediaType: "application/json",
+      metrics: input.metrics,
     });
     objectCount += 1;
   }
@@ -460,12 +556,14 @@ async function mirrorOperationBundle(input: {
 async function loadArtifactManifest(input: {
   env: Env & { PLAN097_OPERATIONS: R2Bucket };
   bundle: Plan097ActivationBundle;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }) {
   const bytes = await readVerifiedObject({
     bucket: input.env.PLAN097_OPERATIONS,
     key: input.bundle.artifactManifest.key,
     expectedSha256: input.bundle.artifactManifest.sha256,
     expectedBytes: input.bundle.artifactManifest.byteLength,
+    metrics: input.metrics,
   });
   const manifest = decodeStrict(Plan097RecoveryArtifactManifestSchema)(
     JSON.parse(new TextDecoder().decode(bytes)),
@@ -483,12 +581,14 @@ async function runSchemaReconciliation(input: {
   env: Env & { DB: D1Database; PLAN097_OPERATIONS: R2Bucket };
   bundle: Plan097ActivationBundle;
   request: Extract<Plan097OperationRequest, { action: "reconcile-schema" }>;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<number> {
   const releaseId = input.bundle.candidate.releaseId;
   const bytes = await readVerifiedObject({
     bucket: input.env.PLAN097_OPERATIONS,
     key: preflightReceiptKey(releaseId, input.request.preflightReceiptSha256),
     expectedSha256: input.request.preflightReceiptSha256,
+    metrics: input.metrics,
   });
   const receipt = decodeStrict(Plan097PreflightReceiptSchema)(
     JSON.parse(new TextDecoder().decode(bytes)),
@@ -502,7 +602,7 @@ async function runSchemaReconciliation(input: {
   ) {
     throw new Error("Plan 097 preflight receipt does not authorize schema confirmation");
   }
-  const before = await capturePlan097D1CanonicalSchema(input.env.DB);
+  const before = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
   const beforeDecision = decidePlan097MapReleaseCatalogRecovery(before);
   const ledgerMatches =
     canonicalPlan097Json(before.migrationLedger) ===
@@ -541,8 +641,9 @@ async function runSchemaReconciliation(input: {
     db: input.env.DB,
     statements,
     failureMessage: "Plan 097 exact 0033 reconciliation batch failed",
+    metrics: input.metrics,
   });
-  const after = await capturePlan097D1CanonicalSchema(input.env.DB);
+  const after = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
   if (
     decidePlan097MapReleaseCatalogRecovery(after).state !== "exact" ||
     plan097StructuralSchemaEnvelopeSha256(after) !==
@@ -561,10 +662,18 @@ async function putIdentical(input: {
   body: Uint8Array;
   sha256: string;
   mediaType: string;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<"created" | "identical"> {
-  const existing = await input.bucket.get(input.key);
-  if (existing !== null) {
+  if (input.metrics !== undefined) input.metrics.r2HeadRequests += 1;
+  const existingHead = await input.bucket.head(input.key);
+  if (existingHead !== null) {
+    if (input.metrics !== undefined) input.metrics.r2GetRequests += 1;
+    const existing = await input.bucket.get(input.key);
+    if (existing === null) {
+      throw new Error(`Plan 097 object ${input.key} disappeared after HEAD`);
+    }
     const existingBytes = new Uint8Array(await existing.arrayBuffer());
+    if (input.metrics !== undefined) input.metrics.r2BytesRead += existingBytes.byteLength;
     const headers = new Headers();
     existing.writeHttpMetadata(headers);
     if (
@@ -577,13 +686,19 @@ async function putIdentical(input: {
     }
     return "identical";
   }
+  if (input.metrics !== undefined) {
+    input.metrics.r2PutRequests += 1;
+    input.metrics.r2BytesWritten += input.body.byteLength;
+  }
   await input.bucket.put(input.key, input.body, {
     httpMetadata: { contentType: input.mediaType },
     customMetadata: { sha256: input.sha256 },
   });
+  if (input.metrics !== undefined) input.metrics.r2GetRequests += 1;
   const verified = await input.bucket.get(input.key);
   if (verified === null) throw new Error(`Plan 097 object ${input.key} disappeared after PUT`);
   const verifiedBytes = new Uint8Array(await verified.arrayBuffer());
+  if (input.metrics !== undefined) input.metrics.r2BytesRead += verifiedBytes.byteLength;
   if (
     verifiedBytes.byteLength !== input.body.byteLength ||
     (await sha256(verifiedBytes)) !== input.sha256 ||
@@ -612,10 +727,13 @@ async function verifyStagedEntry(
     bytes: number;
     mediaType: string;
   },
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
 ): Promise<void> {
+  if (metrics !== undefined) metrics.r2GetRequests += 1;
   const object = await bucket.get(entry.key);
   if (object === null) throw new Error(`Plan 097 staged object ${entry.key} is missing`);
   const body = new Uint8Array(await object.arrayBuffer());
+  if (metrics !== undefined) metrics.r2BytesRead += body.byteLength;
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   if (
@@ -652,8 +770,9 @@ async function orderedD1Rows(input: {
   table: string;
   predicate?: string | undefined;
   params?: readonly string[] | undefined;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }) {
-  const info = await d1TableInfo(input.db, input.table);
+  const info = await d1TableInfo(input.db, input.table, input.metrics);
   const columns = info.map((column) => column.name);
   const primaryKey = info
     .filter((column) => column.primaryKey > 0)
@@ -665,7 +784,7 @@ async function orderedD1Rows(input: {
   )}${input.predicate === undefined ? "" : ` WHERE ${input.predicate}`} ORDER BY ${order
     .map(quoteIdentifier)
     .join(", ")}`;
-  const rows = (await d1All(input.db, sql, input.params)).map((row) =>
+  const rows = (await d1All(input.db, sql, input.params, input.metrics)).map((row) =>
     columns.map((column) => sqliteScalar(row[column])),
   );
   return { info, columns, primaryKey, rows };
@@ -685,7 +804,10 @@ function deletePredicate(statement: Plan097CompactedBatch["statements"][number])
   return match[2]?.trim();
 }
 
-async function activeD1Election(db: D1Database) {
+async function activeD1Election(
+  db: D1Database,
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
+) {
   const studio = await d1First<{ generatedAt: string }>(
     db,
     `SELECT status.generated_at AS generatedAt
@@ -696,6 +818,8 @@ async function activeD1Election(db: D1Database) {
        )
      ORDER BY status.month DESC
      LIMIT 1`,
+    [],
+    metrics,
   );
   const studioReleaseId =
     studio === null ? null : releaseIdFromPublishedAt(String(studio.generatedAt));
@@ -703,6 +827,8 @@ async function activeD1Election(db: D1Database) {
     (await d1First(
       db,
       "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'map_release_catalog'",
+      [],
+      metrics,
     )) !== null;
   const map = mapTablePresent
     ? await d1First<{ releaseId: string }>(
@@ -712,6 +838,8 @@ async function activeD1Election(db: D1Database) {
          WHERE release_profile = 'full' AND verification_status = 'pass'
          ORDER BY published_at DESC, release_id DESC
          LIMIT 1`,
+        [],
+        metrics,
       )
     : null;
   const exact =
@@ -721,6 +849,7 @@ async function activeD1Election(db: D1Database) {
           db,
           "SELECT release_id AS releaseId FROM exact_route_identity_release WHERE release_id = ? LIMIT 1",
           [studioReleaseId],
+          metrics,
         );
   return {
     studioReleaseId,
@@ -730,10 +859,13 @@ async function activeD1Election(db: D1Database) {
   };
 }
 
-async function protectedD1Fingerprints(db: D1Database): Promise<Plan097ProtectedFingerprint[]> {
+async function protectedD1Fingerprints(
+  db: D1Database,
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
+): Promise<Plan097ProtectedFingerprint[]> {
   const whole: Plan097ProtectedFingerprint[] = [];
   for (const table of protectedWholeTables) {
-    const rows = (await orderedD1Rows({ db, table })).rows;
+    const rows = (await orderedD1Rows({ db, table, metrics })).rows;
     whole.push({
       scope: "whole-table",
       table,
@@ -747,6 +879,7 @@ async function protectedD1Fingerprints(db: D1Database): Promise<Plan097Protected
       db,
       table: "route_month_source_status",
       predicate: appendixReliabilityPredicate,
+      metrics,
     })
   ).rows;
   return [
@@ -768,6 +901,7 @@ async function captureSelectiveSnapshot(input: {
   bundle: Plan097ActivationBundle;
   capturedAt: string;
   baselineReleaseId: string;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<Plan097SelectiveSnapshot> {
   const deletes = input.bundle.batch.statements.filter(
     (statement) =>
@@ -784,6 +918,7 @@ async function captureSelectiveSnapshot(input: {
         input.db,
         "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = ?",
         [statement.table],
+        input.metrics,
       )) !== null;
     if (!tablePresent && statement.table === "map_release_catalog") continue;
     if (!tablePresent) {
@@ -795,6 +930,7 @@ async function captureSelectiveSnapshot(input: {
       table: statement.table,
       ...(predicate === undefined ? {} : { predicate }),
       params: statement.params,
+      metrics: input.metrics,
     });
     tables.push({
       table: statement.table,
@@ -807,7 +943,7 @@ async function captureSelectiveSnapshot(input: {
       rowsSha256: await canonicalValueSha256(ordered.rows),
     });
   }
-  const previousElection = await activeD1Election(input.db);
+  const previousElection = await activeD1Election(input.db, input.metrics);
   const previousMapReleaseId = previousElection.mapCatalogPresent
     ? previousElection.mapReleaseId
     : input.baselineReleaseId;
@@ -829,7 +965,7 @@ async function captureSelectiveSnapshot(input: {
       exactRouteReleaseId: previousElection.exactRouteReleaseId,
     },
     tables,
-    protectedFingerprints: await protectedD1Fingerprints(input.db),
+    protectedFingerprints: await protectedD1Fingerprints(input.db, input.metrics),
   });
 }
 
@@ -840,6 +976,7 @@ async function putCanonicalEvidence(input: {
   keyForSha: (sha256: string) => string;
   value: unknown;
   kind: EvidenceRef["kind"];
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<EvidenceRef> {
   const bytes = textEncoder.encode(`${canonicalPlan097Json(input.value)}\n`);
   const digest = await sha256(bytes);
@@ -850,6 +987,7 @@ async function putCanonicalEvidence(input: {
     body: bytes,
     sha256: digest,
     mediaType: "application/json",
+    metrics: input.metrics,
   });
   return { kind: input.kind, key, sha256: digest, bytes: bytes.byteLength };
 }
@@ -861,6 +999,7 @@ async function runPreflight(input: {
   manifestEntryCount: number;
   manifestBytes: number;
   manifestBodyBytes: number;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<{
   evidence: EvidenceRef[];
   statementCount: number;
@@ -878,7 +1017,7 @@ async function runPreflight(input: {
   const d1DatabaseName = requireMetadata(input.env.PLAN097_D1_DATABASE_NAME);
   const d1DatabaseId = requireMetadata(input.env.PLAN097_D1_DATABASE_ID);
   const r2Bucket = requireMetadata(input.env.PLAN097_ARTIFACTS_BUCKET_NAME);
-  const schemaSnapshot = await capturePlan097D1CanonicalSchema(input.env.DB);
+  const schemaSnapshot = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
   const actualStructuralSha256 = plan097StructuralSchemaEnvelopeSha256(schemaSnapshot);
   if (actualStructuralSha256 !== input.bundle.schemaEnvelope.structuralSha256) {
     throw new Error("Production schema differs from the Plan 097 canonical schema envelope");
@@ -890,6 +1029,7 @@ async function runPreflight(input: {
     bundle: input.bundle,
     capturedAt,
     baselineReleaseId: input.request.httpBaseline.activeReleaseId,
+    metrics: input.metrics,
   });
   if (
     snapshot.previousElection.studioReleaseId !== input.request.httpBaseline.activeReleaseId ||
@@ -903,6 +1043,7 @@ async function runPreflight(input: {
     keyForSha: (digest) => `operations/plan097/snapshots/${releaseId}/selective.${digest}.json`,
     value: snapshot,
     kind: "selective-snapshot",
+    metrics: input.metrics,
   });
   const restoreBundle = decodeStrict(Plan097RestoreBundleSchema)({
     artifactKind: "bp.ops.plan097.restore-bundle.v1",
@@ -919,6 +1060,7 @@ async function runPreflight(input: {
     keyForSha: (digest) => restoreBundleKey(releaseId, digest),
     value: restoreBundle,
     kind: "restore-bundle",
+    metrics: input.metrics,
   });
   const unsignedReceipt = {
     artifactKind: "bp.ops.plan097.preflight.v1",
@@ -974,6 +1116,7 @@ async function runPreflight(input: {
     keyForSha: (digest) => `operations/plan097/preflight/${releaseId}/preflight.${digest}.json`,
     value: receipt,
     kind: "preflight",
+    metrics: input.metrics,
   });
   return {
     evidence: [snapshotRef, restoreRef, preflightRef],
@@ -989,6 +1132,7 @@ async function runD1Batch(input: {
   db: D1Database;
   batch: Plan097CompactedBatch;
   failBeforeStatement?: number | undefined;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<void> {
   const statements = input.batch.statements.map((statement, index) =>
     input.db
@@ -1003,12 +1147,14 @@ async function runD1Batch(input: {
     db: input.db,
     statements,
     failureMessage: "Plan 097 D1 batch did not report complete success",
+    metrics: input.metrics,
   });
 }
 
 async function loadRestoreBundle(input: {
   env: Env & { PLAN097_OPERATIONS: R2Bucket };
   request: Extract<Plan097OperationRequest, { action: "prove" | "rollback" }>;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }) {
   const sha = input.request.restoreBundleSha256;
   if (sha === undefined) throw new Error("Plan 097 restore bundle SHA-256 is required");
@@ -1020,6 +1166,7 @@ async function loadRestoreBundle(input: {
     bucket: input.env.PLAN097_OPERATIONS,
     key: restoreBundleKey(releaseId, sha),
     expectedSha256: sha,
+    metrics: input.metrics,
   });
   const bundle = decodeStrict(Plan097RestoreBundleSchema)(
     JSON.parse(new TextDecoder().decode(bytes)),
@@ -1039,6 +1186,7 @@ async function verifyPlan097ProofState(input: {
   db: D1Database;
   restore: Plan097RestoreBundle;
   phase: Plan097ProofState["phase"];
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
 }): Promise<Plan097ProofState> {
   const expectedElection =
     input.phase === "candidate-active"
@@ -1049,8 +1197,8 @@ async function verifyPlan097ProofState(input: {
         }
       : input.restore.expectedElection;
   const [actualElection, actualFingerprints] = await Promise.all([
-    activeD1Election(input.db),
-    protectedD1Fingerprints(input.db),
+    activeD1Election(input.db, input.metrics),
+    protectedD1Fingerprints(input.db, input.metrics),
   ]);
   const election = {
     studioReleaseId: actualElection.studioReleaseId,
@@ -1080,10 +1228,12 @@ async function writeReceipt(input: {
   outcome: "pass" | "failed_as_expected";
   statementCount: number;
   objectCount: number;
+  metrics: Plan097OperationMetricsAccumulator;
   evidence?: EvidenceRef[] | undefined;
   preflightReceiptBase64?: string | undefined;
   proofState?: Plan097ProofState | undefined;
 }): Promise<Plan097OperationResponse> {
+  const operationMetrics = snapshotOperationMetrics(input.metrics);
   const receipt = {
     artifactKind: "bp.ops.plan097.worker-receipt.v1",
     schemaVersion: 1,
@@ -1095,6 +1245,7 @@ async function writeReceipt(input: {
     completedAt: new Date().toISOString(),
     statementCount: input.statementCount,
     objectCount: input.objectCount,
+    metrics: operationMetrics,
     ...(input.evidence === undefined ? {} : { evidence: input.evidence }),
     ...(input.preflightReceiptBase64 === undefined
       ? {}
@@ -1122,6 +1273,7 @@ async function writeReceipt(input: {
     receiptKey,
     statementCount: input.statementCount,
     objectCount: input.objectCount,
+    metrics: operationMetrics,
     ...(input.evidence === undefined ? {} : { evidence: input.evidence }),
     ...(input.preflightReceiptBase64 === undefined
       ? {}
@@ -1144,6 +1296,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
 
   try {
     const operationRequest = decodeStrict(Plan097OperationRequestSchema)(await request.json());
+    const metrics = createOperationMetrics();
     if (
       operationRequest.operationId !== env.PLAN097_OPERATION_ID ||
       operationRequest.activationBundleSha256 !== env.PLAN097_ACTIVATION_BUNDLE_SHA256
@@ -1175,6 +1328,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
       const mirrored = await mirrorOperationBundle({
         env: boundEnv as typeof boundEnv & { PLAN097_PROOF_BUNDLES: R2Bucket },
         request: operationRequest,
+        metrics,
       });
       const response = await writeReceipt({
         env: boundEnv,
@@ -1183,10 +1337,15 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         outcome: "pass",
         statementCount: 0,
         objectCount: mirrored.objectCount,
+        metrics,
       });
       return jsonResponse(response);
     }
-    const bundle = await loadActivationBundle({ env: boundEnv, request: operationRequest });
+    const bundle = await loadActivationBundle({
+      env: boundEnv,
+      request: operationRequest,
+      metrics,
+    });
     const releaseId = bundle.candidate.releaseId;
     let statementCount = 0;
     let objectCount = 0;
@@ -1197,13 +1356,13 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
 
     switch (operationRequest.action) {
       case "dry-run": {
-        const { manifest } = await loadArtifactManifest({ env: boundEnv, bundle });
+        const { manifest } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
         statementCount = bundle.batch.statements.length;
         objectCount = manifest.entries.length;
         break;
       }
       case "preflight": {
-        const { manifest, bytes } = await loadArtifactManifest({ env: boundEnv, bundle });
+        const { manifest, bytes } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
         const result = await runPreflight({
           env: boundEnv,
           bundle,
@@ -1211,6 +1370,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
           manifestEntryCount: manifest.entries.length,
           manifestBytes: bytes.byteLength,
           manifestBodyBytes: manifest.entries.reduce((sum, entry) => sum + entry.bytes, 0),
+          metrics,
         });
         statementCount = result.statementCount;
         objectCount = result.objectCount;
@@ -1223,11 +1383,12 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
           env: boundEnv,
           bundle,
           request: operationRequest,
+          metrics,
         });
         break;
       }
       case "stage-body": {
-        const { manifest } = await loadArtifactManifest({ env: boundEnv, bundle });
+        const { manifest } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
         const entry = manifest.entries.find(
           (candidate) => candidate.logicalId === operationRequest.logicalId,
         );
@@ -1249,39 +1410,53 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
           body,
           sha256: entry.sha256,
           mediaType: entry.mediaType,
+          metrics,
         });
         objectCount = 1;
         break;
       }
       case "finalize-manifest": {
-        const { manifest, bytes } = await loadArtifactManifest({ env: boundEnv, bundle });
-        for (const entry of manifest.entries) await verifyStagedEntry(boundEnv.ARTIFACTS, entry);
+        const { manifest, bytes } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
+        for (const entry of manifest.entries) {
+          await verifyStagedEntry(boundEnv.ARTIFACTS, entry, metrics);
+        }
         await putIdentical({
           bucket: boundEnv.ARTIFACTS,
           key: bundle.artifactManifest.key,
           body: bytes,
           sha256: bundle.artifactManifest.sha256,
           mediaType: "application/json",
+          metrics,
         });
         objectCount = manifest.entries.length + 1;
         break;
       }
       case "activate": {
-        const { manifest } = await loadArtifactManifest({ env: boundEnv, bundle });
-        await verifyStagedEntry(boundEnv.ARTIFACTS, {
-          key: bundle.artifactManifest.key,
-          sha256: bundle.artifactManifest.sha256,
-          bytes: bundle.artifactManifest.byteLength,
-          mediaType: "application/json",
-        });
-        for (const entry of manifest.entries) await verifyStagedEntry(boundEnv.ARTIFACTS, entry);
-        await runD1Batch({ db: boundEnv.DB, batch: bundle.batch });
+        const { manifest } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
+        await verifyStagedEntry(
+          boundEnv.ARTIFACTS,
+          {
+            key: bundle.artifactManifest.key,
+            sha256: bundle.artifactManifest.sha256,
+            bytes: bundle.artifactManifest.byteLength,
+            mediaType: "application/json",
+          },
+          metrics,
+        );
+        for (const entry of manifest.entries) {
+          await verifyStagedEntry(boundEnv.ARTIFACTS, entry, metrics);
+        }
+        await runD1Batch({ db: boundEnv.DB, batch: bundle.batch, metrics });
         statementCount = bundle.batch.statements.length;
         objectCount = manifest.entries.length + 1;
         break;
       }
       case "prove": {
-        const restore = await loadRestoreBundle({ env: boundEnv, request: operationRequest });
+        const restore = await loadRestoreBundle({
+          env: boundEnv,
+          request: operationRequest,
+          metrics,
+        });
         const batch = operationRequest.bundle === "activation" ? bundle.batch : restore.batch;
         statementCount = batch.statements.length;
         let failure: unknown;
@@ -1290,6 +1465,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
             db: boundEnv.DB,
             batch,
             failBeforeStatement: operationRequest.failBeforeStatement,
+            metrics,
           });
         } catch (error) {
           failure = error;
@@ -1308,6 +1484,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         proofState = await verifyPlan097ProofState({
           db: boundEnv.DB,
           restore,
+          metrics,
           phase:
             operationRequest.failBeforeStatement !== undefined
               ? "injected-failure"
@@ -1318,8 +1495,12 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         break;
       }
       case "rollback": {
-        const restore = await loadRestoreBundle({ env: boundEnv, request: operationRequest });
-        await runD1Batch({ db: boundEnv.DB, batch: restore.batch });
+        const restore = await loadRestoreBundle({
+          env: boundEnv,
+          request: operationRequest,
+          metrics,
+        });
+        await runD1Batch({ db: boundEnv.DB, batch: restore.batch, metrics });
         statementCount = restore.batch.statements.length;
         break;
       }
@@ -1331,6 +1512,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
       outcome,
       statementCount,
       objectCount,
+      metrics,
       evidence,
       preflightReceiptBase64,
       proofState,
