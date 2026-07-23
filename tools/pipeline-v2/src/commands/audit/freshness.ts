@@ -224,11 +224,13 @@ export async function runFreshnessAudit(
   if (input.print !== false) printFreshnessLedger(ledger);
 
   if (input.strict) {
-    const stale = ledger.rows.filter((row) => row.servingCritical && row.status === "stale");
-    if (stale.length > 0) {
+    const blocked = ledger.rows.filter(
+      (row) => row.servingCritical && (row.status === "stale" || row.status === "unknown"),
+    );
+    if (blocked.length > 0) {
       throw new Error(
-        `Freshness strict gate failed for serving-critical sources: ${stale
-          .map((row) => row.sourceId)
+        `Freshness strict gate failed for serving-critical sources: ${blocked
+          .map((row) => `${row.sourceId} (${row.status})`)
           .join(", ")}`,
       );
     }
@@ -252,7 +254,9 @@ export default defineCommand({
       strict: arg
         .boolean()
         .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
-        .annotate({ description: "Exit nonzero when a serving-critical source is stale" }),
+        .annotate({
+          description: "Exit nonzero when a serving-critical source is stale or unknown",
+        }),
     }),
   },
   output: FreshnessLedgerSchema,

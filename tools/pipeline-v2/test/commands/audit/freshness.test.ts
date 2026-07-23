@@ -126,7 +126,7 @@ describe("audit freshness", () => {
     expect(decodeStrict(FreshnessLedgerSchema)(written) as unknown).toEqual(ledger);
   });
 
-  test("strict mode fails only for stale serving-critical sources", async () => {
+  test("strict mode fails for stale or unknown serving-critical sources", async () => {
     const paths = await fixtureRoots();
     await expect(
       runFreshnessAudit({
@@ -142,20 +142,36 @@ describe("audit freshness", () => {
       }),
     ).rejects.toThrow("stale_source");
 
-    const nonStaleDescriptors = descriptors.filter(
-      (candidate) => candidate.sourceId !== "stale_source",
+    const knownCriticalDescriptors = descriptors.filter(
+      (candidate) => !["stale_source", "unknown_source"].includes(candidate.sourceId),
     );
     const ledger = await runFreshnessAudit({
       artifactRoot: paths.artifactRoot,
       exportRoot: paths.exportRoot,
       outputPath: paths.outputPath,
       checkedAt: "2026-07-20T12:00:00.000Z",
-      descriptors: nonStaleDescriptors,
+      descriptors: knownCriticalDescriptors,
       upstreamLatestResolver: ({ sourceId }) => upstream.get(sourceId) ?? null,
       ingestedLatestResolver: ({ sourceId }) => ingested.get(sourceId) ?? null,
       strict: true,
       print: false,
     });
-    expect(ledger.rows.some((row) => row.status === "unknown")).toBe(true);
+    expect(ledger.rows.every((row) => row.status !== "unknown" && row.status !== "stale")).toBe(
+      true,
+    );
+
+    await expect(
+      runFreshnessAudit({
+        artifactRoot: paths.artifactRoot,
+        exportRoot: paths.exportRoot,
+        outputPath: paths.outputPath,
+        checkedAt: "2026-07-20T12:00:00.000Z",
+        descriptors: descriptors.filter((candidate) => candidate.sourceId !== "stale_source"),
+        upstreamLatestResolver: ({ sourceId }) => upstream.get(sourceId) ?? null,
+        ingestedLatestResolver: ({ sourceId }) => ingested.get(sourceId) ?? null,
+        strict: true,
+        print: false,
+      }),
+    ).rejects.toThrow("unknown_source");
   });
 });
