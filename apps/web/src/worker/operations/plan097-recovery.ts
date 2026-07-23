@@ -923,6 +923,7 @@ async function runPreflight(input: {
       manifestKey: input.bundle.artifactManifest.key,
       manifestSha256: input.bundle.artifactManifest.sha256,
     },
+    freshnessMatrix: input.bundle.freshnessMatrix,
     schemaSnapshot,
     schemaReconciliation: {
       expectedStructuralSha256: input.bundle.schemaEnvelope.structuralSha256,

@@ -37,7 +37,7 @@ function hashValue(value: unknown): unknown {
 
 function tableEvidence(input: {
   sqlite: Database;
-  sourceId: string;
+  sourceId: Plan097FreshnessEvidence["sourceId"];
   table: string;
   partitionColumn?: string | undefined;
   partitionExpression?: string | undefined;
@@ -90,7 +90,7 @@ function tableEvidence(input: {
 
 async function snapshotEvidence(input: {
   sqlite: Database;
-  sourceId: string;
+  sourceId: Plan097FreshnessEvidence["sourceId"];
   table: string;
   path: string;
 }): Promise<Plan097FreshnessEvidence> {
@@ -138,7 +138,8 @@ export async function runPlan097ReadinessAudit(input: {
   const sqlite = new Database(input.dbPath, { readonly: true });
   try {
     const evidence: Plan097FreshnessEvidence[] = [];
-    for (const [sourceId, config] of Object.entries(sourceTables)) {
+    for (const sourceId of Object.keys(sourceTables) as Array<keyof typeof sourceTables>) {
+      const config = sourceTables[sourceId];
       const partition = selectedPartitions.get(sourceId);
       if (partition === null || partition === undefined) continue;
       evidence.push(

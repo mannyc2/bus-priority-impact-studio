@@ -10,14 +10,52 @@ import {
   canonicalPlan097Json,
   decidePlan097MapReleaseCatalogRecovery,
   Plan097CompactedBatchSchema,
+  type Plan097FreshnessMatrix,
   Plan097OperationRequestSchema,
   Plan097PreflightReceiptSchema,
   Plan097RecoveryArtifactManifestSchema,
-  plan097MapReleaseCatalogRecoveryStatements,
   type Plan097SchemaAuditInput,
+  plan097MapReleaseCatalogRecoveryStatements,
 } from "../recovery/plan097/index.js";
 
 const sha = (digit: string) => digit.repeat(64);
+
+function readyFreshnessMatrix(): Plan097FreshnessMatrix {
+  const sources = [
+    ["bus_segment_speeds_2025", "month", "source_complete_probe", "2026-05"],
+    ["bus_hourly_ridership_2025", "month", "latest_closed_upstream_month", "2026-06"],
+    ["bus_wait_assessment", "month", "latest_closed_upstream_month", "2026-05"],
+    ["ace_violations", "month", "latest_closed_upstream_month", "2026-06"],
+    ["ace_routes", "snapshot", "atomic_snapshot", `snapshot:${sha("1")}`],
+    ["nyc_dot_bus_lanes_local_streets", "snapshot", "atomic_snapshot", `snapshot:${sha("2")}`],
+    ["bus_time_gtfsrt_vehicle_positions", "realtime", "preserved_current_signal", "2026-05-19"],
+  ] as const;
+  return {
+    artifactKind: "bp.ops.plan097.freshness-matrix.v1",
+    schemaVersion: 1,
+    checkedAt: "2026-07-22T11:58:00.000Z",
+    status: "ready",
+    candidateCompatibilityCoverageEnd: "2026-05",
+    datasets: sources.map(([sourceId, grain, selectionBasis, partition]) => ({
+      sourceId,
+      grain,
+      selectionBasis,
+      upstreamLatest: grain === "month" ? partition : null,
+      selectedCompletePartition: partition,
+      ingestedLatest: partition,
+      evidence: {
+        sourceId,
+        partition,
+        rowCount: 1,
+        routeCount: grain === "month" ? 1 : null,
+        rowsSha256: sha("a"),
+        sourceSnapshotSha256: grain === "snapshot" ? sha("b") : null,
+      },
+      status: "ready",
+      reasons: [],
+    })),
+  };
+}
 
 function mapCatalogAudit(
   overrides: Partial<Plan097SchemaAuditInput> = {},
@@ -508,6 +546,7 @@ describe("Plan 097 recovery contracts", () => {
         manifestKey: "operations/plan097/releases/pub_20260722T120000000Z/artifact-manifest.json",
         manifestSha256: sha("b"),
       },
+      freshnessMatrix: readyFreshnessMatrix(),
       schemaSnapshot,
       schemaReconciliation: {
         expectedStructuralSha256: sha("f"),

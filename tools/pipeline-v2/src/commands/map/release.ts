@@ -10,6 +10,8 @@ import {
   Plan097ActivationBundleReceiptSchema,
   Plan097ActivationBundleSchema,
   type Plan097BatchStatement,
+  type Plan097FreshnessMatrix,
+  Plan097FreshnessMatrixSchema,
 } from "@bp/db/recovery/plan097";
 import {
   type ReleaseIdentity,
@@ -49,6 +51,7 @@ export type RunMapReleaseInputs = {
   year: number;
   month: number;
   contextSourcePath: string;
+  freshnessMatrix: Plan097FreshnessMatrix;
   artifactRoot?: string | undefined;
   exportRoot?: string | undefined;
   spineStartMonth?: string | undefined;
@@ -125,6 +128,14 @@ export async function runMapRelease(
   dependencies: MapReleaseDependencies = defaultDependencies,
 ) {
   const month = isoMonth(inputs.year, inputs.month);
+  if (
+    inputs.freshnessMatrix.status !== "ready" ||
+    inputs.freshnessMatrix.candidateCompatibilityCoverageEnd !== month
+  ) {
+    throw new Error(
+      `Map release ${month} requires a ready Plan 097 freshness matrix with matching compatibility coverage`,
+    );
+  }
   const publishedAt = new Date().toISOString();
   const artifactRoot = inputs.artifactRoot ?? defaultArtifactRootPath();
   const exportRoot = inputs.exportRoot ?? defaultExportRootPath();
@@ -352,6 +363,7 @@ export async function runMapRelease(
     schemaVersion: 1,
     operationId,
     candidate: releaseIdentity,
+    freshnessMatrix: inputs.freshnessMatrix,
     expectedExactRouteCount: d1.exactRouteIdentity.exactRouteCount,
     schemaEnvelope: buildPlan097ExpectedSchemaEnvelope(schemaSql),
     artifactManifest: {
@@ -378,6 +390,7 @@ export async function runMapRelease(
     schemaVersion: 1,
     operationId,
     candidate: releaseIdentity,
+    freshnessMatrix: inputs.freshnessMatrix,
     bundle: {
       key: activationBundleKey,
       sha256: activationBundleSha256,
@@ -435,6 +448,9 @@ export default defineCommand({
         contextSource: Schema.String.annotate({
           description: "Required raw borough-boundary CSV used to build context",
         }),
+        freshnessMatrix: Schema.String.annotate({
+          description: "Required ready Plan 097 per-dataset freshness matrix",
+        }),
         artifactRoot: Schema.optionalKey(Schema.String),
         exportRoot: Schema.optionalKey(Schema.String),
         spineStartMonth: Schema.optionalKey(Schema.String),
@@ -453,6 +469,10 @@ export default defineCommand({
   async run({ input }) {
     const path = (value: string | undefined) =>
       value === undefined ? undefined : fromCliPath(value);
+    const freshnessMatrix = decodeSchemaStrict(
+      Plan097FreshnessMatrixSchema,
+      await Bun.file(fromCliPath(input.options.freshnessMatrix)).json(),
+    );
     return runLocalDbCommandBoundary({
       dbPath: path(input.options.db),
       command: "map.release",
@@ -463,6 +483,7 @@ export default defineCommand({
           year: input.options.year,
           month: input.options.month,
           contextSourcePath: fromCliPath(input.options.contextSource),
+          freshnessMatrix,
           artifactRoot: path(input.options.artifactRoot),
           exportRoot: path(input.options.exportRoot),
           spineStartMonth: input.options.spineStartMonth,

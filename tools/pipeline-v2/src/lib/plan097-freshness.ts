@@ -1,51 +1,14 @@
+import {
+  type Plan097FreshnessEvidence,
+  Plan097FreshnessEvidenceSchema,
+  type Plan097FreshnessMatrix,
+  Plan097FreshnessMatrixSchema,
+} from "@bp/db/recovery/plan097";
 import { decodeStrict } from "@bp/domain/decode";
-import { Schema } from "effect";
 import type { FreshnessLedger } from "./freshness-ledger.ts";
 
-const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
-const IsoMonthSchema = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/u));
-const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
-  Schema.isGreaterThanOrEqualTo(0),
-);
-
-export const Plan097FreshnessEvidenceSchema = Schema.Struct({
-  sourceId: Schema.String.check(Schema.isMinLength(1)),
-  partition: Schema.String.check(Schema.isMinLength(1)),
-  rowCount: NonNegativeIntegerSchema,
-  routeCount: Schema.NullOr(NonNegativeIntegerSchema),
-  rowsSha256: Sha256Schema,
-  sourceSnapshotSha256: Schema.NullOr(Sha256Schema),
-});
-
-export type Plan097FreshnessEvidence = typeof Plan097FreshnessEvidenceSchema.Type;
-
-const Plan097FreshnessDatasetSchema = Schema.Struct({
-  sourceId: Schema.String.check(Schema.isMinLength(1)),
-  grain: Schema.Literals(["month", "snapshot", "realtime"]),
-  selectionBasis: Schema.Literals([
-    "source_complete_probe",
-    "latest_closed_upstream_month",
-    "atomic_snapshot",
-    "preserved_current_signal",
-  ]),
-  upstreamLatest: Schema.NullOr(Schema.String),
-  selectedCompletePartition: Schema.NullOr(Schema.String),
-  ingestedLatest: Schema.NullOr(Schema.String),
-  evidence: Schema.NullOr(Plan097FreshnessEvidenceSchema),
-  status: Schema.Literals(["ready", "stop"]),
-  reasons: Schema.Array(Schema.String),
-});
-
-export const Plan097FreshnessMatrixSchema = Schema.Struct({
-  artifactKind: Schema.Literal("bp.ops.plan097.freshness-matrix.v1"),
-  schemaVersion: Schema.Literal(1),
-  checkedAt: Schema.String,
-  status: Schema.Literals(["ready", "stop"]),
-  candidateCompatibilityCoverageEnd: Schema.NullOr(IsoMonthSchema),
-  datasets: Schema.Array(Plan097FreshnessDatasetSchema),
-});
-
-export type Plan097FreshnessMatrix = typeof Plan097FreshnessMatrixSchema.Type;
+export type { Plan097FreshnessEvidence, Plan097FreshnessMatrix };
+export { Plan097FreshnessEvidenceSchema, Plan097FreshnessMatrixSchema };
 
 export type Plan097RouteSpeedAvailability = {
   readonly minSpeedRoutes: number;
@@ -95,7 +58,7 @@ export function buildPlan097FreshnessMatrix(input: {
 }): Plan097FreshnessMatrix {
   const ledgerBySource = new Map(input.ledger.rows.map((row) => [row.sourceId, row]));
   const evidenceBySource = new Map(input.evidence.map((row) => [row.sourceId, row]));
-  const datasets: Array<typeof Plan097FreshnessDatasetSchema.Type> = [];
+  const datasets: Plan097FreshnessMatrix["datasets"][number][] = [];
 
   for (const sourceId of monthlySources) {
     const ledger = ledgerBySource.get(sourceId);

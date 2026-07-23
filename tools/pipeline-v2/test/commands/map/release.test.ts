@@ -3,9 +3,52 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Plan097FreshnessMatrix } from "@bp/db/recovery/plan097";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import { type MapReleaseDependencies, runMapRelease } from "../../../src/commands/map/release.ts";
 import type { OpenLocalPipelineDb } from "../../../src/lib/local-db.ts";
+
+function readyFreshnessMatrix(month: string): Plan097FreshnessMatrix {
+  const sources = [
+    ["bus_segment_speeds_2025", "month", "source_complete_probe", month],
+    ["bus_hourly_ridership_2025", "month", "latest_closed_upstream_month", month],
+    ["bus_wait_assessment", "month", "latest_closed_upstream_month", month],
+    ["ace_violations", "month", "latest_closed_upstream_month", month],
+    ["ace_routes", "snapshot", "atomic_snapshot", `snapshot:${"1".repeat(64)}`],
+    [
+      "nyc_dot_bus_lanes_local_streets",
+      "snapshot",
+      "atomic_snapshot",
+      `snapshot:${"2".repeat(64)}`,
+    ],
+    ["bus_time_gtfsrt_vehicle_positions", "realtime", "preserved_current_signal", "2026-04-30"],
+  ] as const;
+  return {
+    artifactKind: "bp.ops.plan097.freshness-matrix.v1",
+    schemaVersion: 1,
+    checkedAt: "2026-07-22T12:00:00.000Z",
+    status: "ready",
+    candidateCompatibilityCoverageEnd: month,
+    datasets: sources.map(([sourceId, grain, selectionBasis, partition]) => ({
+      sourceId,
+      grain,
+      selectionBasis,
+      upstreamLatest: grain === "month" ? month : null,
+      selectedCompletePartition: partition,
+      ingestedLatest: partition,
+      evidence: {
+        sourceId,
+        partition,
+        rowCount: 1,
+        routeCount: grain === "month" ? 1 : null,
+        rowsSha256: "a".repeat(64),
+        sourceSnapshotSha256: grain === "snapshot" ? "b".repeat(64) : null,
+      },
+      status: "ready",
+      reasons: [],
+    })),
+  };
+}
 
 describe("runMapRelease", () => {
   test("resolves an explicit local database path from the repository root", async () => {
@@ -224,6 +267,7 @@ describe("runMapRelease", () => {
           year: 2026,
           month: 4,
           contextSourcePath,
+          freshnessMatrix: readyFreshnessMatrix("2026-04"),
           artifactRoot,
           exportRoot,
           spineStartMonth: "2025-01",
@@ -310,9 +354,11 @@ describe("runMapRelease", () => {
       expect(existsSync(result.activationBundleReceiptPath)).toBe(true);
       const activationBundle = JSON.parse(await Bun.file(result.activationBundlePath).text()) as {
         operationId: string;
+        freshnessMatrix: { candidateCompatibilityCoverageEnd: string };
         batch: { statements: Array<{ kind: string; table: string }> };
       };
       expect(activationBundle.operationId).toBe(`plan097:${result.releaseIdentity.releaseId}`);
+      expect(activationBundle.freshnessMatrix.candidateCompatibilityCoverageEnd).toBe("2026-04");
       expect(activationBundle.batch.statements.at(-1)).toEqual(
         expect.objectContaining({ kind: "activation", table: "route_batch_status" }),
       );
@@ -348,6 +394,7 @@ describe("runMapRelease", () => {
           year: 2026,
           month: 4,
           contextSourcePath: "unused.csv",
+          freshnessMatrix: readyFreshnessMatrix("2026-04"),
         },
         dependencies,
       ),
@@ -390,6 +437,7 @@ describe("runMapRelease", () => {
           year: 2026,
           month: 4,
           contextSourcePath: "unused.csv",
+          freshnessMatrix: readyFreshnessMatrix("2026-04"),
         },
         dependencies,
       ),
@@ -434,6 +482,7 @@ describe("runMapRelease", () => {
           year: 2026,
           month: 4,
           contextSourcePath: "unused.csv",
+          freshnessMatrix: readyFreshnessMatrix("2026-04"),
         },
         dependencies,
       ),

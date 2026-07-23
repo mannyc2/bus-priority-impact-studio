@@ -66,19 +66,21 @@ function availability(minSpeedRoutes = 300): RouteSpeedAvailabilityResult {
 }
 
 function evidence(): Plan097FreshnessEvidence[] {
-  return [
-    ["bus_segment_speeds_2025", "2026-05", 476_481, 359],
-    ["bus_hourly_ridership_2025", "2026-06", 10_000, 330],
-    ["bus_wait_assessment", "2026-05", 1_000, 300],
-    ["ace_violations", "2026-06", 100, 20],
-    ["ace_routes", "2026-07-23T00:00:00.000Z", 100, 100],
-    ["nyc_dot_bus_lanes_local_streets", "2026-07-23T00:00:00.000Z", 200, null],
-    ["bus_time_gtfsrt_vehicle_positions", "2026-07-22", 10, null],
-  ].map(([sourceId, partition, rowCount, routeCount]) => ({
-    sourceId: String(sourceId),
-    partition: String(partition),
-    rowCount: Number(rowCount),
-    routeCount: routeCount === null ? null : Number(routeCount),
+  return (
+    [
+      ["bus_segment_speeds_2025", "2026-05", 476_481, 359],
+      ["bus_hourly_ridership_2025", "2026-06", 10_000, 330],
+      ["bus_wait_assessment", "2026-05", 1_000, 300],
+      ["ace_violations", "2026-06", 100, 20],
+      ["ace_routes", "2026-07-23T00:00:00.000Z", 100, 100],
+      ["nyc_dot_bus_lanes_local_streets", "2026-07-23T00:00:00.000Z", 200, null],
+      ["bus_time_gtfsrt_vehicle_positions", "2026-07-22", 10, null],
+    ] as const
+  ).map(([sourceId, partition, rowCount, routeCount]) => ({
+    sourceId,
+    partition,
+    rowCount,
+    routeCount,
     rowsSha256: "a".repeat(64),
     sourceSnapshotSha256: null,
   }));

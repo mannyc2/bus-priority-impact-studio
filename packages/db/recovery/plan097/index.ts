@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { CanonicalPublishedAtSchema, ReleaseIdSchema } from "@bp/domain/studio/shared";
 import { Schema } from "effect";
+import { Plan097FreshnessMatrixSchema } from "./freshness.js";
 import { Plan097HttpBaselineSchema } from "./operation.js";
 
 const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
@@ -338,6 +339,15 @@ export {
   plan097RecoveryMutationTables,
 } from "./batches.js";
 export {
+  type Plan097FreshnessDataset,
+  Plan097FreshnessDatasetSchema,
+  type Plan097FreshnessEvidence,
+  Plan097FreshnessEvidenceSchema,
+  type Plan097FreshnessMatrix,
+  Plan097FreshnessMatrixSchema,
+  plan097FreshnessSourceIds,
+} from "./freshness.js";
+export {
   type Plan097HttpBaseline,
   Plan097HttpBaselineSchema,
   Plan097HttpEndpointEvidenceSchema,
@@ -384,6 +394,7 @@ export const Plan097PreflightReceiptSchema = Schema.Struct({
     ),
     manifestSha256: Sha256Schema,
   }),
+  freshnessMatrix: Plan097FreshnessMatrixSchema,
   schemaSnapshot: Plan097CanonicalSchemaSnapshotSchema,
   schemaReconciliation: Schema.Struct({
     expectedStructuralSha256: Sha256Schema,

@@ -1,5 +1,6 @@
 import { ReleaseIdentitySchema } from "@bp/domain/studio/shared";
 import { Schema } from "effect";
+import { Plan097FreshnessMatrixSchema } from "./freshness.js";
 
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
 
@@ -160,6 +161,7 @@ export const Plan097ActivationBundleSchema = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   operationId: Schema.String.check(Schema.isPattern(/^plan097:pub_[0-9TZ]+$/u)),
   candidate: ReleaseIdentitySchema,
+  freshnessMatrix: Plan097FreshnessMatrixSchema,
   expectedExactRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
   schemaEnvelope: Schema.Struct({
     canonicalSnapshotSha256: Sha256Schema,
@@ -182,6 +184,7 @@ export const Plan097ActivationBundleReceiptSchema = Schema.Struct({
   schemaVersion: Schema.Literal(1),
   operationId: Schema.String.check(Schema.isPattern(/^plan097:pub_[0-9TZ]+$/u)),
   candidate: ReleaseIdentitySchema,
+  freshnessMatrix: Plan097FreshnessMatrixSchema,
   bundle: Schema.Struct({
     key: Schema.String.check(
       Schema.isPattern(

@@ -6,6 +6,7 @@ import {
   canonicalPlan097Json,
   type Plan097ActivationBundle,
   type Plan097CompactedBatch,
+  type Plan097FreshnessMatrix,
   type Plan097OperationResponse,
   Plan097OperationResponseSchema,
   Plan097PreflightReceiptSchema,
@@ -46,6 +47,48 @@ const testEnv = env as unknown as TestEnv;
 
 function sha256(bytes: Uint8Array | string): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function readyFreshnessMatrix(): Plan097FreshnessMatrix {
+  const sources = [
+    ["bus_segment_speeds_2025", "month", "source_complete_probe", "2026-12"],
+    ["bus_hourly_ridership_2025", "month", "latest_closed_upstream_month", "2026-12"],
+    ["bus_wait_assessment", "month", "latest_closed_upstream_month", "2026-12"],
+    ["ace_violations", "month", "latest_closed_upstream_month", "2026-12"],
+    ["ace_routes", "snapshot", "atomic_snapshot", `snapshot:${"1".repeat(64)}`],
+    [
+      "nyc_dot_bus_lanes_local_streets",
+      "snapshot",
+      "atomic_snapshot",
+      `snapshot:${"2".repeat(64)}`,
+    ],
+    ["bus_time_gtfsrt_vehicle_positions", "realtime", "preserved_current_signal", "2026-07-22"],
+  ] as const;
+  return {
+    artifactKind: "bp.ops.plan097.freshness-matrix.v1",
+    schemaVersion: 1,
+    checkedAt: "2026-07-22T11:58:00.000Z",
+    status: "ready",
+    candidateCompatibilityCoverageEnd: "2026-12",
+    datasets: sources.map(([sourceId, grain, selectionBasis, partition]) => ({
+      sourceId,
+      grain,
+      selectionBasis,
+      upstreamLatest: grain === "month" ? partition : null,
+      selectedCompletePartition: partition,
+      ingestedLatest: partition,
+      evidence: {
+        sourceId,
+        partition,
+        rowCount: 1,
+        routeCount: grain === "month" ? 1 : null,
+        rowsSha256: "a".repeat(64),
+        sourceSnapshotSha256: grain === "snapshot" ? "b".repeat(64) : null,
+      },
+      status: "ready",
+      reasons: [],
+    })),
+  };
 }
 
 function metrics(
@@ -260,6 +303,7 @@ describe("Plan 097 protected Worker operation", () => {
         publishedAt,
         coverage: { start: "2025-02", end: "2026-12" },
       },
+      freshnessMatrix: readyFreshnessMatrix(),
       expectedExactRouteCount: 1,
       schemaEnvelope: {
         canonicalSnapshotSha256: canonicalSchema.sha256,
@@ -496,6 +540,7 @@ describe("Plan 097 protected Worker operation", () => {
     const receipt = decodeStrict(Plan097PreflightReceiptSchema)(JSON.parse(persistedReceiptText));
     expect(receipt.outcome).toBe("ready");
     expect(receipt.httpBaseline.activeReleaseId).toBe(previousReleaseId);
+    expect(receipt.freshnessMatrix.candidateCompatibilityCoverageEnd).toBe("2026-12");
     expect(receipt.schemaReconciliation.actualStructuralSha256).toBe(
       receipt.schemaReconciliation.expectedStructuralSha256,
     );
