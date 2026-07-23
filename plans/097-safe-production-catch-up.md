@@ -568,9 +568,11 @@ The remote gates remain deliberately open. The current Wrangler login is
 expired and the Cloudflare API/service/bootstrap/signing/proof credentials are
 unavailable, so no signed D1 preflight, disposable remote proof, production
 mutation, or canonical completion receipt has been fabricated. GitHub CLI
-authentication is also invalid, so the pushed branch has no new draft PR.
-Plan 097 remains **IN PROGRESS**, all acceptance boxes remain unchecked, and
-the fresh production mutation token has not been requested.
+authentication remains invalid, but the GitHub connector opened draft PR #101
+at pushed commit `635cd3a8`; CI run 328 passed knowledge, types, architecture,
+the full test suite, and web-release verification. Plan 097 remains **IN
+PROGRESS**, all acceptance boxes remain unchecked, and the fresh production
+mutation token has not been requested.
 
 ## Acceptance criteria
 

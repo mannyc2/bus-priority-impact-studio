@@ -72,7 +72,7 @@ REJECTED (with one-line rationale)
 
 Current Plan 097 checkpoint (2026-07-23): local candidate, transport, exact
 command/runbook, measured receipts, and Worker-harness proof/completion paths
-are implemented on the pushed Generation 17 branch. The signed Cloudflare
+are implemented on draft PR #101; CI run 328 passed. The signed Cloudflare
 preflight, disposable remote A→B→A evidence, fresh production token, and live
 completion receipt do not exist because Cloudflare credentials are currently
 unavailable; 097 therefore remains IN PROGRESS and 098 has not started.
