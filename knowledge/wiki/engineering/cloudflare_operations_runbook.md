@@ -83,9 +83,49 @@ The recovery uses three separate, gitignored Wrangler configs copied from the tr
 Copy each required template to the same name without `.example`, fill only the explicit placeholders,
 and keep the copy untracked. Before each deploy, inspect the rendered config and stop if the proof
 config contains `bus-priority-serving`, the production D1 ID, or the exact production artifacts
-bucket name. None of the operation Workers receives a custom production route. Service credentials,
-the bootstrap/execution token, and Ed25519 key material are Wrangler secrets, never vars or command
-arguments.
+bucket name. None of the operation Workers receives a custom production route. Every template keeps
+the intentional `workers.dev` endpoint but sets `preview_urls: false`; Cloudflare otherwise defaults
+preview availability to `workers_dev`, creating an unreviewed version URL. See the
+[Workers preview-URL configuration](https://developers.cloudflare.com/workers/versions-and-deployments/preview-urls/).
+
+Protect the exact `__operations/plan097` path on each Worker host with a Cloudflare Access Service
+Auth policy for the dedicated one-time service token. The CLI keeps the service-token client ID and
+secret only in its operator environment and sends the standard Access headers. The Worker validates
+the resulting `Cf-Access-Jwt-Assertion` signature through the team JWKS, exact issuer, exact
+application audience, RS256 algorithm, and service-token `common_name`; the client secret is not a
+Worker binding. Fill `PLAN097_ACCESS_TEAM_DOMAIN`, `PLAN097_ACCESS_AUD`, and
+`PLAN097_ACCESS_SERVICE_TOKEN_ID` in each gitignored config. Cloudflare documents both the
+[service-token request headers](https://developers.cloudflare.com/cloudflare-one/access-controls/service-credentials/service-tokens/)
+and the requirement for a Worker origin to
+[validate the Access JWT](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/).
+Prove that a request without Access returns 401/403 and that the Worker rejects a missing, wrong-
+issuer, wrong-audience, or wrong-service-token JWT. The bootstrap/execution tokens and Ed25519
+signing material are Wrangler secrets, never vars or command arguments.
+
+### Recovery reader predeploy and cache drain
+
+The tracked production config enables `PLAN097_RECOVERY_ENABLED` and pins
+`PLAN097_PREVIOUS_RELEASE_ID=pub_20260605T183601689Z`. With that release still active, the resolver
+continues to read the existing stable objects while every public API response becomes `no-store`;
+the operation route remains absent because production has no operation bindings. Before approving
+the protected production-environment deployment, re-run the anonymous release-aware checker and
+stop if the active release differs from that pin.
+
+Deploy the pushed commit through the protected GitHub `production` environment before the signed
+preflight. Record the Worker version, deployment instant, old-release safe-body hashes, anonymous
+recovery-namespace 404, and `Cache-Control: no-store` for every checker endpoint. Cloudflare treats
+`no-store` as a cache bypass, but responses emitted before this deploy carried up to 86,400 seconds
+of `stale-while-revalidate`; see the
+[Workers cache configuration](https://developers.cloudflare.com/workers/cache/configuration/).
+Do not activate the candidate until either:
+
+1. 86,400 seconds have elapsed since every endpoint first proved `no-store`, with the checker
+   repeated after the drain; or
+2. an authoritative cache purge for every affected key has been executed and recorded.
+
+No purge is assumed by this runbook. The signed preflight must use the post-drain responses. This
+predeploy is a protected production-Worker gate, but it does not authorize the later serving-data,
+schema, or artifact mutation token.
 
 ### Closed command configuration
 
@@ -105,7 +145,7 @@ under the immutable R2 prefix are authoritative.
 | `PLAN097_PREFLIGHT_RECEIPT_SHA256` | Exact signed preflight hash returned by `dry-run`. |
 | `PLAN097_RESTORE_BUNDLE_SHA256` | Exact selective restore hash returned by `dry-run`. |
 | `PLAN097_PROOF_SUMMARY_KEY`, `PLAN097_PROOF_SUMMARY_SHA256`, `PLAN097_PROOF_SUMMARY_BYTES` | Exact durable proof-summary reference returned by `prove`. |
-| `PLAN097_SERVICE_TOKEN_ID`, `PLAN097_SERVICE_TOKEN_SECRET` | Dedicated Cloudflare Access/service credentials. |
+| `PLAN097_SERVICE_TOKEN_ID`, `PLAN097_SERVICE_TOKEN_SECRET` | Dedicated Cloudflare Access credentials kept only in the operator environment; the Worker validates the resulting JWT. |
 | `PLAN097_BOOTSTRAP_TOKEN` | Isolated preflight-bucket seed token; it is not the production mutation token. |
 | `PLAN097_EXECUTION_TOKEN` | Proof token in the disposable phase, then a newly issued production token only after approval. |
 
@@ -121,8 +161,12 @@ Plan 097 R2, and no production artifact binding. The closed `seed-bundle` action
 allowlisted activation hash and its self-declared manifest; it cannot accept SQL, a physical key, a
 bucket, or a database selector.
 
-Set the preflight signing key ID/private/public material and service/bootstrap tokens with
-`wrangler secret put` against the gitignored preflight config, deploy it, then run exactly:
+Set the preflight signing key ID/private/public material with `wrangler secret put` against the
+gitignored preflight config. Set its Worker-side `PLAN097_EXECUTION_TOKEN` secret to the same random
+value held locally as `PLAN097_BOOTSTRAP_TOKEN`; this token can seed only the allowlisted isolated
+preflight bucket and is not the later production token. Keep the Access client ID/secret only in the
+local operator environment. Deploy the preflight Worker only after its Access application/policy is
+active and the unauthenticated/JWT-negative checks pass, then run exactly:
 
 ```sh
 bun --filter @bp/pipeline-v2 cli -- publish recovery --action dry-run --candidate <candidate-id>

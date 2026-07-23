@@ -318,6 +318,7 @@ async function operationRequest(input: {
       body: JSON.stringify(input.body),
     }),
     input.env,
+    { authenticate: async () => true },
   );
 }
 
@@ -475,8 +476,9 @@ describe("Plan 097 protected Worker operation", () => {
       PLAN097_OPERATION_ID: operationId,
       PLAN097_ACTIVATION_BUNDLE_SHA256: activationBundleSha256,
       PLAN097_RESTORE_BUNDLE_SHA256: restoreBundleSha256,
-      PLAN097_SERVICE_TOKEN_ID: serviceTokenId,
-      PLAN097_SERVICE_TOKEN_SECRET: serviceTokenSecret,
+      PLAN097_ACCESS_TEAM_DOMAIN: "https://plan097-test.cloudflareaccess.com",
+      PLAN097_ACCESS_AUD: "plan097-test-audience",
+      PLAN097_ACCESS_SERVICE_TOKEN_ID: serviceTokenId,
       PLAN097_EXECUTION_TOKEN: executionToken,
       PLAN097_PROOF_MODE: "true",
       PLAN097_SEED_MODE: "true",

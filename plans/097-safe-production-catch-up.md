@@ -564,6 +564,20 @@ A read-only anonymous production check identified active release
 map-manifest 503. That local observation is not the required signed/durable
 preflight and is not production authorization.
 
+The continuation audit found and repaired a predeploy gap before it could
+reach Cloudflare: the tracked production Worker config had not enabled the
+recovery resolver or pinned the previous release, so a D1 activation would
+have continued reading old stable aliases. The branch now enables the resolver
+for `pub_20260605T183601689Z`, requires `no-store` on every successful checker
+response, makes the disposable proof exercise the resolver, disables operation
+preview URLs, and validates the Cloudflare Access JWT signature, issuer,
+audience, RS256 algorithm, and service-token identity. A fresh anonymous check
+at `2026-07-23T04:37:19Z` still elected the pinned release and observed the
+pre-existing map-catalog 503. None of these production-config changes has been
+deployed. The protected reader predeploy and its 86,400-second prior-cache
+drain (or an evidenced authoritative purge) are now explicit gates before the
+signed preflight.
+
 The remote gates remain deliberately open. The current Wrangler login is
 expired and the Cloudflare API/service/bootstrap/signing/proof credentials are
 unavailable, so no signed D1 preflight, disposable remote proof, production

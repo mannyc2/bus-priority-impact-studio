@@ -11,6 +11,7 @@ import {
   decidePlan097MapReleaseCatalogRecovery,
   Plan097CompactedBatchSchema,
   type Plan097FreshnessMatrix,
+  Plan097HttpBaselineSchema,
   Plan097OperationRequestSchema,
   Plan097PreflightReceiptSchema,
   Plan097RecoveryArtifactManifestSchema,
@@ -623,5 +624,25 @@ describe("Plan 097 recovery contracts", () => {
       },
     } as const;
     expect(decodeStrict(Plan097PreflightReceiptSchema)(receipt)).toEqual(receipt);
+  });
+
+  test("preflight HTTP evidence fails closed when a successful endpoint can be cached", () => {
+    const baseline = {
+      checkedAt: "2026-07-22T12:00:00.000Z",
+      activeReleaseId: "pub_20260721T120000000Z",
+      endpoints: [
+        {
+          path: "/api/v1/status",
+          status: 200,
+          schemaId: "bp.api.release_status.v1",
+          safeBodySha256: sha("c"),
+          requestId: "request-1",
+          cfRay: "ray-1",
+          cacheControl: "public, max-age=60",
+          etag: null,
+        },
+      ],
+    };
+    expect(() => decodeStrict(Plan097HttpBaselineSchema)(baseline)).toThrow(/cache bypass/i);
   });
 });

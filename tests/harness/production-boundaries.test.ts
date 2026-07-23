@@ -228,6 +228,10 @@ describe("production boundary harness", () => {
     const workerFiles = await readFiles("apps/web/src/worker");
 
     expect(workflow).not.toMatch(/wrangler d1 execute[^\n]*--file/);
+    expect(productionWrangler).toContain('"PLAN097_RECOVERY_ENABLED": "true"');
+    expect(productionWrangler).toContain(
+      '"PLAN097_PREVIOUS_RELEASE_ID": "pub_20260605T183601689Z"',
+    );
     expect(productionWrangler).not.toContain("PLAN097_RECOVERY_OPERATION_ENABLED");
     expect(productionWrangler).not.toContain("PLAN097_OPERATIONS");
     expect(legacyPublisher).toContain("Remote execution is disabled during Plan 097");
@@ -257,7 +261,28 @@ describe("production boundary harness", () => {
     expect(proofConfig).not.toMatch(/"routes"\s*:/u);
     expect(proofConfig).not.toMatch(/"triggers"\s*:/u);
     expect(proofConfig).toContain('"workers_dev": true');
+    expect(proofConfig).toContain('"preview_urls": false');
     expect(proofConfig).toContain('"PLAN097_PROOF_MODE": "true"');
+    expect(proofConfig).toContain('"PLAN097_RECOVERY_ENABLED": "true"');
+    expect(proofConfig).toContain('"PLAN097_PREVIOUS_RELEASE_ID": "<previous-release-id>"');
+  });
+
+  test("Plan 097 operation templates disable preview-URL bypass", async () => {
+    for (const path of [
+      "apps/web/wrangler.plan097-preflight.example.jsonc",
+      "apps/web/wrangler.plan097-proof.example.jsonc",
+      "apps/web/wrangler.plan097-activation.example.jsonc",
+    ]) {
+      const config = await Bun.file(path).text();
+      expect(config).toContain('"workers_dev": true');
+      expect(config).toContain('"preview_urls": false');
+      expect(config).toContain('"PLAN097_ACCESS_TEAM_DOMAIN"');
+      expect(config).toContain('"PLAN097_ACCESS_AUD"');
+      expect(config).toContain('"PLAN097_ACCESS_SERVICE_TOKEN_ID"');
+      expect(config).not.toContain("PLAN097_SERVICE_TOKEN_SECRET");
+      expect(config).not.toMatch(/"routes"\s*:/u);
+      expect(config).not.toMatch(/"triggers"\s*:/u);
+    }
   });
 
   test("domain package remains infrastructure-free", async () => {

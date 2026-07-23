@@ -32,6 +32,7 @@ import {
 import { decodeStrict } from "@bp/domain/decode";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import type { Env } from "../env.js";
+import { verifyPlan097AccessRequest } from "./plan097-access.js";
 
 export const PLAN097_OPERATION_PATH = "/__operations/plan097";
 
@@ -385,14 +386,6 @@ async function secretMatches(
     difference |= (left[index] ?? 0) ^ (right[index] ?? 0);
   }
   return difference === 0;
-}
-
-async function authenticated(request: Request, env: Env): Promise<boolean> {
-  const [idMatches, secretMatchesResult] = await Promise.all([
-    secretMatches(request.headers.get("CF-Access-Client-Id"), env.PLAN097_SERVICE_TOKEN_ID),
-    secretMatches(request.headers.get("CF-Access-Client-Secret"), env.PLAN097_SERVICE_TOKEN_SECRET),
-  ]);
-  return idMatches && secretMatchesResult;
 }
 
 function releaseIdFromOperationId(operationId: string): string {
@@ -1565,14 +1558,22 @@ async function writeReceipt(input: {
   });
 }
 
-export async function handlePlan097RecoveryRequest(request: Request, env: Env): Promise<Response> {
+export async function handlePlan097RecoveryRequest(
+  request: Request,
+  env: Env,
+  dependencies: {
+    authenticate?: ((request: Request, env: Env) => Promise<boolean>) | undefined;
+  } = {},
+): Promise<Response> {
   if (new URL(request.url).pathname !== PLAN097_OPERATION_PATH)
     return new Response("Not found", { status: 404 });
   if (env.PLAN097_RECOVERY_OPERATION_ENABLED !== "true") {
     return new Response("Not found", { status: 404 });
   }
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
-  if (!(await authenticated(request, env))) return new Response("Forbidden", { status: 403 });
+  if (!(await (dependencies.authenticate ?? verifyPlan097AccessRequest)(request, env))) {
+    return new Response("Forbidden", { status: 403 });
+  }
   if (env.DB === undefined || env.ARTIFACTS === undefined || env.PLAN097_OPERATIONS === undefined) {
     return jsonResponse({ error: "Plan 097 one-time bindings are incomplete" }, 503);
   }

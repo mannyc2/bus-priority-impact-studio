@@ -26,6 +26,16 @@ export function assertNoPlan097LegacyEmptyState(body: string, path: string): voi
   }
 }
 
+export function assertPlan097RecoveryCacheSafety(
+  endpoints: readonly Plan097HttpBaseline["endpoints"][number][],
+): void {
+  for (const endpoint of endpoints) {
+    if (endpoint.status < 500 && endpoint.cacheControl !== "no-store") {
+      throw new Error(`Plan 097 cache bypass is missing for ${endpoint.path}`);
+    }
+  }
+}
+
 export async function fetchPlan097HttpEvidence<A>(input: {
   fetch: Fetch;
   baseUrl: string;
@@ -305,6 +315,7 @@ export async function runPlan097HttpCheck(input: {
           return result.value;
         });
   if (mapManifest === null) {
+    assertPlan097RecoveryCacheSafety(endpoints);
     return {
       baseline: {
         checkedAt: input.checkedAt ?? new Date().toISOString(),
@@ -344,6 +355,7 @@ export async function runPlan097HttpCheck(input: {
   ) {
     throw new Error("Plan 097 representative map geometry differs from its manifest");
   }
+  assertPlan097RecoveryCacheSafety(endpoints);
 
   return {
     baseline: {

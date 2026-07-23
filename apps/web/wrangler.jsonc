@@ -33,7 +33,9 @@
   },
   "vars": {
     "GTFS_RT_SAMPLES_PER_CRON": "2",
-    "GTFS_RT_SAMPLE_SECONDS": "30"
+    "GTFS_RT_SAMPLE_SECONDS": "30",
+    "PLAN097_RECOVERY_ENABLED": "true",
+    "PLAN097_PREVIOUS_RELEASE_ID": "pub_20260605T183601689Z"
   },
   "d1_databases": [
     {

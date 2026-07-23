@@ -44,6 +44,17 @@ export const Plan097HttpBaselineSchema = Schema.Struct({
     if (status === undefined || status.status !== 200) {
       return [{ path: ["endpoints"], issue: "The preflight status endpoint must pass" }];
     }
+    const cacheable = baseline.endpoints.find(
+      (endpoint) => endpoint.status < 500 && endpoint.cacheControl !== "no-store",
+    );
+    if (cacheable !== undefined) {
+      return [
+        {
+          path: ["endpoints"],
+          issue: `The Plan 097 cache bypass is missing for ${cacheable.path}`,
+        },
+      ];
+    }
     return [];
   }),
 );

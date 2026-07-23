@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { Schema } from "effect";
 import {
   assertNoPlan097LegacyEmptyState,
+  assertPlan097RecoveryCacheSafety,
   assertPlan097RouteDetail,
   comparePlan097HttpBaselines,
   fetchPlan097HttpBaselineEvidence,
@@ -89,6 +90,30 @@ describe("Plan 097 release-aware HTTP checker", () => {
         "/api/v1/studio/routes/bx38",
       ),
     ).toThrow(/legacy empty-state/i);
+  });
+
+  test("requires every successful recovery response to bypass caches", () => {
+    const endpoint = {
+      path: "/api/v1/status?plan097=fixture",
+      status: 200,
+      schemaId: "bp.release_status_response.v1",
+      safeBodySha256: "a".repeat(64),
+      requestId: "request-1",
+      cfRay: "ray-1",
+      cacheControl: "no-store",
+      etag: null,
+    };
+    expect(() => assertPlan097RecoveryCacheSafety([endpoint])).not.toThrow();
+    expect(() =>
+      assertPlan097RecoveryCacheSafety([
+        { ...endpoint, cacheControl: "public, max-age=60, stale-while-revalidate=86400" },
+      ]),
+    ).toThrow(/cache bypass/i);
+    expect(() =>
+      assertPlan097RecoveryCacheSafety([
+        { ...endpoint, path: "/api/v1/map/manifest", status: 503, cacheControl: null },
+      ]),
+    ).not.toThrow();
   });
 
   test("requires rollback to restore every safe public hash while ignoring only the nonce", () => {
