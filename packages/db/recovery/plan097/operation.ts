@@ -2,6 +2,9 @@ import { ReleaseIdSchema } from "@bp/domain/studio/shared";
 import { Schema } from "effect";
 
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
+const WorkerVersionIdSchema = Schema.String.check(
+  Schema.isPattern(/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/u),
+);
 const OperationIdSchema = Schema.String.check(Schema.isPattern(/^plan097:pub_[0-9TZ]+$/u));
 const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
   Schema.isGreaterThanOrEqualTo(0),
@@ -22,6 +25,9 @@ export const Plan097HttpEndpointEvidenceSchema = Schema.Struct({
   requestId: Schema.NullOr(Schema.String),
   cfRay: Schema.NullOr(Schema.String),
   cacheControl: Schema.NullOr(Schema.String),
+  cfCacheStatus: Schema.NullOr(Schema.String),
+  age: Schema.NullOr(Schema.String.check(Schema.isPattern(/^[0-9]+$/u))),
+  workerVersionId: Schema.NullOr(WorkerVersionIdSchema),
   etag: Schema.NullOr(Schema.String),
 });
 

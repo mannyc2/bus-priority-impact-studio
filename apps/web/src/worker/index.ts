@@ -22,12 +22,21 @@ export default {
   async fetch(request: Request, env: Env = {}, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const response = await handleRequest(request, url, env, ctx);
-    return withSecurityHeaders(response, url);
+    return withWorkerVersionHeader(withSecurityHeaders(response, url), env);
   },
   async scheduled(controller: ScheduledController, env: Env = {}): Promise<void> {
     await handleStudioScheduled(controller, env);
   },
 } satisfies ExportedHandler<Env>;
+
+function withWorkerVersionHeader(response: Response, env: Env): Response {
+  const versionId = env.CF_VERSION_METADATA?.id.trim();
+  if (versionId === undefined || versionId.length === 0) return response;
+
+  const next = new Response(response.body, response);
+  next.headers.set("X-BP-Worker-Version", versionId);
+  return next;
+}
 
 async function handleRequest(
   request: Request,

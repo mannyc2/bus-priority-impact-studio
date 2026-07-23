@@ -47,6 +47,20 @@ describe("Worker adapter and SPA shell", () => {
     expect(response.headers.get("Content-Security-Policy")).toBeNull();
   });
 
+  it("binds responses to the exact Cloudflare Worker version when metadata is available", async () => {
+    const response = await worker.fetch(new Request("https://example.test/api/health"), {
+      CF_VERSION_METADATA: {
+        id: "aef011c3-0e48-4c35-92f7-3516a2259afe",
+        tag: "",
+        timestamp: "2026-07-23T10:09:27.610222Z",
+      },
+    });
+
+    expect(response.headers.get("X-BP-Worker-Version")).toBe(
+      "aef011c3-0e48-4c35-92f7-3516a2259afe",
+    );
+  });
+
   it("does not add HSTS on local development hosts", async () => {
     const response = await worker.fetch(new Request("http://127.0.0.1/"), {
       ASSETS: htmlAsset(),

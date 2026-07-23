@@ -239,6 +239,9 @@ async function fixture() {
           requestId: "request-1",
           cfRay: null,
           cacheControl: "no-store",
+          cfCacheStatus: null,
+          age: null,
+          workerVersionId: null,
           etag: null,
         },
       ],
@@ -307,6 +310,9 @@ async function signedPreflightFixture(root: string): Promise<{
           requestId: null,
           cfRay: null,
           cacheControl: "no-store",
+          cfCacheStatus: null,
+          age: null,
+          workerVersionId: null,
           etag: null,
         },
       ],
@@ -462,6 +468,9 @@ describe("publish recovery command", () => {
         requestId: string | null;
         cfRay: string | null;
         cacheControl: string | null;
+        cfCacheStatus: string | null;
+        age: string | null;
+        workerVersionId: string | null;
         etag: string | null;
       }>;
     };
@@ -708,6 +717,9 @@ describe("publish recovery command", () => {
         requestId: string | null;
         cfRay: string | null;
         cacheControl: string | null;
+        cfCacheStatus: string | null;
+        age: string | null;
+        workerVersionId: string | null;
         etag: string | null;
       }>;
     };

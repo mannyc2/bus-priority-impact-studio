@@ -1722,8 +1722,15 @@ describe("Studio API facade", () => {
       fetchApi("/api/v1/routes/b46-sbs/profile", env),
       fetchApi("/api/v1/hotspots?limit=1", env),
     ]);
+    const recoveryStatus = await fetchApi("/api/v1/status", {
+      ...env,
+      PLAN097_RECOVERY_ENABLED: "true",
+      PLAN097_PREVIOUS_RELEASE_ID: "pub_20260517T154652274Z",
+    });
 
     const statusValue = decodeStrict(ReleaseStatusResponseSchema)(await status.json());
+    expect(recoveryStatus.status).toBe(200);
+    expect(recoveryStatus.headers.get("Cache-Control")).toBe("no-store");
     expect(statusValue).toEqual(
       expect.objectContaining({
         releaseId: "pub_20260517T154652274Z",

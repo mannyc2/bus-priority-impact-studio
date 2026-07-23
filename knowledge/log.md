@@ -9160,3 +9160,35 @@ lack exact scope bindings; B41 and M57 remain pattern-failed; all 20 later ACE
 phases remain quarantined. The v5 receipt authorizes estimator admission only.
 No study, publication, D1/R2 mutation, production pointer, release promotion,
 or deploy occurred.
+
+## [2026-07-23] operations | Plan 097 reader predeploy failed closed and rolled back
+
+PR #101 merged as `14fb1472ea210bb66ace7bbe3348ee7202ee35ec`.
+Protected Actions run
+[`29998095226`](https://github.com/mannyc2/bus-priority-impact-studio/actions/runs/29998095226)
+passed verification, read-only D1 audits, build/deploy, and the existing
+production smoke, but its strict Plan 097 status check still observed
+`public, max-age=60, stale-while-revalidate=86400` instead of `no-store`.
+The workflow automatically restored stable Worker version
+`f2067a1d-6c4f-4e00-abd4-43fea7469f4e` at 100%; no D1/R2 application data,
+serving schema, candidate artifact, or production release changed.
+
+GitHub artifact `8559859695` binds the attempted pre/post deployments with
+archive SHA-256
+`c005242d4e6233bde737940b5cd5affb34f29427b40ae786caa33d5f95f8bfb1`;
+artifact `8559861095` binds the rollback with archive SHA-256
+`389227348728a504cc4ad688e07451f290dcddd5bdbfe45a157764f1662f4977`.
+The failed proof created no successful reader receipt and started no cache
+drain. The follow-up gate uses version metadata, cache/age evidence, disabled
+previews and entrypoint caching, a 0%-traffic exact-version proof, and
+ordinary-traffic proof before accepting a new reader deployment. It remains
+undeployed pending approval of its exact pushed SHA. The follow-up also
+serializes non-PR runs without superseding an active production mutation,
+marks staging before the first routing command so ambiguous failure/cancellation
+restores the prior version, rejects nested receipt evidence from any other
+Worker version, persists only allowlisted non-personal Wrangler fields, and
+hashes both attempt and rollback artifact sets before upload. It asserts the
+exact prior@100%/candidate@0% staged state and prior@100% rollback state,
+captures rollback state even after an ambiguous rollback-client failure, and
+bounds every post-mutation command inside a larger job timeout with cleanup
+reserve.

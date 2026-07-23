@@ -70,15 +70,19 @@ and makes one pointer select D1, exact identity, maps, and every R2 artifact.
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
 
-Current Plan 097 checkpoint (2026-07-23): local candidate, transport, exact
-command/runbook, measured receipts, and Worker-harness proof/completion paths
-are implemented on draft PR #101. A continuation audit added the missing
-production recovery/no-store predeploy config, Access-JWT origin validation,
-preview-URL denial, resolver-enabled proof config, and a version-captured,
-receipt-backed predeploy with automatic Worker rollback; these corrections are
-not deployed yet. The signed Cloudflare preflight, disposable remote A→B→A
-evidence, fresh production token, and live completion receipt do not exist;
-097 therefore remains IN PROGRESS and 098 has not started.
+Current Plan 097 checkpoint (2026-07-23): PR #101 merged as
+`14fb1472ea210bb66ace7bbe3348ee7202ee35ec`. Protected production run 332
+deployed the recovery-reader candidate but failed closed when the strict
+checker did not observe `Cache-Control: no-store`; automatic rollback restored
+the prior Worker version at 100%. Hash-bound pre/post and rollback Actions
+artifacts exist, but no valid reader-deploy receipt was created and the
+cache-drain clock did not start. No production serving data, schema, or
+candidate artifacts changed. A follow-up now binds every response to exact
+Worker version metadata and stages new code at 0% for override proof before
+promotion; it remains undeployed pending a fresh protected-reader approval.
+The signed Cloudflare preflight, disposable A→B→A evidence, fresh production
+token, and live completion receipt do not exist; 097 remains IN PROGRESS and
+098 has not started.
 
 ## Dependency and safety notes (gen 17)
 

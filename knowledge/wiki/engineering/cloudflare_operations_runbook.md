@@ -127,15 +127,44 @@ No purge is assumed by this runbook. The signed preflight must use the post-drai
 predeploy is a protected production-Worker gate, but it does not authorize the later serving-data,
 schema, or artifact mutation token.
 
-The production workflow refuses to start from split Worker traffic, captures the one stable prior
-version, and records the postdeploy version before verification. Its strict Plan 097 checker binds
-the pinned release, safe-body hashes, `no-store` headers, exact-route count, anonymous operation
-namespace 404, deployed Git SHA, and workflow run to
-`plan097-reader-deploy.receipt.json`. The pre/post deployment JSON and receipt are covered by the
-adjacent SHA-256 file and uploaded as the `plan097-reader-predeploy-<git-sha>` Actions artifact. If
-any postdeploy D1 audit or HTTP check fails, the workflow rolls the Worker back to the captured
-version and uploads the rollback deployment state; that failed run does not start the cache-drain
-clock.
+The production workflow refuses to start from split Worker traffic and captures the one stable
+prior version. It uploads the candidate without traffic, creates a controlled prior-100% /
+candidate-0% deployment, and proves the candidate on the production URL with an exact version
+override before promotion. Public preview URLs are disabled. The Worker version-metadata binding
+adds `X-BP-Worker-Version` to every response; the checker requires that exact value on every public
+endpoint and the anonymous operation-namespace 404. Entrypoint caching is disabled during recovery,
+while response-level `no-store` remains mandatory.
+
+After the staged proof, the workflow promotes the candidate to one version at 100% and repeats the
+same proof over ordinary traffic. The two strict receipts bind the pinned release, safe-body hashes,
+`no-store`, cache status/age, exact-route count, Worker version, deployed Git SHA, and workflow run.
+Only strict allowlisted deployment/version projections are persisted; Wrangler actor IDs, email
+addresses, and other raw metadata are excluded. Deployment projections, failure-attempt receipts,
+and success receipts are covered by the adjacent SHA-256 manifest and uploaded as
+`plan097-reader-predeploy-<git-sha>`. Rollback state has its own adjacent SHA-256 manifest. Main and
+manual production runs are serialized and cannot be superseded by a newer run. A staging-attempt
+marker is written before the first routing mutation, so a failed or ambiguous staging command,
+cancellation cleanup, staged proof failure, promotion failure, postdeploy D1 audit failure, or HTTP
+check failure restores the captured prior version. The captured stage must contain exactly the
+prior version at 100% and candidate at 0%; rollback capture must contain exactly the prior version
+at 100%. Rollback state is captured and hash-covered even when the rollback client reports failure
+or restoration validation fails. Every remote, mutation, proof, evidence, and cleanup step has a
+bounded timeout inside a larger job timeout with cleanup reserve. A failed run never starts the
+cache-drain clock.
+
+Protected run 332 (`29998095226`) on 2026-07-23 deployed version
+`aef011c3-0e48-4c35-92f7-3516a2259afe`, then failed when the status check still
+observed the prior public cache header. Automatic rollback deployment
+`f5082ef1-800b-4298-8c4f-4acc22f6a8a0` restored version
+`f2067a1d-6c4f-4e00-abd4-43fea7469f4e` to 100%. The pre/post artifact is ID
+`8559859695` with archive SHA-256
+`c005242d4e6233bde737940b5cd5affb34f29427b40ae786caa33d5f95f8bfb1`; the
+rollback artifact is ID `8559861095` with archive SHA-256
+`389227348728a504cc4ad688e07451f290dcddd5bdbfe45a157764f1662f4977`.
+This failed attempt did not create `plan097-reader-deploy.receipt.json`, did
+not establish a `first proved no-store` instant, and did not start the cache-
+drain clock. A repaired reader deployment is a new protected production
+Worker gate against its exact pushed SHA.
 
 ### Closed command configuration
 

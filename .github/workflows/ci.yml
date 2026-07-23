@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
@@ -44,20 +44,24 @@ jobs:
     needs: verify
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 90
     environment:
       name: production
       url: https://bus-priority-impact-studio.c20carroll.workers.dev/
     steps:
       - uses: actions/checkout@v6
+        timeout-minutes: 2
 
       - uses: oven-sh/setup-bun@v2
+        timeout-minutes: 2
 
       - name: Install dependencies
+        timeout-minutes: 5
         run: bun install --frozen-lockfile
 
       - name: Check deploy credentials
         id: cloudflare
+        timeout-minutes: 1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
@@ -70,6 +74,7 @@ jobs:
 
       - name: Audit exact route serving D1 before deploy
         id: exact-route-pre
+        timeout-minutes: 8
         if: steps.cloudflare.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -93,33 +98,122 @@ jobs:
 
       - name: Capture current Worker deployment
         id: plan097-reader-pre
+        timeout-minutes: 2
         if: steps.cloudflare.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
+          set -o pipefail
           mkdir -p /tmp/plan097
-          bunx wrangler deployments status --json --config apps/web/wrangler.jsonc > /tmp/plan097/worker-deployment-pre.json
+          bunx wrangler deployments status --json --config apps/web/wrangler.jsonc | jq -c '{id, created_on, versions: [.versions[] | {version_id, percentage}]}' > /tmp/plan097/worker-deployment-pre.json
           PLAN097_PRIOR_VERSION_ID="$(jq -er 'if (.versions | length) == 1 and .versions[0].percentage == 100 then .versions[0].version_id else error("production is not on one stable Worker version") end' /tmp/plan097/worker-deployment-pre.json)"
           echo "prior_version_id=$PLAN097_PRIOR_VERSION_ID" >> "$GITHUB_OUTPUT"
 
       - name: Build web release
+        timeout-minutes: 5
         if: steps.cloudflare.outputs.deploy == 'true'
         run: bun --filter @bp/web build
 
-      - name: Deploy Worker
-        id: deploy-worker
+      - name: Upload candidate Worker version
+        id: plan097-reader-upload
+        timeout-minutes: 3
         if: steps.cloudflare.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: bun --filter @bp/web deploy
+        run: |
+          set -o pipefail
+          PLAN097_VERSION_TAG="plan097-reader-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          bunx wrangler versions upload --config apps/web/wrangler.jsonc --tag "$PLAN097_VERSION_TAG" --message "Plan 097 protected reader candidate"
+          bunx wrangler versions list --json --config apps/web/wrangler.jsonc | jq -c '[.[] | {id, created_on, modified_on, tag: .annotations["workers/tag"]}]' > /tmp/plan097/worker-versions-post-upload.json
+          PLAN097_CANDIDATE_VERSION_ID="$(jq -er --arg tag "$PLAN097_VERSION_TAG" '[.[] | select(.tag == $tag)] | if length == 1 then .[0].id else error("uploaded Worker version tag is not unique") end' /tmp/plan097/worker-versions-post-upload.json)"
+          echo "candidate_version_id=$PLAN097_CANDIDATE_VERSION_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Capture deployed Worker version
+      - name: Mark candidate Worker staging attempt
+        id: plan097-reader-stage-attempt
+        timeout-minutes: 1
+        if: steps.cloudflare.outputs.deploy == 'true'
+        run: echo "attempted=true" >> "$GITHUB_OUTPUT"
+
+      - name: Stage candidate Worker at zero traffic
+        id: stage-worker
+        timeout-minutes: 3
         if: steps.cloudflare.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: bunx wrangler deployments status --json --config apps/web/wrangler.jsonc > /tmp/plan097/worker-deployment-post.json
+          PLAN097_PRIOR_VERSION_ID: ${{ steps.plan097-reader-pre.outputs.prior_version_id }}
+          PLAN097_CANDIDATE_VERSION_ID: ${{ steps.plan097-reader-upload.outputs.candidate_version_id }}
+        run: |
+          bunx wrangler versions deploy "${PLAN097_PRIOR_VERSION_ID}@100" "${PLAN097_CANDIDATE_VERSION_ID}@0" --config apps/web/wrangler.jsonc --yes --message "Plan 097 protected reader staged proof"
+
+      - name: Capture staged Worker deployment
+        timeout-minutes: 2
+        if: always() && steps.plan097-reader-stage-attempt.outputs.attempted == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PLAN097_PRIOR_VERSION_ID: ${{ steps.plan097-reader-pre.outputs.prior_version_id }}
+          PLAN097_CANDIDATE_VERSION_ID: ${{ steps.plan097-reader-upload.outputs.candidate_version_id }}
+        run: |
+          set -o pipefail
+          bunx wrangler deployments status --json --config apps/web/wrangler.jsonc | jq -c '{id, created_on, versions: [.versions[] | {version_id, percentage}]}' > /tmp/plan097-staged-capture.tmp
+          mv /tmp/plan097-staged-capture.tmp /tmp/plan097/worker-deployment-staged.json
+          jq -e --arg prior "$PLAN097_PRIOR_VERSION_ID" --arg candidate "$PLAN097_CANDIDATE_VERSION_ID" '(.versions | length) == 2 and ([.versions[] | select(.version_id == $prior and .percentage == 100)] | length) == 1 and ([.versions[] | select(.version_id == $candidate and .percentage == 0)] | length) == 1' /tmp/plan097/worker-deployment-staged.json
+
+      - name: Prove staged Plan 097 reader by exact version override
+        timeout-minutes: 3
+        if: steps.cloudflare.outputs.deploy == 'true'
+        env:
+          PLAN097_CANDIDATE_VERSION_ID: ${{ steps.plan097-reader-upload.outputs.candidate_version_id }}
+        run: |
+          for attempt in $(seq 1 30); do
+            if bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release pub_20260605T183601689Z --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --worker-version-id "$PLAN097_CANDIDATE_VERSION_ID" --version-override-worker bus-priority-impact-studio --output /tmp/plan097/plan097-reader-staged.receipt.json --failure-output "/tmp/plan097/staged-attempt-${attempt}.failure.json"; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Promote proven Plan 097 reader
+        id: promote-worker
+        timeout-minutes: 3
+        if: steps.cloudflare.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PLAN097_CANDIDATE_VERSION_ID: ${{ steps.plan097-reader-upload.outputs.candidate_version_id }}
+        run: |
+          bunx wrangler versions deploy "${PLAN097_CANDIDATE_VERSION_ID}@100" --config apps/web/wrangler.jsonc --yes --message "Plan 097 protected reader promotion"
+
+      - name: Capture promoted Worker deployment
+        timeout-minutes: 2
+        if: always() && steps.promote-worker.outcome != 'skipped'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PLAN097_CANDIDATE_VERSION_ID: ${{ steps.plan097-reader-upload.outputs.candidate_version_id }}
+        run: |
+          set -o pipefail
+          bunx wrangler deployments status --json --config apps/web/wrangler.jsonc | jq -c '{id, created_on, versions: [.versions[] | {version_id, percentage}]}' > /tmp/plan097-promoted-capture.tmp
+          mv /tmp/plan097-promoted-capture.tmp /tmp/plan097/worker-deployment-post.json
+          jq -e --arg version "$PLAN097_CANDIDATE_VERSION_ID" '(.versions | length) == 1 and .versions[0].percentage == 100 and .versions[0].version_id == $version' /tmp/plan097/worker-deployment-post.json
+
+      - name: Prove promoted Plan 097 reader on ordinary traffic
+        timeout-minutes: 3
+        if: steps.cloudflare.outputs.deploy == 'true'
+        env:
+          PLAN097_CANDIDATE_VERSION_ID: ${{ steps.plan097-reader-upload.outputs.candidate_version_id }}
+        run: |
+          for attempt in $(seq 1 30); do
+            if bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release pub_20260605T183601689Z --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --worker-version-id "$PLAN097_CANDIDATE_VERSION_ID" --output /tmp/plan097/plan097-reader-deploy.receipt.json --failure-output "/tmp/plan097/deploy-attempt-${attempt}.failure.json"; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              exit 1
+            fi
+            sleep 2
+          done
 
       - name: Verify exact route serving D1 after recovery
+        timeout-minutes: 5
         if: steps.cloudflare.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -133,17 +227,20 @@ jobs:
           bun tools/pipeline-v2/scripts/audit-route-index-v3-d1.ts --mode post --receipt packages/db/recovery/plan095/exact-route-index-v3-recovery.receipt.json --tables /tmp/plan095/tables-post.json --catalog /tmp/plan095/catalog-post.json --route-types /tmp/plan095/route-types-post.json --trip-types /tmp/plan095/trip-types-post.json --registry /tmp/plan095/registry-post.json --release /tmp/plan095/release-post.json --output /tmp/plan095/audit-post.json
 
       - name: Smoke exact route production endpoints
+        timeout-minutes: 3
         if: steps.cloudflare.outputs.deploy == 'true'
         run: bun tools/pipeline-v2/scripts/check-production-route-index-v3.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --audit /tmp/plan095/audit-post.json --output /tmp/plan095/production-smoke.json
 
-      - name: Prove Plan 097 recovery reader predeploy
-        if: steps.cloudflare.outputs.deploy == 'true'
+      - name: Hash Plan 097 reader predeploy receipts
+        id: plan097-reader-hash
+        timeout-minutes: 1
+        if: always() && steps.cloudflare.outputs.deploy == 'true' && steps.plan097-reader-stage-attempt.outputs.attempted == 'true'
         run: |
-          bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release pub_20260605T183601689Z --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --output /tmp/plan097/plan097-reader-deploy.receipt.json
           cd /tmp/plan097
-          sha256sum worker-deployment-pre.json worker-deployment-post.json plan097-reader-deploy.receipt.json > plan097-reader-deploy.receipt.sha256
+          sha256sum *.json > plan097-reader-deploy.receipt.sha256
 
       - name: Upload exact route recovery receipts
+        timeout-minutes: 2
         if: steps.cloudflare.outputs.deploy == 'true'
         uses: actions/upload-artifact@v4
         with:
@@ -155,27 +252,67 @@ jobs:
             packages/db/recovery/plan095/exact-route-index-v3-recovery.receipt.json
 
       - name: Upload Plan 097 reader predeploy receipts
-        if: always() && steps.cloudflare.outputs.deploy == 'true' && steps.deploy-worker.outcome == 'success'
+        timeout-minutes: 2
+        if: always() && steps.cloudflare.outputs.deploy == 'true' && steps.plan097-reader-stage-attempt.outputs.attempted == 'true' && steps.plan097-reader-hash.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: plan097-reader-predeploy-${{ github.sha }}
           path: /tmp/plan097/
           if-no-files-found: error
 
+      - name: Mark Plan 097 rollback attempt
+        id: plan097-reader-rollback-attempt
+        timeout-minutes: 1
+        if: always() && (failure() || cancelled()) && steps.cloudflare.outputs.deploy == 'true' && steps.plan097-reader-stage-attempt.outputs.attempted == 'true'
+        env:
+          PLAN097_PRIOR_VERSION_ID: ${{ steps.plan097-reader-pre.outputs.prior_version_id }}
+        run: |
+          mkdir -p /tmp/plan097-rollback
+          jq -cn --arg repoSha "$GITHUB_SHA" --arg workflowRunId "$GITHUB_RUN_ID" --arg priorWorkerVersionId "$PLAN097_PRIOR_VERSION_ID" --arg attemptedAt "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" '{evidenceKind:"bp.ops.plan097.reader-rollback-attempt.v1",schemaVersion:1,repoSha:$repoSha,workflowRunId:$workflowRunId,priorWorkerVersionId:$priorWorkerVersionId,attemptedAt:$attemptedAt}' > /tmp/plan097-rollback/rollback-attempt.json
+          echo "attempted=true" >> "$GITHUB_OUTPUT"
+
       - name: Roll back Worker on postdeploy failure
         id: rollback-worker
-        if: failure() && steps.cloudflare.outputs.deploy == 'true' && steps.deploy-worker.outcome == 'success'
+        timeout-minutes: 3
+        if: always() && steps.plan097-reader-rollback-attempt.outputs.attempted == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           PLAN097_PRIOR_VERSION_ID: ${{ steps.plan097-reader-pre.outputs.prior_version_id }}
         run: |
           bunx wrangler rollback "$PLAN097_PRIOR_VERSION_ID" --config apps/web/wrangler.jsonc --yes --message "Plan 097 reader predeploy verification failed"
-          bunx wrangler deployments status --json --config apps/web/wrangler.jsonc > /tmp/plan097/worker-deployment-rollback.json
+
+      - name: Capture Plan 097 rollback evidence
+        id: plan097-reader-rollback-capture
+        timeout-minutes: 2
+        if: always() && steps.plan097-reader-rollback-attempt.outputs.attempted == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PLAN097_PRIOR_VERSION_ID: ${{ steps.plan097-reader-pre.outputs.prior_version_id }}
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/plan097-rollback
+          if bunx wrangler deployments status --json --config apps/web/wrangler.jsonc | jq -c '{id, created_on, versions: [.versions[] | {version_id, percentage}]}' > /tmp/plan097-rollback-capture.tmp; then
+            mv /tmp/plan097-rollback-capture.tmp /tmp/plan097-rollback/worker-deployment-rollback.json
+          else
+            PLAN097_CAPTURE_EXIT="$?"
+            jq -cn --arg repoSha "$GITHUB_SHA" --arg workflowRunId "$GITHUB_RUN_ID" --arg priorWorkerVersionId "$PLAN097_PRIOR_VERSION_ID" --arg failedAt "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" --argjson commandExitCode "$PLAN097_CAPTURE_EXIT" '{artifactKind:"bp.ops.plan097.reader-rollback-capture-failure.v1",schemaVersion:1,repoSha:$repoSha,workflowRunId:$workflowRunId,priorWorkerVersionId:$priorWorkerVersionId,failedAt:$failedAt,commandExitCode:$commandExitCode}' > /tmp/plan097-rollback/worker-deployment-rollback-capture.failure.json
+            exit "$PLAN097_CAPTURE_EXIT"
+          fi
+          jq -e --arg prior "$PLAN097_PRIOR_VERSION_ID" '(.versions | length) == 1 and .versions[0].version_id == $prior and .versions[0].percentage == 100' /tmp/plan097-rollback/worker-deployment-rollback.json
+
+      - name: Hash Plan 097 rollback evidence
+        id: plan097-reader-rollback-hash
+        timeout-minutes: 1
+        if: always() && steps.plan097-reader-rollback-attempt.outputs.attempted == 'true'
+        run: |
+          cd /tmp/plan097-rollback
+          sha256sum *.json > plan097-reader-rollback.receipt.sha256
 
       - name: Upload Plan 097 rollback evidence
-        if: failure() && steps.rollback-worker.outcome == 'success'
+        timeout-minutes: 2
+        if: always() && steps.plan097-reader-rollback-hash.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: plan097-reader-predeploy-rollback-${{ github.sha }}
-          path: /tmp/plan097/worker-deployment-rollback.json
+          path: /tmp/plan097-rollback/
           if-no-files-found: error

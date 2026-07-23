@@ -2,6 +2,7 @@ import type { StudioApiEnv } from "@bp/studio-api/server";
 
 export type Env = StudioApiEnv & {
   ASSETS?: Fetcher;
+  CF_VERSION_METADATA?: WorkerVersionMetadata;
   PLAN097_OPERATIONS?: R2Bucket;
   PLAN097_PROOF_BUNDLES?: R2Bucket;
   PLAN097_PROOF_RECEIPTS?: R2Bucket;
