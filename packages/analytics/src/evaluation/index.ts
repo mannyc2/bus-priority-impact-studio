@@ -50,6 +50,7 @@ export {
   type RouteSpeedAvailabilityMonth,
   type RouteSpeedAvailabilityReleaseDecision,
   type RouteSpeedAvailabilityResult,
+  RouteSpeedAvailabilityResultSchema,
   type RouteSpeedAvailabilitySourceId,
   requestedRouteSpeedAvailability,
   routeSpeedAvailabilityReleaseDecision,
