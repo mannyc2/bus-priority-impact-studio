@@ -68,6 +68,26 @@ function readyFreshnessMatrix(): Plan097FreshnessMatrix {
   };
 }
 
+function studioScheduleEvidence() {
+  return {
+    analysisPeriod: "2026-05",
+    sourceCoverage: {
+      sourceId: "bus_schedules_2026",
+      datasetId: "4fnn-qsea",
+      scheduleDateStart: "2026-01-01T00:00:00.000",
+      scheduleDateEnd: "2026-04-11T00:00:00.000",
+      rowCount: 22_703_125,
+      routeCount: 375,
+    },
+    selectedRouteCount: 1,
+    completeRouteCount: 1,
+    excludedRouteCount: 0,
+    missingSegmentCount: 0,
+    excludedRoutes: [],
+    publicationPolicy: "omit_schedule_incomplete_studio_routes",
+  } as const;
+}
+
 function metrics(
   statements: Plan097CompactedBatch["statements"],
 ): Plan097CompactedBatch["metrics"] {
@@ -150,6 +170,7 @@ async function fixture() {
       coverage: { start: "2025-02", end: "2026-05" },
     }),
     freshnessMatrix: readyFreshnessMatrix(),
+    studioScheduleEvidence: studioScheduleEvidence(),
     expectedExactRouteCount: 2,
     schemaEnvelope: {
       canonicalSnapshotSha256: "a".repeat(64),

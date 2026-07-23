@@ -13,6 +13,7 @@ import {
   type Plan097BatchStatement,
   type Plan097FreshnessMatrix,
   Plan097FreshnessMatrixSchema,
+  Plan097StudioScheduleEvidenceSchema,
 } from "@bp/db/recovery/plan097";
 import {
   type ReleaseIdentity,
@@ -304,6 +305,13 @@ export async function runMapRelease(
     expected: releaseIdentity,
     month,
   });
+  const studioScheduleEvidence = decodeSchemaStrict(Plan097StudioScheduleEvidenceSchema, {
+    ...studio.scheduleEvidence,
+    publicationPolicy: "omit_schedule_incomplete_studio_routes",
+  });
+  if (studioScheduleEvidence.analysisPeriod !== month) {
+    throw new Error("Studio schedule evidence does not match the map release analysis period.");
+  }
   const map = await dependencies.map({
     local: inputs.local,
     year: inputs.year,
@@ -496,6 +504,7 @@ export async function runMapRelease(
     operationId,
     candidate: releaseIdentity,
     freshnessMatrix: inputs.freshnessMatrix,
+    studioScheduleEvidence,
     expectedExactRouteCount: d1.exactRouteIdentity.exactRouteCount,
     schemaEnvelope: buildPlan097ExpectedSchemaEnvelope(schemaSql),
     artifactManifest: {
@@ -523,6 +532,7 @@ export async function runMapRelease(
     operationId,
     candidate: releaseIdentity,
     freshnessMatrix: inputs.freshnessMatrix,
+    studioScheduleEvidence,
     bundle: {
       key: activationBundleKey,
       sha256: activationBundleSha256,

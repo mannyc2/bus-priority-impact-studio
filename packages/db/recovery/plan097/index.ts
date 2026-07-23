@@ -336,6 +336,8 @@ export {
   Plan097BatchStatementSchema,
   type Plan097CompactedBatch,
   Plan097CompactedBatchSchema,
+  type Plan097StudioScheduleEvidence,
+  Plan097StudioScheduleEvidenceSchema,
   plan097RecoveryMutationTables,
 } from "./batches.js";
 export {

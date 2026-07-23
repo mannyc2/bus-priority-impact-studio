@@ -539,7 +539,70 @@ async function currentMonthScheduleRowsByRoute(
   });
 }
 
+export type StudioScheduleSourceCoverage = {
+  sourceId: "bus_schedules_2026";
+  datasetId: "4fnn-qsea";
+  scheduleDateStart: string;
+  scheduleDateEnd: string;
+  rowCount: number;
+  routeCount: number;
+};
+
+async function scheduleSourceCoverage(
+  localDbPath: string,
+  sourceYear: number,
+): Promise<StudioScheduleSourceCoverage | null> {
+  return runLocalDbCommandBoundary({
+    dbPath: localDbPath,
+    command: "studio release schedule source coverage",
+    operation: "loadScheduleSourceCoverage",
+    run: async (local) => {
+      const table = local.sqlite
+        .query(
+          "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'local_route_schedule_stop'",
+        )
+        .get();
+      if (table === null) return null;
+      const row = local.sqlite
+        .query(
+          `
+            SELECT MIN(schedule_date) AS schedule_date_start,
+                   MAX(schedule_date) AS schedule_date_end,
+                   COUNT(*) AS row_count,
+                   COUNT(DISTINCT route_id) AS route_count
+            FROM local_route_schedule_stop
+            WHERE source_year = ?
+          `,
+        )
+        .get(sourceYear) as {
+        schedule_date_start: string | null;
+        schedule_date_end: string | null;
+        row_count: number;
+        route_count: number;
+      };
+      if (
+        row.schedule_date_start === null ||
+        row.schedule_date_end === null ||
+        row.row_count <= 0 ||
+        row.route_count <= 0
+      ) {
+        return null;
+      }
+      return {
+        sourceId: "bus_schedules_2026" as const,
+        datasetId: "4fnn-qsea" as const,
+        scheduleDateStart: row.schedule_date_start,
+        scheduleDateEnd: row.schedule_date_end,
+        rowCount: row.row_count,
+        routeCount: row.route_count,
+      };
+    },
+  });
+}
+
 export type StudioScheduleEvidenceSummary = {
+  analysisPeriod: string;
+  sourceCoverage: StudioScheduleSourceCoverage | null;
   selectedRouteCount: number;
   completeRouteCount: number;
   excludedRouteCount: number;
@@ -639,16 +702,18 @@ async function buildRelease(
       }),
     );
   }
-  const scheduleEvidenceExclusions = selectedSummaries.flatMap((summary) => {
-    if (!readinessByRoute.has(summary.routeId)) return [];
-    const coverage = routeScheduleEvidenceCoverage(
-      summary.routeId,
-      routeInputs.get(summary.routeId) ?? null,
-    );
-    return coverage.status === "complete"
-      ? []
-      : [{ routeId: summary.routeId, missingSegmentIds: coverage.missingSegmentIds }];
-  });
+  const scheduleEvidenceExclusions = selectedSummaries
+    .flatMap((summary) => {
+      if (!readinessByRoute.has(summary.routeId)) return [];
+      const coverage = routeScheduleEvidenceCoverage(
+        summary.routeId,
+        routeInputs.get(summary.routeId) ?? null,
+      );
+      return coverage.status === "complete"
+        ? []
+        : [{ routeId: summary.routeId, missingSegmentIds: coverage.missingSegmentIds }];
+    })
+    .toSorted((left, right) => left.routeId.localeCompare(right.routeId));
   const scheduleExcludedRouteIds = new Set(
     scheduleEvidenceExclusions.map((entry) => entry.routeId),
   );
@@ -656,6 +721,11 @@ async function buildRelease(
     readinessByRoute.has(summary.routeId),
   ).length;
   const scheduleEvidence: StudioScheduleEvidenceSummary = {
+    analysisPeriod: options.month,
+    sourceCoverage: await scheduleSourceCoverage(
+      options.localDbPath,
+      Number(options.month.slice(0, 4)),
+    ),
     selectedRouteCount,
     completeRouteCount: selectedRouteCount - scheduleEvidenceExclusions.length,
     excludedRouteCount: scheduleEvidenceExclusions.length,
@@ -1199,6 +1269,17 @@ export default defineCommand({
       generatedCount: Schema.Number,
     }),
     scheduleEvidence: Schema.Struct({
+      analysisPeriod: Schema.String,
+      sourceCoverage: Schema.NullOr(
+        Schema.Struct({
+          sourceId: Schema.Literal("bus_schedules_2026"),
+          datasetId: Schema.Literal("4fnn-qsea"),
+          scheduleDateStart: Schema.String,
+          scheduleDateEnd: Schema.String,
+          rowCount: Schema.Number,
+          routeCount: Schema.Number,
+        }),
+      ),
       selectedRouteCount: Schema.Number,
       completeRouteCount: Schema.Number,
       excludedRouteCount: Schema.Number,

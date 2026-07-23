@@ -246,6 +246,22 @@ describe("runMapRelease", () => {
             releaseIdentity: {
               ...releaseIdentity,
             },
+            scheduleEvidence: {
+              analysisPeriod: "2026-04",
+              sourceCoverage: {
+                sourceId: "bus_schedules_2026",
+                datasetId: "4fnn-qsea",
+                scheduleDateStart: "2026-01-01T00:00:00.000",
+                scheduleDateEnd: "2026-04-11T00:00:00.000",
+                rowCount: 22_703_125,
+                routeCount: 375,
+              },
+              selectedRouteCount: 1,
+              completeRouteCount: 1,
+              excludedRouteCount: 0,
+              missingSegmentCount: 0,
+              excludedRoutes: [],
+            },
           };
         },
         async map(input: unknown) {
@@ -418,10 +434,18 @@ describe("runMapRelease", () => {
       const activationBundle = JSON.parse(await Bun.file(result.activationBundlePath).text()) as {
         operationId: string;
         freshnessMatrix: { candidateCompatibilityCoverageEnd: string };
+        studioScheduleEvidence: {
+          completeRouteCount: number;
+          sourceCoverage: { datasetId: string };
+        };
         batch: { statements: Array<{ kind: string; table: string }> };
       };
       expect(activationBundle.operationId).toBe(`plan097:${result.releaseIdentity.releaseId}`);
       expect(activationBundle.freshnessMatrix.candidateCompatibilityCoverageEnd).toBe("2026-04");
+      expect(activationBundle.studioScheduleEvidence).toMatchObject({
+        completeRouteCount: 1,
+        sourceCoverage: { datasetId: "4fnn-qsea" },
+      });
       expect(activationBundle.batch.statements.at(-1)).toEqual(
         expect.objectContaining({ kind: "activation", table: "route_batch_status" }),
       );

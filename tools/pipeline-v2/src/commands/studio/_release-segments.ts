@@ -171,13 +171,15 @@ export function routeScheduleEvidenceCoverage(
 } {
   const segments = segmentsForRoute(routeId, artifact);
   const comparisons = comparisonBySegmentId(artifact);
-  const missingSegmentIds = segments.flatMap((segment) => {
-    const distance = segment.averageRoadDistanceMiles;
-    const scheduled = comparisons.get(segment.segmentId)?.scheduledMedianTravelTimeMinutes;
-    return isPositiveFiniteNumber(distance) && isPositiveFiniteNumber(scheduled)
-      ? []
-      : [segment.segmentId];
-  });
+  const missingSegmentIds = segments
+    .flatMap((segment) => {
+      const distance = segment.averageRoadDistanceMiles;
+      const scheduled = comparisons.get(segment.segmentId)?.scheduledMedianTravelTimeMinutes;
+      return isPositiveFiniteNumber(distance) && isPositiveFiniteNumber(scheduled)
+        ? []
+        : [segment.segmentId];
+    })
+    .toSorted();
   return {
     status: missingSegmentIds.length === 0 ? "complete" : "incomplete",
     segmentCount: segments.length,

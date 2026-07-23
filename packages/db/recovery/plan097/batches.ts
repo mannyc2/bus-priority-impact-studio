@@ -3,6 +3,9 @@ import { Schema } from "effect";
 import { Plan097FreshnessMatrixSchema } from "./freshness.js";
 
 const Sha256Schema = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/u));
+const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
+  Schema.isGreaterThanOrEqualTo(0),
+);
 
 export const plan097RecoveryMutationTables = [
   "corridor",
@@ -156,12 +159,63 @@ const Plan097BundleSourceSchema = Schema.Struct({
   byteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
 });
 
+export const Plan097StudioScheduleEvidenceSchema = Schema.Struct({
+  analysisPeriod: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/u)),
+  sourceCoverage: Schema.Struct({
+    sourceId: Schema.Literal("bus_schedules_2026"),
+    datasetId: Schema.Literal("4fnn-qsea"),
+    scheduleDateStart: Schema.String.check(Schema.isMinLength(1)),
+    scheduleDateEnd: Schema.String.check(Schema.isMinLength(1)),
+    rowCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+    routeCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+  }),
+  selectedRouteCount: NonNegativeIntegerSchema,
+  completeRouteCount: NonNegativeIntegerSchema,
+  excludedRouteCount: NonNegativeIntegerSchema,
+  missingSegmentCount: NonNegativeIntegerSchema,
+  excludedRoutes: Schema.Array(
+    Schema.Struct({
+      routeId: Schema.String.check(Schema.isMinLength(1)),
+      missingSegmentIds: Schema.Array(Schema.String.check(Schema.isMinLength(1))).check(
+        Schema.isMinLength(1),
+      ),
+    }),
+  ),
+  publicationPolicy: Schema.Literal("omit_schedule_incomplete_studio_routes"),
+}).check(
+  Schema.makeFilter((evidence) => {
+    const missingSegmentCount = evidence.excludedRoutes.reduce(
+      (sum, route) => sum + route.missingSegmentIds.length,
+      0,
+    );
+    const routeIds = evidence.excludedRoutes.map((route) => route.routeId);
+    const issues: Array<{ path: ReadonlyArray<string | number>; issue: string }> = [];
+    if (evidence.selectedRouteCount !== evidence.completeRouteCount + evidence.excludedRouteCount) {
+      issues.push({ path: ["selectedRouteCount"], issue: "Selected route count must reconcile" });
+    }
+    if (
+      evidence.excludedRouteCount !== evidence.excludedRoutes.length ||
+      new Set(routeIds).size !== routeIds.length
+    ) {
+      issues.push({ path: ["excludedRoutes"], issue: "Excluded route inventory must reconcile" });
+    }
+    if (evidence.missingSegmentCount !== missingSegmentCount) {
+      issues.push({ path: ["missingSegmentCount"], issue: "Missing segment count must reconcile" });
+    }
+    if (evidence.sourceCoverage.scheduleDateStart > evidence.sourceCoverage.scheduleDateEnd) {
+      issues.push({ path: ["sourceCoverage"], issue: "Schedule source range is reversed" });
+    }
+    return issues;
+  }),
+);
+
 export const Plan097ActivationBundleSchema = Schema.Struct({
   artifactKind: Schema.Literal("bp.ops.plan097.activation-bundle.v1"),
   schemaVersion: Schema.Literal(1),
   operationId: Schema.String.check(Schema.isPattern(/^plan097:pub_[0-9TZ]+$/u)),
   candidate: ReleaseIdentitySchema,
   freshnessMatrix: Plan097FreshnessMatrixSchema,
+  studioScheduleEvidence: Plan097StudioScheduleEvidenceSchema,
   expectedExactRouteCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
   schemaEnvelope: Schema.Struct({
     canonicalSnapshotSha256: Sha256Schema,
@@ -185,6 +239,7 @@ export const Plan097ActivationBundleReceiptSchema = Schema.Struct({
   operationId: Schema.String.check(Schema.isPattern(/^plan097:pub_[0-9TZ]+$/u)),
   candidate: ReleaseIdentitySchema,
   freshnessMatrix: Plan097FreshnessMatrixSchema,
+  studioScheduleEvidence: Plan097StudioScheduleEvidenceSchema,
   bundle: Schema.Struct({
     key: Schema.String.check(
       Schema.isPattern(
@@ -201,6 +256,7 @@ export type Plan097BatchStatement = typeof Plan097BatchStatementSchema.Type;
 export type Plan097CompactedBatch = typeof Plan097CompactedBatchSchema.Type;
 export type Plan097ActivationBundle = typeof Plan097ActivationBundleSchema.Type;
 export type Plan097ActivationBundleReceipt = typeof Plan097ActivationBundleReceiptSchema.Type;
+export type Plan097StudioScheduleEvidence = typeof Plan097StudioScheduleEvidenceSchema.Type;
 
 export function canonicalPlan097Json(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);

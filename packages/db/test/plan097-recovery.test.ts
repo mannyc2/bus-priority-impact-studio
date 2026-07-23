@@ -15,6 +15,7 @@ import {
   Plan097PreflightReceiptSchema,
   Plan097RecoveryArtifactManifestSchema,
   type Plan097SchemaAuditInput,
+  Plan097StudioScheduleEvidenceSchema,
   plan097MapReleaseCatalogRecoveryStatements,
 } from "../recovery/plan097/index.js";
 
@@ -524,6 +525,33 @@ describe("Plan 097 recovery contracts", () => {
         database: "user-selected-production",
       }),
     ).toThrow();
+  });
+
+  test("requires the Studio schedule exclusion inventory to reconcile", () => {
+    const evidence = {
+      analysisPeriod: "2026-05",
+      sourceCoverage: {
+        sourceId: "bus_schedules_2026",
+        datasetId: "4fnn-qsea",
+        scheduleDateStart: "2026-01-01T00:00:00.000",
+        scheduleDateEnd: "2026-04-11T00:00:00.000",
+        rowCount: 22_703_125,
+        routeCount: 375,
+      },
+      selectedRouteCount: 2,
+      completeRouteCount: 1,
+      excludedRouteCount: 1,
+      missingSegmentCount: 1,
+      excludedRoutes: [{ routeId: "M104", missingSegmentIds: ["M104:segment"] }],
+      publicationPolicy: "omit_schedule_incomplete_studio_routes",
+    } as const;
+    expect(decodeStrict(Plan097StudioScheduleEvidenceSchema)(evidence)).toEqual(evidence);
+    expect(() =>
+      decodeStrict(Plan097StudioScheduleEvidenceSchema)({
+        ...evidence,
+        missingSegmentCount: 0,
+      }),
+    ).toThrow(/reconcile/i);
   });
 
   test("preflight receipt binds baseline, rollback, cost, and immutable candidate evidence", () => {
