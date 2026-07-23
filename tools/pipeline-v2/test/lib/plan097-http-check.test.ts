@@ -56,6 +56,9 @@ describe("Plan 097 release-aware HTTP checker", () => {
       requestId: "request-1",
       cfRay: "ray-1",
       cacheControl: "public, max-age=60",
+      cfCacheStatus: null,
+      age: null,
+      workerVersionId: null,
       etag: '"fixture"',
     });
     await expect(
@@ -67,6 +70,54 @@ describe("Plan 097 release-aware HTTP checker", () => {
         schema: Schema.Struct({ schemaVersion: Schema.Literal(1), releaseId: Schema.String }),
       }),
     ).rejects.toThrow();
+  });
+
+  test("requires and records the exact Worker version on version-routed evidence", async () => {
+    const workerVersionId = "aef011c3-0e48-4c35-92f7-3516a2259afe";
+    const overrideHeaders: string[] = [];
+    const result = await fetchPlan097HttpEvidence({
+      fetch: async (_input, init) => {
+        const overrideHeader = new Headers(init?.headers).get(
+          "Cloudflare-Workers-Version-Overrides",
+        );
+        if (overrideHeader !== null) overrideHeaders.push(overrideHeader);
+        return Response.json(
+          { schemaVersion: 1 },
+          {
+            headers: {
+              "cache-control": "no-store",
+              "cf-cache-status": "BYPASS",
+              "x-bp-worker-version": workerVersionId,
+            },
+          },
+        );
+      },
+      baseUrl: "https://production.example/",
+      path: "/api/v1/status?plan097=version",
+      schemaId: "bp.test.release.v1",
+      schema: Schema.Struct({ schemaVersion: Schema.Literal(1) }),
+      expectedWorkerVersionId: workerVersionId,
+      versionOverrideWorkerName: "bus-priority-impact-studio",
+    });
+
+    expect(overrideHeaders).toEqual([`bus-priority-impact-studio="${workerVersionId}"`]);
+    expect(result.evidence.workerVersionId).toBe(workerVersionId);
+    expect(result.evidence.cfCacheStatus).toBe("BYPASS");
+
+    await expect(
+      fetchPlan097HttpEvidence({
+        fetch: async () =>
+          Response.json(
+            { schemaVersion: 1 },
+            { headers: { "x-bp-worker-version": "f2067a1d-6c4f-4e00-abd4-43fea7469f4e" } },
+          ),
+        baseUrl: "https://production.example/",
+        path: "/api/v1/status?plan097=wrong-version",
+        schemaId: "bp.test.release.v1",
+        schema: Schema.Struct({ schemaVersion: Schema.Literal(1) }),
+        expectedWorkerVersionId: workerVersionId,
+      }),
+    ).rejects.toThrow(/expected Worker/i);
   });
 
   test("records a baseline HTTP defect without pretending its body matches the success schema", async () => {
@@ -101,6 +152,9 @@ describe("Plan 097 release-aware HTTP checker", () => {
       requestId: "request-1",
       cfRay: "ray-1",
       cacheControl: "no-store",
+      cfCacheStatus: null,
+      age: null,
+      workerVersionId: null,
       etag: null,
     };
     expect(() => assertPlan097RecoveryCacheSafety([endpoint])).not.toThrow();
@@ -125,6 +179,9 @@ describe("Plan 097 release-aware HTTP checker", () => {
       requestId: "request-before",
       cfRay: "ray-before",
       cacheControl: "public, max-age=60",
+      cfCacheStatus: null,
+      age: null,
+      workerVersionId: null,
       etag: '"same"',
     };
     const baseline = {

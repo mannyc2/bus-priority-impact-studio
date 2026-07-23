@@ -229,6 +229,9 @@ describe("production boundary harness", () => {
 
     expect(workflow).not.toMatch(/wrangler d1 execute[^\n]*--file/);
     expect(productionWrangler).toContain('"PLAN097_RECOVERY_ENABLED": "true"');
+    expect(productionWrangler).toContain('"binding": "CF_VERSION_METADATA"');
+    expect(productionWrangler).toContain('"preview_urls": false');
+    expect(productionWrangler).toMatch(/"cache"\s*:\s*\{\s*"enabled"\s*:\s*false/u);
     expect(productionWrangler).toContain(
       '"PLAN097_PREVIOUS_RELEASE_ID": "pub_20260605T183601689Z"',
     );
@@ -288,16 +291,57 @@ describe("production boundary harness", () => {
   test("Plan 097 reader predeploy is receipt-backed and rolls the Worker back on failure", async () => {
     const workflow = await Bun.file(".github/workflows/ci.yml").text();
 
+    expect(workflow).toContain(`cancel-in-progress: \${{ github.event_name == 'pull_request' }}`);
     expect(workflow).toContain("wrangler deployments status --json");
     expect(workflow).toContain("prior_version_id");
+    expect(workflow).toContain("wrangler versions upload");
+    expect(workflow).toContain("wrangler versions deploy");
+    expect(workflow).toContain("Mark candidate Worker staging attempt");
+    expect(workflow).toContain("Capture staged Worker deployment");
+    expect(workflow).toContain("(.versions | length) == 2");
+    expect(workflow).toContain(".version_id == $prior and .percentage == 100");
+    expect(workflow).toContain(".version_id == $candidate and .percentage == 0");
+    expect(workflow).toContain(`"\${PLAN097_PRIOR_VERSION_ID}@100"`);
+    expect(workflow).toContain(`"\${PLAN097_CANDIDATE_VERSION_ID}@0"`);
+    expect(workflow).toContain("--worker-version-id");
+    expect(workflow).toContain("--version-override-worker");
     expect(workflow).toContain("check-plan097-recovery-reader.ts");
+    expect(workflow).toContain("plan097-reader-staged.receipt.json");
     expect(workflow).toContain("plan097-reader-deploy.receipt.json");
+    expect(workflow).toContain("failure-output");
     expect(workflow).toContain("plan097-reader-deploy.receipt.sha256");
     expect(workflow).toContain("Roll back Worker on postdeploy failure");
+    expect(workflow).toContain("Mark Plan 097 rollback attempt");
+    expect(workflow).toContain("steps.plan097-reader-rollback-attempt.outputs.attempted == 'true'");
+    expect(workflow).toContain("bp.ops.plan097.reader-rollback-attempt.v1");
     expect(workflow).toContain("wrangler rollback");
-    expect(workflow).toContain("if: failure()");
+    expect(workflow).toContain("failure() || cancelled()");
+    expect(workflow).toContain("(.versions | length) == 1");
+    expect(workflow).toContain(".version_id == $prior");
+    expect(workflow).toContain("bp.ops.plan097.reader-rollback-capture-failure.v1");
+    expect(workflow).toContain("Hash Plan 097 rollback evidence");
     expect(workflow).toContain("Upload Plan 097 rollback evidence");
     expect(workflow).toContain("if-no-files-found: error");
+    expect(workflow).toContain("timeout-minutes: 90");
+    expect(workflow).toContain("timeout-minutes: 3");
+    expect(workflow).toContain(
+      "if: always() && steps.cloudflare.outputs.deploy == 'true' && steps.plan097-reader-stage-attempt.outputs.attempted == 'true'",
+    );
+    for (const line of workflow
+      .split("\n")
+      .filter(
+        (workflowLine) =>
+          workflowLine.includes("deployments status --json") ||
+          workflowLine.includes("versions list --json"),
+      )) {
+      expect(line).toContain("| jq -c");
+    }
+    expect(workflow).toContain(
+      "jq -c '{id, created_on, versions: [.versions[] | {version_id, percentage}]}'",
+    );
+    expect(workflow).toContain(
+      "jq -c '[.[] | {id, created_on, modified_on, tag: .annotations[\"workers/tag\"]}]'",
+    );
     expect(workflow.indexOf("Upload Plan 097 reader predeploy receipts")).toBeLessThan(
       workflow.indexOf("Roll back Worker on postdeploy failure"),
     );

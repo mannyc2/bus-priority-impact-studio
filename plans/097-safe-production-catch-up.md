@@ -584,12 +584,66 @@ version if any postdeploy D1 audit or HTTP proof fails.
 The remote gates remain deliberately open. The current Wrangler login is
 expired and the Cloudflare API/service/bootstrap/signing/proof credentials are
 unavailable, so no signed D1 preflight, disposable remote proof, production
-mutation, or canonical completion receipt has been fabricated. GitHub CLI
-authentication remains invalid, but the GitHub connector opened draft PR #101
-at pushed commit `635cd3a8`; CI run 328 passed knowledge, types, architecture,
-the full test suite, and web-release verification. Plan 097 remains **IN
-PROGRESS**, all acceptance boxes remain unchecked, and the fresh production
-mutation token has not been requested.
+mutation, or canonical completion receipt has been fabricated. PR #101 later
+merged after CI passed, and its protected reader attempt is recorded below.
+Plan 097 remains **IN PROGRESS**, all acceptance boxes remain unchecked, and
+the fresh production mutation token has not been requested.
+
+### Failed-closed protected reader predeploy (2026-07-23; not completion evidence)
+
+PR #101 head `4c937a3fa7afa86625b9e81678ccb0d67f535be1` merged to
+`main` as `14fb1472ea210bb66ace7bbe3348ee7202ee35ec`. GitHub Actions
+run 332 (`29998095226`) passed the verify job, pre/post read-only D1 audits,
+the Worker build/deploy, and the existing Plan 095 production smoke. The
+strict Plan 097 reader proof then failed because
+`/api/v1/status?plan097=829f626b-9b98-493d-8f65-97e5b67d9f12` did not return
+the required `Cache-Control: no-store`; it still exposed
+`public, max-age=60, stale-while-revalidate=86400`.
+
+The workflow had moved production from stable Worker version
+`f2067a1d-6c4f-4e00-abd4-43fea7469f4e` in deployment
+`845cb0c0-ad27-438d-9ad0-3d22062edf89` to attempted version
+`aef011c3-0e48-4c35-92f7-3516a2259afe` in deployment
+`affeec34-1e5d-4ce6-b6c8-6ad20b82c77c`. Its automatic failure path then
+created deployment `f5082ef1-800b-4298-8c4f-4acc22f6a8a0`, restoring
+`f2067a1d-6c4f-4e00-abd4-43fea7469f4e` to 100% with message
+`Plan 097 reader predeploy verification failed`.
+
+The pre/post Actions artifact is ID `8559859695`, archive SHA-256
+`c005242d4e6233bde737940b5cd5affb34f29427b40ae786caa33d5f95f8bfb1`;
+the rollback artifact is ID `8559861095`, archive SHA-256
+`389227348728a504cc4ad688e07451f290dcddd5bdbfe45a157764f1662f4977`.
+Both expire 2026-10-21. The strict checker failed before it could serialize
+`plan097-reader-deploy.receipt.json` or its adjacent SHA-256 file, so these
+are deployment-attempt and rollback evidence, not a successful reader receipt,
+signed preflight, or completion receipt.
+
+No production serving-data, serving-schema, or candidate-artifact mutation
+occurred; only the Worker deployment and automatic Worker rollback ran.
+No endpoint first proved `no-store`, no authoritative purge was recorded, and
+the 86,400-second cache-drain clock did not start. The signed preflight,
+disposable A→B→A proof, fresh production mutation token, and candidate
+activation remain outstanding. Plan 097 remains **IN PROGRESS**, all acceptance
+boxes remain unchecked, and Plan 098 remains TODO.
+
+The follow-up reader gate now emits the Cloudflare version-metadata ID on every
+response, records version/cache/Ray/age evidence, keeps failed attempts in a
+separate strict receipt, disables public preview URLs and entrypoint caching,
+and changes the protected workflow to upload → prior 100%/candidate 0% →
+exact-version override proof → candidate 100% → ordinary-traffic proof.
+The initial state must still be one prior version at 100%. Production runs are
+serialized and non-superseding; a pre-mutation attempt marker makes ambiguous
+staging failures and cancellation cleanup restore that captured version.
+Durable success decode requires every endpoint and namespace observation to
+match the top-level Worker version. Persisted Wrangler control-plane evidence
+is a strict personal-data-free allowlist, and both attempt and rollback
+artifacts have adjacent hash manifests. The staged projection must prove
+exactly prior@100%/candidate@0%, rollback capture must prove prior@100%, and
+bounded remote/proof/cleanup step timeouts sit within a larger job timeout
+reserve. Rollback state is still captured and hashed when the rollback client
+or exact-state validation fails. This follow-up is local-only until its exact
+pushed SHA receives a fresh protected-reader deployment approval; it does not
+authorize any D1/R2 application-data mutation.
 
 ## Acceptance criteria
 

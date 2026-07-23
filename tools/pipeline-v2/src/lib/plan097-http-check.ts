@@ -36,23 +36,64 @@ export function assertPlan097RecoveryCacheSafety(
   }
 }
 
+function plan097RequestHeaders(input: {
+  accept: string;
+  expectedWorkerVersionId?: string | undefined;
+  versionOverrideWorkerName?: string | undefined;
+}): Headers {
+  const headers = new Headers({
+    accept: input.accept,
+    "user-agent": "bp-plan097-release-check/1",
+  });
+  if (
+    input.expectedWorkerVersionId !== undefined &&
+    input.versionOverrideWorkerName !== undefined
+  ) {
+    headers.set(
+      "Cloudflare-Workers-Version-Overrides",
+      `${input.versionOverrideWorkerName}="${input.expectedWorkerVersionId}"`,
+    );
+  }
+  return headers;
+}
+
+function assertPlan097WorkerVersion(
+  response: Response,
+  path: string,
+  expectedWorkerVersionId: string | undefined,
+): void {
+  if (expectedWorkerVersionId === undefined) return;
+  const actualWorkerVersionId = response.headers.get("x-bp-worker-version");
+  if (actualWorkerVersionId !== expectedWorkerVersionId) {
+    throw new Error(
+      `Plan 097 expected Worker ${expectedWorkerVersionId} at ${path}, received ${
+        actualWorkerVersionId ?? "no version metadata"
+      }`,
+    );
+  }
+}
+
 export async function fetchPlan097HttpEvidence<A>(input: {
   fetch: Fetch;
   baseUrl: string;
   path: string;
   schemaId: string;
   schema: Schema.Schema<A>;
+  expectedWorkerVersionId?: string | undefined;
+  versionOverrideWorkerName?: string | undefined;
 }): Promise<{
   value: A;
   rawBody: string;
   evidence: Plan097HttpBaseline["endpoints"][number];
 }> {
   const response = await input.fetch(new URL(input.path, input.baseUrl), {
-    headers: {
+    headers: plan097RequestHeaders({
       accept: "application/json",
-      "user-agent": "bp-plan097-release-check/1",
-    },
+      expectedWorkerVersionId: input.expectedWorkerVersionId,
+      versionOverrideWorkerName: input.versionOverrideWorkerName,
+    }),
   });
+  assertPlan097WorkerVersion(response, input.path, input.expectedWorkerVersionId);
   const rawBody = await response.text();
   if (!response.ok) {
     throw new Error(`${input.path} returned HTTP ${response.status}`);
@@ -70,6 +111,9 @@ export async function fetchPlan097HttpEvidence<A>(input: {
       requestId: response.headers.get("x-request-id"),
       cfRay: response.headers.get("cf-ray"),
       cacheControl: response.headers.get("cache-control"),
+      cfCacheStatus: response.headers.get("cf-cache-status"),
+      age: response.headers.get("age"),
+      workerVersionId: response.headers.get("x-bp-worker-version"),
       etag: response.headers.get("etag"),
     },
   };
@@ -81,16 +125,20 @@ export async function fetchPlan097HttpBaselineEvidence<A>(input: {
   path: string;
   schemaId: string;
   schema: Schema.Schema<A>;
+  expectedWorkerVersionId?: string | undefined;
+  versionOverrideWorkerName?: string | undefined;
 }): Promise<{
   value: A | null;
   evidence: Plan097HttpBaseline["endpoints"][number];
 }> {
   const response = await input.fetch(new URL(input.path, input.baseUrl), {
-    headers: {
+    headers: plan097RequestHeaders({
       accept: "application/json",
-      "user-agent": "bp-plan097-release-check/1",
-    },
+      expectedWorkerVersionId: input.expectedWorkerVersionId,
+      versionOverrideWorkerName: input.versionOverrideWorkerName,
+    }),
   });
+  assertPlan097WorkerVersion(response, input.path, input.expectedWorkerVersionId);
   const rawBody = await response.text();
   assertNoPlan097LegacyEmptyState(rawBody, input.path);
   return {
@@ -103,6 +151,9 @@ export async function fetchPlan097HttpBaselineEvidence<A>(input: {
       requestId: response.headers.get("x-request-id"),
       cfRay: response.headers.get("cf-ray"),
       cacheControl: response.headers.get("cache-control"),
+      cfCacheStatus: response.headers.get("cf-cache-status"),
+      age: response.headers.get("age"),
+      workerVersionId: response.headers.get("x-bp-worker-version"),
       etag: response.headers.get("etag"),
     },
   };
@@ -192,6 +243,8 @@ export async function runPlan097HttpCheck(input: {
   fetch?: Fetch | undefined;
   expectedReleaseId?: string | undefined;
   expectedExactRouteCount?: number | undefined;
+  expectedWorkerVersionId?: string | undefined;
+  versionOverrideWorkerName?: string | undefined;
   nonce?: string | undefined;
   checkedAt?: string | undefined;
 }): Promise<Plan097HttpCheckResult> {
@@ -213,6 +266,8 @@ export async function runPlan097HttpCheck(input: {
       path: releaseAwarePath(path, nonce),
       schemaId,
       schema,
+      expectedWorkerVersionId: input.expectedWorkerVersionId,
+      versionOverrideWorkerName: input.versionOverrideWorkerName,
     });
     endpoints.push(result.evidence);
     return result.value;
@@ -310,6 +365,8 @@ export async function runPlan097HttpCheck(input: {
           path: mapManifestPath,
           schemaId: "bp.map_manifest_response.v2",
           schema: MapManifestResponseSchema,
+          expectedWorkerVersionId: input.expectedWorkerVersionId,
+          versionOverrideWorkerName: input.versionOverrideWorkerName,
         }).then((result) => {
           endpoints.push(result.evidence);
           return result.value;
@@ -347,6 +404,8 @@ export async function runPlan097HttpCheck(input: {
     path: releaseAwarePath(geometry.apiPath, nonce),
     schemaId: "bp.map_route_segment_feature_collection.v2",
     schema: MapRouteSegmentFeatureCollectionSchema,
+    expectedWorkerVersionId: input.expectedWorkerVersionId,
+    versionOverrideWorkerName: input.versionOverrideWorkerName,
   });
   endpoints.push(geometryResult.evidence);
   if (
