@@ -144,6 +144,32 @@ export function routeScheduledSpeedMph(
   );
 }
 
+export function routeScheduleEvidenceCoverage(
+  routeId: string,
+  artifact: RouteBriefInputArtifact | null,
+): {
+  status: "complete" | "incomplete";
+  segmentCount: number;
+  matchedSegmentCount: number;
+  missingSegmentIds: string[];
+} {
+  const segments = segmentsForRoute(routeId, artifact);
+  const comparisons = comparisonBySegmentId(artifact);
+  const missingSegmentIds = segments.flatMap((segment) => {
+    const distance = segment.averageRoadDistanceMiles;
+    const scheduled = comparisons.get(segment.segmentId)?.scheduledMedianTravelTimeMinutes;
+    return isPositiveFiniteNumber(distance) && isPositiveFiniteNumber(scheduled)
+      ? []
+      : [segment.segmentId];
+  });
+  return {
+    status: missingSegmentIds.length === 0 ? "complete" : "incomplete",
+    segmentCount: segments.length,
+    matchedSegmentCount: segments.length - missingSegmentIds.length,
+    missingSegmentIds,
+  };
+}
+
 export function normalizedHourlyBins(bins: number[] | undefined): number[] {
   if (bins === undefined) {
     return Array.from({ length: 24 }, () => 0);

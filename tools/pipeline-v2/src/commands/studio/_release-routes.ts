@@ -34,6 +34,17 @@ export function routeIdToSlug(routeId: string): string {
   return routeIdToStudioSlug(routeId);
 }
 
+export function normalizeStudioRoutePeers<
+  Route extends { readonly slug: string; readonly peerSlug: string | null },
+>(routes: readonly Route[]): Route[] {
+  const availableSlugs = new Set(routes.map((route) => route.slug));
+  return routes.map((route) =>
+    route.peerSlug !== null && !availableSlugs.has(route.peerSlug)
+      ? { ...route, peerSlug: null }
+      : route,
+  );
+}
+
 export function routeLabel(readiness: RouteReadiness): string {
   return readiness.routeShortName;
 }

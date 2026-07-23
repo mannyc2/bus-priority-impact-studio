@@ -69,6 +69,7 @@ import {
   buildRoute,
   buildRouteArtifactRef,
   descriptivePeerSlugsForSummaries,
+  normalizeStudioRoutePeers,
   qualityCaveats,
   routeKey,
   speedPercentileContext,
@@ -79,6 +80,7 @@ import {
   buildSegmentAnalystNote,
   buildSegments,
   enhanceSegmentAiNotesWithLlm,
+  routeScheduleEvidenceCoverage,
   withSparsePublicSegmentNotes,
 } from "./_release-segments.ts";
 import type {
@@ -537,10 +539,21 @@ async function currentMonthScheduleRowsByRoute(
   });
 }
 
+export type StudioScheduleEvidenceSummary = {
+  selectedRouteCount: number;
+  completeRouteCount: number;
+  excludedRouteCount: number;
+  missingSegmentCount: number;
+  excludedRoutes: Array<{ routeId: string; missingSegmentIds: string[] }>;
+};
+
 async function buildRelease(
   options: CliOptions,
   releaseIdentity: ReleaseIdentity,
-): Promise<StudioReleasePayload> {
+): Promise<{
+  release: StudioReleasePayload;
+  scheduleEvidence: StudioScheduleEvidenceSummary;
+}> {
   const {
     routePresentationByRoute,
     readinessByRoute,
@@ -625,6 +638,32 @@ async function buildRelease(
       }),
     );
   }
+  const scheduleEvidenceExclusions = selectedSummaries.flatMap((summary) => {
+    if (!readinessByRoute.has(summary.routeId)) return [];
+    const coverage = routeScheduleEvidenceCoverage(
+      summary.routeId,
+      routeInputs.get(summary.routeId) ?? null,
+    );
+    return coverage.status === "complete"
+      ? []
+      : [{ routeId: summary.routeId, missingSegmentIds: coverage.missingSegmentIds }];
+  });
+  const scheduleExcludedRouteIds = new Set(
+    scheduleEvidenceExclusions.map((entry) => entry.routeId),
+  );
+  const selectedRouteCount = selectedSummaries.filter((summary) =>
+    readinessByRoute.has(summary.routeId),
+  ).length;
+  const scheduleEvidence: StudioScheduleEvidenceSummary = {
+    selectedRouteCount,
+    completeRouteCount: selectedRouteCount - scheduleEvidenceExclusions.length,
+    excludedRouteCount: scheduleEvidenceExclusions.length,
+    missingSegmentCount: scheduleEvidenceExclusions.reduce(
+      (sum, entry) => sum + entry.missingSegmentIds.length,
+      0,
+    ),
+    excludedRoutes: scheduleEvidenceExclusions,
+  };
   const segmentLaneOverlaps = await segmentLaneOverlapIndex({
     localDbPath: options.localDbPath,
     isoMonth: options.month,
@@ -656,9 +695,9 @@ async function buildRelease(
     }
   }
 
-  const routes: StudioRoute[] = selectedSummaries.flatMap((summary) => {
+  const builtRoutes: StudioRoute[] = selectedSummaries.flatMap((summary) => {
     const readiness = readinessByRoute.get(summary.routeId);
-    if (readiness === undefined) {
+    if (readiness === undefined || scheduleExcludedRouteIds.has(summary.routeId)) {
       return [];
     }
     const routePresentation = routePresentationByRoute.get(summary.routeId);
@@ -687,6 +726,7 @@ async function buildRelease(
       ),
     ];
   });
+  const routes = normalizeStudioRoutePeers(builtRoutes);
 
   const deterministicSegments = routes.flatMap((route) => {
     const speedSpine = speedSpinesByRoute.get(route.routeId);
@@ -772,7 +812,7 @@ async function buildRelease(
     }),
   ];
 
-  return decodeSchemaStrict(StudioReleasePayloadSchema, {
+  const release = decodeSchemaStrict(StudioReleasePayloadSchema, {
     schemaVersion: 3,
     generatedAt: releaseGeneratedAt,
     ...studioReleaseIdentity,
@@ -781,7 +821,14 @@ async function buildRelease(
       releaseLayer: "published_release",
       completenessStatus: "partial_public_speed_only",
       confidence: "medium",
-      caveats: qualityCaveats(options.month),
+      caveats: [
+        ...qualityCaveats(options.month),
+        ...(scheduleEvidence.excludedRouteCount === 0
+          ? []
+          : [
+              `${scheduleEvidence.excludedRouteCount} route operational projections are omitted because one or more observed segments lack same-segment scheduled travel-time evidence; D1 continues to serve those routes as partial detail without synthesized scheduled speeds.`,
+            ]),
+      ],
     },
     routes,
     routeFactMetadata: routes.map((route) => {
@@ -867,6 +914,7 @@ async function buildRelease(
     docsSections: docsSections(options.month),
     docsEndpoints: [],
   });
+  return { release, scheduleEvidence };
 }
 
 function buildSegmentAnalystNotesArtifact(
@@ -976,6 +1024,7 @@ export type RunStudioReleaseResult = {
     requestedCount: number;
     generatedCount: number;
   };
+  scheduleEvidence: StudioScheduleEvidenceSummary;
 };
 
 export async function runStudioRelease(
@@ -1027,7 +1076,7 @@ export async function runStudioRelease(
   };
 
   const outputPath = fromCliPath(options.outputPath);
-  const release = await buildRelease(options, inputs.releaseIdentity);
+  const { release, scheduleEvidence } = await buildRelease(options, inputs.releaseIdentity);
   const publicNoteCount = release.segments.filter((segment) => segment.aiNote !== undefined).length;
 
   await writeProjections(outputPath, release);
@@ -1060,6 +1109,7 @@ export async function runStudioRelease(
         isLlmGeneratedSegmentNote(segment.aiNote),
       ).length,
     },
+    scheduleEvidence,
   };
 }
 
@@ -1131,6 +1181,18 @@ export default defineCommand({
       model: Schema.NullOr(Schema.String),
       requestedCount: Schema.Number,
       generatedCount: Schema.Number,
+    }),
+    scheduleEvidence: Schema.Struct({
+      selectedRouteCount: Schema.Number,
+      completeRouteCount: Schema.Number,
+      excludedRouteCount: Schema.Number,
+      missingSegmentCount: Schema.Number,
+      excludedRoutes: Schema.Array(
+        Schema.Struct({
+          routeId: Schema.String,
+          missingSegmentIds: Schema.Array(Schema.String),
+        }),
+      ),
     }),
   }),
   async run({ input }) {
