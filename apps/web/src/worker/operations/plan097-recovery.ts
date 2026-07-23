@@ -164,6 +164,17 @@ async function d1First<Row extends Record<string, unknown> = Record<string, unkn
   return (await d1All<Row>(db, sql, params))[0] ?? null;
 }
 
+async function runPlan097D1StatementBatch(input: {
+  db: D1Database;
+  statements: D1PreparedStatement[];
+  failureMessage: string;
+}): Promise<void> {
+  const results = await input.db.batch(input.statements);
+  if (results.length !== input.statements.length || results.some((result) => !result.success)) {
+    throw new Error(input.failureMessage);
+  }
+}
+
 async function d1TableInfo(db: D1Database, tableName: string) {
   const rows = await d1All<{
     cid: number;
@@ -525,10 +536,11 @@ async function runSchemaReconciliation(input: {
   const statements = plan097MapReleaseCatalogRecoveryStatements.map((sql) =>
     input.env.DB.prepare(sql),
   );
-  const results = await input.env.DB.batch(statements);
-  if (results.length !== statements.length || results.some((result) => !result.success)) {
-    throw new Error("Plan 097 exact 0033 reconciliation batch failed");
-  }
+  await runPlan097D1StatementBatch({
+    db: input.env.DB,
+    statements,
+    failureMessage: "Plan 097 exact 0033 reconciliation batch failed",
+  });
   const after = await capturePlan097D1CanonicalSchema(input.env.DB);
   if (
     decidePlan097MapReleaseCatalogRecovery(after).state !== "exact" ||
@@ -984,10 +996,11 @@ async function runD1Batch(input: {
       )
       .bind(...statement.params),
   );
-  const results = await input.db.batch(statements);
-  if (results.length !== statements.length || results.some((result) => !result.success)) {
-    throw new Error("Plan 097 D1 batch did not report complete success");
-  }
+  await runPlan097D1StatementBatch({
+    db: input.db,
+    statements,
+    failureMessage: "Plan 097 D1 batch did not report complete success",
+  });
 }
 
 async function loadRestoreBatch(input: {

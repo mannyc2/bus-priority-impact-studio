@@ -1,11 +1,13 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
+import { decodeStrict } from "@bp/domain/decode";
 import {
   buildExactRouteIdentityRegistrationSql,
   type ExactRouteIdentityRegistrationInput,
+  ExactRouteIdentityRegistrationSchema,
 } from "../src/d1/seed/index.js";
 
-const base = {
+const base = decodeStrict(ExactRouteIdentityRegistrationSchema)({
   releaseId: "pub_20260722T120000000Z",
   publishedAt: "2026-07-22T12:00:00.000Z",
   coverage: { start: "2023-04", end: "2026-05" },
@@ -19,7 +21,7 @@ const base = {
   exactRouteCount: 381,
   routeTypeCount: 390,
   tripTypeCount: 390,
-} as const satisfies ExactRouteIdentityRegistrationInput;
+});
 
 async function createDb(): Promise<Database> {
   const sqlite = new Database(":memory:");

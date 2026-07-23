@@ -40,8 +40,6 @@ describe("audit plan097-readiness", () => {
       INSERT INTO local_bus_lane VALUES ('lane-1', 1);
       INSERT INTO local_gtfs_rt_feed_snapshot VALUES ('2026-07-22T12:00:00.000Z', 'run-1');
     `);
-    sqlite.close();
-
     const freshnessLedgerPath = join(root, "freshness.json");
     await Bun.write(
       freshnessLedgerPath,
@@ -107,13 +105,14 @@ describe("audit plan097-readiness", () => {
     ]);
     const outputPath = join(root, "out", "matrix.json");
     const result = await runPlan097ReadinessAudit({
-      dbPath,
+      local: { sqlite },
       freshnessLedgerPath,
       routeSpeedAvailabilityPath,
       aceRoutesSnapshotPath,
       busLanesSnapshotPath,
       outputPath,
     });
+    sqlite.close();
     expect(result.status).toBe("ready");
     expect(result.candidateCompatibilityCoverageEnd).toBe("2026-05");
     expect(result.datasets).toHaveLength(7);

@@ -1,9 +1,6 @@
 import type { LocalRouteHotspot, LocalRouteScheduleTimepoint } from "@bp/db/local";
 import { scheduleComparisons } from "../../lib/route-briefs/index.ts";
-import type {
-  RouteBriefInputArtifact,
-  RouteBriefSegment,
-} from "./_release-types.ts";
+import type { RouteBriefInputArtifact, RouteBriefSegment } from "./_release-types.ts";
 
 function finiteSegmentNumber(
   routeId: string,
@@ -159,9 +156,7 @@ export function refreshRouteBriefScheduleEvidence(
       scheduledPairCount: result.scheduledPairCount,
       scheduleMatchedHotspotCount: result.matchedHotspotCount,
     },
-    ...(artifact.segments === undefined
-      ? {}
-      : { segments: refreshSegments(artifact.segments) }),
+    ...(artifact.segments === undefined ? {} : { segments: refreshSegments(artifact.segments) }),
     ...(artifact.topSegments === undefined
       ? {}
       : { topSegments: refreshSegments(artifact.topSegments) }),

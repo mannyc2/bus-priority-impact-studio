@@ -55,9 +55,9 @@ describe("studio release D1 replay boundary", () => {
     expect(() => studioProjectionOutputDirectory("/tmp/v1/release.json")).toThrow(
       "versioned studio/<version>/release.json",
     );
-    expect(() =>
-      studioProjectionOutputDirectory("/tmp/candidate/studio/v1/custom.json"),
-    ).toThrow("versioned studio/<version>/release.json");
+    expect(() => studioProjectionOutputDirectory("/tmp/candidate/studio/v1/custom.json")).toThrow(
+      "versioned studio/<version>/release.json",
+    );
   });
 
   test("loads serving export rows through the Effect D1 replay boundary", async () => {

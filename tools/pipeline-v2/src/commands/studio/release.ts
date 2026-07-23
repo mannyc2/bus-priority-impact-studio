@@ -721,7 +721,7 @@ async function buildRelease(
     readinessByRoute.has(summary.routeId),
   ).length;
   const scheduleEvidence: StudioScheduleEvidenceSummary = {
-    analysisPeriod: options.month,
+    analysisPeriod: releaseIdentity.coverage.end,
     sourceCoverage: await scheduleSourceCoverage(
       options.localDbPath,
       Number(options.month.slice(0, 4)),

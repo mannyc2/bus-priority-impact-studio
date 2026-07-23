@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   routeRiderDelayHoursForProjection,
-  routeScheduleEvidenceCoverage,
   routeScheduledSpeedMphForProjection,
+  routeScheduleEvidenceCoverage,
 } from "../../../src/commands/studio/_release-segments.ts";
 import type { RouteBriefInputArtifact } from "../../../src/commands/studio/_release-types.ts";
 

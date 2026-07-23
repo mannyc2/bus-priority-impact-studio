@@ -456,7 +456,7 @@ describe("Plan 097 recovery contracts", () => {
           schemaId: "bp.studio.route_dossier.v1",
         },
       ],
-    };
+    } as const;
     expect(decodeStrict(Plan097RecoveryArtifactManifestSchema)(manifest)).toEqual(manifest);
     expect(() =>
       decodeStrict(Plan097RecoveryArtifactManifestSchema)({ ...manifest, secret: "must-not-pass" }),
@@ -488,7 +488,7 @@ describe("Plan 097 recovery contracts", () => {
         rowCount: 1,
         maxParametersPerStatement: 2,
       },
-    };
+    } as const;
     expect(decodeStrict(Plan097CompactedBatchSchema)(batch)).toEqual(batch);
     expect(() =>
       decodeStrict(Plan097CompactedBatchSchema)({
@@ -517,7 +517,7 @@ describe("Plan 097 recovery contracts", () => {
       operationId: "plan097:pub_20260722T120000000Z",
       activationBundleSha256: sha("a"),
       action: "activate",
-    };
+    } as const;
     expect(decodeStrict(Plan097OperationRequestSchema)(operation)).toEqual(operation);
     expect(() =>
       decodeStrict(Plan097OperationRequestSchema)({
@@ -609,7 +609,7 @@ describe("Plan 097 recovery contracts", () => {
         bytes: 10,
       },
       costPreview: { d1Statements: 100, d1Bytes: 10_000, r2Puts: 2, r2Bytes: 200 },
-    };
+    } as const;
     const receipt = {
       ...unsignedReceipt,
       signature: {
@@ -621,7 +621,7 @@ describe("Plan 097 recovery contracts", () => {
           .digest("hex"),
         signatureBase64: `${"A".repeat(86)}==`,
       },
-    };
+    } as const;
     expect(decodeStrict(Plan097PreflightReceiptSchema)(receipt)).toEqual(receipt);
   });
 });

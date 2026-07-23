@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { and, eq, inArray, not, type SQLWrapper } from "drizzle-orm";
+import { and, eq, inArray, not, or, type SQLWrapper } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 import type {
@@ -786,11 +786,9 @@ function buildD1SeedSqlWithMode(
           plan097Recovery
             ? and(
                 eq(routeMonthSourceStatus.month, month),
-                not(
-                  and(
-                    eq(routeMonthSourceStatus.sourceScope, "reliability"),
-                    inArray(routeMonthSourceStatus.sourceId, observedReliabilitySourceIds),
-                  )!,
+                or(
+                  not(eq(routeMonthSourceStatus.sourceScope, "reliability")),
+                  not(inArray(routeMonthSourceStatus.sourceId, observedReliabilitySourceIds)),
                 ),
               )
             : eq(routeMonthSourceStatus.month, month),

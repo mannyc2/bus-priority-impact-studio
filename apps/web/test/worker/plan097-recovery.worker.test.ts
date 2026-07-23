@@ -23,6 +23,7 @@ import {
   handlePlan097RecoveryRequest,
   PLAN097_OPERATION_PATH,
 } from "../../src/worker/operations/plan097-recovery.js";
+import { isoMonthFixture } from "../shared/schema-fixtures.js";
 
 const publishedAt = "2026-07-22T12:00:00.000Z";
 const previousPublishedAt = "2026-07-21T12:00:00.000Z";
@@ -321,7 +322,7 @@ describe("Plan 097 protected Worker operation", () => {
       candidate: {
         releaseId,
         publishedAt,
-        coverage: { start: "2025-02", end: "2026-12" },
+        coverage: { start: isoMonthFixture("2025-02"), end: isoMonthFixture("2026-12") },
       },
       freshnessMatrix: readyFreshnessMatrix(),
       studioScheduleEvidence: studioScheduleEvidence(),

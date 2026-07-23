@@ -300,9 +300,7 @@ type ScheduledPairs = {
   stopIdPairsByName: Map<string, Set<string>>;
 };
 
-function buildScheduledPairs(
-  rows: readonly LocalRouteScheduleTimepoint[],
-): ScheduledPairs {
+function buildScheduledPairs(rows: readonly LocalRouteScheduleTimepoint[]): ScheduledPairs {
   const groups = new Map<string, LocalRouteScheduleTimepoint[]>();
   for (const row of rows) {
     if (row.tripHeadsign?.toUpperCase() === "NOT IN SERVICE") {
@@ -348,10 +346,7 @@ function buildScheduledPairs(
   return pairs;
 }
 
-function addTripPairs(
-  tripRows: LocalRouteScheduleTimepoint[],
-  pairs: ScheduledPairs,
-): void {
+function addTripPairs(tripRows: LocalRouteScheduleTimepoint[], pairs: ScheduledPairs): void {
   for (let index = 0; index < tripRows.length - 1; index += 1) {
     const from = tripRows[index];
     const to = tripRows[index + 1];

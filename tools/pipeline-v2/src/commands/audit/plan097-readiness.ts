@@ -1,13 +1,13 @@
-import { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { RouteSpeedAvailabilityResultSchema } from "@bp/analytics/evaluation";
 import { decodeStrict } from "@bp/domain/decode";
 import { defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
+import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { type FreshnessLedger, FreshnessLedgerSchema } from "../../lib/freshness-ledger.ts";
 import { writeJson } from "../../lib/json.ts";
-import { dbOptions, defaultLocalPipelineDbPath } from "../../lib/local-db.ts";
+import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import {
   buildPlan097FreshnessMatrix,
@@ -36,7 +36,7 @@ function hashValue(value: unknown): unknown {
 }
 
 function tableEvidence(input: {
-  sqlite: Database;
+  sqlite: OpenLocalPipelineDb["sqlite"];
   sourceId: Plan097FreshnessEvidence["sourceId"];
   table: string;
   partitionColumn?: string | undefined;
@@ -89,7 +89,7 @@ function tableEvidence(input: {
 }
 
 async function snapshotEvidence(input: {
-  sqlite: Database;
+  sqlite: OpenLocalPipelineDb["sqlite"];
   sourceId: Plan097FreshnessEvidence["sourceId"];
   table: string;
   path: string;
@@ -108,7 +108,7 @@ async function snapshotEvidence(input: {
 }
 
 export async function runPlan097ReadinessAudit(input: {
-  dbPath: string;
+  local: Pick<OpenLocalPipelineDb, "sqlite">;
   freshnessLedgerPath: string;
   routeSpeedAvailabilityPath: string;
   aceRoutesSnapshotPath: string;
@@ -135,68 +135,64 @@ export async function runPlan097ReadinessAudit(input: {
         ] as const,
     ),
   ]);
-  const sqlite = new Database(input.dbPath, { readonly: true });
-  try {
-    const evidence: Plan097FreshnessEvidence[] = [];
-    for (const sourceId of Object.keys(sourceTables) as Array<keyof typeof sourceTables>) {
-      const config = sourceTables[sourceId];
-      const partition = selectedPartitions.get(sourceId);
-      if (partition === null || partition === undefined) continue;
-      evidence.push(
-        tableEvidence({
-          sqlite,
-          sourceId,
-          table: config.table,
-          partitionColumn: config.partitionColumn,
-          partition,
-        }),
-      );
-    }
+  const sqlite = input.local.sqlite;
+  const evidence: Plan097FreshnessEvidence[] = [];
+  for (const sourceId of Object.keys(sourceTables) as Array<keyof typeof sourceTables>) {
+    const config = sourceTables[sourceId];
+    const partition = selectedPartitions.get(sourceId);
+    if (partition === null || partition === undefined) continue;
     evidence.push(
-      await snapshotEvidence({
+      tableEvidence({
         sqlite,
-        sourceId: "ace_routes",
-        table: "local_ace_route",
-        path: input.aceRoutesSnapshotPath,
-      }),
-      await snapshotEvidence({
-        sqlite,
-        sourceId: "nyc_dot_bus_lanes_local_streets",
-        table: "local_bus_lane",
-        path: input.busLanesSnapshotPath,
+        sourceId,
+        table: config.table,
+        partitionColumn: config.partitionColumn,
+        partition,
       }),
     );
-    const realtime = ledgerBySource.get("bus_time_gtfsrt_vehicle_positions")?.ingestedLatest;
-    if (realtime !== null && realtime !== undefined) {
-      evidence.push(
-        tableEvidence({
-          sqlite,
-          sourceId: "bus_time_gtfsrt_vehicle_positions",
-          table: "local_gtfs_rt_feed_snapshot",
-          partitionExpression: 'substr("fetched_at", 1, 10)',
-          partition: realtime,
-        }),
-      );
-    }
-    const matrix = buildPlan097FreshnessMatrix({
-      checkedAt: freshness.checkedAt,
-      ledger: freshness as FreshnessLedger,
-      routeSpeedAvailability,
-      evidence,
-    });
-    await mkdir(dirname(input.outputPath), { recursive: true });
-    await writeJson(input.outputPath, matrix);
-    if (matrix.status !== "ready") {
-      const blockers = matrix.datasets
-        .filter((row) => row.status === "stop")
-        .map((row) => `${row.sourceId}: ${row.reasons.join(", ")}`)
-        .join("; ");
-      throw new Error(`Plan 097 freshness-derived candidate is not ready: ${blockers}`);
-    }
-    return matrix;
-  } finally {
-    sqlite.close();
   }
+  evidence.push(
+    await snapshotEvidence({
+      sqlite,
+      sourceId: "ace_routes",
+      table: "local_ace_route",
+      path: input.aceRoutesSnapshotPath,
+    }),
+    await snapshotEvidence({
+      sqlite,
+      sourceId: "nyc_dot_bus_lanes_local_streets",
+      table: "local_bus_lane",
+      path: input.busLanesSnapshotPath,
+    }),
+  );
+  const realtime = ledgerBySource.get("bus_time_gtfsrt_vehicle_positions")?.ingestedLatest;
+  if (realtime !== null && realtime !== undefined) {
+    evidence.push(
+      tableEvidence({
+        sqlite,
+        sourceId: "bus_time_gtfsrt_vehicle_positions",
+        table: "local_gtfs_rt_feed_snapshot",
+        partitionExpression: 'substr("fetched_at", 1, 10)',
+        partition: realtime,
+      }),
+    );
+  }
+  const matrix = buildPlan097FreshnessMatrix({
+    checkedAt: freshness.checkedAt,
+    ledger: freshness as FreshnessLedger,
+    routeSpeedAvailability,
+    evidence,
+  });
+  await mkdir(dirname(input.outputPath), { recursive: true });
+  await writeJson(input.outputPath, matrix);
+  if (matrix.status !== "ready") {
+    const blockers = matrix.datasets
+      .filter((row) => row.status === "stop")
+      .map((row) => `${row.sourceId}: ${row.reasons.join(", ")}`)
+      .join("; ");
+    throw new Error(`Plan 097 freshness-derived candidate is not ready: ${blockers}`);
+  }
+  return matrix;
 }
 
 export default defineCommand({
@@ -214,22 +210,26 @@ export default defineCommand({
   },
   output: Plan097FreshnessMatrixSchema,
   run({ input }) {
-    return runPlan097ReadinessAudit({
-      dbPath:
-        input.options.db === undefined
-          ? defaultLocalPipelineDbPath()
-          : fromCliPath(input.options.db),
-      freshnessLedgerPath: fromCliPath(input.options.freshnessLedger),
-      routeSpeedAvailabilityPath: fromCliPath(input.options.routeSpeedAvailability),
-      aceRoutesSnapshotPath:
-        input.options.aceRoutesSnapshot === undefined
-          ? fromRepoRoot("data/raw/interventions/ace-routes.json")
-          : fromCliPath(input.options.aceRoutesSnapshot),
-      busLanesSnapshotPath:
-        input.options.busLanesSnapshot === undefined
-          ? fromRepoRoot("data/raw/interventions/bus-lanes-local-streets.json")
-          : fromCliPath(input.options.busLanesSnapshot),
-      outputPath: fromCliPath(input.options.output),
+    return runLocalDbCommandBoundary({
+      dbPath: input.options.db === undefined ? undefined : fromCliPath(input.options.db),
+      localDbOptions: { readonly: true },
+      command: "audit.plan097-readiness",
+      operation: "runPlan097ReadinessAudit",
+      run: (local) =>
+        runPlan097ReadinessAudit({
+          local,
+          freshnessLedgerPath: fromCliPath(input.options.freshnessLedger),
+          routeSpeedAvailabilityPath: fromCliPath(input.options.routeSpeedAvailability),
+          aceRoutesSnapshotPath:
+            input.options.aceRoutesSnapshot === undefined
+              ? fromRepoRoot("data/raw/interventions/ace-routes.json")
+              : fromCliPath(input.options.aceRoutesSnapshot),
+          busLanesSnapshotPath:
+            input.options.busLanesSnapshot === undefined
+              ? fromRepoRoot("data/raw/interventions/bus-lanes-local-streets.json")
+              : fromCliPath(input.options.busLanesSnapshot),
+          outputPath: fromCliPath(input.options.output),
+        }),
     });
   },
 });
