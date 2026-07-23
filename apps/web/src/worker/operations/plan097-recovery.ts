@@ -14,6 +14,7 @@ import {
   Plan097PreflightReceiptSchema,
   type Plan097ProtectedFingerprint,
   Plan097RecoveryArtifactManifestSchema,
+  type Plan097RestoreBundle,
   Plan097RestoreBundleSchema,
   type Plan097SchemaAuditInput,
   type Plan097SelectiveSnapshot,
@@ -760,6 +761,8 @@ async function protectedD1Fingerprints(db: D1Database): Promise<Plan097Protected
   ];
 }
 
+export const capturePlan097D1ProtectedFingerprints = protectedD1Fingerprints;
+
 async function captureSelectiveSnapshot(input: {
   db: D1Database;
   bundle: Plan097ActivationBundle;
@@ -1003,7 +1006,7 @@ async function runD1Batch(input: {
   });
 }
 
-async function loadRestoreBatch(input: {
+async function loadRestoreBundle(input: {
   env: Env & { PLAN097_OPERATIONS: R2Bucket };
   request: Extract<Plan097OperationRequest, { action: "prove" | "rollback" }>;
 }) {
@@ -1027,7 +1030,47 @@ async function loadRestoreBatch(input: {
   ) {
     throw new Error("Plan 097 restore bundle identity does not match the operation");
   }
-  return bundle.batch;
+  return bundle;
+}
+
+type Plan097ProofState = NonNullable<Plan097OperationResponse["proofState"]>;
+
+async function verifyPlan097ProofState(input: {
+  db: D1Database;
+  restore: Plan097RestoreBundle;
+  phase: Plan097ProofState["phase"];
+}): Promise<Plan097ProofState> {
+  const expectedElection =
+    input.phase === "candidate-active"
+      ? {
+          studioReleaseId: input.restore.candidate.releaseId,
+          mapReleaseId: input.restore.candidate.releaseId,
+          exactRouteReleaseId: input.restore.candidate.releaseId,
+        }
+      : input.restore.expectedElection;
+  const [actualElection, actualFingerprints] = await Promise.all([
+    activeD1Election(input.db),
+    protectedD1Fingerprints(input.db),
+  ]);
+  const election = {
+    studioReleaseId: actualElection.studioReleaseId,
+    mapReleaseId: actualElection.mapReleaseId,
+    exactRouteReleaseId: actualElection.exactRouteReleaseId,
+  };
+  if (canonicalPlan097Json(election) !== canonicalPlan097Json(expectedElection)) {
+    throw new Error(`Plan 097 ${input.phase} election verification failed`);
+  }
+  if (
+    canonicalPlan097Json(actualFingerprints) !==
+    canonicalPlan097Json(input.restore.protectedFingerprints)
+  ) {
+    throw new Error(`Plan 097 ${input.phase} protected fingerprint verification failed`);
+  }
+  return {
+    phase: input.phase,
+    election,
+    protectedFingerprintCount: actualFingerprints.length,
+  };
 }
 
 async function writeReceipt(input: {
@@ -1039,6 +1082,7 @@ async function writeReceipt(input: {
   objectCount: number;
   evidence?: EvidenceRef[] | undefined;
   preflightReceiptBase64?: string | undefined;
+  proofState?: Plan097ProofState | undefined;
 }): Promise<Plan097OperationResponse> {
   const receipt = {
     artifactKind: "bp.ops.plan097.worker-receipt.v1",
@@ -1055,6 +1099,7 @@ async function writeReceipt(input: {
     ...(input.preflightReceiptBase64 === undefined
       ? {}
       : { preflightReceiptBase64: input.preflightReceiptBase64 }),
+    ...(input.proofState === undefined ? {} : { proofState: input.proofState }),
   };
   const receiptBytes = textEncoder.encode(`${canonicalPlan097Json(receipt)}\n`);
   const receiptSha256 = await sha256(receiptBytes);
@@ -1081,6 +1126,7 @@ async function writeReceipt(input: {
     ...(input.preflightReceiptBase64 === undefined
       ? {}
       : { preflightReceiptBase64: input.preflightReceiptBase64 }),
+    ...(input.proofState === undefined ? {} : { proofState: input.proofState }),
   });
 }
 
@@ -1147,6 +1193,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
     let outcome: "pass" | "failed_as_expected" = "pass";
     let evidence: EvidenceRef[] | undefined;
     let preflightReceiptBase64: string | undefined;
+    let proofState: Plan097ProofState | undefined;
 
     switch (operationRequest.action) {
       case "dry-run": {
@@ -1234,10 +1281,8 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
         break;
       }
       case "prove": {
-        const batch =
-          operationRequest.bundle === "activation"
-            ? bundle.batch
-            : await loadRestoreBatch({ env: boundEnv, request: operationRequest });
+        const restore = await loadRestoreBundle({ env: boundEnv, request: operationRequest });
+        const batch = operationRequest.bundle === "activation" ? bundle.batch : restore.batch;
         statementCount = batch.statements.length;
         let failure: unknown;
         try {
@@ -1260,12 +1305,22 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
           }
           outcome = "failed_as_expected";
         }
+        proofState = await verifyPlan097ProofState({
+          db: boundEnv.DB,
+          restore,
+          phase:
+            operationRequest.failBeforeStatement !== undefined
+              ? "injected-failure"
+              : operationRequest.bundle === "activation"
+                ? "candidate-active"
+                : "baseline-restored",
+        });
         break;
       }
       case "rollback": {
-        const batch = await loadRestoreBatch({ env: boundEnv, request: operationRequest });
-        await runD1Batch({ db: boundEnv.DB, batch });
-        statementCount = batch.statements.length;
+        const restore = await loadRestoreBundle({ env: boundEnv, request: operationRequest });
+        await runD1Batch({ db: boundEnv.DB, batch: restore.batch });
+        statementCount = restore.batch.statements.length;
         break;
       }
     }
@@ -1278,6 +1333,7 @@ export async function handlePlan097RecoveryRequest(request: Request, env: Env): 
       objectCount,
       evidence,
       preflightReceiptBase64,
+      proofState,
     });
     return jsonResponse(response);
   } catch (error) {

@@ -65,6 +65,39 @@ export async function fetchPlan097HttpEvidence<A>(input: {
   };
 }
 
+export async function fetchPlan097HttpBaselineEvidence<A>(input: {
+  fetch: Fetch;
+  baseUrl: string;
+  path: string;
+  schemaId: string;
+  schema: Schema.Schema<A>;
+}): Promise<{
+  value: A | null;
+  evidence: Plan097HttpBaseline["endpoints"][number];
+}> {
+  const response = await input.fetch(new URL(input.path, input.baseUrl), {
+    headers: {
+      accept: "application/json",
+      "user-agent": "bp-plan097-release-check/1",
+    },
+  });
+  const rawBody = await response.text();
+  assertNoPlan097LegacyEmptyState(rawBody, input.path);
+  return {
+    value: response.ok ? decodeSchemaStrict(input.schema, JSON.parse(rawBody) as unknown) : null,
+    evidence: {
+      path: input.path,
+      status: response.status,
+      schemaId: input.schemaId,
+      safeBodySha256: createHash("sha256").update(rawBody).digest("hex"),
+      requestId: response.headers.get("x-request-id"),
+      cfRay: response.headers.get("cf-ray"),
+      cacheControl: response.headers.get("cache-control"),
+      etag: response.headers.get("etag"),
+    },
+  };
+}
+
 function releaseAwarePath(path: string, nonce: string): string {
   const url = new URL(path, "https://plan097.invalid");
   url.searchParams.set("plan097", nonce);
@@ -117,11 +150,35 @@ export type Plan097HttpCheckResult = {
     path: string;
     sha256: string;
     featureCount: number;
-  };
+  } | null;
 };
+
+export type Plan097HttpCheckMode = "baseline" | "candidate";
+
+export function assertPlan097RouteDetail(input: {
+  mode: Plan097HttpCheckMode;
+  expectedReleaseId: string;
+  expectedRouteId: string;
+  expectedSlug: string;
+  requireCandidateDossier: boolean;
+  actualReleaseId: string;
+  actualRouteId: string;
+  actualSlug: string;
+  dossierPresent: boolean;
+}): void {
+  if (
+    input.actualReleaseId !== input.expectedReleaseId ||
+    input.actualRouteId !== input.expectedRouteId ||
+    input.actualSlug !== input.expectedSlug ||
+    (input.mode === "candidate" && input.requireCandidateDossier && !input.dossierPresent)
+  ) {
+    throw new Error(`Plan 097 route detail is incomplete for ${input.expectedRouteId}`);
+  }
+}
 
 export async function runPlan097HttpCheck(input: {
   baseUrl: string;
+  mode?: Plan097HttpCheckMode | undefined;
   fetch?: Fetch | undefined;
   expectedReleaseId?: string | undefined;
   expectedExactRouteCount?: number | undefined;
@@ -132,6 +189,7 @@ export async function runPlan097HttpCheck(input: {
     throw new Error("Plan 097 production HTTP checker requires HTTPS");
   }
   const fetchDependency = input.fetch ?? fetch;
+  const mode = input.mode ?? "candidate";
   const nonce = input.nonce ?? crypto.randomUUID();
   const endpoints: Plan097HttpBaseline["endpoints"][number][] = [];
   const request = async <A>(
@@ -189,14 +247,17 @@ export async function runPlan097HttpCheck(input: {
       "bp.studio.route_detail_response.v3",
       StudioRouteDetailResponseSchema,
     );
-    if (
-      detail.releaseId !== status.releaseId ||
-      detail.route.routeId !== route.routeId ||
-      detail.route.slug !== route.slug ||
-      (route.requireDossier && detail.dossier === null)
-    ) {
-      throw new Error(`Plan 097 route detail is incomplete for ${route.routeId}`);
-    }
+    assertPlan097RouteDetail({
+      mode,
+      expectedReleaseId: status.releaseId,
+      expectedRouteId: route.routeId,
+      expectedSlug: route.slug,
+      requireCandidateDossier: route.requireDossier,
+      actualReleaseId: detail.releaseId,
+      actualRouteId: detail.route.routeId,
+      actualSlug: detail.route.slug,
+      dossierPresent: detail.dossier !== null,
+    });
   }
 
   for (const slug of ["bx38", "b1"] as const) {
@@ -225,11 +286,35 @@ export async function runPlan097HttpCheck(input: {
     );
   }
 
-  const mapManifest = await request(
-    "/api/v1/map/manifest",
-    "bp.map_manifest_response.v2",
-    MapManifestResponseSchema,
-  );
+  const mapManifestPath = releaseAwarePath("/api/v1/map/manifest", nonce);
+  const mapManifest =
+    mode === "candidate"
+      ? await request(
+          "/api/v1/map/manifest",
+          "bp.map_manifest_response.v2",
+          MapManifestResponseSchema,
+        )
+      : await fetchPlan097HttpBaselineEvidence({
+          fetch: fetchDependency,
+          baseUrl: input.baseUrl,
+          path: mapManifestPath,
+          schemaId: "bp.map_manifest_response.v2",
+          schema: MapManifestResponseSchema,
+        }).then((result) => {
+          endpoints.push(result.evidence);
+          return result.value;
+        });
+  if (mapManifest === null) {
+    return {
+      baseline: {
+        checkedAt: input.checkedAt ?? new Date().toISOString(),
+        activeReleaseId: status.releaseId,
+        endpoints,
+      },
+      exactRouteCount: routeIndex.routes.length,
+      representativeGeometry: null,
+    };
+  }
   if (
     mapManifest.releaseId !== status.releaseId ||
     mapManifest.releaseProfile !== "full" ||

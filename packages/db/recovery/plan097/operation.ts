@@ -34,8 +34,12 @@ export const Plan097HttpBaselineSchema = Schema.Struct({
     if (new Set(paths).size !== paths.length) {
       return [{ path: ["endpoints"], issue: "HTTP baseline endpoint paths must be unique" }];
     }
-    if (baseline.endpoints.some((endpoint) => endpoint.status !== 200)) {
-      return [{ path: ["endpoints"], issue: "Every preflight HTTP endpoint must pass" }];
+    const status = baseline.endpoints.find(
+      (endpoint) =>
+        endpoint.path === "/api/v1/status" || endpoint.path.startsWith("/api/v1/status?"),
+    );
+    if (status === undefined || status.status !== 200) {
+      return [{ path: ["endpoints"], issue: "The preflight status endpoint must pass" }];
     }
     return [];
   }),
@@ -69,7 +73,7 @@ export const Plan097OperationRequestSchema = Schema.Union([
     ...BaseFields,
     action: Schema.Literal("prove"),
     bundle: Schema.Literals(["activation", "restore"]),
-    restoreBundleSha256: Schema.optionalKey(Sha256Schema),
+    restoreBundleSha256: Sha256Schema,
     failBeforeStatement: Schema.optionalKey(
       Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
     ),
@@ -115,6 +119,17 @@ export const Plan097OperationResponseSchema = Schema.Struct({
     ),
   ),
   preflightReceiptBase64: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+  proofState: Schema.optionalKey(
+    Schema.Struct({
+      phase: Schema.Literals(["injected-failure", "candidate-active", "baseline-restored"]),
+      election: Schema.Struct({
+        studioReleaseId: Schema.NullOr(ReleaseIdSchema),
+        mapReleaseId: Schema.NullOr(ReleaseIdSchema),
+        exactRouteReleaseId: Schema.NullOr(ReleaseIdSchema),
+      }),
+      protectedFingerprintCount: NonNegativeIntegerSchema,
+    }),
+  ),
 });
 
 export type Plan097OperationRequest = typeof Plan097OperationRequestSchema.Type;

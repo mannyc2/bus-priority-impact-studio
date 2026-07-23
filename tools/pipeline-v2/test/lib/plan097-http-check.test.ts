@@ -3,11 +3,28 @@ import { createHash } from "node:crypto";
 import { Schema } from "effect";
 import {
   assertNoPlan097LegacyEmptyState,
+  assertPlan097RouteDetail,
   comparePlan097HttpBaselines,
+  fetchPlan097HttpBaselineEvidence,
   fetchPlan097HttpEvidence,
 } from "../../src/lib/plan097-http-check.ts";
 
 describe("Plan 097 release-aware HTTP checker", () => {
+  test("captures a legacy null dossier in baseline mode but requires it for the candidate", () => {
+    const detail = {
+      expectedReleaseId: "pub_20260721T120000000Z",
+      expectedRouteId: "BX38",
+      expectedSlug: "bx38",
+      requireCandidateDossier: true,
+      actualReleaseId: "pub_20260721T120000000Z",
+      actualRouteId: "BX38",
+      actualSlug: "bx38",
+      dossierPresent: false,
+    } as const;
+    expect(() => assertPlan097RouteDetail({ ...detail, mode: "baseline" })).not.toThrow();
+    expect(() => assertPlan097RouteDetail({ ...detail, mode: "candidate" })).toThrow(/incomplete/i);
+  });
+
   test("strict-decodes safe public JSON and records its exact hash and cache headers", async () => {
     const body = '{"schemaVersion":1,"releaseId":"pub_20260721T120000000Z"}\n';
     const result = await fetchPlan097HttpEvidence({
@@ -49,6 +66,20 @@ describe("Plan 097 release-aware HTTP checker", () => {
         schema: Schema.Struct({ schemaVersion: Schema.Literal(1), releaseId: Schema.String }),
       }),
     ).rejects.toThrow();
+  });
+
+  test("records a baseline HTTP defect without pretending its body matches the success schema", async () => {
+    const body = '{"error":"map unavailable"}\n';
+    const result = await fetchPlan097HttpBaselineEvidence({
+      fetch: async () => new Response(body, { status: 503 }),
+      baseUrl: "https://production.example/",
+      path: "/api/v1/map/manifest?plan097=fixture",
+      schemaId: "bp.map_manifest_response.v2",
+      schema: Schema.Struct({ schemaVersion: Schema.Literal(2) }),
+    });
+    expect(result.value).toBeNull();
+    expect(result.evidence.status).toBe(503);
+    expect(result.evidence.safeBodySha256).toBe(createHash("sha256").update(body).digest("hex"));
   });
 
   test("rejects legacy placeholder language in a nominally successful public response", () => {

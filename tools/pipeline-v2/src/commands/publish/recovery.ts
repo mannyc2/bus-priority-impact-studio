@@ -185,6 +185,7 @@ async function resolveHttpBaseline(input: {
     await (input.dependencies.httpCheck ?? runPlan097HttpCheck)({
       baseUrl: input.inputs.publicBaseUrl,
       fetch: input.dependencies.fetch,
+      mode: "baseline",
     })
   ).baseline;
 }
@@ -201,6 +202,7 @@ async function revalidateProductionBaseline(input: {
     await (input.dependencies.httpCheck ?? runPlan097HttpCheck)({
       baseUrl: input.inputs.publicBaseUrl,
       fetch: input.dependencies.fetch,
+      mode: "baseline",
       expectedReleaseId: expected.activeReleaseId,
     })
   ).baseline;
@@ -382,9 +384,15 @@ export async function runPublishRecovery(
           ...base,
           action: "prove" as const,
           bundle: "activation" as const,
+          restoreBundleSha256,
           failBeforeStatement,
         },
-        { ...base, action: "prove" as const, bundle: "activation" as const },
+        {
+          ...base,
+          action: "prove" as const,
+          bundle: "activation" as const,
+          restoreBundleSha256,
+        },
         {
           ...base,
           action: "prove" as const,
@@ -434,6 +442,7 @@ export async function runPublishRecovery(
         await (dependencies.httpCheck ?? runPlan097HttpCheck)({
           baseUrl: inputs.publicBaseUrl,
           fetch: dependencies.fetch,
+          mode: "candidate",
           expectedReleaseId: bundle.candidate.releaseId,
           expectedExactRouteCount: bundle.expectedExactRouteCount,
         });
@@ -450,6 +459,7 @@ export async function runPublishRecovery(
           await (dependencies.httpCheck ?? runPlan097HttpCheck)({
             baseUrl: inputs.publicBaseUrl,
             fetch: dependencies.fetch,
+            mode: "baseline",
             expectedReleaseId: productionBaseline.activeReleaseId,
           })
         ).baseline;

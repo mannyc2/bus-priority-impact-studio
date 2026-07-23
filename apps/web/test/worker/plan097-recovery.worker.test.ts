@@ -20,6 +20,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Env } from "../../src/worker/env.js";
 import {
   capturePlan097D1CanonicalSchema,
+  capturePlan097D1ProtectedFingerprints,
   handlePlan097RecoveryRequest,
   PLAN097_OPERATION_PATH,
 } from "../../src/worker/operations/plan097-recovery.js";
@@ -172,11 +173,39 @@ function activationBatch(): Plan097CompactedBatch {
       rowCount: 1,
     },
     {
+      sql: "DELETE FROM route_brief_summary WHERE month = '1900-01'",
+      params: [],
+      table: "route_brief_summary",
+      kind: "delete",
+      rowCount: 0,
+    },
+    {
+      sql: `INSERT INTO route_brief_summary VALUES ('B44', '1900-01', 1, 1, 'fixture', 1, 0, 1, 0, 0, 0, 0, 1)`,
+      params: [],
+      table: "route_brief_summary",
+      kind: "insert",
+      rowCount: 1,
+    },
+    {
       sql: "DELETE FROM route_batch_status WHERE month = '1900-01'",
       params: [],
       table: "route_batch_status",
       kind: "delete",
       rowCount: 0,
+    },
+    {
+      sql: `INSERT INTO map_release_catalog VALUES ('${releaseId}', '${publishedAt}', '2025-02', '2026-12', 'map/2026-12/manifest.json', '${"7".repeat(64)}', 'full', 'pass', 1)`,
+      params: [],
+      table: "map_release_catalog",
+      kind: "registration",
+      rowCount: 1,
+    },
+    {
+      sql: `INSERT INTO exact_route_identity_release VALUES ('${releaseId}', '${publishedAt}', '2025-02', '2026-12', 'fixture-wiki', '${"1".repeat(64)}', '${"2".repeat(64)}', '${"3".repeat(64)}', '${"4".repeat(64)}', '${"5".repeat(64)}', '${"6".repeat(64)}', 1, 1, 1)`,
+      params: [],
+      table: "exact_route_identity_release",
+      kind: "registration",
+      rowCount: 1,
     },
     {
       sql: `INSERT INTO route_batch_status (month, generated_at, status, route_count, artifact_count,
@@ -201,6 +230,27 @@ function activationBatch(): Plan097CompactedBatch {
 
 function restoreBatch(): Plan097CompactedBatch {
   const statements: Plan097CompactedBatch["statements"] = [
+    {
+      sql: `DELETE FROM map_release_catalog WHERE release_id = '${releaseId}'`,
+      params: [],
+      table: "map_release_catalog",
+      kind: "delete",
+      rowCount: 0,
+    },
+    {
+      sql: `DELETE FROM exact_route_identity_release WHERE release_id = '${releaseId}'`,
+      params: [],
+      table: "exact_route_identity_release",
+      kind: "delete",
+      rowCount: 0,
+    },
+    {
+      sql: "DELETE FROM route_brief_summary WHERE month = '1900-01'",
+      params: [],
+      table: "route_brief_summary",
+      kind: "delete",
+      rowCount: 0,
+    },
     {
       sql: "DELETE FROM source_month_coverage WHERE source_id = 'plan097-worker-test'",
       params: [],
@@ -249,6 +299,11 @@ async function cleanD1(): Promise<void> {
     testEnv.DB.prepare("DELETE FROM route_batch_status WHERE month = '1900-01'"),
     testEnv.DB.prepare("DELETE FROM route_batch_status WHERE month = '1899-12'"),
     testEnv.DB.prepare("DELETE FROM route_brief_summary WHERE month = '1899-12'"),
+    testEnv.DB.prepare("DELETE FROM route_brief_summary WHERE month = '1900-01'"),
+    testEnv.DB.prepare("DELETE FROM map_release_catalog WHERE release_id = ?").bind(releaseId),
+    testEnv.DB.prepare("DELETE FROM exact_route_identity_release WHERE release_id = ?").bind(
+      releaseId,
+    ),
     testEnv.DB.prepare("DELETE FROM map_release_catalog WHERE release_id = ?").bind(
       previousReleaseId,
     ),
@@ -347,6 +402,7 @@ describe("Plan 097 protected Worker operation", () => {
     };
     const activationText = `${canonicalPlan097Json(bundle)}\n`;
     activationBundleSha256 = sha256(activationText);
+    const protectedFingerprints = await capturePlan097D1ProtectedFingerprints(testEnv.DB);
     const restore: Plan097RestoreBundle = {
       artifactKind: "bp.ops.plan097.restore-bundle.v1",
       schemaVersion: 1,
@@ -354,11 +410,11 @@ describe("Plan 097 protected Worker operation", () => {
       candidate: bundle.candidate,
       snapshotSha256: "5".repeat(64),
       expectedElection: {
-        studioReleaseId: null,
-        mapReleaseId: null,
-        exactRouteReleaseId: null,
+        studioReleaseId: previousReleaseId,
+        mapReleaseId: previousReleaseId,
+        exactRouteReleaseId: previousReleaseId,
       },
-      protectedFingerprints: [],
+      protectedFingerprints,
       batch: restoreBatch(),
     };
     const restoreText = `${canonicalPlan097Json(restore)}\n`;
@@ -460,6 +516,7 @@ describe("Plan 097 protected Worker operation", () => {
         ...base,
         action: "prove",
         bundle: "activation",
+        restoreBundleSha256,
         failBeforeStatement: 1,
       },
       env: operationEnv,
@@ -467,11 +524,61 @@ describe("Plan 097 protected Worker operation", () => {
     expect(failureProof.status).toBe(200);
     const failureResponse = decodeStrict(Plan097OperationResponseSchema)(await failureProof.json());
     expect(failureResponse.outcome).toBe("failed_as_expected");
+    expect(failureResponse.proofState).toMatchObject({
+      phase: "injected-failure",
+      election: {
+        studioReleaseId: previousReleaseId,
+        mapReleaseId: previousReleaseId,
+        exactRouteReleaseId: previousReleaseId,
+      },
+    });
     expect(
       await testEnv.DB.prepare(
         "SELECT COUNT(*) AS count FROM source_month_coverage WHERE source_id = 'plan097-worker-test'",
       ).first("count"),
     ).toBe(0);
+
+    const candidateProof = await operationRequest({
+      body: {
+        ...base,
+        action: "prove",
+        bundle: "activation",
+        restoreBundleSha256,
+      },
+      env: operationEnv,
+    });
+    expect(candidateProof.status).toBe(200);
+    expect(
+      decodeStrict(Plan097OperationResponseSchema)(await candidateProof.json()).proofState,
+    ).toMatchObject({
+      phase: "candidate-active",
+      election: {
+        studioReleaseId: releaseId,
+        mapReleaseId: releaseId,
+        exactRouteReleaseId: releaseId,
+      },
+    });
+
+    const restoreProof = await operationRequest({
+      body: {
+        ...base,
+        action: "prove",
+        bundle: "restore",
+        restoreBundleSha256,
+      },
+      env: operationEnv,
+    });
+    expect(restoreProof.status).toBe(200);
+    expect(
+      decodeStrict(Plan097OperationResponseSchema)(await restoreProof.json()).proofState,
+    ).toMatchObject({
+      phase: "baseline-restored",
+      election: {
+        studioReleaseId: previousReleaseId,
+        mapReleaseId: previousReleaseId,
+        exactRouteReleaseId: previousReleaseId,
+      },
+    });
 
     const unauthorized = await operationRequest({
       body: { ...base, action: "activate" },
