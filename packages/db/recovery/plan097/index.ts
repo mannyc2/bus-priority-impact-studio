@@ -385,8 +385,11 @@ export const Plan097PreflightReceiptSchema = Schema.Struct({
     r2Bytes: NonNegativeIntegerSchema,
   }),
   signature: Schema.Struct({
-    algorithm: Schema.Literal("sha256"),
+    algorithm: Schema.Literal("Ed25519"),
+    keyId: Schema.String.check(Schema.isPattern(/^plan097-[a-z0-9][a-z0-9._-]*$/u)),
+    publicKeySpkiSha256: Sha256Schema,
     signedPayloadSha256: Sha256Schema,
+    signatureBase64: Schema.String.check(Schema.isPattern(/^[A-Za-z0-9+/]{86}==$/u)),
   }),
 }).check(
   Schema.makeFilter((receipt) => {
@@ -400,3 +403,9 @@ export const Plan097PreflightReceiptSchema = Schema.Struct({
 
 export type Plan097CanonicalSchemaSnapshot = typeof Plan097CanonicalSchemaSnapshotSchema.Type;
 export type Plan097PreflightReceipt = typeof Plan097PreflightReceiptSchema.Type;
+
+export function plan097PreflightSignedPayloadBytes(
+  receipt: Omit<Plan097PreflightReceipt, "signature">,
+): Uint8Array<ArrayBuffer> {
+  return new TextEncoder().encode(`${canonicalJson(receipt)}\n`);
+}

@@ -537,10 +537,13 @@ describe("Plan 097 recovery contracts", () => {
     const receipt = {
       ...unsignedReceipt,
       signature: {
-        algorithm: "sha256",
+        algorithm: "Ed25519",
+        keyId: "plan097-test-20260722",
+        publicKeySpkiSha256: sha("e"),
         signedPayloadSha256: createHash("sha256")
           .update(`${canonicalPlan097Json(unsignedReceipt)}\n`)
           .digest("hex"),
+        signatureBase64: `${"A".repeat(86)}==`,
       },
     };
     expect(decodeStrict(Plan097PreflightReceiptSchema)(receipt)).toEqual(receipt);

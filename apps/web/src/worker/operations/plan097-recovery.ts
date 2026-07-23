@@ -10,6 +10,7 @@ import {
   Plan097OperationRequestSchema,
   type Plan097OperationResponse,
   Plan097OperationResponseSchema,
+  type Plan097PreflightReceipt,
   Plan097PreflightReceiptSchema,
   type Plan097ProtectedFingerprint,
   Plan097RecoveryArtifactManifestSchema,
@@ -17,6 +18,7 @@ import {
   type Plan097SchemaAuditInput,
   type Plan097SelectiveSnapshot,
   Plan097SelectiveSnapshotSchema,
+  plan097PreflightSignedPayloadBytes,
   plan097RecoveryMutationTables,
   plan097StructuralSchemaEnvelopeSha256,
 } from "@bp/db/recovery/plan097";
@@ -42,6 +44,61 @@ function jsonResponse(value: unknown, status = 200): Response {
 async function sha256(bytes: Uint8Array): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", Uint8Array.from(bytes));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function decodeBase64Bytes(value: string): Uint8Array<ArrayBuffer> {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+}
+
+function encodeBase64Bytes(value: Uint8Array): string {
+  let binary = "";
+  for (const byte of value) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+async function signPlan097PreflightReceipt(
+  env: Env,
+  unsignedReceipt: Omit<Plan097PreflightReceipt, "signature">,
+) {
+  const keyId = env.PLAN097_PREFLIGHT_SIGNING_KEY_ID;
+  const privateKeyBase64 = env.PLAN097_PREFLIGHT_SIGNING_PRIVATE_KEY_PKCS8_BASE64;
+  const publicKeyBase64 = env.PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64;
+  if (keyId === undefined || privateKeyBase64 === undefined || publicKeyBase64 === undefined) {
+    throw new Error("Plan 097 preflight signing configuration is incomplete");
+  }
+  const payload = plan097PreflightSignedPayloadBytes(unsignedReceipt);
+  const [privateKey, publicKey] = await Promise.all([
+    crypto.subtle.importKey(
+      "pkcs8",
+      decodeBase64Bytes(privateKeyBase64),
+      { name: "Ed25519" },
+      false,
+      ["sign"],
+    ),
+    crypto.subtle.importKey(
+      "spki",
+      decodeBase64Bytes(publicKeyBase64),
+      { name: "Ed25519" },
+      false,
+      ["verify"],
+    ),
+  ]);
+  const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, payload));
+  if (!(await crypto.subtle.verify("Ed25519", publicKey, signature, payload))) {
+    throw new Error("Plan 097 preflight signing key pair does not match");
+  }
+  return {
+    algorithm: "Ed25519" as const,
+    keyId,
+    publicKeySpkiSha256: await sha256(decodeBase64Bytes(publicKeyBase64)),
+    signedPayloadSha256: await sha256(payload),
+    signatureBase64: encodeBase64Bytes(signature),
+  };
 }
 
 function quoteIdentifier(value: string): string {
@@ -620,16 +677,17 @@ async function runPreflight(input: {
   manifestBytes: number;
   manifestBodyBytes: number;
 }): Promise<{ evidence: EvidenceRef[]; statementCount: number; objectCount: number }> {
-  const requiredEnv = [
-    input.env.PLAN097_REPO_SHA,
-    input.env.PLAN097_COMMAND_VERSION,
-    input.env.PLAN097_D1_DATABASE_NAME,
-    input.env.PLAN097_D1_DATABASE_ID,
-    input.env.PLAN097_ARTIFACTS_BUCKET_NAME,
-  ];
-  if (requiredEnv.some((value) => value === undefined || value.length === 0)) {
-    throw new Error("Plan 097 preflight deployment metadata is incomplete");
-  }
+  const requireMetadata = (value: string | undefined): string => {
+    if (value === undefined || value.length === 0) {
+      throw new Error("Plan 097 preflight deployment metadata is incomplete");
+    }
+    return value;
+  };
+  const repoSha = requireMetadata(input.env.PLAN097_REPO_SHA);
+  const commandVersion = requireMetadata(input.env.PLAN097_COMMAND_VERSION);
+  const d1DatabaseName = requireMetadata(input.env.PLAN097_D1_DATABASE_NAME);
+  const d1DatabaseId = requireMetadata(input.env.PLAN097_D1_DATABASE_ID);
+  const r2Bucket = requireMetadata(input.env.PLAN097_ARTIFACTS_BUCKET_NAME);
   const schemaSnapshot = await capturePlan097D1CanonicalSchema(input.env.DB);
   const actualStructuralSha256 = plan097StructuralSchemaEnvelopeSha256(schemaSnapshot);
   if (actualStructuralSha256 !== input.bundle.schemaEnvelope.structuralSha256) {
@@ -676,12 +734,12 @@ async function runPreflight(input: {
     schemaVersion: 1,
     outcome: "ready",
     preparedAt: capturedAt,
-    repoSha: input.env.PLAN097_REPO_SHA,
-    commandVersion: input.env.PLAN097_COMMAND_VERSION,
+    repoSha,
+    commandVersion,
     resources: {
-      d1DatabaseName: input.env.PLAN097_D1_DATABASE_NAME,
-      d1DatabaseId: input.env.PLAN097_D1_DATABASE_ID,
-      r2Bucket: input.env.PLAN097_ARTIFACTS_BUCKET_NAME,
+      d1DatabaseName,
+      d1DatabaseId,
+      r2Bucket,
     },
     candidate: {
       releaseId,
@@ -713,10 +771,10 @@ async function runPreflight(input: {
       r2Bytes: input.manifestBodyBytes + input.manifestBytes,
     },
   } as const;
-  const signedPayloadSha256 = await canonicalValueSha256(unsignedReceipt);
+  const signature = await signPlan097PreflightReceipt(input.env, unsignedReceipt);
   const receipt = decodeStrict(Plan097PreflightReceiptSchema)({
     ...unsignedReceipt,
-    signature: { algorithm: "sha256", signedPayloadSha256 },
+    signature,
   });
   const preflightRef = await putCanonicalEvidence({
     bucket: input.env.PLAN097_OPERATIONS,

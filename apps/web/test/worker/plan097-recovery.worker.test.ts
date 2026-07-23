@@ -30,6 +30,9 @@ const operationId = `plan097:${releaseId}`;
 const serviceTokenId = "plan097-worker-test-id";
 const serviceTokenSecret = "plan097-worker-test-secret";
 const executionToken = "plan097-worker-test-execution";
+const signingPrivateKeyPkcs8Base64 =
+  "MC4CAQAwBQYDK2VwBCIEIDp1exzvpQ8qM4k5RKedsgEvdHeBHQTNLbtQthgE9aGk";
+const signingPublicKeySpkiBase64 = "MCowBQYDK2VwAyEAHHz9KF4gst+kxVBA9dnFnQ3pyjoTXRULUEsEV+Ckr5w=";
 const artifactBody = new TextEncoder().encode('{"artifactKind":"bp.test.plan097.v1"}\n');
 
 type TestEnv = Env & {
@@ -321,6 +324,9 @@ describe("Plan 097 protected Worker operation", () => {
       PLAN097_D1_DATABASE_NAME: "bus-priority-serving-test",
       PLAN097_D1_DATABASE_ID: "11111111-1111-4111-8111-111111111111",
       PLAN097_ARTIFACTS_BUCKET_NAME: "bus-priority-artifacts-test",
+      PLAN097_PREFLIGHT_SIGNING_KEY_ID: "plan097-test-20260722",
+      PLAN097_PREFLIGHT_SIGNING_PRIVATE_KEY_PKCS8_BASE64: signingPrivateKeyPkcs8Base64,
+      PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64: signingPublicKeySpkiBase64,
     };
   });
 
@@ -486,5 +492,10 @@ describe("Plan 097 protected Worker operation", () => {
     );
     expect(receipt.selectiveSnapshot.sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(receipt.rollbackPackage.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(receipt.signature).toMatchObject({
+      algorithm: "Ed25519",
+      keyId: "plan097-test-20260722",
+      publicKeySpkiSha256: "3f20deeccb7c358fcb07f5804a31ef573bbb1c9dc7af5efbfc79a5c8d2e7e61a",
+    });
   });
 });
