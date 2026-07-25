@@ -150,6 +150,13 @@ function jsonResponse(value: unknown, status = 200): Response {
   });
 }
 
+function isRetryablePlan097ProviderError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : "";
+  return message.includes(
+    "D1_ERROR: D1 DB storage operation exceeded timeout which caused object to be reset.",
+  );
+}
+
 async function sha256(bytes: Uint8Array): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", Uint8Array.from(bytes));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -2242,6 +2249,7 @@ export async function handlePlan097RecoveryRequest(
       {
         error: "Plan 097 recovery operation failed closed",
         diagnosticSha256: await sha256(textEncoder.encode(message)),
+        retryable: isRetryablePlan097ProviderError(error),
         ...(error instanceof Plan097SchemaEnvelopeError
           ? {
               actualSchemaTableSha256: error.actualSchemaTableSha256,

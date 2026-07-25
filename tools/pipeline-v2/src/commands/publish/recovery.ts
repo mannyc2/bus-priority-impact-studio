@@ -369,7 +369,20 @@ async function remoteCall(input: {
       headers,
       body: JSON.stringify(input.request),
     });
-    if (response.status !== 403 || attempt === maximumAttempts) {
+    const retryableProviderFailure =
+      response.status === 409 &&
+      (await response
+        .clone()
+        .json()
+        .then(
+          (body) =>
+            typeof body === "object" &&
+            body !== null &&
+            "retryable" in body &&
+            body.retryable === true,
+          () => false,
+        ));
+    if ((response.status !== 403 && !retryableProviderFailure) || attempt === maximumAttempts) {
       return decodeRemoteResponse({
         response,
         action: input.request.action,

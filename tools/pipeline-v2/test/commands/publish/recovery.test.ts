@@ -812,6 +812,7 @@ describe("publish recovery command", () => {
     const files = await fixture();
     const actions: string[] = [];
     let httpCheckCount = 0;
+    let transientD1Timeouts = 0;
     const baseline = JSON.parse(await Bun.file(files.httpBaselinePath).text()) as {
       checkedAt: string;
       activeReleaseId: string;
@@ -856,6 +857,17 @@ describe("publish recovery command", () => {
           fetch: async (_input, init) => {
             const request = JSON.parse(String(init?.body)) as { action: string };
             actions.push(request.action);
+            if (request.action === "reconcile-schema" && transientD1Timeouts === 0) {
+              transientD1Timeouts += 1;
+              return Response.json(
+                {
+                  error: "Plan 097 recovery operation failed closed",
+                  diagnosticSha256: "f".repeat(64),
+                  retryable: true,
+                },
+                { status: 409 },
+              );
+            }
             return Response.json({
               artifactKind: "bp.ops.plan097.worker-response.v1",
               schemaVersion: 1,
@@ -895,6 +907,7 @@ describe("publish recovery command", () => {
               },
             };
           },
+          sleep: async () => {},
         },
       );
       expect(result.outcome).toBe("rolled_back");
@@ -903,6 +916,7 @@ describe("publish recovery command", () => {
         "mirror-proof-body",
         "finalize-manifest",
         "dry-run",
+        "reconcile-schema",
         "reconcile-schema",
         "activate",
         "rollback",
