@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { CanonicalPublishedAtSchema, ReleaseIdSchema } from "@bp/domain/studio/shared";
 import { Schema } from "effect";
+import { plan097RecoveryServingSchemaTables } from "./batches.js";
 import { Plan097FreshnessMatrixSchema } from "./freshness.js";
 import { Plan097HttpBaselineSchema } from "./operation.js";
 
@@ -249,14 +250,14 @@ function verifyCanonicalSchemaSnapshot(snapshot: Plan097CanonicalSchemaSnapshot)
 }
 
 function normalizedSchemaEnvelope(snapshot: Plan097CanonicalSchemaSnapshot): string {
-  const excludedTable = (tableName: string) =>
-    tableName === "d1_migrations" || tableName === "map_release_catalog";
+  const servingTables = new Set<string>(plan097RecoveryServingSchemaTables);
+  const includedTable = (tableName: string) => servingTables.has(tableName);
   return canonicalJson({
     sqliteMaster: snapshot.sqliteMaster.filter(
-      (entry) => !excludedTable(entry.tableName) && !excludedTable(entry.name),
+      (entry) => includedTable(entry.tableName) || includedTable(entry.name),
     ),
-    tables: snapshot.tables.filter((table) => !excludedTable(table.tableName)),
-    indexes: snapshot.indexes.filter((index) => !excludedTable(index.tableName)),
+    tables: snapshot.tables.filter((table) => includedTable(table.tableName)),
+    indexes: snapshot.indexes.filter((index) => includedTable(index.tableName)),
   });
 }
 
@@ -339,6 +340,7 @@ export {
   type Plan097StudioScheduleEvidence,
   Plan097StudioScheduleEvidenceSchema,
   plan097RecoveryMutationTables,
+  plan097RecoveryServingSchemaTables,
 } from "./batches.js";
 export {
   type Plan097FreshnessDataset,

@@ -241,10 +241,13 @@ bun --filter @bp/pipeline-v2 cli -- publish recovery --action dry-run --candidat
 ```
 
 The result must include the signed preflight receipt SHA/key fingerprint, selective snapshot and
-restore hashes, exact schema/migration-ledger fingerprint, public HTTP baseline, cost preview, and
-measured read/R2 receipt metrics. Persist its redacted attestation on the pushed branch. Stop if the
-active release is unknown, the Studio/map/exact election disagrees, 0033 is partial, any other
-schema object drifts, a protected fingerprint is missing, or the candidate is not newer.
+restore hashes, exact serving-schema/migration-ledger fingerprint, public HTTP baseline, cost
+preview, and measured read/R2 receipt metrics. The structural envelope is deliberately limited to
+the explicit Plan 097 serving-table allowlist; unrelated identity and Tier-2 workspace tables may
+be absent from the slim production D1 and are never copied into it. Persist the redacted
+attestation on the pushed branch. Stop if the active release is unknown, the Studio/map/exact
+election disagrees, 0033 is partial, any allowlisted serving-schema object drifts, a present
+protected table changes during an operation, or the candidate is not newer.
 
 ### Disposable A-to-B-to-A proof
 
@@ -255,9 +258,11 @@ The proof config binds that D1, proof artifact/runtime buckets, and the immutabl
 The proof command mirrors the signed bundle, seeds proof-only stable aliases with the same verified
 candidate bytes, applies the exact selective restore batch once to initialize serving state A, and
 then runs failed-B, B, and restored-A. Protected fingerprints are captured in the disposable D1
-before each exact batch and must be byte-identical after it; production identity/session rows are
-never copied. Each A surface is strict-checked, B must pass candidate dossier/map/exact-route checks,
-and restored A must match its own complete HTTP baseline.
+before each exact batch and must be byte-identical after it; only protected tables present in that
+environment are fingerprinted, and production identity/session rows are never copied. The proof
+database's independently applied migration ledger is protected locally but is not required to equal
+the production ledger recorded by signed preflight. Each A surface is strict-checked, B must pass
+candidate dossier/map/exact-route checks, and restored A must match its own complete HTTP baseline.
 
 Run exactly:
 

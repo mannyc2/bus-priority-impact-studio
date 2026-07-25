@@ -939,6 +939,27 @@ describe("Plan 097 protected Worker operation", () => {
       });
       expect(unauthorized.status).toBe(403);
 
+      await testEnv.DB.prepare(
+        "INSERT INTO d1_migrations (id, name, applied_at) VALUES (999, 'proof-only-ledger-row.sql', 999)",
+      ).run();
+      const ledgerAfterProofProvisioning = (
+        await testEnv.DB.prepare(
+          "SELECT id, name, applied_at AS appliedAt FROM d1_migrations ORDER BY id, name",
+        ).all()
+      ).results;
+      const productionEnv = { ...operationEnv };
+      delete productionEnv.PLAN097_PROOF_MODE;
+      const productionLedgerDrift = await operationRequest({
+        body: {
+          ...base,
+          action: "reconcile-schema",
+          preflightReceiptSha256: preflightRef.sha256,
+        },
+        env: productionEnv,
+        execute: true,
+      });
+      expect(productionLedgerDrift.status).toBe(409);
+
       const reconcile = () =>
         operationRequest({
           body: {
@@ -968,7 +989,11 @@ describe("Plan 097 protected Worker operation", () => {
             "SELECT id, name, applied_at AS appliedAt FROM d1_migrations ORDER BY id, name",
           ).all()
         ).results,
-      ).toEqual(ledgerBefore);
+      ).toEqual(ledgerAfterProofProvisioning);
+      expect(ledgerAfterProofProvisioning).toEqual([
+        ...ledgerBefore,
+        { id: 999, name: "proof-only-ledger-row.sql", appliedAt: 999 },
+      ]);
     } finally {
       await testEnv.DB.batch(
         plan097MapReleaseCatalogRecoveryStatements.map((sql) => testEnv.DB.prepare(sql)),

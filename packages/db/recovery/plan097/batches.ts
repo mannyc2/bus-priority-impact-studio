@@ -43,6 +43,13 @@ export const plan097RecoveryMutationTables = [
   "source_month_coverage",
 ] as const;
 
+export const plan097RecoveryServingSchemaTables = [
+  ...plan097RecoveryMutationTables,
+  "exact_route_identity_release",
+  "route_observed_reliability_summary",
+  "route_scorecard_citation",
+] as const;
+
 export const Plan097BatchStatementSchema = Schema.Struct({
   sql: Schema.String.check(Schema.isMinLength(1)),
   params: Schema.Array(Schema.String),

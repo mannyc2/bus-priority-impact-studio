@@ -248,7 +248,7 @@ describe("Plan 097 recovery contracts", () => {
     );
   });
 
-  test("accepts only canonical schema plus an absent-or-exact 0033 and an independent ledger", () => {
+  test("accepts only the serving schema plus an absent-or-exact 0033 and an independent ledger", () => {
     const expected = buildPlan097CanonicalSchemaSnapshot(exactMapCatalogAudit());
     const ledgerDivergent = buildPlan097CanonicalSchemaSnapshot({
       ...exactMapCatalogAudit(),
@@ -276,12 +276,12 @@ describe("Plan 097 recovery contracts", () => {
     const unexpected = exactMapCatalogAudit();
     unexpected.sqliteMaster.push({
       type: "table",
-      name: "unreviewed_table",
-      tableName: "unreviewed_table",
-      sql: "CREATE TABLE unreviewed_table (id TEXT)",
+      name: "route_catalog",
+      tableName: "route_catalog",
+      sql: "CREATE TABLE route_catalog (route_id TEXT)",
     });
     unexpected.tables.push({
-      tableName: "unreviewed_table",
+      tableName: "route_catalog",
       columns: [
         {
           cid: 0,
@@ -299,6 +299,33 @@ describe("Plan 097 recovery contracts", () => {
         expected,
       }),
     ).toThrow(/schema envelope/i);
+
+    const unrelated = exactMapCatalogAudit();
+    unrelated.sqliteMaster.push({
+      type: "table",
+      name: "identity",
+      tableName: "identity",
+      sql: "CREATE TABLE identity (id TEXT)",
+    });
+    unrelated.tables.push({
+      tableName: "identity",
+      columns: [
+        {
+          cid: 0,
+          name: "id",
+          type: "TEXT",
+          notNull: false,
+          defaultValue: null,
+          primaryKey: 0,
+        },
+      ],
+    });
+    expect(
+      assertPlan097SchemaEnvelope({
+        actual: buildPlan097CanonicalSchemaSnapshot(unrelated),
+        expected,
+      }),
+    ).toEqual({ mapReleaseCatalog: { state: "exact", applyRecoverySql: false } });
   });
 
   test("the idempotent 0033 recovery creates the exact table and is a no-op on retry", async () => {
