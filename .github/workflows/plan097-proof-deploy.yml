@@ -9,7 +9,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     environment:
       name: production
     env:
@@ -78,6 +78,94 @@ jobs:
             echo "Rendered proof config retains a placeholder" >&2
             exit 1
           fi
+
+          baseline_tables=(
+            corridor
+            corridor_artifact
+            corridor_hotspot
+            corridor_intervention_context
+            corridor_month_summary
+            corridor_route_member
+            exact_route_identity_release
+            intervention_event
+            route_artifact
+            route_batch_built_route
+            route_batch_issue
+            route_batch_status
+            route_brief_peak_window
+            route_brief_slowest_window
+            route_brief_summary
+            route_build_plan
+            route_catalog
+            route_catalog_trip_type
+            route_catalog_type
+            route_comparison_rank
+            route_direction
+            route_equity_context
+            route_intervention_comparison
+            route_month_coverage
+            route_month_source_status
+            route_month_trend
+            route_readiness
+            route_readiness_missing_input
+            route_reliability_baseline
+            route_reliability_gap_window
+            route_scorecard
+            route_speed_history_coverage
+            route_timeline_index
+            source_month_coverage
+          )
+          baseline_export_args=()
+          for table in "${baseline_tables[@]}"; do
+            baseline_export_args+=(--table "$table")
+          done
+          bunx wrangler d1 export bus-priority-serving \
+            --remote \
+            --config packages/db/wrangler.d1.jsonc \
+            --output "$output_dir/proof-baseline.sql" \
+            --no-schema \
+            --skip-confirmation \
+            "${baseline_export_args[@]}"
+          if grep -Eiq '^(CREATE|ALTER|DROP)[[:space:]]' "$output_dir/proof-baseline.sql"; then
+            echo "Proof baseline export unexpectedly contains DDL" >&2
+            exit 1
+          fi
+          if grep -Eiq '(INSERT INTO|DELETE FROM)[[:space:]]+["`]?((identity|identity_session|studio_actor_role|alert|saved_search|public_comment|route_observed_reliability_summary|route_scorecard_citation))["`]?' "$output_dir/proof-baseline.sql"; then
+            echo "Proof baseline export contains a protected table" >&2
+            exit 1
+          fi
+          sed -i -E \
+            's/^INSERT INTO "?route_catalog"? VALUES/INSERT INTO "route_catalog" ("route_id", "route_short_name", "route_long_name", "shape_count", "stop_count", "timepoint_stop_count", "latitude_min", "latitude_max", "longitude_min", "longitude_max") VALUES/' \
+            "$output_dir/proof-baseline.sql"
+          if grep -Eq '^INSERT INTO "?route_catalog"? VALUES' "$output_dir/proof-baseline.sql"; then
+            echo "Legacy route_catalog export was not reconciled to explicit columns" >&2
+            exit 1
+          fi
+          baseline_sha256="$(sha256sum "$output_dir/proof-baseline.sql" | cut -d' ' -f1)"
+          baseline_bytes="$(wc -c < "$output_dir/proof-baseline.sql")"
+          bunx wrangler d1 execute bus-priority-plan097-proof \
+            --remote \
+            --config "$config" \
+            --file "$output_dir/proof-baseline.sql" \
+            --yes
+          rm "$output_dir/proof-baseline.sql"
+          bunx wrangler d1 execute bus-priority-plan097-proof \
+            --remote \
+            --config "$config" \
+            --json \
+            --command "SELECT (SELECT generated_at FROM route_batch_status AS status WHERE status.status = 'pass' AND EXISTS (SELECT 1 FROM route_brief_summary AS brief WHERE brief.month = status.month) ORDER BY status.month DESC LIMIT 1) AS studioGeneratedAt, (SELECT COUNT(*) FROM exact_route_identity_release WHERE release_id = 'pub_20260605T183601689Z') AS exactElectionCount, (SELECT COUNT(*) FROM map_release_catalog) AS mapCatalogRowCount, (SELECT COUNT(*) FROM route_catalog) AS routeCatalogRowCount" \
+            > "$output_dir/baseline-verification.raw.json"
+          jq \
+            '[.[].results[] | {studioGeneratedAt,exactElectionCount,mapCatalogRowCount,routeCatalogRowCount}][0]' \
+            "$output_dir/baseline-verification.raw.json" \
+            > "$output_dir/baseline-verification.json"
+          jq -e \
+            '.studioGeneratedAt == "2026-06-05T18:36:01.689Z"
+             and .exactElectionCount == 1
+             and .mapCatalogRowCount == 0
+             and .routeCatalogRowCount == 375' \
+            "$output_dir/baseline-verification.json"
+
           jq -n \
             --arg keyId "$PLAN097_SIGNING_KEY_ID" \
             --arg publicKey "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64" \
@@ -168,12 +256,15 @@ jobs:
             --arg activationSha "7f570d37839b382f0b00488ed8c7f6d03dcb80dd5a933c19c85f3d40dd17327c" \
             --arg restoreSha "01696521dee0deaf0a0d29e985d9e89b46189bb602a0d8d40a1d358101df1d28" \
             --arg preflightSha "fe5dea4a775e5220c73fb1d18322ea4eb4ade11de906b17e4fcffe2131769191" \
+            --arg baselineSha256 "$baseline_sha256" \
+            --argjson baselineBytes "$baseline_bytes" \
             --argjson anonymousStatus "$anonymous_status" \
             --argjson wrongSecretStatus "$wrong_secret_status" \
             --argjson authenticatedStatus "$authenticated_status" \
             --slurpfile deployment "$output_dir/deployment.json" \
             --slurpfile secrets "$output_dir/secrets.json" \
             --slurpfile schemaObjects "$output_dir/schema-objects.json" \
+            --slurpfile baselineVerification "$output_dir/baseline-verification.json" \
             '{
               artifactKind:$artifactKind,
               schemaVersion:1,
@@ -183,6 +274,13 @@ jobs:
               activationBundleSha256:$activationSha,
               restoreBundleSha256:$restoreSha,
               preflightReceiptSha256:$preflightSha,
+              proofBaselineSeed:{
+                sha256:$baselineSha256,
+                bytes:$baselineBytes,
+                includedTableCount:34,
+                protectedTablesIncluded:[],
+                verification:$baselineVerification[0]
+              },
               accessChecks:{
                 anonymousStatus:$anonymousStatus,
                 wrongSecretStatus:$wrongSecretStatus,
