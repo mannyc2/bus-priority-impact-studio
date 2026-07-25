@@ -92,6 +92,9 @@ jobs:
           bunx wrangler deploy \
             --config "$config" \
             --secrets-file "$output_dir/secrets.json"
+          bunx wrangler secret bulk \
+            "$output_dir/secrets.json" \
+            --config "$config"
           rm "$output_dir/secrets.json"
 
           endpoint="https://bus-priority-plan097-activation.c20carroll.workers.dev/__operations/plan097"
@@ -215,27 +218,30 @@ jobs:
           bunx wrangler tail \
             --config "$config" \
             --format json \
-            > "$tail_raw" 2>&1 &
+            > "$tail_raw" \
+            2> /tmp/plan097-activation/worker-tail-status.log &
           tail_pid=$!
           cleanup_tail() {
             kill "$tail_pid" 2>/dev/null || true
             wait "$tail_pid" 2>/dev/null || true
-            jq -Rc \
-              'fromjson?
-               | select(. != null)
-               | {
-                   outcome,
-                   exceptions,
-                   logs,
-                   event:{
-                     request:{
-                       method:.event.request.method,
-                       url:.event.request.url
-                     }
-                   }
-                 }' \
-              "$tail_raw" > "$tail_sanitized"
-            rm -f "$tail_raw"
+            if [ -s "$tail_raw" ]; then
+              jq -c \
+                '{
+                  outcome,
+                  exceptions,
+                  logs,
+                  event:{
+                    request:{
+                      method:.event.request.method,
+                      url:.event.request.url
+                    }
+                  }
+                }' \
+                "$tail_raw" > "$tail_sanitized" || true
+            else
+              : > "$tail_sanitized"
+            fi
+            rm -f "$tail_raw" /tmp/plan097-activation/worker-tail-status.log
           }
           trap cleanup_tail EXIT
           sleep 3
