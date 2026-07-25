@@ -185,6 +185,16 @@ or disposable proof before the 86,400-second drain completes at
 `2026-07-24T17:16:05.839Z` and a new anonymous checker confirms the same
 release, Worker version, `no-store` posture, and operation-namespace 404.
 
+That post-drain checker passed at `2026-07-25T14:52:47.145Z` over ordinary
+production traffic. It observed all 15 release-aware endpoints on Worker
+`8c117bac-3813-4cfc-9d19-c94c4987a165`, active release
+`pub_20260605T183601689Z`, 375 exact routes, `no-store` on all 14 successful
+responses, the unchanged baseline map-manifest 503, and anonymous
+operation-namespace 404. Its committed attestation is
+`docs/research/reviews/plan097/post-drain-reader-attestation.md`. This clears
+the drain gate only; it does not replace the signed preflight, authorize the
+disposable proof, or authorize production mutation.
+
 ### Closed command configuration
 
 The exact reviewed command shapes resolve paths and endpoints from these environment variables. A

@@ -698,11 +698,23 @@ matching GitHub's artifact digest. The adjacent manifest verified every member:
 No authoritative purge was requested or executed. The conservative drain
 starts at the ordinary-traffic proof instant and completes no earlier than
 `2026-07-24T17:16:05.839Z`. The signed read-only preflight and disposable
-proof remain prohibited until a post-drain checker repeats this exact
-release/version/cache posture. This reader success is not the signed
-preflight, disposable proof, production mutation token, candidate activation,
-or Plan 097 completion receipt. Plan 097 remains **IN PROGRESS** and Plan 098
-remains TODO.
+proof remained prohibited until a post-drain checker repeated this exact
+release/version/cache posture.
+
+That anonymous post-drain gate passed at `2026-07-25T14:52:47.145Z`. All 15
+release-aware endpoint observations bound to Worker
+`8c117bac-3813-4cfc-9d19-c94c4987a165`; the 14 successful responses remained
+`no-store`; active release `pub_20260605T183601689Z` retained 375 exact routes;
+the known baseline map-manifest 503 was unchanged; and the anonymous operation
+namespace remained 404. The attestation is committed at
+`docs/research/reviews/plan097/post-drain-reader-attestation.md`.
+
+This clears only the cache-drain reader gate. It is not the signed preflight,
+disposable proof, production mutation token, candidate activation, or Plan 097
+completion receipt. The isolated proof credentials are unavailable locally,
+and production mutation still requires a fresh operator execution token after
+the proof receipts and exact commands are available for review. Plan 097
+remains **IN PROGRESS** and Plan 098 remains TODO.
 
 ## Acceptance criteria
 

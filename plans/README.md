@@ -84,9 +84,13 @@ pointer, or candidate artifact changed. The hash-bound Actions artifact is
 `8572360112` with archive SHA-256
 `56410e4a85f8228c17367e5463ef6eeee294549413d553f9943b594da4b3b7d5`.
 No purge was authorized, so the conservative 86,400-second drain runs through
-`2026-07-24T17:16:05.839Z`. The signed Cloudflare preflight, disposable A→B→A
-evidence, fresh production mutation token, and live completion receipt do not
-exist; 097 remains IN PROGRESS and 098 has not started.
+`2026-07-24T17:16:05.839Z`. A new anonymous check at
+`2026-07-25T14:52:47.145Z` passed the post-drain gate: the release, exact
+Worker, 375-route universe, `no-store` posture, baseline map-manifest 503, and
+operation-namespace 404 were unchanged. The signed Cloudflare preflight,
+disposable A→B→A evidence, fresh production mutation token, and live
+completion receipt do not exist; 097 remains IN PROGRESS and 098 has not
+started.
 
 ## Dependency and safety notes (gen 17)
 
