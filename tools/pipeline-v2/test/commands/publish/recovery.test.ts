@@ -145,12 +145,14 @@ function activationBatch(): Plan097CompactedBatch {
   return { schemaVersion: 1, statements, metrics: metrics(statements) };
 }
 
-async function fixture() {
+async function fixture(options: { largeArtifact?: boolean } = {}) {
   const root = mkdtempSync(join(tmpdir(), "plan097-publish-recovery-"));
   const artifactRoot = join(root, "artifacts");
   const logicalKey = "studio/v2/test.json";
   const artifactPath = join(artifactRoot, logicalKey);
-  const body = '{"artifactKind":"bp.test.plan097.v1"}\n';
+  const body = options.largeArtifact
+    ? "x".repeat(8 * 1024 * 1024)
+    : '{"artifactKind":"bp.test.plan097.v1"}\n';
   await Bun.write(artifactPath, body);
   const bodyBytes = new TextEncoder().encode(body);
   const bodySha = new Bun.CryptoHasher("sha256").update(bodyBytes).digest("hex");
@@ -456,10 +458,11 @@ describe("publish recovery command", () => {
   });
 
   test("runs the exact staged A→B→A proof without accepting resource or SQL selectors", async () => {
-    const files = await fixture();
+    const files = await fixture({ largeArtifact: true });
     const calls: Array<{ action: string; executionToken: string | null }> = [];
     const httpModes: string[] = [];
     let transientStageFailures = 0;
+    let rawStageRequests = 0;
     const baseline = JSON.parse(await Bun.file(files.httpBaselinePath).text()) as {
       checkedAt: string;
       activeReleaseId: string;
@@ -493,8 +496,13 @@ describe("publish recovery command", () => {
         },
         {
           fetch: async (_input, init) => {
-            const request = JSON.parse(String(init?.body)) as { action: string };
             const requestHeaders = new Headers(init?.headers);
+            const rawAction = requestHeaders.get("X-Plan097-Stage-Action");
+            const request =
+              rawAction === null
+                ? (JSON.parse(String(init?.body)) as { action: string })
+                : { action: rawAction };
+            if (rawAction !== null) rawStageRequests += 1;
             calls.push({
               action: request.action,
               executionToken: requestHeaders.get("X-Plan097-Execution-Token"),
@@ -552,6 +560,7 @@ describe("publish recovery command", () => {
         },
       );
       expect(result.outcome).toBe("pass");
+      expect(rawStageRequests).toBe(3);
       expect(calls.map((call) => call.action)).toEqual([
         "mirror-bundle",
         "stage-body",

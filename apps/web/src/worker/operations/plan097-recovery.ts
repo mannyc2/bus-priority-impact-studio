@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   buildPlan097CanonicalSchemaSnapshot,
   buildPlan097RestoreBatchFromVerifiedSnapshot,
@@ -1608,6 +1609,117 @@ async function writeReceipt(input: {
   });
 }
 
+const PLAN097_RAW_STAGE_ACTION_HEADER = "X-Plan097-Stage-Action";
+
+function requirePlan097StageHeader(request: Request, name: string): string {
+  const value = request.headers.get(name);
+  if (value === null || value.length === 0) {
+    throw new Error(`Plan 097 streamed staging header ${name} is missing`);
+  }
+  return value;
+}
+
+async function handlePlan097RawStageRequest(
+  request: Request,
+  env: Env & {
+    DB: D1Database;
+    ARTIFACTS: R2Bucket;
+    PLAN097_OPERATIONS: R2Bucket;
+  },
+): Promise<Response> {
+  const action = requirePlan097StageHeader(request, PLAN097_RAW_STAGE_ACTION_HEADER);
+  if (action !== "stage-body" && action !== "seed-proof-alias") {
+    throw new Error("Plan 097 streamed staging action is invalid");
+  }
+  const operationId = requirePlan097StageHeader(request, "X-Plan097-Operation-Id");
+  const activationBundleSha256 = requirePlan097StageHeader(
+    request,
+    "X-Plan097-Activation-Bundle-Sha256",
+  );
+  if (
+    operationId !== env.PLAN097_OPERATION_ID ||
+    activationBundleSha256 !== env.PLAN097_ACTIVATION_BUNDLE_SHA256
+  ) {
+    return new Response("Forbidden", { status: 403 });
+  }
+  if (
+    !(await secretMatches(
+      request.headers.get("X-Plan097-Execution-Token"),
+      env.PLAN097_EXECUTION_TOKEN,
+    ))
+  ) {
+    return new Response("Forbidden", { status: 403 });
+  }
+  if (action === "seed-proof-alias" && env.PLAN097_PROOF_MODE !== "true") {
+    return new Response("Forbidden", { status: 403 });
+  }
+  const logicalId = requirePlan097StageHeader(request, "X-Plan097-Logical-Id");
+  const declaredSha256 = requirePlan097StageHeader(request, "X-Plan097-Declared-Sha256");
+  const declaredBytesText = requirePlan097StageHeader(request, "X-Plan097-Declared-Bytes");
+  const declaredBytes = Number(declaredBytesText);
+  const mediaType = requirePlan097StageHeader(request, "X-Plan097-Media-Type");
+  const operationRequest = decodeStrict(Plan097OperationRequestSchema)({
+    operationId,
+    activationBundleSha256,
+    action,
+    logicalId,
+    declaredSha256,
+    declaredBytes,
+    mediaType,
+    bodyBase64: "streamed",
+  });
+  if (operationRequest.action !== "stage-body" && operationRequest.action !== "seed-proof-alias") {
+    throw new Error("Plan 097 streamed staging request decoded to an invalid action");
+  }
+  const metrics = createOperationMetrics();
+  const bundle = await loadActivationBundle({
+    env,
+    request: operationRequest,
+    metrics,
+  });
+  const { manifest } = await loadArtifactManifest({ env, bundle, metrics });
+  const entry = manifest.entries.find((candidate) => candidate.logicalId === logicalId);
+  if (
+    entry === undefined ||
+    entry.sha256 !== declaredSha256 ||
+    entry.bytes !== declaredBytes ||
+    entry.mediaType !== mediaType
+  ) {
+    throw new Error("Plan 097 streamed body is not declared by the signed manifest");
+  }
+  const contentType = request.headers.get("Content-Type")?.split(";", 1)[0];
+  if (contentType !== "application/octet-stream") {
+    throw new Error("Plan 097 streamed staging requires application/octet-stream");
+  }
+  const contentLength = request.headers.get("Content-Length");
+  if (contentLength !== null && Number(contentLength) !== entry.bytes) {
+    throw new Error("Plan 097 streamed body Content-Length does not match the manifest");
+  }
+  const body = new Uint8Array(await request.arrayBuffer());
+  const bodySha256 = createHash("sha256").update(body).digest("hex");
+  if (body.byteLength !== entry.bytes || bodySha256 !== entry.sha256) {
+    throw new Error("Plan 097 streamed body bytes do not match the signed manifest");
+  }
+  await putIdentical({
+    bucket: env.ARTIFACTS,
+    key: action === "seed-proof-alias" ? entry.logicalKey : entry.key,
+    body,
+    sha256: entry.sha256,
+    mediaType: entry.mediaType,
+    metrics,
+  });
+  const response = await writeReceipt({
+    env,
+    request: operationRequest,
+    releaseId: bundle.candidate.releaseId,
+    outcome: "pass",
+    statementCount: 0,
+    objectCount: 1,
+    metrics,
+  });
+  return jsonResponse(response);
+}
+
 export async function handlePlan097RecoveryRequest(
   request: Request,
   env: Env,
@@ -1629,6 +1741,14 @@ export async function handlePlan097RecoveryRequest(
   }
 
   try {
+    const boundEnv = env as Env & {
+      PLAN097_OPERATIONS: R2Bucket;
+      DB: D1Database;
+      ARTIFACTS: R2Bucket;
+    };
+    if (request.headers.has(PLAN097_RAW_STAGE_ACTION_HEADER)) {
+      return await handlePlan097RawStageRequest(request, boundEnv);
+    }
     const operationRequest = decodeStrict(Plan097OperationRequestSchema)(await request.json());
     const metrics = createOperationMetrics();
     if (
@@ -1659,11 +1779,6 @@ export async function handlePlan097RecoveryRequest(
     if (operationRequest.action === "seed-bundle" && env.PLAN097_SEED_MODE !== "true") {
       return new Response("Forbidden", { status: 403 });
     }
-    const boundEnv = env as Env & {
-      PLAN097_OPERATIONS: R2Bucket;
-      DB: D1Database;
-      ARTIFACTS: R2Bucket;
-    };
     if (operationRequest.action === "seed-bundle") {
       const seeded = await seedOperationBundle({
         env: boundEnv,

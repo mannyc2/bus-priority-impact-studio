@@ -323,6 +323,38 @@ async function operationRequest(input: {
   );
 }
 
+async function rawStageRequest(input: {
+  action: "stage-body" | "seed-proof-alias";
+  operationId: string;
+  activationBundleSha256: string;
+  logicalId: string;
+  declaredSha256: string;
+  declaredBytes: number;
+  mediaType: string;
+  body: Uint8Array;
+  env: Env;
+  execute?: boolean;
+}): Promise<Response> {
+  const requestHeaders = headers(input.execute);
+  requestHeaders.set("Content-Type", "application/octet-stream");
+  requestHeaders.set("X-Plan097-Stage-Action", input.action);
+  requestHeaders.set("X-Plan097-Operation-Id", input.operationId);
+  requestHeaders.set("X-Plan097-Activation-Bundle-Sha256", input.activationBundleSha256);
+  requestHeaders.set("X-Plan097-Logical-Id", input.logicalId);
+  requestHeaders.set("X-Plan097-Declared-Sha256", input.declaredSha256);
+  requestHeaders.set("X-Plan097-Declared-Bytes", String(input.declaredBytes));
+  requestHeaders.set("X-Plan097-Media-Type", input.mediaType);
+  return handlePlan097RecoveryRequest(
+    new Request(`https://example.test${PLAN097_OPERATION_PATH}`, {
+      method: "POST",
+      headers: requestHeaders,
+      body: input.body as unknown as BodyInit,
+    }),
+    input.env,
+    { authenticate: async () => true },
+  );
+}
+
 async function cleanD1(): Promise<void> {
   await testEnv.DB.batch([
     testEnv.DB.prepare("DELETE FROM source_month_coverage WHERE source_id = 'plan097-worker-test'"),
@@ -591,16 +623,14 @@ describe("Plan 097 protected Worker operation", () => {
     });
     expect(badStage.status).toBe(409);
 
-    const stage = await operationRequest({
-      body: {
-        ...base,
-        action: "stage-body",
-        logicalId: entry.logicalId,
-        declaredSha256: entry.sha256,
-        declaredBytes: entry.bytes,
-        mediaType: entry.mediaType,
-        bodyBase64: btoa(String.fromCharCode(...artifactBody)),
-      },
+    const stage = await rawStageRequest({
+      ...base,
+      action: "stage-body",
+      logicalId: entry.logicalId,
+      declaredSha256: entry.sha256,
+      declaredBytes: entry.bytes,
+      mediaType: entry.mediaType,
+      body: artifactBody,
       env: operationEnv,
       execute: true,
     });
@@ -613,22 +643,22 @@ describe("Plan 097 protected Worker operation", () => {
 
     const aliasBody = {
       ...base,
-      action: "seed-proof-alias",
+      action: "seed-proof-alias" as const,
       logicalId: entry.logicalId,
       declaredSha256: entry.sha256,
       declaredBytes: entry.bytes,
       mediaType: entry.mediaType,
-      bodyBase64: btoa(String.fromCharCode(...artifactBody)),
+      body: artifactBody,
     };
     const proofDisabledEnv = { ...operationEnv };
     delete proofDisabledEnv.PLAN097_PROOF_MODE;
-    const aliasDenied = await operationRequest({
-      body: aliasBody,
+    const aliasDenied = await rawStageRequest({
+      ...aliasBody,
       env: proofDisabledEnv,
       execute: true,
     });
     expect(aliasDenied.status).toBe(403);
-    const alias = await operationRequest({ body: aliasBody, env: operationEnv, execute: true });
+    const alias = await rawStageRequest({ ...aliasBody, env: operationEnv, execute: true });
     expect(alias.status).toBe(200);
     expect(await testEnv.ARTIFACTS.get(entry.logicalKey)).not.toBeNull();
 

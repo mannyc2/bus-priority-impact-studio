@@ -279,16 +279,14 @@ function requireOperationToken(
   return token;
 }
 
-async function remoteCall(input: {
+function operationHeaders(input: {
   inputs: PublishRecoveryInputs;
-  dependencies: PublishRecoveryDependencies;
-  request: Plan097OperationRequest;
+  contentType: string;
   execute: boolean;
   tokenKind?: "bootstrap" | "execution" | undefined;
-  tracker?: RemoteResponseTracker | undefined;
-}): Promise<Plan097OperationResponse> {
+}): Headers {
   const headers = new Headers({
-    "Content-Type": "application/json",
+    "Content-Type": input.contentType,
     "CF-Access-Client-Id": input.inputs.serviceTokenId,
     "CF-Access-Client-Secret": input.inputs.serviceTokenSecret,
   });
@@ -298,21 +296,24 @@ async function remoteCall(input: {
       requireOperationToken(input.inputs, input.tokenKind ?? "execution"),
     );
   }
-  const response = await input.dependencies.fetch(input.inputs.endpoint, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(input.request),
-  });
-  const responseText = await response.text();
+  return headers;
+}
+
+async function decodeRemoteResponse(input: {
+  response: Response;
+  action: Plan097OperationRequest["action"];
+  tracker?: RemoteResponseTracker | undefined;
+}): Promise<Plan097OperationResponse> {
+  const responseText = await input.response.text();
   let body: unknown;
   try {
     body = JSON.parse(responseText);
   } catch {
     throw new Error(
-      `Plan 097 Worker ${input.request.action} returned non-JSON HTTP ${response.status}`,
+      `Plan 097 Worker ${input.action} returned non-JSON HTTP ${input.response.status}`,
     );
   }
-  if (!response.ok) {
+  if (!input.response.ok) {
     const diagnostic =
       typeof body === "object" &&
       body !== null &&
@@ -338,12 +339,38 @@ async function remoteCall(input: {
         ? ` (schema-tables ${JSON.stringify(body.actualSchemaTables)}) (schema-indexes ${JSON.stringify(body.actualSchemaIndexes)})`
         : "";
     throw new Error(
-      `Plan 097 Worker ${input.request.action} failed with HTTP ${response.status}${diagnostic}${schemaDiagnostic}${schemaDetails}`,
+      `Plan 097 Worker ${input.action} failed with HTTP ${input.response.status}${diagnostic}${schemaDiagnostic}${schemaDetails}`,
     );
   }
   const decoded = decodeStrict(Plan097OperationResponseSchema)(body);
   input.tracker?.push(decoded);
   return decoded;
+}
+
+async function remoteCall(input: {
+  inputs: PublishRecoveryInputs;
+  dependencies: PublishRecoveryDependencies;
+  request: Plan097OperationRequest;
+  execute: boolean;
+  tokenKind?: "bootstrap" | "execution" | undefined;
+  tracker?: RemoteResponseTracker | undefined;
+}): Promise<Plan097OperationResponse> {
+  const headers = operationHeaders({
+    inputs: input.inputs,
+    contentType: "application/json",
+    execute: input.execute,
+    tokenKind: input.tokenKind,
+  });
+  const response = await input.dependencies.fetch(input.inputs.endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(input.request),
+  });
+  return decodeRemoteResponse({
+    response,
+    action: input.request.action,
+    tracker: input.tracker,
+  });
 }
 
 function buildOperationReceiptSet(responses: readonly Plan097OperationResponse[]) {
@@ -463,16 +490,49 @@ async function stageCandidate(input: {
     JSON.parse(new TextDecoder().decode(manifestBytes)),
   );
   const callStagingWorker = async (
-    request: Plan097OperationRequest,
-    logicalId: string,
+    action: "stage-body" | "seed-proof-alias",
+    entry: (typeof manifest.entries)[number],
+    body: Uint8Array,
   ): Promise<Plan097OperationResponse> => {
     const maximumAttempts = 5;
     for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
       try {
+        if (body.byteLength >= 8 * 1024 * 1024) {
+          const headers = operationHeaders({
+            inputs: input.inputs,
+            contentType: "application/octet-stream",
+            execute: true,
+          });
+          headers.set("X-Plan097-Stage-Action", action);
+          headers.set("X-Plan097-Operation-Id", base.operationId);
+          headers.set("X-Plan097-Activation-Bundle-Sha256", base.activationBundleSha256);
+          headers.set("X-Plan097-Logical-Id", entry.logicalId);
+          headers.set("X-Plan097-Declared-Sha256", entry.sha256);
+          headers.set("X-Plan097-Declared-Bytes", String(entry.bytes));
+          headers.set("X-Plan097-Media-Type", entry.mediaType);
+          const response = await input.dependencies.fetch(input.inputs.endpoint, {
+            method: "POST",
+            headers,
+            body: body as unknown as BodyInit,
+          });
+          return await decodeRemoteResponse({
+            response,
+            action,
+            tracker: input.tracker,
+          });
+        }
         return await remoteCall({
           inputs: input.inputs,
           dependencies: input.dependencies,
-          request,
+          request: {
+            ...base,
+            action,
+            logicalId: entry.logicalId,
+            declaredSha256: entry.sha256,
+            declaredBytes: entry.bytes,
+            mediaType: entry.mediaType,
+            bodyBase64: base64(body),
+          },
           execute: true,
           tracker: input.tracker,
         });
@@ -482,7 +542,7 @@ async function stageCandidate(input: {
           /(?:returned non-JSON|failed with) HTTP (?:429|502|503|504)\b/u.test(message) ||
           /(?:fetch failed|connection|ECONNRESET|timed out)/iu.test(message);
         if (!transient || attempt === maximumAttempts) {
-          throw new Error(`Plan 097 artifact ${logicalId} staging failed: ${message}`, {
+          throw new Error(`Plan 097 artifact ${entry.logicalId} staging failed: ${message}`, {
             cause: error,
           });
         }
@@ -490,7 +550,7 @@ async function stageCandidate(input: {
         await (input.dependencies.sleep ?? Bun.sleep)(delayMs);
       }
     }
-    throw new Error(`Plan 097 artifact ${logicalId} staging exhausted its retry budget`);
+    throw new Error(`Plan 097 artifact ${entry.logicalId} staging exhausted its retry budget`);
   };
   const stageEntry = async (
     entry: (typeof manifest.entries)[number],
@@ -501,32 +561,10 @@ async function stageCandidate(input: {
     if (body.byteLength !== entry.bytes || sha256(body) !== entry.sha256) {
       throw new Error(`Local Plan 097 artifact ${entry.logicalId} drifted after manifest creation`);
     }
-    const staged = await callStagingWorker(
-      {
-        ...base,
-        action: "stage-body",
-        logicalId: entry.logicalId,
-        declaredSha256: entry.sha256,
-        declaredBytes: entry.bytes,
-        mediaType: entry.mediaType,
-        bodyBase64: base64(body),
-      },
-      entry.logicalId,
-    );
+    const staged = await callStagingWorker("stage-body", entry, body);
     const entryReceipts = [staged.receiptKey];
     if (input.seedProofAliases) {
-      const alias = await callStagingWorker(
-        {
-          ...base,
-          action: "seed-proof-alias",
-          logicalId: entry.logicalId,
-          declaredSha256: entry.sha256,
-          declaredBytes: entry.bytes,
-          mediaType: entry.mediaType,
-          bodyBase64: base64(body),
-        },
-        entry.logicalId,
-      );
+      const alias = await callStagingWorker("seed-proof-alias", entry, body);
       entryReceipts.push(alias.receiptKey);
     }
     return entryReceipts;
