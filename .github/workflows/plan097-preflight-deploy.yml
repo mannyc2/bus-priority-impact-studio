@@ -144,7 +144,7 @@ jobs:
               versions:[.versions[] | {version_id,percentage}]
             }' > "$output_dir/deployment.json"
           bunx wrangler secret list \
-            --json \
+            --format json \
             --config "$config" |
             jq '[.[] | {name,type}] | sort_by(.name)' > "$output_dir/secrets.json"
           jq -n \
