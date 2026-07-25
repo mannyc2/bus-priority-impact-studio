@@ -53,6 +53,13 @@ client ID, or service-token client secret exists in repository variables,
 repository secrets, production-environment variables/secrets, or the local
 gitignored environment.
 
+Protected GitHub Actions run `30167076567` then exercised the same credential
+through the registered `ci.yml` workflow. The reusable Plan 097 Access job
+received the stored token and Cloudflare returned HTTP 403 on the first Access
+API request. This distinguishes the blocker from a missing GitHub secret,
+workflow-dispatch problem, local authentication problem, or ungranted
+operator approval.
+
 Cloudflare Access must be provisioned or exposed through a token with
 `Access: Apps and Policies Write`, `Access: Service Tokens Write`, and
 organization read access before an operation Worker can be deployed. The
