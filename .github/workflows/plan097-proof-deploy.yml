@@ -19,6 +19,7 @@ jobs:
       PLAN097_PROOF_ACCESS_AUD: ${{ secrets.PLAN097_PROOF_ACCESS_AUD }}
       PLAN097_SERVICE_TOKEN_ID: ${{ secrets.PLAN097_SERVICE_TOKEN_ID }}
       PLAN097_SERVICE_TOKEN_SECRET: ${{ secrets.PLAN097_SERVICE_TOKEN_SECRET }}
+      PLAN097_SIGNING_KEY_ID: ${{ secrets.PLAN097_SIGNING_KEY_ID }}
       PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64: ${{ secrets.PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64 }}
       PLAN097_PROOF_EXECUTION_TOKEN: ${{ secrets.PLAN097_PROOF_EXECUTION_TOKEN }}
     steps:
@@ -38,6 +39,7 @@ jobs:
             PLAN097_PROOF_ACCESS_AUD \
             PLAN097_SERVICE_TOKEN_ID \
             PLAN097_SERVICE_TOKEN_SECRET \
+            PLAN097_SIGNING_KEY_ID \
             PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64 \
             PLAN097_PROOF_EXECUTION_TOKEN
           do
@@ -77,9 +79,11 @@ jobs:
             exit 1
           fi
           jq -n \
+            --arg keyId "$PLAN097_SIGNING_KEY_ID" \
             --arg publicKey "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64" \
             --arg executionToken "$PLAN097_PROOF_EXECUTION_TOKEN" \
             '{
+              PLAN097_PREFLIGHT_SIGNING_KEY_ID:$keyId,
               PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64:$publicKey,
               PLAN097_EXECUTION_TOKEN:$executionToken
             }' > "$output_dir/secrets.json"

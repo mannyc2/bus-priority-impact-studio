@@ -402,12 +402,18 @@ describe("Plan 097 recovery contracts", () => {
     });
 
     const expectedServing = withRouteCatalog(exactMapCatalogAudit());
-    const textuallyDifferentServing = structuredClone(expectedServing);
-    const routeCatalogMaster = textuallyDifferentServing.sqliteMaster.find(
+    const routeCatalogMaster = expectedServing.sqliteMaster.find(
       (entry) => entry.name === "route_catalog",
     );
     if (routeCatalogMaster === undefined) throw new Error("Missing route_catalog fixture");
-    routeCatalogMaster.sql = 'CREATE TABLE "route_catalog" ("route_id" text)';
+    const textuallyDifferentServing = {
+      ...expectedServing,
+      sqliteMaster: expectedServing.sqliteMaster.map((entry) =>
+        entry.name === "route_catalog"
+          ? { ...entry, sql: 'CREATE TABLE "route_catalog" ("route_id" text)' }
+          : entry,
+      ),
+    };
     expect(
       assertPlan097SchemaEnvelope({
         actual: buildPlan097CanonicalSchemaSnapshot(textuallyDifferentServing),
@@ -418,14 +424,25 @@ describe("Plan 097 recovery contracts", () => {
       routeCatalog: { state: "exact", applyRecoverySql: false },
     });
 
-    const semanticallyDifferentServing = structuredClone(expectedServing);
-    const routeCatalogTable = semanticallyDifferentServing.tables.find(
+    const routeCatalogTable = expectedServing.tables.find(
       (table) => table.tableName === "route_catalog",
     );
     if (routeCatalogTable === undefined) throw new Error("Missing route_catalog table fixture");
     const routeIdColumn = routeCatalogTable.columns[0];
     if (routeIdColumn === undefined) throw new Error("Missing route_catalog column fixture");
-    routeIdColumn.type = "INTEGER";
+    const semanticallyDifferentServing = {
+      ...expectedServing,
+      tables: expectedServing.tables.map((table) =>
+        table.tableName === "route_catalog"
+          ? {
+              ...table,
+              columns: table.columns.map((column, index) =>
+                index === 0 ? { ...column, type: "INTEGER" } : column,
+              ),
+            }
+          : table,
+      ),
+    };
     expect(() =>
       assertPlan097SchemaEnvelope({
         actual: buildPlan097CanonicalSchemaSnapshot(semanticallyDifferentServing),
