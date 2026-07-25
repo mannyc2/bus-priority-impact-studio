@@ -183,6 +183,21 @@ async function createFixture(): Promise<Fixture> {
       await copyFile(join(sourceArtifactDir, name), join(artifactDir, name));
     }
   }
+  await copyFile(
+    join(sourceArtifactDir, "pending-review-handoff.json"),
+    join(artifactDir, "review-handoff.json"),
+  );
+  const replayArtifactDir = join(root, "replay-artifacts");
+  await mkdir(replayArtifactDir, { recursive: true });
+  for (const name of await readdir(sourceArtifactDir)) {
+    if (name.endsWith(".json")) {
+      await copyFile(join(sourceArtifactDir, name), join(replayArtifactDir, name));
+    }
+  }
+  await copyFile(
+    join(sourceArtifactDir, "pending-review-handoff.json"),
+    join(replayArtifactDir, "review-handoff.json"),
+  );
   const verificationDir = join(repository, "docs/research/reviews/closure-plan-042/verification");
   await mkdir(verificationDir, { recursive: true });
   for (const name of ["focused", "typecheck", "validation", "replay"]) {
@@ -191,7 +206,7 @@ async function createFixture(): Promise<Fixture> {
   const acceptance = await buildPlan042AcceptanceManifest({
     repositoryRoot: repository,
     artifactDir,
-    replayArtifactDir: sourceArtifactDir,
+    replayArtifactDir,
     focusedLogPath: join(verificationDir, "focused.log"),
     typecheckLogPath: join(verificationDir, "typecheck.log"),
     validationLogPath: join(verificationDir, "validation.log"),

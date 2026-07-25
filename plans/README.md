@@ -14,7 +14,8 @@ Treatments & History redesign), 15 (Plan 095: exact route-index v3 serving
 recovery), 16 (Plan 096: exact member-grain study consumer), and 17 (Plans
 097-101: safe catch-up, atomic releases, full-history freshness, publication
 control plane, and deterministic incremental de-month completion — all
-below).** Generation 6 (048-060, the MTA-visual-language UI/UX
+below), plus the cross-repository Plan 106 closure for MTA Wiki
+`v1-rc28`.** Generation 6 (048-060, the MTA-visual-language UI/UX
 overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
 `packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
 business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
@@ -25,6 +26,29 @@ notes. Generations 4 (030-035) and 5 (036-047) are DONE; generation 3
 complete or superseded; older sections are kept further down as history and
 rationale. Each executor: read your plan fully before starting, honor its STOP
 conditions, and update your row when done.
+
+---
+
+# Cross-repository closure — MTA Wiki v1-rc28 outcome grain (2026-07-25)
+
+Plan 106 is the Tracker implementation of MTA Wiki Plan 042. It strictly pins
+the public `v1-rc28` producer manifest, preserves all 555 visible candidates,
+and records a complete 695-row grain-verdict matrix without authorizing a
+study, publication, D1/R2 mutation, deployment, or inferred positive match.
+The public GitHub assets were attested byte-for-byte against all five committed
+producer inputs after release publication.
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 106 | Member-grain outcome certification | P1 | L | 096; MTA Wiki Plans 038-043 | DONE |
+
+See `plans/106-member-grain-outcome-certification.md`,
+`docs/research/reviews/closure-plan-042/execution-receipt.md`, and
+`docs/research/reviews/closure-plan-042/public-release-attestation.md`.
+
+This cross-repository closure reserves the number already selected around
+separate maintainer work for Plans 102-105; it does not include, renumber, or
+modify those unrelated plans.
 
 ---
 

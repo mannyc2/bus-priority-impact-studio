@@ -112,6 +112,8 @@
 
 ## Status
 
+- **State**: DONE — public `v1-rc28` assets attested byte-for-byte on
+  2026-07-25; consumer and fixed-path closure receipt committed
 - **Priority**: P1 — problem 3 of the owner's statement: "do we have the
   appropriate comparable outcome product?"
 - **Effort**: L
@@ -527,23 +529,28 @@ second commit and names the first commit as `consumer_commit`.
 
 ## Done criteria
 
-- [ ] Every bus-lane candidate carries exactly one identity verdict; refuted
+- [x] Every bus-lane candidate carries exactly one identity verdict; refuted
   candidates are terminal-with-reason, not deleted
-- [ ] Candidate set v5 contains exactly 555 visible candidates: 168
+- [x] Candidate set v5 contains exactly 555 visible candidates: 168
   occurrence×route candidates covering all 308 producer rows plus 387
   no-member candidates
-- [ ] Every positive bounded extent has a segment-binding receipt or a named
+- [x] Every positive bounded extent has a segment-binding receipt or a named
   fail-closed reason; Q45/Q86/Q87/Q63/Q80 accounted individually
-- [ ] Relevance registry covers every treatment kind with an explicit
+- [x] Relevance registry covers every treatment kind with an explicit
   disposition; stop-set decision recorded with operator authorization
-- [ ] Q61 has a recorded common-segment analysis frame or a named
+- [x] Q61 has a recorded common-segment analysis frame or a named
   incomparability verdict
-- [ ] Grain-verdict matrix is complete-denominator, deterministic, and receipted
-- [ ] Focused tests/typecheck/replay pass and the full phase matrix has zero
+- [x] Grain-verdict matrix is complete-denominator, deterministic, and receipted
+- [x] Focused tests/typecheck/replay pass and the full phase matrix has zero
   additional failures versus the pinned baseline; 074/075/083 byte-unchanged; import receipt
   delivered to the wiki side; tracker plans/README row added
-- [ ] Fixed-path machine receipt is committed after its named consumer commit,
+- [x] Fixed-path machine receipt is committed after its named consumer commit,
   and `verify-closure-receipt` passes against that exact commit
+
+Post-publication transport evidence is recorded in
+`docs/research/reviews/closure-plan-042/public-release-attestation.md`. The
+attested GitHub assets preserve the exact producer manifest and all five source
+inputs recorded by the committed Plan 042 producer import.
 
 ## STOP conditions
 
