@@ -77,6 +77,96 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  plan097-cloudflare-provision:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/codex/plan097-completion'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: production
+    steps:
+      - name: Provision bounded Plan 097 storage
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 7aa7065a7e971d97435b3f22098d78b0
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          mkdir -p /tmp/plan097-cloudflare-provision
+          api_get() {
+            curl --fail-with-body --silent --show-error --retry 2 \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/$1"
+          }
+          api_post() {
+            curl --fail-with-body --silent --show-error --retry 2 \
+              -X POST \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "$2" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/$1"
+          }
+          d1_inventory="$(api_get "d1/database")"
+          proof_d1_id="$(
+            jq -r '.result[] | select(.name == "bus-priority-plan097-proof") | .uuid' \
+              <<< "$d1_inventory"
+          )"
+          if [ -z "$proof_d1_id" ]; then
+            proof_d1_id="$(
+              api_post "d1/database" '{"name":"bus-priority-plan097-proof"}' |
+                jq -er '.result.uuid'
+            )"
+          fi
+
+          r2_inventory="$(api_get "r2/buckets")"
+          for bucket in \
+            bus-priority-plan097-preflight-artifacts \
+            bus-priority-plan097-preflight-operations \
+            bus-priority-plan097-proof-artifacts \
+            bus-priority-plan097-proof-runtime \
+            bus-priority-plan097-production-operations
+          do
+            if ! jq -e --arg bucket "$bucket" \
+              '.result.buckets[] | select(.name == $bucket)' \
+              <<< "$r2_inventory" > /dev/null
+            then
+              api_post "r2/buckets" "$(jq -cn --arg name "$bucket" '{name:$name}')" > /dev/null
+              r2_inventory="$(api_get "r2/buckets")"
+            fi
+          done
+
+          jq -n \
+            --arg proofD1Id "$proof_d1_id" \
+            --arg proofD1Name "bus-priority-plan097-proof" \
+            --argjson buckets "$(
+              jq '[.result.buckets[]
+                | select(.name | startswith("bus-priority-plan097-"))
+                | {name, creation_date}] | sort_by(.name)' <<< "$r2_inventory"
+            )" \
+            '{
+              artifactKind:"bp.ops.plan097.cloudflare-provisioning.v1",
+              schemaVersion:1,
+              proofD1:{id:$proofD1Id,name:$proofD1Name},
+              buckets:$buckets
+            }' > /tmp/plan097-cloudflare-provision/receipt.json
+          jq -e \
+            '.buckets | map(.name) == [
+              "bus-priority-plan097-preflight-artifacts",
+              "bus-priority-plan097-preflight-operations",
+              "bus-priority-plan097-production-operations",
+              "bus-priority-plan097-proof-artifacts",
+              "bus-priority-plan097-proof-runtime"
+            ]' /tmp/plan097-cloudflare-provision/receipt.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plan097-cloudflare-provision-${{ github.sha }}
+          path: /tmp/plan097-cloudflare-provision
+          if-no-files-found: error
+          retention-days: 30
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
