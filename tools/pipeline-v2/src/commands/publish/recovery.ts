@@ -92,6 +92,11 @@ export type PublishRecoveryResult = {
   }>;
   proofSummary: NonNullable<Plan097OperationResponse["evidence"]>[number] | null;
   completion: NonNullable<Plan097OperationResponse["evidence"]>[number] | null;
+  failure: {
+    name: string;
+    message: string;
+    messageSha256: string;
+  } | null;
 };
 
 type PublishRecoveryDependencies = {
@@ -1010,6 +1015,10 @@ export async function runPublishRecovery(
           });
         }
         await recordTerminalCompletion("rolled_back");
+        const failureMessage =
+          postActivationFailure instanceof Error
+            ? postActivationFailure.message
+            : "unknown Plan 097 post-activation failure";
         return {
           schemaVersion: 1,
           action: inputs.action,
@@ -1022,6 +1031,14 @@ export async function runPublishRecovery(
           httpComparisons,
           proofSummary,
           completion,
+          failure: {
+            name:
+              postActivationFailure instanceof Error
+                ? postActivationFailure.name
+                : "UnknownFailure",
+            message: failureMessage,
+            messageSha256: sha256(new TextEncoder().encode(failureMessage)),
+          },
         };
       }
       await recordTerminalCompletion("active");
@@ -1054,6 +1071,7 @@ export async function runPublishRecovery(
     httpComparisons,
     proofSummary,
     completion,
+    failure: null,
   };
 }
 

@@ -1775,6 +1775,87 @@ describe("Studio API facade", () => {
     }
   });
 
+  it("counts multi-run reliability once per public release route", async () => {
+    const reliabilityRow = {
+      month: "2026-05",
+      reliability_status: "observed",
+      min_sample_threshold: 30,
+      sample_count: 100,
+      stop_count: 10,
+      direction_count: 2,
+      average_observed_headway_minutes: 8,
+      median_observed_headway_minutes: 7,
+      p90_observed_headway_minutes: 14,
+      max_observed_headway_minutes: 22,
+      scheduled_median_headway_minutes: null,
+      bunching_threshold_minutes: 3,
+      long_gap_threshold_minutes: 20,
+      observed_bunching_share: 0.12,
+      observed_long_gap_share: 0.2,
+      expected_wait_minutes: 5,
+      scheduled_expected_wait_minutes: null,
+      excess_wait_minutes: 1.5,
+      wait_reliability_ratio: null,
+    };
+    const db = new FakeDb({
+      route_batch_built_route: [
+        {
+          month: "2026-05",
+          route_rank: 1,
+          route_id: "B46-SBS",
+          artifact_count: 3,
+          status: "built",
+        },
+        {
+          month: "2026-05",
+          route_rank: 2,
+          route_id: "M15-SBS",
+          artifact_count: 3,
+          status: "built",
+        },
+      ],
+      route_batch_issue: [],
+      route_batch_status: [
+        {
+          month: "2026-05",
+          generated_at: "2026-07-25T16:41:23.260Z",
+          status: "pass",
+          route_count: 2,
+          artifact_count: 6,
+          missing_artifact_count: 0,
+          hash_mismatch_count: 0,
+          byte_length_mismatch_count: 0,
+          total_byte_length: 1234,
+          issue_count: 0,
+        },
+      ],
+      route_observed_reliability_summary: [
+        { ...reliabilityRow, route_id: "B46-SBS", run_id: "run-a" },
+        { ...reliabilityRow, route_id: "B46-SBS", run_id: "run-b" },
+        { ...reliabilityRow, route_id: "M15-SBS", run_id: "run-a" },
+        { ...reliabilityRow, route_id: "M15-SBS", run_id: "run-b" },
+        { ...reliabilityRow, route_id: "Q99", run_id: "run-a" },
+      ],
+    });
+
+    const response = await fetchApi("/api/v1/status", {
+      DB: db as unknown as D1Database,
+    });
+
+    expect(response.status).toBe(200);
+    const status = decodeStrict(ReleaseStatusResponseSchema)(await response.json());
+    expect(status.release.routeCount).toBe(2);
+    expect(status.observedRealtimeEvidence).toEqual(
+      expect.objectContaining({
+        runId: null,
+        source: "none",
+        observedRouteCount: 2,
+        insufficientRouteCount: 0,
+        routeCoverageShare: 1,
+      }),
+    );
+  });
+
   it("fails current public reads closed without published serving data", async () => {
     const response = await fetchApi("/api/v1/status", {
       DB: new FakeDb({}) as unknown as D1Database,

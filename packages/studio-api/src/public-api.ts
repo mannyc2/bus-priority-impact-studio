@@ -201,6 +201,32 @@ type ObservedReliabilityRow = Awaited<
   ReturnType<typeof listRouteObservedReliabilitySummaries>
 >[number];
 
+function countReliabilityRoutes(rows: readonly ObservedReliabilityRow[]): {
+  routeCount: number;
+  observedRouteCount: number;
+  insufficientRouteCount: number;
+} {
+  const routeIds = new Set<string>();
+  const observedRouteIds = new Set<string>();
+  const insufficientRouteIds = new Set<string>();
+
+  for (const row of rows) {
+    routeIds.add(row.routeId);
+    if (row.reliabilityStatus === "observed") {
+      observedRouteIds.add(row.routeId);
+      insufficientRouteIds.delete(row.routeId);
+    } else if (!observedRouteIds.has(row.routeId)) {
+      insufficientRouteIds.add(row.routeId);
+    }
+  }
+
+  return {
+    routeCount: routeIds.size,
+    observedRouteCount: observedRouteIds.size,
+    insufficientRouteCount: insufficientRouteIds.size,
+  };
+}
+
 function buildRouteCard(input: {
   routeId: string;
   month: string;
@@ -274,14 +300,14 @@ async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> 
     return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
   }
 
-  const observedRows = reliability.filter((row) => row.reliabilityStatus === "observed");
-  const insufficientRows = reliability.filter(
-    (row) => row.reliabilityStatus === "insufficient_gtfs_rt_samples",
-  );
+  const releaseRouteIds = new Set(batchStatus.builtRouteIds);
+  const releaseReliability = reliability.filter((row) => releaseRouteIds.has(row.routeId));
+  const observedRows = releaseReliability.filter((row) => row.reliabilityStatus === "observed");
+  const reliabilityCounts = countReliabilityRoutes(releaseReliability);
   const runIds = [...new Set(observedRows.map((row) => row.runId))].sort();
   const runId = runIds.length === 1 ? (runIds[0] ?? null) : null;
-  const observedRouteCount = observedRows.length;
-  const sampleCount = reliability.reduce((sum, row) => sum + row.sampleCount, 0);
+  const observedRouteCount = reliabilityCounts.observedRouteCount;
+  const sampleCount = releaseReliability.reduce((sum, row) => sum + row.sampleCount, 0);
   const routeCoverageShare =
     batchStatus.routeCount === 0
       ? 0
@@ -294,7 +320,11 @@ async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> 
           "Monthly public speed evidence remains official MTA Open Data; realtime evidence has separate provenance.",
         ]
       : source === "none"
-        ? ["No observed realtime evidence is attached to this release."]
+        ? observedRouteCount > 0
+          ? [
+              "Multiple observed reliability runs cover the release month; aggregate route coverage has ambiguous provenance.",
+            ]
+          : ["No observed realtime evidence is attached to this release."]
         : ["Observed realtime evidence comes from self-collected MTA Bus Time GTFS-RT snapshots."];
 
   const currentObservedSignal = currentSignalMonth
@@ -318,7 +348,7 @@ async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> 
         runId,
         source,
         observedRouteCount,
-        insufficientRouteCount: insufficientRows.length,
+        insufficientRouteCount: reliabilityCounts.insufficientRouteCount,
         sampleCount,
         routeCoverageShare,
       },
@@ -349,10 +379,7 @@ async function buildCurrentObservedSignal(
   caveats: readonly string[];
 }> {
   const rows = await listRouteObservedReliabilitySummaries(db, month);
-  const observedRows = rows.filter((row) => row.reliabilityStatus === "observed");
-  const insufficientRows = rows.filter(
-    (row) => row.reliabilityStatus === "insufficient_gtfs_rt_samples",
-  );
+  const reliabilityCounts = countReliabilityRoutes(rows);
   const runIds = [...new Set(rows.map((row) => row.runId))].sort();
   const runId = runIds.length === 1 ? (runIds[0] ?? null) : null;
   const source = realtimeSourceForRunId(runId);
@@ -374,9 +401,9 @@ async function buildCurrentObservedSignal(
     runId,
     source,
     releaseLayer: "current_signal",
-    routeCount: rows.length,
-    observedRouteCount: observedRows.length,
-    insufficientRouteCount: insufficientRows.length,
+    routeCount: reliabilityCounts.routeCount,
+    observedRouteCount: reliabilityCounts.observedRouteCount,
+    insufficientRouteCount: reliabilityCounts.insufficientRouteCount,
     sampleCount,
     caveats,
   };

@@ -924,6 +924,11 @@ describe("publish recovery command", () => {
       ]);
       expect(httpCheckCount).toBe(3);
       expect(result.completion?.kind).toBe("completion");
+      expect(result.failure).toMatchObject({
+        name: "Error",
+        message: "post-activation smoke failed",
+      });
+      expect(result.failure?.messageSha256).toMatch(/^[a-f0-9]{64}$/u);
     } finally {
       rmSync(files.root, { recursive: true, force: true });
     }
