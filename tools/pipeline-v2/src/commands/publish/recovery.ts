@@ -96,6 +96,7 @@ export type PublishRecoveryResult = {
 type PublishRecoveryDependencies = {
   fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
   httpCheck?: typeof runPlan097HttpCheck | undefined;
+  sleep?: ((milliseconds: number) => Promise<void>) | undefined;
   verifyPreflightReceipt?: typeof verifyReturnedPlan097Preflight | undefined;
 };
 
@@ -461,6 +462,36 @@ async function stageCandidate(input: {
   const manifest = decodeStrict(Plan097RecoveryArtifactManifestSchema)(
     JSON.parse(new TextDecoder().decode(manifestBytes)),
   );
+  const callStagingWorker = async (
+    request: Plan097OperationRequest,
+    logicalId: string,
+  ): Promise<Plan097OperationResponse> => {
+    const maximumAttempts = 5;
+    for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+      try {
+        return await remoteCall({
+          inputs: input.inputs,
+          dependencies: input.dependencies,
+          request,
+          execute: true,
+          tracker: input.tracker,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "unknown";
+        const transient =
+          /(?:returned non-JSON|failed with) HTTP (?:429|502|503|504)\b/u.test(message) ||
+          /(?:fetch failed|connection|ECONNRESET|timed out)/iu.test(message);
+        if (!transient || attempt === maximumAttempts) {
+          throw new Error(`Plan 097 artifact ${logicalId} staging failed: ${message}`, {
+            cause: error,
+          });
+        }
+        const delayMs = 250 * 2 ** (attempt - 1);
+        await (input.dependencies.sleep ?? Bun.sleep)(delayMs);
+      }
+    }
+    throw new Error(`Plan 097 artifact ${logicalId} staging exhausted its retry budget`);
+  };
   const stageEntry = async (
     entry: (typeof manifest.entries)[number],
   ): Promise<readonly string[]> => {
@@ -470,10 +501,8 @@ async function stageCandidate(input: {
     if (body.byteLength !== entry.bytes || sha256(body) !== entry.sha256) {
       throw new Error(`Local Plan 097 artifact ${entry.logicalId} drifted after manifest creation`);
     }
-    const staged = await remoteCall({
-      inputs: input.inputs,
-      dependencies: input.dependencies,
-      request: {
+    const staged = await callStagingWorker(
+      {
         ...base,
         action: "stage-body",
         logicalId: entry.logicalId,
@@ -482,15 +511,12 @@ async function stageCandidate(input: {
         mediaType: entry.mediaType,
         bodyBase64: base64(body),
       },
-      execute: true,
-      tracker: input.tracker,
-    });
+      entry.logicalId,
+    );
     const entryReceipts = [staged.receiptKey];
     if (input.seedProofAliases) {
-      const alias = await remoteCall({
-        inputs: input.inputs,
-        dependencies: input.dependencies,
-        request: {
+      const alias = await callStagingWorker(
+        {
           ...base,
           action: "seed-proof-alias",
           logicalId: entry.logicalId,
@@ -499,9 +525,8 @@ async function stageCandidate(input: {
           mediaType: entry.mediaType,
           bodyBase64: base64(body),
         },
-        execute: true,
-        tracker: input.tracker,
-      });
+        entry.logicalId,
+      );
       entryReceipts.push(alias.receiptKey);
     }
     return entryReceipts;
@@ -519,7 +544,7 @@ async function stageCandidate(input: {
       stagedReceiptGroups[entryIndex] = await stageEntry(entry);
     }
   };
-  const workerCount = Math.min(4, manifest.entries.length);
+  const workerCount = Math.min(2, manifest.entries.length);
   await Promise.all(Array.from({ length: workerCount }, () => stageWorker()));
   for (const receiptGroup of stagedReceiptGroups) {
     if (receiptGroup === undefined) throw new Error("Plan 097 artifact staging was incomplete");

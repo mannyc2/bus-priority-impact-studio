@@ -459,6 +459,7 @@ describe("publish recovery command", () => {
     const files = await fixture();
     const calls: Array<{ action: string; executionToken: string | null }> = [];
     const httpModes: string[] = [];
+    let transientStageFailures = 0;
     const baseline = JSON.parse(await Bun.file(files.httpBaselinePath).text()) as {
       checkedAt: string;
       activeReleaseId: string;
@@ -498,6 +499,10 @@ describe("publish recovery command", () => {
               action: request.action,
               executionToken: requestHeaders.get("X-Plan097-Execution-Token"),
             });
+            if (request.action === "stage-body" && transientStageFailures === 0) {
+              transientStageFailures += 1;
+              return new Response("temporary edge failure", { status: 503 });
+            }
             return Response.json({
               artifactKind: "bp.ops.plan097.worker-response.v1",
               schemaVersion: 1,
@@ -543,11 +548,13 @@ describe("publish recovery command", () => {
               },
             };
           },
+          sleep: async () => {},
         },
       );
       expect(result.outcome).toBe("pass");
       expect(calls.map((call) => call.action)).toEqual([
         "mirror-bundle",
+        "stage-body",
         "stage-body",
         "seed-proof-alias",
         "finalize-manifest",
