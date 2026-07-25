@@ -1,0 +1,71 @@
+{
+  "artifact_kind": "bp.plan042.service-pattern-coverage.v1",
+  "schema_version": 1,
+  "candidate_set_id": "candidate-set-v5:1fadedfcb292deda5179bdf3",
+  "database": {
+    "path": "/tmp/bp-plan074-may-review-uowKHk/pipeline.sqlite",
+    "bytes": 4969938944,
+    "sha256": "07d9d297aac22e3d57bda1909700ad8d2c1ccd7b5651eb43362253701398e079"
+  },
+  "bus_wait_table": "local_bus_wait_assessment",
+  "observed_headway_table": "local_observed_headway_sample",
+  "planned_service_table": "local_route_planned_service_baseline",
+  "planned_service_table_present": false,
+  "row_count": 5,
+  "rows": [
+    {
+      "candidate_id": "study-event-v5:a8412e0e11e85f1a3638e879",
+      "extent_id": "member-extent:017eaffda067654fedf9a0a0",
+      "route_id": "Q98",
+      "bus_wait_row_count": 0,
+      "observed_headway_row_count": 0,
+      "planned_service_row_count": 0,
+      "disposition": "missing_pinned_service_pattern_product_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:d4456efaf2b2be7c98de94a3",
+      "extent_id": "member-extent:78195ec4862d0368d1947f84",
+      "route_id": "QM21",
+      "bus_wait_row_count": 0,
+      "observed_headway_row_count": 0,
+      "planned_service_row_count": 0,
+      "disposition": "missing_pinned_service_pattern_product_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:b6e30561a2c60598b1691af9",
+      "extent_id": "member-extent:8a62071466d3b93654ac65d6",
+      "route_id": "QM44",
+      "bus_wait_row_count": 0,
+      "observed_headway_row_count": 0,
+      "planned_service_row_count": 0,
+      "disposition": "missing_pinned_service_pattern_product_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:a30b1ecff3e42a8445495845",
+      "extent_id": "member-extent:929a30158aa86d75493475f0",
+      "route_id": "QM12",
+      "bus_wait_row_count": 0,
+      "observed_headway_row_count": 0,
+      "planned_service_row_count": 0,
+      "disposition": "missing_pinned_service_pattern_product_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:5a74fca9ca2e6eeba7c18851",
+      "extent_id": "member-extent:a8aad4f1e8e5edfddac852e7",
+      "route_id": "Q82",
+      "bus_wait_row_count": 0,
+      "observed_headway_row_count": 0,
+      "planned_service_row_count": 0,
+      "disposition": "missing_pinned_service_pattern_product_coverage",
+      "authorizes_study": false
+    }
+  ],
+  "authority": {
+    "authorizes_study": false,
+    "authorizes_service_pattern_grain": false
+  }
+}

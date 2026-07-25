@@ -17,6 +17,8 @@
       "!data/working",
       "!data/artifacts",
       "!data/study-event-approvals",
+      "!docs/research/reviews/closure-plan-042/**/*.json",
+      "!docs/research/reviews/closure-plan-042/**/*.log",
       "!knowledge/raw/downloads",
       "!knowledge/raw/design-handoffs",
       "!knowledge/raw/assets",

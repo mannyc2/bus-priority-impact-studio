@@ -1,0 +1,330 @@
+$ biome check .
+analytics-primer.html:649:35 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    647 │ const ladderList=$("#ladderList");
+    648 │ LADDER.forEach(r=>{
+  > 649 │   ladderList.appendChild(ce("div","rung "+r.c,
+        │                                   ^^^^^^^^^^^
+    650 │     `<div class="lvl">${r.l}</div><div class="lab">${r.lab}</div><div class="ex">${r.ex}</div>`));
+    651 │ });
+  
+  i Unsafe fix: Use a template literal.
+  
+    231 231 │   const ladderList=$("#ladderList");
+    232 232 │   LADDER.forEach(r=>{
+    233     │ - ··ladderList.appendChild(ce("div","rung·"+r.c,
+        233 │ + ··ladderList.appendChild(ce("div",`rung·${r.c}`,
+    234 234 │       `<div class="lvl">${r.l}</div><div class="lab">${r.lab}</div><div class="ex">${r.ex}</div>`));
+    235 235 │   });
+  
+
+analytics-primer.html:668:20 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    666 │ }
+    667 │ function mkChip(host,label,val,getActive,setActive,onChange){
+  > 668 │   const c=ce("div","filterchip"+(getActive()===val?" on":""),label);
+        │                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    669 │   c.addEventListener("click",()=>{setActive(val);[...host.children].forEach(x=>{x.classList.remove("on");});c.classList.add("on");onChange();});
+    670 │   host.appendChild(c);
+  
+  i Unsafe fix: Use a template literal.
+  
+    250 250 │   }
+    251 251 │   function mkChip(host,label,val,getActive,setActive,onChange){
+    252     │ - ··const·c=ce("div","filterchip"+(getActive()===val?"·on":""),label);
+        252 │ + ··const·c=ce("div",`filterchip${getActive()===val?"·on":""}`,label);
+    253 253 │     c.addEventListener("click",()=>{setActive(val);[...host.children].forEach(x=>{x.classList.remove("on");});c.classList.add("on");onChange();});
+    254 254 │     host.appendChild(c);
+  
+
+analytics-primer.html:672:17 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    670 │   host.appendChild(c);
+    671 │ }
+  > 672 │ mkChip(dFilters,"all ("+DETECTORS.length+")","all",()=>activeCat,v=>activeCat=v,renderDetectors);
+        │                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    673 │ CATS.forEach(c=>{mkChip(dFilters,catLabel(c)+" ("+DETECTORS.filter(d=>d.cat===c).length+")",c,()=>activeCat,v=>activeCat=v,renderDetectors);});
+    674 │ renderDetectors();
+  
+  i Unsafe fix: Use a template literal.
+  
+    254 254 │     host.appendChild(c);
+    255 255 │   }
+    256     │ - mkChip(dFilters,"all·("+DETECTORS.length+")","all",()=>activeCat,v=>activeCat=v,renderDetectors);
+        256 │ + mkChip(dFilters,`all·(${DETECTORS.length})`,"all",()=>activeCat,v=>activeCat=v,renderDetectors);
+    257 257 │   CATS.forEach(c=>{mkChip(dFilters,catLabel(c)+" ("+DETECTORS.filter(d=>d.cat===c).length+")",c,()=>activeCat,v=>activeCat=v,renderDetectors);});
+    258 258 │   renderDetectors();
+  
+
+analytics-primer.html:673:34 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    671 │ }
+    672 │ mkChip(dFilters,"all ("+DETECTORS.length+")","all",()=>activeCat,v=>activeCat=v,renderDetectors);
+  > 673 │ CATS.forEach(c=>{mkChip(dFilters,catLabel(c)+" ("+DETECTORS.filter(d=>d.cat===c).length+")",c,()=>activeCat,v=>activeCat=v,renderDetectors);});
+        │                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    674 │ renderDetectors();
+    675 │ 
+  
+  i Unsafe fix: Use a template literal.
+  
+    255 255 │   }
+    256 256 │   mkChip(dFilters,"all ("+DETECTORS.length+")","all",()=>activeCat,v=>activeCat=v,renderDetectors);
+    257     │ - CATS.forEach(c=>{mkChip(dFilters,catLabel(c)+"·("+DETECTORS.filter(d=>d.cat===c).length+")",c,()=>activeCat,v=>activeCat=v,renderDetectors);});
+        257 │ + CATS.forEach(c=>{mkChip(dFilters,`${catLabel(c)}·(${DETECTORS.filter(d=>d.cat===c).length})`,c,()=>activeCat,v=>activeCat=v,renderDetectors);});
+    258 258 │   renderDetectors();
+    259 259 │   
+  
+
+analytics-primer.html:690:22 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    688 │        <div class="def">${g.d}</div>${g.w?`<div class="where"><b>where:</b> ${g.w}</div>`:""}`));
+    689 │   });
+  > 690 │   gCount.textContent=items.length+" of "+GLOSSARY.length+" terms";
+        │                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    691 │ }
+    692 │ mkChip(gFilters,"all","all",()=>gCat,v=>gCat=v,renderGlossary);
+  
+  i Unsafe fix: Use a template literal.
+  
+    272 272 │          <div class="def">${g.d}</div>${g.w?`<div class="where"><b>where:</b> ${g.w}</div>`:""}`));
+    273 273 │     });
+    274     │ - ··gCount.textContent=items.length+"·of·"+GLOSSARY.length+"·terms";
+        274 │ + ··gCount.textContent=`${items.length}·of·${GLOSSARY.length}·terms`;
+    275 275 │   }
+    276 276 │   mkChip(gFilters,"all","all",()=>gCat,v=>gCat=v,renderGlossary);
+  
+
+analytics-primer.html:721:81 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+  
+    719 │   entries.forEach(en=>{
+    720 │     if(en.isIntersecting){
+  > 721 │       navLinks.forEach(a=>{a.classList.toggle("active",a.getAttribute("href")==="#"+en.target.id);});
+        │                                                                                 ^^^^^^^^^^^^^^^^
+    722 │     }
+    723 │   });
+  
+  i Unsafe fix: Use a template literal.
+  
+    303 303 │     entries.forEach(en=>{
+    304 304 │       if(en.isIntersecting){
+    305     │ - ······navLinks.forEach(a=>{a.classList.toggle("active",a.getAttribute("href")==="#"+en.target.id);});
+        305 │ + ······navLinks.forEach(a=>{a.classList.toggle("active",a.getAttribute("href")===`#${en.target.id}`);});
+    306 306 │       }
+    307 307 │     });
+  
+
+apps/web/src/routes/routes/index.tsx:18:22 lint/complexity/useLiteralKeys  FIXABLE  ━━━━━━━━━━━━━━━━
+
+  i The computed expression can be simplified without the use of a string literal.
+  
+    16 │   staleTime: staticStudioLoaderStaleTimeMs,
+    17 │   validateSearch: (search: Record<string, unknown>) => {
+  > 18 │     const q = search["q"];
+       │                      ^^^
+    19 │     const borough = search["borough"];
+    20 │     return {
+  
+  i Unsafe fix: Use a literal key instead.
+  
+    16 16 │     staleTime: staticStudioLoaderStaleTimeMs,
+    17 17 │     validateSearch: (search: Record<string, unknown>) => {
+    18    │ - ····const·q·=·search["q"];
+       18 │ + ····const·q·=·search.q;
+    19 19 │       const borough = search["borough"];
+    20 20 │       return {
+  
+
+apps/web/src/routes/routes/index.tsx:19:28 lint/complexity/useLiteralKeys  FIXABLE  ━━━━━━━━━━━━━━━━
+
+  i The computed expression can be simplified without the use of a string literal.
+  
+    17 │   validateSearch: (search: Record<string, unknown>) => {
+    18 │     const q = search["q"];
+  > 19 │     const borough = search["borough"];
+       │                            ^^^^^^^^^
+    20 │     return {
+    21 │       ...(typeof q === "string" && q ? { q } : {}),
+  
+  i Unsafe fix: Use a literal key instead.
+  
+    17 17 │     validateSearch: (search: Record<string, unknown>) => {
+    18 18 │       const q = search["q"];
+    19    │ - ····const·borough·=·search["borough"];
+       19 │ + ····const·borough·=·search.borough;
+    20 20 │       return {
+    21 21 │         ...(typeof q === "string" && q ? { q } : {}),
+  
+
+biome.jsonc:2:14 deserialize ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i The configuration schema version does not match the CLI version 2.5.3
+  
+    1 │ {
+  > 2 │   "$schema": "https://biomejs.dev/schemas/2.4.13/schema.json",
+      │              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    3 │   "vcs": {
+    4 │     "enabled": true,
+  
+  i   Expected:                     2.5.3
+      Found:                        2.4.13
+  
+  
+  i Run the command biome migrate to migrate the configuration file.
+  
+
+biome.jsonc:48:13 deserialize  DEPRECATED  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i The use of the recommended field has been deprecated, and will removed in the next major version of Biome. Use preset instead.
+  
+    46 │     }
+    47 │   },
+  > 48 │   "linter": {
+       │             ^
+  > 49 │     "enabled": true,
+        ...
+  > 66 │     }
+  > 67 │   },
+       │   ^
+    68 │   "assist": {
+    69 │     "enabled": true,
+  
+  i Migrate the configuration with the proper command
+  
+  $ biome migrate
+  
+
+analytics-primer.html:65:3 lint/style/noDescendingSpecificity ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Descending specificity selector found. This selector specificity is (0, 1, 1)
+  
+    63 │   .callout.teal{border-color:var(--teal);background:rgba(79,209,197,.06)}
+    64 │   .callout.rose{border-color:var(--rose);background:rgba(251,113,133,.06)}
+  > 65 │   .callout b{color:var(--ink)}
+       │   ^^^^^^^^^^
+    66 │   /* layer diagram */
+    67 │   .layers{display:flex;flex-direction:column;gap:8px}
+  
+  i This selector specificity is (0, 2, 1)
+  
+    53 │   .spine{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    54 │   .spine .chip{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+  > 55 │   .spine .chip b{font-family:var(--mono);font-size:13px}
+       │   ^^^^^^^^^^^^^^
+    56 │   .spine .chip.c1 b{color:var(--blue)} .spine .chip.c2 b{color:var(--amber)} .spine .chip.c3 b{color:var(--green)}
+    57 │   .spine .chip span{display:block;color:var(--ink3);font-size:12.5px;margin-top:4px}
+  
+  i Descending specificity selector may not be applied. Consider rearranging the order of the selectors. See MDN web docs for more details.
+  
+
+analytics-primer.html:107:3 lint/style/noDescendingSpecificity ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Descending specificity selector found. This selector specificity is (0, 2, 0)
+  
+    105 │   .gterm .cat{font-family:var(--mono);font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em}
+    106 │   .gterm .def{color:var(--ink2);font-size:13.8px;margin-top:5px}
+  > 107 │   .gterm .where{color:var(--ink3);font-size:11.5px;font-family:var(--mono);margin-top:5px}
+        │   ^^^^^^^^^^^^^
+    108 │   .gterm .where b{color:var(--ink2);font-weight:600}
+    109 │   /* detector cards */
+  
+  i This selector specificity is (0, 3, 0)
+  
+    88 │   .step .content{padding-bottom:18px;flex:1}
+    89 │   .step .title{font-weight:600;font-size:14.5px;padding-top:4px}
+  > 90 │   .step .title .where{font-family:var(--mono);font-size:11px;color:var(--ink3);font-weight:400;margin-left:8px}
+       │   ^^^^^^^^^^^^^^^^^^^
+    91 │   .step .detail{display:none;margin-top:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;color:var(--ink2)}
+    92 │   .step.open .detail{display:block}
+  
+  i Descending specificity selector may not be applied. Consider rearranging the order of the selectors. See MDN web docs for more details.
+  
+
+analytics-primer.html:145:3 lint/style/noDescendingSpecificity ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Descending specificity selector found. This selector specificity is (0, 1, 2)
+  
+    143 │   .statcol.built li::before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:700}
+    144 │   .statcol.gap li::before{content:"○";position:absolute;left:2px;color:var(--amber)}
+  > 145 │   .statcol li b{color:var(--ink);font-family:var(--mono);font-size:12.5px}
+        │   ^^^^^^^^^^^^^
+    146 │   footer{border-top:1px solid var(--line);padding:24px 0;color:var(--ink3);font-size:12.5px;max-width:75ch}
+    147 │   @media(max-width:880px){
+  
+  i This selector specificity is (0, 2, 1)
+  
+    53 │   .spine{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    54 │   .spine .chip{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+  > 55 │   .spine .chip b{font-family:var(--mono);font-size:13px}
+       │   ^^^^^^^^^^^^^^
+    56 │   .spine .chip.c1 b{color:var(--blue)} .spine .chip.c2 b{color:var(--amber)} .spine .chip.c3 b{color:var(--green)}
+    57 │   .spine .chip span{display:block;color:var(--ink3);font-size:12.5px;margin-top:4px}
+  
+  i Descending specificity selector may not be applied. Consider rearranging the order of the selectors. See MDN web docs for more details.
+  
+
+docs/research/artifacts/candidate-set-v3-575ee30a44f2e141e97f6a77.study-events.json check ━━━━━━━━━━
+
+  ! The size of the file is 1.1 MiB, which exceeds the configured maximum of 1.0 MiB for this project.
+    Use the `files.maxSize` configuration to change the maximum size of files processed, or `files.includes` to ignore the file.
+  
+
+docs/research/artifacts/candidate-set-v3-80050ed598f3b2ab0d0a1e99.study-events.json check ━━━━━━━━━━
+
+  ! The size of the file is 1.1 MiB, which exceeds the configured maximum of 1.0 MiB for this project.
+    Use the `files.maxSize` configuration to change the maximum size of files processed, or `files.includes` to ignore the file.
+  
+
+docs/research/artifacts/candidate-set-v3-9761a5648df08fbdf6c38bb4.study-events.json check ━━━━━━━━━━
+
+  ! The size of the file is 1.1 MiB, which exceeds the configured maximum of 1.0 MiB for this project.
+    Use the `files.maxSize` configuration to change the maximum size of files processed, or `files.includes` to ignore the file.
+  
+
+docs/research/artifacts/candidate-set-v3-aba25fe4209247be31d43b66.study-events.json check ━━━━━━━━━━
+
+  ! The size of the file is 1.1 MiB, which exceeds the configured maximum of 1.0 MiB for this project.
+    Use the `files.maxSize` configuration to change the maximum size of files processed, or `files.includes` to ignore the file.
+  
+
+docs/research/artifacts/mta-wiki-v1-rc19.operational-occurrences-import.json check ━━━━━━━━━━━━━━━━━
+
+  ! The size of the file is 1.1 MiB, which exceeds the configured maximum of 1.0 MiB for this project.
+    Use the `files.maxSize` configuration to change the maximum size of files processed, or `files.includes` to ignore the file.
+  
+
+docs/research/artifacts/mta-wiki-v1-rc25.operational-occurrences-import.json check ━━━━━━━━━━━━━━━━━
+
+  ! The size of the file is 1.1 MiB, which exceeds the configured maximum of 1.0 MiB for this project.
+    Use the `files.maxSize` configuration to change the maximum size of files processed, or `files.includes` to ignore the file.
+  
+
+docs/research/artifacts/study-review-cut-v1-5298f37aac8780666c742f7d.study-events.json check ━━━━━━━━━━
+
+  ! The size of the file is 1.2 MiB, which exceeds the configured maximum of 1.0 MiB for this project.
+    Use the `files.maxSize` configuration to change the maximum size of files processed, or `files.includes` to ignore the file.
+  
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 557.
+Checked 1119 files in 260ms. No fixes applied.
+Found 6 errors.
+Found 39 warnings.
+Found 532 infos.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+
+error: script "check:style" exited with code 1

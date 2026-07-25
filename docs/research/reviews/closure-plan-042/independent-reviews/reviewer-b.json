@@ -1,0 +1,43 @@
+{
+  "artifact_kind": "bp.plan042.independent-review-receipt.v1",
+  "schema_version": 1,
+  "reviewer_id": "plan042-independent-reviewer-b",
+  "reviewed_acceptance_manifest": {
+    "path": "docs/research/reviews/closure-plan-042/acceptance-manifest.json",
+    "sha256": "05e4f6f00dea8688acbe07c613930541714d7335a3bb6375680fe5cbad09454f"
+  },
+  "reviewed_review_cut_id": "study-review-cut-v2:1ae9e99a8b4c32793b5dbc86",
+  "package_ids": [
+    "ace-route-grain-1-of-2",
+    "ace-route-grain-2-of-2",
+    "bounded-extent-38",
+    "identity-terminal-1-of-7",
+    "identity-terminal-2-of-7",
+    "identity-terminal-3-of-7",
+    "identity-terminal-4-of-7",
+    "identity-terminal-5-of-7",
+    "identity-terminal-6-of-7",
+    "identity-terminal-7-of-7",
+    "lineage-22",
+    "member-automated-bus-lane-enforcement-grain-context-only-1-of-1",
+    "member-automated-bus-lane-enforcement-grain-matched-primary-1-of-1",
+    "member-bus-stop-or-boarding-blocked-member-grain-absent-in-source-1-of-2",
+    "member-bus-stop-or-boarding-blocked-member-grain-absent-in-source-2-of-2",
+    "member-fare-collection-grain-context-only-1-of-1",
+    "member-service-pattern-blocked-member-grain-absent-in-source-1-of-2",
+    "member-service-pattern-blocked-member-grain-absent-in-source-2-of-2",
+    "member-service-pattern-grain-context-only-1-of-1",
+    "service-product-coverage-gap-5",
+    "stop-set-6",
+    "upstream-risk-automated-bus-lane-enforcement-1-of-1",
+    "upstream-risk-bus-stop-or-boarding-1-of-1",
+    "upstream-risk-fare-collection-1-of-1",
+    "upstream-risk-service-pattern-1-of-1"
+  ],
+  "verdict": "approve",
+  "findings": [],
+  "authority": {
+    "authorizes_study": false,
+    "authorizes_publication": false
+  }
+}

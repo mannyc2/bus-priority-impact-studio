@@ -1,0 +1,72 @@
+$ bun run check:web-architecture && bun run check:design-doctrine && bun run check:month-doctrine && bun run check:claude-config
+$ bun test tests/harness/production-boundaries.test.ts --timeout 5000
+bun test v1.3.14 (0d9b296a)
+
+tests/harness/production-boundaries.test.ts:
+(pass) production boundary harness > root package exposes v2 pipeline entrypoints and no stale v1 script paths [0.63ms]
+(pass) production boundary harness > public app code does not import local analytics, source fetchers, pipeline code, or wiki files [13.00ms]
+(pass) production boundary harness > production runtime does not import Studio seed data or dev demo fixtures [6.27ms]
+(pass) production boundary harness > public Studio runtime keeps R2 projection keys private behind REST resources [4.42ms]
+(pass) production boundary harness > Plan 097 centralizes Studio R2 reads and leaves only the verified map loader direct [0.30ms]
+(pass) production boundary harness > Plan 097 keeps production mutation behind the protected atomic transport [0.53ms]
+(pass) production boundary harness > Plan 097 proof template cannot bind or route to production [0.22ms]
+(pass) production boundary harness > Plan 097 operation templates disable preview-URL bypass [0.15ms]
+(pass) production boundary harness > Plan 097 reader predeploy is receipt-backed and rolls the Worker back on failure [0.31ms]
+(pass) production boundary harness > domain package remains infrastructure-free [8.44ms]
+(pass) production boundary harness > @bp/analytics stays pure and does not import storage, applied-research, filesystem, or dataframe runtimes [8.04ms]
+(pass) production boundary harness > @bp/applied-research package stays removed after the hard cutover [0.24ms]
+(pass) production boundary harness > Studio API package stays a Cloudflare runtime boundary without UI, pipeline, analytics, or source fetchers [4.15ms]
+(pass) production boundary harness > pipeline-v2 imports analytics only through package subpaths [12.39ms]
+(pass) production boundary harness > Effect-zone source code consumes nyc-transit-kit through native packages, not compat [13.65ms]
+(pass) production boundary harness > pipeline-v2 command modules keep SQLite runtime construction behind Effect services [4.52ms]
+(pass) production boundary harness > package root barrels use explicit re-exports [0.31ms]
+(pass) production boundary harness > @bp/sources exposes only intentional subpath exports [0.51ms]
+(pass) production boundary harness > @bp/sources is SODA3-only and keeps Bun/runtime adapters isolated [2.84ms]
+(pass) production boundary harness > repo code imports @bp/sources through explicit subpaths only [35.85ms]
+(pass) production boundary harness > repo code does not import zod directly [41.93ms]
+(pass) production boundary harness > repo code does not import the removed schema compatibility facade [40.25ms]
+(pass) production boundary harness > repo code does not recreate deleted Socrata source-client imports [59.75ms]
+(pass) production boundary harness > browser-facing web modules do not import transit kit or source packages [6.38ms]
+(pass) production boundary harness > Studio API and web runtime do not import @bp/sources [6.37ms]
+(pass) production boundary harness > tests stay out of production src trees [2.73ms]
+(pass) production boundary harness > new D1 query modules use Drizzle repositories instead of raw D1 prepare calls [0.65ms]
+
+ 27 pass
+ 0 fail
+ 11734 expect() calls
+Ran 27 tests across 1 file. [353.00ms]
+$ bun test tests/harness/design-doctrine.test.ts --timeout 5000
+bun test v1.3.14 (0d9b296a)
+
+tests/harness/design-doctrine.test.ts:
+(pass) design doctrine > no un-allowlisted interpunct metadata chains [7.59ms]
+(pass) design doctrine > no un-allowlisted kicker eyebrows [4.84ms]
+(pass) design doctrine > no un-allowlisted banned phrases [7.17ms]
+(pass) design doctrine > KICKER_CLASS flags eyebrows but not functional small-caps labels [0.03ms]
+(pass) design doctrine > BANNED_PHRASES match prose forms but not identifiers [0.05ms]
+
+ 5 pass
+ 0 fail
+ 15 expect() calls
+Ran 5 tests across 1 file. [75.00ms]
+$ bun test tests/harness/month-doctrine.test.ts --timeout 5000
+bun test v1.3.14 (0d9b296a)
+
+tests/harness/month-doctrine.test.ts:
+(pass) month doctrine scanner > current tree matches the exact shrink-only baseline [50.28ms]
+(pass) month doctrine scanner > retired tokens are exact and embedded storage names remain legal [0.15ms]
+(pass) month doctrine scanner > releaseMonth is scoped and d1-input readers are contextual [0.17ms]
+(pass) month doctrine scanner > analysisPeriod is scoped to release identity and the two map output keys [0.16ms]
+(pass) month doctrine scanner > serialized keys and identity phrases stay on their audited surfaces [0.05ms]
+(pass) month doctrine scanner > public selectors cover method, optional, bracket, static, and object variants [0.33ms]
+(pass) month doctrine scanner > pinned literal lexer ignores comments, URIs, dates, timestamps, and regexes [0.07ms]
+(pass) month doctrine scanner > legal month grain and excluded path segments remain legal [0.05ms]
+(pass) month doctrine scanner > allowlist audit rejects drift and can enforce the initial permanent-entry guard [0.15ms]
+(pass) month doctrine scanner > allowlist entries must be sorted by file and rule [0.05ms]
+
+ 10 pass
+ 0 fail
+ 64 expect() calls
+Ran 10 tests across 1 file. [123.00ms]
+$ bun run tools/pipeline-v2/src/checks/check-claude-config.ts
+Claude config check passed (7 required files)

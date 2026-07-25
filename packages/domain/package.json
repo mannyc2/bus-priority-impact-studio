@@ -84,6 +84,11 @@
       "bun": "./src/studio/interventions.ts",
       "import": "./src/studio/interventions.ts"
     },
+    "./studio/member-grain-outcomes": {
+      "types": "./src/studio/member-grain-outcomes.ts",
+      "bun": "./src/studio/member-grain-outcomes.ts",
+      "import": "./src/studio/member-grain-outcomes.ts"
+    },
     "./studio/intervention-corpus-key": {
       "types": "./src/studio/intervention-corpus-key.ts",
       "bun": "./src/studio/intervention-corpus-key.ts",

@@ -1,0 +1,65 @@
+{
+  "artifact_kind": "bp.plan042.producer-import.v1",
+  "schema_version": 1,
+  "producer": {
+    "release_id": "v1-rc28",
+    "final_checkpoint_commit": "dc1b1008086bede1d88a1a38afd1747a9d24658a",
+    "final_checkpoint_path": "data/quality/study-frontier-closure/plan-041-final-checkpoint-v1.json",
+    "final_checkpoint_sha256": "a4eb448ade6361d85fe190103a74606017e4f5a244add480f92990ba45bf368f",
+    "manifest_sha256": "b47a105dc78501210f2d32e6f597f878203b8cfc35654cebc4de445d575a453c",
+    "handoff_path": "data/quality/study-frontier-closure/plan-041-producer-handoff.json",
+    "handoff_sha256": "986dfc18adc7867975c338e960eb99fa808cb585a091073887f744427e471aec"
+  },
+  "source_occurrence_count": 131,
+  "eligible_occurrence_count": 130,
+  "route_projection_count": 167,
+  "complete_occurrence_route_count": 168,
+  "source_artifacts": [
+    {
+      "role": "occurrence",
+      "path": "data/exports/releases/v1-rc28/operational_occurrences.jsonl",
+      "bytes": 865769,
+      "sha256": "6cb8654efee370d7444405ce3a0cdb8ce6fa394e6ada2347982cbec49df701ef",
+      "row_count": 131
+    },
+    {
+      "role": "member_extent",
+      "path": "data/exports/releases/v1-rc28/member-extent/data/contracts/operational-occurrence-member-extent/v1/operational_occurrence_member_extents.jsonl",
+      "bytes": 379210,
+      "sha256": "5ca1ba253a75a577c0e32b249508873d5a5114f2bbb2565dba80e7fa60deab0e",
+      "row_count": 308
+    },
+    {
+      "role": "member_grain",
+      "path": "data/exports/releases/v1-rc28/study-frontier-closure/data/contracts/operational-occurrence-member-grain/v1/operational_occurrence_member_grain.jsonl",
+      "bytes": 353242,
+      "sha256": "d5555770fe4b82764f685eb2f2f755d9790a09ad153fd7ace10bb81ae06b7679",
+      "row_count": 308
+    },
+    {
+      "role": "identity_verdict",
+      "path": "data/exports/releases/v1-rc28/study-frontier-closure/data/contracts/bus-lane-identity-verdicts-v1/bus_lane_identity_verdicts.jsonl",
+      "bytes": 241856,
+      "sha256": "6f98d0975aeb9e0cc2786db528b6196a5bb1b8ccf8dc880d061245adf6d1434d",
+      "row_count": 321
+    },
+    {
+      "role": "bridge_v2",
+      "path": "data/exports/releases/v1-rc28/study-frontier-closure/data/quality/study-readiness/v2/bridge-ledger.jsonl",
+      "bytes": 1244111,
+      "sha256": "4744dee6e246393460959412e8dbfd7f05ee7a6dd14a1fca408d8a8cf13d988e",
+      "row_count": 484
+    }
+  ],
+  "evidence_policy": {
+    "authoritative_historical_full_stop_inventory_required": true,
+    "exact_positive_required": true,
+    "occurrence_inference_prohibited": true,
+    "stop_id_equivalence_acquisition_required": true
+  },
+  "authority": {
+    "authorizes_study": false,
+    "authorizes_occurrence": false,
+    "authorizes_cross_product": false
+  }
+}

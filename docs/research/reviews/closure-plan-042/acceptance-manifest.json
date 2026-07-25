@@ -1,0 +1,1368 @@
+{
+  "artifact_kind": "bp.plan042.acceptance-manifest.v1",
+  "schema_version": 1,
+  "candidate_set_id": "candidate-set-v5:1fadedfcb292deda5179bdf3",
+  "review_cut_id": "study-review-cut-v2:1ae9e99a8b4c32793b5dbc86",
+  "artifacts": [
+    {
+      "artifact_id": "candidate-set-v5",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/candidate-set-v5.json",
+      "bytes": 536535,
+      "sha256": "bfc1ab93cc805939459c2d471c6c6cca72f370627385c43f8b46ceb77674e9fe",
+      "row_count": 555
+    },
+    {
+      "artifact_id": "extent-segment-bindings",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/extent-segment-bindings.json",
+      "bytes": 62686,
+      "sha256": "c5f0c1499799e15da85e6cb0aa9d17c5fc0385b5890643b7f46f9e21679940dc",
+      "row_count": 48
+    },
+    {
+      "artifact_id": "grain-verdict-matrix",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/grain-verdict-matrix.json",
+      "bytes": 463013,
+      "sha256": "5b0a411b95cbeca9ea66889dd3d54289235432ecb9a76f7c9e02e256a6d028cc",
+      "row_count": 695
+    },
+    {
+      "artifact_id": "identity-verdict-import",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/identity-verdict-import.json",
+      "bytes": 294740,
+      "sha256": "df89088f0e6df261c63928994f8779b8a0ca56f972372ed1f40b5a219bad08da",
+      "row_count": 321
+    },
+    {
+      "artifact_id": "lineage-comparability",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/lineage-comparability.json",
+      "bytes": 86024,
+      "sha256": "ac8c933089cae8c3bdefeed60f62d2c0150ae108d8b3a5091be6899e7183986b",
+      "row_count": 22
+    },
+    {
+      "artifact_id": "member-grain-import",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/member-grain-import.json",
+      "bytes": 457205,
+      "sha256": "e80c5e1b0173e02a4c27919bf82c50e56343903ad75160f426e41d4ae78bdb96",
+      "row_count": 308
+    },
+    {
+      "artifact_id": "outcome-relevance-registry",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/outcome-relevance-registry.json",
+      "bytes": 6845,
+      "sha256": "e2046164fdbbc4fe663e507ec70e87fd0a3288cf399230536e23fb60c3b5e99e",
+      "row_count": null
+    },
+    {
+      "artifact_id": "pending-review-handoff",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/pending-review-handoff.json",
+      "bytes": 46525,
+      "sha256": "09a26c3d7c9faf84972e63f3c055410f57f1a4b94c2c74e5c30da19b14173a0b",
+      "row_count": 695
+    },
+    {
+      "artifact_id": "producer-import",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/producer-import.json",
+      "bytes": 2743,
+      "sha256": "48a3ae009995e45396ad81f47af9dcd0984b13250f364c654bba025363f33b7f",
+      "row_count": null
+    },
+    {
+      "artifact_id": "service-pattern-coverage",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/service-pattern-coverage.json",
+      "bytes": 2581,
+      "sha256": "6562eaa91b81817f528f23939a6853d82f4bdc60514872134a7a76ae6e228ad6",
+      "row_count": 5
+    },
+    {
+      "artifact_id": "stop-set-coverage",
+      "path": "docs/research/reviews/closure-plan-042/artifacts/stop-set-coverage.json",
+      "bytes": 9956,
+      "sha256": "8c11f58edf185f1855448c33dfe33881ff427535bfc9637d030d747feaaf4f35",
+      "row_count": 9
+    }
+  ],
+  "implementation_files": [
+    {
+      "path": "biome.jsonc",
+      "bytes": 1621,
+      "sha256": "98141b52e11c336dc27919b54570c5c3f18a1ecd7c3ac3c609484b387875071f"
+    },
+    {
+      "path": "packages/domain/package.json",
+      "bytes": 6181,
+      "sha256": "10751fc70d331f7e0dbaad8368b20da606db3a40d162a65f2efa0f7a800ea3e8"
+    },
+    {
+      "path": "packages/domain/src/studio/member-grain-outcomes.ts",
+      "bytes": 33704,
+      "sha256": "f83c33f31ff2e365441cb771830ebafc0bb740fec98b7d1cfcaa4f6950d2c53b"
+    },
+    {
+      "path": "tools/pipeline-v2/src/cli/registry.ts",
+      "bytes": 4568,
+      "sha256": "9f1c50e116f6308828307e86b0f6cf8b892b39e5c04543bdae7e2331a3a65cf4"
+    },
+    {
+      "path": "tools/pipeline-v2/src/commands/render-closure-downstream-pin.ts",
+      "bytes": 1552,
+      "sha256": "a39f5d0ff8e04d4fbb1b93441be7fec57bb19a920df017be8ef56e3fee46897c"
+    },
+    {
+      "path": "tools/pipeline-v2/src/commands/study/certify-member-grain-outcomes.ts",
+      "bytes": 2866,
+      "sha256": "b671005e86372599bf69f8ce5d3bccd022565bf316c5688c8a2d574f38b29555"
+    },
+    {
+      "path": "tools/pipeline-v2/src/commands/study/finalize-member-grain-review.ts",
+      "bytes": 1421,
+      "sha256": "7e93563477bbce829a022e4f1850b8daea66260237cc19a9db4c8fed95578609"
+    },
+    {
+      "path": "tools/pipeline-v2/src/commands/study/freeze-member-grain-acceptance.ts",
+      "bytes": 2023,
+      "sha256": "1c844d2c4fb863f3aa49d3ee31dca6aca0f7346717e04b759d96f706503c4293"
+    },
+    {
+      "path": "tools/pipeline-v2/src/commands/verify-closure-receipt.ts",
+      "bytes": 1274,
+      "sha256": "91abbb66d72bf0292b65f7523f3f86f341a83f8e24f293fb272858265db0c598"
+    },
+    {
+      "path": "tools/pipeline-v2/src/lib/plan042-acceptance.ts",
+      "bytes": 10723,
+      "sha256": "da2c7e315f7395214b360a7742a08ccce6a214632e44278b34ba694eb3050db0"
+    },
+    {
+      "path": "tools/pipeline-v2/src/lib/plan042-closure-receipt.ts",
+      "bytes": 39460,
+      "sha256": "486b9fd86557074ef2156a2bfb298f6a260312e4e58cf342c169bbf1ca5595dd"
+    },
+    {
+      "path": "tools/pipeline-v2/src/lib/plan042-member-grain.ts",
+      "bytes": 112994,
+      "sha256": "fb8ff4a65d816ba56e959c813042e9e6de7824efd00afceec2c42bd63f136427"
+    },
+    {
+      "path": "tools/pipeline-v2/src/lib/plan042-review-finalizer.ts",
+      "bytes": 6243,
+      "sha256": "049b49497aaf897c569e3c30a5daf70627de58e20d21a1a31ea93b86c98d6af0"
+    },
+    {
+      "path": "tools/pipeline-v2/test/cli/registry.test.ts",
+      "bytes": 4236,
+      "sha256": "e70f7ba5c3f1e38dfe3f47cafd6386fc872e84d7b23463bc0096fd1f4b1116ac"
+    },
+    {
+      "path": "tools/pipeline-v2/test/lib/plan042-closure-receipt.test.ts",
+      "bytes": 27291,
+      "sha256": "f89406219f404632108431b18bfa6da2d6a55a3c85356c9c61138663fdbc3ea7"
+    },
+    {
+      "path": "tools/pipeline-v2/test/lib/plan042-member-grain.test.ts",
+      "bytes": 15065,
+      "sha256": "79e57a42dbf15a8dba84839af03378f1bb1dff73c9e8f2e7da88f1123628980f"
+    }
+  ],
+  "checks": {
+    "focused": {
+      "check_id": "focused",
+      "command": "bun test tools/pipeline-v2/test/lib/plan042-member-grain.test.ts tools/pipeline-v2/test/lib/plan042-closure-receipt.test.ts tools/pipeline-v2/test/cli/registry.test.ts --timeout 30000 > docs/research/reviews/closure-plan-042/verification/focused.log 2>&1",
+      "exit_code": 0,
+      "result": "passed",
+      "log": {
+        "path": "docs/research/reviews/closure-plan-042/verification/focused.log",
+        "bytes": 2988,
+        "sha256": "e7ec04516613317ce12327287de091515cbb8635db95ebf5e90e8165ee52910c"
+      }
+    },
+    "typecheck": {
+      "check_id": "typecheck",
+      "command": "bun run check:types > docs/research/reviews/closure-plan-042/verification/typecheck.log 2>&1",
+      "exit_code": 0,
+      "result": "passed",
+      "log": {
+        "path": "docs/research/reviews/closure-plan-042/verification/typecheck.log",
+        "bytes": 96,
+        "sha256": "d66710133b8fc6aa562a6478a1f9fe034e32cc91b77368d1586f952d67a30d0f"
+      }
+    },
+    "validation": {
+      "check_id": "validation",
+      "command": "bun run pipeline -- study certify-member-grain-outcomes --producer-root /tmp/mta-wiki-plan-041 --prior-review-cut docs/research/artifacts/study-review-cut-v1-df3d8d2eda43c77738cf50ad.study-events.json --prior-reconciliation docs/research/reviews/rc27-member-grain/study-review-cut-v1-df3d8d2eda43c77738cf50ad.reconciliation.json --review-inputs docs/research/artifacts/study-review-cut-v1-df3d8d2eda43c77738cf50ad.review-inputs.json --spine-artifact-root /tmp/bp-plan074-may-review-uowKHk/artifacts --plan096-database /tmp/bp-plan074-may-review-uowKHk/pipeline.sqlite --output-dir docs/research/reviews/closure-plan-042/artifacts > docs/research/reviews/closure-plan-042/verification/validation.log 2>&1",
+      "exit_code": 0,
+      "result": "passed",
+      "log": {
+        "path": "docs/research/reviews/closure-plan-042/verification/validation.log",
+        "bytes": 2790,
+        "sha256": "9842f62f92495aee83d08198ff0851a07045df4f74e7e8962e20749f2fb96c2f"
+      }
+    },
+    "replay": {
+      "check_id": "replay",
+      "command": "bun run pipeline -- study certify-member-grain-outcomes --producer-root /tmp/mta-wiki-plan-041 --prior-review-cut docs/research/artifacts/study-review-cut-v1-df3d8d2eda43c77738cf50ad.study-events.json --prior-reconciliation docs/research/reviews/rc27-member-grain/study-review-cut-v1-df3d8d2eda43c77738cf50ad.reconciliation.json --review-inputs docs/research/artifacts/study-review-cut-v1-df3d8d2eda43c77738cf50ad.review-inputs.json --spine-artifact-root /tmp/bp-plan074-may-review-uowKHk/artifacts --plan096-database /tmp/bp-plan074-may-review-uowKHk/pipeline.sqlite --output-dir /tmp/plan042-final-replay-g0El2f > docs/research/reviews/closure-plan-042/verification/replay.log 2>&1",
+      "exit_code": 0,
+      "result": "passed",
+      "log": {
+        "path": "docs/research/reviews/closure-plan-042/verification/replay.log",
+        "bytes": 2733,
+        "sha256": "42f425153787ce51dad85e541dd37a7ebaadbcc32f56352dcc0c84e7169ed9ed"
+      },
+      "replay_artifact_tree_sha256": "30b53216d33ad7a908c0a9a16f86a11a4926b0b94413952f14d9ab8cc2bf625d"
+    }
+  },
+  "package_results": [
+    {
+      "package_id": "identity-terminal-1-of-7",
+      "candidate_or_member_count": 46,
+      "item_ids": [
+        "study-event-v2:01543c6aea376f5267b3d4e3",
+        "study-event-v2:0382dfed0d01c45c5bc0b239",
+        "study-event-v2:03cf27aac5906110d05d23d8",
+        "study-event-v2:04c91163b8c348bdc7844496",
+        "study-event-v2:06559cef3f03e1672b7dd685",
+        "study-event-v2:0a47645a8678230dafc2b998",
+        "study-event-v2:0a61de93086978c23e450622",
+        "study-event-v2:0b033c98a2b77a6ffc3b8c74",
+        "study-event-v2:0b4f3c0feef2704f931797f7",
+        "study-event-v2:0df8b100e7b1976e4a3b799c",
+        "study-event-v2:0fcd53c253a91889aa2e87a4",
+        "study-event-v2:1044e4c6d59116028fb39324",
+        "study-event-v2:139f1b975c4eacc78aadb704",
+        "study-event-v2:13b8223c9ef18ac540bb3818",
+        "study-event-v2:1444c6a77bd32667d77f1515",
+        "study-event-v2:14481a533cb72e533f82aba6",
+        "study-event-v2:1487a86f8b875536010f08f7",
+        "study-event-v2:1609f465f6e34f39dd4d24cb",
+        "study-event-v2:1647ec14d95053d69c206349",
+        "study-event-v2:16f5421131675c7d76b497df",
+        "study-event-v2:1745cd54f25a19684bbf9621",
+        "study-event-v2:17dbbc23921e97072199fddc",
+        "study-event-v2:17dced7b33f61eb49e6fff59",
+        "study-event-v2:17f22e6cfca6e8a99bdc1eda",
+        "study-event-v2:181ce9435dbdfebe183a19dd",
+        "study-event-v2:195748bfab0676c2da24e110",
+        "study-event-v2:199fd7c07f7735057afcf53c",
+        "study-event-v2:1a01def5e86b1c877f443b32",
+        "study-event-v2:1beacfade6ff9eb087f32cfa",
+        "study-event-v2:1c92a5876a11c189aabd18de",
+        "study-event-v2:1cbaaf7452f0b9e42fa76a47",
+        "study-event-v2:1d69f114f70b07d4956a5767",
+        "study-event-v2:1e454e6d5a388653b0894ea1",
+        "study-event-v2:1ecb5f16511e545aae304745",
+        "study-event-v2:1ecbb3334baa1b9d4b42fd9d",
+        "study-event-v2:1f45a4d0c9a7e6c0f5288902",
+        "study-event-v2:21d3847b6a4c908dafcc58d3",
+        "study-event-v2:2394a813bf381036d1ac152d",
+        "study-event-v2:257a4359bc7c98d806eb7982",
+        "study-event-v2:258b3fe6836e1710519a2dcf",
+        "study-event-v2:25a7a91317fe03b93c25053e",
+        "study-event-v2:26e0df254f9a15682b4afa24",
+        "study-event-v2:26e1b5a6a00cb56c21c1558d",
+        "study-event-v2:27809ccc94ddd191d044f70d",
+        "study-event-v2:27a957f6baf21a291bc5a3c1",
+        "study-event-v2:27f3c14067da89c2eeea44b7"
+      ],
+      "item_ids_sha256": "9baacfcf081907c7be0f5bfd06b05600024cd87f2aa384fe3fec2c0ea81057ca",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "identity-terminal-2-of-7",
+      "candidate_or_member_count": 46,
+      "item_ids": [
+        "study-event-v2:28473f513306fd88631f84a1",
+        "study-event-v2:2903c93577f1e07b34fa218c",
+        "study-event-v2:2954b9c6483f74e7ca7ee209",
+        "study-event-v2:2a6f3a01c4c04d271848eb22",
+        "study-event-v2:2aec14448b2a52a3db312a05",
+        "study-event-v2:2b35fb050a00f209ea56c274",
+        "study-event-v2:2b6e97f1a5f3999906627f0a",
+        "study-event-v2:2bf21f8b2e848146ccd6da62",
+        "study-event-v2:2bff44ac436feeed4f40f192",
+        "study-event-v2:2d2be03b8437c8af3bf6ddef",
+        "study-event-v2:2d64abb517461dd62bc20aba",
+        "study-event-v2:2dd76c9b799ab1165b237330",
+        "study-event-v2:3125eec5d84baef3da7c6354",
+        "study-event-v2:3134629ede9faeff4c6f54b5",
+        "study-event-v2:319c777098c8f55d6f179794",
+        "study-event-v2:31dc2c0f0cf2eb6af111f24a",
+        "study-event-v2:322750cec4ed22e7ea70c365",
+        "study-event-v2:32b35c755f24d0134edafd2c",
+        "study-event-v2:342ce7d737a7606774f05113",
+        "study-event-v2:34809d7c5a4528b2ffa983b0",
+        "study-event-v2:348334159c02b5867bf97e3d",
+        "study-event-v2:3551add51fde883be224a663",
+        "study-event-v2:35b924de75751e620ff5cd1b",
+        "study-event-v2:36551be6cc4f3abae2c9ef45",
+        "study-event-v2:37447319d0697677f54ec0db",
+        "study-event-v2:37ab712782bdc5f4cf2dc7c5",
+        "study-event-v2:3a7457be7847b8857c79fc68",
+        "study-event-v2:3b4d43dfbd027b63ee039e57",
+        "study-event-v2:3d294e2558b6464db48e92e8",
+        "study-event-v2:3f2f3824ccf3987f4fac2f73",
+        "study-event-v2:402891ffb84a6b92f6f71c6a",
+        "study-event-v2:402e35b93b2e18dd50b8bf4d",
+        "study-event-v2:40faf059c0562d9c833d1f61",
+        "study-event-v2:4119d23657b004509ac31fff",
+        "study-event-v2:416b59adb9fdb0e32870e04f",
+        "study-event-v2:42a27ad7049ad2db9beea833",
+        "study-event-v2:44d878fb368d2078795bfb21",
+        "study-event-v2:452901b4951f8fd3f5105e3e",
+        "study-event-v2:46c8b92e09eb8c2d0c08224f",
+        "study-event-v2:479ca90ec5ec9eef7d7420b1",
+        "study-event-v2:47ceb9d8f3e10afeb1e04b52",
+        "study-event-v2:47e50a2f42b62168f5cb97ba",
+        "study-event-v2:483ca18997ba39e7aef34e5e",
+        "study-event-v2:48dd09691527b3d9a24952d2",
+        "study-event-v2:48e7c5e9da628de6948d5f06",
+        "study-event-v2:4aab43f538f559e0bfd4efdb"
+      ],
+      "item_ids_sha256": "36923508bd6fdce5af39b4206ce7c356608a554b61b04f22a7db7bba35dbf360",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "identity-terminal-3-of-7",
+      "candidate_or_member_count": 46,
+      "item_ids": [
+        "study-event-v2:4f20a93956a3af9db4bad8c1",
+        "study-event-v2:4f4f2025b408914e8a75af2a",
+        "study-event-v2:5034ea9d206465b14427a8ad",
+        "study-event-v2:51117c7d92f61b3b9f1b804f",
+        "study-event-v2:52440d738f767e43efad10be",
+        "study-event-v2:531b37f7c6e156178c51707a",
+        "study-event-v2:5331ed99732b4d74b237d022",
+        "study-event-v2:53e9db2ddeac50d1b1c14580",
+        "study-event-v2:56144ad13c89a760eca742f1",
+        "study-event-v2:56a19ae37a156ba38aefa748",
+        "study-event-v2:56a8541d9b025aa2d1fbecea",
+        "study-event-v2:56eb1dc4b09b060f2e138050",
+        "study-event-v2:5738acdaf737652f1f7028ef",
+        "study-event-v2:587458d9d25ef68f629c8a60",
+        "study-event-v2:58c2eb3ed4f88148dee522dc",
+        "study-event-v2:593b7e0a28ed6d74e442d44d",
+        "study-event-v2:59b7bf7b9d561923dd7972ee",
+        "study-event-v2:5a31e938dbbf2847b2ad65db",
+        "study-event-v2:5ac3f393233f205c142914c2",
+        "study-event-v2:5c3f4b6828ca4b76c035fffb",
+        "study-event-v2:5d10395a3af9366c8b206948",
+        "study-event-v2:5e497641e111c1913e5a1746",
+        "study-event-v2:5e9524e62499cac2421befaa",
+        "study-event-v2:5f147e18bd4ff6a5b2b7daca",
+        "study-event-v2:5f314b4ca11ab5061c34e10b",
+        "study-event-v2:61a5313e8a97de89f579ff41",
+        "study-event-v2:61f47e40bbeecaf4f7535ad4",
+        "study-event-v2:62d9b1d8b5d7ede06fa8ba6a",
+        "study-event-v2:66793f30446a5b63a76f7aac",
+        "study-event-v2:668f7befc7dcc1cbb152f137",
+        "study-event-v2:6775f4191272565e1e2e8627",
+        "study-event-v2:678327a4bff936b2322a4e04",
+        "study-event-v2:6803927dd89ac794281abdc2",
+        "study-event-v2:68b1b44fc32becbd02f8bada",
+        "study-event-v2:698f4e62b3f006a6aa7a8aba",
+        "study-event-v2:69a971511733121c922d48b2",
+        "study-event-v2:69ff2b25bf71bb7f1dd41962",
+        "study-event-v2:6a4a443af9804abc265ae501",
+        "study-event-v2:6a837fa895adc535097dd730",
+        "study-event-v2:6b841176dc6abd0b3f856dc4",
+        "study-event-v2:6c4295f8aa70c21d378ad2a3",
+        "study-event-v2:6e6660ba4e0511e7d189e80d",
+        "study-event-v2:70d6ad03ecf8f9dd39a6d012",
+        "study-event-v2:7174383592202aa47780a0e3",
+        "study-event-v2:7191d56a6f710c633f70f03f",
+        "study-event-v2:7281ae4183bd1003b711430a"
+      ],
+      "item_ids_sha256": "7b2af4a33754e3ede1d7e39c20b69b1e5beda8c6009e802116a52c4f87d56493",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "identity-terminal-4-of-7",
+      "candidate_or_member_count": 46,
+      "item_ids": [
+        "study-event-v2:7387d0a52f633437de6fd4d7",
+        "study-event-v2:73e7374e7ba51fdcae1ea65b",
+        "study-event-v2:7424ef82d17f902a83e43c8f",
+        "study-event-v2:74303954f2450436e58eadaf",
+        "study-event-v2:7484633e8211e18980c0b7ef",
+        "study-event-v2:75029f26572e8ca9e0a8ef56",
+        "study-event-v2:751b0a44a2fa5aac47e461b2",
+        "study-event-v2:781217fd6c482a1879fe5f7d",
+        "study-event-v2:785a89356bc5259102fba43f",
+        "study-event-v2:787135b022207cc15861fd16",
+        "study-event-v2:78b4ea544dc473f9cbf1ba54",
+        "study-event-v2:791189994f3ae795d30690d2",
+        "study-event-v2:794f5ac6b4101f882d246ce4",
+        "study-event-v2:79f3c061db4ed9ab2edcb657",
+        "study-event-v2:7ba91c5146cbee5447e74688",
+        "study-event-v2:7dd30657efcf2092e3979d8b",
+        "study-event-v2:7ee4d4a1161ff7b0902bd182",
+        "study-event-v2:80a03a343ddc8022ecb8a9c1",
+        "study-event-v2:80af3c9f2f3aae684182ca37",
+        "study-event-v2:80cea069361d790397df13f1",
+        "study-event-v2:81f32921ea80aa9c88189ec8",
+        "study-event-v2:8264d5d6662b29f9257b9bad",
+        "study-event-v2:82cd81a02996cc1b1fe346eb",
+        "study-event-v2:82d20e6219554522bbb161fd",
+        "study-event-v2:8350bd38b9f98d55cdf066ad",
+        "study-event-v2:8462e9f673a464f1b4ce3fe0",
+        "study-event-v2:8483f8b099d292e9d6883859",
+        "study-event-v2:860d46722fb068ce2a2e8830",
+        "study-event-v2:8637a971c6873d83aaa860e3",
+        "study-event-v2:868a1e3dd6dc428b851daf68",
+        "study-event-v2:86ecab19e6abdd67e39308d7",
+        "study-event-v2:8759b24539a59fc715b1dff3",
+        "study-event-v2:883562db8e8d93a5ad246153",
+        "study-event-v2:88a4ef98d281f791f9e4d4c5",
+        "study-event-v2:891b4bffcdd790fe1cdcf34b",
+        "study-event-v2:89ded3bf1aa5c7867c1d63dd",
+        "study-event-v2:8a3559ef0bf5e0fc17d9965c",
+        "study-event-v2:8b0559a01bc7e862ed7a357b",
+        "study-event-v2:8bb8e6001a05b996c1f5e22e",
+        "study-event-v2:8bbb1e3e0a8dcc8f9beb24c2",
+        "study-event-v2:8ce8f933316f9d0dea350c73",
+        "study-event-v2:8d2f539b6eb6b4f043bf3679",
+        "study-event-v2:8daee206cb324c5ab2e7dab0",
+        "study-event-v2:8f49e50cc72f03ae98197c22",
+        "study-event-v2:8f8899b29347e265e2308b45",
+        "study-event-v2:90af3c526dedca40f0e7fb28"
+      ],
+      "item_ids_sha256": "6f3504f147f7f61440fecd0bd8526e54a86137b8bb453c18113be66e0ab30713",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "identity-terminal-5-of-7",
+      "candidate_or_member_count": 46,
+      "item_ids": [
+        "study-event-v2:919f6580e91bc865ff117b7c",
+        "study-event-v2:9223fc80cc2c813f94b778a8",
+        "study-event-v2:93ee917ce0c38bc1a4d5d67d",
+        "study-event-v2:94506aa18ba41d7470163cad",
+        "study-event-v2:9474a4a1202dc61036135442",
+        "study-event-v2:94a079639aa511e91ea171b5",
+        "study-event-v2:955adb3a7cb228ff39810821",
+        "study-event-v2:95776842de338f18b22e697a",
+        "study-event-v2:95e1f301c142905e07845471",
+        "study-event-v2:95efc188542ec4fc9a3c3040",
+        "study-event-v2:97b89d693955443511816e8a",
+        "study-event-v2:97d1b32b8f829432817cc95f",
+        "study-event-v2:989bf8500931e7abc9222435",
+        "study-event-v2:98f2bbe3d91b8bbc6ca2c32f",
+        "study-event-v2:99e56151a9a85348d83a55a8",
+        "study-event-v2:9a7ed2c992613da8d52d6414",
+        "study-event-v2:9abe8a89e65262770fe5df60",
+        "study-event-v2:9b6ba020e56049fc7ad2c891",
+        "study-event-v2:9ea642f9c91b367f63bffa92",
+        "study-event-v2:9f551e9b9ac7bda20ed43bbc",
+        "study-event-v2:9fe7fb9e16f02734822c094e",
+        "study-event-v2:a0587402538edde0179fa26e",
+        "study-event-v2:a0d5c4c2b479bad88c9d75f7",
+        "study-event-v2:a1e55641545033df387b70b1",
+        "study-event-v2:a32e78ad09fe9cc626a5e8b9",
+        "study-event-v2:a456ca1a880470c9c8d59094",
+        "study-event-v2:a5dd90566637124eccc6a8d5",
+        "study-event-v2:a5e4135e14d52cdc67ef9b1d",
+        "study-event-v2:a77578d2722643ec0f1ece2d",
+        "study-event-v2:a842d870cf005f6999a0a6df",
+        "study-event-v2:a863d72fae32caeacb91125d",
+        "study-event-v2:aa65fa96dffcaf26e7f07c85",
+        "study-event-v2:aaff16dfafb41f2467b00a0e",
+        "study-event-v2:acf5ca34e27da6dc6162143f",
+        "study-event-v2:ad7f3f8650fcbf6b0d4ab284",
+        "study-event-v2:ae2b2ae93f4a99d66cbd8836",
+        "study-event-v2:af64cfa4aab08615a9fc992b",
+        "study-event-v2:afe815ddd0aed6bc181316f0",
+        "study-event-v2:b02b5f42156f4487ecdd245b",
+        "study-event-v2:b06059f1eba5cade8d958de0",
+        "study-event-v2:b12bca67da912c6dc9b71b80",
+        "study-event-v2:b1cf400aa92753ad44628f48",
+        "study-event-v2:b24b2d4edbfcb84ba59df7c0",
+        "study-event-v2:b4edfae44a4d2b1507b1bfac",
+        "study-event-v2:b57f1d269f71d92afc947db7",
+        "study-event-v2:b59dc0aeeff6412e0aa03dc9"
+      ],
+      "item_ids_sha256": "4e01f53053b22db733b7d36c7c1a914e545f5c8f643c1d953b61cf00f9c3eb61",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "identity-terminal-6-of-7",
+      "candidate_or_member_count": 46,
+      "item_ids": [
+        "study-event-v2:b6072a8190833425317d1ddc",
+        "study-event-v2:b6145c7811b986e1da846cd2",
+        "study-event-v2:b62430d07c7e6deb861249c9",
+        "study-event-v2:b6b1da71abbf2c610a3ff0e0",
+        "study-event-v2:b81faee767193778423c95fc",
+        "study-event-v2:b8621d718aca1a1bf4d5b0d6",
+        "study-event-v2:bb714f49f2a78db4f19ea0e1",
+        "study-event-v2:bbe1c3ccee1ecbbb62064252",
+        "study-event-v2:bc95d2a555eee1db50a30acb",
+        "study-event-v2:beeca3685461111b4fc29e94",
+        "study-event-v2:bf1457eba917f778391f40ed",
+        "study-event-v2:c0a82065265c59926f5c4437",
+        "study-event-v2:c224f7cd66538358313fa2c2",
+        "study-event-v2:c295205a5c894d724b9dd6c6",
+        "study-event-v2:c29bb93526214a03f565c542",
+        "study-event-v2:c331a0993ca0b6048a9a1bbb",
+        "study-event-v2:c348a740d31b66a7c53a2839",
+        "study-event-v2:c3998bd7a0da78ccf7e04bf1",
+        "study-event-v2:c4664e726e768764d8b9dece",
+        "study-event-v2:c4c39b0f3c90371b46c73fa6",
+        "study-event-v2:c51282db99e9507738989c0d",
+        "study-event-v2:c5669d0023b64203e23f1af6",
+        "study-event-v2:c56fe3d4ffa980a8e4178d19",
+        "study-event-v2:c6bd93155bbffd9856470732",
+        "study-event-v2:c71201a0e63f2a91a8aded64",
+        "study-event-v2:c725655aeb19bb344c1ce990",
+        "study-event-v2:c86aa8ed486774309d910a38",
+        "study-event-v2:c910351a6970ad67a85ba290",
+        "study-event-v2:c973280f3a11b94dc81327e9",
+        "study-event-v2:c99e29584b799c943a5dda53",
+        "study-event-v2:c9d838bf8f0c536de5bcd8ea",
+        "study-event-v2:cb519632be7ace85b82960c6",
+        "study-event-v2:cb530b99c404a8bce0b77bdf",
+        "study-event-v2:cd1d56f2f359235b81a97c32",
+        "study-event-v2:ce56965db57c4149af7375e3",
+        "study-event-v2:ceb2fe429941f8b53634c2bc",
+        "study-event-v2:cf137585878f47cdd1ae7b23",
+        "study-event-v2:cf6008c41bd49d57be430ddf",
+        "study-event-v2:cf96fd9a2b62820f7af0e172",
+        "study-event-v2:d0807b4257eab3df480479d5",
+        "study-event-v2:d1336c31bf929341a67ca9f8",
+        "study-event-v2:d1cc616281e5031091c4b8e9",
+        "study-event-v2:d1f5c6311b7f0551e4e9fcea",
+        "study-event-v2:d3141a847218ae4631863086",
+        "study-event-v2:d404e369d4b468d835578bbe",
+        "study-event-v2:d45b5610a73354928a389a7c"
+      ],
+      "item_ids_sha256": "867758850609da79c0ac753b20d6ee3d315ceb5dc33ef1167392b77fc900ede7",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "identity-terminal-7-of-7",
+      "candidate_or_member_count": 45,
+      "item_ids": [
+        "study-event-v2:d6924fa45cd3748c1515c1b3",
+        "study-event-v2:d7958c3a07e9ba179ab9ac61",
+        "study-event-v2:d7af94a1df349a6dbf569603",
+        "study-event-v2:d966b7183cfbccd956cdcf87",
+        "study-event-v2:d987ddc7a83ee1a38e25e7df",
+        "study-event-v2:d9e063cbda6635db4518929f",
+        "study-event-v2:dae83bfa92a5550f4a4fc9cd",
+        "study-event-v2:dd32eb656823a11d0a4e89e9",
+        "study-event-v2:df8bb7f9438c48166f1ff8b9",
+        "study-event-v2:dfcd0b780b17408941e99587",
+        "study-event-v2:e023f47dbce142d3fa3610b9",
+        "study-event-v2:e158c53b6fc10c16c1859173",
+        "study-event-v2:e27fc9d8da678556ca28a4f2",
+        "study-event-v2:e2ded3e2665d94981c2a6fa4",
+        "study-event-v2:e2f62a46ac9f1b1a54f713bc",
+        "study-event-v2:e369e8baf57e9d09861c8734",
+        "study-event-v2:e49661d76cdbce9bf0c162fe",
+        "study-event-v2:e4d350db98332b8e88a69bdd",
+        "study-event-v2:e63af985846f1474b774533c",
+        "study-event-v2:e6c966a449ac58cf67befb1f",
+        "study-event-v2:e75bc81d4ae44a65269e06ca",
+        "study-event-v2:e841df39651444491aa438f7",
+        "study-event-v2:e8d588e66d8701dc0c6935cc",
+        "study-event-v2:e974e64d86c1e0eaa62bbf3d",
+        "study-event-v2:e9f0c4b0ac1a2dc2541241b3",
+        "study-event-v2:ea0ab416262ceed4e7184116",
+        "study-event-v2:ead25ed1e21153df4de7b5c1",
+        "study-event-v2:eb0fc4d6668b9f36a9ff0a33",
+        "study-event-v2:ecae412bd3cd73835de6ccc9",
+        "study-event-v2:ed3722c01cf045db33cfde89",
+        "study-event-v2:ed6e836b8fdfca92faa57918",
+        "study-event-v2:efd0585cf55c6717727d0867",
+        "study-event-v2:f113d0e26ca8e84dad903f4c",
+        "study-event-v2:f200e5e22b025087c8fac5f8",
+        "study-event-v2:f2ea930e019165d9925dc176",
+        "study-event-v2:f3aebb63c67836aaa4d55653",
+        "study-event-v2:f5ba325266f6518ff4d6f17e",
+        "study-event-v2:f68f3a13402078ee3b873107",
+        "study-event-v2:f9f038501bc575b875684ea1",
+        "study-event-v2:fab8438109ac52940b8eb062",
+        "study-event-v2:fb6eccc2318d0fceff2c9e0b",
+        "study-event-v2:fbb2e9cb8a4961834c0cbcd6",
+        "study-event-v2:fbc625c00e4811450ce3dab9",
+        "study-event-v2:fd2d7f51ea2c01130d647e5d",
+        "study-event-v2:fd7fea28386ad797b3937854"
+      ],
+      "item_ids_sha256": "6ec58781256bc19cb1bdc0a42e1b59a9d0a2927a85430a619d8503b06fd73495",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "ace-route-grain-1-of-2",
+      "candidate_or_member_count": 33,
+      "item_ids": [
+        "study-event-v2:03813ff8679515098ca9e796",
+        "study-event-v2:05c9218302abad6e96d87532",
+        "study-event-v2:0abd7df14c61c6ad82ace8e4",
+        "study-event-v2:0cbbed3260f58eceb20275c7",
+        "study-event-v2:14957487712554bf2e693177",
+        "study-event-v2:1606deb768d3ee2b715b482f",
+        "study-event-v2:16c305bcaf114b0542cd9e2a",
+        "study-event-v2:1b82930cb17bb96c9a2a3381",
+        "study-event-v2:22e2e4cd0c7d4bbef4a63711",
+        "study-event-v2:2362196d21a20c407b45332f",
+        "study-event-v2:26fbe7ee18767c4b42fa9a74",
+        "study-event-v2:299778b2655b5059dfe5ffdb",
+        "study-event-v2:29a2c760ce6e012d69575aff",
+        "study-event-v2:2c40d9b9b1e25429818756c7",
+        "study-event-v2:2cfe1d3a2798cc23b0ce3f8c",
+        "study-event-v2:33a554b864d6cd104cb54470",
+        "study-event-v2:38d2ed837c7fb305e1cc03e0",
+        "study-event-v2:3ba350b819677638f26792ad",
+        "study-event-v2:3ea076999c631277fd625e27",
+        "study-event-v2:46d2197497225194af668e40",
+        "study-event-v2:4c9efea0d35e2912037d99c2",
+        "study-event-v2:4d0530b77a63ac21ae95229b",
+        "study-event-v2:4eb80c60a5c6e8607fcd7f97",
+        "study-event-v2:502b608e73015825544dfe24",
+        "study-event-v2:5481bee07b19e8e62d92321d",
+        "study-event-v2:54903f4b68b30479354df508",
+        "study-event-v2:55ab3fe1ef9b6cb04ea6fdc4",
+        "study-event-v2:5f0d2e20b6fcecbefe91966a",
+        "study-event-v2:666e8d02a3feb4cb1c239e70",
+        "study-event-v2:6afced32d375c2933f5344f9",
+        "study-event-v2:6ce8c212cdf17496440feda4",
+        "study-event-v2:6d873627c6906b32e69c3e75",
+        "study-event-v2:7389e5d0e3f7e0d819f6babd"
+      ],
+      "item_ids_sha256": "bc724505c1ef9f499d2f9da4e50f829fdd94b8f8e7460ebae16b28bb138f2fac",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "ace-route-grain-2-of-2",
+      "candidate_or_member_count": 33,
+      "item_ids": [
+        "study-event-v2:74d01efd8af9e0f2c0690525",
+        "study-event-v2:7b8916b645568af3b23ebe21",
+        "study-event-v2:7f5e9237dedc194ea8ed04d2",
+        "study-event-v2:86061c130984a2a48d5f7047",
+        "study-event-v2:87a3f49f5479e6c5bb0c98a6",
+        "study-event-v2:87d04c206eed929e08f17c60",
+        "study-event-v2:87d3f99372e1eb40a6cc66ee",
+        "study-event-v2:89b8d0bfbd6049a9028be565",
+        "study-event-v2:926b58154d6383a00bc6f987",
+        "study-event-v2:939de261fd0ad681c0d74e53",
+        "study-event-v2:95ebfdb07b4a1d005ec09cae",
+        "study-event-v2:97b07a93edb60db66f6d1eb7",
+        "study-event-v2:97e75d06b50723f86aeaecde",
+        "study-event-v2:9ffaf570e961caee0f910a6a",
+        "study-event-v2:aa1598899d0362c9cb76c611",
+        "study-event-v2:bc86cbd7aa99948b5e2f4e5e",
+        "study-event-v2:bcf0af4d68df25137507c7d3",
+        "study-event-v2:bfa36744797550ea4f651fdc",
+        "study-event-v2:bff2030b147ab90027f3e748",
+        "study-event-v2:c1d8b7226bb5b83bb406d27c",
+        "study-event-v2:ccc4df593c45b475565bcbcd",
+        "study-event-v2:cccbc1696194ad156f466bf2",
+        "study-event-v2:d2694f50ff4363dabf61b13d",
+        "study-event-v2:d50fe456bfb32a3a161711bd",
+        "study-event-v2:d88eaac9053ed64c936985f2",
+        "study-event-v2:e393c4ee9b0acfa7ec170881",
+        "study-event-v2:e4237d9085f254f3ba70d62f",
+        "study-event-v2:ec9c23934535d434a2feafd6",
+        "study-event-v2:ecdeca8e3b5ef28eda73cf17",
+        "study-event-v2:ef37cbb53cd8f0784352387e",
+        "study-event-v2:f37ddee84cce5da1e4b08178",
+        "study-event-v2:f4a9f2a73c01b6c12d081fcf",
+        "study-event-v2:fe6bd9c3075d9718b962de5e"
+      ],
+      "item_ids_sha256": "4589d36ed2526566db20ef1fe2744656adbc44db94adc49b742c33dd73360dd5",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "member-automated-bus-lane-enforcement-grain-context-only-1-of-1",
+      "candidate_or_member_count": 4,
+      "item_ids": [
+        "member-extent:0cc70fdb4aaed96dc67e389d",
+        "member-extent:1e256a2f35fa721935196985",
+        "member-extent:1f1a1888b2388b103f887435",
+        "member-extent:27b36c48efcba75c3e63829f"
+      ],
+      "item_ids_sha256": "d768a4ef5883579256ab670dff35587864b95ec9ad8658c88e02bcd5853d13c1",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "member-automated-bus-lane-enforcement-grain-matched-primary-1-of-1",
+      "candidate_or_member_count": 2,
+      "item_ids": [
+        "member-extent:26bd54543b7b481566567387",
+        "member-extent:b622c3a862de2c6ef6318c2f"
+      ],
+      "item_ids_sha256": "4a3e34def3552bef012184d976d70144147f4323fbdbc6347444cda5ac337882",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "member-bus-stop-or-boarding-blocked-member-grain-absent-in-source-1-of-2",
+      "candidate_or_member_count": 35,
+      "item_ids": [
+        "member-extent:0dbda29a5e06f1c42281d9b5",
+        "member-extent:14008ceb4d582d20808cdab9",
+        "member-extent:1474f008a0d39da72dac9318",
+        "member-extent:16bd8a5e6d54e847c69b7466",
+        "member-extent:19d4344f4b3d19ed48912660",
+        "member-extent:1ae9dcfb42a9b11327eb501f",
+        "member-extent:1b6d995b0766208282d43962",
+        "member-extent:2607e697370ce7e8b3e7cf83",
+        "member-extent:2b6275f893ffd36a35dc15b1",
+        "member-extent:356f668285a9c2de4c9a3608",
+        "member-extent:371e00859ed43209510bc638",
+        "member-extent:3a7cba366387167ab614a492",
+        "member-extent:3fc764444e6aa09616c0f9fc",
+        "member-extent:43525f9e95040e8b22cc7b2f",
+        "member-extent:442ac504fa3e6f6957d12add",
+        "member-extent:5059c4263818fbb0f4a061df",
+        "member-extent:528d0fd798ff3c9702b1c35f",
+        "member-extent:5bea8d59d3e49cee13ee4744",
+        "member-extent:5c2c5eeeb1e372fb71c36470",
+        "member-extent:5dbd13c7c672f649affc35ed",
+        "member-extent:625a3e7f4b9ed985777bd306",
+        "member-extent:6440c2c284904ce4f89feb15",
+        "member-extent:6ee9dfcf8c2d2bdcc8362213",
+        "member-extent:70988c4b2e39264a5dc0b929",
+        "member-extent:75223a4f4ef3c1e625931dee",
+        "member-extent:759f28eb1aa2fb2d619dfcbb",
+        "member-extent:78b87d6ea257381f3fa81237",
+        "member-extent:7990f2aa2a2494200ad0784b",
+        "member-extent:799492c6cd4954302e413f91",
+        "member-extent:7bdb9783cf94cdf3c4d915f7",
+        "member-extent:7c30d0627cd5e0089256319f",
+        "member-extent:8141dc27c6f374932765386f",
+        "member-extent:8305ea70712209eef5258234",
+        "member-extent:853a39d60b53c5458bf38d40",
+        "member-extent:86d8b7d3d5ef1672afb2a6af"
+      ],
+      "item_ids_sha256": "f9b8392d2d11e16c17428403cd421819ddeb7bd874a402589c2dab3d146ec677",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "member-bus-stop-or-boarding-blocked-member-grain-absent-in-source-2-of-2",
+      "candidate_or_member_count": 35,
+      "item_ids": [
+        "member-extent:8a187c9580bbd5405a0b0da4",
+        "member-extent:8f4b52703185e72cf2b8fe38",
+        "member-extent:98497f5efbfa291840e769d5",
+        "member-extent:9b9123522535b3089b9c3a31",
+        "member-extent:9fae47e1a0eb2332e63d3356",
+        "member-extent:a02d0e3518b745519b820f02",
+        "member-extent:ab414e0a1f37555c92d12dc7",
+        "member-extent:ac797a63944b7473aaaa3ad8",
+        "member-extent:af0e13870506d6d557e5a20a",
+        "member-extent:b0f885b206f41e920c7f01ba",
+        "member-extent:b564ad44ee30ad70b9fb498a",
+        "member-extent:b9608874fbcb1f2d481cfe07",
+        "member-extent:b97634ed55b8500ed9dda979",
+        "member-extent:bc5b486b9b179a9b8cdf0d65",
+        "member-extent:bedd26de1abcb3d8d2bebedc",
+        "member-extent:bfc0b7bf48f5ea86aefb6522",
+        "member-extent:c59db074163d58af53738c0b",
+        "member-extent:cb2d82e34b0358b008389155",
+        "member-extent:ccac0a25b13de702e848ce75",
+        "member-extent:cfc215ecd5b1362090604386",
+        "member-extent:d31825e5c62a4f5fe188a2d0",
+        "member-extent:d60c1e074ecf0571a788a681",
+        "member-extent:d717720ae134f4551ee79282",
+        "member-extent:d7b3988a484aef9635b01e82",
+        "member-extent:d8f54c11ceaf636e2712e6eb",
+        "member-extent:d9bfc1d01622976f9a251a2a",
+        "member-extent:db6e807c99cf06728c27c62d",
+        "member-extent:dd8576627945c0d1da03c1f1",
+        "member-extent:df5e4e246cb06a89a1accf8a",
+        "member-extent:ee523cf77cc04adaa0baf09d",
+        "member-extent:f39ffeed5e0d4f86cac1657e",
+        "member-extent:f86ec229aca4c114fd313f1f",
+        "member-extent:fbea5d4bf0ae9a52f7aad016",
+        "member-extent:fded4991d8611bf3d5e3229d",
+        "member-extent:ff732c636a277b0b4601d6f6"
+      ],
+      "item_ids_sha256": "1e051786a0072965e92eae58df2691dac54620b0f0b069917e3669768943daf0",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "member-fare-collection-grain-context-only-1-of-1",
+      "candidate_or_member_count": 14,
+      "item_ids": [
+        "member-extent:0974885a490c543d10549d51",
+        "member-extent:199881050cbdcaec0041cb49",
+        "member-extent:1d87b8a8c093708e45786cf9",
+        "member-extent:1f13ee5610b2ba2bdfa936c9",
+        "member-extent:26ddce2b97fc5101545dcfbd",
+        "member-extent:48463f7ba94ab0783b0a912c",
+        "member-extent:52c2ccc4b49038fd42a0392b",
+        "member-extent:571606d5ba7c338d02636f6a",
+        "member-extent:83634dffbf56d2ed7ef2390f",
+        "member-extent:9b6819cb9cc1777d7d1fa2eb",
+        "member-extent:afb23e837d2a39729a392e81",
+        "member-extent:b35ace459c6b285c5d698dc8",
+        "member-extent:b4207f662ddc1c757e6af102",
+        "member-extent:eb8f8242b44c913af2eac37d"
+      ],
+      "item_ids_sha256": "d24f71e83a05572a98947f0ccaa100c895e3cd9c08fce4cacd8a2617e63d998a",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "member-service-pattern-blocked-member-grain-absent-in-source-1-of-2",
+      "candidate_or_member_count": 48,
+      "item_ids": [
+        "member-extent:007d633fbf33e4fea23eacb9",
+        "member-extent:06d3feaca1f812078748a979",
+        "member-extent:087f34d7b847c423b9e4e5a9",
+        "member-extent:0a4e8c0ac5400340a2f5651f",
+        "member-extent:133158ba4e136ec83d0ff0c5",
+        "member-extent:1975b29531e4fce119c11d2f",
+        "member-extent:19c664aac330b4cc7a5600cc",
+        "member-extent:1c55ed0cc99633aff3617660",
+        "member-extent:218c875e42387dbc214fa424",
+        "member-extent:273fa42dc700f1575ace4f32",
+        "member-extent:2a580a3b34e050ffdf09bd98",
+        "member-extent:2c6e575aeb7069c0521efa21",
+        "member-extent:2f73d24c0efd8f592de010d6",
+        "member-extent:31e799370e25ecf8a35435f7",
+        "member-extent:34312a0fcf6b2f8ae687473b",
+        "member-extent:38522c808ff88f1102d8a5ec",
+        "member-extent:39ea1d9926ed15d24173afb2",
+        "member-extent:3b9f233cc1164ea8fed99ebe",
+        "member-extent:3ef37007fb7fd932cfbb8d06",
+        "member-extent:431ce81dcca1c0f0d2a4c4fa",
+        "member-extent:464db0f10c8732c4bf7e19cb",
+        "member-extent:4924544c30be39159592d70f",
+        "member-extent:49db95938bd267358b9e3f46",
+        "member-extent:4d57f4dbbce6ad09a5928c27",
+        "member-extent:4d820590cfba24d09b4828b5",
+        "member-extent:4e1b2c3069c1bb3b370ce798",
+        "member-extent:4fb200afd230668e36c20e36",
+        "member-extent:545ac16ca463dc74d604ac00",
+        "member-extent:57e1191e0656082cd0d0d0f1",
+        "member-extent:5b74203860ec291028133ea0",
+        "member-extent:5dfc67374f60cf9b0da3f23f",
+        "member-extent:5f448773c1832d21a1fc3064",
+        "member-extent:5fa0718e31164c3a9c87f76f",
+        "member-extent:6a9cd735bf1c066b4f7ee420",
+        "member-extent:6ce8e1afcaf617c457cd8e22",
+        "member-extent:6d27219f76521f7207d6525b",
+        "member-extent:70488b3217290c2c65f0ae4b",
+        "member-extent:7476f1d1bdae1d4ff6ebca5c",
+        "member-extent:784be5fb47cc25214c84bdc1",
+        "member-extent:7bbb19d8ace07edfa5a2656a",
+        "member-extent:7c2ad16d18ef0d7deb5b8077",
+        "member-extent:81ffddd00fc4ecf483c3baf4",
+        "member-extent:833c55d284081fc5dc359538",
+        "member-extent:848d3a83ff51d7e0a0008991",
+        "member-extent:86547803573346ff2d58274a",
+        "member-extent:87d14653b3486ca518898bc6",
+        "member-extent:8c0c6b7cc5ffbbf6f0fbcc8c",
+        "member-extent:8c4b8e8c5deecba566dbb411"
+      ],
+      "item_ids_sha256": "c0dbebe24eb7597069502b25f63906bf2615cf89c757894a4e12c6da543a15a7",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "member-service-pattern-blocked-member-grain-absent-in-source-2-of-2",
+      "candidate_or_member_count": 47,
+      "item_ids": [
+        "member-extent:8c8de1b42bb43ae28bb23d6f",
+        "member-extent:8d78b64d9beb08ba0030d710",
+        "member-extent:94ec190f00d4ff39a6caaccc",
+        "member-extent:9c3c8bf79b37dd17d50ce761",
+        "member-extent:a217b1ecc2f27f0be3764759",
+        "member-extent:a227d435e0129286b67bab9d",
+        "member-extent:a23177fbd132758cf8d021d3",
+        "member-extent:a2d31f42410196fd88645669",
+        "member-extent:a528220de5f04e0b0c28d5ef",
+        "member-extent:a55bb53807d8b4bc6cacdd2c",
+        "member-extent:a9502dd677257c22a18d83fe",
+        "member-extent:aa1bc9321a66719697dacf18",
+        "member-extent:ac9e5c2ee1eb6516adbbd20d",
+        "member-extent:accafacfbf576681c63ef19c",
+        "member-extent:b7bb300bf6e25e21fd6946a8",
+        "member-extent:c233fccb3abae5466f45a111",
+        "member-extent:c502de7057d5ea01d12e2f6f",
+        "member-extent:c6d74935c1b92152b10cf056",
+        "member-extent:c7d4ec4cb9cf8525ede16585",
+        "member-extent:c9a90a7b515f9dfdace7a967",
+        "member-extent:ca416dd57c60ddbd26a13864",
+        "member-extent:ca804de48670f9abd0c7b68f",
+        "member-extent:cbeb944f408907d5143ada25",
+        "member-extent:cc8fbb53829005a3769bcfc5",
+        "member-extent:d35d2e182a65ae3fec3f9d4a",
+        "member-extent:d406f8868ea7bf1e18655ca8",
+        "member-extent:d43a61efccc3fcbcf0fd4219",
+        "member-extent:d479d58e25784c8d70e0d1cd",
+        "member-extent:d759a2008322d93c34fd5d9f",
+        "member-extent:d78bde136e0be0ca77f49c3f",
+        "member-extent:d8b7b44c15f0854245928d3d",
+        "member-extent:da66e669df180a1b659e58ad",
+        "member-extent:e4fc163a7d55aef2f21b953c",
+        "member-extent:e541a9528df36e8fce9fa06d",
+        "member-extent:ea01c7cc624d61ec700baa09",
+        "member-extent:eafb40a7c23c32ed7dd054ff",
+        "member-extent:eecf5df917e6e07107a38f17",
+        "member-extent:f0856758f55c1e313f0c501d",
+        "member-extent:f26e609afe3fab4162840d55",
+        "member-extent:f2ceda926d4351b972476696",
+        "member-extent:f32ac5f67d6f3d427e48cc95",
+        "member-extent:f488b162768cd1fa62ffbed5",
+        "member-extent:f4dd54855f8995ca0bc90402",
+        "member-extent:f7c9e958d01277b94231ddd0",
+        "member-extent:f96add4f9683898ee2356a8b",
+        "member-extent:fc79aae25b64de72157e6368",
+        "member-extent:fddb808a44ba10da9dd9a27a"
+      ],
+      "item_ids_sha256": "980db08f241a65402a213f6b63268bb9544c5b10b5716087cdeab78d443623ca",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "member-service-pattern-grain-context-only-1-of-1",
+      "candidate_or_member_count": 1,
+      "item_ids": [
+        "member-extent:4385be2d666e58cc7e826ee4"
+      ],
+      "item_ids_sha256": "dd37ae8c584f75aa7e33c5edd81dfd43a0b914d2e8ba777eb88de34e2c498ce0",
+      "risk_class": "routine",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "bounded-extent-38",
+      "candidate_or_member_count": 38,
+      "item_ids": [
+        "member-extent:9bf899c7fbf29dcd77bec3c5",
+        "member-extent:129dc3cb3e94c4d62b73932c",
+        "member-extent:c084696ee1a4e3280ac0a7e2",
+        "member-extent:2b142b1026dc5f4a2d4b248b",
+        "member-extent:ba58b77662c3b24b58e872af",
+        "member-extent:ac3be8b9225546d655a6e3ec",
+        "member-extent:9483d0793bad6162a2f66d52",
+        "member-extent:356f53bd9b5ff56cbb575e51",
+        "member-extent:d6eb8167e2a5e68c6ad8ad88",
+        "member-extent:c21deeb6c1ef4ead9c17880b",
+        "member-extent:3d5c78a3469e95ff9ea7ea62",
+        "member-extent:9163c3f736651a3d2880fbe6",
+        "member-extent:2d5c4e4238b63a6792bb213f",
+        "member-extent:e4b38d1da0dd59dedd324af6",
+        "member-extent:8552b7444dcec24b0005c30b",
+        "member-extent:0d8bc800fbac58ff0602b75d",
+        "member-extent:c87f640aff74434c29ddb28f",
+        "member-extent:1004428b689ad82ce068a8fe",
+        "member-extent:8d008241dbecac662857ff12",
+        "member-extent:beacfe85734226934ffe6bcf",
+        "member-extent:56c5ba506960d00f4508c17d",
+        "member-extent:9638529ac5c26f18bf0a999e",
+        "member-extent:f016855128ab8c67446d7256",
+        "member-extent:7b706921e320612786659253",
+        "member-extent:aa102b213202f23781f63c21",
+        "member-extent:111c10bd83349f81052b370a",
+        "member-extent:54e6e642e0870415dce5f9ad",
+        "member-extent:18c1ea04e5b34c85837e5065",
+        "member-extent:4f05db1043868de0e75bc5a0",
+        "member-extent:896bb5da44eefc205dce77dd",
+        "member-extent:e7327e90cc38423639d08617",
+        "member-extent:349ed2b6ee06d5eb03dec331",
+        "member-extent:1e0ba345de85d972e9902e4f",
+        "member-extent:5396a7759e708175eb95527e",
+        "member-extent:8c0afdfb4da98982845a859f",
+        "member-extent:b606b70ed2912c6dba2ca880",
+        "member-extent:1fe524b6470cc6293cb82ea7",
+        "member-extent:06fb7d327618d25d95063bc9"
+      ],
+      "item_ids_sha256": "37e08ce34554da8fb7348436b8d8ac4e8c7636d41767468b1453f7ea1b2a6a78",
+      "risk_class": "risky",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "stop-set-6",
+      "candidate_or_member_count": 6,
+      "item_ids": [
+        "member-extent:48a76e64d817b773f9fbf1c7",
+        "member-extent:0f39ff685b5c2933114a6681",
+        "member-extent:6f641accdbb6a35da5a2b6f4",
+        "member-extent:7a35e93daeaa3efcf4128f32",
+        "member-extent:708a1e947708c7bbfae1b1dd",
+        "member-extent:e3b85392811c6a004036b489"
+      ],
+      "item_ids_sha256": "0fff5a0dfd633eb667083fef78600bda5d26a8c3c626840f50f2aa433e3d5271",
+      "risk_class": "risky",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "lineage-22",
+      "candidate_or_member_count": 22,
+      "item_ids": [
+        "member-extent:52e37372e695d480b9384ee9",
+        "member-extent:7eef5a975e75eff3f56e6975",
+        "member-extent:e828234e44f38f484d069c2c",
+        "member-extent:e40b10520ad6544489f440ae",
+        "member-extent:d47f0b81a8e4731457bb1806",
+        "member-extent:0d00594dd3230d9bc23f3483",
+        "member-extent:ffc9805b681277e98ce22f85",
+        "member-extent:a6068db6acf533623d0e36b4",
+        "member-extent:ede4e78cb85c6bd94a108897",
+        "member-extent:7c3a773abb4d6d4303277924",
+        "member-extent:12b5c5df2067fcf255ad0e55",
+        "member-extent:192845382f529ae6676944c0",
+        "member-extent:b652ea1a859209e1e671546e",
+        "member-extent:8cd84cc84b6050f5929bfe78",
+        "member-extent:c3fb3285f51216589c4a1103",
+        "member-extent:adcdbf613fd56b62d62739ba",
+        "member-extent:2fe55ed6f05b62c79cd4c7e7",
+        "member-extent:5f68123b0ab6f7781d1f41ab",
+        "member-extent:fb018b0b1672e4fda4109e3f",
+        "member-extent:48e2b293327ddf0f9de138e6",
+        "member-extent:b8b79f0b0127c64e8f26d497",
+        "member-extent:256241f6711e1597015d9837"
+      ],
+      "item_ids_sha256": "7f3d65f528cf7db99ee2170b5ac3e8407a5381db96f81835ab23a974a3099fda",
+      "risk_class": "risky",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "service-product-coverage-gap-5",
+      "candidate_or_member_count": 5,
+      "item_ids": [
+        "member-extent:a8aad4f1e8e5edfddac852e7",
+        "member-extent:8a62071466d3b93654ac65d6",
+        "member-extent:78195ec4862d0368d1947f84",
+        "member-extent:929a30158aa86d75493475f0",
+        "member-extent:017eaffda067654fedf9a0a0"
+      ],
+      "item_ids_sha256": "b6b422d16956f54e856e892bf29ec68dd8624f918bd324f5c74a9633d7c63166",
+      "risk_class": "risky",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "upstream-risk-automated-bus-lane-enforcement-1-of-1",
+      "candidate_or_member_count": 6,
+      "item_ids": [
+        "member-extent:304e38fdcd46ad892b875e88",
+        "member-extent:60a3c16fea1169d9238b65cd",
+        "member-extent:6f655828e18a1f11e432f530",
+        "member-extent:7efd2a6e8aa1c3a4cb8d3f3b",
+        "member-extent:99258ec23a0d54fb3bdb7152",
+        "member-extent:ffebc9fa90b712e3e1a6db7b"
+      ],
+      "item_ids_sha256": "04dac6a4d30881b38b1993400a76cbad6f8cf0f24c8b365ef6d91fc0eaa90aae",
+      "risk_class": "risky",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "upstream-risk-bus-stop-or-boarding-1-of-1",
+      "candidate_or_member_count": 13,
+      "item_ids": [
+        "member-extent:1ba813f794737c818e21dda9",
+        "member-extent:2c3bb07e3d6a774a4c7d7f5b",
+        "member-extent:466fa16609e19fb79b926771",
+        "member-extent:4f8500f1b1be06bcad4128c0",
+        "member-extent:55bf4393ca6ba69f5d376e0f",
+        "member-extent:5629ef7d65f5cd551681f9b9",
+        "member-extent:66de7aa76fa61e4050c798d2",
+        "member-extent:6fce74c4c31d20e5bb9c4e84",
+        "member-extent:7105904278760424e31b7af4",
+        "member-extent:9787fef1954fdb361329cfcf",
+        "member-extent:ac7fcf8888b1d866b29a7bde",
+        "member-extent:b26f259caed4c9a1cc301d89",
+        "member-extent:f2edf58b89977c35a00def3e"
+      ],
+      "item_ids_sha256": "640c1135827dfc9f4aa00c966ff0a68c62fa7d664c221647f89f31946466306b",
+      "risk_class": "risky",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "upstream-risk-fare-collection-1-of-1",
+      "candidate_or_member_count": 3,
+      "item_ids": [
+        "member-extent:81ef2a2ee9feeb3a5e1144de",
+        "member-extent:daf53349bad3757632433196",
+        "member-extent:e125d5da28ff594b85968ac6"
+      ],
+      "item_ids_sha256": "484d9989e2c00e93989abd039a07c2f7a88c0fe2e937abd8e48430f4430ecaeb",
+      "risk_class": "risky",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    },
+    {
+      "package_id": "upstream-risk-service-pattern-1-of-1",
+      "candidate_or_member_count": 29,
+      "item_ids": [
+        "member-extent:0106524921574a3de6d49e9f",
+        "member-extent:0765107998a4ef827b5cd498",
+        "member-extent:1d442cb7e7d849b032bb56f9",
+        "member-extent:24d655117de2b27e24186189",
+        "member-extent:2fe7666310bb270dd7eb37b4",
+        "member-extent:4059af73b15701b71a5b872f",
+        "member-extent:41e9892c91c8d3dd489af02b",
+        "member-extent:4dc4d21290de3a9dce324fbc",
+        "member-extent:53ff3d7bbb69cfd6d48ff8b8",
+        "member-extent:5a916da914212970317fd3d4",
+        "member-extent:6b48bae418a9a60132f0155e",
+        "member-extent:6b98a60483e82f6979268137",
+        "member-extent:766023fd029193152ae2ed11",
+        "member-extent:79ddd4e5d010c69ac3a1ecbc",
+        "member-extent:81749b7de7673fb3667f254b",
+        "member-extent:8e9e5eff2a3404c2d0b16a4c",
+        "member-extent:8fb6bd8fd10591c9f3b0b362",
+        "member-extent:960fbcefa70a1560a1fd1046",
+        "member-extent:98b3f7b412dfc964ba50ef1a",
+        "member-extent:a5fa9eff480494f9ad7da810",
+        "member-extent:a692e41eea96f07cf008a963",
+        "member-extent:aa30cba6ee1945597ca8b873",
+        "member-extent:af89ab44d930dd833ff78b73",
+        "member-extent:bf45cddd926e9fdfd8f47cac",
+        "member-extent:c15e1915793f84249cd1c28b",
+        "member-extent:cc65a9af472bf40782867074",
+        "member-extent:de0df8508412c4b3ccef06a9",
+        "member-extent:f0dc4337ae2f8b0b75e62877",
+        "member-extent:ffb387a4384d4e42ef8a05c7"
+      ],
+      "item_ids_sha256": "df2dbe05941c84111bde6268f51331e7accc82b5955a3706f226e069e1ec2005",
+      "risk_class": "risky",
+      "check_ids": [
+        "focused",
+        "typecheck",
+        "validation",
+        "replay"
+      ],
+      "authority": {
+        "authorizes_study": false,
+        "authorizes_publication": false
+      }
+    }
+  ],
+  "authority": {
+    "authorizes_study": false,
+    "authorizes_occurrence": false,
+    "authorizes_publication": false,
+    "authorizes_d1_r2_mutation": false,
+    "authorizes_deploy": false
+  }
+}

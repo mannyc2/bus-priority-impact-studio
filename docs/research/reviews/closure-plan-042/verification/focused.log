@@ -1,0 +1,34 @@
+bun test v1.3.14 (0d9b296a)
+
+tools/pipeline-v2/test/cli/registry.test.ts:
+(pass) Effect CLI registry > loads every pipeline command descriptor loudly [227.24ms]
+(pass) Effect CLI registry > preserves route readiness option names [1.36ms]
+
+tools/pipeline-v2/test/lib/plan042-member-grain.test.ts:
+(pass) Plan 042 strict producer contracts > accepts all six typed identity verdict classes and enforces their semantics [2.02ms]
+(pass) Plan 042 strict producer contracts > rejects excess producer fields [0.35ms]
+(pass) Plan 042 strict producer contracts > preserves ordered lineage boundary pairs while shared stops remain sorted [0.23ms]
+(pass) Plan 042 exact ordered spine searches > does not infer ordered endpoints from sorted source literals [0.24ms]
+(pass) Plan 042 exact ordered spine searches > binds a unique multi-segment path and normalizes duplicate junction evidence [0.32ms]
+(pass) Plan 042 exact ordered spine searches > preserves orientation and detects a genuinely ambiguous branch [0.11ms]
+(pass) Plan 042 exact ordered spine searches > uses the same node-normalized ordered search for old/new lineage [0.15ms]
+(pass) Plan 042 exact ordered spine searches > classifies every declared bounded-extent disposition fail-closed [0.10ms]
+(pass) Plan 042 exact ordered spine searches > classifies each lineage search result without guessing direction or endpoints [0.14ms]
+(pass) Plan 042 outcome relevance registry contract > rejects invented product ids, resolver typos, and excess fields [0.59ms]
+
+tools/pipeline-v2/test/lib/plan042-closure-receipt.test.ts:
+(pass) Plan 042 closure receipt and downstream projection > strictly verifies the committed authority-false receipt [149.48ms]
+(pass) Plan 042 closure receipt and downstream projection > rejects unknown fields, placeholder commits, and any authority elevation [6.02ms]
+(pass) Plan 042 closure receipt and downstream projection > rejects a consumer-commit addressed artifact hash mismatch [762.05ms]
+(pass) Plan 042 closure receipt and downstream projection > rejects a protected-surface mutation even with matching declared bytes [1129.30ms]
+(pass) Plan 042 closure receipt and downstream projection > rejects implementation bytes changed after independent review [809.26ms]
+(pass) Plan 042 closure receipt and downstream projection > projects deterministically and rejects a receipt-commit/downstream mismatch [157.70ms]
+(pass) Plan 042 closure receipt and downstream projection > renderer refuses a dirty tracker before any atomic output write [523.54ms]
+(pass) Plan 042 closure receipt and downstream projection > finalizer rejects an under-reviewed risky package [289.36ms]
+(pass) Plan 042 closure receipt and downstream projection > finalizer rejects an independent-review target hash mismatch [286.74ms]
+(pass) Plan 042 closure receipt and downstream projection > acceptance freeze never clobbers differing frozen pending bytes [291.07ms]
+
+ 22 pass
+ 0 fail
+ 57 expect() calls
+Ran 22 tests across 3 files. [6.07s]

@@ -1,0 +1,1939 @@
+$ bun test packages tools tests --timeout 5000
+bun test v1.3.14 (0d9b296a)
+
+tests/harness/design-doctrine.test.ts:
+(pass) design doctrine > no un-allowlisted interpunct metadata chains [8.33ms]
+(pass) design doctrine > no un-allowlisted kicker eyebrows [4.90ms]
+(pass) design doctrine > no un-allowlisted banned phrases [7.06ms]
+(pass) design doctrine > KICKER_CLASS flags eyebrows but not functional small-caps labels [0.03ms]
+(pass) design doctrine > BANNED_PHRASES match prose forms but not identifiers [0.05ms]
+
+tests/harness/month-doctrine.test.ts:
+(pass) month doctrine scanner > current tree matches the exact shrink-only baseline [46.81ms]
+(pass) month doctrine scanner > retired tokens are exact and embedded storage names remain legal [0.10ms]
+(pass) month doctrine scanner > releaseMonth is scoped and d1-input readers are contextual [0.18ms]
+(pass) month doctrine scanner > analysisPeriod is scoped to release identity and the two map output keys [0.15ms]
+(pass) month doctrine scanner > serialized keys and identity phrases stay on their audited surfaces [0.05ms]
+(pass) month doctrine scanner > public selectors cover method, optional, bracket, static, and object variants [0.34ms]
+(pass) month doctrine scanner > pinned literal lexer ignores comments, URIs, dates, timestamps, and regexes [0.06ms]
+(pass) month doctrine scanner > legal month grain and excluded path segments remain legal [0.05ms]
+(pass) month doctrine scanner > allowlist audit rejects drift and can enforce the initial permanent-entry guard [0.14ms]
+(pass) month doctrine scanner > allowlist entries must be sorted by file and rule [0.06ms]
+
+tests/harness/production-boundaries.test.ts:
+(pass) production boundary harness > root package exposes v2 pipeline entrypoints and no stale v1 script paths [0.54ms]
+(pass) production boundary harness > public app code does not import local analytics, source fetchers, pipeline code, or wiki files [10.83ms]
+(pass) production boundary harness > production runtime does not import Studio seed data or dev demo fixtures [5.36ms]
+(pass) production boundary harness > public Studio runtime keeps R2 projection keys private behind REST resources [4.11ms]
+(pass) production boundary harness > Plan 097 centralizes Studio R2 reads and leaves only the verified map loader direct [0.26ms]
+(pass) production boundary harness > Plan 097 keeps production mutation behind the protected atomic transport [0.52ms]
+(pass) production boundary harness > Plan 097 proof template cannot bind or route to production [0.14ms]
+(pass) production boundary harness > Plan 097 operation templates disable preview-URL bypass [0.14ms]
+(pass) production boundary harness > Plan 097 reader predeploy is receipt-backed and rolls the Worker back on failure [0.26ms]
+(pass) production boundary harness > domain package remains infrastructure-free [8.40ms]
+(pass) production boundary harness > @bp/analytics stays pure and does not import storage, applied-research, filesystem, or dataframe runtimes [6.79ms]
+(pass) production boundary harness > @bp/applied-research package stays removed after the hard cutover [0.61ms]
+(pass) production boundary harness > Studio API package stays a Cloudflare runtime boundary without UI, pipeline, analytics, or source fetchers [3.75ms]
+(pass) production boundary harness > pipeline-v2 imports analytics only through package subpaths [11.06ms]
+(pass) production boundary harness > Effect-zone source code consumes nyc-transit-kit through native packages, not compat [12.72ms]
+(pass) production boundary harness > pipeline-v2 command modules keep SQLite runtime construction behind Effect services [4.46ms]
+(pass) production boundary harness > package root barrels use explicit re-exports [0.56ms]
+(pass) production boundary harness > @bp/sources exposes only intentional subpath exports [0.51ms]
+(pass) production boundary harness > @bp/sources is SODA3-only and keeps Bun/runtime adapters isolated [2.91ms]
+(pass) production boundary harness > repo code imports @bp/sources through explicit subpaths only [35.80ms]
+(pass) production boundary harness > repo code does not import zod directly [36.25ms]
+(pass) production boundary harness > repo code does not import the removed schema compatibility facade [38.99ms]
+(pass) production boundary harness > repo code does not recreate deleted Socrata source-client imports [54.74ms]
+(pass) production boundary harness > browser-facing web modules do not import transit kit or source packages [7.15ms]
+(pass) production boundary harness > Studio API and web runtime do not import @bp/sources [5.78ms]
+(pass) production boundary harness > tests stay out of production src trees [2.48ms]
+(pass) production boundary harness > new D1 query modules use Drizzle repositories instead of raw D1 prepare calls [0.56ms]
+
+tools/pipeline-v2/test/check-knowledge.test.ts:
+(pass) knowledge check has a small fixed contract [0.31ms]
+
+tools/pipeline-v2/test/studio-mta-wiki-route-evidence-v2.test.ts:
+[05:53:15.566] INFO (#17): pipeline.json file task complete
+[05:53:15.569] INFO (#24): pipeline.json file task complete
+[05:53:15.569] INFO (#31): pipeline.json file task complete
+[05:53:15.570] INFO (#39): pipeline.json file task complete
+[05:53:15.578] INFO (#63): pipeline.json file task complete
+[05:53:15.579] INFO (#70): pipeline.json file task complete
+[05:53:15.579] INFO (#77): pipeline.json file task complete
+[05:53:15.580] INFO (#85): pipeline.json file task complete
+(pass) studio named MTA Wiki route-evidence v2 import > keeps exact B44/B44+ identity, contextual history, official labels, and deterministic bytes [47.73ms]
+(pass) studio named MTA Wiki route-evidence v2 import > requires the exact named-release manifest and never falls back to fuzzy aliases [6.34ms]
+[05:53:15.595] INFO (#125): pipeline.json file task complete
+[05:53:15.596] INFO (#132): pipeline.json file task complete
+[05:53:15.597] INFO (#139): pipeline.json file task complete
+[05:53:15.597] INFO (#147): pipeline.json file task complete
+(pass) studio named MTA Wiki route-evidence v2 import > does not require a Tracker route for a typed GTFS-only identity outside the effective catalog [10.04ms]
+(pass) studio named MTA Wiki route-evidence v2 import > requires deterministic named inputs, protects immutable output paths, and rejects quarantine status [11.84ms]
+[05:53:15.618] INFO (#193): pipeline.json file task complete
+[05:53:15.618] INFO (#200): pipeline.json file task complete
+[05:53:15.620] INFO (#207): pipeline.json file task complete
+[05:53:15.621] INFO (#215): pipeline.json file task complete
+(pass) studio named MTA Wiki route-evidence v2 import > keeps a declared catalog-only identity explicit and outside the Tracker operational universe [11.41ms]
+(pass) studio named MTA Wiki route-evidence v2 import > stops when a catalog disagreement is not declared by the pinned descriptor [6.30ms]
+(pass) studio named MTA Wiki route-evidence v2 import > rejects noncanonical and unsafe slugs before writing any evidence artifacts [14.03ms]
+
+tools/pipeline-v2/test/studio-mta-wiki-operational-anchors.test.ts:
+(pass) manifest-pinned MTA Wiki operational-anchor import > replays manifest-v5 review-v2 anchors with exact retirement closure [23.99ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > requires every active manifest-v5 route to resolve through its exact projectable binding [14.24ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > treats binding and reviewed-decision SHA values as integrity receipts [13.03ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > requires attributed reviewers and exact UTC acceptance instants [9.51ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects a manifest-pinned release named by the generic quarantine index [3.33ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects review-v2 denominator drift and active-retired identity reuse [10.69ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects retirement projection, route binding, and archived-byte drift [11.62ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects unsafe or orphaned anchor retirement archive paths [8.85ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > maps a pinned eligible row and writes deterministic no-clock output [6.77ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > verifies the manifest-addressed accepted-review snapshot against reviewed rows [2.38ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects a reviewed-inherited row not bound by the pinned accepted-review snapshot [1.67ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > is byte-identical for the same pinned release in different checkout roots [4.29ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > never upgrades a producer-ineligible assertion and retains its rejection [2.77ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > independently rejects a producer-eligible row with an ambiguous lifecycle phase [4.34ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > admits only direct realized day/month anchors through import and candidate construction [7.42ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > deduplicates only exact rows within one change and quarantines cross-date groups [4.56ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > requires the caller's exact manifest hash [3.10ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects an unsupported manifest version even when its exact hash is pinned [1.16ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects an unsupported operational-anchor contract version [1.37ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects an unsupported accepted-review snapshot contract version [1.26ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects a manifest pointer that escapes its pinned release [1.22ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects a release-directory symlink that escapes the releases root [0.70ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > refuses to overwrite any file in the pinned producer release [0.97ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects an output path whose symlinked parent resolves into the producer release [0.96ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > detects exact-byte anchor tampering after the manifest was cut [1.36ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > reports malformed JSONL with its exact one-based line number [1.69ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > reports strict row schema mismatches with their exact line number [1.45ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > hard-fails when the producer summary does not reconcile with decoded rows [3.63ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > strictly accepts the expanded broad/reviewed producer funnel [2.99ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects expanded producer row-partition and broad-funnel drift [3.12ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > rejects candidate precision that disagrees with its normalized date literal [1.47ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > requires manifest event counts to agree with the producer funnel [1.46ms]
+[05:53:15.882] INFO (#584): pipeline.json file task complete
+(pass) manifest-pinned MTA Wiki operational-anchor import > study command requires pinned Wiki input unless the operator explicitly opts out [3.40ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > keeps analysis route availability exact and case-sensitive [0.51ms]
+(pass) manifest-pinned MTA Wiki operational-anchor import > registers the strict importer as a two-part studio command [0.01ms]
+
+tools/pipeline-v2/test/mta-wiki-rc22-lineage.test.ts:
+(pass) rc22 canonical lineage audit > is deterministic and classifies every route, version, phase, scope, and authority [66.54ms]
+(pass) rc22 canonical lineage audit > fails closed when the 321-row campaign no longer reconciles to its summary [40.61ms]
+(pass) rc22 canonical lineage audit > fails closed when the Tracker baseline or analysis month is not pinned [36.43ms]
+(pass) rc22 canonical lineage audit > retains evidence and an explicit unresolved disposition when a Tracker route is absent [40.73ms]
+
+tools/pipeline-v2/test/mta-wiki-rc23-reproducibility.test.ts:
+(pass) rc23 reproducibility handoff > strictly decodes the count-complete checked-in lineage audit [0.51ms]
+(pass) rc23 reproducibility handoff > rejects the ambiguous legacy aggregate and abbreviated producer commit [0.64ms]
+(pass) rc23 reproducibility handoff > binds replay claims to checked-in bytes and records the automatic deploy [2.10ms]
+
+tools/pipeline-v2/test/map-network-artifact.test.ts:
+(pass) buildNetworkMapFeatureCollection > builds one simplified citywide network feature per route [1.54ms]
+
+tools/pipeline-v2/test/studio-mta-wiki-route-fixture.test.ts:
+(pass) MTA Wiki route compatibility fixture > repeats byte-identically while preserving exact B44/B44+ identity and zero analytics [1.57ms]
+(pass) MTA Wiki route compatibility fixture > strictly decodes the non-authorizing receipt and rejects false legacy-input claims [0.64ms]
+(pass) MTA Wiki route compatibility fixture > rejects destinations that could overwrite a release, receipt, or pinned input [1.61ms]
+(pass) MTA Wiki route compatibility fixture > requires a portable legacy contrast path whose supplied SHA matches real bytes [0.70ms]
+(pass) MTA Wiki route compatibility fixture > requires the supplied generator commit to be exact HEAD with no tracked changes [0.06ms]
+(pass) MTA Wiki route compatibility fixture > binds the checked-in rc24 receipt to the normalized reproducible fixture [0.23ms]
+(pass) MTA Wiki route compatibility fixture > stops on catalog parity or official-label disagreement [0.08ms]
+
+tools/pipeline-v2/test/map-context.test.ts:
+(pass) map borough context > pins the source revision and places the label outside polygon holes [2.15ms]
+(pass) map borough context > assigns a cross-borough route from current stop coordinates [0.62ms]
+
+tools/pipeline-v2/test/mta-wiki-route-identities.test.ts:
+(pass) MTA Wiki manifest-v5 route identities > loads the frozen shared NYCT namespace with exact B44/B44+ identities and complete dispositions [8.91ms]
+(pass) MTA Wiki manifest-v5 route identities > requires exact manifest and canonical file hashes [6.59ms]
+(pass) MTA Wiki manifest-v5 route identities > fails closed on re-signed non-route canonical byte, kind, and count tampering [18.49ms]
+(pass) MTA Wiki manifest-v5 route identities > requires the exact canonical record-count kind set [7.48ms]
+(pass) MTA Wiki manifest-v5 route identities > closes every manifest-v5 pointer and file metadata entry [25.85ms]
+(pass) MTA Wiki manifest-v5 route identities > keeps legitimate reviewed axes on deterministic identities but rejects reviewer attribution of the mapping [11.74ms]
+(pass) MTA Wiki manifest-v5 route identities > fails closed on excess identity fields [7.40ms]
+(pass) MTA Wiki manifest-v5 route identities > fails closed on future release and embedded GTFS contract versions [7.46ms]
+(pass) MTA Wiki manifest-v5 route identities > preserves catalog Q6 and GTFS Q06 as typed nonmatching identities [0.79ms]
+(pass) MTA Wiki manifest-v5 route identities > requires both in_effect and inclusive interval coverage for catalog membership [0.58ms]
+(pass) MTA Wiki manifest-v5 route identities > fails closed on unknown future Current Bus Routes designations even off-scope [0.77ms]
+(pass) MTA Wiki manifest-v5 route identities > requires one presentation primary for each multiply-bound exact service [12.82ms]
+(pass) MTA Wiki manifest-v5 route identities > requires the complete null-GTFS disposition projection [8.05ms]
+(pass) MTA Wiki manifest-v5 route identities > requires projectable to equal the full operational eligibility predicate [5.65ms]
+(pass) MTA Wiki manifest-v5 route identities > rejects reliable-interval and canonical-record fingerprint drift [12.60ms]
+(pass) MTA Wiki manifest-v5 route identities > preserves the producer decision-ledger receipt and verifies canonical evidence independently [11.84ms]
+(pass) MTA Wiki manifest-v5 route identities > represents partial reliable intervals as indeterminate and nonprojectable [6.01ms]
+
+tools/pipeline-v2/test/studio-mta-wiki-operational-occurrences.test.ts:
+(pass) manifest-v3 MTA Wiki operational-occurrence import > strictly imports an atomic occurrence and writes deterministic bytes [12.91ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > deduplicates an exact registry event into its occurrence while preserving v2 identity [0.40ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > keeps non-identical cross-source days in one month as a review conflict [0.21ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > fails closed when one registry event exactly matches multiple occurrence identities [0.17ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > projects an explicit bundle once per route, never once per member [0.47ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > rejects unsupported bundle umbrellas without atomizing their members [0.07ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > uses only the bounded Queens route alias and gates route availability [0.08ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > does not let a legacy v1 approval authorize a v2 candidate set [0.28ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > keeps candidate identity stable under provenance ordering [0.25ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > fails closed on manifest version, contracts, missing pointers, and excess keys [17.59ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > requires all six dual-publish pointers to be addressed and distinct [12.85ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > fails closed on the manifest hash and path traversal [15.82ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > verifies manifest-addressed occurrence bytes before decoding [3.14ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > fails closed on row excess keys, duplicate ids, stale review, and summary drift [12.58ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > rejects canonical duplicate bindings in rows and review snapshots [13.18ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > rejects nested review-evidence drift even when the flat ledger is unchanged [12.86ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > mirrors producer bundle-family support and evidence-role semantics [3.90ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > rejects producer-invalid empty identifiers and required arrays [16.14ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > treats a reviewed redesign occurrence as treatment onset, not its own confounder [0.17ms]
+(pass) manifest-v3 MTA Wiki operational-occurrence import > registers the occurrence importer as a two-part studio command [0.01ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > strictly verifies a compatible relationship bundle and preserves v2 lineage [67.27ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > binds phase and physical audit proofs to the exact imported occurrence graph [118.68ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > rejects non-ready or nonzero phase and physical audit summaries [53.65ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > fails closed on relationship artifact tamper and strict contract excess [163.55ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > rejects weakened relationship-v1 roles, pins, fingerprints, policy, and matrix [173.63ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > rejects a graph manifest whose declared JSONL row count is inconsistent [30.61ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > rejects unknown contract versions and invalid occurrence-v2 phase lineage [30.21ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > accepts review-v1 parity projections while retaining occurrence-v2 lineage [63.17ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > accepts multiple evidence bindings for one phase or physical-scope relation [26.28ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > rejects unproved, nested, or stale review-v1 projection omissions [62.65ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > quarantines review-v1 occurrence-v2 roles unless the exact rc22 defect matches [12.69ms]
+(pass) manifest-v4 occurrence-v2 and relationship-integrity import > blocks approvals for the fingerprinted incompatible profile [31.41ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > strictly imports an addressed member-extent companion while ignoring quality provenance [83.22ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > rejects an unpaired member-extent contract discriminator or pointer [20.64ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > deterministically imports active decisions and preserves exact retirement closure [70.88ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > keeps occurrence and available-route identities exact outside the finite Queens crosswalk [35.32ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > requires each active occurrence route to use its exact projectable binding [67.35ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > preserves producer decision-ledger and binding SHA receipts [67.45ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > rejects route-anchor bytes that are not the complete snapshot projection [29.77ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > rejects a generic rc23-style exact-route quarantine [10.49ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > rejects count drift and reintroduction of a retired occurrence identity [59.34ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > rejects route-binding drift, unknown retirement fields, and unrepresented archives [79.95ms]
+(pass) manifest-v5 occurrence review-v2 retirement replay > rejects immutable retirement receipt and archive byte tamper [62.06ms]
+
+tools/pipeline-v2/test/route-speed-spine-crosswalk-loader.test.ts:
+[05:53:17.813] INFO (#1564): pipeline.json file task complete
+[05:53:17.813] INFO (#1571): pipeline.json file task complete
+(pass) route speed-spine crosswalk loader > distinguishes optional not-built from required missing artifacts [1.65ms]
+[05:53:17.816] INFO (#1578): pipeline.json file task complete
+[05:53:17.816] INFO (#1585): pipeline.json file task complete
+[05:53:17.817] INFO (#1592): pipeline.json file task complete
+(pass) route speed-spine crosswalk loader > loads an explicit artifact override and rejects legacy or ambiguous aliases [3.61ms]
+
+tools/pipeline-v2/test/map-segment-identity.test.ts:
+(pass) map segment identity fixture > proves producer position and segment identity disagree [0.08ms]
+(pass) map segment identity fixture > joins reordered map, detail, and history records only by canonical identity [0.15ms]
+(pass) map segment identity fixture > map and route-detail producers use the canonical serializers [0.24ms]
+
+tools/pipeline-v2/test/studio-mta-wiki-route-evidence.test.ts:
+(pass) studio import-mta-wiki-route-evidence > normalizes SBS route aliases to the same Bus route key [0.03ms]
+[05:53:17.821] INFO (#1601): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.822] INFO (#1608): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.829] INFO (#1615): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.829] INFO (#1622): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.830] INFO (#1629): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.830] INFO (#1636): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.830] INFO (#1643): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.830] INFO (#1650): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.831] INFO (#1657): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.832] INFO (#1670): pipeline.json file task complete
+[05:53:17.832] INFO (#1677): pipeline.json file task complete
+[05:53:17.833] INFO (#1685): pipeline.json file task complete
+(pass) studio import-mta-wiki-route-evidence > writes a strict route evidence artifact with route-scoped facts and citations [13.07ms]
+[05:53:17.834] INFO (#1695): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.834] INFO (#1702): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.834] INFO (#1709): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.834] INFO (#1716): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.834] INFO (#1723): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.834] INFO (#1730): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.835] INFO (#1737): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.835] INFO (#1744): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.835] INFO (#1751): studio.import-mta-wiki-route-evidence file task complete
+(pass) studio import-mta-wiki-route-evidence > builds an in-memory artifact from loaded canonical JSONL [1.99ms]
+[05:53:17.836] INFO (#1764): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.836] INFO (#1771): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.836] INFO (#1778): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.836] INFO (#1785): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.837] INFO (#1792): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.837] INFO (#1799): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.837] INFO (#1806): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.837] INFO (#1813): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.837] INFO (#1820): studio.import-mta-wiki-route-evidence file task complete
+(pass) studio import-mta-wiki-route-evidence > loads a named mta-wiki release with route anchors [3.90ms]
+[05:53:17.840] INFO (#1827): studio.import-mta-wiki-route-evidence file task complete
+[05:53:17.840] INFO (#1834): studio.import-mta-wiki-route-evidence file task complete
+(pass) studio import-mta-wiki-route-evidence > reports the failing route-anchor field path [0.94ms]
+[05:53:17.841] INFO (#1843): studio.import-mta-wiki-route-evidence file task complete
+(pass) studio import-mta-wiki-route-evidence > fails with a line-numbered message when canonical JSONL is missing [0.69ms]
+(pass) studio import-mta-wiki-route-evidence > keeps raw Bun reads out of the mta-wiki canonical reader [0.08ms]
+
+tools/pipeline-v2/test/publish-serving-release-order.test.ts:
+(pass) publish serving release ordering > runs completeness, ordinary D1, R2, then final catalog registration [0.15ms]
+(pass) publish serving release ordering > refuses every legacy direct remote execution during Plan 097 [2.34ms]
+
+packages/analytics/test/architecture.test.ts:
+(pass) analytics architecture primitives > creates stable ids from ordered parts [0.05ms]
+(pass) analytics architecture primitives > centralizes numeric helpers used by detectors [0.06ms]
+(pass) analytics architecture primitives > builds schema-validated evidence and coverage rows [0.24ms]
+(pass) analytics architecture primitives > exposes pure baseline helpers for detector designs [0.32ms]
+(pass) analytics architecture primitives > defines feature grain keys without depending on app or pipeline code [0.04ms]
+
+packages/analytics/test/stop-direction-hour-ewt-features.test.ts:
+(pass) buildStopDirectionHourEwtFeatures > joins observed stop-hour headways to raw scheduled stop-hour baselines [1.96ms]
+(pass) buildStopDirectionHourEwtFeatures > keeps observed cells with missing scheduled baseline auditable [0.09ms]
+
+packages/analytics/test/trend-baselines.test.ts:
+(pass) trend baseline helpers > computes median absolute deviation [0.08ms]
+(pass) trend baseline helpers > computes robust z scores with scaled MAD [0.06ms]
+(pass) trend baseline helpers > does not invent z scores when baseline dispersion is zero [0.02ms]
+(pass) trend baseline helpers > computes Theil-Sen slope robustly across all point pairs [0.03ms]
+
+packages/analytics/test/concentration.test.ts:
+(pass) giniCoefficient > perfectly even distribution has gini 0 [0.04ms]
+(pass) giniCoefficient > all mass on one item approaches 1 - 1/n
+(pass) giniCoefficient > empty or all-zero distribution has no inequality [0.02ms]
+(pass) giniCoefficient > rejects negative values [0.02ms]
+(pass) minItemsForShare / topItemsShare > counts the largest items needed to reach a cumulative share [0.04ms]
+(pass) minItemsForShare / topItemsShare > cumulative share of the k largest items [0.10ms]
+(pass) minItemsForShare / topItemsShare > non-positive total yields zero [0.01ms]
+(pass) percentile / percentileRank / median > median of even and odd samples [0.01ms]
+(pass) percentile / percentileRank / median > percentile interpolates linearly [0.01ms]
+(pass) percentile / percentileRank / median > percentileRank is the fraction of the sample <= value
+
+packages/analytics/test/route-score.test.ts:
+(pass) route scoring > produces a validated route scorecard [0.17ms]
+(pass) route scoring > does not produce impossible scores [0.05ms]
+
+packages/analytics/test/intervention-evidence-spec.test.ts:
+(pass) intervention evidence registry > strictly decodes the legacy ACE projection, target specs, dispositions, and product manifest [2.71ms]
+(pass) intervention evidence registry > keeps the Plan 090 ACE resolver behaviorally ACE-only [0.08ms]
+(pass) intervention evidence registry > serializes an exact exhaustive coverage matrix sorted by treatment kind and spec ID [0.19ms]
+(pass) intervention evidence registry > defines distinct bus-lane and busway specs with exact lifecycle and scope semantics [0.13ms]
+(pass) intervention evidence registry > derives product, feature, resolver, and metric metadata from canonical registries [0.08ms]
+(pass) intervention evidence registry > selects the same specs and priorities for rising, falling, flat, large, small, and null-heavy values [0.09ms]
+
+packages/analytics/test/feature-contracts.test.ts:
+(pass) R1 reliability feature contracts > defines stable grain ids for the literature-driven feature contracts [0.04ms]
+(pass) R1 reliability feature contracts > builds deterministic feature keys for each new grain [0.16ms]
+(pass) R1 reliability feature contracts > requires quality fields on new feature rows [0.03ms]
+(pass) R1 reliability feature contracts > declares treatment-state feature contracts for detector consumers [0.05ms]
+
+packages/analytics/test/evaluation-products.test.ts:
+(pass) evaluation data products > evaluates fixed map-layer currency and budgets without weakening priorities [0.23ms]
+(pass) evaluation data products > summarizes route-speed availability and release decisions [0.36ms]
+(pass) evaluation data products > builds schema-valid route capability manifests [0.54ms]
+(pass) evaluation data products > builds schema-valid route dossiers with canonical release identity [0.41ms]
+(pass) evaluation data products > validates map manifests from manifest contents and caller-provided artifact checks [3.03ms]
+
+packages/analytics/test/evaluation.test.ts:
+(pass) detector evaluation scorecards > flags positive-only gold sets and caps the score [1.84ms]
+(pass) detector evaluation scorecards > weighted scores ignore null components without treating unknowns as zero [0.02ms]
+(pass) detector evaluation scorecards > hard-zero gates block publication [0.02ms]
+
+packages/analytics/test/intervention-records.test.ts:
+(pass) repairInterventionRecordsAliases (Fix 6) > rewrites comparisonPeriodStart/End into nested comparisonPeriod [0.24ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > leaves unrelated tool args untouched [0.03ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > demotes invented enum values to custom labels (Fix P1.5, audit follow-up) [1.05ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > drops treatmentComponents and metrics with neither canonical nor custom label [0.45ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > drops empty corridor and empty extentEndpoints (Fix P1.6) [0.11ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > coerces statusHistory status synonyms (Fix P1.6) [0.20ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > strips unrecognized keys from metric entries (Fix P1.7) [0.40ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > drops statusHistory entries with unrecognizable status (P1.6) [0.34ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > filters null array elements (Fix P1.4 audit follow-up) [0.05ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > strips null optional fields (Fix P1.4) [0.04ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > repairs conflicting canonical/custom metric and component labels [1.44ms]
+(pass) repairInterventionRecordsAliases (Fix 6) > reports the native schema path for an invalid nested value [0.14ms]
+(pass) sanitizeStatusHistoryForProposedOnly (Fix 2) > coerces planning/implementing/monitoring/complete when all refs are proposed_only [0.04ms]
+(pass) sanitizeStatusHistoryForProposedOnly (Fix 2) > leaves status alone when at least one ref is non-proposed [0.02ms]
+(pass) backfillStatusHistory (Fix P1.1) > coerces candidate-derived non-proposed statuses to 'proposed' when candidate is proposed-only [0.03ms]
+(pass) backfillStatusHistory (Fix P1.1) > leaves status untouched when candidate is not proposed-only [0.02ms]
+(pass) inferRecordKind > returns 'proposed' when every candidate is proposed_only despite leaked 'complete' in history [0.01ms]
+(pass) inferRecordKind > returns 'implemented' when at least one candidate is not proposed-only and history has complete [0.01ms]
+(pass) validateMetricValueNumericSupport (Fix 3 + P2.4) > keeps valueNumeric when supported by candidate quote [0.08ms]
+(pass) validateMetricValueNumericSupport (Fix 3 + P2.4) > drops fabricated value (46 + 46 = 92) not present anywhere [0.09ms]
+(pass) validateMetricValueNumericSupport (Fix 3 + P2.4) > requires unit compatibility when matching fields.valueNumeric (P2.4) [0.07ms]
+(pass) validateMetricValueNumericSupport (Fix 3 + P2.4) > accepts fields.valueNumeric match when units agree [0.05ms]
+(pass) normalizeCorridorText + validateCorridorExtentEndpoints (Fix 4) > normalizes case, punctuation, and street-suffix variants [0.10ms]
+(pass) normalizeCorridorText + validateCorridorExtentEndpoints (Fix 4) > keeps endpoints when both appear in supporting quote (with suffix normalization) [0.07ms]
+(pass) normalizeCorridorText + validateCorridorExtentEndpoints (Fix 4) > drops inferred endpoints when not present in supporting quotes [0.03ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > accepts a treatment_component candidate with bus-priority quote [0.08ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > rejects a record whose only candidate is a fare-policy quote [0.05ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > rejects 'bus fare policy' even when bus regex matches (audit hole) [0.02ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > keeps fare-mention candidate when it carries typed treatmentTypes [0.02ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > rejects records whose only candidate is a subway-elevator quote [0.02ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > rejects records whose only project_status candidate is a plan-publication milestone [0.01ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > rejects subway service changes even when Phase 2 emitted changeTypes [0.02ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > rejects service-change records that only retain existing bus service [0.03ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > rejects declined comment-response reroutes as non-interventions [0.09ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > rejects generic SBS feature toolkit records with no project anchor [0.04ms]
+(pass) recordHasInterventionEvidence (Fix 7 + P2.5) > keeps anchored bus-priority records without route mentions [0.02ms]
+(pass) recordsAreClusterCompatible (Fix P1.3) > incompatible when records share only a route [0.08ms]
+(pass) recordsAreClusterCompatible (Fix P1.3) > incompatible when records share only a primary treatment [0.02ms]
+(pass) recordsAreClusterCompatible (Fix P1.3) > compatible when records share route and primary treatment [0.01ms]
+(pass) recordsAreClusterCompatible (Fix P1.3) > compatible when records share treatment and corridor [0.03ms]
+(pass) recordsAreClusterCompatible (Fix P1.3) > incompatible when records share only a corridor-distant context [0.01ms]
+(pass) dedupeInterventionRecordsByEvidenceOverlap (Fix 8) > does NOT merge records that share a candidate but have no other compatibility (Fix P1.3) [0.17ms]
+(pass) dedupeInterventionRecordsByEvidenceOverlap (Fix 8) > does NOT merge records that share broad evidence and only one loose compatibility signal [0.04ms]
+(pass) dedupeInterventionRecordsByEvidenceOverlap (Fix 8) > merges records that share a candidate plus route and treatment [0.31ms]
+(pass) mergeRecordCluster (Fix P2.6 — evidence refs union per component) > unions evidenceRefs across duplicate treatmentComponents [0.06ms]
+
+packages/analytics/test/public-route-visibility.test.ts:
+(pass) public route visibility > hides placeholder routes without public metadata [0.05ms]
+(pass) public route visibility > keeps sourced standard routes public [0.01ms]
+
+packages/analytics/test/headway-baselines.test.ts:
+(pass) headway baseline helpers > computes scheduled, average, and excess wait time from headways [0.08ms]
+(pass) headway baseline helpers > returns null when wait inputs are not scoreable [0.01ms]
+(pass) headway baseline helpers > maps headway coefficient of variation to TCQSM LOS bands [0.03ms]
+(pass) headway baseline helpers > computes headway coefficient of variation against scheduled headway [0.05ms]
+(pass) headway baseline helpers > computes bunching and gap shares from headway ratios [0.03ms]
+
+packages/analytics/test/route-treatment-summary.test.ts:
+(pass) reviewed-document treatment preservation > legacy compatibility adapter emits all two primary and two custom components [0.17ms]
+(pass) reviewed-document treatment preservation > normalized adapter preserves four stable source-order facts [0.51ms]
+(pass) reviewed-document treatment preservation > reconciles unknown treatment and exact-route gaps without dropping counts [0.08ms]
+(pass) stable treatment and occurrence facts > uses deterministic 24-hex IDs and excludes mutable lifecycle fields [0.06ms]
+(pass) stable treatment and occurrence facts > detects a truncated-ID collision between unequal canonical tuples [0.05ms]
+(pass) stable treatment and occurrence facts > keeps independent occurrences and derives current state only as references [0.22ms]
+(pass) legacy summary exact-route compatibility > keeps Q6 and Q06 independent and refuses neighboring identities [0.42ms]
+
+packages/analytics/test/route-treatment-crosswalk.test.ts:
+(pass) route treatment crosswalk > maps every closed document treatment through the binding table [0.03ms]
+(pass) route treatment crosswalk > requires an explicit reviewed disposition for open and legacy custom values [0.10ms]
+(pass) route treatment crosswalk > collects exact literals with per-source counts and reports missing and stale reviews [0.28ms]
+(pass) route treatment crosswalk > accepts exact key-set equality including an explicit other_documented decision [0.03ms]
+(pass) route treatment crosswalk > freezes the exact reviewed corpus and trusted local vocabulary [7.75ms]
+(pass) MTA Wiki treatment semantics v1 > reconciles the rc25 receipt exactly while keeping 1,006 literals blocking [12.91ms]
+(pass) MTA Wiki treatment semantics v1 > preserves source-backed bundle members and rejects unknown semantic guesses [0.14ms]
+(pass) MTA Wiki treatment semantics v1 > fails exact reconciliation for missing, unknown, stale, and duplicate scopes [0.14ms]
+(pass) exact route treatment resolution > keeps B44/B44+ and Q6/Q06 distinct [0.07ms]
+(pass) exact route treatment resolution > does not manufacture suffixes, casing, padding, or neighboring identities [0.04ms]
+(pass) exact route treatment resolution > keeps rc25 Q27, B57, and B44+ treatment scopes exact without project fan-out [0.09ms]
+
+packages/analytics/test/artifacts.test.ts:
+(pass) analytics artifact paths > owns express capacity and route analysis artifact paths [0.07ms]
+(pass) analytics artifact paths > owns stop-direction-hour EWT feature artifact paths [0.03ms]
+
+packages/analytics/test/context-intervention-gates.test.ts:
+(pass) context association helpers > scores context association from performance, volume, and join quality signals [0.04ms]
+(pass) context association helpers > summarizes context support and source caveats [1.99ms]
+
+packages/analytics/test/runtime-baselines.test.ts:
+(pass) runtime and pace baseline helpers > computes buffer index from P50 and P95 runtime [0.03ms]
+(pass) runtime and pace baseline helpers > computes signed runtime deviation from schedule [0.03ms]
+(pass) runtime and pace baseline helpers > computes pace slowness index against free-flow pace [0.02ms]
+(pass) runtime and pace baseline helpers > keeps delay components non-negative [0.02ms]
+
+packages/analytics/test/feature-history.test.ts:
+(pass) analytics feature-history artifacts > builds route speed spine and history artifacts without DB or filesystem dependencies [0.74ms]
+(pass) analytics feature-history artifacts > builds route hourly and segment daypart aggregation artifacts [0.57ms]
+(pass) analytics feature-history artifacts > builds express capacity context as a pure aggregation artifact [0.11ms]
+
+packages/analytics/test/segment-daypart-speed.test.ts:
+(pass) segment daypart speed feature resolver > builds segment/daypart features without collapsing route-month detail [0.36ms]
+(pass) segment daypart speed feature resolver > skips invalid source rows and preserves deterministic segment ids [0.03ms]
+
+packages/analytics/test/hotspots.test.ts:
+(pass) segment hotspot detection > ranks persistent slow weighted segments above faster segments [0.26ms]
+(pass) segment hotspot detection > rejects empty observation sets [0.02ms]
+(pass) segment hotspot detection > uses ridership exposure to rank rider-impact hotspots [0.06ms]
+(pass) segment hotspot detection > preserves exposure when every observed segment is faster than the hotspot target [0.04ms]
+
+packages/analytics/test/gold-set.test.ts:
+(pass) gold-set evaluation > counts reviewed outcomes and unexpected flagged scopes [0.11ms]
+
+packages/domain/test/schemas.test.ts:
+(pass) domain schemas > normalizes route IDs at the boundary with the domain codec [0.06ms]
+(pass) domain schemas > rejects scorecards without citations [0.12ms]
+(pass) domain schemas > reports the selected document-union member for a wrong-tag payload [0.36ms]
+(pass) domain schemas > exports JSON Schema for generated docs and contracts [0.03ms]
+(pass) domain schemas > keeps Studio release payloads strict [0.07ms]
+(pass) domain schemas > parses generated Studio method projection dataset metadata [0.07ms]
+(pass) domain schemas > parses review packets with explicit counter-evidence [0.44ms]
+(pass) domain schemas > parses reviewer promotion queues with explicit decisions [0.22ms]
+(pass) domain schemas > parses review decision and immutable promoted finding artifacts [0.21ms]
+(pass) domain schemas > projects route artifact refs into Studio route detail contracts [1.13ms]
+(pass) domain schemas > keeps health responses strict [0.05ms]
+(pass) domain schemas > AgentFindingProposalEvidenceRefSchema accepts a code_execution ref [0.07ms]
+(pass) domain schemas > AgentFindingProposalEvidenceRefSchema rejects code_execution refs with bad stdoutHash [0.04ms]
+(pass) domain schemas > AgentFindingProposalEvidenceRefSchema still accepts existing review_packet_link kind [0.02ms]
+
+packages/domain/test/studio-route-capability.test.ts:
+(pass) route capability manifest contract > key is the studio routes projection path [0.01ms]
+(pass) route capability manifest contract > authoritative schema accepts a three-route manifest [0.13ms]
+(pass) route capability manifest contract > authoritative schema is strict at the top level [0.04ms]
+(pass) route capability manifest contract > light read-schema tolerates forward-compatible additions [0.11ms]
+(pass) freshnessForDataAsOf (C4 shared freshness vocabulary) > derives the reference month from an evaluation timestamp [0.05ms]
+(pass) freshnessForDataAsOf (C4 shared freshness vocabulary) > classifies current / recent / stale / unknown [0.03ms]
+(pass) freshnessForDataAsOf (C4 shared freshness vocabulary) > crosses year boundaries by month arithmetic, not string compare
+
+packages/domain/test/studio-route-insights.test.ts:
+(pass) route insight projection > projects every supported detector family into a frontend-safe insight [1.04ms]
+(pass) route insight projection > turns public detector refs into human-facing route insights [0.18ms]
+(pass) route insight projection > keeps route-context refs soft and can omit them by caller choice [0.14ms]
+(pass) route insight projection > maps caveat tokens to readable labels and fails closed for unknown detectors [0.14ms]
+(pass) route insight projection > route detail contract defaults insights for older artifacts [0.18ms]
+(pass) S4.1 serving readiness gating > the studio-insight allowlist is a subset of the domain detector-id registry [0.11ms]
+(pass) S4.1 serving readiness gating > a non-allowlisted detector id in a public bucket is structurally excluded [0.11ms]
+(pass) S4.1 serving readiness gating > never-public detectors are blocked even from valid public buckets [0.12ms]
+(pass) S4.1 serving readiness gating > the blocklist mirrors the consolidated calibration register dispositions [0.20ms]
+
+packages/domain/test/document-operational-date.test.ts:
+(pass) normalizeStatedStatus > maps done-ish raw statuses [0.09ms]
+(pass) normalizeStatedStatus > maps committed-future raw statuses [0.03ms]
+(pass) normalizeStatedStatus > maps proposal/approval raw statuses (not operational) [0.02ms]
+(pass) normalizeStatedStatus > ambiguous in-progress statuses fall through to unknown (conservative) [0.04ms]
+(pass) classifyOperationalDate > completed operational change with date -> source-stated operational date (trusted) [0.18ms]
+(pass) classifyOperationalDate > planned/scheduled launch with date -> source-stated planned date (trusted per source) [0.07ms]
+(pass) classifyOperationalDate > community engagement is non-operational regardless of completion status [0.02ms]
+(pass) classifyOperationalDate > evaluation report date is not a treatment anchor [0.03ms]
+(pass) classifyOperationalDate > proposed operational change is a non-operational milestone (no commitment) [0.02ms]
+(pass) classifyOperationalDate > operational change with operational status but no date -> operational_without_date [0.01ms]
+(pass) classifyOperationalDate > source family veto: an operational-kind event whose source family is a meeting/outreach is non-operational [0.08ms]
+(pass) classifyOperationalDate > source family veto does NOT fire on genuine implementation/launch families [0.06ms]
+(pass) classifyOperationalDate > falls back to normalized eventStatus only when raw status is absent [0.02ms]
+(pass) classifyOperationalDate > raw status wins over the eventStatus fallback [0.02ms]
+(pass) classifyOperationalDate > placeholder date text (no digit) is treated as missing -> operational_without_date [0.05ms]
+(pass) classifyOperationalDate > real dates of any precision are kept (digit present) [0.07ms]
+(pass) classifyOperationalDate > operational change with ambiguous status -> needs_review [0.03ms]
+(pass) OperationalDateAssertionSchema accepts a fully-formed assertion row [0.17ms]
+(pass) parseOperationalDate > US-slash dates -> day precision (fixes the upstream year/unknown bug) [0.04ms]
+(pass) parseOperationalDate > month-name and ISO forms [0.03ms]
+(pass) parseOperationalDate > year, range, and season precision [0.03ms]
+(pass) parseOperationalDate > non-dates -> unknown (rejected as anchors) [0.02ms]
+(pass) anchor adapter helpers > causalAnchorEligible requires realized + month-or-finer + a route [0.06ms]
+(pass) anchor adapter helpers > confidence is bounded and rewards realized + day-precision + direct route text [0.02ms]
+(pass) classifier fixes from audit > negated status (not_implemented / denied) is not treated as operational [0.01ms]
+(pass) classifier fixes from audit > disjunctive X_or_Y status -> unknown (review)
+(pass) classifier fixes from audit > recall rescue: operational family overrides a non-operational eventKind [0.03ms]
+(pass) classifier fixes from audit > subway-mode event is vetoed out of bus operational dates [0.02ms]
+
+packages/domain/test/studio-intervention-observations.test.ts:
+(pass) Studio intervention observation contract > exposes stable route-bundle and compact-index keys [0.03ms]
+(pass) Studio intervention observation contract > strictly round-trips a 25-month bundle and compact index [1.32ms]
+(pass) Studio intervention observation contract > strictly decodes bus-lane and busway route-context contracts [0.89ms]
+(pass) Studio intervention observation contract > preserves reviewed identity for legacy unsupported-scope events [0.17ms]
+(pass) Studio intervention observation contract > accepts one occurrence fanned out to two uniquely keyed treatments [0.42ms]
+(pass) Studio intervention observation contract > enforces coverage arithmetic, ordered unique months, and observed bounds [0.52ms]
+(pass) Studio intervention observation contract > enforces available, partial, and missing status semantics [0.34ms]
+(pass) Studio intervention observation contract > derives mixed and all-null bundle coverage honestly [0.34ms]
+(pass) Studio intervention observation contract > accepts index coverage spanning differently covered route bundles [0.11ms]
+(pass) Studio intervention observation contract > requires the exact two input refs in their prescribed order [0.76ms]
+(pass) Studio intervention observation contract > rejects duplicate event and composite identities [0.39ms]
+(pass) Studio intervention observation contract > rejects mismatched treatment, analysis-family, and spec identities [1.01ms]
+(pass) Studio intervention observation contract > requires date precision and route-context semantics to match [0.61ms]
+(pass) Studio intervention observation contract > rejects malformed dates, mismatched routes, and invalid coverage grain [0.39ms]
+(pass) Studio intervention observation contract > rejects arrays beyond their public bounds [8.27ms]
+(pass) Studio intervention observation contract > keeps effect summaries outside every serialized event and series [0.48ms]
+
+packages/domain/test/schema-semantics.test.ts:
+(pass) schema semantic compatibility > keeps object excess-key modes distinct [0.18ms]
+(pass) schema semantic compatibility > keeps route ID strict validation and boundary normalization separate [0.07ms]
+(pass) schema semantic compatibility > keeps domain brands type-distinct [0.02ms]
+(pass) schema semantic compatibility > keeps Studio segment compatibility preprocessing [0.21ms]
+
+packages/domain/test/decode.test.ts:
+(pass) domain decode policies > strict rejects unknown keys [0.11ms]
+(pass) domain decode policies > strip drops unknown keys [0.03ms]
+(pass) domain decode policies > preserve keeps unknown keys [0.03ms]
+(pass) domain decode policies > nested failures retain the field path [0.11ms]
+
+packages/domain/test/map-schemas.test.ts:
+(pass) map route segment schemas > accepts a strict route-segment feature collection [0.17ms]
+(pass) map route segment schemas > rejects out-of-range coordinates [0.06ms]
+(pass) truthful network map schemas > accepts null hourly evidence and verified multi-borough membership [0.16ms]
+(pass) truthful network map schemas > rejects wrong hour lengths, duplicate boroughs, and speed without traversals [0.20ms]
+(pass) truthful network map schemas > rejects context without a borough label and malformed lane geometry [0.09ms]
+(pass) truthful network map schemas > rejects attempts to downgrade a fixed P0 map layer [0.09ms]
+(pass) truthful network map schemas > rejects contradictory route-fact evidence [0.10ms]
+
+packages/domain/test/studio-study.test.ts:
+(pass) study event contracts > accepts a strict source-backed candidate and rejects unsupported treatment families [0.10ms]
+(pass) study event contracts > binds approvals to one candidate-set identity [0.16ms]
+(pass) study event contracts > binds the producer review compatibility to its promotion disposition [0.05ms]
+(pass) study physical-scope binding contracts > binds one exact occurrence and geometry set to current segments and stable spines [0.12ms]
+(pass) segment study artifact contracts > validates one source-backed study and deterministic artifact keys [0.22ms]
+(pass) segment study artifact contracts > allows the complete 6+event+6 month sensitivity exclusion audit [0.16ms]
+(pass) segment study artifact contracts > caps the study index at 500 rows [3.88ms]
+(pass) segment study artifact contracts > caps each route rollup at 20 full study payloads [1.03ms]
+
+packages/domain/test/studio-route-intervention-inventory.test.ts:
+(pass) Studio route intervention inventory contracts > round-trips the bundle, route index, facet index, and reconciliation [1.11ms]
+(pass) Studio route intervention inventory contracts > rejects wrong versions and a route-index hash that is not 64 lowercase hex [0.11ms]
+(pass) Studio route intervention inventory contracts > rejects excess and forbidden observation/effect fields [0.17ms]
+(pass) Studio route intervention inventory contracts > requires every source state and accepts explicit checked-empty coverage [0.23ms]
+(pass) Studio route intervention inventory contracts > accepts known rows with explicit partial optional-source coverage [0.15ms]
+(pass) Studio route intervention inventory contracts > preserves every reviewed rc25 bundle-member kind and family without coercion [0.96ms]
+(pass) Studio route intervention inventory contracts > keeps unresolved rc25 semantics in source gaps and rejects invented treatment literals [0.28ms]
+(pass) Studio route intervention inventory contracts > publishes the four exact browser-safe keys [0.03ms]
+
+packages/domain/test/studio-interventions.test.ts:
+(pass) Studio intervention timeline projection > keeps dated interventions and drops source-gap evidence rows [0.23ms]
+
+packages/domain/test/package-shape.test.ts:
+(pass) domain package shape > exposes explicit contract subpaths and no root entrypoint [1.29ms]
+(pass) domain package shape > resolves public subpaths through package imports [0.42ms]
+(pass) domain package shape > keeps package barrels explicit [1.66ms]
+(pass) domain package shape > external TypeScript code does not import the removed root entrypoint [94.70ms]
+
+packages/domain/test/serving-release-contract.test.ts:
+(pass) serving release contracts > requires matching top-level and nested status release identities [0.37ms]
+(pass) serving release contracts > keeps nullable snapshot identity atomic [0.12ms]
+(pass) serving release contracts > versions dossier summaries with publication identity and coverage [0.09ms]
+
+packages/domain/test/release-identity.test.ts:
+(pass) publication release identity > derives a compact ID without losing UTC millisecond precision [1.45ms]
+(pass) publication release identity > rejects every non-canonical or lossy publication timestamp form [0.08ms]
+(pass) publication release identity > validates honest null and bounded coverage starts [0.12ms]
+(pass) publication release identity > requires the release ID and publication timestamp to describe one instant [0.06ms]
+
+packages/domain/test/studio-route-identity-presentation.test.ts:
+(pass) Studio route identity presentation > rejects non-injective slugs for plus and legacy SBS spellings [0.14ms]
+(pass) Studio route identity presentation > rejects non-injective slugs for case-distinct exact IDs
+(pass) Studio route identity presentation > strictly decodes a semantically complete route-index v3 row [0.32ms]
+(pass) Studio route identity presentation > rejects family collapse in route-index v3 [0.08ms]
+(pass) Studio route identity presentation > rejects noncanonical slug in route-index v3 [0.06ms]
+(pass) Studio route identity presentation > rejects invented label in route-index v3 [0.05ms]
+(pass) Studio route identity presentation > rejects duplicate designation in route-index v3 [0.05ms]
+(pass) Studio route identity presentation > rejects mode disagreement in route-index v3 [0.07ms]
+(pass) Studio route identity presentation > rejects designation disagreement in route-index v3 [0.06ms]
+(pass) Studio route identity presentation > cross-checks plural official route and trip designations without collapsing modes [0.08ms]
+(pass) Studio route identity presentation > fails closed on unknown, ambiguous School, and disagreeing official literals [0.13ms]
+(pass) Studio route identity presentation > isolates the legacy Tracker spelling from the named official mapper [0.07ms]
+(pass) Studio route identity presentation > keeps legacy bundles readable but rejects future tagged bundle versions [0.18ms]
+
+packages/sources/test/nyc-geoclient.test.ts:
+(pass) NYC Geoclient normalization > normalizes NYC county and borough abbreviations used by source rows [0.13ms]
+
+packages/sources/test/gtfs-rt.test.ts:
+(pass) GTFS-RT parsing > normalizes vehicle positions for route joins [0.45ms]
+(pass) GTFS-RT parsing > normalizes trip updates, stop-time updates, and alerts [0.31ms]
+(pass) GTFS-RT parsing > normalizes common MTA route id prefixes [0.05ms]
+(pass) GTFS-RT parsing > accepts an injected decoder so vendor bindings stay private [0.14ms]
+(pass) GTFS-RT parsing > uses the default nyc-transit-kit decoder [1.67ms]
+
+packages/sources/test/source-probes.test.ts:
+(pass) source probes > accepts the typed NOAA station download entry [0.21ms]
+(pass) source probes > allows manifest notes without reopening old Socrata endpoint fields [0.38ms]
+(pass) source probes > reports the tagged manifest member that failed [0.18ms]
+(pass) source probes > probes Socrata metadata and row counts [3.21ms]
+(pass) source probes > uses lightweight HTTP metadata for web and static sources [0.31ms]
+(pass) source probes > parses final curl header blocks for fetch-blocked documentation pages [0.16ms]
+(pass) source probes > skips Bus Time feeds without a local API key [0.15ms]
+(pass) source probes > redacts Bus Time API keys from persisted realtime probe output [0.22ms]
+
+packages/sources/test/nyc-public-data.test.ts:
+(pass) NYC public data normalization > keeps parking street codes and intersecting street fields [0.16ms]
+(pass) NYC public data normalization > keeps LION street code, borough code, and house ranges [0.11ms]
+(pass) NYC public data normalization > classifies 311 curb-friction rows with deterministic rules [0.12ms]
+(pass) NYC public data normalization > normalizes 311 rows with curb-friction taxonomy fields [0.26ms]
+
+packages/sources/test/census-acs.test.ts:
+(pass) Census ACS equity context > builds an ACS 5-year profile URL for NYC tracts [0.09ms]
+(pass) Census ACS equity context > adds an API key when provided [0.04ms]
+(pass) Census ACS equity context > normalizes tract demographics and low-car household fields [0.19ms]
+
+packages/sources/test/socrata.test.ts:
+(pass) Socrata source contracts > parses source metadata fixtures with extra Socrata fields [1.39ms]
+(pass) Socrata source contracts > builds metadata URLs without string concatenation in callers [0.03ms]
+(pass) Socrata source contracts > rejects invalid dataset IDs before network calls [0.04ms]
+
+packages/sources/test/mta-route-slice.test.ts:
+(pass) MTA route slice normalization > normalizes segment speed rows from Socrata strings [0.21ms]
+(pass) MTA route slice normalization > normalizes bus wait assessment rows when Socrata omits null assessment fields [0.17ms]
+(pass) MTA route slice normalization > skips segment speed rows without usable next-timepoint metadata [0.04ms]
+(pass) MTA route slice normalization > skips segment speed rows without usable current-timepoint metadata [0.04ms]
+(pass) MTA route slice normalization > keeps segment speed cell rows that the filtered normalizer drops [0.14ms]
+(pass) MTA route slice normalization > normalizes route shapes and stops without losing geometry payloads [0.22ms]
+(pass) MTA route slice normalization > falls back to route id when current route feeds omit short names [0.06ms]
+(pass) MTA route slice normalization > normalizes hourly ridership rows to the segment-speed join grain [0.08ms]
+(pass) MTA route slice normalization > normalizes ACE route implementation rows [0.09ms]
+(pass) MTA route slice normalization > normalizes grouped ACE violation rows [0.06ms]
+(pass) MTA route slice normalization > normalizes NYC DOT bus lane rows with geometry and operating fields [0.10ms]
+(pass) MTA route slice normalization > normalizes schedule timepoint rows [0.09ms]
+
+packages/db/test/local-findings.test.ts:
+(pass) local findings repository > lists route touches overlapping a detector window [28.40ms]
+(pass) local findings repository > filters route touches by event kind and evidence role [21.85ms]
+(pass) local findings repository > rejects malformed coverage audit JSON before insert [21.51ms]
+(pass) local findings repository > insert ignore validates coverage audit JSON and preserves existing rows [21.96ms]
+(pass) local findings repository > validates coverage audit JSON before replacing existing month rows [21.17ms]
+(pass) local findings repository > validates coverage audit JSON before replacing run-scoped rows [20.96ms]
+
+packages/db/test/local-geocode-updates.test.ts:
+(pass) local geocode update repository > updates simple geocode targets by their source keys [21.92ms]
+
+packages/db/test/observed-reliability-repository.test.ts:
+(pass) replaceRouteObservedReliabilityRows > scoped delete preserves rows for the same month under a different runId [24.10ms]
+(pass) replaceRouteObservedReliabilityRows > does not delete rows for a different month [20.89ms]
+(pass) replaceRouteObservedReliabilityRows > rejects summary rows whose month does not match the scope [20.10ms]
+(pass) replaceRouteObservedReliabilityRows > rejects summary rows whose runId does not match the scope [19.89ms]
+
+packages/db/test/local-route-network.test.ts:
+(pass) local route network repository > lists route catalog ids in canonical order [21.47ms]
+
+packages/db/test/d1-seed-validation.test.ts:
+(pass) D1 seed validation > rejects malformed public serving rows before rendering SQL [1.28ms]
+(pass) D1 seed validation > rejects malformed route catalog rows before rendering SQL [0.07ms]
+(pass) D1 seed validation > validates appendix reliability rows at the same seed boundary [0.19ms]
+(pass) D1 seed validation > rejects invalid route speed-history spine readiness and reason JSON [0.11ms]
+(pass) D1 seed validation > Plan 097 recovery seed preserves appendix signals and citations and activates last [0.90ms]
+
+packages/db/test/sqlite-bool.test.ts:
+(pass) sqliteBool > normalizes SQLite boolean row values [0.02ms]
+
+packages/db/test/local-migration-root.test.ts:
+(pass) local DB test migration root > test helpers use the live Drizzle migration journal [1.16ms]
+
+packages/db/test/studio-route-index.test.ts:
+(pass) Studio route index D1 read model > resolves the latest passing published serving batch and speed coverage [13.23ms]
+(pass) Studio route index D1 read model > does not publish an empty or non-passing serving batch [12.22ms]
+(pass) Studio route index D1 read model > treats route speed-history coverage as optional for older serving schemas [13.38ms]
+(pass) Studio route index D1 read model > treats route catalog trip types as optional for the published legacy schema [10.71ms]
+(pass) Studio route index D1 read model > marks exact identity availability per route instead of per table [13.00ms]
+(pass) Studio route index D1 read model > reads the exact route identity registry bound to a serving release [12.25ms]
+
+packages/db/test/route-serving-repository.test.ts:
+(pass) route serving repository > lists route brief summaries with typed child rows [12.74ms]
+(pass) route serving repository > gets one route brief summary by route and month [12.96ms]
+(pass) route serving repository > returns null when a route brief summary does not exist [9.80ms]
+(pass) route serving repository > gets route batch status with typed child rows [12.45ms]
+(pass) route serving repository > lists comparison ranks ordered by rank [11.91ms]
+(pass) route serving repository > lists route readiness rows with missing input details [10.36ms]
+(pass) route serving repository > lists build-eligible routes only [12.33ms]
+(pass) route serving repository > lists route build plan rows with typed flags and child rows [12.37ms]
+(pass) route serving repository > lists route reliability baseline rows with child rows [12.28ms]
+(pass) route serving repository > lists observed reliability summary rows with source status [10.37ms]
+(pass) route serving repository > lists route intervention comparisons with event context [13.98ms]
+(pass) route serving repository > skips intervention comparisons with malformed comparison route IDs [12.06ms]
+(pass) route serving repository > lists corridor summaries with members and hotspots [12.41ms]
+(pass) route serving repository > lists route monthly trend rows ordered by month [9.87ms]
+(pass) route serving repository > lists route equity context rows with source-status child rows [12.37ms]
+(pass) route serving repository > finds one route equity context row for a route month [12.31ms]
+(pass) route serving repository > returns null for a missing route equity context row [9.89ms]
+(pass) route serving repository > rejects unsupported route equity assignment geography values [11.82ms]
+(pass) route serving repository > lists selected route build candidates only [12.07ms]
+(pass) route serving repository > maps trusted child rows without per-read validation [12.06ms]
+
+packages/db/test/local-transactions.test.ts:
+(pass) local replace helpers are transactional > a failed replace rolls back its deletes, leaving prior rows intact [21.24ms]
+(pass) local replace helpers are transactional > inserts past the chunk boundary all land [30.42ms]
+
+packages/db/test/route-scorecard.test.ts:
+(pass) D1 route scorecard read model > round-trips scorecards through a compact row shape [0.11ms]
+(pass) D1 route scorecard read model > rejects missing citation child rows at the repository boundary [0.03ms]
+(pass) D1 route scorecard read model > gets one scorecard by route and month [2.86ms]
+(pass) D1 route scorecard read model > returns null when a scorecard row does not exist [0.64ms]
+
+packages/db/test/exact-route-identity-registration.test.ts:
+(pass) exact route identity registration > accepts an identical retry without duplicating rows [0.44ms]
+(pass) exact route identity registration > aborts release-id metadata drift and preserves the original [0.43ms]
+(pass) exact route identity registration > rejects malformed release identity, hashes, counts, and extra fields [0.11ms]
+
+packages/db/test/local-route-segment-speed-cell.test.ts:
+(pass) local route segment speed cell repository > replace and list round-trip preserves nullable timepoint metadata [22.68ms]
+
+packages/db/test/snapshot-coverage.test.ts:
+(pass) Snapshot coverage D1 read model > normalizes legacy display months from source month coverage rows [12.24ms]
+(pass) Snapshot coverage D1 read model > keeps strict validation for repository checks and skips invalid public snapshot rows [11.76ms]
+(pass) Snapshot coverage D1 read model > normalizes unknown source coverage status at the D1 edge [11.55ms]
+
+packages/db/test/map-release-catalog.test.ts:
+(pass) D1 map release catalog > migration has the exact publication columns and unique manifest key [1.18ms]
+(pass) D1 map release catalog > returns only the latest verified full release and leaves a new catalog empty [1.20ms]
+(pass) D1 map release catalog > fails closed when the selected catalog row has invalid metadata [2.91ms]
+(pass) D1 map release catalog > escapes SQL strings and treats an identical retry as success [0.34ms]
+(pass) D1 map release catalog > aborts same-release metadata drift without mutating the original row [0.39ms]
+(pass) D1 map release catalog > aborts a manifest-key collision on another release [0.36ms]
+(pass) D1 map release catalog > rejects invalid, demo, unverified, and v1 registration inputs [0.13ms]
+
+packages/db/test/route-timelines.test.ts:
+(pass) D1 route timeline index read model > reads route timeline index rows with parsed preview JSON and artifact refs [3.09ms]
+(pass) D1 route timeline index read model > skips rows with malformed timeline JSON [0.69ms]
+
+packages/db/test/plan097-recovery.test.ts:
+(pass) Plan 097 recovery contracts > canonicalizes complete schema evidence independently of query order [0.40ms]
+(pass) Plan 097 recovery contracts > allows only absent or exact 0033 recovery states [0.23ms]
+(pass) Plan 097 recovery contracts > accepts only canonical schema plus an absent-or-exact 0033 and an independent ledger [0.70ms]
+(pass) Plan 097 recovery contracts > the idempotent 0033 recovery creates the exact table and is a no-op on retry [0.42ms]
+(pass) Plan 097 recovery contracts > the recovery is a schema no-op after canonical migration replay [10.19ms]
+(pass) Plan 097 recovery contracts > rejects unsafe remote command shapes [0.15ms]
+(pass) Plan 097 recovery contracts > strictly decodes a closed immutable artifact manifest [0.32ms]
+(pass) Plan 097 recovery contracts > rejects out-of-scope batch targets and caller-selected resources [0.49ms]
+(pass) Plan 097 recovery contracts > requires the Studio schedule exclusion inventory to reconcile [0.17ms]
+(pass) Plan 097 recovery contracts > preflight receipt binds baseline, rollback, cost, and immutable candidate evidence [0.97ms]
+(pass) Plan 097 recovery contracts > preflight HTTP evidence fails closed when a successful endpoint can be cached [0.11ms]
+
+packages/db/test/local-d1-schema-drift.test.ts:
+(pass) local to D1 mirrored table schema drift > shared serving columns keep type, nullability, default, and enum parity [0.65ms]
+
+packages/db/test/serving-tables.test.ts:
+(pass) D1 serving table schema > includes compact serving tables for route artifacts and comparisons [1.71ms]
+
+packages/studio-api/test/api-facade.test.ts:
+(pass) Studio API facade > serves health, schema, and OpenAPI routes through the package facade [2.06ms]
+(pass) Studio API facade > applies registry private no-store cache policy to RUM reports [0.20ms]
+(pass) Studio API facade > keeps unknown API routes closed at the package facade [0.13ms]
+(pass) Studio API facade > returns method-aware JSON errors for known API paths [0.07ms]
+Unhandled Studio API error. {
+  requestId: "2304becc-f7e4-464d-ac60-241198844f7c",
+  method: "GET",
+  path: "/api/v1/studio/routes",
+  error: {
+    name: "Error",
+    message: "simulated R2 outage",
+  },
+}
+(pass) Studio API facade > wraps unhandled Studio API failures in a JSON error envelope [3.14ms]
+Unhandled Studio API error. {
+  requestId: "04de7a46-68f8-4db6-b2fc-08c0e81bc92c",
+  method: "GET",
+  path: "/api/v1/studio/routes",
+  error: {
+    name: "Error",
+    message: "simulated R2 outage",
+  },
+}
+(pass) Studio API facade > does not cache unhandled Studio API failure envelopes [1.03ms]
+(pass) Studio API facade > serves a D1-backed route scorecard [0.53ms]
+(pass) Studio API facade > serves D1-backed v1 status, route cards, profile, and hotspots [5.09ms]
+(pass) Studio API facade > fails current public reads closed without published serving data [0.30ms]
+(pass) Studio API facade > serves only the latest cataloged v2 map manifest and artifact objects [8.88ms]
+(pass) Studio API facade > fails closed when no verified map release is cataloged or manifest bytes drift [1.16ms]
+(pass) Studio API facade > serves Studio projection-backed routes [3.48ms]
+(pass) Studio API facade > keeps the Tier-1 route dossier response within the 60 KB gzip budget (C2) [1.61ms]
+(pass) Studio API facade > serves a D1/R2-backed MTA-wiki route evidence bundle from the timeline endpoint [4.69ms]
+(pass) Studio API facade > serves a byte-pinned route-evidence v2 bundle only after exact D1 closure [4.68ms]
+Studio route evidence index failed exact D1 closure. {
+  reason: "Route evidence index identity mismatch for M15+",
+}
+Studio route evidence bundle failed contract validation. {
+  key: "studio/v2/wiki/routes/m15-sbs.json",
+}
+Studio route evidence index failed exact D1 closure. {
+  reason: "Route evidence index identity mismatch for M15+",
+}
+Studio interventions evidence bundle failed contract validation. {
+  key: "studio/v2/wiki/routes/m15-sbs.json",
+  reason: "Route evidence v2 bundle lacks a closed v2 index",
+}
+(pass) Studio API facade > rejects route-evidence v2 when index and bundle agree on a forged D1 presentation [2.84ms]
+Studio route evidence bundle failed contract validation. {
+  key: "studio/v2/wiki/routes/m15-sbs.json",
+}
+(pass) Studio API facade > rejects route-evidence v2 when the served object hash differs from its index row [1.26ms]
+Studio route evidence bundle failed contract validation. {
+  key: "studio/v2/wiki/routes/m15-sbs.json",
+}
+Studio interventions evidence bundle failed contract validation. {
+  key: "studio/v2/wiki/routes/m15-sbs.json",
+  reason: "Route evidence bundle Wiki identity set does not match its exact binding state for M15+",
+}
+(pass) Studio API facade > rejects a re-signed matched route-evidence bundle whose exact Wiki identity set is empty [2.60ms]
+(pass) Studio API facade > serves compact MTA-wiki route evidence for the interventions page [1.81ms]
+Studio interventions evidence bundle is not valid JSON. {
+  key: "studio/v2/wiki/routes/b99.json",
+}
+(pass) Studio API facade > skips malformed route evidence bundles when building interventions evidence [4.16ms]
+(pass) Studio API facade > serves a typed empty MTA-wiki route evidence bundle for routes without evidence [1.23ms]
+Studio route speed history is not valid JSON. {
+  key: "studio/v2/routes/m15-sbs/speed-history.json",
+}
+(pass) Studio API facade > hides route artifact keys from malformed artifact errors [0.20ms]
+(pass) Studio API facade > enriches Studio route detail with frontend-safe route insights [3.83ms]
+(pass) Studio API facade > does not load a sibling service identity mispackaged under the exact route slug [2.57ms]
+(pass) Studio API facade > serves a D1-backed Studio route index v2 from the full catalog [1.41ms]
+(pass) Studio API facade > rejects unknown Studio route-index schema versions [0.13ms]
+(pass) Studio API facade > serves strict exact route identity in the D1-backed route index v3 [1.43ms]
+(pass) Studio API facade > keeps schema v2 available while exact schema v3 fails closed without its registry [2.65ms]
+(pass) Studio API facade > excludes unresolved legacy catalog routes from exact index and detail addressability [3.84ms]
+Exact Studio route identity projection failed integrity checks. {
+  reason: "registered release metadata or counts do not match D1 rows",
+  releaseId: "pub_20260610T000000000Z",
+  expected: {
+    publishedAt: "2026-06-10T00:00:00.000Z",
+    coverageStart: "2023-04",
+    coverageEnd: "2026-03",
+    exactRouteCount: 2,
+    routeTypeCount: 2,
+    tripTypeCount: 2,
+  },
+  actual: {
+    publishedAt: "2026-06-10T00:00:00.000Z",
+    coverageStart: "2023-04",
+    coverageEnd: "2026-03",
+    exactRouteCount: 1,
+    routeTypeCount: 1,
+    tripTypeCount: 1,
+  },
+}
+(pass) Studio API facade > rejects a registry whose counts do not match the exact D1 projection [1.27ms]
+(pass) Studio API facade > fails Studio D1 reads closed without passing publication metadata [0.74ms]
+(pass) Studio API facade > recomputes capability freshness against request time [1.78ms]
+(pass) Studio API facade > serves Snapshot 2.0 route sections from deterministic D1 route facts [3.16ms]
+(pass) Studio API facade > promotes Evidence Ready route sections when the MTA-wiki route evidence index is published [1.90ms]
+Studio API projection artifact was not found. {
+  key: "studio/v1/routes/b99/index.json",
+}
+(pass) Studio API facade > resolves sparse catalog routes through list, detail, and history [6.67ms]
+(pass) Studio API facade > joins public intervention annotations onto D1 cards by exact route ID [1.96ms]
+Studio API projection artifact is not valid JSON. {
+  key: "studio/v1/routes.json",
+}
+(pass) Studio API facade > keeps D1 route cards available when the optional intervention projection is invalid [1.65ms]
+Studio API projection artifact was not found. {
+  key: "studio/v1/routes/b99/index.json",
+}
+(pass) Studio API facade > keeps Snapshot 2.0 addressability endpoints mutually consistent [12.22ms]
+(pass) Studio API facade > normalizes legacy display months in Snapshot 2.0 source coverage rows [3.96ms]
+Skipping source_month_coverage row for public Studio snapshot. {
+  sourceId: "local_route_segment_speed",
+  month: "not-a-month",
+  issues: [ "Invalid string" ],
+}
+(pass) Studio API facade > omits invalid source coverage months from the public Studio snapshot [3.82ms]
+(pass) Studio API facade > serves Snapshot 2.0 model projection months when the model artifact is well formed [3.86ms]
+Model artifact serving projection failed contract validation. {
+  key: "studio/v2/detectors/model-artifacts.json",
+  issues: [
+    {
+      path: [ "historyWindow", "startMonth" ],
+      message: "Expected a string matching the RegExp ^\\d{4}-\\d{2}$, got \"not-a-month\"",
+    }
+  ],
+}
+(pass) Studio API facade > serves Snapshot 2.0 with a degraded model projection when the model artifact months are malformed [3.61ms]
+Studio API projection artifact is not valid JSON. {
+  key: "studio/v1/methods.json",
+}
+Studio snapshot tolerated methods projection failure. {
+  policy: {
+    required: false,
+    caveat: "Methods projection is temporarily unavailable; dataset counts are omitted.",
+  },
+}
+Studio API projection artifact is not valid JSON. {
+  key: "studio/v1/docs.json",
+}
+Studio snapshot tolerated docs projection failure. {
+  policy: {
+    required: false,
+    caveat: "Docs projection is temporarily unavailable; documentation sections are omitted.",
+  },
+}
+(pass) Studio API facade > applies the declared snapshot degrade policy to methods and docs projections [0.89ms]
+Studio API projection artifact is not valid JSON. {
+  key: "studio/v1/routes.json",
+}
+(pass) Studio API facade > keeps routes required while tolerating a poisoned route evidence index [3.78ms]
+(pass) Studio API facade > serves D1-backed Studio route month history [1.99ms]
+Service dependency is not configured. {
+  context: "Studio API projection load",
+  dependency: "ARTIFACTS",
+}
+Studio API projection artifact was not found. {
+  key: "studio/v1/routes.json",
+}
+(pass) Studio API facade > fails Studio API reads closed when projection artifacts are missing [0.18ms]
+
+packages/studio-api/test/http-routing.test.ts:
+(pass) Studio API HTTP helpers > classifies API and Studio API paths [0.03ms]
+(pass) Studio API HTTP helpers > returns stable route templates for Studio resources [0.06ms]
+(pass) Studio API HTTP helpers > finds the most specific route spec for method and path [0.07ms]
+(pass) Studio API HTTP helpers > keeps Studio registry routes and read handlers complete [0.04ms]
+(pass) Studio API HTTP helpers > builds projection keys from the configured release artifact [0.03ms]
+(pass) Studio API HTTP helpers > routes OpenAPI through the package API facade [1.49ms]
+(pass) Studio API HTTP helpers > serves a compact Studio snapshot manifest with content hash headers [0.71ms]
+
+packages/studio-api/test/artifact-key-validation.test.ts:
+(pass) artifact key validation > accepts public artifact keys [1.77ms]
+(pass) artifact key validation > rejects traversal and ambiguous encoded components [0.06ms]
+
+packages/studio-api/test/artifact-resolver.test.ts:
+(pass) Plan 097 release artifact resolver > is inert until recovery mode is explicitly enabled [0.13ms]
+(pass) Plan 097 release artifact resolver > permits stable-key fallback only for the pinned previous release [0.10ms]
+(pass) Plan 097 release artifact resolver > resolves a declared candidate logical key and verifies object metadata [0.16ms]
+(pass) Plan 097 release artifact resolver > does not infer aliases or fall back for missing and corrupt candidate entries [0.13ms]
+
+packages/studio-api/test/route-evidence-integrity.test.ts:
+(pass) route evidence v2 exact serving closure > accepts a byte-pinned B44 index and bundle bound to the exact D1 presentation [0.18ms]
+(pass) route evidence v2 exact serving closure > rejects an index row carrying B44+ sibling presentation [0.05ms]
+(pass) route evidence v2 exact serving closure > rejects an index row carrying forged official label
+(pass) route evidence v2 exact serving closure > rejects an index row carrying forged service mode
+(pass) route evidence v2 exact serving closure > rejects forged bytes and a forged bundle/index coverage pair [0.07ms]
+(pass) route evidence v2 exact serving closure > rejects missing primary identity and crossed exact contextual siblings [0.13ms]
+(pass) route evidence v2 exact serving closure > rejects a crossed B44+ operational binding while allowing an exact historical variant [0.09ms]
+(pass) route evidence v2 exact serving closure > requires the exact matched and unmatched Wiki route-id sets [0.11ms]
+
+packages/studio-api/test/package-exports.test.ts:
+(pass) Studio API package exports > exposes only explicit hard-cutover subpaths [0.16ms]
+(pass) Studio API package exports > legacy package entrypoints are not importable [0.10ms]
+(pass) Studio API package exports > legacy source barrels stay deleted [0.06ms]
+(pass) Studio API package exports > contracts and client subpaths are usable without server entrypoints [0.19ms]
+(pass) Studio API package exports > server subpaths expose Worker entrypoints [0.01ms]
+
+packages/studio-api/test/source-refresh.test.ts:
+(pass) scheduled source refresh > skips GTFS-RT capture when the raw bucket is not configured [0.17ms]
+(pass) scheduled source refresh > skips GTFS-RT capture when the API key is not configured [0.05ms]
+(pass) scheduled source refresh > captures a vehicle-position protobuf and redacted manifest [0.23ms]
+(pass) scheduled source refresh > can take two spaced GTFS-RT snapshots during one cron invocation [0.28ms]
+(pass) scheduled source refresh > checks route-speed publication and writes a monthly watcher artifact [1.57ms]
+(pass) scheduled source refresh > skips route-speed publication checks when the artifacts bucket is not configured [0.18ms]
+(pass) scheduled source refresh > skips route-speed publication checks when the Socrata token is not configured [0.17ms]
+(pass) scheduled source refresh > keeps the every-minute production cron to GTFS-RT capture only [0.34ms]
+(pass) scheduled source refresh > delegates scheduled events through the Studio API scheduled facade [0.21ms]
+
+packages/studio-api/test/route-speed-history-readiness.test.ts:
+(pass) route speed-history spine readiness > only advertises complete series-ready history as available [0.08ms]
+
+packages/studio-api/test/route-identity-presentation.test.ts:
+(pass) Studio API exact route identity presentation > preserves plural School service designations from official trip_type literals [1.58ms]
+(pass) Studio API exact route identity presentation > fails closed when School has no school trip_type designation [0.07ms]
+(pass) Studio API exact route identity presentation > fails closed on an unknown future official trip_type literal [0.05ms]
+(pass) Studio API exact route identity presentation > keeps exact route ID and slug but omits unverified type metadata for legacy D1 [0.05ms]
+
+tools/pipeline-v2/test/checks/publish-completeness.test.ts:
+(pass) publish completeness > rejects legacy map manifests before publication [153.24ms]
+(pass) publish completeness > rejects registration SQL whose catalog metadata drifts from the final manifest [157.25ms]
+
+tools/pipeline-v2/test/checks/map-segment-identity.test.ts:
+(pass) map segment identity checker > passes reordered exact joins and a detail-only unmatched segment [0.34ms]
+(pass) map segment identity checker > fails duplicate current and stable identities [0.04ms]
+
+tools/pipeline-v2/test/cli/json-output.test.ts:
+(pass) CLI JSON output > keeps --json as the command result object without a framework envelope [0.06ms]
+(pass) CLI JSON output > does not print undefined command results [0.01ms]
+
+tools/pipeline-v2/test/cli/registry.test.ts:
+(pass) Effect CLI registry > loads every pipeline command descriptor loudly [105.52ms]
+(pass) Effect CLI registry > preserves route readiness option names [1.43ms]
+
+tools/pipeline-v2/test/cli/schema-introspect.test.ts:
+(pass) native CLI schema introspection > reports primitive, optional, default, array, and description metadata [2.79ms]
+(pass) native CLI schema introspection > rejects record-like option schemas [0.07ms]
+
+tools/pipeline-v2/test/commands/ingest-boundary.test.ts:
+(pass) ingest command boundaries > use the Effect local DB boundary instead of Liche local DB middleware [0.42ms]
+
+tools/pipeline-v2/test/commands/local-db-boundary.test.ts:
+(pass) pipeline command local DB boundaries > do not use Liche local DB middleware/context plumbing [4.70ms]
+(pass) pipeline command local DB boundaries > keeps Liche local DB middleware helpers deleted from the shared DB module [0.03ms]
+
+tools/pipeline-v2/test/commands/geocode-boundary.test.ts:
+(pass) geocode command boundaries > use the Effect local DB layer with spatialite instead of Liche local DB middleware [0.13ms]
+
+tools/pipeline-v2/test/effect/file-system.test.ts:
+[05:53:19.537] INFO (#3039): fixture.files file task complete
+(pass) pipeline file-system Effect boundary > writes parent directories and reads JSON through the service [2.73ms]
+[05:53:19.537] INFO (#3046): fixture.files file task complete
+(pass) pipeline file-system Effect boundary > returns null for optional reads of missing files [0.27ms]
+[05:53:19.538] INFO (#3053): fixture.files file task complete
+[05:53:19.538] INFO (#3060): fixture.files file task complete
+(pass) pipeline file-system Effect boundary > lists directory entries with file sizes through the service [1.11ms]
+(pass) pipeline file-system Effect boundary > wraps JSON parse failures in typed file-system errors [0.75ms]
+
+tools/pipeline-v2/test/effect/route-local-db.test.ts:
+[05:53:19.543] INFO (#3075): pipeline.json file task complete
+[05:53:19.543] INFO (#3082): pipeline.json file task complete
+(pass) route local DB Effect workflows > loads document operational-date assertions through the filesystem boundary [1.05ms]
+[05:53:19.543] INFO (#3089): route reliability baseline complete: 4 routes, 40 headway samples
+[05:53:19.543] INFO (#3092): route observed reliability complete: 2/4 routes observed
+[05:53:19.544] INFO (#3095): route readiness complete: 3/4 routes eligible
+[05:53:19.544] INFO (#3098): route equity context complete: 3/4 routes assigned
+[05:53:19.544] INFO (#3101): route intervention evaluation complete: 3 comparisons across 2 events
+(pass) route local DB Effect workflows > run related route workflows through one injectable service layer [0.68ms]
+(pass) route local DB Effect workflows > preserves typed route local DB command errors at the runtime boundary [0.21ms]
+
+tools/pipeline-v2/test/effect/build-local-db.test.ts:
+[05:53:19.547] INFO (#3108): context events complete: 28 rows inserted
+[05:53:19.547] INFO (#3111): observed headways complete: 10 samples from 30 vehicle positions
+[05:53:19.547] INFO (#3114): route LION link complete: 8 links across 2 routes
+[05:53:19.547] INFO (#3117): LION geometry index complete: 10 inserted, 0 skipped
+(pass) build local DB Effect workflows > run related build workflows through one injectable service layer [0.60ms]
+(pass) build local DB Effect workflows > preserves typed build local DB command errors at the runtime boundary [0.17ms]
+
+tools/pipeline-v2/test/effect/http.test.ts:
+(pass) pipeline HTTP Effect boundary > retries a failed attempt and returns the successful response [1.18ms]
+(pass) pipeline HTTP Effect boundary > surfaces typed rate-limit errors after retries are exhausted [0.39ms]
+
+tools/pipeline-v2/test/effect/route-brief-model.test.ts:
+[05:53:19.554] INFO (#3133): route brief model complete: 2/2 route briefs
+(pass) route brief-model Effect workflow > runs the workflow through an injectable service layer [0.37ms]
+(pass) route brief-model Effect workflow > preserves typed route brief model command errors at the runtime boundary [0.16ms]
+
+tools/pipeline-v2/test/effect/d1-replay.test.ts:
+[05:53:19.557] INFO (#3140): fixture.d1 D1 replay complete
+(pass) D1 replay Effect boundary > loads schema and seed SQL into an in-memory D1-compatible SQLite database [0.96ms]
+(pass) D1 replay Effect boundary > wraps schema and seed replay failures in typed errors [0.24ms]
+(pass) D1 replay Effect boundary > wraps callback failures in typed errors [0.34ms]
+
+tools/pipeline-v2/test/effect/local-db-command.test.ts:
+[05:53:19.561] INFO (#3151): fixture.command complete
+(pass) local DB command Effect workflows > runs command tasks through the injected local DB connection [2.90ms]
+(pass) local DB command Effect workflows > preserves typed command errors at the runtime boundary [0.38ms]
+[05:53:19.583] INFO (#3158): fixture.boundary complete
+(pass) local DB command Effect workflows > runs the CLI boundary helper with an opened local DB layer [21.43ms]
+
+tools/pipeline-v2/test/effect/route-build-plan.test.ts:
+[05:53:19.586] INFO (#3161): route build plan complete: 1/2 selected
+(pass) route build-plan Effect workflow > runs the workflow through an injectable service layer [0.28ms]
+(pass) route build-plan Effect workflow > preserves typed command errors at the runtime boundary [0.20ms]
+
+tools/pipeline-v2/test/lib/plan042-member-grain.test.ts:
+(pass) Plan 042 strict producer contracts > accepts all six typed identity verdict classes and enforces their semantics [0.22ms]
+(pass) Plan 042 strict producer contracts > rejects excess producer fields [0.06ms]
+(pass) Plan 042 strict producer contracts > preserves ordered lineage boundary pairs while shared stops remain sorted [0.24ms]
+(pass) Plan 042 exact ordered spine searches > does not infer ordered endpoints from sorted source literals [0.25ms]
+(pass) Plan 042 exact ordered spine searches > binds a unique multi-segment path and normalizes duplicate junction evidence [0.28ms]
+(pass) Plan 042 exact ordered spine searches > preserves orientation and detects a genuinely ambiguous branch [0.10ms]
+(pass) Plan 042 exact ordered spine searches > uses the same node-normalized ordered search for old/new lineage [0.13ms]
+(pass) Plan 042 exact ordered spine searches > classifies every declared bounded-extent disposition fail-closed [0.09ms]
+(pass) Plan 042 exact ordered spine searches > classifies each lineage search result without guessing direction or endpoints [0.13ms]
+(pass) Plan 042 outcome relevance registry contract > rejects invented product ids, resolver typos, and excess fields [0.33ms]
+
+tools/pipeline-v2/test/lib/plan097-reader-deploy.test.ts:
+(pass) Plan 097 recovery-reader deploy receipt > binds no-store public evidence and an absent operation namespace to the deployed SHA [0.50ms]
+(pass) Plan 097 recovery-reader deploy receipt > fails closed when the operation namespace is reachable [0.12ms]
+(pass) Plan 097 recovery-reader deploy receipt > keeps failed version/cache observations in a separate strict attempt receipt [0.07ms]
+(pass) Plan 097 recovery-reader deploy receipt > rejects success receipts whose nested evidence is not bound to the top-level Worker version [0.15ms]
+
+tools/pipeline-v2/test/lib/study-events.test.ts:
+(pass) trusted registry study-event admission > returns admitted normalized facts for a trusted implemented event [0.07ms]
+(pass) trusted registry study-event admission > emits each exact rejection reason and sorts simultaneous failures [0.10ms]
+(pass) trusted registry study-event admission > preserves the existing merge artifact exactly after delegating to the shared gate [0.12ms]
+(pass) study-event candidate merge > fails loudly when the local registry table is absent and loads all rows deterministically [0.32ms]
+(pass) study-event candidate merge > accepts only implemented events from the trusted registry allowlist [0.08ms]
+(pass) study-event candidate merge > keeps local and SBS route identities distinct for exact spine mapping [0.10ms]
+(pass) study-event candidate merge > requires a pinned Wiki input unless an explicit opt-out is recorded [0.05ms]
+(pass) study-event candidate merge > never upgrades an ineligible producer assertion locally [0.16ms]
+(pass) study-event candidate merge > fails closed when assertion provenance disagrees with the pinned Wiki release [0.12ms]
+(pass) study-event candidate merge > deduplicates exact registry and Wiki anchors while preserving provenance [0.08ms]
+(pass) study-event candidate merge > crosswalks only explicitly off-board Wiki fare records into the study family [0.09ms]
+(pass) study-event candidate merge > marks non-identical cross-source dates in the same month for review [0.12ms]
+(pass) study-event candidate merge > quarantines all Wiki assertions when one operational change has differing dates [0.07ms]
+(pass) study-event candidate merge > binds approval to the complete candidate set and rejects stale or partial decisions [0.27ms]
+(pass) study-event candidate merge > allows an operator to resolve a same-month conflict but never approve both dates [0.26ms]
+(pass) study-event candidate merge > is deterministic across input ordering [0.10ms]
+
+tools/pipeline-v2/test/lib/study-member-scope.test.ts:
+(pass) member-grain study treatment-scope admission > preserves independent exact ACE registry scope for registry-only and unresolved producer candidates [0.22ms]
+(pass) member-grain study treatment-scope admission > admits route-wide members without manufacturing a geometry binding [0.23ms]
+(pass) member-grain study treatment-scope admission > admits bounded members only with the exact member and producer-component binding [0.15ms]
+(pass) member-grain study treatment-scope admission > rejects unresolved, stop-set, mixed, and heterogeneous member scopes [0.05ms]
+(pass) member-grain study treatment-scope admission > rejects empty or stale candidate member lineage [0.02ms]
+(pass) member-grain scope-binding artifact validation > migrates unchanged same-month v1 geometry to one exact treatment member [0.23ms]
+(pass) member-grain scope-binding artifact validation > does not migrate route-only or ambiguous legacy scope [0.06ms]
+(pass) member-grain scope-binding artifact validation > returns an exact member-grain index for a valid artifact [0.04ms]
+(pass) member-grain scope-binding artifact validation > rejects stale candidate-set and duplicate bindings [0.14ms]
+(pass) member-grain scope-binding artifact validation > rejects every route-only, occurrence-only, family-only, or stale-member key [0.11ms]
+(pass) member-grain scope-binding artifact validation > rejects extent, projection, producer-component, and physical-scope mismatches [0.09ms]
+(pass) member-grain scope-binding artifact validation > rejects duplicate candidates and tampered candidate member lineage [0.08ms]
+
+tools/pipeline-v2/test/lib/route-list.test.ts:
+[05:53:19.608] INFO (#3178): pipeline.json file task complete
+[05:53:19.609] INFO (#3185): pipeline.json file task complete
+[05:53:19.609] INFO (#3192): pipeline.json file task complete
+(pass) route-list helper > loads, trims, dedupes, and sorts route ids [1.19ms]
+[05:53:19.612] INFO (#3199): pipeline.json file task complete
+[05:53:19.612] INFO (#3206): pipeline.json file task complete
+[05:53:19.612] INFO (#3213): pipeline.json file task complete
+(pass) route-list helper > rejects missing and malformed route list files [3.26ms]
+(pass) route-list helper > keeps raw Bun reads out of the route-list helper [0.11ms]
+
+tools/pipeline-v2/test/lib/plan042-closure-receipt.test.ts:
+(pass) Plan 042 closure receipt and downstream projection > strictly verifies the committed authority-false receipt [168.68ms]
+(pass) Plan 042 closure receipt and downstream projection > rejects unknown fields, placeholder commits, and any authority elevation [0.39ms]
+(pass) Plan 042 closure receipt and downstream projection > rejects a consumer-commit addressed artifact hash mismatch [550.77ms]
+(pass) Plan 042 closure receipt and downstream projection > rejects a protected-surface mutation even with matching declared bytes [1135.55ms]
+(pass) Plan 042 closure receipt and downstream projection > rejects implementation bytes changed after independent review [1046.89ms]
+(pass) Plan 042 closure receipt and downstream projection > projects deterministically and rejects a receipt-commit/downstream mismatch [170.25ms]
+(pass) Plan 042 closure receipt and downstream projection > renderer refuses a dirty tracker before any atomic output write [536.41ms]
+(pass) Plan 042 closure receipt and downstream projection > finalizer rejects an under-reviewed risky package [294.62ms]
+(pass) Plan 042 closure receipt and downstream projection > finalizer rejects an independent-review target hash mismatch [295.66ms]
+(pass) Plan 042 closure receipt and downstream projection > acceptance freeze never clobbers differing frozen pending bytes [290.35ms]
+
+tools/pipeline-v2/test/lib/soda3.test.ts:
+(pass) pipeline SODA3 native client > retries transient provider responses before returning rows [2.17ms]
+(pass) pipeline SODA3 native client > maps exhausted 429 responses to the pipeline rate-limit error shape [0.77ms]
+(pass) pipeline SODA3 native client > maps exhausted 5xx responses to the pipeline request error shape [0.61ms]
+
+tools/pipeline-v2/test/lib/speed-pace-feature-resolver.test.ts:
+(pass) speed pace feature resolver > builds segment/daypart features without collapsing route-month detail [0.18ms]
+(pass) speed pace feature resolver > skips invalid source rows and preserves deterministic segment ids [0.03ms]
+
+tools/pipeline-v2/test/lib/json.test.ts:
+[05:53:25.236] INFO (#3384): pipeline.json file task complete
+[05:53:25.236] INFO (#3391): pipeline.json file task complete
+(pass) pipeline JSON helper > writes pretty JSON through the Effect file-system boundary [0.91ms]
+[05:53:25.237] INFO (#3398): pipeline.json file task complete
+[05:53:25.237] INFO (#3405): pipeline.json file task complete
+[05:53:25.238] INFO (#3412): pipeline.json file task complete
+[05:53:25.238] INFO (#3419): pipeline.json file task complete
+(pass) pipeline JSON helper > validates required and optional artifacts [1.29ms]
+(pass) pipeline JSON helper > keeps raw Bun filesystem APIs out of the shared JSON helper [0.15ms]
+
+tools/pipeline-v2/test/lib/plan097-recovery-batch.test.ts:
+(pass) Plan 097 compacted transactional batch > compacts rows into one-bound-parameter JSON1 statements with activation last [1.22ms]
+(pass) Plan 097 compacted transactional batch > preserves protected rows and rolls the whole batch back on injected failure [1.23ms]
+(pass) Plan 097 compacted transactional batch > fails closed on an unclassified mutation target [0.25ms]
+
+tools/pipeline-v2/test/lib/sqlite-schema.test.ts:
+(pass) SQLite numeric schemas > decodes SQLite number representations without changing valid values [0.17ms]
+(pass) SQLite numeric schemas > rejects non-numeric strings [0.05ms]
+(pass) SQLite numeric schemas > normalizes nullable SQLite representations [0.10ms]
+
+tools/pipeline-v2/test/lib/study-engine.test.ts:
+(pass) study panel > maps exact source identities to stable spines and trip-weights cells [0.17ms]
+(pass) study panel > requires four non-null months per side [0.26ms]
+(pass) matched segment DiD > recovers an injected one-mph effect and produces a deterministic CI [2.44ms]
+(pass) matched segment DiD > reports no detectable change when the interval covers zero [0.01ms]
+(pass) matched segment DiD > fails the pre-trend and placebo gates on material false effects [0.12ms]
+(pass) matched segment DiD > builds deterministic six-month windows and monthly differences [0.15ms]
+(pass) known-answer study estimator fixtures > recovers an injected one-mph effect for three seeded noisy panels [14.98ms]
+(pass) known-answer study estimator fixtures > returns no detectable change for an exact null panel [3.85ms]
+(pass) known-answer study estimator fixtures > passes a clean placebo and fails when an earlier fake shock is injected [7.18ms]
+(pass) known-answer study estimator fixtures > runs the peak companion and required congestion-pricing sensitivity [3.66ms]
+
+tools/pipeline-v2/test/lib/source-snapshots.test.ts:
+[05:53:25.286] INFO (#3441): pipeline.json file task complete
+[05:53:25.286] INFO (#3448): pipeline.json file task complete
+(pass) source snapshot writer > writes snapshot payloads through the shared JSON helper [2.83ms]
+(pass) source snapshot writer > keeps direct filesystem writes out of the source snapshot helper [0.12ms]
+
+tools/pipeline-v2/test/lib/intervention-observations.test.ts:
+(pass) intervention observation local rows > fails closed on a missing trend table and loads complete rows in exact order [0.29ms]
+(pass) buildInterventionObservationArtifacts > expands an exact 25-month window and applies metric-specific eligibility [2.34ms]
+(pass) buildInterventionObservationArtifacts > emits truthful available, partial, and missing statuses including all-null coverage [1.77ms]
+(pass) buildInterventionObservationArtifacts > admits each reviewed occurrence-treatment pair with its exact spec [0.83ms]
+(pass) buildInterventionObservationArtifacts > materializes bus-lane and busway specs with scope-true roles and month metadata [0.92ms]
+(pass) buildInterventionObservationArtifacts > preserves ACE study admission while descriptive lane admission bypasses its allowlist [0.60ms]
+(pass) buildInterventionObservationArtifacts > keeps source-only and unsupported kinds as explicit pre-value rejections [0.34ms]
+(pass) buildInterventionObservationArtifacts > counts every gate rejection once per occurrence and never publishes rejected rows [0.70ms]
+(pass) buildInterventionObservationArtifacts > preserves exact B44/B44+ bundle identity and deterministic ordering [1.39ms]
+(pass) buildInterventionObservationArtifacts > keeps specs and priorities invariant across direction, magnitude, and null density [2.28ms]
+(pass) buildInterventionObservationArtifacts > prepares exact release metadata without accepting observation values [0.48ms]
+(pass) buildInterventionObservationArtifacts > emits exact live input refs and computes cross-bundle index coverage [0.92ms]
+(pass) buildInterventionObservationArtifacts > uses exact composite identity instead of global registry-lineage uniqueness [1.22ms]
+
+tools/pipeline-v2/test/lib/socrata-monthly-ingest.test.ts:
+[05:53:25.310] INFO (#4779): pipeline.json file task complete
+(pass) defineSocrataMonthlyIngest > fetches, normalizes, replaces, and snapshots a monthly Socrata source [3.74ms]
+
+tools/pipeline-v2/test/lib/plan097-selective-restore.test.ts:
+(pass) Plan 097 selective serving restore > proves A→B→A while preserving user and current-signal fingerprints [3.82ms]
+(pass) Plan 097 selective serving restore > rolls back an injected restore failure without exposing a partial old cut [2.02ms]
+(pass) Plan 097 selective serving restore > rejects snapshot receipt drift [1.51ms]
+
+tools/pipeline-v2/test/lib/study-scope.test.ts:
+(pass) study control interference > excludes every candidate route within the inclusive nine-month window [0.12ms]
+(pass) study treatment-scope admission > admits route-wide scope only from affirmative MTA ACE registry provenance [0.03ms]
+(pass) study treatment-scope admission > does not treat an empty physical-scope array as route-wide evidence [0.04ms]
+(pass) study treatment-scope admission > rejects bounded scope until an exact geometry-to-spine binding exists [0.02ms]
+(pass) study treatment-scope admission > admits a bounded occurrence only with its exact reviewed binding [0.10ms]
+(pass) study treatment-scope admission > rejects lane families with missing physical-scope evidence [0.02ms]
+(pass) exact geometry selection > returns only the reviewed IDs and rejects a missing feature [0.09ms]
+
+tools/pipeline-v2/test/lib/socrata-replace-ingest.test.ts:
+[05:53:25.329] INFO (#4821): pipeline.json file task complete
+(pass) defineSocrataReplaceIngest > fetches, normalizes, replaces, and snapshots a full Socrata source [3.47ms]
+
+tools/pipeline-v2/test/lib/study-member-review-cut.test.ts:
+(pass) member-grain study candidate universe and review cut > prepares a non-authorizing v5 worksheet with exact member lineage [2.59ms]
+(pass) member-grain study candidate universe and review cut > identical inputs produce identical IDs and bytes [3.20ms]
+(pass) member-grain study candidate universe and review cut > preserves stable v3 candidate IDs and exact treatment-member IDs [0.67ms]
+(pass) member-grain study candidate universe and review cut > member manifest, projection, and exact member projection each change the universe and cut [5.37ms]
+(pass) member-grain study candidate universe and review cut > raw registry and available-route universe changes re-identify the candidate set [1.39ms]
+(pass) member-grain study candidate universe and review cut > analysis month, outcome, and spine changes produce distinct cuts [4.67ms]
+(pass) member-grain study candidate universe and review cut > engine, candidate-universe, and receipt mismatches fail closed [2.49ms]
+(pass) member-grain study candidate universe and review cut > v4, incomplete, duplicate, and stale receipts cannot authorize v5 [3.39ms]
+
+tools/pipeline-v2/test/lib/plan097-freshness.test.ts:
+(pass) Plan 097 freshness-derived candidate matrix > selects the prior month when upstream already exposes an open month [0.09ms]
+(pass) Plan 097 freshness-derived candidate matrix > accepts independently complete dataset ranges without clipping to one month [0.42ms]
+(pass) Plan 097 freshness-derived candidate matrix > fails closed on a weak route probe or missing selected partition evidence [0.14ms]
+
+tools/pipeline-v2/test/lib/opportunity.test.ts:
+(pass) opportunity scoring > requires three distinct gated event-route studies and preserves the signed median [0.20ms]
+(pass) opportunity scoring > builds deterministic borough and comparable-length p75 benchmarks [0.17ms]
+(pass) opportunity scoring > apportions route ridership by observed trip time [0.08ms]
+(pass) opportunity scoring > ranks a synthetic three-route fixture by the constructed score [0.08ms]
+
+tools/pipeline-v2/test/lib/study-review-cut.test.ts:
+(pass) versioned study review cuts > identical inputs produce identical identities and bytes [1.11ms]
+(pass) versioned study review cuts > analysis month, outcome, spine, and source universe each change the cut [1.04ms]
+(pass) versioned study review cuts > engine drift and review-cut tampering fail closed [0.52ms]
+(pass) versioned study review cuts > v3, incomplete, duplicate, and stale receipts cannot authorize a cut [0.74ms]
+(pass) versioned study review cuts > the committed rc26 v3 artifact still decodes byte-for-byte [21.16ms]
+
+tools/pipeline-v2/test/lib/route-index-v3-recovery.test.ts:
+(pass) exact route-index v3 recovery > builds deterministic bytes while preserving B44 and B44+ as distinct identities [1.37ms]
+(pass) exact route-index v3 recovery > rejects source lineage and catalog presentation drift [0.80ms]
+(pass) exact route-index v3 recovery > applies the generated projection twice without duplicating exact rows [0.65ms]
+(pass) exact route-index v3 recovery > fails closed when an existing release ID has drifted metadata [0.50ms]
+(pass) exact route-index v3 recovery > permits only an empty pre-recovery state or the exact registered projection [0.88ms]
+(pass) exact route-index v3 recovery > keeps the deploy gate valid for a later independently registered release [0.72ms]
+
+tools/pipeline-v2/test/lib/route-brief-schedules.test.ts:
+(pass) route brief schedule comparisons > keeps timepoints from different shapes in separate trip groups [0.36ms]
+(pass) route brief schedule comparisons > matches a scheduled stop-id alias when the physical stop names agree [0.06ms]
+(pass) route brief schedule comparisons > does not name-match an ambiguous scheduled stop pair [0.08ms]
+(pass) route brief schedule comparisons > collapses adjacent stop-order aliases for the same physical segment [0.73ms]
+
+tools/pipeline-v2/test/lib/route-intervention-inventory.test.ts:
+(pass) route intervention inventory > keeps exact routes distinct and preserves mapped treatment, occurrence, project, and lineage [4.04ms]
+(pass) route intervention inventory > publishes producer-reviewed unresolved scopes as partial source gaps [0.85ms]
+(pass) route intervention inventory > preserves a routed treatment with separate nonprojectable route bindings [0.99ms]
+(pass) route intervention inventory > keeps local source-gap sentinels out of treatment and occurrence projections [1.05ms]
+(pass) route intervention inventory > fails closed on missing bundles and release or manifest mismatches [0.84ms]
+(pass) route intervention inventory > is byte deterministic under shuffled inputs and stays within every budget [2.45ms]
+(pass) route intervention inventory > promotes files atomically while preserving unrelated siblings on success and failure [35.80ms]
+
+tools/pipeline-v2/test/lib/intervention-observation-events.test.ts:
+(pass) intervention observation event gate > admits reviewed route, corridor, and segment anchors without using a study allowlist [0.54ms]
+(pass) intervention observation event gate > rejects unresolved source-only scope and insufficient year precision [0.18ms]
+(pass) intervention observation event gate > rejects every non-operational lifecycle without inventing inventory states [0.35ms]
+(pass) intervention observation event gate > admits every reviewed operational lifecycle [0.24ms]
+(pass) intervention observation event gate > requires an available-or-partial reviewed lineage lane and source refs [0.22ms]
+(pass) intervention observation event gate > requires exact route identity and never aliases B44 to B44+ [0.10ms]
+(pass) intervention observation event gate > retains the concrete registry reason for unsupported treatment kinds [0.10ms]
+(pass) intervention observation event gate > keeps independent same-date occurrences and deduplicates only an exact composite key [0.20ms]
+(pass) intervention observation event gate > rejects broken treatment links and is byte-stable under reversed occurrence input [0.25ms]
+
+tools/pipeline-v2/test/lib/plan097-recovery-artifacts.test.ts:
+(pass) Plan 097 publishable artifact boundaries > fails every malformed publishable body instead of accepting JSON presence [0.26ms]
+(pass) Plan 097 publishable artifact boundaries > does not pretend unrelated JSON has a publishable contract [0.02ms]
+(pass) Plan 097 publishable artifact boundaries > accepts the current dossier contract and rejects an excess field [0.09ms]
+
+tools/pipeline-v2/test/lib/study-panel-rows.test.ts:
+(pass) study panel local-db rows > aggregates day-of-week cells at route, segment, month, and hour grain [0.53ms]
+(pass) study panel local-db rows > does not query when the normalized route list is empty [0.04ms]
+
+tools/pipeline-v2/test/lib/plan097-http-check.test.ts:
+(pass) Plan 097 release-aware HTTP checker > captures a legacy null dossier in baseline mode but requires it for the candidate [0.07ms]
+(pass) Plan 097 release-aware HTTP checker > strict-decodes safe public JSON and records its exact hash and cache headers [0.35ms]
+(pass) Plan 097 release-aware HTTP checker > requires and records the exact Worker version on version-routed evidence [0.20ms]
+(pass) Plan 097 release-aware HTTP checker > records a baseline HTTP defect without pretending its body matches the success schema [0.14ms]
+(pass) Plan 097 release-aware HTTP checker > rejects legacy placeholder language in a nominally successful public response [0.03ms]
+(pass) Plan 097 release-aware HTTP checker > requires every successful recovery response to bypass caches [0.07ms]
+(pass) Plan 097 release-aware HTTP checker > requires rollback to restore every safe public hash while ignoring only the nonce [0.16ms]
+
+tools/pipeline-v2/test/lib/mta-wiki-member-extents.test.ts:
+[05:53:25.469] INFO (#5163): pipeline.json file task complete
+[05:53:25.470] INFO (#5174): pipeline.json file task complete
+(pass) MTA Wiki member-extent import > pins every producer file and emits deterministic exact-grain bytes [5.63ms]
+(pass) MTA Wiki member-extent import > decodes the exact non-authorizing row shape and fails closed on authority [0.11ms]
+(pass) MTA Wiki member-extent import > rejects a file changed after the immutable manifest was pinned [0.92ms]
+(pass) MTA Wiki member-extent import > rejects an occurrence release or denominator mismatch [0.93ms]
+
+packages/analytics/test/feature-history/route-speed-spine-crosswalk.test.ts:
+(pass) route speed spine source crosswalk > serializes source and current Studio identities canonically [0.05ms]
+(pass) route speed spine source crosswalk > matches exact aliases independent of row order and schedule renumbering [0.36ms]
+(pass) route speed spine source crosswalk > keeps concurrent nearby stop variants on distinct spine segments [0.13ms]
+(pass) route speed spine source crosswalk > returns an explicit unmatched result [0.07ms]
+(pass) route speed spine source crosswalk > retains a nullable stop pair as unkeyable and publishes no alias [0.07ms]
+(pass) route speed spine source crosswalk > fails deterministically when one exact alias maps to two spine segments [0.10ms]
+
+packages/analytics/test/feature-history/spine-pattern-grouping-prototype.test.ts:
+(pass) exact alias-set canonicalization prototype > flips a rename-only route with exact endpoints and disjoint months [0.57ms]
+(pass) exact alias-set canonicalization prototype > rejects exact endpoint aliases observed concurrently [0.07ms]
+(pass) exact alias-set canonicalization prototype > rejects a globally non-unique endpoint even when one disjoint pair looks unique [0.06ms]
+(pass) exact alias-set canonicalization prototype > does not repair a genuinely missing distinct segment [0.04ms]
+(pass) recurring exact pattern-profile prototype > flips two recurring exact service patterns without merging identities [0.28ms]
+(pass) recurring exact pattern-profile prototype > does not promote a persistent single-profile data gap [0.06ms]
+(pass) recurring exact pattern-profile prototype > rejects recurring profiles whose union omits a rare segment [0.06ms]
+(pass) recurring exact pattern-profile prototype > is deterministic under segment input reordering [0.09ms]
+
+tools/pipeline-v2/test/commands/route/readiness.test.ts:
+(pass) route readiness command boundary > keeps readiness scoring and local DB writes in pipeline-local aggregates [0.05ms]
+
+tools/pipeline-v2/test/commands/route/build-plan.test.ts:
+(pass) route build-plan command boundary > runs route build-plan through the Effect service boundary [0.05ms]
+
+tools/pipeline-v2/test/commands/route/intervention-evaluation.test.ts:
+(pass) route intervention-evaluation command boundary > keeps intervention event construction, comparisons, and local DB writes in pipeline-local aggregates [0.05ms]
+
+tools/pipeline-v2/test/commands/route/brief-model.test.ts:
+(pass) route brief-model command boundary > runs route brief-model through the Effect service boundary [1.70ms]
+(pass) route brief-model command boundary > delegates route brief model construction to the pipeline lib [0.15ms]
+(pass) route brief-model command boundary > keeps route brief metrics in the pipeline lib [0.02ms]
+
+tools/pipeline-v2/test/commands/route/observed-reliability.test.ts:
+(pass) route observed-reliability command boundary > keeps observed reliability metrics and local DB writes in pipeline-local aggregates [0.05ms]
+
+tools/pipeline-v2/test/commands/route/reliability-baseline.test.ts:
+(pass) route reliability-baseline command boundary > keeps scheduled-headway baseline construction and local DB writes in pipeline-local aggregates [0.04ms]
+
+tools/pipeline-v2/test/commands/route/equity-context.test.ts:
+(pass) route equity-context command boundary > keeps county-proxy equity aggregation and local DB writes in pipeline-local aggregates [0.04ms]
+
+tools/pipeline-v2/test/commands/audit/plan097-readiness.test.ts:
+[05:53:25.619] INFO (#5191): pipeline.json file task complete
+(pass) audit plan097-readiness > hashes exact selected rows and writes a ready per-dataset matrix [123.93ms]
+
+tools/pipeline-v2/test/commands/audit/source-coverage.test.ts:
+(pass) source coverage audit boundary > keeps source coverage ledger construction in pipeline-local aggregates [0.05ms]
+
+tools/pipeline-v2/test/commands/audit/data-product-completeness.test.ts:
+(pass) data product completeness audit > joins registry expectations to local tables, artifacts, and lifecycle states [3.87ms]
+(pass) data product completeness audit > resolves SBS plus route ids to Studio artifact slugs [0.63ms]
+(pass) data product completeness audit > audits speed-history artifacts against all historical speed routes [0.74ms]
+(pass) data product completeness audit > builds a source-month coverage matrix with source and derived statuses [0.78ms]
+(pass) data product completeness audit > keeps source-month coverage matrix construction in pipeline-local aggregates [0.10ms]
+(pass) data product completeness audit > keeps data-product registry policy in analytics [0.02ms]
+(pass) data product completeness audit > reports website-facing historical GTFS needs as real upstream blockers [0.54ms]
+(pass) data product completeness audit > classifies speed publication gaps separately from derived downstream gaps [0.65ms]
+(pass) data product completeness audit > classifies fetched zero-row release-month source snapshots as upstream blocked [0.84ms]
+(pass) data product completeness audit > fails source-year route coverage when rows are absent or zero-row complete statuses exist [1.00ms]
+(pass) data product completeness audit > accepts explicit source-year route waivers without hiding zero-row status evidence [2.76ms]
+(pass) data product completeness audit > semantic JSON checks reject wrong release months [0.69ms]
+(pass) data product completeness audit > semantic JSON checks accept source availability requestedMonth [0.51ms]
+
+tools/pipeline-v2/test/commands/audit/freshness.test.ts:
+[05:53:25.641] INFO (#5208): pipeline.json file task complete
+(pass) audit freshness > writes a schema-valid, worst-first ledger with exact lag classes [2.01ms]
+[05:53:25.642] INFO (#5216): pipeline.json file task complete
+[05:53:25.643] INFO (#5223): pipeline.json file task complete
+[05:53:25.643] INFO (#5230): pipeline.json file task complete
+(pass) audit freshness > strict mode fails for stale or unknown serving-critical sources [1.76ms]
+
+tools/pipeline-v2/test/commands/audit/raw-snapshot-coverage.test.ts:
+(pass) raw snapshot coverage audit > classifies raw families from the verified monthly snapshot naming convention [0.27ms]
+(pass) raw snapshot coverage audit > builds one verdict per deletion state [0.89ms]
+(pass) raw snapshot coverage audit > probes table, month-column, date-column, and missing-table coverage [0.24ms]
+[05:53:25.666] INFO (#5237): audit.raw-snapshot-coverage file task complete
+[05:53:25.667] INFO (#5244): audit.raw-snapshot-coverage complete
+[05:53:25.667] INFO (#5247): audit.raw-snapshot-coverage file task complete
+raw-snapshot-coverage:
+family                         verdict       size       files    reason
+fixture                         RAW-ONLY        0.00 GiB         1  No mapped SQLite table exists for this raw family.
+deletion manifest: 0 families, 0.00 GiB
+(pass) raw snapshot coverage audit > command boundary uses Effect services and writes both artifacts [21.24ms]
+(pass) raw snapshot coverage audit > builds an operator-only reclaim script from a deletion manifest [0.13ms]
+
+tools/pipeline-v2/test/commands/audit/studio-coverage.test.ts:
+(pass) audit studio-coverage command boundary > keeps filesystem-backed Studio route and brief coverage policy in pipeline lib [0.16ms]
+
+tools/pipeline-v2/test/commands/audit/route-schedule-progress.test.ts:
+(pass) audit route-schedule-progress boundary > keeps schedule-progress SQLite aggregation in pipeline-local aggregates behind the Effect boundary [0.04ms]
+
+tools/pipeline-v2/test/commands/audit/route-source-reconciliation.test.ts:
+(pass) route source reconciliation audit boundary > keeps reconciliation SQL and classification in pipeline-local aggregates [0.05ms]
+
+tools/pipeline-v2/test/commands/build/route-hourly-profile.test.ts:
+(pass) build route-hourly-profile command boundary > keeps path policy and feature artifact construction in analytics [0.05ms]
+
+tools/pipeline-v2/test/commands/build/stop-direction-hour-ewt-features.test.ts:
+(pass) build stop-direction-hour-ewt-features boundary > keeps schedule and observed-headway row loading in pipeline-local aggregates [0.08ms]
+
+tools/pipeline-v2/test/commands/build/segment-daypart-history.test.ts:
+(pass) build segment-daypart-history command boundary > keeps path policy and feature artifact construction in analytics [0.05ms]
+
+tools/pipeline-v2/test/commands/build/parking-violation-matches.test.ts:
+(pass) build parking-violation-matches command boundary > keeps parking location normalization in pipeline-local aggregates [0.19ms]
+
+tools/pipeline-v2/test/commands/build/route-shape-geometry-index.test.ts:
+(pass) route shape geometry index command boundary > keeps geometry grouping and local writes in pipeline-local aggregates [0.04ms]
+
+tools/pipeline-v2/test/commands/build/lion-geometry-index.test.ts:
+(pass) build lion-geometry-index command boundary > keeps LION geometry materialization and spatial table helpers in pipeline-local aggregates [0.04ms]
+
+tools/pipeline-v2/test/commands/build/context-events.test.ts:
+(pass) build context-events command boundary > keeps context-event normalization and local DB writes in pipeline-local aggregates [0.05ms]
+
+tools/pipeline-v2/test/commands/build/route-lion-link.test.ts:
+(pass) build route-lion-link command boundary > keeps route/LION spatial matching and local writes in pipeline-local aggregates [0.05ms]
+
+tools/pipeline-v2/test/commands/build/context-event-route-touches.test.ts:
+(pass) build context-event-route-touches command boundary > keeps path policy in analytics and route-touch SQL in pipeline-local aggregates [0.05ms]
+
+tools/pipeline-v2/test/commands/build/segment-daypart-panel.test.ts:
+(pass) build segment-daypart-panel command boundary > keeps path policy and panel artifact construction in analytics [0.05ms]
+
+tools/pipeline-v2/test/commands/build/route-month-speed-golden-diff.test.ts:
+(pass) build route-month-speed-golden-diff > uses the Effect local DB boundary for read-only local DB access [1.75ms]
+[05:53:25.753] INFO (#5256): pipeline.json file task complete
+[05:53:25.753] INFO (#5254): build.route-month-speed-golden-diff complete
+(pass) build route-month-speed-golden-diff > reports byte-identical when the trend row equals the cell projection [55.29ms]
+[05:53:25.815] INFO (#5266): pipeline.json file task complete
+[05:53:25.815] INFO (#5264): build.route-month-speed-golden-diff complete
+(pass) build route-month-speed-golden-diff > flags mismatching aggregates [62.29ms]
+
+tools/pipeline-v2/test/commands/build/observed-headways.test.ts:
+(pass) build observed-headways command boundary > keeps GTFS-RT headway derivation and local DB writes in pipeline-local aggregates [0.05ms]
+
+tools/pipeline-v2/test/commands/sources/soda3-range-probe.test.ts:
+(pass) runSoda3RangeProbe > returns a dry-run plan without network access by default [0.38ms]
+(pass) runSoda3RangeProbe > executes an authenticated SODA3 export range request when opted in [2.30ms]
+
+tools/pipeline-v2/test/commands/sources/catalog-search.test.ts:
+(pass) sources:catalog-search > uses the Socrata catalog client and returns source-discovery fields [0.80ms]
+
+tools/pipeline-v2/test/commands/cloudflare/cost-plan.test.ts:
+(pass) runCloudflareCostPlan > estimates D1 paid-plan overage from SQL plus an export summary [2.58ms]
+(pass) runCloudflareCostPlan > falls back to insert statement count when no summary is given [0.33ms]
+(pass) runCloudflareCostPlan > rejects an empty d1SqlPaths array [0.06ms]
+
+tools/pipeline-v2/test/commands/plan/source-refresh.test.ts:
+[05:53:25.834] INFO (#5300): pipeline.json file task complete
+[05:53:25.834] INFO (#5307): pipeline.json file task complete
+(pass) runSourceRefreshPlan > emits a ready_to_rebuild watcher job when speed data is newer than lastBuilt [2.26ms]
+[05:53:25.835] INFO (#5329): pipeline.json file task complete
+[05:53:25.835] INFO (#5336): pipeline.json file task complete
+(pass) runSourceRefreshPlan > emits an idle watcher job when there is no newer complete month than lastBuilt [1.25ms]
+[05:53:25.836] INFO (#5356): pipeline.json file task complete
+[05:53:25.837] INFO (#5363): pipeline.json file task complete
+(pass) runSourceRefreshPlan > emits a blocked watcher job when no month meets minSpeedRoutes [1.24ms]
+
+tools/pipeline-v2/test/commands/publish/recovery.test.ts:
+(pass) publish recovery command > resolves the plan's exact candidate and operation command shapes from closed environment configuration [0.26ms]
+(pass) publish recovery command > independently verifies the exact returned preflight bytes with the trusted Ed25519 key [1.93ms]
+(pass) publish recovery command > runs the exact staged A→B→A proof without accepting resource or SQL selectors [5.07ms]
+(pass) publish recovery command > requires the fresh execution token before activation [0.87ms]
+(pass) publish recovery command > turns dry-run into the signed read-only preflight and returns durable evidence keys [1.32ms]
+(pass) publish recovery command > atomically rolls back and reports STOP when post-activation HTTP smoke fails [1.85ms]
+
+tools/pipeline-v2/test/commands/publish/r2-artifacts.test.ts:
+(pass) runPublishR2Artifacts > collects D1 artifact keys through the Effect D1 replay boundary [0.04ms]
+[05:53:25.856] INFO (#5406): publish.artifact-keys file task complete
+[05:53:25.856] INFO (#5409): publish.artifact-keys file task complete
+publish-r2 2026-03: 2 candidate keys (concurrency=4)
+publish-r2: 2/2 (uploaded=2 skipped=0 failed=0)
+publish-r2 2026-03: PASS (uploaded=2 skipped=0, projectedExecuteOverageFromZero=$0.00). Report: ../publish-r2-cK88pf/report.json
+(pass) runPublishR2Artifacts > uploads every candidate when remote is empty [2.87ms]
+(pass) runPublishR2Artifacts > rejects a broad map prefix when no verified map manifest is in scope [0.38ms]
+(pass) runPublishR2Artifacts > rejects a demo map manifest before remote HEAD or PUT calls [6.11ms]
+(pass) runPublishR2Artifacts > rejects malformed, unresolved, and traversing map manifests before remote calls [9.89ms]
+(pass) runPublishR2Artifacts > rejects a hash-consistent malformed source snapshot before remote calls [2.31ms]
+(pass) runPublishR2Artifacts > rejects a traversing artifact scope before scanning or remote calls [0.29ms]
+[05:53:25.881] INFO (#5549): publish.artifact-keys file task complete
+[05:53:25.881] INFO (#5546): publish.artifact-keys file task complete
+publish-r2 2026-03: 7 candidate keys (concurrency=4, dry-run)
+publish-r2: 7/7 (uploaded=0 skipped=0 failed=0 dry-run=7)
+publish-r2 2026-03: PASS (uploaded=0 skipped=0 dry-run=7, projectedExecuteOverageFromZero=$0.00). Report: ../publish-r2-full-no-lanes-kriOPx/report.json
+(pass) runPublishR2Artifacts > publishes a verified full P0 map release with typed unavailable lanes [5.42ms]
+[05:53:25.884] INFO (#5582): publish.artifact-keys file task complete
+[05:53:25.884] INFO (#5579): publish.artifact-keys file task complete
+publish-r2 2026-03: 7 candidate keys (concurrency=4, dry-run)
+publish-r2: 7/7 (uploaded=0 skipped=0 failed=0 dry-run=7)
+publish-r2 2026-03: PASS (uploaded=0 skipped=0 dry-run=7, projectedExecuteOverageFromZero=$0.00). Report: ../publish-r2-declared-map-only-bIsuv7/report.json
+(pass) runPublishR2Artifacts > does not publish undeclared files under a manifest-governed map prefix [2.73ms]
+(pass) runPublishR2Artifacts > rejects a stale optional lane key before remote HEAD or PUT calls [2.09ms]
+[05:53:25.887] INFO (#5613): publish.artifact-keys file task complete
+[05:53:25.887] INFO (#5616): publish.artifact-keys file task complete
+publish-r2 2026-03: 1 candidate key (concurrency=4, dry-run)
+publish-r2: FAILED assets/2026-03/network.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.geojson: content-addressed filename hash mismatch: expected aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, got ed778c73ea51338d6576fb5992b189f2b94d9f3d5e199f46c1af520d6b0b3e6c
+publish-r2: 1/1 (uploaded=0 skipped=0 failed=1)
+publish-r2 2026-03: FAIL (1 of 1 failed). Report: ../publish-r2-hash-mismatch-oFzvu3/report.json
+[05:53:25.888] INFO (#5627): publish.artifact-keys file task complete
+[05:53:25.888] INFO (#5630): publish.artifact-keys file task complete
+publish-r2 2026-03: 1 candidate key (concurrency=4, dry-run)
+publish-r2: FAILED assets/2026-03/network.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.geojson: content-addressed filename hash mismatch: expected aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, got ed778c73ea51338d6576fb5992b189f2b94d9f3d5e199f46c1af520d6b0b3e6c
+publish-r2: 1/1 (uploaded=0 skipped=0 failed=1)
+publish-r2 2026-03: FAIL (1 of 1 failed). Report: ../publish-r2-hash-mismatch-oFzvu3/report.json
+(pass) runPublishR2Artifacts > rejects a content-addressed filename whose token does not match the body [1.43ms]
+[05:53:25.889] INFO (#5641): publish.artifact-keys file task complete
+[05:53:25.889] INFO (#5644): publish.artifact-keys file task complete
+publish-r2 2026-03: 3 candidate keys (concurrency=4, dry-run)
+publish-r2: 3/3 (uploaded=0 skipped=0 failed=0 dry-run=3)
+publish-r2 2026-03: PASS (uploaded=0 skipped=0 dry-run=3, projectedExecuteOverageFromZero=$0.00). Report: ../publish-r2-studio-v2-05tZjS/report.json
+(pass) runPublishR2Artifacts > includes nested Studio v2 route speed-history artifacts under the default studio prefix [1.17ms]
+[05:53:25.890] INFO (#5655): publish.artifact-keys file task complete
+[05:53:25.890] INFO (#5658): publish.artifact-keys file task complete
+publish-r2 2026-03: 4 candidate keys (concurrency=4, dry-run)
+publish-r2: 4/4 (uploaded=0 skipped=0 failed=0 dry-run=4)
+publish-r2 2026-03: PASS (uploaded=0 skipped=0 dry-run=4, projectedExecuteOverageFromZero=$0.00). Report: ../publish-r2-studio-wiki-iK6PXW/report.json
+(pass) runPublishR2Artifacts > includes split Studio wiki route-evidence artifacts under the default studio prefix [1.28ms]
+[05:53:25.891] INFO (#5669): publish.artifact-keys file task complete
+[05:53:25.891] INFO (#5672): publish.artifact-keys file task complete
+publish-r2 2026-03: 3 candidate keys (concurrency=4, dry-run)
+publish-r2: 3/3 (uploaded=0 skipped=0 failed=0 dry-run=3)
+publish-r2 2026-03: PASS (uploaded=0 skipped=0 dry-run=3, projectedExecuteOverageFromZero=$0.00). Report: ../publish-r2-studio-v2-detectors-cThll1/report.json
+(pass) runPublishR2Artifacts > includes the staged Studio v2 detector readiness manifest under the default studio prefix [1.10ms]
+[05:53:25.892] INFO (#5683): publish.artifact-keys file task complete
+[05:53:25.892] INFO (#5686): publish.artifact-keys file task complete
+publish-r2 2026-03: 2 candidate keys (concurrency=4)
+publish-r2: 2/2 (uploaded=1 skipped=1 failed=0)
+publish-r2 2026-03: PASS (uploaded=1 skipped=1, projectedExecuteOverageFromZero=$0.00). Report: ../publish-r2-skip-Wpobll/report.json
+(pass) runPublishR2Artifacts > skips uploads when remote etag matches local md5 and size [1.00ms]
+[05:53:25.896] INFO (#5697): publish.artifact-keys file task complete
+[05:53:25.896] INFO (#5700): publish.artifact-keys file task complete
+publish-r2 2026-03: 2 candidate keys (concurrency=4, dry-run)
+publish-r2: 2/2 (uploaded=0 skipped=0 failed=0 dry-run=2)
+publish-r2 2026-03: PASS (uploaded=0 skipped=0 dry-run=2, projectedExecuteOverageFromZero=$0.00). Report: ../publish-r2-dry-5v7wNK/report.json
+(pass) runPublishR2Artifacts > reports would-uploads in dry-run mode without calling put [3.64ms]
+[05:53:25.897] INFO (#5711): publish.artifact-keys file task complete
+[05:53:25.897] INFO (#5714): publish.artifact-keys file task complete
+publish-r2 2026-03: 2 candidate keys (concurrency=4, force)
+publish-r2: 2/2 (uploaded=2 skipped=0 failed=0)
+publish-r2 2026-03: PASS (uploaded=2 skipped=0, projectedExecuteOverageFromZero=$0.00). Report: ../publish-r2-force-QNmxD5/report.json
+(pass) runPublishR2Artifacts > force mode skips HEAD and re-uploads every candidate [1.01ms]
+
+tools/pipeline-v2/test/commands/studio/route-speed-spines.test.ts:
+(pass) studio route speed spines manifest > derives the earliest observed coverage month and preserves unknown empty evidence [0.05ms]
+(pass) studio route speed spines manifest > classifies fully covered routes as series-ready [0.12ms]
+(pass) studio route speed spines manifest > allows sparse but bounded gaps for first-pass series use [0.04ms]
+(pass) studio route speed spines manifest > requires pattern review when partial coverage dominates the route history [0.03ms]
+(pass) studio route speed spines manifest > fails routes with invalid spine artifacts [0.02ms]
+(pass) studio route speed spines manifest > uses the Studio v2 speed-spines manifest namespace [0.02ms]
+(pass) studio route speed spines manifest > keeps manifest readiness policy and candidate SQL out of the command [0.06ms]
+
+tools/pipeline-v2/test/commands/studio/release-schedule-evidence.test.ts:
+(pass) Studio release schedule evidence refresh > refreshes aggregate and hourly evidence from an unambiguous scheduled stop alias [0.27ms]
+
+tools/pipeline-v2/test/commands/studio/export-intervention-corpus.test.ts:
+[05:53:25.914] INFO (#5725): pipeline.json file task complete
+[05:53:25.949] INFO (#6042): pipeline.json file task complete
+[05:53:25.949] INFO (#6045): pipeline.json file task complete
+[05:53:25.949] INFO (#6048): pipeline.json file task complete
+[05:53:25.949] INFO (#6051): pipeline.json file task complete
+[05:53:25.949] INFO (#6054): pipeline.json file task complete
+[05:53:25.949] INFO (#6057): pipeline.json file task complete
+[05:53:25.949] INFO (#6060): pipeline.json file task complete
+[05:53:25.949] INFO (#6063): pipeline.json file task complete
+[05:53:25.949] INFO (#6066): pipeline.json file task complete
+[05:53:25.949] INFO (#6069): pipeline.json file task complete
+[05:53:25.949] INFO (#6072): pipeline.json file task complete
+[05:53:25.950] INFO (#6075): pipeline.json file task complete
+[05:53:25.950] INFO (#6078): pipeline.json file task complete
+[05:53:25.950] INFO (#6081): pipeline.json file task complete
+[05:53:25.950] INFO (#6084): pipeline.json file task complete
+[05:53:25.950] INFO (#6087): pipeline.json file task complete
+[05:53:25.950] INFO (#6090): pipeline.json file task complete
+[05:53:25.950] INFO (#6093): pipeline.json file task complete
+[05:53:25.950] INFO (#6096): pipeline.json file task complete
+[05:53:25.950] INFO (#6099): pipeline.json file task complete
+[05:53:25.950] INFO (#6102): pipeline.json file task complete
+[05:53:25.950] INFO (#6105): pipeline.json file task complete
+[05:53:25.950] INFO (#6108): pipeline.json file task complete
+[05:53:25.950] INFO (#6111): pipeline.json file task complete
+[05:53:25.950] INFO (#6114): pipeline.json file task complete
+[05:53:25.950] INFO (#6117): pipeline.json file task complete
+[05:53:25.950] INFO (#6120): pipeline.json file task complete
+[05:53:25.950] INFO (#6123): pipeline.json file task complete
+[05:53:25.950] INFO (#6126): pipeline.json file task complete
+[05:53:25.950] INFO (#6129): pipeline.json file task complete
+[05:53:25.950] INFO (#6132): pipeline.json file task complete
+[05:53:25.950] INFO (#6135): pipeline.json file task complete
+[05:53:25.950] INFO (#6138): pipeline.json file task complete
+[05:53:25.950] INFO (#6141): pipeline.json file task complete
+[05:53:25.950] INFO (#6144): pipeline.json file task complete
+[05:53:25.950] INFO (#6147): pipeline.json file task complete
+[05:53:25.961] INFO (#6295): pipeline.json file task complete
+(pass) studio export-intervention-corpus command > loads the repository-pinned reviewed corpus without row loss [59.74ms]
+[05:53:25.965] INFO (#6303): pipeline.json file task complete
+[05:53:25.966] INFO (#6320): pipeline.json file task complete
+[05:53:25.967] INFO (#6328): pipeline.json file task complete
+(pass) studio export-intervention-corpus command > projects every valid reviewed record and retains undated documentation rows [2.65ms]
+[05:53:25.968] INFO (#6338): pipeline.json file task complete
+[05:53:25.968] INFO (#6345): pipeline.json file task complete
+[05:53:25.968] INFO (#6352): pipeline.json file task complete
+(pass) studio export-intervention-corpus command > fails closed on corpus digest, declared count, invalid rows, or duplicate record ids [1.15ms]
+
+tools/pipeline-v2/test/commands/studio/release-seo.test.ts:
+(pass) buildSeoTitleManifest > derives titles from release labels without synthesizing SBS [0.02ms]
+(pass) renderSeoManifestModule > emits a typed route map with one entry per manifest route [0.05ms]
+(pass) buildSitemapXml > includes static pages plus every served route URL [0.01ms]
+(pass) buildSitemapXml > does not enumerate retired product pages [0.01ms]
+(pass) buildSitemapXml > is well-formed sitemap XML [0.01ms]
+(pass) writeSeoArtifacts boundary > keeps generated file writes behind the Effect FileSystem service [0.03ms]
+(pass) writeSeoArtifacts boundary > uses an official display label verbatim without synthesizing SBS [0.02ms]
+
+tools/pipeline-v2/test/commands/studio/route-speed-histories.test.ts:
+(pass) studio route speed histories manifest > keeps batch manifest policy in analytics feature-history [0.05ms]
+[05:53:25.977] INFO (#6361): pipeline.json file task complete
+[05:53:25.977] INFO (#6368): pipeline.json file task complete
+[05:53:25.977] INFO (#6375): pipeline.json file task complete
+[05:53:25.978] INFO (#6382): pipeline.json file task complete
+[05:53:25.978] INFO (#6389): pipeline.json file task complete
+[05:53:25.979] INFO (#6396): pipeline.json file task complete
+[05:53:25.979] INFO (#6403): pipeline.json file task complete
+[05:53:25.980] INFO (#6410): pipeline.json file task complete
+[05:53:25.980] INFO (#6417): pipeline.json file task complete
+[05:53:25.980] INFO (#6424): pipeline.json file task complete
+[05:53:25.980] INFO (#6431): pipeline.json file task complete
+[05:53:25.981] INFO (#6446): pipeline.json file task complete
+[05:53:25.981] INFO (#6453): pipeline.json file task complete
+[05:53:25.981] INFO (#6460): pipeline.json file task complete
+(pass) studio route speed histories manifest > builds eligible route artifacts from the spine manifest and resumes by skipping existing output [7.51ms]
+
+tools/pipeline-v2/test/commands/studio/route-treatment-summary.test.ts:
+(pass) studio route-treatment-summary command > keeps treatment materialization and SQL out of the command [0.05ms]
+(pass) studio route-treatment-summary command > uses the analytics-owned artifact path [0.02ms]
+
+tools/pipeline-v2/test/commands/studio/release.test.ts:
+(pass) studio release D1 replay boundary > requires an explicit covered-month partition and derives the earliest trend month [0.08ms]
+(pass) studio release D1 replay boundary > keeps exact route identities distinct when assembling route interventions [0.04ms]
+(pass) studio release D1 replay boundary > clears peer links when evidence filtering removes the peer route [0.05ms]
+(pass) studio release D1 replay boundary > only cleans a versioned Studio projection directory [0.07ms]
+(pass) studio release D1 replay boundary > loads serving export rows through the Effect D1 replay boundary [0.26ms]
+(pass) studio release D1 replay boundary > preserves absolute source and snapshot overrides [0.13ms]
+
+tools/pipeline-v2/test/commands/studio/export-route-intervention-inventory.test.ts:
+(pass) studio export-route-intervention-inventory command > exposes only source and output-path options, without identity overrides [0.20ms]
+(pass) studio export-route-intervention-inventory command > reports rc25 unresolved semantics as partial without treating them as unknown [0.41ms]
+(pass) studio export-route-intervention-inventory command > counts every trusted local raw intervention type in the exact receipt [0.17ms]
+(pass) studio export-route-intervention-inventory command > accepts partial routing while still failing literal mismatches and missing records [0.07ms]
+(pass) studio export-route-intervention-inventory command > returns from vocabulary mode before build promotion and opens an optional DB read-only [0.06ms]
+
+tools/pipeline-v2/test/commands/studio/route-speed-spine.test.ts:
+(pass) studio route speed spine > collapses nearby renamed timepoints into one geographic segment [0.20ms]
+(pass) studio route speed spine > keeps the same physical southbound segment stable across stop-order renumbering [0.12ms]
+(pass) studio route speed spine > uses the Studio v2 route speed-spine namespace [0.02ms]
+(pass) studio route speed spine > keeps the artifact builder and local DB row query out of the command [0.05ms]
+
+tools/pipeline-v2/test/commands/studio/release-segments.test.ts:
+(pass) Studio release segment evidence > classifies incomplete scheduled evidence without synthesizing a speed [0.25ms]
+
+tools/pipeline-v2/test/commands/studio/export-intervention-observations.test.ts:
+[05:53:26.002] INFO (#6471): pipeline.json file task complete
+[05:53:26.002] INFO (#6478): pipeline.json file task complete
+[05:53:26.002] INFO (#6485): pipeline.json file task complete
+[05:53:26.004] INFO (#6654): pipeline.json file task complete
+[05:53:26.005] INFO (#6661): pipeline.json file task complete
+[05:53:26.005] INFO (#6668): pipeline.json file task complete
+[05:53:26.005] INFO (#6675): pipeline.json file task complete
+[05:53:26.006] INFO (#6682): pipeline.json file task complete
+[05:53:26.007] INFO (#6851): pipeline.json file task complete
+[05:53:26.007] INFO (#6858): pipeline.json file task complete
+(pass) studio export-intervention-observations command > writes strict deterministic artifacts and reports anchor-before-fan-out counts [10.32ms]
+[05:53:26.009] INFO (#6870): pipeline.json file task complete
+[05:53:26.011] INFO (#6880): pipeline.json file task complete
+[05:53:26.011] INFO (#6887): pipeline.json file task complete
+[05:53:26.012] INFO (#6897): pipeline.json file task complete
+[05:53:26.012] INFO (#6904): pipeline.json file task complete
+[05:53:26.013] INFO (#6914): pipeline.json file task complete
+[05:53:26.013] INFO (#6921): pipeline.json file task complete
+[05:53:26.017] INFO (#6931): pipeline.json file task complete
+[05:53:26.017] INFO (#6938): pipeline.json file task complete
+[05:53:26.019] INFO (#6948): pipeline.json file task complete
+[05:53:26.019] INFO (#6955): pipeline.json file task complete
+(pass) studio export-intervention-observations command > fails release and inventory preflight errors before writing outputs [10.80ms]
+[05:53:26.020] INFO (#6965): pipeline.json file task complete
+[05:53:26.020] INFO (#6972): pipeline.json file task complete
+[05:53:26.020] INFO (#6979): pipeline.json file task complete
+[05:53:26.021] INFO (#6991): pipeline.json file task complete
+[05:53:26.021] INFO (#6998): pipeline.json file task complete
+[05:53:26.022] INFO (#7005): pipeline.json file task complete
+(pass) studio export-intervention-observations command > fails a missing trend table and zero admitted anchors before writes [2.79ms]
+[05:53:26.023] INFO (#7016): pipeline.json file task complete
+[05:53:26.023] INFO (#7023): pipeline.json file task complete
+[05:53:26.023] INFO (#7030): pipeline.json file task complete
+[05:53:26.025] INFO (#7199): pipeline.json file task complete
+[05:53:26.025] INFO (#7206): pipeline.json file task complete
+(pass) studio export-intervention-observations command > does not impose global registry-lineage uniqueness on descriptive anchors [3.07ms]
+
+tools/pipeline-v2/test/commands/studio/route-speed-history.test.ts:
+(pass) studio route speed history > maps source rows through the stable spine and emits explicit missing cells [0.22ms]
+(pass) studio route speed history > treats missing cells as source missing without schedule proof [0.06ms]
+(pass) studio route speed history > derives expected service cells from schedule stop pairs [0.18ms]
+(pass) studio route speed history > uses the Studio v2 route speed-history namespace [0.01ms]
+(pass) studio route speed history > keeps speed-history artifact construction and SQL out of the command [0.05ms]
+
+tools/pipeline-v2/test/commands/study/run.test.ts:
+[05:53:26.034] INFO (#7214): pipeline.json file task complete
+[05:53:26.034] INFO (#7222): pipeline.json file task complete
+[05:53:26.035] INFO (#7230): pipeline.json file task complete
+[05:53:26.035] INFO (#7238): pipeline.json file task complete
+[05:53:26.035] INFO (#7246): pipeline.json file task complete
+[05:53:26.035] INFO (#7254): pipeline.json file task complete
+[05:53:26.036] INFO (#7262): pipeline.json file task complete
+[05:53:26.036] INFO (#7270): pipeline.json file task complete
+[05:53:26.036] INFO (#7278): pipeline.json file task complete
+[05:53:26.036] INFO (#7286): pipeline.json file task complete
+(pass) study run artifact writer > writes two events, route rollups, and a byte-deterministic index [5.12ms]
+[05:53:26.038] INFO (#7293): pipeline.json file task complete
+[05:53:26.038] INFO (#7301): pipeline.json file task complete
+[05:53:26.039] INFO (#7309): pipeline.json file task complete
+[05:53:26.039] INFO (#7317): pipeline.json file task complete
+[05:53:26.039] INFO (#7325): pipeline.json file task complete
+[05:53:26.039] INFO (#7333): pipeline.json file task complete
+[05:53:26.040] INFO (#7340): pipeline.json file task complete
+[05:53:26.040] INFO (#7348): pipeline.json file task complete
+[05:53:26.041] INFO (#7356): pipeline.json file task complete
+[05:53:26.041] INFO (#7364): pipeline.json file task complete
+(pass) study run artifact writer > runs two approved fixture events through command orchestration [4.77ms]
+[05:53:26.042] INFO (#7371): pipeline.json file task complete
+[05:53:26.042] INFO (#7379): pipeline.json file task complete
+(pass) study run artifact writer > rejects unproven scope before invoking the estimator [0.96ms]
+[05:53:26.043] INFO (#7386): pipeline.json file task complete
+[05:53:26.043] INFO (#7393): pipeline.json file task complete
+[05:53:26.044] INFO (#7401): pipeline.json file task complete
+[05:53:26.044] INFO (#7409): pipeline.json file task complete
+[05:53:26.044] INFO (#7417): pipeline.json file task complete
+[05:53:26.044] INFO (#7424): pipeline.json file task complete
+[05:53:26.045] INFO (#7431): pipeline.json file task complete
+(pass) study run artifact writer > admits an exact bounded-scope binding and rejects a stale candidate-set binding [2.59ms]
+
+tools/pipeline-v2/test/commands/study/opportunity-prototype.test.ts:
+(pass) study opportunity-prototype command > uses corpus positives only as treatment exclusions and rejects a count mismatch [0.16ms]
+[05:53:26.052] INFO (#7438): pipeline.json file task complete
+[05:53:26.052] INFO (#7441): pipeline.json file task complete
+[05:53:26.052] INFO (#7444): pipeline.json file task complete
+(pass) study opportunity-prototype command > fails closed when the supplied index is not the complete nine-study cut [3.95ms]
+
+tools/pipeline-v2/test/commands/study/prepare-review-worksheet.test.ts:
+[05:53:26.056] INFO (#7459): pipeline.json file task complete
+[05:53:26.056] INFO (#7462): pipeline.json file task complete
+(pass) study review worksheet > reproduces byte-identically across isolated input roots [1.93ms]
+[05:53:26.057] INFO (#7473): pipeline.json file task complete
+[05:53:26.057] INFO (#7480): pipeline.json file task complete
+(pass) study review worksheet > strictly decodes and writes a deterministic, complete non-approval worksheet [1.16ms]
+(pass) study review worksheet > fails closed on excess input keys and any focus source rejection [0.54ms]
+[05:53:26.059] INFO (#7487): pipeline.json file task complete
+[05:53:26.059] INFO (#7494): pipeline.json file task complete
+(pass) study review worksheet > strictly preserves v3 exact-route and manifest/payload/graph lineage without a decision [1.20ms]
+(pass) study review worksheet > fails closed on v3 excess keys, unknown versions, and exact-route collapse [1.60ms]
+
+tools/pipeline-v2/test/commands/ingest/route-trends.test.ts:
+(pass) runRouteTrendsIngest > derives speed trends from the local cell table and reports uncovered months [58.32ms]
+
+tools/pipeline-v2/test/commands/ingest/express-bus-capacity.test.ts:
+(pass) express bus capacity pipeline artifacts > keeps express capacity analysis policy in analytics feature-history [0.06ms]
+[05:53:26.128] INFO (#7524): pipeline.json file task complete
+[05:53:26.128] INFO (#7531): pipeline.json file task complete
+[05:53:26.129] INFO (#7539): pipeline.json file task complete
+[05:53:26.131] INFO (#7563): pipeline.json file task complete
+[05:53:26.131] INFO (#7571): pipeline.json file task complete
+[05:53:26.132] INFO (#7579): pipeline.json file task complete
+(pass) express bus capacity pipeline artifacts > ingests optional source rows and builds route-hour capacity context [7.53ms]
+
+tools/pipeline-v2/test/commands/ingest/define-ingest-command.test.ts:
+[05:53:26.155] INFO (#7586): ingest.fixture complete
+(pass) defineIngestCommand > routes descriptor execution through the local DB command boundary [20.58ms]
+
+tools/pipeline-v2/test/commands/ingest/bus-customer-journey-metrics.test.ts:
+[05:53:26.162] INFO (#7605): pipeline.json file task complete
+(pass) ingest bus-customer-journey-metrics > normalizes and stages official route-month ABST metrics [4.46ms]
+
+tools/pipeline-v2/test/commands/ingest/ace-routes.test.ts:
+[05:53:26.217] INFO (#7629): pipeline.json file task complete
+(pass) runAceRoutesIngest > normalizes Socrata rows, writes snapshot, and replaces the local table [53.05ms]
+
+tools/pipeline-v2/test/commands/ingest/socrata-csv-snapshot.test.ts:
+(pass) runSocrataCsvSnapshot > sends a Socrata app token when available [2.72ms]
+(pass) runSocrataCsvSnapshot > downloads and reuses a manifest rows.csv snapshot [0.88ms]
+(pass) runSocrataCsvSnapshot > retries transient CSV download failures [0.93ms]
+
+tools/pipeline-v2/test/commands/ingest/socrata-partitioned-csv-snapshot.test.ts:
+(pass) runSocrataPartitionedCsvSnapshot > builds stable date chunks and SODA3 partition queries [0.26ms]
+(pass) runSocrataPartitionedCsvSnapshot > downloads and reuses an authenticated SODA3 CSV chunk [1.71ms]
+(pass) runSocrataPartitionedCsvSnapshot > retries SODA3 export processing responses [0.96ms]
+
+tools/pipeline-v2/test/commands/ingest/route-schedules-bulk.test.ts:
+(pass) runRouteSchedulesBulkIngest > command wrapper uses the Effect local DB boundary [1.96ms]
+(pass) runRouteSchedulesBulkIngest > stream-imports display-name Socrata CSV rows with deterministic route row ranks [3.80ms]
+(pass) runRouteSchedulesBulkIngest > skips completed routes while importing requested incomplete routes [1.94ms]
+(pass) runRouteSchedulesBulkIngest > marks requested routes with no source rows as source_absent, not complete [1.38ms]
+(pass) runRouteSchedulesBulkIngest > downloads and reuses a cached bulk CSV before importing [1.99ms]
+(pass) runRouteSchedulesBulkIngest > imports all CSV chunks from a SODA3 partition manifest [1.72ms]
+(pass) runRouteSchedulesBulkIngest > restricts partition imports to missing current-catalog routes [2.31ms]
+(pass) runRouteSchedulesBulkIngest > can download a CSV snapshot without importing rows [0.95ms]
+
+tools/pipeline-v2/test/commands/ingest/route-schedules.test.ts:
+(pass) runRouteSchedulesIngest > command wrapper uses the Effect local DB boundary [0.12ms]
+(pass) runRouteSchedulesIngest > fetches route-level schedule stop rows and skips already staged routes [4.40ms]
+(pass) runRouteSchedulesIngest > marks no-row route fetches as source_absent so later imports can repair them [1.80ms]
+(pass) runRouteSchedulesIngest > fetches large routes in deterministic concurrent pages [2.16ms]
+(pass) runRouteSchedulesIngest > continues writing later routes before reporting route fetch failures [2.13ms]
+
+tools/pipeline-v2/test/commands/ingest/route-segment-speeds.test.ts:
+(pass) runRouteSegmentSpeedsIngest > writes filtered legacy rows and unfiltered cell rows (2023-2024 dataset) [53.66ms]
+(pass) runRouteSegmentSpeedsIngest > writes filtered legacy rows and unfiltered cell rows (2025+ dataset) [53.53ms]
+
+tools/pipeline-v2/test/commands/ingest/dot-traffic-speeds-history.test.ts:
+(pass) ingest dot-traffic-speeds-history boundary > uses the Effect local DB boundary for local DB writes [1.92ms]
+
+tools/pipeline-v2/test/commands/ingest/gtfs-static.test.ts:
+(pass) ingest gtfs-static > command wrapper uses the Effect local DB boundary [0.11ms]
+(pass) ingest gtfs-static > parses quoted GTFS CSV fields [0.13ms]
+(pass) ingest gtfs-static > stages routes, trips, stops, calendars, and all stop_times [1.28ms]
+
+tools/pipeline-v2/test/commands/ingest/route-release-only-backfills.test.ts:
+(pass) release-only route backfill normalizers > keeps segment speed rows at the route/month grain and coerces numeric stop IDs [0.16ms]
+(pass) release-only route backfill normalizers > normalizes route-level hourly ridership aggregate rows [0.19ms]
+(pass) release-only route backfill normalizers > bridges the authoritative Q06-Q09 identifiers to current catalog route IDs [0.07ms]
+(pass) release-only route backfill normalizers > falls back to the current catalog when the newly closed month has no trend rows yet [0.06ms]
+
+tools/pipeline-v2/test/commands/map/artifacts.test.ts:
+(pass) map artifacts command boundary > delegates path, manifest, and hash policy to analytics while keeping file reads in pipeline [0.15ms]
+(pass) map artifacts command boundary > normalizes publishable NYC DOT bus-lane boroughs and dates [0.12ms]
+
+tools/pipeline-v2/test/commands/map/release.test.ts:
+(pass) runMapRelease > derives deterministic pass rows only from a verified non-empty universe [0.12ms]
+(pass) runMapRelease > refuses to mint a pass from duplicate routes or an empty inventory [0.04ms]
+(pass) runMapRelease > resolves an explicit local database path from the repository root [0.11ms]
+[05:53:26.393] INFO (#7961): publish.artifact-keys file task complete
+[05:53:26.394] INFO (#7964): publish.artifact-keys file task complete
+[05:53:26.396] INFO (#7977): publish.artifact-keys file task complete
+[05:53:26.396] INFO (#7980): publish.artifact-keys file task complete
+(pass) runMapRelease > verifies artifacts before injecting and committing the route-batch pass [8.52ms]
+(pass) runMapRelease > keeps coverage start null when the built speed-spine evidence is empty [0.16ms]
+(pass) runMapRelease > rejects a candidate whose D1 export lacks exact-route identity [0.11ms]
+(pass) runMapRelease > rejects a one-millisecond D1 publication identity skew [0.12ms]
+
+tools/pipeline-v2/test/commands/check/route-speed-availability.test.ts:
+(pass) runRouteSpeedAvailability > keeps path policy and availability classification in analytics [0.10ms]
+[05:53:26.403] INFO (#8026): pipeline.json file task complete
+(pass) runRouteSpeedAvailability > marks the most recent complete month and recommends a rebuild when newer than lastBuilt [1.49ms]
+[05:53:26.404] INFO (#8048): pipeline.json file task complete
+(pass) runRouteSpeedAvailability > reports no rebuild when lastBuilt is at or beyond latest complete month [0.96ms]
+[05:53:26.405] INFO (#8068): pipeline.json file task complete
+(pass) runRouteSpeedAvailability > reports no_complete_speed_month when nothing meets minSpeedRoutes [0.84ms]
+[05:53:26.406] INFO (#8090): pipeline.json file task complete
+(pass) runRouteSpeedAvailability > populates requestedMonth=missing_speed when the requested month has no rows [0.88ms]
+(pass) runRouteSpeedAvailability > rejects mismatched year/month pair [0.08ms]
+
+tools/pipeline-v2/test/commands/check/spatialite.test.ts:
+(pass) check spatialite command > requests spatialite through the Effect local DB layer [0.03ms]
+(pass) check spatialite command > reports the loaded spatialite extension metadata [0.45ms]
+(pass) check spatialite command > reports unavailable spatialite without throwing [0.14ms]
+
+tools/pipeline-v2/test/commands/verify/d1.test.ts:
+(pass) verify d1 helpers > opens the local SQLite database read-only through the Effect layer [0.06ms]
+(pass) verify d1 helpers > keeps D1 replay database construction behind the Effect service [0.04ms]
+[05:53:26.413] INFO (#8097): test.verify-d1 D1 replay complete
+(pass) verify d1 helpers > collectD1TableCounts counts loaded rows including public_visible briefs [1.02ms]
+[05:53:26.414] INFO (#8100): test.verify-d1 D1 replay complete
+(pass) verify d1 helpers > verifyD1TableCounts records mismatches and stays silent on matches [1.17ms]
+[05:53:26.479] INFO (#8109): verify.d1 file task complete
+[05:53:26.490] INFO (#8116): verify.d1 D1 replay complete
+[05:53:26.493] INFO (#8119): verify.d1 file task complete
+(pass) verify d1 helpers > threads one exact publication identity into the D1 export [80.01ms]
+
+tools/pipeline-v2/test/commands/export/route-dossier-summaries.test.ts:
+(pass) worstSegmentMonthsFromSpeedHistory > picks the slowest segment per month from daypart means and skips empty months [0.13ms]
+(pass) toRouteDossierInputRows + buildAndWriteRouteDossierSummaries > joins trends, events, treatment, and speed-history artifacts; writes schema-valid dossiers [1.15ms]
+
+tools/pipeline-v2/test/commands/export/route-capability-manifest.test.ts:
+(pass) toRouteCapabilityInputRows > maps the rich route from the local-DB rows [0.03ms]
+(pass) toRouteCapabilityInputRows > defaults the sparse catalog-only route [0.02ms]
+(pass) readDetectorReadinessRouteSummaries > accepts an equal detector month without adding a compatibility caveat [0.42ms]
+(pass) readDetectorReadinessRouteSummaries > accepts an older detector month with a compatibility caveat [0.20ms]
+(pass) readDetectorReadinessRouteSummaries > returns an empty map when no manifest path is given [0.04ms]
+(pass) readDetectorReadinessRouteSummaries > rejects a detector month later than the export month [0.16ms]
+(pass) buildAndWriteRouteCapabilityManifest > writes a schema-valid manifest artifact [0.58ms]
+
+tools/pipeline-v2/test/commands/export/route-speed-history-coverage-index.test.ts:
+(pass) route speed-history coverage index export > keeps coverage table materialization in pipeline-local aggregates [0.05ms]
+(pass) route speed-history coverage index export > materializes available route speed-history rows from the batch manifest [1.39ms]
+
+tools/pipeline-v2/test/commands/export/d1.test.ts:
+(pass) runExportD1Seed > derives coverage start from the earliest loaded route trend month [0.04ms]
+(pass) runExportD1Seed > estimates D1 seed publish cost from SQL statement counts [0.08ms]
+(pass) runExportD1Seed > writes schema, seed, and summary files against an empty local DB [55.25ms]
+(pass) runExportD1Seed > folds route timeline serving projection rows into canonical seed output [61.87ms]
+(pass) runExportD1Seed > folds detector readiness manifest route refs into canonical seed output [62.92ms]
+[05:53:26.744] INFO (#8142): pipeline.json file task complete
+(pass) runExportD1Seed > folds MTA-wiki route evidence index rows into canonical seed output [66.59ms]
+[05:53:26.811] INFO (#8150): pipeline.json file task complete
+(pass) runExportD1Seed > emits and replays a collision-guarded exact-route identity registration from v2 evidence [68.47ms]
+(pass) runExportD1Seed > keeps detector readiness manifest support non-fatal when the manifest is missing [54.63ms]
+(pass) runExportD1Seed > synthesizes missing source-gap intervention events for month-scoped comparisons [66.67ms]
+(pass) runExportD1Seed > writes appendix-only files in appendix mode [51.16ms]
+
+tools/pipeline-v2/test/commands/export/d1-inputs-compatibility.test.ts:
+(pass) frozen detector-readiness compatibility > accepts an equal manifest month [48.88ms]
+(pass) frozen detector-readiness compatibility > accepts an older manifest and preserves its artifact month [53.32ms]
+(pass) frozen detector-readiness compatibility > rejects a manifest later than the export month [49.35ms]
+(pass) frozen route-timeline compatibility > accepts a projection for the exact export month [52.52ms]
+(pass) frozen route-timeline compatibility > rejects a projection for a different export month [47.90ms]
+
+ 1076 pass
+ 0 fail
+ 18774 expect() calls
+Ran 1076 tests across 207 files. [12.20s]

@@ -1,0 +1,26 @@
+{
+  "artifact_kind": "bp.plan042.independent-review-receipt.v1",
+  "schema_version": 1,
+  "reviewer_id": "plan042-independent-reviewer-a",
+  "reviewed_acceptance_manifest": {
+    "path": "docs/research/reviews/closure-plan-042/acceptance-manifest.json",
+    "sha256": "05e4f6f00dea8688acbe07c613930541714d7335a3bb6375680fe5cbad09454f"
+  },
+  "reviewed_review_cut_id": "study-review-cut-v2:1ae9e99a8b4c32793b5dbc86",
+  "package_ids": [
+    "bounded-extent-38",
+    "lineage-22",
+    "service-product-coverage-gap-5",
+    "stop-set-6",
+    "upstream-risk-automated-bus-lane-enforcement-1-of-1",
+    "upstream-risk-bus-stop-or-boarding-1-of-1",
+    "upstream-risk-fare-collection-1-of-1",
+    "upstream-risk-service-pattern-1-of-1"
+  ],
+  "verdict": "approve",
+  "findings": [],
+  "authority": {
+    "authorizes_study": false,
+    "authorizes_publication": false
+  }
+}

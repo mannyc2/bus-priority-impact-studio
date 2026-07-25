@@ -6,6 +6,7 @@ import {
 } from "../../src/cli/registry.ts";
 
 const expectedRegistry = {
+  $root: ["render-closure-downstream-pin", "verify-closure-receipt"],
   audit: [
     "data-product-completeness",
     "freshness",
@@ -103,6 +104,9 @@ const expectedRegistry = {
   ],
   sources: ["catalog-search", "list", "probe", "soda3-range-probe"],
   study: [
+    "certify-member-grain-outcomes",
+    "finalize-member-grain-review",
+    "freeze-member-grain-acceptance",
     "merge-events",
     "migrate-member-scope-bindings",
     "opportunity-prototype",
@@ -133,7 +137,7 @@ const expectedRegistry = {
 describe("Effect CLI registry", () => {
   test("loads every pipeline command descriptor loudly", async () => {
     const commands = await discoverCommandDescriptors();
-    expect(commands).toHaveLength(114);
+    expect(commands).toHaveLength(119);
     expect(buildCommandRegistrySnapshot(commands)).toEqual(expectedRegistry);
   });
 

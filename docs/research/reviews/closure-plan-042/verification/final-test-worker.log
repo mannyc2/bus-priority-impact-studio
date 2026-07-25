@@ -1,0 +1,22 @@
+$ bun --filter @bp/web test:worker
+@bp/web test:worker: node:events:497
+@bp/web test:worker:       throw er; // Unhandled 'error' event
+@bp/web test:worker:       ^
+@bp/web test:worker: 
+@bp/web test:worker: Error: listen EPERM: operation not permitted 127.0.0.1
+@bp/web test:worker:     at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+@bp/web test:worker:     at listenInCluster (node:net:1997:12)
+@bp/web test:worker:     at node:net:2206:7
+@bp/web test:worker:     at processTicksAndRejections (node:internal/process/task_queues:90:21)
+@bp/web test:worker: Emitted 'error' event on Server instance at:
+@bp/web test:worker:     at emitErrorNT (node:net:1976:8)
+@bp/web test:worker:     at processTicksAndRejections (node:internal/process/task_queues:90:21) {
+@bp/web test:worker:   code: 'EPERM',
+@bp/web test:worker:   errno: -1,
+@bp/web test:worker:   syscall: 'listen',
+@bp/web test:worker:   address: '127.0.0.1'
+@bp/web test:worker: }
+@bp/web test:worker: 
+@bp/web test:worker: Node.js v22.22.0
+@bp/web test:worker: Exited with code 1
+error: script "test:worker" exited with code 1

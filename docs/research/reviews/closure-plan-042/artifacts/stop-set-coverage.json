@@ -1,0 +1,367 @@
+{
+  "artifact_kind": "bp.plan042.stop-set-coverage.v1",
+  "schema_version": 1,
+  "candidate_set_id": "candidate-set-v5:1fadedfcb292deda5179bdf3",
+  "database": {
+    "path": "/tmp/bp-plan074-may-review-uowKHk/pipeline.sqlite",
+    "bytes": 4969938944,
+    "sha256": "07d9d297aac22e3d57bda1909700ad8d2c1ccd7b5651eb43362253701398e079"
+  },
+  "observed_headway_table": "local_observed_headway_sample",
+  "observed_headway_total_row_count": 0,
+  "ewt_product_id": "stop_direction_hour_ewt_features",
+  "ewt_feature_grain": "stop_direction_hour",
+  "ewt_resolver_id": "artifact.stop_direction_hour_ewt_features.v1",
+  "ewt_artifact_path_template": "analytics-stop-direction-hour-ewt/{releaseMonth}/{runId}/{routeId}/stop-direction-hour-ewt-features.json",
+  "row_count": 9,
+  "rows": [
+    {
+      "candidate_id": "study-event-v2:5b93c24a36cc919390a97111",
+      "extent_id": "member-extent:0d00594dd3230d9bc23f3483",
+      "route_id": "QM63",
+      "treatment_record_id": "treatment_qm63-midtown-stop-additions-2025",
+      "source_literal_ids": [
+        "402144",
+        "402146",
+        "404295",
+        "404297",
+        "404298",
+        "404300",
+        "404877",
+        "450041",
+        "904045"
+      ],
+      "query_stop_ids": [
+        "402144",
+        "402146",
+        "404295",
+        "404297",
+        "404298",
+        "404300",
+        "404877",
+        "450041",
+        "904045"
+      ],
+      "comparison_window": {
+        "start_month": "2024-12",
+        "end_month": "2025-11",
+        "analysis_month": "2026-05"
+      },
+      "observed_headway_row_count": 0,
+      "ewt_artifact_match_count": 0,
+      "typed_stop_id_lineage_present": false,
+      "disposition": "missing_pinned_stop_grain_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:b6e30561a2c60598b1691af9",
+      "extent_id": "member-extent:0f39ff685b5c2933114a6681",
+      "route_id": "QM44",
+      "treatment_record_id": "treatment_qm44-stop-removal-2025",
+      "source_literal_ids": [
+        "450004",
+        "551733",
+        "551812",
+        "551816",
+        "551820",
+        "551821",
+        "551848"
+      ],
+      "query_stop_ids": [
+        "450004",
+        "551733",
+        "551812",
+        "551816",
+        "551820",
+        "551821",
+        "551848"
+      ],
+      "comparison_window": {
+        "start_month": "2024-12",
+        "end_month": "2025-11",
+        "analysis_month": "2026-05"
+      },
+      "observed_headway_row_count": 0,
+      "ewt_artifact_match_count": 0,
+      "typed_stop_id_lineage_present": false,
+      "disposition": "missing_pinned_stop_grain_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v5:99b1dde8617facf330af4837",
+      "extent_id": "member-extent:48a76e64d817b773f9fbf1c7",
+      "route_id": "M86+",
+      "treatment_record_id": "treatment_real-time-info-m86",
+      "source_literal_ids": [
+        "eastbound:Amsterdam Avenue",
+        "eastbound:Central Park West",
+        "eastbound:Columbus Avenue",
+        "eastbound:First Avenue",
+        "eastbound:Madison Avenue",
+        "westbound:Central Park West",
+        "westbound:Columbus Avenue",
+        "westbound:Fifth Avenue",
+        "westbound:York Avenue & E 87th Street"
+      ],
+      "query_stop_ids": [],
+      "comparison_window": {
+        "start_month": "2015-01",
+        "end_month": "2015-12",
+        "analysis_month": "2026-05"
+      },
+      "observed_headway_row_count": 0,
+      "ewt_artifact_match_count": 0,
+      "typed_stop_id_lineage_present": false,
+      "disposition": "missing_pinned_stop_grain_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:f0c0de1423b27a3ba8471ae1",
+      "extent_id": "member-extent:5f68123b0ab6f7781d1f41ab",
+      "route_id": "QM64",
+      "treatment_record_id": "treatment_qm64-stop-removal-2025",
+      "source_literal_ids": [
+        "400316",
+        "400327",
+        "402130",
+        "402133",
+        "402134",
+        "402212",
+        "402214",
+        "402215",
+        "402679",
+        "402681",
+        "403617",
+        "404169",
+        "404296",
+        "404299",
+        "500230",
+        "503568",
+        "504967",
+        "551578",
+        "803035",
+        "803036",
+        "803037",
+        "803038",
+        "803039",
+        "803040",
+        "904036",
+        "904037",
+        "904038",
+        "904099"
+      ],
+      "query_stop_ids": [
+        "400316",
+        "400327",
+        "402130",
+        "402133",
+        "402134",
+        "402212",
+        "402214",
+        "402215",
+        "402679",
+        "402681",
+        "403617",
+        "404169",
+        "404296",
+        "404299",
+        "500230",
+        "503568",
+        "504967",
+        "551578",
+        "803035",
+        "803036",
+        "803037",
+        "803038",
+        "803039",
+        "803040",
+        "904036",
+        "904037",
+        "904038",
+        "904099"
+      ],
+      "comparison_window": {
+        "start_month": "2024-12",
+        "end_month": "2025-11",
+        "analysis_month": "2026-05"
+      },
+      "observed_headway_row_count": 0,
+      "ewt_artifact_match_count": 0,
+      "typed_stop_id_lineage_present": false,
+      "disposition": "missing_pinned_stop_grain_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:a30b1ecff3e42a8445495845",
+      "extent_id": "member-extent:6f641accdbb6a35da5a2b6f4",
+      "route_id": "QM12",
+      "treatment_record_id": "treatment_qm12-stop-removal-2025",
+      "source_literal_ids": [
+        "502871",
+        "504274",
+        "504276",
+        "550454",
+        "550960",
+        "552940",
+        "552943",
+        "552947",
+        "552948",
+        "553342",
+        "553383",
+        "982106"
+      ],
+      "query_stop_ids": [
+        "502871",
+        "504274",
+        "504276",
+        "550454",
+        "550960",
+        "552940",
+        "552943",
+        "552947",
+        "552948",
+        "553342",
+        "553383",
+        "982106"
+      ],
+      "comparison_window": {
+        "start_month": "2024-12",
+        "end_month": "2025-11",
+        "analysis_month": "2026-05"
+      },
+      "observed_headway_row_count": 0,
+      "ewt_artifact_match_count": 0,
+      "typed_stop_id_lineage_present": false,
+      "disposition": "missing_pinned_stop_grain_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:82f351bd46e78275d6aa3996",
+      "extent_id": "member-extent:708a1e947708c7bbfae1b1dd",
+      "route_id": "QM8",
+      "treatment_record_id": "treatment_qm8-east-34-stop-addition-2025",
+      "source_literal_ids": [
+        "403359",
+        "404950"
+      ],
+      "query_stop_ids": [
+        "403359",
+        "404950"
+      ],
+      "comparison_window": {
+        "start_month": "2024-12",
+        "end_month": "2025-11",
+        "analysis_month": "2026-05"
+      },
+      "observed_headway_row_count": 0,
+      "ewt_artifact_match_count": 0,
+      "typed_stop_id_lineage_present": false,
+      "disposition": "missing_pinned_stop_grain_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:1dba1145a8566729540a29af",
+      "extent_id": "member-extent:7a35e93daeaa3efcf4128f32",
+      "route_id": "QM11",
+      "treatment_record_id": "treatment_qm11-east-34-stop-addition-2025",
+      "source_literal_ids": [
+        "403359",
+        "404950"
+      ],
+      "query_stop_ids": [
+        "403359",
+        "404950"
+      ],
+      "comparison_window": {
+        "start_month": "2024-12",
+        "end_month": "2025-11",
+        "analysis_month": "2026-05"
+      },
+      "observed_headway_row_count": 0,
+      "ewt_artifact_match_count": 0,
+      "typed_stop_id_lineage_present": false,
+      "disposition": "missing_pinned_stop_grain_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:f0c0de1423b27a3ba8471ae1",
+      "extent_id": "member-extent:adcdbf613fd56b62d62739ba",
+      "route_id": "QM64",
+      "treatment_record_id": "treatment_qm64-midtown-stop-additions-2025",
+      "source_literal_ids": [
+        "402144",
+        "402146",
+        "404295",
+        "404297",
+        "404298",
+        "404300",
+        "404877",
+        "450041",
+        "904045"
+      ],
+      "query_stop_ids": [
+        "402144",
+        "402146",
+        "404295",
+        "404297",
+        "404298",
+        "404300",
+        "404877",
+        "450041",
+        "904045"
+      ],
+      "comparison_window": {
+        "start_month": "2024-12",
+        "end_month": "2025-11",
+        "analysis_month": "2026-05"
+      },
+      "observed_headway_row_count": 0,
+      "ewt_artifact_match_count": 0,
+      "typed_stop_id_lineage_present": false,
+      "disposition": "missing_pinned_stop_grain_coverage",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:d6dc7a1a0a38795f9ffa2faa",
+      "extent_id": "member-extent:e3b85392811c6a004036b489",
+      "route_id": "QM68",
+      "treatment_record_id": "treatment_qm68-midtown-stop-additions-2025",
+      "source_literal_ids": [
+        "402144",
+        "402146",
+        "404295",
+        "404297",
+        "404298",
+        "404300",
+        "404877",
+        "450041",
+        "904045"
+      ],
+      "query_stop_ids": [
+        "402144",
+        "402146",
+        "404295",
+        "404297",
+        "404298",
+        "404300",
+        "404877",
+        "450041",
+        "904045"
+      ],
+      "comparison_window": {
+        "start_month": "2024-12",
+        "end_month": "2025-11",
+        "analysis_month": "2026-05"
+      },
+      "observed_headway_row_count": 0,
+      "ewt_artifact_match_count": 0,
+      "typed_stop_id_lineage_present": false,
+      "disposition": "missing_pinned_stop_grain_coverage",
+      "authorizes_study": false
+    }
+  ],
+  "authority": {
+    "authorizes_study": false,
+    "authorizes_stop_grain": false
+  }
+}

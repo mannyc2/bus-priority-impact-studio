@@ -1,0 +1,433 @@
+$ bun test apps/web/test/route-scorecards apps/web/test/shared --timeout 5000
+bun test v1.3.14 (0d9b296a)
+
+apps/web/test/route-scorecards/route-scorecard.fixtures.test.ts:
+(pass) route scorecard fixtures > fixtures stay aligned with the public route scorecard contract [3.99ms]
+
+apps/web/test/shared/source-note.test.ts:
+(pass) citationEntries > dedupes duplicate citation keys to a single entry [0.12ms]
+(pass) citationEntries > drops unresolvable keys [0.02ms]
+(pass) citationEntries > carries sourceUrl through as href [0.01ms]
+(pass) SourceNote > renders nothing when there are no entries [1.79ms]
+(pass) SourceNote > labels the trigger with the deduped entry count [7.45ms]
+
+apps/web/test/shared/cn.test.ts:
+(pass) cn > joins truthy class names [0.04ms]
+
+apps/web/test/shared/section-registry.test.ts:
+(pass) sectionPresentation (frontend §8.1 registry) > route detail sections use plain public titles [0.02ms]
+(pass) sectionPresentation (frontend §8.1 registry) > overview and evidence are unconditional on every contrast route [0.06ms]
+(pass) sectionPresentation (frontend §8.1 registry) > rich route renders every section [0.04ms]
+(pass) sectionPresentation (frontend §8.1 registry) > clean route shows checked_clean as an affirmative empty state, hides not_applicable [0.03ms]
+(pass) sectionPresentation (frontend §8.1 registry) > sparse route gets the honest-empty vocabulary, not blank sections [0.02ms]
+(pass) sectionPresentation (frontend §8.1 registry) > null capability (legacy fallback) renders everything [0.02ms]
+(pass) sectionPresentation (frontend §8.1 registry) > manifest missing the backing surface renders rather than hides
+(pass) sectionPresentation (frontend §8.1 registry) > routeSectionRegistry reflects the three contrast route shapes [0.13ms]
+(pass) sectionPresentation (frontend §8.1 registry) > routeSectionRegistry keeps the visible section order for contrast route shapes [0.06ms]
+(pass) sectionPresentation (frontend §8.1 registry) > routeSectionRegistry gives Evidence the withheld section reasons [0.05ms]
+(pass) sectionPresentation (frontend §8.1 registry) > routeSectionRegistry attaches detector badges and points hidden sections to Evidence [0.06ms]
+(pass) sectionPresentation (frontend §8.1 registry) > routeSectionRegistry combines Evidence detector badges with hidden-section notices [0.03ms]
+(pass) sectionPresentation (frontend §8.1 registry) > routeSectionRegistry raises low Evidence badges when hidden notices are added [0.02ms]
+(pass) sectionPresentation (frontend §8.1 registry) > routeSectionCanNavigate follows hidden-section policy for header KPI clicks [0.05ms]
+(pass) sectionPresentation (frontend §8.1 registry) > routeSectionNavigationTarget falls back to Evidence for hidden-section CTAs [0.05ms]
+(pass) route tab layer (plan 053 §4 redesign) > maps each section to its owning tab; evidence belongs to no tab [0.05ms]
+(pass) route tab layer (plan 053 §4 redesign) > tabPresentation collapses member sections to the best-of outcome [0.08ms]
+(pass) route tab layer (plan 053 §4 redesign) > rich route shows all four tabs, every one rendering [0.10ms]
+(pass) route tab layer (plan 053 §4 redesign) > clean route hides the History tab (treatments not applicable) [0.04ms]
+(pass) route tab layer (plan 053 §4 redesign) > sparse route keeps all four tabs with honest-empty trigger states [0.04ms]
+(pass) route tab layer (plan 053 §4 redesign) > tab badges sum member-section notice counts at the max severity [0.04ms]
+
+apps/web/test/shared/treatment-badge.test.ts:
+(pass) typed treatment badges > compact overflow has one keyboard trigger and exposes every hidden full name in SSR [1.89ms]
+(pass) typed treatment badges > the full inventory remains unbounded and gives every record a stable focus target [1.12ms]
+
+apps/web/test/shared/interventions-page.test.ts:
+(pass) intervention filter announcements use singular grammar [0.02ms]
+(pass) interventions page evidence aggregation > limits global evidence fetches to routes with timeline projections [0.27ms]
+(pass) interventionRows > counts serving plus wiki rows and sorts newest first [0.52ms]
+(pass) interventionRows > undated project rows never put a status string in the date position [0.07ms]
+(pass) interventionRows > derives honest year bins and source-plan groups from the current rows [0.41ms]
+(pass) interventionRows > deduplicates exact registry matches, appends corpus citations, and keeps route-less records [0.09ms]
+(pass) interventionRows > joins corpus records by exact case-sensitive service identity without route-family collapse [0.08ms]
+(pass) interventionRows > composes typed family, lifecycle, exact-route, and text filters without prose classification [0.26ms]
+(pass) interventionRows > chooses the exact route occurrence target from stable facet relationships [0.09ms]
+(pass) interventions URL contract > trims bounded values, omits defaults, and rejects invalid values [0.19ms]
+(pass) interventions URL contract > every validated filter dimension changes the pagination reset key [0.04ms]
+(pass) InterventionsPage render > renders the approved text hero, two tabs, dynamic histogram, and documented ledger [14.52ms]
+(pass) InterventionsPage render > groups the planned partition by structured source plan and keeps meaningful status [3.82ms]
+(pass) InterventionsPage render > uses the published index for studied filtering and compact register labels [2.99ms]
+(pass) InterventionsPage render > bounds the initial list to 30 rows with a show-more control [17.72ms]
+(pass) InterventionsPage render > keeps documented records without dates as honest route rollups [2.60ms]
+(pass) InterventionsPage render > renders typed controls, custom treatments, and durable exact-route History links [2.39ms]
+(pass) InterventionsPage render > keeps records visible without facets and explains unknown exact routes [5.69ms]
+
+apps/web/test/shared/route-evidence-index.test.ts:
+(pass) route evidence index > sorts public insight evidence by severity, month, detector, and scope [2.29ms]
+(pass) route evidence index > counts evidence and source refs while preserving safe caveats [0.07ms]
+(pass) route evidence index > keeps source gaps as Evidence rows even without attached refs [0.02ms]
+
+apps/web/test/shared/route-insight-list.test.ts:
+(pass) RouteInsightList > orders findings by severity and caps the ranked list at five [0.92ms]
+(pass) RouteInsightList > routes map-segment findings to where-when links [0.16ms]
+(pass) RouteInsightList > renders a clean card only when capability surfaces show checked-clean evidence [0.14ms]
+
+apps/web/test/shared/route-archetype.test.ts:
+(pass) route dossier archetype > labels legacy routes without a capability manifest [0.06ms]
+(pass) route dossier archetype > labels manifest-light routes as sparse [0.07ms]
+(pass) route dossier archetype > labels supported but shallow routes as standard [0.12ms]
+(pass) route dossier archetype > labels broad multi-year routes as flagship [0.06ms]
+
+apps/web/test/shared/api-client.test.ts:
+(pass) Studio API client > strictly decodes Studio routes and detail publication identities [2.47ms]
+(pass) Studio API client > requests and strictly decodes route-index schema v3 [0.25ms]
+(pass) Studio API client > rejects future route-index payloads instead of type-casting them [0.23ms]
+(pass) Studio API client > strictly decodes the v2 map manifest and rejects the legacy root [0.59ms]
+(pass) Studio API client > throws StudioApiError with server error details [0.21ms]
+(pass) Studio API client > returns null for nullable 404 responses [0.05ms]
+(pass) Studio API client > loads nullable intervention inventory artifacts from exact public keys [0.12ms]
+(pass) Studio API client > inventory artifact loads preserve malformed JSON errors and aborts [0.18ms]
+(pass) Studio API client > loads nullable intervention observation bundles from encoded public keys [0.12ms]
+(pass) Studio API client > observation bundle loads propagate aborts [0.09ms]
+(pass) Studio API client > returns a typed ready artifact only after hash and contract checks [0.52ms]
+(pass) Studio API client > keeps integrity mismatch, invalid contract, and missing states distinct [0.20ms]
+(pass) Studio API client > strict artifact loaders reject v1 network and route-facts roots [0.91ms]
+(pass) Studio API client > propagates aborts so route loaders can cancel map artifact work [0.11ms]
+(pass) Studio API client > loads selected-route detail and verified segments in parallel without refetching the manifest [1.02ms]
+(pass) Studio API client > preserves unavailable route detail and undeclared segment states [0.09ms]
+(pass) Studio API client > fails closed when a manifest declares duplicate exact route-segment artifacts [0.35ms]
+(pass) Studio API client > preserves missing, integrity-mismatch, and request-failed segment states [2.04ms]
+(pass) Studio API client > route-detail geometry fails closed when a mutable artifact body changes [0.39ms]
+(pass) Studio API client > rejects selected-route segment payloads belonging to another exact source route [0.51ms]
+(pass) Studio API client > propagates one AbortSignal to both selected-route requests [0.18ms]
+(pass) Studio API client > retains neutral geometry when route facts are unavailable [0.19ms]
+(pass) Studio API client > serves a delay coverage window only for a unanimous complete release [0.14ms]
+(pass) Studio API client > refuses cross-coverage fact joins and reports both windows [0.06ms]
+(pass) Studio API client > requires exact publication identity for network and manifest reference joins [0.05ms]
+(pass) Studio API client > does not request unavailable lanes and rejects malformed lane payloads [0.32ms]
+(pass) Studio API client > requires the current layer and artifact tables to name the same bus-lane object [0.07ms]
+
+apps/web/test/shared/route-geo-map.test.ts:
+(pass) routeGeoMapModel > projects all segments into the padded viewBox and marks the slowest [0.51ms]
+(pass) routeGeoMapModel > finds the chain termini and labels them with stop names [0.06ms]
+(pass) routeGeoMapModel > prefers the direction with more segments [0.05ms]
+(pass) routeGeoMapModel > uses active period values by exact Studio ID and preserves historical nulls [0.05ms]
+(pass) routeGeoMapModel > returns null for an empty collection
+(pass) geoSpeedColor > bands speeds and treats missing speed as neutral [0.02ms]
+(pass) interactiveRouteSegmentId > uses rendered order when every direction is active [0.03ms]
+(pass) interactiveRouteSegmentId > uses the direction filter to disambiguate overlapping route lines [0.02ms]
+
+apps/web/test/shared/segment-history-data.test.ts:
+(pass) segment history identity > joins reordered detail records by stable spine ID and reports unmatched detail [0.24ms]
+(pass) segment history identity > keeps an all-null joined series distinct from an unmatched segment [0.03ms]
+(pass) segment history identity > does not enable stable joins while the spine needs pattern review [0.02ms]
+(pass) historical segment values > all-day is traversal-first and falls back to observations only at zero traversals [0.03ms]
+(pass) historical segment values > not-expected is excluded, but any missing expected daypart makes all-day unavailable [0.02ms]
+(pass) historical segment values > an explicit daypart uses only its available non-null cell [0.02ms]
+(pass) historical segment values > joins selected history by stable spine and preserves nulls [0.08ms]
+
+apps/web/test/shared/section-card.test.ts:
+(pass) SectionCard > renders the title inside the card section [0.15ms]
+(pass) SectionCard > renders the sub line when provided [0.07ms]
+(pass) SectionCard > renders the right slot when provided [0.06ms]
+
+apps/web/test/shared/route-fact-evidence.test.ts:
+(pass) resolveRouteFactEvidence > returns the selected route fact only after exact parity [0.15ms]
+(pass) resolveRouteFactEvidence > rejects a Studio coverage mismatch [0.05ms]
+(pass) resolveRouteFactEvidence > rejects route facts from a different manifest release [0.03ms]
+(pass) resolveRouteFactEvidence > rejects every compact summary-field mismatch [0.10ms]
+(pass) resolveRouteFactEvidence > rejects available delay, lane, and ACE values that disagree with Studio [0.05ms]
+(pass) resolveRouteFactEvidence > preserves unavailable lane and ACE provenance instead of comparing fallback values [0.03ms]
+(pass) resolveRouteFactEvidence > keeps an absent route distinct from parity mismatch [0.01ms]
+(pass) loadRouteFactEvidence > preserves unavailable and request-error states [0.16ms]
+(pass) loadRouteFactEvidence > passes one abort signal through both stages and stops before facts when aborted [0.11ms]
+
+apps/web/test/shared/intervention-trend-model.test.ts:
+(pass) route speed intervention trend model > falls back to dossier points when either typed bundle is null [0.57ms]
+(pass) route speed intervention trend model > admits only the exact speed binding and metric pair [0.20ms]
+(pass) route speed intervention trend model > ignores a wrong binding even when its display label names the right binding [0.08ms]
+(pass) route speed intervention trend model > admits available and partial series [0.14ms]
+(pass) route speed intervention trend model > excludes missing and all-null series [0.09ms]
+(pass) route speed intervention trend model > selects fixed binding priority, latest month, then latest event ID without reading values [0.18ms]
+(pass) route speed intervention trend model > retains and orders explicit null points in the focal series [0.10ms]
+(pass) route speed intervention trend model > excludes eligible events outside the focal point months [0.12ms]
+(pass) route speed intervention trend model > clusters same-month events by distinct occurrence ID [0.11ms]
+(pass) route speed intervention trend model > caps markers by retaining the most recent months in ascending order [0.12ms]
+(pass) route speed intervention trend model > falls back when release identities differ [0.07ms]
+(pass) route speed intervention trend model > falls back when exact route identities differ [0.06ms]
+(pass) route speed intervention trend model > excludes a marker with a dangling occurrence ID [0.07ms]
+(pass) route speed intervention trend model > requires the exact occurrence to reference the event treatment [0.08ms]
+(pass) route speed intervention trend model > excludes a marker with a dangling treatment ID [0.07ms]
+(pass) route speed intervention trend model > renders bus-lane and busway markers from their stable bindings [0.11ms]
+(pass) route speed intervention trend model > labels narrower bus-lane scope as route context and exposes its method limitation [0.09ms]
+(pass) route speed intervention trend model > keeps unsupported scope and project-only metadata on the zero-marker dossier fallback [0.10ms]
+(pass) route speed intervention trend model > keeps marker labels byte-identical when display copy and numeric values change [0.14ms]
+
+apps/web/test/shared/reliability-summary.test.ts:
+(pass) reliabilitySummary > summarizes observed reliability without claiming an official grade [0.84ms]
+(pass) reliabilitySummary > keeps insufficient-sample rows factual [0.04ms]
+(pass) reliabilityInsightRows > uses shared severity and month order for reliability cards [0.06ms]
+
+apps/web/test/shared/treatments-history.test.ts:
+(pass) treatments history helpers > turns promoted intervention comparisons into public cards [0.08ms]
+(pass) treatments history helpers > does not merge similarly worded records without a stable relationship ID [0.35ms]
+(pass) treatments history helpers > historyYearLabel keeps undated records explicit [0.01ms]
+(pass) treatments history helpers > duplicate citation keys resolve to a single deduped source entry [0.02ms]
+(pass) treatments history helpers > adds page fragments only to typed PDF citations [0.02ms]
+(pass) treatments history helpers > History URL validation bounds targets and gives study precedence over record [0.14ms]
+(pass) TreatmentsHistorySection render > shows search and a typed filter only when real cardinality is dense [0.61ms]
+(pass) TreatmentsHistorySection render > groups the ledger by year with dated groups first [0.02ms]
+(pass) TreatmentsHistorySection render > sparse routes omit dense controls and keep an explicit empty state [0.84ms]
+(pass) TreatmentsHistorySection render > the overlapping legacy sections and prose classification surface are gone [0.04ms]
+(pass) TreatmentsHistorySection render > peer-adjusted outcomes stay muted, descriptive, and unlinked [0.02ms]
+(pass) TreatmentsHistorySection render > one ledger preserves treatments, projects, and source access [0.02ms]
+(pass) TreatmentsHistorySection render > renders every typed occurrence with stable anchors and exact ledger back-links [4.75ms]
+(pass) TreatmentsHistorySection render > renders partial and checked-empty coverage as distinct text [2.72ms]
+(pass) TreatmentsHistorySection render > current state comes only from the explicit inventory summary [1.80ms]
+(pass) TreatmentsHistorySection render > pure ledger filtering is typed and keeps undated last [0.14ms]
+(pass) TreatmentsHistorySection render > orders year groups newest-first when a typed date label is not ISO-formatted [0.08ms]
+(pass) TreatmentsHistorySection render > dense ledgers paginate in complete, announced batches [4.99ms]
+(pass) study integration > comparison cards join studies by registry event id, never by title [0.05ms]
+(pass) study integration > history deep-link motion honors reduced-motion preferences [0.02ms]
+(pass) study integration > published matched and descriptive studies keep distinct register labels [5.21ms]
+
+apps/web/test/shared/speed-trend-chart.test.ts:
+(pass) SpeedTrend chart model > keeps the legacy number-vector caller and sequential rows [0.10ms]
+(pass) SpeedTrend chart model > preserves ordered calendar rows and explicit null gaps [0.04ms]
+(pass) SpeedTrend chart model > ignores null and nonfinite values in the observed y-domain [0.02ms]
+(pass) SpeedTrend chart model > includes a finite scheduled baseline only after observed data exists [0.02ms]
+(pass) SpeedTrend chart model > keeps diagnostics for empty and all-null calendar inputs without inventing a domain [0.03ms]
+(pass) SpeedTrend chart model > retains markers only for the calendar path [0.02ms]
+(pass) SpeedTrend chart structure > names the owned chart wrapper and associates its hidden marker summary [4.66ms]
+(pass) SpeedTrend chart structure > renders the honest empty state for an all-null calendar series [0.07ms]
+
+apps/web/test/shared/data-notes-section.test.ts:
+(pass) DataNotesSection evidence header > keeps hidden-section notices visible even when there are no insight rows [0.33ms]
+
+apps/web/test/shared/data-quality-labels.test.ts:
+(pass) data quality display labels > renders the ADR-0022 release labels without leaking snake_case [0.05ms]
+(pass) data quality display labels > renders completeness status labels without raw enum separators [0.02ms]
+
+apps/web/test/shared/rider-impact-summary.test.ts:
+(pass) riderImpactSummary > summarizes rider burden with dossier ridership history [0.14ms]
+(pass) riderImpactSummary > falls back to current projection wording without dossier history [0.02ms]
+(pass) riderImpactSummary > reports absent rider trend and burden without inventing zeroes [0.02ms]
+(pass) riderImpactInsightRows > uses shared severity and month order for rider-impact cards [0.05ms]
+
+apps/web/test/shared/route-insight-placement.test.ts:
+(pass) route insight placement > selects top overview insights while preserving section placements [0.10ms]
+(pass) route insight placement > filters caveats that still look internal [0.02ms]
+(pass) route insight placement > matches map insights through deterministic segment targets before legacy scope fallback [0.02ms]
+(pass) route insight placement > routes insights to the section that explains them [0.02ms]
+(pass) route insight placement > counts section badges and keeps the strongest severity per section [0.05ms]
+
+apps/web/test/shared/maplibre-style.test.ts:
+(pass) maplibre route style helpers > maps segment speed through the six-anchor sRGB ramp [0.11ms]
+(pass) maplibre route style helpers > uses MapLibre-valid colors and a valid shared base style [0.89ms]
+(pass) maplibre route style helpers > exports a pan fence much wider than the route network [0.03ms]
+(pass) maplibre route style helpers > derives hourly speeds and weighted route averages from segment severity [0.11ms]
+(pass) maplibre route style helpers > computes lon-lat bounds across route segment features [0.06ms]
+
+apps/web/test/shared/maplibre-runtime.test.ts:
+(pass) MapLibre loader and runtime > shared map CSS does not override each surface's concrete minimum height [0.78ms]
+(pass) MapLibre loader and runtime > preload is a guarded, deduplicated hint that retries after rejection [0.19ms]
+(pass) MapLibre loader and runtime > a rejected vendor load resets so a second call can resolve [0.23ms]
+(pass) MapLibre loader and runtime > a fatal pre-load error removes the map exactly once [0.21ms]
+(pass) MapLibre loader and runtime > a post-load error is recoverable and keeps the map [0.09ms]
+(pass) MapLibre loader and runtime > cleanup detaches every runtime handler and removes once [0.07ms]
+(pass) MapLibre loader and runtime > hover previews cross routes with constant feature-state work and no source update [0.10ms]
+(pass) MapLibre loader and runtime > pinned focus changes only old/new feature state plus fixed layer paint [0.04ms]
+(pass) MapLibre loader and runtime > focus sources keep keyboard, map hover, list preview, and pin priorities distinct [0.04ms]
+(pass) MapLibre loader and runtime > the inspector only insets the desktop map and shares that inset with camera padding [0.06ms]
+(pass) MapLibre loader and runtime > camera refits are instant for initial load and reduced-motion users [0.02ms]
+(pass) MapLibre loader and runtime > segment pin emphasis changes paint without replacing selected-route geometry [0.04ms]
+(pass) MapLibre loader and runtime > only matched spine identities survive the route-segment map adapter [0.04ms]
+(pass) MapLibre loader and runtime > the default map-region label tracks lens, period, and highlighted route [0.07ms]
+
+apps/web/test/shared/study-display.test.ts:
+(pass) study display helpers > formats months, effects, and long/compact CI copy [0.05ms]
+(pass) study display helpers > keys studies by registry event id [0.03ms]
+(pass) study display helpers > tone and badge derive from direction and scope counts only [0.02ms]
+(pass) study display helpers > finding sentence follows direction and control shape, never causal verbs [0.02ms]
+(pass) study display helpers > caveat sentence and chart marker appear only when a confounder gate flags [0.05ms]
+(pass) study display helpers > descriptive change falls back from effect to window means
+(pass) study display helpers > index join resolves event ids by route + month and drops ambiguous keys [0.07ms]
+
+apps/web/test/shared/routes-directory.test.ts:
+(pass) RoutesDirectoryPage > renders a borough group header for each borough present [2.76ms]
+(pass) RoutesDirectoryPage > applies the initialQuery search param as the starting filter [0.97ms]
+(pass) RoutesDirectoryPage > loading page renders skeletons without route data [0.30ms]
+(pass) filterRoutesForIndex > borough filter narrows to matching routes [0.04ms]
+(pass) filterRoutesForIndex > token filter matches corridor text [0.02ms]
+(pass) filterRoutesForIndex > empty query returns all routes
+(pass) HomePage > renders without banned doctrine strings [2.43ms]
+
+apps/web/test/shared/network-map.test.ts:
+(pass) served borough filtering > uses exact served membership and keeps cross-borough routes in both views [0.04ms]
+(pass) served borough filtering > keeps unverified routes only in All and reports the gap [0.02ms]
+(pass) transient route preview > focus and pointer previews clear independently [0.01ms]
+(pass) network map state identity > includes unknown runtime keys when comparing a URL to its canonical form [0.06ms]
+(pass) network map state identity > changes when the manifest release identity changes [0.02ms]
+(pass) network map state identity > invalidates selected evidence when a same-release segment object changes [0.05ms]
+(pass) periodSpeed > all-day returns currentMph [0.07ms]
+(pass) periodSpeed > am averages hours 7-9 [0.05ms]
+(pass) periodSpeed > insufficient coverage remains unavailable without an all-day fallback [0.02ms]
+(pass) periodSpeed > peak eligibility requires complete mapped-universe coverage [0.04ms]
+(pass) attention classes > speed: color marks only the slow side [0.02ms]
+(pass) attention classes > delay: neutral band under 8k rider-hours [0.01ms]
+(pass) attention classes > delta: steady band is symmetric around zero [0.01ms]
+(pass) attention classes > compare mode only applies to speed at a peak period [0.02ms]
+(pass) featureStyle > neutral routes paint first, severe paints last [0.07ms]
+(pass) featureStyle > missing values encode as dashed no-data, never a class color [0.01ms]
+(pass) featureValue and formatting > delta is the period speed minus all-day, rounded to 0.1 [0.04ms]
+(pass) featureValue and formatting > values format without interpunct styling [0.05ms]
+(pass) legendModel > speed bands carry live counts and one no-data chip [0.10ms]
+(pass) legendModel > delay bands order worst first [0.04ms]
+(pass) insightModel > all-day speed insight counts each band [0.16ms]
+(pass) insightModel > delay insight names the heaviest route from data [0.10ms]
+(pass) insightModel > delay insight remains unavailable when every route is no-data [0.02ms]
+(pass) createHoverIntent > sweeping across routes swaps the light highlight without dimming [0.10ms]
+(pass) createHoverIntent > keeps the hovered route while it is still under the cursor [0.02ms]
+(pass) createHoverIntent > dwell engages the dim once, then swaps focus instantly [0.03ms]
+(pass) createHoverIntent > leaving before the dwell fires never dims [0.03ms]
+(pass) createHoverIntent > leaving after an engaged dim releases focus [0.01ms]
+(pass) createHoverIntent > an existing pin or list preview keeps focus swaps immediate [0.02ms]
+(pass) createHoverIntent > dispose cancels a pending dwell [0.01ms]
+(pass) delayLensEligible > requires an explicit coverage label and complete route values [0.05ms]
+(pass) ranking and badges > speed ranks slowest first and keeps no-data rows last [0.02ms]
+(pass) ranking and badges > delay ranks heaviest first [0.01ms]
+(pass) ranking and badges > badges take the worst N for the active view [0.03ms]
+(pass) percentileLine > the unique extremes get plain-language sentences [0.09ms]
+(pass) percentileLine > mid-pack routes read as slower-than or faster-than [0.02ms]
+(pass) slowestWindow > expands around the slowest hour within 0.4 mph [0.07ms]
+(pass) slowestWindow > returns null when no hours observed [0.02ms]
+(pass) coverage labels > formats an ISO month as coverage prose [0.45ms]
+(pass) popupStatRows > spells out the trio with units and windows, no interpunct [0.06ms]
+(pass) popupStatRows > missing facts stay explicit [0.02ms]
+(pass) popupStatRows > a delay hero swaps the middle slot to Speed so no metric repeats [0.04ms]
+(pass) selected-route segment context > deep-links M15 SBS only with one unique matched stable spine [0.17ms]
+(pass) network map citation > copies release identity, evidence hashes, and the mutable-alias caveat [0.12ms]
+(pass) routeStudySummary > no studies yields no deep link [0.02ms]
+(pass) routeStudySummary > a single study deep-links by event key [0.02ms]
+(pass) routeStudySummary > multiple studies link to the history tab without a key
+
+apps/web/test/shared/route-intervention-model.test.ts:
+(pass) route intervention presentation model > maps typed treatments without consulting prose and preserves reviewed custom labels [0.07ms]
+(pass) route intervention presentation model > orders lifecycle groups without merging distinct treatment IDs [0.14ms]
+(pass) route intervention presentation model > keeps same-family occurrences distinct and relates projects by stable IDs [0.12ms]
+(pass) route intervention presentation model > preserves B44 and B44+ as separate route identities [0.05ms]
+(pass) route intervention presentation model > exposes unavailable, partial, and checked-empty states honestly [0.05ms]
+(pass) route intervention presentation model > generates stable DOM-safe and collision-resistant record anchors [0.03ms]
+
+apps/web/test/shared/route-performance-summary.test.ts:
+(pass) route performance summary > uses dossier speed for the overview summary when current speed is present [0.09ms]
+(pass) route performance summary > falls back to the route projection when no dossier current speed exists [0.02ms]
+
+apps/web/test/shared/riders-section.test.ts:
+(pass) RidersSection > renders rider KPIs and no meta-metric tiles [1.27ms]
+(pass) RidersSection > renders a two-column KPI grid when rider-hour burden is not measured [0.52ms]
+(pass) RidersSection > renders equity context when served and omits it when null [0.89ms]
+(pass) ReliabilitySection > renders rider-real wait stats and the unified signals card [0.63ms]
+(pass) ReliabilitySection > renders a plain-language fallback when reliability is not observed [0.10ms]
+
+apps/web/test/shared/route-detail-shell.test.ts:
+(pass) RouteDetailShell tab shell (plan 053) > renders one trigger per visible tab for the rich route [1.00ms]
+(pass) RouteDetailShell tab shell (plan 053) > hides the History tab for the clean route [0.23ms]
+(pass) RouteDetailShell tab shell (plan 053) > renders the active panel content and the About-this-data collapsible [0.20ms]
+(pass) RouteDetailShell tab shell (plan 053) > marks the active tab and stamps honest-empty trigger badges [0.37ms]
+(pass) RouteDetailShell tab shell (plan 053) > sums member-section notices into a trigger badge [0.27ms]
+(pass) RouteDetailShell tab shell (plan 053) > drops the retired anchor-scroll nav (no #route-section hrefs) [0.20ms]
+
+apps/web/test/shared/route-segment-explorer.test.ts:
+(pass) rankSegmentsSlowestFirst > ranks by speed ascending; rider-hours never involved [0.05ms]
+(pass) rankSegmentsSlowestFirst > nulls sort last; ties break by direction then id [0.04ms]
+(pass) rankSegmentsSlowestFirst > direction filter narrows without re-sorting semantics [0.02ms]
+(pass) rankSegmentsSlowestFirst > ties use direction, display order, then stable identity [0.02ms]
+(pass) route detail search > keeps bounded segment controls and drops impossible combinations/defaults [0.05ms]
+(pass) route detail search > a unique incoming pin wins a conflicting direction; an unknown pin is dropped [0.12ms]
+(pass) route detail search > ready evidence removes only unsupported periods; pending/error preserve shared history [0.04ms]
+(pass) route detail search > pattern-review history cannot activate coloring and unavailable lanes canonicalize off [0.03ms]
+(pass) directionOptions > derives from served segments — east-west routes get EB/WB [0.01ms]
+(pass) directionOptions > single-direction routes collapse to All only
+(pass) visibleSegments > collapsed to eight rows by default [0.03ms]
+(pass) visibleSegments > pinning below the fold auto-expands [0.02ms]
+(pass) visibleSegments > pinning inside the fold stays collapsed [0.01ms]
+(pass) resolvePinnedSegment > resolves a known stable spine id [0.02ms]
+(pass) resolvePinnedSegment > unknown spine ids are dropped, never positional [0.01ms]
+(pass) deltaBarShare > clamps at ±2.5 mph so outlier schedules cannot flatten the rest [0.02ms]
+(pass) laneReadoutLine > plain phrases, proxy-labeled [0.02ms]
+(pass) coverage + window helpers > coverageThroughLabel prefers speed-history months [0.04ms]
+(pass) coverage + window helpers > latest windows pick the newest month [0.08ms]
+
+apps/web/test/shared/sitemap-manifest.test.ts:
+(pass) sitemap.xml ↔ seo-manifest.gen.ts > lists every served route detail [0.04ms]
+(pass) sitemap.xml ↔ seo-manifest.gen.ts > has no retired product URLs [0.03ms]
+
+apps/web/test/shared/search-autocomplete.test.ts:
+(pass) SearchAutocomplete keyboard submit > submits trimmed free text when no suggestion is highlighted [0.04ms]
+(pass) SearchAutocomplete keyboard submit > selects a highlighted suggestion before free-text submit [0.01ms]
+(pass) SearchAutocomplete keyboard submit > does nothing for blank free-text submit
+
+apps/web/test/shared/route-insight-card.test.ts:
+(pass) route insight card specs > describes map-targeted insights as segment card cues [0.05ms]
+(pass) route insight card specs > keeps source gaps pointed at the evidence section with coverage cues [0.02ms]
+(pass) route insight card specs > uses timeline cues for treatment and timeline insight families [0.02ms]
+(pass) route insight card specs > uses compact labels for evidence index section links
+
+apps/web/test/shared/network-map-search.test.ts:
+(pass) validateNetworkMapSearch > keeps only bounded values and omits canonical defaults [0.10ms]
+(pass) validateNetworkMapSearch > accepts compare only as true for an AM or PM speed view [0.02ms]
+(pass) validateNetworkMapSearch > drops unknown enums and a segment without a canonical route slug [0.01ms]
+(pass) network map identity > keeps route slugs and source route IDs as exact inverse domains [0.07ms]
+(pass) network map identity > fails closed on an ambiguous slug or source route ID [0.03ms]
+(pass) canonicalizeNetworkMapSearch > disables unsupported evidence views, periods, and layers [0.10ms]
+(pass) canonicalizeNetworkMapSearch > clears a route and segment when the served-borough filter excludes it [0.03ms]
+(pass) canonicalizeNetworkMapSearch > keeps a cross-borough route in each verified served borough [0.02ms]
+(pass) canonicalizeNetworkMapSearch > preserves direct reload and Back/Forward links while validation is pending or unavailable [0.05ms]
+(pass) canonicalizeNetworkMapSearch > removes only a segment after ready evidence proves it invalid [0.05ms]
+(pass) canonicalizeNetworkMapSearch > treats a duplicated ready spine match as ambiguous [0.02ms]
+
+apps/web/test/shared/route-badge.test.ts:
+(pass) RouteBadge normalization > does not manufacture an SBS suffix from the service-classification flag [0.15ms]
+(pass) RouteBadge normalization > preserves a space-separated source label verbatim [0.05ms]
+(pass) RouteBadge normalization > preserves a hyphenated source label verbatim [0.04ms]
+(pass) RouteBadge normalization > preserves a plus-SBS source label verbatim [0.04ms]
+(pass) RouteBadge normalization > renders a source-backed display label verbatim without SBS synthesis [0.06ms]
+(pass) RouteBadge normalization > uses exact route identity for borough color while preserving the official label [0.05ms]
+(pass) RouteBadge normalization > leaves a plain route untouched [0.04ms]
+(pass) RouteBadge normalization > renders the roundel on a single line [0.03ms]
+
+apps/web/test/shared/coverage-matrix.test.ts:
+(pass) coverage matrix > turns manifest surfaces into ordered public evidence rows [1.05ms]
+(pass) coverage matrix > handles missing legacy capability without inventing coverage [0.02ms]
+(pass) coverage matrix > omits zero ready counts for sparse manifests [0.03ms]
+(pass) coverage matrix > uses the latest manifest surface month for route-level freshness [0.02ms]
+(pass) coverage matrix > uses named manifest surfaces for section freshness fallbacks [0.04ms]
+
+apps/web/test/shared/overview-section.test.ts:
+(pass) OverviewSection > renders summary, trend chart, mini map, and ranked insights for a full route [1.11ms]
+(pass) OverviewSection > falls back to honest empty states for a sparse route [0.29ms]
+(pass) OverviewSection > recognizes a typed busway with generic prose and never promotes prose alone [1.77ms]
+(pass) OverviewSection > uses typed observation points for speed-card metadata and keeps null months [1.26ms]
+(pass) OverviewSection > labels corridor-scoped route speed as context and shows the method limitation [1.11ms]
+
+apps/web/test/shared/home-route-index.test.ts:
+(pass) home route index helpers > orders by riders, then route label, then slug [0.06ms]
+(pass) home route index helpers > filters by borough and route text [0.05ms]
+(pass) home route index helpers > groups filtered routes by borough without reordering rows [0.05ms]
+
+apps/web/test/shared/route-detail-header.test.ts:
+(pass) RouteDetailHeader (plan 053) > renders speed, a dated month sub, signed movement, and compact riders [0.41ms]
+(pass) RouteDetailHeader (plan 053) > shows the roundel and a borough chip, never a '{borough} route' kicker or interpunct [0.18ms]
+(pass) RouteDetailHeader (plan 053) > renders a positive six-month change with an explicit + sign [0.16ms]
+(pass) RouteDetailHeader (plan 053) > null movement falls back to an em-dash and 'not enough history' [0.15ms]
+(pass) RouteDetailHeader (plan 053) > zero riders fall back to an em-dash and 'not yet measured' [0.18ms]
+
+apps/web/test/shared/riders-section-equity.test.ts:
+(pass) RidersSection equity context > normalizes fraction and percent-style ACS fields [0.02ms]
+(pass) RidersSection equity context > renders a ruled ACS strip when at least two values exist [0.65ms]
+(pass) RidersSection equity context > omits the ACS strip when the payload is too sparse [0.40ms]
+
+ 342 pass
+ 0 fail
+ 1102 expect() calls
+Ran 342 tests across 42 files. [526.00ms]

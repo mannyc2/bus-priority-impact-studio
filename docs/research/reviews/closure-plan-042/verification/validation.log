@@ -1,0 +1,35 @@
+$ bun --filter @bp/pipeline-v2 cli -- study certify-member-grain-outcomes --producer-root "/tmp/mta-wiki-plan-041" --prior-review-cut "docs/research/artifacts/study-review-cut-v1-df3d8d2eda43c77738cf50ad.study-events.json" --prior-reconciliation "docs/research/reviews/rc27-member-grain/study-review-cut-v1-df3d8d2eda43c77738cf50ad.reconciliation.json" --review-inputs "docs/research/artifacts/study-review-cut-v1-df3d8d2eda43c77738cf50ad.review-inputs.json" --spine-artifact-root "/tmp/bp-plan074-may-review-uowKHk/artifacts" "--plan096-database" "/tmp/bp-plan074-may-review-uowKHk/pipeline.sqlite" --output-dir "docs/research/reviews/closure-plan-042/artifacts"
+@bp/pipeline-v2 cli: [05:51:17.169] INFO (#1565): pipeline.json file task complete
+@bp/pipeline-v2 cli: [05:51:17.170] INFO (#1572): pipeline.json file task complete
+@bp/pipeline-v2 cli: [05:51:17.172] INFO (#1579): pipeline.json file task complete
+@bp/pipeline-v2 cli: [05:51:17.174] INFO (#1586): pipeline.json file task complete
+@bp/pipeline-v2 cli: [05:51:17.174] INFO (#1593): pipeline.json file task complete
+@bp/pipeline-v2 cli: [05:51:17.175] INFO (#1600): pipeline.json file task complete
+@bp/pipeline-v2 cli: [05:51:17.175] INFO (#1607): pipeline.json file task complete
+@bp/pipeline-v2 cli: [05:51:17.175] INFO (#1614): pipeline.json file task complete
+@bp/pipeline-v2 cli: [05:51:17.176] INFO (#1621): pipeline.json file task complete
+@bp/pipeline-v2 cli: [05:51:17.179] INFO (#1628): pipeline.json file task complete
+@bp/pipeline-v2 cli: [05:51:17.180] INFO (#1635): pipeline.json file task complete
+@bp/pipeline-v2 cli: {
+@bp/pipeline-v2 cli:   "outputDir": "/tmp/bp-member-grain-042/docs/research/reviews/closure-plan-042/artifacts",
+@bp/pipeline-v2 cli:   "candidateSetId": "candidate-set-v5:1fadedfcb292deda5179bdf3",
+@bp/pipeline-v2 cli:   "candidateCount": 555,
+@bp/pipeline-v2 cli:   "memberGrainCount": 308,
+@bp/pipeline-v2 cli:   "extentBindingCount": 48,
+@bp/pipeline-v2 cli:   "grainVerdictCount": 695,
+@bp/pipeline-v2 cli:   "reviewCutId": "study-review-cut-v2:1ae9e99a8b4c32793b5dbc86",
+@bp/pipeline-v2 cli:   "files": [
+@bp/pipeline-v2 cli:     "producer-import.json",
+@bp/pipeline-v2 cli:     "identity-verdict-import.json",
+@bp/pipeline-v2 cli:     "member-grain-import.json",
+@bp/pipeline-v2 cli:     "candidate-set-v5.json",
+@bp/pipeline-v2 cli:     "extent-segment-bindings.json",
+@bp/pipeline-v2 cli:     "stop-set-coverage.json",
+@bp/pipeline-v2 cli:     "service-pattern-coverage.json",
+@bp/pipeline-v2 cli:     "lineage-comparability.json",
+@bp/pipeline-v2 cli:     "outcome-relevance-registry.json",
+@bp/pipeline-v2 cli:     "grain-verdict-matrix.json",
+@bp/pipeline-v2 cli:     "review-handoff.json"
+@bp/pipeline-v2 cli:   ]
+@bp/pipeline-v2 cli: }
+@bp/pipeline-v2 cli: Exited with code 0

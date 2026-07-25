@@ -1,0 +1,2381 @@
+{
+  "artifact_kind": "bp.plan042.lineage-comparability.v1",
+  "schema_version": 1,
+  "candidate_set_id": "candidate-set-v5:1fadedfcb292deda5179bdf3",
+  "row_count": 22,
+  "disposition_histogram": {
+    "route_lineage_incomparable:missing_reviewed_endpoint_equivalence": 14,
+    "route_lineage_incomparable:spine_not_ready": 8
+  },
+  "rows": [
+    {
+      "candidate_id": "study-event-v2:5b93c24a36cc919390a97111",
+      "grain_id": "member-grain:0d00594dd3230d9bc23f3483",
+      "occurrence_id": "occurrence:4dc018a72fe45633f36e2d50",
+      "route_record_id": "route_qm63-qbnr-2025",
+      "treatment_record_id": "treatment_qm63-midtown-stop-additions-2025",
+      "route_id": "QM63",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "X63",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x63/speed-spine.json",
+              "bytes": 202795,
+              "sha256": "1f754b3756579e0023a16012441d1a2e85b690b61fa6091494424101379fc168"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "505100"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM63",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm63/speed-spine.json",
+              "bytes": 114336,
+              "sha256": "e33ee1dc73b9d76727e304791bbe554d47a61fca0eb58cc9c09c3cc73d773a88"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "505100"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X63",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x63/speed-spine.json",
+              "bytes": 202795,
+              "sha256": "1f754b3756579e0023a16012441d1a2e85b690b61fa6091494424101379fc168"
+            },
+            "boundary_stop_ids": [
+              "504950",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM63",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm63/speed-spine.json",
+              "bytes": 114336,
+              "sha256": "e33ee1dc73b9d76727e304791bbe554d47a61fca0eb58cc9c09c3cc73d773a88"
+            },
+            "boundary_stop_ids": [
+              "504950",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:endpoint_missing",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:01f4caf6d1cc0ae9a91d6080",
+      "grain_id": "member-grain:12b5c5df2067fcf255ad0e55",
+      "occurrence_id": "occurrence:5d51147fc80a669bfb81da45",
+      "route_record_id": "route_q61-queens",
+      "treatment_record_id": "treatment_q61-q15-beechhurst-replacement-2025",
+      "route_id": "Q61",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q15",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q15/speed-spine.json",
+              "bytes": 226234,
+              "sha256": "5a20d9fcb74f9ba1ed6342a7f122bb802400be835a3864a9119eb6f5387c8da9"
+            },
+            "boundary_stop_ids": [
+              "501175",
+              "804030"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q61",
+            "side": "successor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q61/speed-spine.json",
+              "bytes": 64059,
+              "sha256": "04f43beee82f01d09462cafeb88b594380ef72c34bd5482da1ebbe5402768735"
+            },
+            "boundary_stop_ids": [
+              "501175",
+              "804030"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q15",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q15/speed-spine.json",
+              "bytes": 226234,
+              "sha256": "5a20d9fcb74f9ba1ed6342a7f122bb802400be835a3864a9119eb6f5387c8da9"
+            },
+            "boundary_stop_ids": [
+              "501184",
+              "501196"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q61",
+            "side": "successor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q61/speed-spine.json",
+              "bytes": 64059,
+              "sha256": "04f43beee82f01d09462cafeb88b594380ef72c34bd5482da1ebbe5402768735"
+            },
+            "boundary_stop_ids": [
+              "501184",
+              "501196"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_0:successor:endpoint_missing",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:endpoint_missing"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:01f4caf6d1cc0ae9a91d6080",
+      "grain_id": "member-grain:192845382f529ae6676944c0",
+      "occurrence_id": "occurrence:5d51147fc80a669bfb81da45",
+      "route_record_id": "route_q61-queens",
+      "treatment_record_id": "treatment_q61-q34-linden-hill-replacement-2025",
+      "route_id": "Q61",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q34",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q34/speed-spine.json",
+              "bytes": 149075,
+              "sha256": "7410e0824903876a152305d09f43d9190c5971e4c939d17981b52627477f4c27"
+            },
+            "boundary_stop_ids": [
+              "501098",
+              "553163"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "Q61",
+            "side": "successor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q61/speed-spine.json",
+              "bytes": 64059,
+              "sha256": "04f43beee82f01d09462cafeb88b594380ef72c34bd5482da1ebbe5402768735"
+            },
+            "boundary_stop_ids": [
+              "501098",
+              "553163"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q34",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q34/speed-spine.json",
+              "bytes": 149075,
+              "sha256": "7410e0824903876a152305d09f43d9190c5971e4c939d17981b52627477f4c27"
+            },
+            "boundary_stop_ids": [
+              "501134",
+              "502254"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "Q61",
+            "side": "successor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q61/speed-spine.json",
+              "bytes": 64059,
+              "sha256": "04f43beee82f01d09462cafeb88b594380ef72c34bd5482da1ebbe5402768735"
+            },
+            "boundary_stop_ids": [
+              "501134",
+              "502254"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:endpoint_missing",
+        "segment_0:successor:endpoint_missing",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:endpoint_missing"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v5:195674f3d9aba25cbe249dc5",
+      "grain_id": "member-grain:256241f6711e1597015d9837",
+      "occurrence_id": "occurrence:d93f0e5c985dd9f201320c7b",
+      "route_record_id": "route_q90-qbnr-2025",
+      "treatment_record_id": "treatment_q90-q48-laguardia-replacement-2025",
+      "route_id": "Q90",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q48",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q48/speed-spine.json",
+              "bytes": 200781,
+              "sha256": "e2d8f3a979163a5ad91e7d36203c317cbf459ebea0e45f0f3a57b3eeef21eb56"
+            },
+            "boundary_stop_ids": [
+              "502547",
+              "503900"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q90",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q90/speed-spine.json",
+              "bytes": 71315,
+              "sha256": "b5a0001fa3faa7e0654388e56f37633f1862863bb96e6a3d423bfae4e5a7bd57"
+            },
+            "boundary_stop_ids": [
+              "502547",
+              "503900"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q48",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q48/speed-spine.json",
+              "bytes": 200781,
+              "sha256": "e2d8f3a979163a5ad91e7d36203c317cbf459ebea0e45f0f3a57b3eeef21eb56"
+            },
+            "boundary_stop_ids": [
+              "502578",
+              "904242"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q90",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q90/speed-spine.json",
+              "bytes": 71315,
+              "sha256": "b5a0001fa3faa7e0654388e56f37633f1862863bb96e6a3d423bfae4e5a7bd57"
+            },
+            "boundary_stop_ids": [
+              "502578",
+              "904242"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:spine_not_ready",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:f0c0de1423b27a3ba8471ae1",
+      "grain_id": "member-grain:2fe55ed6f05b62c79cd4c7e7",
+      "occurrence_id": "occurrence:8e0377c6acfe62e1a61d910b",
+      "route_record_id": "route_qm64-qbnr-2025",
+      "treatment_record_id": "treatment_qm64-route-rename-2025",
+      "route_id": "QM64",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 1,
+            "matched_segment_ids": [
+              "x64-e-node-004-node-006",
+              "x64-e-node-006-node-007",
+              "x64-e-node-007-node-003",
+              "x64-e-node-003-node-002",
+              "x64-e-node-002-node-001"
+            ],
+            "result": "ordered_unique"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 2,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:141748ce44b6c5bcae7f4952",
+      "grain_id": "member-grain:48e2b293327ddf0f9de138e6",
+      "occurrence_id": "occurrence:b18b9a4512c3b2860dd8aa29",
+      "route_record_id": "route_q20-qbnr-2025",
+      "treatment_record_id": "treatment_q20-jamaica-avenue-approach-2025",
+      "route_id": "Q20",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q20A",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q20a/speed-spine.json",
+              "bytes": 293155,
+              "sha256": "e4862afcbe6d6db6c758133209f084f5f70ac2ad3755401384536d069ceedb07"
+            },
+            "boundary_stop_ids": [
+              "504559",
+              "505032"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 4,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q20",
+            "side": "successor",
+            "spine_readiness": "series_ready_with_gaps",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q20/speed-spine.json",
+              "bytes": 132255,
+              "sha256": "1375347e4885824c91117051b8e803d570429ffc063415df57b22c47ff89bb81"
+            },
+            "boundary_stop_ids": [
+              "504559",
+              "505032"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        },
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q20A",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q20a/speed-spine.json",
+              "bytes": 293155,
+              "sha256": "e4862afcbe6d6db6c758133209f084f5f70ac2ad3755401384536d069ceedb07"
+            },
+            "boundary_stop_ids": [
+              "504980",
+              "504999"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 4,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q20",
+            "side": "successor",
+            "spine_readiness": "series_ready_with_gaps",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q20/speed-spine.json",
+              "bytes": 132255,
+              "sha256": "1375347e4885824c91117051b8e803d570429ffc063415df57b22c47ff89bb81"
+            },
+            "boundary_stop_ids": [
+              "504980",
+              "504999"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_0:successor:endpoint_missing",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:endpoint_missing"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:5a74fca9ca2e6eeba7c18851",
+      "grain_id": "member-grain:52e37372e695d480b9384ee9",
+      "occurrence_id": "occurrence:136f3d32a53a62f096f8f44e",
+      "route_record_id": "route_q82-queens",
+      "treatment_record_id": "treatment_q82-q110-hempstead-replacement-2025",
+      "route_id": "Q82",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q110",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q110/speed-spine.json",
+              "bytes": 276307,
+              "sha256": "a4274fb5d48fb769d61f6ec0e5d2619b844722546896090b198f716c42bf809e"
+            },
+            "boundary_stop_ids": [
+              "500122",
+              "552248"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 4,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q82",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q82/speed-spine.json",
+              "bytes": 84799,
+              "sha256": "ee973e4a51a05827510e82441a35338f63f66c891098d690491fb340406cd414"
+            },
+            "boundary_stop_ids": [
+              "500122",
+              "552248"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q110",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q110/speed-spine.json",
+              "bytes": 276307,
+              "sha256": "a4274fb5d48fb769d61f6ec0e5d2619b844722546896090b198f716c42bf809e"
+            },
+            "boundary_stop_ids": [
+              "500123",
+              "501962"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 6,
+            "ordered_orientation_match_count": 1,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q82",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q82/speed-spine.json",
+              "bytes": 84799,
+              "sha256": "ee973e4a51a05827510e82441a35338f63f66c891098d690491fb340406cd414"
+            },
+            "boundary_stop_ids": [
+              "500123",
+              "501962"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:spine_not_ready",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:f0c0de1423b27a3ba8471ae1",
+      "grain_id": "member-grain:5f68123b0ab6f7781d1f41ab",
+      "occurrence_id": "occurrence:8e0377c6acfe62e1a61d910b",
+      "route_record_id": "route_qm64-qbnr-2025",
+      "treatment_record_id": "treatment_qm64-stop-removal-2025",
+      "route_id": "QM64",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 1,
+            "matched_segment_ids": [
+              "x64-e-node-004-node-006",
+              "x64-e-node-006-node-007",
+              "x64-e-node-007-node-003",
+              "x64-e-node-003-node-002",
+              "x64-e-node-002-node-001"
+            ],
+            "result": "ordered_unique"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 2,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:01f4caf6d1cc0ae9a91d6080",
+      "grain_id": "member-grain:7c3a773abb4d6d4303277924",
+      "occurrence_id": "occurrence:5d51147fc80a669bfb81da45",
+      "route_record_id": "route_q61-queens",
+      "treatment_record_id": "treatment_q61-beechhurst-flushing-connection-2025",
+      "route_id": "Q61",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q34",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q34/speed-spine.json",
+              "bytes": 149075,
+              "sha256": "7410e0824903876a152305d09f43d9190c5971e4c939d17981b52627477f4c27"
+            },
+            "boundary_stop_ids": [
+              "501098",
+              "553163"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "Q61",
+            "side": "successor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q61/speed-spine.json",
+              "bytes": 64059,
+              "sha256": "04f43beee82f01d09462cafeb88b594380ef72c34bd5482da1ebbe5402768735"
+            },
+            "boundary_stop_ids": [
+              "501098",
+              "553163"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q34",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q34/speed-spine.json",
+              "bytes": 149075,
+              "sha256": "7410e0824903876a152305d09f43d9190c5971e4c939d17981b52627477f4c27"
+            },
+            "boundary_stop_ids": [
+              "501134",
+              "502254"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "Q61",
+            "side": "successor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q61/speed-spine.json",
+              "bytes": 64059,
+              "sha256": "04f43beee82f01d09462cafeb88b594380ef72c34bd5482da1ebbe5402768735"
+            },
+            "boundary_stop_ids": [
+              "501134",
+              "502254"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        },
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q15",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q15/speed-spine.json",
+              "bytes": 226234,
+              "sha256": "5a20d9fcb74f9ba1ed6342a7f122bb802400be835a3864a9119eb6f5387c8da9"
+            },
+            "boundary_stop_ids": [
+              "501175",
+              "804030"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q61",
+            "side": "successor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q61/speed-spine.json",
+              "bytes": 64059,
+              "sha256": "04f43beee82f01d09462cafeb88b594380ef72c34bd5482da1ebbe5402768735"
+            },
+            "boundary_stop_ids": [
+              "501175",
+              "804030"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q15",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q15/speed-spine.json",
+              "bytes": 226234,
+              "sha256": "5a20d9fcb74f9ba1ed6342a7f122bb802400be835a3864a9119eb6f5387c8da9"
+            },
+            "boundary_stop_ids": [
+              "501184",
+              "501196"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q61",
+            "side": "successor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q61/speed-spine.json",
+              "bytes": 64059,
+              "sha256": "04f43beee82f01d09462cafeb88b594380ef72c34bd5482da1ebbe5402768735"
+            },
+            "boundary_stop_ids": [
+              "501184",
+              "501196"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:endpoint_missing",
+        "segment_0:successor:endpoint_missing",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:endpoint_missing",
+        "segment_2:predecessor:spine_not_ready",
+        "segment_2:successor:endpoint_missing",
+        "segment_3:predecessor:spine_not_ready",
+        "segment_3:successor:endpoint_missing"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:5a74fca9ca2e6eeba7c18851",
+      "grain_id": "member-grain:7eef5a975e75eff3f56e6975",
+      "occurrence_id": "occurrence:136f3d32a53a62f096f8f44e",
+      "route_record_id": "route_q82-queens",
+      "treatment_record_id": "treatment_q82-q36-212-replacement-2025",
+      "route_id": "Q82",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q36",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q36/speed-spine.json",
+              "bytes": 635122,
+              "sha256": "a64c5bc3b330663ef626a4937cf2970fc823d544a21585adc293f4b0a344951d"
+            },
+            "boundary_stop_ids": [
+              "500022",
+              "501927"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 4,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q82",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q82/speed-spine.json",
+              "bytes": 84799,
+              "sha256": "ee973e4a51a05827510e82441a35338f63f66c891098d690491fb340406cd414"
+            },
+            "boundary_stop_ids": [
+              "500022",
+              "501927"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q36",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q36/speed-spine.json",
+              "bytes": 635122,
+              "sha256": "a64c5bc3b330663ef626a4937cf2970fc823d544a21585adc293f4b0a344951d"
+            },
+            "boundary_stop_ids": [
+              "501962",
+              "501966"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q82",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q82/speed-spine.json",
+              "bytes": 84799,
+              "sha256": "ee973e4a51a05827510e82441a35338f63f66c891098d690491fb340406cd414"
+            },
+            "boundary_stop_ids": [
+              "501962",
+              "501966"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:spine_not_ready",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:f0c0de1423b27a3ba8471ae1",
+      "grain_id": "member-grain:8cd84cc84b6050f5929bfe78",
+      "occurrence_id": "occurrence:8e0377c6acfe62e1a61d910b",
+      "route_record_id": "route_qm64-qbnr-2025",
+      "treatment_record_id": "treatment_qm64-elmont-extension-2025",
+      "route_id": "QM64",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 1,
+            "matched_segment_ids": [
+              "x64-e-node-004-node-006",
+              "x64-e-node-006-node-007",
+              "x64-e-node-007-node-003",
+              "x64-e-node-003-node-002",
+              "x64-e-node-002-node-001"
+            ],
+            "result": "ordered_unique"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 2,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:2a62d2e92dca879a8d6f9911",
+      "grain_id": "member-grain:a6068db6acf533623d0e36b4",
+      "occurrence_id": "occurrence:5ac0e55f39f63140204859b1",
+      "route_record_id": "route_q75-qbnr-2025",
+      "treatment_record_id": "treatment_q75-limited-stops-2025",
+      "route_id": "Q75",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q30",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q30/speed-spine.json",
+              "bytes": 498410,
+              "sha256": "3bdb255d69a235aad69db36ba73cdeccbab7957b401b52c1486850e83559ad64"
+            },
+            "boundary_stop_ids": [
+              "503953",
+              "505241"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q75",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q75/speed-spine.json",
+              "bytes": 93036,
+              "sha256": "a25faf3ed340c457cb1398c69cbb4f0801c44d6337ba5ccb82f0a02443e27766"
+            },
+            "boundary_stop_ids": [
+              "503953",
+              "505241"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q30",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q30/speed-spine.json",
+              "bytes": 498410,
+              "sha256": "3bdb255d69a235aad69db36ba73cdeccbab7957b401b52c1486850e83559ad64"
+            },
+            "boundary_stop_ids": [
+              "504480",
+              "904075"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 4,
+            "ordered_orientation_match_count": 2,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q75",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q75/speed-spine.json",
+              "bytes": 93036,
+              "sha256": "a25faf3ed340c457cb1398c69cbb4f0801c44d6337ba5ccb82f0a02443e27766"
+            },
+            "boundary_stop_ids": [
+              "504480",
+              "904075"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 1,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:spine_not_ready",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:f0c0de1423b27a3ba8471ae1",
+      "grain_id": "member-grain:adcdbf613fd56b62d62739ba",
+      "occurrence_id": "occurrence:8e0377c6acfe62e1a61d910b",
+      "route_record_id": "route_qm64-qbnr-2025",
+      "treatment_record_id": "treatment_qm64-midtown-stop-additions-2025",
+      "route_id": "QM64",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 1,
+            "matched_segment_ids": [
+              "x64-e-node-004-node-006",
+              "x64-e-node-006-node-007",
+              "x64-e-node-007-node-003",
+              "x64-e-node-003-node-002",
+              "x64-e-node-002-node-001"
+            ],
+            "result": "ordered_unique"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 2,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:f0c0de1423b27a3ba8471ae1",
+      "grain_id": "member-grain:b652ea1a859209e1e671546e",
+      "occurrence_id": "occurrence:8e0377c6acfe62e1a61d910b",
+      "route_record_id": "route_qm64-qbnr-2025",
+      "treatment_record_id": "treatment_qm64-avenue-service-discontinuation-2025",
+      "route_id": "QM64",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 1,
+            "matched_segment_ids": [
+              "x64-e-node-004-node-006",
+              "x64-e-node-006-node-007",
+              "x64-e-node-007-node-003",
+              "x64-e-node-003-node-002",
+              "x64-e-node-002-node-001"
+            ],
+            "result": "ordered_unique"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 2,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:d6dc7a1a0a38795f9ffa2faa",
+      "grain_id": "member-grain:b8b79f0b0127c64e8f26d497",
+      "occurrence_id": "occurrence:bca0b565b6971c90a6af9e55",
+      "route_record_id": "route_qm68-qbnr-2025",
+      "treatment_record_id": "treatment_qm68-route-rename-2025",
+      "route_id": "QM68",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "X68",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x68/speed-spine.json",
+              "bytes": 221819,
+              "sha256": "4fefcddf9224d39a32df68436adc3e8ce1ca4c2d4138c72ea70fa26c2843a3a7"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "502079"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "QM68",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm68/speed-spine.json",
+              "bytes": 77730,
+              "sha256": "7dd363590d8b00cae6de43c7959d4ac0b8572baec2bb2df48af707a49a287ad4"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "502079"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X68",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x68/speed-spine.json",
+              "bytes": 221819,
+              "sha256": "4fefcddf9224d39a32df68436adc3e8ce1ca4c2d4138c72ea70fa26c2843a3a7"
+            },
+            "boundary_stop_ids": [
+              "502091",
+              "551691"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "QM68",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm68/speed-spine.json",
+              "bytes": 77730,
+              "sha256": "7dd363590d8b00cae6de43c7959d4ac0b8572baec2bb2df48af707a49a287ad4"
+            },
+            "boundary_stop_ids": [
+              "502091",
+              "551691"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X68",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x68/speed-spine.json",
+              "bytes": 221819,
+              "sha256": "4fefcddf9224d39a32df68436adc3e8ce1ca4c2d4138c72ea70fa26c2843a3a7"
+            },
+            "boundary_stop_ids": [
+              "502091",
+              "904045"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "QM68",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm68/speed-spine.json",
+              "bytes": 77730,
+              "sha256": "7dd363590d8b00cae6de43c7959d4ac0b8572baec2bb2df48af707a49a287ad4"
+            },
+            "boundary_stop_ids": [
+              "502091",
+              "904045"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:spine_not_ready",
+        "segment_2:predecessor:spine_not_ready",
+        "segment_2:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:spine_not_ready",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:f0c0de1423b27a3ba8471ae1",
+      "grain_id": "member-grain:c3fb3285f51216589c4a1103",
+      "occurrence_id": "occurrence:8e0377c6acfe62e1a61d910b",
+      "route_record_id": "route_qm64-qbnr-2025",
+      "treatment_record_id": "treatment_qm64-frequency-decrease-2025",
+      "route_id": "QM64",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 1,
+            "matched_segment_ids": [
+              "x64-e-node-004-node-006",
+              "x64-e-node-006-node-007",
+              "x64-e-node-007-node-003",
+              "x64-e-node-003-node-002",
+              "x64-e-node-002-node-001"
+            ],
+            "result": "ordered_unique"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "904026"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 3,
+            "ordered_orientation_match_count": 2,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X64",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x64/speed-spine.json",
+              "bytes": 184611,
+              "sha256": "386f95b1afd2e17a8eb12b8623cd5414a2d99bfb1828e370fa2b8a6fbffb80d9"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM64",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm64/speed-spine.json",
+              "bytes": 115928,
+              "sha256": "3ce6880a8e49683b4700c24d4d479e3c03716f31d02987b0f70336d8df1d5260"
+            },
+            "boundary_stop_ids": [
+              "500403",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:5b93c24a36cc919390a97111",
+      "grain_id": "member-grain:d47f0b81a8e4731457bb1806",
+      "occurrence_id": "occurrence:4dc018a72fe45633f36e2d50",
+      "route_record_id": "route_qm63-qbnr-2025",
+      "treatment_record_id": "treatment_qm63-frequency-span-adjustment-2025",
+      "route_id": "QM63",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "X63",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x63/speed-spine.json",
+              "bytes": 202795,
+              "sha256": "1f754b3756579e0023a16012441d1a2e85b690b61fa6091494424101379fc168"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "505100"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM63",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm63/speed-spine.json",
+              "bytes": 114336,
+              "sha256": "e33ee1dc73b9d76727e304791bbe554d47a61fca0eb58cc9c09c3cc73d773a88"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "505100"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X63",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x63/speed-spine.json",
+              "bytes": 202795,
+              "sha256": "1f754b3756579e0023a16012441d1a2e85b690b61fa6091494424101379fc168"
+            },
+            "boundary_stop_ids": [
+              "504950",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM63",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm63/speed-spine.json",
+              "bytes": 114336,
+              "sha256": "e33ee1dc73b9d76727e304791bbe554d47a61fca0eb58cc9c09c3cc73d773a88"
+            },
+            "boundary_stop_ids": [
+              "504950",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:endpoint_missing",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:c6a78dba10b9f0f017134994",
+      "grain_id": "member-grain:e40b10520ad6544489f440ae",
+      "occurrence_id": "occurrence:29fc4436c22b58d52f231964",
+      "route_record_id": "route_q48-glen-oaks-2025",
+      "treatment_record_id": "treatment_q48-limited-stops-2025",
+      "route_id": "Q48",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q46",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q46/speed-spine.json",
+              "bytes": 318644,
+              "sha256": "446c0e626c37d848f3c89675f04c7d06eb1af972981943041aeee9d931b3a4f6"
+            },
+            "boundary_stop_ids": [
+              "502348",
+              "504545"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q48",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q48/speed-spine.json",
+              "bytes": 200781,
+              "sha256": "e2d8f3a979163a5ad91e7d36203c317cbf459ebea0e45f0f3a57b3eeef21eb56"
+            },
+            "boundary_stop_ids": [
+              "502348",
+              "504545"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q46",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q46/speed-spine.json",
+              "bytes": 318644,
+              "sha256": "446c0e626c37d848f3c89675f04c7d06eb1af972981943041aeee9d931b3a4f6"
+            },
+            "boundary_stop_ids": [
+              "502361",
+              "502414"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q48",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q48/speed-spine.json",
+              "bytes": 200781,
+              "sha256": "e2d8f3a979163a5ad91e7d36203c317cbf459ebea0e45f0f3a57b3eeef21eb56"
+            },
+            "boundary_stop_ids": [
+              "502361",
+              "502414"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:spine_not_ready",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:c6a78dba10b9f0f017134994",
+      "grain_id": "member-grain:e828234e44f38f484d069c2c",
+      "occurrence_id": "occurrence:29fc4436c22b58d52f231964",
+      "route_record_id": "route_q48-glen-oaks-2025",
+      "treatment_record_id": "treatment_q48-glen-oaks-branch-2025",
+      "route_id": "Q48",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q46",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q46/speed-spine.json",
+              "bytes": 318644,
+              "sha256": "446c0e626c37d848f3c89675f04c7d06eb1af972981943041aeee9d931b3a4f6"
+            },
+            "boundary_stop_ids": [
+              "502348",
+              "504545"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q48",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q48/speed-spine.json",
+              "bytes": 200781,
+              "sha256": "e2d8f3a979163a5ad91e7d36203c317cbf459ebea0e45f0f3a57b3eeef21eb56"
+            },
+            "boundary_stop_ids": [
+              "502348",
+              "504545"
+            ],
+            "matched_node_count": 0,
+            "matched_raw_pair_count": 0,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q46",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q46/speed-spine.json",
+              "bytes": 318644,
+              "sha256": "446c0e626c37d848f3c89675f04c7d06eb1af972981943041aeee9d931b3a4f6"
+            },
+            "boundary_stop_ids": [
+              "502361",
+              "502414"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q48",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q48/speed-spine.json",
+              "bytes": 200781,
+              "sha256": "e2d8f3a979163a5ad91e7d36203c317cbf459ebea0e45f0f3a57b3eeef21eb56"
+            },
+            "boundary_stop_ids": [
+              "502361",
+              "502414"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:spine_not_ready",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:2a62d2e92dca879a8d6f9911",
+      "grain_id": "member-grain:ede4e78cb85c6bd94a108897",
+      "occurrence_id": "occurrence:5ac0e55f39f63140204859b1",
+      "route_record_id": "route_q75-qbnr-2025",
+      "treatment_record_id": "treatment_q75-q30-short-trip-replacement-2025",
+      "route_id": "Q75",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q30",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q30/speed-spine.json",
+              "bytes": 498410,
+              "sha256": "3bdb255d69a235aad69db36ba73cdeccbab7957b401b52c1486850e83559ad64"
+            },
+            "boundary_stop_ids": [
+              "503953",
+              "505241"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q75",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q75/speed-spine.json",
+              "bytes": 93036,
+              "sha256": "a25faf3ed340c457cb1398c69cbb4f0801c44d6337ba5ccb82f0a02443e27766"
+            },
+            "boundary_stop_ids": [
+              "503953",
+              "505241"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q30",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q30/speed-spine.json",
+              "bytes": 498410,
+              "sha256": "3bdb255d69a235aad69db36ba73cdeccbab7957b401b52c1486850e83559ad64"
+            },
+            "boundary_stop_ids": [
+              "504480",
+              "904075"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 4,
+            "ordered_orientation_match_count": 2,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q75",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q75/speed-spine.json",
+              "bytes": 93036,
+              "sha256": "a25faf3ed340c457cb1398c69cbb4f0801c44d6337ba5ccb82f0a02443e27766"
+            },
+            "boundary_stop_ids": [
+              "504480",
+              "904075"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 1,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:spine_not_ready",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:141748ce44b6c5bcae7f4952",
+      "grain_id": "member-grain:fb018b0b1672e4fda4109e3f",
+      "occurrence_id": "occurrence:b18b9a4512c3b2860dd8aa29",
+      "route_record_id": "route_q20-qbnr-2025",
+      "treatment_record_id": "treatment_q20-college-point-jamaica-connection-2025",
+      "route_id": "Q20",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "Q20A",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q20a/speed-spine.json",
+              "bytes": 293155,
+              "sha256": "e4862afcbe6d6db6c758133209f084f5f70ac2ad3755401384536d069ceedb07"
+            },
+            "boundary_stop_ids": [
+              "503964",
+              "505021"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 4,
+            "ordered_orientation_match_count": 2,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q20",
+            "side": "successor",
+            "spine_readiness": "series_ready_with_gaps",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q20/speed-spine.json",
+              "bytes": 132255,
+              "sha256": "1375347e4885824c91117051b8e803d570429ffc063415df57b22c47ff89bb81"
+            },
+            "boundary_stop_ids": [
+              "503964",
+              "505021"
+            ],
+            "matched_node_count": 2,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 1,
+            "matched_segment_ids": [
+              "q20-n-node-002-node-001",
+              "q20-n-node-001-node-003",
+              "q20-n-node-003-node-006",
+              "q20-n-node-006-node-007",
+              "q20-n-node-007-node-008",
+              "q20-n-node-008-node-010"
+            ],
+            "result": "ordered_unique"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "Q20A",
+            "side": "predecessor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q20a/speed-spine.json",
+              "bytes": 293155,
+              "sha256": "e4862afcbe6d6db6c758133209f084f5f70ac2ad3755401384536d069ceedb07"
+            },
+            "boundary_stop_ids": [
+              "504985",
+              "505022"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          },
+          "successor": {
+            "route_id": "Q20",
+            "side": "successor",
+            "spine_readiness": "series_ready_with_gaps",
+            "spine_artifact": {
+              "path": "studio/v2/routes/q20/speed-spine.json",
+              "bytes": 132255,
+              "sha256": "1375347e4885824c91117051b8e803d570429ffc063415df57b22c47ff89bb81"
+            },
+            "boundary_stop_ids": [
+              "504985",
+              "505022"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:spine_not_ready",
+        "segment_1:predecessor:spine_not_ready",
+        "segment_1:successor:endpoint_missing"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    },
+    {
+      "candidate_id": "study-event-v2:5b93c24a36cc919390a97111",
+      "grain_id": "member-grain:ffc9805b681277e98ce22f85",
+      "occurrence_id": "occurrence:4dc018a72fe45633f36e2d50",
+      "route_record_id": "route_qm63-qbnr-2025",
+      "treatment_record_id": "treatment_qm63-route-rename-2025",
+      "route_id": "QM63",
+      "segment_searches": [
+        {
+          "producer_direction_literal": "0",
+          "predecessor": {
+            "route_id": "X63",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x63/speed-spine.json",
+              "bytes": 202795,
+              "sha256": "1f754b3756579e0023a16012441d1a2e85b690b61fa6091494424101379fc168"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "505100"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM63",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm63/speed-spine.json",
+              "bytes": 114336,
+              "sha256": "e33ee1dc73b9d76727e304791bbe554d47a61fca0eb58cc9c09c3cc73d773a88"
+            },
+            "boundary_stop_ids": [
+              "402143",
+              "505100"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        },
+        {
+          "producer_direction_literal": "1",
+          "predecessor": {
+            "route_id": "X63",
+            "side": "predecessor",
+            "spine_readiness": "series_ready",
+            "spine_artifact": {
+              "path": "studio/v2/routes/x63/speed-spine.json",
+              "bytes": 202795,
+              "sha256": "1f754b3756579e0023a16012441d1a2e85b690b61fa6091494424101379fc168"
+            },
+            "boundary_stop_ids": [
+              "504950",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 2,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "endpoint_missing"
+          },
+          "successor": {
+            "route_id": "QM63",
+            "side": "successor",
+            "spine_readiness": "needs_pattern_review",
+            "spine_artifact": {
+              "path": "studio/v2/routes/qm63/speed-spine.json",
+              "bytes": 114336,
+              "sha256": "e33ee1dc73b9d76727e304791bbe554d47a61fca0eb58cc9c09c3cc73d773a88"
+            },
+            "boundary_stop_ids": [
+              "504950",
+              "551691"
+            ],
+            "matched_node_count": 1,
+            "matched_raw_pair_count": 1,
+            "ordered_orientation_match_count": 0,
+            "matched_segment_ids": [],
+            "result": "spine_not_ready"
+          }
+        }
+      ],
+      "failing_sides": [
+        "segment_0:predecessor:endpoint_missing",
+        "segment_0:successor:spine_not_ready",
+        "segment_1:predecessor:endpoint_missing",
+        "segment_1:successor:spine_not_ready"
+      ],
+      "disposition": "route_lineage_incomparable:missing_reviewed_endpoint_equivalence",
+      "authorizes_study": false
+    }
+  ],
+  "authority": {
+    "authorizes_study": false,
+    "authorizes_common_segment_frame": false
+  }
+}

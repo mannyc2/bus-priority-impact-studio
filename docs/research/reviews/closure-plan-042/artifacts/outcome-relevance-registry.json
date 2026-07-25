@@ -1,0 +1,227 @@
+{
+  "artifact_kind": "bp.plan042.outcome-relevance-registry.v1",
+  "schema_version": 1,
+  "upstream_registry_validation": {
+    "registry_id": "intervention-evidence-registry-v1",
+    "canonical_treatment_kind_count": 35,
+    "validation": "passed"
+  },
+  "stop_set_authorization": {
+    "authorization_id": "mta-wiki-owner-2026-07-22-all-closure-plans",
+    "scope": "internal_analyst_stop_set_admission",
+    "recorded_decision": "versioned_analyst_grain_allowed_only_with_candidate_coverage_and_reviewed_stop_id_lineage",
+    "current_result": "blocked_missing_pinned_stop_grain_coverage"
+  },
+  "entries": [
+    {
+      "treatment_family": "automated_bus_lane_enforcement",
+      "member_shapes": [
+        "route_wide",
+        "unresolved"
+      ],
+      "disposition": "supported",
+      "product_ids": [
+        "local_route_month_trends_history"
+      ],
+      "product_bindings": [
+        {
+          "product_id": "local_route_month_trends_history",
+          "feature_grain": "route_metric_history",
+          "resolver_id": "sqlite.local_route_month_trend.history.v1"
+        }
+      ],
+      "source_dataset_ids": [],
+      "grain": "route_month",
+      "resolver": "exact_route_registry_or_reviewed_route_wide_member",
+      "claim_ceiling": "descriptive_observation",
+      "unlock_evidence": []
+    },
+    {
+      "treatment_family": "bus_lane",
+      "member_shapes": [
+        "bounded_segment"
+      ],
+      "disposition": "supported_when_bound",
+      "product_ids": [
+        "local_route_segment_speed_history"
+      ],
+      "product_bindings": [
+        {
+          "product_id": "local_route_segment_speed_history",
+          "feature_grain": "route_segment_month",
+          "resolver_id": "sqlite.local_route_segment_speed.route_segment_month.v1"
+        }
+      ],
+      "source_dataset_ids": [
+        "58t6-89vi",
+        "kufs-yh3x"
+      ],
+      "grain": "route_segment_month",
+      "resolver": "extent-segment-binding-v1",
+      "claim_ceiling": "descriptive_observation",
+      "unlock_evidence": [
+        "reviewed_endpoint_stop_id_equivalence"
+      ]
+    },
+    {
+      "treatment_family": "bus_stop_or_boarding",
+      "member_shapes": [
+        "bounded_segment",
+        "stop_set",
+        "unresolved"
+      ],
+      "disposition": "blocked",
+      "product_ids": [
+        "local_observed_headway_samples_run",
+        "stop_direction_hour_ewt_features"
+      ],
+      "product_bindings": [
+        {
+          "product_id": "local_observed_headway_samples_run",
+          "feature_grain": null,
+          "resolver_id": null
+        },
+        {
+          "product_id": "stop_direction_hour_ewt_features",
+          "feature_grain": "stop_direction_hour",
+          "resolver_id": "artifact.stop_direction_hour_ewt_features.v1"
+        }
+      ],
+      "source_dataset_ids": [],
+      "grain": "stop_direction_hour",
+      "resolver": "internal-analyst-stop-set-v1",
+      "claim_ceiling": "descriptive_observation",
+      "unlock_evidence": [
+        "candidate_specific_observed_headway_ewt_coverage",
+        "reviewed_stop_id_lineage"
+      ]
+    },
+    {
+      "treatment_family": "fare_collection",
+      "member_shapes": [
+        "route_wide",
+        "unresolved"
+      ],
+      "disposition": "context_only",
+      "product_ids": [
+        "local_route_month_trends_history"
+      ],
+      "product_bindings": [
+        {
+          "product_id": "local_route_month_trends_history",
+          "feature_grain": "route_metric_history",
+          "resolver_id": "sqlite.local_route_month_trend.history.v1"
+        }
+      ],
+      "source_dataset_ids": [],
+      "grain": "route_month",
+      "resolver": "reviewed_route_scope_context",
+      "claim_ceiling": "context_only",
+      "unlock_evidence": []
+    },
+    {
+      "treatment_family": "route_redesign",
+      "member_shapes": [
+        "bounded_segment"
+      ],
+      "disposition": "lineage_comparability_gate",
+      "product_ids": [
+        "local_route_segment_speed_history"
+      ],
+      "product_bindings": [
+        {
+          "product_id": "local_route_segment_speed_history",
+          "feature_grain": "route_segment_month",
+          "resolver_id": "sqlite.local_route_segment_speed.route_segment_month.v1"
+        }
+      ],
+      "source_dataset_ids": [
+        "58t6-89vi",
+        "kufs-yh3x"
+      ],
+      "grain": "common_route_segment_month",
+      "resolver": "reviewed-old-new-stop-chain-v1",
+      "claim_ceiling": "descriptive_observation",
+      "unlock_evidence": [
+        "reviewed_endpoint_stop_id_equivalence",
+        "pre_and_post_spine_binding"
+      ]
+    },
+    {
+      "treatment_family": "service_pattern",
+      "member_shapes": [
+        "bounded_segment",
+        "route_wide",
+        "unresolved"
+      ],
+      "disposition": "blocked",
+      "product_ids": [
+        "local_bus_wait_assessment_history",
+        "local_observed_headway_samples_run",
+        "planned_service_baseline_history"
+      ],
+      "product_bindings": [
+        {
+          "product_id": "local_bus_wait_assessment_history",
+          "feature_grain": null,
+          "resolver_id": null
+        },
+        {
+          "product_id": "local_observed_headway_samples_run",
+          "feature_grain": null,
+          "resolver_id": null
+        },
+        {
+          "product_id": "planned_service_baseline_history",
+          "feature_grain": null,
+          "resolver_id": null
+        }
+      ],
+      "source_dataset_ids": [
+        "v4z4-2h6n"
+      ],
+      "grain": "typed_service_scope_period",
+      "resolver": "member-grain-service-scope-v1",
+      "claim_ceiling": "descriptive_observation",
+      "unlock_evidence": [
+        "candidate_specific_planned_and_observed_service_coverage",
+        "canonical_feature_grain_and_resolver_bindings"
+      ]
+    },
+    {
+      "treatment_family": "signage_and_markings",
+      "member_shapes": [
+        "stop_set"
+      ],
+      "disposition": "blocked",
+      "product_ids": [
+        "local_observed_headway_samples_run",
+        "stop_direction_hour_ewt_features"
+      ],
+      "product_bindings": [
+        {
+          "product_id": "local_observed_headway_samples_run",
+          "feature_grain": null,
+          "resolver_id": null
+        },
+        {
+          "product_id": "stop_direction_hour_ewt_features",
+          "feature_grain": "stop_direction_hour",
+          "resolver_id": "artifact.stop_direction_hour_ewt_features.v1"
+        }
+      ],
+      "source_dataset_ids": [],
+      "grain": "stop_direction_hour",
+      "resolver": "internal-analyst-stop-set-v1",
+      "claim_ceiling": "context_only",
+      "unlock_evidence": [
+        "candidate_specific_observed_headway_ewt_coverage",
+        "reviewed_stop_id_lineage"
+      ]
+    }
+  ],
+  "authority": {
+    "authorizes_study": false,
+    "authorizes_public_serving": false
+  }
+}

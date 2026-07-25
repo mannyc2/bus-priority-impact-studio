@@ -27,6 +27,11 @@ export function buildCommandRegistrySnapshot(
 ): CommandRegistrySnapshot {
   const snapshot: CommandRegistrySnapshot = {};
   for (const command of commands) {
+    if (command.path.length === 1) {
+      snapshot["$root"] ??= [];
+      snapshot["$root"].push(command.path[0]);
+      continue;
+    }
     const [group, name] = command.path;
     if (!name) continue;
     snapshot[group] ??= [];
@@ -41,6 +46,9 @@ export function buildCommandRegistrySnapshot(
 
 export function buildRootCommand(commands: readonly CommandDefinition[]): CliCommand.Command.Any {
   const byGroup = groupCommands(commands);
+  const rootCommands = commands
+    .filter((command) => command.path.length === 1)
+    .map((command) => buildLeafCommand(command));
   const groups = Object.entries(byGroup).map(([group, groupCommands]) =>
     Command.make(group).pipe(
       Command.withSubcommands(groupCommands.map((command) => buildLeafCommand(command))),
@@ -49,16 +57,16 @@ export function buildRootCommand(commands: readonly CommandDefinition[]): CliCom
 
   return Command.make("pipeline").pipe(
     Command.withDescription("Bus Priority pipeline CLI"),
-    Command.withSubcommands(groups),
+    Command.withSubcommands([...rootCommands, ...groups]),
   );
 }
 
 function buildLeafCommand(command: CommandDefinition): CliCommand.Command.Any {
-  if (command.path.length !== 2) {
-    throw new Error(`Expected two-part command path, received ${command.path.join(" ")}`);
+  if (command.path.length < 1 || command.path.length > 2) {
+    throw new Error(`Expected one- or two-part command path, received ${command.path.join(" ")}`);
   }
 
-  const name = command.path[1];
+  const name = command.path.at(-1);
   if (!name) throw new Error(`Missing command name for path ${command.path.join(" ")}`);
   const optionsSchema = command.input?.options;
   const config = buildCliConfig(optionsSchema);
@@ -84,6 +92,10 @@ function groupCommands(
 ): Record<string, CommandDefinition[]> {
   const byGroup: Record<string, CommandDefinition[]> = {};
   for (const command of commands) {
+    if (command.path.length === 1) continue;
+    if (command.path.length !== 2) {
+      throw new Error(`Expected one- or two-part command path, received ${command.path.join(" ")}`);
+    }
     const [group] = command.path;
     byGroup[group] ??= [];
     byGroup[group].push(command);
