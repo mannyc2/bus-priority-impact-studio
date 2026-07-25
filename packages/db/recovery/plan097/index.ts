@@ -261,6 +261,26 @@ function normalizedSchemaEnvelope(snapshot: Plan097CanonicalSchemaSnapshot): str
   });
 }
 
+export function plan097StructuralSchemaTableSha256(
+  snapshot: Plan097CanonicalSchemaSnapshot,
+): Array<{ tableName: string; sha256: string }> {
+  verifyCanonicalSchemaSnapshot(snapshot);
+  return [...plan097RecoveryServingSchemaTables].toSorted().map((tableName) => {
+    const normalized = canonicalJson({
+      sqliteMaster: snapshot.sqliteMaster
+        .filter((entry) => entry.tableName === tableName || entry.name === tableName)
+        .map(({ type, name, tableName: entryTableName }) => ({
+          type,
+          name,
+          tableName: entryTableName,
+        })),
+      tables: snapshot.tables.filter((table) => table.tableName === tableName),
+      indexes: snapshot.indexes.filter((index) => index.tableName === tableName),
+    });
+    return { tableName, sha256: sha256Text(`${normalized}\n`) };
+  });
+}
+
 export function plan097StructuralSchemaEnvelopeSha256(
   snapshot: Plan097CanonicalSchemaSnapshot,
 ): string {

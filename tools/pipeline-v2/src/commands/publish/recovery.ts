@@ -302,7 +302,15 @@ async function remoteCall(input: {
     headers,
     body: JSON.stringify(input.request),
   });
-  const body: unknown = await response.json();
+  const responseText = await response.text();
+  let body: unknown;
+  try {
+    body = JSON.parse(responseText);
+  } catch {
+    throw new Error(
+      `Plan 097 Worker ${input.request.action} returned non-JSON HTTP ${response.status}`,
+    );
+  }
   if (!response.ok) {
     const diagnostic =
       typeof body === "object" &&
@@ -312,8 +320,15 @@ async function remoteCall(input: {
       /^[a-f0-9]{64}$/u.test(body.diagnosticSha256)
         ? ` (diagnostic ${body.diagnosticSha256})`
         : "";
+    const schemaDiagnostic =
+      typeof body === "object" &&
+      body !== null &&
+      "actualSchemaTableSha256" in body &&
+      Array.isArray(body.actualSchemaTableSha256)
+        ? ` (schema-table-sha256 ${JSON.stringify(body.actualSchemaTableSha256)})`
+        : "";
     throw new Error(
-      `Plan 097 Worker ${input.request.action} failed with HTTP ${response.status}${diagnostic}`,
+      `Plan 097 Worker ${input.request.action} failed with HTTP ${response.status}${diagnostic}${schemaDiagnostic}`,
     );
   }
   const decoded = decodeStrict(Plan097OperationResponseSchema)(body);
