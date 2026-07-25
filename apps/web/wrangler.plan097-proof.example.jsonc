@@ -43,6 +43,10 @@
     {
       "binding": "PLAN097_PROOF_BUNDLES",
       "bucket_name": "bus-priority-plan097-preflight-operations"
+    },
+    {
+      "binding": "PLAN097_PROOF_ARTIFACTS",
+      "bucket_name": "bus-priority-plan097-preflight-artifacts"
     }
   ]
 }

@@ -1952,9 +1952,6 @@ export async function handlePlan097RecoveryRequest(
     if (operationRequest.action === "seed-proof-alias" && env.PLAN097_PROOF_MODE !== "true") {
       return new Response("Forbidden", { status: 403 });
     }
-    if (operationRequest.action === "mirror-proof-body" && env.PLAN097_PROOF_MODE === "true") {
-      return new Response("Forbidden", { status: 403 });
-    }
     if (operationRequest.action === "seed-bundle" && env.PLAN097_SEED_MODE !== "true") {
       return new Response("Forbidden", { status: 403 });
     }

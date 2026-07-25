@@ -669,11 +669,10 @@ describe("Plan 097 protected Worker operation", () => {
 
     await testEnv.PLAN097_OPERATIONS.put(entry.key, artifactBody);
     await testEnv.ARTIFACTS.delete(entry.key);
-    const productionMirrorEnv = {
+    const proofMirrorEnv = {
       ...operationEnv,
       PLAN097_PROOF_ARTIFACTS: testEnv.PLAN097_OPERATIONS,
     };
-    delete productionMirrorEnv.PLAN097_PROOF_MODE;
     const mirroredBody = await operationRequest({
       body: {
         ...base,
@@ -683,7 +682,7 @@ describe("Plan 097 protected Worker operation", () => {
         declaredBytes: entry.bytes,
         mediaType: entry.mediaType,
       },
-      env: productionMirrorEnv,
+      env: proofMirrorEnv,
       execute: true,
     });
     expect(mirroredBody.status).toBe(200);
