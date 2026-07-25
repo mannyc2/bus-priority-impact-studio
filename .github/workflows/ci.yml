@@ -14,6 +14,69 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  plan097-cloudflare-discovery:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/codex/plan097-completion'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Collect sanitized Plan 097 Cloudflare inventory
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 7aa7065a7e971d97435b3f22098d78b0
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          mkdir -p /tmp/plan097-cloudflare
+          api() {
+            curl --fail-with-body --silent --show-error --retry 2 \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/$1"
+          }
+          api "d1/database" |
+            jq '{success, errors, result: [.result[] | {uuid, name}]}' \
+            > /tmp/plan097-cloudflare/d1.json
+          api "r2/buckets" |
+            jq '{success, errors, result: {buckets: [.result.buckets[] | {name, creation_date}]}}' \
+            > /tmp/plan097-cloudflare/r2.json
+          api "workers/scripts" |
+            jq '{success, errors, result: [.result[] | {id, created_on, modified_on}]}' \
+            > /tmp/plan097-cloudflare/workers.json
+          if api "access/organizations" > /tmp/plan097-cloudflare/access-organizations.raw.json; then
+            jq '{success, errors, result: [.result[] | {name, auth_domain}]}' \
+              /tmp/plan097-cloudflare/access-organizations.raw.json \
+              > /tmp/plan097-cloudflare/access-organizations.json
+          else
+            jq -n '{success: false, errors: ["token cannot read Access organizations"]}' \
+              > /tmp/plan097-cloudflare/access-organizations.json
+          fi
+          if api "access/apps" > /tmp/plan097-cloudflare/access-apps.raw.json; then
+            jq '{success, errors, result: [.result[] | {id, name, domain, aud, type}]}' \
+              /tmp/plan097-cloudflare/access-apps.raw.json \
+              > /tmp/plan097-cloudflare/access-apps.json
+          else
+            jq -n '{success: false, errors: ["token cannot read Access applications"]}' \
+              > /tmp/plan097-cloudflare/access-apps.json
+          fi
+          if api "access/service_tokens" > /tmp/plan097-cloudflare/access-service-tokens.raw.json; then
+            jq '{success, errors, result: [.result[] | {id, name, client_id, expires_at}]}' \
+              /tmp/plan097-cloudflare/access-service-tokens.raw.json \
+              > /tmp/plan097-cloudflare/access-service-tokens.json
+          else
+            jq -n '{success: false, errors: ["token cannot read Access service tokens"]}' \
+              > /tmp/plan097-cloudflare/access-service-tokens.json
+          fi
+          rm /tmp/plan097-cloudflare/*.raw.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plan097-cloudflare-discovery-${{ github.sha }}
+          path: /tmp/plan097-cloudflare
+          if-no-files-found: error
+          retention-days: 7
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
