@@ -248,8 +248,11 @@ be absent from the slim production D1 and are never copied into it. It compares 
 columns, keys, and indexes rather than raw `sqlite_master.sql` formatting; the complete raw schema
 snapshot remains signed evidence. Persist the redacted
 attestation on the pushed branch. Stop if the active release is unknown, the Studio/map/exact
-election disagrees, 0033 is partial, any allowlisted serving-schema object drifts, a present
-protected table changes during an operation, or the candidate is not newer.
+election disagrees, 0033 is partial, `route_catalog` is neither canonical nor the exact pre-0009
+shape, any other allowlisted serving-schema object drifts, a present protected table changes during
+an operation, or the candidate is not newer. The signed reconciliation may create an absent exact
+0033 and may add only the three nullable 0009 `route_catalog` columns; it never edits the migration
+ledger and treats either already-canonical state as a retry-safe no-op.
 
 ### Disposable A-to-B-to-A proof
 

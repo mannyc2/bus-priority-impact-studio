@@ -11,7 +11,7 @@ receipt, or completion receipt.
 - Operation: `plan097:pub_20260725T164123260Z`
 - Coverage: `2023-04` through `2026-05`
 - Activation bundle SHA-256:
-  `fc4304c784d264a223fcf35fc0103710ffe17f6d9ed1f988fc14883f006490b2`
+  `7f570d37839b382f0b00488ed8c7f6d03dcb80dd5a933c19c85f3d40dd17327c`
 - Artifact manifest SHA-256:
   `6bc5cc028bfd20eadb7912b6022212847ba2f8087511450ac463f9e783300e70`
 - Artifact count and bytes: 3,002 objects; 774,069,604 bytes

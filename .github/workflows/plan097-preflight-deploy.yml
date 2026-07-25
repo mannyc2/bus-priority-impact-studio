@@ -56,7 +56,7 @@ jobs:
             --arg aud "$PLAN097_PREFLIGHT_ACCESS_AUD" \
             --arg serviceTokenId "$PLAN097_SERVICE_TOKEN_ID" \
             --arg operationId "plan097:pub_20260725T164123260Z" \
-            --arg activationSha "fc4304c784d264a223fcf35fc0103710ffe17f6d9ed1f988fc14883f006490b2" \
+            --arg activationSha "7f570d37839b382f0b00488ed8c7f6d03dcb80dd5a933c19c85f3d40dd17327c" \
             --arg repoSha "$GITHUB_SHA" \
             --arg productionD1Id "d9cd87e2-1f77-44eb-b712-e834b23497b0" \
             '

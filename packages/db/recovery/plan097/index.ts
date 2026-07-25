@@ -31,6 +31,12 @@ export const plan097MapReleaseCatalogRecoveryStatements = [
   "CREATE UNIQUE INDEX IF NOT EXISTS `map_release_catalog_manifest_key_idx` ON `map_release_catalog` (`manifest_key`)",
 ] as const;
 
+export const plan097RouteCatalogRecoveryStatements = [
+  "ALTER TABLE `route_catalog` ADD `route_miles` real",
+  "ALTER TABLE `route_catalog` ADD `terminal_a_name` text",
+  "ALTER TABLE `route_catalog` ADD `terminal_b_name` text",
+] as const;
+
 export const Plan097SqliteMasterRowSchema = Schema.Struct({
   type: Schema.Literals(["table", "index", "trigger", "view"]),
   name: NonEmptyStringSchema,
@@ -222,6 +228,80 @@ export function decidePlan097MapReleaseCatalogRecovery(input: Plan097SchemaAudit
   return { state: "exact", applyRecoverySql: false };
 }
 
+const expectedRouteCatalogColumns = [
+  ["route_id", "TEXT", true, 1],
+  ["route_short_name", "TEXT", true, 0],
+  ["route_long_name", "TEXT", false, 0],
+  ["shape_count", "INTEGER", true, 0],
+  ["stop_count", "INTEGER", true, 0],
+  ["timepoint_stop_count", "INTEGER", true, 0],
+  ["latitude_min", "REAL", false, 0],
+  ["latitude_max", "REAL", false, 0],
+  ["longitude_min", "REAL", false, 0],
+  ["longitude_max", "REAL", false, 0],
+  ["route_miles", "REAL", false, 0],
+  ["terminal_a_name", "TEXT", false, 0],
+  ["terminal_b_name", "TEXT", false, 0],
+] as const;
+
+export function decidePlan097RouteCatalogRecovery(input: Plan097SchemaAuditInput): {
+  state: "legacy-0009" | "exact";
+  applyRecoverySql: boolean;
+} {
+  const scopedObjects = input.sqliteMaster.filter(
+    (entry) => entry.tableName === "route_catalog" || entry.name === "route_catalog",
+  );
+  const table = input.tables.find((entry) => entry.tableName === "route_catalog");
+  const indexes = input.indexes.filter((entry) => entry.tableName === "route_catalog");
+  if (table === undefined) throw new Error("Required route_catalog table is absent");
+  const state =
+    table.columns.length === expectedRouteCatalogColumns.length
+      ? "exact"
+      : table.columns.length === expectedRouteCatalogColumns.length - 3
+        ? "legacy-0009"
+        : null;
+  if (state === null) {
+    throw new Error("route_catalog column count is neither canonical nor legacy migration 0009");
+  }
+  for (const [position, expected] of expectedRouteCatalogColumns.entries()) {
+    if (state === "legacy-0009" && position >= expectedRouteCatalogColumns.length - 3) break;
+    const column = table.columns[position];
+    if (
+      column === undefined ||
+      column.cid !== position ||
+      column.name !== expected[0] ||
+      column.type.toUpperCase() !== expected[1] ||
+      column.notNull !== expected[2] ||
+      column.defaultValue !== null ||
+      column.primaryKey !== expected[3]
+    ) {
+      throw new Error(`route_catalog column ${String(expected[0])} differs from canonical schema`);
+    }
+  }
+  if (
+    indexes.length !== 1 ||
+    !indexes[0]?.unique ||
+    indexes[0].origin !== "pk" ||
+    indexes[0].partial ||
+    indexes[0].columns.length !== 1 ||
+    indexes[0].columns[0]?.cid !== 0 ||
+    indexes[0].columns[0]?.name !== "route_id"
+  ) {
+    throw new Error("route_catalog primary-key index differs from canonical schema");
+  }
+  const unexpectedScopedObject = scopedObjects.find(
+    (entry) =>
+      entry.name !== "route_catalog" && !entry.name.startsWith("sqlite_autoindex_route_catalog_"),
+  );
+  if (unexpectedScopedObject !== undefined) {
+    throw new Error(`Unexpected route_catalog schema object ${unexpectedScopedObject.name}`);
+  }
+  return {
+    state,
+    applyRecoverySql: state === "legacy-0009",
+  };
+}
+
 function schemaAuditInputFromSnapshot(
   snapshot: Plan097CanonicalSchemaSnapshot,
 ): Plan097SchemaAuditInput {
@@ -251,7 +331,8 @@ function verifyCanonicalSchemaSnapshot(snapshot: Plan097CanonicalSchemaSnapshot)
 
 function normalizedSchemaEnvelope(snapshot: Plan097CanonicalSchemaSnapshot): string {
   const servingTables = new Set<string>(plan097RecoveryServingSchemaTables);
-  const includedTable = (tableName: string) => servingTables.has(tableName);
+  const includedTable = (tableName: string) =>
+    servingTables.has(tableName) && tableName !== "route_catalog";
   return canonicalJson({
     sqliteMaster: snapshot.sqliteMaster
       .filter((entry) => includedTable(entry.tableName) || includedTable(entry.name))
@@ -293,6 +374,7 @@ export function assertPlan097SchemaEnvelope(input: {
   expected: Plan097CanonicalSchemaSnapshot;
 }): {
   mapReleaseCatalog: ReturnType<typeof decidePlan097MapReleaseCatalogRecovery>;
+  routeCatalog: ReturnType<typeof decidePlan097RouteCatalogRecovery>;
 } {
   verifyCanonicalSchemaSnapshot(input.actual);
   verifyCanonicalSchemaSnapshot(input.expected);
@@ -302,7 +384,16 @@ export function assertPlan097SchemaEnvelope(input: {
   if (expectedMap.state !== "exact") {
     throw new Error("Plan 097 expected schema envelope must include canonical migration 0033");
   }
+  const expectedRouteCatalog = decidePlan097RouteCatalogRecovery(
+    schemaAuditInputFromSnapshot(input.expected),
+  );
+  if (expectedRouteCatalog.state !== "exact") {
+    throw new Error("Plan 097 expected schema envelope must include canonical migration 0009");
+  }
   const actualMap = decidePlan097MapReleaseCatalogRecovery(
+    schemaAuditInputFromSnapshot(input.actual),
+  );
+  const actualRouteCatalog = decidePlan097RouteCatalogRecovery(
     schemaAuditInputFromSnapshot(input.actual),
   );
   if (
@@ -311,7 +402,7 @@ export function assertPlan097SchemaEnvelope(input: {
   ) {
     throw new Error("Production schema differs from the Plan 097 canonical schema envelope");
   }
-  return { mapReleaseCatalog: actualMap };
+  return { mapReleaseCatalog: actualMap, routeCatalog: actualRouteCatalog };
 }
 
 export function assertPlan097SafeRemoteCommand(argv: readonly string[]): void {
@@ -438,6 +529,8 @@ export const Plan097PreflightReceiptSchema = Schema.Struct({
     actualStructuralSha256: Sha256Schema,
     mapReleaseCatalogState: Schema.Literals(["absent", "exact"]),
     applyRecoverySql: Schema.Boolean,
+    routeCatalogState: Schema.Literals(["legacy-0009", "exact"]),
+    applyRouteCatalogRecoverySql: Schema.Boolean,
   }),
   httpBaseline: Plan097HttpBaselineSchema,
   selectiveSnapshot: Plan097ImmutableBundleRefSchema,

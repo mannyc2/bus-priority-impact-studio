@@ -13,6 +13,7 @@ import {
   type Plan097RecoveryArtifactManifest,
   type Plan097RestoreBundle,
   plan097MapReleaseCatalogRecoveryStatements,
+  plan097RouteCatalogRecoveryStatements,
   plan097StructuralSchemaEnvelopeSha256,
 } from "@bp/db/recovery/plan097";
 import { decodeStrict } from "@bp/domain/decode";
@@ -887,13 +888,18 @@ describe("Plan 097 protected Worker operation", () => {
     });
   });
 
-  it("reconciles an absent exact 0033 only from the signed preflight and is retry-safe", async () => {
+  it("reconciles exact legacy 0033/0009 states only from signed preflight and is retry-safe", async () => {
     const ledgerBefore = (
       await testEnv.DB.prepare(
         "SELECT id, name, applied_at AS appliedAt FROM d1_migrations ORDER BY id, name",
       ).all()
     ).results;
     await testEnv.DB.prepare("DROP TABLE map_release_catalog").run();
+    await testEnv.DB.batch([
+      testEnv.DB.prepare("ALTER TABLE route_catalog DROP COLUMN terminal_b_name"),
+      testEnv.DB.prepare("ALTER TABLE route_catalog DROP COLUMN terminal_a_name"),
+      testEnv.DB.prepare("ALTER TABLE route_catalog DROP COLUMN route_miles"),
+    ]);
     try {
       const base = { operationId, activationBundleSha256 };
       const preflight = await operationRequest({
@@ -928,6 +934,17 @@ describe("Plan 097 protected Worker operation", () => {
       );
       const preflightRef = preflightResponse.evidence?.find((entry) => entry.kind === "preflight");
       if (preflightRef === undefined) throw new Error("missing absent-0033 preflight receipt");
+      const preflightObject = await testEnv.PLAN097_OPERATIONS.get(preflightRef.key);
+      if (preflightObject === null) throw new Error("missing preflight receipt object");
+      const preflightReceipt = decodeStrict(Plan097PreflightReceiptSchema)(
+        await preflightObject.json(),
+      );
+      expect(preflightReceipt.schemaReconciliation).toMatchObject({
+        mapReleaseCatalogState: "absent",
+        applyRecoverySql: true,
+        routeCatalogState: "legacy-0009",
+        applyRouteCatalogRecoverySql: true,
+      });
 
       const unauthorized = await operationRequest({
         body: {
@@ -973,7 +990,7 @@ describe("Plan 097 protected Worker operation", () => {
       const first = await reconcile();
       expect(first.status).toBe(200);
       expect(decodeStrict(Plan097OperationResponseSchema)(await first.json()).statementCount).toBe(
-        2,
+        5,
       );
       const retry = await reconcile();
       expect(retry.status).toBe(200);
@@ -983,6 +1000,9 @@ describe("Plan 097 protected Worker operation", () => {
       expect(
         (await testEnv.DB.prepare("PRAGMA table_info(map_release_catalog)").all()).results,
       ).toHaveLength(9);
+      expect(
+        (await testEnv.DB.prepare("PRAGMA table_info(route_catalog)").all()).results,
+      ).toHaveLength(13);
       expect(
         (
           await testEnv.DB.prepare(
@@ -995,9 +1015,18 @@ describe("Plan 097 protected Worker operation", () => {
         { id: 999, name: "proof-only-ledger-row.sql", appliedAt: 999 },
       ]);
     } finally {
-      await testEnv.DB.batch(
-        plan097MapReleaseCatalogRecoveryStatements.map((sql) => testEnv.DB.prepare(sql)),
-      );
+      const routeCatalogColumns = (
+        await testEnv.DB.prepare("PRAGMA table_info(route_catalog)").all()
+      ).results.map((row) => String((row as { name: string }).name));
+      await testEnv.DB.batch([
+        ...plan097RouteCatalogRecoveryStatements
+          .filter((sql) => {
+            const column = sql.match(/ADD `([^`]+)`/u)?.[1];
+            return column !== undefined && !routeCatalogColumns.includes(column);
+          })
+          .map((sql) => testEnv.DB.prepare(sql)),
+        ...plan097MapReleaseCatalogRecoveryStatements.map((sql) => testEnv.DB.prepare(sql)),
+      ]);
     }
   });
 });

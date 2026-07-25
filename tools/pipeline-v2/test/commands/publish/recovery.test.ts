@@ -297,6 +297,8 @@ async function signedPreflightFixture(root: string): Promise<{
       actualStructuralSha256: "d".repeat(64),
       mapReleaseCatalogState: "exact",
       applyRecoverySql: false,
+      routeCatalogState: "exact",
+      applyRouteCatalogRecoverySql: false,
     },
     httpBaseline: {
       checkedAt: "2026-07-22T11:59:00.000Z",

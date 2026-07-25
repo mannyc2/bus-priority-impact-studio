@@ -3,6 +3,7 @@ import {
   buildPlan097RestoreBatchFromVerifiedSnapshot,
   canonicalPlan097Json,
   decidePlan097MapReleaseCatalogRecovery,
+  decidePlan097RouteCatalogRecovery,
   type Plan097ActivationBundle,
   Plan097ActivationBundleSchema,
   type Plan097CompactedBatch,
@@ -27,6 +28,7 @@ import {
   plan097MapReleaseCatalogRecoveryStatements,
   plan097PreflightSignedPayloadBytes,
   plan097RecoveryMutationTables,
+  plan097RouteCatalogRecoveryStatements,
   plan097StructuralSchemaEnvelopeSha256,
   plan097StructuralSchemaTableSha256,
 } from "@bp/db/recovery/plan097";
@@ -665,7 +667,8 @@ async function runSchemaReconciliation(input: {
     throw new Error("Plan 097 preflight receipt does not authorize schema confirmation");
   }
   const before = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
-  const beforeDecision = decidePlan097MapReleaseCatalogRecovery(before);
+  const beforeMapDecision = decidePlan097MapReleaseCatalogRecovery(before);
+  const beforeRouteCatalogDecision = decidePlan097RouteCatalogRecovery(before);
   const proofMode = input.env.PLAN097_PROOF_MODE === "true";
   const ledgerMatches =
     proofMode ||
@@ -677,51 +680,65 @@ async function runSchemaReconciliation(input: {
   if (!ledgerMatches || !structureMatches) {
     throw new Error("Plan 097 production schema or migration ledger drifted after preflight");
   }
-  if (
-    receipt.schemaReconciliation.mapReleaseCatalogState === "exact" &&
-    !receipt.schemaReconciliation.applyRecoverySql
-  ) {
-    if (
-      beforeDecision.state !== "exact" ||
-      (!proofMode && before.sha256 !== receipt.schemaSnapshot.sha256)
-    ) {
-      throw new Error("Plan 097 exact 0033 preflight snapshot no longer matches production");
-    }
-    return 0;
-  }
-  if (
-    receipt.schemaReconciliation.mapReleaseCatalogState !== "absent" ||
-    !receipt.schemaReconciliation.applyRecoverySql
-  ) {
+  const mapDecisionAuthorized =
+    (receipt.schemaReconciliation.mapReleaseCatalogState === "exact" &&
+      !receipt.schemaReconciliation.applyRecoverySql) ||
+    (receipt.schemaReconciliation.mapReleaseCatalogState === "absent" &&
+      receipt.schemaReconciliation.applyRecoverySql);
+  if (!mapDecisionAuthorized) {
     throw new Error("Plan 097 preflight contains an invalid 0033 reconciliation decision");
   }
-  if (beforeDecision.state === "exact") {
-    return 0;
+  const routeCatalogDecisionAuthorized =
+    (receipt.schemaReconciliation.routeCatalogState === "exact" &&
+      !receipt.schemaReconciliation.applyRouteCatalogRecoverySql) ||
+    (receipt.schemaReconciliation.routeCatalogState === "legacy-0009" &&
+      receipt.schemaReconciliation.applyRouteCatalogRecoverySql);
+  if (!routeCatalogDecisionAuthorized) {
+    throw new Error("Plan 097 preflight contains an invalid 0009 reconciliation decision");
   }
-  if (!proofMode && before.sha256 !== receipt.schemaSnapshot.sha256) {
-    throw new Error("Plan 097 absent 0033 preflight snapshot no longer matches production");
+  if (
+    receipt.schemaReconciliation.mapReleaseCatalogState === "exact" &&
+    beforeMapDecision.state !== "exact"
+  ) {
+    throw new Error("Plan 097 exact 0033 preflight state no longer matches production");
   }
-  const statements = plan097MapReleaseCatalogRecoveryStatements.map((sql) =>
-    input.env.DB.prepare(sql),
-  );
-  await runPlan097D1StatementBatch({
-    db: input.env.DB,
-    statements,
-    failureMessage: "Plan 097 exact 0033 reconciliation batch failed",
-    metrics: input.metrics,
-  });
+  if (
+    receipt.schemaReconciliation.routeCatalogState === "exact" &&
+    beforeRouteCatalogDecision.state !== "exact"
+  ) {
+    throw new Error("Plan 097 exact 0009 preflight state no longer matches production");
+  }
+  const recoverySql = [
+    ...(receipt.schemaReconciliation.routeCatalogState === "legacy-0009" &&
+    beforeRouteCatalogDecision.state === "legacy-0009"
+      ? plan097RouteCatalogRecoveryStatements
+      : []),
+    ...(receipt.schemaReconciliation.mapReleaseCatalogState === "absent" &&
+    beforeMapDecision.state === "absent"
+      ? plan097MapReleaseCatalogRecoveryStatements
+      : []),
+  ];
+  if (recoverySql.length > 0) {
+    await runPlan097D1StatementBatch({
+      db: input.env.DB,
+      statements: recoverySql.map((sql) => input.env.DB.prepare(sql)),
+      failureMessage: "Plan 097 schema reconciliation batch failed",
+      metrics: input.metrics,
+    });
+  }
   const after = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
   if (
     decidePlan097MapReleaseCatalogRecovery(after).state !== "exact" ||
+    decidePlan097RouteCatalogRecovery(after).state !== "exact" ||
     plan097StructuralSchemaEnvelopeSha256(after) !==
       receipt.schemaReconciliation.expectedStructuralSha256 ||
     (!proofMode &&
       canonicalPlan097Json(after.migrationLedger) !==
         canonicalPlan097Json(receipt.schemaSnapshot.migrationLedger))
   ) {
-    throw new Error("Plan 097 exact 0033 reconciliation post-audit failed");
+    throw new Error("Plan 097 schema reconciliation post-audit failed");
   }
-  return statements.length;
+  return recoverySql.length;
 }
 
 async function putIdentical(input: {
@@ -1329,6 +1346,7 @@ async function runPreflight(input: {
     );
   }
   const mapDecision = decidePlan097MapReleaseCatalogRecovery(schemaSnapshot);
+  const routeCatalogDecision = decidePlan097RouteCatalogRecovery(schemaSnapshot);
   const capturedAt = new Date().toISOString();
   const snapshot = await captureSelectiveSnapshot({
     db: input.env.DB,
@@ -1393,6 +1411,8 @@ async function runPreflight(input: {
       actualStructuralSha256,
       mapReleaseCatalogState: mapDecision.state,
       applyRecoverySql: mapDecision.applyRecoverySql,
+      routeCatalogState: routeCatalogDecision.state,
+      applyRouteCatalogRecoverySql: routeCatalogDecision.applyRecoverySql,
     },
     httpBaseline: input.request.httpBaseline,
     selectiveSnapshot: {
