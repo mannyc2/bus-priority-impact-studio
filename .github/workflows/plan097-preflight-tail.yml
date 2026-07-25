@@ -26,7 +26,7 @@ jobs:
           timeout --signal=INT 90s \
             bunx wrangler@4.114.0 tail bus-priority-plan097-preflight \
               --format json \
-              --status error \
+              --search "Plan 097 recovery operation failed" \
               > /tmp/plan097-preflight-tail.jsonl \
               2>&1
           status=$?
