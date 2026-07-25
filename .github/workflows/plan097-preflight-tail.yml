@@ -1,0 +1,42 @@
+name: Plan 097 preflight diagnostic tail
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tail:
+    if: github.ref == 'refs/heads/codex/plan097-completion'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment:
+      name: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: 7aa7065a7e971d97435b3f22098d78b0
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Capture isolated preflight Worker errors
+        run: |
+          set +e
+          timeout --signal=INT 90s \
+            bunx wrangler@4.114.0 tail bus-priority-plan097-preflight \
+              --format json \
+              --status error \
+              > /tmp/plan097-preflight-tail.jsonl \
+              2>&1
+          status=$?
+          if [ "$status" -ne 0 ] && [ "$status" -ne 124 ] && [ "$status" -ne 130 ]; then
+            exit "$status"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plan097-preflight-tail-${{ github.run_id }}
+          path: /tmp/plan097-preflight-tail.jsonl
+          if-no-files-found: error
+          retention-days: 3
