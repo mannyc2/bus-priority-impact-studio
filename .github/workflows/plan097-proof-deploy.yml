@@ -143,6 +143,16 @@ jobs:
           fi
           baseline_sha256="$(sha256sum "$output_dir/proof-baseline.sql" | cut -d' ' -f1)"
           baseline_bytes="$(wc -c < "$output_dir/proof-baseline.sql")"
+          printf 'PRAGMA defer_foreign_keys=TRUE;\n' > "$output_dir/proof-baseline-reset.sql"
+          for table in "${baseline_tables[@]}"; do
+            printf 'DELETE FROM "%s";\n' "$table" >> "$output_dir/proof-baseline-reset.sql"
+          done
+          bunx wrangler d1 execute bus-priority-plan097-proof \
+            --remote \
+            --config "$config" \
+            --file "$output_dir/proof-baseline-reset.sql" \
+            --yes
+          rm "$output_dir/proof-baseline-reset.sql"
           bunx wrangler d1 execute bus-priority-plan097-proof \
             --remote \
             --config "$config" \
