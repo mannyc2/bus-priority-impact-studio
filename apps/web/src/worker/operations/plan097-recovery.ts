@@ -52,6 +52,30 @@ class Plan097SchemaEnvelopeError extends Error {
   }
 }
 
+class Plan097ProofElectionError extends Error {
+  constructor(
+    readonly phase: Plan097ProofState["phase"],
+    readonly expectedElection: {
+      studioReleaseId: string | null;
+      mapReleaseId: string | null;
+      exactRouteReleaseId: string | null;
+    },
+    readonly actualElection: {
+      studioReleaseId: string | null;
+      mapReleaseId: string | null;
+      exactRouteReleaseId: string | null;
+      mapCatalogPresent: boolean;
+    },
+    readonly effectiveElection: {
+      studioReleaseId: string | null;
+      mapReleaseId: string | null;
+      exactRouteReleaseId: string | null;
+    },
+  ) {
+    super(`Plan 097 ${phase} election verification failed`);
+  }
+}
+
 type Plan097OperationMetricsAccumulator = {
   startedAtMs: number;
   d1StatementCount: number;
@@ -1541,7 +1565,7 @@ async function verifyPlan097ProofState(input: {
     exactRouteReleaseId: actualElection.exactRouteReleaseId,
   };
   if (canonicalPlan097Json(election) !== canonicalPlan097Json(expectedElection)) {
-    throw new Error(`Plan 097 ${input.phase} election verification failed`);
+    throw new Plan097ProofElectionError(input.phase, expectedElection, actualElection, election);
   }
   if (
     canonicalPlan097Json(actualFingerprints) !== canonicalPlan097Json(input.protectedFingerprints)
@@ -2044,6 +2068,14 @@ export async function handlePlan097RecoveryRequest(
               actualSchemaTableSha256: error.actualSchemaTableSha256,
               actualSchemaTables: error.actualSchemaTables,
               actualSchemaIndexes: error.actualSchemaIndexes,
+            }
+          : {}),
+        ...(error instanceof Plan097ProofElectionError
+          ? {
+              proofPhase: error.phase,
+              expectedProofElection: error.expectedElection,
+              actualProofElection: error.actualElection,
+              effectiveProofElection: error.effectiveElection,
             }
           : {}),
       },
