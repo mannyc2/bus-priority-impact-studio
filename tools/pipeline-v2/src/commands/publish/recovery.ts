@@ -593,7 +593,7 @@ async function stageCandidate(input: {
       }
     }
   };
-  const workerCount = Math.min(4, manifest.entries.length);
+  const workerCount = Math.min(input.inputs.mirrorProofArtifacts ? 12 : 4, manifest.entries.length);
   await Promise.all(Array.from({ length: workerCount }, () => stageWorker()));
   for (const receiptGroup of stagedReceiptGroups) {
     if (receiptGroup === undefined) throw new Error("Plan 097 artifact staging was incomplete");

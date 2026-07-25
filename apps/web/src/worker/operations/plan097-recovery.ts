@@ -839,21 +839,53 @@ async function verifyStagedEntry(
   },
   metrics?: Plan097OperationMetricsAccumulator | undefined,
 ): Promise<void> {
-  if (metrics !== undefined) metrics.r2GetRequests += 1;
-  const object = await bucket.get(entry.key);
-  if (object === null) throw new Error(`Plan 097 staged object ${entry.key} is missing`);
-  const body = new Uint8Array(await object.arrayBuffer());
-  if (metrics !== undefined) metrics.r2BytesRead += body.byteLength;
+  if (!(await stagedEntryMetadataMatches(bucket, entry, metrics))) {
+    throw new Error(`Plan 097 staged object ${entry.key} failed metadata verification`);
+  }
+}
+
+async function stagedEntryMetadataMatches(
+  bucket: R2Bucket,
+  entry: {
+    key: string;
+    sha256: string;
+    bytes: number;
+    mediaType: string;
+  },
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
+): Promise<boolean> {
+  if (metrics !== undefined) metrics.r2HeadRequests += 1;
+  const object = await bucket.head(entry.key);
+  if (object === null) return false;
   const headers = new Headers();
   object.writeHttpMetadata(headers);
-  if (
-    body.byteLength !== entry.bytes ||
-    (await sha256(body)) !== entry.sha256 ||
-    objectSha256(object) !== entry.sha256 ||
-    headers.get("Content-Type") !== entry.mediaType
-  ) {
-    throw new Error(`Plan 097 staged object ${entry.key} failed verification`);
-  }
+  return (
+    object.size === entry.bytes &&
+    objectSha256(object) === entry.sha256 &&
+    headers.get("Content-Type") === entry.mediaType
+  );
+}
+
+async function verifyStagedEntries(
+  bucket: R2Bucket,
+  entries: readonly {
+    key: string;
+    sha256: string;
+    bytes: number;
+    mediaType: string;
+  }[],
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
+): Promise<void> {
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < entries.length) {
+      const entry = entries[nextIndex];
+      nextIndex += 1;
+      if (entry === undefined) throw new Error("Plan 097 staged entry index drifted");
+      await verifyStagedEntry(bucket, entry, metrics);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(32, entries.length) }, async () => worker()));
 }
 
 const protectedWholeTables = [
@@ -2047,6 +2079,10 @@ export async function handlePlan097RecoveryRequest(
         ) {
           throw new Error("Plan 097 proof body is not declared by the signed manifest");
         }
+        if (await stagedEntryMetadataMatches(boundEnv.ARTIFACTS, entry, metrics)) {
+          objectCount = 1;
+          break;
+        }
         const body = await readVerifiedObject({
           bucket: env.PLAN097_PROOF_ARTIFACTS,
           key: entry.key,
@@ -2067,9 +2103,7 @@ export async function handlePlan097RecoveryRequest(
       }
       case "finalize-manifest": {
         const { manifest, bytes } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
-        for (const entry of manifest.entries) {
-          await verifyStagedEntry(boundEnv.ARTIFACTS, entry, metrics);
-        }
+        await verifyStagedEntries(boundEnv.ARTIFACTS, manifest.entries, metrics);
         await putIdentical({
           bucket: boundEnv.ARTIFACTS,
           key: bundle.artifactManifest.key,
@@ -2093,9 +2127,7 @@ export async function handlePlan097RecoveryRequest(
           },
           metrics,
         );
-        for (const entry of manifest.entries) {
-          await verifyStagedEntry(boundEnv.ARTIFACTS, entry, metrics);
-        }
+        await verifyStagedEntries(boundEnv.ARTIFACTS, manifest.entries, metrics);
         await runD1Batch({ db: boundEnv.DB, batch: bundle.batch, metrics });
         statementCount = bundle.batch.statements.length;
         objectCount = manifest.entries.length + 1;

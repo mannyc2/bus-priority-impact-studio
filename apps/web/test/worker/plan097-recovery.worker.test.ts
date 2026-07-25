@@ -668,6 +668,7 @@ describe("Plan 097 protected Worker operation", () => {
     expect(await testEnv.ARTIFACTS.get(entry.key)).not.toBeNull();
 
     await testEnv.PLAN097_OPERATIONS.put(entry.key, artifactBody);
+    await testEnv.ARTIFACTS.delete(entry.key);
     const productionMirrorEnv = {
       ...operationEnv,
       PLAN097_PROOF_ARTIFACTS: testEnv.PLAN097_OPERATIONS,
@@ -690,7 +691,7 @@ describe("Plan 097 protected Worker operation", () => {
       decodeStrict(Plan097OperationResponseSchema)(await mirroredBody.json()).metrics.r2,
     ).toMatchObject({
       getRequests: 4,
-      headRequests: 1,
+      headRequests: 2,
     });
 
     const aliasBody = {
