@@ -1,0 +1,197 @@
+name: Plan 097 proof Worker deploy
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: 7aa7065a7e971d97435b3f22098d78b0
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PLAN097_ACCESS_TEAM_DOMAIN: ${{ secrets.PLAN097_ACCESS_TEAM_DOMAIN }}
+      PLAN097_PROOF_ACCESS_AUD: ${{ secrets.PLAN097_PROOF_ACCESS_AUD }}
+      PLAN097_SERVICE_TOKEN_ID: ${{ secrets.PLAN097_SERVICE_TOKEN_ID }}
+      PLAN097_SERVICE_TOKEN_SECRET: ${{ secrets.PLAN097_SERVICE_TOKEN_SECRET }}
+      PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64: ${{ secrets.PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64 }}
+      PLAN097_PROOF_EXECUTION_TOKEN: ${{ secrets.PLAN097_PROOF_EXECUTION_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Render and deploy protected proof Worker
+        run: |
+          set -euo pipefail
+          for required in \
+            CLOUDFLARE_API_TOKEN \
+            PLAN097_ACCESS_TEAM_DOMAIN \
+            PLAN097_PROOF_ACCESS_AUD \
+            PLAN097_SERVICE_TOKEN_ID \
+            PLAN097_SERVICE_TOKEN_SECRET \
+            PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64 \
+            PLAN097_PROOF_EXECUTION_TOKEN
+          do
+            test -n "${!required}"
+          done
+          output_dir=/tmp/plan097-proof-deploy
+          mkdir -p "$output_dir"
+          config=apps/web/wrangler.plan097-proof.jsonc
+          jq \
+            --arg accountId "$CLOUDFLARE_ACCOUNT_ID" \
+            --arg previousReleaseId "pub_20260605T183601689Z" \
+            --arg teamDomain "$PLAN097_ACCESS_TEAM_DOMAIN" \
+            --arg aud "$PLAN097_PROOF_ACCESS_AUD" \
+            --arg serviceTokenId "$PLAN097_SERVICE_TOKEN_ID" \
+            --arg operationId "plan097:pub_20260725T164123260Z" \
+            --arg activationSha "7f570d37839b382f0b00488ed8c7f6d03dcb80dd5a933c19c85f3d40dd17327c" \
+            --arg restoreSha "01696521dee0deaf0a0d29e985d9e89b46189bb602a0d8d40a1d358101df1d28" \
+            --arg preflightSha "fe5dea4a775e5220c73fb1d18322ea4eb4ade11de906b17e4fcffe2131769191" \
+            --arg repoSha "$GITHUB_SHA" \
+            --arg proofD1Id "903545fb-84b1-4571-b962-e6f6fd7c46aa" \
+            '
+              .account_id = $accountId
+              | .vars.PLAN097_PREVIOUS_RELEASE_ID = $previousReleaseId
+              | .vars.PLAN097_ACCESS_TEAM_DOMAIN = $teamDomain
+              | .vars.PLAN097_ACCESS_AUD = $aud
+              | .vars.PLAN097_ACCESS_SERVICE_TOKEN_ID = $serviceTokenId
+              | .vars.PLAN097_OPERATION_ID = $operationId
+              | .vars.PLAN097_ACTIVATION_BUNDLE_SHA256 = $activationSha
+              | .vars.PLAN097_RESTORE_BUNDLE_SHA256 = $restoreSha
+              | .vars.PLAN097_PREFLIGHT_RECEIPT_SHA256 = $preflightSha
+              | .vars.PLAN097_REPO_SHA = $repoSha
+              | .vars.PLAN097_D1_DATABASE_ID = $proofD1Id
+              | .d1_databases[0].database_id = $proofD1Id
+            ' apps/web/wrangler.plan097-proof.example.jsonc > "$config"
+          if grep -q '<[^>]*>' "$config"; then
+            echo "Rendered proof config retains a placeholder" >&2
+            exit 1
+          fi
+          jq -n \
+            --arg publicKey "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64" \
+            --arg executionToken "$PLAN097_PROOF_EXECUTION_TOKEN" \
+            '{
+              PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64:$publicKey,
+              PLAN097_EXECUTION_TOKEN:$executionToken
+            }' > "$output_dir/secrets.json"
+          bunx wrangler deploy \
+            --config "$config" \
+            --secrets-file "$output_dir/secrets.json"
+          rm "$output_dir/secrets.json"
+
+          endpoint="https://bus-priority-plan097-proof.c20carroll.workers.dev/__operations/plan097"
+          for attempt in $(seq 1 30); do
+            anonymous_status="$(
+              curl --silent --show-error \
+                --output /dev/null \
+                --write-out '%{http_code}' \
+                --request POST \
+                --header "Content-Type: application/json" \
+                --data '{}' \
+                "$endpoint"
+            )"
+            wrong_secret_status="$(
+              curl --silent --show-error \
+                --output /dev/null \
+                --write-out '%{http_code}' \
+                --request POST \
+                --header "Content-Type: application/json" \
+                --header "CF-Access-Client-Id: $PLAN097_SERVICE_TOKEN_ID" \
+                --header "CF-Access-Client-Secret: plan097-intentionally-wrong" \
+                --data '{}' \
+                "$endpoint"
+            )"
+            authenticated_status="$(
+              curl --silent --show-error \
+                --output /dev/null \
+                --write-out '%{http_code}' \
+                --request POST \
+                --header "Content-Type: application/json" \
+                --header "CF-Access-Client-Id: $PLAN097_SERVICE_TOKEN_ID" \
+                --header "CF-Access-Client-Secret: $PLAN097_SERVICE_TOKEN_SECRET" \
+                --data '{}' \
+                "$endpoint"
+            )"
+            if { [ "$anonymous_status" = 401 ] || [ "$anonymous_status" = 403 ]; } &&
+              { [ "$wrong_secret_status" = 401 ] || [ "$wrong_secret_status" = 403 ]; } &&
+              [ "$authenticated_status" = 409 ]; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Access convergence failed: anonymous=$anonymous_status wrong-secret=$wrong_secret_status authenticated=$authenticated_status" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+
+          bunx wrangler d1 execute bus-priority-plan097-proof \
+            --remote \
+            --config "$config" \
+            --json \
+            --command "SELECT type, name, tbl_name AS tableName FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY type, name, tbl_name" \
+            > "$output_dir/schema-objects.raw.json"
+          jq \
+            '[.[].results[] | {type,name,tableName}] | sort_by(.type,.name,.tableName)' \
+            "$output_dir/schema-objects.raw.json" \
+            > "$output_dir/schema-objects.json"
+
+          bunx wrangler deployments status \
+            --json \
+            --config "$config" |
+            jq '{
+              id,
+              created_on,
+              versions:[.versions[] | {version_id,percentage}]
+            }' > "$output_dir/deployment.json"
+          bunx wrangler secret list \
+            --format json \
+            --config "$config" |
+            jq '[.[] | {name,type}] | sort_by(.name)' > "$output_dir/secrets.json"
+          jq -n \
+            --arg artifactKind "bp.ops.plan097.proof-deploy.v1" \
+            --arg repoSha "$GITHUB_SHA" \
+            --arg endpoint "$endpoint" \
+            --arg operationId "plan097:pub_20260725T164123260Z" \
+            --arg activationSha "7f570d37839b382f0b00488ed8c7f6d03dcb80dd5a933c19c85f3d40dd17327c" \
+            --arg restoreSha "01696521dee0deaf0a0d29e985d9e89b46189bb602a0d8d40a1d358101df1d28" \
+            --arg preflightSha "fe5dea4a775e5220c73fb1d18322ea4eb4ade11de906b17e4fcffe2131769191" \
+            --argjson anonymousStatus "$anonymous_status" \
+            --argjson wrongSecretStatus "$wrong_secret_status" \
+            --argjson authenticatedStatus "$authenticated_status" \
+            --slurpfile deployment "$output_dir/deployment.json" \
+            --slurpfile secrets "$output_dir/secrets.json" \
+            --slurpfile schemaObjects "$output_dir/schema-objects.json" \
+            '{
+              artifactKind:$artifactKind,
+              schemaVersion:1,
+              repoSha:$repoSha,
+              endpoint:$endpoint,
+              operationId:$operationId,
+              activationBundleSha256:$activationSha,
+              restoreBundleSha256:$restoreSha,
+              preflightReceiptSha256:$preflightSha,
+              accessChecks:{
+                anonymousStatus:$anonymousStatus,
+                wrongSecretStatus:$wrongSecretStatus,
+                authenticatedStatus:$authenticatedStatus
+              },
+              deployment:$deployment[0],
+              secretBindings:$secrets[0],
+              proofSchemaObjects:$schemaObjects[0]
+            }' > "$output_dir/receipt.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plan097-proof-deploy-${{ github.sha }}
+          path: /tmp/plan097-proof-deploy/receipt.json
+          if-no-files-found: error
+          retention-days: 30
