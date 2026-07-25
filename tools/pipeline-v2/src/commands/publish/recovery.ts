@@ -573,6 +573,7 @@ async function stageCandidate(input: {
     length: manifest.entries.length,
   });
   let nextEntryIndex = 0;
+  let completedEntryCount = 0;
   const stageWorker = async (): Promise<void> => {
     while (nextEntryIndex < manifest.entries.length) {
       const entryIndex = nextEntryIndex;
@@ -580,9 +581,15 @@ async function stageCandidate(input: {
       const entry = manifest.entries[entryIndex];
       if (entry === undefined) throw new Error("Plan 097 manifest entry index drifted");
       stagedReceiptGroups[entryIndex] = await stageEntry(entry);
+      completedEntryCount += 1;
+      if (completedEntryCount % 250 === 0 || completedEntryCount === manifest.entries.length) {
+        process.stderr.write(
+          `Plan 097 staged ${String(completedEntryCount)}/${String(manifest.entries.length)} artifacts\n`,
+        );
+      }
     }
   };
-  const workerCount = Math.min(2, manifest.entries.length);
+  const workerCount = Math.min(4, manifest.entries.length);
   await Promise.all(Array.from({ length: workerCount }, () => stageWorker()));
   for (const receiptGroup of stagedReceiptGroups) {
     if (receiptGroup === undefined) throw new Error("Plan 097 artifact staging was incomplete");
