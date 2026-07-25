@@ -1,0 +1,178 @@
+name: Plan 097 preflight Worker deploy
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: 7aa7065a7e971d97435b3f22098d78b0
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PLAN097_ACCESS_TEAM_DOMAIN: ${{ secrets.PLAN097_ACCESS_TEAM_DOMAIN }}
+      PLAN097_PREFLIGHT_ACCESS_AUD: ${{ secrets.PLAN097_PREFLIGHT_ACCESS_AUD }}
+      PLAN097_SERVICE_TOKEN_ID: ${{ secrets.PLAN097_SERVICE_TOKEN_ID }}
+      PLAN097_SERVICE_TOKEN_SECRET: ${{ secrets.PLAN097_SERVICE_TOKEN_SECRET }}
+      PLAN097_SIGNING_KEY_ID: ${{ secrets.PLAN097_SIGNING_KEY_ID }}
+      PLAN097_SIGNING_PRIVATE_KEY_PKCS8_BASE64: ${{ secrets.PLAN097_SIGNING_PRIVATE_KEY_PKCS8_BASE64 }}
+      PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64: ${{ secrets.PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64 }}
+      PLAN097_BOOTSTRAP_TOKEN: ${{ secrets.PLAN097_BOOTSTRAP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Render and deploy protected preflight Worker
+        run: |
+          set -euo pipefail
+          for required in \
+            CLOUDFLARE_API_TOKEN \
+            PLAN097_ACCESS_TEAM_DOMAIN \
+            PLAN097_PREFLIGHT_ACCESS_AUD \
+            PLAN097_SERVICE_TOKEN_ID \
+            PLAN097_SERVICE_TOKEN_SECRET \
+            PLAN097_SIGNING_KEY_ID \
+            PLAN097_SIGNING_PRIVATE_KEY_PKCS8_BASE64 \
+            PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64 \
+            PLAN097_BOOTSTRAP_TOKEN
+          do
+            test -n "${!required}"
+          done
+          output_dir=/tmp/plan097-preflight-deploy
+          mkdir -p "$output_dir"
+          config=apps/web/wrangler.plan097-preflight.jsonc
+          jq \
+            --arg accountId "$CLOUDFLARE_ACCOUNT_ID" \
+            --arg teamDomain "$PLAN097_ACCESS_TEAM_DOMAIN" \
+            --arg aud "$PLAN097_PREFLIGHT_ACCESS_AUD" \
+            --arg serviceTokenId "$PLAN097_SERVICE_TOKEN_ID" \
+            --arg operationId "plan097:pub_20260725T164123260Z" \
+            --arg activationSha "d329411674b9923c352e5448239d0b661f0cd0e85a1fdd11a62c52366fdfb06c" \
+            --arg repoSha "$GITHUB_SHA" \
+            --arg productionD1Id "d9cd87e2-1f77-44eb-b712-e834b23497b0" \
+            '
+              .account_id = $accountId
+              | .vars.PLAN097_ACCESS_TEAM_DOMAIN = $teamDomain
+              | .vars.PLAN097_ACCESS_AUD = $aud
+              | .vars.PLAN097_ACCESS_SERVICE_TOKEN_ID = $serviceTokenId
+              | .vars.PLAN097_OPERATION_ID = $operationId
+              | .vars.PLAN097_ACTIVATION_BUNDLE_SHA256 = $activationSha
+              | .vars.PLAN097_REPO_SHA = $repoSha
+              | .vars.PLAN097_D1_DATABASE_ID = $productionD1Id
+              | .d1_databases[0].database_id = $productionD1Id
+            ' apps/web/wrangler.plan097-preflight.example.jsonc > "$config"
+          if grep -q '<[^>]*>' "$config"; then
+            echo "Rendered preflight config retains a placeholder" >&2
+            exit 1
+          fi
+          jq -n \
+            --arg keyId "$PLAN097_SIGNING_KEY_ID" \
+            --arg privateKey "$PLAN097_SIGNING_PRIVATE_KEY_PKCS8_BASE64" \
+            --arg publicKey "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64" \
+            --arg executionToken "$PLAN097_BOOTSTRAP_TOKEN" \
+            '{
+              PLAN097_PREFLIGHT_SIGNING_KEY_ID:$keyId,
+              PLAN097_PREFLIGHT_SIGNING_PRIVATE_KEY_PKCS8_BASE64:$privateKey,
+              PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64:$publicKey,
+              PLAN097_EXECUTION_TOKEN:$executionToken
+            }' > "$output_dir/secrets.json"
+          bunx wrangler deploy \
+            --config "$config" \
+            --secrets-file "$output_dir/secrets.json"
+          rm "$output_dir/secrets.json"
+
+          endpoint="https://bus-priority-plan097-preflight.c20carroll.workers.dev/__operations/plan097"
+          anonymous_status="$(
+            curl --silent --show-error \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --request POST \
+              --header "Content-Type: application/json" \
+              --data '{}' \
+              "$endpoint"
+          )"
+          if [ "$anonymous_status" != 401 ] && [ "$anonymous_status" != 403 ]; then
+            echo "Anonymous preflight endpoint returned HTTP $anonymous_status" >&2
+            exit 1
+          fi
+          wrong_secret_status="$(
+            curl --silent --show-error \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --request POST \
+              --header "Content-Type: application/json" \
+              --header "CF-Access-Client-Id: $PLAN097_SERVICE_TOKEN_ID" \
+              --header "CF-Access-Client-Secret: plan097-intentionally-wrong" \
+              --data '{}' \
+              "$endpoint"
+          )"
+          if [ "$wrong_secret_status" != 401 ] && [ "$wrong_secret_status" != 403 ]; then
+            echo "Wrong Access secret returned HTTP $wrong_secret_status" >&2
+            exit 1
+          fi
+          authenticated_status="$(
+            curl --silent --show-error \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --request POST \
+              --header "Content-Type: application/json" \
+              --header "CF-Access-Client-Id: $PLAN097_SERVICE_TOKEN_ID" \
+              --header "CF-Access-Client-Secret: $PLAN097_SERVICE_TOKEN_SECRET" \
+              --data '{}' \
+              "$endpoint"
+          )"
+          if [ "$authenticated_status" != 409 ]; then
+            echo "Authenticated preflight endpoint returned HTTP $authenticated_status" >&2
+            exit 1
+          fi
+
+          bunx wrangler deployments status \
+            --json \
+            --config "$config" |
+            jq '{
+              id,
+              created_on,
+              versions:[.versions[] | {version_id,percentage}]
+            }' > "$output_dir/deployment.json"
+          bunx wrangler secret list \
+            --json \
+            --config "$config" |
+            jq '[.[] | {name,type}] | sort_by(.name)' > "$output_dir/secrets.json"
+          jq -n \
+            --arg artifactKind "bp.ops.plan097.preflight-deploy.v1" \
+            --arg repoSha "$GITHUB_SHA" \
+            --arg endpoint "$endpoint" \
+            --argjson anonymousStatus "$anonymous_status" \
+            --argjson wrongSecretStatus "$wrong_secret_status" \
+            --argjson authenticatedStatus "$authenticated_status" \
+            --slurpfile deployment "$output_dir/deployment.json" \
+            --slurpfile secrets "$output_dir/secrets.json" \
+            '{
+              artifactKind:$artifactKind,
+              schemaVersion:1,
+              repoSha:$repoSha,
+              endpoint:$endpoint,
+              accessChecks:{
+                anonymousStatus:$anonymousStatus,
+                wrongSecretStatus:$wrongSecretStatus,
+                authenticatedStatus:$authenticatedStatus
+              },
+              deployment:$deployment[0],
+              secretBindings:$secrets[0]
+            }' > "$output_dir/receipt.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plan097-preflight-deploy-${{ github.sha }}
+          path: /tmp/plan097-preflight-deploy/receipt.json
+          if-no-files-found: error
+          retention-days: 30

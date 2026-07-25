@@ -14,11 +14,11 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  plan097-access-bootstrap:
+  plan097-preflight-deploy:
     if: >-
       github.event_name == 'workflow_dispatch' &&
       github.ref == 'refs/heads/codex/plan097-completion'
-    uses: ./.github/workflows/plan097-access-bootstrap.yml
+    uses: ./.github/workflows/plan097-preflight-deploy.yml
     secrets: inherit
 
   verify:
