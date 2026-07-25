@@ -15,10 +15,47 @@ import { decodeSchemaStrict } from "./schema-decode.ts";
 
 type Fetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
+const requestVolatileSchemaIds = new Set([
+  "bp.studio.route_index_response.v3",
+  "bp.studio.route_detail_response.v3",
+  "bp.studio.route_history_response.v1",
+]);
+
 const legacyEmptyStatePatterns = [
   /route dossier is still building/iu,
   /no published serving data is available/iu,
 ] as const;
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function canonicalPlan097SemanticBody(value: unknown, schemaId: string): unknown {
+  if (!isRecord(value) || !requestVolatileSchemaIds.has(schemaId)) return value;
+  const canonical = { ...value, generatedAt: "<request-time>" };
+  const routes = Reflect.get(value, "routes");
+  if (schemaId !== "bp.studio.route_index_response.v3" || !Array.isArray(routes)) {
+    return canonical;
+  }
+  return {
+    ...canonical,
+    routes: routes.map((route) =>
+      isRecord(route) ? { ...route, updatedAt: "<request-time>" } : route,
+    ),
+  };
+}
+
+function semanticBodySha256(value: unknown, schemaId: string): string | undefined {
+  if (!requestVolatileSchemaIds.has(schemaId)) return undefined;
+  return createHash("sha256")
+    .update(JSON.stringify(canonicalPlan097SemanticBody(value, schemaId)))
+    .digest("hex");
+}
+
+function etagContract(etag: string | null): "absent" | "weak" | "strong" {
+  if (etag === null) return "absent";
+  return etag.startsWith("W/") ? "weak" : "strong";
+}
 
 export function assertNoPlan097LegacyEmptyState(body: string, path: string): void {
   if (legacyEmptyStatePatterns.some((pattern) => pattern.test(body))) {
@@ -100,6 +137,7 @@ export async function fetchPlan097HttpEvidence<A>(input: {
   }
   assertNoPlan097LegacyEmptyState(rawBody, input.path);
   const value = decodeSchemaStrict(input.schema, JSON.parse(rawBody) as unknown);
+  const semanticSha256 = semanticBodySha256(value, input.schemaId);
   return {
     value,
     rawBody,
@@ -108,6 +146,7 @@ export async function fetchPlan097HttpEvidence<A>(input: {
       status: response.status,
       schemaId: input.schemaId,
       safeBodySha256: createHash("sha256").update(rawBody).digest("hex"),
+      ...(semanticSha256 === undefined ? {} : { semanticBodySha256: semanticSha256 }),
       requestId: response.headers.get("x-request-id"),
       cfRay: response.headers.get("cf-ray"),
       cacheControl: response.headers.get("cache-control"),
@@ -193,11 +232,21 @@ export function comparePlan097HttpBaselines(input: {
       endpoint.status !== expected.status ||
       endpoint.schemaId !== expected.schemaId ||
       endpoint.cacheControl !== expected.cacheControl ||
-      endpoint.etag !== expected.etag
+      (requestVolatileSchemaIds.has(endpoint.schemaId)
+        ? etagContract(endpoint.etag) !== etagContract(expected.etag)
+        : endpoint.etag !== expected.etag)
     ) {
       throw new Error(`Plan 097 rollback contract metadata drifted for ${endpoint.path}`);
     }
-    if (endpoint.safeBodySha256 !== expected.safeBodySha256) {
+    const comparableBodyHashes =
+      requestVolatileSchemaIds.has(endpoint.schemaId) &&
+      endpoint.semanticBodySha256 !== undefined &&
+      expected.semanticBodySha256 !== undefined
+        ? [endpoint.semanticBodySha256, expected.semanticBodySha256]
+        : requestVolatileSchemaIds.has(endpoint.schemaId)
+          ? null
+          : [endpoint.safeBodySha256, expected.safeBodySha256];
+    if (comparableBodyHashes !== null && comparableBodyHashes[0] !== comparableBodyHashes[1]) {
       throw new Error(`Plan 097 rollback safe body hash drifted for ${endpoint.path}`);
     }
   }

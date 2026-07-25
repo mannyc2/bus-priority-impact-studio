@@ -134,6 +134,43 @@ describe("Plan 097 release-aware HTTP checker", () => {
     expect(result.evidence.safeBodySha256).toBe(createHash("sha256").update(body).digest("hex"));
   });
 
+  test("preserves raw hashes while canonicalizing only known request-time fields", async () => {
+    const schema = Schema.Struct({
+      schemaVersion: Schema.Literal(3),
+      generatedAt: Schema.String,
+      routes: Schema.Array(
+        Schema.Struct({
+          routeId: Schema.String,
+          updatedAt: Schema.String,
+          score: Schema.Number,
+        }),
+      ),
+    });
+    const fetchEvidence = (generatedAt: string, score = 7) =>
+      fetchPlan097HttpEvidence({
+        fetch: async () =>
+          Response.json(
+            {
+              schemaVersion: 3,
+              generatedAt,
+              routes: [{ routeId: "BX38", updatedAt: generatedAt, score }],
+            },
+            { headers: { etag: `W/"studio-${generatedAt}"` } },
+          ),
+        baseUrl: "https://production.example/",
+        path: "/api/v1/studio/routes?schema=3",
+        schemaId: "bp.studio.route_index_response.v3",
+        schema,
+      });
+    const before = await fetchEvidence("2026-07-25T20:00:00.000Z");
+    const after = await fetchEvidence("2026-07-25T20:01:00.000Z");
+    const drifted = await fetchEvidence("2026-07-25T20:02:00.000Z", 8);
+
+    expect(before.evidence.safeBodySha256).not.toBe(after.evidence.safeBodySha256);
+    expect(before.evidence.semanticBodySha256).toBe(after.evidence.semanticBodySha256);
+    expect(before.evidence.semanticBodySha256).not.toBe(drifted.evidence.semanticBodySha256);
+  });
+
   test("rejects legacy placeholder language in a nominally successful public response", () => {
     expect(() =>
       assertNoPlan097LegacyEmptyState(
@@ -212,6 +249,53 @@ describe("Plan 097 release-aware HTTP checker", () => {
         actual: {
           ...baseline,
           endpoints: [{ ...endpoint, safeBodySha256: "b".repeat(64) }],
+        },
+      }),
+    ).toThrow(/safe body hash/i);
+  });
+
+  test("compares semantic hashes and weak ETag contracts for request-volatile responses", () => {
+    const endpoint = {
+      path: "/api/v1/studio/routes?schema=3&plan097=before",
+      status: 200,
+      schemaId: "bp.studio.route_index_response.v3",
+      safeBodySha256: "a".repeat(64),
+      semanticBodySha256: "c".repeat(64),
+      requestId: "request-before",
+      cfRay: "ray-before",
+      cacheControl: "no-store",
+      cfCacheStatus: null,
+      age: null,
+      workerVersionId: null,
+      etag: 'W/"studio-before"',
+    };
+    const baseline = {
+      checkedAt: "2026-07-22T11:00:00.000Z",
+      activeReleaseId: "pub_20260721T120000000Z",
+      endpoints: [endpoint],
+    };
+    expect(
+      comparePlan097HttpBaselines({
+        expected: baseline,
+        actual: {
+          ...baseline,
+          endpoints: [
+            {
+              ...endpoint,
+              path: "/api/v1/studio/routes?schema=3&plan097=after",
+              safeBodySha256: "b".repeat(64),
+              etag: 'W/"studio-after"',
+            },
+          ],
+        },
+      }),
+    ).toEqual({ matchedEndpointCount: 1 });
+    expect(() =>
+      comparePlan097HttpBaselines({
+        expected: baseline,
+        actual: {
+          ...baseline,
+          endpoints: [{ ...endpoint, semanticBodySha256: "d".repeat(64) }],
         },
       }),
     ).toThrow(/safe body hash/i);

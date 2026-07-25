@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   auditCurrentBusRoutesParity,
   loadMtaWikiRouteIdentities,
@@ -104,6 +104,15 @@ const manifestPointerFiles = {
   "operational_occurrences.jsonl": "",
   "relationship_integrity_bundle.json": "{}\n",
   "taxonomy.json": "{}\n",
+} as const;
+const manifestV6PointerFiles = {
+  "study-frontier-closure/data/contracts/bus-lane-identity-verdicts-v1/manifest.json": "{}\n",
+  "quality-provenance/frontier-exceptions.json": "{}\n",
+  "member-extent/data/contracts/operational-occurrence-member-extent/v1/manifest.json": "{}\n",
+  "study-frontier-closure/data/contracts/operational-occurrence-member-grain/v1/manifest.json":
+    "{}\n",
+  "quality-provenance/manifest.json": "{}\n",
+  "study-frontier-closure/data/quality/study-readiness/v2/manifest.json": "{}\n",
 } as const;
 const requiredGtfsFiles = [
   "agency.txt",
@@ -651,6 +660,35 @@ async function writeManifest(value: Fixture): Promise<string> {
   return sha(bytes);
 }
 
+async function upgradeFixtureToManifestV6(value: Fixture): Promise<string> {
+  value.manifest.manifest_version = 6;
+  Object.assign(value.manifest.contract_versions, {
+    bus_lane_identity_verdicts: 1,
+    operational_occurrence_member_extents: 1,
+    operational_occurrence_member_grain: 1,
+  });
+  Object.assign(value.manifest.pointers, {
+    bus_lane_identity_verdicts:
+      "study-frontier-closure/data/contracts/bus-lane-identity-verdicts-v1/manifest.json",
+    frontier_exceptions: "quality-provenance/frontier-exceptions.json",
+    operational_occurrence_member_extents:
+      "member-extent/data/contracts/operational-occurrence-member-extent/v1/manifest.json",
+    operational_occurrence_member_grain:
+      "study-frontier-closure/data/contracts/operational-occurrence-member-grain/v1/manifest.json",
+    quality_provenance: "quality-provenance/manifest.json",
+    study_readiness_v2:
+      "study-frontier-closure/data/quality/study-readiness/v2/manifest.json",
+  });
+  for (const [path, bytes] of Object.entries(manifestV6PointerFiles)) {
+    const absolutePath = join(value.release, path);
+    await mkdir(dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, bytes);
+    value.manifest.files[path] = fileMetadata(bytes);
+  }
+  value.manifestSha = await writeManifest(value);
+  return value.manifestSha;
+}
+
 async function fixture(): Promise<Fixture> {
   const root = await mkdtemp(join(tmpdir(), "mta-wiki-route-identities-"));
   const releaseId = "v1-rc24";
@@ -805,7 +843,23 @@ function loadFixture(value: Fixture, manifestSha = value.manifestSha) {
   });
 }
 
-describe("MTA Wiki manifest-v5 route identities", () => {
+describe("MTA Wiki route identities", () => {
+  test("accepts manifest v6 with its additional signed contract pointers", async () => {
+    const value = await fixture();
+    try {
+      await upgradeFixtureToManifestV6(value);
+      const loaded = await loadFixture(value);
+
+      expect(loaded.manifestSha256).toBe(value.manifestSha);
+      expect(loaded.snapshot.service_identities.map((row) => row.source_route_id)).toEqual([
+        "B44",
+        "B44+",
+      ]);
+    } finally {
+      await rm(value.root, { recursive: true, force: true });
+    }
+  });
+
   test("loads the frozen shared NYCT namespace with exact B44/B44+ identities and complete dispositions", async () => {
     const value = await fixture();
     try {
@@ -1176,7 +1230,7 @@ describe("MTA Wiki manifest-v5 route identities", () => {
   test("fails closed on future release and embedded GTFS contract versions", async () => {
     const futureRelease = await fixture();
     try {
-      futureRelease.manifest.manifest_version = 6;
+      futureRelease.manifest.manifest_version = 7;
       const manifestSha = await writeManifest(futureRelease);
       await expect(
         loadMtaWikiRouteIdentities({
@@ -1184,7 +1238,7 @@ describe("MTA Wiki manifest-v5 route identities", () => {
           wikiRelease: futureRelease.releaseId,
           wikiManifestSha256: manifestSha,
         }),
-      ).rejects.toThrow(/manifest_version|Expected 5/);
+      ).rejects.toThrow(/manifest_version|Expected 5|Expected 6/);
     } finally {
       await rm(futureRelease.root, { recursive: true, force: true });
     }

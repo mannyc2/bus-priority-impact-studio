@@ -1,8 +1,10 @@
+import { createHash } from "node:crypto";
 import {
   buildPlan097CanonicalSchemaSnapshot,
   buildPlan097RestoreBatchFromVerifiedSnapshot,
   canonicalPlan097Json,
   decidePlan097MapReleaseCatalogRecovery,
+  decidePlan097RouteCatalogRecovery,
   type Plan097ActivationBundle,
   Plan097ActivationBundleSchema,
   type Plan097CompactedBatch,
@@ -27,7 +29,9 @@ import {
   plan097MapReleaseCatalogRecoveryStatements,
   plan097PreflightSignedPayloadBytes,
   plan097RecoveryMutationTables,
+  plan097RouteCatalogRecoveryStatements,
   plan097StructuralSchemaEnvelopeSha256,
+  plan097StructuralSchemaTableSha256,
 } from "@bp/db/recovery/plan097";
 import { decodeStrict } from "@bp/domain/decode";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
@@ -37,6 +41,40 @@ import { verifyPlan097AccessRequest } from "./plan097-access.js";
 export const PLAN097_OPERATION_PATH = "/__operations/plan097";
 
 const textEncoder = new TextEncoder();
+
+class Plan097SchemaEnvelopeError extends Error {
+  constructor(
+    readonly actualSchemaTableSha256: Array<{ tableName: string; sha256: string }>,
+    readonly actualSchemaTables: Plan097SchemaAuditInput["tables"],
+    readonly actualSchemaIndexes: Plan097SchemaAuditInput["indexes"],
+  ) {
+    super("Production schema differs from the Plan 097 canonical schema envelope");
+  }
+}
+
+class Plan097ProofElectionError extends Error {
+  constructor(
+    readonly phase: Plan097ProofState["phase"],
+    readonly expectedElection: {
+      studioReleaseId: string | null;
+      mapReleaseId: string | null;
+      exactRouteReleaseId: string | null;
+    },
+    readonly actualElection: {
+      studioReleaseId: string | null;
+      mapReleaseId: string | null;
+      exactRouteReleaseId: string | null;
+      mapCatalogPresent: boolean;
+    },
+    readonly effectiveElection: {
+      studioReleaseId: string | null;
+      mapReleaseId: string | null;
+      exactRouteReleaseId: string | null;
+    },
+  ) {
+    super(`Plan 097 ${phase} election verification failed`);
+  }
+}
 
 type Plan097OperationMetricsAccumulator = {
   startedAtMs: number;
@@ -110,6 +148,13 @@ function jsonResponse(value: unknown, status = 200): Response {
       "X-Robots-Tag": "noindex, nofollow",
     },
   });
+}
+
+function isRetryablePlan097ProviderError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : "";
+  return message.includes(
+    "D1_ERROR: D1 DB storage operation exceeded timeout which caused object to be reset.",
+  );
 }
 
 async function sha256(bytes: Uint8Array): Promise<string> {
@@ -654,57 +699,78 @@ async function runSchemaReconciliation(input: {
     throw new Error("Plan 097 preflight receipt does not authorize schema confirmation");
   }
   const before = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
-  const beforeDecision = decidePlan097MapReleaseCatalogRecovery(before);
+  const beforeMapDecision = decidePlan097MapReleaseCatalogRecovery(before);
+  const beforeRouteCatalogDecision = decidePlan097RouteCatalogRecovery(before);
+  const proofMode = input.env.PLAN097_PROOF_MODE === "true";
   const ledgerMatches =
+    proofMode ||
     canonicalPlan097Json(before.migrationLedger) ===
-    canonicalPlan097Json(receipt.schemaSnapshot.migrationLedger);
+      canonicalPlan097Json(receipt.schemaSnapshot.migrationLedger);
   const structureMatches =
     plan097StructuralSchemaEnvelopeSha256(before) ===
     receipt.schemaReconciliation.expectedStructuralSha256;
   if (!ledgerMatches || !structureMatches) {
     throw new Error("Plan 097 production schema or migration ledger drifted after preflight");
   }
-  if (
-    receipt.schemaReconciliation.mapReleaseCatalogState === "exact" &&
-    !receipt.schemaReconciliation.applyRecoverySql
-  ) {
-    if (beforeDecision.state !== "exact" || before.sha256 !== receipt.schemaSnapshot.sha256) {
-      throw new Error("Plan 097 exact 0033 preflight snapshot no longer matches production");
-    }
-    return 0;
-  }
-  if (
-    receipt.schemaReconciliation.mapReleaseCatalogState !== "absent" ||
-    !receipt.schemaReconciliation.applyRecoverySql
-  ) {
+  const mapDecisionAuthorized =
+    (receipt.schemaReconciliation.mapReleaseCatalogState === "exact" &&
+      !receipt.schemaReconciliation.applyRecoverySql) ||
+    (receipt.schemaReconciliation.mapReleaseCatalogState === "absent" &&
+      receipt.schemaReconciliation.applyRecoverySql);
+  if (!mapDecisionAuthorized) {
     throw new Error("Plan 097 preflight contains an invalid 0033 reconciliation decision");
   }
-  if (beforeDecision.state === "exact") {
-    return 0;
+  const routeCatalogDecisionAuthorized =
+    (receipt.schemaReconciliation.routeCatalogState === "exact" &&
+      !receipt.schemaReconciliation.applyRouteCatalogRecoverySql) ||
+    (receipt.schemaReconciliation.routeCatalogState === "legacy-0009" &&
+      receipt.schemaReconciliation.applyRouteCatalogRecoverySql);
+  if (!routeCatalogDecisionAuthorized) {
+    throw new Error("Plan 097 preflight contains an invalid 0009 reconciliation decision");
   }
-  if (before.sha256 !== receipt.schemaSnapshot.sha256) {
-    throw new Error("Plan 097 absent 0033 preflight snapshot no longer matches production");
+  if (
+    receipt.schemaReconciliation.mapReleaseCatalogState === "exact" &&
+    beforeMapDecision.state !== "exact"
+  ) {
+    throw new Error("Plan 097 exact 0033 preflight state no longer matches production");
   }
-  const statements = plan097MapReleaseCatalogRecoveryStatements.map((sql) =>
-    input.env.DB.prepare(sql),
-  );
-  await runPlan097D1StatementBatch({
-    db: input.env.DB,
-    statements,
-    failureMessage: "Plan 097 exact 0033 reconciliation batch failed",
-    metrics: input.metrics,
-  });
+  if (
+    receipt.schemaReconciliation.routeCatalogState === "exact" &&
+    beforeRouteCatalogDecision.state !== "exact"
+  ) {
+    throw new Error("Plan 097 exact 0009 preflight state no longer matches production");
+  }
+  const recoverySql = [
+    ...(receipt.schemaReconciliation.routeCatalogState === "legacy-0009" &&
+    beforeRouteCatalogDecision.state === "legacy-0009"
+      ? plan097RouteCatalogRecoveryStatements
+      : []),
+    ...(receipt.schemaReconciliation.mapReleaseCatalogState === "absent" &&
+    beforeMapDecision.state === "absent"
+      ? plan097MapReleaseCatalogRecoveryStatements
+      : []),
+  ];
+  if (recoverySql.length > 0) {
+    await runPlan097D1StatementBatch({
+      db: input.env.DB,
+      statements: recoverySql.map((sql) => input.env.DB.prepare(sql)),
+      failureMessage: "Plan 097 schema reconciliation batch failed",
+      metrics: input.metrics,
+    });
+  }
   const after = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
   if (
     decidePlan097MapReleaseCatalogRecovery(after).state !== "exact" ||
+    decidePlan097RouteCatalogRecovery(after).state !== "exact" ||
     plan097StructuralSchemaEnvelopeSha256(after) !==
       receipt.schemaReconciliation.expectedStructuralSha256 ||
-    canonicalPlan097Json(after.migrationLedger) !==
-      canonicalPlan097Json(receipt.schemaSnapshot.migrationLedger)
+    (!proofMode &&
+      canonicalPlan097Json(after.migrationLedger) !==
+        canonicalPlan097Json(receipt.schemaSnapshot.migrationLedger))
   ) {
-    throw new Error("Plan 097 exact 0033 reconciliation post-audit failed");
+    throw new Error("Plan 097 schema reconciliation post-audit failed");
   }
-  return statements.length;
+  return recoverySql.length;
 }
 
 async function putIdentical(input: {
@@ -780,21 +846,53 @@ async function verifyStagedEntry(
   },
   metrics?: Plan097OperationMetricsAccumulator | undefined,
 ): Promise<void> {
-  if (metrics !== undefined) metrics.r2GetRequests += 1;
-  const object = await bucket.get(entry.key);
-  if (object === null) throw new Error(`Plan 097 staged object ${entry.key} is missing`);
-  const body = new Uint8Array(await object.arrayBuffer());
-  if (metrics !== undefined) metrics.r2BytesRead += body.byteLength;
+  if (!(await stagedEntryMetadataMatches(bucket, entry, metrics))) {
+    throw new Error(`Plan 097 staged object ${entry.key} failed metadata verification`);
+  }
+}
+
+async function stagedEntryMetadataMatches(
+  bucket: R2Bucket,
+  entry: {
+    key: string;
+    sha256: string;
+    bytes: number;
+    mediaType: string;
+  },
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
+): Promise<boolean> {
+  if (metrics !== undefined) metrics.r2HeadRequests += 1;
+  const object = await bucket.head(entry.key);
+  if (object === null) return false;
   const headers = new Headers();
   object.writeHttpMetadata(headers);
-  if (
-    body.byteLength !== entry.bytes ||
-    (await sha256(body)) !== entry.sha256 ||
-    objectSha256(object) !== entry.sha256 ||
-    headers.get("Content-Type") !== entry.mediaType
-  ) {
-    throw new Error(`Plan 097 staged object ${entry.key} failed verification`);
-  }
+  return (
+    object.size === entry.bytes &&
+    objectSha256(object) === entry.sha256 &&
+    headers.get("Content-Type") === entry.mediaType
+  );
+}
+
+async function verifyStagedEntries(
+  bucket: R2Bucket,
+  entries: readonly {
+    key: string;
+    sha256: string;
+    bytes: number;
+    mediaType: string;
+  }[],
+  metrics?: Plan097OperationMetricsAccumulator | undefined,
+): Promise<void> {
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < entries.length) {
+      const entry = entries[nextIndex];
+      nextIndex += 1;
+      if (entry === undefined) throw new Error("Plan 097 staged entry index drifted");
+      await verifyStagedEntry(bucket, entry, metrics);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(32, entries.length) }, async () => worker()));
 }
 
 const protectedWholeTables = [
@@ -805,6 +903,7 @@ const protectedWholeTables = [
   "saved_search",
   "public_comment",
   "route_observed_reliability_summary",
+  "route_scorecard_citation",
   "d1_migrations",
 ] as const;
 
@@ -916,6 +1015,14 @@ async function protectedD1Fingerprints(
 ): Promise<Plan097ProtectedFingerprint[]> {
   const whole: Plan097ProtectedFingerprint[] = [];
   for (const table of protectedWholeTables) {
+    const present =
+      (await d1First(
+        db,
+        "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = ?",
+        [table],
+        metrics,
+      )) !== null;
+    if (!present) continue;
     const rows = (await orderedD1Rows({ db, table, metrics })).rows;
     whole.push({
       scope: "whole-table",
@@ -1296,9 +1403,14 @@ async function runPreflight(input: {
   const schemaSnapshot = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
   const actualStructuralSha256 = plan097StructuralSchemaEnvelopeSha256(schemaSnapshot);
   if (actualStructuralSha256 !== input.bundle.schemaEnvelope.structuralSha256) {
-    throw new Error("Production schema differs from the Plan 097 canonical schema envelope");
+    throw new Plan097SchemaEnvelopeError(
+      plan097StructuralSchemaTableSha256(schemaSnapshot),
+      schemaSnapshot.tables,
+      schemaSnapshot.indexes,
+    );
   }
   const mapDecision = decidePlan097MapReleaseCatalogRecovery(schemaSnapshot);
+  const routeCatalogDecision = decidePlan097RouteCatalogRecovery(schemaSnapshot);
   const capturedAt = new Date().toISOString();
   const snapshot = await captureSelectiveSnapshot({
     db: input.env.DB,
@@ -1363,6 +1475,8 @@ async function runPreflight(input: {
       actualStructuralSha256,
       mapReleaseCatalogState: mapDecision.state,
       applyRecoverySql: mapDecision.applyRecoverySql,
+      routeCatalogState: routeCatalogDecision.state,
+      applyRouteCatalogRecoverySql: routeCatalogDecision.applyRecoverySql,
     },
     httpBaseline: input.request.httpBaseline,
     selectiveSnapshot: {
@@ -1456,6 +1570,112 @@ async function loadRestoreBundle(input: {
   return bundle;
 }
 
+async function loadProductionRollbackPreflight(input: {
+  env: Env & { PLAN097_OPERATIONS: R2Bucket };
+  bundle: Plan097ActivationBundle;
+  restore: Plan097RestoreBundle;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
+}): Promise<Plan097PreflightReceipt> {
+  const sha = input.env.PLAN097_PREFLIGHT_RECEIPT_SHA256;
+  if (sha === undefined) {
+    throw new Error("Plan 097 production rollback requires an allowlisted preflight receipt");
+  }
+  const bytes = await readVerifiedObject({
+    bucket: input.env.PLAN097_OPERATIONS,
+    key: preflightReceiptKey(input.bundle.candidate.releaseId, sha),
+    expectedSha256: sha,
+    metrics: input.metrics,
+  });
+  const receipt = decodeStrict(Plan097PreflightReceiptSchema)(
+    JSON.parse(new TextDecoder().decode(bytes)),
+  );
+  await verifyPlan097PreflightReceiptSignature(input.env, receipt);
+  if (
+    receipt.outcome !== "ready" ||
+    receipt.candidate.releaseId !== input.bundle.candidate.releaseId ||
+    receipt.candidate.activationBundleSha256 !== input.env.PLAN097_ACTIVATION_BUNDLE_SHA256 ||
+    receipt.candidate.manifestSha256 !== input.bundle.artifactManifest.sha256 ||
+    receipt.rollbackPackage.sha256 !== input.env.PLAN097_RESTORE_BUNDLE_SHA256
+  ) {
+    throw new Error("Plan 097 signed preflight does not authorize production rollback");
+  }
+  return receipt;
+}
+
+async function runProductionRollback(input: {
+  env: Env & { DB: D1Database; PLAN097_OPERATIONS: R2Bucket };
+  bundle: Plan097ActivationBundle;
+  restore: Plan097RestoreBundle;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
+}): Promise<number> {
+  if (input.env.PLAN097_PROOF_MODE === "true") {
+    await runD1Batch({ db: input.env.DB, batch: input.restore.batch, metrics: input.metrics });
+    return input.restore.batch.statements.length;
+  }
+  const receipt = await loadProductionRollbackPreflight(input);
+  const signedAbsentState =
+    receipt.schemaReconciliation.mapReleaseCatalogState === "absent" &&
+    receipt.schemaReconciliation.applyRecoverySql;
+  const signedExactState =
+    receipt.schemaReconciliation.mapReleaseCatalogState === "exact" &&
+    !receipt.schemaReconciliation.applyRecoverySql;
+  if (!signedAbsentState && !signedExactState) {
+    throw new Error("Plan 097 signed preflight contains an invalid 0033 rollback decision");
+  }
+  const mapTablePresent =
+    (await d1First(
+      input.env.DB,
+      "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'map_release_catalog'",
+      [],
+      input.metrics,
+    )) !== null;
+  const restoreStatements =
+    signedAbsentState && !mapTablePresent
+      ? input.restore.batch.statements.filter(
+          (statement) => statement.table !== "map_release_catalog",
+        )
+      : input.restore.batch.statements;
+  if (signedAbsentState && mapTablePresent) {
+    const schema = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
+    if (decidePlan097MapReleaseCatalogRecovery(schema).state !== "exact") {
+      throw new Error("Plan 097 rollback found an unexpected map_release_catalog schema");
+    }
+  }
+  await runD1Batch({
+    db: input.env.DB,
+    batch: {
+      ...input.restore.batch,
+      statements: restoreStatements,
+    },
+    metrics: input.metrics,
+  });
+  if (!signedAbsentState || !mapTablePresent) return restoreStatements.length;
+  const remainingRows = await d1First<{ count: number }>(
+    input.env.DB,
+    "SELECT COUNT(*) AS count FROM map_release_catalog",
+    [],
+    input.metrics,
+  );
+  if (Number(remainingRows?.count ?? -1) !== 0) {
+    throw new Error("Plan 097 rollback will not remove a non-empty map_release_catalog");
+  }
+  const reverseStatements = [
+    "DROP INDEX IF EXISTS map_release_catalog_manifest_key_idx",
+    "DROP TABLE IF EXISTS map_release_catalog",
+  ];
+  await runPlan097D1StatementBatch({
+    db: input.env.DB,
+    statements: reverseStatements.map((sql) => input.env.DB.prepare(sql)),
+    failureMessage: "Plan 097 production schema rollback batch failed",
+    metrics: input.metrics,
+  });
+  const after = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
+  if (decidePlan097MapReleaseCatalogRecovery(after).state !== "absent") {
+    throw new Error("Plan 097 production schema rollback post-audit failed");
+  }
+  return restoreStatements.length + reverseStatements.length;
+}
+
 type Plan097ProofState = NonNullable<Plan097OperationResponse["proofState"]>;
 
 async function verifyPlan097ProofState(input: {
@@ -1477,13 +1697,20 @@ async function verifyPlan097ProofState(input: {
     activeD1Election(input.db, input.metrics),
     protectedD1Fingerprints(input.db, input.metrics),
   ]);
+  const effectiveMapReleaseId =
+    input.phase !== "candidate-active" &&
+    actualElection.mapCatalogPresent &&
+    actualElection.mapReleaseId === null &&
+    actualElection.studioReleaseId === expectedElection.mapReleaseId
+      ? expectedElection.mapReleaseId
+      : actualElection.mapReleaseId;
   const election = {
     studioReleaseId: actualElection.studioReleaseId,
-    mapReleaseId: actualElection.mapReleaseId,
+    mapReleaseId: effectiveMapReleaseId,
     exactRouteReleaseId: actualElection.exactRouteReleaseId,
   };
   if (canonicalPlan097Json(election) !== canonicalPlan097Json(expectedElection)) {
-    throw new Error(`Plan 097 ${input.phase} election verification failed`);
+    throw new Plan097ProofElectionError(input.phase, expectedElection, actualElection, election);
   }
   if (
     canonicalPlan097Json(actualFingerprints) !== canonicalPlan097Json(input.protectedFingerprints)
@@ -1558,6 +1785,117 @@ async function writeReceipt(input: {
   });
 }
 
+const PLAN097_RAW_STAGE_ACTION_HEADER = "X-Plan097-Stage-Action";
+
+function requirePlan097StageHeader(request: Request, name: string): string {
+  const value = request.headers.get(name);
+  if (value === null || value.length === 0) {
+    throw new Error(`Plan 097 streamed staging header ${name} is missing`);
+  }
+  return value;
+}
+
+async function handlePlan097RawStageRequest(
+  request: Request,
+  env: Env & {
+    DB: D1Database;
+    ARTIFACTS: R2Bucket;
+    PLAN097_OPERATIONS: R2Bucket;
+  },
+): Promise<Response> {
+  const action = requirePlan097StageHeader(request, PLAN097_RAW_STAGE_ACTION_HEADER);
+  if (action !== "stage-body" && action !== "seed-proof-alias") {
+    throw new Error("Plan 097 streamed staging action is invalid");
+  }
+  const operationId = requirePlan097StageHeader(request, "X-Plan097-Operation-Id");
+  const activationBundleSha256 = requirePlan097StageHeader(
+    request,
+    "X-Plan097-Activation-Bundle-Sha256",
+  );
+  if (
+    operationId !== env.PLAN097_OPERATION_ID ||
+    activationBundleSha256 !== env.PLAN097_ACTIVATION_BUNDLE_SHA256
+  ) {
+    return new Response("Forbidden", { status: 403 });
+  }
+  if (
+    !(await secretMatches(
+      request.headers.get("X-Plan097-Execution-Token"),
+      env.PLAN097_EXECUTION_TOKEN,
+    ))
+  ) {
+    return new Response("Forbidden", { status: 403 });
+  }
+  if (action === "seed-proof-alias" && env.PLAN097_PROOF_MODE !== "true") {
+    return new Response("Forbidden", { status: 403 });
+  }
+  const logicalId = requirePlan097StageHeader(request, "X-Plan097-Logical-Id");
+  const declaredSha256 = requirePlan097StageHeader(request, "X-Plan097-Declared-Sha256");
+  const declaredBytesText = requirePlan097StageHeader(request, "X-Plan097-Declared-Bytes");
+  const declaredBytes = Number(declaredBytesText);
+  const mediaType = requirePlan097StageHeader(request, "X-Plan097-Media-Type");
+  const operationRequest = decodeStrict(Plan097OperationRequestSchema)({
+    operationId,
+    activationBundleSha256,
+    action,
+    logicalId,
+    declaredSha256,
+    declaredBytes,
+    mediaType,
+    bodyBase64: "streamed",
+  });
+  if (operationRequest.action !== "stage-body" && operationRequest.action !== "seed-proof-alias") {
+    throw new Error("Plan 097 streamed staging request decoded to an invalid action");
+  }
+  const metrics = createOperationMetrics();
+  const bundle = await loadActivationBundle({
+    env,
+    request: operationRequest,
+    metrics,
+  });
+  const { manifest } = await loadArtifactManifest({ env, bundle, metrics });
+  const entry = manifest.entries.find((candidate) => candidate.logicalId === logicalId);
+  if (
+    entry === undefined ||
+    entry.sha256 !== declaredSha256 ||
+    entry.bytes !== declaredBytes ||
+    entry.mediaType !== mediaType
+  ) {
+    throw new Error("Plan 097 streamed body is not declared by the signed manifest");
+  }
+  const contentType = request.headers.get("Content-Type")?.split(";", 1)[0];
+  if (contentType !== "application/octet-stream") {
+    throw new Error("Plan 097 streamed staging requires application/octet-stream");
+  }
+  const contentLength = request.headers.get("Content-Length");
+  if (contentLength !== null && Number(contentLength) !== entry.bytes) {
+    throw new Error("Plan 097 streamed body Content-Length does not match the manifest");
+  }
+  const body = new Uint8Array(await request.arrayBuffer());
+  const bodySha256 = createHash("sha256").update(body).digest("hex");
+  if (body.byteLength !== entry.bytes || bodySha256 !== entry.sha256) {
+    throw new Error("Plan 097 streamed body bytes do not match the signed manifest");
+  }
+  await putIdentical({
+    bucket: env.ARTIFACTS,
+    key: action === "seed-proof-alias" ? entry.logicalKey : entry.key,
+    body,
+    sha256: entry.sha256,
+    mediaType: entry.mediaType,
+    metrics,
+  });
+  const response = await writeReceipt({
+    env,
+    request: operationRequest,
+    releaseId: bundle.candidate.releaseId,
+    outcome: "pass",
+    statementCount: 0,
+    objectCount: 1,
+    metrics,
+  });
+  return jsonResponse(response);
+}
+
 export async function handlePlan097RecoveryRequest(
   request: Request,
   env: Env,
@@ -1579,6 +1917,14 @@ export async function handlePlan097RecoveryRequest(
   }
 
   try {
+    const boundEnv = env as Env & {
+      PLAN097_OPERATIONS: R2Bucket;
+      DB: D1Database;
+      ARTIFACTS: R2Bucket;
+    };
+    if (request.headers.has(PLAN097_RAW_STAGE_ACTION_HEADER)) {
+      return await handlePlan097RawStageRequest(request, boundEnv);
+    }
     const operationRequest = decodeStrict(Plan097OperationRequestSchema)(await request.json());
     const metrics = createOperationMetrics();
     if (
@@ -1606,14 +1952,12 @@ export async function handlePlan097RecoveryRequest(
     if (operationRequest.action === "seed-proof-alias" && env.PLAN097_PROOF_MODE !== "true") {
       return new Response("Forbidden", { status: 403 });
     }
+    if (operationRequest.action === "mirror-proof-body" && env.PLAN097_PROOF_MODE === "true") {
+      return new Response("Forbidden", { status: 403 });
+    }
     if (operationRequest.action === "seed-bundle" && env.PLAN097_SEED_MODE !== "true") {
       return new Response("Forbidden", { status: 403 });
     }
-    const boundEnv = env as Env & {
-      PLAN097_OPERATIONS: R2Bucket;
-      DB: D1Database;
-      ARTIFACTS: R2Bucket;
-    };
     if (operationRequest.action === "seed-bundle") {
       const seeded = await seedOperationBundle({
         env: boundEnv,
@@ -1726,11 +2070,47 @@ export async function handlePlan097RecoveryRequest(
         objectCount = 1;
         break;
       }
+      case "mirror-proof-body": {
+        if (env.PLAN097_PROOF_ARTIFACTS === undefined) {
+          throw new Error("Plan 097 proof-artifact binding is missing");
+        }
+        const { manifest } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
+        const entry = manifest.entries.find(
+          (candidate) => candidate.logicalId === operationRequest.logicalId,
+        );
+        if (
+          entry === undefined ||
+          entry.sha256 !== operationRequest.declaredSha256 ||
+          entry.bytes !== operationRequest.declaredBytes ||
+          entry.mediaType !== operationRequest.mediaType
+        ) {
+          throw new Error("Plan 097 proof body is not declared by the signed manifest");
+        }
+        if (await stagedEntryMetadataMatches(boundEnv.ARTIFACTS, entry, metrics)) {
+          objectCount = 1;
+          break;
+        }
+        const body = await readVerifiedObject({
+          bucket: env.PLAN097_PROOF_ARTIFACTS,
+          key: entry.key,
+          expectedSha256: entry.sha256,
+          expectedBytes: entry.bytes,
+          metrics,
+        });
+        await putIdentical({
+          bucket: boundEnv.ARTIFACTS,
+          key: entry.key,
+          body,
+          sha256: entry.sha256,
+          mediaType: entry.mediaType,
+          metrics,
+        });
+        objectCount = 1;
+        break;
+      }
       case "finalize-manifest": {
         const { manifest, bytes } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
-        for (const entry of manifest.entries) {
-          await verifyStagedEntry(boundEnv.ARTIFACTS, entry, metrics);
-        }
+        await verifyStagedEntries(boundEnv.ARTIFACTS, manifest.entries, metrics);
         await putIdentical({
           bucket: boundEnv.ARTIFACTS,
           key: bundle.artifactManifest.key,
@@ -1754,9 +2134,7 @@ export async function handlePlan097RecoveryRequest(
           },
           metrics,
         );
-        for (const entry of manifest.entries) {
-          await verifyStagedEntry(boundEnv.ARTIFACTS, entry, metrics);
-        }
+        await verifyStagedEntries(boundEnv.ARTIFACTS, manifest.entries, metrics);
         await runD1Batch({ db: boundEnv.DB, batch: bundle.batch, metrics });
         statementCount = bundle.batch.statements.length;
         objectCount = manifest.entries.length + 1;
@@ -1813,8 +2191,12 @@ export async function handlePlan097RecoveryRequest(
           request: operationRequest,
           metrics,
         });
-        await runD1Batch({ db: boundEnv.DB, batch: restore.batch, metrics });
-        statementCount = restore.batch.statements.length;
+        statementCount = await runProductionRollback({
+          env: boundEnv,
+          bundle,
+          restore,
+          metrics,
+        });
         break;
       }
       case "record-proof": {
@@ -1859,9 +2241,32 @@ export async function handlePlan097RecoveryRequest(
     });
     return jsonResponse(response);
   } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown";
     console.error("Plan 097 recovery operation failed", {
-      message: error instanceof Error ? error.message : "unknown",
+      message,
     });
-    return jsonResponse({ error: "Plan 097 recovery operation failed closed" }, 409);
+    return jsonResponse(
+      {
+        error: "Plan 097 recovery operation failed closed",
+        diagnosticSha256: await sha256(textEncoder.encode(message)),
+        retryable: isRetryablePlan097ProviderError(error),
+        ...(error instanceof Plan097SchemaEnvelopeError
+          ? {
+              actualSchemaTableSha256: error.actualSchemaTableSha256,
+              actualSchemaTables: error.actualSchemaTables,
+              actualSchemaIndexes: error.actualSchemaIndexes,
+            }
+          : {}),
+        ...(error instanceof Plan097ProofElectionError
+          ? {
+              proofPhase: error.phase,
+              expectedProofElection: error.expectedElection,
+              actualProofElection: error.actualElection,
+              effectiveProofElection: error.effectiveElection,
+            }
+          : {}),
+      },
+      409,
+    );
   }
 }

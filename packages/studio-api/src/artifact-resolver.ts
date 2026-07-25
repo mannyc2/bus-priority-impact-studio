@@ -140,11 +140,16 @@ export async function loadReleaseArtifact(
       logicalKey,
     });
   } catch (error) {
-    console.error("Plan 097 artifact resolution failed.", {
-      code: error instanceof Plan097ArtifactResolutionError ? error.code : "unexpected",
-      releaseId: activeReleaseId,
-      logicalKey,
-    });
+    if (
+      !(error instanceof Plan097ArtifactResolutionError) ||
+      error.code !== "logical_entry_missing"
+    ) {
+      console.error("Plan 097 artifact resolution failed.", {
+        code: error instanceof Plan097ArtifactResolutionError ? error.code : "unexpected",
+        releaseId: activeReleaseId,
+        logicalKey,
+      });
+    }
     throw error;
   }
 }

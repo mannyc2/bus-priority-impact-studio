@@ -574,20 +574,22 @@ preview URLs, and validates the Cloudflare Access JWT signature, issuer,
 audience, RS256 algorithm, and service-token identity. A fresh anonymous check
 at `2026-07-23T04:37:19Z` still elected the pinned release and observed the
 pre-existing map-catalog 503. None of these production-config changes has been
-deployed. The protected reader predeploy and its 86,400-second prior-cache
-drain (or an evidenced authoritative purge) are now explicit gates before the
-signed preflight. The protected workflow now captures the prior and deployed
-Worker versions, writes a strict hash-covered reader receipt, uploads it as a
-GitHub Actions artifact, and automatically restores the captured stable
-version if any postdeploy D1 audit or HTTP proof fails.
+deployed at that checkpoint. The protected reader predeploy and its
+86,400-second prior-cache drain (or an evidenced authoritative purge) are now
+explicit gates before the signed preflight. The protected workflow now
+captures the prior and deployed Worker versions, writes a strict hash-covered
+reader receipt, uploads it as a GitHub Actions artifact, and automatically
+restores the captured stable version if any postdeploy D1 audit or HTTP proof
+fails.
 
-The remote gates remain deliberately open. The current Wrangler login is
-expired and the Cloudflare API/service/bootstrap/signing/proof credentials are
-unavailable, so no signed D1 preflight, disposable remote proof, production
-mutation, or canonical completion receipt has been fabricated. PR #101 later
-merged after CI passed, and its protected reader attempt is recorded below.
-Plan 097 remains **IN PROGRESS**, all acceptance boxes remain unchecked, and
-the fresh production mutation token has not been requested.
+The later remote gates remain deliberately open. The local Wrangler login is
+expired and the Cloudflare service/bootstrap/signing/proof credentials remain
+unavailable locally. The protected GitHub environment supplied only the
+credential needed for the separately approved reader deployment recorded
+below. No signed D1 preflight, disposable remote proof, serving-data/artifact
+mutation, or canonical completion receipt has been fabricated. Plan 097
+remains **IN PROGRESS**, all acceptance boxes remain unchecked, and the fresh
+production mutation token has not been requested.
 
 ### Failed-closed protected reader predeploy (2026-07-23; not completion evidence)
 
@@ -641,9 +643,78 @@ artifacts have adjacent hash manifests. The staged projection must prove
 exactly prior@100%/candidate@0%, rollback capture must prove prior@100%, and
 bounded remote/proof/cleanup step timeouts sit within a larger job timeout
 reserve. Rollback state is still captured and hashed when the rollback client
-or exact-state validation fails. This follow-up is local-only until its exact
-pushed SHA receives a fresh protected-reader deployment approval; it does not
-authorize any D1/R2 application-data mutation.
+or exact-state validation fails. This follow-up was deployed only after its
+exact pushed SHA received the fresh protected-reader approval; that approval
+did not authorize any D1/R2 application-data mutation.
+
+### Successful protected reader predeploy and cache drain (2026-07-23; not completion evidence)
+
+PR #102 head `33f5f59db2db984c1b77d423566eeef2cd61b2ca` passed
+pull-request run 333 (`30001107751`) with its production job skipped. After a
+fresh approval bound to that exact head, GitHub merged it to `main` as
+`b25542b0a735636e7051be8fb70893499671366f`. Protected push run 334
+(`30028518714`) then passed verification and the complete reader-deploy job.
+
+The run captured prior deployment
+`f5082ef1-800b-4298-8c4f-4acc22f6a8a0` with Worker version
+`f2067a1d-6c4f-4e00-abd4-43fea7469f4e` at 100%. It created staged deployment
+`b96f5693-852f-44e5-acfa-0998bc1a1c62` with that prior version at 100% and
+candidate `8c117bac-3813-4cfc-9d19-c94c4987a165` at 0%. The exact-version
+override receipt at `2026-07-23T17:15:52.705Z` passed before promotion.
+Deployment `b588e193-aab3-42d4-8f8f-017cf4052adb` then placed only the
+candidate at 100%, and the ordinary-traffic receipt passed at
+`2026-07-23T17:16:05.839Z`. Every recorded response, including the anonymous
+operation-namespace 404 and known baseline map-manifest 503, came from that
+exact Worker version. All 14 successful public endpoints returned
+`Cache-Control: no-store`; the active release remained
+`pub_20260605T183601689Z` with 375 exact routes.
+
+The postdeploy read-only D1 parity audit and Plan 095 production smoke passed.
+Rollback remained skipped. No production D1/R2 application data, serving
+schema, release pointer, immutable candidate body, or recovery manifest was
+mutated. A separate anonymous check at `2026-07-23T17:18:16Z` reconfirmed
+status 200, `no-store`, release `pub_20260605T183601689Z`, Worker version
+`8c117bac-3813-4cfc-9d19-c94c4987a165`, and operation-namespace 404.
+
+Actions artifact `8572360112`,
+`plan097-reader-predeploy-b25542b0a735636e7051be8fb70893499671366f`,
+expires `2026-10-21T17:13:47Z`. Its downloaded archive independently hashes
+to `56410e4a85f8228c17367e5463ef6eeee294549413d553f9943b594da4b3b7d5`,
+matching GitHub's artifact digest. The adjacent manifest verified every member:
+
+- ordinary receipt:
+  `d1491c88ed93df8ed646a8c81ea7f37f64737b6b5537fb3727713179f8cef8d1`;
+- staged receipt:
+  `7732f180b4de624f983d499d38c4ea84f5a69919c205503fbd5282f5a9e3dcfc`;
+- post deployment:
+  `b968ea7cb0fdbb2554cff6341612ae152334c866c1f19cf4f40e2298fd3890f7`;
+- pre deployment:
+  `a49cb883f54d2edade6ef6d3c69b99a1f256306fa380f7e3d20186f8043b7047`;
+- staged deployment:
+  `d8139baa2f9bb369c296f892041184bdbe9e90be3d98f1686139cbf8acf6dadf`;
+- allowlisted version projection:
+  `6df769ae5814ddb4ef2b4b30c0a4518f49d2c4deefe4cd6329e3ad52f2f667f9`.
+
+No authoritative purge was requested or executed. The conservative drain
+starts at the ordinary-traffic proof instant and completes no earlier than
+`2026-07-24T17:16:05.839Z`. The signed read-only preflight and disposable
+proof remained prohibited until a post-drain checker repeated this exact
+release/version/cache posture.
+
+That anonymous post-drain gate passed at `2026-07-25T14:52:47.145Z`. All 15
+release-aware endpoint observations bound to Worker
+`8c117bac-3813-4cfc-9d19-c94c4987a165`; the 14 successful responses remained
+`no-store`; active release `pub_20260605T183601689Z` retained 375 exact routes;
+the known baseline map-manifest 503 was unchanged; and the anonymous operation
+namespace remained 404. The attestation is committed at
+`docs/research/reviews/plan097/post-drain-reader-attestation.md`.
+
+This clears only the cache-drain reader gate. It is not the signed preflight,
+disposable proof, production mutation token, candidate activation, or Plan 097
+completion receipt. The isolated proof credentials are unavailable locally,
+and production mutation still requires a fresh operator execution token after
+the proof receipts and exact commands are available for review. Plan 097
+remains **IN PROGRESS** and Plan 098 remains TODO.
 
 ## Acceptance criteria
 

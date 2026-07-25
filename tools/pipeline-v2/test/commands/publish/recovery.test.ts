@@ -145,12 +145,14 @@ function activationBatch(): Plan097CompactedBatch {
   return { schemaVersion: 1, statements, metrics: metrics(statements) };
 }
 
-async function fixture() {
+async function fixture(options: { largeArtifact?: boolean } = {}) {
   const root = mkdtempSync(join(tmpdir(), "plan097-publish-recovery-"));
   const artifactRoot = join(root, "artifacts");
   const logicalKey = "studio/v2/test.json";
   const artifactPath = join(artifactRoot, logicalKey);
-  const body = '{"artifactKind":"bp.test.plan097.v1"}\n';
+  const body = options.largeArtifact
+    ? "x".repeat(8 * 1024 * 1024)
+    : '{"artifactKind":"bp.test.plan097.v1"}\n';
   await Bun.write(artifactPath, body);
   const bodyBytes = new TextEncoder().encode(body);
   const bodySha = new Bun.CryptoHasher("sha256").update(bodyBytes).digest("hex");
@@ -297,6 +299,8 @@ async function signedPreflightFixture(root: string): Promise<{
       actualStructuralSha256: "d".repeat(64),
       mapReleaseCatalogState: "exact",
       applyRecoverySql: false,
+      routeCatalogState: "exact",
+      applyRouteCatalogRecoverySql: false,
     },
     httpBaseline: {
       checkedAt: "2026-07-22T11:59:00.000Z",
@@ -415,6 +419,7 @@ describe("publish recovery command", () => {
         PLAN097_RECOVERY_ENDPOINT: "https://activation.test/__operations/plan097",
         PLAN097_PUBLIC_BASE_URL: "https://production.test/",
         PLAN097_EXECUTION_TOKEN: "fresh-production-token",
+        PLAN097_MIRROR_PROOF_ARTIFACTS: "true",
         PLAN097_PROOF_SUMMARY_KEY: `operations/plan097/proof/${releaseId}/proof-summary.${"c".repeat(64)}.json`,
         PLAN097_PROOF_SUMMARY_SHA256: "c".repeat(64),
         PLAN097_PROOF_SUMMARY_BYTES: "100",
@@ -426,6 +431,7 @@ describe("publish recovery command", () => {
       sha256: "c".repeat(64),
       bytes: 100,
     });
+    expect(activation.mirrorProofArtifacts).toBe(true);
   });
 
   test("independently verifies the exact returned preflight bytes with the trusted Ed25519 key", async () => {
@@ -454,9 +460,12 @@ describe("publish recovery command", () => {
   });
 
   test("runs the exact staged A→B→A proof without accepting resource or SQL selectors", async () => {
-    const files = await fixture();
+    const files = await fixture({ largeArtifact: true });
     const calls: Array<{ action: string; executionToken: string | null }> = [];
     const httpModes: string[] = [];
+    let transientStageFailures = 0;
+    let transientExecutionTokenFailures = 0;
+    let rawStageRequests = 0;
     const baseline = JSON.parse(await Bun.file(files.httpBaselinePath).text()) as {
       checkedAt: string;
       activeReleaseId: string;
@@ -490,12 +499,25 @@ describe("publish recovery command", () => {
         },
         {
           fetch: async (_input, init) => {
-            const request = JSON.parse(String(init?.body)) as { action: string };
             const requestHeaders = new Headers(init?.headers);
+            const rawAction = requestHeaders.get("X-Plan097-Stage-Action");
+            const request =
+              rawAction === null
+                ? (JSON.parse(String(init?.body)) as { action: string })
+                : { action: rawAction };
+            if (rawAction !== null) rawStageRequests += 1;
             calls.push({
               action: request.action,
               executionToken: requestHeaders.get("X-Plan097-Execution-Token"),
             });
+            if (request.action === "mirror-bundle" && transientExecutionTokenFailures === 0) {
+              transientExecutionTokenFailures += 1;
+              return new Response("Forbidden", { status: 403 });
+            }
+            if (request.action === "stage-body" && transientStageFailures === 0) {
+              transientStageFailures += 1;
+              return new Response("temporary edge failure", { status: 503 });
+            }
             return Response.json({
               artifactKind: "bp.ops.plan097.worker-response.v1",
               schemaVersion: 1,
@@ -541,11 +563,15 @@ describe("publish recovery command", () => {
               },
             };
           },
+          sleep: async () => {},
         },
       );
       expect(result.outcome).toBe("pass");
+      expect(rawStageRequests).toBe(3);
       expect(calls.map((call) => call.action)).toEqual([
         "mirror-bundle",
+        "mirror-bundle",
+        "stage-body",
         "stage-body",
         "seed-proof-alias",
         "finalize-manifest",
@@ -573,6 +599,86 @@ describe("publish recovery command", () => {
         "baseline-restored",
       ]);
       expect(result.proofSummary?.kind).toBe("proof-summary");
+    } finally {
+      rmSync(files.root, { recursive: true, force: true });
+    }
+  });
+
+  test("restores the disposable baseline when candidate HTTP proof fails", async () => {
+    const files = await fixture();
+    const actions: string[] = [];
+    const httpModes: string[] = [];
+    const baseline = JSON.parse(await Bun.file(files.httpBaselinePath).text()) as {
+      checkedAt: string;
+      activeReleaseId: string;
+      endpoints: Array<{
+        path: string;
+        status: number;
+        schemaId: string;
+        safeBodySha256: string;
+        requestId: string | null;
+        cfRay: string | null;
+        cacheControl: string | null;
+        cfCacheStatus: string | null;
+        age: string | null;
+        workerVersionId: string | null;
+        etag: string | null;
+      }>;
+    };
+    try {
+      await expect(
+        runPublishRecovery(
+          {
+            action: "prove",
+            endpoint: "https://worker.test/__operations/plan097",
+            activationBundlePath: files.activationBundlePath,
+            artifactManifestPath: files.manifestPath,
+            artifactRoot: files.artifactRoot,
+            restoreBundlePath: files.restoreBundlePath,
+            publicBaseUrl: "https://proof.test/",
+            serviceTokenId: "id",
+            serviceTokenSecret: "secret",
+            executionToken: "fresh-token",
+          },
+          {
+            fetch: async (_input, init) => {
+              const headers = new Headers(init?.headers);
+              const rawAction = headers.get("X-Plan097-Stage-Action");
+              const request =
+                rawAction === null
+                  ? (JSON.parse(String(init?.body)) as { action: string })
+                  : { action: rawAction };
+              actions.push(request.action);
+              return Response.json({
+                artifactKind: "bp.ops.plan097.worker-response.v1",
+                schemaVersion: 1,
+                operationId,
+                action: request.action,
+                outcome: "pass",
+                releaseId,
+                activationBundleSha256: "a".repeat(64),
+                receiptKey: `operations/plan097/receipts/${releaseId}/${request.action}.${"b".repeat(64)}.json`,
+                statementCount: 1,
+                objectCount: 1,
+                metrics: operationMetrics(),
+              });
+            },
+            httpCheck: async (input) => {
+              const mode = input.mode ?? "candidate";
+              httpModes.push(mode);
+              if (mode === "candidate") throw new Error("candidate smoke failed");
+              return {
+                baseline,
+                exactRouteCount: 1,
+                representativeGeometry: null,
+              };
+            },
+          },
+        ),
+      ).rejects.toThrow("candidate smoke failed");
+      expect(actions.filter((action) => action === "prove")).toHaveLength(4);
+      expect(actions.at(-1)).toBe("prove");
+      expect(httpModes).toEqual(["baseline", "baseline", "candidate", "baseline"]);
     } finally {
       rmSync(files.root, { recursive: true, force: true });
     }
@@ -706,6 +812,7 @@ describe("publish recovery command", () => {
     const files = await fixture();
     const actions: string[] = [];
     let httpCheckCount = 0;
+    let transientD1Timeouts = 0;
     const baseline = JSON.parse(await Bun.file(files.httpBaselinePath).text()) as {
       checkedAt: string;
       activeReleaseId: string;
@@ -737,6 +844,7 @@ describe("publish recovery command", () => {
           serviceTokenId: "id",
           serviceTokenSecret: "secret",
           executionToken: "fresh-token",
+          mirrorProofArtifacts: true,
           preflightReceiptSha256: "c".repeat(64),
           proofSummaryRef: {
             kind: "proof-summary",
@@ -749,6 +857,17 @@ describe("publish recovery command", () => {
           fetch: async (_input, init) => {
             const request = JSON.parse(String(init?.body)) as { action: string };
             actions.push(request.action);
+            if (request.action === "reconcile-schema" && transientD1Timeouts === 0) {
+              transientD1Timeouts += 1;
+              return Response.json(
+                {
+                  error: "Plan 097 recovery operation failed closed",
+                  diagnosticSha256: "f".repeat(64),
+                  retryable: true,
+                },
+                { status: 409 },
+              );
+            }
             return Response.json({
               artifactKind: "bp.ops.plan097.worker-response.v1",
               schemaVersion: 1,
@@ -788,15 +907,17 @@ describe("publish recovery command", () => {
               },
             };
           },
+          sleep: async () => {},
         },
       );
       expect(result.outcome).toBe("rolled_back");
       expect(actions).toEqual([
         "mirror-bundle",
-        "reconcile-schema",
-        "stage-body",
+        "mirror-proof-body",
         "finalize-manifest",
         "dry-run",
+        "reconcile-schema",
+        "reconcile-schema",
         "activate",
         "rollback",
         "record-completion",

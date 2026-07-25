@@ -80,38 +80,63 @@ const GtfsSnapshotManifestV2Schema = Schema.Struct({
   }),
 });
 
-const ManifestV5Schema = Schema.Struct({
-  manifest_version: Schema.Literal(5),
+const ManifestSharedFields = {
   release_id: NonEmptyStringSchema,
   generator_commit: NonEmptyStringSchema,
-  contract_versions: Schema.Struct({
-    operational_anchor_review_decisions: Schema.Literals([1, 2]),
-    operational_anchors: Schema.Literal(1),
-    operational_occurrence_review_decisions: Schema.Literals([1, 2]),
-    operational_occurrences: Schema.Literal(2),
-    relationship_integrity_bundle: Schema.Literal(1),
-    route_anchors: Schema.Literal(1),
-    route_identity_snapshot: Schema.Literal(1),
-  }),
   files: Schema.Record(Schema.String, FileMetadataSchema),
-  pointers: Schema.Struct({
-    operational_anchor_review_decisions: NonEmptyStringSchema,
-    operational_anchor_summary: NonEmptyStringSchema,
-    operational_anchors: NonEmptyStringSchema,
-    operational_occurrence_review_decisions: NonEmptyStringSchema,
-    operational_occurrence_summary: NonEmptyStringSchema,
-    operational_occurrences: NonEmptyStringSchema,
-    quality_report: Schema.NullOr(NonEmptyStringSchema),
-    relationship_integrity_bundle: NonEmptyStringSchema,
-    route_anchors: Schema.Literal("route_anchors.jsonl"),
-    route_identity_snapshot: Schema.Literal("route_identity_snapshot.json"),
-    taxonomy: NonEmptyStringSchema,
-  }),
   record_counts: Schema.Record(
     Schema.String,
     Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
   ),
+};
+const ManifestContractVersionFields = {
+  operational_anchor_review_decisions: Schema.Literals([1, 2]),
+  operational_anchors: Schema.Literal(1),
+  operational_occurrence_review_decisions: Schema.Literals([1, 2]),
+  operational_occurrences: Schema.Literal(2),
+  relationship_integrity_bundle: Schema.Literal(1),
+  route_anchors: Schema.Literal(1),
+  route_identity_snapshot: Schema.Literal(1),
+};
+const ManifestPointerFields = {
+  operational_anchor_review_decisions: NonEmptyStringSchema,
+  operational_anchor_summary: NonEmptyStringSchema,
+  operational_anchors: NonEmptyStringSchema,
+  operational_occurrence_review_decisions: NonEmptyStringSchema,
+  operational_occurrence_summary: NonEmptyStringSchema,
+  operational_occurrences: NonEmptyStringSchema,
+  quality_report: Schema.NullOr(NonEmptyStringSchema),
+  relationship_integrity_bundle: NonEmptyStringSchema,
+  route_anchors: Schema.Literal("route_anchors.jsonl"),
+  route_identity_snapshot: Schema.Literal("route_identity_snapshot.json"),
+  taxonomy: NonEmptyStringSchema,
+};
+const ManifestV5Schema = Schema.Struct({
+  manifest_version: Schema.Literal(5),
+  ...ManifestSharedFields,
+  contract_versions: Schema.Struct(ManifestContractVersionFields),
+  pointers: Schema.Struct(ManifestPointerFields),
 });
+const ManifestV6Schema = Schema.Struct({
+  manifest_version: Schema.Literal(6),
+  ...ManifestSharedFields,
+  contract_versions: Schema.Struct({
+    ...ManifestContractVersionFields,
+    bus_lane_identity_verdicts: Schema.Literal(1),
+    operational_occurrence_member_extents: Schema.Literal(1),
+    operational_occurrence_member_grain: Schema.Literal(1),
+  }),
+  pointers: Schema.Struct({
+    ...ManifestPointerFields,
+    bus_lane_identity_verdicts: NonEmptyStringSchema,
+    frontier_exceptions: NonEmptyStringSchema,
+    operational_occurrence_member_extents: NonEmptyStringSchema,
+    operational_occurrence_member_grain: NonEmptyStringSchema,
+    quality_provenance: NonEmptyStringSchema,
+    study_readiness_v2: NonEmptyStringSchema,
+  }),
+});
+const RouteIdentityManifestSchema = Schema.Union([ManifestV5Schema, ManifestV6Schema]);
 
 export const MTA_WIKI_SERVICE_MODES = STUDIO_ROUTE_SERVICE_MODES;
 const ServiceModeSchema = StudioRouteServiceModeSchema;
@@ -953,7 +978,7 @@ export async function loadMtaWikiRouteIdentities(input: {
   if (manifestSha256 !== input.wikiManifestSha256)
     throw new Error("MTA Wiki manifest SHA-256 mismatch");
   const manifest = decodeSchemaStrict(
-    ManifestV5Schema,
+    RouteIdentityManifestSchema,
     JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(manifestBytes)),
   );
   if (manifest.release_id !== input.wikiRelease)

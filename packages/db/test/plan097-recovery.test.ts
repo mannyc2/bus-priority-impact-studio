@@ -182,6 +182,65 @@ function exactMapCatalogAudit(): Plan097SchemaAuditInput {
   });
 }
 
+function withRouteCatalog(
+  input: Plan097SchemaAuditInput,
+  state: "legacy-0009" | "exact" = "exact",
+): Plan097SchemaAuditInput {
+  const columns = [
+    ["route_id", "TEXT", true, 1],
+    ["route_short_name", "TEXT", true, 0],
+    ["route_long_name", "TEXT", false, 0],
+    ["shape_count", "INTEGER", true, 0],
+    ["stop_count", "INTEGER", true, 0],
+    ["timepoint_stop_count", "INTEGER", true, 0],
+    ["latitude_min", "REAL", false, 0],
+    ["latitude_max", "REAL", false, 0],
+    ["longitude_min", "REAL", false, 0],
+    ["longitude_max", "REAL", false, 0],
+    ["route_miles", "REAL", false, 0],
+    ["terminal_a_name", "TEXT", false, 0],
+    ["terminal_b_name", "TEXT", false, 0],
+  ] as const;
+  const selected = state === "exact" ? columns : columns.slice(0, -3);
+  return {
+    ...input,
+    sqliteMaster: [
+      ...input.sqliteMaster,
+      {
+        type: "table",
+        name: "route_catalog",
+        tableName: "route_catalog",
+        sql: "CREATE TABLE route_catalog (...)",
+      },
+    ],
+    tables: [
+      ...input.tables,
+      {
+        tableName: "route_catalog",
+        columns: selected.map(([name, type, notNull, primaryKey], cid) => ({
+          cid,
+          name,
+          type,
+          notNull,
+          defaultValue: null,
+          primaryKey,
+        })),
+      },
+    ],
+    indexes: [
+      ...input.indexes,
+      {
+        tableName: "route_catalog",
+        name: "sqlite_autoindex_route_catalog_1",
+        unique: true,
+        origin: "pk",
+        partial: false,
+        columns: [{ sequence: 0, cid: 0, name: "route_id" }],
+      },
+    ],
+  };
+}
+
 describe("Plan 097 recovery contracts", () => {
   test("canonicalizes complete schema evidence independently of query order", () => {
     const input = exactMapCatalogAudit();
@@ -248,10 +307,11 @@ describe("Plan 097 recovery contracts", () => {
     );
   });
 
-  test("accepts only canonical schema plus an absent-or-exact 0033 and an independent ledger", () => {
-    const expected = buildPlan097CanonicalSchemaSnapshot(exactMapCatalogAudit());
+  test("accepts only the serving schema plus authorized 0033/0009 recovery states and an independent ledger", () => {
+    const exactAudit = withRouteCatalog(exactMapCatalogAudit());
+    const expected = buildPlan097CanonicalSchemaSnapshot(exactAudit);
     const ledgerDivergent = buildPlan097CanonicalSchemaSnapshot({
-      ...exactMapCatalogAudit(),
+      ...exactAudit,
       migrationLedger: {
         present: true,
         rows: [{ id: 32, name: "0032_route_catalog_trip_type.sql", appliedAt: null }],
@@ -259,33 +319,44 @@ describe("Plan 097 recovery contracts", () => {
     });
     expect(assertPlan097SchemaEnvelope({ actual: ledgerDivergent, expected })).toEqual({
       mapReleaseCatalog: { state: "exact", applyRecoverySql: false },
+      routeCatalog: { state: "exact", applyRecoverySql: false },
     });
 
-    const absentMap = mapCatalogAudit({
-      sqliteMaster: [],
-      tables: [],
-      indexes: [],
-    });
+    const absentMap = withRouteCatalog(mapCatalogAudit());
     expect(
       assertPlan097SchemaEnvelope({
         actual: buildPlan097CanonicalSchemaSnapshot(absentMap),
         expected,
       }),
-    ).toEqual({ mapReleaseCatalog: { state: "absent", applyRecoverySql: true } });
+    ).toEqual({
+      mapReleaseCatalog: { state: "absent", applyRecoverySql: true },
+      routeCatalog: { state: "exact", applyRecoverySql: false },
+    });
 
-    const unexpected = exactMapCatalogAudit();
+    const legacyRouteCatalog = withRouteCatalog(exactMapCatalogAudit(), "legacy-0009");
+    expect(
+      assertPlan097SchemaEnvelope({
+        actual: buildPlan097CanonicalSchemaSnapshot(legacyRouteCatalog),
+        expected,
+      }),
+    ).toEqual({
+      mapReleaseCatalog: { state: "exact", applyRecoverySql: false },
+      routeCatalog: { state: "legacy-0009", applyRecoverySql: true },
+    });
+
+    const unexpected = withRouteCatalog(exactMapCatalogAudit());
     unexpected.sqliteMaster.push({
       type: "table",
-      name: "unreviewed_table",
-      tableName: "unreviewed_table",
-      sql: "CREATE TABLE unreviewed_table (id TEXT)",
+      name: "source_month_coverage",
+      tableName: "source_month_coverage",
+      sql: "CREATE TABLE source_month_coverage (source_id TEXT)",
     });
     unexpected.tables.push({
-      tableName: "unreviewed_table",
+      tableName: "source_month_coverage",
       columns: [
         {
           cid: 0,
-          name: "id",
+          name: "source_id",
           type: "TEXT",
           notNull: false,
           defaultValue: null,
@@ -299,6 +370,85 @@ describe("Plan 097 recovery contracts", () => {
         expected,
       }),
     ).toThrow(/schema envelope/i);
+
+    const unrelated = withRouteCatalog(exactMapCatalogAudit());
+    unrelated.sqliteMaster.push({
+      type: "table",
+      name: "identity",
+      tableName: "identity",
+      sql: "CREATE TABLE identity (id TEXT)",
+    });
+    unrelated.tables.push({
+      tableName: "identity",
+      columns: [
+        {
+          cid: 0,
+          name: "id",
+          type: "TEXT",
+          notNull: false,
+          defaultValue: null,
+          primaryKey: 0,
+        },
+      ],
+    });
+    expect(
+      assertPlan097SchemaEnvelope({
+        actual: buildPlan097CanonicalSchemaSnapshot(unrelated),
+        expected,
+      }),
+    ).toEqual({
+      mapReleaseCatalog: { state: "exact", applyRecoverySql: false },
+      routeCatalog: { state: "exact", applyRecoverySql: false },
+    });
+
+    const expectedServing = withRouteCatalog(exactMapCatalogAudit());
+    const routeCatalogMaster = expectedServing.sqliteMaster.find(
+      (entry) => entry.name === "route_catalog",
+    );
+    if (routeCatalogMaster === undefined) throw new Error("Missing route_catalog fixture");
+    const textuallyDifferentServing = {
+      ...expectedServing,
+      sqliteMaster: expectedServing.sqliteMaster.map((entry) =>
+        entry.name === "route_catalog"
+          ? { ...entry, sql: 'CREATE TABLE "route_catalog" ("route_id" text)' }
+          : entry,
+      ),
+    };
+    expect(
+      assertPlan097SchemaEnvelope({
+        actual: buildPlan097CanonicalSchemaSnapshot(textuallyDifferentServing),
+        expected: buildPlan097CanonicalSchemaSnapshot(expectedServing),
+      }),
+    ).toEqual({
+      mapReleaseCatalog: { state: "exact", applyRecoverySql: false },
+      routeCatalog: { state: "exact", applyRecoverySql: false },
+    });
+
+    const routeCatalogTable = expectedServing.tables.find(
+      (table) => table.tableName === "route_catalog",
+    );
+    if (routeCatalogTable === undefined) throw new Error("Missing route_catalog table fixture");
+    const routeIdColumn = routeCatalogTable.columns[0];
+    if (routeIdColumn === undefined) throw new Error("Missing route_catalog column fixture");
+    const semanticallyDifferentServing = {
+      ...expectedServing,
+      tables: expectedServing.tables.map((table) =>
+        table.tableName === "route_catalog"
+          ? {
+              ...table,
+              columns: table.columns.map((column, index) =>
+                index === 0 ? { ...column, type: "INTEGER" } : column,
+              ),
+            }
+          : table,
+      ),
+    };
+    expect(() =>
+      assertPlan097SchemaEnvelope({
+        actual: buildPlan097CanonicalSchemaSnapshot(semanticallyDifferentServing),
+        expected: buildPlan097CanonicalSchemaSnapshot(expectedServing),
+      }),
+    ).toThrow(/route_catalog column|schema envelope/i);
   });
 
   test("the idempotent 0033 recovery creates the exact table and is a no-op on retry", async () => {
@@ -582,6 +732,8 @@ describe("Plan 097 recovery contracts", () => {
         actualStructuralSha256: sha("f"),
         mapReleaseCatalogState: "exact",
         applyRecoverySql: false,
+        routeCatalogState: "exact",
+        applyRouteCatalogRecoverySql: false,
       },
       httpBaseline: {
         checkedAt: "2026-07-22T12:00:00.000Z",

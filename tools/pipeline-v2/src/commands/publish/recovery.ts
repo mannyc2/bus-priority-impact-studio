@@ -35,6 +35,7 @@ export type PublishRecoveryInputs = {
   serviceTokenSecret: string;
   bootstrapToken?: string | undefined;
   executionToken?: string | undefined;
+  mirrorProofArtifacts?: boolean | undefined;
   preflightReceiptSha256?: string | undefined;
   preflightPublicKeyPath?: string | undefined;
   expectedCandidateId?: string | undefined;
@@ -96,6 +97,7 @@ export type PublishRecoveryResult = {
 type PublishRecoveryDependencies = {
   fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
   httpCheck?: typeof runPlan097HttpCheck | undefined;
+  sleep?: ((milliseconds: number) => Promise<void>) | undefined;
   verifyPreflightReceipt?: typeof verifyReturnedPlan097Preflight | undefined;
 };
 
@@ -278,16 +280,14 @@ function requireOperationToken(
   return token;
 }
 
-async function remoteCall(input: {
+function operationHeaders(input: {
   inputs: PublishRecoveryInputs;
-  dependencies: PublishRecoveryDependencies;
-  request: Plan097OperationRequest;
+  contentType: string;
   execute: boolean;
   tokenKind?: "bootstrap" | "execution" | undefined;
-  tracker?: RemoteResponseTracker | undefined;
-}): Promise<Plan097OperationResponse> {
+}): Headers {
   const headers = new Headers({
-    "Content-Type": "application/json",
+    "Content-Type": input.contentType,
     "CF-Access-Client-Id": input.inputs.serviceTokenId,
     "CF-Access-Client-Secret": input.inputs.serviceTokenSecret,
   });
@@ -297,18 +297,104 @@ async function remoteCall(input: {
       requireOperationToken(input.inputs, input.tokenKind ?? "execution"),
     );
   }
-  const response = await input.dependencies.fetch(input.inputs.endpoint, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(input.request),
-  });
-  const body: unknown = await response.json();
-  if (!response.ok) {
-    throw new Error(`Plan 097 Worker ${input.request.action} failed with HTTP ${response.status}`);
+  return headers;
+}
+
+async function decodeRemoteResponse(input: {
+  response: Response;
+  action: Plan097OperationRequest["action"];
+  tracker?: RemoteResponseTracker | undefined;
+}): Promise<Plan097OperationResponse> {
+  const responseText = await input.response.text();
+  let body: unknown;
+  try {
+    body = JSON.parse(responseText);
+  } catch {
+    throw new Error(
+      `Plan 097 Worker ${input.action} returned non-JSON HTTP ${input.response.status}`,
+    );
+  }
+  if (!input.response.ok) {
+    const diagnostic =
+      typeof body === "object" &&
+      body !== null &&
+      "diagnosticSha256" in body &&
+      typeof body.diagnosticSha256 === "string" &&
+      /^[a-f0-9]{64}$/u.test(body.diagnosticSha256)
+        ? ` (diagnostic ${body.diagnosticSha256})`
+        : "";
+    const schemaDiagnostic =
+      typeof body === "object" &&
+      body !== null &&
+      "actualSchemaTableSha256" in body &&
+      Array.isArray(body.actualSchemaTableSha256)
+        ? ` (schema-table-sha256 ${JSON.stringify(body.actualSchemaTableSha256)})`
+        : "";
+    const schemaDetails =
+      typeof body === "object" &&
+      body !== null &&
+      "actualSchemaTables" in body &&
+      Array.isArray(body.actualSchemaTables) &&
+      "actualSchemaIndexes" in body &&
+      Array.isArray(body.actualSchemaIndexes)
+        ? ` (schema-tables ${JSON.stringify(body.actualSchemaTables)}) (schema-indexes ${JSON.stringify(body.actualSchemaIndexes)})`
+        : "";
+    throw new Error(
+      `Plan 097 Worker ${input.action} failed with HTTP ${input.response.status}${diagnostic}${schemaDiagnostic}${schemaDetails}`,
+    );
   }
   const decoded = decodeStrict(Plan097OperationResponseSchema)(body);
   input.tracker?.push(decoded);
   return decoded;
+}
+
+async function remoteCall(input: {
+  inputs: PublishRecoveryInputs;
+  dependencies: PublishRecoveryDependencies;
+  request: Plan097OperationRequest;
+  execute: boolean;
+  tokenKind?: "bootstrap" | "execution" | undefined;
+  tracker?: RemoteResponseTracker | undefined;
+}): Promise<Plan097OperationResponse> {
+  const headers = operationHeaders({
+    inputs: input.inputs,
+    contentType: "application/json",
+    execute: input.execute,
+    tokenKind: input.tokenKind,
+  });
+  const maximumAttempts = input.execute ? 8 : 1;
+  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+    const response = await input.dependencies.fetch(input.inputs.endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(input.request),
+    });
+    const retryableProviderFailure =
+      response.status === 409 &&
+      (await response
+        .clone()
+        .json()
+        .then(
+          (body) =>
+            typeof body === "object" &&
+            body !== null &&
+            "retryable" in body &&
+            body.retryable === true,
+          () => false,
+        ));
+    if ((response.status !== 403 && !retryableProviderFailure) || attempt === maximumAttempts) {
+      return decodeRemoteResponse({
+        response,
+        action: input.request.action,
+        tracker: input.tracker,
+      });
+    }
+    await response.body?.cancel();
+    await (input.dependencies.sleep ?? Bun.sleep)(Math.min(1_000 * 2 ** (attempt - 1), 4_000));
+  }
+  throw new Error(
+    `Plan 097 Worker ${input.request.action} exhausted its authorization retry budget`,
+  );
 }
 
 function buildOperationReceiptSet(responses: readonly Plan097OperationResponse[]) {
@@ -401,20 +487,6 @@ async function stageCandidate(input: {
     tracker: input.tracker,
   });
   input.receipts.push(mirrored.receiptKey);
-  if (input.inputs.preflightReceiptSha256 !== undefined) {
-    const reconciled = await remoteCall({
-      inputs: input.inputs,
-      dependencies: input.dependencies,
-      request: {
-        ...base,
-        action: "reconcile-schema",
-        preflightReceiptSha256: input.inputs.preflightReceiptSha256,
-      },
-      execute: true,
-      tracker: input.tracker,
-    });
-    input.receipts.push(reconciled.receiptKey);
-  }
   const manifestBytes = new Uint8Array(
     await Bun.file(input.inputs.artifactManifestPath).arrayBuffer(),
   );
@@ -427,47 +499,128 @@ async function stageCandidate(input: {
   const manifest = decodeStrict(Plan097RecoveryArtifactManifestSchema)(
     JSON.parse(new TextDecoder().decode(manifestBytes)),
   );
-  for (const entry of manifest.entries) {
+  const callStagingWorker = async (
+    action: "stage-body" | "seed-proof-alias",
+    entry: (typeof manifest.entries)[number],
+    body: Uint8Array,
+  ): Promise<Plan097OperationResponse> => {
+    const maximumAttempts = 5;
+    for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+      try {
+        if (body.byteLength >= 8 * 1024 * 1024) {
+          const headers = operationHeaders({
+            inputs: input.inputs,
+            contentType: "application/octet-stream",
+            execute: true,
+          });
+          headers.set("X-Plan097-Stage-Action", action);
+          headers.set("X-Plan097-Operation-Id", base.operationId);
+          headers.set("X-Plan097-Activation-Bundle-Sha256", base.activationBundleSha256);
+          headers.set("X-Plan097-Logical-Id", entry.logicalId);
+          headers.set("X-Plan097-Declared-Sha256", entry.sha256);
+          headers.set("X-Plan097-Declared-Bytes", String(entry.bytes));
+          headers.set("X-Plan097-Media-Type", entry.mediaType);
+          const response = await input.dependencies.fetch(input.inputs.endpoint, {
+            method: "POST",
+            headers,
+            body: body as unknown as BodyInit,
+          });
+          return await decodeRemoteResponse({
+            response,
+            action,
+            tracker: input.tracker,
+          });
+        }
+        return await remoteCall({
+          inputs: input.inputs,
+          dependencies: input.dependencies,
+          request: {
+            ...base,
+            action,
+            logicalId: entry.logicalId,
+            declaredSha256: entry.sha256,
+            declaredBytes: entry.bytes,
+            mediaType: entry.mediaType,
+            bodyBase64: base64(body),
+          },
+          execute: true,
+          tracker: input.tracker,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "unknown";
+        const transient =
+          /(?:returned non-JSON|failed with) HTTP (?:429|502|503|504)\b/u.test(message) ||
+          /(?:fetch failed|connection|ECONNRESET|timed out)/iu.test(message);
+        if (!transient || attempt === maximumAttempts) {
+          throw new Error(`Plan 097 artifact ${entry.logicalId} staging failed: ${message}`, {
+            cause: error,
+          });
+        }
+        const delayMs = 250 * 2 ** (attempt - 1);
+        await (input.dependencies.sleep ?? Bun.sleep)(delayMs);
+      }
+    }
+    throw new Error(`Plan 097 artifact ${entry.logicalId} staging exhausted its retry budget`);
+  };
+  const stageEntry = async (
+    entry: (typeof manifest.entries)[number],
+  ): Promise<readonly string[]> => {
+    if (input.inputs.mirrorProofArtifacts) {
+      const mirrored = await remoteCall({
+        inputs: input.inputs,
+        dependencies: input.dependencies,
+        request: {
+          ...base,
+          action: "mirror-proof-body",
+          logicalId: entry.logicalId,
+          declaredSha256: entry.sha256,
+          declaredBytes: entry.bytes,
+          mediaType: entry.mediaType,
+        },
+        execute: true,
+        tracker: input.tracker,
+      });
+      return [mirrored.receiptKey];
+    }
     const body = new Uint8Array(
       await Bun.file(join(input.inputs.artifactRoot, entry.logicalKey)).arrayBuffer(),
     );
     if (body.byteLength !== entry.bytes || sha256(body) !== entry.sha256) {
       throw new Error(`Local Plan 097 artifact ${entry.logicalId} drifted after manifest creation`);
     }
-    const staged = await remoteCall({
-      inputs: input.inputs,
-      dependencies: input.dependencies,
-      request: {
-        ...base,
-        action: "stage-body",
-        logicalId: entry.logicalId,
-        declaredSha256: entry.sha256,
-        declaredBytes: entry.bytes,
-        mediaType: entry.mediaType,
-        bodyBase64: base64(body),
-      },
-      execute: true,
-      tracker: input.tracker,
-    });
-    input.receipts.push(staged.receiptKey);
+    const staged = await callStagingWorker("stage-body", entry, body);
+    const entryReceipts = [staged.receiptKey];
     if (input.seedProofAliases) {
-      const alias = await remoteCall({
-        inputs: input.inputs,
-        dependencies: input.dependencies,
-        request: {
-          ...base,
-          action: "seed-proof-alias",
-          logicalId: entry.logicalId,
-          declaredSha256: entry.sha256,
-          declaredBytes: entry.bytes,
-          mediaType: entry.mediaType,
-          bodyBase64: base64(body),
-        },
-        execute: true,
-        tracker: input.tracker,
-      });
-      input.receipts.push(alias.receiptKey);
+      const alias = await callStagingWorker("seed-proof-alias", entry, body);
+      entryReceipts.push(alias.receiptKey);
     }
+    return entryReceipts;
+  };
+  const stagedReceiptGroups: Array<readonly string[] | undefined> = Array.from({
+    length: manifest.entries.length,
+  });
+  let nextEntryIndex = 0;
+  let completedEntryCount = 0;
+  const stageWorker = async (): Promise<void> => {
+    while (nextEntryIndex < manifest.entries.length) {
+      const entryIndex = nextEntryIndex;
+      nextEntryIndex += 1;
+      const entry = manifest.entries[entryIndex];
+      if (entry === undefined) throw new Error("Plan 097 manifest entry index drifted");
+      stagedReceiptGroups[entryIndex] = await stageEntry(entry);
+      completedEntryCount += 1;
+      if (completedEntryCount % 250 === 0 || completedEntryCount === manifest.entries.length) {
+        process.stderr.write(
+          `Plan 097 staged ${String(completedEntryCount)}/${String(manifest.entries.length)} artifacts\n`,
+        );
+      }
+    }
+  };
+  const workerCount = Math.min(input.inputs.mirrorProofArtifacts ? 12 : 4, manifest.entries.length);
+  await Promise.all(Array.from({ length: workerCount }, () => stageWorker()));
+  for (const receiptGroup of stagedReceiptGroups) {
+    if (receiptGroup === undefined) throw new Error("Plan 097 artifact staging was incomplete");
+    input.receipts.push(...receiptGroup);
   }
   const finalized = await remoteCall({
     inputs: input.inputs,
@@ -614,6 +767,7 @@ export async function runPublishRecovery(
       if (inputs.publicBaseUrl === undefined) {
         throw new Error("Plan 097 prove requires the disposable proof --base-url");
       }
+      const proofBaseUrl = inputs.publicBaseUrl;
       await stageCandidate({
         inputs,
         dependencies,
@@ -638,7 +792,7 @@ export async function runPublishRecovery(
       receipts.push(initialized.receiptKey);
       const proofBaseline = (
         await (dependencies.httpCheck ?? runPlan097HttpCheck)({
-          baseUrl: inputs.publicBaseUrl,
+          baseUrl: proofBaseUrl,
           fetch: dependencies.fetch,
           mode: "baseline",
         })
@@ -666,7 +820,7 @@ export async function runPublishRecovery(
           restoreBundleSha256,
         },
       ] as const;
-      for (const [index, request] of proofRequests.entries()) {
+      const callProof = async (request: (typeof proofRequests)[number]) => {
         const response = await remoteCall({
           inputs,
           dependencies,
@@ -675,33 +829,63 @@ export async function runPublishRecovery(
           tracker: responseTracker,
         });
         receipts.push(response.receiptKey);
-        if (index === 1) {
-          const candidate = (
-            await (dependencies.httpCheck ?? runPlan097HttpCheck)({
-              baseUrl: inputs.publicBaseUrl,
-              fetch: dependencies.fetch,
-              mode: "candidate",
-              expectedReleaseId: bundle.candidate.releaseId,
-              expectedExactRouteCount: bundle.expectedExactRouteCount,
-            })
-          ).baseline;
-          httpComparisons.push({ phase: "candidate-active", baseline: candidate });
-          continue;
-        }
+      };
+      const restoreProofBaseline = async () => {
+        await callProof(proofRequests[2]);
         const restored = (
           await (dependencies.httpCheck ?? runPlan097HttpCheck)({
-            baseUrl: inputs.publicBaseUrl,
+            baseUrl: proofBaseUrl,
             fetch: dependencies.fetch,
             mode: "baseline",
             expectedReleaseId: proofBaseline.activeReleaseId,
           })
         ).baseline;
         comparePlan097HttpBaselines({ expected: proofBaseline, actual: restored });
-        httpComparisons.push({
-          phase: index === 0 ? "injected-failure" : "baseline-restored",
-          baseline: restored,
-        });
+        httpComparisons.push({ phase: "baseline-restored", baseline: restored });
+      };
+
+      await callProof(proofRequests[0]);
+      const injectedFailureBaseline = (
+        await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+          baseUrl: proofBaseUrl,
+          fetch: dependencies.fetch,
+          mode: "baseline",
+          expectedReleaseId: proofBaseline.activeReleaseId,
+        })
+      ).baseline;
+      comparePlan097HttpBaselines({
+        expected: proofBaseline,
+        actual: injectedFailureBaseline,
+      });
+      httpComparisons.push({
+        phase: "injected-failure",
+        baseline: injectedFailureBaseline,
+      });
+
+      await callProof(proofRequests[1]);
+      try {
+        const candidate = (
+          await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+            baseUrl: proofBaseUrl,
+            fetch: dependencies.fetch,
+            mode: "candidate",
+            expectedReleaseId: bundle.candidate.releaseId,
+            expectedExactRouteCount: bundle.expectedExactRouteCount,
+          })
+        ).baseline;
+        httpComparisons.push({ phase: "candidate-active", baseline: candidate });
+      } catch (candidateFailure) {
+        try {
+          await restoreProofBaseline();
+        } catch (restoreFailure) {
+          throw new AggregateError(
+            [candidateFailure, restoreFailure],
+            "Plan 097 candidate HTTP proof failed and its disposable baseline restore also failed",
+          );
+        }
+        throw candidateFailure;
       }
+      await restoreProofBaseline();
       const proofReceiptKeys = [
         ...new Set(
           responseTracker
@@ -760,15 +944,28 @@ export async function runPublishRecovery(
         tracker: responseTracker,
       });
       collectResponseReceipts(ready, receipts);
-      const response = await remoteCall({
-        inputs,
-        dependencies,
-        request: { ...base, action: "activate" },
-        execute: true,
-        tracker: responseTracker,
-      });
-      collectResponseReceipts(response, receipts);
+      let activationResponse: Plan097OperationResponse | undefined;
       try {
+        const reconciled = await remoteCall({
+          inputs,
+          dependencies,
+          request: {
+            ...base,
+            action: "reconcile-schema",
+            preflightReceiptSha256: inputs.preflightReceiptSha256,
+          },
+          execute: true,
+          tracker: responseTracker,
+        });
+        collectResponseReceipts(reconciled, receipts);
+        activationResponse = await remoteCall({
+          inputs,
+          dependencies,
+          request: { ...base, action: "activate" },
+          execute: true,
+          tracker: responseTracker,
+        });
+        collectResponseReceipts(activationResponse, receipts);
         if (inputs.publicBaseUrl === undefined) {
           throw new Error("Plan 097 activation is missing the production base URL");
         }
@@ -781,25 +978,37 @@ export async function runPublishRecovery(
         });
         httpComparisons.push({ phase: "production-active", baseline: active.baseline });
       } catch (postActivationFailure) {
-        const rollback = await remoteCall({
-          inputs,
-          dependencies,
-          request: { ...base, action: "rollback", restoreBundleSha256 },
-          execute: true,
-          tracker: responseTracker,
-        });
-        collectResponseReceipts(rollback, receipts);
-        if (inputs.publicBaseUrl === undefined) throw postActivationFailure;
-        const restored = (
-          await (dependencies.httpCheck ?? runPlan097HttpCheck)({
-            baseUrl: inputs.publicBaseUrl,
-            fetch: dependencies.fetch,
-            mode: "baseline",
-            expectedReleaseId: productionBaseline.activeReleaseId,
-          })
-        ).baseline;
-        comparePlan097HttpBaselines({ expected: productionBaseline, actual: restored });
-        httpComparisons.push({ phase: "baseline-restored", baseline: restored });
+        try {
+          const rollback = await remoteCall({
+            inputs,
+            dependencies,
+            request: { ...base, action: "rollback", restoreBundleSha256 },
+            execute: true,
+            tracker: responseTracker,
+          });
+          collectResponseReceipts(rollback, receipts);
+          if (inputs.publicBaseUrl === undefined) throw postActivationFailure;
+          const restored = (
+            await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+              baseUrl: inputs.publicBaseUrl,
+              fetch: dependencies.fetch,
+              mode: "baseline",
+              expectedReleaseId: productionBaseline.activeReleaseId,
+            })
+          ).baseline;
+          comparePlan097HttpBaselines({ expected: productionBaseline, actual: restored });
+          httpComparisons.push({ phase: "baseline-restored", baseline: restored });
+        } catch (rollbackFailure) {
+          throw new AggregateError(
+            [postActivationFailure, rollbackFailure],
+            "Plan 097 production activation failed and its rollback could not be verified",
+          );
+        }
+        if (activationResponse === undefined) {
+          throw new Error("Plan 097 production mutation failed but the baseline was restored", {
+            cause: postActivationFailure,
+          });
+        }
         await recordTerminalCompletion("rolled_back");
         return {
           schemaVersion: 1,
@@ -982,6 +1191,8 @@ export function resolvePublishRecoveryCliInputs(
     serviceTokenSecret,
     bootstrapToken: configuredValue(undefined, environment, "PLAN097_BOOTSTRAP_TOKEN"),
     executionToken: configuredValue(undefined, environment, "PLAN097_EXECUTION_TOKEN"),
+    mirrorProofArtifacts:
+      configuredValue(undefined, environment, "PLAN097_MIRROR_PROOF_ARTIFACTS") === "true",
     preflightReceiptSha256: configuredValue(
       options.receiptSha256,
       environment,

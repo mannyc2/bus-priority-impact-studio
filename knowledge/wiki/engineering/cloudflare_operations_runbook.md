@@ -166,6 +166,35 @@ not establish a `first proved no-store` instant, and did not start the cache-
 drain clock. A repaired reader deployment is a new protected production
 Worker gate against its exact pushed SHA.
 
+Protected run 334 (`30028518714`) on 2026-07-23 used approved PR #102 head
+`33f5f59db2db984c1b77d423566eeef2cd61b2ca`, merged as
+`b25542b0a735636e7051be8fb70893499671366f`. It proved candidate Worker
+`8c117bac-3813-4cfc-9d19-c94c4987a165` first at 0% through an exact version
+override, then promoted it alone to 100% and passed the ordinary-traffic proof
+at `2026-07-23T17:16:05.839Z`. All successful public checks returned
+`no-store`; the pinned release and known baseline map-manifest 503 were
+unchanged. Read-only D1 parity and production smoke passed, rollback stayed
+skipped, and no D1/R2 application data, schema, release pointer, or candidate
+artifact changed.
+
+The evidence artifact is ID `8572360112`, archive SHA-256
+`56410e4a85f8228c17367e5463ef6eeee294549413d553f9943b594da4b3b7d5`,
+expiring `2026-10-21T17:13:47Z`; its adjacent manifest independently verified
+all six JSON members. No purge was authorized. Do not run the signed preflight
+or disposable proof before the 86,400-second drain completes at
+`2026-07-24T17:16:05.839Z` and a new anonymous checker confirms the same
+release, Worker version, `no-store` posture, and operation-namespace 404.
+
+That post-drain checker passed at `2026-07-25T14:52:47.145Z` over ordinary
+production traffic. It observed all 15 release-aware endpoints on Worker
+`8c117bac-3813-4cfc-9d19-c94c4987a165`, active release
+`pub_20260605T183601689Z`, 375 exact routes, `no-store` on all 14 successful
+responses, the unchanged baseline map-manifest 503, and anonymous
+operation-namespace 404. Its committed attestation is
+`docs/research/reviews/plan097/post-drain-reader-attestation.md`. This clears
+the drain gate only; it does not replace the signed preflight, authorize the
+disposable proof, or authorize production mutation.
+
 ### Closed command configuration
 
 The exact reviewed command shapes resolve paths and endpoints from these environment variables. A
@@ -212,10 +241,18 @@ bun --filter @bp/pipeline-v2 cli -- publish recovery --action dry-run --candidat
 ```
 
 The result must include the signed preflight receipt SHA/key fingerprint, selective snapshot and
-restore hashes, exact schema/migration-ledger fingerprint, public HTTP baseline, cost preview, and
-measured read/R2 receipt metrics. Persist its redacted attestation on the pushed branch. Stop if the
-active release is unknown, the Studio/map/exact election disagrees, 0033 is partial, any other
-schema object drifts, a protected fingerprint is missing, or the candidate is not newer.
+restore hashes, exact serving-schema/migration-ledger fingerprint, public HTTP baseline, cost
+preview, and measured read/R2 receipt metrics. The structural envelope is deliberately limited to
+the explicit Plan 097 serving-table allowlist; unrelated identity and Tier-2 workspace tables may
+be absent from the slim production D1 and are never copied into it. It compares canonical table
+columns, keys, and indexes rather than raw `sqlite_master.sql` formatting; the complete raw schema
+snapshot remains signed evidence. Persist the redacted
+attestation on the pushed branch. Stop if the active release is unknown, the Studio/map/exact
+election disagrees, 0033 is partial, `route_catalog` is neither canonical nor the exact pre-0009
+shape, any other allowlisted serving-schema object drifts, a present protected table changes during
+an operation, or the candidate is not newer. The signed reconciliation may create an absent exact
+0033 and may add only the three nullable 0009 `route_catalog` columns; it never edits the migration
+ledger and treats either already-canonical state as a retry-safe no-op.
 
 ### Disposable A-to-B-to-A proof
 
@@ -226,9 +263,11 @@ The proof config binds that D1, proof artifact/runtime buckets, and the immutabl
 The proof command mirrors the signed bundle, seeds proof-only stable aliases with the same verified
 candidate bytes, applies the exact selective restore batch once to initialize serving state A, and
 then runs failed-B, B, and restored-A. Protected fingerprints are captured in the disposable D1
-before each exact batch and must be byte-identical after it; production identity/session rows are
-never copied. Each A surface is strict-checked, B must pass candidate dossier/map/exact-route checks,
-and restored A must match its own complete HTTP baseline.
+before each exact batch and must be byte-identical after it; only protected tables present in that
+environment are fingerprinted, and production identity/session rows are never copied. The proof
+database's independently applied migration ledger is protected locally but is not required to equal
+the production ledger recorded by signed preflight. Each A surface is strict-checked, B must pass
+candidate dossier/map/exact-route checks, and restored A must match its own complete HTTP baseline.
 
 Run exactly:
 

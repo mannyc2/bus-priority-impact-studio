@@ -13,6 +13,7 @@ import {
   type Plan097RecoveryArtifactManifest,
   type Plan097RestoreBundle,
   plan097MapReleaseCatalogRecoveryStatements,
+  plan097RouteCatalogRecoveryStatements,
   plan097StructuralSchemaEnvelopeSha256,
 } from "@bp/db/recovery/plan097";
 import { decodeStrict } from "@bp/domain/decode";
@@ -322,6 +323,38 @@ async function operationRequest(input: {
   );
 }
 
+async function rawStageRequest(input: {
+  action: "stage-body" | "seed-proof-alias";
+  operationId: string;
+  activationBundleSha256: string;
+  logicalId: string;
+  declaredSha256: string;
+  declaredBytes: number;
+  mediaType: string;
+  body: Uint8Array;
+  env: Env;
+  execute?: boolean;
+}): Promise<Response> {
+  const requestHeaders = headers(input.execute);
+  requestHeaders.set("Content-Type", "application/octet-stream");
+  requestHeaders.set("X-Plan097-Stage-Action", input.action);
+  requestHeaders.set("X-Plan097-Operation-Id", input.operationId);
+  requestHeaders.set("X-Plan097-Activation-Bundle-Sha256", input.activationBundleSha256);
+  requestHeaders.set("X-Plan097-Logical-Id", input.logicalId);
+  requestHeaders.set("X-Plan097-Declared-Sha256", input.declaredSha256);
+  requestHeaders.set("X-Plan097-Declared-Bytes", String(input.declaredBytes));
+  requestHeaders.set("X-Plan097-Media-Type", input.mediaType);
+  return handlePlan097RecoveryRequest(
+    new Request(`https://example.test${PLAN097_OPERATION_PATH}`, {
+      method: "POST",
+      headers: requestHeaders,
+      body: input.body as unknown as BodyInit,
+    }),
+    input.env,
+    { authenticate: async () => true },
+  );
+}
+
 async function cleanD1(): Promise<void> {
   await testEnv.DB.batch([
     testEnv.DB.prepare("DELETE FROM source_month_coverage WHERE source_id = 'plan097-worker-test'"),
@@ -502,6 +535,32 @@ describe("Plan 097 protected Worker operation", () => {
     expect(response.status).toBe(404);
   });
 
+  it("treats an empty canonical map catalog as the signed pre-0033 baseline only for proof A", async () => {
+    await testEnv.DB.prepare("DELETE FROM map_release_catalog WHERE release_id = ?")
+      .bind(previousReleaseId)
+      .run();
+    const response = await operationRequest({
+      body: {
+        operationId,
+        activationBundleSha256,
+        action: "prove",
+        bundle: "restore",
+        restoreBundleSha256,
+      },
+      env: operationEnv,
+    });
+    expect(response.status).toBe(200);
+    expect(decodeStrict(Plan097OperationResponseSchema)(await response.json()).proofState).toEqual({
+      phase: "baseline-restored",
+      election: {
+        studioReleaseId: previousReleaseId,
+        mapReleaseId: previousReleaseId,
+        exactRouteReleaseId: previousReleaseId,
+      },
+      protectedFingerprintCount: expect.any(Number),
+    });
+  });
+
   it("stages only signed bodies, proves rollback on failure, activates, and rolls back", async () => {
     const base = { operationId, activationBundleSha256 };
     const seedBody = {
@@ -590,16 +649,14 @@ describe("Plan 097 protected Worker operation", () => {
     });
     expect(badStage.status).toBe(409);
 
-    const stage = await operationRequest({
-      body: {
-        ...base,
-        action: "stage-body",
-        logicalId: entry.logicalId,
-        declaredSha256: entry.sha256,
-        declaredBytes: entry.bytes,
-        mediaType: entry.mediaType,
-        bodyBase64: btoa(String.fromCharCode(...artifactBody)),
-      },
+    const stage = await rawStageRequest({
+      ...base,
+      action: "stage-body",
+      logicalId: entry.logicalId,
+      declaredSha256: entry.sha256,
+      declaredBytes: entry.bytes,
+      mediaType: entry.mediaType,
+      body: artifactBody,
       env: operationEnv,
       execute: true,
     });
@@ -610,24 +667,51 @@ describe("Plan 097 protected Worker operation", () => {
     expect(stageResponse.metrics.r2.bytesWritten).toBe(artifactBody.byteLength);
     expect(await testEnv.ARTIFACTS.get(entry.key)).not.toBeNull();
 
+    await testEnv.PLAN097_OPERATIONS.put(entry.key, artifactBody);
+    await testEnv.ARTIFACTS.delete(entry.key);
+    const productionMirrorEnv = {
+      ...operationEnv,
+      PLAN097_PROOF_ARTIFACTS: testEnv.PLAN097_OPERATIONS,
+    };
+    delete productionMirrorEnv.PLAN097_PROOF_MODE;
+    const mirroredBody = await operationRequest({
+      body: {
+        ...base,
+        action: "mirror-proof-body",
+        logicalId: entry.logicalId,
+        declaredSha256: entry.sha256,
+        declaredBytes: entry.bytes,
+        mediaType: entry.mediaType,
+      },
+      env: productionMirrorEnv,
+      execute: true,
+    });
+    expect(mirroredBody.status).toBe(200);
+    expect(
+      decodeStrict(Plan097OperationResponseSchema)(await mirroredBody.json()).metrics.r2,
+    ).toMatchObject({
+      getRequests: 4,
+      headRequests: 2,
+    });
+
     const aliasBody = {
       ...base,
-      action: "seed-proof-alias",
+      action: "seed-proof-alias" as const,
       logicalId: entry.logicalId,
       declaredSha256: entry.sha256,
       declaredBytes: entry.bytes,
       mediaType: entry.mediaType,
-      bodyBase64: btoa(String.fromCharCode(...artifactBody)),
+      body: artifactBody,
     };
     const proofDisabledEnv = { ...operationEnv };
     delete proofDisabledEnv.PLAN097_PROOF_MODE;
-    const aliasDenied = await operationRequest({
-      body: aliasBody,
+    const aliasDenied = await rawStageRequest({
+      ...aliasBody,
       env: proofDisabledEnv,
       execute: true,
     });
     expect(aliasDenied.status).toBe(403);
-    const alias = await operationRequest({ body: aliasBody, env: operationEnv, execute: true });
+    const alias = await rawStageRequest({ ...aliasBody, env: operationEnv, execute: true });
     expect(alias.status).toBe(200);
     expect(await testEnv.ARTIFACTS.get(entry.logicalKey)).not.toBeNull();
 
@@ -887,13 +971,144 @@ describe("Plan 097 protected Worker operation", () => {
     });
   });
 
-  it("reconciles an absent exact 0033 only from the signed preflight and is retry-safe", async () => {
+  it("restores the signed pre-0033 production schema and remains retry-safe", async () => {
+    await testEnv.DB.prepare("DELETE FROM map_release_catalog").run();
+    await testEnv.DB.prepare("DROP TABLE map_release_catalog").run();
+    try {
+      const base = { operationId, activationBundleSha256 };
+      const preflight = await operationRequest({
+        body: {
+          ...base,
+          action: "preflight",
+          httpBaseline: {
+            checkedAt: "2026-07-22T11:59:00.000Z",
+            activeReleaseId: previousReleaseId,
+            endpoints: [
+              {
+                path: "/api/v1/status",
+                status: 200,
+                schemaId: "bp.api.release_status.v1",
+                safeBodySha256: "9".repeat(64),
+                requestId: "request-production-pre-0033",
+                cfRay: null,
+                cacheControl: "no-store",
+                cfCacheStatus: null,
+                age: null,
+                workerVersionId: null,
+                etag: null,
+              },
+            ],
+          },
+        },
+        env: operationEnv,
+      });
+      expect(preflight.status).toBe(200);
+      const preflightResponse = decodeStrict(Plan097OperationResponseSchema)(
+        await preflight.json(),
+      );
+      const preflightRef = preflightResponse.evidence?.find((entry) => entry.kind === "preflight");
+      const restoreRef = preflightResponse.evidence?.find(
+        (entry) => entry.kind === "restore-bundle",
+      );
+      if (preflightRef === undefined || restoreRef === undefined) {
+        throw new Error("missing production pre-0033 recovery evidence");
+      }
+      const productionEnv = {
+        ...operationEnv,
+        PLAN097_PREFLIGHT_RECEIPT_SHA256: preflightRef.sha256,
+        PLAN097_RESTORE_BUNDLE_SHA256: restoreRef.sha256,
+      };
+      delete productionEnv.PLAN097_PROOF_MODE;
+
+      const reconcile = await operationRequest({
+        body: {
+          ...base,
+          action: "reconcile-schema",
+          preflightReceiptSha256: preflightRef.sha256,
+        },
+        env: productionEnv,
+        execute: true,
+      });
+      expect(reconcile.status).toBe(200);
+      expect(
+        (await testEnv.DB.prepare("PRAGMA table_info(map_release_catalog)").all()).results,
+      ).toHaveLength(9);
+
+      const entry = artifactManifest.entries[0];
+      if (entry === undefined) throw new Error("missing fixture entry");
+      const stage = await rawStageRequest({
+        ...base,
+        action: "stage-body",
+        logicalId: entry.logicalId,
+        declaredSha256: entry.sha256,
+        declaredBytes: entry.bytes,
+        mediaType: entry.mediaType,
+        body: artifactBody,
+        env: productionEnv,
+        execute: true,
+      });
+      expect(stage.status).toBe(200);
+      const finalize = await operationRequest({
+        body: { ...base, action: "finalize-manifest" },
+        env: productionEnv,
+        execute: true,
+      });
+      expect(finalize.status).toBe(200);
+      const activate = await operationRequest({
+        body: { ...base, action: "activate" },
+        env: productionEnv,
+        execute: true,
+      });
+      expect(activate.status).toBe(200);
+
+      const rollback = () =>
+        operationRequest({
+          body: {
+            ...base,
+            action: "rollback",
+            restoreBundleSha256: restoreRef.sha256,
+          },
+          env: productionEnv,
+          execute: true,
+        });
+      const first = await rollback();
+      expect(first.status).toBe(200);
+      expect(
+        await testEnv.DB.prepare(
+          "SELECT COUNT(*) AS count FROM sqlite_master WHERE name IN ('map_release_catalog', 'map_release_catalog_manifest_key_idx')",
+        ).first("count"),
+      ).toBe(0);
+      const firstResponse = decodeStrict(Plan097OperationResponseSchema)(await first.json());
+      expect(firstResponse.statementCount).toBeGreaterThan(2);
+
+      const retry = await rollback();
+      expect(retry.status).toBe(200);
+      const retryResponse = decodeStrict(Plan097OperationResponseSchema)(await retry.json());
+      expect(retryResponse.statementCount).toBe(firstResponse.statementCount - 3);
+      expect(
+        await testEnv.DB.prepare(
+          "SELECT COUNT(*) AS count FROM sqlite_master WHERE name IN ('map_release_catalog', 'map_release_catalog_manifest_key_idx')",
+        ).first("count"),
+      ).toBe(0);
+    } finally {
+      await testEnv.DB.batch(
+        plan097MapReleaseCatalogRecoveryStatements.map((sql) => testEnv.DB.prepare(sql)),
+      );
+    }
+  });
+
+  it("reconciles exact legacy 0033/0009 states only from signed preflight and is retry-safe", async () => {
     const ledgerBefore = (
       await testEnv.DB.prepare(
         "SELECT id, name, applied_at AS appliedAt FROM d1_migrations ORDER BY id, name",
       ).all()
     ).results;
     await testEnv.DB.prepare("DROP TABLE map_release_catalog").run();
+    await testEnv.DB.batch([
+      testEnv.DB.prepare("ALTER TABLE route_catalog DROP COLUMN terminal_b_name"),
+      testEnv.DB.prepare("ALTER TABLE route_catalog DROP COLUMN terminal_a_name"),
+      testEnv.DB.prepare("ALTER TABLE route_catalog DROP COLUMN route_miles"),
+    ]);
     try {
       const base = { operationId, activationBundleSha256 };
       const preflight = await operationRequest({
@@ -928,6 +1143,17 @@ describe("Plan 097 protected Worker operation", () => {
       );
       const preflightRef = preflightResponse.evidence?.find((entry) => entry.kind === "preflight");
       if (preflightRef === undefined) throw new Error("missing absent-0033 preflight receipt");
+      const preflightObject = await testEnv.PLAN097_OPERATIONS.get(preflightRef.key);
+      if (preflightObject === null) throw new Error("missing preflight receipt object");
+      const preflightReceipt = decodeStrict(Plan097PreflightReceiptSchema)(
+        await preflightObject.json(),
+      );
+      expect(preflightReceipt.schemaReconciliation).toMatchObject({
+        mapReleaseCatalogState: "absent",
+        applyRecoverySql: true,
+        routeCatalogState: "legacy-0009",
+        applyRouteCatalogRecoverySql: true,
+      });
 
       const unauthorized = await operationRequest({
         body: {
@@ -938,6 +1164,27 @@ describe("Plan 097 protected Worker operation", () => {
         env: operationEnv,
       });
       expect(unauthorized.status).toBe(403);
+
+      await testEnv.DB.prepare(
+        "INSERT INTO d1_migrations (id, name, applied_at) VALUES (999, 'proof-only-ledger-row.sql', 999)",
+      ).run();
+      const ledgerAfterProofProvisioning = (
+        await testEnv.DB.prepare(
+          "SELECT id, name, applied_at AS appliedAt FROM d1_migrations ORDER BY id, name",
+        ).all()
+      ).results;
+      const productionEnv = { ...operationEnv };
+      delete productionEnv.PLAN097_PROOF_MODE;
+      const productionLedgerDrift = await operationRequest({
+        body: {
+          ...base,
+          action: "reconcile-schema",
+          preflightReceiptSha256: preflightRef.sha256,
+        },
+        env: productionEnv,
+        execute: true,
+      });
+      expect(productionLedgerDrift.status).toBe(409);
 
       const reconcile = () =>
         operationRequest({
@@ -952,7 +1199,7 @@ describe("Plan 097 protected Worker operation", () => {
       const first = await reconcile();
       expect(first.status).toBe(200);
       expect(decodeStrict(Plan097OperationResponseSchema)(await first.json()).statementCount).toBe(
-        2,
+        5,
       );
       const retry = await reconcile();
       expect(retry.status).toBe(200);
@@ -963,16 +1210,32 @@ describe("Plan 097 protected Worker operation", () => {
         (await testEnv.DB.prepare("PRAGMA table_info(map_release_catalog)").all()).results,
       ).toHaveLength(9);
       expect(
+        (await testEnv.DB.prepare("PRAGMA table_info(route_catalog)").all()).results,
+      ).toHaveLength(13);
+      expect(
         (
           await testEnv.DB.prepare(
             "SELECT id, name, applied_at AS appliedAt FROM d1_migrations ORDER BY id, name",
           ).all()
         ).results,
-      ).toEqual(ledgerBefore);
+      ).toEqual(ledgerAfterProofProvisioning);
+      expect(ledgerAfterProofProvisioning).toEqual([
+        ...ledgerBefore,
+        { id: 999, name: "proof-only-ledger-row.sql", appliedAt: 999 },
+      ]);
     } finally {
-      await testEnv.DB.batch(
-        plan097MapReleaseCatalogRecoveryStatements.map((sql) => testEnv.DB.prepare(sql)),
-      );
+      const routeCatalogColumns = (
+        await testEnv.DB.prepare("PRAGMA table_info(route_catalog)").all()
+      ).results.map((row) => String((row as { name: string }).name));
+      await testEnv.DB.batch([
+        ...plan097RouteCatalogRecoveryStatements
+          .filter((sql) => {
+            const column = sql.match(/ADD `([^`]+)`/u)?.[1];
+            return column !== undefined && !routeCatalogColumns.includes(column);
+          })
+          .map((sql) => testEnv.DB.prepare(sql)),
+        ...plan097MapReleaseCatalogRecoveryStatements.map((sql) => testEnv.DB.prepare(sql)),
+      ]);
     }
   });
 });
