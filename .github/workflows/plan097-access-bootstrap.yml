@@ -149,7 +149,7 @@ jobs:
                 --arg tokenId "$service_token_id" \
                 '{
                   name:$name,
-                  decision:"service_auth",
+                  decision:"non_identity",
                   precedence:1,
                   include:[{service_token:{token_id:$tokenId}}]
                 }'
@@ -207,7 +207,7 @@ jobs:
                 <<< "$app"
             )"
             policy_id="$(jq -er '.id' <<< "$policy")"
-            test "$(jq -r '.decision' <<< "$policy")" = "service_auth"
+            test "$(jq -r '.decision' <<< "$policy")" = "non_identity"
             jq -e \
               --arg tokenId "$service_token_id" \
               '.include == [{service_token:{token_id:$tokenId}}]' \
