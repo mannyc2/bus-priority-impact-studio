@@ -1,0 +1,98 @@
+{
+  "artifacts": {
+    "identity_verdict": {
+      "bytes": 241856,
+      "path": "data/exports/releases/v1-rc28/study-frontier-closure/data/contracts/bus-lane-identity-verdicts-v1/bus_lane_identity_verdicts.jsonl",
+      "row_count": 321,
+      "sha256": "6f98d0975aeb9e0cc2786db528b6196a5bb1b8ccf8dc880d061245adf6d1434d"
+    },
+    "member_extent": {
+      "bytes": 379210,
+      "path": "data/exports/releases/v1-rc28/member-extent/data/contracts/operational-occurrence-member-extent/v1/operational_occurrence_member_extents.jsonl",
+      "row_count": 308,
+      "sha256": "5ca1ba253a75a577c0e32b249508873d5a5114f2bbb2565dba80e7fa60deab0e"
+    },
+    "member_grain": {
+      "bytes": 353242,
+      "path": "data/exports/releases/v1-rc28/study-frontier-closure/data/contracts/operational-occurrence-member-grain/v1/operational_occurrence_member_grain.jsonl",
+      "row_count": 308,
+      "sha256": "d5555770fe4b82764f685eb2f2f755d9790a09ad153fd7ace10bb81ae06b7679"
+    },
+    "occurrence": {
+      "bytes": 865769,
+      "path": "data/exports/releases/v1-rc28/operational_occurrences.jsonl",
+      "row_count": 131,
+      "sha256": "6cb8654efee370d7444405ce3a0cdb8ce6fa394e6ada2347982cbec49df701ef"
+    }
+  },
+  "authority": {
+    "authorizes_cross_product": false,
+    "authorizes_occurrence": false,
+    "authorizes_publication": false,
+    "authorizes_study": false
+  },
+  "bridge_v2": {
+    "bytes": 1244111,
+    "candidate_count": 484,
+    "path": "data/exports/releases/v1-rc28/study-frontier-closure/data/quality/study-readiness/v2/bridge-ledger.jsonl",
+    "sha256": "4744dee6e246393460959412e8dbfd7f05ee7a6dd14a1fca408d8a8cf13d988e"
+  },
+  "closure_reconciliation": {
+    "bytes": 151311,
+    "candidate_count": 484,
+    "path": "docs/research/study-frontier-closure-v1-rc28.md",
+    "sha256": "d415cfe4a28bd9e92048ef96ce1f754034bb6c1c18d50d8f56b395b0cfacfb54"
+  },
+  "contract_id": "plan-041-producer-handoff-v1",
+  "contract_versions": {
+    "bus_lane_identity_verdicts": 1,
+    "operational_anchor_review_decisions": 2,
+    "operational_anchors": 1,
+    "operational_occurrence_member_extents": 1,
+    "operational_occurrence_member_grain": 1,
+    "operational_occurrence_review_decisions": 2,
+    "operational_occurrences": 2,
+    "relationship_integrity_bundle": 1,
+    "route_anchors": 1,
+    "route_identity_snapshot": 1
+  },
+  "evidence_policy": {
+    "authoritative_historical_full_stop_inventory_required": true,
+    "exact_positive_required": true,
+    "occurrence_inference_prohibited": true,
+    "stop_id_equivalence_acquisition_required": true
+  },
+  "fixtures": {
+    "identity_verdict": {
+      "bytes": 753,
+      "path": "data/exports/releases/v1-rc28/study-frontier-closure/data/contracts/bus-lane-identity-verdicts-v1/fixture.jsonl",
+      "row_count": 1,
+      "sha256": "a9435921df39772ffe1874862c5dfcf69efa42d9200335efd29e8d744e57b4e7"
+    },
+    "member_grain": {
+      "bytes": 1790,
+      "path": "data/exports/releases/v1-rc28/study-frontier-closure/data/contracts/operational-occurrence-member-grain/v1/fixture.jsonl",
+      "row_count": 1,
+      "sha256": "d9dd91fb0020749c2a6e6eefe58568503def996ca523d58d4fdc80741b5a9885"
+    }
+  },
+  "frontier_exception_count": 0,
+  "generator_commit": "741ade31ce84498506c77d0adb6b37019fa05f75",
+  "manifest_sha256": "b47a105dc78501210f2d32e6f597f878203b8cfc35654cebc4de445d575a453c",
+  "post_cut_determinism": {
+    "bytes": 682,
+    "combined": "33777f3cb1b600ec7b839fff47fe8370c7e6c5da97d277896e57618ec7a4a87a",
+    "path": "data/quality/study-frontier-closure/post-cut-determinism-anchor-v1.json",
+    "sha256": "3f64ede6d1605f8093bd1362dd325cd93c9a62393a68d0863c1f09ef9f096565"
+  },
+  "release_id": "v1-rc28",
+  "schema_version": 1,
+  "transport": {
+    "manifest": {
+      "bytes": 82497,
+      "path": "data/exports/releases/v1-rc28/manifest.json",
+      "sha256": "b47a105dc78501210f2d32e6f597f878203b8cfc35654cebc4de445d575a453c"
+    },
+    "mode": "repository_local"
+  }
+}

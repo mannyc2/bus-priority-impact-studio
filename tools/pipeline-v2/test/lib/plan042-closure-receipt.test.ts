@@ -18,6 +18,7 @@ import {
   verifyPlan042ClosureReceipt,
 } from "../../src/lib/plan042-closure-receipt.ts";
 import {
+  PLAN042_PRODUCER_HANDOFF_SHA256,
   type Plan041ProducerHandoff,
   Plan041ProducerHandoffSchema,
   sha256Bytes,
@@ -49,8 +50,7 @@ const PROTECTED_PATHS = [
 
 const repositoryRoot = resolve(import.meta.dir, "../../../..");
 const sourceArtifactDir = join(repositoryRoot, "docs/research/reviews/closure-plan-042/artifacts");
-const producerReceiptPath =
-  "/tmp/mta-wiki-plan-041/data/quality/study-frontier-closure/plan-041-producer-handoff.json";
+const producerFixturePath = resolve(import.meta.dir, "../fixtures/plan042-producer-handoff.json");
 
 type Fixture = {
   readonly root: string;
@@ -60,6 +60,7 @@ type Fixture = {
   readonly receiptCommit: string;
   readonly receipt: Plan042ClosureReceipt;
   readonly producer: Plan041ProducerHandoff;
+  readonly producerReceiptPath: string;
 };
 
 async function command(cwd: string, args: readonly string[]): Promise<string> {
@@ -167,6 +168,12 @@ function verificationBaseline() {
 
 async function createFixture(): Promise<Fixture> {
   const root = await mkdtemp(join(tmpdir(), "plan042-receipt-test-"));
+  const producerReceiptPath = join(root, "plan-041-producer-handoff.json");
+  await writeFile(
+    producerReceiptPath,
+    `${JSON.stringify(await json<unknown>(producerFixturePath))}\n`,
+  );
+  expect(sha256Bytes(await bytes(producerReceiptPath))).toBe(PLAN042_PRODUCER_HANDOFF_SHA256);
   const repository = join(root, "tracker");
   await command(root, ["git", "clone", "--shared", repositoryRoot, repository]);
   await command(repository, ["git", "checkout", "--detach", BASELINE_COMMIT]);
@@ -398,6 +405,7 @@ async function createFixture(): Promise<Fixture> {
     receiptCommit,
     receipt,
     producer,
+    producerReceiptPath,
   };
 }
 
@@ -561,7 +569,7 @@ describe("Plan 042 closure receipt and downstream projection", () => {
       "data/quality/study-frontier-closure/plan-041-producer-handoff.json",
     );
     await mkdir(dirname(wikiProducerPath), { recursive: true });
-    await copyFile(producerReceiptPath, wikiProducerPath);
+    await copyFile(fixture.producerReceiptPath, wikiProducerPath);
     await writeJson(downstreamPath, {
       ...first,
       consumer_receipt: {
@@ -585,7 +593,7 @@ describe("Plan 042 closure receipt and downstream projection", () => {
     await expect(
       renderPlan042DownstreamPin({
         repositoryRoot: repository,
-        producerReceiptPath,
+        producerReceiptPath: fixture.producerReceiptPath,
         consumerReceiptPath: join(
           repository,
           "docs/research/reviews/closure-plan-042/downstream-pin-receipt.json",
