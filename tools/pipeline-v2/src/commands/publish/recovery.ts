@@ -327,8 +327,17 @@ async function remoteCall(input: {
       Array.isArray(body.actualSchemaTableSha256)
         ? ` (schema-table-sha256 ${JSON.stringify(body.actualSchemaTableSha256)})`
         : "";
+    const schemaDetails =
+      typeof body === "object" &&
+      body !== null &&
+      "actualSchemaTables" in body &&
+      Array.isArray(body.actualSchemaTables) &&
+      "actualSchemaIndexes" in body &&
+      Array.isArray(body.actualSchemaIndexes)
+        ? ` (schema-tables ${JSON.stringify(body.actualSchemaTables)}) (schema-indexes ${JSON.stringify(body.actualSchemaIndexes)})`
+        : "";
     throw new Error(
-      `Plan 097 Worker ${input.request.action} failed with HTTP ${response.status}${diagnostic}${schemaDiagnostic}`,
+      `Plan 097 Worker ${input.request.action} failed with HTTP ${response.status}${diagnostic}${schemaDiagnostic}${schemaDetails}`,
     );
   }
   const decoded = decodeStrict(Plan097OperationResponseSchema)(body);

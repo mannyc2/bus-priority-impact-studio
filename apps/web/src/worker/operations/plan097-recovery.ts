@@ -40,7 +40,11 @@ export const PLAN097_OPERATION_PATH = "/__operations/plan097";
 const textEncoder = new TextEncoder();
 
 class Plan097SchemaEnvelopeError extends Error {
-  constructor(readonly actualSchemaTableSha256: Array<{ tableName: string; sha256: string }>) {
+  constructor(
+    readonly actualSchemaTableSha256: Array<{ tableName: string; sha256: string }>,
+    readonly actualSchemaTables: Plan097SchemaAuditInput["tables"],
+    readonly actualSchemaIndexes: Plan097SchemaAuditInput["indexes"],
+  ) {
     super("Production schema differs from the Plan 097 canonical schema envelope");
   }
 }
@@ -1318,7 +1322,11 @@ async function runPreflight(input: {
   const schemaSnapshot = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
   const actualStructuralSha256 = plan097StructuralSchemaEnvelopeSha256(schemaSnapshot);
   if (actualStructuralSha256 !== input.bundle.schemaEnvelope.structuralSha256) {
-    throw new Plan097SchemaEnvelopeError(plan097StructuralSchemaTableSha256(schemaSnapshot));
+    throw new Plan097SchemaEnvelopeError(
+      plan097StructuralSchemaTableSha256(schemaSnapshot),
+      schemaSnapshot.tables,
+      schemaSnapshot.indexes,
+    );
   }
   const mapDecision = decidePlan097MapReleaseCatalogRecovery(schemaSnapshot);
   const capturedAt = new Date().toISOString();
@@ -1890,7 +1898,11 @@ export async function handlePlan097RecoveryRequest(
         error: "Plan 097 recovery operation failed closed",
         diagnosticSha256: await sha256(textEncoder.encode(message)),
         ...(error instanceof Plan097SchemaEnvelopeError
-          ? { actualSchemaTableSha256: error.actualSchemaTableSha256 }
+          ? {
+              actualSchemaTableSha256: error.actualSchemaTableSha256,
+              actualSchemaTables: error.actualSchemaTables,
+              actualSchemaIndexes: error.actualSchemaIndexes,
+            }
           : {}),
       },
       409,
