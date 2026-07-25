@@ -56,8 +56,8 @@ jobs:
             --arg serviceTokenId "$PLAN097_SERVICE_TOKEN_ID" \
             --arg operationId "plan097:pub_20260725T164123260Z" \
             --arg activationSha "7f570d37839b382f0b00488ed8c7f6d03dcb80dd5a933c19c85f3d40dd17327c" \
-            --arg restoreSha "01696521dee0deaf0a0d29e985d9e89b46189bb602a0d8d40a1d358101df1d28" \
-            --arg preflightSha "fe5dea4a775e5220c73fb1d18322ea4eb4ade11de906b17e4fcffe2131769191" \
+            --arg restoreSha "351454ae5c89ff5689525a323c0541ff50a75be21f638b07c1739058a6ef2abf" \
+            --arg preflightSha "f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6" \
             --arg repoSha "$GITHUB_SHA" \
             --arg proofD1Id "903545fb-84b1-4571-b962-e6f6fd7c46aa" \
             '
@@ -268,8 +268,8 @@ jobs:
             --arg endpoint "$endpoint" \
             --arg operationId "plan097:pub_20260725T164123260Z" \
             --arg activationSha "7f570d37839b382f0b00488ed8c7f6d03dcb80dd5a933c19c85f3d40dd17327c" \
-            --arg restoreSha "01696521dee0deaf0a0d29e985d9e89b46189bb602a0d8d40a1d358101df1d28" \
-            --arg preflightSha "fe5dea4a775e5220c73fb1d18322ea4eb4ade11de906b17e4fcffe2131769191" \
+            --arg restoreSha "351454ae5c89ff5689525a323c0541ff50a75be21f638b07c1739058a6ef2abf" \
+            --arg preflightSha "f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6" \
             --arg baselineSha256 "$baseline_sha256" \
             --argjson baselineBytes "$baseline_bytes" \
             --argjson anonymousStatus "$anonymous_status" \
@@ -305,9 +305,72 @@ jobs:
               proofSchemaObjects:$schemaObjects[0]
             }' > "$output_dir/receipt.json"
 
+      - name: Retrieve immutable proof inputs
+        run: |
+          set -euo pipefail
+          output_dir=/tmp/plan097-proof-deploy
+          candidate_dir="$output_dir/candidate"
+          release_id=pub_20260725T164123260Z
+          activation_sha=7f570d37839b382f0b00488ed8c7f6d03dcb80dd5a933c19c85f3d40dd17327c
+          restore_sha=351454ae5c89ff5689525a323c0541ff50a75be21f638b07c1739058a6ef2abf
+          mkdir -p "$candidate_dir"
+          bunx wrangler r2 object get \
+            "bus-priority-plan097-preflight-operations/operations/plan097/bundles/${release_id}/activation.${activation_sha}.json" \
+            --remote \
+            --file "$candidate_dir/plan097-activation-bundle.json"
+          bunx wrangler r2 object get \
+            "bus-priority-plan097-preflight-operations/operations/plan097/releases/${release_id}/artifact-manifest.json" \
+            --remote \
+            --file "$candidate_dir/plan097-artifact-manifest.json"
+          bunx wrangler r2 object get \
+            "bus-priority-plan097-preflight-operations/operations/plan097/bundles/${release_id}/restore.${restore_sha}.json" \
+            --remote \
+            --file "$candidate_dir/plan097-restore-bundle.json"
+          test "$(sha256sum "$candidate_dir/plan097-activation-bundle.json" | cut -d' ' -f1)" = "$activation_sha"
+          test "$(sha256sum "$candidate_dir/plan097-restore-bundle.json" | cut -d' ' -f1)" = "$restore_sha"
+          manifest_sha="$(jq -er '.artifactManifest.sha256' "$candidate_dir/plan097-activation-bundle.json")"
+          manifest_bytes="$(jq -er '.artifactManifest.byteLength' "$candidate_dir/plan097-activation-bundle.json")"
+          test "$(sha256sum "$candidate_dir/plan097-artifact-manifest.json" | cut -d' ' -f1)" = "$manifest_sha"
+          test "$(wc -c < "$candidate_dir/plan097-artifact-manifest.json")" = "$manifest_bytes"
+
+      - name: Execute exact disposable A to B to A proof
+        env:
+          PLAN097_PROOF_ENDPOINT: https://bus-priority-plan097-proof.c20carroll.workers.dev/__operations/plan097
+          PLAN097_PROOF_BASE_URL: https://bus-priority-plan097-proof.c20carroll.workers.dev/
+          PLAN097_CANDIDATE_DIR: /tmp/plan097-proof-deploy/candidate
+          PLAN097_ARTIFACT_ROOT: /tmp/plan097-proof-deploy/not-used
+          PLAN097_RESTORE_BUNDLE_PATH: /tmp/plan097-proof-deploy/candidate/plan097-restore-bundle.json
+          PLAN097_RESTORE_BUNDLE_SHA256: 351454ae5c89ff5689525a323c0541ff50a75be21f638b07c1739058a6ef2abf
+          PLAN097_PREFLIGHT_RECEIPT_SHA256: f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6
+          PLAN097_EXECUTION_TOKEN: ${{ secrets.PLAN097_PROOF_EXECUTION_TOKEN }}
+          PLAN097_MIRROR_PROOF_ARTIFACTS: "true"
+        run: |
+          set -euo pipefail
+          bun tools/pipeline-v2/src/cli.ts \
+            publish recovery \
+            --action prove \
+            --operation plan097:pub_20260725T164123260Z \
+            --proof-env plan097-proof \
+            --receipt-sha256 f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6 \
+            --json \
+            --full-output \
+            > /tmp/plan097-proof-deploy/result.json
+          jq -e \
+            '.outcome == "pass"
+             and .operationId == "plan097:pub_20260725T164123260Z"
+             and .restoreBundleSha256 == "351454ae5c89ff5689525a323c0541ff50a75be21f638b07c1739058a6ef2abf"
+             and [.httpComparisons[].phase] == ["proof-baseline", "injected-failure", "candidate-active", "baseline-restored"]
+             and .proofSummary.kind == "proof-summary"
+             and .proofSummary.sha256 != null
+             and .proofSummary.bytes > 0' \
+            /tmp/plan097-proof-deploy/result.json
+
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: plan097-proof-deploy-${{ github.sha }}
-          path: /tmp/plan097-proof-deploy/receipt.json
+          path: |
+            /tmp/plan097-proof-deploy/receipt.json
+            /tmp/plan097-proof-deploy/result.json
           if-no-files-found: error
           retention-days: 30
