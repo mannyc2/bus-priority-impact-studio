@@ -461,7 +461,9 @@ async function stageCandidate(input: {
   const manifest = decodeStrict(Plan097RecoveryArtifactManifestSchema)(
     JSON.parse(new TextDecoder().decode(manifestBytes)),
   );
-  for (const entry of manifest.entries) {
+  const stageEntry = async (
+    entry: (typeof manifest.entries)[number],
+  ): Promise<readonly string[]> => {
     const body = new Uint8Array(
       await Bun.file(join(input.inputs.artifactRoot, entry.logicalKey)).arrayBuffer(),
     );
@@ -483,7 +485,7 @@ async function stageCandidate(input: {
       execute: true,
       tracker: input.tracker,
     });
-    input.receipts.push(staged.receiptKey);
+    const entryReceipts = [staged.receiptKey];
     if (input.seedProofAliases) {
       const alias = await remoteCall({
         inputs: input.inputs,
@@ -500,8 +502,28 @@ async function stageCandidate(input: {
         execute: true,
         tracker: input.tracker,
       });
-      input.receipts.push(alias.receiptKey);
+      entryReceipts.push(alias.receiptKey);
     }
+    return entryReceipts;
+  };
+  const stagedReceiptGroups: Array<readonly string[] | undefined> = Array.from({
+    length: manifest.entries.length,
+  });
+  let nextEntryIndex = 0;
+  const stageWorker = async (): Promise<void> => {
+    while (nextEntryIndex < manifest.entries.length) {
+      const entryIndex = nextEntryIndex;
+      nextEntryIndex += 1;
+      const entry = manifest.entries[entryIndex];
+      if (entry === undefined) throw new Error("Plan 097 manifest entry index drifted");
+      stagedReceiptGroups[entryIndex] = await stageEntry(entry);
+    }
+  };
+  const workerCount = Math.min(4, manifest.entries.length);
+  await Promise.all(Array.from({ length: workerCount }, () => stageWorker()));
+  for (const receiptGroup of stagedReceiptGroups) {
+    if (receiptGroup === undefined) throw new Error("Plan 097 artifact staging was incomplete");
+    input.receipts.push(...receiptGroup);
   }
   const finalized = await remoteCall({
     inputs: input.inputs,
