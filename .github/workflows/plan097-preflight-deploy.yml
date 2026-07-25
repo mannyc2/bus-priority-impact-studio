@@ -135,6 +135,17 @@ jobs:
             sleep 2
           done
 
+          bunx wrangler d1 execute bus-priority-serving \
+            --remote \
+            --config packages/db/wrangler.d1.jsonc \
+            --json \
+            --command "SELECT type, name, tbl_name AS tableName FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY type, name, tbl_name" \
+            > "$output_dir/schema-objects.raw.json"
+          jq \
+            '[.[].results[] | {type,name,tableName}] | sort_by(.type,.name,.tableName)' \
+            "$output_dir/schema-objects.raw.json" \
+            > "$output_dir/schema-objects.json"
+
           bunx wrangler deployments status \
             --json \
             --config "$config" |
@@ -156,6 +167,7 @@ jobs:
             --argjson authenticatedStatus "$authenticated_status" \
             --slurpfile deployment "$output_dir/deployment.json" \
             --slurpfile secrets "$output_dir/secrets.json" \
+            --slurpfile schemaObjects "$output_dir/schema-objects.json" \
             '{
               artifactKind:$artifactKind,
               schemaVersion:1,
@@ -167,7 +179,8 @@ jobs:
                 authenticatedStatus:$authenticatedStatus
               },
               deployment:$deployment[0],
-              secretBindings:$secrets[0]
+              secretBindings:$secrets[0],
+              productionSchemaObjects:$schemaObjects[0]
             }' > "$output_dir/receipt.json"
 
       - uses: actions/upload-artifact@v4
