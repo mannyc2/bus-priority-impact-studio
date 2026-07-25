@@ -740,6 +740,7 @@ export async function runPublishRecovery(
       if (inputs.publicBaseUrl === undefined) {
         throw new Error("Plan 097 prove requires the disposable proof --base-url");
       }
+      const proofBaseUrl = inputs.publicBaseUrl;
       await stageCandidate({
         inputs,
         dependencies,
@@ -764,7 +765,7 @@ export async function runPublishRecovery(
       receipts.push(initialized.receiptKey);
       const proofBaseline = (
         await (dependencies.httpCheck ?? runPlan097HttpCheck)({
-          baseUrl: inputs.publicBaseUrl,
+          baseUrl: proofBaseUrl,
           fetch: dependencies.fetch,
           mode: "baseline",
         })
@@ -792,7 +793,7 @@ export async function runPublishRecovery(
           restoreBundleSha256,
         },
       ] as const;
-      for (const [index, request] of proofRequests.entries()) {
+      const callProof = async (request: (typeof proofRequests)[number]) => {
         const response = await remoteCall({
           inputs,
           dependencies,
@@ -801,33 +802,63 @@ export async function runPublishRecovery(
           tracker: responseTracker,
         });
         receipts.push(response.receiptKey);
-        if (index === 1) {
-          const candidate = (
-            await (dependencies.httpCheck ?? runPlan097HttpCheck)({
-              baseUrl: inputs.publicBaseUrl,
-              fetch: dependencies.fetch,
-              mode: "candidate",
-              expectedReleaseId: bundle.candidate.releaseId,
-              expectedExactRouteCount: bundle.expectedExactRouteCount,
-            })
-          ).baseline;
-          httpComparisons.push({ phase: "candidate-active", baseline: candidate });
-          continue;
-        }
+      };
+      const restoreProofBaseline = async () => {
+        await callProof(proofRequests[2]);
         const restored = (
           await (dependencies.httpCheck ?? runPlan097HttpCheck)({
-            baseUrl: inputs.publicBaseUrl,
+            baseUrl: proofBaseUrl,
             fetch: dependencies.fetch,
             mode: "baseline",
             expectedReleaseId: proofBaseline.activeReleaseId,
           })
         ).baseline;
         comparePlan097HttpBaselines({ expected: proofBaseline, actual: restored });
-        httpComparisons.push({
-          phase: index === 0 ? "injected-failure" : "baseline-restored",
-          baseline: restored,
-        });
+        httpComparisons.push({ phase: "baseline-restored", baseline: restored });
+      };
+
+      await callProof(proofRequests[0]);
+      const injectedFailureBaseline = (
+        await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+          baseUrl: proofBaseUrl,
+          fetch: dependencies.fetch,
+          mode: "baseline",
+          expectedReleaseId: proofBaseline.activeReleaseId,
+        })
+      ).baseline;
+      comparePlan097HttpBaselines({
+        expected: proofBaseline,
+        actual: injectedFailureBaseline,
+      });
+      httpComparisons.push({
+        phase: "injected-failure",
+        baseline: injectedFailureBaseline,
+      });
+
+      await callProof(proofRequests[1]);
+      try {
+        const candidate = (
+          await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+            baseUrl: proofBaseUrl,
+            fetch: dependencies.fetch,
+            mode: "candidate",
+            expectedReleaseId: bundle.candidate.releaseId,
+            expectedExactRouteCount: bundle.expectedExactRouteCount,
+          })
+        ).baseline;
+        httpComparisons.push({ phase: "candidate-active", baseline: candidate });
+      } catch (candidateFailure) {
+        try {
+          await restoreProofBaseline();
+        } catch (restoreFailure) {
+          throw new AggregateError(
+            [candidateFailure, restoreFailure],
+            "Plan 097 candidate HTTP proof failed and its disposable baseline restore also failed",
+          );
+        }
+        throw candidateFailure;
       }
+      await restoreProofBaseline();
       const proofReceiptKeys = [
         ...new Set(
           responseTracker

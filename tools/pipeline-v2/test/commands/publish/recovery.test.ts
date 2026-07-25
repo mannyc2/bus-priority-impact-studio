@@ -596,6 +596,86 @@ describe("publish recovery command", () => {
     }
   });
 
+  test("restores the disposable baseline when candidate HTTP proof fails", async () => {
+    const files = await fixture();
+    const actions: string[] = [];
+    const httpModes: string[] = [];
+    const baseline = JSON.parse(await Bun.file(files.httpBaselinePath).text()) as {
+      checkedAt: string;
+      activeReleaseId: string;
+      endpoints: Array<{
+        path: string;
+        status: number;
+        schemaId: string;
+        safeBodySha256: string;
+        requestId: string | null;
+        cfRay: string | null;
+        cacheControl: string | null;
+        cfCacheStatus: string | null;
+        age: string | null;
+        workerVersionId: string | null;
+        etag: string | null;
+      }>;
+    };
+    try {
+      await expect(
+        runPublishRecovery(
+          {
+            action: "prove",
+            endpoint: "https://worker.test/__operations/plan097",
+            activationBundlePath: files.activationBundlePath,
+            artifactManifestPath: files.manifestPath,
+            artifactRoot: files.artifactRoot,
+            restoreBundlePath: files.restoreBundlePath,
+            publicBaseUrl: "https://proof.test/",
+            serviceTokenId: "id",
+            serviceTokenSecret: "secret",
+            executionToken: "fresh-token",
+          },
+          {
+            fetch: async (_input, init) => {
+              const headers = new Headers(init?.headers);
+              const rawAction = headers.get("X-Plan097-Stage-Action");
+              const request =
+                rawAction === null
+                  ? (JSON.parse(String(init?.body)) as { action: string })
+                  : { action: rawAction };
+              actions.push(request.action);
+              return Response.json({
+                artifactKind: "bp.ops.plan097.worker-response.v1",
+                schemaVersion: 1,
+                operationId,
+                action: request.action,
+                outcome: "pass",
+                releaseId,
+                activationBundleSha256: "a".repeat(64),
+                receiptKey: `operations/plan097/receipts/${releaseId}/${request.action}.${"b".repeat(64)}.json`,
+                statementCount: 1,
+                objectCount: 1,
+                metrics: operationMetrics(),
+              });
+            },
+            httpCheck: async (input) => {
+              const mode = input.mode ?? "candidate";
+              httpModes.push(mode);
+              if (mode === "candidate") throw new Error("candidate smoke failed");
+              return {
+                baseline,
+                exactRouteCount: 1,
+                representativeGeometry: null,
+              };
+            },
+          },
+        ),
+      ).rejects.toThrow("candidate smoke failed");
+      expect(actions.filter((action) => action === "prove")).toHaveLength(4);
+      expect(actions.at(-1)).toBe("prove");
+      expect(httpModes).toEqual(["baseline", "baseline", "candidate", "baseline"]);
+    } finally {
+      rmSync(files.root, { recursive: true, force: true });
+    }
+  });
+
   test("requires the fresh execution token before activation", async () => {
     const files = await fixture();
     try {

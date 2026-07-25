@@ -8,7 +8,7 @@ import {
   StudioRoutesResponseSchema,
 } from "@bp/domain/studio/routes";
 import { Result, Schema } from "effect";
-import { loadReleaseArtifact } from "../artifact-resolver.js";
+import { loadReleaseArtifact, Plan097ArtifactResolutionError } from "../artifact-resolver.js";
 import type { StudioApiEnv } from "../env.js";
 import { errorResponse } from "../http/errors.js";
 import {
@@ -176,10 +176,17 @@ export async function maybeLoadStudioRouteDetailProjection(
   env: Pick<StudioApiEnv, "ARTIFACTS" | "STUDIO_RELEASE_KEY">,
   routeSlug: string,
 ): Promise<StudioRouteDetailResponse | null> {
-  const detail = await loadStudioProjection(
-    env,
-    `routes/${routeSlug}/index.json`,
-    StudioRouteDetailResponseSchema,
-  );
-  return detail instanceof Response ? null : detail;
+  try {
+    const detail = await loadStudioProjection(
+      env,
+      `routes/${routeSlug}/index.json`,
+      StudioRouteDetailResponseSchema,
+    );
+    return detail instanceof Response ? null : detail;
+  } catch (error) {
+    if (error instanceof Plan097ArtifactResolutionError && error.code === "logical_entry_missing") {
+      return null;
+    }
+    throw error;
+  }
 }
