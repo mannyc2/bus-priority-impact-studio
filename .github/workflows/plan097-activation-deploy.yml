@@ -142,9 +142,38 @@ jobs:
             sleep 2
           done
 
+          execution_status=000
+          for attempt in $(seq 1 30); do
+            execution_status="$(
+              curl --silent --show-error \
+                --output /dev/null \
+                --write-out '%{http_code}' \
+                --request POST \
+                --header "Content-Type: application/json" \
+                --header "CF-Access-Client-Id: $PLAN097_SERVICE_TOKEN_ID" \
+                --header "CF-Access-Client-Secret: $PLAN097_SERVICE_TOKEN_SECRET" \
+                --header "X-Plan097-Execution-Token: $PLAN097_PRODUCTION_EXECUTION_TOKEN" \
+                --data '{
+                  "operationId":"plan097:pub_20260725T164123260Z",
+                  "activationBundleSha256":"7f570d37839b382f0b00488ed8c7f6d03dcb80dd5a933c19c85f3d40dd17327c",
+                  "action":"mirror-bundle"
+                }' \
+                "$endpoint"
+            )"
+            if [ "$execution_status" = 200 ]; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Execution-token convergence failed with HTTP $execution_status" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+
           printf '%s\n' "$anonymous_status" > "$output_dir/access-anonymous-status"
           printf '%s\n' "$wrong_secret_status" > "$output_dir/access-wrong-secret-status"
           printf '%s\n' "$authenticated_status" > "$output_dir/access-authenticated-status"
+          printf '%s\n' "$execution_status" > "$output_dir/execution-status"
 
       - name: Retrieve and verify immutable activation inputs
         run: |
@@ -304,6 +333,7 @@ jobs:
             --argjson anonymousStatus "$(cat "$output_dir/access-anonymous-status")" \
             --argjson wrongSecretStatus "$(cat "$output_dir/access-wrong-secret-status")" \
             --argjson authenticatedStatus "$(cat "$output_dir/access-authenticated-status")" \
+            --argjson executionStatus "$(cat "$output_dir/execution-status")" \
             --argjson completion "$completion" \
             --slurpfile deployment "$output_dir/deployment.json" \
             '{
@@ -318,7 +348,8 @@ jobs:
               accessChecks:{
                 anonymousStatus:$anonymousStatus,
                 wrongSecretStatus:$wrongSecretStatus,
-                authenticatedStatus:$authenticatedStatus
+                authenticatedStatus:$authenticatedStatus,
+                executionStatus:$executionStatus
               },
               deployment:$deployment[0]
             }' > "$output_dir/receipt.json"
