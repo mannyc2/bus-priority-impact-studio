@@ -142,6 +142,33 @@ jobs:
           for phase in preflight proof activation; do
             app_name="bus-priority-plan097-$phase"
             app_domain="$app_name.$PLAN097_WORKERS_DEV_SUBDOMAIN.workers.dev/__operations/plan097"
+            policy_name="$app_name-service-auth"
+            policy_body="$(
+              jq -cn \
+                --arg name "$policy_name" \
+                --arg tokenId "$service_token_id" \
+                '{
+                  name:$name,
+                  decision:"service_auth",
+                  precedence:1,
+                  include:[{service_token:{token_id:$tokenId}}]
+                }'
+            )"
+            app_body="$(
+              jq -cn \
+                --arg name "$app_name" \
+                --arg domain "$app_domain" \
+                --argjson policy "$policy_body" \
+                '{
+                  name:$name,
+                  domain:$domain,
+                  type:"self_hosted",
+                  session_duration:"15m",
+                  app_launcher_visible:false,
+                  service_auth_401_redirect:true,
+                  policies:[$policy]
+                }'
+            )"
             app_matches="$(
               jq -c \
                 --arg name "$app_name" \
@@ -156,64 +183,29 @@ jobs:
             fi
             if [ "$app_match_count" -eq 0 ]; then
               app="$(
-                api POST "access/apps" "$(
-                  jq -cn \
-                    --arg name "$app_name" \
-                    --arg domain "$app_domain" \
-                    '{
-                      name:$name,
-                      domain:$domain,
-                      type:"self_hosted",
-                      session_duration:"15m",
-                      app_launcher_visible:false,
-                      service_auth_401_redirect:true
-                    }'
-                )" |
+                api POST "access/apps" "$app_body" |
                   jq -er '.result'
               )"
               apps_inventory="$(api GET "access/apps")"
             else
-              app="$(jq -er '.[0]' <<< "$app_matches")"
-              test "$(jq -r '.name' <<< "$app")" = "$app_name"
-              test "$(jq -r '.domain' <<< "$app")" = "$app_domain"
+              app_id="$(jq -er '.[0].id' <<< "$app_matches")"
+              app="$(
+                api PUT "access/apps/$app_id" "$app_body" |
+                  jq -er '.result'
+              )"
             fi
             app_id="$(jq -er '.id' <<< "$app")"
             app_aud="$(jq -er '.aud' <<< "$app")"
-
-            policy_name="$app_name-service-auth"
-            policies="$(api GET "access/apps/$app_id/policies")"
-            policy_matches="$(
-              jq -c --arg name "$policy_name" \
-                '[.result[] | select(.name == $name)]' <<< "$policies"
-            )"
-            policy_match_count="$(jq 'length' <<< "$policy_matches")"
-            if [ "$policy_match_count" -gt 1 ]; then
-              echo "Duplicate Plan 097 Service Auth policies exist for $phase" >&2
-              exit 1
-            fi
-            policy_body="$(
-              jq -cn \
+            test "$(jq -r '.name' <<< "$app")" = "$app_name"
+            test "$(jq -r '.domain' <<< "$app")" = "$app_domain"
+            policy="$(
+              jq -er \
                 --arg name "$policy_name" \
-                --arg tokenId "$service_token_id" \
-                '{
-                  name:$name,
-                  decision:"service_auth",
-                  precedence:1,
-                  include:[{service_token:{token_id:$tokenId}}]
-                }'
+                '.policies
+                  | map(select(.name == $name))
+                  | if length == 1 then .[0] else error("expected one inline Service Auth policy") end' \
+                <<< "$app"
             )"
-            if [ "$policy_match_count" -eq 0 ]; then
-              policy="$(
-                api POST "access/apps/$app_id/policies" "$policy_body" |
-                  jq -er '.result'
-              )"
-            else
-              policy_id="$(jq -er '.[0].id' <<< "$policy_matches")"
-              policy="$(
-                api PUT "access/apps/$app_id/policies/$policy_id" "$policy_body" |
-                  jq -er '.result'
-              )"
-            fi
             policy_id="$(jq -er '.id' <<< "$policy")"
             test "$(jq -r '.decision' <<< "$policy")" = "service_auth"
             jq -e \
