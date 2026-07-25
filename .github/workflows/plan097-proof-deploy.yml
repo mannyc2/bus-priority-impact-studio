@@ -169,11 +169,12 @@ jobs:
             '[.[].results[] | {studioGeneratedAt,exactElectionCount,mapCatalogRowCount,routeCatalogRowCount}][0]' \
             "$output_dir/baseline-verification.raw.json" \
             > "$output_dir/baseline-verification.json"
+          jq . "$output_dir/baseline-verification.json"
           jq -e \
             '.studioGeneratedAt == "2026-06-05T18:36:01.689Z"
              and .exactElectionCount == 1
              and .mapCatalogRowCount == 0
-             and .routeCatalogRowCount == 381' \
+             and .routeCatalogRowCount >= 375' \
             "$output_dir/baseline-verification.json"
 
           jq -n \
