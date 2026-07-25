@@ -244,7 +244,9 @@ The result must include the signed preflight receipt SHA/key fingerprint, select
 restore hashes, exact serving-schema/migration-ledger fingerprint, public HTTP baseline, cost
 preview, and measured read/R2 receipt metrics. The structural envelope is deliberately limited to
 the explicit Plan 097 serving-table allowlist; unrelated identity and Tier-2 workspace tables may
-be absent from the slim production D1 and are never copied into it. Persist the redacted
+be absent from the slim production D1 and are never copied into it. It compares canonical table
+columns, keys, and indexes rather than raw `sqlite_master.sql` formatting; the complete raw schema
+snapshot remains signed evidence. Persist the redacted
 attestation on the pushed branch. Stop if the active release is unknown, the Studio/map/exact
 election disagrees, 0033 is partial, any allowlisted serving-schema object drifts, a present
 protected table changes during an operation, or the candidate is not newer.

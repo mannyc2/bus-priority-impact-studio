@@ -253,9 +253,9 @@ function normalizedSchemaEnvelope(snapshot: Plan097CanonicalSchemaSnapshot): str
   const servingTables = new Set<string>(plan097RecoveryServingSchemaTables);
   const includedTable = (tableName: string) => servingTables.has(tableName);
   return canonicalJson({
-    sqliteMaster: snapshot.sqliteMaster.filter(
-      (entry) => includedTable(entry.tableName) || includedTable(entry.name),
-    ),
+    sqliteMaster: snapshot.sqliteMaster
+      .filter((entry) => includedTable(entry.tableName) || includedTable(entry.name))
+      .map(({ type, name, tableName }) => ({ type, name, tableName })),
     tables: snapshot.tables.filter((table) => includedTable(table.tableName)),
     indexes: snapshot.indexes.filter((index) => includedTable(index.tableName)),
   });

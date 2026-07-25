@@ -326,6 +326,54 @@ describe("Plan 097 recovery contracts", () => {
         expected,
       }),
     ).toEqual({ mapReleaseCatalog: { state: "exact", applyRecoverySql: false } });
+
+    const expectedServing = exactMapCatalogAudit();
+    expectedServing.sqliteMaster.push({
+      type: "table",
+      name: "route_catalog",
+      tableName: "route_catalog",
+      sql: "CREATE TABLE route_catalog (route_id TEXT)",
+    });
+    expectedServing.tables.push({
+      tableName: "route_catalog",
+      columns: [
+        {
+          cid: 0,
+          name: "route_id",
+          type: "TEXT",
+          notNull: false,
+          defaultValue: null,
+          primaryKey: 0,
+        },
+      ],
+    });
+    const textuallyDifferentServing = structuredClone(expectedServing);
+    const routeCatalogMaster = textuallyDifferentServing.sqliteMaster.find(
+      (entry) => entry.name === "route_catalog",
+    );
+    if (routeCatalogMaster === undefined) throw new Error("Missing route_catalog fixture");
+    routeCatalogMaster.sql = 'CREATE TABLE "route_catalog" ("route_id" text)';
+    expect(
+      assertPlan097SchemaEnvelope({
+        actual: buildPlan097CanonicalSchemaSnapshot(textuallyDifferentServing),
+        expected: buildPlan097CanonicalSchemaSnapshot(expectedServing),
+      }),
+    ).toEqual({ mapReleaseCatalog: { state: "exact", applyRecoverySql: false } });
+
+    const semanticallyDifferentServing = structuredClone(expectedServing);
+    const routeCatalogTable = semanticallyDifferentServing.tables.find(
+      (table) => table.tableName === "route_catalog",
+    );
+    if (routeCatalogTable === undefined) throw new Error("Missing route_catalog table fixture");
+    const routeIdColumn = routeCatalogTable.columns[0];
+    if (routeIdColumn === undefined) throw new Error("Missing route_catalog column fixture");
+    routeIdColumn.type = "INTEGER";
+    expect(() =>
+      assertPlan097SchemaEnvelope({
+        actual: buildPlan097CanonicalSchemaSnapshot(semanticallyDifferentServing),
+        expected: buildPlan097CanonicalSchemaSnapshot(expectedServing),
+      }),
+    ).toThrow(/schema envelope/i);
   });
 
   test("the idempotent 0033 recovery creates the exact table and is a no-op on retry", async () => {
