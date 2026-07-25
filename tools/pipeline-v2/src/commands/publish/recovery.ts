@@ -304,7 +304,17 @@ async function remoteCall(input: {
   });
   const body: unknown = await response.json();
   if (!response.ok) {
-    throw new Error(`Plan 097 Worker ${input.request.action} failed with HTTP ${response.status}`);
+    const diagnostic =
+      typeof body === "object" &&
+      body !== null &&
+      "diagnosticSha256" in body &&
+      typeof body.diagnosticSha256 === "string" &&
+      /^[a-f0-9]{64}$/u.test(body.diagnosticSha256)
+        ? ` (diagnostic ${body.diagnosticSha256})`
+        : "";
+    throw new Error(
+      `Plan 097 Worker ${input.request.action} failed with HTTP ${response.status}${diagnostic}`,
+    );
   }
   const decoded = decodeStrict(Plan097OperationResponseSchema)(body);
   input.tracker?.push(decoded);

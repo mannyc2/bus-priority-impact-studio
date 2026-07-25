@@ -1874,9 +1874,16 @@ export async function handlePlan097RecoveryRequest(
     });
     return jsonResponse(response);
   } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown";
     console.error("Plan 097 recovery operation failed", {
-      message: error instanceof Error ? error.message : "unknown",
+      message,
     });
-    return jsonResponse({ error: "Plan 097 recovery operation failed closed" }, 409);
+    return jsonResponse(
+      {
+        error: "Plan 097 recovery operation failed closed",
+        diagnosticSha256: await sha256(textEncoder.encode(message)),
+      },
+      409,
+    );
   }
 }
