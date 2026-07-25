@@ -125,7 +125,9 @@ jobs:
             --output "$output_dir/proof-baseline.sql" \
             --no-schema \
             --skip-confirmation \
-            "${baseline_export_args[@]}"
+            "${baseline_export_args[@]}" \
+            > /tmp/plan097-proof-baseline-export.log
+          rm /tmp/plan097-proof-baseline-export.log
           if grep -Eiq '^(CREATE|ALTER|DROP)[[:space:]]' "$output_dir/proof-baseline.sql"; then
             echo "Proof baseline export unexpectedly contains DDL" >&2
             exit 1

@@ -22,6 +22,7 @@ export const Plan097HttpEndpointEvidenceSchema = Schema.Struct({
   status: NonNegativeIntegerSchema.check(Schema.isLessThanOrEqualTo(599)),
   schemaId: Schema.String.check(Schema.isMinLength(1)),
   safeBodySha256: Sha256Schema,
+  semanticBodySha256: Schema.optionalKey(Sha256Schema),
   requestId: Schema.NullOr(Schema.String),
   cfRay: Schema.NullOr(Schema.String),
   cacheControl: Schema.NullOr(Schema.String),
