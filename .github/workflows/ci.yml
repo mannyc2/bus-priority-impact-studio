@@ -167,6 +167,71 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  plan097-proof-migrate:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/codex/plan097-completion'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Apply canonical migrations to disposable Plan 097 D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/plan097-proof-migrate
+          jq \
+            '.name = "bus-priority-plan097-proof-db"
+              | .d1_databases[0].database_name = "bus-priority-plan097-proof"
+              | .d1_databases[0].database_id = "903545fb-84b1-4571-b962-e6f6fd7c46aa"' \
+            packages/db/wrangler.d1.jsonc \
+            > packages/db/wrangler.plan097-proof.jsonc
+          bunx wrangler d1 migrations apply bus-priority-plan097-proof \
+            --remote \
+            --config packages/db/wrangler.plan097-proof.jsonc
+          bunx wrangler d1 execute bus-priority-plan097-proof \
+            --remote \
+            --config packages/db/wrangler.plan097-proof.jsonc \
+            --json \
+            --command "SELECT COUNT(*) AS applied FROM d1_migrations" \
+            > /tmp/plan097-proof-migrate/migrations.json
+          bunx wrangler d1 execute bus-priority-plan097-proof \
+            --remote \
+            --config packages/db/wrangler.plan097-proof.jsonc \
+            --json \
+            --command "SELECT COUNT(*) AS tables FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'" \
+            > /tmp/plan097-proof-migrate/tables.json
+          jq -n \
+            --arg databaseId "903545fb-84b1-4571-b962-e6f6fd7c46aa" \
+            --arg databaseName "bus-priority-plan097-proof" \
+            --argjson applied "$(jq '.[0].results[0].applied' /tmp/plan097-proof-migrate/migrations.json)" \
+            --argjson tables "$(jq '.[0].results[0].tables' /tmp/plan097-proof-migrate/tables.json)" \
+            '{
+              artifactKind:"bp.ops.plan097.proof-migration.v1",
+              schemaVersion:1,
+              databaseId:$databaseId,
+              databaseName:$databaseName,
+              appliedMigrations:$applied,
+              tableCount:$tables
+            }' > /tmp/plan097-proof-migrate/receipt.json
+          test "$(jq -r '.appliedMigrations' /tmp/plan097-proof-migrate/receipt.json)" -eq 34
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plan097-proof-migrate-${{ github.sha }}
+          path: /tmp/plan097-proof-migrate/receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
