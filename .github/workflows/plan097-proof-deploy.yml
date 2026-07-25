@@ -173,7 +173,7 @@ jobs:
             '.studioGeneratedAt == "2026-06-05T18:36:01.689Z"
              and .exactElectionCount == 1
              and .mapCatalogRowCount == 0
-             and .routeCatalogRowCount == 375' \
+             and .routeCatalogRowCount == 381' \
             "$output_dir/baseline-verification.json"
 
           jq -n \
