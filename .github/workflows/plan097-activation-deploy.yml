@@ -143,7 +143,8 @@ jobs:
           done
 
           execution_status=000
-          for attempt in $(seq 1 30); do
+          consecutive_execution_successes=0
+          for attempt in $(seq 1 60); do
             execution_status="$(
               curl --silent --show-error \
                 --output /dev/null \
@@ -161,9 +162,14 @@ jobs:
                 "$endpoint"
             )"
             if [ "$execution_status" = 200 ]; then
-              break
+              consecutive_execution_successes=$((consecutive_execution_successes + 1))
+              if [ "$consecutive_execution_successes" -eq 5 ]; then
+                break
+              fi
+            else
+              consecutive_execution_successes=0
             fi
-            if [ "$attempt" -eq 30 ]; then
+            if [ "$attempt" -eq 60 ]; then
               echo "Execution-token convergence failed with HTTP $execution_status" >&2
               exit 1
             fi

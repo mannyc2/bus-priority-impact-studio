@@ -362,16 +362,26 @@ async function remoteCall(input: {
     execute: input.execute,
     tokenKind: input.tokenKind,
   });
-  const response = await input.dependencies.fetch(input.inputs.endpoint, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(input.request),
-  });
-  return decodeRemoteResponse({
-    response,
-    action: input.request.action,
-    tracker: input.tracker,
-  });
+  const maximumAttempts = input.execute ? 8 : 1;
+  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+    const response = await input.dependencies.fetch(input.inputs.endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(input.request),
+    });
+    if (response.status !== 403 || attempt === maximumAttempts) {
+      return decodeRemoteResponse({
+        response,
+        action: input.request.action,
+        tracker: input.tracker,
+      });
+    }
+    await response.body?.cancel();
+    await (input.dependencies.sleep ?? Bun.sleep)(Math.min(1_000 * 2 ** (attempt - 1), 4_000));
+  }
+  throw new Error(
+    `Plan 097 Worker ${input.request.action} exhausted its authorization retry budget`,
+  );
 }
 
 function buildOperationReceiptSet(responses: readonly Plan097OperationResponse[]) {

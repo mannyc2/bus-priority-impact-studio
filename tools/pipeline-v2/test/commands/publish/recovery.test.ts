@@ -464,6 +464,7 @@ describe("publish recovery command", () => {
     const calls: Array<{ action: string; executionToken: string | null }> = [];
     const httpModes: string[] = [];
     let transientStageFailures = 0;
+    let transientExecutionTokenFailures = 0;
     let rawStageRequests = 0;
     const baseline = JSON.parse(await Bun.file(files.httpBaselinePath).text()) as {
       checkedAt: string;
@@ -509,6 +510,10 @@ describe("publish recovery command", () => {
               action: request.action,
               executionToken: requestHeaders.get("X-Plan097-Execution-Token"),
             });
+            if (request.action === "mirror-bundle" && transientExecutionTokenFailures === 0) {
+              transientExecutionTokenFailures += 1;
+              return new Response("Forbidden", { status: 403 });
+            }
             if (request.action === "stage-body" && transientStageFailures === 0) {
               transientStageFailures += 1;
               return new Response("temporary edge failure", { status: 503 });
@@ -564,6 +569,7 @@ describe("publish recovery command", () => {
       expect(result.outcome).toBe("pass");
       expect(rawStageRequests).toBe(3);
       expect(calls.map((call) => call.action)).toEqual([
+        "mirror-bundle",
         "mirror-bundle",
         "stage-body",
         "stage-body",
