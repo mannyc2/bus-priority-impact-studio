@@ -36,23 +36,54 @@ jobs:
             > "$output_dir/operator-public.pem"
 
           api() {
-            method="$1"
-            path="$2"
-            body="${3:-}"
+            local method="$1"
+            local path="$2"
+            local body="${3:-}"
+            local response_file
+            local status
+            response_file="$(mktemp)"
             if [ -n "$body" ]; then
-              curl --fail-with-body --silent --show-error --retry 2 \
-                --request "$method" \
-                --header "Authorization: Bearer $CLOUDFLARE_ACCESS_API_TOKEN" \
-                --header "Content-Type: application/json" \
-                --data "$body" \
-                "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/$path"
+              status="$(
+                curl --silent --show-error --retry 2 \
+                  --output "$response_file" \
+                  --write-out '%{http_code}' \
+                  --request "$method" \
+                  --header "Authorization: Bearer $CLOUDFLARE_ACCESS_API_TOKEN" \
+                  --header "Content-Type: application/json" \
+                  --data "$body" \
+                  "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/$path"
+              )"
             else
-              curl --fail-with-body --silent --show-error --retry 2 \
-                --request "$method" \
-                --header "Authorization: Bearer $CLOUDFLARE_ACCESS_API_TOKEN" \
-                --header "Content-Type: application/json" \
-                "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/$path"
+              status="$(
+                curl --silent --show-error --retry 2 \
+                  --output "$response_file" \
+                  --write-out '%{http_code}' \
+                  --request "$method" \
+                  --header "Authorization: Bearer $CLOUDFLARE_ACCESS_API_TOKEN" \
+                  --header "Content-Type: application/json" \
+                  "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/$path"
+              )"
             fi
+            if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+              jq -n \
+                --arg method "$method" \
+                --arg path "$path" \
+                --argjson status "$status" \
+                --slurpfile response "$response_file" \
+                '{
+                  method:$method,
+                  path:$path,
+                  status:$status,
+                  errors:[
+                    $response[0].errors[]?
+                    | {code,message}
+                  ]
+                }' >&2
+              rm "$response_file"
+              return 1
+            fi
+            cat "$response_file"
+            rm "$response_file"
           }
 
           organization="$(
