@@ -108,6 +108,7 @@ const Plan097OperationActionSchema = Schema.Literals([
   "dry-run",
   "preflight",
   "mirror-bundle",
+  "mirror-proof-body",
   "reconcile-schema",
   "stage-body",
   "seed-proof-alias",
@@ -171,6 +172,14 @@ export const Plan097OperationRequestSchema = Schema.Union([
     httpBaseline: Plan097HttpBaselineSchema,
   }),
   Schema.Struct({ ...BaseFields, action: Schema.Literal("mirror-bundle") }),
+  Schema.Struct({
+    ...BaseFields,
+    action: Schema.Literal("mirror-proof-body"),
+    logicalId: Schema.String.check(Schema.isMinLength(1)),
+    declaredSha256: Sha256Schema,
+    declaredBytes: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0)),
+    mediaType: Schema.String.check(Schema.isMinLength(1)),
+  }),
   Schema.Struct({
     ...BaseFields,
     action: Schema.Literal("reconcile-schema"),

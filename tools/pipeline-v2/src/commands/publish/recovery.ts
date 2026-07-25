@@ -35,6 +35,7 @@ export type PublishRecoveryInputs = {
   serviceTokenSecret: string;
   bootstrapToken?: string | undefined;
   executionToken?: string | undefined;
+  mirrorProofArtifacts?: boolean | undefined;
   preflightReceiptSha256?: string | undefined;
   preflightPublicKeyPath?: string | undefined;
   expectedCandidateId?: string | undefined;
@@ -463,20 +464,6 @@ async function stageCandidate(input: {
     tracker: input.tracker,
   });
   input.receipts.push(mirrored.receiptKey);
-  if (input.inputs.preflightReceiptSha256 !== undefined) {
-    const reconciled = await remoteCall({
-      inputs: input.inputs,
-      dependencies: input.dependencies,
-      request: {
-        ...base,
-        action: "reconcile-schema",
-        preflightReceiptSha256: input.inputs.preflightReceiptSha256,
-      },
-      execute: true,
-      tracker: input.tracker,
-    });
-    input.receipts.push(reconciled.receiptKey);
-  }
   const manifestBytes = new Uint8Array(
     await Bun.file(input.inputs.artifactManifestPath).arrayBuffer(),
   );
@@ -555,6 +542,23 @@ async function stageCandidate(input: {
   const stageEntry = async (
     entry: (typeof manifest.entries)[number],
   ): Promise<readonly string[]> => {
+    if (input.inputs.mirrorProofArtifacts) {
+      const mirrored = await remoteCall({
+        inputs: input.inputs,
+        dependencies: input.dependencies,
+        request: {
+          ...base,
+          action: "mirror-proof-body",
+          logicalId: entry.logicalId,
+          declaredSha256: entry.sha256,
+          declaredBytes: entry.bytes,
+          mediaType: entry.mediaType,
+        },
+        execute: true,
+        tracker: input.tracker,
+      });
+      return [mirrored.receiptKey];
+    }
     const body = new Uint8Array(
       await Bun.file(join(input.inputs.artifactRoot, entry.logicalKey)).arrayBuffer(),
     );
@@ -917,15 +921,28 @@ export async function runPublishRecovery(
         tracker: responseTracker,
       });
       collectResponseReceipts(ready, receipts);
-      const response = await remoteCall({
-        inputs,
-        dependencies,
-        request: { ...base, action: "activate" },
-        execute: true,
-        tracker: responseTracker,
-      });
-      collectResponseReceipts(response, receipts);
+      let activationResponse: Plan097OperationResponse | undefined;
       try {
+        const reconciled = await remoteCall({
+          inputs,
+          dependencies,
+          request: {
+            ...base,
+            action: "reconcile-schema",
+            preflightReceiptSha256: inputs.preflightReceiptSha256,
+          },
+          execute: true,
+          tracker: responseTracker,
+        });
+        collectResponseReceipts(reconciled, receipts);
+        activationResponse = await remoteCall({
+          inputs,
+          dependencies,
+          request: { ...base, action: "activate" },
+          execute: true,
+          tracker: responseTracker,
+        });
+        collectResponseReceipts(activationResponse, receipts);
         if (inputs.publicBaseUrl === undefined) {
           throw new Error("Plan 097 activation is missing the production base URL");
         }
@@ -938,25 +955,37 @@ export async function runPublishRecovery(
         });
         httpComparisons.push({ phase: "production-active", baseline: active.baseline });
       } catch (postActivationFailure) {
-        const rollback = await remoteCall({
-          inputs,
-          dependencies,
-          request: { ...base, action: "rollback", restoreBundleSha256 },
-          execute: true,
-          tracker: responseTracker,
-        });
-        collectResponseReceipts(rollback, receipts);
-        if (inputs.publicBaseUrl === undefined) throw postActivationFailure;
-        const restored = (
-          await (dependencies.httpCheck ?? runPlan097HttpCheck)({
-            baseUrl: inputs.publicBaseUrl,
-            fetch: dependencies.fetch,
-            mode: "baseline",
-            expectedReleaseId: productionBaseline.activeReleaseId,
-          })
-        ).baseline;
-        comparePlan097HttpBaselines({ expected: productionBaseline, actual: restored });
-        httpComparisons.push({ phase: "baseline-restored", baseline: restored });
+        try {
+          const rollback = await remoteCall({
+            inputs,
+            dependencies,
+            request: { ...base, action: "rollback", restoreBundleSha256 },
+            execute: true,
+            tracker: responseTracker,
+          });
+          collectResponseReceipts(rollback, receipts);
+          if (inputs.publicBaseUrl === undefined) throw postActivationFailure;
+          const restored = (
+            await (dependencies.httpCheck ?? runPlan097HttpCheck)({
+              baseUrl: inputs.publicBaseUrl,
+              fetch: dependencies.fetch,
+              mode: "baseline",
+              expectedReleaseId: productionBaseline.activeReleaseId,
+            })
+          ).baseline;
+          comparePlan097HttpBaselines({ expected: productionBaseline, actual: restored });
+          httpComparisons.push({ phase: "baseline-restored", baseline: restored });
+        } catch (rollbackFailure) {
+          throw new AggregateError(
+            [postActivationFailure, rollbackFailure],
+            "Plan 097 production activation failed and its rollback could not be verified",
+          );
+        }
+        if (activationResponse === undefined) {
+          throw new Error("Plan 097 production mutation failed but the baseline was restored", {
+            cause: postActivationFailure,
+          });
+        }
         await recordTerminalCompletion("rolled_back");
         return {
           schemaVersion: 1,
@@ -1139,6 +1168,8 @@ export function resolvePublishRecoveryCliInputs(
     serviceTokenSecret,
     bootstrapToken: configuredValue(undefined, environment, "PLAN097_BOOTSTRAP_TOKEN"),
     executionToken: configuredValue(undefined, environment, "PLAN097_EXECUTION_TOKEN"),
+    mirrorProofArtifacts:
+      configuredValue(undefined, environment, "PLAN097_MIRROR_PROOF_ARTIFACTS") === "true",
     preflightReceiptSha256: configuredValue(
       options.receiptSha256,
       environment,

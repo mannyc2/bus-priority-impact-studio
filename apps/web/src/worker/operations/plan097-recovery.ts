@@ -1531,6 +1531,112 @@ async function loadRestoreBundle(input: {
   return bundle;
 }
 
+async function loadProductionRollbackPreflight(input: {
+  env: Env & { PLAN097_OPERATIONS: R2Bucket };
+  bundle: Plan097ActivationBundle;
+  restore: Plan097RestoreBundle;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
+}): Promise<Plan097PreflightReceipt> {
+  const sha = input.env.PLAN097_PREFLIGHT_RECEIPT_SHA256;
+  if (sha === undefined) {
+    throw new Error("Plan 097 production rollback requires an allowlisted preflight receipt");
+  }
+  const bytes = await readVerifiedObject({
+    bucket: input.env.PLAN097_OPERATIONS,
+    key: preflightReceiptKey(input.bundle.candidate.releaseId, sha),
+    expectedSha256: sha,
+    metrics: input.metrics,
+  });
+  const receipt = decodeStrict(Plan097PreflightReceiptSchema)(
+    JSON.parse(new TextDecoder().decode(bytes)),
+  );
+  await verifyPlan097PreflightReceiptSignature(input.env, receipt);
+  if (
+    receipt.outcome !== "ready" ||
+    receipt.candidate.releaseId !== input.bundle.candidate.releaseId ||
+    receipt.candidate.activationBundleSha256 !== input.env.PLAN097_ACTIVATION_BUNDLE_SHA256 ||
+    receipt.candidate.manifestSha256 !== input.bundle.artifactManifest.sha256 ||
+    receipt.rollbackPackage.sha256 !== input.env.PLAN097_RESTORE_BUNDLE_SHA256
+  ) {
+    throw new Error("Plan 097 signed preflight does not authorize production rollback");
+  }
+  return receipt;
+}
+
+async function runProductionRollback(input: {
+  env: Env & { DB: D1Database; PLAN097_OPERATIONS: R2Bucket };
+  bundle: Plan097ActivationBundle;
+  restore: Plan097RestoreBundle;
+  metrics?: Plan097OperationMetricsAccumulator | undefined;
+}): Promise<number> {
+  if (input.env.PLAN097_PROOF_MODE === "true") {
+    await runD1Batch({ db: input.env.DB, batch: input.restore.batch, metrics: input.metrics });
+    return input.restore.batch.statements.length;
+  }
+  const receipt = await loadProductionRollbackPreflight(input);
+  const signedAbsentState =
+    receipt.schemaReconciliation.mapReleaseCatalogState === "absent" &&
+    receipt.schemaReconciliation.applyRecoverySql;
+  const signedExactState =
+    receipt.schemaReconciliation.mapReleaseCatalogState === "exact" &&
+    !receipt.schemaReconciliation.applyRecoverySql;
+  if (!signedAbsentState && !signedExactState) {
+    throw new Error("Plan 097 signed preflight contains an invalid 0033 rollback decision");
+  }
+  const mapTablePresent =
+    (await d1First(
+      input.env.DB,
+      "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'map_release_catalog'",
+      [],
+      input.metrics,
+    )) !== null;
+  const restoreStatements =
+    signedAbsentState && !mapTablePresent
+      ? input.restore.batch.statements.filter(
+          (statement) => statement.table !== "map_release_catalog",
+        )
+      : input.restore.batch.statements;
+  if (signedAbsentState && mapTablePresent) {
+    const schema = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
+    if (decidePlan097MapReleaseCatalogRecovery(schema).state !== "exact") {
+      throw new Error("Plan 097 rollback found an unexpected map_release_catalog schema");
+    }
+  }
+  await runD1Batch({
+    db: input.env.DB,
+    batch: {
+      ...input.restore.batch,
+      statements: restoreStatements,
+    },
+    metrics: input.metrics,
+  });
+  if (!signedAbsentState || !mapTablePresent) return restoreStatements.length;
+  const remainingRows = await d1First<{ count: number }>(
+    input.env.DB,
+    "SELECT COUNT(*) AS count FROM map_release_catalog",
+    [],
+    input.metrics,
+  );
+  if (Number(remainingRows?.count ?? -1) !== 0) {
+    throw new Error("Plan 097 rollback will not remove a non-empty map_release_catalog");
+  }
+  const reverseStatements = [
+    "DROP INDEX IF EXISTS map_release_catalog_manifest_key_idx",
+    "DROP TABLE IF EXISTS map_release_catalog",
+  ];
+  await runPlan097D1StatementBatch({
+    db: input.env.DB,
+    statements: reverseStatements.map((sql) => input.env.DB.prepare(sql)),
+    failureMessage: "Plan 097 production schema rollback batch failed",
+    metrics: input.metrics,
+  });
+  const after = await capturePlan097D1CanonicalSchema(input.env.DB, input.metrics);
+  if (decidePlan097MapReleaseCatalogRecovery(after).state !== "absent") {
+    throw new Error("Plan 097 production schema rollback post-audit failed");
+  }
+  return restoreStatements.length + reverseStatements.length;
+}
+
 type Plan097ProofState = NonNullable<Plan097OperationResponse["proofState"]>;
 
 async function verifyPlan097ProofState(input: {
@@ -1807,6 +1913,9 @@ export async function handlePlan097RecoveryRequest(
     if (operationRequest.action === "seed-proof-alias" && env.PLAN097_PROOF_MODE !== "true") {
       return new Response("Forbidden", { status: 403 });
     }
+    if (operationRequest.action === "mirror-proof-body" && env.PLAN097_PROOF_MODE === "true") {
+      return new Response("Forbidden", { status: 403 });
+    }
     if (operationRequest.action === "seed-bundle" && env.PLAN097_SEED_MODE !== "true") {
       return new Response("Forbidden", { status: 403 });
     }
@@ -1922,6 +2031,40 @@ export async function handlePlan097RecoveryRequest(
         objectCount = 1;
         break;
       }
+      case "mirror-proof-body": {
+        if (env.PLAN097_PROOF_ARTIFACTS === undefined) {
+          throw new Error("Plan 097 proof-artifact binding is missing");
+        }
+        const { manifest } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
+        const entry = manifest.entries.find(
+          (candidate) => candidate.logicalId === operationRequest.logicalId,
+        );
+        if (
+          entry === undefined ||
+          entry.sha256 !== operationRequest.declaredSha256 ||
+          entry.bytes !== operationRequest.declaredBytes ||
+          entry.mediaType !== operationRequest.mediaType
+        ) {
+          throw new Error("Plan 097 proof body is not declared by the signed manifest");
+        }
+        const body = await readVerifiedObject({
+          bucket: env.PLAN097_PROOF_ARTIFACTS,
+          key: entry.key,
+          expectedSha256: entry.sha256,
+          expectedBytes: entry.bytes,
+          metrics,
+        });
+        await putIdentical({
+          bucket: boundEnv.ARTIFACTS,
+          key: entry.key,
+          body,
+          sha256: entry.sha256,
+          mediaType: entry.mediaType,
+          metrics,
+        });
+        objectCount = 1;
+        break;
+      }
       case "finalize-manifest": {
         const { manifest, bytes } = await loadArtifactManifest({ env: boundEnv, bundle, metrics });
         for (const entry of manifest.entries) {
@@ -2009,8 +2152,12 @@ export async function handlePlan097RecoveryRequest(
           request: operationRequest,
           metrics,
         });
-        await runD1Batch({ db: boundEnv.DB, batch: restore.batch, metrics });
-        statementCount = restore.batch.statements.length;
+        statementCount = await runProductionRollback({
+          env: boundEnv,
+          bundle,
+          restore,
+          metrics,
+        });
         break;
       }
       case "record-proof": {

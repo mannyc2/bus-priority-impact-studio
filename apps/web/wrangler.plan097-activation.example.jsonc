@@ -44,6 +44,10 @@
     {
       "binding": "PLAN097_PROOF_RECEIPTS",
       "bucket_name": "bus-priority-plan097-proof-runtime"
+    },
+    {
+      "binding": "PLAN097_PROOF_ARTIFACTS",
+      "bucket_name": "bus-priority-plan097-proof-artifacts"
     }
   ]
 }

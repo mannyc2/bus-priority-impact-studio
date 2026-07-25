@@ -419,6 +419,7 @@ describe("publish recovery command", () => {
         PLAN097_RECOVERY_ENDPOINT: "https://activation.test/__operations/plan097",
         PLAN097_PUBLIC_BASE_URL: "https://production.test/",
         PLAN097_EXECUTION_TOKEN: "fresh-production-token",
+        PLAN097_MIRROR_PROOF_ARTIFACTS: "true",
         PLAN097_PROOF_SUMMARY_KEY: `operations/plan097/proof/${releaseId}/proof-summary.${"c".repeat(64)}.json`,
         PLAN097_PROOF_SUMMARY_SHA256: "c".repeat(64),
         PLAN097_PROOF_SUMMARY_BYTES: "100",
@@ -430,6 +431,7 @@ describe("publish recovery command", () => {
       sha256: "c".repeat(64),
       bytes: 100,
     });
+    expect(activation.mirrorProofArtifacts).toBe(true);
   });
 
   test("independently verifies the exact returned preflight bytes with the trusted Ed25519 key", async () => {
@@ -835,6 +837,7 @@ describe("publish recovery command", () => {
           serviceTokenId: "id",
           serviceTokenSecret: "secret",
           executionToken: "fresh-token",
+          mirrorProofArtifacts: true,
           preflightReceiptSha256: "c".repeat(64),
           proofSummaryRef: {
             kind: "proof-summary",
@@ -891,10 +894,10 @@ describe("publish recovery command", () => {
       expect(result.outcome).toBe("rolled_back");
       expect(actions).toEqual([
         "mirror-bundle",
-        "reconcile-schema",
-        "stage-body",
+        "mirror-proof-body",
         "finalize-manifest",
         "dry-run",
+        "reconcile-schema",
         "activate",
         "rollback",
         "record-completion",
