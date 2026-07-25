@@ -223,7 +223,7 @@ jobs:
               appliedMigrations:$applied,
               tableCount:$tables
             }' > /tmp/plan097-proof-migrate/receipt.json
-          test "$(jq -r '.appliedMigrations' /tmp/plan097-proof-migrate/receipt.json)" -eq 34
+          test "$(jq -r '.appliedMigrations' /tmp/plan097-proof-migrate/receipt.json)" -eq 35
 
       - uses: actions/upload-artifact@v4
         with:
