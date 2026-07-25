@@ -13,6 +13,7 @@ on:
         default: none
         options:
           - none
+          - preflight
           - proof
           - activation
 
@@ -24,6 +25,14 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  plan097-preflight:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/codex/plan097-completion' &&
+      inputs.plan097_job == 'preflight'
+    uses: ./.github/workflows/plan097-preflight-deploy.yml
+    secrets: inherit
+
   plan097-proof-deploy:
     if: >-
       github.event_name == 'workflow_dispatch' &&
