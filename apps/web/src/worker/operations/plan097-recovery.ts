@@ -1528,9 +1528,16 @@ async function verifyPlan097ProofState(input: {
     activeD1Election(input.db, input.metrics),
     protectedD1Fingerprints(input.db, input.metrics),
   ]);
+  const effectiveMapReleaseId =
+    input.phase !== "candidate-active" &&
+    actualElection.mapCatalogPresent &&
+    actualElection.mapReleaseId === null &&
+    actualElection.studioReleaseId === expectedElection.mapReleaseId
+      ? expectedElection.mapReleaseId
+      : actualElection.mapReleaseId;
   const election = {
     studioReleaseId: actualElection.studioReleaseId,
-    mapReleaseId: actualElection.mapReleaseId,
+    mapReleaseId: effectiveMapReleaseId,
     exactRouteReleaseId: actualElection.exactRouteReleaseId,
   };
   if (canonicalPlan097Json(election) !== canonicalPlan097Json(expectedElection)) {

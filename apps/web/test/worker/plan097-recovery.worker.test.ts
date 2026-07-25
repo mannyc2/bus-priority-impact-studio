@@ -535,6 +535,32 @@ describe("Plan 097 protected Worker operation", () => {
     expect(response.status).toBe(404);
   });
 
+  it("treats an empty canonical map catalog as the signed pre-0033 baseline only for proof A", async () => {
+    await testEnv.DB.prepare("DELETE FROM map_release_catalog WHERE release_id = ?")
+      .bind(previousReleaseId)
+      .run();
+    const response = await operationRequest({
+      body: {
+        operationId,
+        activationBundleSha256,
+        action: "prove",
+        bundle: "restore",
+        restoreBundleSha256,
+      },
+      env: operationEnv,
+    });
+    expect(response.status).toBe(200);
+    expect(decodeStrict(Plan097OperationResponseSchema)(await response.json()).proofState).toEqual({
+      phase: "baseline-restored",
+      election: {
+        studioReleaseId: previousReleaseId,
+        mapReleaseId: previousReleaseId,
+        exactRouteReleaseId: previousReleaseId,
+      },
+      protectedFingerprintCount: expect.any(Number),
+    });
+  });
+
   it("stages only signed bodies, proves rollback on failure, activates, and rolls back", async () => {
     const base = { operationId, activationBundleSha256 };
     const seedBody = {
