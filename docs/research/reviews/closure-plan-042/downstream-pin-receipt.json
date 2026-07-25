@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "contract_id": "bp.plan042.closure-receipt.v1",
+  "consumer": "bus-reliability-tracker",
+  "producer": {
+    "release_id": "v1-rc28",
+    "manifest_sha256": "b47a105dc78501210f2d32e6f597f878203b8cfc35654cebc4de445d575a453c",
+    "handoff_path": "data/quality/study-frontier-closure/plan-041-producer-handoff.json",
+    "handoff_sha256": "986dfc18adc7867975c338e960eb99fa808cb585a091073887f744427e471aec"
+  },
+  "consumer_commit": "583c3538ad07c85b8e1d828f5bafa37570af8aa5",
+  "import": {
+    "path": "docs/research/reviews/closure-plan-042/artifacts/producer-import.json",
+    "bytes": 2743,
+    "sha256": "48a3ae009995e45396ad81f47af9dcd0984b13250f364c654bba025363f33b7f",
+    "source_occurrence_count": 131,
+    "eligible_occurrence_count": 130,
+    "route_projection_count": 167,
+    "complete_occurrence_route_count": 168
+  },
+  "candidate_set": {
+    "path": "docs/research/reviews/closure-plan-042/artifacts/candidate-set-v5.json",
+    "bytes": 536535,
+    "sha256": "bfc1ab93cc805939459c2d471c6c6cca72f370627385c43f8b46ceb77674e9fe",
+    "candidate_set_id": "candidate-set-v5:1fadedfcb292deda5179bdf3",
+    "candidate_count": 555,
+    "approval_state": "awaiting_outcome_grain_review"
+  },
+  "member_grain_import": {
+    "path": "docs/research/reviews/closure-plan-042/artifacts/member-grain-import.json",
+    "bytes": 457205,
+    "sha256": "e80c5e1b0173e02a4c27919bf82c50e56343903ad75160f426e41d4ae78bdb96",
+    "row_count": 308,
+    "member_extent_projection_sha256": "5ca1ba253a75a577c0e32b249508873d5a5114f2bbb2565dba80e7fa60deab0e"
+  },
+  "extent_binding": {
+    "path": "docs/research/reviews/closure-plan-042/artifacts/extent-segment-bindings.json",
+    "bytes": 62686,
+    "sha256": "c5f0c1499799e15da85e6cb0aa9d17c5fc0385b5890643b7f46f9e21679940dc",
+    "row_count": 48,
+    "disposition_histogram": {
+      "missing_endpoint_stop_id_equivalence": 9,
+      "spine_not_ready": 39
+    }
+  },
+  "grain_verdict": {
+    "path": "docs/research/reviews/closure-plan-042/artifacts/grain-verdict-matrix.json",
+    "bytes": 463013,
+    "sha256": "5b0a411b95cbeca9ea66889dd3d54289235432ecb9a76f7c9e02e256a6d028cc",
+    "row_count": 695,
+    "denominator": {
+      "member_row_count": 308,
+      "no_member_candidate_count": 387,
+      "expected_row_count": 695
+    },
+    "family_by_verdict_histogram": {
+      "automated_bus_lane_enforcement": {
+        "grain_context_only": 4,
+        "grain_matched_primary": 8,
+        "blocked:member_grain_blocked_upstream": 6,
+        "blocked:preserved_prior_rejection": 60
+      },
+      "bus_lane": {
+        "blocked:spine_not_ready": 1,
+        "blocked:missing_endpoint_stop_id_equivalence": 1,
+        "blocked:binding_absent_after_search": 321
+      },
+      "bus_stop_or_boarding": {
+        "blocked:member_grain_blocked_upstream": 13,
+        "blocked:spine_not_ready": 20,
+        "blocked:member_grain_absent_in_source": 70,
+        "blocked:route_lineage_incomparable": 5,
+        "blocked:missing_pinned_stop_grain_coverage": 5
+      },
+      "fare_collection": {
+        "blocked:member_grain_blocked_upstream": 3,
+        "grain_context_only": 14
+      },
+      "route_redesign": {
+        "blocked:spine_not_ready": 1
+      },
+      "service_pattern": {
+        "blocked:member_grain_absent_in_source": 95,
+        "blocked:missing_pinned_service_pattern_product_coverage": 5,
+        "blocked:route_lineage_incomparable": 17,
+        "blocked:member_grain_blocked_upstream": 29,
+        "blocked:spine_not_ready": 11,
+        "grain_context_only": 1,
+        "blocked:missing_endpoint_stop_id_equivalence": 4
+      },
+      "signage_and_markings": {
+        "blocked:missing_pinned_stop_grain_coverage": 1
+      }
+    }
+  },
+  "review_handoff": {
+    "path": "docs/research/reviews/closure-plan-042/artifacts/review-handoff.json",
+    "bytes": 63125,
+    "sha256": "45946d1a0e515c38c3c481a199428750b9b9c4aca6975c4efd1c7d1c5ac04033",
+    "review_cut_id": "study-review-cut-v2:1ae9e99a8b4c32793b5dbc86",
+    "row_count": 695,
+    "status": "reviewed_authority_false",
+    "approval_applied": false
+  },
+  "acceptance_manifest": {
+    "path": "docs/research/reviews/closure-plan-042/acceptance-manifest.json",
+    "bytes": 56841,
+    "sha256": "05e4f6f00dea8688acbe07c613930541714d7335a3bb6375680fe5cbad09454f",
+    "review_cut_id": "study-review-cut-v2:1ae9e99a8b4c32793b5dbc86",
+    "artifact_count": 11,
+    "package_count": 25
+  },
+  "operator_authorization": {
+    "authorization_id": "mta-wiki-owner-2026-07-22-all-closure-plans",
+    "scope": "internal_analyst_stop_set_admission",
+    "recorded_decision": "versioned_analyst_grain_allowed_only_with_candidate_coverage_and_reviewed_stop_id_lineage",
+    "source_plan": "plans/106-member-grain-outcome-certification.md"
+  },
+  "verification_baseline": {
+    "protected_commit": "b25542b0a735636e7051be8fb70893499671366f",
+    "baseline": {
+      "check_style": {
+        "exit_code": 1,
+        "log_sha256": "09e7075ece995d92804e7f481fb420594d3cc5e143ca1696994789db604a10c6",
+        "byte_count": 17285,
+        "line_count": 330,
+        "status": "pinned_baseline",
+        "error_count": 6,
+        "warning_count": 39,
+        "info_count": 514,
+        "file_count": 1107
+      },
+      "check_architecture": {
+        "exit_code": 0,
+        "log_sha256": "4dc4f5ce49bf4d79216f53a4c00b02949e9582805b876e184462a164c3dd39a7",
+        "byte_count": 5450,
+        "line_count": 72,
+        "status": "pass",
+        "pass_count": 42,
+        "fail_count": 0
+      },
+      "test_unit": {
+        "exit_code": 0,
+        "log_sha256": "0a16ce191a70f143d7715629649f35590aa79aa04a999c4c4a9b95d4a027af1c",
+        "byte_count": 158840,
+        "line_count": 1915,
+        "status": "pass",
+        "pass_count": 1056,
+        "fail_count": 0
+      },
+      "test_web": {
+        "exit_code": 0,
+        "log_sha256": "63ff40e037a2a25147f54c77634513f23adf51f4865553d7348521a99b4e111d",
+        "byte_count": 37198,
+        "line_count": 433,
+        "status": "pass",
+        "pass_count": 342,
+        "fail_count": 0
+      },
+      "test_worker": {
+        "exit_code": 1,
+        "log_sha256": "b4f2a914a8841f2d118d24e6f72de96e6d8a61c9260930e175b32ea76a39425f",
+        "byte_count": 1102,
+        "line_count": 22,
+        "status": "pinned_baseline",
+        "failure_signature": "listen EPERM 127.0.0.1"
+      }
+    },
+    "final": {
+      "check_style": {
+        "exit_code": 1,
+        "log_sha256": "58a26ef32028f2194897219ddf8eb6b2cb05c4a3e06ad45c9e2216d6d6437ac4",
+        "byte_count": 17234,
+        "line_count": 330,
+        "status": "matches_baseline"
+      },
+      "check_architecture": {
+        "exit_code": 0,
+        "log_sha256": "14f789c4a39c4b195e304868a05777be825c3fd48d3018924f21efe9542d8fcd",
+        "byte_count": 5451,
+        "line_count": 72,
+        "status": "pass"
+      },
+      "test_unit": {
+        "exit_code": 0,
+        "log_sha256": "54c57914f6fe9338ae358dd436e6d86b0e8ada427ac94adb8f6af1060573a888",
+        "byte_count": 161532,
+        "line_count": 1939,
+        "status": "pass"
+      },
+      "test_web": {
+        "exit_code": 0,
+        "log_sha256": "80e5f4b26dcbb7a5c96f487fc365c9124fb002ca6b02d51a0d9c32953177d78b",
+        "byte_count": 37153,
+        "line_count": 433,
+        "status": "pass"
+      },
+      "test_worker": {
+        "exit_code": 1,
+        "log_sha256": "b4f2a914a8841f2d118d24e6f72de96e6d8a61c9260930e175b32ea76a39425f",
+        "byte_count": 1102,
+        "line_count": 22,
+        "status": "matches_listen_eperm_baseline"
+      }
+    },
+    "zero_additional_failures": true
+  },
+  "authority": {
+    "authorizes_study": false,
+    "authorizes_publication": false,
+    "authorizes_d1_r2_mutation": false,
+    "authorizes_deploy": false
+  },
+  "protected_surfaces": {
+    "protected_baseline_commit": "b25542b0a735636e7051be8fb70893499671366f",
+    "entries": [
+      {
+        "path": "apps/web/src/components/route/TreatmentsHistorySection.tsx",
+        "baseline_sha256": "3c58186380d0344b993fbe5f742f4d0c9ac2764b0f61ebdf08ecca8246fcf3bd",
+        "consumer_sha256": "3c58186380d0344b993fbe5f742f4d0c9ac2764b0f61ebdf08ecca8246fcf3bd"
+      },
+      {
+        "path": "apps/web/src/components/study/StudyCard.tsx",
+        "baseline_sha256": "348e9c9f61407c94f805d35884c95a5c4eefdf1029ddfb63a4f35c0194aabe67",
+        "consumer_sha256": "348e9c9f61407c94f805d35884c95a5c4eefdf1029ddfb63a4f35c0194aabe67"
+      },
+      {
+        "path": "apps/web/src/components/study/StudyEventChart.chart.tsx",
+        "baseline_sha256": "972bc8c3e542155f624321bcdeee85b82670ccaf79cb421a13ab8f74b7385c7b",
+        "consumer_sha256": "972bc8c3e542155f624321bcdeee85b82670ccaf79cb421a13ab8f74b7385c7b"
+      },
+      {
+        "path": "apps/web/src/components/study/StudyEventChart.tsx",
+        "baseline_sha256": "bc1150baabea56b466d3c3193bbd2a81483cfd6a7a9abb347d0bd0821b309242",
+        "consumer_sha256": "bc1150baabea56b466d3c3193bbd2a81483cfd6a7a9abb347d0bd0821b309242"
+      },
+      {
+        "path": "apps/web/src/components/study/study-display.ts",
+        "baseline_sha256": "c2ab22494c3315b7061b4e1d9b846b9af5211f69554a48e438bc950ba07eb304",
+        "consumer_sha256": "c2ab22494c3315b7061b4e1d9b846b9af5211f69554a48e438bc950ba07eb304"
+      },
+      {
+        "path": "apps/web/src/routes/routes/$routeId.tsx",
+        "baseline_sha256": "ab64c99bf566885d39de666b1df2d36e3a6bde7afcd316ead5bc617e18c7e3ee",
+        "consumer_sha256": "ab64c99bf566885d39de666b1df2d36e3a6bde7afcd316ead5bc617e18c7e3ee"
+      },
+      {
+        "path": "apps/web/src/studio/api-client.ts",
+        "baseline_sha256": "dc4eec3ecec97929239dca4671a9d01c89041138cdc8e2079b89ef94a9ffced7",
+        "consumer_sha256": "dc4eec3ecec97929239dca4671a9d01c89041138cdc8e2079b89ef94a9ffced7"
+      },
+      {
+        "path": "apps/web/src/studio/pages/interventions.tsx",
+        "baseline_sha256": "37f83749b88bef00e49d3f1e80f4d07d5a5dfdd505fb1813dd7698528337a20c",
+        "consumer_sha256": "37f83749b88bef00e49d3f1e80f4d07d5a5dfdd505fb1813dd7698528337a20c"
+      },
+      {
+        "path": "docs/research/spine-pattern-grouping-decision.md",
+        "baseline_sha256": "e7439bc026dabc676f32c2c28fb15e4505181a5669d4483dbfee8b0640b229b2",
+        "consumer_sha256": "e7439bc026dabc676f32c2c28fb15e4505181a5669d4483dbfee8b0640b229b2"
+      },
+      {
+        "path": "docs/research/spine-pattern-grouping-findings.md",
+        "baseline_sha256": "81661a0d2d4c7a25cbb60045c4fdd549fc651d2eeac44037435bc297ee4a2e49",
+        "consumer_sha256": "81661a0d2d4c7a25cbb60045c4fdd549fc651d2eeac44037435bc297ee4a2e49"
+      },
+      {
+        "path": "packages/analytics/src/feature-history/spine-pattern-grouping-prototype.ts",
+        "baseline_sha256": "372cd5204bad1eaf7900f06b165ef7281af2131a0aa10797d6d87c161fb4e95c",
+        "consumer_sha256": "372cd5204bad1eaf7900f06b165ef7281af2131a0aa10797d6d87c161fb4e95c"
+      },
+      {
+        "path": "packages/analytics/test/feature-history/spine-pattern-grouping-prototype.test.ts",
+        "baseline_sha256": "f694bd2cfc95a3a97a23bf5e99faf4830db242e1d8554b856aaa286834bbab5b",
+        "consumer_sha256": "f694bd2cfc95a3a97a23bf5e99faf4830db242e1d8554b856aaa286834bbab5b"
+      },
+      {
+        "path": "tools/pipeline-v2/src/lib/study-engine/bootstrap.ts",
+        "baseline_sha256": "9f71b89ef38991a36e53ef13b7b890a593561bd48a4650e996eeec8cb7ee1d38",
+        "consumer_sha256": "9f71b89ef38991a36e53ef13b7b890a593561bd48a4650e996eeec8cb7ee1d38"
+      },
+      {
+        "path": "tools/pipeline-v2/src/lib/study-engine/did.ts",
+        "baseline_sha256": "e2605b9c585bbdac0b0dbae031e2bf822373d671b17b461cfe87c369f3715e81",
+        "consumer_sha256": "e2605b9c585bbdac0b0dbae031e2bf822373d671b17b461cfe87c369f3715e81"
+      },
+      {
+        "path": "tools/pipeline-v2/src/lib/study-engine/estimator.ts",
+        "baseline_sha256": "f38f5a23875af1560bf246b5c7e273eba3cf74662440707074f5e3e6d0a83bfe",
+        "consumer_sha256": "f38f5a23875af1560bf246b5c7e273eba3cf74662440707074f5e3e6d0a83bfe"
+      },
+      {
+        "path": "tools/pipeline-v2/src/lib/study-engine/gates.ts",
+        "baseline_sha256": "2f2ae1c89db54ff81f094d7afc40ce4fe3ad94ab03eeedf9b900c588c0259daa",
+        "consumer_sha256": "2f2ae1c89db54ff81f094d7afc40ce4fe3ad94ab03eeedf9b900c588c0259daa"
+      },
+      {
+        "path": "tools/pipeline-v2/src/lib/study-engine/matching.ts",
+        "baseline_sha256": "ca36e1cc7f8808159a61414193e7d843f6989bbe1a00594e9a20fcad71253a9d",
+        "consumer_sha256": "ca36e1cc7f8808159a61414193e7d843f6989bbe1a00594e9a20fcad71253a9d"
+      },
+      {
+        "path": "tools/pipeline-v2/src/lib/study-engine/panel.ts",
+        "baseline_sha256": "1fbfe691671157fa5094f9d16b05930de43ea72a0601f48042b006cd24cceac4",
+        "consumer_sha256": "1fbfe691671157fa5094f9d16b05930de43ea72a0601f48042b006cd24cceac4"
+      }
+    ]
+  }
+}
