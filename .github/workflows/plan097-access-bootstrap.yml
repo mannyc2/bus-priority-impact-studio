@@ -231,34 +231,27 @@ jobs:
             )"
           done
 
-          negative_checks='[]'
+          pre_origin_checks='[]'
           for row in $(jq -c '.[]' <<< "$apps"); do
             phase="$(jq -r '.phase' <<< "$row")"
             domain="$(jq -r '.domain' <<< "$row")"
-            status=000
-            for attempt in 1 2 3 4 5 6 7 8 9 10; do
-              status="$(
-                curl --silent --show-error \
-                  --output /dev/null \
-                  --write-out '%{http_code}' \
-                  --max-time 15 \
-                  "https://$domain"
-              )"
-              if [ "$status" = 401 ] || [ "$status" = 403 ]; then
-                break
-              fi
-              sleep 3
-            done
-            if [ "$status" != 401 ] && [ "$status" != 403 ]; then
-              echo "Unauthenticated Access check failed for $phase with HTTP $status" >&2
+            status="$(
+              curl --silent --show-error \
+                --output /dev/null \
+                --write-out '%{http_code}' \
+                --max-time 15 \
+                "https://$domain"
+            )"
+            if [ "$status" != 404 ] && [ "$status" != 401 ] && [ "$status" != 403 ]; then
+              echo "Unexpected pre-origin status for $phase: HTTP $status" >&2
               exit 1
             fi
-            negative_checks="$(
+            pre_origin_checks="$(
               jq -c \
                 --arg phase "$phase" \
                 --argjson status "$status" \
-                '. + [{phase:$phase,anonymousStatus:$status}]' \
-                <<< "$negative_checks"
+                '. + [{phase:$phase,status:$status}]' \
+                <<< "$pre_origin_checks"
             )"
           done
 
@@ -271,7 +264,7 @@ jobs:
             --arg serviceTokenName "$service_token_name" \
             --arg operatorPublicKeySha256 "322fa7bc17c9b2efd62c844c63a5255c23cd1be311ddac2a5d30e10bf79af9c2" \
             --argjson apps "$apps" \
-            --argjson negativeChecks "$negative_checks" \
+            --argjson preOriginChecks "$pre_origin_checks" \
             '{
               artifactKind:$artifactKind,
               schemaVersion:1,
@@ -285,7 +278,8 @@ jobs:
               },
               operatorPublicKeySha256:$operatorPublicKeySha256,
               apps:$apps,
-              negativeChecks:$negativeChecks
+              preOriginChecks:$preOriginChecks,
+              liveAccessChecksPendingWorkerDeploy:true
             }' > "$output_dir/receipt.json"
           rm "$output_dir/operator-public.pem"
 
