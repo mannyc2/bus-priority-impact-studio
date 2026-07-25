@@ -209,14 +209,55 @@ jobs:
           set -euo pipefail
           export PLAN097_EXECUTION_TOKEN
           PLAN097_EXECUTION_TOKEN="$(cat /tmp/plan097-activation/execution-token)"
-          bun --filter @bp/pipeline-v2 cli -- \
+          config=apps/web/wrangler.plan097-activation.jsonc
+          tail_raw=/tmp/plan097-activation/worker-tail.raw.jsonl
+          tail_sanitized=/tmp/plan097-activation/worker-tail.jsonl
+          bunx wrangler tail \
+            --config "$config" \
+            --format json \
+            > "$tail_raw" 2>&1 &
+          tail_pid=$!
+          cleanup_tail() {
+            kill "$tail_pid" 2>/dev/null || true
+            wait "$tail_pid" 2>/dev/null || true
+            jq -Rc \
+              'fromjson?
+               | select(. != null)
+               | {
+                   outcome,
+                   exceptions,
+                   logs,
+                   event:{
+                     request:{
+                       method:.event.request.method,
+                       url:.event.request.url
+                     }
+                   }
+                 }' \
+              "$tail_raw" > "$tail_sanitized"
+            rm -f "$tail_raw"
+          }
+          trap cleanup_tail EXIT
+          sleep 3
+          set +e
+          bun tools/pipeline-v2/src/cli.ts \
             publish recovery \
             --action activate \
             --operation plan097:pub_20260725T164123260Z \
             --receipt-sha256 fe5dea4a775e5220c73fb1d18322ea4eb4ade11de906b17e4fcffe2131769191 \
             --json \
             --full-output \
-            > /tmp/plan097-activation/result.json
+            > /tmp/plan097-activation/result.json \
+            2> /tmp/plan097-activation/cli.log
+          activation_status=$?
+          set -e
+          sleep 3
+          cleanup_tail
+          trap - EXIT
+          if [ "$activation_status" -ne 0 ]; then
+            sed -n '1,160p' /tmp/plan097-activation/cli.log >&2
+            exit "$activation_status"
+          fi
           jq -e \
             '.outcome == "pass"
              and .operationId == "plan097:pub_20260725T164123260Z"
@@ -242,7 +283,7 @@ jobs:
           result_sha256=null
           completion=null
           outcome=workflow_failed
-          if [ -f "$output_dir/result.json" ]; then
+          if jq -e . "$output_dir/result.json" > /dev/null 2>&1; then
             result_sha256="$(sha256sum "$output_dir/result.json" | cut -d' ' -f1)"
             completion="$(jq -c '.completion' "$output_dir/result.json")"
             outcome="$(jq -r '.outcome' "$output_dir/result.json")"
@@ -283,6 +324,8 @@ jobs:
           path: |
             /tmp/plan097-activation/receipt.json
             /tmp/plan097-activation/result.json
+            /tmp/plan097-activation/cli.log
+            /tmp/plan097-activation/worker-tail.jsonl
           if-no-files-found: error
           retention-days: 90
 
