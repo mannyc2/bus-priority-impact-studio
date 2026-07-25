@@ -2,6 +2,7 @@ name: Plan 097 Access bootstrap
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
