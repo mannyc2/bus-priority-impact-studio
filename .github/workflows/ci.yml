@@ -16,6 +16,7 @@ on:
           - preflight
           - proof
           - activation
+          - cleanup
 
 permissions:
   contents: read
@@ -48,6 +49,15 @@ jobs:
       github.ref == 'refs/heads/codex/plan097-completion' &&
       inputs.plan097_job == 'activation'
     uses: ./.github/workflows/plan097-activation-deploy.yml
+    secrets: inherit
+
+  plan097-cleanup:
+    needs: verify
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/codex/plan097-completion' &&
+      inputs.plan097_job == 'cleanup'
+    uses: ./.github/workflows/plan097-cleanup.yml
     secrets: inherit
 
   verify:
