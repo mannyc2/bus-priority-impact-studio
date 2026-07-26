@@ -5,16 +5,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      plan097_job:
-        description: Optional one-time Plan 097 operation
-        required: true
-        type: choice
-        default: none
-        options:
-          - none
-          - proof
-          - activation
 
 permissions:
   contents: read
@@ -24,23 +14,6 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  plan097-proof-deploy:
-    if: >-
-      github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/codex/plan097-completion' &&
-      inputs.plan097_job == 'proof'
-    uses: ./.github/workflows/plan097-proof-deploy.yml
-    secrets: inherit
-
-  plan097-activation:
-    needs: verify
-    if: >-
-      github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/codex/plan097-completion' &&
-      inputs.plan097_job == 'activation'
-    uses: ./.github/workflows/plan097-activation-deploy.yml
-    secrets: inherit
-
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20

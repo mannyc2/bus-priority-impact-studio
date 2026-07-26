@@ -46,31 +46,44 @@ and the key ID is `plan097-20260725-rc28`. The private key, bootstrap token,
 and disposable-proof execution token were stored as encrypted GitHub Actions
 secrets; their values were not logged or committed.
 
-The existing `CLOUDFLARE_API_TOKEN` successfully managed Workers, D1, and R2,
-but Cloudflare denied its reads of Access organizations, applications, and
-service tokens. No Access team domain, application audience, service-token
-client ID, or service-token client secret exists in repository variables,
-repository secrets, production-environment variables/secrets, or the local
-gitignored environment.
+The initial Access-scoped token was insufficient. A replacement bounded token
+then provisioned one 24-hour service token and three self-hosted Access
+applications:
 
-Protected GitHub Actions run `30167076567` then exercised the same credential
-through the registered `ci.yml` workflow. The reusable Plan 097 Access job
-received the stored token and Cloudflare returned HTTP 403 on the first Access
-API request. This distinguishes the blocker from a missing GitHub secret,
-workflow-dispatch problem, local authentication problem, or ungranted
-operator approval.
+| Phase | Application ID | Policy ID |
+|---|---|---|
+| preflight | `8b356267-b390-4731-b918-7e3933a495a7` | `c1daa8ce-34ed-41ea-924f-e41ac27d6f5d` |
+| proof | `0d393afc-15ad-484c-8353-50e8d05e2286` | `c66441f3-3c55-46a4-a184-49f0e64174b2` |
+| activation | `848e3df5-76a0-46f5-9d27-bfd752579fe3` | `118f057b-5e91-49e6-99c7-c56873a9b4f4` |
 
-Cloudflare Access must be provisioned or exposed through a token with
-`Access: Apps and Policies Write`, `Access: Service Tokens Write`, and
-organization read access before an operation Worker can be deployed. The
-runbook intentionally forbids deploying the operation Workers before the
-Service Auth policy is active and the unauthenticated/JWT-negative checks
-pass.
+Each policy allowed only the exact service-token resource
+`9a57c852-0ec3-4d8e-95d3-01c08420f2af`. Before each operation, anonymous and
+wrong-secret requests were rejected by Access, the correct service identity
+reached the Worker, and the separate execution token was still required for
+mutating actions.
+
+The protected official workflows then produced the signed preflight in run
+`30180085025`, disposable proof in run `30180351221`, and production
+completion receipt in run `30180632361`. Their exact hashes and artifact
+digests are recorded in `release-closure-attestation.md`.
+
+## Retirement
+
+The Access boundary and operation Workers were temporary. After production
+completion and independent public verification, all three operation Workers,
+all three Access applications/policies, and the one-time service token were
+deleted. Exact post-delete reads returned Cloudflare code 10007 for the
+Workers and HTTP 404 for every Access application and the service token.
+
+All Plan 097 GitHub Actions secrets, including the Access API token, signing
+private key, bootstrap/execution tokens, audiences, and service-token
+credentials, were deleted. The ordinary deployment token was retained. The
+proof D1 and operations R2 buckets remain only as audit evidence.
 
 ## Authority boundary
 
-No production D1 row, production R2 object, serving release pointer, or
-production Worker deployment changed during this provisioning. Plan 097
-remains in progress until the Access gate, signed preflight, disposable proof,
-fresh production token gate, activation, public verification, and canonical
-completion receipt all pass.
+Provisioning alone authorized no production mutation. The later signed
+preflight, exact A→B→A proof, and fresh execution token bounded the one
+production activation that elected `pub_20260725T164123260Z`. That completed
+Plan 097; the retired credentials and Workers cannot authorize another
+release.

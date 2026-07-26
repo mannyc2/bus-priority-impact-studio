@@ -61,7 +61,7 @@ and makes one pointer select D1, exact identity, maps, and every R2 artifact.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | IN PROGRESS |
+| 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | DONE |
 | 098 | Atomic serving releases with immutable artifacts | P1 | XL | 097 production completion or signed atomic-limit STOP handoff | TODO |
 | 099 | Full dataset history and a one-period freshness SLO | P1 | XL | 098 | TODO |
 | 100 | Resumable publication control plane and drift alarms | P1 | L | 098 active; 099 built candidate + `activation_ready` receipt | TODO |
@@ -70,27 +70,17 @@ and makes one pointer select D1, exact identity, maps, and every R2 artifact.
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
 
-Current Plan 097 checkpoint (2026-07-23): approved PR #102 head
-`33f5f59db2db984c1b77d423566eeef2cd61b2ca` merged as
-`b25542b0a735636e7051be8fb70893499671366f`. Protected production run 334
-(`30028518714`) proved Worker version
-`8c117bac-3813-4cfc-9d19-c94c4987a165` first at 0% through an exact version
-override and then at 100% over ordinary traffic. The ordinary receipt at
-`2026-07-23T17:16:05.839Z` binds the pinned release, exact Worker version,
-14 successful `no-store` public responses, the known baseline map-manifest
-503, and the anonymous operation-namespace 404. Read-only D1 parity and
-production smoke passed; no production D1/R2 application data, schema, release
-pointer, or candidate artifact changed. The hash-bound Actions artifact is
-`8572360112` with archive SHA-256
-`56410e4a85f8228c17367e5463ef6eeee294549413d553f9943b594da4b3b7d5`.
-No purge was authorized, so the conservative 86,400-second drain runs through
-`2026-07-24T17:16:05.839Z`. A new anonymous check at
-`2026-07-25T14:52:47.145Z` passed the post-drain gate: the release, exact
-Worker, 375-route universe, `no-store` posture, baseline map-manifest 503, and
-operation-namespace 404 were unchanged. The signed Cloudflare preflight,
-disposable A→B→A evidence, fresh production mutation token, and live
-completion receipt do not exist; 097 remains IN PROGRESS and 098 has not
-started.
+Plan 097 completed on 2026-07-26. Official runs `30180085025`,
+`30180351221`, and `30180632361` produced the signed preflight, exact
+production-sized disposable A→B→A proof, and active production completion
+receipt. Production now serves `pub_20260725T164123260Z`, coverage `2023-04`
+through `2026-05`, with 375 exact routes and the active map manifest. The
+completion receipt SHA-256 is
+`c1758c865745c9eae47df3bc15c0e288ce69f6b988f4cb9e3e35e380ed1ff8af`.
+Production contingency rollback was not invoked. The one-time operation
+Workers, Access policies/apps, service token, workflows, and GitHub secrets
+were retired; audit D1/R2 evidence remains. Plan 098 is now unblocked but has
+not started.
 
 ## Dependency and safety notes (gen 17)
 

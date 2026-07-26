@@ -9235,3 +9235,36 @@ Worker configuration changed. The signed preflight and disposable proof
 remain closed on the isolated proof-environment credential boundary, and
 production mutation still requires a fresh operator execution token. Plan 097
 remains in progress.
+
+## [2026-07-26] release | Plan 097 production catch-up completed and controls retired
+
+Official Actions run `30180085025` produced the signed read-only preflight for
+freshness-derived candidate `pub_20260725T164123260Z`. The receipt SHA-256 is
+`f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6`;
+its rollback bundle SHA-256 is
+`351454ae5c89ff5689525a323c0541ff50a75be21f638b07c1739058a6ef2abf`.
+Run `30180351221` then passed the exact production-sized disposable A→B→A
+proof, including an injected atomic failure that committed no candidate
+state. Its proof-summary SHA-256 is
+`d5929c591580c540366fe30caac9b9270ca5c3bae687c4d4e92762043174edd2`.
+
+Run `30180632361` passed the protected production activation. It changed the
+election from `pub_20260605T183601689Z` to
+`pub_20260725T164123260Z`; all 16 post-activation HTTP checks returned 200 and
+`no-store` from the protected reader. Production rollback was not invoked.
+The immutable completion receipt is 17,821 bytes with SHA-256
+`c1758c865745c9eae47df3bc15c0e288ce69f6b988f4cb9e3e35e380ed1ff8af`.
+
+Independent public verification confirmed coverage `2023-04` through
+`2026-05`, 375 exact routes, distinct B44/B44-SBS identities, an active map
+manifest, and representative B44-SBS geometry matching its declared
+12-feature SHA-256. The existing production D1 and protected live-write and
+current-signal tables were preserved.
+
+After closure, the three one-time Workers, three Access policies/apps, and
+24-hour service token were deleted and independently observed absent. Every
+Plan 097 GitHub secret and one-time workflow was removed; the ordinary
+deployment token and bounded D1/R2 audit evidence remain. Plan 097 is DONE.
+Plan 098 now owns every later artifact/schema cutover. The complete evidence
+index is
+`docs/research/reviews/plan097/release-closure-attestation.md`.
