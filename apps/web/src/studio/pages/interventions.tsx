@@ -1,6 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
+import { NetworkBuildout } from "@/components/interventions/NetworkBuildout";
+import { ProposedPlans } from "@/components/interventions/ProposedPlans";
+import {
+  ROUTE_CHANGE_INDEX_ROWS,
+  RouteChangeIndex,
+} from "@/components/interventions/RouteChangeIndex";
 import { RouteBadge } from "@/components/RouteBadge";
 import { citationEntries, SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import {
@@ -46,6 +52,12 @@ import {
   parseChangeDate,
 } from "../change-date.js";
 import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../home-route-index.js";
+import {
+  networkBuildout,
+  proposedPlanGroups,
+  type RouteChangeGroup,
+  routeChangeIndex,
+} from "../network-change-record.js";
 
 type InterventionEvidenceBundle = StudioInterventionsEvidenceBundle | StudioRouteEvidenceBundle;
 
@@ -132,6 +144,21 @@ export function InterventionsPage({
     [routes, evidence, corpus, facetIndex],
   );
   const studyRowsByJoinKey = useMemo(() => studyIndexRowsByJoinKey(studiesIndex), [studiesIndex]);
+  const buildout = useMemo(() => networkBuildout(routes), [routes]);
+  const changeGroup: RouteChangeGroup = search.group ?? "recent";
+  const changeIndex = useMemo(
+    () =>
+      routeChangeIndex(routes, {
+        group: changeGroup,
+        studiesIndex,
+        corpus,
+        lastYear: buildout.lastYear,
+        lastCompleteYear: buildout.lastCompleteYear,
+        limit: ROUTE_CHANGE_INDEX_ROWS,
+      }),
+    [buildout.lastCompleteYear, buildout.lastYear, changeGroup, corpus, routes, studiesIndex],
+  );
+  const proposed = useMemo(() => proposedPlanGroups(corpus), [corpus]);
   const exactRouteSlugs = useMemo(() => new Set(routes.map((route) => route.slug)), [routes]);
   const unmatchedRoute = search.route !== undefined && !exactRouteSlugs.has(search.route);
   const filteredRows = useMemo(
@@ -199,17 +226,38 @@ export function InterventionsPage({
             {interventionMatchAnnouncement(filteredRows.length)}
           </p>
         </header>
+
+        <div className="mt-6">
+          <NetworkBuildout buildout={buildout} />
+        </div>
+        <RouteChangeIndex
+          index={changeIndex}
+          routesWithAnyChange={buildout.routesWithAnyChange}
+          routesWithNoChange={buildout.routesWithNoChange}
+          firstYear={buildout.firstYear}
+          ledgerHref="#network-ledger-title"
+          onGroupChange={(group) =>
+            updateSearch(
+              group === "recent"
+                ? omitInterventionsSearchKey(search, "group")
+                : { ...search, group },
+            )
+          }
+        />
+        <ProposedPlans proposed={proposed} />
+
         <section
           aria-labelledby="network-ledger-title"
-          className="mt-7 overflow-hidden rounded-[4px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-card)]"
+          className="mt-5 overflow-hidden rounded-[4px] border border-[var(--bp-color-rule)] bg-[var(--bp-color-card)] scroll-mt-4"
         >
           <div className="flex items-stretch justify-between border-b border-[var(--bp-color-rule)] max-md:flex-col">
             <div className="min-w-0 flex-1 px-5 py-4">
               <h2 id="network-ledger-title" className="m-0 text-[16px] font-semibold">
-                Network ledger
+                The full record
               </h2>
               <p className="mb-0 mt-1 text-[11.5px] text-[var(--bp-color-ink-55)]">
-                Open a route for maps, speed history, and full citations.
+                Every documented and proposed change, searchable and filterable by route, kind and
+                borough. Open a route for maps, speed history, and full citations.
               </p>
             </div>
             <ToggleGroup
@@ -335,8 +383,6 @@ export function InterventionsPage({
             role="tabpanel"
             aria-labelledby={`intervention-tab-${view}`}
           >
-            <YearDistribution rows={filteredRows} />
-
             {filteredRows.length === 0 ? (
               <div className="p-5">
                 <EmptyState
@@ -454,44 +500,6 @@ export function yearLabel(dateish: string): string {
   const year = dateish.match(/\b\d{4}\b/)?.[0];
   if (year) return year;
   return "Undated";
-}
-
-export function yearDistribution(
-  rows: readonly InterventionRow[],
-): { label: string; count: number }[] {
-  const counts = new Map<string, number>();
-  for (const row of rows) {
-    const year = changeDateGroupLabel(row.event.date);
-    if (year === "Undated") continue;
-    counts.set(year, (counts.get(year) ?? 0) + 1);
-  }
-  return [...counts]
-    .map(([label, count]) => ({ label, count }))
-    .sort((left, right) => left.label.localeCompare(right.label));
-}
-
-function YearDistribution({ rows }: { rows: readonly InterventionRow[] }) {
-  const distribution = yearDistribution(rows);
-  const maximum = Math.max(1, ...distribution.map((bin) => bin.count));
-  return (
-    <div
-      role="img"
-      aria-label={`Intervention records by year: ${distribution.map((bin) => `${bin.label} ${bin.count}`).join(", ") || "none"}`}
-      className="flex h-[66px] items-end gap-1 border-b border-[var(--bp-color-rule)] px-4 pb-2 pt-4"
-    >
-      {distribution.map((bin) => (
-        <span key={bin.label} className="flex min-w-0 flex-1 flex-col items-center justify-end">
-          <span
-            className="w-full max-w-8 rounded-t-[1px] bg-[var(--bp-color-accent)] opacity-85"
-            style={{ height: `${Math.max(2, (bin.count / maximum) * 34)}px` }}
-          />
-          <span className="mt-1 font-mono text-[8px] tabular-nums text-[var(--bp-color-ink-40)]">
-            {bin.label.slice(-2)}
-          </span>
-        </span>
-      ))}
-    </div>
-  );
 }
 
 type LedgerGroupModel = { label: string; count: number; rows: InterventionRow[] };
@@ -1164,6 +1172,7 @@ export function compactInterventionsSearch(search: InterventionsSearch): Interve
   const view = interventionView(search);
   return {
     ...(view === "planned" ? { view: "planned" as const } : {}),
+    ...(search.group === undefined || search.group === "recent" ? {} : { group: search.group }),
     ...(search.studied === true || search.status === "evaluated" ? { studied: true as const } : {}),
     ...(search.status === "source-gap" ? { status: search.status } : {}),
     ...(search.borough === undefined || search.borough === ROUTE_INDEX_ALL_BOROUGHS
@@ -1181,6 +1190,7 @@ export function interventionsPaginationResetKey(search: InterventionsSearch): st
   return JSON.stringify([
     search.status ?? null,
     search.view ?? null,
+    search.group ?? null,
     search.studied ?? null,
     search.borough ?? null,
     search.family ?? null,

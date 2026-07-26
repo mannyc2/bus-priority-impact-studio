@@ -11,6 +11,7 @@ import {
 } from "../studio/api-client.js";
 import type { StudioInterventionTreatmentFamily } from "../studio/api-contract.js";
 import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../studio/home-route-index.js";
+import type { RouteChangeGroup } from "../studio/network-change-record.js";
 
 // Lazy so the page module (SourceNote popover stack) stays out of the entry bundle.
 const InterventionsPage = lazy(() =>
@@ -39,10 +40,22 @@ const INTERVENTION_FAMILIES = [
   "customer_information",
   "other",
 ] as const satisfies readonly StudioInterventionTreatmentFamily[];
+// Spelled out rather than imported: this route module is eager, and pulling a
+// value out of `network-change-record` would drag the whole derivation into the
+// entry bundle. `satisfies` keeps the two lists in step.
+const INTERVENTION_GROUPS = [
+  "recent",
+  "most",
+  "measured",
+  "proposed",
+  "never",
+] as const satisfies readonly RouteChangeGroup[];
 
 export type InterventionsSearch = {
   status?: (typeof INTERVENTION_STATUSES)[number];
   view?: (typeof INTERVENTION_VIEWS)[number];
+  /** Route-index view above the ledger. Defaults to `recent`, omitted at default. */
+  group?: (typeof INTERVENTION_GROUPS)[number];
   studied?: true;
   borough?: (typeof ROUTE_INDEX_BOROUGHS)[number] | typeof ROUTE_INDEX_ALL_BOROUGHS;
   family?: StudioInterventionTreatmentFamily | "all";
@@ -54,6 +67,7 @@ export function validateInterventionsSearch(search: Record<string, unknown>): In
   const {
     status: statusValue,
     view: viewValue,
+    group: groupValue,
     studied: studiedValue,
     borough: boroughValue,
     family: familyValue,
@@ -62,6 +76,7 @@ export function validateInterventionsSearch(search: Record<string, unknown>): In
   } = search;
   const status = member(INTERVENTION_STATUSES, statusValue);
   const view = member(INTERVENTION_VIEWS, viewValue);
+  const group = member(INTERVENTION_GROUPS, groupValue);
   const studied = studiedValue === true || studiedValue === "true" ? true : undefined;
   const borough = member(
     [ROUTE_INDEX_ALL_BOROUGHS, ...ROUTE_INDEX_BOROUGHS] as const,
@@ -74,6 +89,7 @@ export function validateInterventionsSearch(search: Record<string, unknown>): In
     ...(view === "planned" || (view === undefined && status === "future")
       ? { view: "planned" as const }
       : {}),
+    ...(group === undefined || group === "recent" ? {} : { group }),
     ...(studied === true || (studied === undefined && status === "evaluated")
       ? { studied: true as const }
       : {}),
