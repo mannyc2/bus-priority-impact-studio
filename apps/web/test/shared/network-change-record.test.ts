@@ -516,6 +516,7 @@ describe("partial final year", () => {
       year: 2029,
       label: "2029 so far",
       leftPercent: 100,
+      keepWhenNarrow: true,
     });
     expect(buildoutDescription(buildout)).toContain("2007 to 2029 so far");
   });
@@ -536,12 +537,19 @@ describe("partial final year", () => {
     const buildout = networkBuildout(RELEASE_ROUTES);
     expect(buildout.partialFinalYear).toBe(true);
     expect(buildout.lastCompleteYear).toBe(2025);
-    expect(buildoutAxisTicks(buildout).map((tick) => tick.label)).toEqual([
+    const ticks = buildoutAxisTicks(buildout);
+    expect(ticks.map((tick) => tick.label)).toEqual([
       "2007",
       "2011",
       "2015",
       "2019",
       "2023",
+      "2026 so far",
+    ]);
+    // A phone keeps only the ends and the midpoint; six ticks collide at 390px.
+    expect(ticks.filter((tick) => tick.keepWhenNarrow).map((tick) => tick.label)).toEqual([
+      "2007",
+      "2015",
       "2026 so far",
     ]);
   });

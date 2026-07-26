@@ -10,8 +10,8 @@
  * Wording rule (Plan 104, load-bearing): `bus_lane_infrastructure` records are
  * route shape against the city's published DOT bus-lane centreline geometry and
  * are not audited regulatory mileage. Every string this module produces says a
- * route "runs on a street with a bus lane" and never that it "has a bus lane",
- * and no string carries a mileage figure.
+ * route "runs on a street with a bus lane"; none claims the route owns the lane
+ * and none carries a mileage figure.
  */
 
 import type {
@@ -464,23 +464,41 @@ export function buildoutEndLabels(
 export function buildoutAxisTicks(
   buildout: Pick<NetworkBuildout, "firstYear" | "lastYear" | "partialFinalYear">,
   tickCount = 6,
-): { year: number; label: string; leftPercent: number }[] {
+): { year: number; label: string; leftPercent: number; keepWhenNarrow: boolean }[] {
   const span = buildout.lastYear - buildout.firstYear;
   if (span <= 0) {
-    return [{ year: buildout.firstYear, label: String(buildout.firstYear), leftPercent: 0 }];
+    return [
+      {
+        year: buildout.firstYear,
+        label: String(buildout.firstYear),
+        leftPercent: 0,
+        keepWhenNarrow: true,
+      },
+    ];
   }
   const stride = Math.max(1, Math.ceil(span / Math.max(1, tickCount - 1)));
   const years = new Set<number>();
   for (let year = buildout.firstYear; year < buildout.lastYear; year += stride) years.add(year);
   years.add(buildout.lastYear);
-  return [...years]
-    .sort((left, right) => left - right)
-    .map((year) => ({
-      year,
-      label:
-        year === buildout.lastYear && buildout.partialFinalYear ? `${year} so far` : String(year),
-      leftPercent: ((year - buildout.firstYear) / span) * 100,
-    }));
+  const ordered = [...years].sort((left, right) => left - right);
+  // A phone cannot fit six of these without the last two colliding, so the
+  // narrow axis keeps the opening year, the closing year and the one nearest
+  // the midpoint.
+  const midpoint = buildout.firstYear + span / 2;
+  const middle = ordered
+    .slice(1, -1)
+    .reduce<number | null>(
+      (best, year) =>
+        best === null || Math.abs(year - midpoint) < Math.abs(best - midpoint) ? year : best,
+      null,
+    );
+  return ordered.map((year, index) => ({
+    year,
+    label:
+      year === buildout.lastYear && buildout.partialFinalYear ? `${year} so far` : String(year),
+    leftPercent: ((year - buildout.firstYear) / span) * 100,
+    keepWhenNarrow: index === 0 || index === ordered.length - 1 || year === middle,
+  }));
 }
 
 /** Accessible description of the whole chart, naming every series end value. */

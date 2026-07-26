@@ -30,7 +30,6 @@ import {
   planGroups,
   recordTargetForRoute,
   studyRegisterLabel,
-  yearDistribution,
   yearGroups,
   yearLabel,
 } from "../../src/studio/pages/interventions";
@@ -506,21 +505,14 @@ describe("interventionRows", () => {
     expect(yearLabel("2024-06")).toBe("2024");
   });
 
-  test("derives honest year bins and source-plan groups from the current rows", () => {
+  test("derives source-plan groups from the current rows", () => {
     const rows = interventionRows(routes, evidence, corpus, facetIndex);
-    const documented = filterInterventionRows(rows, {}, { facetIndexAvailable: true });
     const planned = filterInterventionRows(
       rows,
       { view: "planned" },
       { facetIndexAvailable: true },
     );
 
-    expect(yearDistribution(documented)).toEqual([
-      { label: "2019", count: 1 },
-      { label: "2021", count: 1 },
-      { label: "2022", count: 1 },
-      { label: "2024", count: 1 },
-    ]);
     expect(planGroups(planned).map((group) => [group.label, group.count])).toEqual([
       ["Flatbush Progress Report", 1],
       ["Network source", 1],
@@ -695,6 +687,18 @@ describe("interventions URL contract", () => {
     expect(validateInterventionsSearch({ status: "source-gap" })).toEqual({
       status: "source-gap",
     });
+    // Plan 104's route-index view: a closed union, default omitted from the URL.
+    expect(validateInterventionsSearch({ group: "measured" })).toEqual({ group: "measured" });
+    expect(validateInterventionsSearch({ group: "never" })).toEqual({ group: "never" });
+    expect(validateInterventionsSearch({ group: "recent" })).toEqual({});
+    expect(validateInterventionsSearch({ group: "invented" })).toEqual({});
+    expect(compactInterventionsSearch({ group: "recent", route: " b41 " })).toEqual({
+      route: "b41",
+    });
+    expect(compactInterventionsSearch({ group: "most", q: " lane " })).toEqual({
+      group: "most",
+      q: "lane",
+    });
   });
 
   test("every validated filter dimension changes the pagination reset key", () => {
@@ -707,6 +711,7 @@ describe("interventions URL contract", () => {
       { q: "lane" },
       { view: "planned" as const },
       { studied: true as const },
+      { group: "measured" as const },
     ]) {
       expect(interventionsPaginationResetKey(search)).not.toBe(baseline);
     }
@@ -714,7 +719,7 @@ describe("interventions URL contract", () => {
 });
 
 describe("InterventionsPage render", () => {
-  test("renders the approved text hero, two tabs, dynamic histogram, and documented ledger", async () => {
+  test("renders the approved text hero, the three network sections, and the ledger", async () => {
     const html = await renderWithRouter(createElement(InterventionsPage, { routes, evidence }));
 
     expect(html).toContain("What the city built for buses — and what it changed.");
@@ -726,10 +731,17 @@ describe("InterventionsPage render", () => {
     expect(html).toContain('role="tablist"');
     expect(html).toContain('aria-label="Intervention record status"');
     expect(html).toContain('for="intervention-studied"');
-    expect(html).toContain('aria-label="Intervention records by year:');
+    // Plan 104: the build-out chart leads, the route index and proposed plans
+    // sit beneath it, and the Plan 089 ledger is demoted to the reference layer.
+    expect(html).toContain("How far bus priority has spread");
+    expect(html).toContain("Which routes are changing");
+    expect(html).toContain("The full record");
+    expect(html).toContain('aria-label="Routes reached by each treatment,');
+    expect(html).toContain('aria-label="Route change view"');
+    // The year histogram the build-out chart supersedes is gone.
+    expect(html).not.toContain('aria-label="Intervention records by year:');
     expect(html).toContain("Documented");
     expect(html).toContain("Planned");
-    expect(html).toContain("Network ledger");
     // Existing route comparison stays visibly descriptive and unlinked.
     expect(html).toContain("+0.30 mph");
     expect(html).toContain("peer-adjusted");
