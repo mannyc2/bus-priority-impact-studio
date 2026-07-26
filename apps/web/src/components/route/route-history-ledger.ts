@@ -1,5 +1,11 @@
 import type { RouteInterventionViewModel } from "@/components/route/route-intervention-model";
 import type { StudioIntervention, StudioRouteEvidenceBundle } from "@/studio/api-contract";
+import {
+  type ChangeDate,
+  changeDateGroupLabel,
+  compareChangeDatesNewestFirst,
+  parseChangeDate,
+} from "@/studio/change-date";
 
 export const HISTORY_CONTROL_THRESHOLD = 12;
 export const HISTORY_PAGE_SIZE = 20;
@@ -11,7 +17,8 @@ export type HistoryLedgerRow = {
   relatedRecordIds: string[];
   kind: HistoryLedgerKind;
   dateLabel: string;
-  sortKey: string;
+  /** The typed reading of `dateLabel`; ordering and grouping read this. */
+  date: ChangeDate;
   title: string;
   detail: string;
   statusLabel: string | null;
@@ -23,7 +30,6 @@ export type HistoryLedgerGroup = { year: string; rows: HistoryLedgerRow[] };
 
 type LedgerRowInput = Pick<HistoryLedgerRow, "recordId" | "kind" | "title"> & {
   dateLabel?: string | undefined;
-  sortKey?: string | undefined;
   detail?: string | undefined;
   statusLabel?: string | null | undefined;
   citationKeys?: readonly string[] | undefined;
@@ -58,7 +64,7 @@ export function buildRouteHistoryLedger({
       relatedRecordIds: availableAliases,
       kind: input.kind,
       dateLabel,
-      sortKey: input.sortKey ?? historyYearLabel(dateLabel) + dateLabel,
+      date: parseChangeDate(dateLabel),
       title: input.title,
       detail: input.detail ?? "No structured description provided.",
       statusLabel: input.statusLabel ?? null,
@@ -246,7 +252,7 @@ export function filterRouteHistoryLedger(
 export function groupRouteHistoryLedger(rows: readonly HistoryLedgerRow[]): HistoryLedgerGroup[] {
   const groups: HistoryLedgerGroup[] = [];
   for (const row of rows) {
-    const year = historyYearLabel(row.dateLabel);
+    const year = changeDateGroupLabel(row.date);
     const last = groups.at(-1);
     if (last?.year === year) last.rows.push(row);
     else groups.push({ year, rows: [row] });
@@ -254,18 +260,19 @@ export function groupRouteHistoryLedger(rows: readonly HistoryLedgerRow[]): Hist
   return groups;
 }
 
+/**
+ * The group heading a raw date label belongs under: its calendar year, the
+ * "2013–2014" span for a multi-year interval, or "Undated" when no date can be
+ * read. Reads through the one date parser, so callers holding only a label
+ * agree with callers holding a typed date.
+ */
 export function historyYearLabel(dateLabel: string): string {
-  return dateLabel.match(/\b\d{4}\b/u)?.[0] ?? "Undated";
+  return changeDateGroupLabel(parseChangeDate(dateLabel));
 }
 
 function compareLedgerRows(left: HistoryLedgerRow, right: HistoryLedgerRow): number {
-  const leftDated = historyYearLabel(left.dateLabel) !== "Undated";
-  const rightDated = historyYearLabel(right.dateLabel) !== "Undated";
-  if (leftDated !== rightDated) return leftDated ? -1 : 1;
-  if (leftDated && rightDated) {
-    const byDate = right.sortKey.localeCompare(left.sortKey);
-    if (byDate !== 0) return byDate;
-  }
+  const byDate = compareChangeDatesNewestFirst(left.date, right.date);
+  if (byDate !== 0) return byDate;
   const order: Record<HistoryLedgerKind, number> = {
     event: 0,
     treatment: 1,

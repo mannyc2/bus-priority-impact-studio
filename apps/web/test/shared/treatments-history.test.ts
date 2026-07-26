@@ -603,6 +603,39 @@ describe("TreatmentsHistorySection render", () => {
     expect(groupRouteHistoryLedger(rows).map((group) => group.year)).toEqual(["2025", "2010"]);
   });
 
+  test("orders prose dates by interval and keeps a multi-year span in one group", () => {
+    const rows = buildRouteHistoryLedger({
+      interventions: [
+        { year: "TBD", title: "Date to be determined", detail: "Source states no date." },
+        {
+          year: "Thursday, March 19th at 6:00pm",
+          title: "Open house without a year",
+          detail: "Meeting notice with no year.",
+        },
+        { year: "2026-spring", title: "Season record", detail: "Season-precision date." },
+        { year: "2026-04", title: "Month record", detail: "Month-precision date." },
+        { year: "2013-2014", title: "Multi-year record", detail: "Two-year program span." },
+      ],
+      evidence: null,
+      model: routeInterventionViewModel(null),
+    });
+
+    expect(rows.map((row) => row.title)).toEqual([
+      "Month record",
+      "Season record",
+      "Multi-year record",
+      "Date to be determined",
+      "Open house without a year",
+    ]);
+
+    const groups = groupRouteHistoryLedger(rows);
+    // "2013–2014" uses an EN DASH and stays a single group.
+    expect(groups.map((group) => group.year)).toEqual(["2026", "2013–2014", "Undated"]);
+    expect(groups.filter((group) => group.year === "2013–2014")).toHaveLength(1);
+    expect(groups[1]?.rows.map((row) => row.title)).toEqual(["Multi-year record"]);
+    expect(groups.at(-1)?.rows).toHaveLength(2);
+  });
+
   test("dense ledgers paginate in complete, announced batches", async () => {
     const denseEvidence = evidenceBundle(
       Array.from({ length: 25 }, (_, index) =>
