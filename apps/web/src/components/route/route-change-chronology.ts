@@ -120,6 +120,8 @@ export type RouteChangeChronology = {
   changes: readonly RouteChange[];
   undatedChanges: readonly RouteChange[];
   bands: readonly ChronologyBand[];
+  /** Dated changes past the band-row cap. They still get a full entry below. */
+  hiddenBandCount: number;
   overlaps: readonly ChronologyOverlap[];
   axis: ChronologyAxis;
   collapsed: { recordCount: number; projectCount: number; rows: readonly HistoryLedgerRow[] };
@@ -128,6 +130,14 @@ export type RouteChangeChronology = {
 /** Months of speed record after a change below which no before/after is honest. */
 const TOO_EARLY_MONTHS = 6;
 const STANDING_LABEL_CAP = 4;
+/** Overlapping changes named in the `confounded` sentence before "and n more". */
+const CONFOUNDED_TITLE_CAP = 3;
+/**
+ * Band rows drawn before the chronology defers to the entries below. Source
+ * records outnumber real changes on redesign routes, where one implementation
+ * date can carry sixty records; a wall of bands stops being a timeline.
+ */
+const MAX_BAND_ROWS = 8;
 /** The ledger's generic fallback when a typed occurrence names nothing. */
 const LEDGER_OCCURRENCE_FALLBACK_TITLE = "Treatment occurrence";
 const LEDGER_DETAIL_FALLBACK = "No structured description provided.";
@@ -265,6 +275,7 @@ export function routeChangeChronology(input: {
     changes,
     undatedChanges,
     bands,
+    hiddenBandCount: dated.length - bands.length,
     overlaps,
     axis,
     collapsed: {
@@ -705,7 +716,8 @@ function packBands(
       color: colors.get(bandColorKey(seed)) ?? BAND_COLORS[0],
     });
   }
-  return bands.sort(
+  const drawn = bands.filter((band) => band.row < MAX_BAND_ROWS);
+  return drawn.sort(
     (left, right) =>
       left.row - right.row ||
       left.start - right.start ||
@@ -901,9 +913,21 @@ export function noProductSentence(reason: NoProductReason, speedRecordStartYear:
   }
 }
 
+/**
+ * The claim is the count; the titles are illustration. Dense routes carry many
+ * source records for one real change, so naming all of them buries the sentence
+ * without making it truer. The full set stays in `overlappingTitles`.
+ */
 export function confoundedSentence(overlappingTitles: readonly string[]): string {
   const count = overlappingTitles.length;
-  return `${count} other ${count === 1 ? "change" : "changes"} landed on this route at the same time: ${joinPlain(overlappingTitles)}.`;
+  const named =
+    count > CONFOUNDED_TITLE_CAP
+      ? [
+          ...overlappingTitles.slice(0, CONFOUNDED_TITLE_CAP),
+          `${count - CONFOUNDED_TITLE_CAP} more`,
+        ]
+      : overlappingTitles;
+  return `${count} other ${count === 1 ? "change" : "changes"} landed on this route at the same time: ${joinPlain(named)}.`;
 }
 
 export function tooEarlySentence(monthsSince: number): string {

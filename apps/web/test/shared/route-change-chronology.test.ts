@@ -902,6 +902,41 @@ describe("exact identity", () => {
   });
 });
 
+describe("band row cap", () => {
+  test("a redesign-shaped route draws a bounded track and defers the rest", () => {
+    // 20 records for one implementation date, as the 2025 Queens redesign
+    // reaches us: every one is a real change, none can share a band row.
+    const result = chronology({
+      route: {
+        interventions: Array.from({ length: 20 }, (_, index) => ({
+          year: "2025-06",
+          title: `Redesign component ${index + 1}`,
+          detail: "One of many records for one date.",
+        })),
+      },
+      trendMonths: TREND_MONTHS,
+    });
+    expect(result.changes).toHaveLength(20);
+    expect(new Set(result.bands.map((band) => band.row)).size).toBe(8);
+    expect(result.bands).toHaveLength(8);
+    expect(result.hiddenBandCount).toBe(12);
+  });
+
+  test("a route inside the cap hides nothing", () => {
+    const result = chronology({
+      route: {
+        interventions: [
+          { year: "2024-06", title: "Bus lane", detail: "Curbside lane." },
+          { year: "2025-06", title: "Camera enforcement", detail: "Cameras on." },
+        ],
+      },
+      trendMonths: TREND_MONTHS,
+    });
+    expect(result.hiddenBandCount).toBe(0);
+    expect(result.bands).toHaveLength(2);
+  });
+});
+
 describe("honest absence", () => {
   test("no inventory, no evidence and no studies still yields a chronology", () => {
     const result = routeChangeChronology({
@@ -949,6 +984,17 @@ describe("display copy", () => {
     );
     expect(confoundedSentence(["the bus lane"])).toBe(
       "1 other change landed on this route at the same time: the bus lane.",
+    );
+  });
+
+  test("the confounded sentence names at most three and keeps the true count", () => {
+    const many = Array.from({ length: 27 }, (_, index) => `Change ${index + 1}`);
+    expect(confoundedSentence(many)).toBe(
+      "27 other changes landed on this route at the same time: Change 1, Change 2, Change 3 and 24 more.",
+    );
+    // Three or fewer are all named; the cap never invents an "and 0 more".
+    expect(confoundedSentence(["A", "B", "C"])).toBe(
+      "3 other changes landed on this route at the same time: A, B and C.",
     );
   });
 

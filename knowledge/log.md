@@ -9296,12 +9296,18 @@ record-type filter, and the standalone `RouteHistoryOutcomes` card.
 `interventionComparisonCards` survives as the pure helper feeding
 `peer_adjusted`.
 
-**Open decision.** Measured against live `v1-rc28` route evidence, overlap
-clusters reach 127 of 151 dated changes on `q52-sbs`, 129 of 137 on `b62` and
-28 of 32 on `bx41`. This is Plan 103's named STOP condition. The diagnosis is
-not the plan's hypothesis: restricting overlap to day- and month-precision
-dates still yields clusters of 84 and 17, and the biggest `q52-sbs` cluster
-holds 125 distinct titles. The driver is record multiplicity in the evidence
-bundle — 63 records dated `2025-06-29`, 33 dated `2025-08-31` — which is the
-2025 Queens redesign recorded once per treatment component. Bounding or
-de-duplicating that set is an operator decision and was left unmade.
+**The overlap STOP condition fired and was resolved by operator decision.**
+Measured against live `v1-rc28` route evidence, overlap clusters reach 127 of
+151 dated changes on `q52-sbs`, 129 of 137 on `b62` and 28 of 32 on `bx41`. The
+diagnosis is not the plan's hypothesis: restricting overlap to day- and
+month-precision dates still yields clusters of 84 and 17, and the biggest
+`q52-sbs` cluster holds 125 distinct titles. The driver is record multiplicity
+in the evidence bundle — 63 records dated `2025-06-29`, 33 dated `2025-08-31` —
+which is the 2025 Queens redesign recorded once per treatment component.
+
+The operator chose on 2026-07-26 to bound the display and not the claim: the
+`confounded` sentence names at most three changes and then "and {n} more", and
+the band track draws at most eight rows and then "{n} more dated changes are
+listed below". The counts stay true and every change still gets a full entry.
+The owed fix is upstream in mta-wiki — one record per real change — and is not
+in this repo's scope. De-duplicating on title text stays forbidden.

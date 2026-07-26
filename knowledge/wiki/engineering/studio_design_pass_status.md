@@ -139,13 +139,27 @@ into maximal clusters. Anything that changes date parsing changes which changes
 are reported as inseparable, so a reviewer must treat a parser change and an
 overlap change as the same review.
 
-**Open at plan 103 landing:** measured against live `v1-rc28` route evidence,
-cluster sizes reach 127 of 151 dated changes on `q52-sbs` and 28 of 32 on
-`bx41`. The cause is not year-precision intervals swallowing the record — it is
-record multiplicity, many wiki records describing one real change on one exact
-date (63 records dated `2025-06-29` on `q52-sbs`). Bounding or de-duplicating
-that set is an operator decision, recorded here so it is not silently resolved
-by an implementer.
+Measured against live `v1-rc28` route evidence, cluster sizes reach 127 of 151
+dated changes on `q52-sbs` and 28 of 32 on `bx41`. The cause is **not**
+year-precision intervals swallowing the record: restricting overlap to day- and
+month-precision dates still yields clusters of 84 and 17. It is record
+multiplicity — many wiki records describing one real change on one exact date
+(63 records dated `2025-06-29` on `q52-sbs`, with 125 distinct titles in the
+cluster).
+
+The operator's 2026-07-26 decision is to **bound the display, not the claim**:
+
+- the `confounded` sentence names at most three overlapping changes and then
+  says "and {n} more"; the count in the sentence stays the true count;
+- the band track draws at most eight rows and then says "{n} more dated changes
+  are listed below"; every change still gets a full entry.
+
+Neither cap changes which changes are reported as inseparable. **The owed fix is
+upstream**: mta-wiki should emit one record per real change so a corridor launch
+stops arriving as sixty records on one date. Until it does, a dense route's
+`confounded` sentence will name near-identical titles. Do not resolve this by
+de-duplicating on title text — plan 103 rule 2 forbids it, and no typed key that
+groups these records exists in the bundle today.
 
 ## Study-card / chart-card rules — 2026-07-10 (approved comp)
 

@@ -63,7 +63,12 @@ export function RouteChangeChronology({
         <div
           className="px-[17px] pt-4 pb-1.5"
           role="img"
-          aria-label={chronologyLabel(routeLabel, axis, bands.length, overlaps.length)}
+          aria-label={chronologyLabel(
+            routeLabel,
+            axis,
+            bands.length + chronology.hiddenBandCount,
+            overlaps.length,
+          )}
         >
           {speed === null ? null : (
             <div className="relative h-20">
@@ -157,6 +162,11 @@ export function RouteChangeChronology({
               <span key={tick}>{tick}</span>
             ))}
           </div>
+          {chronology.hiddenBandCount === 0 ? null : (
+            <p className="mt-2 text-[11.5px] text-[var(--bp-color-ink-55)]">
+              {`${chronology.hiddenBandCount} more dated ${chronology.hiddenBandCount === 1 ? "change is" : "changes are"} listed below.`}
+            </p>
+          )}
         </div>
       )}
 
