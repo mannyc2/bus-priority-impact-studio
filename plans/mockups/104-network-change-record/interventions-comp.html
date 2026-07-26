@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan 104 — /interventions as the network change record</title>
+<style>
+/* App tokens, verbatim from apps/web/src/global.css (MTA visual language,
+   operator verdict 2026-07-06). Do not substitute. */
+:root{
+  color-scheme:light;
+  --bp-color-canvas:#f4f5f7; --bp-color-paper:#fafbfc; --bp-color-paper-deep:#eceef1;
+  --bp-color-card:#ffffff; --bp-color-ink:#101418;
+  --bp-color-ink-70:rgba(16,20,24,.72); --bp-color-ink-55:rgba(16,20,24,.6);
+  --bp-color-ink-40:rgba(16,20,24,.42); --bp-color-ink-20:rgba(16,20,24,.2);
+  --bp-color-ink-10:rgba(16,20,24,.1); --bp-color-ink-06:rgba(16,20,24,.06);
+  --bp-color-rule:rgba(16,20,24,.14);
+  --bp-color-accent:#0039a6; --bp-color-accent-bg:#e8eef8;
+  --bp-color-good:oklch(.45 .12 155); --bp-color-warn:oklch(.48 .13 70);
+  --bp-color-bad:oklch(.52 .16 28);
+  --bp-route-bronx:#c81f18; --bp-route-brooklyn:#6e3219; --bp-route-queens:#a83f00;
+  --bp-route-manhattan:#0039a6; --bp-route-si:#6e4c9f; --bp-route-express:#00752f;
+  --sans:"Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bp-color-paper);color:var(--bp-color-ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,ul,ol{margin:0}ul,ol{list-style:none;padding:0}
+.compnote{background:var(--bp-color-ink);color:#fff;padding:10px 22px;font:11.5px/1.6 var(--mono)}
+.nav{background:#000;color:#fff;display:flex;align-items:center;gap:26px;padding:0 22px;height:46px;font-size:12.5px}
+.nav .brand{font-weight:700;letter-spacing:.02em;font-size:13px}
+.nav a{color:rgba(255,255,255,.62);text-decoration:none}
+.nav a.on{color:#fff;box-shadow:inset 0 -2px 0 #fff;padding-bottom:13px}
+.nav .sp{flex:1}
+
+.hero{background:var(--bp-color-card);border-bottom:1px solid var(--bp-color-rule);padding:44px 36px 30px}
+.hero h1{font-size:46px;font-weight:600;letter-spacing:-.04em;line-height:1.04;max-width:19ch;text-wrap:balance}
+.hero p{margin-top:16px;max-width:66ch;font-size:15px;line-height:1.6;color:var(--bp-color-ink-70)}
+
+main{padding:22px 36px 56px;max-width:1180px}
+.card{background:var(--bp-color-card);border:1px solid var(--bp-color-rule);border-radius:4px;margin-top:20px;overflow:hidden}
+.card:first-child{margin-top:0}
+.card-head{padding:15px 17px;border-bottom:1px solid var(--bp-color-rule)}
+.card-head h2{font-size:16.5px;font-weight:600;letter-spacing:-.015em}
+.card-head p{margin-top:4px;font-size:12.5px;line-height:1.5;color:var(--bp-color-ink-55);max-width:82ch}
+
+/* build-out chart */
+.plotwrap{padding:20px 17px 8px}
+.plot{position:relative;height:214px;padding-right:132px}
+.plot svg{display:block;width:100%;height:100%}
+.endlab{position:absolute;right:0;font-size:11.5px;font-weight:600;white-space:nowrap;transform:translateY(-50%);font-variant-numeric:tabular-nums}
+.endlab span{font-weight:400;color:var(--bp-color-ink-55)}
+.xaxis{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;padding-right:132px;border-top:1px solid var(--bp-color-rule);font-size:11px;color:var(--bp-color-ink-40);font-variant-numeric:tabular-nums}
+.reads{border-top:1px solid var(--bp-color-rule);display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bp-color-rule)}
+.reads div{background:var(--bp-color-card);padding:14px 16px 15px}
+.reads h3{font-size:13.5px;font-weight:600}
+.reads p{margin-top:5px;font-size:12.5px;line-height:1.5;color:var(--bp-color-ink-55)}
+
+/* route index */
+.groups{display:flex;border-bottom:1px solid var(--bp-color-rule)}
+.groups span{padding:10px 15px;font-size:12.5px;color:var(--bp-color-ink-55);border-right:1px solid var(--bp-color-rule)}
+.groups b{padding:10px 15px;font-size:12.5px;font-weight:600;background:var(--bp-color-paper-deep);border-right:1px solid var(--bp-color-rule)}
+.groups .fill{flex:1;border-right:0}
+.ihead{display:grid;grid-template-columns:120px minmax(0,1fr) 140px 158px;gap:16px;padding:8px 17px;background:var(--bp-color-paper-deep);border-bottom:1px solid var(--bp-color-rule);font-size:11px;font-weight:600;color:var(--bp-color-ink-55)}
+.irow{display:grid;grid-template-columns:120px minmax(0,1fr) 140px 158px;gap:16px;padding:11px 17px;border-bottom:1px solid var(--bp-color-rule);align-items:center}
+.irow:last-of-type{border-bottom:0}
+.irow .rt{display:flex;align-items:center;gap:8px}
+.irow .rt b{font-size:12.5px;font-weight:600}
+.irow .what{font-size:13px}
+.irow .what span{color:var(--bp-color-ink-55)}
+.spark{display:flex;align-items:flex-end;gap:2px;height:22px}
+.spark i{flex:1;background:var(--bp-color-accent);opacity:.75;border-radius:1px;min-height:2px}
+.res{font-size:12px;color:var(--bp-color-ink-55);font-variant-numeric:tabular-nums}
+.res b{font-weight:600;color:var(--bp-color-ink)}
+.foot{padding:12px 17px;border-top:1px solid var(--bp-color-rule);font-size:12.5px;color:var(--bp-color-ink-55);display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.foot a{color:var(--bp-color-accent);text-decoration:none;font-weight:600}
+
+/* proposed plans */
+.plans{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--bp-color-rule)}
+.plan{background:var(--bp-color-card);padding:15px 16px 16px}
+.plan h3{font-size:13.5px;font-weight:600;line-height:1.3}
+.plan .m{margin-top:8px;display:flex;gap:16px;font-size:11.5px;color:var(--bp-color-ink-55)}
+.plan .m b{display:block;font-size:16px;font-weight:600;color:var(--bp-color-ink);font-variant-numeric:tabular-nums}
+.mix{margin-top:11px;display:flex;height:8px;border-radius:1px;overflow:hidden;background:var(--bp-color-ink-06)}
+.mix i{display:block;height:100%}
+.legend{margin-top:7px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11px;color:var(--bp-color-ink-55)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend em{width:8px;height:8px;border-radius:1px;font-style:normal}
+
+.rb{display:inline-flex;align-items:center;justify-content:center;height:18px;min-width:32px;padding-inline:5px;border-radius:3px;color:#fff;font-size:10.5px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.rb.bx{background:var(--bp-route-bronx)}.rb.bk{background:var(--bp-route-brooklyn)}
+.rb.q{background:var(--bp-route-queens)}.rb.m{background:var(--bp-route-manhattan)}
+
+@media(max-width:900px){
+  main{padding:16px 14px 40px}.hero{padding:28px 14px 22px}.hero h1{font-size:32px}
+  .plot{padding-right:0;height:180px}.xaxis{padding-right:0}.endlab{position:static;display:inline-block;margin-right:14px;transform:none}
+  .reads{grid-template-columns:1fr}.plans{grid-template-columns:1fr}
+  .ihead{display:none}.irow{grid-template-columns:1fr;gap:6px}
+}
+</style>
+</head>
+<body>
+
+<p class="compnote">
+Plan 104 comp. <b>Every number is real</b>, measured on 2026-07-24 from the live route projection
+(389 routes, 569 dated intervention records), the reviewed corpus (310 records, 248 proposed across
+22 source plans) and the published study index (7 studies). 2026 is a partial year and the chart
+says so. Bus lane counts are routes running on a street with a published DOT bus lane, which is not
+audited lane mileage.
+</p>
+
+<nav class="nav">
+  <span class="brand">BUS PRIORITY IMPACT STUDIO</span>
+  <a href="#0">Routes</a><a href="#0">Map</a><a href="#0" class="on">Interventions</a><a href="#0">Methods</a>
+  <span class="sp"></span><a href="#0">Search</a>
+</nav>
+
+<header class="hero">
+  <h1>What the city built for buses — and what it changed.</h1>
+  <p>Every documented bus lane, busway, camera corridor, and service change on the tracked network
+    — with matched-control studies where the data can support them.</p>
+</header>
+
+<main>
+
+  <!-- 1. BUILD-OUT -->
+  <section class="card">
+    <div class="card-head">
+      <h2>How far bus priority has spread</h2>
+      <p>Number of routes running on a street with each kind of treatment, counted from the year it
+        first appeared there.</p>
+    </div>
+    <div class="plotwrap">
+      <div class="plot">
+        <svg viewBox="0 0 880 196" preserveAspectRatio="none" role="img"
+             aria-label="Routes reached by each treatment from 2007 to 2026. Bus lanes rise from 11 to 323. Camera enforcement rises from none before 2019 to 58. Select Bus Service is flat at 36 since 2017. Signal priority is flat at 4 since 2013. Busways stand at 3.">
+          <line x1="0" y1="196" x2="880" y2="196" stroke="rgba(16,20,24,.14)"></line>
+          <line x1="0" y1="98" x2="880" y2="98" stroke="rgba(16,20,24,.07)"></line>
+          <path d="M0 189.7 L46.3 189.1 L92.6 189.1 L138.9 187.4 L185.3 186.2 L231.6 177 L277.9 172.4 L324.2 170.1 L370.5 167.2 L416.8 164.9 L463.2 162 L509.5 153.3 L555.8 146.4 L602.1 137.2 L648.4 111.3 L694.7 107.8 L741.1 78.4 L787.4 64.6 L833.7 9.8 L880 9.8"
+                fill="none" stroke="#0039a6" stroke-width="2"></path>
+          <path d="M0 196 L46.3 196 L92.6 196 L138.9 196 L185.3 196 L231.6 196 L277.9 196 L324.2 196 L370.5 196 L416.8 196 L463.2 196 L509.5 196 L555.8 194.8 L602.1 192.5 L648.4 192.5 L694.7 187.4 L741.1 184.5 L787.4 177 L833.7 166 L880 162.6"
+                fill="none" stroke="#a83f00" stroke-width="2"></path>
+          <path d="M0 196 L46.3 194.8 L92.6 194.8 L138.9 193.7 L185.3 192.5 L231.6 190.8 L277.9 187.9 L324.2 186.8 L370.5 185.6 L416.8 181.6 L463.2 177.6 L509.5 176.4 L555.8 175.2 L602.1 175.2 L648.4 175.2 L694.7 175.2 L741.1 175.2 L787.4 175.2 L833.7 175.2 L880 175.2"
+                fill="none" stroke="#6e4c9f" stroke-width="2"></path>
+          <path d="M0 196 L46.3 196 L92.6 196 L138.9 196 L185.3 194.8 L231.6 194.8 L277.9 193.7 L324.2 193.7 L370.5 193.7 L416.8 193.7 L463.2 193.7 L509.5 193.7 L555.8 193.7 L602.1 193.7 L648.4 193.7 L694.7 193.7 L741.1 193.7 L787.4 193.7 L833.7 193.7 L880 193.7"
+                fill="none" stroke="rgba(16,20,24,.45)" stroke-width="1.5"></path>
+          <line x1="833.7" y1="0" x2="833.7" y2="196" stroke="rgba(16,20,24,.2)" stroke-dasharray="3 3"></line>
+        </svg>
+        <span class="endlab" style="top:5%;color:#0039a6">323 <span>bus lane</span></span>
+        <span class="endlab" style="top:83%;color:#a83f00">58 <span>camera enforcement</span></span>
+        <span class="endlab" style="top:89.5%;color:#6e4c9f">36 <span>Select Bus Service</span></span>
+        <span class="endlab" style="top:98.8%;color:var(--bp-color-ink-55)">4 <span>signal priority</span></span>
+      </div>
+      <div class="xaxis">
+        <span>2007</span><span>2011</span><span>2015</span><span>2019</span><span>2023</span><span>2026 so far</span>
+      </div>
+    </div>
+    <div class="reads">
+      <div>
+        <h3>Bus lanes went from rare to normal</h3>
+        <p>11 routes in 2007, 323 today. The biggest single year was 2025, which added 95 routes.</p>
+      </div>
+      <div>
+        <h3>Camera enforcement is the recent growth</h3>
+        <p>Nothing before 2019, then 58 routes, 19 of them in 2025. It is also the only treatment
+          with more than one published result.</p>
+      </div>
+      <div>
+        <h3>Two programmes have stopped</h3>
+        <p>Select Bus Service has not reached a new route since 2017. Signal priority has stood at
+          4 routes since 2013.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. ROUTE INDEX -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Which routes are changing</h2>
+      <p>Every route with a documented change, ordered by when it last changed.</p>
+    </div>
+    <div class="groups">
+      <b>Changed recently</b><span>Most changed</span><span>Measured</span><span>Proposed</span><span>Never changed</span><span class="fill"></span>
+    </div>
+    <div class="ihead"><span>Route</span><span>Most recent change</span><span>Changes by year</span><span>Result</span></div>
+
+    <div class="irow">
+      <span class="rt"><span class="rb m">M31</span><b>M31</b></span>
+      <span class="what">Camera enforcement began <span>April 2026</span></span>
+      <span class="spark"><i style="height:20%"></i><i style="height:20%"></i><i style="height:5%"></i><i style="height:40%"></i><i style="height:20%"></i><i style="height:60%"></i><i style="height:100%"></i></span>
+      <span class="res">Too early to say</span>
+    </div>
+    <div class="irow">
+      <span class="rt"><span class="rb q">Q60</span><b>Q60</b></span>
+      <span class="what">Camera enforcement began <span>March 2026</span></span>
+      <span class="spark"><i style="height:20%"></i><i style="height:5%"></i><i style="height:40%"></i><i style="height:20%"></i><i style="height:20%"></i><i style="height:40%"></i><i style="height:100%"></i></span>
+      <span class="res">Too early to say</span>
+    </div>
+    <div class="irow">
+      <span class="rt"><span class="rb bx">Bx9</span><b>Bx9</b></span>
+      <span class="what">Camera enforcement began <span>November 2025</span></span>
+      <span class="spark"><i style="height:20%"></i><i style="height:40%"></i><i style="height:20%"></i><i style="height:60%"></i><i style="height:20%"></i><i style="height:100%"></i><i style="height:5%"></i></span>
+      <span class="res"><b style="color:var(--bp-color-good)">Speeds rose</b> 0.14 mph</span>
+    </div>
+    <div class="irow">
+      <span class="rt"><span class="rb bk">B67</span><b>B67</b></span>
+      <span class="what">Bus lane opened <span>October 2025</span></span>
+      <span class="spark"><i style="height:5%"></i><i style="height:20%"></i><i style="height:20%"></i><i style="height:40%"></i><i style="height:20%"></i><i style="height:100%"></i><i style="height:5%"></i></span>
+      <span class="res"><b>Speeds rose</b> 0.14 mph</span>
+    </div>
+    <div class="irow">
+      <span class="rt"><span class="rb m">M96</span><b>M96</b></span>
+      <span class="what">Camera enforcement began <span>October 2025</span></span>
+      <span class="spark"><i style="height:20%"></i><i style="height:20%"></i><i style="height:40%"></i><i style="height:20%"></i><i style="height:40%"></i><i style="height:100%"></i><i style="height:5%"></i></span>
+      <span class="res"><b>No clear change</b></span>
+    </div>
+    <div class="irow">
+      <span class="rt"><span class="rb bk">B82+</span><b>B82+</b></span>
+      <span class="what">Camera enforcement began <span>September 2024</span></span>
+      <span class="spark"><i style="height:20%"></i><i style="height:40%"></i><i style="height:20%"></i><i style="height:60%"></i><i style="height:100%"></i><i style="height:5%"></i><i style="height:5%"></i></span>
+      <span class="res"><b style="color:var(--bp-color-bad)">Speeds fell</b> 0.21 mph</span>
+    </div>
+
+    <div class="foot">
+      <span>323 routes have changed since 2007. 66 have no documented change at all.</span>
+      <a href="#0">Open the full record</a>
+    </div>
+  </section>
+
+  <!-- 3. PROPOSED -->
+  <section class="card">
+    <div class="card-head">
+      <h2>What is proposed</h2>
+      <p>Changes named in a published plan but not yet recorded as built, grouped by the plan that
+        proposed them.</p>
+    </div>
+    <div class="plans">
+      <article class="plan">
+        <h3>Brooklyn Bus Network Redesign, Draft Plan</h3>
+        <div class="m"><span><b>86</b>changes</span><span><b>97</b>routes</span></div>
+        <div class="mix">
+          <i style="width:48%;background:var(--bp-route-queens)"></i><i style="width:43%;background:var(--bp-color-accent)"></i><i style="width:5%;background:var(--bp-route-si)"></i><i style="width:4%;background:var(--bp-color-ink-40)"></i>
+        </div>
+        <div class="legend">
+          <span><em style="background:var(--bp-route-queens)"></em>Stop consolidation 77</span>
+          <span><em style="background:var(--bp-color-accent)"></em>Reroute 69</span>
+          <span><em style="background:var(--bp-route-si)"></em>Stop relocation 8</span>
+          <span><em style="background:var(--bp-color-ink-40)"></em>Bus lane 5</span>
+        </div>
+      </article>
+      <article class="plan">
+        <h3>Bronx Bus Network Redesign, Final Plan</h3>
+        <div class="m"><span><b>53</b>changes</span><span><b>60</b>routes</span></div>
+        <div class="mix">
+          <i style="width:55%;background:var(--bp-route-queens)"></i><i style="width:33%;background:var(--bp-color-accent)"></i><i style="width:7%;background:var(--bp-route-si)"></i><i style="width:5%;background:var(--bp-color-ink-40)"></i>
+        </div>
+        <div class="legend">
+          <span><em style="background:var(--bp-route-queens)"></em>Stop consolidation 41</span>
+          <span><em style="background:var(--bp-color-accent)"></em>Reroute 25</span>
+          <span><em style="background:var(--bp-route-si)"></em>Stop relocation 5</span>
+          <span><em style="background:var(--bp-color-ink-40)"></em>Camera enforcement 3</span>
+        </div>
+      </article>
+      <article class="plan">
+        <h3>Queens Bus Network Redesign, Service Change Board Item</h3>
+        <div class="m"><span><b>46</b>changes</span><span><b>61</b>routes</span></div>
+        <div class="mix">
+          <i style="width:76%;background:var(--bp-color-accent)"></i><i style="width:16%;background:var(--bp-route-queens)"></i><i style="width:4%;background:var(--bp-color-ink-40)"></i><i style="width:4%;background:var(--bp-route-si)"></i>
+        </div>
+        <div class="legend">
+          <span><em style="background:var(--bp-color-accent)"></em>Reroute 34</span>
+          <span><em style="background:var(--bp-route-queens)"></em>Stop consolidation 7</span>
+          <span><em style="background:var(--bp-color-ink-40)"></em>Bus lane 1</span>
+          <span><em style="background:var(--bp-route-si)"></em>Queue jump 1</span>
+        </div>
+      </article>
+      <article class="plan">
+        <h3>NYC DOT Better Buses Action Plan</h3>
+        <div class="m"><span><b>16</b>changes</span><span><b>74</b>routes</span></div>
+        <div class="mix">
+          <i style="width:52%;background:var(--bp-color-accent)"></i><i style="width:22%;background:var(--bp-route-manhattan)"></i><i style="width:13%;background:var(--bp-route-si)"></i><i style="width:13%;background:var(--bp-color-ink-40)"></i>
+        </div>
+        <div class="legend">
+          <span><em style="background:var(--bp-color-accent)"></em>Bus lane 12</span>
+          <span><em style="background:var(--bp-route-manhattan)"></em>Signal retiming 5</span>
+          <span><em style="background:var(--bp-route-si)"></em>Queue jump 3</span>
+          <span><em style="background:var(--bp-color-ink-40)"></em>Pedestrian 3</span>
+        </div>
+      </article>
+    </div>
+    <div class="foot">
+      <span>18 more source plans hold 47 further proposed changes.</span>
+      <a href="#0">Show all plans</a>
+    </div>
+  </section>
+
+  <!-- 4. LEDGER (depth) -->
+  <section class="card">
+    <div class="card-head">
+      <h2>The full record</h2>
+      <p>Every documented and proposed change, searchable and filterable by route, kind and borough.
+        This is the reference layer and it is unchanged.</p>
+    </div>
+    <div class="foot">
+      <span>879 change records across 371 routes, 1963 to today.</span>
+      <a href="#0">Open the full record</a>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>
