@@ -165,7 +165,7 @@ jobs:
           PLAN097_CANDIDATE_VERSION_ID: ${{ steps.plan097-reader-upload.outputs.candidate_version_id }}
         run: |
           for attempt in $(seq 1 30); do
-            if bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release pub_20260605T183601689Z --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --worker-version-id "$PLAN097_CANDIDATE_VERSION_ID" --version-override-worker bus-priority-impact-studio --output /tmp/plan097/plan097-reader-staged.receipt.json --failure-output "/tmp/plan097/staged-attempt-${attempt}.failure.json"; then
+            if bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release pub_20260725T164123260Z --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --worker-version-id "$PLAN097_CANDIDATE_VERSION_ID" --version-override-worker bus-priority-impact-studio --output /tmp/plan097/plan097-reader-staged.receipt.json --failure-output "/tmp/plan097/staged-attempt-${attempt}.failure.json"; then
               break
             fi
             if [ "$attempt" -eq 30 ]; then
@@ -203,7 +203,7 @@ jobs:
           PLAN097_CANDIDATE_VERSION_ID: ${{ steps.plan097-reader-upload.outputs.candidate_version_id }}
         run: |
           for attempt in $(seq 1 30); do
-            if bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release pub_20260605T183601689Z --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --worker-version-id "$PLAN097_CANDIDATE_VERSION_ID" --output /tmp/plan097/plan097-reader-deploy.receipt.json --failure-output "/tmp/plan097/deploy-attempt-${attempt}.failure.json"; then
+            if bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release pub_20260725T164123260Z --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --worker-version-id "$PLAN097_CANDIDATE_VERSION_ID" --output /tmp/plan097/plan097-reader-deploy.receipt.json --failure-output "/tmp/plan097/deploy-attempt-${attempt}.failure.json"; then
               break
             fi
             if [ "$attempt" -eq 30 ]; then
