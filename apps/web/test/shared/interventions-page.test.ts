@@ -19,6 +19,7 @@ import type {
   StudioRouteIndex3Row,
   StudyIndexArtifact,
 } from "../../src/studio/api-contract";
+import { changeDateGroupLabel, parseChangeDate } from "../../src/studio/change-date";
 import {
   compactInterventionsSearch,
   filterInterventionRows,
@@ -30,6 +31,7 @@ import {
   recordTargetForRoute,
   studyRegisterLabel,
   yearDistribution,
+  yearGroups,
   yearLabel,
 } from "../../src/studio/pages/interventions";
 import { isoMonthFixture } from "./schema-fixtures";
@@ -127,6 +129,23 @@ const servingRoute = makeRoute({
   slug: "m15-sbs",
   label: "M15 SBS",
   interventions: [evaluatedIntervention, datedIntervention],
+});
+
+// One row per real free-text date shape, so a raw-string sort cannot pass.
+const mixedDateRoute = makeRoute({
+  slug: "m15-sbs",
+  label: "M15 SBS",
+  interventions: [
+    { year: "TBD", title: "Date to be determined", detail: "Source states no date." },
+    {
+      year: "Thursday, March 19th at 6:00pm",
+      title: "Open house without a year",
+      detail: "Meeting notice with no year.",
+    },
+    { year: "2026-spring", title: "Season record", detail: "Season-precision source date." },
+    { year: "2026-04", title: "Month record", detail: "Month-precision source date." },
+    { year: "2013-2014", title: "Multi-year record", detail: "Two-year program span." },
+  ],
 });
 
 const wikiRoute = makeRoute({ slug: "b41", label: "B41", borough: "Brooklyn" });
@@ -596,6 +615,35 @@ describe("interventionRows", () => {
     expect(withoutFacetDocumented.length + withoutFacetPlanned.length).toBe(withoutFacets.length);
   });
 
+  test("orders prose dates by their typed interval instead of their raw string", () => {
+    const rows = interventionRows([mixedDateRoute], []);
+
+    expect(rows.map((row) => row.event.title)).toEqual([
+      "Month record",
+      "Season record",
+      "Multi-year record",
+      // Both undated: a stable raw-string tie-break, never ahead of a date.
+      "Date to be determined",
+      "Open house without a year",
+    ]);
+    expect(changeDateGroupLabel(rows[0]?.event.date ?? parseChangeDate(null))).toBe("2026");
+    const lastKnown = rows.findLastIndex((row) => row.event.date.precision !== "unknown");
+    const firstUnknown = rows.findIndex((row) => row.event.date.precision === "unknown");
+    expect(lastKnown).toBeLessThan(firstUnknown);
+  });
+
+  test("groups those rows into strictly descending year headings", () => {
+    const rows = interventionRows([mixedDateRoute], []);
+    const dated = rows.filter((row) => changeDateGroupLabel(row.event.date) !== "Undated");
+    const labels = yearGroups(dated).map((group) => group.label);
+
+    expect(labels).toEqual(["2026", "2013–2014"]);
+    for (const [index, label] of labels.entries()) {
+      const next = labels[index + 1];
+      if (next !== undefined) expect(label.localeCompare(next)).toBeGreaterThan(0);
+    }
+  });
+
   test("chooses the exact route occurrence target from stable facet relationships", () => {
     const rows = interventionRows(routes, evidence, corpus, facetIndex);
     const row = rows.find((candidate) => candidate.key === "b41:wiki-timeline:tl_b41_1");
@@ -689,7 +737,10 @@ describe("InterventionsPage render", () => {
     // Citations only via SourceNote popovers.
     expect(html).toContain("Sources (1)");
     expect(html).toContain('aria-label="Network intervention ledger"');
-    expect(html).toContain('dateTime="2024-06"');
+    // The machine date is the typed interval's opening day; the reader sees the
+    // date at its own precision.
+    expect(html).toContain('dateTime="2024-06-01"');
+    expect(html).toContain("June 2024");
     expect(html).not.toContain("bus lane infrastructure");
     // Doctrine: no interpunct and no rejected forest plot / Studied tab.
     expect(html).not.toContain("·");

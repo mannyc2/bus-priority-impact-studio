@@ -39,6 +39,12 @@ import type {
   StudyIndexArtifact,
   StudyIndexRow,
 } from "../api-contract.js";
+import {
+  type ChangeDate,
+  changeDateGroupLabel,
+  compareChangeDatesNewestFirst,
+  parseChangeDate,
+} from "../change-date.js";
 import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../home-route-index.js";
 
 type InterventionEvidenceBundle = StudioInterventionsEvidenceBundle | StudioRouteEvidenceBundle;
@@ -62,6 +68,8 @@ type InterventionDisplayEvent = Pick<
 > & {
   year: string;
   sortKey: string;
+  /** The typed reading of the same source string `year` holds. */
+  date: ChangeDate;
   kind: string;
   title: string;
   detail: string;
@@ -139,13 +147,15 @@ export function InterventionsPage({
   const view = interventionView(search);
   const visibleRows = filteredRows.slice(0, limit);
   const remaining = filteredRows.length - visibleRows.length;
-  const datedRows = visibleRows.filter((row) => yearLabel(row.event.year) !== "Undated");
-  const undatedRows = visibleRows.filter((row) => yearLabel(row.event.year) === "Undated");
+  const datedRows = visibleRows.filter((row) => changeDateGroupLabel(row.event.date) !== "Undated");
+  const undatedRows = visibleRows.filter(
+    (row) => changeDateGroupLabel(row.event.date) === "Undated",
+  );
   const groups =
     view === "documented"
       ? yearGroups(
           datedRows,
-          filteredRows.filter((row) => yearLabel(row.event.year) !== "Undated"),
+          filteredRows.filter((row) => changeDateGroupLabel(row.event.date) !== "Undated"),
         )
       : planGroups(visibleRows, filteredRows);
   const documentedCount = rows.filter((row) => !isPlannedRow(row)).length;
@@ -451,7 +461,7 @@ export function yearDistribution(
 ): { label: string; count: number }[] {
   const counts = new Map<string, number>();
   for (const row of rows) {
-    const year = yearLabel(row.event.year);
+    const year = changeDateGroupLabel(row.event.date);
     if (year === "Undated") continue;
     counts.set(year, (counts.get(year) ?? 0) + 1);
   }
@@ -490,7 +500,7 @@ export function yearGroups(
   rows: readonly InterventionRow[],
   allRows: readonly InterventionRow[] = rows,
 ): LedgerGroupModel[] {
-  return ledgerGroups(rows, allRows, (row) => yearLabel(row.event.year));
+  return ledgerGroups(rows, allRows, (row) => changeDateGroupLabel(row.event.date));
 }
 
 export function planGroups(
@@ -560,14 +570,14 @@ function LedgerRow({
         </div>
       )}
       <div className="max-md:col-start-2">
-        {yearLabel(row.event.year) === "Undated" ? (
+        {row.event.date.precision === "unknown" ? (
           <span className="font-mono text-[10px] text-[var(--bp-color-ink-40)]">No date</span>
         ) : (
           <time
-            dateTime={timelineDateTime(row.event.year)}
+            dateTime={row.event.date.start}
             className="font-mono text-[10.5px] tabular-nums text-[var(--bp-color-ink-55)]"
           >
-            {timelineDateLabel(row.event.year)}
+            {row.event.date.display}
           </time>
         )}
       </div>
@@ -720,37 +730,6 @@ function UndatedRollups({ rows }: { rows: readonly InterventionRow[] }) {
   );
 }
 
-const MONTH_LABELS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const;
-
-function timelineDateTime(dateish: string): string {
-  const isoDate = dateish.match(/^\d{4}(?:-\d{2})?(?:-\d{2})?/u)?.[0];
-  return isoDate ?? yearLabel(dateish);
-}
-
-function timelineDateLabel(dateish: string): string {
-  const isoParts = dateish.match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/u);
-  if (isoParts !== null) {
-    const month = MONTH_LABELS[Number(isoParts[2]) - 1];
-    if (month !== undefined) return isoParts[3] === undefined ? month : `${month} ${isoParts[3]}`;
-  }
-  const year = yearLabel(dateish);
-  const remainder = dateish.replace(year, "").trim();
-  return remainder.length > 0 ? remainder : "Year";
-}
-
 export function interventionRows(
   routes: readonly StudioRoute[],
   evidence: readonly (InterventionEvidenceBundle | null)[] = [],
@@ -774,6 +753,7 @@ export function interventionRows(
             ...event,
             recordId: event.eventId ?? `${route.slug}:serving:${event.year}:${index}`,
             sortKey: event.year,
+            date: parseChangeDate(event.year),
             kind: event.interventionType ?? "program record",
             source: "serving",
             citationKeys: [],
@@ -802,7 +782,7 @@ export function interventionRows(
     facetIndex,
   ).sort(
     (left, right) =>
-      right.event.sortKey.localeCompare(left.event.sortKey) ||
+      compareChangeDatesNewestFirst(left.event.date, right.event.date) ||
       (left.routes[0]?.label ?? "").localeCompare(right.routes[0]?.label ?? "") ||
       left.event.title.localeCompare(right.event.title),
   );
@@ -866,6 +846,7 @@ function corpusInterventionRows(
           ],
           year: record.effectiveDate ?? "undated",
           sortKey: record.effectiveDate ?? "0000",
+          date: parseChangeDate(record.effectiveDate),
           kind: record.primaryTreatments[0] ?? record.customTreatments[0] ?? "intervention",
           title: record.title,
           detail: `${status}${corridor.length > 0 ? ` — ${corridor}` : ""}${unmatchedRoutes}`,
@@ -929,6 +910,7 @@ function wikiTimelineRow(
       recordId: event.recordId,
       year,
       sortKey: event.dateNormalized ?? event.dateText ?? "0000",
+      date: parseChangeDate(event.dateNormalized ?? event.dateText),
       kind: event.eventKind ?? event.eventFamily ?? "route event",
       title: event.title ?? event.eventKind ?? "Documented route event",
       detail: event.description ?? event.lifecyclePhase ?? "Wiki-derived route evidence.",
@@ -955,6 +937,7 @@ function wikiTreatmentRow(
       recordId: intervention.recordId,
       year: "undated",
       sortKey: "0000",
+      date: parseChangeDate("undated"),
       kind: intervention.treatmentKind ?? "treatment",
       title: intervention.title ?? intervention.treatmentKind ?? "Documented treatment",
       detail: wikiTreatmentDescription(intervention),
@@ -987,6 +970,7 @@ function wikiProjectRow(
       recordId: project.recordId,
       year: "undated",
       sortKey: "0000",
+      date: parseChangeDate("undated"),
       kind: project.projectType ?? project.status ?? "project",
       title: project.projectName ?? "Documented project",
       detail: project.description ?? project.location ?? "Source-backed project.",
@@ -1024,6 +1008,7 @@ function wikiSourceGapRow(
       recordId: gap.recordId,
       year: "undated",
       sortKey: "0000",
+      date: parseChangeDate("undated"),
       kind: "source gap",
       title: `Source gap: ${gap.gapKind ?? "route evidence"}`,
       detail: gap.gapText ?? gap.missingInformation ?? gap.description ?? "Missing source detail.",
