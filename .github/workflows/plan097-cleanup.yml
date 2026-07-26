@@ -15,7 +15,7 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: 7aa7065a7e971d97435b3f22098d78b0
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCESS_API_TOKEN: ${{ secrets.CLOUDFLARE_ACCESS_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+      PLAN097_CLEANUP_ACCESS_API_TOKEN: ${{ secrets.PLAN097_CLEANUP_ACCESS_API_TOKEN }}
     steps:
       - uses: actions/checkout@v6
 
@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN"
-          test -n "$CLOUDFLARE_ACCESS_API_TOKEN"
+          test -n "$PLAN097_CLEANUP_ACCESS_API_TOKEN"
           output_dir=/tmp/plan097-cleanup
           mkdir -p "$output_dir"
 
@@ -140,7 +140,7 @@ jobs:
           )
           for row in "${app_rows[@]}"; do
             IFS='|' read -r phase app_id policy_id app_name app_domain <<< "$row"
-            api_call "$CLOUDFLARE_ACCESS_API_TOKEN" GET "access/apps/$app_id"
+            api_call "$PLAN097_CLEANUP_ACCESS_API_TOKEN" GET "access/apps/$app_id"
             app_pre_status="$API_STATUS"
             if [ "$app_pre_status" = 200 ]; then
               jq -e \
@@ -160,7 +160,7 @@ jobs:
               )"
               rm "$API_RESPONSE_FILE"
               if [ "$policy_present" = true ]; then
-                api_call "$CLOUDFLARE_ACCESS_API_TOKEN" DELETE \
+                api_call "$PLAN097_CLEANUP_ACCESS_API_TOKEN" DELETE \
                   "access/apps/$app_id/policies/$policy_id"
                 policy_delete_status="$API_STATUS"
                 require_success
@@ -168,7 +168,7 @@ jobs:
               else
                 policy_delete_status=already_absent
               fi
-              api_call "$CLOUDFLARE_ACCESS_API_TOKEN" DELETE "access/apps/$app_id"
+              api_call "$PLAN097_CLEANUP_ACCESS_API_TOKEN" DELETE "access/apps/$app_id"
               app_delete_status="$API_STATUS"
               require_success
               rm "$API_RESPONSE_FILE"
@@ -179,7 +179,7 @@ jobs:
             else
               require_success
             fi
-            api_call "$CLOUDFLARE_ACCESS_API_TOKEN" GET "access/apps/$app_id"
+            api_call "$PLAN097_CLEANUP_ACCESS_API_TOKEN" GET "access/apps/$app_id"
             app_post_status="$API_STATUS"
             rm "$API_RESPONSE_FILE"
             test "$app_post_status" = 404
@@ -206,7 +206,8 @@ jobs:
 
           service_token_id=9a57c852-0ec3-4d8e-95d3-01c08420f2af
           service_token_name=bus-priority-plan097-pub_20260725T164123260Z
-          api_call "$CLOUDFLARE_ACCESS_API_TOKEN" GET "access/service_tokens/$service_token_id"
+          api_call "$PLAN097_CLEANUP_ACCESS_API_TOKEN" GET \
+            "access/service_tokens/$service_token_id"
           token_pre_status="$API_STATUS"
           if [ "$token_pre_status" = 200 ]; then
             jq -e \
@@ -217,7 +218,7 @@ jobs:
                and .result.name == $tokenName' \
               "$API_RESPONSE_FILE" > /dev/null
             rm "$API_RESPONSE_FILE"
-            api_call "$CLOUDFLARE_ACCESS_API_TOKEN" DELETE \
+            api_call "$PLAN097_CLEANUP_ACCESS_API_TOKEN" DELETE \
               "access/service_tokens/$service_token_id"
             token_delete_status="$API_STATUS"
             require_success
@@ -228,7 +229,8 @@ jobs:
           else
             require_success
           fi
-          api_call "$CLOUDFLARE_ACCESS_API_TOKEN" GET "access/service_tokens/$service_token_id"
+          api_call "$PLAN097_CLEANUP_ACCESS_API_TOKEN" GET \
+            "access/service_tokens/$service_token_id"
           token_post_status="$API_STATUS"
           rm "$API_RESPONSE_FILE"
           test "$token_post_status" = 404
