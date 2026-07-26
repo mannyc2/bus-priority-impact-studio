@@ -93,6 +93,32 @@ currently has both a documentary history and a published study. The design must
 read correctly in both halves of that split, and on the 370 routes that have
 neither.
 
+> **Correction, re-measured 2026-07-26 against release
+> `pub_20260725T164123260Z`.** The paragraph above is **false** as of Plan 097's
+> 2026-07-25 republish, and so is the "12 routes only" row in the table.
+> Evidence is no longer a sample: the schema-3 route index carries 375 routes
+> and every one has an `available` `route_timeline` projection, and
+> `studio/v2/wiki/routes/<slug>.json` returns 200 for ordinary routes
+> (`b41`, `m15-sbs`, `q60` all checked). **Every one of the five study routes
+> also has an evidence bundle** — `bx28` returns 200 from both
+> `studio/v2/routes/bx28/studies.json` and `studio/v2/wiki/routes/bx28.json`.
+>
+> The design consequence is the opposite of what this plan assumed: the
+> both-halves case is now the common case, not the empty one, and a chronology
+> that only reads correctly on one side of a split will be wrong on every study
+> route. The "370 routes that have neither" no longer exists as a category.
+>
+> Other figures in the table also moved and should be re-read before
+> implementing: the route projection carries **500 records over 293 of 389
+> routes, 96 with none** (was 569 over 389 with 66 empty); per-route
+> `studies.json` now returns 200 for **5** routes — `b82-sbs bx28 bx38 bx9
+> m79-sbs` — while `b67` and `m96` return 500, their studies having been
+> withdrawn by the republish; and **217 of the 500** annotations carry a
+> `comparisonCohort`, not 236 of 569. The Plan 090/091 rows are right that the
+> artifacts are unpublished but wrong on the code: they return **500**, not 404,
+> and so does any absent artifact, so absence cannot be detected from the status
+> code.
+
 `RouteHistoryOutcomes.tsx` reads `route.interventions[].comparisonCohort` and
 the per-route studies artifact and is the only place a numeric result is shown.
 236 of the 569 route annotations carry a `comparisonCohort`; those are
