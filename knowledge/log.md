@@ -9350,3 +9350,12 @@ of 3.3 KB gzip. The build-out chart draws its series as unfilled `Area` marks
 because `Area` and `ComposedChart` are already bundled for the route speed
 trend, while `Line` costs 5.6 KB gzip for an identical stroke. Total JS finished
 at 407.1 KB gz against the 410 KB budget, so both are worth keeping.
+
+During the required Generation 18 landing sequence, rebasing Plan 104 after the
+Plan 103 chronology and the precomputed interventions-evidence fix measured
+412.4 KB aggregate JavaScript against the 410 KB cap. First-paint entry remained
+138.4 KB, and both route surfaces plus the Recharts build-out plot remained
+behind literal lazy imports, so this was approved feature code rather than an
+entry regression. The aggregate cap moved 410 → 420 KB, following Plan 102's
+same 10 KB deliberate-headroom increment while leaving the 145 KB entry cap
+unchanged.

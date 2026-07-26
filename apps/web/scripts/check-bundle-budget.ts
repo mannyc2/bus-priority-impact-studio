@@ -16,7 +16,12 @@ import { gzipSync } from "node:zlib";
 // module: the previous cap had no headroom left, so a 0.8 KB pure-function
 // module could not land. The total cap moves 400 -> 410 KB to restore
 // headroom; the first-paint entry cap is still unchanged at 138.4 KB actual.
-const BUDGET_KB = { entry: 145, totalJs: 410 } as const;
+// Generation 18 integration measured 412.4 KB after the independently approved
+// Plan 103 chronology and Plan 104 network record landed together. Both route
+// surfaces and the Recharts build-out plot remain lazy; the entry is still
+// 138.4 KB. The total cap moves 410 -> 420 KB to restore aggregate headroom
+// without weakening the first-paint guardrail.
+const BUDGET_KB = { entry: 145, totalJs: 420 } as const;
 
 const assetsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "dist", "client", "assets");
 
