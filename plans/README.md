@@ -13,8 +13,10 @@ first non-ACE observation expansion), 13 (Plan 089: the approved typed
 Treatments & History redesign), 15 (Plan 095: exact route-index v3 serving
 recovery), 16 (Plan 096: exact member-grain study consumer), and 17 (Plans
 097-101: safe catch-up, atomic releases, full-history freshness, publication
-control plane, and deterministic incremental de-month completion — all
-below).** Generation 6 (048-060, the MTA-visual-language UI/UX
+control plane, and deterministic incremental de-month completion), and 18
+(Plans 102-105: the approved interventions and route-history rethink — typed
+change dates, the route change chronology, the network change record, and the
+metric-tab annotation layer — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
 overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
 `packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
 business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
@@ -27,6 +29,119 @@ rationale. Each executor: read your plan fully before starting, honor its STOP
 conditions, and update your row when done.
 
 ---
+
+# Generation 18 — the interventions and route-history rethink (2026-07-24)
+
+Planned against `origin/main@b25542b0` from an operator-approved design concept
+(revision 2, 2026-07-24). Only `plans/**` changed. The concept was reviewed
+against the live deployment and the pinned artifacts rather than against the
+plan record, and every count below was measured on that date.
+
+**The rule the operator approved, which decides every placement in this
+generation:**
+
+> If it has a date, it is history. If it is a condition, it belongs to the
+> metric that measures it.
+
+The route Treatments & history tab survives on exactly one justification: it
+shows what no metric tab can, which is the **order, duration and overlap** of
+dated changes. The metric tabs keep current condition and receive pointers
+only. `/interventions` stops being a longer list and becomes the network's
+change record, led by how bus priority spread across the system.
+
+Operator decisions (2026-07-24, binding):
+
+- **D1** Keep the history tab, on the tense rule above. If the chronology and
+  overlap work does not land, the tab should be deleted rather than kept as an
+  inventory.
+- **D2** Treatment extents render on the existing route map with a real legend,
+  deep-linked from a change. No map inside history, and no route strip.
+- **D3** Agency-stated figures render inline inside the citing sentence,
+  attributed, never in a verdict slot and never on the same axis as our own
+  series.
+- **D4** The network build-out chart leads `/interventions`.
+- **D5** Sequence: typed dates, then the route chronology, then the network
+  page. Per-change evidence fills in incrementally as each treatment kind
+  becomes measurable.
+
+What the audit measured on the live deployment, 2026-07-24:
+
+- the ledger holds 2,253 rows, 61% of them from 12 of 389 routes, with 366
+  exact duplicates over 176 groups, and 52% of the wiki timeline rows are
+  process events (meetings, contract awards, presentations);
+- `/interventions` sorts on the raw date string, so free text outranks every
+  ISO date; page one shows 8 dated rows in the year order 2025, 2020, 2010,
+  2018, 2026 plus 22 rows in the undated rollup;
+- 205 rows carry free-text dates, but 183 of them (89%) hold a resolvable year
+  or range and 167 are already the machine form `2026-spring`;
+- routes reached by a bus lane went from 11 in 2007 to 323 today, camera
+  enforcement from none before 2019 to 58, while Select Bus Service has been
+  flat at 36 since 2017 and signal priority flat at 4 since 2013;
+- the 7 routes with a published study and the 12 routes with a source-cited
+  evidence bundle are **disjoint sets**.
+
+## Execution order & status (gen 18)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 102 | Typed change dates and correct chronological order | P1 | M | none | DONE (verified 2026-07-26; all 67 free-text literals pinned; total-JS cap raised 400 -> 410 KB because main had zero headroom; the repository-wide style gate remains red on 7 pre-existing errors outside the Plan 102 diff) |
+| 103 | Route Treatments & history as a change chronology | P1 | L | 102 | TODO |
+| 104 | `/interventions` as the network change record | P1 | M | 102 | TODO |
+| 105 | Metric-tab annotation layer and the no-duplication sweep | P2 | M | 103 | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+## Dependency and safety notes (gen 18)
+
+- 102 is a hard prerequisite for both 103 and 104. Its `changeDatesOverlap` is
+  what 103's central claim is computed from; without it the chronology would be
+  guessing.
+- 103 and 104 are independent of each other and may run in parallel after 102.
+- 105 needs 103's `RouteChange.anchorId` to link to and is therefore last. It
+  is also the most gated: Overview's trend markers will render nothing until
+  the artifacts named in the prerequisite below are published, so its Overview
+  work is deliberately verified by unit test rather than by eye.
+- **Standing prerequisite, not a plan in this generation**: the Plan 091
+  route-intervention inventory (`studio/v2/routes/<slug>/intervention-inventory.json`,
+  `studio/v2/interventions/route-inventory-index.json`,
+  `studio/v2/interventions/facet-index.json`) and the Plan 090 observation
+  bundles all return HTTP 404 in production. The exporters exist and Plan 091
+  is DONE; the artifacts have never been exported and published. Until they
+  are, the `/interventions` Kind filter stays disabled, Overview shows no
+  markers, and route history has no typed inventory. None of plans 102-105 is
+  blocked by this — every one degrades honestly — but publishing them is the
+  single highest-value data operation available, and it belongs to the
+  generation-17 publication work.
+- Frontend plans 103 and 104 are comp-gated. Their approved comps are
+  `plans/mockups/103-route-change-chronology/route-history-comp.html` and
+  `plans/mockups/104-network-change-record/interventions-comp.html`; each
+  directory's README records what was approved and what was rejected in
+  revision 1.
+- Plans 074/075 estimator and causal gates stay byte-unchanged across this
+  generation. No plan here activates a study, publishes an artifact, mutates
+  D1 or R2, or deploys.
+- **Numbering**: mta-wiki plan 042 will add its own tracker plan for
+  member-grain outcome certification. It must take the next free number after
+  this generation, which is 106 or later. Do not renumber 102-105.
+
+## Findings considered and rejected (gen 18)
+
+- **Changing the serving payload's date shape.** Plan 102 normalizes at the
+  presentation boundary instead. Retyping the artifact would force a
+  republication, which generation 17 owns and which is not worth coupling to a
+  UI fix.
+- **Deriving Overview trend markers from `route.interventions[]` when the
+  observation bundle is missing.** It would bypass the Plan 090/093 relevance
+  gate for a cosmetic win. Recorded as an explicit STOP condition in plan 105.
+- **A separate plan to publish the Plan 091 artifacts.** It is a data operation
+  against an exporter that already exists, not an implementation plan, and it
+  sits inside generation 17's publication discipline. Recorded as a standing
+  prerequisite above instead.
+- **Segment-level tags for camera enforcement or signal priority.** Both have
+  zero within-route variance; Plan 081 removed them from segment rows for that
+  reason and this generation does not reintroduce them. Lane coverage genuinely
+  varies within a route and keeps its segment-grain tag.
 
 # Generation 17 — production currency + atomic incremental publication (2026-07-22)
 
