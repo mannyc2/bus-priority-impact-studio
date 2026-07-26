@@ -79,10 +79,31 @@ availability states, not prompts to normalize a route suffix or parse prose.
 The approved Plan 089 surface keeps one text hero and one responsive ledger
 card. Documented records group by year and planned records by a structured
 source-plan label; undated/unnamed records remain explicit rollups. The
-in-card histogram, summary, tab counts, and group counts all derive from the
-same filtered record universe. Only published study-index rows create linked
-`matched-segment study` or `descriptive study` labels, while legacy
-peer-adjusted comparisons remain descriptive and unlinked.
+summary, tab counts, and group counts all derive from the same filtered record
+universe. Only published study-index rows create linked `matched-segment study`
+or `descriptive study` labels, while legacy peer-adjusted comparisons remain
+descriptive and unlinked.
+
+Plan 104 puts three network-scale sections above that ledger and demotes it to
+the reference layer titled `The full record`; its rows, filters, tabs, studied
+checkbox, grouping, undated rollups, pagination and URL contract are unchanged,
+and its year histogram is deleted because the build-out chart supersedes it.
+The three sections are `How far bus priority has spread` (cumulative routes
+reached by each treatment family since 2007, plus three readings), `Which
+routes are changing` (a route index over the `recent`/`most`/`measured`/
+`proposed`/`never` views selected by the bounded `group` URL key) and `What is
+proposed` (reviewed corpus proposals grouped by the plan that proposed them).
+
+All three derive in the browser from payloads the loader already fetches — the
+route projection, the reviewed corpus and the study index — through the pure
+`apps/web/src/studio/network-change-record.ts`. No endpoint, artifact or
+pipeline command is involved, and no count, family name or year in a rendered
+string is authored, so the page follows the served release without editing.
+The window opens at 2007 with earlier records folded into that value, and the
+partial final year is read off the release's publication frontier rather than
+a hard-coded year. Bus-lane records are route shape against DOT centreline
+geometry, so every visible string says a route runs on a street with a bus lane
+and none states a mileage.
 
 Route detail reconciles the same evidence into three explicit sections.
 `Current state` reads only the inventory bundle's typed `currentState[]` and

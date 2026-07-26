@@ -9311,3 +9311,42 @@ the band track draws at most eight rows and then "{n} more dated changes are
 listed below". The counts stay true and every change still gets a full entry.
 The owed fix is upstream in mta-wiki — one record per real change — and is not
 in this repo's scope. De-duplicating on title text stays forbidden.
+
+## Plan 104 — `/interventions` as the network change record
+
+`/interventions` now leads with the network-scale answer and keeps the Plan 089
+ledger below it as `The full record`, unchanged in rows, filters, tabs,
+grouping, pagination and URL contract. The year histogram is deleted; the
+build-out chart supersedes it. Three new sections sit above: the cumulative
+build-out chart with three derived readings, a change-oriented route index
+behind a new bounded `group` URL key, and reviewed corpus proposals grouped by
+the plan that proposed them.
+
+Everything is derived in the browser by the pure
+`apps/web/src/studio/network-change-record.ts` from payloads the loader already
+fetched. No endpoint, D1 table, R2 artifact or pipeline command changed, and no
+count, family name or year in a rendered string is authored, so the page
+follows the served release on its own.
+
+Plan 104's measured figures were re-derived as the first commit. The plan was
+authored at `b25542b0` on 2026-07-24, before Plan 097 republished serving as
+`pub_20260725T164123260Z` on 2026-07-25, so every figure in its "exact data
+this plan derives from" section predated the release the implementation runs
+against and its cumulative table could not reproduce. Measured 2026-07-26
+against the live deployment: 500 intervention records over 293 of 389 routes
+(96 with none), was 569 over 323 with 66 empty; the bus-lane series ends at 293
+not 323 and camera enforcement at 54 not 58; the study index is 5 studies, 3
+matched and 2 descriptive, 1 worsened and 4 no-detectable-change, with no
+improved study in this release. The reviewed corpus is unchanged at 310 records
+and 248 proposals over 22 plans. The plan's target contract, copy rules, scope,
+steps, done criteria and STOP conditions were left untouched; the illustrative
+figures in its "Why this matters" section are stale by the same republish and
+were deliberately not edited.
+
+Two bundle facts are load-bearing and easy to regress. `routes/interventions.tsx`
+is an eager module, so it spells the `group` union out instead of importing the
+value — importing it pulled the whole derivation into the entry bundle at a cost
+of 3.3 KB gzip. The build-out chart draws its series as unfilled `Area` marks
+because `Area` and `ComposedChart` are already bundled for the route speed
+trend, while `Line` costs 5.6 KB gzip for an identical stroke. Total JS finished
+at 407.1 KB gz against the 410 KB budget, so both are worth keeping.
