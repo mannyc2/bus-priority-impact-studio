@@ -9268,3 +9268,46 @@ deployment token and bounded D1/R2 audit evidence remain. Plan 097 is DONE.
 Plan 098 now owns every later artifact/schema cutover. The complete evidence
 index is
 `docs/research/reviews/plan097/release-closure-attestation.md`.
+
+## [2026-07-26] implementation | Plan 103 rebuilds route History as a change chronology
+
+Implemented Plan 103 on `codex/103-route-change-chronology`. The route History
+tab is now three parts instead of four stacked inventories: Standing (one
+sentence composed from typed fields plus treatment chips), the chronology (a
+faint dossier speed line for context, one band per dated change packed into as
+few rows as fit, and a hatched region wherever two or more bands intersect),
+and one entry per change. Current state left the tab under the approved tense
+rule — if it has a date it is history; if it is a condition it belongs to the
+metric that measures it.
+
+New pure model `apps/web/src/components/route/route-change-chronology.ts`
+partitions the existing `buildRouteHistoryLedger` output into changes and
+milestones; no second merger was written and no schema changed. Each change
+carries exactly one of five evidence states selected value-blind in the fixed
+order `study` > `peer_adjusted` > `confounded` > `too_early` > `no_product`.
+Milestones collapse into one disclosure. The `?study=` / `?record=` deep-link
+contract, including study-over-record precedence and reduced-motion-aware
+focusing, is preserved. The chronology draws in plain SVG and CSS, so no chart
+dependency was added and both bundle budgets pass (entry 138.4 KB gz of 145 KB;
+total 405.9 KB gz of 410 KB).
+
+Deleted: `CurrentStateSummary`, `currentStateStatus`, `HistoryControls`, the
+record-type filter, and the standalone `RouteHistoryOutcomes` card.
+`interventionComparisonCards` survives as the pure helper feeding
+`peer_adjusted`.
+
+**The overlap STOP condition fired and was resolved by operator decision.**
+Measured against live `v1-rc28` route evidence, overlap clusters reach 127 of
+151 dated changes on `q52-sbs`, 129 of 137 on `b62` and 28 of 32 on `bx41`. The
+diagnosis is not the plan's hypothesis: restricting overlap to day- and
+month-precision dates still yields clusters of 84 and 17, and the biggest
+`q52-sbs` cluster holds 125 distinct titles. The driver is record multiplicity
+in the evidence bundle — 63 records dated `2025-06-29`, 33 dated `2025-08-31` —
+which is the 2025 Queens redesign recorded once per treatment component.
+
+The operator chose on 2026-07-26 to bound the display and not the claim: the
+`confounded` sentence names at most three changes and then "and {n} more", and
+the band track draws at most eight rows and then "{n} more dated changes are
+listed below". The counts stay true and every change still gets a full entry.
+The owed fix is upstream in mta-wiki — one record per real change — and is not
+in this repo's scope. De-duplicating on title text stays forbidden.

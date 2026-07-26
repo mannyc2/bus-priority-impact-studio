@@ -110,7 +110,7 @@ What the audit measured on the live deployment, 2026-07-24:
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 102 | Typed change dates and correct chronological order | P1 | M | none | DONE (verified 2026-07-26; all 67 free-text literals pinned; total-JS cap raised 400 -> 410 KB because main had zero headroom; the repository-wide style gate remains red on 7 pre-existing errors outside the Plan 102 diff) |
-| 103 | Route Treatments & history as a change chronology | P1 | L | 102 | TODO |
+| 103 | Route Treatments & history as a change chronology | P1 | L | 102 | DONE (PR #111, draft for review; the overlap STOP condition fired against live `v1-rc28` evidence — clusters reach 127 of 151 dated changes on `q52-sbs` and 28 of 32 on `bx41`, caused by record multiplicity rather than year-precision intervals — and the operator resolved it 2026-07-26 by capping the display, not the claim; the upstream mta-wiki fix of one record per real change is owed and out of this repo's scope) |
 | 104 | `/interventions` as the network change record | P1 | M | 102 | TODO |
 | 105 | Metric-tab annotation layer and the no-duplication sweep | P2 | M | 103 | TODO |
 
