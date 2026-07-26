@@ -126,7 +126,14 @@ export function RouteDetailPage({
       panel = (
         <>
           {section("where-when", () => (
-            <SegmentExplorerSection data={data} search={search} onSearchChange={onSearchChange} />
+            <SegmentExplorerSection
+              data={data}
+              search={search}
+              onSearchChange={onSearchChange}
+              evidence={evidence}
+              inventory={inventory}
+              studies={studies}
+            />
           ))}
           {whereWhenRenders
             ? null
@@ -135,6 +142,9 @@ export function RouteDetailPage({
                   data={data}
                   search={search}
                   onSearchChange={onSearchChange}
+                  evidence={evidence}
+                  inventory={inventory}
+                  studies={studies}
                   mapOnly
                 />
               ))}

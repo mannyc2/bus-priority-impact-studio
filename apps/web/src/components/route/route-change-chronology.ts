@@ -934,6 +934,18 @@ export function tooEarlySentence(monthsSince: number): string {
   return `${monthsSince} ${monthsSince === 1 ? "month" : "months"} of data since this change.`;
 }
 
+/** Anchor of the newest bus-lane change, or null when the chronology has none.
+ * A read-only query over changes already minted here (plan 105); it matches the
+ * treatment label vocabulary and never parses a title. */
+export function busLaneChangeAnchor(chronology: RouteChangeChronology | null): string | null {
+  if (chronology === null) return null;
+  const label = interventionLabelForKind("bus_lane");
+  // `changes` is sorted newest-first; undated changes carry no ordering claim.
+  return (
+    chronology.changes.find((change) => change.treatmentLabels.includes(label))?.anchorId ?? null
+  );
+}
+
 function joinPlain(values: readonly string[]): string {
   if (values.length <= 1) return values[0] ?? "";
   return `${values.slice(0, -1).join(", ")} and ${values.at(-1) ?? ""}`;

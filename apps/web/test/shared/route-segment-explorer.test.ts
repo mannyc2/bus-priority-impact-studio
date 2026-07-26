@@ -11,6 +11,8 @@ import {
   rankSegmentsSlowestFirst,
   resolvePinnedSegment,
   routeDetailSearchEquals,
+  SEGMENT_LANE_TAG,
+  segmentCarriesLaneTag,
   validateRouteDetailSearch,
   visibleSegments,
 } from "../../src/components/route/route-segment-explorer";
@@ -248,5 +250,19 @@ describe("coverage + window helpers", () => {
       label: "busiest Tue 5P — 4.8K riders",
     });
     expect(latestSlowestWindow(null)).toBeNull();
+  });
+});
+
+describe("segment lane tag", () => {
+  test("only real coverage earns the tag", () => {
+    expect(segmentCarriesLaneTag("yes")).toBe(true);
+    expect(segmentCarriesLaneTag("partial")).toBe(true);
+    expect(segmentCarriesLaneTag("minimal")).toBe(false);
+    expect(segmentCarriesLaneTag("none")).toBe(false);
+  });
+
+  test("the tag is four plain words and carries no date", () => {
+    expect(SEGMENT_LANE_TAG).toBe("In the bus lane");
+    expect(SEGMENT_LANE_TAG).not.toMatch(/\d/);
   });
 });

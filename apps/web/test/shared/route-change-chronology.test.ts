@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
+  busLaneChangeAnchor,
   confoundedSentence,
   noProductSentence,
   routeChangeChronology,
   tooEarlySentence,
 } from "../../src/components/route/route-change-chronology";
+import { treatmentRecordAnchorId } from "../../src/components/route/route-intervention-model";
 import type {
   RouteStudiesArtifact,
   StudioIntervention,
@@ -1001,5 +1003,55 @@ describe("display copy", () => {
   test("the too-early sentence counts months, never an estimate", () => {
     expect(tooEarlySentence(1)).toBe("1 month of data since this change.");
     expect(tooEarlySentence(0)).toBe("0 months of data since this change.");
+  });
+});
+
+describe("bus-lane change anchor", () => {
+  test("returns null for an absent chronology and for one with no bus-lane change", () => {
+    expect(busLaneChangeAnchor(null)).toBeNull();
+    expect(
+      busLaneChangeAnchor(
+        chronology({
+          inventory: inventoryFixture({
+            treatments: [
+              treatmentFixture({
+                id: "ace",
+                kind: "automated_bus_lane_enforcement",
+                family: "enforcement",
+                effectiveDate: "2020-05",
+              }),
+            ],
+          }),
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("picks the newest bus-lane change and returns an anchor the chronology mints", () => {
+    const result = chronology({
+      inventory: inventoryFixture({
+        treatments: [
+          treatmentFixture({
+            id: "old-lane",
+            kind: "bus_lane",
+            family: "bus_priority_lane",
+            effectiveDate: "2013-02",
+          }),
+          treatmentFixture({
+            id: "new-lane",
+            kind: "bus_lane",
+            family: "bus_priority_lane",
+            effectiveDate: "2021-09",
+          }),
+        ],
+      }),
+    });
+
+    const anchor = busLaneChangeAnchor(result);
+
+    expect(anchor).toBe(treatmentRecordAnchorId("treatment:v1:new-lane"));
+    expect(anchor).not.toBe(treatmentRecordAnchorId("treatment:v1:old-lane"));
+    // The anchor must exist among the changes history renders, not be minted here.
+    expect(result.changes.some((change) => change.anchorId === anchor)).toBe(true);
   });
 });
