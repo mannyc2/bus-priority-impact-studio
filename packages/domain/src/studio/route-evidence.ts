@@ -239,14 +239,67 @@ export const StudioInterventionsEvidenceCoverageSchema = Schema.Struct({
   citationCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
 });
 
+// The citywide `/interventions` ledger reads only the fields below; the route
+// detail surfaces read the full bundle from the per-route artifact instead.
+// Narrowing here is not cosmetic: it is what keeps the precomputed citywide
+// artifact near 32 MB rather than the 46 MB the full records serialize to.
+const InterventionsEvidenceRecordBaseSchema = Schema.Struct({
+  recordId: NonEmptyStringSchema,
+  citationKeys: CitationKeysSchema,
+});
+
+export const StudioInterventionsEvidenceTimelineEventSchema = Schema.Struct({
+  ...InterventionsEvidenceRecordBaseSchema.fields,
+  ...{
+    eventKind: Schema.NullOr(Schema.String),
+    eventFamily: Schema.NullOr(Schema.String),
+    lifecyclePhase: Schema.NullOr(Schema.String),
+    title: Schema.NullOr(Schema.String),
+    description: Schema.NullOr(Schema.String),
+    dateText: Schema.NullOr(Schema.String),
+    dateNormalized: Schema.NullOr(Schema.String),
+  },
+});
+
+export const StudioInterventionsEvidenceInterventionSchema = Schema.Struct({
+  ...InterventionsEvidenceRecordBaseSchema.fields,
+  ...{
+    treatmentKind: Schema.NullOr(Schema.String),
+    title: Schema.NullOr(Schema.String),
+    description: Schema.NullOr(Schema.String),
+    locations: Schema.Array(Schema.String),
+  },
+});
+
+export const StudioInterventionsEvidenceProjectSchema = Schema.Struct({
+  ...InterventionsEvidenceRecordBaseSchema.fields,
+  ...{
+    projectName: Schema.NullOr(Schema.String),
+    projectType: Schema.NullOr(Schema.String),
+    status: Schema.NullOr(Schema.String),
+    description: Schema.NullOr(Schema.String),
+    location: Schema.NullOr(Schema.String),
+  },
+});
+
+export const StudioInterventionsEvidenceSourceGapSchema = Schema.Struct({
+  ...InterventionsEvidenceRecordBaseSchema.fields,
+  ...{
+    gapKind: Schema.NullOr(Schema.String),
+    gapText: Schema.NullOr(Schema.String),
+    missingInformation: Schema.NullOr(Schema.String),
+    description: Schema.NullOr(Schema.String),
+  },
+});
+
 export const StudioInterventionsEvidenceBundleSchema = Schema.Struct({
   routeId: NonEmptyStringSchema,
   routeSlug: NonEmptyStringSchema,
   coverage: StudioInterventionsEvidenceCoverageSchema,
-  timeline: Schema.Array(StudioRouteEvidenceTimelineEventSchema),
-  interventions: Schema.Array(StudioRouteEvidenceInterventionSchema),
-  projects: Schema.Array(StudioRouteEvidenceProjectSchema),
-  sourceGaps: Schema.Array(StudioRouteEvidenceSourceGapSchema),
+  timeline: Schema.Array(StudioInterventionsEvidenceTimelineEventSchema),
+  interventions: Schema.Array(StudioInterventionsEvidenceInterventionSchema),
+  projects: Schema.Array(StudioInterventionsEvidenceProjectSchema),
+  sourceGaps: Schema.Array(StudioInterventionsEvidenceSourceGapSchema),
   citations: Schema.Array(StudioInterventionsEvidenceCitationSchema),
 });
 
@@ -380,6 +433,102 @@ export function emptyStudioRouteEvidenceBundle(input: {
   });
 }
 
+/** Project one full route bundle down to what the citywide ledger renders,
+ * keeping only the citations its records actually reference. */
+export function compactInterventionsEvidenceBundle(
+  bundle: StudioRouteEvidenceBundle,
+): StudioInterventionsEvidenceBundle {
+  const citationKeys = new Set<string>();
+  for (const record of [
+    ...bundle.timeline,
+    ...bundle.interventions,
+    ...bundle.projects,
+    ...bundle.sourceGaps,
+  ]) {
+    for (const key of record.citationKeys) citationKeys.add(key);
+  }
+  const citations = bundle.citations
+    .filter((citation) => citationKeys.has(citation.key))
+    .map((citation) =>
+      decodeStrict(StudioInterventionsEvidenceCitationSchema)({
+        key: citation.key,
+        sourceId: citation.sourceId,
+        ...(citation.pageNumber === undefined ? {} : { pageNumber: citation.pageNumber }),
+        ...(citation.sourceTitle === undefined ? {} : { sourceTitle: citation.sourceTitle }),
+        ...(citation.publisher === undefined ? {} : { publisher: citation.publisher }),
+        ...(citation.sourceUrl === undefined ? {} : { sourceUrl: citation.sourceUrl }),
+        ...(citation.publishedDate === undefined ? {} : { publishedDate: citation.publishedDate }),
+      }),
+    );
+
+  return decodeStrict(StudioInterventionsEvidenceBundleSchema)({
+    routeId: bundle.routeId,
+    routeSlug: bundle.routeSlug,
+    coverage: {
+      timelineCount: bundle.coverage.timelineCount,
+      interventionCount: bundle.coverage.interventionCount,
+      projectCount: bundle.coverage.projectCount,
+      sourceGapCount: bundle.coverage.sourceGapCount,
+      citationCount: citations.length,
+    },
+    timeline: bundle.timeline.map((event) => ({
+      recordId: event.recordId,
+      citationKeys: event.citationKeys,
+      eventKind: event.eventKind,
+      eventFamily: event.eventFamily,
+      lifecyclePhase: event.lifecyclePhase,
+      title: event.title,
+      description: event.description,
+      dateText: event.dateText,
+      dateNormalized: event.dateNormalized,
+    })),
+    interventions: bundle.interventions.map((intervention) => ({
+      recordId: intervention.recordId,
+      citationKeys: intervention.citationKeys,
+      treatmentKind: intervention.treatmentKind,
+      title: intervention.title,
+      description: intervention.description,
+      locations: intervention.locations,
+    })),
+    projects: bundle.projects.map((project) => ({
+      recordId: project.recordId,
+      citationKeys: project.citationKeys,
+      projectName: project.projectName,
+      projectType: project.projectType,
+      status: project.status,
+      description: project.description,
+      location: project.location,
+    })),
+    sourceGaps: bundle.sourceGaps.map((gap) => ({
+      recordId: gap.recordId,
+      citationKeys: gap.citationKeys,
+      gapKind: gap.gapKind,
+      gapText: gap.gapText,
+      missingInformation: gap.missingInformation,
+      description: gap.description,
+    })),
+    citations,
+  });
+}
+
+/** Build the precomputed citywide evidence artifact. This runs offline in the
+ * pipeline: assembling it per request meant reading every route bundle (58 MB
+ * across 375 objects), which exceeded the Worker resource limit. */
+export function buildStudioInterventionsEvidenceArtifact(input: {
+  generatedAt: string;
+  bundles: readonly StudioRouteEvidenceBundle[];
+}): StudioInterventionsEvidenceResponse {
+  const bundles = input.bundles
+    .toSorted((left, right) => left.routeSlug.localeCompare(right.routeSlug))
+    .map((bundle) => compactInterventionsEvidenceBundle(bundle));
+  return decodeStrict(StudioInterventionsEvidenceResponseSchema)({
+    schemaVersion: 1,
+    generatedAt: input.generatedAt,
+    routeCount: bundles.length,
+    bundles,
+  });
+}
+
 export type StudioRouteEvidenceCitation = typeof StudioRouteEvidenceCitationSchema.Type;
 export type StudioRouteEvidenceTimelineEvent = typeof StudioRouteEvidenceTimelineEventSchema.Type;
 export type StudioRouteEvidenceIntervention = typeof StudioRouteEvidenceInterventionSchema.Type;
@@ -397,6 +546,14 @@ export type StudioInterventionsEvidenceCitation =
   typeof StudioInterventionsEvidenceCitationSchema.Type;
 export type StudioInterventionsEvidenceCoverage =
   typeof StudioInterventionsEvidenceCoverageSchema.Type;
+export type StudioInterventionsEvidenceTimelineEvent =
+  typeof StudioInterventionsEvidenceTimelineEventSchema.Type;
+export type StudioInterventionsEvidenceIntervention =
+  typeof StudioInterventionsEvidenceInterventionSchema.Type;
+export type StudioInterventionsEvidenceProject =
+  typeof StudioInterventionsEvidenceProjectSchema.Type;
+export type StudioInterventionsEvidenceSourceGap =
+  typeof StudioInterventionsEvidenceSourceGapSchema.Type;
 export type StudioInterventionsEvidenceBundle = typeof StudioInterventionsEvidenceBundleSchema.Type;
 export type StudioInterventionsEvidenceResponse =
   typeof StudioInterventionsEvidenceResponseSchema.Type;

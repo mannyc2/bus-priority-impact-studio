@@ -92,9 +92,6 @@ describe("Studio API HTTP helpers", () => {
     expect(studioRouteTemplate("/api/v1/studio/routes/sections")).toBe(
       "/api/v1/studio/routes/sections",
     );
-    expect(studioRouteTemplate("/api/v1/studio/interventions/evidence")).toBe(
-      "/api/v1/studio/interventions/evidence",
-    );
     expect(studioRouteTemplate("/api/v1/studio/routes/m15-sbs")).toBe(
       "/api/v1/studio/routes/:routeId",
     );
@@ -104,9 +101,6 @@ describe("Studio API HTTP helpers", () => {
   test("finds the most specific route spec for method and path", () => {
     expect(findRouteSpec("GET", "/api/v1/studio/routes")?.id).toBe("studio.routes");
     expect(findRouteSpec("GET", "/api/v1/studio/routes/sections")?.id).toBe("studio.routeSections");
-    expect(findRouteSpec("GET", "/api/v1/studio/interventions/evidence")?.id).toBe(
-      "studio.interventionsEvidence",
-    );
     expect(findRouteSpec("GET", "/api/v1/studio/routes/m15-sbs")?.id).toBe("studio.route");
     expect(findRouteSpec("POST", "/api/v1/rum")?.id).toBe("observability.rum");
     expect(findRouteSpec("POST", "/api/v1/studio/routes")).toBeNull();

@@ -27,12 +27,6 @@ import {
   routeDossierSummaryKey,
   STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
   STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
-  type StudioInterventionsEvidenceBundle,
-  StudioInterventionsEvidenceBundleSchema,
-  type StudioInterventionsEvidenceCitation,
-  StudioInterventionsEvidenceCitationSchema,
-  type StudioInterventionsEvidenceResponse,
-  StudioInterventionsEvidenceResponseSchema,
   type StudioRouteCapability,
   type StudioRouteEvidenceBundle,
   StudioRouteEvidenceBundleSchema,
@@ -76,7 +70,6 @@ import {
   type StudioRouteIndex2Row,
   type StudioRouteIndex3Response,
   StudioRouteIndex3ResponseSchema,
-  type StudioRouteIndex3Row,
   type StudioSnapshot2,
   type StudioSnapshot2ProjectionRef,
   type StudioSnapshotProjection,
@@ -255,10 +248,6 @@ type BuildStudioRouteSpeedHistoryResponseResult =
 
 type BuildStudioRouteTimelineResponseResult =
   | { ok: true; timeline: StudioRouteEvidenceBundle }
-  | { ok: false; response: Response };
-
-type BuildStudioInterventionsEvidenceResponseResult =
-  | { ok: true; evidence: StudioInterventionsEvidenceResponse }
   | { ok: false; response: Response };
 
 type BuildStudioRouteIndex2ResponseResult =
@@ -622,30 +611,6 @@ function exactRouteEvidenceIdentitiesFromD1(
   rows: readonly NormalizedStudioRouteIndexSourceRow[],
 ): ReadonlyMap<string, ExactD1RouteEvidenceIdentity> {
   return new Map(rows.map((row) => [row.routeId, exactRouteEvidenceIdentity(row)]));
-}
-
-function exactRouteEvidenceIdentityFromIndex(
-  row: StudioRouteIndex3Row,
-): ExactD1RouteEvidenceIdentity {
-  return {
-    slug: row.slug,
-    presentation: {
-      routeId: row.routeId,
-      routeFamilyId: row.routeFamilyId,
-      displayLabel: row.displayLabel,
-      officialLongName: row.officialLongName,
-      designationLiterals: row.designationLiterals,
-      serviceModes: row.serviceModes,
-      routeTypes: row.routeTypes,
-      tripTypes: row.tripTypes,
-    },
-  };
-}
-
-function exactRouteEvidenceIdentitiesFromIndex(
-  rows: readonly StudioRouteIndex3Row[],
-): ReadonlyMap<string, ExactD1RouteEvidenceIdentity> {
-  return new Map(rows.map((row) => [row.routeId, exactRouteEvidenceIdentityFromIndex(row)]));
 }
 
 function closedRouteEvidenceIndex(
@@ -1871,165 +1836,6 @@ export async function buildStudioRouteTimelineResponse(
   return { ok: true, timeline: parsed.success };
 }
 
-function compactInterventionsCitation(
-  citation: StudioRouteEvidenceBundle["citations"][number],
-): StudioInterventionsEvidenceCitation {
-  return decodeSchemaStrict(StudioInterventionsEvidenceCitationSchema, {
-    key: citation.key,
-    sourceId: citation.sourceId,
-    ...(citation.pageNumber === undefined ? {} : { pageNumber: citation.pageNumber }),
-    ...(citation.sourceTitle === undefined ? {} : { sourceTitle: citation.sourceTitle }),
-    ...(citation.publisher === undefined ? {} : { publisher: citation.publisher }),
-    ...(citation.sourceUrl === undefined ? {} : { sourceUrl: citation.sourceUrl }),
-    ...(citation.publishedDate === undefined ? {} : { publishedDate: citation.publishedDate }),
-  });
-}
-
-function compactInterventionsEvidenceBundle(
-  bundle: StudioRouteEvidenceBundle,
-): StudioInterventionsEvidenceBundle {
-  const citationKeys = new Set<string>();
-  for (const record of [
-    ...bundle.timeline,
-    ...bundle.interventions,
-    ...bundle.projects,
-    ...bundle.sourceGaps,
-  ]) {
-    for (const key of record.citationKeys) {
-      citationKeys.add(key);
-    }
-  }
-  const citations = bundle.citations
-    .filter((citation) => citationKeys.has(citation.key))
-    .map((citation) => compactInterventionsCitation(citation));
-
-  return decodeSchemaStrict(StudioInterventionsEvidenceBundleSchema, {
-    routeId: bundle.routeId,
-    routeSlug: bundle.routeSlug,
-    coverage: {
-      timelineCount: bundle.coverage.timelineCount,
-      interventionCount: bundle.coverage.interventionCount,
-      projectCount: bundle.coverage.projectCount,
-      sourceGapCount: bundle.coverage.sourceGapCount,
-      citationCount: citations.length,
-    },
-    timeline: bundle.timeline,
-    interventions: bundle.interventions,
-    projects: bundle.projects,
-    sourceGaps: bundle.sourceGaps,
-    citations,
-  });
-}
-
-function routeHasTimelineProjection(route: StudioRouteIndex2Row): boolean {
-  return route.projectionRefs.some(
-    (ref) => ref.id === "route_timeline" && ref.status === "available" && ref.path !== null,
-  );
-}
-
-async function loadCompactInterventionsEvidenceBundle(
-  env: StudioReadEnv & { ARTIFACTS: R2Bucket },
-  route: StudioRouteIndex3Row,
-  routeEvidenceIndex: StudioRouteEvidenceIndex | null,
-): Promise<{ ok: true; bundle: StudioInterventionsEvidenceBundle | null }> {
-  const key = studioRouteEvidenceBundleKey(route.slug);
-  const object = await loadReleaseArtifact(env, key);
-  if (object === null) return { ok: true, bundle: null };
-
-  let objectPayload: Awaited<ReturnType<typeof routeEvidenceObjectPayload>>;
-  try {
-    objectPayload = await routeEvidenceObjectPayload(object);
-  } catch {
-    console.error("Studio interventions evidence bundle is not valid JSON.", { key });
-    return { ok: true, bundle: null };
-  }
-
-  const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceBundleSchema, objectPayload.payload);
-  if (Result.isFailure(parsed)) {
-    console.error("Studio interventions evidence bundle failed contract validation.", {
-      key,
-      issues: schemaErrorIssues(parsed.failure),
-    });
-    return { ok: true, bundle: null };
-  }
-  try {
-    if (isRouteEvidenceBundleV2(parsed.success)) {
-      if (routeEvidenceIndex?.schemaVersion !== 2) {
-        throw new Error("Route evidence v2 bundle lacks a closed v2 index");
-      }
-      const indexRow = routeEvidenceIndexRowV2(routeEvidenceIndex, route.routeId);
-      if (indexRow === null) throw new Error("Route evidence v2 index row is missing");
-      assertStudioRouteEvidenceV2ServingClosure({
-        kind: "bundle",
-        index: routeEvidenceIndex,
-        indexRow,
-        expectedRoute: exactRouteEvidenceIdentityFromIndex(route),
-        artifactKey: key,
-        bundle: parsed.success,
-        byteLength: objectPayload.byteLength,
-        sha256: objectPayload.sha256,
-      });
-    } else if (
-      parsed.success.routeId !== route.routeId ||
-      parsed.success.routeSlug !== route.slug
-    ) {
-      throw new Error("Legacy route evidence identity mismatch");
-    }
-  } catch (error) {
-    console.error("Studio interventions evidence bundle failed contract validation.", {
-      key,
-      reason: error instanceof Error ? error.message : String(error),
-    });
-    return { ok: true, bundle: null };
-  }
-
-  return { ok: true, bundle: compactInterventionsEvidenceBundle(parsed.success) };
-}
-
-async function buildStudioInterventionsEvidenceResponse(
-  env: StudioReadEnv,
-): Promise<BuildStudioInterventionsEvidenceResponseResult> {
-  if (env.ARTIFACTS === undefined) {
-    return {
-      ok: false,
-      response: dependencyNotConfiguredResponse("ARTIFACTS", "Studio interventions evidence"),
-    };
-  }
-  const artifacts = env.ARTIFACTS;
-
-  const routeIndexResult = await buildStudioRouteIndex3Response(env);
-  if (!routeIndexResult.ok) return routeIndexResult;
-  const routeEvidenceIndex = closedRouteEvidenceIndex(await loadStudioRouteEvidenceIndex(env), () =>
-    exactRouteEvidenceIdentitiesFromIndex(routeIndexResult.routeIndex.routes),
-  );
-
-  const bundleResults = await Promise.all(
-    routeIndexResult.routeIndex.routes
-      .filter((route) => routeHasTimelineProjection(route))
-      .map((route) =>
-        loadCompactInterventionsEvidenceBundle(
-          { ...env, ARTIFACTS: artifacts },
-          route,
-          routeEvidenceIndex,
-        ),
-      ),
-  );
-  const bundles = bundleResults.flatMap((result) => {
-    if (result.bundle === null) return [];
-    return [result.bundle];
-  });
-
-  return {
-    ok: true,
-    evidence: decodeSchemaStrict(StudioInterventionsEvidenceResponseSchema, {
-      schemaVersion: 1,
-      generatedAt: routeIndexResult.routeIndex.generatedAt,
-      routeCount: bundles.length,
-      bundles,
-    }),
-  };
-}
-
 function projectionPath(
   env: StudioReadEnv,
   path: string,
@@ -2535,10 +2341,6 @@ const studioReadHandlers = {
   "studio.routeSections": async ({ env }) => {
     const result = await buildStudioRouteSectionsResponse(env);
     return result.ok ? studioJsonResponse(result.routeSections, env) : result.response;
-  },
-  "studio.interventionsEvidence": async ({ env }) => {
-    const result = await buildStudioInterventionsEvidenceResponse(env);
-    return result.ok ? studioJsonResponse(result.evidence, env) : result.response;
   },
   "studio.route": async ({ env, params }) => {
     const slug = routeSlug(params);
