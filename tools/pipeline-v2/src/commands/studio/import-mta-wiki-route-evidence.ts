@@ -3,6 +3,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { routeIdToStudioSlug, StudioRouteIdentityPresentationSchema } from "@bp/domain/studio";
 import {
+  buildStudioInterventionsEvidenceArtifact,
   type StudioRouteEvidenceArtifact,
   StudioRouteEvidenceArtifactV1Schema,
   StudioRouteEvidenceArtifactV2Schema,
@@ -786,7 +787,13 @@ export async function writeStudioRouteEvidenceServingArtifacts(input: {
   artifact: StudioRouteEvidenceArtifact;
   outputDir: string;
   sourceArtifactKey?: string | undefined;
-}): Promise<{ index: StudioRouteEvidenceIndex; indexPath: string; routeCount: number }> {
+  interventionsEvidenceIndexPath?: string | undefined;
+}): Promise<{
+  index: StudioRouteEvidenceIndex;
+  indexPath: string;
+  routeCount: number;
+  interventionsEvidenceIndexPath: string;
+}> {
   const routesDir = join(input.outputDir, "routes");
   await mkdir(routesDir, { recursive: true });
   assertInjectiveRouteServingIdentities(
@@ -850,7 +857,22 @@ export async function writeStudioRouteEvidenceServingArtifacts(input: {
         });
   const indexPath = join(input.outputDir, "index.json");
   await writeJson(indexPath, index);
-  return { index, indexPath, routeCount: routeRows.length };
+
+  // The citywide /interventions ledger reads this one artifact. It is built here,
+  // offline, because assembling it per request meant reading every route bundle.
+  const interventionsEvidenceIndexPath =
+    input.interventionsEvidenceIndexPath ??
+    resolve(input.outputDir, "..", "interventions", "evidence-index.json");
+  await mkdir(dirname(interventionsEvidenceIndexPath), { recursive: true });
+  await writeJson(
+    interventionsEvidenceIndexPath,
+    buildStudioInterventionsEvidenceArtifact({
+      generatedAt: input.artifact.generatedAt,
+      bundles: input.artifact.routes,
+    }),
+  );
+
+  return { index, indexPath, routeCount: routeRows.length, interventionsEvidenceIndexPath };
 }
 
 export function buildStudioRouteEvidenceArtifact(input: {

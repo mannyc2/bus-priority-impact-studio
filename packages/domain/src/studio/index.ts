@@ -226,7 +226,11 @@ export type {
   StudioInterventionsEvidenceBundle,
   StudioInterventionsEvidenceCitation,
   StudioInterventionsEvidenceCoverage,
+  StudioInterventionsEvidenceIntervention,
+  StudioInterventionsEvidenceProject,
   StudioInterventionsEvidenceResponse,
+  StudioInterventionsEvidenceSourceGap,
+  StudioInterventionsEvidenceTimelineEvent,
   StudioRouteCatalogParity,
   StudioRouteEvidenceArtifact,
   StudioRouteEvidenceArtifactV1,
@@ -251,6 +255,8 @@ export type {
   StudioRouteEvidenceTimelineEvent,
 } from "./route-evidence.js";
 export {
+  buildStudioInterventionsEvidenceArtifact,
+  compactInterventionsEvidenceBundle,
   emptyStudioRouteEvidenceBundle,
   STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
   STUDIO_ROUTE_EVIDENCE_CONTENT_TYPE,
@@ -350,6 +356,7 @@ export {
 } from "./route-intervention-inventory.js";
 export {
   interventionFacetIndexKey,
+  interventionsEvidenceIndexKey,
   routeInterventionInventoryBundleKey,
   routeInterventionInventoryIndexKey,
   routeInterventionInventoryReconciliationKey,

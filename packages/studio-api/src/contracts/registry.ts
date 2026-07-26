@@ -142,17 +142,6 @@ export const studioApiRoutes = [
     idempotency: noIdempotency,
   }),
   route({
-    id: "studio.interventionsEvidence",
-    operationId: "getStudioInterventionsEvidence",
-    method: "GET",
-    path: "/api/v1/studio/interventions/evidence",
-    tags: ["Studio"],
-    summary: "Return compact route evidence for the global interventions page.",
-    auth: publicAuth,
-    cache: publicStudioCache,
-    idempotency: noIdempotency,
-  }),
-  route({
     id: "studio.route",
     operationId: "getStudioRoute",
     method: "GET",

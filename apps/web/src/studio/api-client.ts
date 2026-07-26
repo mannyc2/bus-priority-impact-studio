@@ -15,6 +15,7 @@ import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key
 import { interventionObservationBundleKey } from "@bp/domain/studio/intervention-observations-key";
 import {
   interventionFacetIndexKey,
+  interventionsEvidenceIndexKey,
   routeInterventionInventoryBundleKey,
 } from "@bp/domain/studio/route-intervention-inventory-key";
 import {
@@ -160,7 +161,7 @@ export async function fetchStudioRouteIndex(options?: StudioQueryOptions) {
 
 export function fetchStudioInterventionsEvidence(options?: StudioQueryOptions) {
   return loadStudioJson<StudioInterventionsEvidenceResponse>(
-    studioPath("studio.interventionsEvidence"),
+    publicArtifactPath(interventionsEvidenceIndexKey()),
     options,
   );
 }

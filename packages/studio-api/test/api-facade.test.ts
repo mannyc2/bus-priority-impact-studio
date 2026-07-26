@@ -13,7 +13,6 @@ import {
 } from "@bp/domain/routes";
 import {
   STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
-  StudioInterventionsEvidenceResponseSchema,
   StudioRouteEvidenceBundleSchema,
 } from "@bp/domain/studio/route-evidence";
 import {
@@ -2394,7 +2393,6 @@ describe("Studio API facade", () => {
     };
 
     const timelineResponse = await fetchApi("/api/v1/studio/routes/m15-sbs/timeline", env);
-    const interventionsResponse = await fetchApi("/api/v1/studio/interventions/evidence", env);
 
     expect(timelineResponse.status).toBe(200);
     expect((await timelineResponse.json()) as unknown).toEqual(
@@ -2404,12 +2402,6 @@ describe("Studio API facade", () => {
         routeIdentity: expect.objectContaining({ displayLabel: "M15-SBS" }),
       }),
     );
-    expect(interventionsResponse.status).toBe(200);
-    const interventions = decodeStrict(StudioInterventionsEvidenceResponseSchema)(
-      await interventionsResponse.json(),
-    );
-    expect(interventions.routeCount).toBe(1);
-    expect(interventions.bundles[0]?.routeSlug).toBe("m15-sbs");
   });
 
   it("rejects route-evidence v2 when index and bundle agree on a forged D1 presentation", async () => {
@@ -2426,15 +2418,9 @@ describe("Studio API facade", () => {
       DB: createSparseStudioRouteDb() as unknown as D1Database,
     };
 
-    const timelineResponse = await fetchApi("/api/v1/studio/routes/m15-sbs/timeline", env);
-    const interventionsResponse = await fetchApi("/api/v1/studio/interventions/evidence", env);
+    const response = await fetchApi("/api/v1/studio/routes/m15-sbs/timeline", env);
 
-    expect(timelineResponse.status).toBe(502);
-    expect(interventionsResponse.status).toBe(200);
-    expect(
-      decodeStrict(StudioInterventionsEvidenceResponseSchema)(await interventionsResponse.json())
-        .routeCount,
-    ).toBe(0);
+    expect(response.status).toBe(502);
   });
 
   it("rejects route-evidence v2 when the served object hash differs from its index row", async () => {
@@ -2466,85 +2452,9 @@ describe("Studio API facade", () => {
       DB: createSparseStudioRouteDb() as unknown as D1Database,
     };
 
-    const timelineResponse = await fetchApi("/api/v1/studio/routes/m15-sbs/timeline", env);
-    const interventionsResponse = await fetchApi("/api/v1/studio/interventions/evidence", env);
+    const response = await fetchApi("/api/v1/studio/routes/m15-sbs/timeline", env);
 
-    expect(timelineResponse.status).toBe(502);
-    expect(interventionsResponse.status).toBe(200);
-    expect(
-      decodeStrict(StudioInterventionsEvidenceResponseSchema)(await interventionsResponse.json())
-        .routeCount,
-    ).toBe(0);
-  });
-
-  it("serves compact MTA-wiki route evidence for the interventions page", async () => {
-    const env = {
-      ...createStudioProjectionEnv(),
-      DB: createSparseStudioRouteDb() as unknown as D1Database,
-    };
-
-    const response = await fetchApi("/api/v1/studio/interventions/evidence", env);
-
-    expect(response.status).toBe(200);
-    const evidence = decodeStrict(StudioInterventionsEvidenceResponseSchema)(await response.json());
-    expect(evidence.routeCount).toBe(1);
-    expect(evidence.bundles).toHaveLength(1);
-    const bundle = evidence.bundles[0];
-    expect(bundle).toBeDefined();
-    if (bundle === undefined) return;
-    expect(bundle.routeSlug).toBe("m15-sbs");
-    expect(Object.keys(bundle)).not.toContain("metricClaims");
-    expect(bundle.timeline[0]?.recordId).toBe("event_m15_sbs_launch");
-    expect(bundle.interventions[0]?.recordId).toBe("treatment_m15_bus_lane");
-    expect(bundle.sourceGaps[0]?.recordId).toBe("gap_m15_before_after");
-    expect(bundle.citations).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          key: "m15_sbs_report#block-1",
-          sourceTitle: "M15 SBS report",
-          publisher: "NYC DOT",
-          sourceUrl: "https://example.test/m15-sbs-report",
-        }),
-      ]),
-    );
-    expect(Object.keys(bundle.citations[0] ?? {})).not.toContain("sourcePath");
-    expect(Object.keys(bundle.citations[0] ?? {})).not.toContain("blockId");
-  });
-
-  it("skips malformed route evidence bundles when building interventions evidence", async () => {
-    const env = {
-      ...createStudioProjectionEnv({
-        extraArtifacts: {
-          "studio/v2/wiki/routes/b99.json": new FakeR2Object("not json", "application/json"),
-        },
-      }),
-      DB: createSparseStudioRouteDb({
-        routeArtifacts: [
-          {
-            route_id: "M15+",
-            month: "2026-03",
-            artifact_name: "brief.json",
-          },
-          {
-            route_id: "M15+",
-            month: "2026-03",
-            artifact_name: "route_evidence",
-          },
-          {
-            route_id: "B99",
-            month: "2026-03",
-            artifact_name: "route_evidence",
-          },
-        ],
-      }) as unknown as D1Database,
-    };
-
-    const response = await fetchApi("/api/v1/studio/interventions/evidence", env);
-
-    expect(response.status).toBe(200);
-    const evidence = decodeStrict(StudioInterventionsEvidenceResponseSchema)(await response.json());
-    expect(evidence.routeCount).toBe(1);
-    expect(evidence.bundles.map((bundle) => bundle.routeSlug)).toEqual(["m15-sbs"]);
+    expect(response.status).toBe(502);
   });
 
   it("serves a typed empty MTA-wiki route evidence bundle for routes without evidence", async () => {

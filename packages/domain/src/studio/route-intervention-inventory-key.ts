@@ -12,6 +12,10 @@ export function interventionFacetIndexKey(): string {
   return "studio/v2/interventions/facet-index.json";
 }
 
+export function interventionsEvidenceIndexKey(): string {
+  return "studio/v2/interventions/evidence-index.json";
+}
+
 export function routeInterventionInventoryReconciliationKey(): string {
   return "studio/v2/interventions/route-inventory-reconciliation.json";
 }

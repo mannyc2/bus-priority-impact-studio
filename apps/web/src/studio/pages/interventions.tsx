@@ -29,13 +29,13 @@ import type {
   StudioInterventionFacetIndex,
   StudioInterventionFacetIndexRow,
   StudioInterventionsEvidenceBundle,
+  StudioInterventionsEvidenceIntervention,
+  StudioInterventionsEvidenceProject,
+  StudioInterventionsEvidenceSourceGap,
+  StudioInterventionsEvidenceTimelineEvent,
   StudioInterventionTreatmentFamily,
   StudioRoute,
   StudioRouteEvidenceBundle,
-  StudioRouteEvidenceIntervention,
-  StudioRouteEvidenceProject,
-  StudioRouteEvidenceSourceGap,
-  StudioRouteEvidenceTimelineEvent,
   StudyIndexArtifact,
   StudyIndexRow,
 } from "../api-contract.js";
@@ -897,7 +897,7 @@ function wikiInterventionRows(
 function wikiTimelineRow(
   route: StudioRoute,
   evidence: InterventionEvidenceBundle,
-  event: StudioRouteEvidenceTimelineEvent,
+  event: StudioInterventionsEvidenceTimelineEvent,
 ): InterventionRow {
   const year = event.dateNormalized ?? event.dateText ?? "undated";
   const planLabel = sourcePlanLabel(evidence, event.citationKeys);
@@ -925,7 +925,7 @@ function wikiTimelineRow(
 function wikiTreatmentRow(
   route: StudioRoute,
   evidence: InterventionEvidenceBundle,
-  intervention: StudioRouteEvidenceIntervention,
+  intervention: StudioInterventionsEvidenceIntervention,
 ): InterventionRow {
   const planLabel = sourcePlanLabel(evidence, intervention.citationKeys);
   return {
@@ -949,7 +949,7 @@ function wikiTreatmentRow(
   };
 }
 
-function wikiTreatmentDescription(intervention: StudioRouteEvidenceIntervention): string {
+function wikiTreatmentDescription(intervention: StudioInterventionsEvidenceIntervention): string {
   if (intervention.description !== null) return intervention.description;
   const locations = intervention.locations.join(", ");
   return locations.length > 0 ? locations : "Source-backed treatment.";
@@ -958,7 +958,7 @@ function wikiTreatmentDescription(intervention: StudioRouteEvidenceIntervention)
 function wikiProjectRow(
   route: StudioRoute,
   evidence: InterventionEvidenceBundle,
-  project: StudioRouteEvidenceProject,
+  project: StudioInterventionsEvidenceProject,
 ): InterventionRow {
   const planLabel = sourcePlanLabel(evidence, project.citationKeys) ?? project.projectName;
   return {
@@ -997,7 +997,7 @@ function sourcePlanLabel(
 function wikiSourceGapRow(
   route: StudioRoute,
   evidence: InterventionEvidenceBundle,
-  gap: StudioRouteEvidenceSourceGap,
+  gap: StudioInterventionsEvidenceSourceGap,
 ): InterventionRow {
   return {
     key: `${route.slug}:wiki-source-gap:${gap.recordId}`,
