@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State**: IN PROGRESS
+- **State**: DONE
 - **Priority**: P0
 - **Effort**: M-L
 - **Depends on**: Plans 085-087 and 095 (DONE); Plan 096 is unrelated
@@ -718,39 +718,68 @@ remains **IN PROGRESS** and Plan 098 remains TODO.
 
 ## Acceptance criteria
 
-- [ ] The production database is preserved; protected live-write/current-signal
+- [x] The production database is preserved; protected live-write/current-signal
       tables are neither seeded nor restored by Plan 097.
-- [ ] Production schema is audited by exact columns/indexes and the legacy
+- [x] Production schema is audited by exact columns/indexes and the legacy
       migration ledger is recorded but never altered.
-- [ ] Generated aggregate `schema.sql` and canonical migrations 0000-0034 are
+- [x] Generated aggregate `schema.sql` and canonical migrations 0000-0034 are
       never executed against populated production.
-- [ ] The only allowed schema recovery is a tested, idempotent exact 0033
+- [x] The only allowed schema recovery is a tested, idempotent exact 0033
       table/index reconciliation after a fail-closed pre-audit.
-- [ ] Every candidate carries a collision-guarded exact-route registry row and
+- [x] Every candidate carries a collision-guarded exact-route registry row and
       schema-v3 never reuses or fabricates Plan 095 identity.
-- [ ] Every artifact strict-decodes, uses an immutable recovery-manifest key,
+- [x] Every artifact strict-decodes, uses an immutable recovery-manifest key,
       and is uploaded/hash-verified without changing old stable aliases; the
       active old release is byte-identical throughout staging.
-- [ ] Candidate serving rows, exact/map registrations, and activation commit in
+- [x] Candidate serving rows, exact/map registrations, and activation commit in
       one remotely proven D1 transaction; injected failure commits nothing.
-- [ ] Every remote mutation uses the single protected `publish recovery`
+- [x] Every remote mutation uses the single protected `publish recovery`
       CLI/Worker path; the operation accepts hashes/IDs rather than arbitrary
       SQL, and its production access is disabled after closure.
-- [ ] The exact production-sized disposable A→B→A proof shows atomic selective
+- [x] The exact production-sized disposable A→B→A proof shows atomic selective
       rollback restores only generated serving tables and the old release
       passes smoke without R2 restoration or rewinding user state; production
       uses that rollback only as a failed-smoke contingency.
-- [ ] Production serves the freshness-derived candidate, including non-null
+- [x] Production serves the freshness-derived candidate, including non-null
       dossier and map data, with truthful dataset-specific evidence in receipt.
-- [ ] The durable receipt reports actual mutations, bytes, costs, hashes, and
+- [x] The durable receipt reports actual mutations, bytes, costs, hashes, and
       HTTP evidence without secrets or personal data.
-- [ ] A durable production HTTP baseline exists before the first remote
+- [x] A durable production HTTP baseline exists before the first remote
       mutation and post-activation compares against it. If production
       contingency rollback runs, its receipt also compares against that
       baseline; the required disposable A→B→A proof compares against its own
       proof-environment baseline.
-- [ ] The signed read-only preflight schema/live-surface receipt exists even on
+- [x] The signed read-only preflight schema/live-surface receipt exists even on
       the atomic-limit STOP branch and is consumable by Plan 098.
+
+## Completion receipt
+
+Plan 097 completed on 2026-07-26 with
+`pub_20260725T164123260Z` active. The signed preflight SHA-256 is
+`f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6`;
+the disposable A→B→A proof-summary SHA-256 is
+`d5929c591580c540366fe30caac9b9270ca5c3bae687c4d4e92762043174edd2`;
+and the production completion receipt is:
+
+- key:
+  `operations/plan097/completion/pub_20260725T164123260Z/completion.c1758c865745c9eae47df3bc15c0e288ce69f6b988f4cb9e3e35e380ed1ff8af.json`;
+- SHA-256:
+  `c1758c865745c9eae47df3bc15c0e288ce69f6b988f4cb9e3e35e380ed1ff8af`;
+- bytes: 17,821;
+- outcome: `active`.
+
+Official runs `30180085025`, `30180351221`, and `30180632361` bind the
+preflight, proof, and activation respectively. Production contingency
+rollback was not invoked. Independent public verification confirmed 375 exact
+routes, distinct `B44`/`B44-SBS`, an active map manifest, and representative
+geometry matching its manifest hash. The one-time Workers, Access
+applications/policies, service token, workflows, and GitHub secrets were
+retired after closure.
+
+The complete evidence index, Actions artifact digests, HTTP phase summaries,
+and retained-resource boundary are recorded in
+`docs/research/reviews/plan097/release-closure-attestation.md`. Plan 098 owns
+all later artifact/schema cutovers.
 
 ## Verification
 
