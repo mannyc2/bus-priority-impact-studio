@@ -80,6 +80,31 @@ What the audit measured on the live deployment, 2026-07-24:
 - the 7 routes with a published study and the 12 routes with a source-cited
   evidence bundle are **disjoint sets**.
 
+> **Re-measured 2026-07-26 against release `pub_20260725T164123260Z`.** The
+> bullets above are the audit as taken on 2026-07-24 and are kept as the dated
+> record; Plan 097's production catch-up republished serving on 2026-07-25 and
+> moved most of them. Do not plan against the 2026-07-24 numbers.
+>
+> - The route projection now carries 500 intervention records over 293 of 389
+>   routes, 96 with none — was 569 over 323 with 66 empty.
+> - Routes running on a street with a bus lane went from 11 in 2007 to **293**,
+>   not 323; camera enforcement reaches **54**, not 58; Select Bus Service is
+>   flat at **30 since 2019**, not 36 since 2017; signal priority is flat at
+>   **3 since 2013**, not 4. The full regenerated series is in
+>   `plans/104-network-change-record.md`.
+> - The published study index holds **5** studies, 3 matched and 2 descriptive,
+>   with 1 `worsened`, 4 `no_detectable_change` and **no `improved` study** —
+>   was 7 studies, 2 improved.
+> - **The disjointness bullet is now false.** The schema-3 route index carries
+>   375 routes and every one of them has an `available` `route_timeline`
+>   projection, so evidence is no longer a 12-route sample. All five study
+>   routes carry substantial evidence bundles: `bx28` and `bx38` 20 timeline
+>   rows and 53 citations each, `bx9` 56 and 152, `m79-sbs` 63 and 246,
+>   `b82-sbs` 79 and 258. Any plan that assumes study routes and evidence
+>   routes cannot overlap needs re-reading.
+> - The reviewed corpus is unchanged: 310 records, 248 proposed across 22 source
+>   plans.
+
 ## Execution order & status (gen 18)
 
 | Plan | Title | Priority | Effort | Depends on | Status |
@@ -106,13 +131,29 @@ REJECTED (with one-line rationale)
   route-intervention inventory (`studio/v2/routes/<slug>/intervention-inventory.json`,
   `studio/v2/interventions/route-inventory-index.json`,
   `studio/v2/interventions/facet-index.json`) and the Plan 090 observation
-  bundles all return HTTP 404 in production. The exporters exist and Plan 091
-  is DONE; the artifacts have never been exported and published. Until they
-  are, the `/interventions` Kind filter stays disabled, Overview shows no
-  markers, and route history has no typed inventory. None of plans 102-105 is
-  blocked by this — every one degrades honestly — but publishing them is the
-  single highest-value data operation available, and it belongs to the
-  generation-17 publication work.
+  bundles all return **HTTP 500**, not 404, verified 2026-07-26:
+  `{"error":{"code":"INTERNAL","message":"Internal error."}}`. The exporters
+  exist and Plan 091 is DONE; the artifacts have never been exported and
+  published. Until they are, the `/interventions` Kind filter stays disabled,
+  Overview shows no markers, and route history has no typed inventory. None of
+  plans 102-105 is blocked by this — every one degrades honestly — but
+  publishing them is the single highest-value data operation available, and it
+  belongs to the generation-17 publication work.
+- **A missing artifact is not distinguishable by status code.** The 500 above is
+  the generic Worker envelope, and an ordinary absent artifact returns it too:
+  `.../routes/bx41/studies.json` → 500 while `.../routes/bx28/studies.json` →
+  200. No frontend code may branch on the status code to decide whether an
+  artifact exists; treat any non-200 as unavailable and degrade. Repairing the
+  envelope so absence returns 404 is Plan 031's territory and has not landed.
+- **`GET /api/v1/studio/interventions/evidence` is down**, verified 2026-07-26:
+  HTTP 503 with Cloudflare error 1102, the Worker resource limit, reproducibly
+  over a minute of retries. This is the citywide evidence fetch on the
+  `/interventions` loader. It fails closed — the loader catches it and renders
+  the ledger from route records only — so the page is honest but its wiki rows
+  are missing in production. The per-route
+  `GET /api/v1/studio/routes/:routeId/timeline` is healthy and returns 200 with
+  full bundles, so this is a fan-out cost problem in the citywide handler, not
+  missing data. It belongs to its own plan.
 - Frontend plans 103 and 104 are comp-gated. Their approved comps are
   `plans/mockups/103-route-change-chronology/route-history-comp.html` and
   `plans/mockups/104-network-change-record/interventions-comp.html`; each

@@ -81,8 +81,13 @@ reintroduce them.**
 `apps/web/src/components/route/intervention-trend-model.ts`, which returns
 markers only when **both** the Plan 090 observation bundle and the Plan 091
 inventory bundle decode and agree on release identity (`:76-94`). Both artifacts
-return HTTP 404 in production as of 2026-07-24 — they are built but have never
-been exported — so `dossierFallback` runs and `markers` is always empty.
+are unavailable in production — they are built but have never been exported — so
+`dossierFallback` runs and `markers` is always empty. They return **HTTP 500**,
+not the 404 this plan was written against (verified 2026-07-26 against release
+`pub_20260725T164123260Z`): `{"error":{"code":"INTERNAL","message":"Internal
+error."}}`. The generic envelope means absence is not distinguishable from
+failure by status code — an ordinary absent artifact returns 500 too — so this
+plan must keep treating any non-200 as unavailable and must never branch on 404.
 
 That is the correct fail-closed behaviour and this plan does not change it.
 This plan makes the markers *link* when they do render. Until the artifacts are
@@ -360,8 +365,8 @@ Stop and report back (do not improvise) if:
 
 - Overview's markers will show nothing until the Plan 091 route-intervention
   inventory and the Plan 090 observation bundles are exported and published;
-  both return HTTP 404 today. That is a data-publication task, not a UI bug,
-  and it is recorded as a prerequisite in `plans/README.md`. This plan's
+  both return HTTP 500 today, not 404. That is a data-publication task, not a
+  UI bug, and it is recorded as a prerequisite in `plans/README.md`. This plan's
   Overview work is deliberately verified by unit test.
 - The segment tag is the only treatment fact allowed at segment grain, because
   lane coverage is the only one with real within-route variance. A reviewer
