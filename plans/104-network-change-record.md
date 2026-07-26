@@ -38,13 +38,14 @@ of 30, of which 61% come from 12 of 389 routes and 366 are exact duplicates. A
 reader cannot learn from it what the city has been doing.
 
 The data can answer it directly. The route projection the page already loads
-carries 569 dated intervention records across 389 routes, and reducing them to
+carries 500 dated intervention records across 389 routes, and reducing them to
 "routes first reached by each kind of treatment, by year" produces the strongest
-object in the dataset. Measured on 2026-07-24: routes running on a street with a
-bus lane went from 11 in 2007 to 323 today, 95 of them added in 2025 alone;
-camera enforcement did not exist before 2019 and now reaches 58 routes; and two
-programmes have stopped — Select Bus Service has not reached a new route since
-2017 and signal priority has stood at 4 routes since 2013.
+object in the dataset. Measured on 2026-07-26 against release
+`pub_20260725T164123260Z`: routes running on a street with a bus lane went from
+11 in 2007 to 293 today, 85 of them added in 2025 alone; camera enforcement did
+not exist before 2019 and now reaches 54 routes; and two programmes have
+stopped — Select Bus Service has not reached a new route since 2019 and signal
+priority has stood at 3 routes since 2013.
 
 The flat lines are the reason a governance reader forwards the page. Nothing
 about that finding is authored: it falls out of the data, and it puts an
