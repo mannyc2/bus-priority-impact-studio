@@ -80,6 +80,73 @@ Plan 090 owns the supported binding and Plan 092 owns the annotation stem.
 History prose, values, study outcomes, and family-name equivalence never admit
 or label a marker.
 
+## Route History is a change chronology — 2026-07-24 (approved comp)
+
+The operator approved plan 103's concept and all five recommended decisions.
+`plans/mockups/103-route-change-chronology/route-history-comp.html` is the
+binding acceptance target. The durable decision, which later plans must not
+re-litigate:
+
+> **The tense rule.** If it has a date, it is history. If it is a condition, it
+> belongs to the metric that measures it.
+
+So current-state inventory left the History tab (Overview's treatment badges
+and the map keep it), and History earns its place by showing the one thing no
+metric tab can: that changes have **order, duration and overlap**. The tab is
+three parts — Standing (one sentence composed from typed fields, plus chips),
+the chronology (a faint speed line for context, one band per dated change, a
+hatched region wherever two or more bands intersect, and one disclosure holding
+every milestone that is not a change), and the changes (one entry each).
+
+Rejected in comp round 1 and not to be reintroduced: a route strip duplicating
+the map, a separate sources index, a section narrating our own epistemics,
+interpunct metadata chains, and any sentence explaining the data model. The
+audience for every visible string is a non-technical MTA governance reader, so
+`source_gap`, `occurrence`, `registry`, `bundle`, `coverage state` and
+`record kind` never render.
+
+### The five evidence states
+
+Every change carries exactly one, selected **value-blind** in this fixed order.
+No state may ever be chosen by looking at an estimate's magnitude, sign or
+significance.
+
+| State | Headline | Body sentence |
+|---|---|---|
+| `study`, matched | the approved study card (comp 075 anatomy) | `Compared with matched control segments.` |
+| `study`, descriptive | the approved descriptive card | `Before and after this change, without a control comparison.` |
+| `peer_adjusted` | the signed delta, muted and unlinked | `Compared with similar routes. Not a controlled result.` |
+| `confounded` | `Cannot be separated` | `{n} other changes landed on this route at the same time: {titles}.` |
+| `too_early` | `Too early to say` | `{n} months of data since this change.` |
+| `no_product` | `Nothing to measure it with` | one sentence per `NoProductReason` |
+
+`NoProductReason` sentences: `intersection_grain` — "We hold speeds by road
+segment and by route, not by intersection."; `stop_grain` — the same by
+individual stop; `no_speed_record` — "Our speed record starts in {year}, after
+this change."; `route_scope_mismatch` — "This change covers part of the route,
+so a route-wide average would not show it."; `not_yet_specified` — "We have not
+yet defined how to measure this kind of change."
+
+`study` is admitted only from the published per-route studies artifact, joined
+on the registry event id, and only when the study's `routeId` equals the page's
+exact route. Adding a state must fail an exhaustiveness test until it has
+display copy.
+
+### Overlap is a public claim
+
+`confounded` is computed from `changeDatesOverlap` over dated changes, grouped
+into maximal clusters. Anything that changes date parsing changes which changes
+are reported as inseparable, so a reviewer must treat a parser change and an
+overlap change as the same review.
+
+**Open at plan 103 landing:** measured against live `v1-rc28` route evidence,
+cluster sizes reach 127 of 151 dated changes on `q52-sbs` and 28 of 32 on
+`bx41`. The cause is not year-precision intervals swallowing the record — it is
+record multiplicity, many wiki records describing one real change on one exact
+date (63 records dated `2025-06-29` on `q52-sbs`). Bounding or de-duplicating
+that set is an operator decision, recorded here so it is not silently resolved
+by an implementer.
+
 ## Study-card / chart-card rules — 2026-07-10 (approved comp)
 
 The operator approved plan 075's study-card design through three comp review
