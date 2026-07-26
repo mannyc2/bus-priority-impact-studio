@@ -85,14 +85,26 @@ jobs:
             bus-priority-plan097-proof \
             bus-priority-plan097-activation
           do
+            set +e
             bunx wrangler deployments status \
               --name "$worker" \
               --json \
-              > "$output_dir/$worker.pre.json"
-            jq -e '.versions | length > 0' "$output_dir/$worker.pre.json" > /dev/null
-            pre_status=present
-            bunx wrangler delete "$worker" --force
-            delete_status=deleted
+              > "$output_dir/$worker.pre.json" \
+              2> "$output_dir/$worker.pre.log"
+            pre_exit="$?"
+            set -e
+            if [ "$pre_exit" -eq 0 ]; then
+              jq -e '.versions | length > 0' "$output_dir/$worker.pre.json" > /dev/null
+              pre_status=present
+              rm "$output_dir/$worker.pre.log"
+              bunx wrangler delete "$worker" --force
+              delete_status=deleted
+            else
+              grep -Eq 'does not exist|code: 10007' "$output_dir/$worker.pre.log"
+              rm "$output_dir/$worker.pre.log"
+              pre_status=absent
+              delete_status=already_absent
+            fi
             set +e
             bunx wrangler deployments status \
               --name "$worker" \
@@ -102,6 +114,7 @@ jobs:
             post_exit="$?"
             set -e
             test "$post_exit" -ne 0
+            grep -Eq 'does not exist|code: 10007' "$output_dir/$worker.post.log"
             rm "$output_dir/$worker.post.log"
             post_status=absent
             workers="$(
