@@ -25,6 +25,8 @@ const marker = {
   eventIds: ["event-1", "event-2"],
   occurrenceIds: ["occurrence-1", "occurrence-2"],
   treatmentIds: ["treatment-1", "treatment-2"],
+  // The chart draws the label only; it never reads the history anchor.
+  recordAnchorId: null,
 } satisfies TrendMarker;
 
 describe("SpeedTrend chart model", () => {
