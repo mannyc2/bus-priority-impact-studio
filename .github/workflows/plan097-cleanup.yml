@@ -85,25 +85,25 @@ jobs:
             bus-priority-plan097-proof \
             bus-priority-plan097-activation
           do
-            api_call "$CLOUDFLARE_API_TOKEN" GET "workers/services/$worker"
-            pre_status="$API_STATUS"
-            if [ "$pre_status" = 200 ]; then
-              jq -e '.success == true' "$API_RESPONSE_FILE" > /dev/null
-              rm "$API_RESPONSE_FILE"
-              api_call "$CLOUDFLARE_API_TOKEN" DELETE "workers/services/$worker"
-              delete_status="$API_STATUS"
-              require_success
-              rm "$API_RESPONSE_FILE"
-            elif [ "$pre_status" = 404 ]; then
-              delete_status=already_absent
-              rm "$API_RESPONSE_FILE"
-            else
-              require_success
-            fi
-            api_call "$CLOUDFLARE_API_TOKEN" GET "workers/services/$worker"
-            post_status="$API_STATUS"
-            rm "$API_RESPONSE_FILE"
-            test "$post_status" = 404
+            bunx wrangler deployments status \
+              --name "$worker" \
+              --json \
+              > "$output_dir/$worker.pre.json"
+            jq -e '.versions | length > 0' "$output_dir/$worker.pre.json" > /dev/null
+            pre_status=present
+            bunx wrangler delete "$worker" --force
+            delete_status=deleted
+            set +e
+            bunx wrangler deployments status \
+              --name "$worker" \
+              --json \
+              > "$output_dir/$worker.post.json" \
+              2> "$output_dir/$worker.post.log"
+            post_exit="$?"
+            set -e
+            test "$post_exit" -ne 0
+            rm "$output_dir/$worker.post.log"
+            post_status=absent
             workers="$(
               jq -c \
                 --arg name "$worker" \
