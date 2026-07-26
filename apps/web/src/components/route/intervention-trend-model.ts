@@ -1,5 +1,8 @@
 import type { TrendPoint } from "@/components/route/route-derived";
-import { interventionPresentationForTreatment } from "@/components/route/route-intervention-model";
+import {
+  interventionPresentationForTreatment,
+  treatmentRecordAnchorId,
+} from "@/components/route/route-intervention-model";
 import type {
   StudioRouteInterventionInventoryBundle,
   StudioRouteInterventionObservationBundle,
@@ -24,6 +27,8 @@ export type TrendMarker = {
   eventIds: readonly string[];
   occurrenceIds: readonly string[];
   treatmentIds: readonly string[];
+  /** History anchor for the change this marker sits on, or null when unresolvable. */
+  recordAnchorId: string | null;
 };
 
 export type RouteSpeedTrendModel = {
@@ -174,6 +179,8 @@ export function routeSpeedInterventionTrend(
       eventIds,
       occurrenceIds,
       treatmentIds,
+      recordAnchorId:
+        occurrenceIds[0] === undefined ? null : treatmentRecordAnchorId(occurrenceIds[0]),
     };
   });
   const cap = Math.max(0, Math.floor(markerCap));

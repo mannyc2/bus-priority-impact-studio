@@ -286,6 +286,22 @@ export function laneReadoutLine(lane: StudioSegment["lane"]): string {
   return `Along a DOT bus-lane street — ${LANE_PHRASE[lane]} (proximity)`;
 }
 
+/** Lane coverage is the one treatment fact with real within-route variance, so
+ * it is the only one a segment row may carry (plan 105). The tag itself is
+ * dateless: the year belongs to the change entry its link opens.
+ *
+ * This module is in the initial bundle (`routes/$routeId.tsx` imports
+ * `validateRouteDetailSearch` eagerly), so the tag lives here as a bare string
+ * and the anchor lookup that needs the treatment vocabulary stays in
+ * `route-change-chronology.ts`. */
+export const SEGMENT_LANE_TAG = "In the bus lane";
+
+/** Only real coverage earns the tag. `minimal` and `none` are proximity noise
+ * and get nothing; no other treatment may tag a segment row. */
+export function segmentCarriesLaneTag(lane: StudioSegment["lane"]): boolean {
+  return lane === "yes" || lane === "partial";
+}
+
 /** De-month captions (ADR-0022): identity is coverage, so the section sub
  * reads "coverage through <Month YYYY>" from the latest covered month of the
  * serving responses. One call site per surface. */

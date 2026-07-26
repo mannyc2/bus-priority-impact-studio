@@ -1,10 +1,15 @@
 import type { MapBusLaneFeatureCollection, MapManifestResponse } from "@bp/domain/maps";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FilterChips } from "@/components/FilterChips";
 import { HourBars } from "@/components/HourBars";
 import { BUS_LANE_COLOR } from "@/components/route/network-map-model";
 import { RouteMapLibre } from "@/components/route/RouteMapLibre";
-import { averageHourlySpeed } from "@/components/route/route-derived";
+import {
+  busLaneChangeAnchor,
+  routeChangeChronology,
+} from "@/components/route/route-change-chronology";
+import { averageHourlySpeed, dossierSpeedPoints } from "@/components/route/route-derived";
 import {
   chartHoursFromHourlyProfile,
   hourProfileSource,
@@ -28,6 +33,8 @@ import {
   rankSegmentsSlowestFirst,
   resolvePinnedSegment,
   routeDetailSearchEquals,
+  SEGMENT_LANE_TAG,
+  segmentCarriesLaneTag,
   visibleSegments,
 } from "@/components/route/route-segment-explorer";
 import {
@@ -41,7 +48,13 @@ import { SectionCard } from "@/components/SectionCard";
 import { SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { Spark } from "@/components/Spark";
 import { currentMapBusLaneArtifact, fetchMapBusLanes, fetchMapManifest } from "@/studio/api-client";
-import type { StudioRouteDetailResponse, StudioSegment } from "@/studio/api-contract";
+import type {
+  RouteStudiesArtifact,
+  StudioRouteDetailResponse,
+  StudioRouteEvidenceBundle,
+  StudioRouteInterventionInventoryBundle,
+  StudioSegment,
+} from "@/studio/api-contract";
 
 const SPEED_BAND = (mph: number | null): string =>
   mph === null
@@ -195,11 +208,17 @@ export function SegmentExplorerSection({
   data,
   search,
   onSearchChange,
+  evidence = null,
+  inventory = null,
+  studies = null,
   mapOnly = false,
 }: {
   data: StudioRouteDetailResponse;
   search: RouteDetailSearch;
   onSearchChange: (search: RouteDetailSearch, replace: boolean) => void;
+  evidence?: StudioRouteEvidenceBundle | null;
+  inventory?: StudioRouteInterventionInventoryBundle | null;
+  studies?: RouteStudiesArtifact | null;
   mapOnly?: boolean;
 }) {
   const { route, segments } = data;
@@ -212,6 +231,20 @@ export function SegmentExplorerSection({
   const hourlyProfile = useRouteHourlyProfile(route.slug);
   const geo = useRouteSegmentsGeo(route.routeId);
   const routeFact = useRouteFactEvidence(data);
+  // Same chronology History renders, so a segment link never opens an anchor
+  // that surface does not mint.
+  const laneChangeAnchor = useMemo(() => {
+    const speedPoints = dossierSpeedPoints(data.dossier);
+    return busLaneChangeAnchor(
+      routeChangeChronology({
+        route,
+        evidence,
+        inventory,
+        studies,
+        trendMonths: speedPoints.flatMap((point) => (point.value === null ? [] : [point.month])),
+      }),
+    );
+  }, [route, evidence, inventory, studies, data.dossier]);
   const routeLaneEligibility =
     routeFact.status === "pending"
       ? "pending"
@@ -506,7 +539,12 @@ export function SegmentExplorerSection({
             <p className="m-0 border-t border-[var(--bp-color-rule)] px-3 pt-2 text-[10.5px] text-[var(--bp-color-ink-55)]">
               Interactive route segment map; use the segment list for the same values and selection.
             </p>
-            <SegmentSpeedLegend periodLabel={activePeriodLabel} showLanes={showLanes} />
+            <SegmentSpeedLegend
+              periodLabel={activePeriodLabel}
+              showLanes={showLanes}
+              routeSlug={route.slug}
+              laneChangeAnchor={laneChangeAnchor}
+            />
             {lanes.status === "unavailable" && hasLaneEvidence ? (
               <p className="m-0 px-3 py-2 text-[11px] text-[var(--bp-color-ink-55)]">
                 {lanes.reason}
@@ -525,6 +563,7 @@ export function SegmentExplorerSection({
             periodLabel={activePeriodLabel}
             historicalActive={historicalActive}
             routeFact={routeFact}
+            laneChangeAnchor={laneChangeAnchor}
             onClear={() => pin(null)}
           />
         </div>
@@ -577,9 +616,13 @@ function daypartLabel(daypart: ExplorerDaypart | undefined): string {
 function SegmentSpeedLegend({
   periodLabel,
   showLanes,
+  routeSlug,
+  laneChangeAnchor,
 }: {
   periodLabel: string;
   showLanes: boolean;
+  routeSlug: string;
+  laneChangeAnchor: string | null;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 font-mono text-[9.5px] text-[var(--bp-color-ink-55)]">
@@ -605,6 +648,16 @@ function SegmentSpeedLegend({
         <span className="inline-flex items-center gap-1">
           <i className="h-[4px] w-4" style={{ background: BUS_LANE_COLOR }} aria-hidden />
           NYC DOT published bus-lane geometry
+          {laneChangeAnchor === null ? null : (
+            <Link
+              to="/routes/$routeId"
+              params={{ routeId: routeSlug }}
+              search={{ tab: "history" as const, record: laneChangeAnchor }}
+              className="text-[var(--bp-color-accent)] no-underline"
+            >
+              What changed
+            </Link>
+          )}
         </span>
       ) : null}
     </div>
@@ -767,6 +820,7 @@ function SegmentReadout({
   periodLabel,
   historicalActive,
   routeFact,
+  laneChangeAnchor,
   onClear,
 }: {
   route: StudioRouteDetailResponse["route"];
@@ -780,6 +834,7 @@ function SegmentReadout({
   periodLabel: string;
   historicalActive: boolean;
   routeFact: RouteFactEvidenceState;
+  laneChangeAnchor: string | null;
   onClear: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -810,10 +865,30 @@ function SegmentReadout({
     : active !== null
       ? "Previewing — click to pin."
       : "Pin a segment for its 36-month speed history.";
+  // The row itself is a button, so the lane tag stays plain text there and its
+  // link lives here instead (plan 105 step 2 fallback).
+  const laneTagged = active !== null && segmentCarriesLaneTag(active.lane);
   const contextLine =
-    active === null
-      ? `${segments.length} timepoint segments, all directions`
-      : laneReadoutLine(active.lane);
+    active === null ? (
+      `${segments.length} timepoint segments, all directions`
+    ) : (
+      <>
+        {laneReadoutLine(active.lane)}
+        {laneTagged && laneChangeAnchor !== null ? (
+          <>
+            {" "}
+            <Link
+              to="/routes/$routeId"
+              params={{ routeId: route.slug }}
+              search={{ tab: "history" as const, record: laneChangeAnchor }}
+              className="text-[var(--bp-color-accent)] no-underline"
+            >
+              What changed
+            </Link>
+          </>
+        ) : null}
+      </>
+    );
 
   const availableRouteSpeeds = [...displaySpeeds.values()].filter(
     (speed): speed is number => speed !== null,
@@ -1103,6 +1178,11 @@ function SegmentTable({
               <span className="ml-2 hidden rounded-[2px] bg-[var(--bp-color-ink-06)] px-1 py-0.5 font-mono text-[9px] font-bold text-[var(--bp-color-ink-55)] max-md:inline">
                 {segment.direction}
               </span>
+              {segmentCarriesLaneTag(segment.lane) ? (
+                <span className="ml-2 text-[11px] font-normal text-[var(--bp-color-ink-55)]">
+                  {SEGMENT_LANE_TAG}
+                </span>
+              ) : null}
             </span>
             <span
               className="text-right font-mono text-[13.5px] font-bold tabular-nums"

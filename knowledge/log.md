@@ -9359,3 +9359,47 @@ behind literal lazy imports, so this was approved feature code rather than an
 entry regression. The aggregate cap moved 410 → 420 KB, following Plan 102's
 same 10 KB deliberate-headroom increment while leaving the 145 KB entry cap
 unchanged.
+
+Plan 105 closed the Generation 18 route-detail work by giving the metric tabs
+pointers into history rather than a second copy of it. Segments whose DOT lane
+coverage is `yes` or `partial` carry an `In the bus lane` tag, and both the map
+legend and the selected-segment readout link to the route's bus-lane change.
+Three things in the plan did not survive contact with the code, and the shape of
+each is worth keeping.
+
+The segment row is a `<button>`, so a link inside it would nest interactive
+elements; the tag stays plain text in the row and its link moved to the readout,
+which the plan had already sanctioned as its fallback. The bus-lane anchor
+lookup went into `route-change-chronology.ts` rather than
+`route-segment-explorer.ts` because the latter is in the initial bundle —
+`routes/$routeId.tsx` imports `validateRouteDetailSearch` eagerly — so a value
+import of the treatment vocabulary there would have dragged
+`route-intervention-model` into the entry chunk. Entry stayed at 138.4 KB gz,
+total 413.1 KB against the 420 KB cap. This is the same eager-module hazard
+recorded for `routes/interventions.tsx` above, hit from the opposite direction:
+there the fix was to inline a union, here it was to move the function.
+
+Addition 3 was deferred, not delivered. The plan asked for the Overview trend
+marker label to become a link, but `OverviewSection` only computes the trend and
+hands `markers` to `SpeedTrend`; the label is drawn as a Recharts
+`ReferenceLine` label inside the lazy `SpeedTrend.chart.tsx`. Linking it is SVG
+work in an out-of-scope module and a design decision about clickable chart
+annotations, so only the `recordAnchorId` field shipped. The plan's STOP
+condition on that step also fired on a false premise: the two assertions that
+broke are whole-object `toEqual` comparisons that mechanically gain any new
+field, and no eligibility assertion moved.
+
+The separate publication attempt that preceded this work produced a durable
+finding. `studio/v2/interventions/evidence-index.json` was built from the real
+375 published bundles — each verified byte-identical to its `sha256` in the
+published `wiki/index.json` — and reproduced the merged code's own measurements
+exactly at 59,216 ledger rows and 30.92 MiB minified. It was uploaded, and
+`/interventions` still has no wiki rows, because production runs
+`PLAN097_RECOVERY_ENABLED: "true"`: artifacts resolve through the active
+release's recovery manifest, and a logical key absent from that manifest throws
+`logical_entry_missing`, which surfaces as the same generic 500 an absent
+artifact returns. Publishing to a logical key is therefore a no-op for serving.
+The operations runbook forbids reusing the Plan 097 recovery path for an
+artifact cutover, so serving any new artifact key is blocked on Plan 098. The
+standing prerequisite in `plans/README.md` had recorded this as the
+highest-value data operation available; it is not a data operation at all.

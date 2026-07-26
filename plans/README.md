@@ -112,7 +112,7 @@ What the audit measured on the live deployment, 2026-07-24:
 | 102 | Typed change dates and correct chronological order | P1 | M | none | DONE (verified 2026-07-26; all 67 free-text literals pinned; total-JS cap raised 400 -> 410 KB because main had zero headroom; the repository-wide style gate remains red on 7 pre-existing errors outside the Plan 102 diff) |
 | 103 | Route Treatments & history as a change chronology | P1 | L | 102 | DONE (PR #111, draft for review; the overlap STOP condition fired against live `v1-rc28` evidence — clusters reach 127 of 151 dated changes on `q52-sbs` and 28 of 32 on `bx41`, caused by record multiplicity rather than year-precision intervals — and the operator resolved it 2026-07-26 by capping the display, not the claim; the upstream mta-wiki fix of one record per real change is owed and out of this repo's scope) |
 | 104 | `/interventions` as the network change record | P1 | M | 102 | DONE (2026-07-26; the plan's measured-data section was re-derived against release `pub_20260725T164123260Z` in the first commit because Plan 097's republish invalidated every figure taken at `b25542b0`; the repository-wide style gate remains red on the same 7 pre-existing errors outside this diff) |
-| 105 | Metric-tab annotation layer and the no-duplication sweep | P2 | M | 103 | TODO |
+| 105 | Metric-tab annotation layer and the no-duplication sweep | P2 | M | 103 | DONE (2026-07-26, amended; Additions 1-2 shipped and the `recordAnchorId` field with them. Addition 3's marker *link* is deferred to its own comp-gated plan: the label is a Recharts `ReferenceLine` in the lazy `SpeedTrend.chart.tsx`, not HTML in `OverviewSection` as the plan assumed. The Step 4 STOP condition fired on a false premise — two whole-object `toEqual` assertions gained the new field, no eligibility assertion moved. Two files outside the In-scope list were required and are justified in the plan's amendments section) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
@@ -136,9 +136,20 @@ REJECTED (with one-line rationale)
   exist and Plan 091 is DONE; the artifacts have never been exported and
   published. Until they are, the `/interventions` Kind filter stays disabled,
   Overview shows no markers, and route history has no typed inventory. None of
-  plans 102-105 is blocked by this — every one degrades honestly — but
-  publishing them is the single highest-value data operation available, and it
-  belongs to the generation-17 publication work.
+  plans 102-105 is blocked by this — every one degrades honestly.
+  **This is not a data operation and cannot be run as one** (diagnosed
+  2026-07-26). Production sets `PLAN097_RECOVERY_ENABLED: "true"`, so
+  `loadReleaseArtifact` never reads the logical key: it resolves through the
+  active release's recovery manifest, maps `logicalKey` -> physical key, and
+  verifies size, media type and `customMetadata.sha256`. A key absent from that
+  manifest throws `logical_entry_missing`, which surfaces as the same generic
+  500. Uploading a new artifact to its logical key therefore changes nothing —
+  confirmed by publishing `studio/v2/interventions/evidence-index.json` (object
+  present in R2 by S3 HEAD) and still getting 500 while `corpus.json` in the
+  same prefix served 200. The operations runbook forbids the shortcut:
+  "Never use this recovery path for a later artifact/schema cutover; Plan 098's
+  pointer must be active first." **Serving any new artifact key is blocked on
+  plan 098.**
 - **A missing artifact is not distinguishable by status code.** The 500 above is
   the generic Worker envelope, and an ordinary absent artifact returns it too:
   `.../routes/bx41/studies.json` → 500 while `.../routes/bx28/studies.json` →
@@ -153,7 +164,13 @@ REJECTED (with one-line rationale)
   are missing in production. The per-route
   `GET /api/v1/studio/routes/:routeId/timeline` is healthy and returns 200 with
   full bundles, so this is a fan-out cost problem in the citywide handler, not
-  missing data. It belongs to its own plan.
+  missing data. **Fixed in code by PR #114** (plan 106): the reduction moved
+  into the pipeline and the page now reads one precomputed artifact, so the
+  endpoint is gone and returns 404. The artifact was built from the real 375
+  bundles and verified — 59,216 ledger rows, 30.92 MiB minified / 2.58 MiB
+  gzipped, matching the merged code's own measurements — and uploaded, but it
+  is subject to the plan-098 gate above, so `/interventions` still renders from
+  route records only.
 - Frontend plans 103 and 104 are comp-gated. Their approved comps are
   `plans/mockups/103-route-change-chronology/route-history-comp.html` and
   `plans/mockups/104-network-change-record/interventions-comp.html`; each

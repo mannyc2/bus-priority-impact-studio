@@ -7,6 +7,7 @@ import {
   routeSpeedInterventionTrend,
 } from "../../src/components/route/intervention-trend-model";
 import type { TrendPoint } from "../../src/components/route/route-derived";
+import { treatmentRecordAnchorId } from "../../src/components/route/route-intervention-model";
 import type {
   StudioRouteInterventionInventoryBundle,
   StudioRouteInterventionObservationBundle,
@@ -379,6 +380,7 @@ describe("route speed intervention trend model", () => {
         eventIds: ["event-b"],
         occurrenceIds: [OCCURRENCE_IDS.first],
         treatmentIds: [TREATMENT_IDS.first],
+        recordAnchorId: treatmentRecordAnchorId(OCCURRENCE_IDS.first),
       },
     ]);
   });
@@ -551,6 +553,7 @@ describe("route speed intervention trend model", () => {
         eventIds: ["event-a", "event-z"],
         occurrenceIds: [OCCURRENCE_IDS.first, OCCURRENCE_IDS.second],
         treatmentIds: [TREATMENT_IDS.first],
+        recordAnchorId: treatmentRecordAnchorId(OCCURRENCE_IDS.first),
       },
     ]);
   });

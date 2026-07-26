@@ -16,7 +16,7 @@
 
 ## Status
 
-- **State**: TODO
+- **State**: DONE (2026-07-26, with the amendments recorded below)
 - **Priority**: P2
 - **Effort**: M
 - **Risk**: LOW (adds links and one tag; deletes nothing a reader depends on)
@@ -375,3 +375,64 @@ Stop and report back (do not improvise) if:
   rather than the whole DOT lane layer. That is a new plan; it will replace
   Addition 2's link with a real extent highlight, and the tag in Addition 1
   should then carry the extent, not the route-level lane flag.
+
+## Amendments applied at execution (2026-07-26)
+
+Three things in this plan did not survive contact with the code. All were
+resolved in the direction the plan's own reasoning points; none widened what
+the surfaces claim.
+
+### 1. The Step 4 STOP condition fired on a false premise
+
+Adding `recordAnchorId` broke two assertions in
+`intervention-trend-model.test.ts`. The plan reads a changed assertion here as
+proof "the gate moved". It did not: both are whole-object `toEqual`
+comparisons that mechanically gain any new field. The diff adds only
+`recordAnchorId` and removes nothing, and every eligibility, grouping,
+ordering, cap and fallback assertion passes as written. The two assertions were
+updated. A future field addition will hit this again; the criterion should read
+"no assertion about marker eligibility changes", not "no assertion changes".
+
+### 2. Addition 3 is not implementable where the plan puts it, and was deferred
+
+`OverviewSection` computes the trend and passes `markers` to `SpeedTrend`; it
+never renders a marker label. The label is drawn as a Recharts `ReferenceLine`
+label in `SpeedTrend.chart.tsx`, a lazy chart module outside this plan's scope.
+Linking it means an SVG anchor or a custom label component, and clickable chart
+annotations are a design decision, not a mechanical edit. Markers also render
+nothing in production until the Plan 090/091 artifacts publish, which is
+itself blocked (see below). `recordAnchorId` shipped; the link did not. It
+needs its own comp-gated plan.
+
+### 3. Two files outside the In-scope list were required
+
+- `apps/web/src/studio/pages/route-detail.tsx` now passes
+  `evidence`/`inventory`/`studies` to `SegmentExplorerSection`, which is what
+  makes the chronology reachable from the segments tab. The alternative --
+  building a route-only chronology inside `SegmentExplorer` -- would look
+  correct today only because those artifacts are absent in production, and
+  would mint anchors diverging from history's once they publish.
+- `apps/web/src/components/route/route-change-chronology.ts` gained
+  `busLaneChangeAnchor`, a read-only query over changes it already mints. The
+  plan wanted this helper in `route-segment-explorer.ts`, but that module is in
+  the initial bundle (`routes/$routeId.tsx` imports `validateRouteDetailSearch`
+  eagerly), so a value import of the treatment vocabulary there would have
+  pulled `route-intervention-model` into the entry chunk. Entry stayed at
+  138.4 KB gz.
+
+`SEGMENT_LANE_TAG` and `segmentCarriesLaneTag` do live in
+`route-segment-explorer.ts` -- both are bundle-safe -- so the Done criterion
+`rg -n "In the bus lane" .../SegmentExplorer.tsx` returns zero, not one. The
+literal is defined exactly once, which is what that criterion was protecting.
+
+### Verification
+
+`check:types`, `check:design-doctrine`, `check:architecture` and
+`check:web-release` all exit 0; `test:web` is 438 pass / 0 fail. Bundle entry
+138.4 KB gz / 145 KB, total JS 413.1 KB gz / 420 KB. `check:style` remains red
+on the same 7 pre-existing errors outside this diff (`analytics-primer.html`,
+`routes/index.tsx`, `packages/analytics/**`); `biome check` over the nine
+changed files is clean.
+
+`TreatmentInventory` in `components/TreatmentBadge.tsx` is defined and never
+used. It is pre-existing dead code, noted rather than deleted.
