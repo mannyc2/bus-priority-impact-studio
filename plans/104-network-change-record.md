@@ -73,49 +73,71 @@ bundles, the study index, and the nullable facet index.
 
 ### The exact data this plan derives from
 
-All measured on 2026-07-24 against the live deployment.
+All measured on 2026-07-26 against the live deployment, release
+`pub_20260725T164123260Z` (published 2026-07-25, coverage `2023-04` to
+`2026-05`).
 
-`route.interventions[]`, 569 records over 323 of 389 routes (66 have none),
+> **Re-measurement note.** The figures below were first taken on 2026-07-24 at
+> commit `b25542b0`, before Plan 097's production catch-up republished serving
+> on 2026-07-25. Every count moved. This section — and only this section — was
+> re-derived from `pub_20260725T164123260Z`; the target contract, copy rules,
+> scope, steps, done criteria and STOP conditions are unchanged. The
+> superseded 2026-07-24 reading was 569 records over 323 of 389 routes with a
+> bus-lane series ending at 323 and camera enforcement at 58.
+
+`route.interventions[]`, 500 records over 293 of 389 routes (96 have none),
 each with a strict ISO `year` (`YYYY` or `YYYY-MM`, earliest `1963`) and an
 `interventionType`:
 
 | `interventionType` | Records |
 |---|---:|
-| `bus_lane_infrastructure` | 375 |
-| `select_bus_service` | 92 |
-| `automated_bus_lane_enforcement` | 79 |
-| `documented_bus_priority_intervention` | 13 |
-| `transit_signal_priority` | 4 |
+| `bus_lane_infrastructure` | 336 |
+| `automated_bus_lane_enforcement` | 74 |
+| `select_bus_service` | 74 |
+| `documented_bus_priority_intervention` | 9 |
 | `busway` | 3 |
-| `stop_consolidation` | 2 |
+| `transit_signal_priority` | 3 |
 | `queue_jump` | 1 |
+
+`stop_consolidation` carries no records in this release. It remains part of the
+`interventionType` union and the family map must still cover it.
 
 Reducing to the **first year each route was reached by each type** gives the
 cumulative series this plan charts. The expected values, 2007 through 2026, are:
 
 | Series | 07 | 08 | 09 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| Bus lane | 11 | 12 | 12 | 15 | 17 | 33 | 41 | 45 | 50 | 54 | 59 | 74 | 86 | 102 | 147 | 153 | 204 | 228 | 323 | 323 |
-| Camera enforcement | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 6 | 6 | 15 | 20 | 33 | 52 | 58 |
-| Select Bus Service | 0 | 2 | 2 | 4 | 6 | 9 | 14 | 16 | 18 | 25 | 32 | 34 | 36 | 36 | 36 | 36 | 36 | 36 | 36 | 36 |
-| Signal priority | 0 | 0 | 0 | 0 | 2 | 2 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 |
+| Bus lane | 11 | 12 | 12 | 14 | 16 | 32 | 39 | 42 | 45 | 49 | 53 | 66 | 78 | 93 | 134 | 139 | 187 | 208 | 293 | 293 |
+| Camera enforcement | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 5 | 5 | 14 | 19 | 29 | 48 | 54 |
+| Select Bus Service | 0 | 2 | 2 | 3 | 5 | 8 | 12 | 13 | 15 | 19 | 26 | 28 | 30 | 30 | 30 | 30 | 30 | 30 | 30 | 30 |
+| Signal priority | 0 | 0 | 0 | 0 | 2 | 2 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 |
 | Busway | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 2 | 3 | 3 | 3 | 3 | 3 | 3 |
-| Any treatment | 11 | 12 | 12 | 15 | 19 | 35 | 41 | 47 | 54 | 61 | 71 | 86 | 100 | 116 | 162 | 173 | 219 | 244 | 323 | 323 |
+| Other documented | 0 | 0 | 0 | 0 | 2 | 2 | 5 | 5 | 5 | 5 | 5 | 6 | 7 | 7 | 7 | 10 | 10 | 10 | 10 | 10 |
+| Any treatment | 11 | 12 | 12 | 14 | 18 | 34 | 39 | 43 | 48 | 54 | 64 | 77 | 91 | 106 | 148 | 158 | 201 | 223 | 293 | 293 |
 
-Nine bus-lane records predate 2007 (all `1963`); they are inside the 2007
-starting value. **2026 is a partial year** — the served release is frozen at a
-June 2026 publication — and the chart must say so.
+Nine bus-lane records predate 2007 (all `1963-05`); they are inside the 2007
+starting value. **2026 is a partial year** — the served release covers only
+through `2026-05` — and the chart must say so.
+
+The shape the concept rests on survives the re-measurement: bus lanes went from
+11 routes in 2007 to 293, 85 of them added in 2025 alone; camera enforcement did
+not exist before 2019 and now reaches 54 routes; Select Bus Service has not
+reached a new route since 2019 and signal priority has stood at 3 routes since
+2013.
 
 Reviewed corpus, `studio/v2/interventions/corpus.json`: 310 records, 248
 `proposed` across 22 distinct source plans. The four largest are Brooklyn Bus
 Network Redesign Draft Plan (86 changes, 97 routes), Bronx Bus Network Redesign
 Final Plan (53, 60), Queens Bus Network Redesign Service Change Board Item
 (46, 61) and NYC DOT Better Buses Action Plan (16, 74); the remaining 18 plans
-hold 47 changes.
+hold 47 changes. This is the one input the republish left unchanged.
 
-Published study index, `studio/v2/studies/index.json`: 7 studies, 2
-`segment_matched_did` and 5 `descriptive_before_after`; directions are 2
-`improved`, 1 `worsened`, 4 `no_detectable_change`.
+Published study index, `studio/v2/studies/index.json`: 5 studies, 3
+`segment_matched_did` and 2 `descriptive_before_after`; directions are 1
+`worsened` and 4 `no_detectable_change`, with no `improved` study in this
+release. All 5 are `automated_bus_lane_enforcement` on `BX28`, `BX38`, `BX9`,
+`M79+` and `B82+`. The `improved` branch of the result cell must still exist and
+must still be covered by a fixture test; no live row exercises it today.
 
 ### The word that matters
 
