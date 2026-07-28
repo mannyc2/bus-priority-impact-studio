@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
+  isPublicInterventionArtifactKey,
+  loadReleaseArtifact,
   loadReleaseArtifactForRelease,
   Plan097ArtifactResolutionError,
   plan097RecoveryManifestKey,
@@ -90,6 +92,39 @@ function manifest(logicalKey = "studio/v1/routes.json") {
 }
 
 describe("Plan 097 release artifact resolver", () => {
+  test("allows only the independent public intervention release outside recovery manifests", async () => {
+    const networkKey = "studio/v2/interventions/public-episodes.json";
+    const routeKey = "studio/v2/routes/m15-sbs/intervention-history.json";
+    const network = new FakeR2Object(networkKey, { public: true });
+    const route = new FakeR2Object(routeKey, { route: true });
+    const bucket = new FakeR2Bucket(
+      new Map([
+        [network.key, network],
+        [route.key, route],
+      ]),
+    );
+
+    expect(isPublicInterventionArtifactKey(networkKey)).toBe(true);
+    expect(isPublicInterventionArtifactKey(routeKey)).toBe(true);
+    expect(isPublicInterventionArtifactKey("studio/v2/interventions/corpus.json")).toBe(false);
+    expect(isPublicInterventionArtifactKey("studio/v2/routes/m15-sbs/dossier.json")).toBe(false);
+    expect(isPublicInterventionArtifactKey("quality/intervention-episode-resolution.json")).toBe(
+      false,
+    );
+
+    const env = {
+      ARTIFACTS: bucket as unknown as R2Bucket,
+      PLAN097_RECOVERY_ENABLED: "true",
+    };
+    await expect(loadReleaseArtifact(env, networkKey)).resolves.toBe(
+      network as unknown as R2ObjectBody,
+    );
+    await expect(loadReleaseArtifact(env, routeKey)).resolves.toBe(
+      route as unknown as R2ObjectBody,
+    );
+    expect(bucket.gets).toEqual([networkKey, routeKey]);
+  });
+
   test("is inert until recovery mode is explicitly enabled", async () => {
     const legacy = new FakeR2Object("studio/v1/routes.json", { legacy: true });
     const bucket = new FakeR2Bucket(new Map([[legacy.key, legacy]]));

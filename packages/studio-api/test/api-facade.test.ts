@@ -1869,6 +1869,36 @@ describe("Studio API facade", () => {
     });
   });
 
+  it("serves the independent public intervention release during Plan 097 recovery", async () => {
+    const networkBody = '{"artifactKind":"public_intervention_episodes"}';
+    const routeBody = '{"artifactKind":"public_route_intervention_history"}';
+    const env = {
+      ARTIFACTS: new FakeR2Bucket({
+        "studio/v2/interventions/public-episodes.json": new FakeR2Object(
+          networkBody,
+          "application/json",
+        ),
+        "studio/v2/routes/m15-sbs/intervention-history.json": new FakeR2Object(
+          routeBody,
+          "application/json",
+        ),
+      }) as unknown as R2Bucket,
+      PLAN097_RECOVERY_ENABLED: "true",
+    };
+
+    const [networkResponse, routeResponse] = await Promise.all([
+      fetchApi("/api/v1/artifacts/studio/v2/interventions/public-episodes.json", env),
+      fetchApi("/api/v1/artifacts/studio/v2/routes/m15-sbs/intervention-history.json", env),
+    ]);
+
+    expect(networkResponse.status).toBe(200);
+    expect(routeResponse.status).toBe(200);
+    expect(networkResponse.headers.get("Cache-Control")).toBe("no-store");
+    expect(routeResponse.headers.get("Cache-Control")).toBe("no-store");
+    expect(await networkResponse.text()).toBe(networkBody);
+    expect(await routeResponse.text()).toBe(routeBody);
+  });
+
   it("serves only the latest cataloged v2 map manifest and artifact objects", async () => {
     const artifactHash = "b".repeat(64);
     const routeFactsHash = "c".repeat(64);
