@@ -6,7 +6,6 @@ import {
 } from "../../components/route/route-segment-explorer.js";
 import { routeHead } from "../../lib/head.js";
 import {
-  fetchPublicRouteInterventionHistory,
   fetchStudioRoute,
   fetchStudioRouteEvidence,
   fetchStudioRouteInterventionInventory,
@@ -79,16 +78,20 @@ export const Route = createFileRoute("/routes/$routeId")({
         );
         return null;
       }),
-      fetchPublicRouteInterventionHistory(params.routeId, {
-        signal: abortController.signal,
-      }).catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") throw error;
-        console.warn(
-          "Public route intervention history request failed; rendering the legacy history.",
-          { error },
-        );
-        return null;
-      }),
+      import("../../studio/public-intervention-api.js")
+        .then((module) =>
+          module.fetchPublicRouteInterventionHistory(params.routeId, {
+            signal: abortController.signal,
+          }),
+        )
+        .catch((error: unknown) => {
+          if (error instanceof Error && error.name === "AbortError") throw error;
+          console.warn(
+            "Public route intervention history request failed; rendering the legacy history.",
+            { error },
+          );
+          return null;
+        }),
     ]).then(([detail, evidence, inventory, studies, observations, publicHistory]) => ({
       detail,
       evidence,

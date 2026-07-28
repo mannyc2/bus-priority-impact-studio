@@ -2,6 +2,9 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { NetworkBuildout } from "@/components/interventions/NetworkBuildout";
+
+export { PublicInterventions as PublicInterventionsPage } from "@/components/interventions/PublicInterventions";
+
 import { ProposedPlans } from "@/components/interventions/ProposedPlans";
 import {
   ROUTE_CHANGE_INDEX_ROWS,

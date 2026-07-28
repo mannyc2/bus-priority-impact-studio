@@ -1,17 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { routeHead } from "../lib/head.js";
-import {
-  fetchPublicInterventionEpisodes,
-  staticStudioLoaderStaleTimeMs,
-} from "../studio/api-client.js";
+import { staticStudioLoaderStaleTimeMs } from "../studio/api-client.js";
 import type { StudioInterventionTreatmentFamily } from "../studio/api-contract.js";
 import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../studio/home-route-index.js";
 import type { RouteChangeGroup } from "../studio/network-change-record.js";
 
 const PublicInterventions = lazy(() =>
-  import("../components/interventions/PublicInterventions.js").then((module) => ({
-    default: module.PublicInterventions,
+  import("../studio/pages/interventions.js").then((module) => ({
+    default: module.PublicInterventionsPage,
   })),
 );
 
@@ -118,6 +115,9 @@ function boundedTrimmedSearch(value: unknown, maxLength: number): string | undef
 
 export const Route = createFileRoute("/interventions")({
   loader: async ({ abortController }) => {
+    const { fetchPublicInterventionEpisodes } = await import(
+      "../studio/public-intervention-api.js"
+    );
     const publicArtifact = await fetchPublicInterventionEpisodes({
       signal: abortController.signal,
     }).catch((error: unknown) => {

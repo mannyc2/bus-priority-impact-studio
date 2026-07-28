@@ -1,10 +1,9 @@
 import type { PublicRouteInterventionHistoryArtifact } from "@bp/domain/studio/public-intervention-episodes";
 import { useNavigate } from "@tanstack/react-router";
-import { type ReactNode, useEffect } from "react";
+import { lazy, type ReactNode, Suspense, useEffect } from "react";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
 import { HonestEmptySection } from "@/components/route/HonestEmptySection";
 import { OverviewSection } from "@/components/route/OverviewSection";
-import { PublicRouteHistory } from "@/components/route/PublicRouteHistory";
 import { ReliabilitySection } from "@/components/route/ReliabilitySection";
 import { RidersSection } from "@/components/route/RidersSection";
 import { RouteDetailHeader } from "@/components/route/RouteDetailHeader";
@@ -31,6 +30,12 @@ import type {
 } from "../api-contract.js";
 import { StudioPage } from "../page.js";
 import { NotFoundPage } from "./not-found.js";
+
+const PublicRouteHistory = lazy(() =>
+  import("@/components/route/PublicRouteHistory").then((module) => ({
+    default: module.PublicRouteHistory,
+  })),
+);
 
 function TrackRecentRoute({ slug }: { slug: string }) {
   useEffect(() => {
@@ -191,16 +196,22 @@ export function RouteDetailPage({
             recordKey={search.record}
           />
         ) : (
-          <PublicRouteHistory
-            showHeader={false}
-            input={{
-              routeId: publicHistory.route.routeId,
-              routeLabel: publicHistory.route.label,
-              corridor: publicHistory.route.corridor,
-              episodes: publicHistory.episodes,
-              speed: dossierSpeedPoints(data.dossier),
-            }}
-          />
+          <Suspense
+            fallback={
+              <div className="h-[360px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]" />
+            }
+          >
+            <PublicRouteHistory
+              showHeader={false}
+              input={{
+                routeId: publicHistory.route.routeId,
+                routeLabel: publicHistory.route.label,
+                corridor: publicHistory.route.corridor,
+                episodes: publicHistory.episodes,
+                speed: dossierSpeedPoints(data.dossier),
+              }}
+            />
+          </Suspense>
         ),
       );
       break;

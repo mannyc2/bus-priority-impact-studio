@@ -51,16 +51,13 @@ function copyMapLibreVendor() {
   };
 }
 
-function stableSharedUiChunks(id: string): string | undefined {
+function sharedEntryUtilities(id: string): string | undefined {
   const normalized = id.replaceAll("\\", "/");
-  if (normalized.includes("/node_modules/") && normalized.includes("/@base-ui/")) {
-    return "base-ui";
-  }
-  if (normalized.includes("/node_modules/") && normalized.includes("/lucide-react/")) {
-    return "icons";
-  }
-  if (normalized.includes("/apps/web/src/components/ui/")) {
-    return "ui";
+  if (
+    normalized.includes("/node_modules/tailwind-merge/") ||
+    normalized.includes("/node_modules/lucide-react/")
+  ) {
+    return "entry-utilities";
   }
   return undefined;
 }
@@ -88,11 +85,8 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      // These primitives are shared by the eager shell and several lazy
-      // routes. Keep their placement stable when a route is added or removed
-      // so Rollup does not copy them back into the first-paint entry.
       output: {
-        manualChunks: stableSharedUiChunks,
+        manualChunks: sharedEntryUtilities,
       },
     },
   },

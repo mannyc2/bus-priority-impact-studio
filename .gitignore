@@ -42,8 +42,8 @@ data/artifacts/studio/v2/*
 !data/artifacts/studio/v2/studies/
 data/artifacts/studio/v2/studies/*
 !data/artifacts/studio/v2/studies/temporal-anchor-audit.md
-# This compact serving release and its dev-only resolution audit are checked in
-# so the public UI and /system review canvas build from a clean checkout.
+# This compact serving release and its operator-only resolution audit are
+# checked in so publication can validate both from a clean checkout.
 !data/artifacts/studio/v2/interventions/
 data/artifacts/studio/v2/interventions/*
 !data/artifacts/studio/v2/interventions/public-episodes.json
