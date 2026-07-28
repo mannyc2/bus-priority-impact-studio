@@ -1,10 +1,23 @@
 import { createD1ServingDb, findLatestPublishedStudioServingRelease } from "@bp/db/d1";
 import { Plan097RecoveryArtifactManifestSchema } from "@bp/db/recovery/plan097/artifacts";
+import { publicInterventionEpisodesKey } from "@bp/domain/studio/public-intervention-episodes";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import type { StudioApiEnv } from "./env.js";
 import { decodeSchemaStrict } from "./schema-decode.js";
 
 export const PLAN097_RECOVERY_NAMESPACE = "operations/plan097/";
+const PUBLIC_ROUTE_INTERVENTION_HISTORY_KEY =
+  /^studio\/v2\/routes\/[a-z0-9]+(?:-[a-z0-9]+)*\/intervention-history\.json$/;
+
+/**
+ * Public intervention episodes are an independently generated release: route
+ * bodies are verified first and its network index is the activation pointer.
+ * Keep this allowlist exact so Plan 097 recovery cannot be bypassed for any
+ * other Studio artifact, including operator-facing reconciliation data.
+ */
+export function isPublicInterventionArtifactKey(key: string): boolean {
+  return key === publicInterventionEpisodesKey() || PUBLIC_ROUTE_INTERVENTION_HISTORY_KEY.test(key);
+}
 
 export function plan097RecoveryManifestKey(releaseId: string): string {
   return `operations/plan097/releases/${releaseId}/artifact-manifest.json`;
@@ -114,6 +127,9 @@ export async function loadReleaseArtifact(
   logicalKey: string,
 ): Promise<R2ObjectBody | null> {
   if (env.ARTIFACTS === undefined) return null;
+  if (isPublicInterventionArtifactKey(logicalKey)) {
+    return env.ARTIFACTS.get(logicalKey);
+  }
   if (!recoveryEnabled(env.PLAN097_RECOVERY_ENABLED)) {
     return env.ARTIFACTS.get(logicalKey);
   }
