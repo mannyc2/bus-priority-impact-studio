@@ -32,7 +32,7 @@ if (!accessKeyId || !secretAccessKey || !endpoint) {
 }
 
 type S3FileLike = {
-  stat(): Promise<{ size: number; etag?: string } | undefined>;
+  arrayBuffer(): Promise<ArrayBuffer>;
   write(data: Uint8Array, options: { type: string }): Promise<number>;
 };
 type S3ClientLike = {
@@ -57,7 +57,7 @@ const client = new bunRuntime.S3Client({
 type Candidate = {
   key: string;
   bytes: Uint8Array;
-  md5: string;
+  sha256: string;
 };
 
 const publicArtifact = decodeStrict(PublicInterventionEpisodesArtifactSchema)(
@@ -139,12 +139,7 @@ if (failures.length > 0) process.exitCode = 1;
 
 async function publishOne(candidate: Candidate): Promise<void> {
   try {
-    const existing = await remoteStat(candidate.key);
-    if (
-      existing !== null &&
-      existing.size === candidate.bytes.byteLength &&
-      normalizeEtag(existing.etag) === candidate.md5
-    ) {
+    if (await remoteMatches(candidate)) {
       skippedCount += 1;
       return;
     }
@@ -155,13 +150,8 @@ async function publishOne(candidate: Candidate): Promise<void> {
     await client.file(candidate.key).write(candidate.bytes, {
       type: "application/json",
     });
-    const verified = await remoteStat(candidate.key);
-    if (
-      verified === null ||
-      verified.size !== candidate.bytes.byteLength ||
-      normalizeEtag(verified.etag) !== candidate.md5
-    ) {
-      throw new Error("post-upload size or ETag verification failed");
+    if (!(await remoteMatches(candidate))) {
+      throw new Error("post-upload SHA-256 verification failed");
     }
     uploadedCount += 1;
   } catch (error) {
@@ -172,15 +162,17 @@ async function publishOne(candidate: Candidate): Promise<void> {
   }
 }
 
-async function remoteStat(key: string): Promise<{ size: number; etag: string } | null> {
+async function remoteMatches(candidate: Candidate): Promise<boolean> {
   try {
-    const stat = await client.file(key).stat();
-    if (!stat) return null;
-    return { size: stat.size, etag: stat.etag ?? "" };
+    const bytes = new Uint8Array(await client.file(candidate.key).arrayBuffer());
+    return (
+      bytes.byteLength === candidate.bytes.byteLength &&
+      createHash("sha256").update(bytes).digest("hex") === candidate.sha256
+    );
   } catch (error) {
     const details = error as { status?: number; code?: string };
     if (details.status === 404 || details.code === "NoSuchKey" || details.code === "ENOENT") {
-      return null;
+      return false;
     }
     throw error;
   }
@@ -191,7 +183,7 @@ async function candidateFor(path: string): Promise<Candidate> {
   return {
     key: relative(artifactRoot, path).split(sep).join("/"),
     bytes,
-    md5: createHash("md5").update(bytes).digest("hex"),
+    sha256: createHash("sha256").update(bytes).digest("hex"),
   };
 }
 
@@ -210,10 +202,6 @@ async function forEachConcurrent<T>(
       }
     }),
   );
-}
-
-function normalizeEtag(etag: string): string {
-  return etag.replace(/^"|"$/gu, "").toLowerCase();
 }
 
 function optionValue(name: string): string | undefined {
