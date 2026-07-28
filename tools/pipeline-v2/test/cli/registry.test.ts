@@ -120,6 +120,7 @@ const expectedRegistry = {
     "import-mta-wiki-operational-anchors",
     "import-mta-wiki-operational-occurrences",
     "import-mta-wiki-route-evidence",
+    "public-intervention-episodes",
     "release",
     "route-speed-histories",
     "route-speed-history",
@@ -133,7 +134,7 @@ const expectedRegistry = {
 describe("Effect CLI registry", () => {
   test("loads every pipeline command descriptor loudly", async () => {
     const commands = await discoverCommandDescriptors();
-    expect(commands).toHaveLength(114);
+    expect(commands).toHaveLength(115);
     expect(buildCommandRegistrySnapshot(commands)).toEqual(expectedRegistry);
   });
 

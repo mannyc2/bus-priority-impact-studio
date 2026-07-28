@@ -123,7 +123,7 @@ async function loadStudioJson<T>(path: string, options: StudioQueryOptions = {})
   return body;
 }
 
-async function loadNullableStudioJson<T>(
+export async function loadNullableStudioJson<T>(
   path: string,
   options: StudioQueryOptions = {},
 ): Promise<T | null> {
@@ -166,7 +166,7 @@ export function fetchStudioInterventionsEvidence(options?: StudioQueryOptions) {
   );
 }
 
-function publicArtifactPath(key: string): string {
+export function publicArtifactPath(key: string): string {
   return `/api/v1/artifacts/${key
     .split("/")
     .map((part) => encodeURIComponent(part))

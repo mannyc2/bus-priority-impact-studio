@@ -1,0 +1,379 @@
+import type {
+  PublicInterventionEpisode,
+  PublicNetworkBuildoutSnapshot,
+} from "@bp/domain/studio/public-intervention-episodes";
+import {
+  type ChangeDate,
+  changeDatesOverlap,
+  compareChangeDatesNewestFirst,
+} from "@/studio/change-date";
+import {
+  BUILDOUT_FAMILIES,
+  type BuildoutSeries,
+  buildoutReadings,
+  type NetworkBuildout,
+} from "@/studio/network-change-record";
+
+const KIND_LABELS: Readonly<Record<string, string>> = {
+  bus_lane: "Bus lanes",
+  busway: "Busways",
+  buses: "Buses",
+  camera_enforcement: "Camera enforcement",
+  fares: "Fare payment",
+  other: "Other work",
+  passenger_information: "Passenger information",
+  route_and_schedule: "Routes and schedules",
+  select_bus_service: "Select Bus Service",
+  signal_priority: "Signal priority",
+  stops: "Stops and boarding",
+  street_design: "Street design",
+};
+
+export function publicKindLabel(kindKey: string): string {
+  return KIND_LABELS[kindKey] ?? "Other work";
+}
+
+export function compareEpisodesNewestFirst(
+  left: PublicInterventionEpisode,
+  right: PublicInterventionEpisode,
+): number {
+  return (
+    compareChangeDatesNewestFirst(left.date as ChangeDate, right.date as ChangeDate) ||
+    left.title.localeCompare(right.title)
+  );
+}
+
+function episodeStartKey(episode: PublicInterventionEpisode): string {
+  return episode.date.precision === "unknown" ? "9999" : episode.date.start;
+}
+
+/** Exact route match. B44 never picks up a B44+ episode. */
+export function episodesForRoute(
+  episodes: readonly PublicInterventionEpisode[],
+  routeId: string,
+): PublicInterventionEpisode[] {
+  return episodes
+    .filter((episode) => episode.routes.some((route) => route.routeId === routeId))
+    .toSorted(compareEpisodesNewestFirst);
+}
+
+export type KindFacet = { kindKey: string; label: string; episodeCount: number };
+
+export function publicKindFacets(episodes: readonly PublicInterventionEpisode[]): KindFacet[] {
+  const counts = new Map<string, number>();
+  for (const episode of episodes) {
+    for (const kindKey of episode.kindKeys) {
+      counts.set(kindKey, (counts.get(kindKey) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([kindKey, episodeCount]) => ({
+      kindKey,
+      label: publicKindLabel(kindKey),
+      episodeCount,
+    }))
+    .toSorted(
+      (left, right) =>
+        right.episodeCount - left.episodeCount || left.label.localeCompare(right.label),
+    );
+}
+
+export function filterEpisodes(
+  episodes: readonly PublicInterventionEpisode[],
+  filters: { kindKey: string | null; routeQuery: string },
+): PublicInterventionEpisode[] {
+  const query = filters.routeQuery.trim().toLowerCase();
+  return episodes.filter((episode) => {
+    if (filters.kindKey !== null && !episode.kindKeys.includes(filters.kindKey)) return false;
+    if (query.length === 0) return true;
+    return episode.routes.some(
+      (route) =>
+        route.label.toLowerCase().includes(query) || route.routeId.toLowerCase().includes(query),
+    );
+  });
+}
+
+export type ChronologyAxis = {
+  startYear: number;
+  endYear: number;
+  ticks: readonly string[];
+};
+export type ChronologyBand = {
+  episodeId: string;
+  row: number;
+  start: number;
+  end: number;
+  shape: "point" | "bar";
+  label: string;
+};
+export type ChronologyOverlap = {
+  start: string;
+  end: string;
+  episodeIds: readonly string[];
+};
+
+const MIN_BAND_FRACTION = 0.02;
+const BAND_GUTTER_FRACTION = 0.01;
+
+export function chronologyAxis(
+  episodes: readonly PublicInterventionEpisode[],
+  months: readonly string[],
+): ChronologyAxis {
+  const years: number[] = [];
+  for (const episode of episodes) {
+    if (episode.date.precision === "unknown") continue;
+    years.push(Number(episode.date.start.slice(0, 4)), Number(episode.date.end.slice(0, 4)));
+  }
+  for (const month of months) years.push(Number(month.slice(0, 4)));
+  const finite = years.filter((year) => Number.isFinite(year));
+  if (finite.length === 0) return { startYear: 0, endYear: 0, ticks: [] };
+  const startYear = Math.min(...finite);
+  const endYear = Math.max(...finite);
+  const span = endYear - startYear;
+  const intervals = span >= 9 ? 4 : span >= 4 ? 3 : Math.max(1, span);
+  const ticks = Array.from({ length: intervals + 1 }, (_, index) =>
+    String(startYear + Math.round((index * span) / intervals)),
+  );
+  return { startYear, endYear, ticks: [...new Set(ticks)] };
+}
+
+export function axisFraction(isoDay: string, axis: ChronologyAxis): number {
+  const span = axis.endYear + 1 - axis.startYear;
+  if (span <= 0) return 0;
+  const year = Number(isoDay.slice(0, 4));
+  const month = Number(isoDay.slice(5, 7));
+  const day = Number(isoDay.slice(8, 10));
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return 0;
+  const value = year + (month - 1) / 12 + (day - 1) / 372;
+  return Math.min(1, Math.max(0, (value - axis.startYear) / span));
+}
+
+export function axisMonthFraction(isoMonth: string, axis: ChronologyAxis): number {
+  return axisFraction(`${isoMonth}-01`, axis);
+}
+
+export function packChronologyBands(
+  episodes: readonly PublicInterventionEpisode[],
+  axis: ChronologyAxis,
+): ChronologyBand[] {
+  const byStart = [...episodes].sort(
+    (left, right) =>
+      episodeStartKey(left).localeCompare(episodeStartKey(right)) ||
+      left.episodeId.localeCompare(right.episodeId),
+  );
+  const rowEnds: number[] = [];
+  const bands: ChronologyBand[] = [];
+  for (const episode of byStart) {
+    if (episode.date.precision === "unknown") continue;
+    const start = axisFraction(episode.date.start, axis);
+    const end = axisFraction(episode.date.end, axis);
+    const shape = episode.date.precision === "day" ? "point" : "bar";
+    const packEnd = Math.max(end, start + MIN_BAND_FRACTION);
+    let row = rowEnds.findIndex((rowEnd) => start >= rowEnd + BAND_GUTTER_FRACTION);
+    if (row === -1) row = rowEnds.length;
+    rowEnds[row] = packEnd;
+    bands.push({ episodeId: episode.episodeId, row, start, end, shape, label: episode.title });
+  }
+  return bands;
+}
+
+export function chronologyOverlaps(
+  episodes: readonly PublicInterventionEpisode[],
+): ChronologyOverlap[] {
+  const spans: { start: string; end: string; episodeIds: Set<string> }[] = [];
+  for (const [index, left] of episodes.entries()) {
+    for (const right of episodes.slice(index + 1)) {
+      if (left.date.precision === "unknown" || right.date.precision === "unknown") continue;
+      if (!changeDatesOverlap(left.date as ChangeDate, right.date as ChangeDate)) continue;
+      spans.push({
+        start: left.date.start >= right.date.start ? left.date.start : right.date.start,
+        end: left.date.end <= right.date.end ? left.date.end : right.date.end,
+        episodeIds: new Set([left.episodeId, right.episodeId]),
+      });
+    }
+  }
+  spans.sort(
+    (left, right) => left.start.localeCompare(right.start) || left.end.localeCompare(right.end),
+  );
+  const merged: typeof spans = [];
+  for (const span of spans) {
+    const last = merged.at(-1);
+    if (last !== undefined && span.start <= last.end) {
+      if (span.end > last.end) last.end = span.end;
+      for (const id of span.episodeIds) last.episodeIds.add(id);
+    } else {
+      merged.push({ ...span, episodeIds: new Set(span.episodeIds) });
+    }
+  }
+  return merged.map((span) => ({
+    start: span.start,
+    end: span.end,
+    episodeIds: [...span.episodeIds].sort(),
+  }));
+}
+
+export type TrendMarker = {
+  month: string;
+  label: string;
+  episodeIds: readonly string[];
+};
+
+export function trendMarkers(
+  episodes: readonly PublicInterventionEpisode[],
+  months: readonly string[],
+): TrendMarker[] {
+  const window = [...months].sort();
+  const first = window[0];
+  const last = window.at(-1);
+  if (first === undefined || last === undefined) return [];
+  const byMonth = new Map<string, string[]>();
+  for (const episode of [...episodes].sort((left, right) =>
+    episodeStartKey(left).localeCompare(episodeStartKey(right)),
+  )) {
+    if (episode.date.precision === "unknown") continue;
+    const month = episode.date.start.slice(0, 7);
+    if (month < first || month > last) continue;
+    const group = byMonth.get(month) ?? [];
+    group.push(episode.episodeId);
+    byMonth.set(month, group);
+  }
+  let index = 0;
+  return [...byMonth.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([month, episodeIds]) => {
+      const firstNumber = index + 1;
+      const lastNumber = index + episodeIds.length;
+      index = lastNumber;
+      return {
+        month,
+        label: firstNumber === lastNumber ? String(firstNumber) : `${firstNumber}–${lastNumber}`,
+        episodeIds,
+      };
+    });
+}
+
+export function hasEpisodeInsideSeries(
+  episodes: readonly PublicInterventionEpisode[],
+  months: readonly string[],
+): boolean {
+  return trendMarkers(episodes, months).length > 0;
+}
+
+export function episodesOutsideSeries(
+  episodes: readonly PublicInterventionEpisode[],
+  months: readonly string[],
+): PublicInterventionEpisode[] {
+  const first = [...months].sort()[0];
+  if (first === undefined) return [...episodes];
+  return episodes.filter(
+    (episode) => episode.date.precision !== "unknown" && episode.date.end.slice(0, 7) < first,
+  );
+}
+
+export function networkBuildoutModel(snapshot: PublicNetworkBuildoutSnapshot): NetworkBuildout {
+  const years = Array.from(
+    { length: snapshot.lastYear - snapshot.firstYear + 1 },
+    (_, index) => snapshot.firstYear + index,
+  );
+  const routesByKey = new Map(
+    snapshot.series.map((entry) => [entry.familyKey, entry.routesByYear]),
+  );
+  const series: BuildoutSeries[] = BUILDOUT_FAMILIES.map((family) => {
+    const routesByYear = routesByKey.get(family.key) ?? [];
+    const values = years.map((year, index) => ({
+      year,
+      routes: routesByYear[index] ?? 0,
+    }));
+    return {
+      familyKey: family.key,
+      label: family.label,
+      endLabel: family.endLabel,
+      color: family.color,
+      values,
+      endValue: values.at(-1)?.routes ?? 0,
+    };
+  });
+  return {
+    series,
+    firstYear: snapshot.firstYear,
+    lastYear: snapshot.lastYear,
+    lastCompleteYear: snapshot.lastCompleteYear,
+    partialFinalYear: snapshot.partialFinalYear,
+    readings: buildoutReadings(
+      series,
+      snapshot.firstYear,
+      snapshot.lastYear,
+      snapshot.lastCompleteYear,
+    ),
+    routesWithAnyChange: snapshot.routesWithDocumentedWork,
+    routesWithNoChange: snapshot.routeCount - snapshot.routesWithDocumentedWork,
+  };
+}
+
+export type NetworkChangeGroup = {
+  groupId: string;
+  heading: string | null;
+  dateDisplay: string;
+  sourceLabel: string | null;
+  routeCount: number;
+  episodes: readonly PublicInterventionEpisode[];
+};
+
+const GROUP_THRESHOLD = 3;
+
+export function networkChangeGroups(
+  episodes: readonly PublicInterventionEpisode[],
+): NetworkChangeGroup[] {
+  const buckets = new Map<string, PublicInterventionEpisode[]>();
+  for (const episode of [...episodes].sort(compareEpisodesNewestFirst)) {
+    const key = `${episodeStartKey(episode)}|${episode.citations[0]?.label ?? ""}`;
+    const bucket = buckets.get(key) ?? [];
+    bucket.push(episode);
+    buckets.set(key, bucket);
+  }
+  const groups: NetworkChangeGroup[] = [];
+  for (const [key, bucket] of buckets) {
+    const first = bucket[0];
+    if (first === undefined) continue;
+    const routeCount = new Set(
+      bucket.flatMap((episode) => episode.routes.map((route) => route.routeId)),
+    ).size;
+    if (bucket.length < GROUP_THRESHOLD) {
+      for (const episode of bucket) {
+        groups.push({
+          groupId: episode.episodeId,
+          heading: null,
+          dateDisplay: episode.date.display,
+          sourceLabel: episode.citations[0]?.label ?? null,
+          routeCount: new Set(episode.routes.map((route) => route.routeId)).size,
+          episodes: [episode],
+        });
+      }
+    } else {
+      groups.push({
+        groupId: `grp_${stableGroupId(key)}`,
+        heading: `${bucket.length} changes on ${routeCount} ${routeCount === 1 ? "route" : "routes"}`,
+        dateDisplay: first.date.display,
+        sourceLabel: first.citations[0]?.label ?? null,
+        routeCount,
+        episodes: bucket,
+      });
+    }
+  }
+  return groups.toSorted(
+    (left, right) =>
+      compareEpisodesNewestFirst(
+        left.episodes[0] as PublicInterventionEpisode,
+        right.episodes[0] as PublicInterventionEpisode,
+      ) || left.groupId.localeCompare(right.groupId),
+  );
+}
+
+function stableGroupId(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}

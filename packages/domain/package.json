@@ -114,6 +114,16 @@
       "bun": "./src/studio/projections.ts",
       "import": "./src/studio/projections.ts"
     },
+    "./studio/public-intervention-episode-audit": {
+      "types": "./src/studio/public-intervention-episode-audit.ts",
+      "bun": "./src/studio/public-intervention-episode-audit.ts",
+      "import": "./src/studio/public-intervention-episode-audit.ts"
+    },
+    "./studio/public-intervention-episodes": {
+      "types": "./src/studio/public-intervention-episodes.ts",
+      "bun": "./src/studio/public-intervention-episodes.ts",
+      "import": "./src/studio/public-intervention-episodes.ts"
+    },
     "./studio/release": {
       "types": "./src/studio/release.ts",
       "bun": "./src/studio/release.ts",

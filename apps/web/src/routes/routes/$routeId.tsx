@@ -78,12 +78,27 @@ export const Route = createFileRoute("/routes/$routeId")({
         );
         return null;
       }),
-    ]).then(([detail, evidence, inventory, studies, observations]) => ({
+      import("../../studio/public-intervention-api.js")
+        .then((module) =>
+          module.fetchPublicRouteInterventionHistory(params.routeId, {
+            signal: abortController.signal,
+          }),
+        )
+        .catch((error: unknown) => {
+          if (error instanceof Error && error.name === "AbortError") throw error;
+          console.warn(
+            "Public route intervention history request failed; rendering the legacy history.",
+            { error },
+          );
+          return null;
+        }),
+    ]).then(([detail, evidence, inventory, studies, observations, publicHistory]) => ({
       detail,
       evidence,
       inventory,
       studies,
       observations,
+      publicHistory,
     })),
   validateSearch: (search: Record<string, unknown>): RouteDetailPageSearch =>
     validateRouteDetailPageSearch(search),
@@ -104,6 +119,7 @@ function RouteDetailRoute() {
         inventory={data.inventory}
         observations={data.observations}
         studies={data.studies}
+        publicHistory={data.publicHistory}
         search={search}
       />
     </Suspense>

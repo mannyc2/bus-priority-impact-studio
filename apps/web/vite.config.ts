@@ -51,6 +51,17 @@ function copyMapLibreVendor() {
   };
 }
 
+function sharedEntryUtilities(id: string): string | undefined {
+  const normalized = id.replaceAll("\\", "/");
+  if (
+    normalized.includes("/node_modules/tailwind-merge/") ||
+    normalized.includes("/node_modules/lucide-react/")
+  ) {
+    return "entry-utilities";
+  }
+  return undefined;
+}
+
 export default defineConfig({
   plugins: [
     copyMapLibreVendor(),
@@ -71,5 +82,12 @@ export default defineConfig({
   // 404s at runtime.
   optimizeDeps: {
     include: ["es-toolkit/compat"],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: sharedEntryUtilities,
+      },
+    },
   },
 });

@@ -42,6 +42,14 @@ data/artifacts/studio/v2/*
 !data/artifacts/studio/v2/studies/
 data/artifacts/studio/v2/studies/*
 !data/artifacts/studio/v2/studies/temporal-anchor-audit.md
+# This compact serving release and its operator-only resolution audit are
+# checked in so publication can validate both from a clean checkout.
+!data/artifacts/studio/v2/interventions/
+data/artifacts/studio/v2/interventions/*
+!data/artifacts/studio/v2/interventions/public-episodes.json
+!data/artifacts/quality/
+data/artifacts/quality/*
+!data/artifacts/quality/intervention-episode-resolution.json
 # Operational run logs, PIDs, and scratch from local backfill runners.
 data/ops/*
 data/ops/backfills/
