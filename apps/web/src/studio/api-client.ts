@@ -14,6 +14,14 @@ import {
 import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key";
 import { interventionObservationBundleKey } from "@bp/domain/studio/intervention-observations-key";
 import {
+  type PublicInterventionEpisodesArtifact,
+  PublicInterventionEpisodesArtifactSchema,
+  type PublicRouteInterventionHistoryArtifact,
+  PublicRouteInterventionHistoryArtifactSchema,
+  publicInterventionEpisodesKey,
+  publicRouteInterventionHistoryKey,
+} from "@bp/domain/studio/public-intervention-episodes";
+import {
   interventionFacetIndexKey,
   interventionsEvidenceIndexKey,
   routeInterventionInventoryBundleKey,
@@ -166,11 +174,32 @@ export function fetchStudioInterventionsEvidence(options?: StudioQueryOptions) {
   );
 }
 
-function publicArtifactPath(key: string): string {
+export function publicArtifactPath(key: string): string {
   return `/api/v1/artifacts/${key
     .split("/")
     .map((part) => encodeURIComponent(part))
     .join("/")}`;
+}
+
+export async function fetchPublicInterventionEpisodes(
+  options?: StudioQueryOptions,
+): Promise<PublicInterventionEpisodesArtifact | null> {
+  const value = await loadNullableStudioJson<unknown>(
+    publicArtifactPath(publicInterventionEpisodesKey()),
+    options,
+  );
+  return value === null ? null : decodeStrict(PublicInterventionEpisodesArtifactSchema)(value);
+}
+
+export async function fetchPublicRouteInterventionHistory(
+  routeSlug: string,
+  options?: StudioQueryOptions,
+): Promise<PublicRouteInterventionHistoryArtifact | null> {
+  const value = await loadNullableStudioJson<unknown>(
+    publicArtifactPath(publicRouteInterventionHistoryKey(routeSlug)),
+    options,
+  );
+  return value === null ? null : decodeStrict(PublicRouteInterventionHistoryArtifactSchema)(value);
 }
 
 export function fetchStudioInterventionCorpus(options?: StudioQueryOptions) {

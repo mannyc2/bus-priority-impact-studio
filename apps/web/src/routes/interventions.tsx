@@ -2,21 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { routeHead } from "../lib/head.js";
 import {
-  fetchStudioInterventionCorpus,
-  fetchStudioInterventionFacetIndex,
-  fetchStudioInterventionsEvidence,
-  fetchStudioRoutes,
-  fetchStudioStudiesIndex,
+  fetchPublicInterventionEpisodes,
   staticStudioLoaderStaleTimeMs,
 } from "../studio/api-client.js";
 import type { StudioInterventionTreatmentFamily } from "../studio/api-contract.js";
 import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../studio/home-route-index.js";
 import type { RouteChangeGroup } from "../studio/network-change-record.js";
 
-// Lazy so the page module (SourceNote popover stack) stays out of the entry bundle.
-const InterventionsPage = lazy(() =>
-  import("../studio/pages/interventions.js").then((module) => ({
-    default: module.InterventionsPage,
+const PublicInterventions = lazy(() =>
+  import("../components/interventions/PublicInterventions.js").then((module) => ({
+    default: module.PublicInterventions,
   })),
 );
 
@@ -123,62 +118,14 @@ function boundedTrimmedSearch(value: unknown, maxLength: number): string | undef
 
 export const Route = createFileRoute("/interventions")({
   loader: async ({ abortController }) => {
-    const [routes, evidenceResult, corpusResult, studiesIndex, facetIndex] = await Promise.all([
-      fetchStudioRoutes({ signal: abortController.signal }),
-      fetchStudioInterventionsEvidence({ signal: abortController.signal }).then(
-        (evidence) => ({ ok: true, evidence }) as const,
-        (error: unknown) => ({ ok: false, error }) as const,
-      ),
-      fetchStudioInterventionCorpus({ signal: abortController.signal }).then(
-        (corpus) => ({ ok: true, corpus }) as const,
-        (error: unknown) => ({ ok: false, error }) as const,
-      ),
-      // Studies index is nullable; a failure never blocks the page.
-      fetchStudioStudiesIndex({ signal: abortController.signal }).catch((error: unknown) => {
-        if (isAbortError(error)) throw error;
-        console.warn("Studies index request failed; rendering rows without studies.", { error });
-        return null;
-      }),
-      fetchStudioInterventionFacetIndex({ signal: abortController.signal }).catch(
-        (error: unknown) => {
-          if (isAbortError(error)) throw error;
-          console.warn("Intervention facet index request failed; typed filters are unavailable.", {
-            error,
-          });
-          return null;
-        },
-      ),
-    ]);
-
-    if (!evidenceResult.ok) {
-      if (isAbortError(evidenceResult.error)) throw evidenceResult.error;
-      console.warn("Interventions evidence request failed; rendering route records only.", {
-        error: evidenceResult.error,
-      });
-      if (!corpusResult.ok && isAbortError(corpusResult.error)) throw corpusResult.error;
-      return {
-        routes,
-        evidence: [],
-        corpus: corpusResult.ok ? corpusResult.corpus : null,
-        studiesIndex,
-        facetIndex,
-      };
-    }
-
-    if (!corpusResult.ok) {
-      if (isAbortError(corpusResult.error)) throw corpusResult.error;
-      console.warn("Intervention corpus request failed; rendering registry records only.", {
-        error: corpusResult.error,
-      });
-    }
-
-    return {
-      routes,
-      evidence: evidenceResult.evidence.bundles,
-      corpus: corpusResult.ok ? corpusResult.corpus : null,
-      studiesIndex,
-      facetIndex,
-    };
+    const publicArtifact = await fetchPublicInterventionEpisodes({
+      signal: abortController.signal,
+    }).catch((error: unknown) => {
+      if (isAbortError(error)) throw error;
+      console.warn("Public intervention episode artifact request failed.", { error });
+      return null;
+    });
+    return { publicArtifact };
   },
   validateSearch: (search: Record<string, unknown>): InterventionsSearch =>
     validateInterventionsSearch(search),
@@ -195,21 +142,34 @@ export const Route = createFileRoute("/interventions")({
 function InterventionsRoute() {
   const data = Route.useLoaderData();
   const search = Route.useSearch();
-  const navigate = Route.useNavigate();
   return (
     <Suspense fallback={<InterventionsRouteFallback />}>
-      <InterventionsPage
-        routes={data.routes.routes}
-        evidence={data.evidence}
-        corpus={data.corpus}
-        studiesIndex={data.studiesIndex}
-        facetIndex={data.facetIndex}
-        search={search}
-        onSearchChange={(nextSearch) => {
-          void navigate({ search: nextSearch });
-        }}
-      />
+      {data.publicArtifact === null ? (
+        <InterventionsUnavailable />
+      ) : (
+        <main className="min-h-full p-7 max-sm:p-4">
+          <PublicInterventions
+            artifact={data.publicArtifact}
+            initialRouteQuery={search.route ?? ""}
+          />
+        </main>
+      )}
     </Suspense>
+  );
+}
+
+function InterventionsUnavailable() {
+  return (
+    <main className="min-h-full p-7 max-sm:p-4">
+      <div className="border-b border-[var(--bp-color-rule)] pb-6">
+        <h1 className="m-0 text-[34px] font-semibold leading-[1.06] tracking-[-0.03em] max-sm:text-[25px]">
+          Interventions
+        </h1>
+        <p className="mt-3 max-w-[68ch] text-[14px] leading-[1.55] text-[var(--bp-color-ink-70)]">
+          The source-backed intervention history is temporarily unavailable.
+        </p>
+      </div>
+    </main>
   );
 }
 

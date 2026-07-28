@@ -51,6 +51,20 @@ function copyMapLibreVendor() {
   };
 }
 
+function stableSharedUiChunks(id: string): string | undefined {
+  const normalized = id.replaceAll("\\", "/");
+  if (normalized.includes("/node_modules/") && normalized.includes("/@base-ui/")) {
+    return "base-ui";
+  }
+  if (normalized.includes("/node_modules/") && normalized.includes("/lucide-react/")) {
+    return "icons";
+  }
+  if (normalized.includes("/apps/web/src/components/ui/")) {
+    return "ui";
+  }
+  return undefined;
+}
+
 export default defineConfig({
   plugins: [
     copyMapLibreVendor(),
@@ -71,5 +85,15 @@ export default defineConfig({
   // 404s at runtime.
   optimizeDeps: {
     include: ["es-toolkit/compat"],
+  },
+  build: {
+    rollupOptions: {
+      // These primitives are shared by the eager shell and several lazy
+      // routes. Keep their placement stable when a route is added or removed
+      // so Rollup does not copy them back into the first-paint entry.
+      output: {
+        manualChunks: stableSharedUiChunks,
+      },
+    },
   },
 });

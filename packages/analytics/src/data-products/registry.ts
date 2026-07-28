@@ -485,6 +485,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         },
         requiredInputs: [
           "source_manifest:intervention_seed_events",
+          "source_manifest:ace_routes",
           "mta_wiki_route_evidence_release",
         ],
         downstreamConsumers: ["route_treatment_summary_artifact", "Studio intervention timelines"],

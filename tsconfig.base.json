@@ -55,7 +55,13 @@
       "@bp/domain/studio/snapshots": ["./packages/domain/src/studio/snapshots.ts"],
       "@bp/domain/studio/shared": ["./packages/domain/src/studio/shared.ts"],
       "@bp/domain/studio/field-provenance": ["./packages/domain/src/studio/field-provenance.ts"],
-      "@bp/domain/studio/projections": ["./packages/domain/src/studio/projections.ts"]
+      "@bp/domain/studio/projections": ["./packages/domain/src/studio/projections.ts"],
+      "@bp/domain/studio/public-intervention-episodes": [
+        "./packages/domain/src/studio/public-intervention-episodes.ts"
+      ],
+      "@bp/domain/studio/public-intervention-episode-audit": [
+        "./packages/domain/src/studio/public-intervention-episode-audit.ts"
+      ]
     },
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,

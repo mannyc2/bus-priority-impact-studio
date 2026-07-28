@@ -1,12 +1,15 @@
+import type { PublicRouteInterventionHistoryArtifact } from "@bp/domain/studio/public-intervention-episodes";
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect } from "react";
 import { DataNotesSection } from "@/components/route/DataNotesSection";
 import { HonestEmptySection } from "@/components/route/HonestEmptySection";
 import { OverviewSection } from "@/components/route/OverviewSection";
+import { PublicRouteHistory } from "@/components/route/PublicRouteHistory";
 import { ReliabilitySection } from "@/components/route/ReliabilitySection";
 import { RidersSection } from "@/components/route/RidersSection";
 import { RouteDetailHeader } from "@/components/route/RouteDetailHeader";
 import { RouteDetailShell } from "@/components/route/RouteDetailShell";
+import { dossierSpeedPoints } from "@/components/route/route-derived";
 import { routeSectionBadges } from "@/components/route/route-insight-placement";
 import type { RouteDetailSearch } from "@/components/route/route-segment-explorer";
 import { SegmentExplorerSection } from "@/components/route/SegmentExplorer";
@@ -42,6 +45,7 @@ export function RouteDetailPage({
   inventory,
   observations = null,
   studies = null,
+  publicHistory = null,
   search,
 }: {
   data: StudioRouteDetailResponse | null;
@@ -49,6 +53,7 @@ export function RouteDetailPage({
   inventory: StudioRouteInterventionInventoryBundle | null;
   observations?: StudioRouteInterventionObservationBundle | null;
   studies?: RouteStudiesArtifact | null;
+  publicHistory?: PublicRouteInterventionHistoryArtifact | null;
   search: RouteDetailSearch & { record?: string };
 }) {
   const navigate = useNavigate();
@@ -175,16 +180,29 @@ export function RouteDetailPage({
       );
       break;
     case "history":
-      panel = section("treatments", () => (
-        <TreatmentsHistorySection
-          data={data}
-          evidence={evidence}
-          inventory={inventory}
-          studies={studies}
-          studyKey={search.study}
-          recordKey={search.record}
-        />
-      ));
+      panel = section("treatments", () =>
+        publicHistory === null || search.study !== undefined || search.record !== undefined ? (
+          <TreatmentsHistorySection
+            data={data}
+            evidence={evidence}
+            inventory={inventory}
+            studies={studies}
+            studyKey={search.study}
+            recordKey={search.record}
+          />
+        ) : (
+          <PublicRouteHistory
+            showHeader={false}
+            input={{
+              routeId: publicHistory.route.routeId,
+              routeLabel: publicHistory.route.label,
+              corridor: publicHistory.route.corridor,
+              episodes: publicHistory.episodes,
+              speed: dossierSpeedPoints(data.dossier),
+            }}
+          />
+        ),
+      );
       break;
   }
 

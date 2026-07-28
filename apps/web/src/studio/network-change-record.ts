@@ -307,7 +307,7 @@ function plural(count: number, singular: string, pluralForm: string): string {
  * computed from `series` alone; a rule with no qualifying family drops its
  * reading rather than emitting a weakened one.
  */
-function buildoutReadings(
+export function buildoutReadings(
   series: readonly BuildoutSeries[],
   firstYear: number,
   lastYear: number,
